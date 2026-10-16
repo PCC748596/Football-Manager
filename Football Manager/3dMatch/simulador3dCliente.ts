@@ -66,6 +66,7 @@ export const uniformeDoKit = (k: KitDetails, camisaDeLinha = true) => {
     calcao: { padrao: 'solido', cores: [calcaoCor] },
     meiao: { padrao: 'solido', cores: [k.c1] },
     corPrincipal: k.c1,
+    gola: k.clc,   // cor da gola do kit (KitDetails.clc); sem ela o 3D usa o cinza de sempre
     numero: k.nc || (ehClara(k.c1) ? '#000000' : '#ffffff'),
     contorno: k.noc || 'rgba(0,0,0,0.8)',
     mangaComprida: !camisaDeLinha

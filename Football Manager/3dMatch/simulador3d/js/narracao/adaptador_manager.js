@@ -212,7 +212,9 @@ const AdaptadorManager = {
             if (!lado.uniforme || typeof Uniformes === 'undefined') return;
             if (!(eq.nome in this._originais)) this._originais[eq.nome] = Uniformes[eq.nome] || null;
             const orig = this._originais[eq.nome];
-            if (lado.uniforme.titular && orig) Uniformes[eq.nome] = orig;
+            // O desenho feito a mao nao traz gola: leva a do kit do manager (uniforme.linha.gola).
+            const golaKit = lado.uniforme.linha && lado.uniforme.linha.gola;
+            if (lado.uniforme.titular && orig) Uniformes[eq.nome] = golaKit ? Object.assign({}, orig, { gola: golaKit }) : orig;
             else if (lado.uniforme.linha) Uniformes[eq.nome] = lado.uniforme.linha;
             else if (orig) Uniformes[eq.nome] = orig; else delete Uniformes[eq.nome];
         };

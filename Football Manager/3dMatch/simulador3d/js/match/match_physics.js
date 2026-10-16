@@ -417,7 +417,13 @@ Object.assign(Match, {
             } else if (this.goalSequenceStage === 2) {
                 // Pequena pausa (1s) e inicia o kickoff
                 this.tempoParada += this.delta;
-                // `segurarSaida` (ponte.js): o manager tem os times nos postos de saida a espera de o utilizador dar a saida.
+                // `segurarSaida` (ponte.js): o manager tem os times nos postos de saida a espera de a saida ser dada.
+                // Com os times nos postos o jogo segue sozinho: pede-se UMA vez ao manager (a mesma mensagem do ESC) para
+                // arrancar o relogio, e o `Ponte.iniciar` solta a espera. Ja nao e preciso carregar em SAIDA.
+                if (this.tempoParada > 1.0 && this.segurarSaida && !this._saidaAutoPedida && typeof Ponte !== 'undefined') {
+                    this._saidaAutoPedida = true;
+                    Ponte.enviar('saida_pedida', {});
+                }
                 if (this.tempoParada > 1.0 && !this.segurarSaida) {
                     this.tempoParada = 0;
                     this.goalSequenceStage = undefined;

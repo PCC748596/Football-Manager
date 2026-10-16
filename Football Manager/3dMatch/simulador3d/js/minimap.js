@@ -141,7 +141,17 @@ const Minimap = {
     },
 
     update: function () {
-        if (!this._ctx || !this.visivel) return;
+        if (!this._ctx) return;
+        /*
+        NA VISTA 2D (camara `topdown`, os discos tacticos) o minimapa fica desligado: o campo inteiro ja esta no ecra. O botao
+        Minimapa (`visivel`) continua a mandar nas outras camaras.
+        */
+        const em2D = (typeof window !== 'undefined' && window.cameraMode === 'topdown');
+        if (this._em2D !== em2D) {
+            this._em2D = em2D;
+            if (this._canvas) this._canvas.style.display = (this.visivel && !em2D) ? 'block' : 'none';
+        }
+        if (!this.visivel || em2D) return;
         if (typeof Match === 'undefined' || !Match.ball) return;
 
         const ctx = this._ctx;

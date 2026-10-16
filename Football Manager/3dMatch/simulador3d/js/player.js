@@ -6526,14 +6526,21 @@ class FootballPlayer {
             Match.scene.add(this.discoTatico);
         }
 
-        if (this.discoTaticoTexNum !== num || this.discoTaticoTexTeam !== this.team) {
+        if (this.discoTaticoTexNum !== num || this.discoTaticoTexTeam !== this.team || this.discoTaticoTexCor !== this.corCamisa) {
             let dtCanvas = document.createElement('canvas');
             dtCanvas.width = 128; dtCanvas.height = 128;
             let dtCtx = dtCanvas.getContext('2d');
             
             let isTeamA = (this.team === 'TeamA');
             let borderColor = isTeamA ? '#000000' : '#ffffff';
-            let textColor = isTeamA ? '#000000' : '#ffffff';
+            /*
+            O NUMERO DO DISCO LE-SE SEMPRE: preto sobre disco claro, branco sobre escuro, pela luminancia da cor da camisola — e nao
+            pelo lado (TeamA preto / TeamB branco), que dava branco sobre o branco do 2.o kit e deixava o numero ilegivel. A cor do
+            numero do uniforme (ex.: o vermelho do 2.o kit do Internacional) fica so para o boneco 3D. O contorno continua a ser o do lado
+            (o minimapa copia-o).
+            */
+            const lumDisco = (() => { const c = new THREE.Color(this.corCamisa); return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b; })();
+            let textColor = lumDisco > 0.5 ? '#000000' : '#ffffff';
             
             dtCtx.fillStyle = this.corCamisa;
             dtCtx.beginPath();
@@ -6563,6 +6570,7 @@ class FootballPlayer {
             this.discoTatico.material.needsUpdate = true;
             this.discoTaticoTexNum = num;
             this.discoTaticoTexTeam = this.team;
+            this.discoTaticoTexCor = this.corCamisa;
         }
 
         if (!this.btTargetGroup) {

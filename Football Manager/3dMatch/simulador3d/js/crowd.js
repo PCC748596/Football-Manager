@@ -1047,6 +1047,8 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     */
     update(dt) {
         if (!this._uniforms) return;
+        // Na vista 2D (camara `topdown`) a bancada nao se anima: fica parada e volta a mexer quando a camara sair dali.
+        if (typeof window !== 'undefined' && window.cameraMode === 'topdown') return;
         this._tempo += dt;
         this._uniforms.uTempo.value = this._tempo;
 

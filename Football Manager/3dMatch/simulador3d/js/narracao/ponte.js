@@ -146,7 +146,7 @@ const Ponte = {
         if (typeof Sim === 'undefined') global_Sim();
         Sim.running = false;
         if (typeof Abertura !== 'undefined') {
-            Abertura.aguardarSaida = false; Match.segurarSaida = true; Abertura.jaCorreu = false; Abertura.activa = false;
+            Abertura.aguardarSaida = false; Match.segurarSaida = true; Match._saidaAutoPedida = false; Abertura.jaCorreu = false; Abertura.activa = false;
             window.isPaused = false;
             Abertura.iniciar();
         }

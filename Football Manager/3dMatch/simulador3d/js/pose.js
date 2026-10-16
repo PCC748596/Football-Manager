@@ -344,8 +344,14 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
     ctxV.arc(256, 0, RAIO_GOLA, 0, Math.PI);
     ctxV.closePath();
     ctxV.fill();
-    ctxV.strokeStyle = '#2f3640';
-    ctxV.lineWidth = 10;
+    /*
+    A COR DA GOLA DO KIT E A BORDA (o debrum do decote), nao o miolo: pintar o decote por dentro dava um disco vermelho no peito.
+    Com `uniforme.gola` a borda e dessa cor e mais larga; sem ela fica o traco escuro de sempre.
+    */
+    ctxV.strokeStyle = (UNI && UNI.gola) ? UNI.gola : '#2f3640';
+    ctxV.lineWidth = (UNI && UNI.gola) ? 22 : 10;
+    ctxV.beginPath();
+    ctxV.arc(256, 0, RAIO_GOLA, 0, Math.PI);
     ctxV.stroke();
 
     /*
