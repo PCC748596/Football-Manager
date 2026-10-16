@@ -5375,6 +5375,25 @@ function escolherAparencia(indice, total, seedEquipa) {
     };
 }
 
+/*
+A APARENCIA DE UM JOGADOR SAI DO ID DELE (o `idPlayer` do manager / o `id` do squads.js): pele, cabelo e chuteira ficam sempre iguais para o mesmo
+jogador, no 3D e na foto do Overview do manager. E a MESMA conta do `aparenciaDoJogador` do manager (textSim/aparencia.ts): o teste
+tests/aparencia_do_jogador.test.js confere as duas. Sem id real (arbitros, equipas genericas) fica o `escolherAparencia`, o baralho por equipa.
+*/
+function aparenciaDoJogador(id) {
+    const n = (typeof id === 'number') ? (id >>> 0) : Number(id) >>> 0;
+    const M = (typeof AppearanceModel !== 'undefined') ? AppearanceModel : { tipos: [], chuteiras: [] };
+    const porPeso = (lista, r) => {
+        const total = lista.reduce((a, x) => a + x.peso, 0);
+        let acc = r % total;
+        for (const x of lista) { if (acc < x.peso) return x; acc -= x.peso; }
+        return lista[lista.length - 1];
+    };
+    const tipo = M.tipos.length ? porPeso(M.tipos, hashAparencia(n, 1)) : { nome: 'default', cabelo: 0x000000, pele: 0xd1a384 };
+    const bota = M.chuteiras.length ? porPeso(M.chuteiras, hashAparencia(n, 2)) : { nome: 'default', cor: 0x000000 };
+    return { tipo: tipo.nome, cabelo: tipo.cabelo, pele: tipo.pele, chuteira: bota.nome, corChuteira: bota.cor };
+}
+
 function offsetInquietacao(angulo, raio) {
     return { x: Math.cos(angulo) * raio, z: Math.sin(angulo) * raio };
 }
@@ -5950,7 +5969,7 @@ if (typeof window !== 'undefined') {
         gkAnchor, gkAlvoSegurando, gkPodeLancar, gkSweepTarget,
         atribuirMarcacoes, recuoDaUltimaLinha, pontoDeMarcacao,
         pontoDeCanto, fechoDoSector, atribuirApoios,
-        hashAparencia, repartirPorPeso, baralharPorHash, escolherAparencia, pePreferido,
+        hashAparencia, repartirPorPeso, baralharPorHash, escolherAparencia, aparenciaDoJogador, pePreferido,
         offsetInquietacao, coneVisao, alcanceVisao,
         esperarPeloSlot, eixoDeConducao, distanciaMinimaNoLateral,
         pontoDaFaltaDirecta, lugaresDaBarreira, alturaDaBolaEm,

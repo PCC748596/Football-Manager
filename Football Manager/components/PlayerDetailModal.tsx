@@ -4,7 +4,9 @@ import { Player, Position, Team } from '../types';
 import { useGame } from '../context/GameContext';
 import { TeamShield } from './TeamShield';
 import { AttributeGrowthArrow } from './SquadView';
+import { PlayerFace } from './PlayerFace';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
+import { PLAYSTYLE_AJUSTES } from '../textSim/playStylesAjustes';
 import { PLAYSTYLE_POSITIONS, PLAYSTYLE_DESCRICAO, PlayStyle } from '../types';
 
 interface Props {
@@ -143,7 +145,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
       physical: phy,
       radarData
     };
-  }, [player]);
+  }, [player, team]);
 
   const getColorClass = (val: number) => {
     if (val >= 80) return 'text-emerald-500';
@@ -166,11 +168,12 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
   e o "Creative Playmaker" quando nenhum serve.
   */
   const playStyles = useMemo(() => {
-    const daBase = PLAYSTYLE_DA_BASE[player.id]
+    const daBase = (team ? PLAYSTYLE_AJUSTES[`${team.name}|${player.name}`] : undefined)
+      || PLAYSTYLE_DA_BASE[player.id]
       || (Object.keys(PLAYSTYLE_POSITIONS) as PlayStyle[]).find(s => s !== 'None' && PLAYSTYLE_POSITIONS[s].includes(player.position))
       || 'Creative Playmaker';
     return [{ icon: ICONE_DO_ESTILO[daBase] || '🪄', name: daBase, descricao: PLAYSTYLE_DESCRICAO[daBase as PlayStyle] || '' }];
-  }, [player]);
+  }, [player, team]);
 
   const stars = (count: number) => {
     return (
@@ -223,7 +226,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
             <div className="flex gap-6">
               <div className="relative">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 border-2 border-slate-600 flex items-center justify-center shadow-lg overflow-hidden">
-                  <span className="text-4xl">👤</span>
+                  <PlayerFace playerId={player.id} camisa={team?.primaryColor} className="w-full h-full" />
                 </div>
                 <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-slate-900 rounded-full border-2 border-slate-700 flex items-center justify-center">
                   <TeamShield team={team} className="w-6 h-8" />

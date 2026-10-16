@@ -2138,7 +2138,7 @@ Object.assign(Match, {
             let corCamisa = (i === 0) ? '#f1c40f' : '#3498db';
             let corCalcao = (i === 0) ? '#1e1b18' : '#34495e';
             let p = new FootballPlayer(i, corCamisa, corCalcao, 'TeamA',
-                (i === 0) ? uniGKcomLuvas(this.uniformeGKA) : uniA);
+                (i === 0) ? uniGKcomLuvas(this.uniformeGKA) : uniA, skillsA && skillsA[i] ? skillsA[i].id : null);
             p.skills = skillsA ? skillsA[i] : null;
             // O estilo que o jogador traz nos dados manda sobre o estilo por
             // omissão da posição — ver aplicarPlayingStyle.
@@ -2151,7 +2151,7 @@ Object.assign(Match, {
             let corCamisa = (i === 0) ? '#e67e22' : '#e74c3c';
             let corCalcao = (i === 0) ? '#111111' : '#ffffff';
             let p = new FootballPlayer(i + 20, corCamisa, corCalcao, 'TeamB',
-                (i === 0) ? uniGKcomLuvas(this.uniformeGKB) : uniB);
+                (i === 0) ? uniGKcomLuvas(this.uniformeGKB) : uniB, skillsB && skillsB[i] ? skillsB[i].id : null);
             p.skills = skillsB ? skillsB[i] : null;
             p.playingStyleFixo = (p.skills && p.skills.estilo) ? p.skills.estilo : null;
             this.opponents.push(p);

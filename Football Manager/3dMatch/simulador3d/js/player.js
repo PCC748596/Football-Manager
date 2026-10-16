@@ -27,7 +27,7 @@ class FootballPlayer {
     caso do guarda-redes (que veste de outra cor por regra), do arbitro
     (officials.js) e das equipas genericas.
     */
-    constructor(id, color1, color2, team, uniforme) {
+    constructor(id, color1, color2, team, uniforme, idReal) {
         this.id = id; this.team = team; this.role = 'def';
         this.hasBall = false;
         this.uniforme = uniforme || null;
@@ -58,7 +58,10 @@ class FootballPlayer {
         Cada equipa recebe o seu próprio baralho de onze aparências, com as
         proporções pedidas garantidas.
         */
-        this.aparencia = escolherAparencia(this.id, 11, team === 'TeamA' ? 0 : 1);
+        // Com o id REAL do jogador (manager / squads.js) a aparencia e a dele, sempre; sem ele, o baralho da equipa.
+        this.aparencia = (idReal && typeof aparenciaDoJogador === 'function')
+            ? aparenciaDoJogador(idReal)
+            : escolherAparencia(this.id, 11, team === 'TeamA' ? 0 : 1);
         /*
         O PE BOM: 'd' destro, 'e' canhoto. E o que decide em que frame do
         ciclo sai o toque de conducao (ver `noFrameDoPe`).
