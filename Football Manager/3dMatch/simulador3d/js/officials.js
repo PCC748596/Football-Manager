@@ -886,8 +886,7 @@ const Officials = {
         const R = RefereeModel;
         const meiaLarg = CAMPO_LARG / 2;
 
-        const zA = this.linhaDeImpedimento(Match.players, 1);
-        const zB = this.linhaDeImpedimento(Match.opponents, -1);
+        const { zA, zB } = this.linhasDosAssistentes();
 
         this.assistentes[0].model.position.set(
             meiaLarg + R.margemLinha, 0,
@@ -931,6 +930,25 @@ const Officials = {
     regra conta jogadores e não funções — com o GK na baliza, o segundo último
     acaba por ser o defesa mais recuado, que é o que se quer.
     */
+    /*
+    AS DUAS LINHAS QUE OS ASSISTENTES SEGUEM — cada um a da metade que cobre, e nao a de uma equipa fixa.
+
+    O assistente 0 (lateral +X) cobre a metade z <= 0, o 1 (lateral -X) a z >= 0. Quem defende cada metade depende do lado do campo:
+    com os lados trocados (o manager poe a casa a esquerda do ecra) o TeamA ataca -Z e defende +Z. A conta estava escrita para o
+    TeamA a defender -Z, e com os lados trocados dava a linha do ATAQUE: um assistente ficava parado no meio-campo (z ~ 0, o clamp)
+    e o outro seguia o lado errado. `linhaDeImpedimento` recebe o sentido de ataque da equipa que defende a metade.
+    */
+    linhasDosAssistentes: function () {
+        const aAtacaMais = (typeof Lados !== 'undefined') ? Lados.dirDe('TeamA') > 0 : true;
+        // Metade z <= 0: defende quem ataca +Z.
+        const defMenos = aAtacaMais ? Match.players : Match.opponents;
+        const defMais = aAtacaMais ? Match.opponents : Match.players;
+        return {
+            zA: this.linhaDeImpedimento(defMenos, 1),
+            zB: this.linhaDeImpedimento(defMais, -1)
+        };
+    },
+
     linhaDeImpedimento: function (lista, dirZ) {
         const zs = [];
         for (let i = 0; i < lista.length; i++) {
@@ -1462,12 +1480,14 @@ const Officials = {
             if (o.aNaLinha === undefined || dxLinha > 3.0) o.aNaLinha = dxLinha <= 0.6;
             else if (dxLinha <= 0.6) o.aNaLinha = true;
             if (!o.aNaLinha) {
+                o.emTransito = true;   // a frente e a do rumo: ver OficiaisOlhamABola (nao o vira de lado para a bola)
                 this.mover(o, alvoX, pos.z, R.velocidadeAssistente, dt);
                 if (o.rig && o.rig.neck) o.rig.neck.rotation.y = lerpTo(o.rig.neck.rotation.y, 0, 0.2);
                 return;
             }
         }
         const perto = V && Math.abs(pos.z - alvoZ) <= V.distancia && Math.abs(pos.x - alvoX) < 3.0;
+        o.emTransito = !perto;
         if (!perto) {
             this.mover(o, alvoX, alvoZ, R.velocidadeAssistente, dt);
             if (o.rig && o.rig.neck) o.rig.neck.rotation.y = lerpTo(o.rig.neck.rotation.y, 0, 0.2);
@@ -2407,8 +2427,7 @@ const Officials = {
         Assistente 2: linha lateral -X, metade z >= 0, linha do TeamB.
         As duas metades são diagonalmente opostas, como na arbitragem real.
         */
-        const zA = this.linhaDeImpedimento(Match.players, 1);
-        const zB = this.linhaDeImpedimento(Match.opponents, -1);
+        const { zA, zB } = this.linhasDosAssistentes();
 
         const linhaA = THREE.MathUtils.clamp(zA, -(CAMPO_COMP / 2), 0);
         const linhaB = THREE.MathUtils.clamp(zB, 0, CAMPO_COMP / 2);

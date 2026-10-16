@@ -47,7 +47,15 @@ const OficiaisOlhamABola = {
         const G = this.anguloMaxGraus, k = Math.PI / 180;
         const arb = Officials.arbitro;
         if (arb && !arb.sinal) this._corrigir(arb, G.arbitro * k, dt);
-        for (const a of (Officials.assistentes || [])) this._corrigir(a, G.assistente * k, dt);
+        for (const a of (Officials.assistentes || [])) {
+            /*
+            O ASSISTENTE A CAMINHO DO POSTO (so na caminhada para a saida de bola depois da abertura/intervalo: estado GOAL sem festa de golo) VAI DE
+            FRENTE PARA ONDE ANDA. Com a bola atras dele a guarda virava-o 90 graus para o lado e a passada era de frente: movimento
+            para um lado, animacao para o outro. Quando chega perto da linha (`emTransito` falso) a regra volta.
+            */
+            if (a.emTransito && typeof Match !== 'undefined' && Match.state === 'GOAL' && Match.semFestaDeGolo) continue;
+            this._corrigir(a, G.assistente * k, dt);
+        }
     },
 
     // Embrulha o Officials.update uma vez só.
