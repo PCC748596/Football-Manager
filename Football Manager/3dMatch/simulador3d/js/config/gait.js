@@ -364,7 +364,12 @@ const AssentoNoChao = {
     travas, que podem ficar debaixo do relvado"*. O assento mede a caixa da chuteira (sem as travas,
     que sao filhas dela), portanto a sola esta em 0; `afundamento` desce-a mais isto, em metros.
     */
-    afundamento: 0.03
+    afundamento: 0.03,
+    /*
+    CONSTANTE DE TEMPO (s) do filtro da altura do corpo ao andar (ver Player.assentarNoChao). 0 desliga e volta a trava total, sola
+    sempre a -3 cm mas com o corpo a fazer um V a cada passo.
+    */
+    suavizarAndar: 0.08
 };
 if (typeof window !== 'undefined') window.AssentoNoChao = AssentoNoChao;
 /*

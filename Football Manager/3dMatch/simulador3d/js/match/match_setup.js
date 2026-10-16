@@ -2178,7 +2178,22 @@ Object.assign(Match, {
         const lista = (p.team === 'TeamA') ? this.players : this.opponents;
         const i = lista.indexOf(p);
         if (i < 0) return bruta;
-        return this._saidaSeparada(lista, dir)[i];
+        const alvo = this._saidaSeparada(lista, dir)[i];
+        /*
+        O CIRCULO CENTRAL E SO DE QUEM DA A SAIDA: o batedor e o apoio (2 jogadores). Os outros vinte — das duas equipas — ficam fora
+        dele, empurrados em linha recta a partir do centro (como o campo de defesa ja esta garantido, o ponto continua na propria
+        metade). Antes so a equipa que NAO dava a saida era empurrada, e os meios e avancados da que dava ficavam dentro do circulo.
+        */
+        const plano = this.saidaPlano || null;
+        if (plano && (p === plano.taker || p === plano.apoio)) return alvo;
+        const raioCirculo = 9.15 + 0.5;
+        const d = Math.hypot(alvo.x, alvo.z);
+        if (d < raioCirculo) {
+            if (d < 0.001) return { x: 0, z: -raioCirculo * dir };
+            const k = raioCirculo / d;
+            return { x: alvo.x * k, z: alvo.z * k };
+        }
+        return alvo;
     },
 
     /*
@@ -2226,8 +2241,10 @@ Object.assign(Match, {
             // Linha de defesa respeita o ajuste "Linha Defensiva" do painel
             // tambem na saida, nao so durante o jogo — TeamShape.linhaDefensiva
             // esta no referencial de ataque, por isso converte para mundo por *dir.
-            const cap = TeamShape.linhaDefensiva[Tatics.linhaDefensiva] ?? TeamShape.linhaDefensiva.medium;
-            z = cap * dir;
+            // NA SAIDA DE BOLA a linha fica SEMPRE nas intermediarias (`medium`, a meio caminho entre a grande area e a linha
+            // central), e nao no `Tatics.linhaDefensiva`: o manager traduz uma linha 'baixa' (-32.5) e punha a defesa colada a
+            // area na saida. O ajuste continua a valer durante o jogo (computeBlock em team_bt.js).
+            z = TeamShape.linhaDefensiva.medium * dir;
         }
         if (z * dir > -margem) z = -margem * dir;   // força para o campo de defesa
         return { x: p.baseTarget.x, z: z };

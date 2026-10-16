@@ -162,7 +162,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView }) => {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900/30 transition-colors duration-300">
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-10">
+        <div className={`flex-1 overflow-y-auto custom-scrollbar p-10 ${currentView === 'MATCH' ? 'pt-0' : ''}`}>
           {children}
         </div>
       </main>

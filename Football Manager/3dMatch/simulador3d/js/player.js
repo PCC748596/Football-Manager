@@ -634,6 +634,25 @@ class FootballPlayer {
         // A SOLA fica `afundamento` abaixo do relvado: as travas (mais abaixo) ficam enterradas.
         const correccao = THREE.MathUtils.clamp(-(chao + (A.afundamento || 0)), -A.correccaoMax, A.correccaoMax);
         this.model.position.y += correccao * A.suavizacao;
+        /*
+        A ANDAR E A TROTAR O CORPO NAO SEGUE A SOLA A CADA FRAME. Com a sola travada ao relvado, o corpo sobe e desce no ritmo em que a
+        bota mais baixa troca de pe (um bico em V por passo): 3 cm a 1.9 m/s, 6 cm a 2.5, 11 cm a 3.2 — relato: "na caminhada de
+        entrada os jogadores estao quicando". Aqui a altura passa por um filtro de primeira ordem (`AssentoNoChao.suavizarAndar`, s):
+        a 1.9 m/s o quique cai de 2.7 para 2.0 cm e a sola fica a +-1 cm do relvado (medido, tools/scratch). Parado nao se filtra (o
+        pe tem de assentar de imediato), e o filtro encurta de 2.8 m/s ate a `velMax`, onde a sola ja enterrava mais.
+        */
+        const vel = this.velocity.length();
+        const tau0 = A.suavizarAndar || 0;
+        if (tau0 > 0 && vel >= 0.5 && !soASubir) {
+            const tau = vel <= 2.8 ? tau0 : tau0 * (1 - 0.5 * Math.min(1, (vel - 2.8) / 1.2));
+            const dtf = (typeof Match !== 'undefined' && Match.delta) ? Match.delta : 1 / 60;
+            const y = this.model.position.y;
+            if (typeof this._yAssentoFiltrado !== 'number' || Math.abs(this._yAssentoFiltrado - y) > 0.3) this._yAssentoFiltrado = y;
+            this._yAssentoFiltrado += (y - this._yAssentoFiltrado) * (1 - Math.exp(-dtf / tau));
+            this.model.position.y = this._yAssentoFiltrado;
+        } else {
+            this._yAssentoFiltrado = null;
+        }
     }
 
     /*
