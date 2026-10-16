@@ -1,7 +1,7 @@
 [
   {
     "teamID": 450001,
-    "teamName": "\"\"\"4 de Julho EC\"\"\"",
+    "teamName": "4 de Julho EC",
     "teamAbb": "",
     "teamCityName": "Piripiri",
     "teamStadiumName": "Arena Ytacoatiara",
@@ -26,7 +26,7 @@
   },
   {
     "teamID": 450002,
-    "teamName": "\"\"\"AA Caldense\"\"\"",
+    "teamName": "AA Caldense",
     "teamAbb": "AA-",
     "teamCityName": "Poços de Caldas",
     "teamStadiumName": "Municipal Dr. Ronaldo Junq.",
@@ -51,7 +51,7 @@
   },
   {
     "teamID": 450003,
-    "teamName": "\"\"\"AA Internacional Limeira\"\"\"",
+    "teamName": "AA Internacional Limeira",
     "teamAbb": "",
     "teamCityName": "Limeira",
     "teamStadiumName": "Major Levy Sobrinho",
@@ -76,7 +76,7 @@
   },
   {
     "teamID": 450004,
-    "teamName": "\"\"\"ACD Potiguar\"\"\"",
+    "teamName": "ACD Potiguar",
     "teamAbb": "ACD",
     "teamCityName": "Mossoró",
     "teamStadiumName": "Estádio Nogueirão",
@@ -101,7 +101,7 @@
   },
   {
     "teamID": 450005,
-    "teamName": "\"\"\"AD Bahia de Feira\"\"\"",
+    "teamName": "AD Bahia de Feira",
     "teamAbb": "AD-",
     "teamCityName": "Feira de Santana",
     "teamStadiumName": "Arena Cajueiro",
@@ -126,7 +126,7 @@
   },
   {
     "teamID": 450006,
-    "teamName": "\"\"\"AD Iguatu\"\"\"",
+    "teamName": "AD Iguatu",
     "teamAbb": "",
     "teamCityName": "Iguatu",
     "teamStadiumName": "Estádio Morenão",
@@ -151,7 +151,7 @@
   },
   {
     "teamID": 450007,
-    "teamName": "\"\"\"AD São Caetano\"\"\"",
+    "teamName": "AD São Caetano",
     "teamAbb": "",
     "teamCityName": "São Caetano",
     "teamStadiumName": "Anacleto Campanella",
@@ -176,7 +176,7 @@
   },
   {
     "teamID": 450008,
-    "teamName": "\"\"\"ADRC Icasa\"\"\"",
+    "teamName": "ADRC Icasa",
     "teamAbb": "ADR",
     "teamCityName": "Juazeiro do Norte",
     "teamStadiumName": "Estádio Romeirão",
@@ -201,7 +201,7 @@
   },
   {
     "teamID": 450009,
-    "teamName": "\"\"\"Afogados da Ingazeira\"\"\"",
+    "teamName": "Afogados da Ingazeira",
     "teamAbb": "AFO",
     "teamCityName": "Afogados da Ingazeira",
     "teamStadiumName": "Vianão",
@@ -226,7 +226,7 @@
   },
   {
     "teamID": 450010,
-    "teamName": "\"\"\"Águia de Marabá FC\"\"\"",
+    "teamName": "Águia de Marabá FC",
     "teamAbb": "",
     "teamCityName": "Marabá",
     "teamStadiumName": "Estádio Municipal Zinho d.",
@@ -251,7 +251,7 @@
   },
   {
     "teamID": 450011,
-    "teamName": "\"\"\"Alagoinhas AC\"\"\"",
+    "teamName": "Alagoinhas AC",
     "teamAbb": "",
     "teamCityName": "Alagoinhas",
     "teamStadiumName": "Carneiro",
@@ -276,7 +276,7 @@
   },
   {
     "teamID": 450012,
-    "teamName": "\"\"\"Anápolis FC\"\"\"",
+    "teamName": "Anápolis FC",
     "teamAbb": "ANÁ",
     "teamCityName": "Anápolis",
     "teamStadiumName": "Estádio Jonas Duarte",
@@ -301,7 +301,7 @@
   },
   {
     "teamID": 450013,
-    "teamName": "\"\"\"AS Arapiraquense\"\"\"",
+    "teamName": "AS Arapiraquense",
     "teamAbb": "",
     "teamCityName": "Nova",
     "teamStadiumName": "Estádio Coaracy da Mata Fons.",
@@ -326,7 +326,7 @@
   },
   {
     "teamID": 450014,
-    "teamName": "\"\"\"Athletic Club (MG)\"\"\"",
+    "teamName": "Athletic Club (MG)",
     "teamAbb": "",
     "teamCityName": "São João del Rei",
     "teamStadiumName": "Estádio Joaquim Portugal",
@@ -351,7 +351,7 @@
   },
   {
     "teamID": 450015,
-    "teamName": "\"\"\"Atletico Acreano\"\"\"",
+    "teamName": "Atletico Acreano",
     "teamAbb": "",
     "teamCityName": "Rio Branco",
     "teamStadiumName": "Arena da Floresta",
@@ -376,7 +376,7 @@
   },
   {
     "teamID": 450016,
-    "teamName": "\"\"\"Atlético Cajazeirense\"\"\"",
+    "teamName": "Atlético Cajazeirense",
     "teamAbb": "",
     "teamCityName": "Cajazeiras",
     "teamStadiumName": "Perpetão",
@@ -401,7 +401,7 @@
   },
   {
     "teamID": 450017,
-    "teamName": "\"\"\"Azuriz FC\"\"\"",
+    "teamName": "Azuriz FC",
     "teamAbb": "",
     "teamCityName": "Pato Branco",
     "teamStadiumName": "Estádio Os Pioneiros",
@@ -426,7 +426,7 @@
   },
   {
     "teamID": 450018,
-    "teamName": "\"\"\"Boavista SC Saquarema RJ\"\"\"",
+    "teamName": "Boavista SC Saquarema RJ",
     "teamAbb": "",
     "teamCityName": "Saquarema",
     "teamStadiumName": "Eucy Resende de Mendonça",
@@ -451,7 +451,7 @@
   },
   {
     "teamID": 450019,
-    "teamName": "\"\"\"Brasiliense FC de Taguatinga\"\"\"",
+    "teamName": "Brasiliense FC de Taguatinga",
     "teamAbb": "BRA",
     "teamCityName": "Brasília",
     "teamStadiumName": "Estádio Nacional Mané Garrin.",
@@ -476,7 +476,7 @@
   },
   {
     "teamID": 450020,
-    "teamName": "\"\"\"CA Patrocinense\"\"\"",
+    "teamName": "CA Patrocinense",
     "teamAbb": "CA-",
     "teamCityName": "Patrocínio",
     "teamStadiumName": "Pedro Alves do Nascimento",
@@ -501,7 +501,7 @@
   },
   {
     "teamID": 450021,
-    "teamName": "\"\"\"Camboriú FC\"\"\"",
+    "teamName": "Camboriú FC",
     "teamAbb": "",
     "teamCityName": "Camboriú",
     "teamStadiumName": "Estádio das Nações",
@@ -526,7 +526,7 @@
   },
   {
     "teamID": 450022,
-    "teamName": "\"\"\"Campinense Clube\"\"\"",
+    "teamName": "Campinense Clube",
     "teamAbb": "",
     "teamCityName": "Campina Grande",
     "teamStadiumName": "Amigão",
@@ -551,7 +551,7 @@
   },
   {
     "teamID": 450023,
-    "teamName": "\"\"\"Castanhal EC\"\"\"",
+    "teamName": "Castanhal EC",
     "teamAbb": "",
     "teamCityName": "Castanhal",
     "teamStadiumName": "Modelão",
@@ -576,7 +576,7 @@
   },
   {
     "teamID": 450024,
-    "teamName": "\"\"\"Caucaia EC\"\"\"",
+    "teamName": "Caucaia EC",
     "teamAbb": "CAU",
     "teamCityName": "Caucaia",
     "teamStadiumName": "Raimundão",
@@ -601,7 +601,7 @@
   },
   {
     "teamID": 450025,
-    "teamName": "\"\"\"CE Aimoré\"\"\"",
+    "teamName": "CE Aimoré",
     "teamAbb": "",
     "teamCityName": "São Leopoldo",
     "teamStadiumName": "Estádio Cristo Rei",
@@ -626,7 +626,7 @@
   },
   {
     "teamID": 450026,
-    "teamName": "\"\"\"CE Força e Luz\"\"\"",
+    "teamName": "CE Força e Luz",
     "teamAbb": "",
     "teamCityName": "Natal",
     "teamStadiumName": "Arena das Dunas",
@@ -651,8 +651,8 @@
   },
   {
     "teamID": 450027,
-    "teamName": "\"\"\"CE Operário Várzea-Grandense\"\"\"",
-    "teamAbb": "\"\"\"CE\"",
+    "teamName": "CE Operário Várzea-Grandense",
+    "teamAbb": "CE",
     "teamCityName": "Várzea",
     "teamStadiumName": "Dutrinha",
     "teamAddress": "Chicote-Chicote",
@@ -676,7 +676,7 @@
   },
   {
     "teamID": 450028,
-    "teamName": "\"\"\"Ceilândia EC\"\"\"",
+    "teamName": "Ceilândia EC",
     "teamAbb": "CEI",
     "teamCityName": "Brasília",
     "teamStadiumName": "Estádio Abadião",
@@ -701,7 +701,7 @@
   },
   {
     "teamID": 450029,
-    "teamName": "\"\"\"Cianorte FC\"\"\"",
+    "teamName": "Cianorte FC",
     "teamAbb": "",
     "teamCityName": "Cianorte",
     "teamStadiumName": "Olímpico Albino Turbay",
@@ -726,7 +726,7 @@
   },
   {
     "teamID": 450030,
-    "teamName": "\"\"\"Clube Esportivo\"\"\"",
+    "teamName": "Clube Esportivo",
     "teamAbb": "",
     "teamCityName": "Bento Gonçalves",
     "teamStadiumName": "Parque Esportivo Montanha d.",
@@ -751,7 +751,7 @@
   },
   {
     "teamID": 450031,
-    "teamName": "\"\"\"CN Marcílio Dias\"\"\"",
+    "teamName": "CN Marcílio Dias",
     "teamAbb": "",
     "teamCityName": "Itajaí",
     "teamStadiumName": "Dr. Hercílio Luz",
@@ -776,7 +776,7 @@
   },
   {
     "teamID": 450032,
-    "teamName": "\"\"\"Concórdia AC\"\"\"",
+    "teamName": "Concórdia AC",
     "teamAbb": "",
     "teamCityName": "Concórdia",
     "teamStadiumName": "Estádio Domingos Machado d.",
@@ -801,7 +801,7 @@
   },
   {
     "teamID": 450033,
-    "teamName": "\"\"\"Cordino EC\"\"\"",
+    "teamName": "Cordino EC",
     "teamAbb": "COR",
     "teamCityName": "Barra do Corda",
     "teamStadiumName": "Leandrão",
@@ -826,7 +826,7 @@
   },
   {
     "teamID": 450034,
-    "teamName": "\"\"\"Costa Rica EC\"\"\"",
+    "teamName": "Costa Rica EC",
     "teamAbb": "",
     "teamCityName": "Costa Rica",
     "teamStadiumName": "Laerte Paes Coelho",
@@ -851,7 +851,7 @@
   },
   {
     "teamID": 450035,
-    "teamName": "\"\"\"CRAC\"\"\"",
+    "teamName": "CRAC",
     "teamAbb": "",
     "teamCityName": "Catalão",
     "teamStadiumName": "Estádio Genervino da Fonseca",
@@ -876,7 +876,7 @@
   },
   {
     "teamID": 450036,
-    "teamName": "\"\"\"Crato EC\"\"\"",
+    "teamName": "Crato EC",
     "teamAbb": "",
     "teamCityName": "Crato",
     "teamStadiumName": "Estádio Mirandão",
@@ -901,7 +901,7 @@
   },
   {
     "teamID": 450037,
-    "teamName": "\"\"\"CS Esportiva\"\"\"",
+    "teamName": "CS Esportiva",
     "teamAbb": "CS-",
     "teamCityName": "Palmeira dos Índios",
     "teamStadiumName": "Estádio Juca Sampaio",
@@ -926,7 +926,7 @@
   },
   {
     "teamID": 450038,
-    "teamName": "\"\"\"CS Sergipe\"\"\"",
+    "teamName": "CS Sergipe",
     "teamAbb": "",
     "teamCityName": "Aracaju",
     "teamStadiumName": "Lourival Baptista",
@@ -951,7 +951,7 @@
   },
   {
     "teamID": 450039,
-    "teamName": "\"\"\"EC Cruzeiro (AL)\"\"\"",
+    "teamName": "EC Cruzeiro (AL)",
     "teamAbb": "EC-",
     "teamCityName": "Nova",
     "teamStadiumName": "Estádio Coroacy de Matta Fon.",
@@ -976,7 +976,7 @@
   },
   {
     "teamID": 450040,
-    "teamName": "\"\"\"EC Democrata\"\"\"",
+    "teamName": "EC Democrata",
     "teamAbb": "",
     "teamCityName": "Governador Valadares",
     "teamStadiumName": "Estádio José Mammoud Abbas",
@@ -1001,7 +1001,7 @@
   },
   {
     "teamID": 450041,
-    "teamName": "\"\"\"EC Jacuipense\"\"\"",
+    "teamName": "EC Jacuipense",
     "teamAbb": "EC-",
     "teamCityName": "Riachão do Jacuípe",
     "teamStadiumName": "Eliel Martins",
@@ -1026,7 +1026,7 @@
   },
   {
     "teamID": 450042,
-    "teamName": "\"\"\"EC Novo Hamburgo\"\"\"",
+    "teamName": "EC Novo Hamburgo",
     "teamAbb": "",
     "teamCityName": "Novo Hamburgo",
     "teamStadiumName": "Estádio do Vale",
@@ -1051,7 +1051,7 @@
   },
   {
     "teamID": 450043,
-    "teamName": "\"\"\"EC Pelotas\"\"\"",
+    "teamName": "EC Pelotas",
     "teamAbb": "EC-",
     "teamCityName": "Pelotas",
     "teamStadiumName": "Estádio Boca do Lobo",
@@ -1076,7 +1076,7 @@
   },
   {
     "teamID": 450044,
-    "teamName": "\"\"\"EC Próspera\"\"\"",
+    "teamName": "EC Próspera",
     "teamAbb": "",
     "teamCityName": "Criciúma",
     "teamStadiumName": "Estádio Engenheiro Mário Bal.",
@@ -1101,7 +1101,7 @@
   },
   {
     "teamID": 450045,
-    "teamName": "\"\"\"EC Santo André\"\"\"",
+    "teamName": "EC Santo André",
     "teamAbb": "",
     "teamCityName": "Santo André",
     "teamStadiumName": "Bruno José Daniel",
@@ -1126,7 +1126,7 @@
   },
   {
     "teamID": 450046,
-    "teamName": "\"\"\"EC Sao Bento\"\"\"",
+    "teamName": "EC Sao Bento",
     "teamAbb": "",
     "teamCityName": "Sorocaba",
     "teamStadiumName": "Estadio Walter Ribeiro",
@@ -1151,7 +1151,7 @@
   },
   {
     "teamID": 450047,
-    "teamName": "\"\"\"EC São Luiz\"\"\"",
+    "teamName": "EC São Luiz",
     "teamAbb": "",
     "teamCityName": "Ijuí",
     "teamStadiumName": "Estádio 19 de Outubro",
@@ -1176,7 +1176,7 @@
   },
   {
     "teamID": 450048,
-    "teamName": "\"\"\"EC XV de Novembro\"\"\"",
+    "teamName": "EC XV de Novembro",
     "teamAbb": "",
     "teamCityName": "Piracicaba",
     "teamStadiumName": "Estádio Barão da Serra Negra",
@@ -1201,7 +1201,7 @@
   },
   {
     "teamID": 450049,
-    "teamName": "\"\"\"ECPP Vitoria da Conquista\"\"\"",
+    "teamName": "ECPP Vitoria da Conquista",
     "teamAbb": "ECP",
     "teamCityName": "Vitória da Conquista",
     "teamStadiumName": "Lomanto Júnior",
@@ -1226,7 +1226,7 @@
   },
   {
     "teamID": 450050,
-    "teamName": "\"\"\"Falcon FC\"\"\"",
+    "teamName": "Falcon FC",
     "teamAbb": "",
     "teamCityName": "Aracaju",
     "teamStadiumName": "Estádio Lourival Baptista",
@@ -1251,7 +1251,7 @@
   },
   {
     "teamID": 450051,
-    "teamName": "\"\"\"FC Atletico Cearense\"\"\"",
+    "teamName": "FC Atletico Cearense",
     "teamAbb": "",
     "teamCityName": "Fortaleza",
     "teamStadiumName": "Presidente Vargas",
@@ -1276,7 +1276,7 @@
   },
   {
     "teamID": 450052,
-    "teamName": "\"\"\"FC Cascavel\"\"\"",
+    "teamName": "FC Cascavel",
     "teamAbb": "",
     "teamCityName": "Cascavel",
     "teamStadiumName": "Estádio Olímpico Regional",
@@ -1301,7 +1301,7 @@
   },
   {
     "teamID": 450053,
-    "teamName": "\"\"\"Ferroviária (SP)\"\"\"",
+    "teamName": "Ferroviária (SP)",
     "teamAbb": "",
     "teamCityName": "Araraquara",
     "teamStadiumName": "Arena da Fonte Luminosa",
@@ -1326,7 +1326,7 @@
   },
   {
     "teamID": 450054,
-    "teamName": "\"\"\"Ferroviário AC\"\"\"",
+    "teamName": "Ferroviário AC",
     "teamAbb": "",
     "teamCityName": "Fortaleza",
     "teamStadiumName": "Estádio Elzir Cabral",
@@ -1351,7 +1351,7 @@
   },
   {
     "teamID": 450055,
-    "teamName": "\"\"\"Fluminense EC (PI)\"\"\"",
+    "teamName": "Fluminense EC (PI)",
     "teamAbb": "FLU",
     "teamCityName": "Teresina",
     "teamStadiumName": "Estádio Albertão",
@@ -1376,7 +1376,7 @@
   },
   {
     "teamID": 450056,
-    "teamName": "\"\"\"Galvez EC\"\"\"",
+    "teamName": "Galvez EC",
     "teamAbb": "",
     "teamCityName": "Rio Branco",
     "teamStadiumName": "Florestão",
@@ -1401,7 +1401,7 @@
   },
   {
     "teamID": 450057,
-    "teamName": "\"\"\"Globo FC\"\"\"",
+    "teamName": "Globo FC",
     "teamAbb": "GLO",
     "teamCityName": "Ceará-Mirim",
     "teamStadiumName": "Barrettão",
@@ -1426,7 +1426,7 @@
   },
   {
     "teamID": 450058,
-    "teamName": "\"\"\"Goianésia EC\"\"\"",
+    "teamName": "Goianésia EC",
     "teamAbb": "GOI",
     "teamCityName": "Goianésia",
     "teamStadiumName": "Valdeir José de Oliveira",
@@ -1451,7 +1451,7 @@
   },
   {
     "teamID": 450059,
-    "teamName": "\"\"\"Grêmio Esportivo Anápolis\"\"\"",
+    "teamName": "Grêmio Esportivo Anápolis",
     "teamAbb": "",
     "teamCityName": "Anápolis",
     "teamStadiumName": "Estádio Jonas Duarte",
@@ -1476,7 +1476,7 @@
   },
   {
     "teamID": 450060,
-    "teamName": "\"\"\"Grêmio Esportivo Brasil\"\"\"",
+    "teamName": "Grêmio Esportivo Brasil",
     "teamAbb": "GRÊ",
     "teamCityName": "Pelotas",
     "teamStadiumName": "Bento Freitas",
@@ -1501,7 +1501,7 @@
   },
   {
     "teamID": 450061,
-    "teamName": "\"\"\"Grêmio Esportivo Juventus\"\"\"",
+    "teamName": "Grêmio Esportivo Juventus",
     "teamAbb": "GRÊ",
     "teamCityName": "Jaraguá do Sul",
     "teamStadiumName": "João Marcatto",
@@ -1526,7 +1526,7 @@
   },
   {
     "teamID": 450062,
-    "teamName": "\"\"\"Guarany SC (CE)\"\"\"",
+    "teamName": "Guarany SC (CE)",
     "teamAbb": "GUA",
     "teamCityName": "Sobral",
     "teamStadiumName": "Estádio do Junco",
@@ -1551,7 +1551,7 @@
   },
   {
     "teamID": 450063,
-    "teamName": "\"\"\"Hercílio Luz FC\"\"\"",
+    "teamName": "Hercílio Luz FC",
     "teamAbb": "",
     "teamCityName": "Tubarão",
     "teamStadiumName": "Aníbal Torres Costa",
@@ -1576,7 +1576,7 @@
   },
   {
     "teamID": 450064,
-    "teamName": "\"\"\"IF São-Joseense\"\"\"",
+    "teamName": "IF São-Joseense",
     "teamAbb": "",
     "teamCityName": "São José dos Pinhais",
     "teamStadiumName": "Estádio Municipal do Pinhão (",
@@ -1601,7 +1601,7 @@
   },
   {
     "teamID": 450065,
-    "teamName": "\"\"\"Independente AC\"\"\"",
+    "teamName": "Independente AC",
     "teamAbb": "",
     "teamCityName": "Tucuruí",
     "teamStadiumName": "Navegantão",
@@ -1626,7 +1626,7 @@
   },
   {
     "teamID": 450066,
-    "teamName": "\"\"\"Interporto FC\"\"\"",
+    "teamName": "Interporto FC",
     "teamAbb": "",
     "teamCityName": "Porto Nacional",
     "teamStadiumName": "Estádio General Sampaio",
@@ -1651,7 +1651,7 @@
   },
   {
     "teamID": 450067,
-    "teamName": "\"\"\"Iporá EC\"\"\"",
+    "teamName": "Iporá EC",
     "teamAbb": "IPO",
     "teamCityName": "Iporá",
     "teamStadiumName": "Estádio Ferreirão",
@@ -1676,7 +1676,7 @@
   },
   {
     "teamID": 450068,
-    "teamName": "\"\"\"Itabaiana AOI\"\"\"",
+    "teamName": "Itabaiana AOI",
     "teamAbb": "",
     "teamCityName": "Itabaiana",
     "teamStadiumName": "Estádio Etelvino Mendonça",
@@ -1701,7 +1701,7 @@
   },
   {
     "teamID": 450069,
-    "teamName": "\"\"\"Lagarto FC\"\"\"",
+    "teamName": "Lagarto FC",
     "teamAbb": "",
     "teamCityName": "Lagarto",
     "teamStadiumName": "Estádio P. Barreto de Menezes",
@@ -1726,7 +1726,7 @@
   },
   {
     "teamID": 450070,
-    "teamName": "\"\"\"Madureira EC\"\"\"",
+    "teamName": "Madureira EC",
     "teamAbb": "MAD",
     "teamCityName": "Rio",
     "teamStadiumName": "Estádio Aniceto Moscoso",
@@ -1751,7 +1751,7 @@
   },
   {
     "teamID": 450071,
-    "teamName": "\"\"\"Maranhão AC\"\"\"",
+    "teamName": "Maranhão AC",
     "teamAbb": "",
     "teamCityName": "São",
     "teamStadiumName": "Nhozinho Santos",
@@ -1776,7 +1776,7 @@
   },
   {
     "teamID": 450072,
-    "teamName": "\"\"\"Maringá FC\"\"\"",
+    "teamName": "Maringá FC",
     "teamAbb": "MAR",
     "teamCityName": "Maringá",
     "teamStadiumName": "Willie Davids",
@@ -1801,7 +1801,7 @@
   },
   {
     "teamID": 450073,
-    "teamName": "\"\"\"Moto Club de São Luís\"\"\"",
+    "teamName": "Moto Club de São Luís",
     "teamAbb": "MOT",
     "teamCityName": "São",
     "teamStadiumName": "Estádio Castelão",
@@ -1826,7 +1826,7 @@
   },
   {
     "teamID": 450074,
-    "teamName": "\"\"\"Murici FC\"\"\"",
+    "teamName": "Murici FC",
     "teamAbb": "",
     "teamCityName": "Murici",
     "teamStadiumName": "José Gomes da Costa",
@@ -1851,7 +1851,7 @@
   },
   {
     "teamID": 450075,
-    "teamName": "\"\"\"Nacional de Patos\"\"\"",
+    "teamName": "Nacional de Patos",
     "teamAbb": "NAC",
     "teamCityName": "Patos",
     "teamStadiumName": "José Cavalcanti",
@@ -1876,7 +1876,7 @@
   },
   {
     "teamID": 450076,
-    "teamName": "\"\"\"Nacional FC (AM)\"\"\"",
+    "teamName": "Nacional FC (AM)",
     "teamAbb": "",
     "teamCityName": "Manaus",
     "teamStadiumName": "Estádio Ismael Benigno",
@@ -1901,7 +1901,7 @@
   },
   {
     "teamID": 450077,
-    "teamName": "\"\"\"Náutico FC\"\"\"",
+    "teamName": "Náutico FC",
     "teamAbb": "",
     "teamCityName": "Boa Vista",
     "teamStadiumName": "Vila Olímpica Roberto Marinho",
@@ -1926,7 +1926,7 @@
   },
   {
     "teamID": 450078,
-    "teamName": "\"\"\"Nova Iguaçu FC\"\"\"",
+    "teamName": "Nova Iguaçu FC",
     "teamAbb": "",
     "teamCityName": "Rio",
     "teamStadiumName": "Estádio Jânio Moraes",
@@ -1951,7 +1951,7 @@
   },
   {
     "teamID": 450079,
-    "teamName": "\"\"\"Nova Mutum EC\"\"\"",
+    "teamName": "Nova Mutum EC",
     "teamAbb": "",
     "teamCityName": "Nova Mutum",
     "teamStadiumName": "Renato Loureiro",
@@ -1976,7 +1976,7 @@
   },
   {
     "teamID": 450080,
-    "teamName": "\"\"\"Nova Venécia FC\"\"\"",
+    "teamName": "Nova Venécia FC",
     "teamAbb": "",
     "teamCityName": "Nova Venécia",
     "teamStadiumName": "Estádio Zenor Pedrosa Rocha",
@@ -2001,7 +2001,7 @@
   },
   {
     "teamID": 450081,
-    "teamName": "\"\"\"Oeste FC\"\"\"",
+    "teamName": "Oeste FC",
     "teamAbb": "OES",
     "teamCityName": "Barueri",
     "teamStadiumName": "Arena Barueri",
@@ -2026,7 +2026,7 @@
   },
   {
     "teamID": 450082,
-    "teamName": "\"\"\"Operário FC (MS)\"\"\"",
+    "teamName": "Operário FC (MS)",
     "teamAbb": "",
     "teamCityName": "Campo",
     "teamStadiumName": "Estádio Morenão",
@@ -2051,7 +2051,7 @@
   },
   {
     "teamID": 450083,
-    "teamName": "\"\"\"Pacajus EC\"\"\"",
+    "teamName": "Pacajus EC",
     "teamAbb": "PAC",
     "teamCityName": "Pacajus",
     "teamStadiumName": "Estádio Municipal João Ronal.",
@@ -2076,7 +2076,7 @@
   },
   {
     "teamID": 450084,
-    "teamName": "\"\"\"Parnahyba SC\"\"\"",
+    "teamName": "Parnahyba SC",
     "teamAbb": "",
     "teamCityName": "Parnaíba",
     "teamStadiumName": "Estádio Pedro Alelaf",
@@ -2101,7 +2101,7 @@
   },
   {
     "teamID": 450085,
-    "teamName": "\"\"\"Pérolas Negras\"\"\"",
+    "teamName": "Pérolas Negras",
     "teamAbb": "",
     "teamCityName": "Resende",
     "teamStadiumName": "Estádio do Trabalhador (SESI)",
@@ -2126,7 +2126,7 @@
   },
   {
     "teamID": 450086,
-    "teamName": "\"\"\"Porto Velho EC\"\"\"",
+    "teamName": "Porto Velho EC",
     "teamAbb": "",
     "teamCityName": "Porto Velho",
     "teamStadiumName": "Aluízio Ferreira",
@@ -2151,7 +2151,7 @@
   },
   {
     "teamID": 450087,
-    "teamName": "\"\"\"Portuguesa (RJ)\"\"\"",
+    "teamName": "Portuguesa (RJ)",
     "teamAbb": "POR",
     "teamCityName": "Rio",
     "teamStadiumName": "Estádio Ilha do Urubu",
@@ -2176,7 +2176,7 @@
   },
   {
     "teamID": 450088,
-    "teamName": "\"\"\"Princesa do Solimões EC\"\"\"",
+    "teamName": "Princesa do Solimões EC",
     "teamAbb": "",
     "teamCityName": "Manacapuru",
     "teamStadiumName": "Estádio Gilberto Mestrinho",
@@ -2201,7 +2201,7 @@
   },
   {
     "teamID": 450089,
-    "teamName": "\"\"\"Real Ariquemes EC\"\"\"",
+    "teamName": "Real Ariquemes EC",
     "teamAbb": "",
     "teamCityName": "Ariquemes",
     "teamStadiumName": "Estádio Gentil Valério",
@@ -2226,7 +2226,7 @@
   },
   {
     "teamID": 450090,
-    "teamName": "\"\"\"Real Noroeste\"\"\"",
+    "teamName": "Real Noroeste",
     "teamAbb": "",
     "teamCityName": "Águia Branca",
     "teamStadiumName": "Estádio José Olímpio da Rocha",
@@ -2251,7 +2251,7 @@
   },
   {
     "teamID": 450091,
-    "teamName": "\"\"\"Resende FC\"\"\"",
+    "teamName": "Resende FC",
     "teamAbb": "",
     "teamCityName": "Resende",
     "teamStadiumName": "Estádio do Trabalhador (SESI)",
@@ -2276,7 +2276,7 @@
   },
   {
     "teamID": 450092,
-    "teamName": "\"\"\"Retrô FC Brasil\"\"\"",
+    "teamName": "Retrô FC Brasil",
     "teamAbb": "",
     "teamCityName": "Camaragibe",
     "teamStadiumName": "Itaipava Arena Pernambuco",
@@ -2301,7 +2301,7 @@
   },
   {
     "teamID": 450093,
-    "teamName": "\"\"\"Rio Branco FC\"\"\"",
+    "teamName": "Rio Branco FC",
     "teamAbb": "",
     "teamCityName": "Rio Branco",
     "teamStadiumName": "Arena da Floresta",
@@ -2326,7 +2326,7 @@
   },
   {
     "teamID": 450094,
-    "teamName": "\"\"\"Rio Branco SC\"\"\"",
+    "teamName": "Rio Branco SC",
     "teamAbb": "",
     "teamCityName": "Paranaguá",
     "teamStadiumName": "Estádio Nelson Medrado Dias",
@@ -2351,7 +2351,7 @@
   },
   {
     "teamID": 450095,
-    "teamName": "\"\"\"Salgueiro AC\"\"\"",
+    "teamName": "Salgueiro AC",
     "teamAbb": "SAL",
     "teamCityName": "Salgueiro",
     "teamStadiumName": "Cornélio de Barros",
@@ -2376,7 +2376,7 @@
   },
   {
     "teamID": 450096,
-    "teamName": "\"\"\"Santa Cruz FC\"\"\"",
+    "teamName": "Santa Cruz FC",
     "teamAbb": "",
     "teamCityName": "Recife",
     "teamStadiumName": "Arruda",
@@ -2401,7 +2401,7 @@
   },
   {
     "teamID": 450097,
-    "teamName": "\"\"\"São Francisco (AC)\"\"\"",
+    "teamName": "São Francisco (AC)",
     "teamAbb": "",
     "teamCityName": "Rio Branco",
     "teamStadiumName": "Estádio José de Melo",
@@ -2426,7 +2426,7 @@
   },
   {
     "teamID": 450098,
-    "teamName": "\"\"\"São Paulo Crystal FC\"\"\"",
+    "teamName": "São Paulo Crystal FC",
     "teamAbb": "",
     "teamCityName": "Espírito Santo",
     "teamStadiumName": "Carneirão",
@@ -2451,7 +2451,7 @@
   },
   {
     "teamID": 450099,
-    "teamName": "\"\"\"São Raimundo (AM)\"\"\"",
+    "teamName": "São Raimundo (AM)",
     "teamAbb": "",
     "teamCityName": "Manaus",
     "teamStadiumName": "Estádio Ismael Benigno",
@@ -2476,7 +2476,7 @@
   },
   {
     "teamID": 450100,
-    "teamName": "\"\"\"São Raimundo EC (RR)\"\"\"",
+    "teamName": "São Raimundo EC (RR)",
     "teamAbb": "",
     "teamCityName": "Boa Vista",
     "teamStadiumName": "Ribeirão",
@@ -2501,7 +2501,7 @@
   },
   {
     "teamID": 450101,
-    "teamName": "\"\"\"SC Humaitá\"\"\"",
+    "teamName": "SC Humaitá",
     "teamAbb": "",
     "teamCityName": "Porto Acre",
     "teamStadiumName": "Arena da Floresta",
@@ -2526,7 +2526,7 @@
   },
   {
     "teamID": 450102,
-    "teamName": "\"\"\"SD Juazeirense\"\"\"",
+    "teamName": "SD Juazeirense",
     "teamAbb": "",
     "teamCityName": "Juazeiro",
     "teamStadiumName": "Adauto Moraes",
@@ -2551,7 +2551,7 @@
   },
   {
     "teamID": 450103,
-    "teamName": "\"\"\"SE do Gama\"\"\"",
+    "teamName": "SE do Gama",
     "teamAbb": "",
     "teamCityName": "Brasília",
     "teamStadiumName": "Bezerrão",
@@ -2576,7 +2576,7 @@
   },
   {
     "teamID": 450104,
-    "teamName": "\"\"\"SE Juventude\"\"\"",
+    "teamName": "SE Juventude",
     "teamAbb": "",
     "teamCityName": "São Mateus do Maranhão",
     "teamStadiumName": "Estádio Pinheirão",
@@ -2601,7 +2601,7 @@
   },
   {
     "teamID": 450105,
-    "teamName": "\"\"\"SER Caxias do Sul\"\"\"",
+    "teamName": "SER Caxias do Sul",
     "teamAbb": "SER",
     "teamCityName": "Caxias",
     "teamStadiumName": "Centenário",
@@ -2626,7 +2626,7 @@
   },
   {
     "teamID": 450106,
-    "teamName": "\"\"\"Sociedade Ação Futebol\"\"\"",
+    "teamName": "Sociedade Ação Futebol",
     "teamAbb": "SOC",
     "teamCityName": "Várzea",
     "teamStadiumName": "Estádio Dutrinha",
@@ -2651,7 +2651,7 @@
   },
   {
     "teamID": 450107,
-    "teamName": "\"\"\"Sousa EC\"\"\"",
+    "teamName": "Sousa EC",
     "teamAbb": "",
     "teamCityName": "Souza",
     "teamStadiumName": "Marizão",
@@ -2676,7 +2676,7 @@
   },
   {
     "teamID": 450108,
-    "teamName": "\"\"\"Tocantinópolis EC\"\"\"",
+    "teamName": "Tocantinópolis EC",
     "teamAbb": "TOC",
     "teamCityName": "Tocantinópolis",
     "teamStadiumName": "Estádio João Ribeiro",
@@ -2701,7 +2701,7 @@
   },
   {
     "teamID": 450109,
-    "teamName": "\"\"\"Toledo EC\"\"\"",
+    "teamName": "Toledo EC",
     "teamAbb": "TEC",
     "teamCityName": "Toledo",
     "teamStadiumName": "Municipal 14 de Dezembro",
@@ -2726,7 +2726,7 @@
   },
   {
     "teamID": 450110,
-    "teamName": "\"\"\"Trem Desportivo Clube\"\"\"",
+    "teamName": "Trem Desportivo Clube",
     "teamAbb": "TRE",
     "teamCityName": "Amapa",
     "teamStadiumName": "Estádio Zerão",
@@ -2751,7 +2751,7 @@
   },
   {
     "teamID": 450111,
-    "teamName": "\"\"\"Treze FC\"\"\"",
+    "teamName": "Treze FC",
     "teamAbb": "TRE",
     "teamCityName": "Campina Grande",
     "teamStadiumName": "Presidente Vargas",
@@ -2776,7 +2776,7 @@
   },
   {
     "teamID": 450112,
-    "teamName": "\"\"\"Uberlândia EC\"\"\"",
+    "teamName": "Uberlândia EC",
     "teamAbb": "",
     "teamCityName": "Uberlândia",
     "teamStadiumName": "Parque do Sabiá",
@@ -2801,7 +2801,7 @@
   },
   {
     "teamID": 450113,
-    "teamName": "\"\"\"União EC (MT)\"\"\"",
+    "teamName": "União EC (MT)",
     "teamAbb": "UNI",
     "teamCityName": "Rondonópolis",
     "teamStadiumName": "Engenheiro Lutero Lopes",
@@ -2826,7 +2826,7 @@
   },
   {
     "teamID": 450114,
-    "teamName": "\"\"\"UR dos Trabalhadores\"\"\"",
+    "teamName": "UR dos Trabalhadores",
     "teamAbb": "",
     "teamCityName": "Patos de Minas",
     "teamStadiumName": "Estádio Zama Maciel",
@@ -2851,7 +2851,7 @@
   },
   {
     "teamID": 450115,
-    "teamName": "\"\"\"Vitória FC (ES)\"\"\"",
+    "teamName": "Vitória FC (ES)",
     "teamAbb": "VIT",
     "teamCityName": "Vitória",
     "teamStadiumName": "Salvador Costa",
