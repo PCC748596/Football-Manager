@@ -385,6 +385,21 @@ class ReplaySystem {
         pIdx += FLOATS_PER_REDE;
     }
 
+    /*
+    REPLAY DOS ULTIMOS `segundos` (o botao "Replay 10s" do manager): comeca `segundos` antes do que esta gravado agora e acaba no
+    proprio `head`. Com um replay em curso, para-o. Devolve false se nao ha pelo menos 1 s gravado.
+    */
+    replayUltimos(segundos) {
+        if (this.isReplaying) { this.stopReplay(); return true; }
+        const fps = 60;
+        const disponiveis = Math.min(this.count - 1, REPLAY_FRAMES - 1);
+        const recuo = Math.min(Math.round((segundos || 10) * fps), disponiveis);
+        if (recuo < fps) return false;
+        this.replayFim = null;
+        this.startReplay((this.head - recuo + REPLAY_FRAMES) % REPLAY_FRAMES);
+        return true;
+    }
+
     toggleReplay() {
         if (this.isReplaying) this.stopReplay();
         else this.startReplay();

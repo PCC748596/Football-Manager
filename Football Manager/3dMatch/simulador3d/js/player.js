@@ -4562,6 +4562,17 @@ class FootballPlayer {
                     const paraOnde = (L.via && !L.viaFeito) ? L.via : L;
                     this.steerArrive(_p_v2.set(paraOnde.x, ALTURA_BASE_Y, paraOnde.z), L.vel, 1.5);
                     pos.addScaledVector(this.velocity, dt);
+                    /*
+                    QUEM FICA PARADO A CAMINHO NAO SEGURA A COBRANCA. Medido em jogo simulado: 1 a 2 jogadores por falta ficavam a 3-7 m do lugar
+                    com velocidade 0 (presos atras de alguem), e como a cobranca espera por TODOS os que vao a caminho (`algumACaminhoDoLugar`)
+                    ela so saia pelo `prazo` (20 s) — mediana de 21 s da falta ao gesto. Parado mais de 0.7 s considera-se no sitio onde esta.
+                    */
+                    L.parado = (this.velocity.length() < 0.3) ? (L.parado || 0) + dt : 0;
+                    if (L.parado > 0.7) {
+                        this.velocity.set(0, 0, 0);
+                        this.lugarBolaParada = null;
+                        if (Match.ball) lookAtBola(this.model, Match.ball.position);
+                    }
                 }
                 if (this.lugarBolaParada) {
                     if (!headless) this.animateBones(dt);
@@ -8940,6 +8951,9 @@ class FootballPlayer {
                     // O que falta subir para a MAO chegar a bola.
                     const preciso = alvoY - (ALTURA_BASE_Y + SA.alcanceMaoParado);
                     jumpH = THREE.MathUtils.clamp(preciso, SA.saltoMin, tectoSalto);
+                    // Com o soco planeado o salto e o da cabeçada: sobe a altura minima do soco, mesmo com a bola ja baixa.
+                    const SOCO_S = (this.gkSoco && typeof GkSaidaCruzamento !== 'undefined' && GkSaidaCruzamento.socoAnim) ? GkSaidaCruzamento.socoAnim : null;
+                    if (SOCO_S && typeof SOCO_S.saltoMin === 'number') jumpH = Math.max(jumpH, Math.min(SOCO_S.saltoMin, Math.max(tectoSalto, SOCO_S.saltoMin)));
                 }
                 gkCorpo.position.y = lerpTo(gkCorpo.position.y, ALTURA_BASE_Y + jumpH, 0.25);
 

@@ -1272,7 +1272,7 @@ class PlayerFSM {
                     _v1.set(p.jostleAncora.x + o.x, ALTURA_BASE_Y, p.jostleAncora.z + o.z);
                     p.velocity = p.steerArrive(_v1, J.velocidade, 0);
                 } else if (!(p === Match.setPieceTaker && (
-                    (Match.state === 'FREE_KICK' && Match.faltaPendente && Match.faltaAtraso < (typeof ESPERA_APOS_REPOSICAO !== 'undefined' ? ESPERA_APOS_REPOSICAO / 3 : 1.0)) ||
+                    (Match.state === 'FREE_KICK' && Match.faltaPendente && Match.faltaAproximando) ||
                     /*
                     E O BATEDOR DO PENÁLTI, pela mesma razão. Relato: *"na hora da
                     cobrança do pênalti o jogador sai da posição parado e vai

@@ -286,7 +286,11 @@ Object.assign(Match, {
             if (this.faltaPendente) {
                 this.faltaAtraso -= dt;
                 // A espera pelo caído: ver `algumCaidoDaFalta`.
-                if (this.algumCaidoDaFalta(false) || this.algumACaminhoDoLugar(false)) {
+                // Quem vai a caminho so segura a cobranca nos primeiros `esperaCaminhantes` s: depois larga-se (continuam a andar ate ao jogo recomecar).
+                const FKE = (typeof FreeKickModel !== 'undefined') ? FreeKickModel : null;
+                const faltaSegura = this.algumCaidoDaFalta(false) ||
+                    (this.algumACaminhoDoLugar(false) && this.setPieceTimer < ((FKE && FKE.esperaCaminhantes) || 6.0));
+                if (faltaSegura) {
                     this.faltaAtraso = Math.max(this.faltaAtraso, ESPERA_APOS_REPOSICAO / 2);
                     // E o prazo da falta nao corre enquanto se espera: ver `algumACaminhoDoLugar`.
                     this.setPieceTimer -= dt;
@@ -310,7 +314,14 @@ Object.assign(Match, {
                 // ('tiro_meta_espera'); esta aproximacao e so dos outros.
                 // A caminho do lugar quem o leva e o Player.update (lugarBolaParada).
                 if (takerFalta && takerFalta.model && takerFalta.role !== 'gk' && !takerFalta.lugarBolaParada) {
-                    if (this.faltaAtraso < ESPERA_APOS_REPOSICAO / 3) {
+                    /*
+                    ANDA E COBRA, SEM PARAR. Antes: esperava parado no recuo, caminhava no ultimo terco da espera (a velocidade fixa), chegava ao
+                    ponto de arranque, PARAVA ali, e o gesto arrancava do zero — andar, parar, andar. Agora, assim que ele esta no lugar e nada
+                    segura a cobranca (um caido, alguem a caminho do lugar), caminha SEMPRE para o ponto de arranque a velocidade tal que chega
+                    exactamente quando a espera acaba (`d / faltaAtraso`, no maximo 1.5x a velocidade de aproximacao): o gesto parte com ele
+                    em andamento. Enquanto algo segura a cobranca fica no recuo — e so ai espera.
+                    */
+                    if (!faltaSegura && this.faltaAtraso > 0) {
                         const bx = this.ball.position.x, bz = this.ball.position.z;
                         let alvoX = bx;
                         let alvoZ = bz;
@@ -318,22 +329,24 @@ Object.assign(Match, {
                             alvoX = takerFalta.alvoFalta.x;
                             alvoZ = takerFalta.alvoFalta.z;
                         }
-                        
+
                         const dx = takerFalta.model.position.x - alvoX;
                         const dz = takerFalta.model.position.z - alvoZ;
                         const d = Math.hypot(dx, dz);
-                        
+
                         if (d > 0.05) {
-                            const passo = Math.min(d, FK.velocidadeAproximacao * dt);
-                            const v = passo / dt;
+                            const v = Math.min(FK.velocidadeAproximacao * 1.5, d / Math.max(this.faltaAtraso, 0.05));
                             takerFalta.velocity.set(-(dx / d) * v, 0, -(dz / d) * v);
+                            this.faltaAproximando = true;
                         } else {
-                            // Chegou ao ponto de arranque do gesto: pára e espera.
+                            // Ja la esta: segue o gesto sem parar de pernas (a velocidade minima de andar), nao fica hirto.
                             takerFalta.velocity.set(0, 0, 0);
+                            this.faltaAproximando = false;
                         }
                     } else {
-                        // Durante a espera inicial antes da caminhada: fica parado no recuo
+                        // Segurado (caido, alguem a caminho do lugar): fica parado no recuo.
                         takerFalta.velocity.set(0, 0, 0);
+                        this.faltaAproximando = false;
                     }
                 }
 

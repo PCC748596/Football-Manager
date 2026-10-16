@@ -852,7 +852,11 @@ const GkSaidaCruzamento = {
     so falta o golpe (`golpe` s, a acabar no contacto).
     */
     socoAnim: {
-        contacto: 0.14, armaDistancia: 4.0,
+        // O soco e um SALTO a sério, como o da cabeçada: `saltoMin` (m) é a altura mínima do corpo quando há soco planeado — antes
+        // valia o `GkSaltoAlto.saltoMin` (10 cm) quando a bola já vinha baixa, e ele "dava o soco sem pular". `contacto` (s desde o
+        // arranque) é o instante do golpe, perto do pico do salto (a subida dura 0.30 s).
+        saltoMin: 0.45,
+        contacto: 0.22, armaDistancia: 4.0,
         armar: 0.13, golpe: 0.09, segura: 0.20,
         armaX: 0.75, armaZ: 0.55, armaCotovelo: -1.90, peitoArma: -0.25,
         golpeX: -2.50, golpeZ: 0.35, golpeCotovelo: -0.15, peitoGolpe: 0.30,

@@ -968,6 +968,11 @@ const FreeKickModel = {
     */
     arranqueDoGesto: 1.8,
     velocidadeAproximacao: 2.4,   // m/s a caminhar para a bola, antes do gesto
+    // A espera ate ao gesto (s), depois de montada a falta; antes valia a das outras reposicoes (3 s). O batedor caminha todo este tempo
+    // (ver o FREE_KICK no match_loop.js): nao ha espera parada, so a que um caido ou alguem a caminho do lugar impoe.
+    esperaFalta: 1.8,
+    // Quanto tempo (s) a cobranca espera por quem ainda caminha para o lugar; passado isto bate-se na mesma.
+    esperaCaminhantes: 6.0,
     // Onde o pé fica no instante do contacto: um passo atrás da bola.
     paragemNoContacto: 0.55,
     afastaAdversarios: 9.15,   // ninguém da defesa mais perto do que isto da bola

@@ -146,6 +146,9 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
               <button key={v} onClick={() => { setVelocidade(v); simulador3dVelocidade(v); }}
                 className={`${velocidade === v ? 'bg-sky-600 border-sky-800' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-3 py-1.5 rounded text-[10px] tracking-wider border-b-2 active:scale-95`}>{v}x</button>
             ))}
+            <button onClick={() => simulador3dEnviar({ tipo: 'replay', segundos: 10 })}
+              title="Repete os ultimos 10 segundos (clique de novo para parar)"
+              className="bg-slate-700 hover:bg-slate-600 border-slate-900 text-white font-black px-3 py-1.5 rounded text-[10px] uppercase tracking-wider border-b-2 active:scale-95">Replay 10s</button>
             <button onClick={() => simulador3dTelaCheia()} className="ml-auto bg-emerald-700 hover:bg-emerald-600 text-white font-black px-4 py-1.5 rounded text-[10px] uppercase tracking-widest border-b-2 border-emerald-900 active:scale-95">Tela cheia</button>
         </div>
         )}

@@ -57,6 +57,7 @@ const Ponte = {
             else if (m.tipo === 'continuar') this.continuar();
             else if (m.tipo === 'parar') this.parar();
             else if (m.tipo === 'velocidade') this.definirVelocidade(m.valor);
+            else if (m.tipo === 'replay') { if (window.MatchReplay && window.MatchReplay.replayUltimos) window.MatchReplay.replayUltimos(m.segundos || 10); }
         } catch (e) {
             this.enviar('erro', { mensagem: String(e && e.message || e) });
         }
