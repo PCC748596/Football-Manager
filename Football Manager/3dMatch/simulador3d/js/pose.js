@@ -680,12 +680,24 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
         leva 0.05 a mais de lado em cada peca, que e a folga que a faz ler como
         pano por cima do braco em vez de tinta nele.
         */
-        const alturaManga = mangaComprida ? 1.0 : 0.5;
+        // Manga curta: ate 3/4 do braco de cima (era 1/2: "um pouco alta"); comprida: o braco inteiro.
+        const alturaManga = mangaComprida ? 1.0 : 0.75;
         // 1 cm a mais no TOPO (0.01 m / 0.33 m por unidade = 0.03): cobre o ombro e não deixa a pele aparecer.
         const extraTopo = 0.03;
         const manga = criarPeca(new THREE.BoxGeometry(u * 0.4, u * (alturaManga + extraTopo), u * 0.4), mangaMat);
-        manga.position.y = (mangaComprida ? 0.0 : 0.25) + extraTopo / 2;
+        manga.position.y = (0.5 - alturaManga / 2) + extraTopo / 2;
         up.add(manga); grp.add(up);
+        /*
+        O PUNHO DA MANGA (a barra no fim dela) na cor da gola do kit, como nos icones do Dashboard (ShirtIcon: punhos = collarColor).
+        Manga curta: uma faixa no fim da manga, a meio do braco; manga comprida (guarda-redes): no pulso, mais abaixo.
+        */
+        const corPunho = (UNI && UNI.gola) ? UNI.gola : null;
+        const punhoMat = corPunho ? new THREE.MeshStandardMaterial({ color: corPunho, roughness: 0.9 }) : null;
+        if (punhoMat && !mangaComprida) {
+            const punhoCurto = criarPeca(new THREE.BoxGeometry(u * 0.41, u * 0.12, u * 0.41), punhoMat);
+            punhoCurto.position.y = (0.5 - alturaManga) + 0.06;   // no fim da manga
+            up.add(punhoCurto);
+        }
         const elb = new THREE.Group(); elb.position.y = -1.0; elb.rotation.x = -0.3; grp.add(elb); elb.add(criarPeca(smallJointGeo, jointMat));
         const low = criarPeca(new THREE.BoxGeometry(u * 0.3, u * 0.8, u * 0.3), blockMat, true); low.position.y = -0.4; elb.add(low);
         /*
@@ -697,6 +709,11 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
             const mangaBaixo = criarPeca(new THREE.BoxGeometry(u * 0.35, u * 0.8, u * 0.35), mangaMat);
             mangaBaixo.position.y = 0.0;
             low.add(mangaBaixo);
+            if (punhoMat) {
+                const punhoLongo = criarPeca(new THREE.BoxGeometry(u * 0.36, u * 0.12, u * 0.36), punhoMat);
+                punhoLongo.position.y = -0.34;
+                low.add(punhoLongo);
+            }
         }
         const handG = new THREE.Group(); handG.position.y = -0.8; elb.add(handG);
         /*

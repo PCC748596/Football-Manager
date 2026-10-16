@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import { Position, ActivityType, Team, Player, Tactics, getKitDetails, getGKKitDetails, kitShorts } from '../types';
 import ActivityModal from './ActivityModal';
@@ -141,6 +141,49 @@ const OpponentTacticsModal: React.FC<{ team: Team, players: Player[], onClose: (
   const formation = FORMATIONS[team.tactics.formation] || FORMATIONS['4-4-2'];
   const lineupPlayers = team.lineup.map(id => teamPlayers.find(p => p.id === id)).filter(Boolean) as Player[];
 
+  // O nome + stamina de cada jogador vai ABAIXO da camisa, ou ACIMA quando abaixo ia tapar a camisa de outro (ou ser confundido com ela).
+  // A conta e em pixeis, com o tamanho real do campo.
+  const campoRef = useRef<HTMLDivElement>(null);
+  const [campo, setCampo] = useState({ w: 420, h: 560 });
+  useEffect(() => {
+    const medir = () => { const r = campoRef.current; if (r) setCampo({ w: r.clientWidth, h: r.clientHeight }); };
+    medir();
+    window.addEventListener('resize', medir);
+    return () => window.removeEventListener('resize', medir);
+  }, []);
+  const nomePos = useMemo(() => {
+    // Medidas reais (px) do icone da camisa (64 px; a camisa vai de cy-22 a cy+27, a etiqueta de nota/posicao ate cy+38, 54 de largura) e da
+    // caixa do nome (max 80 de largura, 24 de altura): abaixo = cy+42..cy+66, acima = cy-60..cy-36.
+    const SHIRT_W = 27, NOME_W = 40, NOME_H = 24;
+    const centro = formation.map(p => ({ x: p.x / 100 * campo.w, y: p.y / 100 * campo.h }));
+    const batidas = (i: number, acima: boolean) => {
+      const a = centro[i];
+      const y0 = acima ? a.y - 60 : a.y + 42;
+      const y1 = y0 + NOME_H;
+      let n = 0, desloca = 0;
+      centro.forEach((b, j) => {
+        if (j === i) return;
+        const dx = a.x - b.x;
+        if (Math.abs(dx) < SHIRT_W + NOME_W && y0 < b.y + 38 && y1 > b.y - 22) {
+          n++;
+          // Quanto e preciso empurrar o nome para o lado, para longe dessa camisa.
+          const falta = (SHIRT_W + NOME_W) - Math.abs(dx);
+          if (Math.abs(falta) > Math.abs(desloca)) desloca = (dx >= 0 ? 1 : -1) * falta;
+        }
+      });
+      // Nao pode sair do campo (uns 6 px de folga: o guarda-redes fica colado ao fundo).
+      if (y0 < -6 || y1 > campo.h + 6) n += 5;
+      return { n, desloca };
+    };
+    // Abaixo ou acima, o que tiver menos camisas no caminho; o que sobrar empurra-se de lado (no maximo 28 px).
+    return formation.map((_, i) => {
+      const baixo = batidas(i, false), cima = batidas(i, true);
+      const acima = baixo.n > 0 && cima.n < baixo.n;
+      const m = acima ? cima : baixo;
+      return { acima, dx: m.n > 0 && m.n < 5 ? Math.max(-28, Math.min(28, m.desloca)) : 0 };
+    });
+  }, [formation, campo]);
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div className="w-full max-w-lg bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -155,7 +198,7 @@ const OpponentTacticsModal: React.FC<{ team: Team, players: Player[], onClose: (
            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-500 hover:text-white transition-colors">×</button>
         </div>
         
-        <div className="aspect-[3/4] relative bg-slate-50 dark:bg-slate-900/50 m-4 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700/50 overflow-hidden select-none">
+        <div ref={campoRef} className="aspect-[3/4] relative bg-slate-50 dark:bg-slate-900/50 m-4 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700/50 overflow-hidden select-none">
             {/* Pitch Lines */}
             <div className="absolute inset-4 border border-slate-300 dark:border-slate-700/50 rounded opacity-60 pointer-events-none">
                 <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-300 dark:bg-slate-700/50"></div>
@@ -207,17 +250,17 @@ const OpponentTacticsModal: React.FC<{ team: Team, players: Player[], onClose: (
                               <span className="text-[10px] font-black text-blue-500/80 uppercase leading-none border-l border-slate-200 dark:border-slate-700 pl-1.5">{pos.label}</span>
                           </div>
                       )}
-                  </div>
 
-                  {/* Name Box */}
-                  {player && (
-                     <div className="mt-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-[2px] shadow-sm max-w-[80px] relative z-10 flex flex-col items-center gap-1">
-                        <FitnessBar fitness={player.fitness} className="w-10 h-1" />
-                        <span className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase truncate block text-center leading-tight">
-                           {player.name.split(' ').pop()}
-                        </span>
-                     </div>
-                  )}
+                      {/* Nome + stamina: abaixo da camisa, ou ACIMA quando abaixo tapava outra camisa (nomeEmCima) */}
+                      {player && (
+                         <div style={{ marginLeft: `${nomePos[idx].dx}px` }} className={`absolute left-1/2 -translate-x-1/2 z-30 ${nomePos[idx].acima ? 'bottom-full mb-1' : 'top-full mt-2.5'} bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-[2px] shadow-sm max-w-[80px] flex flex-col items-center gap-1`}>
+                            <FitnessBar fitness={player.fitness} className="w-10 h-1" />
+                            <span className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase truncate block text-center leading-tight">
+                               {player.name.split(' ').pop()}
+                            </span>
+                         </div>
+                      )}
+                  </div>
                 </div>
               );
             })}

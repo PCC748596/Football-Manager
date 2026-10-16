@@ -487,7 +487,7 @@ test('a manga comprida cobre o braço todo e dobra com o cotovelo', () => {
     baixo é filha do ANTEBRAÇO e não do cotovelo, senão atravessava o braço
     quando ele dobra.
     */
-    assert.ok(/const alturaManga = mangaComprida \? 1\.0 : 0\.5;/.test(srcPose),
+    assert.ok(/const alturaManga = mangaComprida \? 1\.0 : 0\.75;/.test(srcPose),
         'a manga comprida deixou de cobrir o braço de cima inteiro');
     assert.ok(/if \(mangaComprida\) \{[\s\S]{0,400}low\.add\(mangaBaixo\);/.test(srcPose),
         'a manga do antebraço não está pendurada no antebraço');
