@@ -76,7 +76,7 @@ const AberturaModel = {
     // O juiz fica (e entra) este tanto a frente dos assistentes (m).
     adiantoJuiz: 1.0,
     // Segundos de espera depois de todos alinhados.
-    esperaAlinhados: 10.0,
+    esperaAlinhados: 5.0,
     // A VOLTA DO INTERVALO: saem do tunel em ordem aleatoria, a trote, direto para os postos (sem fila).
     velocidade2T: 3.2,
     atrasoSegundoTempo: 2.0,

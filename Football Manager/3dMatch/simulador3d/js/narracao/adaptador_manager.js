@@ -205,17 +205,16 @@ const AdaptadorManager = {
         if (typeof Lados !== 'undefined') Lados.trocados = (opcoes.casaEsquerda !== false);
         // Os uniformes que o treinador escolheu (kit 1/2/3): o desenho de linha entra na tabela `Uniformes` pelo nome da equipa; o do
         // guarda-redes vai em `Match.uniformeGKA/B` (match_setup.js).
-        // O kit 1 (titular) de um clube que ja tem desenho feito a mao no simulador (config/uniformes.js, ex.: o tricolor do Fluminense) fica com
-        // esse desenho; os outros kits, e os clubes sem desenho, vestem a conversao do kit do manager. O original guarda-se para voltar a ele.
+        // Todos os kits (titular incluido) vestem a conversao do kit do manager, para o 3D combinar com o uniforme escolhido; o desenho feito a mao
+        // do simulador (config/uniformes.js) so entra quando o manager nao manda kit. O original guarda-se para voltar a ele.
         this._originais = this._originais || {};
         const uni = (lado, eq) => {
             if (!lado.uniforme || typeof Uniformes === 'undefined') return;
             if (!(eq.nome in this._originais)) this._originais[eq.nome] = Uniformes[eq.nome] || null;
             const orig = this._originais[eq.nome];
-            // O desenho feito a mao nao traz gola: leva a do kit do manager (uniforme.linha.gola).
-            const golaKit = lado.uniforme.linha && lado.uniforme.linha.gola;
-            if (lado.uniforme.titular && orig) Uniformes[eq.nome] = golaKit ? Object.assign({}, orig, { gola: golaKit }) : orig;
-            else if (lado.uniforme.linha) Uniformes[eq.nome] = lado.uniforme.linha;
+            // O uniforme do 3D e SEMPRE o kit que o utilizador escolheu (uniforme.linha): o desenho feito a mao do clube (`orig`) so vale
+            // quando o manager nao manda kit.
+            if (lado.uniforme.linha) Uniformes[eq.nome] = lado.uniforme.linha;
             else if (orig) Uniformes[eq.nome] = orig; else delete Uniformes[eq.nome];
         };
         uni(casa, eC); uni(fora, eF);

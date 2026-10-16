@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Team, getKitDetails, getGKKitDetails } from '../types';
+import { Team, getKitDetails, getGKKitDetails, kitShorts } from '../types';
 import { TeamShield } from './TeamShield';
 import { ShirtIcon } from './ShirtIcon';
 
@@ -73,6 +73,8 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
                     numberOutlineColor={details.noc}
                     longSleeves={isGK}
                     sleeveColor={(details as any).sc}
+                    shortColor={kitShorts(details, !isGK).cor}
+                    shortTrimColor={kitShorts(details, !isGK).aba}
                     scale={1.2} 
                     className="drop-shadow-xl"
                 />

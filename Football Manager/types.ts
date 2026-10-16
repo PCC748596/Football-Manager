@@ -183,6 +183,8 @@ export interface KitDetails {
   c3?: string;  // tertiary
   sc?: string;  // sleeve color
   clc?: string; // collar color
+  shc?: string; // short color (sem ele: a do desenho da camisa, ver kitShorts)
+  shtc?: string; // cor da aba (barra da bainha) do short (sem ela: a da gola)
   nc?: string;  // number color
   noc?: string; // number outline color
   diagonal?: boolean;
@@ -195,6 +197,19 @@ export interface KitDetails {
   spfcStripes?: boolean;
   criciumaStripes?: boolean;
 }
+
+/*
+O SHORT DO KIT — uma so conta, lida pelo Dashboard (ShirtIcon) e pelo 3D (uniformeDoKit em 3dMatch/simulador3dCliente.ts).
+`cor`: a do kit (`shc`), ou a secundaria quando a camisa tem desenho (listras, faixas, diagonais) e a primaria quando e lisa; o do
+goleiro e sempre da cor da camisa. `aba`: a barra da bainha, na cor `shtc` ou na da gola (`clc`); sem nenhuma das duas, sem aba.
+*/
+export const kitShorts = (k: KitDetails, camisaDeLinha = true): { cor: string; aba?: string } => {
+  const listrado = !!k.c2 && !k.gradient && !k.horizontal;
+  const comDesenho = !!k.c2 && ((!!k.horizontal) ||
+    (listrado && !!(k.centerVerticalStripes || k.spfcStripes || k.criciumaStripes || k.diagonal || k.multipleDiagonals || k.dualDiagonal)));
+  const cor = k.shc || ((camisaDeLinha && comDesenho) ? (k.c2 as string) : k.c1);
+  return { cor, aba: k.shtc || k.clc || undefined };
+};
 
 export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
     // Default logic

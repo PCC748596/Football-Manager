@@ -51,9 +51,62 @@ textura a multiplicar por tras.
 Devolve o proprio ctx pintado, para quem o quiser continuar a desenhar (o
 decote na frente, o numero nas costas).
 */
+/*
+O DESENHO DE UM KIT DO MANAGER, igual ao do icone dele (components/ShirtIcon.tsx, renderPattern): as mesmas formas, no mesmo
+quadrado de 200 x 200, escaladas para o canvas. `kit` = { c1, c2, c3, diagonal, diagonalWidth, horizontal, multipleDiagonals,
+dualDiagonal, centerVerticalStripes, gradient, spfcStripes, criciumaStripes } (ver uniformeDoKit em simulador3dCliente.ts).
+E assim que o uniforme do 3D fica igual ao que o utilizador escolheu: o 3D nao reinterpreta o kit, copia o desenho.
+*/
+function pintarKitComoIcone(ctx, largura, altura, kit) {
+    const c1 = kit.c1, c2 = kit.c2, c3 = kit.c3;
+    ctx.save();
+    ctx.scale(largura / 200, altura / 200);
+    if (kit.gradient && c2) {
+        const g = ctx.createLinearGradient ? ctx.createLinearGradient(0, 0, 0, 200) : null;
+        if (g && g.addColorStop) { g.addColorStop(0, c1); g.addColorStop(1, c2); ctx.fillStyle = g; } else ctx.fillStyle = c1;
+    } else ctx.fillStyle = c1;
+    ctx.fillRect(0, 0, 200, 200);
+    const rect = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+    const poly = (pts, c) => { ctx.fillStyle = c; ctx.beginPath(); pts.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath(); ctx.fill(); };
+    const tem = (c) => !!c && c !== 'transparent';
+    const hasTri = tem(c3) && c3 !== c1 && c3 !== c2;
+    const hasStripes = !kit.diagonal && !kit.gradient && tem(c2) && c2 !== c1;
+    const dw = (kit.diagonalWidth || 10) * 1.5;
+    if (kit.criciumaStripes) {
+        rect(0, 0, 200, 80, c1); rect(0, 80, 200, 80, c2); rect(0, 133, 200, 67, c3);
+    } else if (kit.centerVerticalStripes && c2 && c3) {
+        rect(85, 0, 20, 200, c2); rect(100, 0, 20, 200, c3);
+    } else if (kit.dualDiagonal && c2 && c3) {
+        poly([[200, 0], [200 - dw, -dw], [-dw, 200 - dw], [0, 200]], c2);
+        poly([[200 + dw, dw], [200, 0], [0, 200], [dw, 200 + dw]], c3);
+    } else if (kit.diagonal && c2) {
+        poly([[200 + dw, dw], [200 - dw, -dw], [-dw, 200 - dw], [dw, 200 + dw]], c2);
+    } else if (kit.multipleDiagonals && c2) {
+        ctx.translate(100, 100); ctx.rotate(Math.PI / 4); ctx.translate(-100, -100);
+        for (let x = -100; x < 300; x += 25) rect(x, -100, 12, 400, c2);
+    } else if (kit.spfcStripes && c2 && c3) {
+        rect(0, 120, 190, 15, c2); rect(0, 140, 190, 15, c3);
+    } else if (kit.horizontal && c2) {
+        for (let y = 20; y < 200; y += 60) rect(0, y, 200, 25, c2);
+    } else if (hasTri) {
+        for (let x = -22.5; x < 200; x += 56) {
+            rect(x + 21, 0, 7, 200, c2); rect(x + 28, 0, 21, 200, c3); rect(x + 49, 0, 7, 200, c2);
+        }
+    } else if (hasStripes) {
+        for (let x = 20; x < 200; x += 40) rect(x, 0, 20, 200, c2);
+    }
+    ctx.restore();
+}
+if (typeof window !== 'undefined') window.pintarKitComoIcone = pintarKitComoIcone;
+
 function pintarPadraoDeEquipamento(ctx, largura, altura, peca, corBase) {
     const cores = (peca && peca.cores && peca.cores.length) ? peca.cores : [corBase];
     const padrao = (peca && peca.padrao) ? peca.padrao : 'solido';
+    // Kit do manager: o desenho e o do icone (pintarKitComoIcone), com a barra por cima como nos outros.
+    if (padrao === 'kit' && peca.kit) {
+        pintarKitComoIcone(ctx, largura, altura, peca.kit);
+        return ctx;
+    }
 
     /*
     A BARRA INFERIOR (`peca.barra`) e pintada por CIMA de tudo o resto, e por
@@ -339,7 +392,8 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
     camisola, e por isso nao sai do uniforme.
     */
     const RAIO_GOLA = 86;
-    ctxV.fillStyle = '#dcdde1';
+    // DENTRO DO DECOTE: a cor da pele do jogador (a gola e so a borda, ver abaixo).
+    ctxV.fillStyle = new THREE.Color(corPele).getStyle();
     ctxV.beginPath();
     ctxV.arc(256, 0, RAIO_GOLA, 0, Math.PI);
     ctxV.closePath();

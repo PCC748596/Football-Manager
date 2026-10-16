@@ -22,11 +22,13 @@ interface ShirtIconProps {
   spfcStripes?: boolean;
   criciumaStripes?: boolean;
   pattern?: string;
+  shortColor?: string;      // com ele o icone leva o short por baixo da camisa (ver kitShorts em types.ts)
+  shortTrimColor?: string;  // a aba (barra da bainha) do short
   className?: string;
 }
 
 export const ShirtIcon: React.FC<ShirtIconProps> = ({
-  color, color2, color3, number, numberColor, collarColor, numberOutlineColor, diagonal = false, horizontal = false, multipleDiagonals = false, dualDiagonal = false, centerVerticalStripes = false, gradient = false, spfcStripes = false, criciumaStripes = false, pattern, diagonalWidth = 10, scale = 1, outOfPosition = false, longSleeves = false, sleeveColor, className = ''
+  color, color2, color3, number, numberColor, collarColor, numberOutlineColor, diagonal = false, horizontal = false, multipleDiagonals = false, dualDiagonal = false, centerVerticalStripes = false, gradient = false, spfcStripes = false, criciumaStripes = false, pattern, diagonalWidth = 10, scale = 1, outOfPosition = false, longSleeves = false, sleeveColor, shortColor, shortTrimColor, className = ''
 }) => {
   const maskId = `shirt-mask-${Math.random().toString(36).substr(2, 9)}`;
   const hasStripes = !diagonal && !gradient && color2 && color2 !== 'transparent' && color2 !== color;
@@ -194,8 +196,9 @@ export const ShirtIcon: React.FC<ShirtIconProps> = ({
   const finalCollarColor = collarColor || (hasTriStripes && color2 === 'white' ? 'white' : undefined);
   const finalNumberOutline = numberOutlineColor || 'transparent';
 
-  return (
-    <div className={`relative flex items-center justify-center ${className}`} style={{ width: `${64 * scale}px`, height: `${64 * scale}px` }}>
+  const comShort = !!shortColor;
+  const shirtNode = (
+    <div className={`relative flex items-center justify-center ${comShort ? '' : className}`} style={{ width: `${64 * scale}px`, height: `${64 * scale}px` }}>
       <svg viewBox="0 0 200 200" className={`w-full h-full filter drop-shadow-md transition-all ${outOfPosition ? 'opacity-40 grayscale-[0.3]' : ''}`}>
         <defs>
           <mask id={maskId}>
@@ -261,6 +264,24 @@ export const ShirtIcon: React.FC<ShirtIconProps> = ({
           {number}
         </span>
       )}
+    </div>
+  );
+
+  if (!comShort) return shirtNode;
+  // O short fica por baixo da camisa: duas pernas com a aba (barra da bainha) na cor do kit.
+  const w = 64 * scale * 0.62, h = 64 * scale * 0.5;
+  return (
+    <div className={`flex flex-col items-center ${className}`}>
+      {shirtNode}
+      <svg viewBox="0 0 120 80" style={{ width: `${w}px`, height: `${h}px`, marginTop: `${-6 * scale}px` }} className={`filter drop-shadow-md transition-all ${outOfPosition ? 'opacity-40 grayscale-[0.3]' : ''}`}>
+        <path d="M14 2 H106 L116 74 H66 L60 28 L54 74 H4 Z" fill={shortColor} stroke="rgba(0,0,0,0.2)" strokeWidth="2" strokeLinejoin="round" />
+        {shortTrimColor && (
+          <>
+            <path d="M5.2 62 H53 L54 74 H4 Z" fill={shortTrimColor} />
+            <path d="M67 62 H114.8 L116 74 H66 Z" fill={shortTrimColor} />
+          </>
+        )}
+      </svg>
     </div>
   );
 };

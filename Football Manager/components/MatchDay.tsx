@@ -15,7 +15,7 @@ interface MatchDayProps {
 }
 
 const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
-  const { gameState, fixtures, teams, players, playMatchDay, pauseMatch, advanceWeek, updateMatchVisualState, motor3dMensagem, updateTactics } = useGame();
+  const { gameState, fixtures, teams, players, playMatchDay, pauseMatch, resetMatchDay, advanceWeek, updateMatchVisualState, motor3dMensagem, updateTactics } = useGame();
   
   const match = fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId));
   const homeTeam = teams.find(t => t.id === match?.homeTeamId);
@@ -27,6 +27,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const [activeTab, setActiveTab] = useState<'pitch3d' | 'stats'>('pitch3d');
   const chave3d = match ? match.date + "|" + match.homeTeamId + "|" + match.awayTeamId : "";
   const [camara, setCamara] = useState('lateraltv');
+  const [reinicios, setReinicios] = useState(0);
   const [pronto3d, setPronto3d] = useState(() => simulador3dPronto());
   const userTeam = teams.find(t => t.id === gameState.userTeamId);
   const taticaJson = userTeam ? JSON.stringify(taticaParaMotor(userTeam.tactics)) : '';
@@ -61,7 +62,14 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
     }
   };
 
-  const handleReset = () => { pauseMatch(); };
+  // RESET: volta ao minuto 0 e o 3D e recriado (chave nova), por isso os times entram em campo outra vez e esperam a saida.
+  const handleReset = () => {
+    pauseMatch();
+    if (gameState.matchMinute >= 90) return;
+    resetMatchDay();
+    setIniciou(false);
+    setReinicios(n => n + 1);
+  };
 
   const handleKitSelection = (h: number, a: number) => {
     updateMatchVisualState({ kitHomeIdx: h, kitAwayIdx: a, visualStatus: 'KICKOFF_SET' });
@@ -237,7 +245,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 );
              })() : null}
              <div className={`absolute inset-0 w-full h-full ${showStats ? 'hidden' : ''}`}>
-                <Simulador3DView casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} chave={chave3d} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx}
+                <Simulador3DView casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx}
                     iniciar={iniciou} pausado={iniciou && !gameState.isProcessing} aoPronto={() => setPronto3d(true)}
                     aoMensagem={(m) => {
                       // Tatica do painel do 3D -> manager (aba Tactics): so o que mudou de nivel.

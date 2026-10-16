@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
-import { Position, ActivityType, Team, Player, Tactics, getKitDetails, getGKKitDetails } from '../types';
+import { Position, ActivityType, Team, Player, Tactics, getKitDetails, getGKKitDetails, kitShorts } from '../types';
 import ActivityModal from './ActivityModal';
 import { TeamShield } from './TeamShield';
 import { ShirtIcon } from './ShirtIcon';
@@ -235,11 +235,11 @@ const ClubDetailsCard: React.FC<{ team: Team, t: any, title: string, isOpponent?
             <div className="flex justify-center gap-1 mb-[3px]">
                {[0, 1, 2].map(idx => {
                   const d = getKitDetails(team, idx as any);
-                  return <ShirtIcon key={idx} color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={d.horizontal} multipleDiagonals={d.multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} collarColor={d.clc} number="9" numberColor={d.nc} numberOutlineColor={d.noc} sleeveColor={d.sc} scale={1.2} className="w-20 h-20" />;
+                  return <ShirtIcon key={idx} color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={d.horizontal} multipleDiagonals={d.multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} collarColor={d.clc} number="9" numberColor={d.nc} numberOutlineColor={d.noc} sleeveColor={d.sc} shortColor={kitShorts(d).cor} shortTrimColor={kitShorts(d).aba} scale={1.2} className="w-20" />;
                })}
                {(() => {
                     const d = getGKKitDetails(team, team.selectedKitIdx || 0, userTeam);
-                    return <ShirtIcon color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={d.horizontal} multipleDiagonals={d.multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} collarColor={d.clc} number="1" numberColor={d.nc} numberOutlineColor={d.noc} sleeveColor={d.sc} scale={1.2} longSleeves={true} className="w-20 h-20" />;
+                    return <ShirtIcon color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={d.horizontal} multipleDiagonals={d.multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} collarColor={d.clc} number="1" numberColor={d.nc} numberOutlineColor={d.noc} sleeveColor={d.sc} shortColor={kitShorts(d, false).cor} shortTrimColor={kitShorts(d, false).aba} scale={1.2} longSleeves={true} className="w-20" />;
                })()}
             </div>
 

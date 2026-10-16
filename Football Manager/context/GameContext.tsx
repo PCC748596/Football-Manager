@@ -145,6 +145,7 @@ interface GameContextType {
   advanceWeek: () => void;
   playMatchDay: (modo?: any) => void; // 'VISUAL' = 3D ao vivo (MatchDay); qualquer outra coisa = narrado (MatchRoundView)
   pauseMatch: () => void;
+  resetMatchDay: () => void; // RESET do MatchDay: volta ao minuto 0, sem eventos, para os times entrarem em campo outra vez
   finishMatchDayInstant: () => void;
   motor3dMensagem: (m: any) => void; // mensagens do iframe 3D visivel (modo 3D)
   motor3dProgresso: number | null; // minutos ja simulados pelo motor 3D (null = parado)
@@ -764,6 +765,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const pauseMatch = () => {
     if (matchTimerRef.current) clearTimeout(matchTimerRef.current);
     setGameState(prev => ({ ...prev, isProcessing: false }));
+  };
+
+  // RESET do dia de jogo (MatchDay): zera o relogio, o placar e os eventos dos jogos de hoje que ainda nao acabaram, e esquece o
+  // resultado/minuto do motor 3D. O 3D e recriado pelo MatchDay (a entrada dos times corre de novo). Jogo ja concluido nao se reinicia.
+  const resetMatchDay = () => {
+    if (matchTimerRef.current) clearTimeout(matchTimerRef.current);
+    const hoje = gameState.currentDate;
+    if (gameState.matchMinute >= maxDurationRef.current) return;
+    fixtures.filter(f => f.date === hoje && !f.played).forEach(f => { delete motor3dRes.current[f.id]; });
+    (window as any).motor3dMinuto = undefined;
+    setFixtures(prev => prev.map(f => (f.date === hoje && !f.played)
+      ? { ...f, homeScore: 0, awayScore: 0, events: [], possessionTimeline: [], ballZoneTimeline: [] } : f));
+    setGameState(prev => ({ ...prev, isProcessing: false, matchMinute: 0, matchMode: 'NONE' }));
   };
 
   // Corre o jogo do utilizador no motor 3D (oculto, ritmo maximo) e guarda o resultado. Se falhar, o textSim assume como antes.
@@ -1395,7 +1409,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <GameContext.Provider value={{
-      teams, players, fixtures, gameState, startGame, advanceDay, advanceWeek, playMatchDay, pauseMatch, updateTactics, updateTeamLogo,
+      teams, players, fixtures, gameState, startGame, advanceDay, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateTeamLogo,
       hirePlayer, sellPlayer, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, updateSettings, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,

@@ -4,7 +4,7 @@ O motor 3D decide a partida e gera a narracao. Dois usos:
   . jogarOculto  corre a partida do utilizador sem desenhar (modo "2D simulador": so a narracao) e devolve o resultado inteiro;
   . montarPayload  monta a mensagem `iniciar` (usada tambem pelo Simulador3DView, que mostra o 3D num iframe).
 */
-import { Team, Player, Fixture, MatchEvent, Tactics, FORMATIONS, getKitDetails, getGKKitDetails, KitDetails } from '../types';
+import { Team, Player, Fixture, MatchEvent, Tactics, FORMATIONS, getKitDetails, getGKKitDetails, kitShorts, KitDetails } from '../types';
 
 const CAMINHO_SIMULADOR = '/simulador3d/index.html';
 /*
@@ -54,16 +54,28 @@ const ehClara = (c?: string) => !!c && /^(white|yellow|#fff|#ffffff|#fde047|#fef
 
 // O kit do manager (getKitDetails) no formato de uniforme do simulador (js/config/uniformes.js).
 export const uniformeDoKit = (k: KitDetails, camisaDeLinha = true) => {
-  const cores = [k.c1, k.c2].filter(Boolean) as string[];
-  const listrado = !!k.c2 && !k.gradient && !k.horizontal;
-  const camisa = k.horizontal && k.c2 ? { padrao: 'faixas', cores, divisoes: 5 }
-    : listrado && (k.centerVerticalStripes || k.spfcStripes || k.criciumaStripes || k.diagonal || k.multipleDiagonals || k.dualDiagonal)
-      ? { padrao: 'listras', cores: k.c3 ? [k.c1, k.c2!, k.c3] : cores, divisoes: 7 }
-      : { padrao: 'solido', cores: [k.c1] };
-  const calcaoCor = camisaDeLinha ? ((camisa.padrao !== 'solido' && k.c2) ? k.c2 : k.c1) : k.c1;
+  /*
+  A CAMISA DO 3D E O DESENHO DO ICONE DO KIT (ShirtIcon): `padrao: 'kit'` leva as cores e as bandeiras do kit e o 3D pinta as mesmas
+  formas (pintarKitComoIcone, js/pose.js) — listras, faixas, diagonais, degrade, as faixas do Criciuma e do Sao Paulo. Lisa quando o
+  icone seria liso. `manga` e a cor das mangas do kit (sc).
+  */
+  const tem = (c?: string) => !!c && c !== 'transparent';
+  const hasTri = tem(k.c3) && k.c3 !== k.c1 && k.c3 !== k.c2;
+  const hasStripes = !k.diagonal && !k.gradient && tem(k.c2) && k.c2 !== k.c1;
+  const desenhado = !!(k.criciumaStripes || (k.centerVerticalStripes && k.c2 && k.c3) || (k.dualDiagonal && k.c2 && k.c3) || (k.diagonal && k.c2) ||
+    (k.multipleDiagonals && k.c2) || (k.spfcStripes && k.c2 && k.c3) || (k.horizontal && k.c2) || (k.gradient && k.c2) || hasTri || hasStripes);
+  const camisa: any = desenhado
+    ? { padrao: 'kit', cores: [k.c1, k.c2, k.c3].filter(Boolean), kit: {
+        c1: k.c1, c2: k.c2, c3: k.c3, diagonal: k.diagonal, diagonalWidth: k.diagonalWidth, horizontal: k.horizontal,
+        multipleDiagonals: k.multipleDiagonals, dualDiagonal: k.dualDiagonal, centerVerticalStripes: k.centerVerticalStripes,
+        gradient: k.gradient, spfcStripes: k.spfcStripes, criciumaStripes: k.criciumaStripes } }
+    : { padrao: 'solido', cores: [k.c1] };
+  if (k.sc) camisa.manga = k.sc;
+  const sh = kitShorts(k, camisaDeLinha);
   return {
     camisa,
-    calcao: { padrao: 'solido', cores: [calcaoCor] },
+    // A aba e a barra da bainha do short (pose.js: calcao.barra), na cor da aba do kit.
+    calcao: sh.aba ? { padrao: 'solido', cores: [sh.cor], barra: { cor: sh.aba, altura: 0.14 } } : { padrao: 'solido', cores: [sh.cor] },
     meiao: { padrao: 'solido', cores: [k.c1] },
     corPrincipal: k.c1,
     gola: k.clc,   // cor da gola do kit (KitDetails.clc); sem ela o 3D usa o cinza de sempre
