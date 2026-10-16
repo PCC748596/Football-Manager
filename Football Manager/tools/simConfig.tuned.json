@@ -1,0 +1,23 @@
+{
+  "goalChanceScale": 60,
+  "strengthExponent": 2.8,
+  "attackFloor": 5,
+  "defenseFloor": 10,
+  "gkWeight": 0.45,
+  "homeAttackBonus": 1,
+  "homePossessionBonus": 28,
+  "yellowByAggression": {
+    "Very Aggressive": 22.49,
+    "Aggressive": 17.29,
+    "Balanced": 13,
+    "Passive": 8.71,
+    "Very Passive": 5.2
+  },
+  "redByAggression": {
+    "Very Aggressive": 0.208,
+    "Aggressive": 0.128,
+    "Balanced": 0.08,
+    "Passive": 0.048,
+    "Very Passive": 0.032
+  }
+}

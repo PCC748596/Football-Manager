@@ -1,0 +1,10404 @@
+const _p_v1 = new THREE.Vector3();
+const _p_v2 = new THREE.Vector3();
+// A saída aos pés: o tombo à volta do eixo da frente do modelo.
+const _p_q1 = new THREE.Quaternion();
+const _p_eixoZ = new THREE.Vector3(0, 0, 1);
+const _p_v3 = new THREE.Vector3();
+// Rascunhos do `olharParaBola` — o pescoço é medido no mundo todos os frames.
+const _p_v3b = new THREE.Vector3();
+const _p_q = new THREE.Quaternion();
+const _p_v4 = new THREE.Vector3();
+
+/*
+Os atributos que o cansaco desconta (ver skillFor). Fora da lista: `stamina` e
+`fitness`, que sao a CAUSA e nao o efeito — descontar nelas fazia bola de neve
+—, o `tacticknow`, que e leitura de jogo, e o `gk`, que o guarda-redes ja paga
+pelo `speed` e pelo `strength` no gesto do mergulho.
+*/
+const CAMPOS_CANSAVEIS = {
+    tec: true, marking: true, speed: true, strength: true,
+    pass: true, intercept: true
+};
+
+class FootballPlayer {
+    /*
+    `uniforme` (opcional) e o equipamento do clube — ver Uniformes
+    (config/uniformes.js). Sem ele, `color1`/`color2` mandam como sempre: e o
+    caso do guarda-redes (que veste de outra cor por regra), do arbitro
+    (officials.js) e das equipas genericas.
+    */
+    constructor(id, color1, color2, team, uniforme) {
+        this.id = id; this.team = team; this.role = 'def';
+        this.hasBall = false;
+        this.uniforme = uniforme || null;
+        /*
+        A COR QUE O REPRESENTA quando so cabe uma (disco da vista tactica,
+        etiquetas): a dominante do uniforme, se houver. Ver corDoUniforme.
+        */
+        this.corCamisa = (this.uniforme && typeof corDoUniforme === 'function')
+            ? corDoUniforme(this.uniforme, color1) : color1;
+        /*
+        A COR DO CALCAO (minimapa): a do uniforme — texto ou a primeira cor do
+        desenho —, ou a que o `createTeams` deu. Pedido: *"ajusta as cores do
+        minimap para a cor do short dos jogadores"*.
+        */
+        const kU = this.uniforme ? this.uniforme.calcao : null;
+        this.corCalcao = (typeof kU === 'string') ? kU
+            : ((kU && kU.cores && kU.cores[0]) ? kU.cores[0] : color2);
+        this.num = 1;
+        this.pos = 'GK';
+
+        this.dirZ = Lados.dirDe(this.team);
+        this.targetGoalZ = (CAMPO_COMP / 2) * this.dirZ;
+        this.ownGoalZ = -(CAMPO_COMP / 2) * this.dirZ;
+
+        /*
+        Aparência (cabelo, pele, chuteiras). Determinística, para o mesmo jogador
+        sair sempre igual entre recargas — ver escolherAparencia em config.js.
+        Cada equipa recebe o seu próprio baralho de onze aparências, com as
+        proporções pedidas garantidas.
+        */
+        this.aparencia = escolherAparencia(this.id, 11, team === 'TeamA' ? 0 : 1);
+        /*
+        O PE BOM: 'd' destro, 'e' canhoto. E o que decide em que frame do
+        ciclo sai o toque de conducao (ver `noFrameDoPe`).
+
+        Fica-se pelo destro aqui: a POSICAO so e atribuida mais tarde (ver o
+        `this.pos = pos` no updateShirt) e o vies dos postos da esquerda
+        precisa dela. E la que o pe se resolve.
+        */
+        this.pe = 'd';
+
+        const gerado = this.buildBody(color1, color2);
+        this.model = gerado.corpo; this.rig = gerado.rig;
+
+        this.baseTarget = new THREE.Vector3();
+        this.dynamicTarget = new THREE.Vector3();
+        this.velocity = new THREE.Vector3();
+        this.speedMult = 3.5;
+
+        this.fsm = new PlayerFSM(this);
+        this.animTimer = 0;
+        this.animPhase = 0;
+        this.touchWaitTimer = 0;
+
+        this.passTarget = null;
+        this.dribbleTargetX = 0;
+        /*
+        Conduzir PARA TRÁS. Levantada pelo actPass quando não há bom recetor nem
+        ninguém perto para atrasar: volta com a bola e espera que apareça linha,
+        em vez de a atirar para a lateral. Ver o case CARRY em fsm.js.
+        */
+        this.carryRecuo = false;
+        /*
+        Segundos que ainda fica PARADO com a bola no pé (ver
+        CarryModel.segurar e o case CARRY em fsm.js). Zero é o normal:
+        conduzir.
+        */
+        this.carryHold = 0;
+        /*
+        Recebeu a bola para tocar DE PRIMEIRA (ver FirstTouchModel). Escrita no
+        resolveBallContact, consumida pelo ramo `Dominar` da árvore e apagada
+        quando a bola sai do pé.
+        */
+        this.jogarDePrimeira = false;
+        /*
+        Tabelinha: `esperarDevolucao` é o pedido de quem a iniciou (e arranca
+        para o espaço), `devolverPara` é o pedido que o parceiro recebeu (e tem
+        de devolver). Ver JogadasCombinadas.
+        */
+        this.esperarDevolucao = null;
+        this.devolverPara = null;
+        // Direccao em que a bola vinha a viajar quando ele a dominou; escrita no
+        // match.js e lida pelo eixoDeConducao (ver GiroDeCostasModel).
+        this.dirEntradaBola = null;
+        // Posto do frame anterior, para se saber se o alvo VEM na direccao dele
+        // (ver esperarPeloSlot em config.js). O alvo e recalculado do zero em
+        // cada frame e nao tem velocidade guardada em lado nenhum.
+        this.slotAnterior = null;
+        this.dribbleOpponent = null;
+        this.dribbleCooldownTimer = 0;
+        this.isCross = false;
+        this.isThroughBall = false;
+        // Passe A FRENTE para espaco LIVRE — nao passa entre ninguem, e por
+        // isso NAO e um lancamento (ver aplicarMiraDoPasse em player_bt.js).
+        this.isPasseEspaco = false;
+        this.throughBallTarget = null;
+        // Ponto do leque que este passe mira (ver PassTypes). null = aos pés.
+        this.passAimPoint = null;
+        this.passTipo = 'direct';
+        this.overlapTimer = 0;
+        // Segundos que ainda falta ter o braço no ar a pedir a bola. Escrito
+        // pelo ramo do cara a cara (player_bt.js), gasto no update.
+        this.pedindoBola = 0;
+        // Erro de leitura da linha de fora-de-jogo e tempo que leva a dar por
+        // ele. Ver OffsideModel e Match.publicarLinhaDeForaDeJogo.
+        this.offsideBias = 0;
+        this.offsideAviso = 0;
+        // Ha quanto tempo esta a frente da linha de fora-de-jogo (segundos).
+        this.offsideTempoEmPosicao = 0;
+        this.passInertiaTimer = 0;
+        this.passInertiaZDir = null;
+        /*
+        O DEPOSITO, de 1 (inteiro) ao `StaminaModel.minimo`. Ver
+        actualizarEnergia e StaminaModel (config/player_behavior.js).
+        */
+        this.energia = 1;
+        // Saída de bola sorteada para esta posse (ver decidirSaidaGK).
+        this.gkSaida = null;
+        // Colega escolhido para o lançamento com as mãos (estado 'lancando').
+        this.gkThrowTarget = null;
+        // Está a fazer FWR/AFT_SUPPORT neste momento (ver temVagaDeApoio).
+        this.apoioAtivo = false;
+        this.peitoTimer = 0;   // gesto de domínio no peito (ver CHEST_CONTROL)
+        this.lateralGiroAlvo = 0;  // giro da cintura no lateral (ver prepararGiroLateral)
+        this.lateralAlvo = null;   // colega escolhido no arranque do gesto do lateral
+        this.peitoCola = 0;    // segundos que faltam com a bola colada ao peito
+        this.peitoIntens = 0;  // intensidade da pose (ver aplicarCamadaPeito)
+        this.peitoBom = false; // ganhou o sorteio do amortecimento?
+        this.peitoHopTimer = 0; // pequeno salto opcional (ver controlarNoPeito)
+        this.jumpApex = 0;     // subida deste salto (ver SaltoCabeceio)
+        this.hasHeaderedInJump = false; // impede dar duas cabeçadas no mesmo pulo
+        this.headLeanTimer = 0; // cabeceio de pé, sem saltar (ver animateBones)
+        this.cinturaAlvoY = 0;  // cintura acompanha o giro da cabeça p/ a bola
+
+        this.decisionTimer = 0;
+        this.carryTouchGrace = 0;
+        // Giro do corpo no lançamento lateral: o alvo (excesso acima do
+        // giroMax da cintura) e o valor perseguido frame a frame.
+        this.lateralGiroCorpo = 0;
+        this.lateralGiroCorpoActual = 0;
+        this.actionState = null;
+
+        // Perception System (ver js/perception.js) — camada só de leitura para
+        // o BT: percebe, não decide. Fase 1: só bola/interceptação/claim.
+        // Estrutura completa (secção 13 do spec) já declarada para as fases
+        // seguintes não precisarem de mexer aqui outra vez.
+        this.blackboard = {
+            ball: {
+                visible: false, distance: Infinity, direction: { x: 0, z: 0 },
+                velocity: { x: 0, z: 0 }, speed: 0, approaching: false, movingAway: false,
+                controllable: false, interceptable: false, interceptionPoint: null,
+                timeToIntercept: Infinity, confidence: 0,
+                teammatePossession: false, opponentPossession: false
+            },
+            teammates: [], opponents: [],
+            space: { spaceAhead: 0, spaceBehindDefense: 0, spaceLeft: 0, spaceRight: 0 },
+            pressure: { level: 0, nearestOpponent: null },
+            tactical: { attackingSpaceAvailable: false, passingLaneAvailable: false, supportAvailable: false },
+            events: [], currentIntent: null
+        };
+        // Desfasa os jogadores para não recalcularem percepção todos no
+        // mesmo frame (ver Perception.tick, ~15Hz por jogador).
+        this.perceptionTimer = Math.random() * 0.07;
+        // Segundos em que este jogador não pode tocar na bola (ver BallControl).
+        this.touchLock = 0;
+
+        // Corrida ao espaço (ver RunIntoSpaceModel/actRunIntoSpace): destino,
+        // prazo, quem tinha a bola ao arrancar e o arrefecimento entre
+        // corridas.
+        this.runTarget = null;
+        this.runTimer = 0;
+        this.runCarrier = null;
+        this.runCooldown = 0;
+        /*
+        Segundos em que a corrida para o espaco esta GARANTIDA, logo a seguir a
+        um apoio de costas. Ver RunIntoSpaceModel.arranqueAposPasse.
+        */
+        this.arrancarAposPasse = 0;
+        // O desmarque de afastamento em curso ({x, z, t}) e a espera ate ao seguinte — ver PullAwayModel.
+        this.pullAway = null;
+        this.pullAwayCooldown = 0;
+        // Espera depois de uma tentativa de corte — ver CorteModel.
+        this.corteCooldown = 0;
+
+        // `marcRef` é a escolha do nível de equipa (atribuirMarcacoesDaEquipa,
+        // team_bt.js): quem este jogador acompanha, com histerese.
+        // `markingTarget` é a EXECUÇÃO dessa escolha no frame corrente — a
+        // folha Marcar do BT escreve-o e entra no estado MARKING da FSM; o
+        // PlayerAI.tick limpa-o no início de cada tick. A marcação posicional
+        // (aplicarMarcacaoPosicional) continua a inclinar o slot por cima.
+        this.markingTarget = null;
+        this.marcRef = null;      // adversário que está a acompanhar, ou null
+        this.marcTimer = 0;       // segundos desde a última mudança de decisão
+
+        // Micro-movimento no alvo (ver aplicarInquietacao em team_bt.js).
+        this.inqAngulo = 0;
+        this.inqRaio = 0;
+        this.inqTimer = 0;
+        this.inqIntervalo = 0;
+        this.isCovering = false;
+        this.markCount = 0;
+
+        // Estado interno do guarda-redes — por instância, não global.
+        // Antes eram window.goleiroEstado etc., partilhados pelos dois GKs,
+        // o que fazia um interferir com o estado do outro.
+        this.gkEstado = 'idle';
+        this.gkStyle = 'defensive';     // estado actual (dinâmico) — ver updateGkStyle em team_bt.js
+        this.gkStyleBase = 'defensive'; // traço fixo do jogador, atribuído em match.js
+        this.fbStyle = 'defensive';     // espelho do playing style, lido por attackFullBack
+
+        // Playing style (ver PlayingStyles em config.js e playing_styles.js).
+        // `playingStyleFixo` é a escolha explícita e sobrevive a mudanças de
+        // formação; `playingStyle` é a chave em vigor depois da validação.
+        this.playingStyle = null;
+        this.playingStyleFixo = null;
+        this.styleFlags = {};
+        this.gkTempoMergulho = 0;
+        this.gkDirMergulho = 0;
+        this.gkTipoMergulho = 'baixo';
+        this.gkAlvoX = 0;      // x previsto da bola, usado pelo estado 'maos'
+        this.gkAlvoY = 1.0;    // altura prevista da bola, usada pelo mergulho
+        this.dive = null;      // estado do mergulho em curso (ver js/gk_dive.js)
+        this.gkKickAction = null;  // ActionState do chutão (estado 'chutando')
+        this.gkKickNorm = 0;
+        this.gkKickTipo = null;    // 'chao' no tiro de meta; null = das mãos
+        this.gkKickBlend = null;   // mistura corrida->chute do chão (ver iniciarBlendChuteChao)
+        this.gkTiroAlvo = null;    // ponto de arranque do tiro de meta
+        this.gkReagiu = false;
+        this.gkDelayReacao = 0;
+        // Segundos que lhe faltam para estar recomposto depois de um mergulho
+        // (ver GoalkeeperDive.recuperacao).
+        this.gkRecuperacao = 0;
+        // Ruído da leitura da trajectória, sorteado uma vez por remate (ver alvoLidoGK).
+        this._gkErroU = 0;
+        this._gkErroV = 0;
+        this._gkChutadoAnt = false;
+
+        // Sprite para mostrar o PlayerNumber, PlayerBT e PlayerPOS acima da cabeça
+        this.labelCanvas = document.createElement('canvas');
+        this.labelCanvas.width = 1024;
+        this.labelCanvas.height = 128;
+        this.labelCtx = this.labelCanvas.getContext('2d');
+        this.labelTex = new THREE.CanvasTexture(this.labelCanvas);
+        this.labelMat = new THREE.SpriteMaterial({ map: this.labelTex, transparent: true, depthWrite: false });
+        this.labelSprite = new THREE.Sprite(this.labelMat);
+        // Parent is scaled down, we scale up sprite. Canvas is 1024x128 (8:1).
+        this.labelSprite.scale.set(20, 2.5, 1);
+        this.labelSprite.position.set(0, 8.5, 0); // Acima da cabeça (unscaled space)
+        this.model.add(this.labelSprite);
+        this.lastLabelText = '';
+        this.labelSprite.visible = false;
+
+        // Action Banner
+        this.actionCanvas = document.createElement('canvas');
+        this.actionCanvas.width = 512;
+        this.actionCanvas.height = 128;
+        this.actionCtx = this.actionCanvas.getContext('2d');
+        this.actionTex = new THREE.CanvasTexture(this.actionCanvas);
+        this.actionTex.generateMipmaps = false;
+        this.actionTex.minFilter = THREE.LinearFilter;
+        this.actionMat = new THREE.SpriteMaterial({ map: this.actionTex, transparent: true, depthWrite: false });
+        this.actionSprite = new THREE.Sprite(this.actionMat);
+        this.actionSprite.scale.set(12, 3, 1);
+        this.actionSprite.position.set(0, 11.5, 0); 
+        this.model.add(this.actionSprite);
+        this.actionSprite.visible = false;
+        this.actionBannerTimer = 0;
+
+        // O NOME (PlayerNames): mesmo tamanho do rotulo, no estilo das tags (rectangulo arredondado
+        // amarelo, letras pretas). So os 3 de cada equipa mais perto da bola o mostram.
+        this.nomeCanvas = document.createElement('canvas');
+        this.nomeCanvas.width = 1024;
+        this.nomeCanvas.height = 128;
+        this.nomeCtx = this.nomeCanvas.getContext('2d');
+        this.nomeTex = new THREE.CanvasTexture(this.nomeCanvas);
+        this.nomeMat = new THREE.SpriteMaterial({ map: this.nomeTex, transparent: true, depthWrite: false });
+        this.nomeSprite = new THREE.Sprite(this.nomeMat);
+        this.nomeSprite.scale.set(20, 2.5, 1);
+        this.nomeSprite.position.set(0, 8.5, 0);
+        this.model.add(this.nomeSprite);
+        this.nomeSprite.visible = false;
+        this.ultimoNome = '';
+    }
+
+    /*
+    Genérico (médias do painel esquerdo, por função) — só serve de FALLBACK
+    quando o jogador não tem `skills` individuais (ex.: antes do
+    data/player_skills.js carregar) e como referência pra gerar um time novo
+    no .json (ver tools/gen_player_skills.js). Decisões em jogo usam
+    skillFor(campo), que lê o skill individual real dele.
+    */
+    getSkill() {
+        if (this.role === 'def') return TeamSkills[this.team].def;
+        if (this.role === 'mid') return TeamSkills[this.team].mid;
+        if (this.role === 'atk') return TeamSkills[this.team].ata;
+        return TeamSkills[this.team].gk;
+    }
+
+    /*
+    Skill individual (data/player_skills.js) por campo — gk/tec/marking/
+    speed/strength/pass/intercept. Sem skills carregados, cai no genérico.
+    As chaves em p.skills são MINÚSCULAS (gerado por tools/gen_player_skills.js)
+    — normaliza aqui pra chamar com 'TEC', 'tec' ou qualquer caixa e não
+    depender de quem chama acertar a grafia exacta.
+    */
+    /*
+    O CANSACO GASTA-SE E RECUPERA-SE. Ver StaminaModel
+    (config/player_behavior.js) para o modelo e para como se calibra.
+
+    `dt` e o do frame, em segundos REAIS; aqui converte-se para segundos de
+    JOGO com o `timeScale`, senao mexer no GAME_SPEED mudava o cansaco sem
+    ninguem pedir.
+    */
+    actualizarEnergia(dt) {
+        const S = (typeof StaminaModel !== 'undefined') ? StaminaModel : null;
+        if (!S || !S.ligada) { this.energia = 1; return; }
+
+        const escala = (typeof MatchDuration !== 'undefined' && MatchDuration.timeScale)
+            ? MatchDuration.timeScale : 1;
+        const dtJogo = dt * escala;
+
+        const v = this.velocity ? Math.hypot(this.velocity.x, this.velocity.z) : 0;
+
+        if (v > S.limiarDescanso) {
+            // stamina alta gasta menos. 50 e a media e nao mexe.
+            const resistencia = 1 - ((this.skillFor('STAMINA') - 50) / 50) * S.sensibilidadeStamina;
+            const esforco = Math.pow(Math.max(0, v) / Math.max(0.1, S.vRef), S.expoente);
+            /*
+            E NA CHUVA CUSTA MAIS. Relvado encharcado, bota pesada, pe que
+            escorrega a cada apoio — ver ChuvaNoJogo.cansaco (config/physics.js).
+            Com o aguaceiro a aliviar, o acrescimo alivia com ele.
+            */
+            const molhado = (typeof chuvaNoRelvado === 'function' && typeof ChuvaNoJogo !== 'undefined')
+                ? (1 + ChuvaNoJogo.cansaco * chuvaNoRelvado()) : 1;
+            this.energia -= S.custoPorSegundo * esforco * Math.max(0.1, resistencia) * molhado * dtJogo;
+        } else {
+            const forma = 1 + ((this.skillFor('FITNESS') - 50) / 50) * S.sensibilidadeFitness;
+            this.energia += S.recuperaPorSegundo * Math.max(0.1, forma) * dtJogo;
+        }
+
+        this.energia = Math.max(S.minimo, Math.min(1, this.energia));
+    }
+
+    /*
+    Quanto da velocidade maxima lhe resta. 1 com o deposito cheio.
+    Multiplica o `maxSpeed` no steerArrive, que e o unico sitio por onde toda
+    a gente passa — o `speedMult` e escrito em vinte folhas da arvore.
+    */
+    factorCansaco() {
+        const S = (typeof StaminaModel !== 'undefined') ? StaminaModel : null;
+        if (!S || !S.ligada) return 1;
+        return 1 - S.quedaVelocidade * (1 - this.energia);
+    }
+
+    /*
+    Skill individual (data/player_skills.js) por campo — gk/tec/marking/
+    speed/strength/pass/intercept. Sem skills carregados, cai no generico.
+    As chaves em p.skills sao MINUSCULAS (gerado por tools/gen_player_skills.js)
+    — normaliza aqui pra chamar com 'TEC', 'tec' ou qualquer caixa e nao
+    depender de quem chama acertar a grafia exacta.
+
+    E O CANSACO DESCONTA-SE AQUI, nos campos fisicos e tecnicos: um jogador
+    no fim do jogo nao fica so mais lento, erra mais. Fora da lista ficam a
+    `stamina` e a `fitness` (sao a causa, nao o efeito — descontar nelas era
+    uma bola de neve) e o `tacticknow`, que e leitura de jogo e nao pernas.
+    */
+    skillFor(campo) {
+        const chave = String(campo).toLowerCase();
+        let base = null;
+        if (this.skills) {
+            const v = this.skills[chave];
+            if (typeof v === 'number') base = v;
+        }
+        if (base === null) base = this.getSkill();
+
+        const S = (typeof StaminaModel !== 'undefined') ? StaminaModel : null;
+        if (S && S.ligada && S.quedaSkill && CAMPOS_CANSAVEIS[chave]) {
+            base = Math.max(1, base - S.quedaSkill * (1 - this.energia));
+        }
+        // O MANDO DE CAMPO (config/mando.js): a casa joga melhor, o visitante um pouco pior.
+        const MD = (typeof MandoModel !== 'undefined') ? MandoModel : null;
+        if (MD && MD.activo) {
+            base = (this.team === MD.equipa) ? Math.min(100, base * (1 + MD.bonusCasa)) : Math.max(1, base * (1 - MD.malusFora));
+        }
+        return base;
+    }
+
+    /*
+    Captura a POSICAO e a ORIENTACAO com que a corrida de aproximacao termina,
+    para o corpo deslizar ate ao lado da bola em vez de la teleportar.
+
+    JA NAO CAPTURA A POSE DAS ARTICULACOES. Capturava-a, e o ramo do tiro de
+    meta misturava-a canal a canal com o keyframe do clip: duas animacoes a
+    escrever o mesmo esqueleto no mesmo frame. Como a pose capturada vinha do
+    ciclo de corrida, que alterna as pernas, o chute trocava de perna a meio.
+
+    A aproximacao passou a ser parte do proprio clip (PlayerKickClip,
+    keyframes 0 e 1), portanto nao ha nada de onde misturar o esqueleto. O que
+    resta aqui e so o corpo: a posicao planar, que desliza ate o PE DE APOIO
+    ficar em plantX/plantZ (ver "QUEM VAI AO PONTO DE APOIO E O PE"), e
+    o quaterniao, porque a corrida olha para a BOLA e o gesto olha campo
+    adentro.
+    */
+    iniciarBlendChuteChao(gkCorpo, gkRig, plantX, plantZ) {
+        this.gkKickBlend = {
+            t: 0,
+            w: 0,
+            dur: (typeof GK_GROUND_KICK_BLEND === 'number') ? GK_GROUND_KICK_BLEND : 0.14,
+            plantX, plantZ,
+            origemX: gkCorpo.position.x,
+            origemZ: gkCorpo.position.z,
+            quatOrigem: gkCorpo.quaternion.clone(),
+            quatAlvo: null
+        };
+    }
+
+    /*
+    Pose do LATERAL: bola nas duas mãos, por cima e por trás da cabeça.
+
+    Escrita directa (`=`, não lerp), como as outras poses de bola parada: é uma
+    posição de espera, não um gesto — quem a quiser suavizar à entrada faz o
+    mesmo que o chute do chão do GR (ver iniciarBlendChuteChao).
+
+    `segurarBola` põe a bola nas mãos; passa-se false para posar o jogador sem
+    lhe dar a bola (por exemplo, para afinar a pose no ecrã).
+    */
+    aplicarPoseLateral(segurarBola = true) {
+        const L = (typeof LateralPose !== 'undefined') ? LateralPose : null;
+        if (!this.rig || !L) return;
+        // A pose de espera é o frame 0 do clip; passa pelo mesmo caminho, para
+        // não haver duas versões da mesma pose a divergir.
+        this.aplicarFrameLateral({
+            chest: L.chest, pelvisX: L.pelvisX, bracoX: L.bracoX, bracoZ: L.bracoZ,
+            cotovelo: L.cotovelo, giro: 0,
+            coxaFrente: L.coxaFrente, joelhoFrente: L.joelhoFrente,
+            coxaTras: L.coxaTras, joelhoTras: L.joelhoTras, altura: 0
+        }, segurarBola);
+    }
+
+    /*
+    Distância no MUNDO entre os dois punhos, com as matrizes actualizadas.
+    */
+    distanciaEntreMaos() {
+        const rig = this.rig;
+        if (!rig || !rig.lHand || !rig.rHand) return null;
+        rig.lHand.updateWorldMatrix(true, false);
+        rig.rHand.updateWorldMatrix(true, false);
+        _v1.setFromMatrixPosition(rig.lHand.matrixWorld);
+        _v2.setFromMatrixPosition(rig.rHand.matrixWorld);
+        return _v1.distanceTo(_v2);
+    }
+
+    /*
+    Fecha os braços até as MÃOS ENCOSTAREM NA BOLA.
+
+    O `bracoZ` do keyframe é um palpite: a distância entre as mãos sai da
+    largura dos ombros, do comprimento do braço e do ângulo do cotovelo, tudo
+    junto — não há número que se acerte à mão. Mediu-se e viu-se que mesmo com
+    `bracoZ` a 0.05 as mãos ficavam à largura dos ombros, com a bola a flutuar
+    entre elas sem lhes tocar.
+
+    Aqui mede-se e corrige-se: bissecção sobre o `bracoZ` até a distância entre
+    os punhos ser o DIÂMETRO da bola. `fechoLimite` impede que a correcção
+    cruze os braços, e `fechoIteracoes` mantém isto barato (corre para um
+    jogador, num estado só).
+
+    Devolve o `bracoZ` final, para o chamador o poder reaplicar.
+    */
+    /*
+    O PÉ ENCOSTA NO RELVADO.
+
+    A altura do corpo é `ALTURA_BASE_Y` mais o que a pose pedir, e a pose é que
+    dobra as pernas: cada grau de anca ou joelho levanta a sola sem nada a
+    compensar. Medido com o jogador parado, pela caixa do modelo: 4 a 5 cm de
+    média no ar, 24 cm no pior caso, e alguns centímetros ENTERRADO noutros
+    estados. Ver AssentoNoChao (config/gait.js).
+
+    Mede-se a bota mais baixa — os oito cantos da caixa dela, no mundo — e
+    desce-se o corpo o que falta. Só até ao trote: numa corrida há fase de voo
+    e assentar aí seria patinar.
+    */
+    /*
+    A CABEÇA NÃO APONTA PARA CIMA SEM NADA LÁ ESTAR.
+
+    Houve aqui um seguimento da bola — a cabeça baixava para ela — e foi
+    revertido a pedido: com a bola aos pés a 46 graus abaixo do horizonte,
+    ficava o campo inteiro de cabeça baixa. O que fica é o tecto.
+
+    Mede-se o olhar no MUNDO (o pescoço herda o tronco, que a passada já
+    inclina) e só se corrige quando ele passa acima do horizonte. Ver
+    OlharDaCabeca (config/gait.js).
+    */
+    nivelarCabeca() {
+        const O = (typeof OlharDaCabeca !== 'undefined') ? OlharDaCabeca : null;
+        if (!O || !O.activo || !this.rig || !this.rig.neck) return;
+        if (this.role === 'gk') return;
+        if (this.jumpTimer > 0) return;                    // o cabeceio escreve a cabeça
+        const st = this.fsm ? this.fsm.currentState : null;
+        if (st === 'SHOOT' || st === 'SET_PIECE_KICK' || st === 'LATERAL' ||
+            st === 'SLIDE_TACKLE' || st === 'COMEMORAR' ||
+            st === 'CHEST_CONTROL' || st === 'BALL_CONTROL_RIGHT') return;
+
+        const neck = this.rig.neck;
+        this.model.updateMatrixWorld(true);
+        neck.getWorldQuaternion(_p_q);
+        _p_v3b.set(0, 0, 1).applyQuaternion(_p_q);
+        const olhar = Math.asin(THREE.MathUtils.clamp(_p_v3b.y, -1, 1));
+
+        /*
+        E VOLTA A ZERO quando não é preciso — foi o erro da primeira versão.
+
+        Ela só corrigia quando o olhar passava do horizonte, e somava a
+        correcção ao pescoço. Como a passada balança o tronco, o olhar passa o
+        horizonte em parte do ciclo, e a correcção ia-se acumulando sem nada a
+        desfazê-la: medido, a cabeça acabava 13 graus abaixo em todos os
+        estados, que é o oposto do que se pedia.
+
+        Com o repouso em zero, o pescoço fica como sempre esteve e o tecto só
+        aparece quando ele apontaria para cima.
+        */
+        const excesso = olhar - O.margemAcima;
+        const alvo = (excesso > 0) ? (neck.rotation.x + excesso) : 0;
+        neck.rotation.x = lerpTo(neck.rotation.x, alvo, O.suavizacao);
+    }
+
+
+    assentarNoChao() {
+        const A = (typeof AssentoNoChao !== 'undefined') ? AssentoNoChao : null;
+        if (!A || !A.activo || !this.rig || !this.rig.lBota || !this.rig.rBota) return;
+        // Quem escreve a própria altura manda: saltos, mergulhos e carrinhos.
+        if (this.jumpTimer > 0 || this.peitoHopTimer > 0) return;
+        /*
+        O GUARDA-REDES SÓ ESCAPA QUANDO ESTÁ MESMO NO AR.
+
+        Isto era `gkEstado !== 'idle'`: tudo o que não fosse parado escapava ao
+        assento. Dois relatos vieram daí — "depois do chute para fora o goleiro
+        tb fica suspenso" (o tiro de meta) e "depois que o goleiro pega a bola
+        com a mão tb fica suspenso". Medida a sola por estado, em 25 min:
+
+            tiro_meta          0.136      tiro_meta_espera   0.102
+            mergulho           0.133      segurando          0.056
+            chutando           0.048      maos               0.021
+            idle               0.018
+
+        Só o mergulho e o salto alto saem do chão de propósito, e são os dois
+        únicos sítios do `updateGK` que escrevem uma altura ACIMA da base
+        (`+ Pm.altura` no mergulho, `+ jumpH` no salto). Todas as poses de pé do
+        `GoalkeeperPose` têm `altura` 0.0, -0.05 ou -0.35 — agacham, nunca
+        levantam —, portanto nenhuma delas tem motivo para escapar.
+        */
+        if (this.role === 'gk' &&
+            (this.gkEstado === 'mergulho' || this.gkEstado === 'salto_alto' ||
+             this.gkEstado === 'saida_pes')) return;
+        const st = this.fsm ? this.fsm.currentState : null;
+        if (st === 'SLIDE_TACKLE' || st === 'COMEMORAR') return;
+        /*
+        ACIMA DA `velMax` O ASSENTO NÃO DESLIGA — fica só num sentido.
+
+        Era um `return` seco, com a razão certa: a correr há fase de voo, e
+        forçar a sola ao relvado a 8 m/s era colar ao chão um gesto que tem de
+        sair dele. Só que o `return` desligava os DOIS sentidos, e o de baixo
+        não tem fase de voo nenhuma: bota enterrada é sempre defeito.
+
+        Relato, com fotografias: *"tem jogador enfiando quase toda chuteira na
+        grama durante a corrida"*. Medido com
+        `tools/scratch/pe_enterrado_jogo.js`, percentagem de leituras com a
+        sola abaixo do relvado, por faixa de velocidade:
+
+            0-1 m/s   5.3%        4-5 m/s   30.7%
+            1-2 m/s   1.5%        5-6 m/s   25.5%
+            2-3 m/s   1.1%        6-7 m/s   20.0%
+            3-4 m/s  11.5%        7-8 m/s   16.4%
+
+        O degrau cai exactamente na `velMax` (4.0). Abaixo dela o assento
+        corrige e sobra 1-2%; acima ninguém corrige nada.
+
+        Agora, acima da `velMax`, só passa a correcção que SOBE o corpo
+        (`chao < 0`, ou seja sola enterrada). A que o desceria — a que
+        mataria a fase de voo — continua a não correr.
+        */
+        const soASubir = (this.velocity.length() > A.velMax);
+
+        const solaY = (bota) => {
+            const geo = bota.geometry;
+            if (!geo.boundingBox) geo.computeBoundingBox();
+            const b = geo.boundingBox;
+            bota.updateWorldMatrix(true, false);
+            let min = Infinity;
+            for (let ix = 0; ix < 2; ix++) {
+                for (let iy = 0; iy < 2; iy++) {
+                    for (let iz = 0; iz < 2; iz++) {
+                        _p_v3.set(ix ? b.max.x : b.min.x, iy ? b.max.y : b.min.y, iz ? b.max.z : b.min.z);
+                        _p_v3.applyMatrix4(bota.matrixWorld);
+                        if (_p_v3.y < min) min = _p_v3.y;
+                    }
+                }
+            }
+            return min;
+        };
+
+        const chao = Math.min(solaY(this.rig.lBota), solaY(this.rig.rBota));
+        if (!isFinite(chao)) return;
+        if (soASubir && chao >= 0) return;
+        // A SOLA fica `afundamento` abaixo do relvado: as travas (mais abaixo) ficam enterradas.
+        const correccao = THREE.MathUtils.clamp(-(chao + (A.afundamento || 0)), -A.correccaoMax, A.correccaoMax);
+        this.model.position.y += correccao * A.suavizacao;
+    }
+
+    /*
+    O MESMO FECHO, MAS PELA ROTAÇÃO DO OMBRO — os cotovelos ficam abertos.
+
+    Pedido, com captura vista de cima: *"os cotovelos estão muito fechados. Têm
+    que ficar mais abertos."* O `fecharMaosNaBola` aproxima os punhos ADUZINDO o
+    braço (rotation.z), e aduzir traz o cotovelo junto com a mão: medido, com a
+    bola segura os cotovelos ficavam a 0.16 m um do outro — mais juntos do que
+    as mãos (0.26), os antebraços cruzados à frente do peito.
+
+    Aqui a abertura (`bracoZ`) fica onde a pose a pôs, com os cotovelos para
+    fora, e quem fecha as mãos na bola é a rotação interna do ombro
+    (rotation.y): com o cotovelo dobrado, ela traz os antebraços para dentro, à
+    volta da bola, sem mexer nos cotovelos. Bissecção como a outra.
+    */
+    fecharMaosNaBolaPeloOmbro(bracoZ, yMax) {
+        const rig = this.rig;
+        const L = LateralPose;
+        if (!rig || !rig.lHand || !rig.rHand || !L) return 0;
+        const alvo = 2 * (BallPhysics.raio + ((typeof L.folgaMao === 'number') ? L.folgaMao : 0));
+        rig.lArm.rotation.z = bracoZ;
+        rig.rArm.rotation.z = -bracoZ;
+        const aplicar = (y) => { rig.lArm.rotation.y = y; rig.rArm.rotation.y = -y; };
+        let lo = -yMax, hi = yMax;
+        aplicar(lo); const dLo = this.distanciaEntreMaos();
+        aplicar(hi); const dHi = this.distanciaEntreMaos();
+        if (dLo === null || dHi === null) { aplicar(0); return 0; }
+        if (alvo <= Math.min(dLo, dHi)) { const y = dLo <= dHi ? lo : hi; aplicar(y); return y; }
+        if (alvo >= Math.max(dLo, dHi)) { const y = dLo >= dHi ? lo : hi; aplicar(y); return y; }
+        const crescente = dHi > dLo;
+        let y = 0;
+        for (let i = 0; i < L.fechoIteracoes; i++) {
+            y = (lo + hi) / 2;
+            aplicar(y);
+            const d = this.distanciaEntreMaos();
+            if (d === null || Math.abs(d - alvo) < L.fechoTolerancia) break;
+            if ((d < alvo) === crescente) lo = y; else hi = y;
+        }
+        aplicar(y);
+        return y;
+    }
+
+    fecharMaosNaBola(bracoZBase) {
+        const rig = this.rig;
+        const L = LateralPose;
+        if (!rig || !rig.lHand || !rig.rHand || !L) return bracoZBase;
+
+        const alvo = 2 * (BallPhysics.raio + ((typeof L.folgaMao === 'number') ? L.folgaMao : 0));
+        const aplicar = (z) => {
+            rig.lArm.rotation.z = z;
+            rig.rArm.rotation.z = -z;
+        };
+
+        // Aduzir (z mais negativo) aproxima as mãos; abduzir afasta-as.
+        let lo = bracoZBase - L.fechoLimite;   // mais fechado
+        let hi = bracoZBase + L.fechoLimite;   // mais aberto
+
+        aplicar(lo);
+        const dLo = this.distanciaEntreMaos();
+        aplicar(hi);
+        const dHi = this.distanciaEntreMaos();
+        if (dLo === null || dHi === null) { aplicar(bracoZBase); return bracoZBase; }
+
+        // Se o alvo está fora do intervalo, fica-se pelo extremo mais próximo.
+        if (alvo <= Math.min(dLo, dHi)) { aplicar(dLo <= dHi ? lo : hi); return dLo <= dHi ? lo : hi; }
+        if (alvo >= Math.max(dLo, dHi)) { aplicar(dLo >= dHi ? lo : hi); return dLo >= dHi ? lo : hi; }
+
+        // A distância é monótona em z dentro deste intervalo.
+        const crescente = dHi > dLo;
+        let z = bracoZBase;
+        for (let i = 0; i < L.fechoIteracoes; i++) {
+            z = (lo + hi) / 2;
+            aplicar(z);
+            const d = this.distanciaEntreMaos();
+            if (d === null || Math.abs(d - alvo) < L.fechoTolerancia) break;
+            if ((d < alvo) === crescente) lo = z; else hi = z;
+        }
+        aplicar(z);
+        return z;
+    }
+
+    /*
+    Encosta a bola ao ponto MÉDIO das duas mãos. Chamado pela pose de espera e
+    por cada frame do gesto: as mãos seguem o clip, e a bola segue as mãos.
+    */
+    colarBolaAsMaos(acima) {
+        const rig = this.rig;
+        if (typeof Match === 'undefined' || !Match.ball) return;
+        if (!rig || !rig.lHand || !rig.rHand) return;
+
+        rig.lHand.updateWorldMatrix(true, false);
+        rig.rHand.updateWorldMatrix(true, false);
+        _v1.setFromMatrixPosition(rig.lHand.matrixWorld);
+        _v2.setFromMatrixPosition(rig.rHand.matrixWorld);
+        _v1.lerp(_v2, 0.5);
+
+        /*
+        Acima do ponto médio dos punhos: as mãos seguram a bola por baixo e
+        pelos lados, portanto o centro dela não está à altura deles. Sem isto
+        ficava encaixada entre os punhos, meia enterrada nas mãos.
+        */
+        _v1.y += (typeof acima === 'number')
+            ? acima
+            : ((typeof LateralPose !== 'undefined' && LateralPose.bolaAcimaDasMaos)
+                ? LateralPose.bolaAcimaDasMaos : 0);
+
+        /*
+        A BOLA ATRAS DO CORPO — MEDIDO, DUAS CORRECCOES FALHADAS, NAO MEXER
+        SEM LER ISTO.
+
+        Relato, com captura: *"o goleiro tem que encaixar a bola junto ao
+        peito. Nao pode encaixar atras da perna."*
+
+        MEDIDO, 126 encaixes frame a frame, no espaco do corpo:
+
+            altura da bola          1.34 m
+            a frente do corpo       0.27 m
+            distancia a mao         0.12 m   (o raio da bola e 0.11)
+            ATRAS do corpo (z<0)    4% dos frames
+
+        Ou seja o encaixe esta certo em 96% dos frames; o defeito e uma
+        minoria em que os punhos ficam atras do tronco (pose de mergulho de
+        lado por desfazer) e a bola vai com eles.
+
+        DUAS TENTATIVAS, AS DUAS PIORARAM:
+
+          1. travar no `gk_dive.js`, junto a guarda do relvado: subiu para 8%.
+             Estava no caminho errado — aqueles frames sao do estado
+             'segurando', que passa por aqui e nao por la — e de caminho
+             escrevia por cima de temporarios partilhados (`_vLocal`,
+             `_qOsso`).
+
+          2. travar AQUI, empurrando a bola ao longo da frente do jogador:
+             subiu para 11% E afastou a bola das maos (0.12 -> 0.21 m). A
+             conta da "frente" usava `model.rotation.y`, mas o modelo e
+             orientado por QUATERNIAO (`lookAtBola`) e o Euler em y nao
+             representa a direccao dele — a trava disparava onde nao devia.
+
+        QUEM TENTAR OUTRA VEZ: a frente do jogador tira-se de
+        `getWorldQuaternion` aplicado a (0,0,1), nunca do `rotation.y`. E o
+        sitio certo e provavelmente a POSE (os punhos nao deviam ficar atras
+        do tronco de todo), nao a posicao da bola depois de colada.
+        */
+        /*
+        A BOLA NAO SALTA PARA AS MAOS — ela vai com elas. Relato: *"quando a bola chega
+        bem perto do goleiro, proxima ao rosto, ela e teletransportada no frame
+        seguinte para o peito; devia acompanhar o movimento do braco"*. Na agarrada
+        guarda-se onde a bola estava (`gkCatchBlend`) e ela percorre o caminho ate as
+        maos em `GoalkeeperPose.catchBlend` s, com suavizacao.
+        */
+        const CB = this.gkCatchBlend;
+        if (CB) {
+            // O relogio e o da posse (zerado na agarrada, +delta por frame): esta funcao corre mais do que uma vez por frame.
+            CB.t = Match.possessionTimer || 0;
+            const kb = Math.min(1, CB.t / Math.max(0.001, CB.dur));
+            const sb = kb * kb * (3 - 2 * kb);
+            Match.ball.position.lerpVectors(CB.from, _v1, sb);
+            if (kb >= 1) this.gkCatchBlend = null;
+        } else {
+            Match.ball.position.copy(_v1);
+        }
+        // Apoiada no relvado, nunca por baixo dele (o goleiro caido com a bola nas maos).
+        if (Match.ball.position.y < BallPhysics.raio) Match.ball.position.y = BallPhysics.raio;
+        Match.ballVel.set(0, 0, 0);
+    }
+
+    /*
+    Encosta a bola a UMA mão. Usado no lançamento com a mão do guarda-redes:
+    a bola segue o punho do braço de lançamento até ao contacto.
+    */
+    colarBolaAMao(lado) {
+        const rig = this.rig;
+        if (typeof Match === 'undefined' || !Match.ball) return;
+        if (!rig) return;
+        const hand = (lado === 'r') ? rig.rHand : rig.lHand;
+        if (!hand) return;
+
+        hand.updateWorldMatrix(true, false);
+        /*
+        A BOLA ASSENTA NA PALMA, não no punho: o centro dela fica na face da palma, a `raio` + meia
+        espessura da palma de distância na direcção da normal (a palma da luva). Era o ponto do punho
+        mais 6 cm acima — a bola ficava a meio do antebraço (relato com as capturas DA69 e 2C005).
+        */
+        const maoG = hand.children[hand.children.length - 1];
+        const palmaG = maoG && maoG.children[maoG.children.length - 1];
+        const palma = palmaG && palmaG.children[0];
+        if (palma && palma.geometry && palma.geometry.parameters && palma.geometry.parameters.depth) {
+            palma.updateWorldMatrix(true, false);
+            _v1.setFromMatrixPosition(palma.matrixWorld);
+            if (!this._qPalma) this._qPalma = new THREE.Quaternion();
+            palmaG.getWorldQuaternion(this._qPalma);
+            // A normal da palma: +z local na mão direita, -z na esquerda (ver construirCorpo).
+            _v2.set(0, 0, (lado === 'r') ? 1 : -1).applyQuaternion(this._qPalma);
+            const esc = new THREE.Vector3().setFromMatrixScale(palma.matrixWorld);
+            const meia = 0.5 * palma.geometry.parameters.depth * esc.z;
+            _v1.addScaledVector(_v2, BallPhysics.raio + meia);
+        } else {
+            _v1.setFromMatrixPosition(hand.matrixWorld);
+            // O centro da bola fica ligeiramente acima do punho (a mão segura por baixo).
+            _v1.y += 0.06;
+        }
+
+        Match.ball.position.copy(_v1);
+        Match.ballVel.set(0, 0, 0);
+    }
+
+    /*
+    Escreve no rig um frame do arremesso lateral. `K` vem do amostrarClipLateral;
+    a pose de espera é o frame 0 do mesmo clip, por isso não há salto entre
+    esperar e lançar.
+
+    `segurarBola` cola a bola às mãos — verdade até ela ser largada
+    (ThrowInClip.contactFrame, disparado pelo ActionState).
+    */
+    /*
+    Escreve no rig um frame do arremesso lateral e trata da bola.
+
+    A POSE mudou-se para o `aplicarPoseLateral` do js/pose.js, partilhado com o
+    editor de animação. O que fica aqui é o que uma pose não pode saber: a
+    altura do corpo, as mãos a fecharem-se na bola e a bola a seguir as mãos.
+
+    `segurarBola` é verdade até ela ser largada (ThrowInClip.contactFrame,
+    disparado pelo ActionState).
+    */
+    aplicarFrameLateral(K, segurarBola) {
+        if (!this.rig) return;
+        aplicarPoseLateral(this.rig, K, this.lateralGiroAlvo);
+        // A cabeca fica direita sobre o tronco: quem vira para o arremesso e a CINTURA. O pescoco
+        // guardava o angulo com que a cabeca seguia a bola antes do gesto (+-0.9 rad).
+        if (this.rig.neck && typeof K.cabecaY !== 'number') this.rig.neck.rotation.y = 0;
+        this.model.position.y = ALTURA_BASE_Y + (K.altura || 0);
+
+        /*
+        Enquanto a bola está nas mãos, as mãos fecham-se NELA: mede-se a
+        distância entre os punhos e corrige-se o `bracoZ` até dar o diâmetro da
+        bola. Depois de a largar não há nada para segurar e os braços seguem o
+        clip como está escrito.
+        */
+        if (segurarBola) this.fecharMaosNaBola(K.bracoZ);
+
+        /*
+        A bola segue as MÃOS, e as mãos seguem o clip: em vez de a colar a uma
+        altura fixa, lê-se a posição dos punhos no mundo. Sem isto ela ficava
+        suspensa atrás da cabeça enquanto os braços já iam à frente — e na pose
+        de espera ficava a flutuar acima do crânio, fora das mãos.
+        */
+        if (segurarBola) this.colarBolaAsMaos();
+    }
+
+    /*
+    Escolhe o colega a quem se vai atirar o lateral e prepara o giro da cintura
+    para ele. Corre no ARRANQUE do gesto; o `lancarLateral` reutiliza a escolha.
+
+    Sem alguém a quem atirar, o lateral vai campo adentro e a cintura fica
+    quieta.
+    */
+    escolherAlvoDoLateral() {
+        /*
+        SÓ QUEM ESTÁ AO ALCANCE DO BRAÇO DELE.
+
+        O `findPassTarget` é a busca do PASSE: não sabe nada de lançamentos e
+        devolvia gente a 27, 43 metros. O lateral chega, quando muito, aos
+        `alcanceMaximoDoLateral` (12 m a 20 m conforme o STRENGTH), portanto o
+        alvo era de partida inalcançável — e, pior, o `Match.intendedReceiver`
+        ficava a apontar para ele, ou seja ninguém mais ia à bola.
+
+        Medido com o erro de execução DESLIGADO, antes disto: em cinco
+        lançamentos seguidos a bola nunca se aproximou um metro que fosse do
+        destinatário — a distância mínima ao longo do voo era exactamente a
+        distância inicial, das duas uma, ou ele estava para trás ou a bola caía
+        a meio caminho.
+
+        A margem de 0.9 é para o alvo não ficar no limite exacto do alcance,
+        onde a bola chega morta.
+        */
+        const alcanceUtil = (typeof alcanceMaximoDoLateral === 'function' &&
+            typeof ThrowInModel !== 'undefined')
+            ? alcanceMaximoDoLateral(this.skillFor('STRENGTH'),
+                ThrowInModel.alcanceMaxFraco, ThrowInModel.alcanceMaxForte) * 0.9
+            : 16.0;
+
+        const aoAlcance = (alvo) => {
+            if (!alvo || !alvo.model) return null;
+            const d = Math.hypot(alvo.model.position.x - this.model.position.x,
+                alvo.model.position.z - this.model.position.z);
+            return (d <= alcanceUtil) ? alvo : null;
+        };
+
+        this.lateralAlvo = aoAlcance(this.findPassTarget()) ||
+            aoAlcance(this.findPassTargetRelaxed('frente')) ||
+            this.colegaMaisPertoNoLateral(alcanceUtil) || null;
+        if (this.lateralAlvo && this.lateralAlvo.model) {
+            this.prepararGiroLateral(
+                this.lateralAlvo.model.position.x, this.lateralAlvo.model.position.z);
+        } else {
+            this.lateralGiroAlvo = 0;
+            this.lateralGiroCorpo = 0;
+        }
+        return this.lateralAlvo;
+    }
+
+    /*
+    ÚLTIMO RECURSO DO LATERAL: o colega mais perto que ainda cabe no alcance.
+
+    Sem isto, um lançamento sem nenhum candidato "de passe" ao alcance ia para
+    o espaço a 12 m da linha — bola entregue a ninguém. Um lateral curto para o
+    companheiro mais próximo é sempre melhor do que isso, e é o que se vê fazer
+    quando não há nada melhor.
+    */
+    colegaMaisPertoNoLateral(alcanceUtil) {
+        const meus = (this.team === 'TeamA') ? Match.players : Match.opponents;
+        let melhor = null, dMin = Infinity;
+        for (const c of meus) {
+            if (c === this || c.role === 'gk' || !c.model) continue;
+            const d = Math.hypot(c.model.position.x - this.model.position.x,
+                c.model.position.z - this.model.position.z);
+            if (d < dMin && d <= alcanceUtil) { dMin = d; melhor = c; }
+        }
+        return melhor;
+    }
+
+    /*
+    Prepara o giro da cintura: guarda o ângulo com sinal entre a frente do
+    corpo e a direcção do lançamento, limitado a `LateralPose.giroMax`.
+
+    Corre no ARRANQUE do gesto e não no instante do contacto: a cintura tem de
+    começar a carregar para o lado contrário desde o primeiro keyframe, e para
+    isso é preciso saber para onde se vai atirar antes de atirar.
+    */
+    prepararGiroLateral(alvoX, alvoZ) {
+        const L = (typeof LateralPose !== 'undefined') ? LateralPose : null;
+        if (!L) { this.lateralGiroAlvo = 0; return 0; }
+
+        const dx = alvoX - this.model.position.x;
+        const dz = alvoZ - this.model.position.z;
+        if (Math.hypot(dx, dz) < 0.001) { this.lateralGiroAlvo = 0; return 0; }
+
+        // Frente do corpo no plano, e o ângulo com sinal até à direcção do alvo.
+        _vFrenteCorpo.set(0, 0, 1).applyQuaternion(this.model.quaternion);
+        const ang = Math.atan2(
+            _vFrenteCorpo.z * dx - _vFrenteCorpo.x * dz,
+            _vFrenteCorpo.x * dx + _vFrenteCorpo.z * dz);
+
+        this.lateralGiroAlvo = THREE.MathUtils.clamp(ang, -L.giroMax, L.giroMax);
+        /*
+        O CORPO DÁ O QUE A CINTURA NÃO ALCANÇA. Estava só a cintura a torcer,
+        com tecto em `giroMax`, e o corpo virado para dentro do campo sempre —
+        um lançamento para trás saía com o jogador de lado para onde atirava.
+        Guarda-se o excesso; o case LATERAL da fsm roda o corpo para lá aos
+        poucos. Dentro do alcance da cintura isto é zero e nada muda.
+        */
+        this.lateralGiroCorpo = (typeof giroDoCorpoNoLateral === 'function')
+            ? giroDoCorpoNoLateral(ang, L.giroMax) : 0;
+        // Ver LateralFinta.corpoTodo: o corpo sai virado para o alvo, sem torcer a cintura.
+        const LF = (typeof LateralFinta !== 'undefined') ? LateralFinta : null;
+        if (LF && LF.activo && LF.corpoTodo) {
+            this.lateralGiroCorpo = ang;
+            this.lateralGiroAlvo = 0;
+        }
+        return this.lateralGiroAlvo;
+    }
+
+    /*
+    A FINTA: uma ou duas viragens falsas do corpo (ver LateralFinta), ANTES do arremesso. Cada passo
+    e um desvio somado ao giro verdadeiro; o case LATERAL da fsm percorre-os e o Match so lanca
+    depois de a lista acabar e de o corpo estar virado para o alvo.
+    */
+    planearFintaDoLateral() {
+        const LF = (typeof LateralFinta !== 'undefined') ? LateralFinta : null;
+        this.lateralFinta = null;
+        if (!LF || !LF.activo || Math.random() >= LF.prob) return;
+        const real = this.lateralGiroCorpo || 0;
+        const lado = (Math.abs(real) > 0.3) ? -Math.sign(real) : (Math.random() < 0.5 ? -1 : 1);
+        const mag = () => LF.angMin + Math.random() * (LF.angMax - LF.angMin);
+        const passos = [{ off: lado * mag() }];
+        if (Math.random() < LF.probDupla) passos.push({ off: -lado * mag() });
+        this.lateralFinta = { passos, i: 0, espera: 0 };
+    }
+
+    /*
+    A bola sai das mãos. Mira um companheiro se houver linha; senão, campo
+    adentro. A potência sai da balística, como no chutão do GR.
+    */
+    lancarLateral() {
+        const T = ThrowInModel;
+        const gGrav = BallPhysics.gravidade;
+
+        /*
+        O alvo é o que foi escolhido no ARRANQUE do gesto (ver
+        escolherAlvoDoLateral): a cintura começa a girar para ele desde o
+        primeiro keyframe, e escolher outro agora punha a bola a sair para um
+        lado com o corpo virado para o outro.
+        */
+        /*
+        O alvo tem de vir do `escolherAlvoDoLateral`, que é quem filtra pelo
+        alcance do braço. O recurso antigo (`findPassTarget` aqui à solta)
+        devolvia gente a 32 m e a bola morria a meio caminho — com o
+        `intendedReceiver` apontado a ele, ou seja ninguém a ir buscá-la.
+        */
+        const alvo = this.lateralAlvo || this.escolherAlvoDoLateral();
+        this.lateralAlvo = null;
+        const paraDentro = -Math.sign(this.model.position.x) || 1;
+
+        /*
+        A bola SAI DE DENTRO da linha, não das mãos do batedor que está fora.
+
+        O batedor está fora do campo (ThrowInModel.recuoDaLinha) e a bola está
+        nas mãos dele, logo também está fora. Largá-la ali punha-a com
+        |x| > CAMPO_LARG/2 no frame em que o estado volta a PLAY — e o
+        updateBall assinalava logo OUTRO lateral, agora para a equipa
+        contrária. Repõe-se sobre a linha, meio metro para dentro, à altura das mãos.
+        */
+        const dentroX = -Math.sign(this.model.position.x) || 1;
+        Match.ball.position.set(
+            (CAMPO_LARG / 2 - 0.5) * -dentroX,
+            Match.ball.position.y,
+            Match.ball.position.z);
+
+        let dx, dz;
+        if (alvo && alvo.model) {
+            /*
+            MIRA ONDE ELE VAI ESTAR, não onde está.
+
+            O receptor vem ao encontro da bola: medido, a aproximação mais
+            curta entre bola e receptor acontecia ANTES do ponto pedido, e a
+            bola passava-lhe pela cabeça a 1.60 m — mesmo com a balística
+            certa, que punha 1.10 m no ponto pedido (o peito é 1.20 m).
+
+            Uma iteração chega: estima-se o tempo de voo pela distância actual,
+            projecta-se ele nesse tempo, e é para aí que se atira. O tempo sai
+            de `T.velocidadeTipica` porque a velocidade real só se conhece
+            depois de escolher o alcance — e o erro dessa aproximação é muito
+            menor do que os 2-3 m que ele anda entretanto.
+            */
+            let alvoX = alvo.model.position.x, alvoZ = alvo.model.position.z;
+            if (alvo.velocity && T.velocidadeTipica > 0) {
+                const dBruta = Math.hypot(alvoX - Match.ball.position.x,
+                    alvoZ - Match.ball.position.z);
+                const tempoVoo = Math.min(T.antecipacaoMax, dBruta / T.velocidadeTipica);
+                alvoX += alvo.velocity.x * tempoVoo;
+                alvoZ += alvo.velocity.z * tempoVoo;
+            }
+            dx = alvoX - Match.ball.position.x;
+            dz = alvoZ - Match.ball.position.z;
+        } else {
+            // Sem ninguém: campo adentro e um pouco para a frente.
+            dx = dentroX * 12.0;
+            dz = this.dirZ * 6.0;
+        }
+        let dist = Math.hypot(dx, dz) || 1;
+
+        /*
+        ERRO DE EXECUÇÃO por TEC. Não havia nenhum: a direcção saía exacta para
+        o alvo e a única variação era o sorteio da elevação, que muda a
+        trajectória e não a pontaria.
+
+        Dois desvios independentes — a direcção (a bola sai torta) e o peso (cai
+        curta ou passa o receptor). Ver sigmaDeLateral em utils.js.
+        */
+        const sigma = sigmaDeLateral(this.skillFor('TEC'));
+        const desvio = amostraGaussiana(Math.random) * sigma;
+        const rodado = rodarNoPlano(dx, dz, desvio);
+        dx = rodado.x; dz = rodado.z;
+
+        const sigmaPeso = T.sigmaPeso * (sigma / T.sigmaMax);
+        const errePeso = THREE.MathUtils.clamp(
+            1 + amostraGaussiana(Math.random) * sigmaPeso, T.pesoMin, T.pesoMax);
+
+        const alcanceMax = alcanceMaximoDoLateral(
+            this.skillFor('STRENGTH'), T.alcanceMaxFraco, T.alcanceMaxForte);
+
+        /*
+        COM DESTINATÁRIO, O ALCANCE É A DISTÂNCIA A ELE — E MAIS NADA.
+
+        O piso de `alcanceMin` (9 m) só faz sentido a atirar para o ESPAÇO: com
+        um colega a 5 m, forçava um lançamento de 9 m, ou seja quatro metros
+        por cima dele. Agora o piso só se aplica quando não há ninguém a quem
+        atirar. O tecto do braço (`alcanceMax`) fica sempre — esse é físico.
+        */
+        const temAlvo = !!(alvo && alvo.model);
+        const piso = temAlvo ? 2.0 : T.alcanceMin;
+        const alcance = THREE.MathUtils.clamp(dist * errePeso, piso, alcanceMax);
+
+        /*
+        Com destinatário a bola sai a descer (faixa `elevAlvo*`); sem ele é o
+        lançamento para o espaço, que sobe. Ver ThrowInModel.
+        */
+        /*
+        A FAIXA DE ELEVAÇÃO DEPENDE DA ALTURA DO ALVO, e não só de haver alvo.
+
+        Aos PÉS é rasante ou a descer (a bola cai 1.7 m desde as mãos e isso
+        basta); ao PEITO é com ARCO, porque a queda é só 0.62 m e a rasar o voo
+        encurta tanto que cobrir 10 m exigia 24 m/s. Ver ThrowInModel, com as
+        velocidades medidas por distância.
+
+        O `alvoNoPeito` é calculado mais abaixo por causa do `dist`; sobe para
+        aqui porque agora é ele que escolhe a faixa.
+        */
+        const alvoNoPeito = (temAlvo ? dist : alcance) > T.distanciaAosPes;
+        let eMin, eMax;
+        if (!temAlvo) {
+            eMin = T.elevMin; eMax = T.elevMax;
+        } else if (alvoNoPeito && typeof T.elevPeitoMin === 'number') {
+            eMin = T.elevPeitoMin; eMax = T.elevPeitoMax;
+        } else {
+            eMin = T.elevAlvoMin; eMax = T.elevAlvoMax;
+        }
+        const elev = eMin + Math.random() * (eMax - eMin);
+
+        /*
+        ALVO EM ALTURA: os PÉS do receptor se o lateral for curto, o PEITO dele
+        se for mais longo.
+
+        A escolha sai da distância REAL ao receptor, não do `alcance` já
+        deformado pelo erro de peso e pelos cortes: era o alcance, e como o
+        piso dele (9 m) era o mesmo número do `distanciaAosPes`, a bola ia
+        praticamente sempre ao peito — inclusive num lateral de três metros.
+
+        A balística com arrasto do ar (velocidadeParaAlturaNoAlvo) garante que a bola
+        chega directamente ao alvo (pé ou peito) sem ressaltar nem bater no chão antes.
+        */
+        const alturaAlvo = alvoNoPeito ? BallControl.peitoAltura : BallPhysics.raio;
+        const alturaSaida = Match.ball.position.y;
+
+        let v = (typeof velocidadeParaAlturaNoAlvo === 'function')
+            ? velocidadeParaAlturaNoAlvo(alcance, elev, alturaAlvo, alturaSaida)
+            : null;
+        let angulo = elev;
+
+        if (!v) {
+            const bal = (typeof velocidadeDeLancamento === 'function')
+                ? velocidadeDeLancamento(alcance, alturaSaida, alturaAlvo, elev, gGrav, T.elevMax * 2)
+                : null;
+            v = bal ? bal.v : Math.sqrt((alcance * gGrav) / Math.sin(2 * elev));
+            angulo = bal ? bal.elev : elev;
+        }
+
+        /*
+        TECTO NA VELOCIDADE DE SAÍDA — a última linha de defesa.
+
+        Os 54 m/s medidos vinham do ramo de recurso acima: com a elevação
+        perto de zero, `sqrt(alcance·g / sin(2·elev))` explode. As faixas de
+        elevação já entregam 6 a 13 m/s em uso normal; isto existe para uma
+        conta que corra mal não virar um canhão. Ver
+        ThrowInModel.velocidadeMaxSaida.
+        */
+        if (typeof T.velocidadeMaxSaida === 'number' && v > T.velocidadeMaxSaida) {
+            v = T.velocidadeMaxSaida;
+        }
+
+        const horiz = v * Math.cos(angulo);
+        dist = Math.hypot(dx, dz) || 1;
+        Match.ballVel.set((dx / dist) * horiz, v * Math.sin(angulo), (dz / dist) * horiz);
+
+        this.hasBall = false;
+        this.touchLock = BallControl.touchLock;
+        Match.ballCarrier = null;
+        Match.intendedReceiver = (alvo && alvo.model) ? alvo : null;
+        Match.lastTouchedTeam = this.team;
+        Match.lastTouchedPlayer = this;
+        Match.mudarEstado('PLAY', 'throw_in_taken');
+        // Lei 15: quem repõe não volta a tocar antes de outro. Ver `repositor`.
+        Match.marcarRepositor(this, 'lateral');
+        if (typeof MatchStats !== 'undefined') MatchStats.registarPasseIniciado(this.team, 'passe');
+        if (typeof EventBus !== 'undefined') EventBus.emit('THROW_IN_TAKEN', { team: this.team, p: this });
+    }
+
+    /*
+    Escreve no rig um frame do remate. Mesma ideia do aplicarFrameLateral: o
+    clip manda em tudo o que toca, e por isso o animateBones é saltado enquanto
+    isto corre (ver update()) — senão o ciclo de passada reescrevia as pernas
+    no mesmo frame.
+
+    A perna de apoio e a de remate saem de ShotClip.pernaChute, para o clip
+    servir um canhoto trocando uma letra.
+    */
+    /*
+    Escreve no rig um frame do remate.
+
+    A POSE mudou-se para o `aplicarPoseRemate` do js/pose.js, partilhado com o
+    editor de animação; aqui fica só a altura do corpo, que é do jogo.
+    */
+    aplicarFrameRemate(K) {
+        if (!this.rig) return;
+        aplicarPoseRemate(this.rig, K);
+        this.model.position.y = ALTURA_BASE_Y + (K.altura || 0);
+    }
+
+    /*
+    O FRAME DO CHUTE DE BOLA PARADA. Desenhador PRÓPRIO, e não uma passagem
+    pelo `aplicarFrameRemate`: o PlayerKickClip tem canais que o ShotClip não
+    tem (`leanZ`, `coxaApoio`, `peLx`) e o pivô no pé de apoio, e delegar no
+    remate deixava-os por escrever.
+    */
+    aplicarFramePlayerKick(K) {
+        if (!this.rig) return;
+        aplicarPosePlayerKick(this.rig, K, this.model);
+    }
+
+    /*
+    O FRAME DO PASSE. Delega no mesmo desenhador do remate — os campos do
+    PassClip são os do ShotClip precisamente para isto. Existe à parte para o
+    gesto ser endereçável pelo nome, como os outros, e para o assento no chão
+    correr a seguir: o passe é lento o bastante (0.35 s) para se ver o boneco
+    no ar se ninguém lhe descer o corpo até à bota.
+    */
+    /*
+    O frame do LANCAMENTO (LancamentoClip): os canais do tiro de meta, e depois a
+    sola assenta no relvado, como no passe. O corpo nao se desloca aqui: no
+    passe o jogador ja vem a correr.
+    */
+    /*
+    =========================================================================
+    A QUEDA DE QUEM SOFRE A FALTA — ver QuedaClip (config/animations.js)
+    =========================================================================
+    Arranca no `Officials.marcarFalta`, ANTES de o lance parado ser montado,
+    e dura o clip inteiro (6.25 s: 1.25 s a cair e a rolar, 4 s no chão,
+    1.0 s a levantar). Enquanto dura, o jogador sai da árvore e da FSM: não decide,
+    não corre, não tem bola. Só o clip o mexe.
+
+    A MONTAGEM DO LANCE PARADO PASSA-LHE POR CIMA, e isso não se evita: ela
+    teletransporta toda a gente para o seu lugar (`lugaresDaFalta`, a
+    barreira, o corte pelo fora-de-jogo...), por vários caminhos. Em vez de
+    ensinar cada um deles a saltá-lo, a queda vigia-se a si própria: se o
+    corpo apareceu mais de meio metro longe de onde ela o deixou, alguém o
+    mandou para um lugar — guarda-se esse lugar (`destino`) e o corpo volta
+    para o chão onde caiu. Levantado, vai A PÉ até lá (`voltaDaQueda`).
+
+    O lance espera por ele: ver `Match.algumCaidoDaFalta`. E nunca é ele que
+    bate (o batedor da falta e o do penálti filtram quem tem `queda`).
+    =========================================================================
+    */
+    iniciarQueda(infractor) {
+        if (typeof QuedaClip === 'undefined' || !this.model || this.role === 'gk') return;
+        const pos = this.model.position;
+        // A direcção: a da corrida dele; parado, para longe de quem fez a falta.
+        let dx = this.velocity.x, dz = this.velocity.z;
+        if (Math.hypot(dx, dz) < 1.0 && infractor && infractor.model) {
+            dx = pos.x - infractor.model.position.x;
+            dz = pos.z - infractor.model.position.z;
+        }
+        let d = Math.hypot(dx, dz);
+        if (d < 1e-3) { dx = Math.sin(this.model.rotation.y); dz = Math.cos(this.model.rotation.y); d = 1; }
+        dx /= d; dz /= d;
+        this.queda = {
+            t: 0, dirX: dx, dirZ: dz, rumo: Math.atan2(dx, dz),
+            x0: pos.x, z0: pos.z, x: pos.x, z: pos.z, destino: null,
+            // O lado para onde o rolamento se enviesa (QuedaModel.inclinacaoRolamento): sorteado por queda.
+            lado: (Math.random() < 0.5) ? -1 : 1
+        };
+        this.voltaDaQueda = null;
+        this.hasBall = false;
+        this.actionState = null;
+        this.velocity.set(0, 0, 0);
+    }
+
+    actualizarQueda(dt, headless) {
+        const q = this.queda;
+        const pos = this.model.position;
+        // Alguém o pôs num lugar (a montagem do lance parado): é para lá que vai depois.
+        if (Math.hypot(pos.x - q.x, pos.z - q.z) > 0.5) q.destino = { x: pos.x, z: pos.z };
+
+        q.t += dt;
+        const clip = (typeof clipDaQueda === 'function') ? clipDaQueda() : QuedaClip;
+        const K = amostrarClipQueda(q.t, clip);
+        /*
+        O ROLAMENTO ENVIESADO (referencia A17A): em vez de rolar perfeitamente alinhado, a bacia inclina de lado (leanZ)
+        durante a volta, em seno: 0 no toque, `inclinacaoRolamento` a meio, 0 quando fica deitado. So no clip novo.
+        */
+        if (clip === QuedaFrenteClip && typeof QuedaModel !== 'undefined' && QuedaModel.inclinacaoRolamento && q.t < clip.deitadoEm) {
+            K.leanZ = (K.leanZ || 0) + QuedaModel.inclinacaoRolamento * (q.lado || 1) * Math.sin(Math.PI * q.t / clip.deitadoEm);
+        }
+        q.x = q.x0 + q.dirX * K.avanco;
+        q.z = q.z0 + q.dirZ * K.avanco;
+        pos.x = q.x; pos.z = q.z;
+        this.velocity.set(0, 0, 0);
+        this.hasBall = false;
+        this.model.rotation.set(0, q.rumo, 0);
+        if (!headless && this.rig && typeof escreverPoseBolaParada === 'function') {
+            escreverPoseBolaParada(this.rig, K, this.model, 'r');
+            this.assentarCorpoInteiro();
+        } else {
+            pos.y = ALTURA_BASE_Y;
+        }
+
+        if (q.t >= clip.duracao) {
+            this.queda = null;
+            // O rolamento acaba em 2 pi, que é 0: ver a nota do `rolarY` no QuedaClip. O novo (QuedaFrenteClip)
+            // acaba com a bacia a 2 pi + 0.04 em X: tambem volta a zero, senao o idle desfazia a volta ao contrario.
+            if (this.rig && this.rig.pelvis) { this.rig.pelvis.rotation.y = 0; this.rig.pelvis.rotation.x = 0; }
+            if (q.destino && Match.state !== 'PLAY') this.voltaDaQueda = q.destino;
+            /*
+            NAO FICA EM CIMA DA BOLA: depois de se levantar, quem sofreu a falta (que nao e o batedor) ficava, as vezes,
+            em cima do ponto da cobranca. Se o lugar a que vai (ou onde esta) fica a menos de `QuedaModel.distanciaDaBola`
+            m da bola parada, afasta-se dela ao longo da recta bola -> ele (ou de lado, se estiver exactamente em cima).
+            */
+            if (Match.state !== 'PLAY' && Match.state !== 'GOAL' && Match.ball && Match.setPieceTaker !== this) {
+                const QMd = (typeof QuedaModel !== 'undefined' && QuedaModel.distanciaDaBola) || 4.0;
+                const b = Match.ball.position;
+                const dest = this.voltaDaQueda || { x: pos.x, z: pos.z };
+                let ux = dest.x - b.x, uz = dest.z - b.z;
+                const dd = Math.hypot(ux, uz);
+                if (dd < QMd) {
+                    if (dd < 0.05) { ux = this.dirZ || 1; uz = 0; } else { ux /= dd; uz /= dd; }
+                    const lim = (typeof CAMPO_LARG !== 'undefined') ? CAMPO_LARG / 2 - 1 : 33;
+                    const limZ = (typeof CAMPO_COMP !== 'undefined') ? CAMPO_COMP / 2 - 1 : 52;
+                    this.voltaDaQueda = {
+                        x: THREE.MathUtils.clamp(b.x + ux * QMd, -lim, lim),
+                        z: THREE.MathUtils.clamp(b.z + uz * QMd, -limZ, limZ)
+                    };
+                }
+            }
+        }
+    }
+
+    /*
+    O CORPO TODO NO RELVADO, e não só as botas. O ponto mais baixo de TODAS as
+    caixas do boneco — peito, anca, mão, joelho — assenta em ALTURA_BASE_Y,
+    que é onde o construtor do clip também o assentou. Só para a queda: de pé,
+    quem manda é o `assentarNoChao`.
+    */
+    assentarCorpoInteiro(ignorar) {
+        const m = this.model;
+        m.updateMatrixWorld(true);
+        let minY = Infinity;
+        const v = _p_v1;
+        /*
+        `ignorar` (opcional): ramos do rig que NÃO contam — o carrinho tira os
+        braços, para a mão de apoio não escorar o corpo (ver applySlidePose).
+        */
+        const fora = (o) => {
+            if (!ignorar || !ignorar.length) return false;
+            for (let a = o; a; a = a.parent) if (ignorar.indexOf(a) >= 0) return true;
+            return false;
+        };
+        m.traverse(o => {
+            if (!o.isMesh || !o.visible || !o.geometry || !o.geometry.attributes.position) return;
+            if (fora(o)) return;
+            const g = o.geometry;
+            if (!g.boundingBox) g.computeBoundingBox();
+            const b = g.boundingBox;
+            for (let c = 0; c < 8; c++) {
+                v.set((c & 1) ? b.max.x : b.min.x, (c & 2) ? b.max.y : b.min.y, (c & 4) ? b.max.z : b.min.z);
+                o.localToWorld(v);
+                if (v.y < minY) minY = v.y;
+            }
+        });
+        if (minY < Infinity) m.position.y += ALTURA_BASE_Y - minY;
+    }
+
+
+    aplicarFrameLancamento(K) {
+        if (!this.rig || typeof escreverPoseBolaParada !== 'function') return;
+        escreverPoseBolaParada(this.rig, K, this.model, LancamentoClip.pernaChute);
+        this.assentarNoChao();
+    }
+
+    aplicarFramePasse(K) {
+        if (!this.rig) return;
+        aplicarPoseRemate(this.rig, K);
+        this.model.position.y = ALTURA_BASE_Y + (K.altura || 0);
+        this.assentarNoChao();
+    }
+
+    /*
+    DOMÍNIO DE BOLA ORIENTADO PELA DIREITA (ball_control_right).
+    Inicia o ActionState para o BallControlRightClip e transita para BALL_CONTROL_RIGHT.
+    */
+    iniciarDominioDireito(dirSaida) {
+        this.fsm.changeState('BALL_CONTROL_RIGHT');
+        if (!this.dominioSaidaDir) this.dominioSaidaDir = new THREE.Vector3();
+        if (dirSaida) {
+            this.dominioSaidaDir.copy(dirSaida).normalize();
+        } else {
+            this.dominioSaidaDir.set(0, 0, this.dirZ || 1).normalize();
+        }
+        this.actionState = new ActionState('ballControlRight', {
+            onPrepare: (p, norm) => {
+                p.velocity.multiplyScalar(0.75);
+            },
+            onContact: (p, norm) => {
+                // Toque orientado na bola com o pé direito na direcção de saída
+                const forcaToque = 4.2 + (p.skillFor ? p.skillFor('TEC') : 50) * 0.025;
+                let dirToque = _v1.set(0.35, 0, 0.9).applyQuaternion(p.model.quaternion).normalize();
+                if (p.dominioSaidaDir) {
+                    dirToque.copy(p.dominioSaidaDir);
+                }
+                Match.ballVel.set(dirToque.x * forcaToque, 0.35, dirToque.z * forcaToque);
+                p.touchLock = 0.15;
+                // `dominios` passou a estar no esquema do contador (stats.js);
+                // antes era criado a mao aqui e nunca chegava ao relatorio.
+                if (typeof MatchStats !== 'undefined') MatchStats[p.team].dominios++;
+            },
+            onFollowThrough: (p, norm) => {
+                if (p.dominioSaidaDir) {
+                    p.velocity.lerp(p.dominioSaidaDir.clone().multiplyScalar(p.speedMult * 0.6), 0.2);
+                }
+            }
+        });
+    }
+
+    /*
+    Escreve no rig um frame do domínio orientado pela direita.
+    */
+    aplicarFrameDominioDireito(K) {
+        if (!this.rig) return;
+        aplicarPoseDominioDireito(this.rig, K);
+        this.model.position.y = ALTURA_BASE_Y + (K.altura || 0);
+    }
+
+    /*
+    COBRAR A FALTA. Dentro do alcance de remate, remata — e usa o mesmo gesto e
+    o mesmo ShotClip de qualquer outro remate. Fora dele, joga em passe.
+
+    Não há aqui balística própria: o `initiateShoot` já resolve mira, potência
+    e o aviso ao guarda-redes, e o `initiatePass` já resolve o passe. Duplicar
+    isso era garantir que divergiam.
+    */
+    baterFalta() {
+        /*
+        A decisão sai de `decisaoDeFalta` (utils.js), que é geometria pura:
+        trapézio de remate directo, mini-canto ao lado da área, ou passe.
+
+        Era o `emZonaDeFinalizacao` do jogo corrido a decidir o remate — um
+        rectângulo, que não sabe nada de ângulo com a trave. Dali remata-se de
+        posições sem baliza à vista e não se remata de frente a 25 m.
+        */
+        const decisao = (typeof decisaoDeFalta === 'function')
+            ? decisaoDeFalta(Match.ball.position.x, Match.ball.position.z, this.dirZ)
+            : 'passe';
+
+        /*
+        A CORRIDA. Isto executava tudo no mesmo frame, a partir de onde ele
+        estava (1.4 m da bola): não havia corrida, não havia gesto, e o que se
+        via era a bola a saltar sozinha para o pé do batedor.
+
+        Agora é o mesmo padrão do penálti — um `ActionState` cujo `onPrepare`
+        leva o corpo do ponto de espera até junto da bola, e cujo `onContact`,
+        no `contactTime` do clip, é que a joga. O `Match.state` só passa a
+        'PLAY' nesse instante: até lá é bola parada, e ninguém lhe toca.
+
+        A CORRIDA usa sempre o clip e o estado do CHUTE DE BOLA PARADA, mesmo
+        quando a falta vai acabar em passe curto. Não é preguiça: o
+        `case 'PASS'` da FSM mata o gesto no primeiro frame em que `!p.hasBall`
+        — e durante a corrida o batedor não tem a bola, ela está parada no
+        relvado. Medido: 13 de 14 cobranças nunca chegavam ao contacto.
+
+        Era o `'shot'` (remate de jogo corrido); ver PlayerKickClip.
+        */
+        /*
+        A FALTA DIRECTA (remate) BATE-SE COM O LANÇAMENTO — ver
+        iniciarLancamentoBolaParada. Os outros desfechos (passe, cruzamento)
+        continuam com o PlayerKickClip, aqui em baixo.
+        */
+        if (decisao === 'remate' && typeof LancamentoClip !== 'undefined' &&
+            typeof LancamentoBolaParada !== 'undefined') {
+            const ddx = Match.ball.position.x - this.model.position.x;
+            const ddz = Match.ball.position.z - this.model.position.z;
+            const dd = Math.hypot(ddx, ddz) || 1;
+            this.iniciarLancamentoBolaParada(ddx / dd, ddz / dd, () => {
+                Match.mudarEstado('PLAY', 'free_kick_taken');
+                Match.marcarRepositor(this, 'falta');
+                this.executarFalta(decisao);
+            });
+            return;
+        }
+
+        const clip = 'playerKick';
+        const dur = ActionAnimClips[clip] ? ActionAnimClips[clip].contactTime : (7 / 11);
+
+        const paragem = FreeKickModel.paragemNoContacto;
+
+        const inicio = { x: this.model.position.x, z: this.model.position.z };
+        const bolaFalta = { x: Match.ball.position.x, z: Match.ball.position.z };
+        const dx = bolaFalta.x - inicio.x, dz = bolaFalta.z - inicio.z;
+        const distCorrida = Math.hypot(dx, dz) || 1;
+        const fim = {
+            x: bolaFalta.x - (dx / distCorrida) * paragem,
+            z: bolaFalta.z - (dz / distCorrida) * paragem
+        };
+
+        // Velocidade a zero: quem move o corpo e o `onPrepare`.
+        this.velocity.set(0, 0, 0);
+
+        this.actionState = new ActionState(clip, {
+            // Corpo pela curva `avanco` do clip (ver PlayerKickClip).
+            onPrepare: (ctx, norm) => {
+                // O TRACEJADO DA ROTINA: arranca `FaltaRotinas.tempoCorrida` (200 ms) antes do contacto.
+                const planoR = Match.rotinaPlano;
+                if (planoR && !planoR.disparou && typeof FaltaRotinas !== 'undefined') {
+                    const durClip = ActionAnimClips[clip] ? ActionAnimClips[clip].duration : 0.55;
+                    const faltaT = Math.max(0, (dur - norm)) * durClip;
+                    if (faltaT <= FaltaRotinas.tempoCorrida) Match.dispararCorridasDaFalta(planoR);
+                }
+                const K = amostrarClipPlayerKick(Math.min(1, norm / dur));
+                const k = (typeof K.avanco === 'number') ? K.avanco : Math.min(1, norm / dur);
+                this.model.position.x = inicio.x + (fim.x - inicio.x) * k;
+                this.model.position.z = inicio.z + (fim.z - inicio.z) * k;
+            },
+            onContact: () => {
+                Match.mudarEstado('PLAY', 'free_kick_taken');
+                // Lei 13: quem bate não volta a tocar antes de outro.
+                Match.marcarRepositor(this, 'falta');
+                this.executarFalta(decisao);
+            }
+        });
+        this.fsm.changeState('SET_PIECE_KICK');
+    }
+
+    /*
+    O CONTACTO da falta: disparado no `contactTime` do clip. Ver `baterFalta`.
+    */
+    /*
+    =========================================================================
+    O LANÇAMENTO NA BOLA PARADA — o canto e a falta directa
+    =========================================================================
+    Pedido: *"a cobrança do corner e da falta direta também deve usar a
+    animação do lançamento"*. O canto não tinha gesto nenhum (a velocidade da
+    bola era escrita no frame em que o tempo acabava, com ele parado); a falta
+    directa usava o PlayerKickClip.
+
+    `dirX`/`dirZ` é para onde a bola vai. O corpo corre de onde está até ao
+    ponto em que o pé DIREITO fica em cima da bola no contacto (ver
+    LancamentoBolaParada), ao ritmo do `avanco` do clip, e vira-se para lá
+    (ver o SET_PIECE_KICK na FSM). `onContact` é quem joga a bola.
+    =========================================================================
+    */
+    /*
+    NINGUEM ATRAVESSA A FRENTE DO BATEDOR. Relato: *"tem jogador do mesmo time
+    entrando na frente do batedor das faltas"*. Depois de uma falta com queda os
+    companheiros caminham em linha recta ate ao lugar (`lugarBolaParada`), e quem
+    estava perto da bola cruzava o corredor bola->baliza (ate `corredorPasseAlcance`
+    m a frente, `corredorLivrePasse` de meia-largura) mesmo com o batedor a chegar.
+    Se a recta ate ao lugar passa por la — ou ele ja la esta — devolve um ponto de
+    desvio no seu lado, para la do corredor; senao null. So para a equipa do
+    batedor e fora do remate (o corredor do remate ja o resolve a montagem).
+    */
+    desvioDoCorredorDaFalta(L) {
+        const T = Match.setPieceTaker;
+        const F = (typeof FreeKickModel !== 'undefined') ? FreeKickModel : null;
+        if (!F || Match.state !== 'FREE_KICK' || !T || T === this || this.role === 'gk' ||
+            T.team !== this.team || !Match.ball) return null;
+        const meia = ((typeof F.corredorLivrePasse === 'number') ? F.corredorLivrePasse : 2.0) + 0.6;
+        const alcance = (typeof F.corredorPasseAlcance === 'number') ? F.corredorPasseAlcance : 9.0;
+        const b = Match.ball.position;
+        const gz = this.dirZ * (CAMPO_COMP / 2);
+        let ux = -b.x, uz = gz - b.z;
+        const n = Math.hypot(ux, uz) || 1; ux /= n; uz /= n;
+        const px = this.model.position.x - b.x, pz = this.model.position.z - b.z;
+        const tx = L.x - b.x, tz = L.z - b.z;
+        let cruza = false;
+        for (let i = 0; i <= 10; i++) {
+            const k = i / 10;
+            const rx = px + (tx - px) * k, rz = pz + (tz - pz) * k;
+            const ao = rx * ux + rz * uz, lat = rx * uz - rz * ux;
+            if (ao > -1.0 && ao < alcance && Math.abs(lat) < meia) { cruza = true; break; }
+        }
+        if (!cruza) return null;
+        let lado = Math.sign(px * uz - pz * ux);
+        if (Math.abs(px * uz - pz * ux) < 0.3) lado = Math.sign(tx * uz - tz * ux) || (b.x > 0 ? -1 : 1);
+        if (!lado) lado = 1;
+        /*
+        JA DENTRO DO CORREDOR (o caido que levanta junto a bola): sai de lado, ali
+        mesmo, em vez de ir 10 m a frente. So se a recta nao o tirar de la ja.
+        */
+        const ao0 = px * ux + pz * uz;
+        const aoVia = (Math.abs(px * uz - pz * ux) < meia && ao0 > -1.0 && ao0 < alcance)
+            ? Math.max(ao0, 0) + 0.5 : alcance + 1.5;
+        return {
+            x: b.x + ux * aoVia + uz * lado * meia,
+            z: b.z + uz * aoVia - ux * lado * meia
+        };
+    }
+
+    iniciarLancamentoBolaParada(dirX, dirZ, onContact) {
+        const L = LancamentoBolaParada;
+        const b = Match.ball.position;
+        // O eixo +x local do corpo, virado para (dirX, dirZ), é (dirZ, -dirX): a
+        // esquerda dele. O pé direito fica `peLado` para a direita da origem.
+        const fim = {
+            x: b.x - dirX * L.peFrente + dirZ * L.peLado,
+            z: b.z - dirZ * L.peFrente - dirX * L.peLado
+        };
+        const inicio = { x: this.model.position.x, z: this.model.position.z };
+        this.velocity.set(0, 0, 0);
+        this.bolaParadaLancamento = { dirX: dirX, dirZ: dirZ };
+        this.actionState = new ActionState('lancamentoBolaParada', {
+            onPrepare: (ctx, norm) => {
+                const K = amostrarClipLancamento(norm);
+                const k = (typeof K.avanco === 'number') ? K.avanco : Math.min(1, norm * 3);
+                this.model.position.x = inicio.x + (fim.x - inicio.x) * k;
+                this.model.position.z = inicio.z + (fim.z - inicio.z) * k;
+            },
+            onContact: onContact
+        });
+        this.fsm.changeState('SET_PIECE_KICK');
+    }
+
+    executarFalta(decisao) {
+        /*
+        A ROTINA DA FALTA (FaltaRotinas): o contacto do batedor e o primeiro passo da cadeia — o passe
+        para o ponto do diagrama. Os seguintes saem de `Match.correrRotinaDaFalta`.
+        */
+        const planoRotina = Match.rotinaPlano;
+        if (planoRotina && planoRotina.fase === 0 && planoRotina.taker === this) {
+            const saiu = Match.executarPassoDaRotina(planoRotina, 0);
+            planoRotina.fase = 1;
+            planoRotina.tFase = 0;
+            if (saiu) return;
+            Match.encerrarRotinaDaFalta();
+        }
+        if (decisao === 'remate') {
+            /*
+            O REMATE DA FALTA, RESOLVIDO À MÃO — como o penálti.
+
+            Os pesos do remate em jogo corrido não descrevem uma bola parada a
+            20 m com uma barreira à frente. O que decide é o duelo do batedor
+            contra o guarda-redes, `diff = (TEC + d10) - (GK + d10)`, igual ao
+            do penálti: a banda de `diff` escolhe a tabela de pesos
+            (`DirectFreeKickModel.desfechos`) e dela sai UM desfecho.
+
+                gol             defesa          defesa_fora
+                trave_gol       trave_fora
+                travessao_gol   travessao_fora
+                fora
+                na_barreira     barreira_gol    barreira_fora
+                por_baixo
+
+            O `na_barreira` é a bola que bate na barreira e SAI DE LADO, para
+            os lados da área — nunca de volta para quem bateu (ver o ramo
+            `faltaDirectaPlano` no Match.update, que resolve o ressalto e o
+            desvio no frame em que a bola chega ao plano da barreira).
+
+            Quem escolhe o ponto é o `alvoDaFaltaDirecta` e quem procura a
+            elevação mais tensa que limpa a barreira e lá chega é o
+            `tiroDaFaltaDirecta` — os dois em utils.js, puros e medíveis sem
+            montar um jogo.
+            */
+            const F = FreeKickModel;
+            const DF = DirectFreeKickModel;
+            const defendingPlayers = (this.team === 'TeamA') ? Match.opponents : Match.players;
+            const gk = defendingPlayers.find(p => p.role === 'gk');
+            const gkSkill = gk ? gk.skillFor('GK') : 50;
+            const tec = this.skillFor('TEC');
+
+            const d10Taker = Math.floor(Math.random() * 10) + 1;
+            const d10GK = Math.floor(Math.random() * 10) + 1;
+            const diff = (tec + d10Taker) - (gkSkill + d10GK);
+
+            const desfecho = desfechoDaFaltaDirecta(diff, Math.random);
+            const ladoTiro = Math.sign(Match.ball.position.x) || 1;
+            const alvo = alvoDaFaltaDirecta(desfecho, ladoTiro, Math.random);
+
+            const golZ = this.targetGoalZ;
+            const bx = Match.ball.position.x, bz = Match.ball.position.z;
+
+            /*
+            A BARREIRA está entre a bola e a baliza, e a distância a ela
+            mede-se ao longo da linha do REMATE — que é a que a balística
+            integra. Numa falta de longe a barreira é de um ou dois homens (ver
+            o `nBarreira` do setupSetPiece), mas o plano dela é o mesmo.
+            */
+            const barreira = Match.faltaDirectaBarreira || [];
+            const distGol = Math.hypot(alvo.x - bx, golZ - bz);
+            const distBarreira = Math.min(F.distanciaBarreira, distGol - 0.5);
+
+            /*
+            Bater NA barreira é apontar à barreira e não à baliza: o alvo fica
+            no plano dela e o desvio resolve-se no impacto.
+            */
+            const vaiABarreira = !!alvo.batidaNaBarreira;
+            const distAlvo = vaiABarreira ? distBarreira : distGol;
+
+            /*
+            PRIMEIRO TENTA-SE BATER COM FORÇA.
+
+            O `tiroDaFaltaDirecta` fixa o ponto de chegada e procura a elevação
+            — e daí sai sempre a velocidade que a geometria permitir: medido,
+            19.1 m/s a 23.7°, uma bola lobada. O `tiroTensoDaFaltaDirecta` faz o
+            contrário: a velocidade é a DELE (a `potencia` mais o atributo FOR),
+            a elevação é a mais baixa que ainda limpa a barreira, e o que se
+            procura é a QUEDA EXTRA que põe a bola no ponto — a folha seca, que
+            a física aplica pelo `Match.freeKickDip`.
+
+            O remate por baixo e o que vai bater na barreira não passam por
+            aqui: um é rasteiro e o outro não tem de cair em sítio nenhum.
+            */
+            const forca = this.skillFor('STRENGTH');
+            const potencia = DF.potencia + ((forca - 50) / 50) * (DF.potenciaPorForca || 0);
+            const tenso = (!vaiABarreira && !alvo.porBaixo)
+                ? tiroTensoDaFaltaDirecta(distGol, distBarreira, alvo.y, potencia, DF)
+                : null;
+            const tiro = tenso || tiroDaFaltaDirecta(
+                distAlvo, distBarreira, alvo.y, !!alvo.porBaixo, DF);
+
+            let v, elev;
+            if (vaiABarreira) {
+                /*
+                CONTRA A BARREIRA TAMBÉM SE BATE COM FORÇA. O alvo está a 9 m e
+                não há nada para o remate contornar: pedir ao solver a elevação
+                mais baixa que lá chega dava-lhe a velocidade mínima que serve,
+                e o ressalto saía morto (ele sai de `vIn * barreiraTravagem`).
+                */
+                v = potencia;
+                elev = Math.atan2(Math.max(0.05, alvo.y - BallPhysics.raio), distBarreira);
+            }
+            else if (tiro) { v = tiro.v; elev = tiro.elev; }
+            else {
+                // Recurso: a potência do modelo com a elevação do alvo.
+                v = DF.potencia;
+                elev = Math.atan2(Math.max(0.1, alvo.y - BallPhysics.raio), distAlvo);
+            }
+
+            /*
+            A QUEDA EXTRA, que dura só o voo desta bola. Sem ela a bola sai com
+            o ângulo calculado para uma gravidade que não existe e passa por
+            cima do travessão — foi o que aconteceu quando este objecto era
+            escrito e ninguém o lia.
+            */
+            Match.freeKickDip = (tenso && tenso.extraGrav > 0.01)
+                ? { active: true, timer: 0, extraGrav: tenso.extraGrav }
+                : null;
+
+            const alvoX = vaiABarreira ? (bx + (alvo.x - bx) * 0.35) : alvo.x;
+            const dx = alvoX - bx;
+            const dz = golZ - bz;
+            const distH = Math.hypot(dx, dz) || 1;
+            const vh = v * Math.cos(elev);
+            Match.ballVel.set((dx / distH) * vh, v * Math.sin(elev), (dz / distH) * vh);
+
+            /*
+            A BARREIRA NÃO INTERCEPTA A BOLA POR ACIDENTE. O
+            `resolveBallContact` daria o toque a quem estiver ao alcance, e
+            homens a 9 m em cima da linha do remate apanhavam metade das
+            cobranças — o desfecho sorteado nunca chegava a acontecer. Quem
+            bate na barreira é o PLANO dela, no frame em que a bola lá chega.
+            */
+            barreira.forEach(p => { p.touchLock = Math.max(p.touchLock || 0, 2.0); });
+
+            /*
+            E TODA A GENTE VOLTA A JOGAR. O `setPieceTarget` prende o jogador
+            ao lugar do lance parado (ver `EsperarNaArea` em player_bt.js) e só
+            se solta quando a bola desce ou alguém a domina — numa falta a 20 m
+            isso pode não acontecer durante segundos, e a equipa que cobrou
+            ficava especada. É o mesmo que o canto faz ao ser batido.
+            */
+            Match.players.concat(Match.opponents).forEach(pl => {
+                pl.setPieceTarget = null;
+                pl.jostleAncora = null;
+                if (pl.fsm.currentState === 'SET_PIECE_WAIT') {
+                    pl.fsm.changeState('MOVE_TO_POS');
+                }
+            });
+
+            /*
+            O PLANO DO LANCE, lido pelo Match.update: o salto da barreira, o
+            desvio nela e a defesa resolvida à mão.
+            */
+            Match.faltaDirectaPlano = {
+                desfecho: desfecho,
+                ladoTiro: ladoTiro,
+                origem: { x: bx, z: bz },
+                distBarreira: distBarreira,
+                golZ: golZ,
+                tempo: 0,
+                saltou: false,
+                resolvido: false,
+                alvo: { x: alvo.x, y: alvo.y },
+                equipa: this.team
+            };
+
+            /*
+            O GUARDA-REDES. O atraso da reacção sai da habilidade dele — é a
+            diferença para o penálti, onde é zero: ali ele parte com a bola,
+            aqui ela aparece-lhe por cima da barreira. Ao atraso soma-se o que
+            a gente à frente lhe custa (ver `atrasoPorVisaoTapada`, utils.js):
+            numa falta é a barreira que lhe tapa a bola, e era o pedido.
+
+            E O LADO É O DA BOLA. Era `-alvo.x` em tudo o que não fosse defesa
+            — dez dos doze desfechos —, ou seja ele atirava-se sempre para o
+            lado contrário ao do remate. Ver DirectFreeKickModel.probLadoErrado.
+            */
+            if (gk) {
+                let atraso = THREE.MathUtils.clamp(
+                    DF.atrasoBase - ((gkSkill - 50) / 50) * DF.atrasoAmplitude,
+                    DF.atrasoMin, DF.atrasoMax);
+                /*
+                Numa DEFESA o atraso não pode comer o tempo de voo todo (ver
+                `fraccaoAtrasoDefesa`): um guarda-redes que parte 0.5 s depois
+                de uma bola de 0.9 s já não defende nada, e o desfecho sorteado
+                dizia "defesa".
+                */
+                if (desfecho === 'defesa' || desfecho === 'defesa_fora') {
+                    const tempoVoo = distGol / Math.max(1, vh);
+                    atraso = Math.min(atraso, tempoVoo * DF.fraccaoAtrasoDefesa);
+
+                    /*
+                    E A DEFESA É A DO DESFECHO, não a que calhar do contacto.
+
+                    O `resolveBallContact` dava a bola ao guarda-redes assim
+                    que ela lhe passava ao alcance — a metros da linha — e o
+                    que se marcava era um AGARRAR, não a espalmada que o
+                    desfecho pedia. Medido no `defesa_fora`: só 3 em 20
+                    acabavam em canto; os outros 17 ficavam com ele, em jogo.
+
+                    Com o toque travado até ao fim do voo, quem resolve é o
+                    plano (ver `defesaFeita` no Match.update): `defesa`
+                    espalma para o campo, `defesa_fora` por fora do poste. O
+                    mergulho continua a correr por cima — é ele que se vê.
+                    */
+                    gk.touchLock = Math.max(gk.touchLock || 0, tempoVoo * 1.05 + 0.10);
+                }
+                if (typeof atrasoPorVisaoTapada === 'function') {
+                    atraso += atrasoPorVisaoTapada(gk);
+                }
+                gk.gkDelayReacao = atraso;
+                gk.gkReagiu = false;
+                gk.isPenaltyDive = true;
+                const defende = (desfecho === 'defesa' || desfecho === 'defesa_fora');
+                /*
+                Vai ao lado CERTO, e é o atraso que o impede de chegar lá. Só
+                na fracção `probLadoErrado` é que ele lê mal o lance e sai para
+                o outro lado — um guarda-redes batido, que acontece, em vez de
+                um que se atira ao contrário em todas as cobranças.
+                */
+                const pErrado = (typeof DF.probLadoErrado === 'number') ? DF.probLadoErrado : 0;
+                const leuMal = !defende && (Math.random() < pErrado);
+                gk.penaltyDiveX = leuMal ? -alvo.x : alvo.x;
+                gk.penaltyDiveY = alvo.y;
+                gk.faltaDirectaDefesaFora = (desfecho === 'defesa_fora');
+            }
+
+            if (typeof EfeitosSonoros !== 'undefined') {
+                EfeitosSonoros.chute(Match.ball.position, 1.0);
+            }
+
+            this.showActionBanner('SHOT');
+            this.hasBall = false;
+            this.touchLock = BallControl.touchLock;
+            Match.ballCarrier = null;
+            Match.intendedReceiver = null;
+            Match.lastTouchedTeam = this.team;
+            Match.lastTouchedPlayer = this;
+            window.bolaChutada = true;
+            if (typeof MatchStats !== 'undefined') {
+                MatchStats[this.team].remates.tentados++;
+                if (alvo.naBaliza) MatchStats[this.team].remates.noAlvo++;
+                if (MatchStats.marcarRemateEmVoo) MatchStats.marcarRemateEmVoo(this.team);
+            }
+            if (typeof EventBus !== 'undefined') {
+                EventBus.emit('DIRECT_FREE_KICK_TAKEN',
+                    { team: this.team, p: this, desfecho: desfecho });
+            }
+            return;
+        }
+
+        if (decisao === 'cruzamento') {
+            /*
+            MINI-CANTO: cruzamento para a área, com a mesma balística do canto
+            (ver cruzamentoDeFalta em utils.js). Daqui não há
+            remate, e um passe curto para trás desperdiça a posição.
+            */
+            /*
+            QUATRO ALVOS: primeira trave, segunda trave, marca do penálti (pelo
+            alto, para a cabeça) e entrada da área a meia altura, para quem
+            chega a rematar de primeira. Ver cruzamentoDeFalta (utils.js) e
+            FreeKickModel.cruzamentos.
+
+            O alvo é escolhido com peso pela presença de companheiros: cruzar
+            para a segunda trave sem ninguém na segunda trave é dar a bola ao
+            guarda-redes.
+            */
+            const meus = (this.team === 'TeamA') ? Match.players : Match.opponents;
+            const companheiros = meus.filter(p => p !== this && p.role !== 'gk');
+            const cruz = cruzamentoDeFalta(
+                Match.ball.position, this.dirZ, companheiros, Math.random);
+
+            if (!cruz) {
+                // Daqui não sai cruzamento nenhum (nem com o tecto de força a
+                // bola chega àquela altura): joga-se em passe, que é a saída
+                // que o ramo de baixo já sabe fazer.
+                return this.executarFalta('passe');
+            }
+
+            Match.ballVel.set(cruz.vel.x, cruz.vel.y, cruz.vel.z);
+            // Qual dos quatro saiu — lido pelas ferramentas de medição.
+            Match.ultimoCruzamentoDeFalta = cruz.nome;
+            this.showActionBanner('CROSS');
+            /*
+            O alvo do cruzamento fica escrito para quem ataca a área o poder
+            ler (ver AtacarArea em player_bt.js) — sem isto cruza-se para um
+            ponto que ninguém sabe que existe.
+            */
+            if (!Match.passTargetPos) Match.passTargetPos = new THREE.Vector3();
+            Match.passTargetPos.set(cruz.alvo.x, ALTURA_BASE_Y, cruz.alvo.z);
+            this.hasBall = false;
+            this.touchLock = BallControl.touchLock;
+            Match.ballCarrier = null;
+            Match.possessionTeam = this.team;
+            Match.possessionTimer = 0;
+            Match.lastTouchedTeam = this.team;
+            Match.lastTouchedPlayer = this;
+            if (typeof MatchStats !== 'undefined') {
+                MatchStats.registarPasseIniciado(this.team, 'cruzamento');
+            }
+            return;
+        }
+
+        const alvo = this.findPassTarget('frente') || this.findPassTarget() ||
+            this.findPassTargetRelaxed('frente');
+        if (alvo) {
+            this.passTarget = alvo;
+            const pt = alvoDePasse(alvo);
+            const meiaLarg = CAMPO_LARG / 2, meioComp = CAMPO_COMP / 2;
+            const px = Math.max(-meiaLarg + 3.0, Math.min(meiaLarg - 3.0, pt.x));
+            const pz = Math.max(-meioComp + 3.0, Math.min(meioComp - 3.0, pt.z));
+            this.passTargetPos = new THREE.Vector3(px, 0, pz);
+            _vFrenteCorpo.set(0, 0, 1).applyQuaternion(this.model.quaternion);
+            const dx = px - this.model.position.x, dz = pz - this.model.position.z;
+            this.cosCorpoNoPasse = (_vFrenteCorpo.x * dx + _vFrenteCorpo.z * dz) / (Math.hypot(dx, dz) || 1);
+            
+            this.hasBall = true;
+            Match.ballCarrier = this;
+            executePassGameplay(this);
+            this.showActionBanner('PASS');
+            return;
+        }
+
+        // Sem ninguém: bola para a frente, para não ficar o jogo parado.
+        const g = BallPhysics.gravidade;
+        const elev = 25 * Math.PI / 180;
+        const v = Math.sqrt((25.0 * g) / Math.sin(2 * elev));
+        Match.ballVel.set(0, v * Math.sin(elev), this.dirZ * v * Math.cos(elev));
+        Match.lastTouchedTeam = this.team;
+        Match.lastTouchedPlayer = this;
+    }
+
+    /*
+    COBRAR O PENÁLTI.
+
+    Resolução própria, e de propósito: os pesos do remate em jogo corrido
+    (bloqueadores a 2.2 m, penalização por distância, ângulo) não descrevem uma
+    bola parada a 11 m sem oposição. Aqui é `chanceGolo` contra a colocação, e
+    o duelo com o guarda-redes resolve-se pelo mergulho normal — ele reage com
+    `gkDelayReacao = 0`, posto no setupSetPiece.
+    */
+    baterPenalti() {
+        const shotDuration = ShotClip.duration;
+        const contactTime = ActionAnimClips['playerKick'] ? ActionAnimClips['playerKick'].contactTime : 1;
+        
+        /*
+        A ÚLTIMA PASSADA, e só ela. Os primeiros metros são ANDADOS durante a
+        espera regulamentar (ramo `penaltiPendente` do Match.update); aqui o
+        `onPrepare` cobre o que sobra entre `arranqueDoGesto` e a bola, dentro
+        do `contactTime` do clip.
+
+        Antes partia dos 4.6 m do `recuoBatedor` e só interpolava o z: 4.1 m em
+        0.32 s são ~13 m/s com a pose de remate congelada — o deslize. Agora
+        são ~1.45 m no mesmo tempo, e o corpo já vem com passo da caminhada.
+        */
+        const paragem = PenaltyModel.paragemNoContacto;
+
+        const inicioPen = { x: this.model.position.x, z: this.model.position.z };
+        const bolaPen = { x: Match.ball.position.x, z: Match.ball.position.z };
+        const dxPen = bolaPen.x - inicioPen.x, dzPen = bolaPen.z - inicioPen.z;
+        const distPen = Math.hypot(dxPen, dzPen) || 1;
+        const fimPen = {
+            x: bolaPen.x - (dxPen / distPen) * paragem,
+            z: bolaPen.z - (dzPen / distPen) * paragem
+        };
+
+        /*
+        VELOCIDADE A ZERO À ENTRADA DO GESTO. Quem move o corpo daqui para a
+        frente é o `onPrepare`, não a velocidade — e deixá-la com os 2.6 m/s da
+        caminhada punha o `animateBones` no ramo da passada (`speed >= 0.1`),
+        que escreve a perna INTEIRA com `aplicarPosePassada` por cima da pose
+        do ShotClip aplicada pela FSM no mesmo frame. O remate desaparecia
+        debaixo de um ciclo de corrida.
+
+        Com a velocidade a zero nenhum dos dois ramos do `animateBones` toca nas
+        pernas em SET_PIECE_KICK (ver `temGestoComClip`), e o gesto fica
+        visivel.
+        */
+        this.velocity.set(0, 0, 0);
+
+        /*
+        ERA O `'shot'`, o clip do remate de jogo corrido. O penalti e bola
+        parada e passou a usar o gesto unico de bola parada -- ver
+        PlayerKickClip. O penalti COLOCADO ainda nao tem gesto proprio: ate
+        la sai com esta pancada.
+        */
+        this.actionState = new ActionState('playerKick', {
+            onPrepare: (ctx, norm) => {
+                const linear = Math.min(1, norm / contactTime);
+                const K = amostrarClipPlayerKick(linear);
+                const progress = (typeof K.avanco === 'number') ? K.avanco : linear;
+                this.model.position.x = inicioPen.x + (fimPen.x - inicioPen.x) * progress;
+                this.model.position.z = inicioPen.z + (fimPen.z - inicioPen.z) * progress;
+            },
+            onContact: () => {
+                const PM = PenaltyModel;
+                Match.mudarEstado('PLAY', 'penalty_taken');
+                // Lei 14: o batedor não volta a tocar antes de outro.
+                Match.marcarRepositor(this, 'penalti');
+
+                // Oponentes e GK
+                const defendingPlayers = (this.team === 'TeamA') ? Match.opponents : Match.players;
+                const gk = defendingPlayers.find(p => p.role === 'gk');
+                const gkSkill = gk ? gk.skillFor('GK') : 50;
+                const tec = this.skillFor('TEC');
+
+                // Duelos de D10
+                const d10Taker = Math.floor(Math.random() * 10) + 1;
+                const d10GK = Math.floor(Math.random() * 10) + 1;
+                const diff = (tec + d10Taker) - (gkSkill + d10GK);
+
+                // Grid 9x5
+                const colsX = [4.16, 3.66, 2.928, 1.464, 0, -1.464, -2.928, -3.66, -4.16];
+                const rowsY = [0.406, 1.22, 2.033, 2.44, 2.94];
+                
+                const colsGol = [2, 3, 4, 5, 6];
+                const colsGolCantos = [2, 3, 5, 6]; // Sem o meio (4) para evitar defesas sempre ao centro
+                const rowsGol = [0, 1, 2];
+                const colsTrave = [1, 7];
+                const rowTrave = 3;
+                const colsFora = [0, 8];
+                const rowFora = 4;
+
+                const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+                const oppositeCol = (c) => {
+                    if (c <= 3) return pick([5, 6, 7, 8]);
+                    if (c >= 5) return pick([0, 1, 2, 3]);
+                    return pick([1, 2, 6, 7]);
+                };
+
+                let targetCol, targetRow, gkDiveCol;
+
+                if (diff > 5) {
+                    targetCol = pick([2, 6]);
+                    targetRow = 2;
+                    gkDiveCol = oppositeCol(targetCol);
+                } else if (diff >= 3 && diff <= 5) {
+                    targetCol = (Math.random() < 0.15) ? 4 : pick(colsGolCantos);
+                    targetRow = pick(rowsGol);
+                    gkDiveCol = oppositeCol(targetCol);
+                } else if (diff === 1 || diff === 2) {
+                    if (Math.random() < 0.25) {
+                        targetCol = pick(colsGolCantos);
+                        targetRow = rowTrave;
+                    } else {
+                        targetCol = pick(colsTrave);
+                        targetRow = pick(rowsGol);
+                    }
+                    gkDiveCol = oppositeCol(targetCol);
+                } else if (diff <= 0 && diff >= -2) {
+                    targetCol = pick(colsTrave);
+                    targetRow = pick(rowsGol);
+                    gkDiveCol = oppositeCol(targetCol);
+                    if (Math.random() < 0.25) {
+                        targetCol = pick(colsGolCantos);
+                        targetRow = rowTrave;
+                    }
+                } else if (diff === -3 || diff === -4) {
+                    if (Math.random() > 0.5) {
+                        targetCol = pick(colsFora);
+                        targetRow = pick([0, 1, 2, 3, 4]);
+                    } else {
+                        targetCol = pick(colsGolCantos.concat(colsTrave));
+                        targetRow = rowFora;
+                    }
+                    gkDiveCol = oppositeCol(targetCol);
+                } else {
+                    // Defesa do Guarda-redes (diff <= -5)
+                    // Muito menos defesas no meio do gol (15% de chance de ir ao meio)
+                    targetCol = (Math.random() < 0.15) ? 4 : pick(colsGolCantos);
+                    targetRow = pick(rowsGol);
+                    gkDiveCol = targetCol;
+                }
+
+                /*
+                DEFESA. Fora do ramo `diff <= -5` o `gkDiveCol` era SEMPRE o
+                lado contrário ao do remate: o guarda-redes atirava-se de
+                propósito para o lado errado e não havia defesa nenhuma abaixo
+                dos -5 de diferença. Um penálti bem batido acabava sempre em
+                golo, trave ou fora — nunca numa mão.
+
+                Agora cada banda de `diff` tem uma probabilidade de ele ir ao
+                sítio CERTO (PenaltyModel.chanceDefesa). Só conta quando o
+                remate ia mesmo para dentro da baliza: quem vai à trave ou por
+                cima resolve-se sozinho, e mandar o guarda-redes lá era
+                inventar uma defesa que não existiu.
+
+                Se ele lá chega e toca, o desfecho — agarrar ou espalmar, e a
+                espalmada para o campo ou para canto — é do GkDive.
+                */
+                const alvoNaBaliza = colsGol.includes(targetCol) && rowsGol.includes(targetRow);
+                if (alvoNaBaliza && gkDiveCol !== targetCol) {
+                    const CD = PM.chanceDefesa || {};
+                    let pDef = 0;
+                    if (diff > 5) pDef = CD.perfeito || 0;
+                    else if (diff >= 3) pDef = CD.bom || 0;
+                    else if (diff >= 1) pDef = CD.medio || 0;
+                    else pDef = CD.fraco || 0;
+                    if (Math.random() < pDef) gkDiveCol = targetCol;
+                }
+
+                let alvoX = colsX[targetCol];
+                let alvoY = rowsY[targetRow];
+
+                if (colsTrave.includes(targetCol)) {
+                    // A trave física está em 3.66. Para realmente bater nela e causar o impacto,
+                    // o alvo precisa estar quase exatamente em cima dela.
+                    if (diff > 0) {
+                        // Entra (rasando a trave por dentro)
+                        alvoX += (alvoX > 0) ? -0.14 : 0.14; 
+                    } else if (diff === 0) {
+                        // Bate em cheio na trave (chance de entrar ou sair)
+                        alvoX += (Math.random() * 0.08 - 0.04);
+                    } else {
+                        // Bate na trave por fora ou vai direto para fora
+                        alvoX += (alvoX > 0) ? (0.05 + Math.random() * 0.08) : -(0.05 + Math.random() * 0.08);
+                    }
+                }
+                
+                if (targetRow === rowTrave) {
+                    // O travessão físico está em 2.44.
+                    if (diff > 0) {
+                        // Entra (rasando o travessão por baixo)
+                        alvoY -= 0.14;
+                    } else if (diff === 0) {
+                        // Bate em cheio no travessão
+                        alvoY += (Math.random() * 0.08 - 0.04);
+                    } else {
+                        // Bate no travessão por cima ou vai direto para fora
+                        alvoY += (0.05 + Math.random() * 0.08);
+                    }
+                }
+
+                if (gk) {
+                    gk.isPenaltyDive = true;
+                    gk.penaltyDiveX = colsX[gkDiveCol];
+                    gk.penaltyDiveY = (gkDiveCol === targetCol) ? alvoY : rowsY[targetRow];
+                }
+
+                const golZ = this.targetGoalZ;
+                const dx = alvoX - Match.ball.position.x;
+                const dz = golZ - Match.ball.position.z;
+                const distH = Math.hypot(dx, dz) || 1;
+
+                const pow = PM.potencia;
+                const elev = (typeof elevacaoParaAlvo === 'function')
+                    ? elevacaoParaAlvo(distH, alvoY - BallPhysics.raio, pow)
+                    : Math.atan2(alvoY, distH);
+                const vh = pow * Math.cos(elev);
+
+                Match.ballVel.set((dx / distH) * vh, pow * Math.sin(elev), (dz / distH) * vh);
+
+                // Penálti: chuta-se a matar, e o som acompanha.
+                if (typeof EfeitosSonoros !== 'undefined') {
+                    EfeitosSonoros.chute(Match.ball.position, 1.0);
+                }
+
+                this.hasBall = false;
+                this.touchLock = BallControl.touchLock;
+                Match.ballCarrier = null;
+                Match.intendedReceiver = null;
+                Match.lastTouchedTeam = this.team;
+                Match.lastTouchedPlayer = this;
+                window.bolaChutada = true;
+                if (typeof MatchStats !== 'undefined') {
+                    MatchStats[this.team].remates.tentados++;
+                    if (MatchStats.marcarRemateEmVoo) MatchStats.marcarRemateEmVoo(this.team);
+                }
+                if (typeof EventBus !== 'undefined') EventBus.emit('PENALTY_TAKEN', { team: this.team, p: this });
+            }
+        });
+        this.fsm.changeState('SET_PIECE_KICK');
+    }
+
+    resetBonesToDefault() {
+        let rig = this.rig;
+        if (!rig) return;
+        
+        let isPenaltyOrDirectFK = (typeof Match !== 'undefined' && this.role === 'gk' && (
+            Match.state === 'PENALTY' ||
+            (Match.state === 'FREE_KICK' && this.team !== Match.setPieceTeam)
+        ));
+        
+        if (isPenaltyOrDirectFK) {
+            rig.pelvis.position.set(0, 2.85, 0); 
+            rig.pelvis.rotation.set(Math.PI / 16, 0, 0);
+            rig.chest.rotation.set(Math.PI / 24, 0, 0);
+            
+            rig.lArm.rotation.set(Math.PI / 16, 0, Math.PI / 5); 
+            rig.rArm.rotation.set(Math.PI / 16, 0, -Math.PI / 5);
+            
+            rig.lElbow.rotation.set(-Math.PI / 12, 0, 0);
+            rig.rElbow.rotation.set(-Math.PI / 12, 0, 0);
+            
+            rig.lLeg.rotation.set(Math.PI / 12, 0, Math.PI / 12); 
+            rig.rLeg.rotation.set(Math.PI / 12, 0, -Math.PI / 12);
+            
+            rig.lKnee.rotation.set(-Math.PI / 8, 0, 0);
+            rig.rKnee.rotation.set(-Math.PI / 8, 0, 0);
+            
+            rig.lFoot.rotation.set(Math.PI / 24, Math.PI / 12, 0);
+            rig.rFoot.rotation.set(Math.PI / 24, -Math.PI / 12, 0);
+        } else {
+            rig.pelvis.position.set(0, 3.02, 0);
+            rig.pelvis.rotation.set(0, 0, 0);
+            rig.chest.rotation.set(0, 0, 0);
+            
+            rig.lArm.rotation.set(0, 0, Math.PI / 16);
+            rig.rArm.rotation.set(0, 0, -Math.PI / 16);
+            
+            rig.lElbow.rotation.set(-0.3, 0, 0);
+            rig.rElbow.rotation.set(-0.3, 0, 0);
+            
+            rig.lLeg.rotation.set(0, 0, Math.PI / 32);
+            rig.rLeg.rotation.set(0, 0, -Math.PI / 32);
+            
+            rig.lKnee.rotation.set(0, 0, 0);
+            rig.rKnee.rotation.set(0, 0, 0);
+            
+            rig.lFoot.rotation.set(0, Math.PI / 16, 0);
+            rig.rFoot.rotation.set(0, -Math.PI / 16, 0);
+        }
+        
+        this.model.position.y = ALTURA_BASE_Y;
+    }
+
+    findPassTargetRelaxed(filterOrDir) {
+        let teammates = (this.team === 'TeamA') ? Match.players : Match.opponents;
+        let ownZ = this.model.position.z;
+        let ownX = this.model.position.x;
+        let dirZ = this.dirZ;
+
+        // Mira o alvo do PositionBT, não a posição actual — ver alvoDePasse().
+        let options = teammates.filter(p => {
+            if (p.id === this.id) return false;
+            let optPos = alvoDePasse(p);
+            let relZ = (optPos.z - ownZ) * dirZ;
+            let relX = Math.abs(optPos.x - ownX);
+
+            if (filterOrDir === 'frente' || filterOrDir === 'forward') {
+                if (relZ <= 1.0) return false;
+            } else if (filterOrDir === 'lado' || filterOrDir === 'side') {
+                if (Math.abs(relZ) > 4.5 || relX < 3.5) return false;
+            } else if (filterOrDir === 'tras' || filterOrDir === 'back') {
+                if (relZ >= -1.0) return false;
+            } else if (filterOrDir === 'def' || filterOrDir === 'mid' || filterOrDir === 'atk') {
+                if (p.role !== filterOrDir) return false;
+            }
+
+            return (optPos.z * dirZ > ownZ * dirZ - 15.0);
+        });
+
+        if (options.length === 0) return null;
+
+        let safetyLimit = 1.0;
+        let opponents = (this.team === 'TeamA') ? Match.opponents : Match.players;
+        let ratedCandidates = [];
+
+        for (let opt of options) {
+            let optPos = alvoDePasse(opt);
+            let dist = this.model.position.distanceTo(optPos);
+
+            if (dist < 3.0 || dist > 50.0) continue;
+
+            _line1.set(this.model.position, optPos);
+            _v2.subVectors(optPos, this.model.position).normalize(); // Pass direction
+
+            let minOppDist = 999;
+            let distMarcador = 999;
+            let marcadorAtras = false;
+            for (let i = 0; i < opponents.length; i++) {
+                let opp = opponents[i];
+                if (opp.role === 'gk') continue;
+                
+                // Ignora se o adversário estiver na direção oposta ao passe (ex: bloqueando as costas)
+                _v3.subVectors(opp.model.position, this.model.position);
+                if (_v3.dot(_v2) < -0.1) continue;
+
+                _line1.closestPointToPoint(opp.model.position, true, _v1);
+                let d = _v1.distanceTo(opp.model.position);
+                if (d < minOppDist) {
+                    minOppDist = d;
+                }
+                let dMarc = optPos.distanceTo(opp.model.position);
+                if (dMarc < distMarcador) {
+                    distMarcador = dMarc;
+                    /*
+                    DE QUE LADO ESTA ELE. `dzMarc` negativo = do lado da
+                    PROPRIA baliza do recetor, ou seja pelas costas: ja de
+                    frente para a bola, chega-lhe ao corpo mal ela pouse.
+                    Ver MarcacaoPelasCostas (config/passing.js).
+                    */
+                    const dzMarc = (opp.model.position.z - optPos.z) * opt.dirZ;
+                    marcadorAtras = (dzMarc < 0) &&
+                        (Math.abs(dzMarc) > dMarc * ((typeof MarcacaoPelasCostas !== 'undefined')
+                            ? MarcacaoPelasCostas.fraccaoAtras : 0.35));
+                }
+            }
+
+            if (minOppDist < safetyLimit) continue;
+
+            let score = 100;
+            score += minOppDist * 10; 
+            
+            let inDefensiveZone = (ownZ * dirZ < -10) || (optPos.z * dirZ < -10); 
+            let isDefender = (this.role === 'def' || this.role === 'gk' || opt.role === 'def');
+            
+            /*
+            A DISTANCIA QUE CONTA E A EFECTIVA: um marcador pelas costas vale
+            menos metros do que os que tem. Ver MarcacaoPelasCostas, com as
+            taxas medidas — 63% de acerto contra 73% no mesmo aperto.
+            */
+            const distMarcEf = (typeof distanciaEfectivaDoMarcador === 'function')
+                ? distanciaEfectivaDoMarcador(distMarcador, marcadorAtras, optPos.z * dirZ)
+                : distMarcador;
+
+            if (distMarcEf >= 5.0) {
+                // Muito espaço, bónus esmagador (+200 pts) para garantir passe em jogadores livres
+                score += 500;
+            } else if (distMarcEf >= 3.5) {
+                // Espaço livre (+200 pts)
+                score += 300;
+            } else if (distMarcEf >= 2.5) {
+                score += 200;
+            } else {
+                if (inDefensiveZone || isDefender) {
+                    score -= 550;
+                } else {
+                    score -= 165;
+                }
+            }
+
+            let progression = (optPos.z - ownZ) * dirZ;
+            let relX = Math.abs(optPos.x - ownX);
+
+            if (progression > 0) {
+                score += 20;
+            }
+
+            // Defensores tocando para o lado (circulação na linha defensiva)
+            if (isDefender && relX >= 4.0) {
+                score += 200;
+            }
+
+            ratedCandidates.push({ player: opt, score: score });
+        }
+
+        if (ratedCandidates.length > 0) {
+            ratedCandidates.sort((a, b) => b.score - a.score);
+            return ratedCandidates[0].player;
+        }
+
+        return null;
+    }
+
+    /*
+    Passe de pânico: findPassTarget/findPassTargetRelaxed exigem a LINHA
+    inteira até ao colega livre de adversários (minOppDist >= safetyLimit).
+    Se houver um adversário deitado nessa linha — típico de pressão vinda de
+    trás, o marcador fica exactamente entre o portador e o apoio atrás — todo
+    e qualquer candidato falha ali, mesmo com o colega completamente livre no
+    destino. Sem alternativa o jogador cai no fallback (`actCarry`), tenta
+    driblar, é cortado, recupera, tenta outra vez — o ciclo "corta, retoma"
+    reportado. Este ignora a linha por completo e olha só se o PRÓPRIO
+    colega está livre no ponto de chegada — arrisca mais, mas tira a bola de
+    perto em vez de ficar preso.
+    */
+    findPassTargetDesperate() {
+        let teammates = (this.team === 'TeamA') ? Match.players : Match.opponents;
+        let opponents = (this.team === 'TeamA') ? Match.opponents : Match.players;
+        let ownZ = this.model.position.z;
+        let dirZ = this.dirZ;
+
+        let melhor = null, melhorNota = -Infinity;
+        for (const opt of teammates) {
+            if (opt.id === this.id || opt.role === 'gk') continue;
+            const optPos = alvoDePasse(opt);
+            const dist = this.model.position.distanceTo(optPos);
+            // Ver o findPassTarget: o piso mede o colega, nao o ponto de lead.
+            const distReal = this.model.position.distanceTo(opt.model.position);
+            if (dist < 3.0 || dist > 35.0 || distReal < 3.0) continue;
+
+            let distMarcador = 999;
+            for (const opp of opponents) {
+                if (opp.role === 'gk') continue;
+                const d = optPos.distanceTo(opp.model.position);
+                if (d < distMarcador) distMarcador = d;
+            }
+            if (distMarcador < 3.5) continue; // colega também marcado de perto: não vale a pena
+
+            _line1.set(this.model.position, optPos);
+            let bloqueadoDeSaida = false;
+            _v2.subVectors(optPos, this.model.position).normalize(); // Direção do passe
+            for (const opp of opponents) {
+                if (opp.role === 'gk') continue;
+                
+                // Vetor do portador para o adversário
+                _v1.subVectors(opp.model.position, this.model.position);
+                
+                // Se o adversário estiver na direção oposta ao passe, ignorar
+                if (_v1.dot(_v2) < -0.1) continue;
+
+                _line1.closestPointToPoint(opp.model.position, true, _v1);
+                let distLinha = _v1.distanceTo(opp.model.position);
+                let distPortador = this.model.position.distanceTo(opp.model.position);
+                
+                // Se um adversário estiver bloqueando a linha e muito perto do portador
+                if (distLinha < 0.9 && distPortador < 4.5) {
+                    bloqueadoDeSaida = true;
+                    break;
+                }
+            }
+            if (bloqueadoDeSaida) continue;
+
+            // O `- dist * 0.5` que aqui estava premiava o passe mais curto de
+            // todos. A forma da curva e a mesma do findPassTarget, com peso
+            // menor: aqui manda quem esta desmarcado, que e o ponto do relaxed.
+            let nota = distMarcador * 5 + notaDistanciaPasse(dist, 1.0, 1.0) * 0.15;
+            const progression = (optPos.z - ownZ) * dirZ;
+            if (progression > 0) nota += 10;
+
+            if (nota > melhorNota) { melhorNota = nota; melhor = opt; }
+        }
+        return melhor;
+    }
+
+    /*
+    Procura opção de passe no cone frontal (padrão: 120° de amplitude total = ±60° = Math.PI / 3).
+    Garante que o jogador só gira com a bola mais de 120° se NÃO tiver opção viável à sua frente.
+    */
+    findPassTargetInCone(maxAngleRad = Math.PI / 3) {
+        let teammates = (this.team === 'TeamA') ? Match.players : Match.opponents;
+        let opponents = (this.team === 'TeamA') ? Match.opponents : Match.players;
+        let skillVal = this.skillFor('PASS');
+        let safetyLimit = 1.7 + (1.0 - (skillVal / 100)) * 1.5;
+        let isOrchestrator = (this.playingStyle === 'orchestrator' && this.styleAtivo);
+        let fwd = _p_v1.set(0, 0, 1).applyQuaternion(this.model.quaternion).normalize();
+
+        let ratedCandidates = [];
+
+        for (let opt of teammates) {
+            if (opt.id === this.id) continue;
+            let optPos = alvoDePasse(opt);
+            let dist = this.model.position.distanceTo(optPos);
+            // Ver o findPassTarget: o piso mede o colega, nao o ponto de lead.
+            const distReal = this.model.position.distanceTo(opt.model.position);
+            let maxDist = Math.max(10, skillVal * 0.6);
+            if (dist > maxDist || dist < 2.0 || distReal < 3.0) continue;
+
+            let toTarget = _p_v2.subVectors(optPos, this.model.position);
+            toTarget.y = 0;
+            if (toTarget.lengthSq() < 0.01) continue;
+            toTarget.normalize();
+
+            let angle = fwd.angleTo(toTarget);
+            if (angle > maxAngleRad) continue; // Fora do cone frontal de 120° (±60°)
+
+            _line1.set(this.model.position, optPos);
+            let minOppDist = 999, oppMaisPerto = null;
+            let distMarcador = 999;
+            for (let i = 0; i < opponents.length; i++) {
+                let opp = opponents[i];
+                if (opp.role === 'gk') continue;
+                
+                let dMarc = optPos.distanceTo(opp.model.position);
+                if (dMarc < distMarcador) distMarcador = dMarc;
+
+                _v3.subVectors(opp.model.position, this.model.position);
+                if (_v3.dot(toTarget) < -0.1) continue;
+
+                _line1.closestPointToPoint(opp.model.position, true, _v1);
+                let d = _v1.distanceTo(opp.model.position);
+                if (d < minOppDist) {
+                    minOppDist = d;
+                    oppMaisPerto = opp;
+                }
+            }
+
+            let safetyEff = safetyLimit;
+            if (oppMaisPerto) {
+                const fatorIntercept = THREE.MathUtils.clamp(
+                    1 + (oppMaisPerto.skillFor('INTERCEPT') - skillVal) / 150, 0.6, 1.6);
+                safetyEff = safetyLimit * fatorIntercept;
+            }
+            if (isOrchestrator) safetyEff *= 0.3;
+            if (minOppDist < safetyEff) continue;
+
+            let score = notaDistanciaPasse(dist, 1.0, 1.0) * 0.6
+                - (angle / maxAngleRad) * 30
+                + Math.min(30, minOppDist * 4);
+
+            if (distMarcador >= 5.0) score += 500;
+            else if (distMarcador >= 3.5) score += 300;
+            else if (distMarcador >= 2.5) score += 200;
+
+            let isDefender = (this.role === 'def' || this.role === 'gk' || opt.role === 'def');
+            let relX = Math.abs(optPos.x - this.model.position.x);
+            if (isDefender && relX >= 4.0) score += 200;
+
+            ratedCandidates.push({ player: opt, score: score });
+        }
+
+        if (ratedCandidates.length > 0) {
+            ratedCandidates.sort((a, b) => b.score - a.score);
+            return ratedCandidates[0].player;
+        }
+        return null;
+    }
+
+    /*
+    Domínio no peito. Chamado por resolveBallContact quando a bola chega
+    entre `peitoYMin` e `peitoYMax` — não se domina uma bola à altura do
+    peito com o pé.
+
+    O sorteio (TÉCNICA) decide a QUALIDADE do amortecimento, não a posse:
+    ganhando, a bola morre-lhe meio metro à frente; perdendo, repica 1.5 m e
+    fica disputável. Nos dois casos ele sai a jogar a seguir — quem lá chegar
+    primeiro fica com ela, como em qualquer bola solta.
+
+    A bola não salta já para essa distância: fica COLADA ao peito durante
+    `peitoCola` segundos e só depois é largada (ver largarDoPeito e o estado
+    CHEST_CONTROL em fsm.js).
+
+    `altura` é o ponto de contacto medido por distanciaAoCorpo (match.js) —
+    decide o pequeno salto opcional (ver peitoPuloLimiar/peitoPuloMax).
+    */
+    controlarNoPeito(altura) {
+        const B = BallControl;
+        const bom = venceuDuelo(this.skillFor('TEC'), 50, B.peitoBase);
+
+        // De FRENTE para a bola, não de lado — sem isto ficava com a
+        // orientação de quem quer que fosse a última corrida, muitas vezes
+        // atravessado em relação à bola que vinha a chegar.
+        lookAtBola(this.model, Match.ball.position);
+
+        this.peitoBom = bom;
+        /*
+        A ALTURA DO CONTACTO, guardada. A bola era colada sempre à
+        `peitoAltura` fixa (1.20 m): com a faixa a começar em 1.15 dava quase no
+        mesmo, mas assim que ela se alarga — a bola à coxa, ou a bola alta que
+        um jogador livre ajeita — colá-la a 1.20 é vê-la SALTAR para lá no
+        frame do contacto. Fica a altura real, dentro de limites de corpo.
+        */
+        this.peitoAlturaContacto = THREE.MathUtils.clamp(
+            altura, B.peitoAlturaMinCola || 0.9, B.peitoAlturaMaxCola || 1.75);
+        this.peitoCola = B.peitoCola;
+        this.peitoHopTimer = (altura > B.peitoPuloLimiar) ? B.peitoDur : 0;
+        this.colarBolaAoPeito();
+
+        Match.ballCarrier = null;
+        this.hasBall = false;
+        Match.intendedReceiver = null;
+        Match.passTargetPos = null;
+        Match.lastTouchedTeam = this.team;
+        Match.lastTouchedPlayer = this;
+        Match.possessionTeam = this.team;
+        window.bolaChutada = false;
+        /*
+        PEITO DEVOLVE AS MÃOS AO GUARDA-REDES (Lei 12): a proibição é do PÉ.
+        Servi-la de peito é a maneira legal de a fazer chegar às mãos dele.
+        */
+        if (typeof limparRecuoParaGR === 'function') limparRecuoParaGR();
+
+        // Não pode voltar a tocar já no frame seguinte; o repique tem de ter
+        // tempo de acontecer. A duração é a mesma do gesto, para não dominar
+        // com o pé enquanto ainda está dobrado para trás.
+        this.touchLock = B.peitoDur;
+        this.peitoTimer = 0;
+        this.fsm.changeState('CHEST_CONTROL');
+
+        if (typeof MatchStats !== 'undefined') MatchStats.registarRecepcao(this, bom);
+        if (typeof EventBus !== 'undefined') EventBus.emit('CHEST_CONTROL', { p: this, bom: bom });
+    }
+
+    /*
+    Encosta a bola ao peito, à frente do tronco e à altura do contacto.
+    Chamado todos os frames enquanto ela está colada, para acompanhar o corpo
+    caso ele ainda esteja a andar ou a rodar.
+    */
+    colarBolaAoPeito() {
+        const B = BallControl;
+        const h = (typeof this.peitoAlturaContacto === 'number')
+            ? this.peitoAlturaContacto : B.peitoAltura;
+        _v1.set(0, 0, B.peitoDistCorpo).applyQuaternion(this.model.quaternion);
+        Match.ball.position.set(
+            this.model.position.x + _v1.x,
+            this.model.position.y + h,
+            this.model.position.z + _v1.z);
+        Match.ballVel.set(0, 0, 0);
+    }
+
+    /*
+    Larga a bola do peito. Em vez de a teleportar, dá-se-lhe a velocidade que
+    a faz cair à distância pedida: resolve-se o tempo de queda da altura do
+    peito com a velocidade vertical de saída e daí sai a componente horizontal.
+
+    A distância vem da TÉCNICA, contínua (ver quedaNoPeito em utils.js), e não
+    de um binário bom/mau com duas constantes fixas. A velocidade vertical
+    acompanha a mesma fracção: quem amortece bem mata a bola para baixo, quem
+    amortece mal cospe-a para cima — antes eram duas coisas descorrelacionadas,
+    e via-se a bola morrer no pé mas a repicar.
+    */
+    largarDoPeito() {
+        const B = BallControl;
+        const g = BallPhysics.gravidade;
+        const tec = this.skillFor('TEC');
+        const dist = quedaNoPeito(tec, amostraGaussiana(Math.random));
+
+        const frac = THREE.MathUtils.clamp(tec / 100, 0, 1);
+        const vy = B.peitoVelYMa + (B.peitoVelYBoa - B.peitoVelYMa) * frac;
+
+        const h = (typeof this.peitoAlturaContacto === 'number')
+            ? this.peitoAlturaContacto : B.peitoAltura;
+        const queda = Math.max(0.1, h - BallPhysics.raio);
+        const t = (vy + Math.sqrt(vy * vy + 2 * g * queda)) / g;
+
+        /*
+        O `dist` É ONDE A BOLA FICA, e não onde ela aterra.
+
+        Relato: *"quando o jogador mata no peito e não está pressionado, a bola
+        cai no pé dele e ele fica com ela dominada — não é o que acontece no
+        jogo"*.
+
+        A conta era `vh = dist / t`: a bola percorria `dist` durante a QUEDA e
+        depois continuava a rolar, porque no chão ainda levava `vh` inteiro.
+        Medido com `tools/scratch/peito_dominio.js`, 40 min de jogo: com o
+        `quedaNoPeito` a pedir 0.25 m para um técnico de 70+, a bola andava
+        1.48 m e ficava 1.31 m fora do pé — seis vezes o pedido. O domínio
+        via-se, mas a bola fugia dele.
+
+        Agora a distância pedida inclui o rolamento. Com a bola a aterrar com
+        `vh`, o chão tira-lhe `μ·g` por segundo e ela ainda corre
+        `vh² / (2·μ·g)`. Somando as duas pernas do percurso:
+
+            vh·t  +  vh²/(2·μ·g)  =  dist
+
+        que é uma quadrática em `vh`. A raiz positiva é a velocidade que deixa
+        a bola PARADA à distância pedida, que é o que "cair no pé" quer dizer.
+        */
+        const desaceleracao = Math.max(0.1, BallPhysics.atritoRolamento * g);
+        const a = 1 / (2 * desaceleracao);
+        const vh = (-t + Math.sqrt(t * t + 4 * a * Math.max(0, dist))) / (2 * a);
+
+        _v1.set(0, 0, 1).applyQuaternion(this.model.quaternion);
+        Match.ballVel.set(_v1.x * vh, vy, _v1.z * vh);
+        this.peitoCola = 0;
+        /*
+        E NÃO RESSALTA: uma matada no peito é um toque AMORTECIDO.
+
+        Com a bola a cair de 1.2 m ela chegava ao chão com energia que chegava
+        para um salto, e o salto levava-a mais para a frente — medido, 1.0
+        ressaltos por matada e a bola a acabar 1.3 m fora do pé mesmo com o
+        `quedaNoPeito` a pedir 0.25. O ressalto anula a conta de cima, que
+        assume queda e rolamento.
+
+        A bandeira vale um contacto com o relvado, e é o próprio relvado que a
+        consome (ver o ressalto em match_physics.js). Só no domínio BOM: um
+        peito mal dado deve mesmo repicar.
+        */
+        if (this.peitoBom && typeof Match !== 'undefined') Match.bolaAmortecida = true;
+    }
+
+    /*
+    Nível 3: o cérebro individual. A árvore vive em js/bt/player_bt.js — aqui
+    fica só a porta de entrada, para o resto do código continuar a chamar
+    player.runBehaviorTree() como sempre.
+    */
+    runBehaviorTree(dt = 1 / 60) {
+        PlayerAI.tick(this, dt);
+    }
+
+    findPassTarget(filterOrDir) {
+        let teammates = (this.team === 'TeamA') ? Match.players : Match.opponents;
+        let ownZ = this.model.position.z;
+        let ownX = this.model.position.x;
+        let dirZ = this.dirZ;
+
+        // Mira o alvo do PositionBT, não a posição actual — ver alvoDePasse().
+        let options = teammates.filter(p => {
+            if (p.id === this.id) return false;
+            let optPos = alvoDePasse(p);
+            let relZ = (optPos.z - ownZ) * dirZ;
+            let relX = Math.abs(optPos.x - ownX);
+
+            if (filterOrDir === 'frente' || filterOrDir === 'forward') {
+                if (relZ <= 1.0) return false;
+            } else if (filterOrDir === 'lado' || filterOrDir === 'side') {
+                if (Math.abs(relZ) > 4.5 || relX < 3.5) return false;
+            } else if (filterOrDir === 'tras' || filterOrDir === 'back') {
+                if (relZ >= -1.0) return false;
+            } else if (filterOrDir === 'def' || filterOrDir === 'mid' || filterOrDir === 'atk') {
+                if (p.role !== filterOrDir) return false;
+            }
+
+            return (optPos.z * dirZ > ownZ * dirZ - 35.0);
+        });
+
+        if (options.length === 0) {
+            this.ultimoAlvoPasse = null;
+            return null;
+        }
+
+        /*
+        Sector no REFERENCIAL DE ATAQUE (x * dirZ), como o
+        Tatics.getWeightedSectorX já fazia (`-19 * teamDir` para 'esq').
+
+        Antes classificava-se o x do MUNDO cru: para a equipa que ataca no
+        sentido oposto, 'esq' do painel virava o flanco contrário. Resultado:
+        a condução (carryTargetX, mirrored) puxava para um lado e o bónus de
+        passe premiava o outro — as duas metades do sistema a anular-se, e
+        nenhuma das equipas jogava consistentemente pelas pontas.
+        */
+        // Era uma cópia à mão da mesma regra dos 10 m que a condução usa. Uma
+        // só, agora, em Tatics.sectorDeX — se as duas divergissem, o passe
+        // premiava um flanco e a condução puxava para o outro.
+        const getSectorOfX = (x) => Tatics.sectorDeX(x, dirZ);
+
+        let skillVal = this.skillFor('PASS');
+        // O antigo `safetyLimit` (1.0 a 1.6 m) saiu daqui: era o corredor do
+        // filtro binário, hoje substituído pela qualidade de linha
+        // (PassLineModel). O que resta do corte duro está no ciclo, abaixo.
+
+        let opponents = (this.team === 'TeamA') ? Match.opponents : Match.players;
+        let ratedCandidates = [];
+
+        /*
+        Camada tática coletiva (docs/tacticSystem.md) — Mentalidade já entrava via
+        Playing Style/Decision Grid; isto é NOVO: TeamPlayStyle + Momentum +
+        Congestão, por cima do resto, sem mexer no que já existia acima.
+        Playing Styles continuam a decidir tudo o que já decidiam (ver
+        isOrchestrator abaixo, intocado).
+        */
+        const teamBB = (typeof TeamAI !== 'undefined') ? TeamAI.get(this.team) : null;
+        const teamStyle = (typeof TeamPlayStyles !== 'undefined')
+            ? estiloDaEquipaDe(this.team)
+            : null;
+        const secToCongestionKey = { esq: 'esq', dir: 'dir', cen: 'centro' };
+        /*
+        A CONGESTÃO É MEDIDA EM BANDAS DO MUNDO (x < -10 'esq', x > 10 'dir', ver computeCongestion no
+        team_bt.js), e os sectores do passe estão no referencial de ATAQUE (x * dirZ). Misturar os dois
+        (`secToCongestionKey[sectorDeX(...)]`) trocava os flancos para a equipa que ataca em -z: ela media
+        a congestão do lado errado e o incentivo de virar o jogo apontava para o lado já cheio. Aqui as
+        duas pontas da conta usam a mesma régua, a do mundo.
+        */
+        const bandaCong = (x) => (x < -10 ? 'esq' : (x > 10 ? 'dir' : 'centro'));
+        const congestaoMeuLado = (teamBB) ? (teamBB.congestion[bandaCong(ownX)] || 0) : 0;
+
+        /*
+        SAIR A JOGAR: função, zona e ausência de pressão, decididas UMA vez por
+        avaliação e não por candidato. Ver SaidaDeJogo (config/passing.js), com
+        as medições que o motivaram.
+        */
+        let saidaAplicavel = false;
+        if (typeof SaidaDeJogo !== 'undefined' && this.role === 'def' &&
+            ownZ * dirZ < -(CAMPO_COMP / 6)) {
+            let apertado = false;
+            for (const o of opponents) {
+                if (!o || o.role === 'gk' || !o.model) continue;
+                if (this.model.position.distanceTo(o.model.position) < SaidaDeJogo.raioPressao) {
+                    apertado = true;
+                    break;
+                }
+            }
+            saidaAplicavel = !apertado;
+        }
+        const agressaoEquipa = (teamBB && typeof teamBB.aggression === 'number') ? teamBB.aggression : 0.5;
+
+        for (let opt of options) {
+            let optPos = alvoDePasse(opt);
+            let dist = this.model.position.distanceTo(optPos);
+
+            /*
+            O piso de distancia mede o COLEGA e nao so o ponto de lead. O
+            alvoDePasse devolve para onde ele vai estar; com ele a correr na
+            direccao do portador, o ponto ficava a 6 m e o homem a 1 m — e
+            saia um passe de um metro, visto no jogo (CM->CM(1)).
+            */
+            const distReal = this.model.position.distanceTo(opt.model.position);
+
+            // Distância máxima baseada no skill de passe (skill * 0.6)
+            let maxDist = Math.max(10, skillVal * 0.6);
+            if (dist > maxDist || dist < 2.0 || distReal < 3.0) continue;
+
+            // Evitar passes para fora do campo com margem de segurança de linhas
+            const margemLinha = (typeof PassModel !== 'undefined' && PassModel.margemSegurancaLinha) ? PassModel.margemSegurancaLinha : 2.5;
+            const distBordaX = (CAMPO_LARG / 2) - Math.abs(optPos.x);
+            const distBordaZ = (CAMPO_COMP / 2) - Math.abs(optPos.z);
+            if (distBordaX < 0.5 || distBordaZ < 0.5) continue; // Ponto fora ou praticamente em cima da linha
+
+            _line1.set(this.model.position, optPos);
+            _v2.subVectors(optPos, this.model.position).normalize();
+            let minOppDist = 999, oppMaisPerto = null;
+            let distMarcador = 999;
+            let marcadorAtras = false;
+
+            /*
+            O corredor de ameaça cresce com a distância do passe: um defesa a
+            3 m da recta não chega a uma bola de 8 m, mas chega de sobra a uma
+            de 35 m. Ver PassLineModel.
+            */
+            const PL = PassLineModel;
+            const corredor = Math.min(PL.corredorMax,
+                PL.corredorBase + dist * PL.corredorPorMetro);
+            let corposNoCorredor = 0;
+
+            for (let i = 0; i < opponents.length; i++) {
+                let opp = opponents[i];
+                if (opp.role === 'gk') continue;
+                
+                _v3.subVectors(opp.model.position, this.model.position);
+                if (_v3.dot(_v2) < -0.1) continue;
+
+                _line1.closestPointToPoint(opp.model.position, true, _v1);
+                let d = _v1.distanceTo(opp.model.position);
+                if (d < minOppDist) {
+                    minOppDist = d;
+                    oppMaisPerto = opp;
+                }
+                // Quantos ameaçam, não só o mais perto.
+                if (d < corredor) corposNoCorredor++;
+
+                let dMarc = optPos.distanceTo(opp.model.position);
+                if (dMarc < distMarcador) {
+                    distMarcador = dMarc;
+                    /*
+                    DE QUE LADO ESTA ELE. `dzMarc` negativo = do lado da
+                    PROPRIA baliza do recetor, ou seja pelas costas: ja de
+                    frente para a bola, chega-lhe ao corpo mal ela pouse.
+                    Ver MarcacaoPelasCostas (config/passing.js).
+                    */
+                    const dzMarc = (opp.model.position.z - optPos.z) * opt.dirZ;
+                    marcadorAtras = (dzMarc < 0) &&
+                        (Math.abs(dzMarc) > dMarc * ((typeof MarcacaoPelasCostas !== 'undefined')
+                            ? MarcacaoPelasCostas.fraccaoAtras : 0.35));
+                }
+            }
+
+            /*
+            Passe x Interceptação: o adversário mais perto da linha ameaça
+            mais ou menos consoante o INTERCEPT dele contra o PASS de quem
+            está a passar — bom interceptador precisa de menos proximidade
+            pra ser perigo, bom passador arrisca-se mais perto dele.
+            */
+            let isOrchestrator = (this.playingStyle === 'orchestrator' && this.styleAtivo);
+
+            /*
+            Só sobra um corte DURO: alguém literalmente em cima da recta, onde
+            a bola não passa. Tudo o resto passou a ser peso, mais abaixo.
+
+            O `fatorIntercept` continua a valer — um bom interceptador tapa
+            mais campo do que um mau — mas agora sobre uma largura de
+            centímetros, não sobre o julgamento inteiro do passe.
+            */
+            let fatorIntercept = 1.0;
+            if (oppMaisPerto) {
+                fatorIntercept = THREE.MathUtils.clamp(
+                    1 + (oppMaisPerto.skillFor('INTERCEPT') - skillVal) / 150, 0.6, 1.6);
+            }
+            let bloqueio = PL.bloqueioDuro * fatorIntercept;
+            if (isOrchestrator) bloqueio *= PL.factorOrquestrador;
+            if (minOppDist < bloqueio) continue;
+
+            let circulacao = teamStyle ? teamStyle.circulacao : 1.0;
+            let verticalidade = teamStyle ? teamStyle.verticalidade : 1.0;
+
+            /*
+            A nota de distancia vive em notaDistanciaPasse (utils.js), com o
+            estilo la dentro. Aqui estava um ramo PLANO de 2 a 20 m: um passe
+            de 2.5 m valia o mesmo que um de 19 m, e quem desempatava era o
+            bonus de "livre de marcacao" logo abaixo — que o toquinho ao lado
+            ganha sempre. Media: 32.1% dos passes abaixo de 5 m.
+            */
+            let score = notaDistanciaPasse(dist, circulacao, verticalidade);
+
+            /*
+            QUALIDADE DA LINHA, na mesma escala do bónus de receptor livre.
+            0 = a bola raspa por alguém, 1 = corredor limpo. Antes isto valia
+            no máximo +50 contra os +500 do receptor livre, e era por isso que
+            um passe para dentro de tráfego ganhava a um colega desmarcado.
+            */
+            const qualidadeLinha = THREE.MathUtils.clamp(
+                (minOppDist - bloqueio) / Math.max(0.001, corredor - bloqueio), 0, 1);
+            let penalLinha = PL.pesoLinha * (1 - qualidadeLinha)
+                + PL.pesoCorpo * corposNoCorredor * fatorIntercept;
+            if (teamStyle && typeof teamStyle.riscoLinha === 'number') penalLinha *= teamStyle.riscoLinha;
+            if (isOrchestrator) penalLinha *= PL.factorOrquestrador;
+            // Passe PARA o último terço: o risco vale a pena (ver PassLineModel).
+            if (optPos.z * dirZ > PL.ultimoTercoZ) penalLinha *= PL.factorUltimoTerco;
+            score -= penalLinha;
+            // Possession: paga pela linha limpa (TeamPlayStyles.seguranca / riscoLinha).
+            if (teamStyle && teamStyle.seguranca) {
+                const fiabS = (typeof FiabilidadePasse !== 'undefined') ? FiabilidadePasse.fiabilidade(dist) : 1.0;
+                score += teamStyle.seguranca * qualidadeLinha * fiabS;
+            }
+
+            // Bónus/Penalidade ABSOLUTA pela marcação do RECEBEDOR
+            // Um jogador livre tem que SEMPRE ganhar de um marcado
+            let inDefensiveZone = (ownZ * dirZ < -10) || (optPos.z * dirZ < -10); 
+            let isDefender = (this.role === 'def' || this.role === 'gk' || opt.role === 'def');
+            
+            /*
+            O BÓNUS DE DESMARCADO É PESADO PELA FIABILIDADE DA DISTÂNCIA.
+
+            Esta escada é a parcela mais pesada da nota, e era cega à distância
+            do passe: um avançado livre a 30 m valia os mesmos +500 que um
+            central livre a 8 m, e a seguir os bónus de progressão, tendência e
+            ângulo visual desempatavam sempre para a frente. Daí os 79% de
+            passes para a frente contra 6% de lado nos defesas, medidos em 20
+            minutos, com opção curta disponível em 100% dos longos.
+
+            "Livre" não é a mesma coisa a 8 m e a 30 m. Ver FiabilidadePasse
+            (config/passing.js), que traz as taxas medidas por faixa no lote de
+            60 jogos — 84% a 8 m contra 44% acima de 25.
+            */
+            const fiab = (typeof FiabilidadePasse !== 'undefined')
+                ? FiabilidadePasse.fiabilidade(dist) : 1.0;
+
+            /*
+            A DISTANCIA QUE CONTA E A EFECTIVA: um marcador pelas costas vale
+            menos metros do que os que tem. Ver MarcacaoPelasCostas, com as
+            taxas medidas — 63% de acerto contra 73% no mesmo aperto.
+            */
+            const distMarcEf = (typeof distanciaEfectivaDoMarcador === 'function')
+                ? distanciaEfectivaDoMarcador(distMarcador, marcadorAtras, optPos.z * dirZ)
+                : distMarcador;
+
+            if (distMarcEf >= 5.0) {
+                // Muito espaço, bónus esmagador para garantir que a bola vá para ele
+                score += 500 * fiab;
+            } else if (distMarcEf >= 3.5) {
+                // Espaço livre
+                score += 300 * fiab;
+            } else if (distMarcEf >= 2.5) {
+                // Jogador desmarcado
+                score += 200 * fiab;
+            } else {
+                // Marcado de perto (distMarcador < 2.5). Penalização severa.
+                if (this.role === 'gk') {
+                    score -= 605; // Erro fatal do goleiro (aumentada em mais 10%)
+                } else if (inDefensiveZone || isDefender) {
+                    score -= 550; // Erro fatal na defesa (aumentada em 10%)
+                } else {
+                    score -= 165; // Aumentada em 10%
+                }
+            }
+
+            /*
+            PONTA LIVRE COM A BOLA NO MEIO-CAMPO: +100. Pedido: *"jogador livre nas pontas com bola
+            no meio campo vai receber mais 100 pontos de passe"*. Ponta = LW/RW/LM/RM a `larguraX` m
+            ou mais do eixo, livre (marcador efectivo a `folgaMin` ou mais), com a BOLA (quem passa) a
+            `zMin`..`zMax` m de avanço. Ver PontaLivre (config/passing.js).
+            */
+            const PLv = (typeof PontaLivre !== 'undefined') ? PontaLivre : null;
+            if (PLv && ['LW', 'RW', 'LM', 'RM'].indexOf(opt.pos) >= 0 &&
+                Math.abs(optPos.x) >= PLv.larguraX && distMarcEf >= PLv.folgaMin) {
+                const avBola = Match.ball.position.z * dirZ;
+                if (avBola >= PLv.zMin && avBola <= PLv.zMax) score += PLv.pontos;
+            }
+
+            /*
+            O HOMEM LIVRE A FRENTE DA BOLA — ver PasseParaOLivre
+            (config/passing.js) para o pedido, para a medicao e para a lista do
+            que este bonus NAO pisa.
+
+            A escada aqui em cima paga por estar livre e nao olha a onde; a
+            progressao, mais abaixo, paga por estar a frente e vale 25 pontos no
+            tecto. Quem esta as duas coisas — livre E a partir a linha — nao
+            tinha nada que o distinguisse, e media-se: com um homem nessas
+            condicoes disponivel, a bola ia para ele em 17% das vezes.
+            */
+            const LV = (typeof PasseParaOLivre !== 'undefined') ? PasseParaOLivre : null;
+            if (LV && LV.activo) {
+                const aFrente = (optPos.z - Match.ball.position.z) * dirZ;
+                /*
+                A distancia ao adversario e a REAL (`distMarcador`), e nao a
+                efectiva: o pedido fala de um raio de tres metros, e um raio e
+                um raio — quem esta pelas costas ja e descontado na escada.
+                */
+                if (aFrente > LV.aFrenteDaBola && distMarcador > LV.raio) {
+                    /*
+                    E NAO SE PREMEIA QUEM ESTA EM POSICAO IRREGULAR. Esta busca
+                    nao filtra impedimento (quem o faz e a arvore, ver
+                    `offsideLimitDir` em player_bt.js), portanto um bonus por
+                    estar a frente sem esta guarda mandava a bola para la da
+                    linha. `offsideLimitDir` ja vem no referencial de ataque.
+                    */
+                    const linha = teamBB ? teamBB.offsideLimitDir : null;
+                    const irregular = (typeof linha === 'number') &&
+                        (optPos.z * dirZ > linha);
+                    if (!irregular) score += LV.bonus * fiab;
+                }
+            }
+
+            // Bónus de prioridade de passes (Triangulações)
+            let priorityBonus = 0;
+            /*
+            QUEM INFILTRA TEM PRIORIDADE — e vive num acumulador PRÓPRIO.
+
+            Estava aqui um `priorityBonus += 400` com o comentário "bónus
+            MASSIVO", e a tabela de pares de posições logo abaixo ATRIBUI
+            (`priorityBonus = 40`) em vez de somar: qualquer par que calhe nela
+            — e é a maioria — apagava os 400. Medido, o infiltrado era escolhido
+            em 13.8% das vezes em que havia um ao alcance, que é o mesmo que
+            não ter prioridade. Ver PassModel.bonusInfiltracao.
+            */
+            let bonusInfiltracao = 0;
+            if (opt.fsm && opt.fsm.currentState === 'RUN_INTO_SPACE') {
+                bonusInfiltracao = (typeof PassModel !== 'undefined' &&
+                    typeof PassModel.bonusInfiltracao === 'number')
+                    ? PassModel.bonusInfiltracao : 400;
+            }
+
+            // O UM-DOIS: quem me passou a bola e arrancou livre para a frente.
+            // Ver PassModel.bonusTocaECorre e `bonusDoTocaECorre` mais abaixo.
+            bonusInfiltracao += this.bonusDoTocaECorre(opt);
+            const pRole = this.pos;
+            const oRole = opt.pos;
+            const pSideAtk = ownX * dirZ;
+            const oSideAtk = optPos.x * dirZ;
+            const isSameSide = Math.sign(pSideAtk) === Math.sign(oSideAtk) || Math.abs(pSideAtk) < 5 || Math.abs(oSideAtk) < 5;
+
+            if (pRole === 'GK') {
+                if (['CB', 'LB', 'RB', 'CM', 'RM', 'LM'].includes(oRole)) priorityBonus = 80;
+            } else if (pRole === 'CB') {
+                if (['CB', 'DM', 'CM'].includes(oRole)) priorityBonus = 80;
+                if (['LB', 'RB', 'LM', 'RM'].includes(oRole) && isSameSide) priorityBonus = 120;
+            } else if (pRole === 'LB' || pRole === 'RB') {
+                if (['CB', 'CM', 'LM', 'RM'].includes(oRole) && isSameSide) priorityBonus = 120;
+            } else if (pRole === 'CM') {
+                if (['AM', 'CF'].includes(oRole)) priorityBonus = 40;
+                if (['LM', 'RM'].includes(oRole) && isSameSide) priorityBonus = 40;
+            } else if (pRole === 'AM') {
+                if (['CM', 'CF', 'LW', 'RW'].includes(oRole)) priorityBonus = 40;
+                if (['LM', 'RM'].includes(oRole) && isSameSide) priorityBonus = 40;
+            } else if (pRole === 'CF') {
+                if (['AM', 'LW', 'RW', 'ST'].includes(oRole)) priorityBonus = 40;
+                if (['LM', 'RM'].includes(oRole) && isSameSide) priorityBonus = 40;
+            } else if (pRole === 'RW') {
+                if (['RM', 'CM', 'AM', 'CF', 'ST'].includes(oRole)) priorityBonus = 40;
+            } else if (pRole === 'LW') {
+                if (['LM', 'CM', 'AM', 'CF', 'ST'].includes(oRole)) priorityBonus = 40;
+            }
+            score += priorityBonus + bonusInfiltracao;
+
+            // Grid espacial (camada PASSE)
+            if (typeof SpatialGrid !== 'undefined' && SpatialGrid.cells) {
+                score += SpatialGrid.layerValueAt('pass', optPos.x, optPos.z, this.team) * 0.4;
+            }
+
+            // Setores
+            let optSec = getSectorOfX(optPos.x);
+            let secPriority = typeof Tatics.prioridadeSector === 'function' ? Tatics.prioridadeSector(optSec) : 0;
+            score += (secPriority * 100) * (teamStyle ? teamStyle.corredores : 1.0);
+
+            // Progressão
+            let progression = (optPos.z - ownZ) * dirZ;
+            let relX = Math.abs(optPos.x - ownX);
+
+            /*
+            INVERSÃO DE JOGO — ver InversaoDeJogo (config/passing.js). Com a banda da bola congestionada, um
+            passe que muda a bola de banda para uma bem mais vazia, a um colega livre, é uma inversão: pode
+            recuar um pouco (`recuoMax`) e não paga as penalidades de recuar nem de virar o corpo.
+            */
+            let inversao = false;
+            const IV = (typeof InversaoDeJogo !== 'undefined' && InversaoDeJogo.activo) ? InversaoDeJogo : null;
+            if (IV && teamBB) {
+                const bBola = bandaCong(ownX), bAlvo = bandaCong(optPos.x);
+                const cBola = teamBB.congestion[bBola] || 0, cAlvo = teamBB.congestion[bAlvo] || 0;
+                inversao = bBola !== bAlvo && relX >= IV.larguraMin && cBola >= IV.congestaoMin &&
+                    cAlvo <= cBola - IV.folgaCongestao && progression >= -IV.recuoMax &&
+                    distMarcEf >= IV.livreMin;
+                /*
+                A INVERSAO SINALIZADA (js/inversao_sinalizada.js): a equipa avisou que a jogada e uma inversao — o passe ao
+                apoio que recuou (SUP_TO_INVERT), o dele para o outro lado, ou um directo a um colega livre no corredor de
+                destino. Conta como inversao mesmo recuando, sem pedir congestao.
+                */
+                if (!inversao && typeof InversaoSinalizada !== 'undefined' && distMarcEf >= 2.5 &&
+                    InversaoSinalizada.favorece(this, opt, optPos, dirZ)) inversao = true;
+                if (inversao) score += IV.bonus * Math.max(fiab, IV.fiabMin);
+            }
+            
+            /*
+            O BALANCO POR CORREDOR (BalancoCorredores): o destino num corredor onde a equipa ja passou do alvo do
+            treinador (mais a margem de tempo) perde pontos; onde falta tempo, ganha. Aditivo, e vale tambem para o
+            passe que mantem a bola no mesmo corredor — que e o que o faz inverter mesmo sem congestao.
+            */
+            if (typeof TempoPorCorredor !== 'undefined') {
+                score += TempoPorCorredor.ajusteDePasse(this.team, optPos.x * dirZ);
+            }
+
+            // MULTIPLICADORES DE TENDÊNCIA POR POSIÇÃO
+            if (typeof getPositionalTendency === 'function') {
+                const isForwardPass = progression > 2.0;
+                const accao = isForwardPass ? 'forwardPass' : 'pass';
+                // Posição E jogador (ver tendenciaDeAccao em config/physics.js).
+                const tendMult = (typeof tendenciaDeAccao === 'function')
+                    ? tendenciaDeAccao(this, accao) : getPositionalTendency(this.pos, accao);
+                // Bónus/penalidade de mentalidade: 
+                // se tendMult > 1.0, o jogador 'vê' o passe como mais atraente
+                score += (tendMult - 1.0) * 200;
+            }
+            
+            if (progression > 0) {
+                let progBonus = Math.min(25, progression * 0.9) * verticalidade;
+                if (minOppDist > 8.0) {
+                    const aggr = teamBB ? teamBB.aggression : 0.5;
+                    progBonus += 60 * (0.6 + aggr * 0.8) * formaDistanciaPasse(dist);
+                }
+                score += progBonus;
+            } else {
+                if (isOrchestrator) {
+                    score += Math.abs(progression) * 0.8;
+                } else if (!isDefender && !inDefensiveZone && !inversao) {
+                    score -= Math.abs(progression) * 1.5 / circulacao;
+                }
+            }
+
+            // O ESTILO DA EQUIPA e QUEM recebe (TeamPlayStyles.afinidade, contra, alas).
+            score += this.bonusPasseDoEstilo(opt, optPos, progression, fiab, teamStyle);
+
+            // Bônus explícito para trocas de passes na defesa e passes laterais
+            if (inDefensiveZone) {
+                if (this.role === 'def' && opt.role === 'def') {
+                    score += 150; // Incentiva a troca de bola entre zagueiros e laterais
+                }
+                if (relX >= 4.0) {
+                    score += 150; // Passes laterais na defesa são ótimos para circular a posse
+                }
+            } else if (this.role === 'def' && relX >= 4.0) {
+                score += 100;
+            }
+
+            // Bônus/Penalidade pelo ângulo visual (evita o jogador girar 180 graus desnecessariamente ao recuperar a bola)
+            let angleToTarget = Math.atan2(_v2.x, _v2.z);
+            let angleDiff = Math.abs(angleToTarget - this.model.rotation.y);
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            angleDiff = Math.abs(angleDiff);
+            
+            if (angleDiff < Math.PI / 3) {
+                score += 80; // Alvo está no campo de visão natural (frente)
+            } else if (angleDiff > Math.PI * 0.6 && !inversao) {
+                score -= 80; // Penaliza passes de costas que exigem girar o corpo
+            }
+
+            // Bônus explícito para passes laterais e para trás
+            const livreAFrente = (typeof semMarcacaoAFrente === 'function') ? semMarcacaoAFrente(this, opponents, 20.0, 45.0) : false;
+            
+            if (filterOrDir === 'tras' || filterOrDir === 'back') {
+                if (opt.role !== 'gk' && distMarcador >= 4.0) {
+                    score += 400; // Prioridade MÁXIMA para jogador de linha desmarcado no passe para trás
+                } else if (opt.role === 'gk') {
+                    // Só toca no GK se não tiver mais ninguém e o GK estiver muito livre
+                    if (distMarcador < 10.0) score -= 500;
+                    else score -= 150; // Penalidade natural para não usar o GK como apoio primário
+                }
+            } else {
+                if (progression <= 2.0 && relX > 5.0) {
+                    score *= 1.25; // Lado
+                } else if (progression < -2.0 && !inversao) {
+                    if (!livreAFrente && inDefensiveZone) {
+                        score *= 1.20; // Trás sob pressão na defesa
+                    } else if (!inDefensiveZone) {
+                        score -= 50; // Leve penalidade por recuar no ataque se não for necessário
+                    } else if (livreAFrente) {
+                        score -= 150; // Penaliza recuo se tem 10m livres à frente para conduzir
+                    }
+                }
+            }
+
+            // Virada
+            if (isOrchestrator) {
+                if (Math.sign(optPos.x) !== Math.sign(ownX) && Math.abs(optPos.x - ownX) > 20) {
+                    score += 150;
+                }
+                
+                // Gosta de organizar o jogo com a defesa e recuar a bola para abrir espaços
+                if (opt.role === 'def' || opt.pos === 'LB' || opt.pos === 'RB') {
+                    score += 120;
+                }
+                
+                // Prefere lançamentos longos e viradas
+                if (dist > 25.0) {
+                    score += 100;
+                }
+            }
+            if (teamBB && congestaoMeuLado >= 50) {
+                const congestaoAlvo = teamBB.congestion[bandaCong(optPos.x)] || 0;
+                if (congestaoAlvo < congestaoMeuLado - 15) {
+                    score += 250; // Forte incentivo para virar o jogo se o lado atual estiver congestionado
+                }
+                // Penaliza fortemente insistir pelo sector congestionado
+                if (congestaoAlvo >= 70) {
+                    score -= 200;
+                }
+            }
+
+            // Multiplicador do Playing Style DO ALVO
+            // Aplicado no final para agir sobre a nota total balanceada
+            if (Config.usePlayingStyles && typeof estiloAtivoDe === 'function') {
+                score *= estiloAtivoDe(opt).passe;
+            }
+
+            // Percepção de Risco de Limites do Campo (Linhas Laterais / Fundo):
+            // Quanto mais próximo da borda estiver o ponto do passe, maior o risco de sair.
+            // Passadores experientes evitam bolas espirradas na linha, preferindo passes mais centrados ou no pé.
+            const margemIdeal = (typeof PassModel !== 'undefined' && PassModel.margemSegurancaLinha) ? PassModel.margemSegurancaLinha : 3.2;
+            const distBordaMin = Math.min(distBordaX, distBordaZ);
+            if (distBordaMin < margemIdeal) {
+                const fatorRisco = (margemIdeal - distBordaMin) / margemIdeal; // 0 (longe) a 1 (na linha)
+                const penalMax = (typeof PassModel !== 'undefined' && PassModel.penalidadeBordaMax) ? PassModel.penalidadeBordaMax : 120;
+                // Jogadores com alta TEC/PASS têm melhor critério para ponderar o perigo
+                const precisaoPassador = THREE.MathUtils.clamp(skillVal / 100, 0.4, 1.0);
+                score -= penalMax * fatorRisco * precisaoPassador;
+            }
+
+            /*
+            NAS LATERAIS DA ÁREA, o passe rasteiro cede ao CRUZAMENTO.
+
+            Os bónus do `CrossModel` empurram o cruzamento para cima nessa
+            zona, mas isso sozinho não decide nada: a escolha não é entre
+            cruzar e não fazer nada, é entre cruzar e PASSAR — e a nota do
+            passe não sabia que o passador estava na ala junto à área. Um passe
+            curto para trás pontuava ali o mesmo que pontuaria no meio-campo, e
+            ganhava.
+
+            A penalização entra em rampa (ver zonaLateralDaArea em utils.js),
+            não em degrau: com um corte binário o jogador mudava de ideias de
+            um frame para o outro ao atravessar a fronteira.
+            */
+            if (typeof zonaLateralDaArea === 'function' && typeof CrossModel !== 'undefined') {
+                const naAla = zonaLateralDaArea(ownX, ownZ * dirZ);
+                if (naAla > 0) {
+                    const cheio = CrossModel.penalPasseRasteiro ?? 0.45;
+                    score *= 1 - (1 - cheio) * naAla;
+                }
+            }
+
+            /*
+            BONUS DO SECTOR ACTIVO (pedido): quem esta num dos sectores
+            ligados no painel (Left / Center / Right) vale mais como
+            destinatario — `PassModel.bonusSectorActivo` da nota dele.
+
+            Ja havia um termo de sector aqui em cima (`prioridadeSector`),
+            mas esse e uma parcela FIXA (~40 pontos num sector activo contra
+            20 num inactivo) e perde-se entre bonus de 300 e 500. Este e
+            multiplicativo: mexe na nota inteira, que e o que o pedido diz.
+
+            So sobe notas POSITIVAS. Multiplicar uma nota negativa por 1.2
+            afundava-a — um bonus nunca pode castigar quem o recebe.
+            */
+            if (score > 0 && typeof Tatics !== 'undefined' && Tatics.setores &&
+                typeof PassModel !== 'undefined' && PassModel.bonusSectorActivo) {
+                const secDoAlvo = (typeof Tatics.sectorDeX === 'function')
+                    ? Tatics.sectorDeX(optPos.x, dirZ) : null;
+                if (secDoAlvo && Tatics.setores.indexOf(secDoAlvo) >= 0) {
+                    score *= 1 + PassModel.bonusSectorActivo;
+                }
+            }
+
+            /*
+            FORA-DE-JOGO NA NOTA DO PASSE.
+
+            Um colega em posicao de impedimento nao vale o que valia — mas so
+            depois de o PASSADOR ter tido tempo de dar por isso. Ate la ele
+            pontua como qualquer outro, e e assim que o passe para o
+            fora-de-jogo acontece num jogo a serio: nao e um erro de execucao,
+            e a linha lida um instante atrasado (ver OffsideModel.passadorJaViu
+            e `offsideTempoEmPosicao` em match_physics.js).
+
+            Depois de ver, a nota cai para `penalNota` — nao a zero: mesmo a
+            ver, as vezes arrisca-se.
+            */
+            if (typeof OffsideModel !== 'undefined' && OffsideModel.activo &&
+                OffsideModel.passadorJaViu &&
+                OffsideModel.passadorJaViu(opt.offsideTempoEmPosicao,
+                    this.skillFor ? this.skillFor('tacticknow') : 50)) {
+                score *= OffsideModel.penalNota;
+            }
+
+            /*
+            E O TERMO DA SAÍDA DE JOGO, no fim: um defesa no próprio terço e sem
+            ninguém em cima prefere o toque de 15 m à bola de 25. Medido, o que
+            os separava eram 50 pontos em 1224 — 4% — e todos os termos que
+            premeiam a frente somavam-se ao mesmo candidato.
+
+            Só sobre notas POSITIVAS, como o bónus de sector: multiplicar uma
+            nota negativa afunda-a ou levanta-a ao contrário do que se quer.
+            */
+            if (saidaAplicavel && score > 0) {
+                score *= SaidaDeJogo.factor(true, dist, agressaoEquipa);
+            }
+
+            if (window.showPlayerPoints) { opt.debugPoints = opt.debugPoints || {}; opt.debugPoints['Pass'] = Math.round(score); }
+            ratedCandidates.push({ player: opt, score: score });
+        }
+
+        if (ratedCandidates.length > 0) {
+            ratedCandidates.sort((a, b) => b.score - a.score);
+            /*
+            O PÓDIO, guardado no instante da DECISÃO.
+
+            Os `debugPoints` de cada colega não servem para reconstruir uma
+            escolha: a decisão fica em cache no ramo (`currentPassChoice`) e o
+            passe só sai segundos depois (cadência do CadenceModel, até ~3 s),
+            altura em que os `debugPoints` já foram reescritos por avaliações
+            posteriores. Lido de fora, isso faz parecer que ganhou quem não
+            ganhou — aconteceu a medir os passes longos dos defesas.
+
+            Só com o debug ligado: fora disso não custa nada.
+            */
+            if (window.showPlayerPoints) {
+                this._notasPasse = ratedCandidates.slice(0, 4).map(c => ({
+                    pos: c.player.pos, score: Math.round(c.score),
+                    dist: +this.model.position.distanceTo(c.player.model.position).toFixed(1)
+                }));
+            }
+
+            /*
+            A NOTA DO VENCEDOR FICA GUARDADA — e fora do `if` do debug.
+
+            Quem a lê é a decisão de saída do guarda-redes (`decidirSaidaGK`,
+            bt/player_bt.js): "há uma opção boa para sair a jogar?" é uma
+            pergunta sobre a QUALIDADE da melhor opção, e a qualidade está
+            calculada aqui. Sem isto, a decisão tinha de a recalcular com
+            critérios próprios — que foi exactamente o que aconteceu, e os dois
+            critérios discordavam.
+
+            Uma atribuição por avaliação; o `_notasPasse` (o pódio inteiro)
+            continua a só existir com o debug ligado, que esse custa.
+            */
+            this._melhorNotaPasse = ratedCandidates[0].score;
+            return ratedCandidates[0].player;
+        }
+
+        this.ultimoAlvoPasse = null;
+        this._melhorNotaPasse = -Infinity;
+        return null;
+    }
+
+    /*
+    Alcance de remate: cresce sempre com a skill do atacante e encolhe com o
+    ângulo. Em frente à baliza vale o alcance todo; junto à linha lateral sobra
+    a fracção `angleFloor`.
+    */
+    shootingRange() {
+        const skill = TeamSkills[this.team].ata;
+        const base = ShootingModel.baseRange + (skill / 100) * ShootingModel.skillRange;
+        const centralidade = 1 - Math.min(1, Math.abs(this.model.position.x) / ShootingModel.maxOffsetX);
+        const porFuncao = (this.role === 'def') ? ShootingModel.defenderFactor : 1.0;
+        // Peso `remate` do playing style: um Fox in the Box remata de onde um
+        // Cross Specialist ainda estaria a procurar quem cruzar.
+        const porEstilo = (Config.usePlayingStyles && typeof estiloAtivoDe === 'function') ? estiloAtivoDe(this).remate : 1.0;
+        const alcance = base * porFuncao * porEstilo *
+            (ShootingModel.angleFloor + (1 - ShootingModel.angleFloor) * centralidade);
+        // Tecto: o peso do estilo levava isto a 25-27 m e daí saíam os remates
+        // de 30 m. Ver ShootingModel.alcanceMax.
+        return (typeof ShootingModel.alcanceMax === 'number')
+            ? Math.min(alcance, ShootingModel.alcanceMax) : alcance;
+    }
+
+    initiatePass(targetPlayer) {
+        /*
+        O TIPO DE PASSE FIXA-SE AQUI, e não por frame.
+
+        O `case 'PASS'` da FSM desenha o PassClip em tudo o que é batido com o
+        pé no chão e deixa o CRUZAMENTO de fora — mas o `p.isCross` é limpo no
+        instante do contacto (`executePassGameplay`), a meio do gesto. Lido por
+        frame, um cruzamento arrancava sem animação e ganhava-a a meio.
+        */
+        this.passeComClip = !this.isCross;
+
+        if (this.isCross) {
+            this.showActionBanner('CROSS');
+        } else if (this.isThroughBall) {
+            // Lancamento a serio: bola longa por entre dois adversarios.
+            this.showActionBanner('THROUGH');
+        } else if (this.isPasseEspaco) {
+            // Passe a frente para espaco LIVRE — nao passa entre ninguem.
+            this.showActionBanner('SPACE');
+        } else if (targetPlayer && this.model.position.distanceTo(targetPlayer.model.position) > 30) {
+            this.showActionBanner('L.PASS');
+        } else {
+            this.showActionBanner('PASS');
+        }
+        this.passTarget = targetPlayer;
+
+        /*
+        QUEM DESCARREGA PARA TRAS ARRANCA A SEGUIR — ver
+        `RunIntoSpaceModel.arranqueAposPasse` (config/passing.js), que tem a
+        medicao e o relato.
+
+        A marca fica aqui, no instante em que o passe e decidido, porque e
+        aqui que se sabe PARA ONDE ele vai. O `podeInfiltrar` consome-a; o
+        `update` conta-lhe o tempo.
+        */
+        {
+            const A = (typeof RunIntoSpaceModel !== 'undefined')
+                ? RunIntoSpaceModel.arranqueAposPasse : null;
+            if (A && targetPlayer && targetPlayer.model && this.role !== 'gk') {
+                const dz = (targetPlayer.model.position.z - this.model.position.z) * this.dirZ;
+                const meuAvanco = this.model.position.z * this.dirZ;
+                const paraTras = !A.soParaTras || dz <= (A.margemFrente || 1.0);
+                if (paraTras && meuAvanco >= (A.avancoMinimo || 0)) {
+                    this.arrancarAposPasse = A.janela;
+                }
+            }
+        }
+
+        
+        let _v1 = _p_v3;
+        if ((this.isThroughBall || this.isPasseEspaco) && this.throughBallTarget) {
+            _v1.set(this.throughBallTarget.x, 0, this.throughBallTarget.z);
+        } else if (this.passAimPoint) {
+            /*
+            Passe para o espaço / leading: o alvo é um PONTO do leque do
+            PlayerPassTarget, não o companheiro. Já vem filtrado (sem
+            adversário a 2m, linha de passe livre), por isso não leva lead
+            nenhum por cima — o ponto JÁ é à frente dele.
+            */
+            _v1.set(this.passAimPoint.x, 0, this.passAimPoint.z);
+        } else {
+            /*
+            Ponto de partida: alvo do PositionBT (alvoDePasse) misturado com a
+            posição actual do colega — mantém o "para onde a equipa QUER que
+            ele esteja" como direcção geral, sem mirar um fantasma muito à
+            frente.
+
+            LEAD por tempo de voo (pedido explícito): sem isto, mesmo um
+            passe curto/médio chegava a "onde ele estava ao passe sair" —
+            como ele continua a correr, quase sempre tinha de travar/recuar
+            um instante para a alcançar, cortando o fluir do movimento. Antes
+            só se aplicava lead em passes >22m; agora aplica-se sempre,
+            proporcional ao tempo estimado de voo.
+
+            `pesoVel` é a velocidade MÉDIA aproximada da bola ao longo do
+            voo — não a de saída (essa é mais alta, ~17-18 m/s, mas o arrasto
+            e o atrito de rolamento travam-na muito ao longo do percurso; a
+            física exacta só se resolve depois, em executePassGameplay, e
+            dependeria do alvo que ainda estamos a calcular).
+
+            Auditoria dos passes (pedido explícito, "estão crutos, não
+            chegam direito"): media com jogo real mostrou o tempo de voo
+            verdadeiro 1.5x-2x mais longo do que `distancia/17` estimava
+            nos 10-30m (a faixa mais comum) — sobrava pouco lead, a bola
+            chegava atrás de quem corria a recebê-la. Piorou depois de
+            aumentar o campo: distâncias de passe maiores dão mais tempo
+            para o arrasto travar a bola, e o erro do "17 fixo" cresce com
+            a distância. 11 m/s aproxima melhor a média medida; o tecto do
+            clamp subiu de 3.0 para 4.5s para não cortar o lead nos passes
+            mais longos que o campo maior agora produz com mais frequência.
+            Amortecido a 0.75: é só uma estimativa, ele pode travar ou
+            mudar de direcção durante o voo.
+            */
+            const alvo = alvoDePasse(this.passTarget);
+            _v1.set(alvo.x, 0, alvo.z);
+        }
+
+        let meiaLarg = CAMPO_LARG / 2;
+        let meioComp = CAMPO_COMP / 2;
+        _v1.x = Math.max(-meiaLarg + 3.0, Math.min(meiaLarg - 3.0, _v1.x));
+        _v1.z = Math.max(-meioComp + 3.0, Math.min(meioComp - 3.0, _v1.z));
+        
+        this.passTargetPos = _v1.clone();
+
+        /*
+        Angulo do corpo NO INSTANTE DA DECISAO, nao no do contacto: o case
+        'PASS' (fsm.js) roda o jogador para o alvo a 25*dt por frame assim
+        que o passe arranca, por isso ao chegar ao contacto ele ja esta
+        quase sempre virado para o alvo e a leitura la seria ~1 sempre — a
+        penalizacao de "passar de costas" (sigmaDePasse/costasMult) nunca
+        dispararia num jogo real. Guarda-se aqui a frente ACTUAL do jogador,
+        antes do slerp comecar a corrigi-la.
+        */
+        {
+            const dx = this.passTargetPos.x - this.model.position.x;
+            const dz = this.passTargetPos.z - this.model.position.z;
+            const normDir = Math.hypot(dx, dz) || 1;
+            // _v1 esta a guardar o alvo do passe para o codigo dos visuais
+            // logo abaixo — NAO reutilizar aqui. Usa-se _vFrenteCorpo
+            // (config.js) para a frente do jogador.
+            _vFrenteCorpo.set(0, 0, 1).applyQuaternion(this.model.quaternion);
+            this.cosCorpoNoPasse = (_vFrenteCorpo.x * dx + _vFrenteCorpo.z * dz) / normDir;
+            
+            /*
+            ATÉ AO LIMITE PASSA-SE SEM RODAR — ver PassModel.anguloLivreGraus.
+
+            Era `dotCorrida < 0`, ou seja 90 graus, e acima disso o `case
+            'PASS'` rodava o corpo até ficar de frente PARA O ALVO. Agora o
+            limite é um só (70 graus, do pedido) e a rotação pára nele: a
+            direcção que o corpo deve encarar é calculada aqui, uma vez, e o
+            gesto só a persegue.
+
+            A referência é a linha de DESLOCAMENTO com ele em andamento, e a
+            frente do corpo com ele parado.
+            */
+            const limiteRad = ((typeof PassModel !== 'undefined' &&
+                typeof PassModel.anguloLivreGraus === 'number')
+                ? PassModel.anguloLivreGraus : 70) * Math.PI / 180;
+            // E o giro fixo para o lado do passe — ver PassModel.giroGraus.
+            const giroRad = ((typeof PassModel !== 'undefined' &&
+                typeof PassModel.giroGraus === 'number')
+                ? PassModel.giroGraus : 30) * Math.PI / 180;
+
+            /*
+            A REFERENCIA E O CORPO SEMPRE QUE O CORPO ESTA TORTO.
+
+            Relato: *"ainda tem jogador dando passe a 90 graus da direcao de
+            alinhamento dele sem se virar pelo menos uns 30 graus"*.
+
+            A referencia era a LINHA DE VELOCIDADE com ele em andamento (foi o
+            que o pedido antigo dizia: "os passes ate 70 graus para cada lado
+            da linha de deslocamento"). So que um jogador pode correr numa
+            direccao e estar orientado noutra, e ai um passe cabia nos 70 graus
+            da velocidade e saia a 90 do corpo — que e o que se ve.
+
+            MEDIDO, 493 passes em 3 jogos, no instante em que a bola sai do pe:
+
+                angulo CORPO-alvo      mediana 49   p90 71   max 175
+                acima de 70 graus      62 passes (13%)
+                    desses, SEM giro pedido    36 (58%)
+                    desses, COM giro pedido    26 (42%)
+
+            As duas metades tem a mesma causa. Os 58% nunca pedem giro porque
+            a velocidade estava dentro da janela. Os 42% pedem giro e saem
+            tortos na mesma porque o `direccaoDoCorpoNoPasse` roda a partir da
+            VELOCIDADE: garante o alvo a menos de 70 graus dessa direccao, nao
+            da do corpo.
+
+            (E nao e o `slerp` do case 'PASS' a ficar a meio, que foi a minha
+            primeira suspeita e estava errada: a 25*dt ele cobre 99.8% do giro
+            nos 0.2 s ate ao contacto do PassClip.)
+
+            AGORA MEDEM-SE OS DOIS. A linha de deslocamento continua a valer —
+            e a que decide se ele precisa de rodar de todo, como o pedido
+            antigo manda — mas se o CORPO estiver fora da janela, e do corpo
+            que se parte. Assim a invariante passa a ser a que interessa a
+            quem ve: quando a bola sai, o boneco esta virado para um lado de
+            onde aquele passe se pode dar.
+            */
+            const speed = this.velocity.length();
+            const alvoUnit = { x: dx / normDir, z: dz / normDir };
+            const frenteCorpo = { x: _vFrenteCorpo.x, z: _vFrenteCorpo.z };
+            const nfc = Math.hypot(frenteCorpo.x, frenteCorpo.z) || 1;
+            frenteCorpo.x /= nfc; frenteCorpo.z /= nfc;
+
+            const cosCorpo = frenteCorpo.x * alvoUnit.x + frenteCorpo.z * alvoUnit.z;
+            const corpoForaDaJanela =
+                Math.acos(Math.max(-1, Math.min(1, cosCorpo))) > limiteRad;
+
+            const frente = (speed > 0.1 && !corpoForaDaJanela)
+                ? { x: this.velocity.x / speed, z: this.velocity.z / speed }
+                : frenteCorpo;
+
+            const novaFrente = (typeof direccaoDoCorpoNoPasse === 'function')
+                ? direccaoDoCorpoNoPasse(frente, alvoUnit, limiteRad, giroRad)
+                : null;
+
+            this.turnForPass = !!novaFrente;
+            this.passTurnDir = novaFrente
+                ? new THREE.Vector3(novaFrente.x, 0, novaFrente.z)
+                : null;
+        }
+
+        if (typeof Match !== 'undefined') {
+            if (Match.passTargetVisual) {
+                Match.passTargetVisual.position.set(_v1.x, 0.05, _v1.z);
+                Match.passTargetVisual.visible = (window.teamBTPosState !== 'OFF' || window.playingStyleBTToggleState !== 'OFF');
+            }
+            if (Match.passLineVisual) {
+                const posAttr = Match.passLineVisual.geometry.attributes.position;
+                posAttr.setXYZ(0, this.model.position.x, 0.05, this.model.position.z);
+                posAttr.setXYZ(1, _v1.x, 0.05, _v1.z);
+                posAttr.needsUpdate = true;
+                Match.passLineVisual.visible = (window.teamBTPosState !== 'OFF' || window.playingStyleBTToggleState !== 'OFF');
+            }
+        }
+
+        // Não executa o passe aqui — só prepara. O efeito real (bola sai do
+        // pé) dispara dentro do ActionState, sincronizado com a pose do
+        // chute (ver ActionAnimClips.pass e executePassGameplay em fsm.js).
+        /*
+        A DISTANCIA DO PASSE, guardada para o gesto. E o que decide o tamanho
+        do seguimento da perna -- ver PassFollowThrough (config/animations.js).
+        */
+        {
+            const alvoFT = this.passTargetPos ||
+                (this.passTarget && this.passTarget.model && this.passTarget.model.position);
+            this.passeDistancia = alvoFT
+                ? Math.hypot(alvoFT.x - this.model.position.x, alvoFT.z - this.model.position.z)
+                : null;
+        }
+        /*
+        PELO AR OU RASTEIRO DECIDE-SE AQUI, e nao no contacto.
+
+        Pedido: o passe pelo ar a partir de 20 m tem gesto proprio, o
+        lancamento (LancamentoClip). O clip escolhe-se quando o gesto arranca —
+        e o sorteio "pelo ar ou rasteiro" do passe normal acontecia so no
+        contacto (`resolverElevacaoPasse`, no executePassGameplay), ja com o
+        gesto a meio. Antecipa-se o sorteio para aqui, a mesma probabilidade
+        (`PassModel.passeArco.chanceArco`) e o mesmo forcar do estilo "longo";
+        o contacto respeita o que saiu (`passePeloAr`).
+
+        O lancamento em profundidade ja decidia o alto antes (`throughBallAlto`,
+        no findThroughBall). O cruzamento fica de fora: tem trajectoria propria
+        e nao usa clip.
+        */
+        const PA = (typeof PassModel !== 'undefined') ? PassModel.passeArco : null;
+        const distPasse = (typeof this.passeDistancia === 'number') ? this.passeDistancia
+            : (this.passTarget && this.passTarget.model
+                ? this.model.position.distanceTo(this.passTarget.model.position) : 0);
+        if (this.isCross) {
+            this.passePeloAr = undefined;
+        } else if (this.isThroughBall) {
+            this.passePeloAr = !!this.throughBallAlto;
+        } else if (PA) {
+            const forcarArco = (typeof Tatics !== 'undefined' && Tatics.passe === 'longo');
+            this.passePeloAr = (distPasse > PA.rasteiroMax) &&
+                (forcarArco || Math.random() < PA.chanceArco);
+        }
+        const LANC_MIN = 20.0;
+        this.passeLancamento = !this.isCross && !!this.passePeloAr && distPasse >= LANC_MIN &&
+            typeof LancamentoClip !== 'undefined';
+        this.actionState = new ActionState(this.passeLancamento ? 'lancamento' : 'pass', {
+            onContact: () => { if (this.hasBall && this.passTarget) executePassGameplay(this); }
+        });
+        // Consumido: o próximo passe volta a decidir o seu próprio ponto.
+        this.passAimPoint = null;
+
+        // Ativar Inércia pós-passe de 4.0s: o jogador não recua para o posto base atrás da cota da jogada
+        if (this.role !== 'gk' && this.pos !== 'CB' && this.pos !== 'DC') {
+            this.passInertiaTimer = 4.0;
+            this.passInertiaZDir = this.model.position.z * this.dirZ;
+        }
+
+        // Disparadas / Overlap pós-passe desativadas
+        this.overlapTimer = 0;
+
+        this.fsm.changeState('PASS');
+    }
+    /*
+    Relançamento do GR com as mãos para um colega específico.
+
+    Reusa a balística do passe normal (executePassGameplay), mas a bola parte da
+    altura da mão e não do pé. Se não houver alvo, cai no chutão.
+    */
+    releaseFromHands(targetPlayer) {
+        // Mesma guarda do puntBall: o lançamento também é um ActionState com
+        // contacto atrasado, e um relançamento de uma bola que já não é dele
+        // reescreve a velocidade de uma bola que está noutro lance.
+        if (!this.hasBall || (Match.ballCarrier && Match.ballCarrier !== this)) {
+            this.gkKickAction = null;
+            this.gkEstado = 'idle';
+            this.gkKickNorm = 0;
+            return;
+        }
+
+        if (!targetPlayer || !targetPlayer.model) {
+            this.puntBall();
+            return;
+        }
+
+        const alvo = alvoDePasse(targetPlayer);
+        this.passTarget = targetPlayer;
+        this.passTargetPos = alvo.clone();
+        this.isThroughBall = false;
+        this.isPasseEspaco = false;
+        this.isCross = false;
+        this.cosCorpoNoPasse = 1.0;
+        // A bola sai da MÃO: o executePassGameplay é partilhado, o som do
+        // chute não se aplica.
+        this.semSomDeChute = true;
+        this.isGkThrow = true;
+
+        executePassGameplay(this);
+
+        // O executePassGameplay já limpa hasBall/ballCarrier; garantimos o
+        // destinatário e o evento específicos do GR.
+        Match.intendedReceiver = targetPlayer;
+        if (typeof EventBus !== 'undefined') EventBus.emit('GK_RELEASE_BALL', { team: this.team, gk: this });
+    }
+
+    /*
+    ALIVIAR FORA DA ÁREA, com o pé e com direcção.
+
+    Disparado no `contactTime` do gesto de chuto no chão, como o tiro de meta.
+    A direcção sai do `alivioDoGuardaRedes` (utils.js): em frente se ele estiver
+    no corredor central, para a linha lateral mais próxima se estiver encostado
+    — nunca para o meio da própria área.
+
+    Mesma guarda do `puntBall`: se a bola já não estiver ali, aborta em vez de
+    a relançar de onde quer que ela esteja (ver a nota do puntBall).
+    */
+    aliviarForaDaArea() {
+        const G = (typeof GkSaidaDaArea !== 'undefined') ? GkSaidaDaArea : null;
+        const perto = Match.ball &&
+            this.model.position.distanceTo(Match.ball.position) < 2.5;
+        if (!G || !perto || typeof alivioDoGuardaRedes !== 'function') {
+            this.gkKickAction = null;
+            this.gkEstado = 'idle';
+            this.gkKickNorm = 0;
+            return;
+        }
+
+        const v = alivioDoGuardaRedes(Match.ball.position.x, this.dirZ, G, CAMPO_LARG);
+        Match.ballVel.set(v.x, v.y, v.z);
+        if (typeof MatchStats !== 'undefined' && MatchStats.registarAfastamento) {
+            MatchStats.registarAfastamento(this.team);
+        }
+
+        this.hasBall = false;
+        this.touchLock = BallControl.touchLock;
+        Match.ballCarrier = null;
+        Match.intendedReceiver = null;
+        Match.passTargetPos = null;
+        Match.lastTouchedTeam = this.team;
+        Match.lastTouchedPlayer = this;
+        if (typeof EfeitosSonoros !== 'undefined') {
+            EfeitosSonoros.chute(Match.ball.position, 0.9);
+        }
+        if (typeof EventBus !== 'undefined') {
+            EventBus.emit('GK_CLEARANCE', { team: this.team, gk: this });
+        }
+    }
+    /*
+    Relançamento do GR: chutão para a frente, com os ângulos sorteados a cada
+    execução (pedido do utilizador).
+
+        elevação   25° a 50° acima da horizontal
+        direcção   até 20° para cada lado do "a direito para a frente"
+
+    A potência sai da balística e não de um número à mão: escolhida a
+    distância de queda, `v = sqrt(R*g / sin(2θ))` dá a velocidade que põe a
+    bola lá com a elevação sorteada. `g` é 15 aqui (ver updateBall).
+    */
+    puntBall() {
+        /*
+        A BOLA AINDA É DELE? O chutão é um `ActionState` cujo `onContact` cai no
+        `contactTime` do clip, uns décimos depois da decisão — e entre a decisão
+        e o contacto a bola pode deixar de lhe pertencer: uma bola parada
+        marcada nesse intervalo limpa o `hasBall` de toda a gente
+        (`setupSetPiece`), e o gesto continua a correr no `updateGK`, que não
+        passa pela FSM nem pelo `changeState` que limpa `actionState`.
+
+        Sem esta guarda o contacto disparava na mesma e o `Match.ballVel.set`
+        aqui em baixo RELANÇAVA a bola de onde quer que ela estivesse. Medido
+        num lote de cantos: um cruzamento a 17 m/s, a 5.3 m de altura e a 10.7 m
+        do guarda-redes mais próximo, a passar de repente para 28.5 m/s — a
+        trajectória do canto cortada a meio, sem ninguém por perto.
+
+        Abortar é o comportamento certo: um gesto cuja bola desapareceu não tem
+        nada para chutar.
+        */
+        if (!this.hasBall || (Match.ballCarrier && Match.ballCarrier !== this)) {
+            this.gkKickAction = null;
+            this.gkEstado = 'idle';
+            this.gkKickNorm = 0;
+            return;
+        }
+
+        const gGrav = BallPhysics.gravidade;
+        const elev = THREE.MathUtils.degToRad(25 + Math.random() * 25);
+        const desvio = THREE.MathUtils.degToRad((Math.random() * 2 - 1) * 20);
+
+        // Alcance pretendido: chutão de meio-campo, com alguma variação. Aumentado em 20%.
+        const alcance = (38 + Math.random() * 16) * 1.20;
+        /*
+        GoalkeeperKickPower é força — velocidade de SAÍDA —, não alcance. Como
+        o alcance vai com o quadrado da velocidade (R = v² sin2θ / g), estes
+        +15% de força valem cerca de +32% de distância.
+        */
+        const v = Math.min(50,
+            Math.sqrt((alcance * gGrav) / Math.sin(2 * elev)) * GoalkeeperKickPower);
+
+        // Frente da equipa (dirZ), rodada pelo desvio lateral sorteado.
+        const horiz = v * Math.cos(elev);
+        _v2.set(0, 0, this.dirZ).applyAxisAngle(_vUp, desvio);
+        Match.ballVel.set(_v2.x * horiz, v * Math.sin(elev), _v2.z * horiz);
+
+        // Chutão do guarda-redes: pé cheio.
+        if (typeof EfeitosSonoros !== 'undefined') {
+            EfeitosSonoros.chute(Match.ball.position, 1.0);
+        }
+
+        this.hasBall = false;
+        this.touchLock = BallControl.touchLock;
+        Match.ballCarrier = null;
+        if (typeof EventBus !== 'undefined') EventBus.emit('GK_RELEASE_BALL', { team: this.team, gk: this });
+        // Ninguém é destinatário nomeado de um chutão — a bola vai para o
+        // espaço, quem lá chegar disputa (ver resolveBallContact).
+        Match.intendedReceiver = null;
+        Match.passTargetPos = null;
+        // Sem isto o próprio GK falhava o filtro anti-falso-positivo de
+        // isCross (lastTouchedPlayer !== this) e saltava logo a seguir ao
+        // seu próprio relançamento, achando que era um cruzamento a chegar.
+        Match.lastTouchedTeam = this.team;
+        Match.lastTouchedPlayer = this;
+        if (typeof MatchStats !== 'undefined') MatchStats.registarPasseIniciado(this.team, 'lancamento');
+    }
+
+    initiateShoot() {
+        this.showActionBanner('SHOT');
+        if (typeof MatchStats !== 'undefined') MatchStats[this.team].remates.tentados++;
+        /*
+        O gesto tem duração própria (ShotClip) e a bola só sai no contactTime —
+        tal como no passe. Antes o remate era resolvido no frame seguinte ao da
+        decisão e o estado durava 0.2 s no total.
+        */
+        this.actionState = new ActionState('shot', {
+            /*
+            FURAR A BOLA. Quem AUTORIZA o remate aceita a graça de condução
+            (`temBola` no player_bt.js é `hasBall || carryTouchGrace > 0`),
+            mas quem o EXECUTA exige a bola no pé — e entre a decisão e o
+            contacto passam 0.318 s (contactTime 7/11 de duration 0.50). Se a
+            bola ainda vem a caminho do pé, o gesto completa-se e não sai bola
+            nenhuma.
+
+            O `remates.tentados` já foi contado acima, portanto uma furada
+            entra nas estatísticas como remate. Contá-las à parte diz quanto
+            das finalizações dos relatórios é gesto sem bola.
+            */
+            onContact: () => {
+                if (this.hasBall) executeShotGameplay(this);
+                else if (typeof MatchStats !== 'undefined') MatchStats[this.team].remates.furados++;
+            }
+        });
+        this.fsm.changeState('SHOOT');
+    }
+
+    showActionBanner(text) {
+        // As tags (INFILTRA, CARRY, BLOCK, HEADER...) so aparecem com o botao Tags ON (omissao OFF).
+        if (!window.showActionTags) { this.actionSprite.visible = false; return; }
+        this.actionBannerTimer = 1.2; 
+        this.actionSprite.visible = true;
+        
+        this.actionCtx.clearRect(0, 0, 512, 128);
+        this.actionCtx.font = 'bold 38px "Segoe UI", Arial, sans-serif';
+        this.actionCtx.textAlign = 'center';
+        this.actionCtx.textBaseline = 'middle';
+        
+        let metrics = this.actionCtx.measureText(text);
+        let textWidth = metrics.width;
+        let fontHeight = 38; // Base fallback height
+        if (metrics.actualBoundingBoxAscent) {
+            fontHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+        }
+        
+        let paddingX = 30; 
+        let paddingY = 16;
+        
+        let bgWidth = textWidth + paddingX;
+        let bgHeight = fontHeight + paddingY;
+        let startX = 256 - (bgWidth / 2);
+        let startY = 64 - (bgHeight / 2);
+        
+        this.actionCtx.fillStyle = '#FFD700'; 
+        this.actionCtx.beginPath();
+        if (this.actionCtx.roundRect) {
+            this.actionCtx.roundRect(startX, startY, bgWidth, bgHeight, 10);
+        } else {
+            this.actionCtx.rect(startX, startY, bgWidth, bgHeight);
+        }
+        this.actionCtx.fill();
+        
+        this.actionCtx.lineWidth = 3;
+        this.actionCtx.strokeStyle = '#000000';
+        this.actionCtx.stroke();
+        
+        this.actionCtx.fillStyle = '#000000';
+        // Placed dead center + 1px for optical alignment with all-caps text
+        this.actionCtx.fillText(text, 256, 64 + 1); 
+        
+        this.actionTex.needsUpdate = true;
+    }
+
+    /*
+    O UM-DOIS: quantos pontos leva, como opção de passe, quem acabou de me
+    passar a bola e arrancou para a frente sem ninguém à frente dele.
+
+    Pedido: *"se o jogador que tocou a bola para um companheiro correr para
+    frente e estiver sem nenhum jogador a sua frente a uma distância de 5
+    metros ele vai ganhar mais 100 pontos para receber passe no vazio ou em
+    profundidade"*. Os números estão no PassModel (`bonusTocaECorre`,
+    `tocaECorreRaio`, `tocaECorreAvancoMin`), com o porquê de cada um.
+
+    Fica num método com nome para o teste lhe poder chamar directamente
+    (tests/toca_e_corre.test.js) sem montar uma decisão de passe inteira.
+
+    O cone é medido no referencial de ATAQUE dele: um adversário ao lado, ou
+    atrás, não lhe fecha o caminho — e é caminho para a frente que se está a
+    premiar.
+    */
+    bonusDoTocaECorre(opt) {
+        if (typeof PassModel === 'undefined' ||
+            typeof PassModel.bonusTocaECorre !== 'number') return 0;
+        if (!opt || !opt.model || typeof Match === 'undefined') return 0;
+        if (Match.ultimoPassador !== opt || !(Match.ultimoPassadorTimer > 0)) return 0;
+
+        // A correr PARA A FRENTE, e não a andar de lado ou a recuar.
+        const avanco = (opt.velocity ? opt.velocity.z : 0) * opt.dirZ;
+        if (!(avanco >= PassModel.tocaECorreAvancoMin)) return 0;
+
+        const raio = PassModel.tocaECorreRaio;
+        const rivais = (opt.team === 'TeamA') ? Match.opponents : Match.players;
+        for (const o of rivais) {
+            if (!o || !o.model || o.role === 'gk') continue;
+            const dz = (o.model.position.z - opt.model.position.z) * opt.dirZ;
+            if (dz <= 0) continue;                       // está atrás dele
+            const dx = o.model.position.x - opt.model.position.x;
+            if (Math.hypot(dx, dz) <= raio) return 0;    // alguém à frente, dentro do raio
+        }
+        return PassModel.bonusTocaECorre;
+    }
+
+    /*
+    A CABECADA NAO DA FORCA A UMA BOLA QUE SEGUE NO MESMO SENTIDO. Pedido: *"ao cabecear a bola
+    pode ir em qualquer direccao: 360 graus. Mas so depois de cabecear. Caso a bola siga na direccao
+    do movimento que trazia (continue sem reverter), ela nao pode ganhar forca: desacelera
+    normalmente conforme a energia que tem. Se a cabecada reverter o movimento ou o desviar em 90
+    graus ou mais, ai a bola pode ganhar forca"*.
+
+    Mede-se a velocidade de CHEGADA, deixa-se o `executeHeaderNucleo` decidir a saida (qualquer
+    direccao) e, se a saida fica a menos de 90 graus da chegada, a velocidade nao passa de
+    `HeaderModel.retencaoNoMesmoSentido` da de chegada. Horizontal e vertical juntas: e a energia.
+    */
+    executeHeader() {
+        const vIn = (typeof Match !== 'undefined' && Match.ballVel) ? Match.ballVel.clone() : null;
+        this.executeHeaderNucleo();
+        if (!vIn || typeof Match === 'undefined' || !Match.ballVel) return;
+        const nIn = vIn.length();
+        const nOut = Match.ballVel.length();
+        if (nIn < 1.0 || nOut < 0.001) return;
+        const cos = vIn.dot(Match.ballVel) / (nIn * nOut);
+        if (cos > 0) {   // a menos de 90 graus: segue no mesmo sentido
+            const ret = (typeof HeaderModel !== 'undefined' && typeof HeaderModel.retencaoNoMesmoSentido === 'number')
+                ? HeaderModel.retencaoNoMesmoSentido : 0.85;
+            const teto = nIn * ret;
+            if (nOut > teto) Match.ballVel.multiplyScalar(teto / nOut);
+        }
+    }
+
+    executeHeaderNucleo() {
+        this.showActionBanner('HEADER');
+        /*
+        CABEÇA DEVOLVE AS MÃOS AO GUARDA-REDES (Lei 12) — é a excepção que o
+        pedido nomeia: bola atrasada só se for de cabeça.
+        */
+        if (typeof limparRecuoParaGR === 'function') limparRecuoParaGR();
+
+        /*
+        Anti ping-pong: TODOS os cabeceios contam, não só os de fora da zona de
+        remate. O contador vivia dentro do ramo `else` lá em baixo, portanto
+        uma disputa perto da área — que é justamente onde a bola fica a saltar
+        de cabeça em cabeça — nunca chegava ao limite de
+        HeaderModel.maxHeadersSeguidos e o travão nunca entrava.
+
+        O contador zera sozinho passado HeaderModel.cooldownDisputa sem novo
+        cabeceio (ver Match.update), e também quando alguém domina no peito ou
+        a bola assenta.
+        */
+        if (typeof Match !== 'undefined') {
+            Match.aerialHeaderCount = (Match.aerialHeaderCount || 0) + 1;
+            Match.aerialHeaderTimer = HeaderModel.cooldownDisputa;
+        }
+
+        /*
+        O SOM DO TOQUE NA BOLA, que a cabeçada não tinha.
+
+        O chute, o passe, o remate e o toque de condução já o tocavam (ver as
+        chamadas a `EfeitosSonoros.chute` na fsm.js e neste ficheiro); a
+        cabeçada era o único contacto com a bola que saía muda.
+
+        AQUI E NÃO MAIS ABAIXO: este é o único ponto por onde TODAS as
+        cabeçadas passam — é a mesma razão pela qual o contador acima foi
+        movido para fora do `else` (ver a nota dele). A velocidade de SAÍDA só
+        é escrita mais abaixo, e em três ramos diferentes; pôr o som lá dava
+        três chamadas para manter a par, e um ramo novo saía calado.
+
+        A FORÇA VEM DA VELOCIDADE DE CHEGADA, que aqui já se conhece: um
+        cabeceio num cruzamento forte estala, num balão lento é um toque. O
+        `chute()` limita a 0.25..1 por dentro; o piso de 0.45 é para uma
+        cabeçada nunca soar tão fraca como um toque de condução (0.5), porque é
+        a testa a bater e não o pé a acompanhar.
+        */
+        if (typeof EfeitosSonoros !== 'undefined' && EfeitosSonoros.chute &&
+            typeof Match !== 'undefined' && Match.ball) {
+            const vIn = Match.ballVel
+                ? Math.hypot(Match.ballVel.x, Match.ballVel.y, Match.ballVel.z) : 0;
+            EfeitosSonoros.chute(Match.ball.position,
+                Math.max(0.45, Math.min(1, 0.45 + vIn / 30)));
+        }
+        // De frente para a bola, mesma correcção do controlarNoPeito — sem
+        // isto o corpo ficava com a orientação da última corrida, muitas
+        // vezes atravessado em relação à bola que chega para a cabeçada.
+        lookAtBola(this.model, Match.ball.position);
+
+        // Cola a bola à testa antes de a mandar embora — sem isto o
+        // contacto era aceite até `BallControl.reach` (0.9 m) de distância
+        // real, e a bola aparecia a bater quase 1 m acima da cabeça no
+        // frame da cabeçada.
+        _v1.set(0, 0, 0.22).applyQuaternion(this.model.quaternion);
+        /*
+        A TESTA É A DELE. Era o `ALTURA_TESTA` global, de quando todos mediam
+        1.855 m; com alturas de 1.60 a 2.00 a bola colava-se 10 cm acima da
+        cabeça de um baixo e dentro do peito de um alto. Ver `alturaTestaDe`
+        (utils.js), o único sítio que faz esta conta.
+        */
+        Match.ball.position.set(
+            this.model.position.x + _v1.x,
+            this.model.position.y + alturaTestaDe(this),
+            this.model.position.z + _v1.z);
+
+        /*
+        Distância ao CENTRO da baliza, não à linha: as duas medidas separadas
+        (24 m em Z, 16 m em X) deixavam cabecear ao golo de 27 m em diagonal.
+        Ver HeaderModel.raioRemateCabeca.
+        */
+        const raioRemate = (typeof HeaderModel !== 'undefined' && HeaderModel.raioRemateCabeca)
+            ? HeaderModel.raioRemateCabeca : 11.0;
+        const distToGoal = Math.hypot(this.model.position.x,
+            this.targetGoalZ - this.model.position.z);
+        const viradoParaLa = (this.targetGoalZ - this.model.position.z) * this.dirZ > 0;
+
+        /*
+        O MARCADOR SOBE PARA AQUI porque a decisao de rematar passou a
+        depender dele — ver `livreNaArea`, logo abaixo. Estava calculado dentro
+        do ramo do remate, o que so servia para a disputa da cabecada.
+        */
+        const opponentsHead = (this.team === 'TeamA') ? Match.opponents : Match.players;
+        let marcador = null, distMarc = 999;
+        for (const opp of opponentsHead) {
+            if (opp.role === 'gk') continue;
+            const d = opp.model.position.distanceTo(this.model.position);
+            if (d < 2.2 && d < distMarc) { distMarc = d; marcador = opp; }
+        }
+
+        /*
+        =====================================================================
+        DENTRO DA AREA E SEM NINGUEM EM CIMA, CABECEIA-SE A BALIZA
+        =====================================================================
+        Relato: *"O Atacante pula sozinho para cabecear dentro da area e
+        cabeceia para fora da area para dar um passe. Isso nao faz nenhum
+        sentido. pq nao cabeceia para o gol?"*
+
+        E fazia mesmo: o corte era so a distancia (`raioRemateCabeca`, 11 m do
+        centro da baliza) e nao olhava nem a area nem a marcacao. Fora dos
+        11 m a cabecada ia para `findPassTarget('mid')` — um MEDIO, que esta
+        atras —, e por isso a bola saia da area.
+
+        Medido com `tools/lab/cabeceio_na_area.js`, 400 cabeceios de um
+        atacante SOZINHO em pontos sorteados da grande area:
+
+            distancia ao centro da baliza   cabeceios   iam a baliza
+                 0 a 8 m                        45          100%
+                 8 a 11 m                       65          100%
+                11 a 14 m                       90            0%
+                14 a 18 m                      131            0%
+                18 m ou mais                    69            0%
+
+        Sozinho dentro da area, 28% cabeceavam a baliza. O corte aos 11 m e
+        seco: a marca de penalti esta a 11 m, portanto tudo atras dela era
+        passe.
+
+        OS 11 m FICAM DE PE FORA DA AREA, e e de proposito. Vem de um defeito
+        real (ver `raioRemateCabeca` em config/shooting.js): com 24 m em Z e
+        16 m em X apareciam golos de cabeca de mais de 20 metros, que no
+        futebol quase nao existem. Alargar o raio a seco trazia-os de volta.
+
+        As TRES condicoes sao necessarias juntas: dentro da grande area, com a
+        baliza a frente, e sem marcador a `HeaderModel.raioMarcacao` (2.2 m).
+        Com um defesa colado, escorar continua a ser a decisao certa. O tecto
+        de `raioRemateNaArea` existe porque a esquina da grande area esta a
+        26 m do centro da baliza, e de la nao se cabeceia a baliza.
+        =====================================================================
+        */
+        const raioNaArea = (typeof HeaderModel !== 'undefined' &&
+            typeof HeaderModel.raioRemateNaArea === 'number')
+            ? HeaderModel.raioRemateNaArea : raioRemate;
+        const naGrandeArea = (typeof Area !== 'undefined') &&
+            Math.abs(this.model.position.x) < Area.meiaLargura &&
+            Math.abs(this.targetGoalZ - this.model.position.z) < Area.profundidade;
+        const livreNaArea = naGrandeArea && !marcador && distToGoal < raioNaArea;
+
+        const inShootingRange = viradoParaLa && (distToGoal < raioRemate || livreNaArea);
+
+        if (inShootingRange) {
+            if (typeof MatchStats !== 'undefined') {
+                MatchStats[this.team].remates.tentados++;
+                if (MatchStats.marcarRemateEmVoo) MatchStats.marcarRemateEmVoo(this.team);
+            }
+
+            // 1. Calcular AerialScore do atacante
+            const aerialAtacante = this.skillFor('TEC') * 0.65 + this.skillFor('STRENGTH') * 0.35;
+            
+            // 2 & 3. Disputa Aérea — atacante em impulsão ofensiva tem vantagem no ataque à bola
+            let cabeceadaLimpa = true;
+            if (marcador) {
+                const aerialDefensor = marcador.skillFor('TEC') * 0.40 + marcador.skillFor('DEF') * 0.35 + marcador.skillFor('STRENGTH') * 0.25;
+                const attackerChance = (aerialAtacante * 1.35) / (aerialAtacante * 1.35 + aerialDefensor * 0.65);
+                cabeceadaLimpa = Math.random() < attackerChance;
+            }
+
+            const maxC = (LARGURA_BALIZA / 2) - 0.5;
+            let alvoX, alvoY, pow;
+            // Fator de força e técnica do cabeceador
+            const forcaFactor = 0.85 + (this.skillFor('STRENGTH') / 100) * 0.30 + (this.skillFor('TEC') / 100) * 0.15;
+
+            if (!cabeceadaLimpa) {
+                // 4. DEFESA_TIRA / Cabeçada disputada: afasta a bola com força para as laterais/meio-campo
+                const ladoCorte = Math.sign(this.model.position.x) || (Math.random() > 0.5 ? 1 : -1);
+                alvoX = this.model.position.x + ladoCorte * (8.0 + Math.random() * 8.0);
+                const alvoZc = Match.ball.position.z - this.dirZ * (15.0 + Math.random() * 8.0);
+                pow = (13.0 + Math.random() * 2.5) * forcaFactor;
+                const eC = HeaderModel.elevacaoEscora;
+                const dxC = alvoX - Match.ball.position.x;
+                const dzC = alvoZc - Match.ball.position.z;
+                const distHC = Math.hypot(dxC, dzC);
+                const vhC = pow * Math.cos(eC);
+                Match.ballVel.set(
+                    (distHC > 0.001 ? dxC / distHC : 0) * vhC,
+                    pow * Math.sin(eC),
+                    (distHC > 0.001 ? dzC / distHC : -this.dirZ) * vhC
+                );
+            } else {
+                /*
+                MIRA MAIS ERRO, como o remate — ver HeaderModel.remate, com a
+                medição que o motivou.
+
+                Estava aqui um sorteio de DESFECHOS ('GOL', 'TRAVE_CAMPO',
+                'GOLEIRO_DEFENDE'...) que escolhia o resultado antes de a bola
+                sair da testa e depois escrevia a física para o cumprir. O que
+                se mira agora é sempre golo; o que decide é o erro por cima.
+                */
+                const HR = HeaderModel.remate;
+                const gkAdversario0 = (this.team === 'TeamA') ? Match.opponents[0] : Match.players[0];
+                const gkX0 = gkAdversario0 ? gkAdversario0.model.position.x : 0;
+
+                // Lado contrário ao guarda-redes; com ele ao meio, à sorte.
+                const ladoH = (Math.abs(gkX0) > HR.gkCentradoMax)
+                    ? -Math.sign(gkX0)
+                    : (Math.random() < 0.5 ? -1 : 1);
+                const fracH = HR.fraccaoCantoMin + Math.random() * (HR.fraccaoCantoMax - HR.fraccaoCantoMin);
+                let miraX = ladoH * maxC * fracH;
+                let miraY = HR.alturaMin + Math.random() * (HR.alturaMax - HR.alturaMin);
+
+                // O erro, do tamanho de quem cabeceia e de onde.
+                const sig = HeaderModel.sigmaCabeceio({
+                    dist: distToGoal,
+                    aerial: aerialAtacante,
+                    emSalto: this.jumpTimer > 0,
+                    distMarcador: distMarc
+                });
+                const ruidoH = parNormal(Math.random(), Math.random());
+                alvoX = miraX + ruidoH.u * sig.lateral;
+                alvoY = Math.max(0.15, miraY + ruidoH.v * sig.vertical);
+                pow = (HR.potenciaBase + Math.random() * HR.potenciaAmplitude) * forcaFactor;
+
+                const alvoZc = this.targetGoalZ;
+                const dxC = alvoX - Match.ball.position.x;
+                const dzC = alvoZc - Match.ball.position.z;
+                const distHC = Math.hypot(dxC, dzC);
+                // A bola parte da testa DELE — ver alturaTestaDe (utils.js).
+                const elevC = elevacaoParaAlvo(distHC, alvoY, pow, alturaTestaDe(this));
+                const eC = (elevC === null) ? -0.05 : elevC;
+                const vhC = pow * Math.cos(eC);
+                Match.ballVel.set(
+                    (distHC > 0.001 ? dxC / distHC : 0) * vhC,
+                    pow * Math.sin(eC),
+                    (distHC > 0.001 ? dzC / distHC : this.dirZ) * vhC
+                );
+            }
+
+            this.hasBall = false;
+            this.touchLock = 0.75;
+            this.headLeanTimer = 0;
+            if (this.jumpTimer > 0) {
+                this.hasHeaderedInJump = true;
+                /*
+                DUELO AEREO: se havia um adversario a saltar pela mesma bola,
+                quem lhe tocou ganhou-o. Sem adversario no ar nao ha duelo —
+                e um cabeceamento livre, nao uma disputa.
+                */
+                if (typeof MatchStats !== 'undefined' && MatchStats.registarDuelo) {
+                    const advs = (this.team === 'TeamA') ? Match.opponents : Match.players;
+                    const raio = (typeof StatsModel !== 'undefined') ? StatsModel.raioPressao : 4.0;
+                    for (const o of advs) {
+                        if (!o || !o.model || o.jumpTimer <= 0) continue;
+                        const d = Math.hypot(o.model.position.x - this.model.position.x,
+                            o.model.position.z - this.model.position.z);
+                        if (d <= raio) { MatchStats.registarDuelo(this.team, o.team, true); break; }
+                    }
+                }
+            }
+            this.jumpCooldown = (typeof SaltoCabeceio !== 'undefined' ? SaltoCabeceio.duracao : 0.62) + 1.2;
+            if (typeof Match !== 'undefined') Match.lastHeaderPlayer = this;
+            Match.ballCarrier = null;
+
+            if (cabeceadaLimpa) {
+                let defendingTeam = (this.team === 'TeamA') ? 'TeamB' : 'TeamA';
+                // Notifica o GK adversário com o seu delay de reacção próprio.
+                const gkAdversario = (this.team === 'TeamA') ? Match.opponents[0] : Match.players[0];
+                /*
+                O MESMO TEMPO DE REACÇÃO DO REMATE, sempre.
+
+                Estava aqui um `forcedGKDelay` que o sorteio de desfechos
+                escrevia: 0.8 s no cabeceío marcado como golo, com o
+                comentário "GK não chega a tempo". Decidia-se o golo e
+                desligava-se quem o podia evitar — e daí os 70% de golos de
+                cabeça (23 em 33, medidos em 810 minutos) com o guarda-redes
+                parado em 19 deles.
+
+                O sorteio abaixo escolhe a MIRA. Quem decide se entra é a bola
+                e o guarda-redes. Ver `armarGuardaRedes` (utils.js).
+                */
+                armarGuardaRedes(gkAdversario, TeamSkills[defendingTeam].gk, distToGoal);
+                window.bolaChutada = true;
+            }
+        } else {
+            /*
+            Fora da zona de remate / Zagueiro afastando a bola de cabeça:
+            Cabeçada defensiva ou de escora para colega.
+            */
+            const ehAlivioDefensivo = Math.abs(this.model.position.z) > 25 && this.role === 'def';
+            if (ehAlivioDefensivo) {
+                this.showActionBanner('CLEARANCE');
+            }
+
+            const target = this.findPassTarget('mid') || this.findPassTarget('atk') ||
+                this.findPassTarget('def');
+
+            const tectoAlivio = HeaderModel.alcanceAlivioBaixo || 11.0;
+            let uxP = 0, uzP = this.dirZ, distDesejada = tectoAlivio;
+            const eP = HeaderModel.elevacaoEscora;
+
+            if (target) {
+                const dxP = target.model.position.x - Match.ball.position.x;
+                const dzP = target.model.position.z - Match.ball.position.z;
+                const d = Math.hypot(dxP, dzP);
+                if (d > 0.001) { uxP = dxP / d; uzP = dzP / d; }
+
+                distDesejada = THREE.MathUtils.clamp(d, HeaderModel.alcanceMin, tectoAlivio);
+            } else {
+                // Alívio defensivo sem destinatário: para a frente, com leve
+                // dispersão diagonal para não ficar na mesma linha.
+                distDesejada = tectoAlivio;
+                uxP = (Math.random() - 0.5) * 0.4;
+                uzP = this.dirZ;
+                const len = Math.hypot(uxP, uzP);
+                uxP /= len;
+                uzP /= len;
+            }
+
+            const balC = velocidadeDeLancamento(
+                distDesejada, alturaTestaDe(this), BallPhysics.raio, eP, BallPhysics.gravidade);
+
+            const vP = THREE.MathUtils.clamp(
+                balC ? balC.v : velocidadeParaAlcance(distDesejada, eP),
+                HeaderModel.velocidadeMin || 7.0,
+                HeaderModel.velocidadeMax || 13.0);
+            const angC = balC ? balC.elev : eP;
+            Match.ballVel.set(uxP * vP * Math.cos(angC), vP * Math.sin(angC), uzP * vP * Math.cos(angC));
+
+            this.hasBall = false;
+            this.touchLock = 0.75;
+            this.headLeanTimer = 0;
+            if (this.jumpTimer > 0) {
+                this.hasHeaderedInJump = true;
+                /*
+                DUELO AEREO: se havia um adversario a saltar pela mesma bola,
+                quem lhe tocou ganhou-o. Sem adversario no ar nao ha duelo —
+                e um cabeceamento livre, nao uma disputa.
+                */
+                if (typeof MatchStats !== 'undefined' && MatchStats.registarDuelo) {
+                    const advs = (this.team === 'TeamA') ? Match.opponents : Match.players;
+                    const raio = (typeof StatsModel !== 'undefined') ? StatsModel.raioPressao : 4.0;
+                    for (const o of advs) {
+                        if (!o || !o.model || o.jumpTimer <= 0) continue;
+                        const d = Math.hypot(o.model.position.x - this.model.position.x,
+                            o.model.position.z - this.model.position.z);
+                        if (d <= raio) { MatchStats.registarDuelo(this.team, o.team, true); break; }
+                    }
+                }
+            }
+            this.jumpCooldown = (typeof SaltoCabeceio !== 'undefined' ? SaltoCabeceio.duracao : 0.62) + 1.2;
+            if (typeof Match !== 'undefined') Match.lastHeaderPlayer = this;
+            Match.ballCarrier = null;
+            window.bolaChutada = false;
+            [Match.players[0], Match.opponents[0]].forEach(gk => { if (gk) { gk.gkReagiu = false; } });
+            // Só é "destinatário" se a bola lhe chegar mesmo; a mais de
+            // alcanceMax a cabeçada morre pelo caminho e fica disputável.
+            Match.intendedReceiver = (target && distDesejada >= (
+                Math.hypot(target.model.position.x - Match.ball.position.x,
+                           target.model.position.z - Match.ball.position.z) - 0.01))
+                ? target : null;
+        }
+    }
+
+    /*
+    SOZINHO A JEITO DE FINALIZAR DE PRIMEIRA: perto da baliza que ataca (`PedidoDeBola.finalizaDist`)
+    e sem nenhum adversario a menos de `PedidoDeBola.finalizaLivre`. So nesse caso um jogador
+    parado continua a pedir a bola.
+    */
+    sozinhoParaFinalizar() {
+        const PB = (typeof PedidoDeBola !== 'undefined') ? PedidoDeBola : null;
+        if (!PB) return false;
+        const pos = this.model.position;
+        if (Math.hypot(pos.x, pos.z - this.targetGoalZ) > PB.finalizaDist) return false;
+        const advs = (this.team === 'TeamA') ? Match.opponents : Match.players;
+        for (const o of advs) {
+            if (o.role === 'gk' || !o.model) continue;
+            if (Math.hypot(o.model.position.x - pos.x, o.model.position.z - pos.z) < PB.finalizaLivre) return false;
+        }
+        return true;
+    }
+
+    update(dt) {
+        // A abertura do jogo (js/abertura.js) manda neste jogador enquanto ele sai do tunel e se alinha.
+        if (this.aberturaOrdem && typeof Abertura !== 'undefined' && Abertura.activa) {
+            Abertura.passoDoJogador(this, dt);
+            return;
+        }
+        /*
+        MOVER SEM PASSOS NAO EXISTE: se algo o deslocou entre dois frames (colisao, o proprio lance parado,
+        a volta da queda) a mais de `ColisaoJogadores.deslizeMin` m/s com a velocidade a zero e sem gesto,
+        o `animateBones` recebe essa velocidade como `empurrao` e da passos em vez de deslizar (relato:
+        "depois das faltas jogadores escorregam para as posicoes sem animacao"). Acima de `deslizeMax` e
+        um teleporte de montagem e nao conta.
+        */
+        {
+            const CJ = (typeof ColisaoJogadores !== 'undefined') ? ColisaoJogadores : null;
+            const px = this.model.position.x, pz = this.model.position.z;
+            if (CJ && this._pAntX !== undefined && dt > 0.0001 && this.role !== 'gk' &&
+                !this.actionState && !this.queda && !(this.jumpTimer > 0) &&
+                this.velocity.lengthSq() < 0.04) {
+                const vm = Math.hypot(px - this._pAntX, pz - this._pAntZ) / dt;
+                if (vm >= CJ.deslizeMin && vm <= CJ.deslizeMax) this.empurrao = Math.max(this.empurrao || 0, Math.min(vm, CJ.empurraoMax));
+            }
+            this._pAntX = px; this._pAntZ = pz;
+        }
+        if (this.touchLock > 0) this.touchLock = Math.max(0, this.touchLock - dt);
+        if (this.overlapTimer > 0) this.overlapTimer = Math.max(0, this.overlapTimer - dt);
+        if (this.pedindoBola > 0) {
+            this.pedindoBola = Math.max(0, this.pedindoBola - dt);
+            // O pedido de bola e de quem SE MEXE: parado ja nao ha o que chamar —
+            // a menos que esteja sozinho a jeito de finalizar de primeira.
+            const PB = (typeof PedidoDeBola !== 'undefined') ? PedidoDeBola : null;
+            const vPedido = this.velocity ? Math.hypot(this.velocity.x, this.velocity.z) : 0;
+            if (PB && vPedido < PB.velMin && !this.sozinhoParaFinalizar()) this.pedindoBola = 0;
+        }
+        // O quase golo (ver QuaseGoloModel): o relógio da camada das mãos na cabeça.
+        if (this.lamento) {
+            this.lamento.t += dt;
+            if (typeof QuaseGoloModel === 'undefined' || this.lamento.t >= QuaseGoloModel.duracao) this.lamento = null;
+        }
+
+        /*
+        JOGADAS COMBINADAS (ver JogadasCombinadas em config.js). Os dois pedidos
+        expiram sozinhos: um passe que não chega, ou um parceiro que perdeu a
+        bola no meio, não podem deixar ninguém preso a uma jogada que já não
+        existe.
+        */
+        if (this.esperarDevolucao) {
+            this.esperarDevolucao.timer -= dt;
+            if (this.esperarDevolucao.timer <= 0) this.esperarDevolucao = null;
+        }
+        if (this.devolverPara) {
+            this.devolverPara.timer -= dt;
+            if (this.devolverPara.timer <= 0) this.devolverPara = null;
+        }
+        if (this.passInertiaTimer > 0) this.passInertiaTimer = Math.max(0, this.passInertiaTimer - dt);
+        // O deposito, antes de qualquer decisao: as folhas da arvore ja leem
+        // skillFor() neste frame. Ver StaminaModel.
+        this.actualizarEnergia(dt);
+        // Arrefecimento da corrida ao espaco (ver RunIntoSpaceModel). Corre
+        // aqui e nao na FSM: a FSM so mexe no estado corrente, e o
+        // arrefecimento tem de correr JUSTAMENTE quando ele ja nao esta a
+        // correr.
+        if (this.runCooldown > 0) this.runCooldown = Math.max(0, this.runCooldown - dt);
+        // A janela de arranque depois de um apoio de costas (ver initiatePass).
+        if (this.arrancarAposPasse > 0) {
+            this.arrancarAposPasse = Math.max(0, this.arrancarAposPasse - dt);
+        }
+        // O desmarque de afastamento acaba por tempo (corre aqui, e nao na arvore, para acabar tambem
+        // quando a equipa perde a bola e a arvore deixa de passar por ele) e deixa o arrefecimento.
+        if (this.pullAway) {
+            this.pullAway.t -= dt;
+            if (this.pullAway.t <= 0) this.terminarPullAway();
+        }
+        if (this.pullAwayCooldown > 0) this.pullAwayCooldown = Math.max(0, this.pullAwayCooldown - dt);
+        // A espera entre cortes corre com o jogo, como as outras — ver CorteModel.
+        if (this.corteCooldown > 0) this.corteCooldown = Math.max(0, this.corteCooldown - dt);
+
+        /*
+        Freeze do kickoff: runBehaviorTree/fsm ficavam a correr por jogador
+        mesmo com o Match.runTeamAI() travado (Match.update trava só o nível
+        de equipa), e o PlayerBT sozinho já reposicionava toda a gente —
+        incluindo o taker/apoio, que se afastavam da bola antes do toque
+        inicial. Aqui pára tudo: sem decisão, sem movimento, só idle.
+        */
+        const headless = (typeof Sim !== 'undefined' && Sim.running);
+
+        /*
+        CAÍDO DEPOIS DE UMA FALTA — ver `iniciarQueda`. Antes de tudo, incluindo
+        o congelamento do penálti: a queda corre na mesma. Um pontapé de saída
+        (golo, intervalo) acaba com ela.
+        */
+        if (this.queda) {
+            if (Match.kickoffActive) {
+                this.queda = null;
+                this.voltaDaQueda = null;
+                if (!headless) this.resetBonesToDefault();
+            } else {
+                this.actualizarQueda(dt, headless);
+                return;
+            }
+        }
+        /*
+        O CARTÃO: quem o recebe pára e fica virado para o árbitro enquanto ele
+        o mostra e guarda. Ver Officials.mostrarCartao.
+        */
+        /*
+        Desde que o árbitro vem ter com ele, e não só quando o cartão sobe: a
+        andar para o lugar da falta, o árbitro corria atrás dele e mostrava o
+        cartão a 5.5 m, no tecto de tempo (9 de 12 cartões).
+        */
+        if (typeof Officials !== 'undefined' && Officials.cartaoEmCurso &&
+            Officials.cartaoEmCurso.jogador === this && Officials.arbitro) {
+            this.velocity.set(0, 0, 0);
+            const ap = Officials.arbitro.model.position;
+            this.model.rotation.y = Math.atan2(ap.x - this.model.position.x, ap.z - this.model.position.z);
+            if (!headless) this.animateBones(dt);
+            else this.model.position.y = ALTURA_BASE_Y;
+            return;
+        }
+
+        /*
+        A CAMINHO DO LUGAR DO LANCE PARADO — ver Match.montarBolaParadaAndada.
+        Enquanto quem sofreu a falta rola, segue o embalo e trava; depois vai a
+        pe (ou a trote, se for longe) ate ao lugar que a montagem lhe deu. O
+        caido passa primeiro pelo ramo da queda e so cai aqui depois de se
+        levantar.
+        */
+        if (this.lugarBolaParada) {
+            const L = this.lugarBolaParada;
+            if (Match.state === 'PLAY' || Match.kickoffActive ||
+                (Match.state !== 'FREE_KICK' && Match.state !== 'PENALTY')) {
+                this.lugarBolaParada = null;
+            } else {
+                const B = BolaParadaAndada;
+                const pos = this.model.position;
+                /*
+                A CAMINHO DO LUGAR NAO PODE ESTAR NUM ESTADO SEM PASSADA: quem fica com a FSM num
+                desses estados do lance anterior anda ate ao lugar com o animateBones a ignorar a
+                passada — relato "deslizam para as posicoes sem animacao antes das faltas". Passa a
+                SET_PIECE_WAIT e o ciclo de andar volta.
+
+                A lista estava escrita a mao aqui e faltava-lhe o SLIDE_TACKLE, que e o estado em que
+                o infractor costuma estar quando a falta e marcada: era ele, justamente, que deslizava.
+                Passou para o `estadoSemPassada` (fsm.js), ao lado do `temGestoComClip`, para nao
+                haver duas listas a divergir outra vez.
+                */
+                {
+                    const sg = this.fsm ? this.fsm.currentState : '';
+                    if (typeof estadoSemPassada === 'function' ? estadoSemPassada(sg)
+                        : (sg === 'PASS' || sg === 'BALL_CONTROL_RIGHT' || sg === 'SHOOT' ||
+                           sg === 'SET_PIECE_KICK' || sg === 'CROSS' || sg === 'DRIBBLE' ||
+                           sg === 'CHEST_CONTROL' || sg === 'TACKLE')) {
+                        this.actionState = null;
+                        this.passeComClip = false;
+                        this.fsm.changeState('SET_PIECE_WAIT');
+                    }
+                }
+                L.t += dt;
+                const d = Math.hypot(L.x - pos.x, L.z - pos.z);
+                if (Match.caidoAindaARolar()) {
+                    this.velocity.multiplyScalar(Math.exp(-B.travagem * dt));
+                    this.velocity.y = 0;
+                    pos.addScaledVector(this.velocity, dt);
+                } else if (d < B.chegada || L.t > B.prazo) {
+                    // Chegou: fica onde parou (a menos de `chegada`), sem saltar
+                    // para o ponto exacto. So a rede de seguranca o poe la.
+                    if (d >= B.chegada) { pos.x = L.x; pos.z = L.z; }
+                    this.velocity.set(0, 0, 0);
+                    this.lugarBolaParada = null;
+                    if (Match.ball) lookAtBola(this.model, Match.ball.position);
+                } else {
+                    /*
+                    A velocidade decide-se UMA vez, quando arranca, com a
+                    distancia toda. Recalculada a cada frame com o que falta,
+                    ia abrandando sem nunca chegar — medido, a cobranca saia
+                    aos 15-19 s.
+                    */
+                    if (L.vel === undefined) {
+                        L.vel = THREE.MathUtils.clamp(d / B.tempoAlvo, B.velMin, B.velMax);
+                        L.via = this.desvioDoCorredorDaFalta(L);
+                    }
+                    /*
+                    O CAMINHO CONTORNA O CORREDOR DO BATEDOR: ver desvioDoCorredorDaFalta.
+                    Vai primeiro ao ponto de desvio e so depois ao lugar.
+                    */
+                    if (L.via && !L.viaFeito && Math.hypot(L.via.x - pos.x, L.via.z - pos.z) < 1.2) L.viaFeito = true;
+                    const paraOnde = (L.via && !L.viaFeito) ? L.via : L;
+                    this.steerArrive(_p_v2.set(paraOnde.x, ALTURA_BASE_Y, paraOnde.z), L.vel, 1.5);
+                    pos.addScaledVector(this.velocity, dt);
+                }
+                if (this.lugarBolaParada) {
+                    if (!headless) this.animateBones(dt);
+                    else pos.y = ALTURA_BASE_Y;
+                    return;
+                }
+            }
+        }
+
+        /*
+        A BARREIRA REPOE-SE. Relato de 5 de Outubro de 2026: *"depois da
+        barreira ajustada, se um jogador passa no meio dela, o jogador afastado
+        para a passagem nao volta para a formacao da barreira. As vezes no
+        alinhamento da barreira fica um jogador mais pra tras"*.
+
+        Quem chega ao lugar (`lugarBolaParada`) fica onde parou, a menos de
+        `BolaParadaAndada.chegada` do ponto, e depois nada o reposiciona: um
+        desvio — para dar passagem a alguem, ou o que for — fica para sempre.
+        Aqui, ate a falta ser batida, quem esta na barreira e esta parado
+        mais de `barreiraRepoe.limiar` metros do seu `barreiraSlot` volta a
+        pe para ele (`barreiraRepoe.velocidade` m/s) e encaixa quando chega.
+        */
+        if (this.barreiraSlot && this.naBarreiraFalta && !this.lugarBolaParada && !this.voltaDaQueda &&
+            Match.state === 'FREE_KICK' && !Match.faltaDirectaPlano) {
+            const R = (typeof BarreiraRepoe !== 'undefined') ? BarreiraRepoe : { limiar: 0.12, velocidade: 3.0, encaixe: 0.06 };
+            const pos = this.model.position;
+            const d = Math.hypot(this.barreiraSlot.x - pos.x, this.barreiraSlot.z - pos.z);
+            if (d > R.limiar || this._barreiraARepor) {
+                this._barreiraARepor = true;
+                if (d <= R.encaixe) {
+                    pos.x = this.barreiraSlot.x; pos.z = this.barreiraSlot.z;
+                    this.velocity.set(0, 0, 0);
+                    this._barreiraARepor = false;
+                    if (Match.ball) lookAtBola(this.model, Match.ball.position);
+                } else {
+                    this.steerArrive(_p_v2.set(this.barreiraSlot.x, ALTURA_BASE_Y, this.barreiraSlot.z), R.velocidade, 0.5);
+                    pos.addScaledVector(this.velocity, dt);
+                    if (Match.ball) lookAtBola(this.model, Match.ball.position);
+                    if (!headless) this.animateBones(dt);
+                    else pos.y = ALTURA_BASE_Y;
+                    return;
+                }
+            }
+        }
+
+        /*
+        E DEPOIS DE SE LEVANTAR, VAI A PÉ PARA O LUGAR que a montagem do lance
+        lhe deu. A falta e o penálti ficam à espera dele. Se o jogo recomeçou
+        entretanto, a árvore volta a mandar.
+        */
+        if (this.voltaDaQueda) {
+            if (Match.state === 'PLAY' || Match.kickoffActive) {
+                this.voltaDaQueda = null;
+            } else {
+                const alvo = _p_v2.set(this.voltaDaQueda.x, ALTURA_BASE_Y, this.voltaDaQueda.z);
+                if (Math.hypot(alvo.x - this.model.position.x, alvo.z - this.model.position.z) < 0.3) {
+                    this.voltaDaQueda = null;
+                    this.velocity.set(0, 0, 0);
+                } else {
+                    this.steerArrive(alvo, 4.5, 1.0);
+                    this.model.position.addScaledVector(this.velocity, dt);
+                    if (!headless) this.animateBones(dt);
+                    else this.model.position.y = ALTURA_BASE_Y;
+                    return;
+                }
+            }
+        }
+
+        if (Match.kickoffActive || Match.state === 'PENALTY') {
+            /*
+            O BATEDOR DO PENÁLTI É A EXCEPÇÃO AO FREEZE, e tem de o ser ANTES
+            desta linha: quem lhe põe a velocidade da aproximação andada é o
+            ramo `penaltiPendente` do Match.update, e zerá-la aqui apagava-a
+            todos os frames — ele ficava parado em `recuoBatedor` até o gesto
+            o teletransportar.
+
+            Corre a FSM (é ela que faz avançar o ActionState do gesto), integra
+            a velocidade e desenha o passo com o `animateBones` — é o passo que
+            distingue CORRER de DESLIZAR. Sem o `animateBones` o corpo ficava
+            congelado na pose do ShotClip enquanto a posição avançava: era o
+            batedor a patinar sobre a perna de apoio até à bola.
+
+            Só a FSM, e não o runBehaviorTree: o `tratarBolaParada` força
+            SET_PIECE_WAIT durante o PENALTY e matava o estado SHOOT.
+            */
+            if (Match.state === 'PENALTY' && this === Match.setPieceTaker && this.role !== 'gk') {
+                this.fsm.update(dt);
+                if (!this.actionState) {
+                    // Aproximação andada: o gesto move-o pelo `onPrepare`.
+                    this.model.position.addScaledVector(this.velocity, dt);
+                }
+                if (!headless) this.animateBones(dt);
+                else this.model.position.y = ALTURA_BASE_Y;
+                return;
+            }
+
+            this.velocity.set(0, 0, 0);
+
+            // Bola fica presa no centro (não gruda no pé do taker) — ele fica
+            // só encostado. O lerp para o pé (usado no jogo normal) ia
+            // arrastando a bola do centro pra fora durante os 4s de espera.
+            // GK usa pose própria (updateGK), não o animateBones de jogador
+            // de campo — chamá-lo aqui deixava o guarda-redes preso na pose
+            // de mergulho/salto anterior (ajoelhado, de costas).
+            if (this.role === 'gk') {
+                if (!headless) {
+                    if (Match.state === 'PENALTY' || Match.state === 'FREE_KICK') this.updateGK(dt);
+                    else {
+                        this.resetBonesToDefault();
+                        /*
+                        E ASSENTA-SE, como os outros. Relato de 4 de Outubro
+                        de 2026, com captura (A9CFE): *"a posicao do goleiro
+                        durante o jogo, as vezes, fica acima do gramado"*.
+                        Medido no caminho do browser: nos ~3 s do pontape de
+                        saida (inicio e depois de cada golo) o `updateGK` nao
+                        corre, e era ele quem chamava o `assentarNoChao` do
+                        guarda-redes — os de campo assentam pelo
+                        `animateBones`. Com o corpo na `ALTURA_BASE_Y` e a pose
+                        de pe, a sola ficava a 0.10 m do relvado.
+                        */
+                        this.assentarNoChao();
+                    }
+                }
+            } else {
+                if (!headless) this.animateBones(dt);
+                else this.model.position.y = ALTURA_BASE_Y;
+            }
+            return;
+        }
+
+        /*
+        Batedor da falta: é conduzido pela aproximação andada (escrita em
+        Match.update, que lhe põe a velocidade de caminhada) e pelo gesto
+        (ActionState criado no `baterFalta`, que corre no estado SHOOT). A
+        árvore de comportamento NÃO o mexe — senão reposiona-o para o slot e a
+        corrida não acontece como devia. Só a FSM corre (para o SHOOT aplicar o
+        clip e o `onPrepare` o levar até à bola) e o `animateBones` desenha o
+        passo a partir da velocidade que a aproximação lhe deu — por isso já não
+        há deslize.
+        */
+        /*
+        O BATEDOR DA FALTA CORRE A FSM E SAI — excepto o guarda-redes.
+
+        Esta saida foi escrita quando o batedor nunca podia ser ele. Desde
+        `FreeKickModel.guardaRedesBateNaArea` pode, e o gesto dele (o do tiro
+        de meta) vive no `updateGK`, que fica mais abaixo: com esta saida a
+        apanha-lo primeiro, o `updateGK` era chamado ZERO vezes durante a
+        falta e ele ficava parado em 'tiro_meta' ate o prazo acabar.
+        */
+        if (Match.state === 'FREE_KICK' && this === Match.setPieceTaker && this.role !== 'gk') {
+            this.fsm.update(dt);
+            this.model.position.addScaledVector(this.velocity, dt);
+            if (!headless) this.animateBones(dt);
+            else this.model.position.y = ALTURA_BASE_Y;
+            return;
+        }
+
+        /*
+        decisionTimer só reinicia numa posse NOVA (bola perdida para o
+        adversário, ou primeira vez que a apanha) — não a cada toque de
+        condução do CARRY. O toque solta hasBall por um instante
+        (touchLock) e o próprio jogador recupera-a a seguir; sem esta
+        graça, cada recuperação zerava o timer e reactivava o "Dominar"
+        (~3s) no meio da corrida — domina/adianta, domina/adianta.
+        */
+        const graceActiva = this.carryTouchGrace > 0;
+        const outroTemBola = !!(Match.ballCarrier && Match.ballCarrier !== this);
+        this.carryTouchGrace = graceDeConducao(this.hasBall, this.carryTouchGrace, outroTemBola, dt);
+
+        if (this.hasBall || (graceActiva && !outroTemBola)) this.decisionTimer += dt;
+        else this.decisionTimer = 0;
+
+        /*
+        E TAMBÉM DURANTE O CANTO, SE ELE FOR A MEIO DE UM MERGULHO.
+
+        Foi a defesa dele que deu o canto: no frame em que o árbitro o marca,
+        o corpo está no ar. Com o `updateGK` cortado, o `GkDive.update` deixava
+        de correr e o gesto congelava aí — metade do relato *"o guarda-redes
+        não vai até ao chão"*. A outra metade era a reposição por cima dele,
+        ver `reporGuardaRedes` (match_setpieces.js).
+
+        Só enquanto o mergulho dura: acabado ele, o `GkDive` põe-o em 'idle' e
+        o canto volta a ser tratado como sempre.
+        */
+        const gkAMergulhar = (this.role === 'gk' && this.gkEstado === 'mergulho' && this.dive);
+        if (this.role === 'gk' && (Match.state !== 'CORNER_KICK' || gkAMergulhar)) {
+            // Corre também durante GOAL_KICK: é o updateGK que conduz o gesto
+            // do tiro de meta (estados 'tiro_meta' -> 'chutando').
+            this.updateGK(dt);
+        } else {
+            this.runBehaviorTree(dt);
+            this.fsm.update(dt);
+            this.model.position.addScaledVector(this.velocity, dt);
+        }
+
+        /*
+        O SALTO decide-se aqui e não no animateBones — ver a nota do
+        `avaliarSaltoDeCabeceio`. Corre com ou sem renderer, que é o que faz o
+        jogo aéreo existir também na simulação em lote.
+
+        DEPOIS de a posição ser integrada: o gatilho compara onde a bola vai
+        estar no pico com onde ELE vai estar, e usar a posição do frame
+        anterior era pedir-lhe para saltar para onde já não está.
+        */
+        if (this.role !== 'gk') this.avaliarSaltoDeCabeceio(dt);
+
+        if (this.hasBall) {
+            /*
+            A MEIO DO MERGULHO, QUEM MANDA NA BOLA É O `GkDive`.
+
+            Relato: *"ele não está segurando a bola. A bola toca na mão do
+            goleiro e ela vai instantaneamente para o gramado"*.
+
+            E ia mesmo. O `GkDive.update` prende a bola à mão que a agarrou
+            (ver a linha `Match.ball.position.copy` no gk_dive.js), mas
+            `gkEstado` durante o gesto é `'mergulho'`, que não está na lista
+            aqui abaixo — portanto a bola caía no ramo GENÉRICO do fim deste
+            bloco, o do jogador de campo, que a põe 0.6 m à frente do corpo e
+            faz `position.y = BallPhysics.raio`. Ou seja: o mergulho punha-a na
+            mão e esta linha, uns micros depois e no mesmo frame, atirava-a
+            para a relva.
+
+            Medido com `tools/scratch/gk_bola_na_mao.js`, nos frames de
+            mergulho com a bola JÁ AGARRADA: **55 de 55 com a bola no chão**,
+            altura média 0.110 m (o raio da bola, exactamente) e a 0.64 m da
+            mão que supostamente a segurava.
+
+            Aqui não se lhe toca: o gesto do mergulho já a colocou, e é ele
+            que a leva até ao fim da queda e do levantar.
+            */
+            if (this.role === 'gk' && this.gkEstado === 'mergulho' &&
+                this.dive && this.dive.agarrou) {
+                // nada a fazer: a bola está na mão, posta pelo GkDive.
+            } else if (this.role === 'gk' && this.gkEstado === 'lancando' &&
+                this.gkKickAction && !this.gkKickAction.executed &&
+                !(typeof Sim !== 'undefined' && Sim.running)) {
+                /*
+                NO LANÇAMENTO, A BOLA ESTÁ NA MÃO QUE LANÇA — posta pelo
+                `colarBolaAMao` do updateGK, que corre ANTES daqui.
+
+                Relato, duas vezes (capturas DC86 e a seguinte): *"no
+                lançamento de mão baixo do goleiro a bola ainda está
+                aparecendo nas costas"*. A primeira correcção foi no clip (o
+                recuo do braço), e não chegava: medido no caminho do browser,
+                a mão descia de 0.80 para 0.31 m e a bola ficava entre 0.8 e
+                1.14 m, rente ao tronco — era o ramo de baixo a reescrevê-la
+                com uma "animação manual" do lançamento POR CIMA (a subir a
+                1.6 m e a recuar para trás do corpo), por cima da mão. Com o
+                tronco dobrado do lançamento por baixo, isso é a bola em cima
+                das costas.
+
+                No headless o rig não é animado (a mão não se mexe) e o ramo
+                de baixo continua a valer, como antes.
+                */
+            } else if (this.role === 'gk' && this.gkEstado === 'segurando') {
+                /*
+                COM A BOLA AGARRADA QUEM A POE E O `colarBolaAsMaos` (updateGK, fim do ramo
+                'segurando'), que a leva com as maos e, nos primeiros `catchBlend` s, a traz do
+                sitio da agarrada. Este ramo puxava-a a 50% por frame para um ponto fixo a
+                1.15 m do chao (o 'peito' de antes): a bola era disputada pelos dois e saltava
+                0.5 m por frame para la — era o teletransporte do relato (*"quando a bola chega
+                bem perto do rosto ela e teletransportada para o frame seguinte"*).
+                */
+            } else if (this.role === 'gk' && (this.gkEstado === 'apanhar' || this.gkEstado === 'chutando' || this.gkEstado === 'lancando')) {
+                // GR segura a bola nas mãos, junto ao PEITO (não à cintura) —
+                // não ao nível do pé como no dribble de um jogador de campo
+                // (senão fica só pousada no chão à frente dele).
+                let maoY = this.model.position.y + (this.gkEstado === 'apanhar' ? 0.55 : 1.15);
+                let avancoBola = 0.3;
+                /*
+                Durante o gesto do chutão a bola tem de descer das mãos até ao
+                pé, senão o pé bate no vazio e ela sai da altura do peito. Cai
+                entre a máxima preparação (largaBolaEm) e o contacto.
+                */
+                if (this.gkEstado === 'chutando') {
+                    const K = GoalkeeperKickClip;
+                    const cont = ActionAnimClips.gkPunt.contactTime;
+                    const u = THREE.MathUtils.clamp(
+                        ((this.gkKickNorm || 0) - K.largaBolaEm) / (cont - K.largaBolaEm), 0, 1);
+                    maoY = this.model.position.y + K.alturaMao + (K.alturaPe - K.alturaMao) * u;
+                    avancoBola = 0.3 + 0.35 * u;
+                } else if (this.gkEstado === 'lancando') {
+                    // Animação manual para a bola acompanhar a mão durante o lançamento
+                    const u = this.gkKickNorm || 0;
+                    if (u < 0.6) {
+                        maoY = this.model.position.y + 1.15 + (1.6 - 1.15) * (u / 0.6);
+                        avancoBola = 0.3 - 0.5 * (u / 0.6);
+                    } else {
+                        const rel = (u - 0.6) / 0.4;
+                        maoY = this.model.position.y + 1.6 - (1.6 - 1.4) * rel;
+                        avancoBola = -0.2 + 0.8 * rel;
+                    }
+                }
+                let maoOffset = _p_v1.set(0, 0, avancoBola).applyQuaternion(this.model.quaternion);
+                _p_v2.copy(this.model.position).add(maoOffset).setY(maoY);
+                Match.ball.position.lerp(_p_v2, 0.5);
+                Match.ballVel.set(0, 0, 0);
+            } else if (this.fsm.currentState === 'BALL_CONTROL_RIGHT') {
+                // Durante o domínio orientado pela direita, a bola acompanha o pé direito
+                let footOffset = _p_v1.set(0.2, 0, 0.45).applyQuaternion(this.model.quaternion);
+                _p_v2.copy(this.model.position).add(footOffset);
+                Match.ball.position.lerp(_p_v2, 0.5);
+                Match.ball.position.y = BallPhysics.raio; Match.ballVel.set(0, 0, 0);
+            } else {
+                /*
+                A BOLA SAI DA FRENTE DO CORPO E VAI PARA O LADO DO PÉ QUE BATE.
+
+                Relato, com fotografia: *"o pé de apoio está atrás da bola; para
+                chutar, o jogador tem de colocar o pé de apoio AO LADO da
+                bola"*. A causa não estava no clip — estava aqui. Enquanto ele
+                tem a bola, ela é colada a (0, 0, 0.6): mesmo à frente do
+                corpo, 0.6 m adiante. Medido com
+                `tools/scratch/remate_pe_apoio.js`, no instante do contacto: a
+                bola 0.5 m à frente do corpo, o pé de apoio 0.6 m atrás dela e
+                1 cm ao lado, em 24 remates de 24. Com a bola sempre a meio
+                metro em frente, nenhum pé de apoio lhe pode ficar ao lado.
+
+                A correr, à frente está certo — é a bola conduzida. No GESTO de
+                rematar ou de passar, ela desliza para junto do pé que bate e
+                recua até à linha do corpo, que é onde ela está na fotografia:
+                aí o pé de apoio planta-se ao lado dela e a perna de bater passa
+                por trás. A transição acompanha a armação e está completa no
+                contacto.
+
+                A perna que bate vive em x NEGATIVO no rig (`criarPerna(-0.4)`
+                é a direita, ver pose.js), por isso o lado sai com sinal.
+                */
+                let avancoPe = 0.6, ladoPe = 0;
+                const gesto = this.fsm && (this.fsm.currentState === 'SHOOT' ||
+                    this.fsm.currentState === 'SET_PIECE_KICK' || this.fsm.currentState === 'PASS');
+                if (gesto && this.actionState && typeof PlantarBola !== 'undefined') {
+                    const cont = this.actionState.contactTime || 0.6;
+                    const u = THREE.MathUtils.clamp(
+                        (this.actionState.t / Math.max(0.001, this.actionState.duration)) / Math.max(0.001, cont), 0, 1);
+                    const chuteR = (ShotClip.pernaChute === 'r');
+                    avancoPe = 0.6 + (PlantarBola.avanco - 0.6) * u;
+                    ladoPe = (chuteR ? -1 : 1) * PlantarBola.lateral * u;
+                }
+                let footOffset = _p_v1.set(ladoPe, 0, avancoPe).applyQuaternion(this.model.quaternion);
+                _p_v2.copy(this.model.position).add(footOffset);
+                Match.ball.position.lerp(_p_v2, 0.5);
+                Match.ball.position.y = BallPhysics.raio; Match.ballVel.set(0, 0, 0);
+            }
+        }
+        /*
+        Jogadores sempre desenhados e sempre animados (pedido).
+
+        Havia aqui frustum culling: quem saísse do enquadramento da câmara
+        ficava `visible = false` E parava de animar. O segundo efeito é o que
+        estragava — ao voltar ao ecrã, o jogador reaparecia com a pose
+        congelada do instante em que saiu e só recuperava o ciclo de corrida
+        nos frames seguintes. Com câmaras que giram (ou em replays), dava
+        jogadores a aparecer a deslizar sem mexer as pernas.
+
+        `inViewport` fica em true para quem ainda o leia (rótulos, debug).
+        */
+        this.inViewport = true;
+
+        /*
+        Boneco ou disco, conforme a câmara — ver o disco em updateShirt. Tem
+        de ficar DEPOIS do `visible = true` de cima, senão essa linha desfaz
+        a troca no frame seguinte.
+        */
+        const vistaTatica = (window.cameraMode === 'topdown');
+        this.model.visible = (!vistaTatica && !headless);
+        if (this.discoTatico) {
+            this.discoTatico.visible = (vistaTatica && !headless);
+            if (!headless) this.discoTatico.position.set(this.model.position.x, 0.04, this.model.position.z);
+        }
+
+        /*
+        LATERAL, REMATE e DOMÍNIO escrevem a pose inteira a partir de um clip — o
+        animateBones por cima devolvia braços e pernas ao ciclo de passada no
+        mesmo frame. O ramo `speed >= 0.1` do animateBones faz `set` directo
+        nas pernas, portanto não bastava excluí-los do bloco neutro.
+
+        E O PASSE FALTAVA NESTA LISTA — relato: *"não estou vendo a animação de
+        passe durante os passes"*.
+
+        O `PassClip` foi acrescentado depois desta lista e ninguém o juntou a
+        ela. O `case 'PASS'` da FSM desenhava o clip, e três linhas depois o
+        ramo `speed >= 0.1` deste mesmo frame reescrevia as duas pernas com o
+        ciclo de passada — por `set`, não por lerp, portanto sem deixar rasto.
+        O gesto existia e nunca chegava ao ecrã.
+
+        O REMATE escapava por acaso, não por desenho: o `baterFalta` põe a
+        velocidade a zero à entrada (ver a nota "VELOCIDADE A ZERO À ENTRADA DO
+        GESTO"), e com `speed < 0.1` nenhum dos dois ramos lhe toca nas pernas.
+        Um passe é quase sempre dado em movimento, e por isso caía sempre no
+        ramo da passada.
+
+        A condição pede o `actionState` pela mesma razão dos outros dois — sem
+        gesto a correr não há pose de clip para proteger — e o `passeComClip`
+        porque o CRUZAMENTO não tem clip próprio e continua a precisar da
+        passada desenhada por baixo.
+        */
+        /*
+        O GUARDA-REDES A MERGULHAR FICA FORA DO `animateBones` TAMBEM NO CANTO.
+
+        Relato, com captura: *"o goleiro esta se enfiando no chao no final da
+        queda"*. A excepcao `|| gkAMergulhar` ja existia na escolha de quem
+        corre o `updateGK` (mais acima, ver a nota dela) e faltava AQUI: quando
+        ele espalma para canto — o desfecho mais comum de um mergulho alto — o
+        estado passa a CORNER_KICK com ele ainda deitado, e este ramo deixava
+        de o proteger. Cada frame corria o `animateBones` de jogador de campo
+        por cima do mergulho, e esse acaba no `assentarNoChao`, que desce o
+        corpo ate a sola tocar no relvado: com ele DEITADO, enterra-o. Sem
+        ecra o mesmo ramo punha-o a `ALTURA_BASE_Y` a forca.
+
+        MEDIDO, envolvendo o `GkDive.update`: em 156 de 156 frames com o corpo
+        abaixo da relva, o corpo estava BEM no fim do mergulho e quem o baixava
+        era esta linha, no mesmo frame.
+        */
+        if ((this.role === 'gk' && (Match.state !== 'CORNER_KICK' || gkAMergulhar)) ||
+            this.fsm.currentState === 'LATERAL' ||
+            (this.fsm.currentState === 'SHOOT' && this.actionState) ||
+            (this.fsm.currentState === 'SET_PIECE_KICK' && this.actionState) ||
+            (this.fsm.currentState === 'PASS' && this.actionState && this.passeComClip) ||
+            (this.fsm.currentState === 'BALL_CONTROL_RIGHT' && this.actionState)) {
+        } else {
+            if (!headless) {
+                this.animateBones(dt);
+                // Camada da matada no peito: só a cintura para trás e os braços
+                // a abrir, por cima da pose normal de pé. Tem de vir depois do
+                // animateBones, senão ele reescreve o tronco no mesmo frame.
+                this.aplicarCamadaPeito();
+                this.aplicarCamadaCabeceioDePe(dt);
+            } else {
+                if (!(this.fsm.currentState === 'CHEST_CONTROL' && this.peitoHopTimer > 0)) {
+                    this.model.position.y = ALTURA_BASE_Y;
+                }
+            }
+        }
+
+        // Update Action Banner
+        if (this.actionBannerTimer > 0) {
+            this.actionBannerTimer -= dt;
+            if (this.actionBannerTimer <= 0) {
+                this.actionSprite.visible = false;
+            }
+        }
+
+        // Atualização da UI flutuante (PlayerNumber, PlayerBT, PlayerPOS e PlayerPlayingStyle)
+        if (this.inViewport && !headless && (window.showPlayerNumber || window.showPlayerBT || window.showPlayerPOS || window.showPlayerPlayingStyle || window.showPlayerPoints || window.speedMultiplier === "frame")) {
+            this.labelSprite.visible = true;
+            let parts = [];
+            if (window.showPlayerNumber) parts.push(this.num);
+            if (window.showPlayerPOS) parts.push(this.pos);
+            if (window.showPlayerBT) parts.push(this.fsm.currentState);
+            if (window.showPlayerPlayingStyle && this.playingStyle && !this.playingStyleDesligado) parts.push(this.playingStyle);
+            if (window.showPlayerPoints && this.debugPoints) {
+                let pts = Object.entries(this.debugPoints).map(([k,v]) => `${k}:${v}`).join(" | ");
+                if (pts) parts.push(pts);
+            }
+            if (window.speedMultiplier === "frame") {
+                let fr = "";
+                if (this.actionState) {
+                    fr = `A${Math.floor(this.actionState.t * 60)}`;
+                } else if (this.gkKickAction) {
+                    fr = `G${Math.floor(this.gkKickAction.t * 60)}`;
+                } else {
+                    let t = ((this.animTimer % 1.0) + 1.0) % 1.0;
+                    fr = `R${Math.floor(t * 60)}`;
+                }
+                parts.push(fr);
+            }
+            let text = parts.join(" | ");
+            if (text !== this.lastLabelText || window.speedMultiplier === "frame") {
+                this.lastLabelText = text;
+                this.labelCtx.clearRect(0, 0, 1024, 128);
+                
+                // Configura a fonte primeiro para medir corretamente
+                this.labelCtx.font = 'bold 36px "Segoe UI"';
+                this.labelCtx.textAlign = 'center';
+                this.labelCtx.textBaseline = 'middle';
+                
+                let textWidth = this.labelCtx.measureText(text).width;
+                let bgWidth = textWidth + 30; // 15px de padding para cada lado
+                let bgHeight = 46; 
+                let startX = 512 - (bgWidth / 2);
+                let startY = 64 - (bgHeight / 2);
+
+                // Caixa de fundo mais apertada
+                this.labelCtx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                this.labelCtx.beginPath();
+                this.labelCtx.roundRect ? this.labelCtx.roundRect(startX, startY, bgWidth, bgHeight, 10) : this.labelCtx.rect(startX, startY, bgWidth, bgHeight);
+                this.labelCtx.fill();
+                
+                // Texto
+                this.labelCtx.fillStyle = '#ffffff';
+                this.labelCtx.fillText(text, 512, 64);
+                this.labelTex.needsUpdate = true;
+            }
+        } else {
+            this.labelSprite.visible = false;
+            this.lastLabelText = '';
+        }
+
+        /*
+        PLAYERNAMES: so os 3 jogadores de cada equipa mais perto da bola, no estilo das
+        tags (rectangulo arredondado amarelo com contorno preto, letras pretas) e do tamanho do
+        rotulo de antes. Sobe o rotulo normal para nao ficarem em cima um do outro.
+        */
+        {
+            const mostra = !!(window.showPlayerNames && this.inViewport && !headless && this.nomeSprite &&
+                typeof nomesProximosDaBola === 'function' && nomesProximosDaBola().has(this));
+            this.nomeSprite.visible = mostra;
+            this.labelSprite.position.y = (mostra && this.labelSprite.visible) ? 11.0 : 8.5;
+            if (mostra) {
+                const nome = this.nomeCamisola || this.pos;
+                if (nome !== this.ultimoNome) {
+                    this.ultimoNome = nome;
+                    const c = this.nomeCtx;
+                    c.clearRect(0, 0, 1024, 128);
+                    c.font = 'bold 36px "Segoe UI"';
+                    c.textAlign = 'center'; c.textBaseline = 'middle';
+                    const w = c.measureText(nome).width + 30, h = 46;
+                    const x0 = 512 - w / 2, y0 = 64 - h / 2;
+                    c.fillStyle = '#FFD700';
+                    c.beginPath();
+                    if (c.roundRect) c.roundRect(x0, y0, w, h, 10); else c.rect(x0, y0, w, h);
+                    c.fill();
+                    c.lineWidth = 3; c.strokeStyle = '#000000'; c.stroke();
+                    c.fillStyle = '#000000';
+                    c.fillText(nome, 512, 64 + 1);
+                    this.nomeTex.needsUpdate = true;
+                }
+            }
+        }
+
+        /*
+        Três anéis, um por etapa do posicionamento, do maior ao menor:
+
+        - Team BT POS (grande)   `slotTarget`     slot puro do bloco
+        - Position BT (médio)    `dynamicTarget`  alvo final, o que o
+                                                  steerArrive persegue
+        - PlayingStyleBT (menor) `styleTarget`    slot + estilo, antes da
+                                                  marcação
+
+        A linha liga o anel grande ao menor: é o desvio que o estilo mete, e
+        só ele. O que vai do menor ao médio é marcação + inquietação + tecto
+        + alisamento.
+
+        Mostrava o `tacticalTarget`, que é o alvo do nível 2 ANTES da camada
+        posicional do playing style, e antes das passagens que correm depois
+        dos ticks individuais (a triangulação de Delaunay, o afastamento do
+        próprio guarda-redes). Ou seja: nenhum dos três anéis marcava o sítio
+        para onde o jogador estava mesmo a ir, e por isso não havia maneira
+        de ver se ele obedecia ou não. Agora o anel pequeno é a verdade.
+
+        A linha entre os dois só faz sentido com os dois ligados ao mesmo tempo.
+        */
+        /*
+        Os anéis só valem enquanto o nível 2 estiver a escrevê-los. Fora disso
+        (GOAL, OUT, cantos, livres) `slotTarget` e `styleTarget` guardam o
+        último valor de jogo corrido, e mostrá-los é pior do que não mostrar
+        nada: depois de um golo apareciam junto à baliza, enquanto o rectângulo
+        do bloco — esse recalculado a cada frame — já estava no meio-campo.
+        */
+        const nivel2 = (typeof Match !== 'undefined' && Match.nivel2Activo)
+            ? Match.nivel2Activo() : true;
+        const showForTeam = nivel2 &&
+            (window.teamBTPosState === this.team || window.teamBTPosState === 'Both');
+        const showForStyle = nivel2 &&
+            (window.playingStyleBTToggleState === this.team || window.playingStyleBTToggleState === 'Both');
+        const showForPosition = nivel2 &&
+            (window.positionBTToggleState === this.team || window.positionBTToggleState === 'Both');
+        const teamTarget = this.slotTarget || this.tacticalTarget || this.dynamicTarget;
+        const styleTarget = this.styleTarget || this.dynamicTarget;
+
+        if (this.btTargetGroup) {
+            if (showForTeam && teamTarget) {
+                this.btTargetGroup.visible = true;
+                this.btTargetGroup.position.set(teamTarget.x, 0.05, teamTarget.z);
+            } else {
+                this.btTargetGroup.visible = false;
+            }
+        }
+
+        /*
+        Linha da cadeia de montagem: slot -> slot+estilo -> alvo final, pela
+        ordem por que o posicionamento os calcula. Desenha o troço entre os
+        anéis LIGADOS, sejam dois ou três — antes exigia TeamBT E
+        PlayingStyleBT ao mesmo tempo, e com qualquer outra combinação de
+        botões não aparecia linha nenhuma.
+
+        Cada troço tem um significado: slot -> estilo é o desvio do playing
+        style; estilo -> final é marcação + inquietação + tecto + alisamento.
+        */
+        if (this.btLine) {
+            const pontos = [];
+            if (showForTeam && teamTarget) pontos.push(teamTarget);
+            if (showForStyle && styleTarget) pontos.push(styleTarget);
+            if (showForPosition && this.dynamicTarget) pontos.push(this.dynamicTarget);
+
+            if (pontos.length >= 2) {
+                const arr = this.btLineGeo.attributes.position.array;
+                for (let i = 0; i < 3; i++) {
+                    // Com só dois anéis ligados, o terceiro vértice repete o
+                    // último: o segmento degenerado não se vê.
+                    const pt = pontos[Math.min(i, pontos.length - 1)];
+                    arr[i * 3] = pt.x;
+                    arr[i * 3 + 1] = 0.055;
+                    arr[i * 3 + 2] = pt.z;
+                }
+                this.btLineGeo.attributes.position.needsUpdate = true;
+                this.btLine.visible = true;
+            } else {
+                this.btLine.visible = false;
+            }
+        }
+
+        if (this.positionTargetGroup) {
+            if (showForPosition && this.dynamicTarget) {
+                this.positionTargetGroup.visible = true;
+                this.positionTargetGroup.position.set(this.dynamicTarget.x, 0.06, this.dynamicTarget.z);
+            } else {
+                this.positionTargetGroup.visible = false;
+            }
+        }
+
+        if (this.styleTargetGroup) {
+            if (showForStyle && styleTarget) {
+                this.styleTargetGroup.visible = true;
+                this.styleTargetGroup.position.set(styleTarget.x, 0.065, styleTarget.z);
+            } else {
+                this.styleTargetGroup.visible = false;
+            }
+        }
+
+
+        if (typeof MatchStats !== 'undefined') {
+            MatchStats[this.team].distanciaPercorrida += this.velocity.length() * dt;
+        }
+    }
+
+    /*
+    =========================================================================
+    SALTAR PARA O CABECEIO — a DECISÃO, fora da animação
+    =========================================================================
+    Isto vivia dentro do `animateBones`. Duas consequências, ambas medidas:
+
+      - o `animateBones` só corre com renderer (`if (!headless)`), portanto na
+        simulação em lote NINGUÉM saltava e ninguém cabeceava. Todos os números
+        de cantos, cruzamentos e remates de cabeça dos lotes foram tirados de um
+        jogo sem jogo aéreo;
+      - o `update` salta o `animateBones` nos estados que escrevem a pose
+        inteira a partir de um clip (LATERAL, SHOOT, BALL_CONTROL_RIGHT) e no
+        guarda-redes, e nesses o gatilho também não corria.
+
+    Aqui decide-se e avança-se o salto (timer e altura do corpo); o
+    `animateBones` continua a desenhar a pose a partir do que fica escrito.
+    Correndo no `update`, o salto existe com ou sem ecrã — que é a condição
+    para a disputa aérea poder ser medida e testada.
+
+    Fica de fora quem tem a bola, o guarda-redes (tem o seu próprio salto no
+    updateGK) e quem está a meio de um gesto com clip.
+    */
+    avaliarSaltoDeCabeceio(dt) {
+        if (this.jumpCooldown > 0) this.jumpCooldown -= dt;
+
+        const s = this.fsm ? this.fsm.currentState : '';
+        const gestoComClip = (s === 'LATERAL' || s === 'SHOOT' || s === 'SET_PIECE_KICK' ||
+            s === 'CROSS' ||
+            s === 'BALL_CONTROL_RIGHT' || s === 'SET_PIECE_TAKER');
+        if (!gestoComClip && typeof preverBolaEm === 'function' && typeof SaltoCabeceio !== 'undefined') {
+
+        /*
+        Salto de cabeceio com pontaria NO TEMPO — ver SaltoCabeceio em
+        config.js. Olha-se para onde a bola vai estar no instante do pico
+        (metade da duração do salto) e salta-se só se ela lá estiver ao
+        alcance e acima da cabeça; a subida é a que falta para lhe chegar.
+
+        Antes: gatilho por altura instantânea (1.2-4.5 m) e pico fixo de
+        1.8 m. Saltava para bolas quase no chão e no topo já não lhes tocava.
+        */
+        if (!this.hasBall && this.role !== 'gk' &&
+            this.fsm.currentState !== 'CHEST_CONTROL' &&
+            (!this.jumpTimer || this.jumpTimer <= 0) &&
+            (!this.jumpCooldown || this.jumpCooldown <= 0)) {
+            const maxHeaders = HeaderModel.maxHeadersSeguidos;
+            const atingiuLimiteCabeca = (typeof Match !== 'undefined' && Match.aerialHeaderCount >= maxHeaders);
+
+            if (!atingiuLimiteCabeca) {
+                const S = SaltoCabeceio;
+                const prev = preverBolaEm(S.duracao * 0.5);
+                /*
+                Medido da TESTA, não do topo da cabeça: é a testa que bate na
+                bola. Com ALTURA_CABECA o salto levava o TOPO do crânio à bola e
+                ela passava por cima sem contacto.
+                */
+                // A subida que FALTA a ELE: um central de 1.95 precisa de
+                // saltar menos do que um lateral de 1.62 para a mesma bola.
+                const subida = prev.y - (ALTURA_BASE_Y + alturaTestaDe(this));
+                const halfT = S.duracao * 0.5;
+                const meuXNoPico = this.model.position.x + (this.velocity ? this.velocity.x * halfT : 0);
+                const meuZNoPico = this.model.position.z + (this.velocity ? this.velocity.z * halfT : 0);
+                const dXZ = Math.hypot(meuXNoPico - prev.x, meuZNoPico - prev.z);
+                const alcanceEfetivo = S.alcanceXZ * 1.35;
+                /*
+                SO SE CABECEIA UMA BOLA QUE VEM DE FRENTE. Relato (captura 05674): *"jogador pulando
+                para cabecear uma bola vindo por tras do seu movimento. Os jogadores so vao pular
+                pra cabecear em bolas vindo de um angulo frontal de 60 graus para cada lado da
+                direcao deles"*. A direccao dele e a do movimento (a do corpo se quase parado); a
+                bola conta onde vai estar no pico. Fora do cone, nem salta nem se inclina.
+                */
+                let frontal = true;
+                if (typeof S.anguloFrontalMax === 'number') {
+                    let fx, fz;
+                    const vv = this.velocity ? Math.hypot(this.velocity.x, this.velocity.z) : 0;
+                    if (vv > 1.0) { fx = this.velocity.x / vv; fz = this.velocity.z / vv; }
+                    else { _v2.set(0, 0, 1).applyQuaternion(this.model.quaternion); fx = _v2.x; fz = _v2.z; }
+                    const bx = prev.x - this.model.position.x, bz = prev.z - this.model.position.z;
+                    const bn = Math.hypot(bx, bz);
+                    if (bn > 0.3) {
+                        const cosA = (fx * bx + fz * bz) / (Math.hypot(fx, fz) * bn || 1);
+                        frontal = cosA >= Math.cos(S.anguloFrontalMax);
+                    }
+                }
+                if (!frontal) {
+                    // bola por tras ou de lado: nao e dele.
+                } else if (dXZ < alcanceEfetivo && subida > S.alturaSemPulo && subida < S.alturaMax) {
+                    this.jumpTimer = S.duracao;
+                    this.jumpApex = Math.max(0.05, subida - (S.folgaTesta || 0));
+                    this.jumpCooldown = S.duracao + S.cooldown;
+                    this.hasHeaderedInJump = false;
+
+                    /*
+                    PARA QUE LADO VAI A BOLA — decidido AQUI, no arranque.
+
+                    A animação precisa do ângulo antes do contacto (é na
+                    subida que se arma o chicote), e no contacto já é tarde.
+                    A direcção pretendida é a mesma que o cabeceio vai usar:
+                    a baliza adversária se ele estiver em zona de finalizar,
+                    o contrário da própria baliza se estiver a aliviar.
+
+                    `cabeceioAnguloY` é o ângulo COM SINAL entre a frente do
+                    corpo e essa direcção: 0 é de frente, ±90° é para o lado.
+                    */
+                    this.cabeceioAnguloY = this.anguloDoDesvioDeCabeca();
+                    this.headLeanTimer = 0;
+
+                    // Vira de frente para onde a bola vai estar no pico do salto
+                    // ANTES de saltar — sem isto o corpo ficava com a orientação
+                    // da corrida até esse instante (o pescoço só cobre +-80°, e
+                    // o lookAtBola do contacto em executeHeader só corrige tarde
+                    // de mais, já no ar/depois do salto visualmente feito).
+                    //
+                    // Só no plano horizontal (y do próprio jogador, não o da
+                    // bola): perto do pico a bola pode estar quase 0.8 m em cima
+                    // da cabeça a menos de 1.4 m de distância — ângulo de
+                    // elevação quase vertical. lookAt a apontar quase para o eixo
+                    // "up" é degenerado e distorcia o rig todo (cabeça sumia).
+                    lookAtBola(this.model, _v1.set(prev.x, this.model.position.y, prev.z));
+                } else if (dXZ < S.alcanceXZ && subida > S.subidaMin && subida <= S.alturaSemPulo) {
+                    /*
+                    Bola mesmo em cima da cabeça — chega-se só inclinando o
+                    tronco para trás e o pescoço para cima, sem saltar (ver
+                    aplicarCamadaCabeceioDePe). É a opção preferida sempre que
+                    dá: um salto inteiro para uma bola que já está ao alcance é
+                    que ficava estranho.
+                    */
+                    this.headLeanTimer = 0.30;
+                    this.jumpCooldown = 0.4;
+                    lookAtBola(this.model, _v1.set(prev.x, this.model.position.y, prev.z));
+                }
+            }
+        }
+        }
+
+        // Avanço do salto em curso: o corpo sobe e desce mesmo sem renderer,
+        // que é o que faz o contacto na testa acontecer (ver resolveBallContact).
+        this.jumpAltura = 0;
+        if (this.jumpTimer > 0) {
+            this.jumpTimer -= dt;
+            const jt = this.jumpTimer / SaltoCabeceio.duracao;
+            this.jumpAltura = Math.sin(jt * Math.PI) * (this.jumpApex || SaltoCabeceio.alturaMax);
+            this.model.position.y = ALTURA_BASE_Y + this.jumpAltura;
+            if (this.jumpTimer <= 0) {
+                // A recuperacao da aterragem (SaltoCabeceio.aterragem): mais curta se tocou na bola.
+                const AT = SaltoCabeceio.aterragem;
+                if (AT && AT.activo) {
+                    const dur = this.hasHeaderedInJump ? AT.duracaoTocou : AT.duracaoFalhou;
+                    this.aterragemT = dur;
+                    this.aterragemDur = dur;
+                }
+                this.jumpTimer = 0;
+                this.jumpAltura = 0;
+                this.hasHeaderedInJump = false;
+                this.headLeanTimer = 0;
+                this.model.position.y = ALTURA_BASE_Y;
+            }
+        }
+    }
+
+    terminarPullAway() {
+        this.pullAway = null;
+        this.pullAwayCooldown = (typeof PullAwayModel !== 'undefined') ? PullAwayModel.arrefecimento : 0;
+    }
+
+    steerArrive(target, maxSpeed, brakingDist = 2.0) {
+        /*
+        O CANSACO ENTRA AQUI, e num sitio so: o `speedMult` que chega como
+        `maxSpeed` e escrito em vinte folhas da arvore, e descontar em cada
+        uma delas era garantir esquecer metade. Ver factorCansaco.
+        */
+        maxSpeed *= this.factorCansaco();
+
+        /*
+        E O TECTO HUMANO, aqui e só aqui — ver VelocidadeHumana (config/gait.js)
+        com a medição que o motivou: os multiplicadores das vinte folhas
+        empilhavam-se até 15.18 m/s (54 km/h).
+
+        Depois do cansaço de propósito: o tecto é o que o corpo dá quando está
+        inteiro, e um jogador gasto não passa a correr mais por causa dele.
+        */
+        if (typeof VelocidadeHumana !== 'undefined') {
+            const tecto = VelocidadeHumana.tecto(this.skillFor('SPEED')) * this.factorCansaco();
+            if (maxSpeed > tecto) maxSpeed = tecto;
+        }
+
+        /*
+        A RECUPERACAO DA ATERRAGEM (SaltoCabeceio.aterragem): depois do cabeceio o tecto de velocidade
+        cai e volta ao normal em rampa. `r` vai de 0 (acabou de aterrar) a 1 (recuperado).
+        */
+        if (this.aterragemT > 0) {
+            const AT = SaltoCabeceio.aterragem;
+            this.aterragemT = Math.max(0, this.aterragemT - Match.delta);
+            const r = 1 - this.aterragemT / (this.aterragemDur || 1);
+            maxSpeed *= AT.velFrac + (1 - AT.velFrac) * r;
+        }
+
+        /*
+        O MEIA COM A BOLA NA DEFESA NAO PASSA DO SEU TECTO (BlockShape.meiasComBola, utils.js `tectoDoMeiaComBola`): o
+        corte no `tickFinal` nao chegava — corridas, apoios e o estilo escrevem o alvo depois dele. Aqui e o funil por
+        onde TODOS os movimentos passam. Cede a quem tem a bola, ao receptor e a quem vai a bola.
+        */
+        if (this.role === 'mid' && !this.hasBall && typeof tectoDoMeiaComBola === 'function' &&
+            !(typeof Match !== 'undefined' && Match.intendedReceiver === this)) {
+            const tectoM = tectoDoMeiaComBola(this);
+            if (isFinite(tectoM) && target.z * this.dirZ > tectoM) {
+                const bbM = (typeof TeamAI !== 'undefined') ? TeamAI.get(this.team) : null;
+                if (!(bbM && (bbM.chaser === this || bbM.intercetor === this || bbM.bloqueador === this))) {
+                    target = new THREE.Vector3(target.x, target.y, tectoM * this.dirZ);
+                }
+            }
+        }
+
+        /*
+        OS MEIAS CENTRAIS NA FAIXA CENTRAL (BlockShape.meiasCentrais): o alvo do CM/DM/AM nao passa de `xMax` m do eixo.
+        Cede a quem tem a bola, ao receptor e a quem vai a bola.
+        */
+        if ((this.pos === 'CM' || this.pos === 'DM' || this.pos === 'AM') && !this.hasBall &&
+            typeof BlockShape !== 'undefined' && BlockShape.meiasCentrais && BlockShape.meiasCentrais.activo &&
+            Math.abs(target.x) > BlockShape.meiasCentrais.xMax &&
+            !(typeof Match !== 'undefined' && Match.intendedReceiver === this)) {
+            const bbC = (typeof TeamAI !== 'undefined') ? TeamAI.get(this.team) : null;
+            if (!(bbC && (bbC.chaser === this || bbC.intercetor === this || bbC.bloqueador === this))) {
+                target = new THREE.Vector3(Math.sign(target.x) * BlockShape.meiasCentrais.xMax, target.y, target.z);
+            }
+        }
+
+        /*
+        NO LATERAL SO OS `receptoresMax` MAIS PERTO DA BOLA SE AGRUPAM A VOLTA DO BATEDOR (ThrowInModel): o alvo dos outros
+        jogadores de campo da equipa que bate fica a mais de `raioNaoReceptor` m da bola.
+        */
+        if (typeof Match !== 'undefined' && Match.state === 'THROW_IN' && Match.ball && this.role !== 'gk' &&
+            this.team === Match.setPieceTeam && Match.setPieceTaker !== this &&
+            typeof ThrowInModel !== 'undefined' && ThrowInModel.receptoresMax) {
+            const bT = Match.ball.position;
+            const meusT = (this.team === 'TeamA') ? Match.players : Match.opponents;
+            const dMeu = Math.hypot(this.model.position.x - bT.x, this.model.position.z - bT.z);
+            let maisPerto = 0;
+            for (const o of meusT) {
+                if (o === this || o === Match.setPieceTaker || !o.model || o.role === 'gk') continue;
+                if (Math.hypot(o.model.position.x - bT.x, o.model.position.z - bT.z) < dMeu) maisPerto++;
+            }
+            if (maisPerto >= ThrowInModel.receptoresMax) {
+                let ux = target.x - bT.x, uz = target.z - bT.z;
+                const dt2 = Math.hypot(ux, uz);
+                if (dt2 < ThrowInModel.raioNaoReceptor) {
+                    if (dt2 < 0.05) { ux = this.model.position.x - bT.x; uz = this.model.position.z - bT.z; }
+                    const l = Math.hypot(ux, uz) || 1;
+                    target = new THREE.Vector3(bT.x + ux / l * ThrowInModel.raioNaoReceptor, target.y, bT.z + uz / l * ThrowInModel.raioNaoReceptor);
+                }
+            }
+        }
+
+        let desired = _p_v1.subVectors(target, this.model.position);
+        desired.y = 0; let d = desired.length();
+
+        /*
+        JÁ CHEGUEI? — com histerese, e é uma decisão só, usada duas vezes.
+
+        Entra-se abaixo de `OlharModel.perto` e só se sai acima de
+        `OlharModel.longe`. Sem a folga entre as duas, o alvo táctico (que
+        desliza com a bola ~0.47 m por frame) atravessava o limiar 1.5 vezes por
+        segundo, e de cada vez o corpo era mandado virar 84° em média e voltar
+        logo a seguir. Ver OlharModel (config/gait.js).
+        */
+        const O = (typeof OlharModel !== 'undefined') ? OlharModel : { perto: 0.9, longe: 1.8 };
+        if (this.chegouAoPosto) {
+            if (d > O.longe) this.chegouAoPosto = false;
+        } else if (d < O.perto) {
+            this.chegouAoPosto = true;
+        }
+
+        if (d < 0.2) {
+            this.velocity.set(0, 0, 0);
+            /*
+            Parado NÃO é sem cabeça: continua a acompanhar a bola com o corpo.
+            Antes voltava aqui antes de qualquer rotação, e o giro ficava
+            congelado a meio — a cada saída e entrada nesta zona (1.88 vezes por
+            segundo, medido) o corpo apanhava um pedaço de viragem e largava-o.
+            */
+            if (Match.ball) this.virarPara(Match.ball.position);
+            return this.velocity;
+        }
+
+        desired.normalize();
+        if (brakingDist > 0 && d < brakingDist) desired.multiplyScalar(maxSpeed * (d / brakingDist));
+        else desired.multiplyScalar(maxSpeed);
+
+
+
+        /*
+        Corpo vira para a direcção do movimento (ou para a bola ao defender/
+        apoiar).
+
+        A excepção da excepção: ninguém se desloca DEPRESSA de lado. Acima de
+        LateralGait.velViragem, se o movimento se afastar mais de `anguloMin`
+        da direcção da bola, o corpo roda para onde ele vai — senão ficava a
+        correr de frente e a deslizar de lado. Abaixo dessa velocidade
+        mantém-se virado para a bola e o animateBones desenha passo lateral.
+        */
+        let lookTarget = target;
+        if (this.fsm && Match.ball) {
+            const s = this.fsm.currentState;
+            if (s === 'MARKING' || s === 'BLOCKING' || s === 'SUPPORT_PASS' || s === 'SUP_TO_INVERT' || (typeof Match !== 'undefined' && Match.intendedReceiver === this)) {
+                lookTarget = Match.ball.position;
+
+                if (typeof LateralGait !== 'undefined' && d > 0.0001) {
+                    const velAlvo = desired.length();
+                    if (velAlvo > LateralGait.velViragem) {
+                        // desired já está normalizado e depois escalado; usa-se
+                        // a direcção para o alvo, que é a mesma coisa.
+                        _v2.subVectors(Match.ball.position, this.model.position);
+                        _v2.y = 0;
+                        if (_v2.lengthSq() > 0.01) {
+                            _v2.normalize();
+                            const dirMov = _v1.copy(desired).normalize();
+                            const cosDesvio = dirMov.x * _v2.x + dirMov.z * _v2.z;
+                            if (cosDesvio < Math.cos(LateralGait.anguloMin)) lookTarget = target;
+                        }
+                    }
+                }
+            } else if (this.chegouAoPosto && Match.ball) {
+                // Já no sítio: acompanha a bola. O limiar tem histerese (ver
+                // OlharModel) — era um 0.5 m seco, e o alvo atravessava-o para
+                // trás e para a frente uma vez e meia por segundo.
+                lookTarget = Match.ball.position;
+            }
+        }
+        this.virarPara(lookTarget);
+        // Inércia ajustada para fator 5.0 (curvas bastante responsivas e quase sem derrapagem)
+        this.velocity.lerp(desired, Math.min(1.0, 5.0 * Match.delta));
+        return this.velocity;
+    }
+
+    /*
+    Roda o corpo para um ponto do mundo, ao ritmo do TurnModel.
+
+    Saiu de dentro do steerArrive porque passou a ser preciso em dois sítios: no
+    fim do movimento normal e no jogador parado em cima do posto, que também tem
+    de acompanhar a bola.
+
+    Giro: 5.5/s dava ~0.18 s de constante de tempo, quase um segundo para
+    completar uma inversão de 180°. Sai do TurnModel — com bola é mais lento,
+    que é o que separa mudar de direcção a conduzir de virar sem ela.
+    */
+    virarPara(alvo) {
+        if (!alvo) return;
+        _v1.set(this.model.position.x * 2 - alvo.x, this.model.position.y, this.model.position.z * 2 - alvo.z);
+        _m1.lookAt(this.model.position, _v1, this.model.up);
+        _q1.setFromRotationMatrix(_m1);
+        const giro = (typeof TurnModel !== 'undefined')
+            ? (this.hasBall ? TurnModel.comBola : TurnModel.base)
+            : 5.5;
+        this.model.quaternion.slerp(_q1, Math.min(1.0, giro * Match.delta));
+    }
+
+    /*
+    A perna de balanço passa à frente do corpo (posição de toque/chute) perto
+    de t=0.25 e t=0.75 do ciclo da passada (getGaitPose: lHip/rHip = sin(c)).
+    Toques na bola disparados fora desta janela caem com a perna atrás ou a
+    meio da passada — parece que o jogador "puxa" a bola de volta.
+    */
+    /*
+    O TOQUE DE CONDUCAO SAI NO FRAME DO PE BOM (pedido).
+
+    R12 no destro, R41 no canhoto — ver `CarryModel.frameToque`. Ao contrario
+    do `emJanelaDeToque`, que aceita as duas pernas, aqui e uma so janela por
+    ciclo, e a distancia mede-se em CIRCULO: R58 esta a quatro frames de R2.
+    */
+    noFrameDoPe() {
+        const C = (typeof CarryModel !== 'undefined') ? CarryModel : null;
+        if (!C || !C.frameToque) return this.emJanelaDeToque();
+
+        const frames = C.framesDoCiclo || 60;
+        const alvo = C.frameToque[this.pe === 'e' ? 'e' : 'd'] / frames;
+
+        const fase = this.animPhase;
+        const anterior = (typeof this._fasePeAnterior === 'number') ? this._fasePeAnterior : fase;
+        this._fasePeAnterior = fase;
+
+        /*
+        CRUZOU o frame neste passo? Uma JANELA nao serve: com +-8 frames de
+        tolerancia o toque saia no primeiro frame que entrava nela, ou seja na
+        BORDA — medido, os destros tocavam em R5 com o alvo em R12.
+
+        Aqui pergunta-se se a fase passou POR CIMA do alvo entre o frame
+        anterior e este, o que a faz cair no frame certo (ou no seguinte, se o
+        passo do ciclo for maior do que um frame). Contas em circulo: R59 para
+        R1 sao dois frames, nao cinquenta e oito.
+        */
+        const avanco = ((fase - anterior) % 1 + 1) % 1;
+        if (avanco <= 0) return false;                  // parado ou a andar de costas
+        const desdeAlvo = ((fase - alvo) % 1 + 1) % 1;
+        return desdeAlvo < avanco;
+    }
+
+    emJanelaDeToque(tol = 0.13) {
+        const t = this.animPhase; // 0..1
+        // R20 (0.333) para uma perna, R40 (0.666) para a outra
+        const d1 = Math.abs(t - 0.333);
+        const d2 = Math.abs(t - 0.666);
+        return Math.min(d1, d2) < tol;
+    }
+
+    /*
+    Verifica se a animação está fora do frame ideal (R20/R40) para bater na bola.
+    Usado no Behavior Tree para adiar passes, remates e cruzamentos por uns frames
+    até a perna estar na posição certa (ou abortar a espera se demorar demais).
+    */
+    /*
+    JA E HORA DE ME ATIRAR?
+
+    O tempo que o gesto precisa: agachar e estender (`tempoLer` +
+    `tempoImpulso`) mais o voo ate a mao la chegar (`fracContacto` do voo), com
+    o voo a sair da distancia lateral a cobrir — a mesma conta do
+    `GkDive.lancar`. Mais `margemAntecipacao` de folga.
+
+    Pedido: "nao pode pular no exato instante do chute; pular so quando a bola
+    estiver ao alcance do pulo". Vive aqui, num sitio so, porque ha DOIS ramos
+    que disparam mergulhos (o principal e o `possoEspalmar`) e ter a regra num
+    deles apenas foi exactamente o defeito medido: o outro arrancava cedo e o
+    `GkDive.iniciar` congelava o alvo errado para o mergulho inteiro.
+    */
+    /*
+    ATÉ QUE DISTÂNCIA DE LADO É QUE O MERGULHO AINDA CHEGA À BOLA.
+
+    Ver GoalkeeperDive.alcanceLateralMax, que traz o relato e o porquê dos dois
+    limites. São eles: o tempo que sobra depois de ler e de se impulsionar (e
+    que se converte em metros pela velocidade lateral dele), e o tecto absoluto
+    — nem com todo o tempo do mundo se cobrem mais do que isso.
+
+    O `alcanceBraco` entra porque a bola não tem de lhe chegar ao peito: chega
+    à mão.
+    */
+    alcanceDoMergulho(tempoAteChegar) {
+        const D = (typeof GoalkeeperDive !== 'undefined') ? GoalkeeperDive : null;
+        if (!D || typeof D.alcanceLateralMax !== 'number') return Infinity;
+
+        const velMax = D.velLateral + ((this.skillFor('GK') - 50) / 50) * D.velLateralSkill;
+        const tDisponivel = Math.max(0, (tempoAteChegar || 0) - D.tempoLer - D.tempoImpulso);
+        const tVoo = Math.min(D.vooMax, tDisponivel);
+        // O tecto vai de alcanceLateralMin (GK 0) a alcanceLateralMax (GK 100).
+        const tecto = (typeof D.alcanceLateralMin === 'number')
+            ? D.alcanceLateralMin + (D.alcanceLateralMax - D.alcanceLateralMin) *
+              THREE.MathUtils.clamp(this.skillFor('GK') / 100, 0, 1)
+            : D.alcanceLateralMax;
+        return Math.min(tecto, D.alcanceBraco + Math.max(0, velMax) * tVoo);
+    }
+
+    /*
+    A bola ainda está longe de mais para ele se atirar? Ver
+    GoalkeeperDive.distanciaMaxParaMergulhar, que traz a medição.
+    */
+    bolaLongeParaMergulhar() {
+        const D = (typeof GoalkeeperDive !== 'undefined') ? GoalkeeperDive : null;
+        if (!D || typeof D.distanciaMaxParaMergulhar !== 'number') return false;
+        if (typeof Match === 'undefined' || !Match.ball) return false;
+        // Em 3D (a bola alta tambem esta longe): o teste gk_salta_no_momento mede assim.
+        const d = Math.hypot(Match.ball.position.x - this.model.position.x,
+            Match.ball.position.y - this.model.position.y,
+            Match.ball.position.z - this.model.position.z);
+        return d > D.distanciaMaxParaMergulhar;
+    }
+
+    /*
+    PONTOS DE PASSE DO ESTILO DA EQUIPA — 5 de Outubro de 2026. Ver o cabecalho do
+    `TeamPlayStyles` (config/tactics.js). Soma-se a nota do receptor `opt`:
+
+      afinidade    pelo Playing Style dele (so se nao for para tras);
+      velocidade   pontos por ponto de SPEED acima de 50, num passe para a frente;
+      contra       so na janela do contra-ataque desta equipa: premio por metro a
+                   frente e castigo ao passe atras ou de lado;
+      alas         a quem ja esta na ala.
+
+    O `fiab` (fiabilidade pela distancia) pesa o que depende de o passe chegar.
+    */
+    /*
+    A PONTA CERCADA (ver PONTA_CERCADA, tactics.js): na ponta, perto da linha de fundo e bem marcado,
+    o portador recicla — premeia o passe para um colega livre ATRAS e castiga o que insiste para a frente.
+    */
+    emPontaCercada() {
+        const P = (typeof estiloDaEquipaDe === 'function') ? estiloDaEquipaDe(this.team).pontaCercada : null;
+        if (!P) return null;
+        const pos = this.model.position;
+        if (Math.abs(pos.x) < P.xMin) return null;
+        if (Math.abs(this.targetGoalZ - pos.z) > P.fundoMax) return null;
+        const advs = (this.team === 'TeamA') ? Match.opponents : Match.players;
+        for (const o of advs) {
+            if (o.role === 'gk' || !o.model) continue;
+            if (Math.hypot(o.model.position.x - pos.x, o.model.position.z - pos.z) < P.marcadorMax) return P;
+        }
+        return null;
+    }
+
+    bonusPontaCercada(opt, optPos, progression, fiab, teamStyle) {
+        if (!teamStyle || !teamStyle.pontaCercada) return 0;
+        const P = this.emPontaCercada();
+        if (!P) return 0;
+        if (progression <= -P.ganhoAtrasMin) {
+            // Atras, e livre de marcacao: o ponto de reinicio.
+            const advs = (this.team === 'TeamA') ? Match.opponents : Match.players;
+            for (const o of advs) {
+                if (o.role === 'gk' || !o.model) continue;
+                if (Math.hypot(o.model.position.x - optPos.x, o.model.position.z - optPos.z) < P.livre) return 0;
+            }
+            return P.bonusRecuo * fiab;
+        }
+        return progression > 0 ? -P.penalAvanco : 0;
+    }
+
+    bonusPasseDoEstilo(opt, optPos, progression, fiab, teamStyle) {
+        if (!teamStyle) return 0;
+        let b = 0;
+        const dirZ = this.dirZ;
+        const afin = teamStyle.afinidade;
+        if (afin && opt.playingStyle && !opt.playingStyleDesligado && afin[opt.playingStyle] && progression > -3.0) {
+            b += afin[opt.playingStyle] * fiab;
+        }
+        if (teamStyle.velocidade && progression > 3.0) {
+            b += Math.max(0, opt.skillFor('SPEED') - 50) * teamStyle.velocidade * fiab;
+        }
+        const C = teamStyle.contra;
+        if (C && Match.counterAttackTeam === this.team) {
+            if (progression > 0) b += Math.min(25, progression) * C.bonusProgressao;
+            else if (progression < 2.0) b -= C.penalRecuo;
+        }
+        if (teamStyle.bonusAtaque && opt.role === 'atk' && progression > 8.0) b += teamStyle.bonusAtaque * fiab;
+        const V = teamStyle.vertical;
+        if (V) {
+            if (progression > 3.0) b += Math.min(V.ganhoMax, progression) * V.porMetro * fiab;
+            else if (progression < -3.0) b -= V.penalAtras;
+            else b -= V.penalLado;
+        }
+        const A = teamStyle.alas;
+        if (A && Math.abs(optPos.x) >= A.larguraAla && optPos.z * dirZ > -10) b += A.bonusReceptor * fiab;
+        b += this.bonusPontaCercada(opt, optPos, progression, fiab, teamStyle);
+        return b;
+    }
+
+    /*
+    DEVE DESLIZAR DE LADO a esta bola solta? Rasteira, lenta mas a andar, a passar a mais de
+    `deslizeLado.lateralMinSolta` e a menos de `lateralMax` (4 m) do corpo, e perto (`distMaxSolta`). A bola
+    parada ou a seus pes e do `apanhar`; a rapida e do mergulho do remate.
+    */
+    devoDeslizarDeLado(distBola) {
+        const DL = (typeof GoalkeeperDive !== 'undefined') ? GoalkeeperDive.deslizeLado : null;
+        if (!DL || !DL.soltaLenta || !DL.soltaLenta.activo || !Match.ball) return false;
+        const S = DL.soltaLenta;
+        const b = Match.ball.position;
+        if (b.y > S.alturaMax) return false;
+        const v = Match.ballVel.length();
+        if (v < S.velMin || v > S.velMax) return false;
+        // So se atira quando a bola vai estar ao alcance DENTRO de `tempo` s (o deslize dura isso; antes
+        // ficava deitado a espera dela). A previsao leva em conta o atrito: uma bola lenta para a meio.
+        if (distBola > S.distMax) return false;
+        const prev = (typeof preverBolaEm === 'function') ? preverBolaEm(S.tempo) : null;
+        const px = prev ? prev.x : b.x, pz = prev ? prev.z : b.z;
+        const dPrev = Math.hypot(px - this.model.position.x, pz - this.model.position.z);
+        if (dPrev > S.alcancePrevisto) return false;
+        const lateral = Math.abs(px - this.model.position.x);
+        return lateral >= S.lateralMin && lateral <= DL.lateralMax;
+    }
+
+    horaDeMergulhar(lateral, tempoAteChegar) {
+        const D = (typeof GoalkeeperDive !== 'undefined') ? GoalkeeperDive : null;
+        if (!D) return true;
+        const velMax = D.velLateral + ((this.skillFor('GK') - 50) / 50) * D.velLateralSkill;
+        const percurso = Math.max(0, Math.abs(lateral) - D.alcanceBraco);
+        const tVoo = Math.min(D.vooMax, Math.max(D.vooMin, percurso / Math.max(0.1, velMax)));
+        const tGesto = D.tempoLer + D.tempoImpulso + D.fracContacto * tVoo
+            + (D.margemAntecipacao || 0);
+        return tempoAteChegar <= tGesto;
+    }
+
+    /*
+    ONDE ELE JULGA QUE A BOLA VAI PASSAR — a leitura, com o erro dela.
+
+    O `pontoDeIntercepcaoGK` (utils.js) é geometria pura e por isso acertava o
+    canto no PRIMEIRO frame depois de a bola sair do pé, com zero de erro:
+
+        t=0.02  reagiu=n  alvoX=-3.16  corpoX=0.21   v=0.0   <- ja sabe o canto
+
+    O `erroLeituraGK` põe-lhe por cima a dispersão que o `gk-jump-system.md`
+    sempre descreveu e nunca existiu, com o raio a encolher à medida que a bola
+    se aproxima. Vive aqui, num sítio só, pela mesma razão que o
+    `horaDeMergulhar`: são DOIS os ramos que miram (o principal e o
+    `possoEspalmar`), e pôr a regra num deles apenas foi exactamente o defeito
+    que já se mediu antes.
+
+    Devolve null quando a bola não vai a lado nenhum (vz ~ 0).
+    */
+    alvoLidoGK(gkZ) {
+        const ponto = pontoDeIntercepcaoGK(
+            Match.ball.position.x, Match.ball.position.y, Match.ball.position.z,
+            Match.ballVel.x, Match.ballVel.y, Match.ballVel.z,
+            gkZ, BallPhysics.gravidade);
+        if (!ponto) return null;
+        const e = erroLeituraGK(ponto.t, this.skillFor('GK'), this._gkErroU, this._gkErroV);
+        return { t: ponto.t, x: ponto.x + e.dx, y: ponto.y + e.dy };
+    }
+
+    aguardarPassada() {
+        if (this.velocity.lengthSq() > 2.0 && !this.emJanelaDeToque()) {
+            const dt = (typeof Match !== 'undefined') ? Match.delta : 0.016;
+            this.touchWaitTimer = (this.touchWaitTimer || 0) + dt;
+            const maxWait = (typeof CarryModel !== 'undefined') ? CarryModel.touchMaxWait : 0.3;
+            if (this.touchWaitTimer < maxWait) {
+                return true; // Continuar à espera
+            }
+        }
+        this.touchWaitTimer = 0;
+        return false; // Pode agir
+    }
+
+    /*
+    Camada da matada no peito. Tem de correr DEPOIS do animateBones: esse
+    reescreve `chest.rotation.x` e o `rotation.z` dos braços em todos os
+    frames, nos dois ramos (parado e em andamento).
+
+    Era por isso que a inclinação saía do corpo todo em vez da cintura: o
+    gesto escrevia peito+braços dentro do fsm, o animateBones apagava-os logo
+    a seguir, e só sobrevivia a `pelvis.rotation.x` (que estava protegida) —
+    e rodar a pelvis deita o jogador inteiro para trás, pernas incluídas.
+
+    Aqui a pelvis não se toca: o jogador fica de pé e a prumo, só o tronco
+    acima da cintura vai para trás e os braços abrem um pouco.
+    */
+    /*
+    Camada da matada no peito: só a parte superior do tronco (chest) recua
+    suavemente e os braços abrem para amortecer. As pernas (lLeg/rLeg),
+    joelhos (lKnee/rKnee) e pés (lFoot/rFoot) permanecem perfeitamente
+    plantados e alinhados no chão, evitando qualquer sensação de tombo para trás.
+    */
+    aplicarCamadaPeito() {
+        if (this.fsm.currentState !== 'CHEST_CONTROL') return;
+        const rig = this.rig;
+        if (!rig) return;
+
+        const B = BallControl;
+        const intens = this.peitoIntens || 0;
+
+        // Só o tórax recua suavemente para amortecer a bola
+        rig.chest.rotation.x = lerpTo(rig.chest.rotation.x, B.peitoInclinacao * intens, 0.4);
+        
+        // Braços abrem lateralmente de forma equilibrada
+        rig.lArm.rotation.z = lerpTo(rig.lArm.rotation.z, B.peitoBracos * intens, 0.4);
+        rig.rArm.rotation.z = lerpTo(rig.rArm.rotation.z, -B.peitoBracos * intens, 0.4);
+
+        // Braços recuam levemente e cotovelos flexionam
+        rig.lArm.rotation.x = lerpTo(rig.lArm.rotation.x, -0.15 * intens, 0.4);
+        rig.rArm.rotation.x = lerpTo(rig.rArm.rotation.x, -0.15 * intens, 0.4);
+        rig.lElbow.rotation.x = lerpTo(rig.lElbow.rotation.x, -0.3 * intens, 0.4);
+        rig.rElbow.rotation.x = lerpTo(rig.rElbow.rotation.x, -0.3 * intens, 0.4);
+
+        // Pernas, joelhos, tornozelos e pelve permanecem estáveis e a prumo no solo
+        rig.pelvis.rotation.x = lerpTo(rig.pelvis.rotation.x, 0, 0.4);
+        rig.lLeg.rotation.x = lerpTo(rig.lLeg.rotation.x, 0, 0.4);
+        rig.rLeg.rotation.x = lerpTo(rig.rLeg.rotation.x, 0, 0.4);
+        rig.lKnee.rotation.x = lerpTo(rig.lKnee.rotation.x, 0, 0.4);
+        rig.rKnee.rotation.x = lerpTo(rig.rKnee.rotation.x, 0, 0.4);
+        rig.lFoot.rotation.x = lerpTo(rig.lFoot.rotation.x, 0, 0.4);
+        rig.rFoot.rotation.x = lerpTo(rig.rFoot.rotation.x, 0, 0.4);
+    }
+
+    /*
+    Cabeceio de pé — bola alcançável só com o corpo, sem saltar (ver o
+    gatilho headLeanTimer em animateBones). Inclina o tronco para trás e o
+    pescoço para cima e para trás durante um instante curto; nunca sai do
+    chão. Mesmo padrão de camada aditiva das outras duas (corte, peito).
+    */
+    aplicarCamadaCabeceioDePe(dt) {
+        if (this.jumpTimer > 0) {
+            this.headLeanTimer = 0;
+            return;
+        }
+        if (this.headLeanTimer <= 0) return;
+        this.headLeanTimer -= dt;
+        const rig = this.rig;
+        if (!rig) return;
+
+        // Sobe e desfaz com a mesma forma em sino das outras camadas: pico a
+        // meio da janela, não no início nem no fim.
+        const k = Math.max(0, Math.min(1, this.headLeanTimer / 0.30));
+        const intens = Math.sin(k * Math.PI);
+
+        rig.chest.rotation.x = lerpTo(rig.chest.rotation.x, -0.20 * intens, 0.5);
+        if (rig.neck) rig.neck.rotation.x = lerpTo(rig.neck.rotation.x, 0.35 * intens, 0.5);
+        rig.lArm.rotation.z = lerpTo(rig.lArm.rotation.z, 0.15 * intens, 0.5);
+        rig.rArm.rotation.z = lerpTo(rig.rArm.rotation.z, -0.15 * intens, 0.5);
+
+        // Mantém pelve, pernas e pés perfeitamente plantados
+        rig.pelvis.rotation.x = lerpTo(rig.pelvis.rotation.x, 0, 0.5);
+        rig.lLeg.rotation.x = lerpTo(rig.lLeg.rotation.x, 0, 0.5);
+        rig.rLeg.rotation.x = lerpTo(rig.rLeg.rotation.x, 0, 0.5);
+        rig.lKnee.rotation.x = lerpTo(rig.lKnee.rotation.x, 0, 0.5);
+        rig.rKnee.rotation.x = lerpTo(rig.rKnee.rotation.x, 0, 0.5);
+        rig.lFoot.rotation.x = lerpTo(rig.lFoot.rotation.x, 0, 0.5);
+        rig.rFoot.rotation.x = lerpTo(rig.rFoot.rotation.x, 0, 0.5);
+    }
+
+    /*
+    O ÂNGULO DO DESVIO DE CABEÇA, com sinal, no referencial do corpo.
+
+    Positivo = a bola sai para a ESQUERDA da frente dele; negativo para a
+    direita. Serve a animação (ver a cabeçada de lado no bloco do salto) e é
+    calculado uma vez, no arranque, porque é na subida que o gesto se arma.
+
+    A direcção pretendida é a do cabeceio: a baliza adversária de dentro da
+    zona de finalização, o contrário da própria baliza fora dela — que é o
+    que o `executeHeader` faz a seguir.
+    */
+    anguloDoDesvioDeCabeca() {
+        if (typeof Match === 'undefined' || !Match.ball) return 0;
+
+        const zona = (typeof HeaderModel !== 'undefined' && HeaderModel.zonaFinalizacao)
+            ? HeaderModel.zonaFinalizacao : 30.0;
+        const naZona = (this.model.position.z * this.dirZ) > (Math.abs(this.targetGoalZ) - zona);
+
+        let alvoX, alvoZ;
+        if (naZona) {
+            alvoX = 0;
+            alvoZ = this.targetGoalZ;
+        } else {
+            // A aliviar: para longe da própria baliza e para a lateral mais
+            // perto — é a saída que um defesa procura de cabeça.
+            alvoX = Math.sign(this.model.position.x || 1) * (CAMPO_LARG / 2);
+            alvoZ = this.model.position.z + this.dirZ * 12.0;
+        }
+
+        const dx = alvoX - this.model.position.x;
+        const dz = alvoZ - this.model.position.z;
+        if (Math.hypot(dx, dz) < 0.001) return 0;
+
+        // Frente do corpo, no mundo.
+        const fx = Math.sin(this.model.rotation.y || 0);
+        const fz = Math.cos(this.model.rotation.y || 0);
+        // Ângulo com sinal entre a frente e a direcção do desvio.
+        return Math.atan2(fx * dz - fz * dx, fx * dx + fz * dz);
+    }
+
+    /*
+    O QUASE GOLO — ver QuaseGoloModel. Só a parte de cima: braços, cotovelos e
+    cabeça, por cima da pose que as pernas já têm. Chamado nos dois fins do
+    `animateBones` (o do jogador parado e o da passada), sempre DEPOIS do
+    `nivelarCabeca`: aqui a cabeça vai para trás, que é o gesto.
+    */
+    aplicarQuaseGolo() {
+        if (!this.lamento || !this.rig || typeof QuaseGoloModel === 'undefined') return;
+        const Q = QuaseGoloModel;
+        const t = this.lamento.t;
+        const w = Math.max(0, Math.min(1, Math.min(t / Q.transicao, (Q.duracao - t) / Q.transicao)));
+        const r = this.rig;
+        const mistura = (a, b) => a + (b - a) * w;
+        r.lArm.rotation.x = mistura(r.lArm.rotation.x, Q.bracoX);
+        r.rArm.rotation.x = mistura(r.rArm.rotation.x, Q.bracoX);
+        r.lArm.rotation.z = mistura(r.lArm.rotation.z, Q.bracoZ);
+        r.rArm.rotation.z = mistura(r.rArm.rotation.z, -Q.bracoZ);
+        r.lArm.rotation.y = mistura(r.lArm.rotation.y, Q.bracoY || 0);
+        r.rArm.rotation.y = mistura(r.rArm.rotation.y, -(Q.bracoY || 0));
+        r.lElbow.rotation.x = mistura(r.lElbow.rotation.x, Q.cotovelo);
+        r.rElbow.rotation.x = mistura(r.rElbow.rotation.x, Q.cotovelo);
+        if (r.neck) r.neck.rotation.x = mistura(r.neck.rotation.x, Q.cabeca);
+    }
+
+    animateBones(dt) {
+        let speed = this.velocity.length(); let rig = this.rig;
+        // Empurrado por outro jogador: da passos em vez de deslizar (ver a colisao no Match.update).
+        if (this.empurrao > 0) {
+            if (this.empurrao > speed) speed = this.empurrao;
+            this.empurrao = this.empurrao * 0.6 < 0.3 ? 0 : this.empurrao * 0.6;
+        }
+
+        // CHEST_CONTROL NÃO entra na lista: a matada no peito não mexe na
+        // pelvis (ver aplicarCamadaPeito), o jogador continua de pé e a
+        // prumo — as pernas e a anca devem voltar ao normal como sempre.
+        const s = this.fsm.currentState;
+        if (s === 'BALL_CONTROL_RIGHT') {
+            return;
+        }
+        if (s !== 'TACKLE' && s !== 'SLIDE_TACKLE' && s !== 'COMEMORAR' && s !== 'SHOOT' && s !== 'SET_PIECE_KICK' && this.jumpTimer <= 0 && (this.role !== 'gk' || (this.gkEstado !== 'mergulho' && this.gkEstado !== 'salto_alto'))) {
+            rig.pelvis.rotation.x = lerpTo(rig.pelvis.rotation.x, 0, 0.25);
+            rig.pelvis.rotation.y = lerpTo(rig.pelvis.rotation.y, 0, 0.25);
+            rig.pelvis.rotation.z = lerpTo(rig.pelvis.rotation.z, 0, 0.25);
+            
+            rig.chest.rotation.y = lerpTo(rig.chest.rotation.y, 0, 0.25);
+            rig.chest.rotation.z = lerpTo(rig.chest.rotation.z, 0, 0.25);
+            
+            rig.lLeg.rotation.y = lerpTo(rig.lLeg.rotation.y, 0, 0.25);
+            rig.rLeg.rotation.y = lerpTo(rig.rLeg.rotation.y, 0, 0.25);
+            
+            rig.lKnee.rotation.y = lerpTo(rig.lKnee.rotation.y, 0, 0.25);
+            rig.lKnee.rotation.z = lerpTo(rig.lKnee.rotation.z, 0, 0.25);
+            rig.rKnee.rotation.y = lerpTo(rig.rKnee.rotation.y, 0, 0.25);
+            rig.rKnee.rotation.z = lerpTo(rig.rKnee.rotation.z, 0, 0.25);
+            
+            rig.lFoot.rotation.y = lerpTo(rig.lFoot.rotation.y, Math.PI / 16, 0.25);
+            rig.lFoot.rotation.z = lerpTo(rig.lFoot.rotation.z, 0, 0.25);
+            rig.rFoot.rotation.y = lerpTo(rig.rFoot.rotation.y, -Math.PI / 16, 0.25);
+            rig.rFoot.rotation.z = lerpTo(rig.rFoot.rotation.z, 0, 0.25);
+            
+            rig.lArm.rotation.y = lerpTo(rig.lArm.rotation.y, 0, 0.25);
+            rig.rArm.rotation.y = lerpTo(rig.rArm.rotation.y, 0, 0.25);
+            
+            rig.lElbow.rotation.y = lerpTo(rig.lElbow.rotation.y, 0, 0.25);
+            rig.lElbow.rotation.z = lerpTo(rig.lElbow.rotation.z, 0, 0.25);
+            rig.rElbow.rotation.y = lerpTo(rig.rElbow.rotation.y, 0, 0.25);
+            rig.rElbow.rotation.z = lerpTo(rig.rElbow.rotation.z, 0, 0.25);
+            
+            if (speed < 0.1) {
+                rig.lElbow.rotation.x = lerpTo(rig.lElbow.rotation.x, -0.3, 0.25);
+                rig.rElbow.rotation.x = lerpTo(rig.rElbow.rotation.x, -0.3, 0.25);
+            }
+        }
+
+        /*
+        A DECISÃO de saltar já não vive aqui — ver `avaliarSaltoDeCabeceio`,
+        chamado pelo `update`. Isto é a função da ANIMAÇÃO: o headless não a
+        chama, e enquanto o gatilho estava cá dentro não havia um único salto
+        nem um único cabeceio em toda a simulação em lote. Ficava também de
+        fora quem estivesse em LATERAL, SHOOT ou BALL_CONTROL_RIGHT, que são
+        estados excluídos do animateBones lá em cima no update.
+
+        Aqui fica só o que desenha: a altura do salto já foi avançada pelo
+        `avaliarSaltoDeCabeceio` e está em `this.jumpAltura`.
+        */
+        let jumpHeight = 0;
+        if (this.jumpTimer > 0) {
+            // O timer e a altura são avançados no avaliarSaltoDeCabeceio, que
+            // corre no update. Descontá-los outra vez aqui fazia o salto correr
+            // ao dobro da velocidade e só metade dele existia em headless.
+            let jt = this.jumpTimer / SaltoCabeceio.duracao;
+            jumpHeight = this.jumpAltura || 0;
+
+            /*
+            Cabeceio em fases (pedido explícito, referência de 12 frames):
+            SUBIDA (tronco/pescoço recuam progressivamente, braços abrem) ->
+            CONTACTO (chicote explosivo para a frente — tronco, pescoço e
+            pernas invertem de repente) -> DESCIDA (volta ao neutro, pernas
+            esticam à procura do chão).
+
+            `p` é o progresso 0..1 do salto (`jt` conta ao contrário). O
+            contacto cai perto de p=0.5 porque o salto é apontado para a
+            bola estar à altura da cabeça exactamente a meio (ver o gatilho
+            de SaltoCabeceio acima) — não é escolhido à parte, seguido daí.
+
+            Alvos dentro de JointLimits.chest.x (-25°..60°) e .neck.x
+            (-60°..50°) — o -0.55 antigo já tinha side-effects deste tipo
+            (ver o bug do lookAt vertical na cabeçada, corrigido antes).
+            */
+            const p = 1 - jt;
+            let chestX, neckX, armZ;
+            if (p < 0.45) {
+                const k = THREE.MathUtils.clamp(p / 0.45, 0, 1);
+                chestX = -0.42 * k;
+                neckX = -0.5 * k;
+                armZ = 2.0 * k;
+            } else if (p < 0.58) {
+                const k = THREE.MathUtils.clamp((p - 0.45) / 0.13, 0, 1);
+                chestX = -0.42 + 0.92 * k;   // -0.42 -> 0.50
+                neckX = -0.5 + 1.10 * k;     // -0.5 -> 0.60
+                armZ = 2.0 - 1.2 * k;        // braços fecham um pouco no impacto
+            } else {
+                const k = THREE.MathUtils.clamp((p - 0.58) / 0.42, 0, 1);
+                chestX = 0.50 * (1 - k);
+                neckX = 0.60 * (1 - k);
+                armZ = 0.8 * (1 - k);
+            }
+
+            /*
+            CABEÇADA DE LADO — a bola vem de frente e sai a 60-90° para o lado.
+
+            As três fases acima são todas no plano sagital: recuar e chicotear
+            para a FRENTE. Um desvio lateral não é isso — torce-se o tronco e
+            vira-se a cabeça, e o chicote dá-se à volta do eixo VERTICAL.
+
+            Aqui não há um segundo gesto: o mesmo roda. `lat` é 0 num cabeceio
+            de frente e 1 num de 80°+ (ver SaltoCabeceio.deLado), e com ele:
+
+              - a torção (chest.y / neck.y) arma para o lado CONTRÁRIO na
+                subida e dispara para o lado do desvio no contacto;
+              - a inclinação lateral (chest.z) acompanha o desvio;
+              - o chicote frontal encolhe na mesma proporção, porque a energia
+                foi para a torção.
+
+            Os alvos ficam dentro dos limites anatómicos (JointLimits.chest.y
+            ±45°, neck.y ±80°, chest.z ±30°).
+            */
+            const DL = (typeof SaltoCabeceio !== 'undefined') ? SaltoCabeceio.deLado : null;
+            let lat = 0, ladoDesvio = 0;
+            if (DL) {
+                const ang = this.cabeceioAnguloY || 0;
+                ladoDesvio = Math.sign(ang) || 1;
+                const a = Math.abs(ang);
+                lat = THREE.MathUtils.clamp(
+                    (a - DL.anguloMin) / Math.max(0.01, DL.anguloCheio - DL.anguloMin), 0, 1);
+            }
+
+            if (lat > 0) {
+                // Fase: arma ao contrário na subida, dispara no contacto.
+                let torcao;
+                if (p < 0.45) {
+                    const k = THREE.MathUtils.clamp(p / 0.45, 0, 1);
+                    torcao = -DL.preparacao * k;
+                } else if (p < 0.58) {
+                    const k = THREE.MathUtils.clamp((p - 0.45) / 0.13, 0, 1);
+                    torcao = -DL.preparacao + (1 + DL.preparacao) * k;
+                } else {
+                    const k = THREE.MathUtils.clamp((p - 0.58) / 0.42, 0, 1);
+                    torcao = 1 - k;
+                }
+                const s = torcao * lat * ladoDesvio;
+                rig.chest.rotation.y = lerpTo(rig.chest.rotation.y,
+                    THREE.MathUtils.clamp(s * DL.torcaoTronco, -0.78, 0.78), 0.5);
+                if (rig.neck) {
+                    rig.neck.rotation.y = lerpTo(rig.neck.rotation.y,
+                        THREE.MathUtils.clamp(s * DL.torcaoPescoco, -1.39, 1.39), 0.5);
+                }
+                rig.chest.rotation.z = lerpTo(rig.chest.rotation.z,
+                    THREE.MathUtils.clamp(-ladoDesvio * lat * DL.inclinacao * Math.sin(p * Math.PI),
+                        -0.52, 0.52), 0.5);
+                // O chicote frontal cede o que a torção levou.
+                chestX *= (1 - 0.6 * lat);
+                neckX *= (1 - 0.6 * lat);
+            }
+
+            rig.chest.rotation.x = lerpTo(rig.chest.rotation.x, chestX, 0.5);
+            if (rig.neck) rig.neck.rotation.x = lerpTo(rig.neck.rotation.x, neckX, 0.5);
+            rig.lArm.rotation.z = lerpTo(rig.lArm.rotation.z, armZ, 0.5);
+            rig.rArm.rotation.z = lerpTo(rig.rArm.rotation.z, -armZ, 0.5);
+
+            /*
+            Pedido explícito: quem dobra é a parte de BAIXO da perna (joelho,
+            rig.lKnee/rKnee), não a coxa inteira (rig.lLeg/rLeg, ficava um
+            "prancha" rígido girando no quadril — era o que estava errado).
+            Curva PRÓPRIA, independente das 3 fases do tronco: dobra rápido
+            na primeira metade da subida e já volta a esticar bem ANTES do
+            contacto (pico ~p=0.28, zero a partir de p≈0.58) — "a parte de
+            baixo da perna vai retornando à posição reta" ENQUANTO a cabeça
+            ainda está a chicotear para a bola, não depois.
+            */
+            let kneeX;
+            if (p < 0.28) {
+                kneeX = Math.sin(THREE.MathUtils.clamp(p / 0.28, 0, 1) * Math.PI / 2) * 1.0;
+            } else {
+                kneeX = 1.0 * (1 - THREE.MathUtils.clamp((p - 0.28) / 0.30, 0, 1));
+            }
+            rig.lKnee.rotation.x = lerpTo(rig.lKnee.rotation.x, kneeX, 0.5);
+            rig.rKnee.rotation.x = lerpTo(rig.rKnee.rotation.x, kneeX, 0.5);
+            // Coxa só um leve avanço de apoio — o movimento é do joelho.
+            rig.lLeg.rotation.x = lerpTo(rig.lLeg.rotation.x, 0.10 * Math.sin(p * Math.PI), 0.5);
+            rig.rLeg.rotation.x = lerpTo(rig.rLeg.rotation.x, 0.10 * Math.sin(p * Math.PI), 0.5);
+        }
+
+        /*
+        Cabeça acompanha a bola, dentro de +-80 graus do corpo — dá pra
+        correr para um lado olhando para a bola/lateral, em vez de ficar
+        sempre a olhar em frente. Antes só o corpo inteiro virava (via
+        model.lookAt), sem pescoço independente.
+        */
+        /*
+        NO LATERAL A CABECA NAO PERSEGUE A BOLA. Relato: *"o jogador esta virando a
+        cabeca na direcao da cobranca do lateral, mas deveria girar a cintura para
+        ficar na direcao do arremesso"*. A bola esta nas maos, por cima e atras da
+        cabeca, e o ramo de baixo mandava o pescoco para ela (medido: +-0.7 a 0.9 rad)
+        enquanto a cintura mal rodava. Aqui a cabeca fica direita sobre o tronco e
+        vai para onde o tronco (o giro da cintura, ver prepararGiroLateral) a leva.
+        */
+        if (rig.neck && this.aberturaOrdem) {
+            // Na abertura (js/abertura.js) olham em frente, para a torcida, e nao para a bola.
+            rig.neck.rotation.y = lerpTo(rig.neck.rotation.y, 0, 0.35);
+            this.cinturaAlvoY = 0;
+        } else if (rig.neck && this.fsm.currentState === 'LATERAL') {
+            rig.neck.rotation.y = lerpTo(rig.neck.rotation.y, 0, 0.35);
+            this.cinturaAlvoY = 0;
+        } else if (rig.neck && Match.ball && this.fsm.currentState !== 'TACKLE' && this.fsm.currentState !== 'SLIDE_TACKLE' && this.fsm.currentState !== 'COMEMORAR') {
+            _v1.subVectors(Match.ball.position, this.model.position);
+            _v1.y = 0;
+            if (_v1.lengthSq() > 0.01) {
+                _v1.normalize();
+                _v2.set(0, 0, 1).applyQuaternion(this.model.quaternion);
+                // Sinal estava trocado (testado: bola à direita dava ângulo
+                // negativo = cabeça virava pra esquerda). atan2(cross,dot)
+                // com cross = fwd.z*toBall.x - fwd.x*toBall.z acerta o lado.
+                const cross = _v2.z * _v1.x - _v2.x * _v1.z;
+                const dot = _v2.dot(_v1);
+                let angle = Math.atan2(cross, dot);
+                const maxHeadAngle = (80 * Math.PI) / 180;
+                angle = THREE.MathUtils.clamp(angle, -maxHeadAngle, maxHeadAngle);
+                // A cintura acompanha uma fracção do giro da cabeça — olhar
+                // de lado para a bola não fica só no pescoço, o tronco gira
+                // um pouco também. Guardado para os ramos parado/a mover-se
+                // aplicarem (ver abaixo); dentro do limite anatómico do
+                // tronco (JointLimits.chest.y, ±45°).
+                this.cinturaAlvoY = angle * 0.35;
+                rig.neck.rotation.y = lerpTo(rig.neck.rotation.y, angle, 0.25);
+            }
+        }
+
+        if (this.fsm.currentState === 'TACKLE' || this.fsm.currentState === 'SLIDE_TACKLE' || this.fsm.currentState === 'COMEMORAR') {
+            return;
+        }
+
+        if (this.jumpTimer > 0) {
+            return; 
+        }
+
+        /*
+        CHEST_CONTROL força este ramo mesmo com `speed >= 0.1`: a velocidade só
+        decai (*0.75/frame, ver fsm.js) em vez de zerar na entrada, e por uns
+        ~13 frames (~0.2s) ficava >= 0.1 — tempo que chegava para o ramo da
+        passada de corrida (`speed >= 0.1` mais abaixo) escrever a perna
+        INTEIRA em pose de sprint por cima de tudo (esse ramo faz set directo,
+        sem lerp). aplicarCamadaPeito() só mexe no joelho, nunca em
+        lLeg/rLeg.rotation.x — a perna ficava esticada em passada, lendo como
+        o jogador deitado no chão. Aqui entra sempre em modo neutro (lerp),
+        e a camada do peito continua a desenhar por cima como já fazia.
+        */
+        if ((speed < 0.1 || this.fsm.currentState === 'CHEST_CONTROL') && this.fsm.currentState !== 'PASS' && this.fsm.currentState !== 'SHOOT' && this.fsm.currentState !== 'SET_PIECE_KICK' && this.fsm.currentState !== 'BALL_CONTROL_RIGHT') {
+            // O salto leve da matada no peito escreve position.y no próprio
+            // fsm.js (case CHEST_CONTROL), que corre antes disto — não pisar.
+            if (!(this.fsm.currentState === 'CHEST_CONTROL' && this.peitoHopTimer > 0)) {
+                this.model.position.y = lerpTo(this.model.position.y, ALTURA_BASE_Y);
+            }
+            let protectingBall = false;
+            if (typeof Match !== 'undefined' && Match.intendedReceiver === this && Match.ball) {
+                const ps = this.playingStyle;
+                if (ps === 'target_man' || ps === 'fox_in_the_box' || ps === 'goal_poacher' || ps === 'dummy_runner') {
+                    let opponents = (this.team === 'TeamA') ? Match.opponents : Match.players;
+                    if (opponents) {
+                        let nearestOpp = null;
+                        let nearestDist = Infinity;
+                        for (let i = 0; i < opponents.length; i++) {
+                            const o = opponents[i];
+                            if (!o || o.role === 'gk') continue;
+                            const dist = this.model.position.distanceTo(o.model.position);
+                            if (dist < nearestDist) {
+                                nearestDist = dist;
+                                nearestOpp = o;
+                            }
+                        }
+                        if (nearestOpp && nearestDist < 3.0) {
+                            let fwd = _v2.set(0, 0, 1).applyQuaternion(this.model.quaternion).normalize();
+                            let dirToOpp = _v1.subVectors(nearestOpp.model.position, this.model.position).normalize();
+                            if (fwd.dot(dirToOpp) < -0.2) {
+                                protectingBall = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            rig.chest.rotation.y = lerpTo(rig.chest.rotation.y, this.cinturaAlvoY || 0); rig.chest.rotation.x = lerpTo(rig.chest.rotation.x, 0);
+            rig.pelvis.rotation.y = lerpTo(rig.pelvis.rotation.y, 0); rig.pelvis.rotation.z = lerpTo(rig.pelvis.rotation.z, 0);
+            rig.lFoot.rotation.x = lerpTo(rig.lFoot.rotation.x, 0); rig.rFoot.rotation.x = lerpTo(rig.rFoot.rotation.x, 0);
+            
+            if (protectingBall) {
+                rig.lArm.rotation.x = lerpTo(rig.lArm.rotation.x, 0.4); rig.rArm.rotation.x = lerpTo(rig.rArm.rotation.x, 0.4);
+                rig.lArm.rotation.z = lerpTo(rig.lArm.rotation.z, Math.PI / 4.5); rig.rArm.rotation.z = lerpTo(rig.rArm.rotation.z, -Math.PI / 4.5);
+                rig.lElbow.rotation.x = lerpTo(rig.lElbow.rotation.x, -0.7); rig.rElbow.rotation.x = lerpTo(rig.rElbow.rotation.x, -0.7);
+                rig.lLeg.rotation.x = lerpTo(rig.lLeg.rotation.x, 0.2); rig.rLeg.rotation.x = lerpTo(rig.rLeg.rotation.x, 0.2);
+                rig.lKnee.rotation.x = lerpTo(rig.lKnee.rotation.x, 0.4); rig.rKnee.rotation.x = lerpTo(rig.rKnee.rotation.x, 0.4);
+                rig.lLeg.rotation.z = lerpTo(rig.lLeg.rotation.z, Math.PI / 16); rig.rLeg.rotation.z = lerpTo(rig.rLeg.rotation.z, -Math.PI / 16);
+            } else {
+                rig.lArm.rotation.x = lerpTo(rig.lArm.rotation.x, 0); rig.rArm.rotation.x = lerpTo(rig.rArm.rotation.x, 0);
+                rig.lArm.rotation.z = lerpTo(rig.lArm.rotation.z, Math.PI / 12); rig.rArm.rotation.z = lerpTo(rig.rArm.rotation.z, -Math.PI / 12);
+                rig.lElbow.rotation.x = lerpTo(rig.lElbow.rotation.x, -0.3); rig.rElbow.rotation.x = lerpTo(rig.rElbow.rotation.x, -0.3);
+                rig.lLeg.rotation.x = lerpTo(rig.lLeg.rotation.x, 0); rig.rLeg.rotation.x = lerpTo(rig.rLeg.rotation.x, 0);
+                rig.lKnee.rotation.x = lerpTo(rig.lKnee.rotation.x, 0); rig.rKnee.rotation.x = lerpTo(rig.rKnee.rotation.x, 0);
+                rig.lLeg.rotation.z = lerpTo(rig.lLeg.rotation.z, Math.PI / 32); rig.rLeg.rotation.z = lerpTo(rig.rLeg.rotation.z, -Math.PI / 32);
+            }
+
+            /*
+            E O PÉ ASSENTE, TAMBÉM AQUI.
+
+            Este ramo saía com um `return` antes do `assentarNoChao` — que é
+            quem desce o corpo até a bota tocar. O corpo já vinha para
+            `ALTURA_BASE_Y` (no topo do ramo), mas as PERNAS não: quem acaba de
+            parar traz a coxa a 40-50° da última passada, e ela só volta a zero
+            por lerp, ao longo de uns quinze frames. Nesse tempo o boneco está de
+            pé, com a perna no ar, e o corpo à altura base — ou seja, a flutuar.
+
+            Medido no caminho do browser, com a sola da bota medida no mundo:
+            10 casos em 10 minutos, com a sola entre 15 e 25 cm do relvado e a
+            coxa entre 0.65 e 0.88 rad. É o relato ("os jogadores ficam
+            flutuando no campo"), e é curto — décimas de segundo — mas com 22
+            jogadores em campo vê-se sempre alguém assim.
+
+            A cabeça vai junto pela mesma razão: o tecto do olhar também estava
+            só no outro ramo.
+            */
+            this.nivelarCabeca();
+            this.aplicarQuaseGolo();
+            this.assentarNoChao();
+            return;
+        }
+        /*
+        O RAMO DA PASSADA NAO TINHA GUARDA DE ESTADO NENHUMA.
+
+        Escrevia `aplicarPosePassada` -- a perna INTEIRA, por atribuicao
+        directa e sem lerp -- sempre que `speed >= 0.1`, fosse qual fosse o
+        estado. O remate e o passe escapavam por acidente e nao por desenho:
+        os dois fazem `velocity.set(0,0,0)` antes de entrar no gesto, portanto
+        `speed` ja vinha a zero e o ramo nunca corria.
+
+        Quem entrasse num gesto com clip ainda em andamento levava o ciclo de
+        corrida por cima do clip durante os ~20 frames que a velocidade demora
+        a decair -- e como o ciclo de corrida ALTERNA as pernas, o que se via
+        era o chute a trocar de perna a meio.
+
+        A guarda e por estado, que e a condicao verdadeira: enquanto houver um
+        gesto com clip a correr, o ciclo de corrida nao escreve pernas.
+        */
+        const gestoComClipAgora = (typeof temGestoComClip === 'function')
+            ? temGestoComClip(this.fsm ? this.fsm.currentState : '')
+            : false;
+        if (speed >= 0.1 && !gestoComClipAgora) {
+            let movingBackwards = false;
+            let fwd = _v2.set(0, 0, 1).applyQuaternion(this.model.quaternion).normalize();
+            let velDir = _v1.copy(this.velocity).normalize();
+            if (fwd.dot(velDir) < -0.3) {
+                movingBackwards = true;
+            }
+
+            /*
+            A cadência sai da PASSADA do andamento, não de um divisor fixo.
+
+            Era `animTimer += speed*dt/3.0`, ou seja 3 m por ciclo a qualquer
+            velocidade — o mesmo tamanho de passo a andar e a sprintar. Agora
+            cada andamento tem a sua passada (1.55 m a andar, 4.40 m a correr) e
+            a cadência é velocidade/passada.
+            */
+            const pose = getGaitPose(0, speed);          // só para ler a passada
+            const avanco = (speed * dt) / pose.passada;
+            this.animTimer += movingBackwards ? -avanco : avanco;
+
+            const t = ((this.animTimer % 1.0) + 1.0) % 1.0;
+            this.animPhase = t;
+
+            /*
+            RESPINGO DA PISADA (so com chuva).
+
+            QUANDO — o pe esta a suportar o peso no ponto MAIS BAIXO do
+            ressalto da anca: `ressalto` do getGaitPose e
+            `(1 + sin(2c + pi))/2`, minimo em t = 0.125 e t = 0.625, um por
+            cada apoio. Detecta-se a PASSAGEM por esses dois pontos entre o
+            frame anterior e este, como no `noFrameDoPe` — uma janela dispara
+            na borda e volta a disparar nos frames seguintes.
+
+            NAO E TODA A PISADA, por pedido: um sorteio deixa passar ~35%.
+            Com 22 jogadores a correr, todas as pisadas dava um tapete de agua
+            permanente a toda a volta — e cada respingo sao ate 10 goticulas
+            de uma pool de 600.
+
+            Tambem nao ha respingo a passo de caminhada (`velMinRespingo`): a
+            agua salta de quem crava o pe, nao de quem anda.
+            */
+            if (typeof Weather !== 'undefined' && Weather.aChover() && speed >= 2.0) {
+                const ant = (typeof this._faseRespingoAnterior === 'number')
+                    ? this._faseRespingoAnterior : t;
+                this._faseRespingoAnterior = t;
+
+                const avancoFase = ((t - ant) % 1 + 1) % 1;
+                if (avancoFase > 0 && avancoFase < 0.5) {
+                    for (let k = 0; k < 2; k++) {
+                        const alvo = 0.125 + k * 0.5;
+                        const desde = ((t - alvo) % 1 + 1) % 1;
+                        if (desde >= avancoFase) continue;          // nao cruzou este apoio
+                        if (Math.random() > 0.35) continue;         // ver a nota acima
+
+                        // O pe de apoio esta ao lado do eixo do corpo, nao debaixo
+                        // dele: ~12 cm para o lado, alternando com o apoio.
+                        const lado = (k === 0) ? 1 : -1;
+                        const px = this.model.position.x + (-fwd.z) * 0.12 * lado;
+                        const pz = this.model.position.z + (fwd.x) * 0.12 * lado;
+                        // Forca a subir com a velocidade: a sprintar levanta mais agua.
+                        Weather.respingo(px, pz, 0.15 + Math.min(0.35, speed / 24));
+                    }
+                }
+            } else {
+                this._faseRespingoAnterior = t;
+            }
+            const P = getGaitPose(t, speed);
+
+            /*
+            PASSO LATERAL. `alinhamento` é o coseno entre a frente do corpo e a
+            direcção do movimento: 1 a direito, 0 de lado, -1 de costas.
+            `lateralidade` (0..1) é quanto disto é deslocação de lado.
+
+            Quem se desloca de lado não dá passadas inteiras — encolhe-se a
+            amplitude e abrem-se/fecham-se as ancas ao ritmo do ciclo, que é o
+            passo do defesa. Sem isto o ciclo frontal tocava por cima de uma
+            deslocação lateral e o boneco patinava.
+            */
+            let lateralidade = 0;
+            let ladoMov = 0;
+            if (typeof LateralGait !== 'undefined') {
+                const alinhamento = fwd.dot(velDir);
+                const desvio = Math.acos(THREE.MathUtils.clamp(Math.abs(alinhamento), -1, 1));
+                if (desvio > LateralGait.anguloMin) {
+                    lateralidade = Math.min(1, (desvio - LateralGait.anguloMin) /
+                        (Math.PI / 2 - LateralGait.anguloMin));
+                    // >0 = movimento para a direita do corpo.
+                    ladoMov = Math.sign(fwd.z * velDir.x - fwd.x * velDir.z) || 1;
+                }
+            }
+            const amp = 1 - lateralidade *
+                ((typeof LateralGait !== 'undefined') ? LateralGait.reducaoPassada : 0);
+
+            /*
+            A escrita da passada no rig mudou-se para o `aplicarPosePassada`
+            do js/pose.js, partilhado com o editor de animação. O que fica
+            aqui é o que depende do jogador: para onde olha e a altura do
+            corpo com o ressalto do ciclo.
+            */
+            aplicarPosePassada(rig, P, t, {
+                amp: amp,
+                lateralidade: lateralidade,
+                ladoMov: ladoMov,
+                paraTras: movingBackwards,
+                cintura: this.cinturaAlvoY || 0,
+                /*
+                Perto do limiar dos 0.1 m/s a passada entra por lerp em vez de
+                `set`: é aqui e no ramo neutro que a perna era puxada em
+                sentidos contrários de frame para frame. A correr (acima de
+                0.5 m/s) volta a ser escrita directa, como sempre foi.
+                */
+                suavizacao: Math.min(1, speed / 0.5)
+            });
+
+            /*
+            O BRAÇO NO AR, por cima da passada.
+
+            Quem está a atacar as costas da defesa pede a bola (ver o ramo do
+            cara a cara em player_bt.js e `PedidoDeBola` no config). Corre
+            DEPOIS da passada de propósito: a passada escreve os dois braços
+            no balanço e este reescreve UM. O outro continua a balançar, que
+            é como se corre a pedir — ninguém corre com os dois no ar.
+
+            O braço levantado é o do lado da BOLA: é para lá que ele olha e é
+            de lá que a bola vem.
+            */
+            if (this.pedindoBola > 0 && typeof PedidoDeBola !== 'undefined' && Match.ball) {
+                const G = PedidoDeBola;
+                const paraEsquerda = (Match.ball.position.x < this.model.position.x);
+                const braco = paraEsquerda ? rig.lArm : rig.rArm;
+                const cotovelo = paraEsquerda ? rig.lElbow : rig.rElbow;
+                const sinal = paraEsquerda ? 1 : -1;
+                braco.rotation.z = lerpTo(braco.rotation.z, sinal * G.z, G.suavizacao);
+                braco.rotation.x = lerpTo(braco.rotation.x, G.x, G.suavizacao);
+                if (cotovelo) cotovelo.rotation.x = lerpTo(cotovelo.rotation.x, G.cotovelo, G.suavizacao);
+            }
+
+            // O `descida` baixa o corpo com a velocidade: a correr a pose
+            // levanta as duas pernas e o boneco fica no ar (ver GaitModel).
+            this.model.position.y = ALTURA_BASE_Y + P.ressalto - (P.descida || 0);
+        }
+
+        // A pose já está escrita: a cabeça não pode ficar a olhar para cima.
+        this.nivelarCabeca();
+
+        // O quase golo por cima da passada: ver aplicarQuaseGolo.
+        this.aplicarQuaseGolo();
+
+        // A pose já está escrita: agora o corpo desce até a bota tocar.
+        this.assentarNoChao();
+    }
+
+    /*
+    O corpo mudou-se para o `construirCorpo` do js/pose.js: o editor de
+    animação (animEditor.html) precisa de montar o mesmo boneco sem instanciar
+    um jogador, e duas cópias do modelo divergiam à primeira alteração.
+
+    O `backMat` era escrito aqui em `this`; agora vem devolvido, porque a
+    função não tem instância nenhuma para lhe tocar.
+    */
+    /*
+    A ALTURA DELE, ESCRITA NA ESCALA DO MODELO.
+
+    O `construirCorpo` deixa o corpo à escala do boneco de referência
+    (`ESCALA_CORPO`, para `ALTURA_PADRAO` metros). Aqui multiplica-se pela
+    razão da altura DESTE jogador, e é isso que o faz medir o que deve.
+
+    Escala uniforme e não só em Y: um jogador de 1.95 m é maior em tudo, não um
+    boneco de 1.75 esticado. É também o que mantém as proporções da cabeça que
+    o ProporcaoCorpo define.
+
+    Não toca no `position.y`: a origem do modelo está nos pés (ver
+    ALTURA_BASE_Y), portanto escalar não o levanta nem o enterra.
+    */
+    aplicarAlturaAoCorpo() {
+        if (!this.model) return;
+        const padrao = (typeof ALTURA_PADRAO === 'number') ? ALTURA_PADRAO : 1.855;
+        const h = (typeof alturaDoJogador === 'function') ? alturaDoJogador(this) : padrao;
+        const base = (typeof ESCALA_CORPO === 'number') ? ESCALA_CORPO : 1;
+        const k = base * (h / padrao);
+        this.model.scale.set(k, k, k);
+        // Guardada para quem precisa dela sem recalcular (ver alturaTestaDe).
+        this.altura = h;
+    }
+
+    buildBody(corCamisa, corCalcao) {
+        const { corpo, rig, backMat, shortFrente } = construirCorpo(corCamisa, corCalcao,
+            this.aparencia, this.uniforme);
+        this.backMat = backMat;
+        this.shortFrente = shortFrente || null;
+        return { corpo, rig };
+    }
+
+
+    updateShirt(num, pos) {
+        /*
+        VISTA TÁCTICA: na câmara de cima o jogador é um disco da cor da
+        equipa, em vez do boneco. De 40 m de altura o boneco lê-se mal e as
+        pernas a mexer só fazem ruído — o que se quer ver dali é para onde a
+        forma da equipa se desloca.
+
+        Vive na cena e não dentro do `model`: assim não sobe com o jogador
+        no salto nem roda com ele. Fica sempre pousado no relvado.
+        */
+        if (!this.discoTatico) {
+            this.discoTatico = new THREE.Mesh(
+                new THREE.CircleGeometry(0.85, 24),
+                new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false })
+            );
+            this.discoTatico.rotation.x = -Math.PI / 2;
+            this.discoTatico.visible = false;
+            Match.scene.add(this.discoTatico);
+        }
+
+        if (this.discoTaticoTexNum !== num || this.discoTaticoTexTeam !== this.team) {
+            let dtCanvas = document.createElement('canvas');
+            dtCanvas.width = 128; dtCanvas.height = 128;
+            let dtCtx = dtCanvas.getContext('2d');
+            
+            let isTeamA = (this.team === 'TeamA');
+            let borderColor = isTeamA ? '#000000' : '#ffffff';
+            let textColor = isTeamA ? '#000000' : '#ffffff';
+            
+            dtCtx.fillStyle = this.corCamisa;
+            dtCtx.beginPath();
+            dtCtx.arc(64, 64, 58, 0, Math.PI * 2);
+            dtCtx.fill();
+            
+            dtCtx.lineWidth = 8;
+            dtCtx.strokeStyle = borderColor;
+            dtCtx.stroke();
+            
+            dtCtx.fillStyle = textColor;
+            dtCtx.font = 'bold 54px sans-serif';
+            dtCtx.textAlign = 'center';
+            dtCtx.textBaseline = 'middle';
+            dtCtx.save();
+            dtCtx.translate(64, 64);
+            dtCtx.rotate(-Math.PI / 2);
+            dtCtx.fillText(num, 0, 0);
+            dtCtx.restore();
+            
+            // A anterior morre aqui: substituir o `map` sem libertar deixa a
+            // textura viva na GPU (ver a auditoria em main.js, que conta as
+            // texturas vivas por isto mesmo).
+            if (this.discoTatico.material.map) this.discoTatico.material.map.dispose();
+            let dtTex = new THREE.CanvasTexture(dtCanvas);
+            this.discoTatico.material.map = dtTex;
+            this.discoTatico.material.needsUpdate = true;
+            this.discoTaticoTexNum = num;
+            this.discoTaticoTexTeam = this.team;
+        }
+
+        if (!this.btTargetGroup) {
+            this.btTargetGroup = new THREE.Group();
+            this.btTargetGroup.visible = false;
+            let ringColorNum = this.team === 'TeamA' ? 0x3498db : 0xe74c3c;
+
+            let ring = new THREE.Mesh(
+                new THREE.RingGeometry(0.8, 1.0, 32), 
+                new THREE.MeshBasicMaterial({ color: ringColorNum, side: THREE.DoubleSide })
+            );
+            ring.rotation.x = -Math.PI / 2;
+            this.btTargetGroup.add(ring);
+
+            let btCanvas = document.createElement('canvas');
+            btCanvas.width = 128; btCanvas.height = 64;
+            let btCtx = btCanvas.getContext('2d');
+            btCtx.fillStyle = 'rgba(0,0,0,0)'; btCtx.fillRect(0,0,128,64);
+            btCtx.fillStyle = '#ffffff';
+            btCtx.font = 'bold 36px sans-serif';
+            btCtx.textAlign = 'center';
+            btCtx.textBaseline = 'middle';
+            btCtx.fillText(pos, 64, 32);
+            
+            let btTex = new THREE.CanvasTexture(btCanvas);
+            let btMat = new THREE.MeshBasicMaterial({ map: btTex, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+            let btPlane = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 1.0), btMat);
+            btPlane.rotation.set(-Math.PI / 2, 0, Math.PI / 2);
+            btPlane.position.set(0, 0.001, 0); 
+            this.btTargetGroup.add(btPlane);
+
+            if (typeof Match !== 'undefined' && Match.scene) {
+                Match.scene.add(this.btTargetGroup);
+            }
+
+            /*
+            Linha da cadeia de posicionamento: liga os anéis LIGADOS pela
+            ordem em que são calculados — slot do TeamBT, slot+estilo, alvo
+            final. O troço slot -> estilo é literalmente o desvio que o
+            Playing Style introduz.
+            */
+            this.btLineGeo = new THREE.BufferGeometry();
+            // Três vértices: slot -> slot+estilo -> alvo final (ver o desenho
+            // por frame, mais acima). Eram dois, e só davam para um troço.
+            this.btLineGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(9), 3));
+            this.btLine = new THREE.Line(this.btLineGeo, new THREE.LineBasicMaterial({ color: ringColorNum }));
+            this.btLine.visible = false;
+            if (typeof Match !== 'undefined' && Match.scene) {
+                Match.scene.add(this.btLine);
+            }
+
+            /*
+            Anel do "PositionBT" (médio): o alvo A SÉRIO — `dynamicTarget`, o
+            ponto que o steerArrive persegue, já com marcação, inquietação,
+            tecto e alisamento. É o fim da linha de montagem; os outros dois
+            anéis são etapas dela.
+            */
+            this.positionTargetGroup = new THREE.Group();
+            this.positionTargetGroup.visible = false;
+            let posRing = new THREE.Mesh(
+                new THREE.RingGeometry(0.5, 0.62, 24),
+                new THREE.MeshBasicMaterial({ color: ringColorNum, side: THREE.DoubleSide })
+            );
+            posRing.rotation.x = -Math.PI / 2;
+            this.positionTargetGroup.add(posRing);
+            if (typeof Match !== 'undefined' && Match.scene) {
+                Match.scene.add(this.positionTargetGroup);
+            }
+
+            /*
+            Anel do "PlayingStyle" (menor): o posto depois do desvio pessoal do
+            estilo e ANTES da marcação (p.postoBase).
+            */
+            this.styleTargetGroup = new THREE.Group();
+            this.styleTargetGroup.visible = false;
+            let styleRing = new THREE.Mesh(
+                new THREE.RingGeometry(0.267, 0.333, 20),
+                new THREE.MeshBasicMaterial({ color: ringColorNum, side: THREE.DoubleSide })
+            );
+            styleRing.rotation.x = -Math.PI / 2;
+            this.styleTargetGroup.add(styleRing);
+            if (typeof Match !== 'undefined' && Match.scene) {
+                Match.scene.add(this.styleTargetGroup);
+            }
+
+        } else if (this.pos !== pos) {
+            let btCtx = this.btTargetGroup.children[1].material.map.image.getContext('2d');
+            btCtx.clearRect(0,0,128,64);
+            btCtx.fillStyle = '#ffffff';
+            btCtx.font = 'bold 36px sans-serif';
+            btCtx.textAlign = 'center';
+            btCtx.textBaseline = 'middle';
+            btCtx.fillText(pos, 64, 32);
+            this.btTargetGroup.children[1].material.map.needsUpdate = true;
+        }
+
+        /*
+        COSTAS DA CAMISOLA: nome em cima, número grande por baixo, os dois com
+        CONTORNO — o desenho de uma camisola a sério.
+
+        O contorno não é enfeite: o número é branco no TeamB e preto no TeamA,
+        e sem uma linha da cor contrária desaparecia contra a camisola quando
+        as duas cores se aproximam (e a bancada, o relvado e as sombras mudam
+        o contraste a toda a hora).
+
+        O nome vem de `skills.nome` (data/player_skills.js). Sem skills — um
+        jogador criado à mão, um teste — cai na POSIÇÃO, que é o que estava
+        aqui antes.
+        */
+        const nome = (this.skills && this.skills.nome) ? this.skills.nome : pos;
+        if (this.num === num && this.pos === pos && this.nomeCamisola === nome && this.backMat.map) return;
+        this.num = num;
+        this.pos = pos;
+        this.nomeCamisola = nome;
+        /*
+        O PE BOM resolve-se AQUI, que e onde o posto se conhece: determinista
+        pelo id (ver `pePreferido` em utils.js e o `FootModel`), com vies para
+        o pe esquerdo nos postos da esquerda.
+        */
+        if (typeof pePreferido === 'function') this.pe = pePreferido(this.id, pos);
+
+        /*
+        E A ALTURA TAMBÉM SE RESOLVE AQUI, pela mesma razão que o pé bom: é
+        aqui que o POSTO se conhece.
+
+        No construtor não dá. O `buildBody` corre lá, mas o `this.pos` ainda
+        vale 'GK' para todos e o `playingStyle` é null — a altura sairia do
+        posto errado e ficava em cache. O `_alturaCache` é limpo antes de
+        recalcular, para um jogador que mude de posto a meio do jogo (uma
+        substituição, um recuo táctico) não ficar com a altura do posto
+        anterior.
+
+        Ver AlturaJogador (config/physics.js) e `alturaDoJogador` (utils.js).
+        */
+        this._alturaCache = undefined;
+        this.aplicarAlturaAoCorpo();
+
+        const cvsBack = document.createElement('canvas'); cvsBack.width = 512; cvsBack.height = 512; const ctxBack = cvsBack.getContext('2d');
+        /*
+        O PADRAO DA CAMISOLA VAI POR BAIXO DO NUMERO, e e aqui que ele se
+        pinta: as costas sao a unica peca cuja textura depende de algo que o
+        `construirCorpo` nao sabe (o numero e o nome). Sem uniforme, fica a cor
+        lisa de sempre. Ver pintarPadraoDeEquipamento (pose.js).
+        */
+        const pecaCamisa = this.uniforme ? this.uniforme.camisa : null;
+        if (pecaCamisa && typeof pintarPadraoDeEquipamento === 'function') {
+            pintarPadraoDeEquipamento(ctxBack, 512, 512, pecaCamisa, this.corCamisa);
+        } else {
+            ctxBack.fillStyle = this.corCamisa; ctxBack.fillRect(0, 0, 512, 512);
+        }
+
+        /*
+        A COR DO NUMERO SAI DO UNIFORME quando ele existe — branco no Flamengo,
+        verde escuro no Fluminense (pedido). Sem uniforme continua a sair do
+        LADO, que e o que estava aqui: escuro no A, claro no B.
+
+        O CONTORNO NAO E DECORACAO. Sobre um padrao, o numero cai sempre em
+        cima da cor errada em algum ponto das costas — um branco numa faixa
+        vermelha, um verde escuro numa listra grena — e e o contorno que o
+        mantem legivel nas duas.
+        */
+        const claro = (this.team !== 'TeamA');
+        const corTexto = (this.uniforme && this.uniforme.numero)
+            ? this.uniforme.numero : (claro ? '#ffffff' : '#000000');
+        const corContorno = (this.uniforme && this.uniforme.contorno)
+            ? this.uniforme.contorno
+            : (claro ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.85)');
+
+        ctxBack.textAlign = 'center';
+        ctxBack.textBaseline = 'middle';
+        ctxBack.lineJoin = 'round';   // sem isto os cantos do contorno espetam
+
+        /*
+        As duas fontes saem do CamisolaTipografia (config.js) — o número tem a
+        sua, que hoje e a Bauhaus 93, e o nome fica na do painel. Sem o
+        config carregado cai no que estava aqui antes.
+        */
+        const TIPO = (typeof CamisolaTipografia !== 'undefined') ? CamisolaTipografia : {
+            fonteNumero: '"Segoe UI", Arial, sans-serif', pesoNumero: 'bold',
+            fonteNome: '"Segoe UI", Arial, sans-serif', pesoNome: 'bold'
+        };
+        const fonteDe = (peso, tamanho, familia) =>
+            `${peso ? peso + ' ' : ''}${tamanho}px ${familia}`;
+
+        const escrever = (texto, y, tamanho, espessura, peso, familia) => {
+            ctxBack.font = fonteDe(peso, tamanho, familia);
+            ctxBack.lineWidth = espessura;
+            ctxBack.strokeStyle = corContorno;
+            ctxBack.strokeText(texto, 256, y);
+            ctxBack.fillStyle = corTexto;
+            ctxBack.fillText(texto, 256, y);
+        };
+
+        /*
+        O NOME ENCOLHE ATÉ CABER. Os nomes vêm dos dados e não têm limite de
+        tamanho; a 72px, um "GK Blue" cabe e um nome longo saía pelas costuras
+        da textura sem ninguém dar por isso — a textura não avisa, só corta.
+        */
+        const NOME = nome.toString().toUpperCase();
+        let tamanhoNome = 72;
+        ctxBack.font = fonteDe(TIPO.pesoNome, tamanhoNome, TIPO.fonteNome);
+        while (tamanhoNome > 28 && ctxBack.measureText(NOME).width > 430) {
+            tamanhoNome -= 4;
+            ctxBack.font = fonteDe(TIPO.pesoNome, tamanhoNome, TIPO.fonteNome);
+        }
+        escrever(NOME, 108, tamanhoNome, 10, TIPO.pesoNome, TIPO.fonteNome);
+
+        escrever(this.num.toString(), 300, 260, 16, TIPO.pesoNumero, TIPO.fonteNumero);
+
+        this.pintarNumeroNoShort();
+
+        if (this.backMat.map) this.backMat.map.dispose();
+        this.backMat.map = new THREE.CanvasTexture(cvsBack);
+        // Cor base tingia o mapa (branco em vermelho ficava avermelhado, ilegível). Canvas já tem as cores certas.
+        this.backMat.color.set(0xffffff);
+        this.backMat.needsUpdate = true;
+    }
+
+    /*
+    O NUMERO NA FRENTE DO CALCAO, na perna da esquerda de quem olha de frente.
+    Repinta o fundo (o desenho do calcao) e escreve o numero por cima, com a cor e o
+    contorno do uniforme — ou preto/branco pelo contraste com o calcao. A face e mais
+    alta do que larga (0.68 x 1.10) e a textura e quadrada: escala-se o x para o numero
+    nao sair esticado na vertical. Ver `ShortNumero` (config/uniformes.js).
+    */
+    pintarNumeroNoShort() {
+        const F = this.shortFrente;
+        if (!F || !F.cvs || this.num === undefined || this.num === null) return;
+        const SN = (typeof ShortNumero !== 'undefined') ? ShortNumero : { x: 0.30, y: 0.40, tamanho: 96, contorno: 6 };
+        const ctx = F.cvs.getContext('2d');
+        if (!ctx) return;
+        if (F.peca && typeof pintarPadraoDeEquipamento === 'function') {
+            pintarPadraoDeEquipamento(ctx, 256, 256, F.peca, F.cor);
+        } else {
+            const cor = (typeof F.cor === 'number') ? '#' + F.cor.toString(16).padStart(6, '0') : F.cor;
+            ctx.fillStyle = cor; ctx.fillRect(0, 0, 256, 256);
+        }
+        const base = new THREE.Color(F.cor);
+        const claro = (0.2126 * base.r + 0.7152 * base.g + 0.0722 * base.b) > 0.5;
+        const corTexto = (this.uniforme && this.uniforme.numeroCalcao) ? this.uniforme.numeroCalcao : (this.uniforme && this.uniforme.numero) ? this.uniforme.numero : (claro ? '#000000' : '#ffffff');
+        const corContorno = (this.uniforme && this.uniforme.contornoCalcao) ? this.uniforme.contornoCalcao : (this.uniforme && this.uniforme.contorno) ? this.uniforme.contorno : (claro ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)');
+        ctx.save();
+        ctx.scale(1.10 / 0.68, 1);
+        ctx.font = 'bold ' + SN.tamanho + 'px sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        ctx.lineWidth = SN.contorno; ctx.strokeStyle = corContorno; ctx.fillStyle = corTexto;
+        const px = SN.x * 256 / (1.10 / 0.68), py = SN.y * 256;
+        ctx.strokeText(String(this.num), px, py);
+        ctx.fillText(String(this.num), px, py);
+        ctx.restore();
+        if (F.mat.map) F.mat.map.needsUpdate = true;
+    }
+
+    updateGK(dt) {
+        let gkCorpo = this.model; let gkRig = this.rig;
+        if (this.gkFalhaTimer > 0) this.gkFalhaTimer -= dt;   // mao de alface: nao volta a tocar na bola
+        // A torcao dos bracos da pose de espera ('maos') nao sobrevive a ela.
+        if (this.gkEstado !== 'maos' && gkRig && gkRig.lArm && (gkRig.lArm.rotation.y !== 0 || gkRig.rArm.rotation.y !== 0)) {
+            gkRig.lArm.rotation.y = lerpTo(gkRig.lArm.rotation.y, 0, 0.4);
+            gkRig.rArm.rotation.y = lerpTo(gkRig.rArm.rotation.y, 0, 0.4);
+        }
+        let limitGKX = (LARGURA_BALIZA / 2) - 0.5;
+
+        /*
+        O MERGULHO GUIADO DA FALTA NÃO PODE SOBREVIVER AO LANCE.
+
+        `isPenaltyDive` faz o guarda-redes ignorar a bola e atirar-se para o
+        `penaltyDiveX` que o plano da falta lhe escreveu. Isso é o que se quer
+        DURANTE o lance — a falta tem desfecho sorteado, e lê-la a sério fazia
+        o guarda-redes defender tudo. Mas a limpeza estava dentro do ramo
+        `else if (Match.state === 'PLAY')`, que só corre quando ele NÃO está a
+        reagir a uma bola que vem na direcção dele: bastava o lance seguinte
+        chegar-lhe com a flag de pé para ele mergulhar para o lado escrito na
+        falta anterior.
+
+        Medido (`tools/headless/gk_salto_alto.js`): em **5 de 6** remates que
+        cruzavam o plano dele dentro da moldura, `isPenaltyDive` estava a true e
+        o `penaltyDiveX` era exactamente a mira errada — a projecção da bola
+        dizia +2.78 e ele atirava-se para −3.16. Era isto o "o mergulho quase
+        nunca chega à bola".
+
+        A condição é a mesma; o que muda é correr SEMPRE, e não só naquele ramo.
+        */
+        if (Match.state === 'PLAY' && !Match.faltaDirectaPlano) this.isPenaltyDive = false;
+
+        /*
+        QUEM SAI DO MERGULHO SEM O ACABAR FICA PENDURADO NO AR.
+
+        O mergulho só é actualizado no ramo `gkEstado === 'mergulho'`. Quando
+        outra coisa lhe rouba o estado a meio do voo — o tiro de meta é o
+        principal, põe-no em `tiro_meta_espera` no instante em que a bola sai —
+        o `dive` fica de pé, ninguém o avança, e o corpo fica na altura em que
+        ia. Medido (`tools/headless/gk_salto_alto.js`, 3 sementes): **11 de 38
+        mergulhos ficavam assim**, um deles 52 s no ar.
+
+        Aqui não se decide nada: só se arruma o que ficou. Quem quiser mesmo
+        interromper um mergulho continua a poder, e o guarda-redes cai de pé
+        em vez de flutuar.
+        */
+        // O braco armado do soco renova-se todos os frames (ver o ramo do cruzamento).
+        this.gkSocoArma = null;
+
+        if (this.gkEstado !== 'mergulho' && this.dive) {
+            const qFacing = this.dive.qFacing;
+            this.dive = null;
+            gkCorpo.position.y = ALTURA_BASE_Y;
+            if (qFacing) gkCorpo.quaternion.copy(qFacing);
+            this.resetBonesToDefault();
+        }
+
+        let prevX = gkCorpo.position.x;
+        let prevZ = gkCorpo.position.z;
+
+        /*
+        O GUARDA-REDES ESTAVA PRESO À ÁREA por estas quatro linhas: fizesse o
+        que fizesse, a posição dele era cortada aos limites da grande área todos
+        os frames. Medido antes: saía 0.12% dos frames e nunca mais do que 0.2 m
+        para lá da linha — ou seja, não saía.
+
+        A área continua a ser o limite normal. A EXCEPÇÃO é aliviar: bola solta
+        FORA da área com ele já comprometido (ver gkPodeSairParaAliviar). Aí a
+        margem abre-se até `alcanceFora`, e o que ele faz lá é jogá-la com o PÉ
+        — as mãos fora da área continuam proibidas, e disso trata o
+        `resolveBallContact`, que exige `dentroArea` para agarrar.
+        */
+        const G_SAI = (typeof GkSaidaDaArea !== 'undefined') ? GkSaidaDaArea : null;
+        let folgaFora = 0;
+        if (G_SAI && Match.ball && typeof gkPodeSairParaAliviar === 'function') {
+            const dzGkAgora = (gkCorpo.position.z - this.ownGoalZ) * this.dirZ;
+            const dzBolaAgora = (Match.ball.position.z - this.ownGoalZ) * this.dirZ;
+            if (gkPodeSairParaAliviar(dzGkAgora, dzBolaAgora, Match.ball.position.x, G_SAI, Area) ||
+                this.gkEstado === 'chutando') {
+                folgaFora = G_SAI.alcanceFora;
+            }
+        }
+
+        /*
+        SAIDA DO GOLO, para a ficha: conta-se a TRAVESSIA da linha da area,
+        uma vez por saida — nao os frames que ele passa la fora.
+        */
+        const dzGkFicha = (gkCorpo.position.z - this.ownGoalZ) * this.dirZ;
+        const foraAgora = dzGkFicha > Area.profundidade;
+        if (foraAgora && !this._gkForaDaArea && typeof MatchStats !== 'undefined' &&
+            MatchStats.registarSaidaDoGolo) {
+            MatchStats.registarSaidaDoGolo(this.team);
+        }
+        this._gkForaDaArea = foraAgora;
+
+        const limX = Area.meiaLargura + folgaFora;
+        gkCorpo.position.x = Math.max(-limX, Math.min(limX, gkCorpo.position.x));
+        let meioComp = LINHA_FUNDO;
+        const prof = Area.profundidade + folgaFora;
+        let areaMinZ = (this.dirZ > 0) ? -meioComp : meioComp - prof;
+        let areaMaxZ = (this.dirZ > 0) ? -meioComp + prof : meioComp;
+        gkCorpo.position.z = Math.max(areaMinZ, Math.min(areaMaxZ, gkCorpo.position.z));
+
+        /*
+        O RUÍDO DA LEITURA SORTEIA-SE UMA VEZ, no primeiro frame do remate.
+
+        Se fosse por frame, a média dava outra vez o ponto exacto e ele só
+        tremia à volta dele. Ver alvoLidoGK e erroLeituraGK (utils.js).
+        */
+        if (window.bolaChutada && !this._gkChutadoAnt) {
+            const ruido = parNormal(Math.random(), Math.random());
+            this._gkErroU = ruido.u;
+            this._gkErroV = ruido.v;
+            /*
+            E A ÂNCORA CONGELA NO INSTANTE DO REMATE.
+
+            Relato: *"o jogador só chuta em cima do guarda-redes no cara a
+            cara"*. E era verdade, mas o remate não tinha culpa: seguido com
+            `tools/scratch/cara_a_cara_voo.js`, o remate saía a 33 m/s e ia
+            cruzar a linha em x=-0.57, com o guarda-redes em x=+0.5. Durante os
+            0.3 s de voo ele deslizou de +0.5 para -0.9 — e a bola chegou-lhe
+            às mãos, de pé, sem mergulho nenhum.
+
+            A causa é o `gkAnchor`, que lê a posição ACTUAL da bola. Com a bola
+            parada isso é posicionamento; com a bola A VOAR PARA A BALIZA, o x
+            dela varre exactamente até ao ponto onde vai cruzar, e seguir esse
+            x é seguir o próprio remate. Nenhum erro de leitura conta, porque
+            ele não está a LER a trajectoria: está a ser levado por ela.
+
+            Congelada a âncora onde a bola estava quando saiu do pé, sobram-lhe
+            as duas coisas que um guarda-redes tem mesmo: o ponto de
+            intercepção LIDO (com o erro do `erroLeituraGK`, e só depois do
+            tempo de reacção) e o mergulho.
+            */
+            this._gkAncoraRemate = {
+                x: Match.ball.position.x,
+                z: Match.ball.position.z
+            };
+        }
+        if (!window.bolaChutada) this._gkAncoraRemate = null;
+        this._gkChutadoAnt = !!window.bolaChutada;
+
+        if (window.bolaChutada && !this.gkReagiu) {
+            this.gkDelayReacao -= dt;
+            if (this.gkDelayReacao <= 0) {
+                this.gkReagiu = true;
+            }
+        }
+
+        /*
+        =============================================================
+        A SAIDA AO CRUZAMENTO RESOLVE-SE AQUI, e nao dentro do salto
+        =============================================================
+        A primeira versao pendurava isto no estado 'salto_alto', e medido em
+        40 minutos de jogo esse estado dispara UMA vez: exige a bola a menos
+        de 2.5 m E entre 1.2 e 3.2 m de altura, que e uma janela estreita
+        demais para servir de porta a um comportamento inteiro. Resultado:
+        113 cruzamentos, 19 deles a cair na pequena area, e zero saidas.
+
+        Agora o contacto e testado todos os frames enquanto a bandeira estiver
+        de pe -- como o `defender` faz no mergulho --, e a bandeira morre
+        quando o lance deixa de ser um cruzamento: bola ja no chao, ja com
+        dono, ou jogo parado. Sem isso ela ficava ligada o resto do jogo
+        (medido: 136583 frames de uma so activacao).
+        */
+        if (this.gkSaiuAoCruzamento) {
+            const S_SAI = (typeof GkSaidaCruzamento !== 'undefined') ? GkSaidaCruzamento : null;
+            /*
+            A BANDEIRA MORRE NO CHAO, e nao a 1.20 m.
+
+            Estava `y < alturaMin`: o cruzamento desce, passava essa marca
+            ainda no ar e a bandeira caia — com ela, a saida que ja estava a
+            acontecer. Agora usa a altura do GESTO (ver alturaMinGesto), que e
+            a mesma marca que o `resolverSaidaAoCruzamento` aplica. As duas
+            contas tem de ser a mesma, senao a bandeira morre num limiar e o
+            gesto e recusado noutro.
+            */
+            const hMorte = (typeof S_SAI.alturaMinGesto === 'number')
+                ? S_SAI.alturaMinGesto : (S_SAI ? S_SAI.alturaMin : 1.2);
+            const bolaMorreu = !S_SAI || Match.state !== 'PLAY' || !!Match.ballCarrier ||
+                Match.ball.position.y < hMorte;
+            if (bolaMorreu) {
+                this.gkSaiuAoCruzamento = false;
+            } else if (gkCorpo.position.distanceTo(Match.ball.position) <= S_SAI.alcanceSaida) {
+                if (this.resolverSaidaAoCruzamento()) {
+                    this.gkSaiuAoCruzamento = false;
+                }
+            }
+        }
+
+        /*
+        A SAÍDA AOS PÉS decide-se antes de tudo o resto do repouso: o avançado
+        está em cima dele. Ver saidaAosPesDeveArrancar.
+        */
+        this.talvezSairAosPes();
+
+        if (this.gkEstado === 'idle') {
+            /*
+            NA FALTA ELE ESPERA NA LINHA, COMO NUM PENÁLTI.
+
+            O `setupSetPiece` põe-no em cima da linha e desloca-o para o lado
+            que a barreira NÃO fecha (ver `deslocamentoGK`), mas a âncora de
+            repouso — o `gkAnchor`, que é a do jogo corrido — puxava-o dali
+            para fora durante os três segundos de espera. Medido no instante
+            da batida: **1.27 m à frente da própria linha**, com o desenho da
+            montagem já desfeito.
+
+            O x não é zero como no penálti: é o que a montagem lhe deu, que é
+            precisamente o desvio para o canto aberto.
+            */
+            const naLinhaDaFalta = (typeof Match !== 'undefined' &&
+                Match.state === 'FREE_KICK' && this.team !== Match.setPieceTeam);
+            /*
+            O MEIO DA BALIZA NUMA BOLA PARADA — e o CORNER_KICK faltava.
+
+            BUG, com relato: *"depois que o goleiro pula em uma bola que vai
+            pra fora, depois de levantar, ele fica na mesma posição. Ele não
+            volta para o centro do gol"*.
+
+            Em repouso o alvo em x e a PROPRIA POSICAO — de proposito, para ele
+            nao andar de um lado para o outro em jogo corrido, onde sao os
+            ramos defensivos la em baixo que decidem o x. So tres estados o
+            mandavam ao meio: GOAL, OUT e PENALTY.
+
+            Uma bola que sai pela linha de fundo da CORNER_KICK ou GOAL_KICK, e
+            nenhum dos dois estava na lista. O lance mais comum e precisamente
+            esse: ele mergulha, a bola sai para canto, levanta-se num canto da
+            baliza e fica la os segundos todos da marcacao.
+
+            O canto entra. O GOAL_KICK nao: ai ele e quem BATE, e o ponto de
+            arranque dele e outro (ver `tiro_meta_espera` e a nota do
+            teletransporte em match_setpieces.js) — manda-lo ao meio era
+            desfazer essa caminhada.
+            */
+            const noMeioDaBaliza = (typeof Match !== 'undefined') &&
+                (Match.state === 'GOAL' || Match.state === 'OUT' ||
+                 Match.state === 'PENALTY' || Match.state === 'CORNER_KICK');
+            let alvoGkX = noMeioDaBaliza ? 0 : gkCorpo.position.x;
+
+            /*
+            Posição de repouso: sai toda de gkAnchor() (config.js), a mesma
+            função que os ramos defensivos usam mais abaixo. Antes eram quatro
+            fórmulas diferentes, com coeficientes que SUBIAM (0.15, 0.35, 0.55)
+            à medida que o atacante se aproximava — quanto maior o perigo, mais
+            ele saía da baliza — e uma base de repouso já 5 m fora da linha.
+            */
+            const gkStyleAtual = GoalkeeperStyle[this.gkStyle] || GoalkeeperStyle.defensive;
+            const ancora = (typeof Match !== 'undefined' && Match.state === 'PENALTY')
+                ? { x: 0, z: this.ownGoalZ - this.dirZ * ((GoalkeeperPose.penalti && GoalkeeperPose.penalti.pesAFrente) || 0) }
+                : naLinhaDaFalta
+                ? { x: gkCorpo.position.x, z: this.ownGoalZ }
+                : gkAnchor(
+                    this._gkAncoraRemate ? this._gkAncoraRemate.x : Match.ball.position.x,
+                    this._gkAncoraRemate ? this._gkAncoraRemate.z : Match.ball.position.z,
+                    this.ownGoalZ, this.dirZ, gkStyleAtual);
+
+            let alvoGkZ = (typeof Match !== 'undefined' && Match.state === 'GOAL')
+                ? (-48 * this.dirZ)
+                : ancora.z;
+
+            // O canto anda ao mesmo ritmo dos outros lances parados: ele tem
+            // os segundos da marcacao para chegar ao meio, sem correr.
+            let speedLerp = (typeof Match !== 'undefined' && (Match.state === 'GOAL' ||
+                Match.state === 'PENALTY' || Match.state === 'CORNER_KICK' ||
+                naLinhaDaFalta)) ? 4.0 : 2.0;
+
+            let gkSkill = this.skillFor('GK');
+
+            let bolaVindoPraMim = (this.dirZ > 0) ? (Match.ballVel.z < -5) : (Match.ballVel.z > 5);
+
+            if (bolaVindoPraMim && this.gkReagiu) {
+                let tempoAteGolo = Math.abs(gkCorpo.position.z - Match.ball.position.z) / Math.abs(Match.ballVel.z);
+                if (tempoAteGolo > 0 && tempoAteGolo < 1.5) {
+                    let interX, interY;
+                    if (this.isPenaltyDive) {
+                        interX = this.penaltyDiveX;
+                        interY = this.penaltyDiveY;
+                    } else {
+                        // A mesma leitura do outro ramo — ver alvoLidoGK.
+                        const alvoInt = this.alvoLidoGK(gkCorpo.position.z);
+                        interX = alvoInt ? alvoInt.x : Match.ball.position.x;
+                        interY = alvoInt ? alvoInt.y : Match.ball.position.y;
+                    }
+                    /*
+                    A DISTÂNCIA QUE CONTA PARA SE ATIRAR É ATÉ À BOLA, não até
+                    ao poste. O `interX` é cortado a ±limitGKX (o sítio onde ele
+                    pode ir), e o alcance media-se a partir dele: numa bola a
+                    passar 7-12 m ao lado — quase sempre desviada por um
+                    defensor — o corte punha-a "a 3 m, no poste", e ele
+                    atirava-se ao poste a vê-la sair. Medido: 6 de 11 mergulhos
+                    em 3 jogos. Ver `lateralReal` mais abaixo.
+                    */
+                    const interXLido = interX;
+                    interX = Math.max(-limitGKX, Math.min(limitGKX, interX)); interY = Math.max(0, Math.min(2.44, interY));
+
+                    /*
+                    Bola perto do corpo não é mergulho: fica de pé e leva as
+                    mãos até ela (ver estado 'maos'). Só se atira ao chão se
+                    ela passar a mais de GoalkeeperPose.mergulhoLateralMin do
+                    lado dele.
+                    */
+                    const lateral = interX - gkCorpo.position.x;
+                    this.gkTempoMergulho = 0;
+                    this.gkAlvoX = interX;
+
+                    /*
+                    E SO SE ATIRA QUANDO A BOLA JA VEM AO ALCANCE DO SALTO.
+
+                    Ver GoalkeeperDive.margemAntecipacao. O tempo que o gesto
+                    precisa e o de agachar e estender mais o voo ate a mao la
+                    chegar; o voo, esse, sai da distancia lateral que ele tem
+                    de cobrir, descontado o braco — a mesma conta do
+                    `GkDive.lancar`. Enquanto faltar mais do que isso, ele fica
+                    DE PE: o `gkAlvoX` acima ja o desloca para o lado.
+                    */
+                    const naHora = this.horaDeMergulhar(lateral, tempoAteGolo);
+
+                    /*
+                    DE PERTO E POR BAIXO: a perna esticada no chão.
+
+                    Pedido, com fotografia. Ver GoalkeeperPose.barreira: a
+                    essa distância não há voo para mergulhar (7 m a 20 m/s são
+                    0.35 s, e só a reação come 0.28), e de pé a bola passa por
+                    baixo das mãos e por fora dos pés. Abre-se e tapa campo.
+
+                    É uma POSE do ramo 'maos', e não um estado novo, de
+                    propósito: assim herda o teste de contacto que já lá está
+                    (mãos lidas do rig contra o trajecto do frame) em vez de
+                    ganhar uma cópia dele para divergir.
+                    */
+                    /*
+                    O ENCAIXE AJOELHADO — bola rasteira que vem CONTRA o corpo.
+
+                    Ver GoalkeeperPose.encaixe. Tres condicoes: a bola cruza a
+                    linha abaixo de 1/3 da baliza, vem na direccao dele (angulo
+                    entre a trajectoria e a linha bola->guarda-redes ate 30
+                    graus) e passa-lhe a menos de `lateralMax` do corpo.
+
+                    O ANGULO E A PARTE QUE DISTINGUE este gesto do resto. Uma
+                    bola rasteira que vem AO CORPO agarra-se pondo o corpo
+                    atras dela; a mesma bola a passar de raspao ao lado exige
+                    esticar-se. So a altura nao separava os dois casos, e e por
+                    isso que o gatilho nao e so `interY`.
+
+                    Fica ANTES da barreira de proposito: as duas competem pela
+                    bola baixa e perto, e o pedido e explicito em querer os dois
+                    joelhos dobrados a encaixar, nao a perna esticada a tapar.
+                    */
+                    const EN = GoalkeeperPose.encaixe;
+                    let encaixeOk = false;
+                    if (EN && interY <= EN.alturaMax && Math.abs(lateral) <= EN.lateralMax) {
+                        const bv = Match.ballVel;
+                        const velH = Math.hypot(bv.x, bv.z);
+                        if (velH > 0.5) {
+                            // Direccao da bola, e direccao da bola ATE ele.
+                            const bdx = bv.x / velH, bdz = bv.z / velH;
+                            const px = gkCorpo.position.x - Match.ball.position.x;
+                            const pz = gkCorpo.position.z - Match.ball.position.z;
+                            const dp = Math.hypot(px, pz);
+                            if (dp > 0.1) {
+                                const cos = (bdx * (px / dp)) + (bdz * (pz / dp));
+                                const ang = Math.acos(THREE.MathUtils.clamp(cos, -1, 1));
+                                encaixeOk = (ang <= EN.anguloMaxGraus * Math.PI / 180);
+                            }
+                        }
+                    }
+                    this.gkEncaixe = encaixeOk;
+
+                    const RB = GoalkeeperPose.barreira;
+                    this.gkBarreira = !this.gkEncaixe && !!(RB &&
+                        (this.gkDistRemate || 99) <= RB.distMax &&
+                        interY <= RB.alturaMax);
+
+                    if (this.gkEncaixe) {
+                        // O lado da bola, como na barreira: no referencial do
+                        // MODELO, que esta rodado por lookAt conforme a equipa.
+                        _v1.set(1, 0, 0).applyQuaternion(this.model.quaternion);
+                        _v2.set(interX - gkCorpo.position.x, 0,
+                            Match.ball.position.z - gkCorpo.position.z);
+                        this.gkLadoBarreira = Math.sign(_v1.x * _v2.x + _v1.z * _v2.z) || 1;
+                        this.gkEstado = 'maos';
+                    } else if (this.gkBarreira) {
+                        // O lado da bola, no referencial do MODELO: `lateral` é
+                        // em X do mundo, e o modelo está rodado por lookAt.
+                        _v1.set(1, 0, 0).applyQuaternion(this.model.quaternion);
+                        _v2.set(interX - gkCorpo.position.x, 0,
+                            Match.ball.position.z - gkCorpo.position.z);
+                        this.gkLadoBarreira = Math.sign(_v1.x * _v2.x + _v1.z * _v2.z) || 1;
+                        this.gkEstado = 'maos';
+                    } else if (Math.abs(lateral) < GoalkeeperPose.mergulhoLateralMin) {
+                        this.gkEstado = 'maos';
+                    } else if (!this.isPenaltyDive && (
+                        (!GoalkeeperDive.mergulhaSemAlcance &&
+                            Math.abs(interXLido - gkCorpo.position.x) > this.alcanceDoMergulho(tempoAteGolo)) ||
+                        this.bolaLongeParaMergulhar())) {
+                        /*
+                        LONGE DE MAIS: não se atira. Ver `alcanceDoMergulho` e
+                        GoalkeeperDive.alcanceLateralMax — atirar-se a uma bola
+                        que passa a seis metros é cair no chão a vê-la entrar.
+                        Fica de pé e desloca-se, que é o que o `gkAlvoX` faz.
+
+                        A defesa DESENHADA (penálti, falta directa) está de
+                        fora: nessas o desfecho foi sorteado e o gesto é para
+                        se ver.
+                        */
+                    } else if (!naHora) {
+                        /*
+                        Ainda ha tempo: acompanha de pe. Nao se escreve estado
+                        nenhum — o ramo 'idle' continua a corre-lo e a leva-lo
+                        para o `gkAlvoX`.
+                        */
+                    } else {
+                        this.gkEstado = 'mergulho';
+                        this.dive = null;   // arranca um mergulho novo (GkDive)
+                        this.gkDirMergulho = Math.sign(lateral);
+                        this.gkAlvoY = interY;
+                        if (interY > 1.6) this.gkTipoMergulho = 'alto'; else if (interY > 0.8) this.gkTipoMergulho = 'meio'; else this.gkTipoMergulho = 'baixo';
+                    }
+                }
+                speedLerp = 3.0 + ((gkSkill - 50) / 50) * 6.0;
+            } else if (Match.state === 'PLAY') {
+                let isAttacking = (Match.possessionTeam === this.team);
+                let bolaNaArea = Area.contem(Match.ball.position.x, Match.ball.position.z, this.ownGoalZ);
+                
+                // Exclui a bola que ele mesmo acabou de chutar (relançamento/
+                // reposição) — sem isto, um pontapé de baliza contava como
+                // cruzamento a entrar na própria área e o GK saltava/mergulhava
+                // logo a seguir ao próprio chute.
+                let isCross = (Match.ballVel.y > 2.0 && Match.ball.position.y > 1.2 && Math.abs(Match.ball.position.z) > 24 && !Match.ballCarrier && Match.lastTouchedPlayer !== this);
+
+                /*
+                =========================================================
+                A BOLA VAI CAIR NA PEQUENA AREA — E ENTAO E DELE
+                =========================================================
+                Isto vivia DENTRO do ramo `isCross`, e o `isCross` exige
+                `ballVel.y > 2.0`: ou seja a bola a SUBIR. Metade dos
+                cruzamentos ja vem a descer quando a projeccao do voo os poe
+                na pequena area (um canto, um cruzamento alto lido tarde), e
+                nesses a bandeira nunca se levantava — medido, 44% dos voos
+                para a pequena area chegavam a levantar bandeira
+                (tools/headless/gk_cruzamento_pequena.js).
+
+                O que decide isto e ONDE A BOLA VAI CAIR, e nao se ela sobe ou
+                desce: se cai na pequena area, e dele. Por isso e uma conta
+                propria, com o gatilho de altura (`alturaMin`, bola no ar) e a
+                projeccao do voo — a mesma `preverQuedaDaBola` de antes.
+
+                E NAO O LEVA FORA DA BALIZA: a condicao e a queda dentro da
+                PEQUENA area, que e o quintal dele. Um remate enquadrado nao
+                passa por aqui — o ramo do mergulho corre antes deste (ver
+                `bolaVindoPraMim` acima) e apanha-o primeiro.
+                */
+                const S_CRUZ_PREV = (typeof GkSaidaCruzamento !== 'undefined') ? GkSaidaCruzamento : null;
+                let quedaNaPequena = null;
+                if (S_CRUZ_PREV && !Match.ballCarrier && Match.lastTouchedPlayer !== this &&
+                    Match.ball.position.y > S_CRUZ_PREV.alturaMin &&
+                    typeof preverQuedaDaBola === 'function' && typeof Area !== 'undefined') {
+                    const q = preverQuedaDaBola();
+                    if (q && Math.sign(q.z) === Math.sign(this.ownGoalZ)) {
+                        const dx = Math.abs(q.x);
+                        const dz = Math.abs(this.ownGoalZ - q.z);
+
+                        // O QUINTAL: dentro da pequena area a bola e dele, sem
+                        // discussao. Era esta a unica zona que existia.
+                        if (dx <= Area.pequenaMeiaLargura && dz <= Area.pequenaProfundidade) {
+                            quedaNaPequena = q;
+                        } else {
+                            /*
+                            A ZONA DISPUTADA — ver GkSaidaCruzamento, que tem o
+                            relato do canto e a medicao (29 frames de
+                            'salto_alto' em 39 cantos) que a motivou.
+
+                            Aqui ele so sai se CHEGAR PRIMEIRO com margem. A
+                            conta e de distancias e nao de tempos de propósito:
+                            um atacante que vem a correr e um guarda-redes que
+                            arranca da linha tem velocidades parecidas, e a
+                            distancia e a parte da conta que nao depende de
+                            adivinhar a aceleracao de ninguem.
+                            */
+                            const pz = (typeof S_CRUZ_PREV.saidaProfundidade === 'number')
+                                ? S_CRUZ_PREV.saidaProfundidade : 11.0;
+                            const px = (typeof S_CRUZ_PREV.saidaMeiaLargura === 'number')
+                                ? S_CRUZ_PREV.saidaMeiaLargura : 11.0;
+                            if (dx <= px && dz <= pz) {
+                                const margem = (typeof S_CRUZ_PREV.margemVantagem === 'number')
+                                    ? S_CRUZ_PREV.margemVantagem : 2.0;
+                                const dEle = Math.hypot(gkCorpo.position.x - q.x,
+                                    gkCorpo.position.z - q.z);
+                                /*
+                                O ADVERSARIO MAIS PERTO DO PONTO DE QUEDA, e nao
+                                o mais perto dele: o que interessa e quem ganha a
+                                bola, nao quem o marca.
+                                */
+                                const advs = (this.team === 'TeamA') ? Match.opponents : Match.players;
+                                let dAdv = Infinity;
+                                for (let i = 0; i < advs.length; i++) {
+                                    const adv = advs[i];
+                                    if (!adv || adv.expulso || !adv.model) continue;
+                                    const d = Math.hypot(adv.model.position.x - q.x,
+                                        adv.model.position.z - q.z);
+                                    if (d < dAdv) dAdv = d;
+                                }
+                                if (dEle + margem < dAdv) quedaNaPequena = q;
+                            }
+                        }
+                    }
+                }
+
+                /*
+                Bola solta, lenta, perto dele — passe atrás do próprio time
+                ou bola perdida do adversário, tanto faz: ele SEMPRE apanha
+                com as mãos, nunca controla com o pé. Antes isto só existia
+                dentro do ramo "!isAttacking && bolaNaArea" — um passe atrás
+                enquanto o próprio time tinha posse nunca disparava o
+                'apanhar', e a bola acabava só grudada ao pé dele (resolvida
+                por resolveBallContact() como qualquer jogador de linha).
+                */
+                const semDono = !Match.ballCarrier;
+                const mansinha = Match.ballVel.length() < BallControl.easySpeed;
+                const distBolaAgora = gkCorpo.position.distanceTo(Match.ball.position);
+                const maosProibidas = (typeof maosProibidasNoRecuo === 'function')
+                    ? maosProibidasNoRecuo(Match.recuoParaGR, this.team)
+                    : false;
+
+                /*
+                A BOLA ENDERECADA A UM COMPANHEIRO NAO E DELE — a mesma guarda
+                que o ramo da "bola solta na area" (mais abaixo) já tinha, e
+                que FALTAVA aqui. Um passe em voo não tem `ballCarrier`, e o
+                `recuoParaGR` é recalculado por frame contra o ponto do último
+                toque: a bola que o guarda-redes acabou de jogar para um
+                central dentro da área entrava aqui como bola solta com as mãos
+                proibidas, e ele saía atrás dela.
+
+                Medido com tests/gk_nao_persegue_o_proprio_passe.test.js: ele
+                andava 11.2 m em 1.5 s e chegava a 0.61 m da bola que ele
+                próprio tinha jogado.
+
+                Um recuo PARA ele continua a valer — nesse caso o destinatário
+                é ele, e a Lei 12 (mãos proibidas) não se toca: quem a decide é
+                o `maosProibidasNoRecuo`, que fica como está.
+                */
+                const paraOutro = !!(Match.intendedReceiver &&
+                    Match.intendedReceiver.team === this.team &&
+                    Match.intendedReceiver !== this);
+
+                if (semDono && !paraOutro && (mansinha || maosProibidas) && distBolaAgora < 10.0) {
+                    /*
+                    A BOLA ESTÁ FORA DA ÁREA?
+
+                    Este ramo mandava-o atrás de qualquer bola solta a 10 m e
+                    agarrava-a a 1.2 m sem olhar à área — as mãos fora da área
+                    são falta, e o `resolveBallContact` já o impedia de agarrar,
+                    mas ele ficava ali parado em cima dela sem fazer nada.
+
+                    Agora: fora da área SÓ vai se já estiver comprometido (ver
+                    gkPodeSairParaAliviar), e o que faz lá é ALIVIAR COM O PÉ,
+                    com direcção — em frente pelo meio, para a linha lateral se
+                    estiver encostado. Nunca com as mãos.
+                    */
+                    const G = (typeof GkSaidaDaArea !== 'undefined') ? GkSaidaDaArea : null;
+                    const dzGk = (gkCorpo.position.z - this.ownGoalZ) * this.dirZ;
+                    const dzBola = (Match.ball.position.z - this.ownGoalZ) * this.dirZ;
+                    const bolaForaDaArea = dzBola > Area.profundidade ||
+                        Math.abs(Match.ball.position.x) > Area.meiaLargura;
+
+                    const podeSair = G && typeof gkPodeSairParaAliviar === 'function' &&
+                        gkPodeSairParaAliviar(dzGk, dzBola, Match.ball.position.x, G, Area);
+
+                    if (bolaForaDaArea && !podeSair) {
+                        // Não está comprometido: não sai. Volta à âncora.
+                        alvoGkX = ancora.x;
+                        alvoGkZ = ancora.z;
+                        speedLerp = 3.5;
+                    } else if (!maosProibidas && !bolaForaDaArea && this.devoDeslizarDeLado(distBolaAgora)) {
+                        /*
+                        A BOLA LENTA QUE PASSA AO LADO: DESLIZE DE LADO. Em vez de ir atras dela (a deslizar de
+                        pe, de pernas paradas, e agachar-se so quando la chegava), atira-se ao deslize de lado
+                        deitado com as pernas para a bola (GoalkeeperDive.deslizeLado.pesPrimeiro): o gesto que
+                        devia acontecer e nao acontecia.
+                        */
+                        this.gkEstado = 'mergulho';
+                        this.dive = null;
+                        this.gkDirMergulho = Math.sign(Match.ball.position.x - gkCorpo.position.x) || 1;
+                        // Onde a bola vai estar quando o deslize la chegar.
+                        const SL = GoalkeeperDive.deslizeLado.soltaLenta;
+                        const prevSL = (typeof preverBolaEm === 'function') ? preverBolaEm(SL.tempo) : null;
+                        this.gkAlvoX = prevSL ? prevSL.x : Match.ball.position.x;
+                        this.gkAlvoY = Math.max(0.15, Match.ball.position.y);
+                        this.gkTipoMergulho = 'baixo';
+                    } else {
+                        alvoGkX = Match.ball.position.x;
+                        alvoGkZ = Match.ball.position.z;
+                        speedLerp = 5.5;
+
+                        if (distBolaAgora < 1.2) {
+                            if (bolaForaDaArea) {
+                                // ALÍVIO COM O PÉ. Mesmo gesto do tiro de meta,
+                                // com a bola a partir no contactTime do clip.
+                                this.chutarComGestoDeTiroDeMeta(
+                                    () => this.aliviarForaDaArea());
+                            } else if (!maosProibidas) {
+                                this.gkEstado = 'apanhar';
+                                this.gkTempoMergulho = 0;
+                            } else if (this.adversarioAperta()) {
+                                /*
+                                RECUO COM O PE E ADVERSARIO EM CIMA: nao pode
+                                pegar (Lei 12) e nao ha tempo para dominar.
+                                Chuta para a frente, mesmo gesto e mesma
+                                balistica do tiro de meta. Ver GkRecuoModel.
+                                */
+                                this.chutarRecuoDeUrgencia();
+                            }
+                        }
+                    }
+                } else if (isCross || quedaNaPequena) {
+                    alvoGkZ = ownGoalZCenter(this.team) + (Match.ball.position.z - ownGoalZCenter(this.team)) * 0.55;
+                    alvoGkX = Match.ball.position.x * 0.65;
+                    speedLerp = 4.0;
+
+                    /*
+                    A BOLA VAI CAIR NA PEQUENA AREA? Entao e dele: sai.
+
+                    Ver GkSaidaCruzamento (config/goalkeeper.js), que tem o
+                    pedido escrito. O gatilho e a PROJECCAO do voo
+                    (`preverQuedaDaBola`, fisica real), e nao a posicao actual
+                    da bola: um cruzamento a meio do voo esta sempre longe, e
+                    quem espera por ele chega tarde.
+
+                    Fora da pequena area nao sai: fica o posicionamento de
+                    sempre, que e acompanhar a bola a meio caminho da linha.
+                    */
+                    // A conta esta feita acima (`quedaNaPequena`), e e ela
+                    // que manda: vai ao ponto de queda, depressa, e levanta a
+                    // bandeira que o gesto consome.
+                    if (quedaNaPequena) {
+                        alvoGkX = quedaNaPequena.x;
+                        alvoGkZ = quedaNaPequena.z;
+                        /*
+                        8.0 E NAO 6.0 — a saida ao cruzamento e um sprint.
+
+                        Medido com o tools/headless/gk_cruzamento_pequena.js: a
+                        6.0 ele chegava a 2.2-2.7 m da bola no instante em que
+                        ela aterrava, ou seja LA, mas tarde, e o gesto nunca
+                        acontecia. E o unico ramo do updateGK em que a bola vai
+                        cair no quintal dele e ninguem mais a pode disputar com
+                        vantagem.
+                        */
+                        speedLerp = 6.0;
+                        this.gkSaiuAoCruzamento = true;
+                    }
+
+                    /*
+                    VAI AO PONTO ONDE A APANHA COM AS MAOS, e nao ao ponto onde
+                    ela aterra. Relato: *"o goleiro, durante o cruzamento, vai
+                    na direcao da bola, mas nao salta para tentar pegar ou dar
+                    um soco"*.
+
+                    O ponto de queda fica metros DEPOIS do sitio onde a bola
+                    passa a altura das maos dele — ela continua a descer em
+                    diagonal. Medido a 4 de Outubro de 2026, 12 jogos: em 97
+                    saidas ao cruzamento, 74 saltos e 5 bolas agarradas ou
+                    socadas; no inicio do salto a bola estava a 6 m e passava a
+                    2.75 m dele (medianas). Era o mesmo erro que o cabeceio dos
+                    jogadores de campo ja tinha resolvido (ver actReceivePass).
+                    */
+                    const encontroSaida = (quedaNaPequena && typeof interceptarBola === 'function')
+                        ? interceptarBola(this, { gestos: ['gk_salto', 'gk_maos'] })
+                        : null;
+                    if (encontroSaida) {
+                        alvoGkX = encontroSaida.x;
+                        alvoGkZ = encontroSaida.z;
+                    }
+                    /*
+                    VAI A CORRER COM O BRACO DO SOCO ARMADO — ver
+                    GkSaidaCruzamento.socoAnim. Marcado, e a menos de
+                    `armaDistancia` do ponto de encontro: o braco do lado da
+                    bola vai atras (aplicado no fim do updateGK) e no ar so
+                    falta o golpe.
+                    */
+                    {
+                        const SOCO = (typeof GkSaidaCruzamento !== 'undefined') ? GkSaidaCruzamento.socoAnim : null;
+                        if (SOCO && encontroSaida && quedaNaPequena && encontroSaida.distancia <= SOCO.armaDistancia &&
+                            this.estaMarcadoNaSaida()) {
+                            _v1.set(1, 0, 0).applyQuaternion(this.model.quaternion);
+                            const ex = encontroSaida.x - this.model.position.x, ez = encontroSaida.z - this.model.position.z;
+                            this.gkSocoArma = ((_v1.x * ex + _v1.z * ez) >= 0) ? 'r' : 'l';
+                        }
+                    }
+
+                    let distToBall = gkCorpo.position.distanceTo(Match.ball.position);
+                    /*
+                    O SALTO NAO PODE PARTIR CEDO — era aqui que a saida ao
+                    cruzamento morria.
+
+                    O `salto_alto` toma conta do corpo (e a animacao que o
+                    move), portanto assim que ele entra, a corrida para o ponto
+                    de queda ACABA. Com o gatilho em 2.5 m da posicao ACTUAL da
+                    bola, ele saltava a caminho: media-se a bola a aterrar com
+                    ele a 2.2-3.5 m dela (mediana 3.07), sempre fora do
+                    `alcanceSaida` de 1.6 — zero gestos em 27 cruzamentos.
+
+                    Com a bola a cair na pequena area, o salto espera por DUAS
+                    coisas: estar quase no ponto de queda e a bola estar quase
+                    ao alcance. Fora desse caso o gatilho e o de sempre.
+                    */
+                    let podeSaltar = (distToBall < 2.5);
+                    if (quedaNaPequena) {
+                        /*
+                        O SALTO SAI QUANDO ELE ENCONTRA A BOLA, e nao quando
+                        tres condicoes calham no mesmo frame.
+
+                        O que aqui estava exigia, tudo ao mesmo tempo: estar a
+                        menos de 1.2 m do ponto de queda, a bola a menos de
+                        2.1 m, e a bola entre 1.2 e 3.2 m de altura. Cada uma
+                        defensavel; as tres juntas quase nunca acontecem no
+                        mesmo frame.
+
+                        MEDIDO, 44 cantos:
+
+                            altura da bola no frame em que ele esta mais perto
+                                mediana 0.19 m   (73% abaixo de 1.20)
+                            janela do salto alguma vez aberta      18%
+                            'salto_alto', em frames                12
+
+                        E NAO E FALTA DE PERNAS. Medido nos cantos em que ele
+                        sai: precisa de 3.13 m/s para chegar antes de a bola
+                        pousar e faz 4.38. Ele CHEGA — chega, fica de pe, e a
+                        bola desce ao lado dele.
+
+                        Agora pergunta-se a leitura da trajectoria (ver
+                        `interceptarBola`, utils.js, e AlcanceDaBola) em que
+                        instante e que ele a apanha com as maos. Salta-se
+                        quando esse instante esta a menos do que o tempo de
+                        subida do salto: e o que o poe LA EM CIMA quando ela
+                        chega, em vez de a ver passar.
+
+                        A margem existe porque o salto nao e instantaneo nem a
+                        leitura e exacta; sem ela, o frame certo passa entre
+                        dois frames e o gesto nao sai.
+                        */
+                        const SA_T = (typeof GkSaltoAlto !== 'undefined')
+                            ? GkSaltoAlto.tempoDeSubida : 0.30;
+                        const encontro = encontroSaida;
+                        /*
+                        E SO SALTA PERTO DO PONTO: o salto leva-o ate
+                        `GkSaltoAlto.deslocMax` (ver o ramo 'salto_alto'), nao
+                        mais. Saltar de mais longe era ver a bola passar.
+                        */
+                        const deslocMaxSalto = (typeof GkSaltoAlto !== 'undefined' &&
+                            typeof GkSaltoAlto.deslocMax === 'number') ? GkSaltoAlto.deslocMax : 1.8;
+                        if (encontro) {
+                            podeSaltar = (encontro.t <= SA_T + 0.10) &&
+                                (encontro.distancia <= deslocMaxSalto);
+                        } else {
+                            // Sem leitura (bola ja tocada, ja no chao) fica o
+                            // criterio antigo, que pelo menos nao inventa.
+                            const dq = Math.hypot(gkCorpo.position.x - quedaNaPequena.x,
+                                gkCorpo.position.z - quedaNaPequena.z);
+                            const S_ALC = (typeof GkSaidaCruzamento !== 'undefined')
+                                ? GkSaidaCruzamento.alcanceSaida : 1.6;
+                            podeSaltar = (dq < 1.2) && (distToBall < S_ALC + 0.5);
+                        }
+                    }
+                    if (podeSaltar && Match.ball.position.y > 1.2 && Match.ball.position.y < 3.2) {
+                        this.gkEstado = 'salto_alto';
+                        this.gkTempoMergulho = 0;
+                        this._gkSocoArmouAntes = !!this._gkSocoArmouUlt;
+                        this.planearSocoNoSalto(quedaNaPequena ? encontroSaida : null);
+                        /*
+                        A QUE ALTURA VAI ESTAR A BOLA quando ele la chegar —
+                        ver GkSaltoAlto. Guarda-se AQUI e nao se recalcula por
+                        frame: a meio da subida a bola ja se mexeu, e um alvo
+                        que muda todos os frames da um salto que treme.
+                        */
+                        const SA = (typeof GkSaltoAlto !== 'undefined') ? GkSaltoAlto : null;
+                        /*
+                        O TEMPO E O QUE A BOLA LEVA A CHEGAR A ELE, e nao o
+                        tempo de subida do salto.
+
+                        Primeira tentativa: prever a bola a `tempoDeSubida`
+                        (0.3 s). Medido, deu pior do que estava — a bola que
+                        ele defende a 2.01 m era prevista a 3.17 m, porque num
+                        cruzamento a subir 0.3 s sao muita bola. O salto voltava
+                        ao tecto pelo motivo errado e a mao afastou-se: mediana
+                        de 0.54 para 0.75 m.
+
+                        Ele nao tem de estar onde a bola vai estar daqui a
+                        0.3 s: tem de estar onde ela vai estar QUANDO CHEGAR
+                        A ELE. Esse tempo sai da distancia e da velocidade
+                        dela, com um tecto para uma bola lenta nao dar uma
+                        previsao de segundos.
+                        */
+                        let tPrev = 0;
+                        if (SA) {
+                            const vBola = Match.ballVel.length();
+                            const dBola = gkCorpo.position.distanceTo(Match.ball.position);
+                            tPrev = (vBola > 0.5) ? Math.min(SA.tempoMaxPrevisao, dBola / vBola) : 0;
+                        }
+                        const prev = (SA && tPrev > 0 && typeof preverBolaEm === 'function')
+                            ? preverBolaEm(tPrev) : null;
+                        this.gkSaltoAlvoY = prev ? prev.y : Match.ball.position.y;
+                        /*
+                        E PARA ONDE O SALTO O LEVA no plano: o ponto de
+                        encontro das maos, se ha leitura, senao onde a bola vai
+                        estar quando chegar a ele. Ver o ramo 'salto_alto'.
+                        */
+                        const enc = (quedaNaPequena && encontroSaida) ? encontroSaida : null;
+                        this.gkSaltoAlvoXZ = enc ? { x: enc.x, z: enc.z }
+                            : (prev ? { x: prev.x, z: prev.z } : null);
+                        this.gkSaltoDesloc = 0;
+                    }
+                } 
+                else if (!isAttacking) {
+                    if (bolaNaArea) {
+                        let distToBall = gkCorpo.position.distanceTo(Match.ball.position);
+                        let carrier = Match.ballCarrier;
+
+                        /*
+                        A BOLA ENDERECADA A UM COMPANHEIRO NAO ESTA SOLTA.
+
+                        Relato: "o goleiro sai jogando com um zagueiro dentro da
+                        area e sai correndo atras dele para pegar a bola que
+                        acabou de passar." Um passe EM VOO nao tem
+                        `ballCarrier` — ele fica null no instante em que a bola
+                        sai do pe —, portanto a bola que o proprio guarda-redes
+                        acabou de jogar contava como "solta na area" e ele ia
+                        atras dela a 6 m/s, e agachava-se para a apanhar.
+
+                        E a mesma armadilha que o `escolherChaser` (team_bt.js)
+                        ja tinha resolvida para os jogadores de campo: "sem isto
+                        o PASSADOR corria atras da sua propria bola". Aqui e
+                        pior, porque ele nao passa pela eleicao de chaser — o
+                        ramo dele decide sozinho.
+
+                        Um recuo PARA ele continua a valer: nesse caso o
+                        destinatario e ele proprio.
+                        */
+                        const enderecadaAOutro = !!(Match.intendedReceiver &&
+                            Match.intendedReceiver.team === this.team &&
+                            Match.intendedReceiver !== this);
+                        let looseBallInBox = (!carrier && !enderecadaAOutro &&
+                            Match.ballVel.lengthSq() < 150);
+
+                        if (looseBallInBox ||
+                            (distToBall < 3.2 && !carrier && !enderecadaAOutro)) {
+                            alvoGkX = Match.ball.position.x;
+                            alvoGkZ = Match.ball.position.z;
+                            speedLerp = 6.0;
+
+                            // Perto o suficiente: pára de deslizar e agacha para apanhar,
+                            // em vez de agarrar instantaneamente a meio da corrida (se as mãos não estiverem proibidas).
+                            if (distToBall < 1.2 && !maosProibidas) {
+                                this.gkEstado = 'apanhar';
+                                this.gkTempoMergulho = 0;
+                            } else if (maosProibidas && this.adversarioAperta()) {
+                                // Idem: recuo com o pé, adversário perto, chuta.
+                                this.chutarRecuoDeUrgencia();
+                            }
+                        } else {
+                            let tempoAteMim = Match.ballVel.lengthSq() > 0 ? (gkCorpo.position.distanceTo(Match.ball.position) / Match.ballVel.length()) : 999;
+                            /*
+                            E ELE SÓ ESPALMA DEPOIS DE TER REAGIDO.
+
+                            Faltava aqui o `gkReagiu`, e era por aqui que o
+                            atraso de reacção estava a ser contornado: medido,
+                            um guarda-redes com 0.17 s de atraso já ia a
+                            11.1 m/s aos 0.15 s do remate, com o `reagiu` ainda
+                            falso. O ramo principal sempre o exigiu; este não.
+                            */
+                            /*
+                            O ATRASO DE REACCAO TRAVA-LHE O MERGULHO, NAO OS PES.
+
+                            Tinha posto aqui o `gkReagiu` a decidir se este ramo
+                            corria de todo, e estava errado — medido em 30 jogos
+                            por variante, tres sementes cada:
+
+                                variante                        golos   conversao
+                                erro + gate no ramo inteiro      3.17      51.7%
+                                erro, sem gate nenhum            2.63      37.3%
+                                sem erro, sem gate               2.87      41.1%
+                                alvo                             2.52       ~32%
+
+                            Com o ramo inteiro travado o guarda-redes nao ficava
+                            parado a espera: caia na ancora de repouso e RECUAVA
+                            para o meio da baliza enquanto o remate viajava. Meio
+                            golo por jogo, e catorze pontos de conversao.
+
+                            Agora o ramo corre sempre e o `gkReagiu` so trava o
+                            GESTO: antes de reagir ele acompanha de pe pelo
+                            `gkAlvoX`, que e o que um guarda-redes faz mesmo, e
+                            nao se atira. As duas ultimas linhas da tabela dizem
+                            a outra coisa que isto fixa: com o gate fora, o erro
+                            de leitura nao custa golos nenhuns.
+                            */
+                            const exigeReaccao = (typeof GoalkeeperDive === 'undefined' ||
+                                GoalkeeperDive.espalmarExigeReaccao !== false);
+                            const podeAtirarSe = (!exigeReaccao || this.gkReagiu);
+                            let possoEspalmar = (tempoAteMim < 0.6 && window.bolaChutada);
+
+                            if (possoEspalmar) {
+                                /*
+                                PARA ONDE A BOLA VAI, e não para onde ela está.
+
+                                Este ramo mandava-o para `Match.ball.position.x`
+                                — o x do INSTANTE. Medido: um remate de x=-16.2
+                                com vx=+27 m/s punha o alvo em -15.8, doze
+                                metros para fora do poste; ele mergulhava para a
+                                bandeirola e a bola entrava pelo meio. Era este
+                                o ramo que disparava na maioria dos remates (o
+                                principal exige `gkReagiu`, que ainda é falso
+                                nos primeiros frames do voo).
+
+                                Agora usa a mesma leitura do outro ramo:
+                                alvoLidoGK, com o erro de leitura incluído.
+                                */
+                                const alvoEsp = this.alvoLidoGK(gkCorpo.position.z);
+                                const espX = alvoEsp ? THREE.MathUtils.clamp(alvoEsp.x, -limitGKX, limitGKX)
+                                    : Match.ball.position.x;
+                                const espY = alvoEsp ? Math.max(0, Math.min(ALTURA_BALIZA, alvoEsp.y))
+                                    : Match.ball.position.y;
+                                const lateralEsp = espX - gkCorpo.position.x;
+                                this.gkTempoMergulho = 0;
+                                /*
+                                O ALVO SÓ SE ESCREVE DEPOIS DE ELE REAGIR.
+
+                                Relato: *"o jogador só chuta em cima do
+                                guarda-redes no cara a cara"*. Seguido frame a
+                                frame (`tools/scratch/cara_a_cara_voo.js`): o
+                                remate saiu a 33 m/s e ia cruzar a linha a 1.6 m
+                                do guarda-redes; ele pôs o `gkAlvoX` no ponto de
+                                cruzamento no PRIMEIRO frame do voo — com
+                                `gkReagiu` ainda falso — e deslizou até lá de pé,
+                                a tempo, sem mergulhar. Assim nenhum remate
+                                passa: ele está sempre onde a bola vai dar.
+
+                                O `podeAtirarSe` já existia e já guardava o
+                                mergulho e a barreira; faltava guardar isto, que
+                                é o que o move. Ninguém se desloca para onde a
+                                bola vai antes de ver que ela saiu.
+                                */
+                                if (podeAtirarSe) {
+                                    this.gkAlvoX = espX;
+                                    this.gkAlvoY = espY;
+                                }
+                                /*
+                                A MESMA HORA DO OUTRO RAMO. Este disparava assim
+                                que `tempoAteMim < 0.6`, e como o `GkDive.iniciar`
+                                congela o alvo, uma leitura feita cedo — com a
+                                bola ainda a mover-se de lado — ficava para o
+                                mergulho inteiro. Medido: em 8 de 10 remates que
+                                cruzavam o plano dele dentro da moldura, a mira
+                                estava no lado ERRADO, com 4.5 a 6.1 m de erro.
+                                */
+                                const alvoEspT = alvoEsp ? alvoEsp.t : tempoAteMim;
+                                /*
+                                A BARREIRA TAMBÉM AQUI — e é aqui que ela conta.
+
+                                Há dois sítios que escolhem o gesto do
+                                guarda-redes, e a defesa de perto passa por
+                                ESTE: medido em 120 remates rasteiros de 3.5 a
+                                7 m com a decisão só no outro ramo, a barreira
+                                disparou ZERO vezes, com 'maos' 36 e 'mergulho'
+                                73. Ver GoalkeeperPose.barreira.
+                                */
+                                const RB2 = GoalkeeperPose.barreira;
+                                this.gkBarreira = !!(RB2 && podeAtirarSe &&
+                                    (this.gkDistRemate || 99) <= RB2.distMax &&
+                                    espY <= RB2.alturaMax);
+                                if (this.gkBarreira) {
+                                    _v1.set(1, 0, 0).applyQuaternion(this.model.quaternion);
+                                    _v2.set(espX - gkCorpo.position.x, 0,
+                                        Match.ball.position.z - gkCorpo.position.z);
+                                    this.gkLadoBarreira = Math.sign(_v1.x * _v2.x + _v1.z * _v2.z) || 1;
+                                    this.gkEstado = 'maos';
+                                } else if (podeAtirarSe && Math.abs(lateralEsp) < GoalkeeperPose.mergulhoLateralMin) {
+                                    this.gkEstado = 'maos';
+                                } else if (!podeAtirarSe) {
+                                    /*
+                                    AINDA NÃO REAGIU: FICA ONDE ESTÁ.
+
+                                    Estava aqui um `!podeAtirarSe ||` que o
+                                    mandava acompanhar o ponto de cruzamento a
+                                    6 m/s antes de reagir — e era isso, e não a
+                                    pontaria do avançado, que dava o relato *"o
+                                    jogador só chuta em cima do guarda-redes no
+                                    cara a cara"*. Medido com
+                                    `tools/scratch/cara_a_cara_voo.js`: remate a
+                                    33 m/s de 8 m, a cruzar a linha 1.6 m ao
+                                    lado dele; durante os 0.30 s de voo ele
+                                    andou os 1.4 m e apanhou-a de pé, sem
+                                    mergulho. Com o tempo de reacção a valer
+                                    (0.17 s neste caso), sobra-lhe metade do voo
+                                    — e aí tem de se atirar, que é o que se quer
+                                    ver.
+
+                                    Fica quieto de propósito: o `alvoGkX` nesta
+                                    altura é a âncora, ou seja a posição em que o
+                                    remate o apanhou.
+                                    */
+                                } else if (!this.isPenaltyDive && (this.bolaLongeParaMergulhar() ||
+                                    (!GoalkeeperDive.mergulhaSemAlcance &&
+                                    Math.abs((alvoEsp ? alvoEsp.x : espX) - gkCorpo.position.x) > this.alcanceDoMergulho(alvoEspT)))) {
+                                    /*
+                                    LONGE DE MAIS PARA SE ATIRAR — o mesmo tecto
+                                    do outro ramo (ver alcanceDoMergulho). Este
+                                    não o tinha, e era daqui que saíam os
+                                    mergulhos a bolas a 6-8 m dele. Fica de pé e
+                                    desloca-se para o lado dela.
+                                    */
+                                    alvoGkX = espX;
+                                    speedLerp = 6.0;
+                                } else if (!this.horaDeMergulhar(lateralEsp, alvoEspT)) {
+                                    // Reagiu e ainda ha tempo: acompanha de pe,
+                                    // pelo gkAlvoX. Ver a nota do possoEspalmar.
+                                    alvoGkX = espX;
+                                    speedLerp = 6.0;
+                                } else {
+                                    this.gkEstado = 'mergulho';
+                                    this.dive = null;
+                                    this.gkDirMergulho = Math.sign(lateralEsp);
+                                    this.gkAlvoY = espY;
+                                    this.gkTipoMergulho = espY > 1.2 ? 'alto' : 'baixo';
+                                }
+                            } else {
+                                /*
+                                Um só alvo, venha o portador de onde vier. Antes
+                                havia dois ramos, com coeficientes 0.55 e 0.35: o
+                                mais adiantado era o do atacante MAIS perto.
+
+                                Varre só quando updateGkStyle() (team_bt.js) diz
+                                que não há defensor entre o portador e a baliza —
+                                é isso, e só isso, que o estilo offensive
+                                significa. Fora daí, recua como sempre.
+                                */
+                                const varrer = (this.gkStyle === 'offensive' && carrier &&
+                                    carrier.team !== this.team);
+                                const alvo = varrer
+                                    ? gkSweepTarget(Match.ball.position.x, Match.ball.position.z,
+                                        this.ownGoalZ, this.dirZ, gkStyleAtual)
+                                    : ancora;
+                                alvoGkX = alvo.x;
+                                alvoGkZ = alvo.z;
+                                speedLerp = varrer ? 5.0 : 3.5;
+                            }
+                        }
+                    } else {
+                        alvoGkX = ancora.x;
+                        alvoGkZ = ancora.z;
+                        speedLerp = 2.2;
+                    }
+                } 
+                else {
+                    let carrier = Match.ballCarrier;
+                    let souOpcao = false;
+                    if (carrier && carrier.model.position.z * this.dirZ < -5.0) {
+                        _line1.set(gkCorpo.position, carrier.model.position);
+                        let opponents = (this.team === 'TeamA') ? Match.opponents : Match.players;
+                        let pathClear = true;
+                        for (let i = 0; i < opponents.length; i++) {
+                            let opp = opponents[i];
+                            if (opp.role === 'gk') continue;
+                            _line1.closestPointToPoint(opp.model.position, true, _v1);
+                            if (_v1.distanceTo(opp.model.position) < 2.5) {
+                                pathClear = false;
+                                break;
+                            }
+                        }
+                        if (pathClear) souOpcao = true;
+                    }
+
+                    if (souOpcao) {
+                        alvoGkZ = ownGoalZCenter(this.team) + 8.5 * this.dirZ;
+                        alvoGkX = carrier.model.position.x * 0.5 + (this.id % 2 === 0 ? 3.5 : -3.5);
+                    } else {
+                        alvoGkZ = ownGoalZCenter(this.team) + 4.0 * this.dirZ;
+                        alvoGkX = Match.ball.position.x * 0.25;
+                    }
+                }
+            }
+
+            if (this.dynamicTarget) {
+                this.dynamicTarget.set(alvoGkX, ALTURA_BASE_Y, alvoGkZ);
+            }
+            
+            /*
+            Passo limitado a speedLerp m/s, não lerp exponencial puro. O lerp
+            velho (`lerp(pos, alvo, speedLerp*dt)`) anda uma FRACÇÃO da
+            distância restante por frame — se o alvo salta longe de repente
+            (bola entra na área rápido), isso cobre 6-7m em poucos frames,
+            um "deslize" a dezenas de m/s. Isto trava a velocidade real.
+            */
+            /*
+            Agilidade a sair da baliza: um multiplicador só, aplicado aqui, em
+            cima do speedLerp que cada situação escolheu. Escala com o atributo
+            GK — ver GoalkeeperPose.agilidade/agilidadeSkill.
+            */
+            const G_AG = GoalkeeperPose.agilidade || 1.0;
+            const G_AGS = (typeof GoalkeeperPose.agilidadeSkill === 'number')
+                ? GoalkeeperPose.agilidadeSkill : 0;
+            speedLerp *= G_AG * (1 + ((gkSkill - 50) / 50) * G_AGS);
+
+            /*
+            AINDA A RECOMPOR-SE DO MERGULHO: arranca devagar.
+
+            Ver GoalkeeperDive.recuperacao. Medido antes disto, do fim do
+            mergulho ate voltar a andar a mais de 3 m/s: 0.44 s de media e
+            0.02 s no melhor caso — punha-se de pe e no frame seguinte ia a
+            correr atras da bola.
+            */
+            if (this.gkRecuperacao > 0) {
+                this.gkRecuperacao = Math.max(0, this.gkRecuperacao - dt);
+                const D = (typeof GoalkeeperDive !== 'undefined') ? GoalkeeperDive : null;
+                const total = (D && D.recuperacao) ? D.recuperacao : 1;
+                const minimo = (D && typeof D.recuperacaoVel === 'number') ? D.recuperacaoVel : 1;
+                // 1 no fim da janela, `recuperacaoVel` no instante em que se levanta.
+                const k = 1 - Math.max(0, Math.min(1, this.gkRecuperacao / Math.max(0.001, total)));
+                speedLerp *= minimo + (1 - minimo) * k;
+            }
+
+            /*
+            E UM TECTO HUMANO POR CIMA DE TUDO.
+
+            Sem ele o ramo de reaccao ao remate chegava a 12.7 m/s com a
+            agilidade aplicada, e medido em jogo o maximo real do guarda-redes
+            era 17.0 m/s contra 8.4 de p99 dos jogadores de campo — era isto que
+            o punha a correr atras de uma bola que ja lhe tinha passado e a
+            apanha-la. Ver GoalkeeperPose.velMaxCorrida.
+            */
+            if (typeof GoalkeeperPose.velMaxCorrida === 'number') {
+                const tecto = GoalkeeperPose.velMaxCorrida +
+                    ((gkSkill - 50) / 50) * (GoalkeeperPose.velMaxCorridaSkill || 0);
+                speedLerp = Math.min(speedLerp, Math.max(1.0, tecto));
+            }
+
+            const dxGk = alvoGkX - gkCorpo.position.x;
+            const dzGk = alvoGkZ - gkCorpo.position.z;
+            const distGk = Math.hypot(dxGk, dzGk);
+            const maxStepGk = speedLerp * dt;
+            let stepX, stepZ;
+            if (distGk > maxStepGk && distGk > 0.0001) {
+                stepX = (dxGk / distGk) * maxStepGk;
+                stepZ = (dzGk / distGk) * maxStepGk;
+            } else {
+                stepX = dxGk; stepZ = dzGk;
+            }
+            gkCorpo.position.x += stepX;
+            gkCorpo.position.z += stepZ;
+
+            // Velocidade planar REAL (pós-limite), não a distância bruta ao
+            // alvo — senão a animação tentava acompanhar o salto impossível.
+            let velX = dt > 0.0001 ? stepX / dt : 0;
+            let velZ = dt > 0.0001 ? stepZ / dt : 0;
+            /*
+            E FICA NO `velocity`, como a de toda a gente.
+
+            O guarda-redes move-se por passo escrito (`position += step`) e
+            nunca escrevia o campo; quem o lesse de fora via zero ou lixo de um
+            lance antigo. Passou a ser preciso quando o avançado ganhou o
+            direito de rematar ao ver o guarda-redes A SAIR (ver
+            `gkVelSaida` no ShootingModel): sair é velocidade, não posição.
+            */
+            this.velocity.set(velX, 0, velZ);
+            // Acompanha a bola, mas nunca de costas para o campo — a regra e
+            // o porque estao em `zDeOlharDoGuardaRedes` (utils.js).
+            const lookZ = zDeOlharDoGuardaRedes(
+                Match.ball.position.z, this.ownGoalZ, this.dirZ);
+            _v1.set(Match.ball.position.x, gkCorpo.position.y, lookZ);
+            lookAtBola(gkCorpo, _v1);
+
+            /*
+            A pélvis volta a direito — menos na postura do penálti, que inclina o
+            corpo a partir da anca (ver GoalkeeperPose.penalti.pelvis). É AQUI e
+            não na pose de baixo, senão as duas linhas puxavam a pélvis para
+            sítios diferentes no mesmo frame e ela ficava a meio.
+            */
+            const naPosturaDePenalti = (Match.state === 'PENALTY' || Match.state === 'FREE_KICK') &&
+                this.team !== Match.setPieceTeam;
+            // So PARADO: a andar (a deslocar-se na baliza antes da falta) a anca inclinada dava uma pose torta a deslizar.
+            const pelvisAlvo = (naPosturaDePenalti && Math.hypot(velX, velZ) <= 0.5 && GoalkeeperPose.penalti.pelvis) || 0;
+            gkRig.pelvis.rotation.x = lerpTo(gkRig.pelvis.rotation.x, pelvisAlvo, 0.25);
+            gkRig.pelvis.rotation.y = lerpTo(gkRig.pelvis.rotation.y, 0, 0.25);
+            gkRig.pelvis.rotation.z = lerpTo(gkRig.pelvis.rotation.z, 0, 0.25);
+
+            /*
+            Postura: anda normalmente quando se desloca, e só se agacha (pouco)
+            quando há mesmo um adversário com bola perto da área. Ver
+            GoalkeeperPose em config.js para os valores.
+            */
+            const velPlanar = Math.hypot(velX, velZ);
+            const andando = velPlanar > 0.5;
+            const portador = Match.ballCarrier;
+            const distBolaBaliza = Math.abs(Match.ball.position.z - this.ownGoalZ);
+            const emAlerta = (window.bolaChutada && !this.gkReagiu) ||
+                (portador && portador.team !== this.team && distBolaBaliza < GoalkeeperPose.alertaDist);
+
+            if (andando) {
+                const P = GoalkeeperPose.andar;
+
+                /*
+                O MESMO ciclo de passada do jogador de campo (getGaitPose), e
+                não o antigo `getRunPose` com 3 m por ciclo fixos.
+
+                Estava assim:
+
+                    this.animTimer += (velPlanar * dt) / 3.0;
+                    const pose = getRunPose(t);
+                    const e = P.passada;              // encolhia a amplitude
+
+                — que é exactamente o defeito já corrigido no `animateBones`
+                dos jogadores de campo e que ficou por corrigir aqui. Três
+                coisas erradas ao mesmo tempo, todas a produzir deslize:
+
+                  1. TRÊS METROS POR CICLO A QUALQUER ANDAMENTO. A passada real
+                     é 1.55 m a andar, 2.90 a trotar e 4.40 a correr
+                     (GaitModel); com 3.0 fixo, a cadência só bate por acaso a
+                     um andamento e desliza em todos os outros;
+                  2. `getRunPose` tem AMPLITUDE FIXA — não distingue andar de
+                     correr, e é isso que faz a corrida ler como devagar;
+                  3. `P.passada` encolhia a amplitude das pernas sem encolher o
+                     avanço: passos curtos a percorrer o caminho todo.
+
+                A postura de guarda-redes — braços abertos, tronco, joelhos
+                sempre um pouco flectidos — fica; o que muda é o ciclo das
+                pernas, que passa a ser o do jogo.
+                */
+                /*
+                E O CICLO CORRE AO CONTRARIO QUANDO ELE ANDA DE COSTAS.
+
+                O guarda-redes olha SEMPRE para a bola (`lookAtBola`, aqui em
+                cima), portanto recuar para a linha e andar para tras — e o
+                `animTimer` so sabia somar. O que se via era ele a deslocar-se
+                para tras com passos para a frente.
+
+                E a mesma regra do jogador de campo (ver `movingBackwards` no
+                animateBones): se a velocidade aponta contra a frente do
+                corpo, o relogio da passada anda ao contrario.
+                */
+                const frenteGk = _v2.set(0, 0, 1).applyQuaternion(gkCorpo.quaternion);
+                const deCostas = (frenteGk.x * velX + frenteGk.z * velZ) < -0.3 * velPlanar;
+
+                const P0 = getGaitPose(0, velPlanar);
+                const avancoGk = (velPlanar * dt) / P0.passada;
+                this.animTimer += deCostas ? -avancoGk : avancoGk;
+                const t = ((this.animTimer % 1.0) + 1.0) % 1.0;
+                const pose = getGaitPose(t, velPlanar);
+
+                gkRig.lLeg.rotation.x = lerpTo(gkRig.lLeg.rotation.x, pose.lHip, 0.4);
+                gkRig.rLeg.rotation.x = lerpTo(gkRig.rLeg.rotation.x, pose.rHip, 0.4);
+                gkRig.lKnee.rotation.x = lerpTo(gkRig.lKnee.rotation.x, P.kneeBase + pose.lKnee, 0.4);
+                gkRig.rKnee.rotation.x = lerpTo(gkRig.rKnee.rotation.x, P.kneeBase + pose.rKnee, 0.4);
+                gkRig.lLeg.rotation.z = lerpTo(gkRig.lLeg.rotation.z, 0, 0.3);
+                gkRig.rLeg.rotation.z = lerpTo(gkRig.rLeg.rotation.z, 0, 0.3);
+
+                gkRig.lArm.rotation.x = lerpTo(gkRig.lArm.rotation.x, pose.lArm * 0.5, 0.3);
+                gkRig.rArm.rotation.x = lerpTo(gkRig.rArm.rotation.x, pose.rArm * 0.5, 0.3);
+                gkRig.lArm.rotation.z = lerpTo(gkRig.lArm.rotation.z, P.bracos, 0.2);
+                gkRig.rArm.rotation.z = lerpTo(gkRig.rArm.rotation.z, -P.bracos, 0.2);
+                gkRig.lElbow.rotation.x = lerpTo(gkRig.lElbow.rotation.x, -0.5, 0.2);
+                gkRig.rElbow.rotation.x = lerpTo(gkRig.rElbow.rotation.x, -0.5, 0.2);
+
+                gkRig.chest.rotation.x = lerpTo(gkRig.chest.rotation.x, P.chest, 0.2);
+                /*
+                SEM BALANCO ESCRITO A MAO — relato: *"o goleiro quando anda
+                fica abaixando e levantando, parece uma mola"*.
+
+                Estava aqui um `Math.sin(t * PI * 4) * 0.04`: um salto vertical
+                de +-4 cm ao DOBRO da cadencia da passada, que so o
+                guarda-redes tinha. Um jogador de campo nao tem nada disto — a
+                altura dele sai do `assentarNoChao`, que mede onde a sola da
+                bota esta e desce o corpo ate ela tocar o relvado.
+
+                E o `assentarNoChao` tambem corre para o guarda-redes (fim do
+                updateGK). Eram os DOIS a escrever `position.y` no mesmo frame:
+                o seno a empurrar para cima e para baixo, o assento a puxar
+                para a sola. A mola era a discussao dos dois.
+
+                O balanco vertical de quem anda continua a existir, e e o
+                verdadeiro: vem de a perna esticar e dobrar, e quem o traduz em
+                altura e o assento — a mesma conta dos outros vinte e um.
+                */
+                gkCorpo.position.y = lerpTo(gkCorpo.position.y, ALTURA_BASE_Y + P.altura, 0.2);
+                /*
+                A ANDAR, A CABEÇA E OS PÉS VOLTAM A DIREITO. Relato, com
+                captura: *"o goleiro está andando com a cabeça meio levantada"*.
+                A postura do penálti levanta o pescoço (e roda os pés) e só o
+                ramo parado, aqui em baixo, os escrevia: depois de um penálti
+                ele ficava a andar com a cabeça no ar o resto do jogo.
+                */
+                if (gkRig.neck) gkRig.neck.rotation.x = lerpTo(gkRig.neck.rotation.x, 0, 0.2);
+                if (gkRig.lFoot) gkRig.lFoot.rotation.x = lerpTo(gkRig.lFoot.rotation.x, 0, 0.2);
+                if (gkRig.rFoot) gkRig.rFoot.rotation.x = lerpTo(gkRig.rFoot.rotation.x, 0, 0.2);
+            } else {
+                let P;
+                if ((Match.state === 'PENALTY' || Match.state === 'FREE_KICK') && this.team !== Match.setPieceTeam) {
+                    P = GoalkeeperPose.penalti;
+                } else {
+                    P = emAlerta ? GoalkeeperPose.espera : GoalkeeperPose.repouso;
+                }
+
+                gkRig.lLeg.rotation.x = lerpTo(gkRig.lLeg.rotation.x, P.coxa, 0.2);
+                gkRig.rLeg.rotation.x = lerpTo(gkRig.rLeg.rotation.x, P.coxa, 0.2);
+                gkRig.lKnee.rotation.x = lerpTo(gkRig.lKnee.rotation.x, P.joelho, 0.2);
+                gkRig.rKnee.rotation.x = lerpTo(gkRig.rKnee.rotation.x, P.joelho, 0.2);
+                gkRig.lLeg.rotation.z = lerpTo(gkRig.lLeg.rotation.z, P.abertura, 0.2);
+                gkRig.rLeg.rotation.z = lerpTo(gkRig.rLeg.rotation.z, -P.abertura, 0.2);
+
+                gkRig.lArm.rotation.z = lerpTo(gkRig.lArm.rotation.z, P.bracoZ, 0.2);
+                gkRig.rArm.rotation.z = lerpTo(gkRig.rArm.rotation.z, -P.bracoZ, 0.2);
+                gkRig.lArm.rotation.x = lerpTo(gkRig.lArm.rotation.x, P.bracoX, 0.2);
+                gkRig.rArm.rotation.x = lerpTo(gkRig.rArm.rotation.x, P.bracoX, 0.2);
+                gkRig.lElbow.rotation.x = lerpTo(gkRig.lElbow.rotation.x, P.cotovelo, 0.2);
+                gkRig.rElbow.rotation.x = lerpTo(gkRig.rElbow.rotation.x, P.cotovelo, 0.2);
+
+                gkRig.chest.rotation.x = lerpTo(gkRig.chest.rotation.x, P.chest, 0.2);
+                gkCorpo.position.y = lerpTo(gkCorpo.position.y, ALTURA_BASE_Y + P.altura, 0.2);
+
+                /*
+                A postura de penálti: as solas assentes, a cabeça na bola e os
+                PÉS NA LINHA — ver GoalkeeperPose.penalti (pe, cabeca,
+                pesNaLinha). As outras poses não trazem estes canais e os pés e
+                o pescoço voltam a direito.
+                */
+                const peAlvo = (typeof P.pe === 'number') ? P.pe : 0;
+                const cabAlvo = (typeof P.cabeca === 'number') ? P.cabeca : 0;
+                if (gkRig.lFoot) gkRig.lFoot.rotation.x = lerpTo(gkRig.lFoot.rotation.x, peAlvo, 0.2);
+                if (gkRig.rFoot) gkRig.rFoot.rotation.x = lerpTo(gkRig.rFoot.rotation.x, peAlvo, 0.2);
+                if (gkRig.neck) gkRig.neck.rotation.x = lerpTo(gkRig.neck.rotation.x, cabAlvo, 0.2);
+            }
+
+            if (this.hasBall || this.actionState) {
+                this.runBehaviorTree(dt);
+                this.fsm.update(dt);
+            }
+        } else if (this.gkEstado === 'saida_pes') {
+            // A saída aos pés: ver iniciarSaidaAosPes.
+            this.actualizarSaidaAosPes(dt, gkCorpo, gkRig);
+        } else if (this.gkEstado === 'mergulho') {
+            /*
+            O mergulho inteiro vive em js/gk_dive.js: fases, centro de massa
+            balistico, rotacao de eixo unico por quaterniao e bracos por IK.
+
+            O que estava aqui era um deslize lateral (position.x += v*dt) com
+            a rotacao composta em Euler na pelvis, e o teste da defesa a
+            estimar por trigonometria onde a mao estaria. Ver o cabecalho do
+            gk_dive.js para o porque de cada uma das tres substituicoes.
+            */
+            if (!this.dive) {
+                GkDive.iniciar(this, this.gkAlvoX, this.gkAlvoY || 1.0,
+                    this.gkTipoMergulho, this.gkDirMergulho);
+            }
+            GkDive.update(this, dt, gkCorpo, gkRig);
+        } else if (this.gkEstado === 'tiro_meta_espera') {
+            /*
+            Espera antes do tiro de meta (ESPERA_APOS_REPOSICAO). E AQUI que
+            ele caminha ate ao ponto de arranque do gesto, nao depois.
+
+            ANTES a caminhada vinha DEPOIS da espera, dentro do 'tiro_meta', em
+            duas fases (recuar 3.8 m, depois correr ate a bola), cada uma
+            desenhada pelo ciclo de passada. So no fim e que entrava o clip do
+            chute. Ou seja: o tiro de meta eram DUAS animacoes coladas uma a
+            outra — andar, e depois chutar — e era isso que se via.
+
+            Agora a caminhada e reposicionamento de bola parada, como a de toda
+            a gente, e acontece durante os segundos de espera que o lance ja
+            tinha. Quando a espera acaba ele esta parado no sitio e o chute e
+            UMA animacao so, do primeiro passo ao contacto (ver PlayerKickClip,
+            que traz o passo e o avanco do corpo dentro dele).
+
+            O resetBonesToDefault so corre quando ele esta parado: quem provocou
+            o tiro de meta foi quase sempre uma defesa, e sem isto ele passava
+            estes segundos congelado na pose do mergulho. A caminhar seria o
+            contrario — apagava a passada a cada frame.
+            */
+            {
+                /*
+                ONDE A BOLA VAI ESTAR, e nao onde ela esta.
+
+                Durante os primeiros segundos do lance a bola ainda esta a
+                sair — rola para fora do campo e so passados 3 s e puxada para
+                a quina da pequena area (`golKickBolaAlvo`, ver o countdown em
+                match_loop.js). Ler a posicao viva punha-o a caminhar atras de
+                uma bola fora de campo, e a olhar para tras enquanto andava
+                para a frente.
+                */
+                const alvoBolaE = Match.golKickBolaAlvo;
+                const bolaE = alvoBolaE
+                    ? { x: alvoBolaE.x, z: alvoBolaE.z }
+                    : Match.ball.position;
+                const G = GoalkeeperPose;
+                const plantXe = bolaE.x + this.dirZ * 0.32;
+                const plantZe = bolaE.z - this.dirZ * 0.10;
+                const passoGesto = (typeof G.tiroMetaPassoDoGesto === 'number')
+                    ? G.tiroMetaPassoDoGesto : 1.9;
+                // Ponto de arranque: o passo do clip para tras do pe de apoio.
+                const alvoEx = plantXe;
+                const alvoEz = plantZe - this.dirZ * passoGesto;
+
+                const dxE = alvoEx - gkCorpo.position.x;
+                const dzE = alvoEz - gkCorpo.position.z;
+                const distE = Math.hypot(dxE, dzE);
+                /*
+                DE LONGE VAI A TROTE, de perto acaba a andar.
+
+                A quina da pequena area e do lado por onde a bola saiu, e ele
+                pode estar no poste contrario: ate ~13 m de travessia. A 2.2
+                m/s isso sao seis segundos, mais do que o lance costuma dar —
+                chegava atrasado e o clip do chute tapava o resto a arrastar o
+                corpo. A velocidade sobe com o que falta andar e volta ao passo
+                de caminhada nos ultimos metros, que e onde ele se compoe para
+                bater.
+                */
+                const vAndar = G.tiroMetaAndar || 2.2;
+                const vCorrer = G.tiroMetaCorrer || 5.5;
+                const fracE = Math.max(0, Math.min(1, (distE - 2.5) / 5.5));
+                const passoE = (vAndar + (vCorrer - vAndar) * fracE) * dt;
+
+                if (distE > 0.12) {
+                    const sxE = distE > passoE ? (dxE / distE) * passoE : dxE;
+                    const szE = distE > passoE ? (dzE / distE) * passoE : dzE;
+                    gkCorpo.position.x += sxE;
+                    gkCorpo.position.z += szE;
+
+                    // A MESMA caminhada de toda a gente (aplicarPosePassada).
+                    const velE = dt > 0.0001 ? Math.hypot(sxE, szE) / dt : 0;
+                    const P0E = getGaitPose(0, velE);
+                    this.animTimer += (velE * dt) / P0E.passada;
+                    const ttE = ((this.animTimer % 1.0) + 1.0) % 1.0;
+                    aplicarPosePassada(gkRig, getGaitPose(ttE, velE), ttE, {
+                        amp: 1.0,
+                        suavizacao: Math.min(1, velE / 2.0)
+                    });
+                    gkRig.pelvis.rotation.set(0, 0, 0);
+                    gkCorpo.position.y = lerpTo(gkCorpo.position.y, ALTURA_BASE_Y, 0.3);
+                } else {
+                    this.resetBonesToDefault();
+                }
+
+                /*
+                Olha para onde a bola VAI ficar — a caminhar, e o sitio para
+                onde anda; parado no ponto de arranque, e a bola a bater. Com
+                a posicao viva da bola ele passava a espera virado de costas
+                para o campo, a olhar para a bola que ainda estava fora.
+                */
+                _v1.set(bolaE.x, gkCorpo.position.y, bolaE.z);
+                lookAtBola(gkCorpo, _v1);
+            }
+        } else if (this.gkEstado === 'tiro_meta') {
+            /*
+            O TIRO DE META E UMA ANIMACAO SO.
+
+            Aqui viviam duas fases, cada uma com o seu ciclo de passada:
+                fase 0   recuar 3.8 m para tras da bola
+                fase 1   correr ate ao pe de apoio
+            e so no fim e que entrava o clip do chute. Andar e chutar eram dois
+            clips colados, e via-se a emenda.
+
+            A caminhada passou para o 'tiro_meta_espera', onde e reposicionamento
+            de bola parada e tem os segundos do lance para acontecer. Quando
+            chega aqui ele ja esta no ponto de arranque, parado: este estado nao
+            anima nada, so arranca o gesto.
+
+            O PASSO E O AVANCO DO CORPO ESTAO DENTRO DO CLIP (PlayerKickClip,
+            canal `avanco`), portanto nada fora dele escreve o esqueleto ou
+            desloca o corpo enquanto o chute decorre.
+            */
+            const bolaTM = Match.ball.position;
+            const plantX = bolaTM.x + this.dirZ * 0.32;
+            const plantZ = bolaTM.z - this.dirZ * 0.10;
+
+            _v1.set(bolaTM.x, gkCorpo.position.y, bolaTM.z);
+            lookAtBola(gkCorpo, _v1);
+
+            /*
+            O corpo desliza do sitio onde a espera o deixou ate ao pe de apoio
+            AO RITMO DO `avanco` do clip — e o `gkKickBlend` que o faz, frame a
+            frame, no ramo do chute do chao. Se a espera nao chegou para ele
+            chegar ao ponto de arranque, o clip cobre o que faltar: o avanco e
+            uma fraccao, nao uma distancia fixa.
+            */
+            this.iniciarBlendChuteChao(gkCorpo, gkRig, plantX, plantZ);
+            this.gkEstado = 'chutando';
+            this.gkKickTipo = 'chao';
+            this.gkTempoMergulho = 0;
+            this.gkKickNorm = 0;
+            /*
+            O CLIP DO TIRO DE META E SO DELE: `goalKick` (GoalKickClip, os 4
+            keyframes GoalKick1 a 4). Era o `playerKick`, partilhado com a
+            falta e com o penalti — afinar o tiro de meta mexia nos tres.
+
+            O `gkKickClipNome` diz ao ramo do desenho (ver o chute do chao em
+            `animarGuardaRedes`) qual dos dois amostrar. Os outros dois chutos
+            de pe do guarda-redes — o alivio fora da area e o recuo de urgencia
+            — ficam no `playerKick`: nao sao tiros de meta, nao ha bola parada
+            nem corrida de aproximacao.
+            */
+            /*
+            O GESTO SEGUE A DECISAO. Relato: *"se o goleiro vai dar um passe curto tem que executar a animacao de passe
+            curto; se for chutar para a frente, a do lancamento. Esta dando bico em todo tiro de meta"*. Era sempre o
+            `goalKick` (o bico) e a decisao (GoalKickPlan: curto a um defesa, ou longo a um meio/avancado) so se tomava
+            no contacto, depois do gesto escolhido. Agora decide-se aqui: curto = o gesto do PASSE; longo = o do
+            LANCAMENTO (o mesmo dos jogadores); sem plano (sem receptor) fica o pontape de sempre. No contacto a
+            velocidade recalcula-se com o MESMO modo (`gkModoTM`), porque os colegas andaram entretanto.
+            */
+            const planoInicial = this.planearTiroDeMeta();
+            this.gkModoTM = planoInicial ? planoInicial.modo : undefined;
+            const nomeGesto = (this.gkModoTM === 'curto') ? 'pass' : (this.gkModoTM === 'longo') ? 'lancamento' : 'goalKick';
+            this.gkKickClipNome = nomeGesto;
+            this.gkKickAction = new ActionState(nomeGesto, {
+                onContact: () => {
+                    // So o tiro de meta e tiro de meta: a mesma cadeia serve a
+                    // falta na propria area, e essa nao o anuncia.
+                    const eraTiroDeMeta = (Match.state === 'GOAL_KICK');
+                    this.kickFromGround();
+                    if (eraTiroDeMeta && typeof EventBus !== 'undefined') {
+                        EventBus.emit('GOAL_KICK_TAKEN', { team: this.team, gk: this });
+                    }
+                }
+            });
+        } else if (this.gkEstado === 'maos') {
+            /*
+            Defesa de PÉ: a bola vem a menos de mergulhoLateralMin do corpo, e
+            atirar-se ao chão para uma bola que passa ao lado do peito é o que
+            deixava o guarda-redes sempre deitado/torcido. Aqui o corpo fica
+            direito e só os braços vão à bola, dentro dos limites das juntas
+            (JointLimits.clampOmbro).
+
+            Braços simétricos de propósito: `rArm`/`lArm` são o lado ESQUERDO/
+            DIREITO do modelo, e o modelo está rodado por lookAt conforme a
+            equipa — mapear "braço do lado da bola" a partir do x do mundo dá
+            o braço errado para uma das equipas. Abrir os dois na mesma
+            amplitude é correcto para ambas, e o ponto de contacto abaixo
+            escolhe a mão mais perto da bola.
+            */
+            this.gkTempoMergulho += dt;
+            const tM = this.gkTempoMergulho;
+            const gkSkillM = this.skillFor('GK');
+            const Pm = GoalkeeperPose.espera;
+
+            /*
+            =============================================================
+            E VIRA-SE PARA A BOLA — o que faltava nesta defesa inteira
+            =============================================================
+            Relato: *"O Goleiro tem que se voltar para a bola para poder
+            encaixar quando o chute vier em baixo no centro."*
+
+            E tinha razão: **este ramo não escrevia a orientação do corpo.**
+            Todos os outros o fazem — o 'idle', o reposicionamento, o
+            mergulho, o chutão —, e a defesa de perto era o único sítio onde
+            ele ficava virado para onde a última corrida o deixou. A pose do
+            encaixe põe os dois braços à frente DO MODELO; com o modelo
+            atravessado, as mãos fecham-se ao lado da bola em vez de nela, e
+            o gesto lê-se como um homem a agachar-se de lado.
+
+            SUAVIZADO, e não `lookAtBola`: este ramo apanha-o já perto da
+            bola e muitas vezes a ter de rodar meia volta. O `lookAtBola`
+            escreve a orientação de uma vez e o corpo dava um salto no frame
+            em que a defesa começa. O `virarParaSuave` (utils.js) leva-o lá
+            pelo caminho curto, à fracção por frame do
+            `GoalkeeperPose.viraParaBolaSuave`.
+
+            AQUI E NÃO DENTRO DOS SUB-RAMOS: o encaixe e a barreira precisam
+            os dois, e é a mesma conta.
+            =============================================================
+            */
+            if (Match.ball) {
+                const kVira = (typeof GoalkeeperPose.viraParaBolaSuave === 'number')
+                    ? GoalkeeperPose.viraParaBolaSuave : 0.25;
+                _v1.set(Match.ball.position.x, gkCorpo.position.y, Match.ball.position.z);
+                if (typeof virarParaSuave === 'function') virarParaSuave(gkCorpo, _v1, kVira);
+                else lookAtBola(gkCorpo, _v1);
+            }
+
+            /*
+            Um passo curto para o lado da bola — não é deslocação, é ajuste.
+
+            E COM LIMITE DE VELOCIDADE, como o ramo de reposicionamento.
+
+            Era `lerpTo(x, alvo, 0.12)` — lerp exponencial puro, o mesmo que já
+            tinha sido corrigido no ramo 'idle' com a nota "Passo limitado a
+            speedLerp m/s". Aqui ficou. A 60 fps, 12% do que falta por frame com
+            o alvo a 3 m dá 0.36 m NUM FRAME, ou seja 21.6 m/s — e foi
+            exactamente isso que se mediu: 22.75 m/s de máximo, no estado
+            'maos'. Relato: *"o goleiro consegue ir atrás da bola numa
+            velocidade maior que a bola e alcançar a bola"*.
+
+            O tecto é o mesmo do outro ramo (GoalkeeperPose.velMaxCorrida), que
+            é o que garante que os dois não divergem outra vez.
+            */
+            if (typeof this.gkAlvoX === 'number') {
+                const alvoM = lerpTo(gkCorpo.position.x, this.gkAlvoX, 0.12);
+                const passoM = alvoM - gkCorpo.position.x;
+                const tectoM = ((typeof GoalkeeperPose.velMaxCorrida === 'number')
+                    ? GoalkeeperPose.velMaxCorrida +
+                      ((gkSkillM - 50) / 50) * (GoalkeeperPose.velMaxCorridaSkill || 0)
+                    : 8.0) * dt;
+                gkCorpo.position.x += (Math.abs(passoM) > tectoM)
+                    ? Math.sign(passoM) * tectoM : passoM;
+            }
+
+            if (this.gkEncaixe) {
+                /*
+                O ENCAIXE AJOELHADO — ver GoalkeeperPose.encaixe e a descricao
+                que o pedido trouxe.
+
+                Os DOIS joelhos dobram e separam-se, o quadril desce, o tronco
+                inclina para a frente e a cabeca olha a bola. Uma perna abre
+                lateralmente, a outra recolhe o joelho para o centro do corpo.
+                Os cotovelos dobram e os dois bracos fecham para dentro, para
+                as maos se encontrarem na bola junto ao chao.
+
+                O que o distingue da barreira, logo abaixo: la a perna ESTICA
+                para tapar campo e os cotovelos ficam direitos, porque o gesto
+                e bloquear. Aqui e AGARRAR, e o corpo poe-se atras da bola.
+
+                `gkLadoBarreira` e o lado da bola no referencial do MODELO (ver
+                a nota dos bracos mais acima, e o calculo na decisao): e ele que
+                decide qual das pernas abre, para o gesto sair certo nas duas
+                equipas.
+                */
+                const EP = GoalkeeperPose.encaixe;
+                const ve = EP.suavizacao;
+                const ladoE = this.gkLadoBarreira || 1;
+
+                gkCorpo.position.y = lerpTo(gkCorpo.position.y, ALTURA_BASE_Y + EP.altura, ve);
+                gkRig.pelvis.rotation.x = lerpTo(gkRig.pelvis.rotation.x, EP.pelvisX, ve);
+                gkRig.pelvis.rotation.z = lerpTo(gkRig.pelvis.rotation.z, 0, ve);
+                gkRig.chest.rotation.x = lerpTo(gkRig.chest.rotation.x, EP.chest, ve);
+                if (gkRig.neck) {
+                    gkRig.neck.rotation.x = lerpTo(gkRig.neck.rotation.x, EP.cabeca, ve);
+                }
+
+                // A perna do lado da bola ABRE; a outra recolhe o joelho.
+                const abre = (ladoE > 0) ? 'r' : 'l';
+                const recolhe = (ladoE > 0) ? 'l' : 'r';
+                const sinal = (abre === 'r') ? -1 : 1;   // rLeg abre com z negativo
+                gkRig[abre + 'Leg'].rotation.x = lerpTo(gkRig[abre + 'Leg'].rotation.x, EP.coxaAberta, ve);
+                gkRig[abre + 'Leg'].rotation.z = lerpTo(gkRig[abre + 'Leg'].rotation.z, sinal * EP.aberturaAberta, ve);
+                gkRig[abre + 'Knee'].rotation.x = lerpTo(gkRig[abre + 'Knee'].rotation.x, EP.joelhoAberto, ve);
+                gkRig[recolhe + 'Leg'].rotation.x = lerpTo(gkRig[recolhe + 'Leg'].rotation.x, EP.coxaRecolhida, ve);
+                gkRig[recolhe + 'Leg'].rotation.z = lerpTo(gkRig[recolhe + 'Leg'].rotation.z, -sinal * EP.aberturaRecolhida, ve);
+                gkRig[recolhe + 'Knee'].rotation.x = lerpTo(gkRig[recolhe + 'Knee'].rotation.x, EP.joelhoRecolhido, ve);
+                /*
+                A ponta do pé ajoelhado apoiada no relvado — ver
+                GoalkeeperPose.encaixe.peRecolhido para o porquê de isto não
+                ser decoração (sem ele o `assentarNoChao` levantava o corpo).
+                */
+                if (gkRig[recolhe + 'Foot'] && typeof EP.peRecolhido === 'number') {
+                    gkRig[recolhe + 'Foot'].rotation.x =
+                        lerpTo(gkRig[recolhe + 'Foot'].rotation.x, EP.peRecolhido, ve);
+                }
+                // E a ponta do pe da perna que ajoelha, apoiada atras.
+                if (gkRig[abre + 'Foot'] && typeof EP.peAberto === 'number') {
+                    gkRig[abre + 'Foot'].rotation.x =
+                        lerpTo(gkRig[abre + 'Foot'].rotation.x, EP.peAberto, ve);
+                }
+
+                // Os dois bracos para a frente e para baixo, fechados na bola.
+                gkRig.lArm.rotation.x = lerpTo(gkRig.lArm.rotation.x, EP.bracoX, ve);
+                gkRig.rArm.rotation.x = lerpTo(gkRig.rArm.rotation.x, EP.bracoX, ve);
+                gkRig.lArm.rotation.z = lerpTo(gkRig.lArm.rotation.z, EP.bracoZ, ve);
+                gkRig.rArm.rotation.z = lerpTo(gkRig.rArm.rotation.z, -EP.bracoZ, ve);
+                gkRig.lElbow.rotation.x = lerpTo(gkRig.lElbow.rotation.x, EP.cotovelo, ve);
+                gkRig.rElbow.rotation.x = lerpTo(gkRig.rElbow.rotation.x, EP.cotovelo, ve);
+                // E o pulso vira a palma para cima, a receber — usa a ligacao
+                // nova do punho (ver MaoDetalhada).
+                if (gkRig.lHand) gkRig.lHand.rotation.x = lerpTo(gkRig.lHand.rotation.x, EP.pulsoX, ve);
+                if (gkRig.rHand) gkRig.rHand.rotation.x = lerpTo(gkRig.rHand.rotation.x, EP.pulsoX, ve);
+            } else if (this.gkBarreira) {
+                /*
+                A DEFESA DE PERTO E POR BAIXO — ver GoalkeeperPose.barreira.
+
+                O corpo desce, a pélvis inclina para o lado da bola, a perna
+                desse lado estica ao longo do relão (joelho quase a zero, que
+                é o que a torna uma barreira) e a outra recolhe por baixo.
+
+                `gkLadoBarreira` é +1 quando a bola está do lado DIREITO do
+                modelo. O rig do projecto tem `lLeg.rotation.z` positivo a
+                abrir para um lado e `rLeg` para o outro, por isso o sinal
+                entra multiplicado e a pose sai certa nas duas equipas — o
+                erro que a nota dos braços aqui em cima descreve.
+                */
+                const B = GoalkeeperPose.barreira;
+                const v = B.suavizacao;
+                const lado = this.gkLadoBarreira || 1;
+
+                gkCorpo.position.y = lerpTo(gkCorpo.position.y, ALTURA_BASE_Y + B.altura, v);
+                gkRig.pelvis.rotation.x = lerpTo(gkRig.pelvis.rotation.x, 0, v);
+                gkRig.pelvis.rotation.z = lerpTo(gkRig.pelvis.rotation.z, lado * B.inclinacao, v);
+                gkRig.chest.rotation.x = lerpTo(gkRig.chest.rotation.x, 0.10, v);
+
+                // A perna do lado da bola estica; a outra dobra-se por baixo.
+                const perto = (lado > 0) ? 'r' : 'l';
+                const longe = (lado > 0) ? 'l' : 'r';
+                gkRig[perto + 'Leg'].rotation.z = lerpTo(gkRig[perto + 'Leg'].rotation.z, -lado * B.pernaEsticada, v);
+                gkRig[perto + 'Leg'].rotation.x = lerpTo(gkRig[perto + 'Leg'].rotation.x, 0.05, v);
+                gkRig[perto + 'Knee'].rotation.x = lerpTo(gkRig[perto + 'Knee'].rotation.x, B.pernaJoelho, v);
+                gkRig[longe + 'Leg'].rotation.z = lerpTo(gkRig[longe + 'Leg'].rotation.z, lado * 0.10, v);
+                gkRig[longe + 'Leg'].rotation.x = lerpTo(gkRig[longe + 'Leg'].rotation.x, B.pernaDobrada, v);
+                gkRig[longe + 'Knee'].rotation.x = lerpTo(gkRig[longe + 'Knee'].rotation.x, B.pernaDobradaJoelho, v);
+            } else {
+            gkCorpo.position.y = lerpTo(gkCorpo.position.y, ALTURA_BASE_Y + Pm.altura, 0.25);
+            gkRig.pelvis.rotation.x = lerpTo(gkRig.pelvis.rotation.x, 0, 0.3);
+            gkRig.pelvis.rotation.z = lerpTo(gkRig.pelvis.rotation.z, 0, 0.3);
+            gkRig.chest.rotation.x = lerpTo(gkRig.chest.rotation.x, Pm.chest, 0.25);
+            gkRig.lLeg.rotation.x = lerpTo(gkRig.lLeg.rotation.x, Pm.coxa, 0.25);
+            gkRig.rLeg.rotation.x = lerpTo(gkRig.rLeg.rotation.x, Pm.coxa, 0.25);
+            gkRig.lKnee.rotation.x = lerpTo(gkRig.lKnee.rotation.x, Pm.joelho, 0.25);
+            gkRig.rKnee.rotation.x = lerpTo(gkRig.rKnee.rotation.x, Pm.joelho, 0.25);
+            gkRig.lLeg.rotation.z = lerpTo(gkRig.lLeg.rotation.z, Pm.abertura, 0.25);
+            gkRig.rLeg.rotation.z = lerpTo(gkRig.rLeg.rotation.z, -Pm.abertura, 0.25);
+            }
+
+            /*
+            A ALTURA DO OMBRO E A REAL (no mundo, lida do rig). Era `y + 0.35`: o ombro de um
+            guarda-redes esta a ~1.4 m, e com 0.35 qualquer bola acima do joelho parecia
+            estar MUITO acima do ombro — os bracos subiam acima da cabeca (-2.6) em vez
+            de acompanharem a altura da bola. Relato: *"os bracos NAO podem se deslocar
+            para cima; tem que acompanhar a altura da bola"*.
+            */
+            gkCorpo.updateMatrixWorld(true);
+            gkRig.lArm.getWorldPosition(_p_v3);
+            const ombroYm = _p_v3.y;
+            const dyM = Match.ball.position.y - ombroYm;
+            const dxM = Match.ball.position.x - gkCorpo.position.x;
+            const alcanceM = 0.9;
+
+            /*
+            OS BRAÇOS VÃO À FRENTE, E O SINAL DO RIG É NEGATIVO.
+
+            Relato: *"quando a bola vai na direção do goleiro os braços dele
+            ficam para trás e não para frente na hora da defesa"*.
+
+            Medido no próprio rig, com a mão lida por `getWorldPosition` e o
+            modelo virado para +Z:
+
+                lArm.rotation.x = -1.00  ->  mão 0.50 m À FRENTE, 0.32 abaixo
+                lArm.rotation.x =  0.00  ->  mão a prumo, 0.59 abaixo
+                lArm.rotation.x = +1.57  ->  mão 0.59 m ATRÁS, à altura do ombro
+
+            Ou seja: **x negativo é para a frente**. A fórmula era
+            `atan2(dy, 0.8) * 1.2`, sem offset nenhum e com o sinal ao
+            contrário — bola à altura do ombro dava 0 (braços a prumo, colados
+            ao corpo) e bola ACIMA do ombro dava x positivo, que é os braços
+            atrás das costas. É o relato, e acontece justamente na bola que vem
+            ao peito e à cabeça.
+
+            A conta certa: `-PI/2` põe o braço à frente na horizontal, e a
+            elevação da bola soma-se a partir daí — `-PI/2 - atan2(dy, ...)`.
+            Confere com a tabela: bola 0.5 m abaixo do ombro dá -1.01, que a
+            medição diz ser 0.50 m à frente e 0.32 abaixo.
+
+            E NÃO PASSA PELO `clampOmbro`: os limites do JointLimits estão na
+            convenção oposta à do rig (`shoulder.x` de 0 a 180°), e aplicá-los
+            aqui travava x em 0 — exactamente a pose colada ao corpo de que se
+            queixa. O limite fica explícito, na convenção de quem o usa.
+            */
+            const eM = Math.atan2(dyM, 0.8);
+            let elevM = -Math.PI / 2 - eM;
+            // Os bracos acompanham a altura da bola, mas ficam a FRENTE: da altura da cintura
+            // (-0.9) ate um pouco acima da cabeca (-2.0); nunca para o ar.
+            elevM = Math.max(-2.0, Math.min(-0.9, elevM));
+            // Em V curto: os dois bracos a frente, ligeiramente abertos (e a bola decide so o resto).
+            let abreM = 0.22 + Math.min(0.35, Math.abs(dxM) * 0.2);
+            const clM = { x: elevM, z: abreM };
+
+            if (this.gkBarreira) {
+                /*
+                OS BRAÇOS DA BARREIRA SÃO ASSIMÉTRICOS, ao contrário dos de pé.
+
+                De pé abrem-se os dois na mesma amplitude — e a nota aqui em
+                cima explica porquê: `lArm`/`rArm` são esquerda/direita DO
+                MODELO e o modelo está rodado por lookAt, portanto escolher
+                "o braço do lado da bola" pelo x do mundo dá o braço errado
+                para uma das equipas.
+
+                Aqui a assimetria é o gesto, e por isso o lado vem do
+                `gkLadoBarreira`, que JÁ foi medido no referencial do modelo
+                (ver a decisão, mais acima). O de cima sobe acima da cabeça
+                com a mão aberta, o de baixo fica junto ao chão.
+                */
+                const B = GoalkeeperPose.barreira;
+                const v = B.suavizacao;
+                const lado = this.gkLadoBarreira || 1;
+                const alto = (lado > 0) ? 'r' : 'l';
+                const baixo = (lado > 0) ? 'l' : 'r';
+                const sinal = (alto === 'l') ? 1 : -1;
+
+                gkRig[alto + 'Arm'].rotation.x = lerpTo(gkRig[alto + 'Arm'].rotation.x, B.bracoAlto, v);
+                gkRig[alto + 'Arm'].rotation.z = lerpTo(gkRig[alto + 'Arm'].rotation.z, sinal * B.bracoAltoZ, v);
+                gkRig[baixo + 'Arm'].rotation.x = lerpTo(gkRig[baixo + 'Arm'].rotation.x, B.bracoBaixo, v);
+                gkRig[baixo + 'Arm'].rotation.z = lerpTo(gkRig[baixo + 'Arm'].rotation.z, -sinal * B.bracoBaixoZ, v);
+                gkRig.lElbow.rotation.x = lerpTo(gkRig.lElbow.rotation.x, B.cotovelo, v);
+                gkRig.rElbow.rotation.x = lerpTo(gkRig.rElbow.rotation.x, B.cotovelo, v);
+            } else {
+            gkRig.lArm.rotation.x = lerpTo(gkRig.lArm.rotation.x, clM.x, 0.4);
+            gkRig.rArm.rotation.x = lerpTo(gkRig.rArm.rotation.x, clM.x, 0.4);
+            gkRig.lArm.rotation.z = lerpTo(gkRig.lArm.rotation.z, clM.z, 0.4);
+            gkRig.rArm.rotation.z = lerpTo(gkRig.rArm.rotation.z, -clM.z, 0.4);
+            // Palmas voltadas para a bola (a frente): torcao do ombro medida no rig (palma = +Z a 0.4 rad).
+            const twM = (typeof GoalkeeperPose.espera.torcaoBraco === 'number') ? GoalkeeperPose.espera.torcaoBraco : 0.4;
+            gkRig.lArm.rotation.y = lerpTo(gkRig.lArm.rotation.y, twM, 0.4);
+            gkRig.rArm.rotation.y = lerpTo(gkRig.rArm.rotation.y, -twM, 0.4);
+            gkRig.lElbow.rotation.x = lerpTo(gkRig.lElbow.rotation.x, -0.25, 0.4);
+            gkRig.rElbow.rotation.x = lerpTo(gkRig.rElbow.rotation.x, -0.25, 0.4);
+            }
+            // Pe todo apoiado no relvado, nunca na ponta (relato com a captura C553).
+            if (!this.gkEncaixe) {
+                if (gkRig.lFoot) gkRig.lFoot.rotation.x = lerpTo(gkRig.lFoot.rotation.x, 0, 0.4);
+                if (gkRig.rFoot) gkRig.rFoot.rotation.x = lerpTo(gkRig.rFoot.rotation.x, 0, 0.4);
+            }
+
+            /*
+            Ponto de contacto: as duas mãos, projectadas do ângulo REAL do
+            ombro. Vale a que estiver mais perto da bola — assim não é preciso
+            saber qual dos braços é o do lado dela.
+            */
+            const espalhoM = Math.sin(Math.abs(gkRig.lArm.rotation.z)) * alcanceM;
+            const maoYm = ombroYm + Math.sin(gkRig.lArm.rotation.x) * alcanceM;
+            const dxMaoM = Math.min(
+                Math.abs((gkCorpo.position.x + espalhoM) - Match.ball.position.x),
+                Math.abs((gkCorpo.position.x - espalhoM) - Match.ball.position.x)
+            );
+            
+            /*
+            A MAO A SERIO, lida do rig.
+
+            Aqui estava uma projeccao analitica do ombro (`maoX`, `maoYm`) mais
+            um CCD contra a trajectoria do frame. As duas coisas afastavam o
+            teste do que se VE: a projeccao ignora o cotovelo e a rotacao do
+            corpo, e o ponto da varredura fica ate 45 cm do sitio onde a bola e
+            desenhada. Ficava uma captura por partida com a bola a 1.4 m da
+            luva — o resto do relato, em pequeno.
+
+            E a mesma leitura que o mergulho faz (`GkDive.defender`) e que o
+            `resolveBallContact` passou a fazer: `getWorldPosition` das duas
+            maos, contra a posicao ACTUAL da bola.
+            */
+            /*
+            E CONTRA O TRAJECTO DO FRAME, nao contra a posicao final dele.
+
+            A 25 m/s a bola anda 0.42 m entre frames — mais do que o raio de
+            contacto — e com os bracos estendidos a frente ela passa-lhes por
+            cima sem nunca ficar perto em frame nenhum. Ver distanciaAoSegmento
+            (utils.js) e a medicao que o motivou.
+            */
+            const bxM = Match.ball.position.x, byM = Match.ball.position.y, bzM = Match.ball.position.z;
+            const axM = bxM - Match.ballVel.x * dt;
+            const ayM = byM - Match.ballVel.y * dt;
+            const azM = bzM - Match.ballVel.z * dt;
+
+            let distMaoM = Infinity;
+            for (const nome of ['lHand', 'rHand']) {
+                const mao = gkRig && gkRig[nome];
+                if (!mao) continue;
+                mao.getWorldPosition(_p_v3);
+                const dM = (typeof distanciaAoSegmento === 'function')
+                    ? distanciaAoSegmento(_p_v3.x, _p_v3.y, _p_v3.z, axM, ayM, azM, bxM, byM, bzM)
+                    : _p_v3.distanceTo(Match.ball.position);
+                distMaoM = Math.min(distMaoM, dM);
+            }
+            if (distMaoM === Infinity) {
+                distMaoM = Math.hypot(dxMaoM, maoYm - Match.ball.position.y,
+                    gkCorpo.position.z - Match.ball.position.z);
+            }
+
+            const jaEntrouM = (Match.state !== 'PLAY');
+            /*
+            O ALCANCE E O DA MAO, e nao 1.3 m dela — ver
+            GkCatchModel.alcanceContacto. Com 1.3 ele fechava as maos numa bola
+            que ia passar a mais de um metro delas.
+            */
+            const alcanceMao = (typeof GkCatchModel !== 'undefined' &&
+                typeof GkCatchModel.alcanceContacto === 'number')
+                ? GkCatchModel.alcanceContacto : 0.55;
+            /*
+            E O CORPO, que não era testado em lado nenhum.
+
+            O teste acima mede a distância às duas MÃOS. As mãos estão
+            penduradas ao lado do corpo, portanto um remate ao peito, à barriga
+            ou entre as pernas não fica perto de nenhuma delas e passava
+            inteiro. Medido em 591 remates
+            (`tools/headless/remates_conversao.js`): dos remates À BALIZA que
+            cruzavam a linha a MENOS DE UM METRO do guarda-redes, 48% eram
+            golo — mais do que os que cruzavam a três metros dele (36%). A
+            proximidade não previa o desfecho, que é a assinatura de um teste
+            de colisão a falhar e não de um mergulho curto ou de um remate
+            colocado.
+
+            O corpo é um SEGMENTO VERTICAL nos pés dele, de zero a
+            `alturaCorpo`, com `alcanceCorpo` de raio — e contra o trajecto do
+            frame, pela mesma razão que as mãos: a 25 m/s a bola anda 42 cm
+            entre frames e atravessava-o sem nunca ficar perto num frame.
+
+            Acima da cabeça não entra: essa é a bola do `salto`, que tem o seu
+            próprio ramo.
+            */
+            const RAIO_CORPO = (typeof GkCatchModel !== 'undefined' &&
+                typeof GkCatchModel.alcanceCorpo === 'number')
+                ? GkCatchModel.alcanceCorpo : 0.42;
+            const ALT_CORPO = (typeof GkCatchModel !== 'undefined' &&
+                typeof GkCatchModel.alturaCorpo === 'number')
+                ? GkCatchModel.alturaCorpo : 1.85;
+
+            /*
+            NA BARREIRA O CORPO ESTÁ DEITADO, e o segmento tem de o acompanhar.
+
+            O teste normal é uma COLUNA VERTICAL nos pés dele. Nesta pose o que
+            tapa a baliza é a perna esticada ao longo do relão — se o segmento
+            ficasse vertical, a pose mudava no ecrã e não defendia nada, que é
+            o pior dos dois mundos: o jogador vê a defesa e a bola entra.
+
+            O segmento passa a ir do tronco até à ponta da bota, no sentido em
+            que ele se abriu.
+            */
+            /*
+            A COLUNA NASCE ONDE O CORPO ESTÁ, e não em `ALTURA_BASE_Y`.
+
+            Era a constante, e isso só está certo com ele de pé no chão. Os
+            ramos que escrevem a própria altura — o salto alto e o mergulho,
+            que são os dois que o `assentarNoChao` deixa sair — punham o corpo
+            no ar com a coluna esquecida ao nível do relvado, portanto ela
+            cobria altura que ele já não ocupava.
+
+            Apanhado a rastrear uma agarrada "de longe" que o
+            `gk_agarra_com_a_mao` assinalou: bola a 1.51 m da mão, em
+            `gkEstado = 'salto_alto'`, com o corpo a 1.12 m de altura. A mão
+            não lhe chegava e a coluna fantasma dizia que sim.
+
+            Não foi o encaixe ajoelhado que trouxe isto — com ele desligado o
+            caso continua lá. O que ele fez foi duplicar as bolas agarradas
+            (11 para 20 no mesmo lote) e com isso pôr um caso raro dentro da
+            amostra.
+
+            De pé no chão `gkCorpo.position.y` É o `ALTURA_BASE_Y`, portanto
+            para o caso normal isto não muda nada.
+            */
+            let corpoAx = gkCorpo.position.x, corpoAy = gkCorpo.position.y, corpoAz = gkCorpo.position.z;
+            let corpoBx = gkCorpo.position.x, corpoBy = gkCorpo.position.y + ALT_CORPO, corpoBz = gkCorpo.position.z;
+            let raioCorpoM = RAIO_CORPO;
+            /*
+            NO ENCAIXE O CORPO ESTÁ BAIXO, e o segmento tem de o acompanhar.
+
+            A pose desce `gkCorpo.position.y` em `encaixe.altura` (0.55 m) e a
+            coluna acima parte de `ALTURA_BASE_Y`, uma constante — ficava meio
+            metro acima do guarda-redes e media altura que ele já não ocupa.
+            Medido: 1 de 20 bolas agarradas a 0.85 m da mão E do corpo, contra
+            0 de 11 com o encaixe desligado.
+
+            O segmento passa a nascer na posição REAL do corpo e a ter a altura
+            do tronco ajoelhado. Ver GoalkeeperPose.encaixe.
+            */
+            if (this.gkEncaixe) {
+                const EC = GoalkeeperPose.encaixe;
+                /*
+                A COLUNA ANCORA NO RELVADO, E NÃO NA ORIGEM DO CORPO.
+
+                Era `gkCorpo.position.y + alturaEncaixe`, com o `alturaEncaixe`
+                escrito para uma pose que baixava o corpo 0.55 m. Quando a pose
+                foi corrigida e o corpo passou a descer só 0.39 (ele estava
+                sentado para trás, com as pernas 0.094 m DENTRO do relvado), a
+                coluna subiu os mesmos 16 cm com ele — e voltou a medir altura
+                que o guarda-redes não ocupa, que é exactamente o defeito que
+                este bloco existe para corrigir. Medido: 3 de 5 sementes do
+                `gk_agarra_com_a_mao` passaram a apanhar uma bola agarrada a
+                mais de 1 m da mão.
+
+                Ancorada no relvado, o `alturaEncaixe` passa a ser o que o nome
+                diz — até onde o corpo ajoelhado tapa, acima do CHÃO — e deixa
+                de mudar de sítio quando alguém afina a pose.
+                */
+                corpoAy = ALTURA_BASE_Y;
+                corpoBx = gkCorpo.position.x;
+                corpoBz = gkCorpo.position.z;
+                corpoBy = ALTURA_BASE_Y + (EC.alturaEncaixe || 0.40);
+                raioCorpoM = (EC.raioEncaixe || RAIO_CORPO);
+            } else if (this.gkBarreira) {
+                const B = GoalkeeperPose.barreira;
+                _v1.set(1, 0, 0).applyQuaternion(this.model.quaternion);
+                const lado = this.gkLadoBarreira || 1;
+                corpoAy = ALTURA_BASE_Y + B.alturaDeitado;
+                corpoBx = gkCorpo.position.x + _v1.x * lado * B.alcanceDeitado;
+                corpoBz = gkCorpo.position.z + _v1.z * lado * B.alcanceDeitado;
+                corpoBy = ALTURA_BASE_Y + 0.12;   // a bota quase no relão
+                raioCorpoM = B.raioDeitado;
+            }
+
+            let distCorpoM = Infinity;
+            if (typeof distanciaEntreSegmentos === 'function') {
+                distCorpoM = distanciaEntreSegmentos(
+                    corpoAx, corpoAy, corpoAz,
+                    corpoBx, corpoBy, corpoBz,
+                    axM, ayM, azM, bxM, byM, bzM);
+            } else {
+                /*
+                Sem a distância segmento-segmento, aproxima-se: a bola contra o
+                EIXO dele em planta, com a altura cortada à parte. É pior, mas
+                é o caso que nunca deve acontecer (a função vive em utils.js).
+                */
+                const dxy = Math.hypot(bxM - gkCorpo.position.x, bzM - gkCorpo.position.z);
+                const dentroDaAltura = (byM >= ALTURA_BASE_Y && byM <= ALTURA_BASE_Y + ALT_CORPO);
+                distCorpoM = dentroDaAltura ? dxy : Infinity;
+            }
+
+            if (!jaEntrouM && Match.ballVel.lengthSq() > 0 &&
+                (distMaoM < alcanceMao || distCorpoM < raioCorpoM)) {
+                /*
+                Bola ao alcance do corpo, de pé. A decisão sai do
+                `resolverDefesaGK` (utils.js), a mesma dos outros três tipos —
+                aqui estava `0.55 + (GK-50)/100`, sem saber a que velocidade a
+                bola vinha nem quão esticado ele estava.
+
+                Bola ao CORPO é outro tipo: agarra-se mais vezes do que uma
+                bola à mão esticada, e a extensão é zero porque não há nada a
+                esticar.
+                */
+                const aoCorpo = (distCorpoM < RAIO_CORPO) && !(distMaoM < alcanceMao);
+                /*
+                PELA PERNA DA BARREIRA NÃO SE AGARRA. Na barreira o "corpo" é a
+                perna esticada até à bota (`alcanceDeitado`, 1.45 m), e o toque
+                dela entrava como defesa ao corpo — que agarra mais do que todas.
+                Apanhado pelo `gk_agarra_com_a_mao`: bola rasteira agarrada a
+                1.25 m da mão, 1.3 m atrás dele, com a perna rodada para lá. A
+                perna tapa e a bola ressalta; quem agarra são as mãos.
+                */
+                const pelaPerna = aoCorpo && this.gkBarreira;
+                if (aoCorpo) this.resolverDefesaComMaos('corpo', 0, pelaPerna);
+                else this.resolverDefesaComMaos('maos', distMaoM / alcanceMao);
+            }
+
+            /*
+            A SAÍDA DO GESTO NÃO PODE PISAR UMA CAPTURA.
+
+            O `grabBall()` acima põe `gkEstado = 'segurando'`, e este teste corre
+            no MESMO frame, logo a seguir: se ele agarrava no último frame do
+            gesto, o 'segurando' era imediatamente substituído por 'idle' — com
+            o `hasBall` a true.
+
+            E de 'idle' não há saída nenhuma para essa situação: o ramo de
+            decisão só olha para bolas SEM dono (`semDono`, `looseBallInBox`) ou
+            em movimento (`possoEspalmar`, que com velocidade zero dá 999 s de
+            tempo até ele). O guarda-redes ficava com a bola presa para sempre,
+            e o `player.update` colava-lha ao corpo a cada frame. Era o jogo
+            travado logo a seguir a uma defesa.
+
+            A condição do estado é o que diz "o grabBall não mexeu em mim": vale
+            para esta e para qualquer saída futura que ele venha a escolher, ao
+            contrário de um `!this.hasBall`, que descreve só o caso de hoje.
+            */
+            if (tM >= GoalkeeperPose.maosDur && this.gkEstado === 'maos') {
+                /*
+                NO ENCAIXE SÓ SE LEVANTA COM A BOLA — ver
+                GoalkeeperPose.encaixe.esperaMax, que tem o pedido e a razão
+                do tecto. Sem isto ele ajoelhava-se, a bola chegava, e ele
+                levantava-se por cima dela porque o gesto tinha dado a hora.
+
+                A espera acaba com a bola agarrada, com ela fora de alcance
+                (já não há nada para encaixar) ou ao fim do tecto — um
+                guarda-redes que nunca sai de um estado trava o jogo, que é o
+                que a nota aqui em cima descreve.
+                */
+                let aindaAEncaixar = false;
+                if (this.gkEncaixe && !this.hasBall) {
+                    const EN2 = GoalkeeperPose.encaixe;
+                    const tecto = (typeof EN2.esperaMax === 'number') ? EN2.esperaMax : 1.2;
+                    const raio = (typeof EN2.esperaRaio === 'number') ? EN2.esperaRaio : 2.2;
+                    let alcance = false;
+                    if (Match.ball) {
+                        const dB = Match.ball.position.distanceTo(gkCorpo.position);
+                        alcance = (dB <= raio);
+                        /*
+                        A BOLA AINDA VEM — ver GoalkeeperPose.encaixe.
+                        esperaVelMin: a velocidade dela na direccao dele.
+                        */
+                        if (!alcance && typeof EN2.esperaVelMin === 'number' && dB > 0.01) {
+                            const vEle = (Match.ballVel.x * (gkCorpo.position.x - Match.ball.position.x) +
+                                Match.ballVel.z * (gkCorpo.position.z - Match.ball.position.z)) / dB;
+                            alcance = (vEle >= EN2.esperaVelMin) && (dB <= (EN2.esperaRaioVindo || 12));
+                        }
+                    }
+                    aindaAEncaixar = (tM < GoalkeeperPose.maosDur + tecto) && alcance;
+                }
+                if (!aindaAEncaixar) {
+                    // A barreira é deste lance e só deste: sem isto a pose
+                    // sobrevivia para a defesa seguinte, que pode ser de longe.
+                    this.gkBarreira = false;
+                    this.gkEncaixe = false;
+                    this.gkEstado = 'idle';
+                    this.resetBonesToDefault();
+                }
+            }
+        } else if (this.gkEstado === 'salto_alto') {
+            this.gkTempoMergulho += dt; let t = this.gkTempoMergulho;
+            let gkSkill = this.skillFor('GK');
+
+            if (t < 0.3) {
+                /*
+                O SALTO ALTO, também 25% mais baixo — mesmo pedido que baixou
+                o `vySubidaMax` do mergulho (ver GoalkeeperDive). Aqui o
+                número JÁ É a altura, portanto multiplica-se por 0.75 e não
+                pela raiz: era 0.80 m com GK 50 e 1.40 m com GK 100.
+                */
+                /*
+                O TECTO e o de sempre (ja baixado 25% a pedido); o que mudou e
+                ele deixar de o usar SEMPRE. Ver GkSaltoAlto para a medicao —
+                com a bola a 2.13 m ele saltava 0.60 e punha a mao a 2.64,
+                meio metro acima dela.
+                */
+                const tectoSalto = (0.8 + ((gkSkill - 50) / 50) * 0.6) * 0.75;
+                const SA = (typeof GkSaltoAlto !== 'undefined') ? GkSaltoAlto : null;
+                let jumpH = tectoSalto;
+                if (SA) {
+                    const alvoY = (typeof this.gkSaltoAlvoY === 'number')
+                        ? this.gkSaltoAlvoY : Match.ball.position.y;
+                    // O que falta subir para a MAO chegar a bola.
+                    const preciso = alvoY - (ALTURA_BASE_Y + SA.alcanceMaoParado);
+                    jumpH = THREE.MathUtils.clamp(preciso, SA.saltoMin, tectoSalto);
+                }
+                gkCorpo.position.y = lerpTo(gkCorpo.position.y, ALTURA_BASE_Y + jumpH, 0.25);
+
+                /*
+                O SALTO VAI A BOLA, e nao so para cima. Era um salto no sitio:
+                se a bola passava a dois metros, ele subia ao lado dela. Na
+                subida o corpo desloca-se para o ponto guardado no arranque
+                (`gkSaltoAlvoXZ`), ate `deslocMax` metros e a `velHorizontal`
+                — o passo e o impulso de quem ataca a bola.
+                */
+                if (SA && this.gkSaltoAlvoXZ && typeof SA.velHorizontal === 'number') {
+                    const ax = this.gkSaltoAlvoXZ.x - gkCorpo.position.x;
+                    const az = this.gkSaltoAlvoXZ.z - gkCorpo.position.z;
+                    const dAlvo = Math.hypot(ax, az);
+                    const resta = Math.max(0, (SA.deslocMax || 1.8) - (this.gkSaltoDesloc || 0));
+                    const passo = Math.min(dAlvo, SA.velHorizontal * dt, resta);
+                    if (dAlvo > 0.05 && passo > 0) {
+                        gkCorpo.position.x += (ax / dAlvo) * passo;
+                        gkCorpo.position.z += (az / dAlvo) * passo;
+                        this.gkSaltoDesloc = (this.gkSaltoDesloc || 0) + passo;
+                    }
+                }
+
+                /*
+                Procedural: braços por cima da cabeça, mas inclinam pro lado
+                de onde a bola realmente vem em vez de subir sempre no eixo
+                central. Clampado por JointLimits.shoulder.
+                */
+                const dxBolaSalto = Match.ball.position.x - gkCorpo.position.x;
+                const alvoZSalto = JointLimits.clamp('shoulder', 'z', 2.8 + THREE.MathUtils.clamp(dxBolaSalto * 0.05, -0.3, 0.3));
+                /*
+                O `x` NAO passa pelo JointLimits, pela mesma razao do estado
+                'maos': `shoulder.x` esta documentado como 0..180 ("elevacao
+                frontal") mas no rig o que leva a mao a frente e o x NEGATIVO —
+                medido, x=-1.0 poe a mao 0.50 m a frente e x=+1.57 poe-a 0.59 m
+                atras. Clampar por ali levava este -0.5 a zero, ou seja tirava
+                justamente a inclinacao para a frente que o comentario pede.
+                */
+                const alvoXSalto = -0.5;
+                gkRig.lArm.rotation.z = lerpTo(gkRig.lArm.rotation.z, alvoZSalto, 0.3);
+                gkRig.rArm.rotation.z = lerpTo(gkRig.rArm.rotation.z, -alvoZSalto, 0.3);
+                gkRig.lArm.rotation.x = lerpTo(gkRig.lArm.rotation.x, alvoXSalto, 0.3);
+                gkRig.rArm.rotation.x = lerpTo(gkRig.rArm.rotation.x, alvoXSalto, 0.3);
+            } else if (t < 1.2) {
+                gkCorpo.position.y = lerpTo(gkCorpo.position.y, ALTURA_BASE_Y, 0.2);
+                gkRig.lArm.rotation.z = lerpTo(gkRig.lArm.rotation.z, 0.5, 0.15);
+                gkRig.rArm.rotation.z = lerpTo(gkRig.rArm.rotation.z, -0.5, 0.15);
+            } else if (this.gkEstado === 'salto_alto') {
+                /*
+                Mesma guarda do ramo 'maos': a saída do gesto não pisa uma
+                captura. Aqui a ordem já protegia — o `grabBall()` deste ramo
+                vem DEPOIS deste bloco, e além disso só corre com `t < 0.7`,
+                que nunca coincide com o `t >= 1.2` da saída. É protecção por
+                acidente, e a guarda torna-a intencional: trocar a ordem das
+                duas metades ou mexer nos tempos deixa de reintroduzir o
+                encrave.
+                */
+                gkCorpo.position.y = ALTURA_BASE_Y;
+                this.gkEstado = 'idle';
+                this.gkSoco = null;
+                this.resetBonesToDefault();
+            }
+
+            /*
+            AS PERNAS SAO AS DO SALTO DE CABECEIO (pedido: *"o pulo do soco e o da defesa sao iguais ao da
+            cabecada: pernas quase retas, so mudam os bracos"*): a mesma curva do joelho — dobra no inicio da
+            subida e volta a esticar bem antes do pico — e a mesma coxa quase direita. Antes ficava a 1.2 rad
+            (69 graus) de joelho a subir e 0.6 no pico.
+            */
+            if (t < 1.2) {
+                const SC = (typeof SaltoCabeceio !== 'undefined') ? SaltoCabeceio.duracao : 0.62;
+                const pj = THREE.MathUtils.clamp(t / SC, 0, 1);
+                const kneeSalto = (pj < 0.28)
+                    ? Math.sin(THREE.MathUtils.clamp(pj / 0.28, 0, 1) * Math.PI / 2) * 1.0
+                    : 1.0 * (1 - THREE.MathUtils.clamp((pj - 0.28) / 0.30, 0, 1));
+                gkRig.lKnee.rotation.x = lerpTo(gkRig.lKnee.rotation.x, kneeSalto, 0.5);
+                gkRig.rKnee.rotation.x = lerpTo(gkRig.rKnee.rotation.x, kneeSalto, 0.5);
+                gkRig.lLeg.rotation.x = lerpTo(gkRig.lLeg.rotation.x, 0.10 * Math.sin(pj * Math.PI), 0.5);
+                gkRig.rLeg.rotation.x = lerpTo(gkRig.rLeg.rotation.x, 0.10 * Math.sin(pj * Math.PI), 0.5);
+            }
+
+            /*
+            E O IK LEVA A MÃO À BOLA — o mesmo do mergulho.
+
+            Sem isto a pose do salto abria os braços 0.5 rad (29 graus) para o
+            lado e mais nada: nenhum braço ia à bola. O ponto sintético que
+            estava aqui em baixo fingia uma mão a 0.95 m ao longo do braço mais
+            0.35 m de altura, e era ele que fazia as contas baterem — estava a
+            COMPENSAR uma pose que não alcança.
+
+            Medido ao trocar o ponto sintético pela mão a sério: as bolas
+            agarradas caíram de 20 para 5 no mesmo lote. Não era a medição que
+            estava generosa, era a pose que não chegava lá.
+
+            O `GkDive.apontarBracos` é o IK que o mergulho já usa, e traz com
+            ele a regra que impede o braço de dobrar para trás das costas (ver
+            `maoMinZPeito` e a medição no gk_dive.js). O salto alto era o único
+            gesto de defesa sem ele.
+
+            Corre DEPOIS da pose acima, senão os `lerpTo` dos braços apagavam-no,
+            e só dentro da janela de contacto (`t < 0.7`), que é a mesma
+            condição que o teste da defesa usa mais abaixo.
+            */
+            if (t < 0.7 && typeof GkDive !== 'undefined' && GkDive.apontarBracos) {
+                // No soco o IK e so do braco da MIRA; o do soco esta no V (ver animarSocoNoSalto).
+                GkDive.apontarBracos(gkRig, undefined,
+                    (this.gkSoco && this.gkSoco.lado) ? [this.gkSoco.lado === 'r' ? 'l' : 'r'] : null);
+            }
+            // O braco do soco, por cima do IK: arma para tras e golpeia para a frente.
+            if (this.gkSoco) this.animarSocoNoSalto(t);
+
+            /*
+            A MÃO REAL, LIDA DO RIG — e não uma fórmula.
+
+            Estava assim, e a nota dizia "projecta a mão a partir do ângulo
+            REAL do braço, não um offset fixo":
+
+                const alcanceSalto = 0.95;
+                maoSaltoX = corpo.x + sin(rArm.rotation.z) * alcanceSalto;
+                maoSaltoY = corpo.y + 0.35 + cos(rArm.rotation.x) * alcanceSalto;
+                //  e o Z era o do CORPO, sem desvio nenhum
+
+            Continuava a ser uma fórmula, e ignorava o desvio do ombro, o
+            antebraço, o ângulo do cotovelo e o Z por completo. Rastreada uma
+            bola agarrada com a mão do rig a 1.51 m dela, em 'salto_alto': o
+            ponto sintético dizia que ela estava ao alcance e a mão não estava
+            lá. Com o corte em `distMaoSalto < 1.4`, um ponto errado em 0.5 m
+            chega para agarrar de onde não se chega.
+
+            O mergulho já lê a mão a sério (`rig[mao].getWorldPosition` no
+            gk_dive.js) e é esse o padrão. Aqui passa a ler as DUAS e a usar a
+            mais perto da bola, que é a que a agarraria.
+
+            O vector é alocado aqui de propósito: os `_v1`/`_v2` deste ficheiro
+            são partilhados e este bloco corre a meio de uma pose que já os
+            usa. São uns frames por salto, não um custo por frame de jogo.
+            */
+            let maoSaltoX, maoSaltoY, maoSaltoZ;
+            {
+                const pm = new THREE.Vector3();
+                let melhor = Infinity;
+                for (const nome of ['rHand', 'lHand']) {
+                    const no = gkRig[nome];
+                    if (!no) continue;
+                    no.getWorldPosition(pm);
+                    const d = pm.distanceTo(Match.ball.position);
+                    if (d < melhor) {
+                        melhor = d;
+                        maoSaltoX = pm.x; maoSaltoY = pm.y; maoSaltoZ = pm.z;
+                    }
+                }
+                if (maoSaltoX === undefined) {
+                    // Sem rig (nunca deve acontecer): o antigo ponto sintético.
+                    const alcanceSalto = 0.95;
+                    maoSaltoX = gkCorpo.position.x + Math.sin(gkRig.rArm.rotation.z) * alcanceSalto;
+                    maoSaltoY = gkCorpo.position.y + 0.35 + Math.cos(gkRig.rArm.rotation.x) * alcanceSalto;
+                    maoSaltoZ = gkCorpo.position.z;
+                }
+            }
+            
+            // CCD: raycasting contínuo
+            let distMaoSalto;
+            if (Match.prevBallPos) {
+                const P1 = Match.prevBallPos;
+                const P2 = Match.ball.position;
+                const bx = P2.x - P1.x;
+                const by = P2.y - P1.y;
+                const bz = P2.z - P1.z;
+                const lenSq = bx * bx + by * by + bz * bz;
+                let t = 0;
+                if (lenSq > 0.000001) {
+                    const dot = (maoSaltoX - P1.x) * bx + (maoSaltoY - P1.y) * by + (maoSaltoZ - P1.z) * bz;
+                    t = Math.max(0, Math.min(1, dot / lenSq));
+                }
+                const projX = P1.x + t * bx;
+                const projY = P1.y + t * by;
+                const projZ = P1.z + t * bz;
+                distMaoSalto = Math.hypot(maoSaltoX - projX, maoSaltoY - projY, maoSaltoZ - projZ);
+            } else {
+                distMaoSalto = Math.hypot(maoSaltoX - Match.ball.position.x, maoSaltoY - Match.ball.position.y, maoSaltoZ - Match.ball.position.z);
+            }
+            
+            const jaEntrouSalto = (Match.state !== 'PLAY');
+            /*
+            O ALCANCE VEM DA CONFIGURAÇÃO, e não de um 1.4 escrito aqui — ver
+            `GkCatchModel.alcanceSalto`, que tem a medição do que o 1.4 deixava
+            passar (uma bola agarrada com a mão a 1.27 m dela).
+            */
+            const alcSalto = (typeof GkCatchModel.alcanceSalto === 'number')
+                ? GkCatchModel.alcanceSalto : 1.4;
+            if (!jaEntrouSalto && t < 0.7 && distMaoSalto < alcSalto && Match.ballVel.lengthSq() > 0) {
+                /*
+                SAIDA AO CRUZAMENTO: agarra ou soca, e quem decide e a
+                MARCACAO -- ver `resolverSaidaAoCruzamento` e
+                GkSaidaCruzamento. Fora desse caso, a defesa no ar e a de
+                sempre.
+                */
+                if (this.gkSaiuAoCruzamento && this.resolverSaidaAoCruzamento()) {
+                    this.gkSaiuAoCruzamento = false;
+                } else {
+                    // No ar, a agarrar por cima: ver resolverDefesaComMaos.
+                    this.resolverDefesaComMaos('salto', distMaoSalto / alcSalto);
+                }
+            }
+        } else if (this.gkEstado === 'apanhar') {
+            // Bola mansa/rolando: pára, agacha e apanha — sem deslizar.
+            this.gkTempoMergulho += dt;
+            const t = this.gkTempoMergulho;
+            const P = GoalkeeperPose.apanhar;
+            const k = Math.min(1, t / GoalkeeperPose.apanharDur);
+
+            gkRig.lLeg.rotation.x = lerpTo(gkRig.lLeg.rotation.x, P.coxa, 0.5);
+            gkRig.rLeg.rotation.x = lerpTo(gkRig.rLeg.rotation.x, P.coxa, 0.5);
+            gkRig.lKnee.rotation.x = lerpTo(gkRig.lKnee.rotation.x, P.joelho, 0.5);
+            gkRig.rKnee.rotation.x = lerpTo(gkRig.rKnee.rotation.x, P.joelho, 0.5);
+            gkRig.lArm.rotation.x = lerpTo(gkRig.lArm.rotation.x, P.bracoX, 0.5);
+            gkRig.rArm.rotation.x = lerpTo(gkRig.rArm.rotation.x, P.bracoX, 0.5);
+            gkRig.lElbow.rotation.x = lerpTo(gkRig.lElbow.rotation.x, P.cotovelo, 0.5);
+            gkRig.rElbow.rotation.x = lerpTo(gkRig.rElbow.rotation.x, P.cotovelo, 0.5);
+            gkRig.chest.rotation.x = lerpTo(gkRig.chest.rotation.x, P.chest, 0.5);
+            gkCorpo.position.y = lerpTo(gkCorpo.position.y, ALTURA_BASE_Y + P.altura, 0.5);
+
+            // Segue a bola devagar enquanto se agacha, sem voltar a acelerar.
+            gkCorpo.position.x = lerpTo(gkCorpo.position.x, Match.ball.position.x, 0.15);
+            gkCorpo.position.z = lerpTo(gkCorpo.position.z, Match.ball.position.z, 0.15);
+
+            // Vira-se para a bola enquanto se aproxima — sem isto ficava com a
+            // rotação de onde quer que viesse a correr, de lado ou de costas.
+            {
+                let lookPos = Match.ball.position.clone(); lookPos.y = gkCorpo.position.y;
+                lookAtBola(gkCorpo, lookPos);
+            }
+
+            if (k >= 1) {
+                /*
+                E A BOLA TEM DE ESTAR MESMO AO ALCANCE DA MAO.
+
+                O gesto de agachar acaba e ele agarrava fosse a bola onde
+                fosse: eram estas as duas ultimas capturas a mais de um metro
+                da luva depois de o resto estar arranjado (1.19 m a pior). Se
+                ela ja se afastou, ele levanta-se e volta a decidir — que e o
+                que um guarda-redes faz.
+
+                Ver GkCatchModel.alcanceContacto. A folga extra e do gesto: com
+                ele agachado as maos vao ao chao, mais longe do centro do
+                modelo do que quando esta de pe.
+                */
+                const alcanceApanhar = ((typeof GkCatchModel !== 'undefined' &&
+                    typeof GkCatchModel.alcanceContacto === 'number')
+                    ? GkCatchModel.alcanceContacto : 0.55) + 0.25;
+                let dMaoApanhar = Infinity;
+                for (const nome of ['lHand', 'rHand']) {
+                    const mao = gkRig && gkRig[nome];
+                    if (!mao) continue;
+                    mao.getWorldPosition(_p_v3);
+                    dMaoApanhar = Math.min(dMaoApanhar, _p_v3.distanceTo(Match.ball.position));
+                }
+                /*
+                Num recuo com o pe o grabBall recusa. Sem esta saida ele ficava
+                aqui a tentar agarrar frame apos frame, com a bola parada a
+                seus pes — um encrave.
+                */
+                /*
+                A BOLA A SEUS PES BASTA: agachado, as maos nem sempre chegam (0.96 m medido) a uma bola que
+                parou a 0.54 m do corpo, e ele repetia o gesto para sempre — 'apanhar', 'idle', 'apanhar' — sem
+                nunca a agarrar. Se ela esta junto ao corpo e quase parada, apanha-se na mesma: a bola sobe
+                para as maos (GoalkeeperPose.catchBlend) em vez de ficar ali. So se a bola fugiu a serio
+                (mais do que `apanharDistCorpo` do corpo ou ainda a andar) e que ele volta a decidir.
+                */
+                const distCorpoApanhar = gkCorpo.position.distanceTo(Match.ball.position);
+                const aoPe = distCorpoApanhar <= GoalkeeperPose.apanharDistCorpo && Match.ballVel.length() < 3.0;
+                if (dMaoApanhar > alcanceApanhar && !aoPe) this.gkEstado = 'idle';
+                else if (!this.grabBall()) this.gkEstado = 'idle';
+            }
+        } else if (this.gkEstado === 'segurando') {
+            // Bola já agarrada: segura junto ao peito enquanto as equipas se
+            // reorganizam, antes de poder relançar (mão ou pontapé).
+            this.gkTempoMergulho += dt;
+            const t = this.gkTempoMergulho;
+
+            /*
+            O BT escolhe se se sai a jogar pelos laterais ou se chuta, e quem
+            é o alvo do lançamento com as mãos. A execução do gesto fica com o
+            updateGK; correr a árvore aqui evita duplicar a lógica de escolha
+            do lateral (acharLateralParaSaida) em player.js.
+            */
+            this.runBehaviorTree(dt);
+
+            /*
+            Pose única: `segurar` já É a pose de repouso (de pé, direito,
+            pernas descontraídas) com os braços dobrados a fechar a bola no
+            peito. Não há fase agachada nenhuma — antes passava os primeiros
+            0.4s na pose de 'apanhar', o que desfazia o snap feito em
+            grabBall() e voltava a agachá-lo logo depois de agarrar.
+
+            Também se aplicam aqui a abertura das pernas e o bracoZ: sem eles,
+            qualquer pose anterior (mergulho de lado, com os braços abertos em
+            z) ficava por corrigir e só o snap inicial a tapava.
+            */
+            const P = GoalkeeperPose.segurar;
+            /*
+            LEVANTA-SE COM A BOLA NAS MAOS. Relato, com quatro capturas (99C9B, E5A04, 94B32): depois
+            do encaixe ajoelhado *"o goleiro se levanta antes de segurar a bola; a bola vai subindo
+            ate as maos; fica em frente ao rosto e ele sai caminhando"*. Agora, vindo do encaixe ou da
+            barreira (`gkLevanta`, posto no `grabBall`), as maos ficam na bola, no relvado, os primeiros
+            `esperaLevantar` s; so depois o corpo sobe (smoothstep ate `durLevantar`) com a bola nas
+            maos, os bracos passam a pose de segurar a meio do caminho e so entao ele anda.
+            */
+            let fLev = 1;
+            if (this.gkLevanta) {
+                const GL = GoalkeeperPose.levantaComBola;
+                this.gkLevanta.t += dt;
+                const u = THREE.MathUtils.clamp((this.gkLevanta.t - GL.espera) / Math.max(0.01, GL.dur - GL.espera), 0, 1);
+                fLev = u * u * (3 - 2 * u);
+                if (this.gkLevanta.t >= GL.dur) this.gkLevanta = null;
+            }
+            const cLev = 0.25 * fLev;
+
+            gkRig.lLeg.rotation.x = lerpTo(gkRig.lLeg.rotation.x, P.coxa, cLev);
+            gkRig.rLeg.rotation.x = lerpTo(gkRig.rLeg.rotation.x, P.coxa, cLev);
+            gkRig.lKnee.rotation.x = lerpTo(gkRig.lKnee.rotation.x, P.joelho, cLev);
+            gkRig.rKnee.rotation.x = lerpTo(gkRig.rKnee.rotation.x, P.joelho, cLev);
+            gkRig.lLeg.rotation.z = lerpTo(gkRig.lLeg.rotation.z, P.abertura, cLev);
+            gkRig.rLeg.rotation.z = lerpTo(gkRig.rLeg.rotation.z, -P.abertura, cLev);
+            gkRig.lArm.rotation.x = lerpTo(gkRig.lArm.rotation.x, P.bracoX, cLev);
+            gkRig.rArm.rotation.x = lerpTo(gkRig.rArm.rotation.x, P.bracoX, cLev);
+            gkRig.lArm.rotation.z = lerpTo(gkRig.lArm.rotation.z, P.bracoZ, cLev);
+            gkRig.rArm.rotation.z = lerpTo(gkRig.rArm.rotation.z, -P.bracoZ, cLev);
+            gkRig.lElbow.rotation.x = lerpTo(gkRig.lElbow.rotation.x, P.cotovelo, cLev);
+            gkRig.rElbow.rotation.x = lerpTo(gkRig.rElbow.rotation.x, P.cotovelo, cLev);
+            gkRig.chest.rotation.x = lerpTo(gkRig.chest.rotation.x, P.chest, cLev);
+            gkCorpo.position.y = lerpTo(gkCorpo.position.y, ALTURA_BASE_Y + P.altura, cLev);
+
+            /*
+            E A BOLA VAI ÀS MÃOS.
+
+            Medido nos 8 s de posse: a bola ficava a 0.50 m da mão mais perta
+            (3.46 no pior caso, a arrastar-se atrás dele enquanto andava),
+            0.36 m ABAIXO dos punhos, e os punhos a 0.54 m um do outro — mais
+            do dobro do diâmetro dela. Ninguém lhe tocava.
+
+            O fecho é o mesmo do lançamento lateral (`fecharMaosNaBola`, por
+            bissecção do `bracoZ` até os punhos ficarem a um diâmetro), e a
+            bola passa a seguir as mãos em vez de ficar onde foi apanhada.
+            Ver GoalkeeperPose.segurar.
+            */
+
+            /*
+            Entra nesta fase com a rotação de onde quer que estivesse a
+            defesa (mergulho de lado, apanhada de costas) — ninguém a
+            corrigia durante os 8s de espera, e ficava de costas pro campo.
+            Vira já de frente, sempre — usa lookAtBola (o mesmo `.lookAt()`
+            usado em todo o resto do jogo para orientar jogadores; um
+            `rotation.y = 0/PI` calculado à mão aqui dava exactamente o
+            oposto do esperado).
+            */
+            _v1.set(gkCorpo.position.x, gkCorpo.position.y, gkCorpo.position.z + this.dirZ * 10);
+            lookAtBola(gkCorpo, _v1);
+
+            /*
+            ANDAR COM A BOLA NA MÃO. Ficava completamente imóvel os 5 a 8
+            segundos todos: nem a FSM corre neste estado (só é chamada no ramo
+            'idle'), nem a velocidade sobrevive ao reset no fim do updateGK.
+
+            Anda para o alvo de gkAlvoSegurando (config.js) a segurarVel, com
+            passo limitado — mesmo tratamento do ramo 'idle', para não deslizar
+            quando o alvo salta. Não sai da grande área: com a bola na mão,
+            fora dela é falta.
+            */
+            const alvoSeg = gkAlvoSegurando(this.ownGoalZ, this.dirZ);
+            const dxSeg = alvoSeg.x - gkCorpo.position.x;
+            const dzSeg = alvoSeg.z - gkCorpo.position.z;
+            const distSeg = Math.hypot(dxSeg, dzSeg);
+            const passoSeg = GoalkeeperPose.segurarVel * dt;
+
+            let andouSeg = 0;
+            if (distSeg > 0.15 && !this.gkLevanta) {
+                const k = Math.min(1, passoSeg / distSeg);
+                gkCorpo.position.x += dxSeg * k;
+                gkCorpo.position.z += dzSeg * k;
+                andouSeg = distSeg * k;
+            }
+
+            // Pernas a acompanhar. Os braços ficam na pose de segurar, acima:
+            // a bola continua fechada no peito enquanto ele anda.
+            if (andouSeg > 0.001) {
+                // Andar com a bola nas mãos: mesmo ciclo do jogo, com a passada
+                // a vir do andamento (ver o bloco `andando` mais acima).
+                const Pa = GoalkeeperPose.andar;
+                const velSeg = dt > 0.0001 ? andouSeg / dt : 0;
+                const P0Seg = getGaitPose(0, velSeg);
+                this.animTimer += andouSeg / P0Seg.passada;
+                const tt = ((this.animTimer % 1.0) + 1.0) % 1.0;
+                const poseSeg = getGaitPose(tt, velSeg);
+                gkRig.lLeg.rotation.x = lerpTo(gkRig.lLeg.rotation.x, poseSeg.lHip, 0.4);
+                gkRig.rLeg.rotation.x = lerpTo(gkRig.rLeg.rotation.x, poseSeg.rHip, 0.4);
+                /*
+                ANDAR COM A BOLA TEM PASSO DE VERDADE. Relato, com a referencia 25B3: *"depois de
+                defender a bola em baixo o goleiro sai andando afastado do gramado: o pe esquerdo
+                quase apoia com a ponta e o direito fica no ar"*. Medido: a bota que balanca so
+                subia 3 cm (e as duas ficavam 3 cm acima do relvado), e o pe herdava a ponta do
+                encaixe ajoelhado (`peAberto` 0.60 / `peRecolhido` -0.30), que ninguem repunha.
+                O joelho levanta `levantaPe` vezes mais, e cada pe faz o que faz no passo: a
+                perna de tras sai na ponta (calcanhar para cima), a da frente apoia inteira.
+                */
+                const lp = (typeof Pa.levantaPe === 'number') ? Pa.levantaPe : 1.0;
+                gkRig.lKnee.rotation.x = lerpTo(gkRig.lKnee.rotation.x, Pa.kneeBase + poseSeg.lKnee * lp, 0.4);
+                gkRig.rKnee.rotation.x = lerpTo(gkRig.rKnee.rotation.x, Pa.kneeBase + poseSeg.rKnee * lp, 0.4);
+                const peDoPasso = (hip) => THREE.MathUtils.clamp(hip * 0.9, 0, 0.55);
+                if (gkRig.lFoot) gkRig.lFoot.rotation.x = lerpTo(gkRig.lFoot.rotation.x, peDoPasso(poseSeg.lHip), 0.4);
+                if (gkRig.rFoot) gkRig.rFoot.rotation.x = lerpTo(gkRig.rFoot.rotation.x, peDoPasso(poseSeg.rHip), 0.4);
+            } else if (!this.gkLevanta) {
+                // Parado com a bola: pes direitos (o encaixe deixa-os na ponta).
+                if (gkRig.lFoot) gkRig.lFoot.rotation.x = lerpTo(gkRig.lFoot.rotation.x, 0, 0.3);
+                if (gkRig.rFoot) gkRig.rFoot.rotation.x = lerpTo(gkRig.rFoot.rotation.x, 0, 0.3);
+            }
+
+            /*
+            Relançar mais cedo, se já houver linha. `gkPodeLancar` guarda a
+            folga de segurarMinimo para as equipas saírem da área; sem alvo, o
+            relançamento sai na mesma ao fim de segurarDur, logo a seguir.
+
+            O findPassTarget aqui é só o GATILHO — "já há a quem jogar". Quem
+            escolhe mesmo o destinatário é o releaseFromHands, no instante do
+            contacto, e é ele que respeita o Playing Style da equipa.
+
+            Corre a cada 0.25 s e não a cada frame: percorre todos os
+            companheiros e todas as linhas de passe, e nada disto muda de
+            frame para frame.
+            */
+            this.gkProcuraTimer = (this.gkProcuraTimer || 0) + dt;
+            if (t >= GoalkeeperPose.segurarMinimo && this.gkProcuraTimer >= 0.25) {
+                this.gkProcuraTimer = 0;
+                this.gkTemLinha = !!this.findPassTarget();
+            }
+
+            /*
+            SÓ LARGA CEDO COM UMA BOA OPÇÃO.
+
+            O gatilho era `gkTemLinha || gkThrowTarget`, e o `gkTemLinha` é o
+            `findPassTarget()` — QUALQUER companheiro com linha, marcado ou não.
+            Medido: largava aos 2.05 s de média, antes de a equipa se ter
+            organizado. A opção boa é a que o `acharLateralParaSaida` (BT) já
+            escolhe: um defesa desmarcado, dentro do alcance do braço.
+
+            Sem essa opção espera — até aos 8 s do `segurarDur`, e aí chuta para
+            a frente, que é o que a regra pedida diz. Quem decidiu chutar de
+            saída (estilo directo, ou nenhum defesa livre) larga aos
+            `segurarDirecto`: esperar os 8 s para chutar na mesma é tempo morto.
+            */
+            const opcaoBoa = this.gkThrowTarget && this.gkThrowTarget.model;
+            const lancarCedo = gkPodeLancar(t, opcaoBoa);
+            /*
+            `gkSaidaEraChutao`: ele decidiu chutar e depois subiu para "sair a
+            jogar" porque apareceu uma opcao boa (ver a subida em
+            player_bt.js). Se ela desaparecer, o prazo tem de continuar a ser o
+            curto — senao ficava os 8 s a espera para chutar na mesma.
+            */
+            const iaChutar = (this.gkSaida === 'chuteFrente') || this.gkSaidaEraChutao;
+            const prazo = (iaChutar && !opcaoBoa)
+                ? Math.max(GoalkeeperPose.segurarMinimo, GoalkeeperPose.segurarDirecto || 3.0)
+                : (this.gkSegurarDur ?? GoalkeeperPose.segurarDur);
+
+            if (lancarCedo || t >= prazo) {
+                const alvoLancamento = (this.gkSaida === 'laterais') ? this.gkThrowTarget : null;
+                if (alvoLancamento && alvoLancamento.model) {
+                    this.gkEstado = 'lancando';
+                    this.gkTempoMergulho = 0;
+                    this.gkKickNorm = 0;
+                    /*
+                    POR CIMA OU POR BAIXO — ver GkThrowModel.distanciaPorCima.
+                    Pedido, com fotografias dos dois gestos: o rolamento para
+                    perto, o lançamento por cima "para alvos a mais de 30
+                    metros". Havia um gesto só, o de cima, e a bola rolada era
+                    largada no alto e teletransportada para o relvado.
+                    */
+                    const dLanc = this.model.position.distanceTo(alvoLancamento.model.position);
+                    const limPorCima = (typeof GkThrowModel !== 'undefined' &&
+                        typeof GkThrowModel.distanciaPorCima === 'number')
+                        ? GkThrowModel.distanciaPorCima : 30.0;
+                    this.gkLancaPorCima = (dLanc > limPorCima);
+                    /*
+                    O ALVO FICA GUARDADO NO JOGADOR, e não só dentro do closure
+                    do `onContact`.
+
+                    Relato: *"quando o guarda-redes for arremessar a bola com a
+                    mão tem que se virar para a direcção do passe, senão a bola
+                    passa por baixo das pernas dele"*. E era isso mesmo: o
+                    `gkThrowTarget` era posto a null duas linhas abaixo, o gesto
+                    corria sem saber para onde ia a bola, e o corpo ficava
+                    virado para o meio do campo enquanto o braço largava a bola
+                    para o lado. Ver a rotação no ramo 'lancando'.
+                    */
+                    this.gkAlvoLancamento = alvoLancamento;
+                    this.gkKickAction = new ActionState(
+                        this.gkLancaPorCima ? 'gkThrow' : 'gkThrowBaixo', {
+                        onContact: () => {
+                            this.releaseFromHands(alvoLancamento);
+                        }
+                    });
+                } else {
+                    this.gkEstado = 'chutando';
+                    this.gkTempoMergulho = 0;
+                    this.gkKickNorm = 0;
+                    this.gkKickAction = new ActionState('gkPunt', {
+                        onContact: () => {
+                            this.puntBall();
+                        }
+                    });
+                }
+                this.gkThrowTarget = null;
+            }
+
+            /*
+            E A BOLA VAI ÀS MÃOS — no FIM do ramo, depois de ele andar.
+
+            A primeira tentativa colou-a logo a seguir à pose, e a seguir o
+            corpo movia-se à procura de linha de passe: a bola ficava para
+            trás. Medido, 0.16 m da mão mais perta e 0.10 m ABAIXO dos punhos
+            apesar do `bolaAcima` positivo — era o corpo a andar por baixo
+            dela.
+            */
+            if (P.fecharPunhos && fLev >= 0.5) {
+                if (typeof P.fechoPeloOmbro === 'number') this.fecharMaosNaBolaPeloOmbro(P.bracoZ, P.fechoPeloOmbro);
+                else this.fecharMaosNaBola(P.bracoZ);
+            }
+            // Os pulsos dobram para dentro, a abraçar a bola (ver GoalkeeperPose.segurar.maoFecho).
+            if (typeof P.maoFecho === 'number' && gkRig.lHand && gkRig.rHand) {
+                gkRig.lHand.rotation.z = -P.maoFecho;
+                gkRig.rHand.rotation.z = P.maoFecho;
+            }
+            this.colarBolaAsMaos(P.bolaAcima);
+        } else if (this.gkEstado === 'chutando' || this.gkEstado === 'lancando') {
+            const isThrow = (this.gkEstado === 'lancando');
+            const isGroundKick = (!isThrow && this.gkKickTipo === 'chao');
+            const normK = this.gkKickAction ? this.gkKickAction.update(dt, this) : 1;
+            this.gkKickNorm = normK;
+
+            if (isThrow) {
+                const clipLanc = this.gkLancaPorCima
+                    ? GoalkeeperThrowClip
+                    : (typeof GoalkeeperUnderarmThrowClip !== 'undefined'
+                        ? GoalkeeperUnderarmThrowClip : GoalkeeperThrowClip);
+                const K = amostrarClipLancamentoGR(normK, clipLanc);
+                aplicarPoseLancamentoGR(gkRig, K);
+                gkCorpo.position.y = ALTURA_BASE_Y + K.altura;
+
+                /*
+                A bola segue a mão de lançamento até ao contacto. Depois do
+                contacto a velocidade já foi escrita e a bola voa livre.
+                */
+                if (this.gkKickAction && !this.gkKickAction.executed) {
+                    this.colarBolaAMao(clipLanc.bracoLancamento);
+                }
+            } else if (isGroundKick) {
+                /*
+                CHUTE DE PE DO GUARDA-REDES. O tiro de meta anima-se pelo
+                GoalKickClip (4 keyframes, as imagens GoalKick1 a 4); o alivio
+                fora da area e o recuo de urgencia pelo PlayerKickClip, o
+                gesto de bola parada generico. Era o mesmo clip para os tres, e
+                antes disso o GoalkeeperGroundKickClip, exclusivo do
+                guarda-redes, com a pose da corrida misturada por cima durante
+                os primeiros GK_GROUND_KICK_BLEND segundos.
+
+                A MISTURA DA POSE MORREU AQUI. Eram duas animacoes a escrever o
+                mesmo esqueleto no mesmo frame -- o clip e a pose com que a
+                corrida de aproximacao acabou -- e a corrida alterna as pernas.
+                A aproximacao passou a ser parte do proprio clip (keyframes 0 e
+                1), portanto nao ha nada de onde misturar.
+
+                O `gkKickBlend` SOBREVIVE, mas so para o corpo: o pe de apoio
+                nao pode teleportar para o lado da bola, e a orientacao tambem
+                nao muda de golpe (ver o slerp mais abaixo). Deslocacao e
+                rotacao, nunca ossos.
+                */
+                /*
+                QUAL DOS DOIS CLIPS. O tiro de meta tem o seu (`GoalKickClip`);
+                o alivio fora da area e o recuo de urgencia continuam no
+                `PlayerKickClip`, que e tambem o da falta e do penalti. Quem
+                arrancou o gesto deixou o nome em `gkKickClipNome`.
+                */
+                const nomeClip = this.gkKickClipNome;
+                const ehTiroDeMeta = (nomeClip === 'goalKick');
+                const ehPasse = (nomeClip === 'pass');
+                const ehLancamento = (nomeClip === 'lancamento');
+                const K = ehTiroDeMeta ? amostrarClipGoalKick(normK)
+                    : ehPasse ? amostrarClipPasse(normK)
+                    : ehLancamento ? amostrarClipLancamento(normK)
+                    : amostrarClipPlayerKick(normK);
+
+                /*
+                O CORPO ANDA AO RITMO DO `avanco` DO CLIP.
+
+                Era um smoothstep sobre `GK_GROUND_KICK_BLEND` (0.04 s): o
+                corpo chegava ao pe de apoio em dois frames e o resto do gesto
+                fazia-se parado. Agora a fraccao vem do keyframe — sobe durante
+                o passo (frames 0-3) e fica em 1.00 na armacao e no contacto,
+                que e quando o pe de apoio ja esta cravado no chao.
+
+                E o que faz o passo do clip ser um passo e nao um deslize: as
+                pernas e o corpo andam da mesma curva.
+                */
+                const B = this.gkKickBlend;
+                if (B) {
+                    // O passe nao traz `avanco`: o corpo chega ao pe de apoio suavemente, ate ao contacto.
+                    B.w = (typeof K.avanco === 'number') ? K.avanco
+                        : (ehPasse ? Math.min(1, normK / 0.35) * Math.min(1, normK / 0.35) * (3 - 2 * Math.min(1, normK / 0.35)) : 1);
+                    gkCorpo.position.x = B.origemX + (B.plantX - B.origemX) * B.w;
+                    gkCorpo.position.z = B.origemZ + (B.plantZ - B.origemZ) * B.w;
+                }
+
+                if (ehTiroDeMeta) aplicarPoseGoalKick(gkRig, K, gkCorpo);
+                else if (ehLancamento) { escreverPoseBolaParada(gkRig, K, gkCorpo, LancamentoClip.pernaChute); }
+                else if (ehPasse) { aplicarPoseRemate(gkRig, K); gkCorpo.position.y = ALTURA_BASE_Y + (K.altura || 0); }
+                else aplicarPosePlayerKick(gkRig, K, gkCorpo);
+            } else {
+                // CHUTÃO DAS MÃOS (Punt em jogo corrido)
+                const K = amostrarClipChuteGR(normK);
+                aplicarPoseChutaoGR(gkRig, K, normK);
+
+                gkCorpo.position.y = ALTURA_BASE_Y + K.altura;
+            }
+
+            /*
+            VIRADO PARA ONDE A BOLA VAI.
+
+            Isto olhava sempre para o meio do campo (`dirZ * 10`), fosse qual
+            fosse o destino. Num lançamento para um lateral — que é o caso
+            normal, o `acharLateralParaSaida` escolhe um defesa aberto — o
+            corpo ficava de frente e a bola saía de lado: via-se a passar por
+            baixo das pernas dele.
+
+            No lançamento o alvo é o companheiro (`gkAlvoLancamento`); no
+            chutão e no tiro de meta continua a ser o campo à frente, que é para
+            onde a bola vai mesmo.
+            */
+            let olharPara = _v1.set(gkCorpo.position.x, gkCorpo.position.y,
+                gkCorpo.position.z + this.dirZ * 10);
+            if (isThrow && this.gkAlvoLancamento && this.gkAlvoLancamento.model) {
+                olharPara = _v1.set(this.gkAlvoLancamento.model.position.x, gkCorpo.position.y,
+                    this.gkAlvoLancamento.model.position.z);
+            }
+            lookAtBola(gkCorpo, olharPara);
+
+            /*
+            Na entrada do chute do chão a orientação também não muda de golpe:
+            a corrida acaba virada para a BOLA, o gesto quer o corpo virado
+            campo adentro. Slerp entre as duas com o mesmo peso da pose.
+            */
+            if (isGroundKick && this.gkKickBlend && this.gkKickBlend.w < 1) {
+                const BQ = this.gkKickBlend;
+                if (!BQ.quatAlvo) BQ.quatAlvo = gkCorpo.quaternion.clone();
+                else BQ.quatAlvo.copy(gkCorpo.quaternion);
+                gkCorpo.quaternion.copy(BQ.quatOrigem).slerp(BQ.quatAlvo, BQ.w);
+            }
+
+            /*
+            =================================================================
+            QUEM VAI AO PONTO DE APOIO E O PE, NAO O CORPO
+            =================================================================
+            Relato, com captura: *"o pe de apoio no tiro de meta tem que ficar
+            ao lado da bola: imagem GoalKick2. Esta ficando a frente da bola."*
+
+            O `plantX`/`plantZ` (0.10 m atras da bola, 0.32 m ao lado) era
+            aplicado a ORIGEM do corpo. So que no balanco a coxa de apoio esta
+            55 graus a frente, e o pe fica longe da anca. Medido no rig, com o
+            corpo virado para a frente:
+
+                keyframe 5 (o pe planta)    pe de apoio 0.71 m a frente do corpo
+                keyframe 9 (contacto)                   0.23 m
+                keyframe 13                             0.30 m
+
+            Com o corpo no ponto de apoio, o pe plantava ~0.6 m A FRENTE da
+            bola — a captura. E havia um segundo defeito por baixo deste: com
+            o corpo parado do 5 ao 9, o pe recuava 0.48 m em relacao a ele, ou
+            seja ESCORREGAVA PARA TRAS na relva durante o chuto.
+
+            Os dois resolvem-se da mesma maneira. Em cada frame, com a pose E a
+            rotacao deste frame ja escritas, le-se onde esta o pe de apoio face
+            ao corpo, e poe-se o corpo de maneira que o PE caia no ponto de
+            apoio. Ao ritmo do `avanco`: antes de plantar, o corpo aproxima-se
+            desse alvo; com o `avanco` a 1 o pe fica cravado e e o corpo que
+            passa por cima dele. E uma formula so, por isso nao ha salto na
+            passagem.
+
+            O ponto de apoio passa assim a querer dizer o que o comentario do
+            tiro de meta sempre disse que era: onde fica o PE. A bola fica 0.10
+            m a frente dele e 0.32 m ao lado, e e ai que o pe de chute a vai
+            encontrar no contacto.
+            =================================================================
+            */
+            if (isGroundKick && this.gkKickBlend && gkRig) {
+                const BP = this.gkKickBlend;
+                const clipPe = (this.gkKickClipNome === 'goalKick') ? GoalKickClip
+                    : (this.gkKickClipNome === 'lancamento') ? LancamentoClip
+                    : (this.gkKickClipNome === 'pass') ? PassClip : PlayerKickClip;
+                const peApoio = (clipPe.pernaChute === 'r')
+                    ? (gkRig.lBota || gkRig.lFoot) : (gkRig.rBota || gkRig.rFoot);
+                if (peApoio) {
+                    gkCorpo.updateMatrixWorld(true);
+                    peApoio.getWorldPosition(_v1);
+                    const offX = _v1.x - gkCorpo.position.x;
+                    const offZ = _v1.z - gkCorpo.position.z;
+                    const alvoX = BP.plantX - offX;
+                    const alvoZ = BP.plantZ - offZ;
+                    gkCorpo.position.x = BP.origemX + (alvoX - BP.origemX) * BP.w;
+                    gkCorpo.position.z = BP.origemZ + (alvoZ - BP.origemZ) * BP.w;
+                }
+            }
+
+            if (!this.gkKickAction || this.gkKickAction.isDone()) {
+                this.gkKickAction = null;
+                // O alvo morre com o gesto: ver a nota da rotação acima.
+                this.gkAlvoLancamento = null;
+                this.gkKickBlend = null;
+                this.gkKickTipo = null;
+                this.gkEstado = 'idle';
+                this.resetBonesToDefault();
+            }
+        }
+        if (dt > 0.0001 && this.gkEstado === 'idle') {
+            this.velocity.set(gkCorpo.position.x - prevX, 0, gkCorpo.position.z - prevZ).multiplyScalar(1 / dt);
+        } else if (this.gkEstado !== 'idle') {
+            this.velocity.set(0, 0, 0);
+        }
+
+        /*
+        E O GUARDA-REDES TAMBÉM ENCOSTA O PÉ.
+
+        Relato: "um pouco antes do início do jogo, o goleiro que estava na
+        posição correcta fica um pouco acima do solo".
+
+        O `assentarNoChao` só era chamado do `animateBones`, e o guarda-redes
+        não passa por lá — tem pose própria, esta. O `gkCorpo` acima é o
+        `this.model`, portanto ele escreve a altura do corpo tal como o ramo
+        de campo escreve, e ficava sem ninguém a descê-lo até à bota.
+
+        A contagem das GUARDAS do método enganava: replicá-las dava "corre em
+        87% dos frames do guarda-redes". Envolvendo o MÉTODO em 19 min de jogo
+        deram 176 chamadas dele contra 111 193 dos jogadores de campo — não era
+        recusado, era só nunca chamado. Medida a sola dele:
+        5.8 cm do relvado em jogo corrido e 10.1 cm no livre.
+
+        Fica no fim, depois de a pose estar escrita, como no `animateBones`. As
+        excepções do próprio método continuam a valer: com `gkEstado` diferente
+        de `idle` (mergulho, mãos, lançamento) ele escreve a altura sozinho e o
+        assento sai logo à entrada.
+        */
+        // O braco do soco armado na corrida ao ponto de encontro: por cima da passada.
+        this._gkSocoArmouUlt = !!(this.gkSocoArma && this.gkEstado === 'idle');
+        if (this._gkSocoArmouUlt) this.armarBracoDoSoco(this.gkSocoArma, 0.35);
+        this.assentarNoChao();
+    }
+
+    /*
+    O BRACO ARMADO PARA TRAS (cotovelo dobrado, mao ao lado do ombro): a pose
+    de `socoAnim.arma*`. `w` e o lerp; no salto o `animarSocoNoSalto` parte
+    daqui e so golpeia.
+    */
+    armarBracoDoSoco(lado, w) {
+        const rig = this.rig;
+        const S = (typeof GkSaidaCruzamento !== 'undefined') ? GkSaidaCruzamento.socoAnim : null;
+        if (!rig || !S) return;
+        const arm = rig[lado + 'Arm'], cot = rig[lado + 'Elbow'];
+        // A pose em V (braco para tras, antebraco para a frente, paralelos ao relvado): ver socoAnim.V.
+        const V = S.V;
+        const sg = (lado === 'r') ? 1 : -1;
+        arm.rotation.x = lerpTo(arm.rotation.x, V.x, w);
+        arm.rotation.y = lerpTo(arm.rotation.y, sg * V.y, w);
+        arm.rotation.z = lerpTo(arm.rotation.z, sg * V.z, w);
+        cot.rotation.x = lerpTo(cot.rotation.x, V.cotovelo, w);
+    }
+
+    /*
+    DEFESA COM AS MÃOS, de pé ou em salto — a decisão e o que ela faz à bola.
+
+    Os dois ramos que chamam isto tinham cada um a sua fórmula (`0.55 +
+    (GK-50)/100` e `0.4 + (GK-50)/80`), nenhuma a olhar para a velocidade da
+    bola nem para a extensão do braço, e o rebote saía sempre na mesma
+    direcção aleatória. Agora é o `resolverDefesaGK` (utils.js), o mesmo do
+    mergulho, e o destino do rebote sai da TÉCNICA.
+
+    `extensao` 0..1: 0 com a bola no meio das luvas, 1 no limite do alcance.
+    */
+    /*
+    =====================================================================
+    A SAIDA AO CRUZAMENTO -- agarrar com espaco, socar com gente em cima
+    =====================================================================
+    Devolve `true` se resolveu o lance (e ai quem chama nao faz mais nada).
+
+    As regras sao as do pedido e os numeros estao em GkSaidaCruzamento:
+
+      SEM MARCACAO (ninguem a menos de `raioSemMarcacao`): agarra em 95% das
+      vezes; nos outros 5% a bola bate-lhe na mao e SEGUE o trajecto, so mais
+      lenta -- nao muda de direccao, que e o que "escapar" quer dizer.
+
+      COM MARCACAO: soco. A direccao e a da trajectoria INVERTIDA -- a bola
+      volta por onde veio -- com um desvio sorteado ate `anguloSocoGraus` para
+      cada lado, e uma componente para cima que a tira da area.
+    =====================================================================
+    */
+    /*
+    O SOCO NO AR — a decisao e o gesto. Ver GkSaidaCruzamento.socoAnim.
+
+    Corre no arranque do salto da saida ao cruzamento. Marcado (um adversario a
+    `raioSemMarcacao` dele) = soco, como no `resolverSaidaAoCruzamento`; o
+    braco e o do lado da bola, e `tc` o instante previsto do contacto, que
+    cronometra o gesto. Sem leitura de contacto (`encontro` nulo) usa 0.30 s,
+    que e a duracao da subida do salto.
+    */
+    // Um adversario a `raioSemMarcacao` dele: e o criterio do soco (ver resolverSaidaAoCruzamento).
+    estaMarcadoNaSaida() {
+        const S = (typeof GkSaidaCruzamento !== 'undefined') ? GkSaidaCruzamento : null;
+        if (!S || typeof Match === 'undefined') return false;
+        const adversarios = (this.team === 'TeamA') ? Match.opponents : Match.players;
+        for (const o of adversarios) {
+            if (!o || !o.model || o.role === 'gk') continue;
+            if (o.model.position.distanceTo(this.model.position) <= S.raioSemMarcacao) return true;
+        }
+        return false;
+    }
+
+    planearSocoNoSalto(encontro) {
+        this.gkSoco = null;
+        const S = (typeof GkSaidaCruzamento !== 'undefined') ? GkSaidaCruzamento : null;
+        if (!S || !S.socoAnim || !this.gkSaiuAoCruzamento || typeof Match === 'undefined') return;
+        if (!this.estaMarcadoNaSaida()) return;
+        // O braco do lado da bola, no referencial do modelo (a equipa B esta virada ao contrario).
+        _v1.set(1, 0, 0).applyQuaternion(this.model.quaternion);
+        const bx = (encontro ? encontro.x : Match.ball.position.x) - this.model.position.x;
+        const bz = (encontro ? encontro.z : Match.ball.position.z) - this.model.position.z;
+        const lado = (_v1.x * bx + _v1.z * bz) >= 0 ? 'r' : 'l';
+        const tc = S.socoAnim.contacto;
+        this.gkSoco = { marcado: true, lado: lado, tc: tc, golpeado: false, tGolpe: null, preArmado: !!this._gkSocoArmouAntes };
+    }
+
+    animarSocoNoSalto(t) {
+        const rig = this.rig;
+        const S = GkSaidaCruzamento.socoAnim;
+        const so = this.gkSoco;
+        if (!rig || !so) return;
+        const lado = so.lado;
+        const ladoMira = (lado === 'r') ? 'l' : 'r';
+        const arm = rig[lado + 'Arm'], cot = rig[lado + 'Elbow'];
+        const armM = rig[ladoMira + 'Arm'], cotM = rig[ladoMira + 'Elbow'];
+        const V = S.V;
+        const sgP = (lado === 'r') ? 1 : -1, sgM = -sgP;     // o V e escrito para o direito; o esquerdo e o espelho
+        const tGolpeFim = so.tc;
+        const tGolpeIni = tGolpeFim - S.golpe;
+        // Ja vinha armado da corrida: segura. Senao forma o V desde o arranque.
+        const tArmaIni = so.preArmado ? -1 : 0;
+        const liso = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+        // Depois do contacto, segura os bracos la e solta.
+        if (so.golpeado && so.tGolpe === null) so.tGolpe = t;
+        const fim = (so.tGolpe !== null ? so.tGolpe : tGolpeFim) + S.segura;
+        if (t > fim) { this.gkSoco = null; return; }
+        if (t < tArmaIni) return;
+        const poeV = (a, c, sg, u) => {
+            a.rotation.x = THREE.MathUtils.lerp(a.rotation.x, V.x, u);
+            a.rotation.y = THREE.MathUtils.lerp(a.rotation.y, sg * V.y, u);
+            a.rotation.z = THREE.MathUtils.lerp(a.rotation.z, sg * V.z, u);
+            c.rotation.x = THREE.MathUtils.lerp(c.rotation.x, V.cotovelo, u);
+        };
+        if (t < tGolpeIni) {
+            // ANTES DO GOLPE: o braco do soco forma o V (para tras, antebraco para a frente); o da MIRA segue a bola (IK).
+            const u = so.preArmado ? 1 : liso((t - tArmaIni) / Math.max(0.001, Math.min(S.vFormar, tGolpeIni - tArmaIni)));
+            if (so.x0 === undefined) { so.x0 = arm.rotation.x; so.y0 = arm.rotation.y; so.z0 = arm.rotation.z; so.c0 = cot.rotation.x; }
+            arm.rotation.x = THREE.MathUtils.lerp(so.x0, V.x, u);
+            arm.rotation.y = THREE.MathUtils.lerp(so.y0, sgP * V.y, u);
+            arm.rotation.z = THREE.MathUtils.lerp(so.z0, sgP * V.z, u);
+            cot.rotation.x = THREE.MathUtils.lerp(so.c0, V.cotovelo, u);
+        } else {
+            // A BOLA CHEGOU: INVERTE-SE. O da mira vai para o V; o do soco vai a frente, a bola (IK).
+            const u = liso((t - tGolpeIni) / Math.max(0.001, S.golpe));
+            if (so.mx === undefined) { so.mx = armM.rotation.x; so.my = armM.rotation.y; so.mz = armM.rotation.z; so.mc = cotM.rotation.x; }
+            armM.rotation.x = THREE.MathUtils.lerp(so.mx, V.x, u);
+            armM.rotation.y = THREE.MathUtils.lerp(so.my, sgM * V.y, u);
+            armM.rotation.z = THREE.MathUtils.lerp(so.mz, sgM * V.z, u);
+            cotM.rotation.x = THREE.MathUtils.lerp(so.mc, V.cotovelo, u);
+            // O do soco: do V para o IK da bola, peso a subir; no fim esta em cima dela.
+            if (typeof GkDive !== 'undefined' && GkDive.apontarBracos) GkDive.apontarBracos(rig, Math.max(0.15, u), [lado]);
+        }
+    }
+
+    resolverSaidaAoCruzamento() {
+        const S = (typeof GkSaidaCruzamento !== 'undefined') ? GkSaidaCruzamento : null;
+        if (!S || typeof Match === 'undefined' || !Match.ball) return false;
+        /*
+        A ALTURA DO GESTO NAO E A DO GATILHO. Ver `alturaMinGesto`
+        (config/goalkeeper.js): isto corria com `alturaMin` (1.20 m) e
+        recusava-se sempre, porque o cruzamento CAI — quando ele chega ao ponto
+        de queda a bola vem ja a meio metro do chao.
+        */
+        const hMin = (typeof S.alturaMinGesto === 'number') ? S.alturaMinGesto : S.alturaMin;
+        if (Match.ball.position.y < hMin) return false;
+
+        /*
+        =============================================================
+        E TEM DE LHE CHEGAR COM A MÃO. Esta função não media distância
+        nenhuma.
+        =============================================================
+        Verificava a ALTURA da bola e se havia adversário por perto, e a
+        seguir agarrava-a — viesse de onde viesse. Traçado o caminho de cada
+        `grabBall` com o `stack`, é POR AQUI que passam as bolas agarradas de
+        longe que o `gk_agarra_com_a_mao` apanha: mão a 1.14, 1.82, 1.08 e
+        1.05 m da bola, em quatro sementes diferentes. O cabeçalho desse teste
+        tem a nota de que não se sabia por onde essa agarrada acontecia, e de
+        que "não é pelo mergulho nem pelo alcance do corpo" — é por aqui.
+
+        O alcance é o do SALTO (`GkCatchModel.alcanceSalto`, 0.85 m) e não o de
+        pé: uma saída ao cruzamento faz-se com os braços estendidos por cima
+        da cabeça, tal como o salto. Ver a nota que lá está.
+
+        NO TOPO, ANTES DO SORTEIO: recusar depois do `Math.random` deixava-o a
+        gastar a probabilidade num lance que não podia alcançar, e a contar
+        uma defesa nas estatísticas por uma bola em que não tocou.
+        =============================================================
+        */
+        const alcSaida = (typeof GkCatchModel !== 'undefined' &&
+            typeof GkCatchModel.alcanceSalto === 'number') ? GkCatchModel.alcanceSalto : 0.85;
+        let distMaoSaida = Infinity;
+        for (const nome of ['lHand', 'rHand']) {
+            const mao = this.rig && this.rig[nome];
+            if (!mao) continue;
+            mao.getWorldPosition(_v3);
+            distMaoSaida = Math.min(distMaoSaida, _v3.distanceTo(Match.ball.position));
+        }
+        if (distMaoSaida > alcSaida) return false;
+
+        const adversarios = (this.team === 'TeamA') ? Match.opponents : Match.players;
+        let marcado = false;
+        for (const o of adversarios) {
+            if (!o || !o.model || o.role === 'gk') continue;
+            if (o.model.position.distanceTo(this.model.position) <= S.raioSemMarcacao) {
+                marcado = true;
+                break;
+            }
+        }
+
+        Match.lastTouchedPlayer = this;
+        Match.lastTouchedTeam = this.team;
+        if (typeof MatchStats !== 'undefined' && MatchStats.registarDefesa) {
+            MatchStats.registarDefesa(this.team);
+            if (typeof Eventos !== 'undefined') Eventos.defesa(this);
+        }
+        if (typeof MatchStats !== 'undefined' && MatchStats[this.team] &&
+            typeof MatchStats[this.team].cruzamentosCortadosGK === 'number') {
+            MatchStats[this.team].cruzamentosCortadosGK++;
+        }
+
+        // A decisao tomada no arranque do salto manda: o gesto ja foi desenhado (ver planearSocoNoSalto).
+        if (this.gkSoco) marcado = this.gkSoco.marcado;
+        if (this.gkSoco && marcado) this.gkSoco.golpeado = true;
+
+        if (!marcado) {
+            if (Math.random() < S.chanceSegurar) {
+                this.grabBall();
+                return true;
+            }
+            // Escapou-lhe: bate na mao e segue viagem, so mais devagar.
+            Match.ballVel.multiplyScalar(S.travagemEscape);
+            return true;
+        }
+
+        this.socarABola();
+        return true;
+    }
+
+    /*
+    SOCO. A bola volta por onde veio, com o desvio do pedido. Partilhado pela
+    saida ao cruzamento e pelo salto com o gesto do soco planeado.
+    */
+    socarABola() {
+        const S = GkSaidaCruzamento;
+        const vx = Match.ballVel.x, vz = Match.ballVel.z;
+        const v = Math.hypot(vx, vz);
+        let dirX, dirZ;
+        if (v > 0.01) { dirX = -vx / v; dirZ = -vz / v; }
+        else { dirX = 0; dirZ = this.dirZ; }
+
+        const desvio = (Math.random() * 2 - 1) * (S.anguloSocoGraus * Math.PI / 180);
+        const cosD = Math.cos(desvio), sinD = Math.sin(desvio);
+        const rx = dirX * cosD - dirZ * sinD;
+        const rz = dirX * sinD + dirZ * cosD;
+
+        const vel = S.velocidadeSoco;
+        Match.ballVel.set(rx * vel, vel * S.elevacaoSoco, rz * vel);
+        this.hasBall = false;
+        Match.ballCarrier = null;
+    }
+
+    resolverDefesaComMaos(tipo, extensao, semAgarrar) {
+        if (this.gkFalhaTimer > 0) return;
+        /*
+        NUMA FALTA COM DESFECHO DE DEFESA, quem resolve e o PLANO.
+
+        Este gesto agarra a bola assim que ela lhe passa ao alcance da mao, e
+        isso acontece antes da janela do plano — era por isso que o
+        `defesa_fora` acabava agarrado por ele em vez de sair em canto. A
+        primeira correccao foi afastar a janela do plano para 2.8 m da linha,
+        e o preco viu-se em campo: a defesa acontecia com a bola a dois ou
+        tres metros dele.
+
+        Agora a janela volta ao pe da linha e e este gesto que se cala
+        enquanto houver uma defesa sorteada por acontecer.
+        */
+        const plano = (typeof Match !== 'undefined') ? Match.faltaDirectaPlano : null;
+        if (plano && !plano.defesaFeita &&
+            (plano.desfecho === 'defesa' || plano.desfecho === 'defesa_fora')) return;
+
+        const decisao = resolverDefesaGK({
+            tipo: tipo,
+            gk: this.skillFor('GK'),
+            tec: this.skillFor('TEC'),
+            vChegada: Match.ballVel.length(),
+            extensao: extensao,
+            altura: Math.max(0, Match.ball.position.y - GkCatchModel.alturaPeito),
+            bolaY: Match.ball.position.y,
+            // De onde saiu o remate -- ver `semAgarrar` no GkCatchModel.
+            dist: this.gkDistRemate
+        });
+
+        Match.lastTouchedPlayer = this;
+        Match.lastTouchedTeam = this.team;
+
+        // A mao de alface: ver GkCatchModel.falhas e GkDive.falhaDoGuardaRedes.
+        if (decisao.falha && typeof GkDive !== 'undefined' && GkDive.falhaDoGuardaRedes) {
+            GkDive.falhaDoGuardaRedes(this, decisao.falha);
+            return;
+        }
+
+        /*
+        E A DEFESA CONTA-SE. O `registarDefesa` era chamado noutros sitios e
+        a funcao nem existia; agora existe, e este e o caminho por onde passa
+        a maior parte das defesas do jogo (o gesto de maos e o mergulho).
+        */
+        if (typeof MatchStats !== 'undefined' && MatchStats.registarDefesa) {
+            MatchStats.registarDefesa(this.team);
+            if (typeof Eventos !== 'undefined') Eventos.defesa(this);
+        }
+
+        // Um toque que não pode agarrar (a perna da barreira) vira espalmada.
+        if (decisao.resultado === 'agarra' && semAgarrar) decisao.resultado = 'espalma';
+        /*
+        SOCO NAO AGARRA. Relato: *"tem horas que o goleiro pula e faz a animacao do
+        soco, mas segura a bola. No soco ele da um soco na bola para longe. Para
+        agarrar a animacao tem que ser de bola no meio das maos."* Se o gesto
+        planeado no salto e o do soco (`gkSoco.marcado`), a bola nao fica com ele:
+        e um soco, para longe, pela mesma via da saida ao cruzamento.
+        */
+        if (decisao.resultado === 'agarra' && this.gkSoco && this.gkSoco.marcado) {
+            this.gkSoco.golpeado = true;
+            this.socarABola();
+            return;
+        }
+        if (decisao.resultado === 'agarra') {
+            /*
+            Na saída aos pés ele agarra DEITADO: a pose continua a ser a do
+            gesto até se levantar (ver actualizarSaidaAosPes), como no mergulho.
+            */
+            this.grabBall(this.gkEstado === 'saida_pes');
+            return;
+        }
+
+        if (decisao.resultado === 'roca') {
+            // Tocou-lhe e ela segue — ver GkCatchModel.
+            const M = GkCatchModel;
+            Match.ballVel.multiplyScalar(M.rocarTravagem);
+            Match.ballVel.x += (Math.random() - 0.5) * M.rocarDesvioMax;
+            Match.ballVel.y += Math.random() * M.rocarDesvioMax * 0.5;
+            return;
+        }
+
+        /*
+        Espalmada: a geometria é a mesma do mergulho, portanto reusa-se o
+        `GkDive.espalmar`. Sem `dive` (aqui ele está de pé) o lado sai do sinal
+        do x da bola, tratado lá dentro.
+        */
+        if (typeof GkDive !== 'undefined' && GkDive.espalmar) {
+            // A bandeira do tiro forte de perto vale tambem na defesa de pe
+            // e no salto, nao so no mergulho.
+            GkDive.espalmar(this, this.dive || null, decisao.qualidade, decisao.semAgarrar);
+        } else {
+            Match.ballVel.z *= -0.4;
+            Match.ballVel.x += (Math.random() - 0.5) * 6;
+            Match.ballVel.y += 2;
+        }
+    }
+
+    /*
+    Chamado quando o GR agarra a bola (defesa mansa, mergulho ou salto alto).
+    Não larga logo para o BT/FSM decidir — entra em 'segurando' para as
+    equipas terem tempo de se reorganizar antes do relançamento.
+    */
+    grabBall(manterPose) {
+        /*
+        RECUO COM O PE DE UM COMPANHEIRO: as maos estao proibidas.
+
+        A guarda vive AQUI e nao so em quem chama porque sao cinco os sitios
+        que agarram (o alcance do corpo em match.js, tres ramos do updateGK e
+        o fim do mergulho no gk_dive.js) — espalhar a regra por todos era
+        garantir que um deles ficava para tras numa alteracao futura.
+
+        Devolve false sem tocar em nada: a bola continua viva e o guarda-redes
+        joga-a com o pe, como manda a regra.
+        */
+        if (typeof maosProibidasNoRecuo === 'function' &&
+            maosProibidasNoRecuo(Match.recuoParaGR, this.team)) return false;
+
+        if (this.gkFalhaTimer > 0) return false;
+        // De onde vem a agarrada: de pe (os bracos ja estao a frente, nao se estalam) ou nao.
+        const vinhaDeEncaixe = !!(this.gkEstado === 'maos' && (this.gkEncaixe || this.gkBarreira));
+        const vinhaDeMaos = (this.gkEstado === 'maos' && !this.gkEncaixe && !this.gkBarreira) || vinhaDeEncaixe;
+        // Do encaixe ajoelhado levanta-se COM a bola nas maos (ver o ramo 'segurando').
+        // Do APANHAR (bola rasteira a seus pes) tambem: agachado leva a bola as maos e so depois sobe com ela.
+        const vinhaDeApanhar = (this.gkEstado === 'apanhar');
+        this.gkLevanta = ((vinhaDeEncaixe || vinhaDeApanhar) && !manterPose) ? { t: 0 } : null;
+        if (Match.ball && !manterPose && !vinhaDeEncaixe) {
+            this.gkCatchBlend = { from: Match.ball.position.clone(), t: 0,
+                dur: (typeof GoalkeeperPose.catchBlend === 'number') ? GoalkeeperPose.catchBlend : 0.14 };
+        }
+        Match.ballVel.set(0, 0, 0);
+
+        /*
+        O GUARDA-REDES AGARROU: a jogada do passe acaba aqui, e com ela as
+        marcas de fora-de-jogo.
+
+        Este caminho NAO passa pelo `resolveBallContact`, que e onde todos os
+        outros toques sao julgados (ver Officials.verificarImpedimento). Sem
+        esta linha, as marcas do passe cortado pelo guarda-redes ficavam vivas
+        e caiam em cima do primeiro atacante que tocasse na bola a seguir —
+        um impedimento marcado numa jogada que ja nada tinha a ver com aquele
+        passe.
+        */
+        if (typeof Officials !== 'undefined' && Officials.limparImpedimento) {
+            Officials.limparImpedimento();
+        }
+
+        this.hasBall = true;
+        Match.ballCarrier = this;
+        Match.possessionTeam = this.team;
+        Match.possessionTimer = 0;
+        window.bolaChutada = false;
+        /*
+        `manterPose`: agarrou a meio de um mergulho. A posse conta já, mas o
+        estado e a orientação ficam quietos — quem manda no corpo até ele se
+        levantar é o GkDive, que passa a 'segurando' no fim. Sem isto o
+        mergulho era interrompido a meio do voo e ele aparecia de pé.
+        */
+        if (!manterPose) {
+            this.gkEstado = 'segurando';
+            this.gkTempoMergulho = 0;
+        }
+        /*
+        O PRAZO É O PRAZO. Era `5 + rand*3`: os 8 s da regra nunca chegavam a
+        acontecer, e a espera acabava a meio de o bloco se organizar. Ver
+        GoalkeeperPose.segurarDur e segurarDirecto.
+        */
+        this.gkSegurarDur = GoalkeeperPose.segurarDur;
+        // Procura de linha de passe enquanto segura — ver o ramo 'segurando'.
+        this.gkProcuraTimer = 0;
+        this.gkTemLinha = false;
+        /*
+        Sem isto, um companheiro já marcado como intendedReceiver de um
+        passe/desvio anterior continuava a correr direito pra
+        Match.ball.position (agora nas mãos do GR) via Receber — passa por
+        cima de tudo, incluindo o afastamento do commit().
+        */
+        Match.intendedReceiver = null;
+        Match.passTargetPos = null;
+        /*
+        Vira já de frente pro campo (mesmo lookAtBola usado no resto do
+        jogo — um rotation.y=0/PI calculado à mão dava de costas).
+        */
+        if (!manterPose) {
+            _v1.set(this.model.position.x, this.model.position.y, this.model.position.z + this.dirZ * 10);
+            lookAtBola(this.model, _v1);
+        }
+
+        /*
+        Fecha os braços na hora. Sem isto, um braço que ainda estava na pose
+        do mergulho/salto (esticado bem aberto, rotation.z ~1.5-2.8) só
+        convergia pra pose de 'segurar' devagar (lerp 0.25-0.5/frame) —
+        durante essa transição ficava com um braço erguido/aberto, o outro
+        já fechado na bola, uma pose assimétrica de "um braço no ar".
+        */
+        if (this.rig && !manterPose && !vinhaDeMaos && !vinhaDeApanhar) {   // do apanhar fica agachado: levanta-se depois com a bola (gkLevanta)
+            const P = GoalkeeperPose.segurar;
+            this.rig.lLeg.rotation.x = P.coxa; this.rig.rLeg.rotation.x = P.coxa;
+            this.rig.lKnee.rotation.x = P.joelho; this.rig.rKnee.rotation.x = P.joelho;
+            this.rig.lLeg.rotation.z = P.abertura; this.rig.rLeg.rotation.z = -P.abertura;
+            this.rig.lArm.rotation.z = P.bracoZ; this.rig.rArm.rotation.z = -P.bracoZ;
+            this.rig.lArm.rotation.x = P.bracoX; this.rig.rArm.rotation.x = P.bracoX;
+            this.rig.lElbow.rotation.x = P.cotovelo; this.rig.rElbow.rotation.x = P.cotovelo;
+            this.rig.chest.rotation.x = P.chest;
+        }
+
+        if (typeof EventBus !== 'undefined') EventBus.emit('GK_CATCH_BALL', { team: this.team, gk: this });
+        return true;
+    }
+
+    /*
+    Fim da espera com a bola na mão: chutão para a frente, sempre.
+
+    Antes havia um ramo de passe curto para um colega sem pressão. Saiu a
+    pedido do utilizador — o relançamento é agora sempre o chutão do
+    puntBall(), com elevação e direcção sorteadas lá dentro.
+    */
+    chooseReleaseTarget() {
+        return null;
+    }
+
+    executeRelease(targetPlayer) {
+        this.puntBall();
+    }
+
+    /*
+    Tiro de meta: a bola está no chão, não nas mãos. Mesma balística do
+    puntBall — elevação 25-50°, direcção até ±20° da frente — mas sem o
+    `hasBall` a limpar, porque ele nunca a chegou a segurar.
+
+    É aqui que o jogo volta a 'PLAY': até ao contacto pé-bola o estado é
+    GOAL_KICK e ninguém decide nada.
+    */
+    /*
+    Ha um adversario perto o suficiente para nao dar tempo de dominar a bola?
+    Ver GkRecuoModel.distPressao.
+    */
+    adversarioAperta() {
+        const R = (typeof GkRecuoModel !== 'undefined') ? GkRecuoModel : null;
+        if (!R) return false;
+        const advs = (this.team === 'TeamA') ? Match.opponents : Match.players;
+        if (!advs) return false;
+        const alvo = Match.ball ? Match.ball.position : this.model.position;
+        for (const o of advs) {
+            if (!o || !o.model || o.role === 'gk') continue;
+            const dx = o.model.position.x - alvo.x;
+            const dz = o.model.position.z - alvo.z;
+            if (dx * dx + dz * dz < R.distPressao * R.distPressao) return true;
+        }
+        return false;
+    }
+
+    /*
+    CHUTAO DE URGENCIA NUM RECUO COM O PE.
+
+    Mesmo gesto e mesma resolucao do tiro de meta (`playerKick` +
+    `kickFromGround`): a bola sai para a frente, longe. O que muda e so o
+    gatilho — aqui nao ha bola parada nem tempo, ha um adversario a chegar e as
+    maos proibidas pela Lei 12.
+    */
+    /*
+    O PONTAPE DO GUARDA-REDES EM JOGO CORRIDO TEM O GESTO DO TIRO DE META.
+
+    Revisao dos gestos do guarda-redes: o alivio fora da area e o recuo de
+    urgencia usavam o `PlayerKickClip`, o chuto generico dos jogadores, e so o
+    tiro de meta usava o `GoalKickClip` — que e o clip mais cuidado do
+    projecto (13 keyframes tracados de fotografias, pernas a 83 graus no
+    contacto, pe de apoio ao lado da bola). O mesmo homem chutava de duas
+    maneiras conforme a bola estivesse parada ou nao.
+
+    NAO E SO TROCAR O NOME DO CLIP. O avanco do corpo no gesto vem do
+    `gkKickBlend`, que so existe se alguem chamar `iniciarBlendChuteChao`; o
+    tiro de meta chama-o, estes dois nao chamavam. Trocar so o nome punha o
+    passo do clip a acontecer no mesmo sitio, com o corpo parado. Por isso o
+    pe de apoio e calculado como no tiro de meta (`plantX`/`plantZ`, ao lado
+    da bola) e o corpo desliza ate la ao ritmo do `avanco` do clip.
+
+    Os dois chamam isto; quem chama so diz o que acontece no contacto.
+    */
+    chutarComGestoDeTiroDeMeta(noContacto) {
+        const gkCorpo = this.model, gkRig = this.rig;
+        /*
+        ONDE A BOLA VAI ESTAR NO CONTACTO, e nao onde esta.
+
+        O tiro de meta pode usar a posicao actual porque a bola esta PARADA.
+        Aqui ela rola sempre — e um alivio ou um recuo, nunca uma bola parada
+        — e o gesto dura `ActionAnimClips.goalKick.duration` (0.55 s) ate ao
+        contacto. Medido num recuo montado, bola a rolar para a baliza a
+        2.5 m/s: com o pe de apoio apontado a posicao ACTUAL, o pe chegava ao
+        contacto a 1.06 m da bola nos quatro casos (com o clip antigo, sem
+        deslize, eram 0.22 a 0.65 m) — a bola andava 1.4 m enquanto ele
+        deslizava para onde ela ja nao estava.
+        */
+        const tContacto = (typeof ActionAnimClips !== 'undefined' && ActionAnimClips.goalKick)
+            ? ActionAnimClips.goalKick.duration * ActionAnimClips.goalKick.contactTime : 0.55;
+        const prev = (typeof preverBolaEm === 'function') ? preverBolaEm(tContacto) : null;
+        const bola = prev || Match.ball.position;
+        const plantX = bola.x + this.dirZ * 0.32;
+        const plantZ = bola.z - this.dirZ * 0.10;
+        if (gkCorpo && gkRig) this.iniciarBlendChuteChao(gkCorpo, gkRig, plantX, plantZ);
+        this.gkEstado = 'chutando';
+        this.gkKickTipo = 'chao';
+        this.gkTempoMergulho = 0;
+        this.gkKickNorm = 0;
+        this.gkKickClipNome = 'goalKick';
+        this.gkKickAction = new ActionState('goalKick', { onContact: noContacto });
+    }
+
+    chutarRecuoDeUrgencia() {
+        if (this.gkKickAction || this.gkEstado === 'chutando') return;
+        const R = (typeof GkRecuoModel !== 'undefined') ? GkRecuoModel : null;
+        if (!R || !Match.ball) return;
+        if (this.model.position.distanceTo(Match.ball.position) > R.distToque) return;
+
+        this.chutarComGestoDeTiroDeMeta(() => {
+                this.kickFromGround();
+                /*
+                O recuo acaba aqui: a bola saiu do pe dele PARA A FRENTE. Quem
+                trata disso e o proprio registo do toque — a marca so vale
+                enquanto a bola andar para tras (ver avaliarRecuoParaGR), e um
+                chutao para a frente limpa-a sozinho no frame seguinte.
+                */
+                if (typeof registarToqueComPe === 'function') registarToqueComPe(this, true);
+                if (typeof EventBus !== 'undefined') {
+                    EventBus.emit('GK_BACKPASS_CLEARED', { team: this.team, gk: this });
+                }
+            });
+    }
+
+    /*
+    O DESTINO DO TIRO DE META (GoalKickPlan, config/goalkeeper.js): `{ alvo, vel: Vector3 }` ou null (pontape cego de sempre).
+    Positional / Possession: passe curto a um defesa livre; os outros estilos: bola longa a um meio ou avancado livre.
+    */
+    // `modoForcado` ('curto' | 'longo'): o modo ja decidido quando o gesto arrancou (ver o estado 'tiro_meta').
+    planearTiroDeMeta(modoForcado) {
+        const P = (typeof GoalKickPlan !== 'undefined') ? GoalKickPlan : null;
+        if (!P || !P.activo || typeof Match === 'undefined' || Match.state !== 'GOAL_KICK') return null;
+        const estilo = (typeof estiloDaEquipaDe === 'function') ? estiloDaEquipaDe(this.team) : null;
+        const chaveCurto = (typeof TeamPlayStyles !== 'undefined') ? P.curtoEm.some(k => TeamPlayStyles[k] === estilo) : false;
+        const meus = ((this.team === 'TeamA') ? Match.players : Match.opponents).filter(o => o && o.model && o !== this && o.role !== 'gk' && !o.expulso);
+        const advs = ((this.team === 'TeamA') ? Match.opponents : Match.players).filter(o => o && o.model && !o.expulso);
+        const b = Match.ball.position;
+        const livre = (o) => advs.reduce((m, a) => Math.min(m, Math.hypot(a.model.position.x - o.model.position.x, a.model.position.z - o.model.position.z)), 99);
+        const escolher = (papeis, cfg, bonusAtk) => {
+            let melhor = null, sc = -1e9;
+            for (const o of meus) {
+                if (papeis.indexOf(o.role) < 0) continue;
+                const d = Math.hypot(o.model.position.x - b.x, o.model.position.z - b.z);
+                if (d < cfg.distMin || d > cfg.distMax) continue;
+                const l = livre(o);
+                if (l < cfg.livreMin) continue;
+                const s = l + (bonusAtk && o.role === 'atk' ? bonusAtk : 0) - 0.05 * d;
+                if (s > sc) { sc = s; melhor = o; }
+            }
+            return melhor;
+        };
+        // Sai curto com uma PROBABILIDADE que o estilo ofensivo define (ver GoalKickPlan.chanceCurto*).
+        const chanceCurto = chaveCurto
+            ? (P.chanceCurtoEstilo !== undefined ? P.chanceCurtoEstilo : 1)
+            : (P.chanceCurtoOutros !== undefined ? P.chanceCurtoOutros : 0);
+        const saiCurto = modoForcado ? (modoForcado === 'curto') : (Math.random() < chanceCurto);
+        // O ALVO LONGO: um ponto sorteado no rectângulo dos médios e avançados dele; o receptor é o mais perto.
+        let pontoLongo = null;
+        const escolherLongo = () => {
+            if (!P.longo.alvoNoRetangulo) return escolher(['mid', 'atk'], P.longo, P.longo.bonusAvancado);
+            const of = meus.filter(o => o.role === 'mid' || o.role === 'atk');
+            if (!of.length) return null;
+            let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+            for (const o of of) {
+                x0 = Math.min(x0, o.model.position.x); x1 = Math.max(x1, o.model.position.x);
+                z0 = Math.min(z0, o.model.position.z); z1 = Math.max(z1, o.model.position.z);
+            }
+            const e = P.longo.encolheRetangulo || 0;
+            const px = x0 + (x1 - x0) * (e + Math.random() * (1 - 2 * e));
+            const pz = z0 + (z1 - z0) * (e + Math.random() * (1 - 2 * e));
+            // Só serve se estiver ao alcance de um chutão.
+            const d = Math.hypot(px - b.x, pz - b.z);
+            if (d < P.longo.distMin * 0.6 || d > P.longo.distMax) return null;
+            pontoLongo = { x: px, z: pz };
+            let melhor = null, dm = 1e9;
+            for (const o of of) {
+                const dd = Math.hypot(o.model.position.x - px, o.model.position.z - pz);
+                if (dd < dm) { dm = dd; melhor = o; }
+            }
+            return melhor;
+        };
+        let modo = saiCurto ? 'curto' : 'longo';
+        let alvo = saiCurto ? escolher(['def'], P.curto, 0) : escolherLongo();
+        if (!alvo && saiCurto) { modo = 'longo'; alvo = escolherLongo(); }
+        if (!alvo && !saiCurto) { pontoLongo = null; alvo = escolher(['mid', 'atk'], P.longo, P.longo.bonusAvancado); }
+        if (!alvo) return null;
+        const skill = this.skillFor ? this.skillFor('GK') : 50;
+        const precisao = 1.3 - 0.6 * (skill / 100);      // GK 0 -> 1.3x o erro, GK 100 -> 0.7x
+        const vt = alvo.velocity || { x: 0, z: 0 };
+        const gG = BallPhysics.gravidade;
+        if (modo === 'curto') {
+            const C = P.curto;
+            const dx0 = alvo.model.position.x - b.x, dz0 = alvo.model.position.z - b.z;
+            const d0 = Math.hypot(dx0, dz0);
+            const v = THREE.MathUtils.clamp(C.velBase + C.velPorM * d0, C.velMin, C.velMax);
+            const t = d0 / Math.max(1, v * 0.85);
+            const tx = alvo.model.position.x + vt.x * t * 0.7 - b.x, tz = alvo.model.position.z + vt.z * t * 0.7 - b.z;
+            let ang = Math.atan2(tx, tz) + THREE.MathUtils.degToRad((Math.random() * 2 - 1) * C.erroGraus * precisao);
+            const elev = THREE.MathUtils.degToRad(3);
+            return { alvo: alvo, modo: modo, vel: new THREE.Vector3(Math.sin(ang) * v * Math.cos(elev), v * Math.sin(elev), Math.cos(ang) * v * Math.cos(elev)),
+                aim: { x: b.x + tx, z: b.z + tz } };
+        }
+        const L = P.longo;
+        const tVoo = 1.6;
+        const tx = pontoLongo ? pontoLongo.x - b.x : alvo.model.position.x + vt.x * tVoo * 0.6 - b.x;
+        const tz = pontoLongo ? pontoLongo.z - b.z : alvo.model.position.z + vt.z * tVoo * 0.6 - b.z;
+        let alc = Math.hypot(tx, tz) * (1 + (Math.random() * 2 - 1) * L.erroAlcance * precisao);
+        const elev = THREE.MathUtils.degToRad(L.elevGraus);
+        let v = (typeof velocidadeParaAlturaNoAlvo === 'function')
+            ? velocidadeParaAlturaNoAlvo(alc, elev, BallControl.peitoAltura, b.y) : null;
+        if (!v) v = Math.sqrt((alc * gG) / Math.sin(2 * elev));
+        v = Math.min(v, 45);
+        const ang = Math.atan2(tx, tz) + THREE.MathUtils.degToRad((Math.random() * 2 - 1) * L.erroGraus * precisao);
+        return { alvo: alvo, modo: modo, vel: new THREE.Vector3(Math.sin(ang) * v * Math.cos(elev), v * Math.sin(elev), Math.cos(ang) * v * Math.cos(elev)),
+            aim: { x: b.x + tx, z: b.z + tz } };
+    }
+
+    kickFromGround() {
+        const gGrav = BallPhysics.gravidade;
+        const planoTM = this.planearTiroDeMeta(this.gkModoTM);
+        this.gkModoTM = undefined;
+        // Ângulo ajustado entre 25 e 35 graus
+        const anguloGraus = 25 + Math.random() * 10;
+        const elev = THREE.MathUtils.degToRad(anguloGraus);
+        const desvio = THREE.MathUtils.degToRad((Math.random() * 2 - 1) * 15);
+
+        const alcance = 42 + Math.random() * 18;
+        const v = Math.min(45, Math.sqrt((alcance * gGrav) / Math.sin(2 * elev)));
+        const horiz = v * Math.cos(elev);
+
+        _v2.set(0, 0, this.dirZ).applyAxisAngle(_vUp, desvio);
+        Match.ball.position.y = BallPhysics.raio;
+        Match.ballVel.set(_v2.x * horiz, v * Math.sin(elev), _v2.z * horiz);
+        // Tiro de meta com destino (GoalKickPlan): a velocidade e o receptor vem do plano.
+        if (planoTM) Match.ballVel.copy(planoTM.vel);
+
+        this.touchLock = BallControl.touchLock;
+        Match.ballCarrier = null;
+        Match.intendedReceiver = planoTM ? planoTM.alvo : null;
+        Match.passTargetPos = planoTM ? new THREE.Vector3(planoTM.aim.x, ALTURA_BASE_Y, planoTM.aim.z) : null;
+        Match.lastTouchedTeam = this.team;
+        Match.lastTouchedPlayer = this;
+        window.bolaChutada = false;
+
+        // A jogada recomeça no instante do toque.
+        /*
+        O MESMO PONTAPE SERVE A FALTA NA PROPRIA AREA (ver
+        FreeKickModel.guardaRedesBateNaArea). O que muda e so o registo: a
+        razao da passagem a PLAY e a regra do repositor — Lei 13 para a falta,
+        Lei 16 para o tiro de meta; em ambas quem bate nao volta a tocar antes
+        de outro.
+        */
+        const eraFalta = (Match.state === 'FREE_KICK');
+        Match.mudarEstado('PLAY', eraFalta ? 'free_kick_taken' : 'goal_kick_taken');
+        Match.marcarRepositor(this, eraFalta ? 'falta' : 'tiro_de_meta');
+        if (eraFalta) Match.faltaDirecta = false;
+        /*
+        O `gkKickTipo` NAO SE APAGA AQUI. Apagava-se, e era inofensivo enquanto o
+        contacto era o ultimo frame do gesto. Desde que o GoalKickClip tem o
+        contacto no keyframe 9 de 13, o gesto continua DEPOIS da bola sair — e
+        com o tipo a null o ramo do desenho achava que ja nao era um chuto do
+        chao e desenhava o resto com o clip do PONTAPE DA MAO: medido, o pe de
+        apoio saltava 27 cm num frame e o corpo congelava. Apaga-se no fim do
+        gesto, com o resto (ver o `isDone` no ramo 'chutando').
+        */
+
+        if (typeof MatchStats !== 'undefined') MatchStats.registarPasseIniciado(this.team, 'lancamento');
+    }
+}
+
+
+
+/*
+Os 3 jogadores de cada equipa mais perto da bola (guarda-redes incluido: e jogador como os outros) —
+quem mostra o nome com o botao PlayerNames. Recalculado a cada 100 ms: e UI, nao jogo.
+*/
+const _nomesCache = { t: -1, set: new Set() };
+function nomesProximosDaBola() {
+    const agora = (typeof performance !== 'undefined') ? performance.now() : 0;
+    if (agora - _nomesCache.t < 100 && _nomesCache.t >= 0) return _nomesCache.set;
+    _nomesCache.t = agora;
+    const set = new Set();
+    if (typeof Match !== 'undefined' && Match.ball) {
+        const b = Match.ball.position;
+        for (const lista of [Match.players, Match.opponents]) {
+            (lista || []).filter(p => p && p.model && !p.expulso)
+                .map(p => ({ p, d: Math.hypot(p.model.position.x - b.x, p.model.position.z - b.z) }))
+                .sort((a, c) => a.d - c.d).slice(0, 3).forEach(o => set.add(o.p));
+        }
+    }
+    _nomesCache.set = set;
+    return set;
+}

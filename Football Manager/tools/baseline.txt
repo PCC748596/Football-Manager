@@ -1,0 +1,86 @@
+
+⚙️  simCheck — seed=20260804 partidas=400
+
+
+── INVARIANTES ─────────────────────────────────────────────────
+❌ Placar nunca é null/undefined                  FALHOU 232 jogos   (alvo ok)
+✅ Estatísticas nunca são NaN                            ok   (alvo ok)
+✅ Nenhum cartão vermelho com id vazio                   ok   (alvo ok)
+✅ Notas dentro de 0–10                                  ok   (alvo ok)
+✅ Nenhuma narração com "undefined"                      ok   (alvo ok)
+✅ Nenhum evento com jogador inexistente                 ok   (alvo ok)
+✅ Eventos dentro da janela 0–120min                     ok   (alvo ok)
+❌ Motor não altera team.lineup global            FALHOU 6 times   (alvo ok)
+✅ Motor não altera team.tactics global                  ok   (alvo ok)
+✅ Máximo de 5 substituições por time                    ok   (alvo ok)
+❌ Lesão grave tira o jogador de campo            FALHOU 19/19 ficaram   (alvo ok)
+✅ Determinismo (mesma seed => mesmo resultado)          ok   (alvo ok)
+✅ Ratings de setor finitos e positivos                  ok   (alvo ok)
+
+── CALIBRAÇÃO ──────────────────────────────────────────────────
+❌ Gols por jogo                                       1.97   (alvo 2.3–2.9)
+❌ Gols do mandante                                    1.19   (alvo 1.2–1.7)
+❌ Gols do visitante                                   0.79   (alvo 0.95–1.4)
+✅ Vitórias do mandante %                            47.50%   (alvo 40–52%)
+✅ Empates %                                         29.50%   (alvo 22–32%)
+✅ Vitórias do visitante %                           23.00%   (alvo 22–33%)
+❌ Posse do mandante %                               58.02%   (alvo 50–55%)
+✅ Chutes por jogo                                    20.36   (alvo 18–27)
+✅ Chutes no gol por jogo                              7.09   (alvo 6–10)
+❌ xG por jogo                                         1.51   (alvo 2–3)
+❌ Desvio xG vs gols reais                             0.46   (alvo 0–0.45)
+✅ Escanteios por jogo                                 8.46   (alvo 8–12)
+✅ Faltas por jogo                                    27.28   (alvo 22–32)
+❌ Cartões amarelos por jogo                           1.29   (alvo 3.5–6)
+❌ Cartões vermelhos por jogo                          0.04   (alvo 0.12–0.45)
+✅ Impedimentos por jogo                               2.78   (alvo 1.8–3.6)
+✅ Pênaltis por jogo                                   0.25   (alvo 0.15–0.45)
+✅ Lesões por jogo                                     0.93   (alvo 0.4–1.6)
+❌ Substituições por jogo                              0.00   (alvo 4–10)
+❌ Nota média dos jogadores                            0.00   (alvo 5.8–7)
+✅ Quem abre o placar vence %                        72.89%   (alvo 62–78%)
+❌ Jogos 0 gols %                                    14.25%   (alvo 4–12%)
+❌ Jogos 5+ gols %                                    2.25%   (alvo 3–12%)
+❌ Gols após os 60min %                              32.07%   (alvo 36–50%)
+
+── SENSIBILIDADE ───────────────────────────────────────────────
+❌ Melhor(casa) x Pior — vitórias %                  61.00%   (alvo 62–88%)
+❌ Medianos — vitórias %                             37.50%   (alvo 38–55%)
+❌ Pior(casa) x Melhor — vitórias %                  32.50%   (alvo 8–30%)
+✅ Vantagem do elenco forte (p.p.)                    23.50   (alvo 15–100)
+❌ Amplitude de OVR da liga                            9.36   (alvo 10–100)
+✅ Very Offensive marca mais que Very Defensive        0.15   (alvo 0.15–100)
+❌ Very Offensive sofre mais que Very Defensive        0.04   (alvo 0.1–100)
+✅ Tempo alto gera mais gols que tempo baixo           0.26   (alvo 0.1–100)
+❌ 3 setores NÃO domina 1 setor (p.p.)                 9.00   (alvo -6–6)
+✅ 3 setores NÃO domina 2 setores (p.p.)               2.50   (alvo -6–6)
+
+── DISTRIBUIÇÃO DE GOLS ──────────────────────────────────────
+0: 14.2%   1: 26.3%   2: 21.8%   3: 26.3%   4: 9.3%   5+: 2.3%
+
+── CONFRONTOS ────────────────────────────────────────────────
+Melhor(casa) x Pior        V 61.0%  E 20.0%  D 19.0%  |  1.39-0.66
+Medianos                   V 37.5%  E 36.0%  D 26.5%  |  0.97-0.81
+Pior(casa) x Melhor        V 32.5%  E 32.5%  D 35.0%  |  1.03-1.00
+Very Defensive             V 35.0%  E 35.5%  D 29.5%  |  0.96-0.77
+Very Offensive             V 44.5%  E 28.0%  D 27.5%  |  1.11-0.81
+tempo=10                   V 39.0%  E 31.0%  D 30.0%  |  0.88-0.79
+tempo=90                   V 41.0%  E 29.5%  D 29.5%  |  1.14-0.92
+setores: Center            V 39.0%  E 34.5%  D 26.5%  |  1.00-0.80
+setores: Left/Right        V 45.5%  E 27.5%  D 27.0%  |  1.20-0.83
+setores: todos             V 48.0%  E 29.0%  D 23.0%  |  1.09-0.73
+
+❌ 22 de 47 verificações falharam
+
+Z:\OneDrive_LEVU_TEMP\Football Manager\Football Manager\tools\simCheck.ts:313
+  const fs = require('fs');
+             ^
+
+
+ReferenceError: require is not defined in ES module scope, you can use import instead
+    at <anonymous> (Z:\OneDrive_LEVU_TEMP\Football Manager\Football Manager\tools\simCheck.ts:313:14)
+    at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:651:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.19.0

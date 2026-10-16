@@ -1,0 +1,3250 @@
+/*
+=============================================================================
+EQUIPA DE ARBITRAGEM — árbitro e dois assistentes
+=============================================================================
+Ficheiro auto-contido de propósito: os árbitros não entram em `Match.players`
+nem em `Match.opponents`, não têm blackboard, não passam pelo BT, não disputam
+a bola e não colidem com ninguém. Tudo o que fazem é ir para um ponto e animar
+a passada. Metê-los nas listas dos jogadores obrigaria a filtrá-los em cada
+ciclo que percorre um plantel — e são dezenas.
+
+POSICIONAMENTO
+
+  Assistentes: cada um cobre METADE de uma linha lateral, e as duas metades
+  são diagonalmente opostas. Cada um acompanha a linha de fora-de-jogo da sua
+  metade, que é o SEGUNDO ÚLTIMO jogador da equipa que ali defende — a mesma
+  definição que o `publicarLinhaDeForaDeJogo` do Match usa, mas calculada aqui
+  para não depender do estado de posse (o assistente segue a linha esteja ou
+  não a equipa a atacar).
+
+  Árbitro: corre a DIAGONAL contrária, a que o deixa sempre do lado oposto ao
+  do assistente daquela metade. Com o assistente 1 em +X na metade -Z e o
+  assistente 2 em -X na metade +Z, a diagonal do árbitro vai de (-X, -Z) a
+  (+X, +Z).
+
+  A diagonal é a do LATERAL DIREITO ao PONTA ESQUERDA do TeamB — de (+X, +Z) a
+  (-X, -Z). O árbitro projecta a bola nela e depois AFASTA-SE ao longo dela até
+  ficar na coroa entre `RefereeModel.raioMin` e `raioMax` (20 a 25 m da bola).
+=============================================================================
+*/
+const RefereeModel = {
+    /*
+    Diagonal do árbitro, em fracção da meia-largura e do meio-campo.
+
+    É a diagonal do LATERAL DIREITO ao PONTA ESQUERDA do TeamB (vermelho): esse
+    lado ataca -Z, portanto a sua direita é +X e o lateral direito fica em
+    (+X, +Z); o ponta esquerda fica no canto oposto, (-X, -Z). É a mesma recta
+    percorrida nos dois sentidos, e é a que deixa o árbitro sempre do lado
+    contrário ao do assistente daquela metade.
+
+    Os extremos são LARGOS (0.68 → ±23 m) e não muito FUNDOS (0.75 → ±40 m),
+    porque são as posições de um lateral e de um extremo, não das bandeirolas
+    de canto.
+    */
+    diagonalX: 0.68,
+    diagonalZ: 0.75,
+
+    /*
+    A COROA À VOLTA DA BOLA — entre que dois raios o árbitro vive.
+
+    Pedido: *"vamos criar um circulo de 25 metros de raio ao redor da bola e
+    outro de 20 metros. O juiz vai ficar correndo desse espaço entre os 2
+    circulos"*.
+
+    Era um número só, `distanciaBola: 15`, e um só número quer dizer uma
+    circunferência: qualquer metro a mais ou a menos era erro a corrigir, e ele
+    passava o jogo a corrigi-lo. Com dois raios há uma FAIXA, e dentro dela não
+    há nada a corrigir — o raio só se mexe quando ele sai dela (ver
+    `pontoDoArbitro`). É também o que lhe tira o vaivém: metade dos passos que
+    ele dava eram a apertar ou a largar centímetros.
+
+    O RUMO continua a ser a diagonal; a coroa manda só na DISTÂNCIA.
+
+    SEGUNDO PEDIDO, 10 a 15 m: *"ajusta o juiz para ficar entre 10-15 metros
+    da bola durante as jogadas normais e na cobrança das faltas (sem ficar na
+    frente da bola na direção do gol). No penálti e corners mantém onde está
+    hoje."* A coroa só vale na diagonal (jogo corrido e faltas); o penálti e o
+    canto têm posição fixa e não passam por ela. O "não à frente da bola" é o
+    fim do `pontoDoArbitro`.
+
+    TERCEIRO PEDIDO, 6 a 12 m (4 de Outubro de 2026): *"o juiz ainda esta
+    ficando muito perto do lance. Tem que ficar entre 6-12 metros"*. Medido
+    com a coroa a 10-15, em jogo corrido: 6% do tempo abaixo de 6 m e 44%
+    acima de 15. A coroa passou a 7-11 (o meio da faixa pedida, com folga dos
+    dois lados para o atraso de quem corre atras da bola), e os 6 m passaram a
+    ser um PISO DURO (`distMinDura`), aplicado no fim do `pontoDoArbitro`
+    depois de todas as travas: era a trava "nunca a frente da bola" que o
+    encostava, ao por-lhe o z igual ao da bola.
+    */
+    raioMin: 7.0,            // mais perto do que isto, afasta-se
+    raioMax: 11.0,           // mais longe do que isto, aproxima-se
+    distMinDura: 6.0,        // o alvo nunca fica mais perto da bola do que isto
+    margemFuga: 1.5,         // abaixo de distMinDura + isto, foge sem amortecer nem recuar
+    antecipacao: 0.6,        // s: a coroa e posta a volta da bola prevista (ver o update)
+    antecipacaoVelMax: 8.0,  // m/s: uma bola mais rapida do que isto antecipa-se menos tempo
+    /*
+    Folga até à linha, para o alvo da coroa nunca cair fora do campo: com a bola
+    encostada à linha de fundo, 20 m para o lado de lá sairia do relvado.
+    */
+    margemDoCampo: 1.5,
+    /*
+    Colocação inicial do árbitro: junto ao círculo central, do lado da sua
+    diagonal — entre as duas linhas que se formam para o pontapé de saída. 12 m
+    põe-no logo por fora do círculo (raio 9.15) sem ficar longe do lance.
+    Depois do arranque passa a mandar a coroa (`raioMin`/`raioMax`).
+    */
+    distanciaInicial: 12.0,
+    raioCirculoCentral: 9.15,
+    velocidade: 7.5,         // m/s, ritmo de quem acompanha o jogo
+
+    // Assistentes: quanto ficam PARA FORA da linha lateral.
+    margemLinha: 1.4,
+    velocidadeAssistente: 8.5,
+    /*
+    O ASSISTENTE VIGIA A LINHA — pedido: *"quando o bandeirinha estiver ate 2 m da linha de impedimento ele tem que
+    ficar meio virado para o campo a 45 graus e olhar a bola e a linha, uns 4 s cada, para conferir a hora do
+    lancamento"*. Com a linha a `distancia` m ou menos, o corpo vira-se `graus` para o campo (entre a direccao da
+    linha lateral para o lado da bola e a do campo) e a cabeca alterna entre a bola e a linha de `segundos` em
+    `segundos`.
+    */
+    vigia: { distancia: 2.0, graus: 45, segundos: 4.0, alcanceLinha: 8.0, giroMaxCabeca: 1.3 },
+    /*
+    A BANDEIRA DO ASSISTENTE — pedido: *"ta faltando a bandeirinha na mao do bandeirinha. Quando for marcado o
+    impedimento o bandeirinha deve permanecer no lugar, levantar o braco com a bandeira perpendicular ao campo,
+    permanecer por uns 2 s e baixar o braco esticado paralelo ao gramado com a bandeira esticada no prolongamento do
+    braco"*. A bandeira vai na mao direita, ao longo do eixo da mao (-y: o prolongamento do braco). No impedimento o
+    assistente do lado da marcacao fica no sitio, vira-se para o campo e: ergue o braco (tErguer), segura `tSegurar`
+    s, baixa-o horizontal (tBaixar), mantem-no ate a falta ser batida (no maximo tHorizontalMax s) e guarda-o (tGuardar).
+    Os angulos sao os do ombro do rig: x negativo leva o braco a frente (-2.95 quase a vertical, -1.57 horizontal).
+    */
+    bandeira: {
+        comprimento: 0.62, cor: 0xffd400, corte: 0xd81f26, larguraPano: 0.34, alturaPano: 0.24,
+        erguerX: -2.95, erguerZ: -0.08, erguerCotovelo: -0.05,
+        horizX: -1.57, horizZ: -0.04, horizCotovelo: -0.05,
+        tErguer: 0.35, tSegurar: 2.0, tBaixar: 0.45, tHorizontalMax: 10.0, tGuardar: 0.5, suavizacao: 0.3,
+        // O pano fica do lado oposto ao de onde a haste aponta (ver `_ajustarPano`).
+        panoZonaMorta: 0.15, panoSuavizacao: 0.12,
+        // A correr o pano muda de lado conforme a ponta da haste vai para a frente ou para tras (m/s ao longo do corpo).
+        panoVelMin: 0.4,
+        // O pano pende para baixo quando a haste esta esticada: |componente vertical da haste| abaixo disto (acima, e quase vertical).
+        panoPendeAte: 0.9,
+        // APONTAR a bandeira (canto: para o canto; tiro de meta: para a quina da pequena area): braco quase horizontal.
+        apontarX: -1.45, apontarZ: -0.06, apontarCotovelo: -0.05,
+        // A haste aponta para o alvo (canto / quina da pequena area) com este angulo ABAIXO da horizontal (graus). Pedido:
+        // *"na sinalizacao do corner o bandeirinha aponta a bandeira para o corner num angulo de 45 graus para baixo"*.
+        apontarGrausAbaixo: 45,
+        // O antebraco/haste aponta ~17 graus para fora do ombro (medido): correccao em rad somada ao azimute.
+        apontarCorrecao: -0.30,
+        // Canto e tiro de meta: fica no sitio com a bandeira apontada `tApontarMax` s (ou ate o lance recomecar) e volta
+        // a vigiar a linha de impedimento (pedido: uns 7 s).
+        tApontarMax: 7.0
+    },
+
+    /*
+    ZONA MORTA COM HISTERESE, e um filtro na velocidade da animacao.
+
+    Sem isto o boneco TREMIA sempre que o alvo estabilizava. A conta: o passo
+    de um frame e `min(d, velMax*amp*dt)`, portanto perto do alvo o passo e o
+    proprio `d`, e a velocidade que alimenta o ciclo de passada e `d/dt` — com
+    dt de 1/60, seis centimetros dao 3.6 m/s. O movimento parava em d <= 0.05 e
+    a animacao ligava em vel > 0.1, ou seja a velocidade saltava entre 0 e ~3
+    m/s sem nada pelo meio. Alvo a oscilar dois centimetros = correr/parar a
+    cada frame, com o ressalto vertical a acompanhar.
+
+    `paragemMax` e onde se considera chegado; `arranqueMin` e o quanto o alvo
+    tem de se afastar para valer a pena voltar a andar. Serem DIFERENTES e o
+    ponto: com um so limiar volta o mesmo tremor, mais fino.
+
+    MAS A FOLGA TEM DE SER PEQUENA. Esteve em 0.25/0.60 e trocou o tremor por
+    SOLAVANCOS nos assistentes: o alvo deles corre ao longo da linha atras da
+    bola, portanto afasta-se SEMPRE — com 60 cm de folga o boneco esperava,
+    acumulava distancia e arrancava de repente para a recuperar, em ciclo.
+    Quem tem um alvo em movimento continuo precisa de sair logo atras dele.
+
+    O tremor nao volta porque quem o resolve nao e esta folga: e o
+    `suavizacaoVel`, que filtra a velocidade vista pela ANIMACAO. Era ela que
+    saltava entre 0 e ~3 m/s num passo curto e ligava e desligava o ciclo de
+    passada a cada frame. A zona morta so evita os micro-passos.
+
+    A MARGEM E ESTREITA, e esta medida (tests/arbitro_passada.test.js):
+
+        0.25 / 0.60   sem tremor, mas 3.0 m/s de solavanco
+        0.10 / 0.18   sem tremor, ainda 3.0 m/s de solavanco
+        0.06 / 0.10   sem tremor, sem solavanco     <- aqui
+        0.04 / 0.07   volta o tremor
+
+    Mexer nestes dois numeros sem correr o teste e reintroduzir um dos dois.
+    */
+    /*
+    EM QUANTO TEMPO ele quer fechar o que falta, em segundos. É isto que dá a
+    velocidade de cada frame: `d / tempoDeAjuste`, limitada a `velocidade`.
+
+    Serve duas coisas ao mesmo tempo, e é por isso que é um tempo e não uma
+    distância: ele TRAVA a chegar (em vez de ir a sete metros por segundo até
+    ao último centímetro e parar de repente) e a fronteira entre correr e dar
+    passo de lado passa a ser contínua — ela cai onde `d / tempoDeAjuste` vale
+    `LateralGait.velViragem`, ou seja a 3.1 m, e nesse ponto a velocidade é a
+    mesma dos dois lados.
+
+    Um corte seco pela distância (`d <= 3`) dava um degrau de 6.9 m/s num
+    frame, apanhado por tests/arbitro_passada.test.js — o árbitro arrancava e
+    parava de repente a seguir um alvo que anda sempre à mesma velocidade.
+    */
+    tempoDeAjuste: 0.85,
+
+    /*
+    E NUNCA DE COSTAS PARA A BOLA — em graus, o máximo que a frente dele pode
+    afastar-se da direcção da bola.
+
+    Relato: *"o juiz ainda está correndo de costas para a bola"*. É o preço da
+    correcção anterior: pô-lo a olhar para onde corre resolveu o deslize, e
+    trouxe isto — quando o alvo dele está do lado oposto ao do jogo, virar-se
+    para o alvo é virar as costas ao lance. Medido em 15 min: **19.5% dos
+    frames com a bola a mais de 90 graus da frente dele, e 11.8% a mais de
+    135** (de costas).
+
+    Um árbitro corre ABERTO: leva o corpo de lado, atravessado, e não perde a
+    bola de vista. 110 graus é esse limite — a bola fica na periferia, nunca
+    atrás. O que sobra do caminho faz-se de lado, e a `LateralGait` já trata
+    disso (a passada encolhe e a velocidade com ela, que é o que acontece a
+    quem corre atravessado).
+
+    Só vale para quem tem um ponto para vigiar (o árbitro, com a bola). Os
+    assistentes correm na linha e não recebem `olharPara`.
+    */
+    // 75 -> 60 graus (9 de Outubro de 2026, outra vez: *"o juiz esta correndo de costas para a bola"*).
+    anguloMaxDaBola: 60 * Math.PI / 180,
+    /*
+    Com a bola a mais de `vigiaLonge` m ele PODE virar-se e correr de frente para onde vai (a bola nao esta a
+    jogar-se perto dele); mais perto fica sempre a menos de `anguloMaxDaBola` dela.
+    */
+    vigiaLonge: 1e9,   // 28 deixava-o virar-se e correr de costas para a bola quando ela estava longe: medido, 921 frames num canto
+    // Tecto (m/s) a andar para tras, quando o movimento e contrario a frente (ver `recuoVelocidade`).
+    recuoVelMax: 2.4,
+    /*
+    ANDAR NO SÍTIO, e a zona morta era a causa. Relato: *"o juiz está com
+    animação de andar sem sair da posição"*. O alvo dele quase nunca está
+    parado — a coroa desliza com a bola — e com 6-10 cm de folga ele estava
+    sempre a "acertar": avançava a 0.3-0.4 m/s com o ciclo de passada inteiro,
+    pernas a andar e corpo quase parado. Medido em 5 min: 4.5% das janelas de
+    1 s assim.
+
+    Agora fica PARADO até o alvo se afastar `arranqueMin`, e dá-se por chegado
+    a `paragemMax`. Um árbitro a acompanhar dá meia dúzia de passos e pára; não
+    arrasta os pés atrás de cada centímetro que a bola anda.
+    */
+    /*
+    RECUAR. Virado para a bola, ele ajusta-se com passos curtos — e quando o
+    ajuste é para TRÁS, a passada tem de andar ao contrário: era a passada de
+    frente com o corpo a ir para trás (medido em 10 min: 8.1% do tempo a andar
+    de costas, quase tudo neste ajuste). Para trás anda-se mais devagar:
+    `recuoVelocidade` da velocidade que teria. `recuoAlinhamento` é a partir
+    de que ângulo conta como recuar (cosseno entre a frente e o movimento).
+    */
+    recuoVelocidade: 0.70,
+    recuoAlinhamento: -0.30,
+    // Acima disto (m/s) o gesto da falta não roda o corpo: ver tickSinal.
+    sinalVelMax: 2.5,
+    paragemMax: 0.25,
+    arranqueMin: 1.50,
+    suavizacaoVel: 0.20,
+    /*
+    O ALVO DO ÁRBITRO É AMORTECIDO (constante de tempo, segundos). As duas
+    regras do fim do `pontoDoArbitro` — não passar a bola, ficar entre as
+    linhas — dependem de QUEM TEM A POSSE, e numa bola dividida a posse troca
+    várias vezes por segundo: o alvo saltava metros para um lado e para o
+    outro (561 saltos de mais de 1 m num frame em 5 min). Amortecido, ele vai
+    para onde a jogada assenta, e não para onde ela estava no último frame.
+    */
+    alvoSuavizacao: 0.35,
+
+    /*
+    Equipamento, preto por agora. Em texto e não em hexadecimal numérico: o
+    `buildBody` dos jogadores pinta as texturas da camisola e dos meiões num
+    canvas 2D, e o canvas quer uma cor CSS.
+    */
+    /*
+    ALTURA do árbitro e dos assistentes, em metros. Pedido: *"ajusta o juiz e
+    os bandeirinhas para 1.75 m de altura"*. Eram o boneco padrão, 1.855 m —
+    mais altos do que a maior parte dos jogadores.
+    */
+    altura: 1.75,
+
+    /*
+    O CARTÃO — ver Officials.mostrarCartao. Pedido, com três fotografias:
+    *"o juiz vai se posicionar na frente do jogador a uns 4 metros. Apontar pra
+    ele com o braço esquerdo e erguer o cartão com o braço direito. Depois faz a
+    ação de colocar o cartão no bolso novamente. A partir daí o jogo corre
+    normalmente."*
+
+      `distancia`   a que distância do jogador ele pára para mostrar
+      `tMostrar`    quanto tempo o cartão fica no ar
+      `tGuardar`    o gesto de o meter no bolso do peito
+      `tIrMax`      tecto para chegar ao jogador (longe, mostra de onde está)
+      `largura`/`alturaCartao` do cartão em metros (o de verdade: 8 x 11 cm;
+                    aqui 12 x 16, para se ler a partir da câmara de jogo)
+    */
+    cartao: {
+        distancia: 4.0,
+        tMostrar: 1.6,
+        tGuardar: 0.8,
+        tIrMax: 6.0,
+        chegou: 0.35,
+        // Mais de 2x o de antes (era 12 x 16): de pe, de longe e com a espessura de 4 mm, nao se via. Depois reduzido 20% (22 x 30 -> 17,6 x 24 cm).
+        largura: 0.176,
+        alturaCartao: 0.24,
+        // O POLEGAR da mao erguida: rola-se a mao em torno do antebraco (rotation.y da mao) para o polegar
+        // ficar paralelo ao relvado e a palma (com o cartao) virada para o jogador. Radianos.
+        polegarRoll: -1.57,
+        polegarAbertura: -1.57,    // o polegar a 90 graus dos dedos (o repouso e -0.55)
+        corAmarelo: '#f2d21b',
+        corVermelho: '#d6201f',
+        suavizacao: 0.25,
+        // Os braços, em radianos (convenção do rig: x negativo = para a frente/cima).
+        apontarX: -1.45, apontarZ: 0.10,       // braço esquerdo a apontar para ele
+        erguerX: -2.95, erguerZ: -0.12,        // braço direito, cartão no ar
+        erguerCotovelo: -0.35,
+        bolsoX: -0.40, bolsoZ: 0.30,           // braço direito ao bolso do peito
+        bolsoCotovelo: -1.75
+    },
+    corCamisa: '#14161a',
+    corCalcao: '#14161a',
+    corBota: '#0f1114',
+
+    /*
+    DISCOS DA VISTA TACTICA. De 40 m de altura o boneco le-se mal, e os
+    jogadores ja aparecem como discos da cor da equipa (ver updateShirt em
+    player.js) — sem isto os arbitros eram os unicos bonecos no meio de vinte e
+    dois discos, e ficavam a parecer o que nao sao.
+
+    Preto com amarelo, que e o equipamento de arbitro. O RAIO E O MESMO dos
+    jogadores (ver a CircleGeometry do discoTatico em player.js): de cima, um
+    disco mais pequeno lia-se como estando mais longe.
+
+    `R` de arbitro, `A` de assistente — as duas letras que cabem num disco
+    deste tamanho sem encolherem ate deixarem de se ler.
+    */
+    discoRaio: 0.85,
+    discoFundo: '#101216',
+    discoLinha: '#f2c400',
+
+    /*
+    =========================================================================
+    FALTAS E CARTÕES
+    =========================================================================
+    Spec em docs/superpowers/specs/2026-08-25-faltas-e-cartoes-design.md.
+
+    Alvo: 27,63 faltas e 5,22 cartões por jogo de 90 minutos, com 0,08
+    vermelhos. Nada disto existia — o `triggerFreeKick` estava escrito mas só
+    o botão do painel o chamava.
+
+    DUAS FONTES de falta, e a calibração delas é ACOPLADA: as duas somam para
+    a mesma média, portanto subir uma obriga a descer a outra. Por isso existe
+    a `escala`, que multiplica ambas e deixa mexer no TOTAL sem tocar no
+    equilíbrio entre elas.
+    */
+    faltas: {
+        /*
+        Multiplicador global das duas fontes. Sobe ou desce o total de faltas
+        por jogo sem mudar a proporcao entre desarme e contacto.
+
+        HISTORICO DA AFINACAO (medido em lotes de 20 jogos de 90 min, com
+        1080 s de fisica por jogo — ver GAME_SPEED e MatchDuration):
+
+            1.0   dava 4,65 faltas por jogo
+            4.3   pedidas 20 por jogo
+
+        O salto e grande porque o raio de accionamento do chaser
+        (MarkingModel.raioDeAccionamento) cortou a perseguicao constante, e com
+        ela os duelos de onde saem as faltas. Menos rush, menos contacto: o
+        numero de faltas e o preco directo dessa mudanca, e este multiplicador
+        e onde se paga.
+        */
+        /*
+        MAIS 15% DE FALTAS, a pedido (*"aumenta as faltas em 15%"*):
+        4.3 -> 4.95.
+
+        MEDIDO DEPOIS: 4.3 -> 4.95 deu 34.37 faltas, ou seja **+19%** e nao os
+        15% pedidos — a escala nao e linear no numero de faltas, porque uma
+        falta a mais muda o jogo que gera a falta seguinte. Corrigido para
+        4.62, que e o que a medicao diz dar os 15%.
+
+        O QUE ISTO ARRASTA, com os numeros do lote:
+
+            amarelos    3.42 -> 4.51   (66% -> 86% do alvo)   na direccao certa
+            vermelhos   0.15 -> 0.26   (188% -> 325%)         fora de controlo
+
+        Os vermelhos sao efeito colateral e nao foram pedidos: tratam-se no
+        `limiarVermelho`, logo abaixo, e nao aqui.
+        */
+        // 14 de Outubro de 2026: 4.62 -> 5.8 deu 26 faltas por 90; o alvo passou a ~15 (pedido: "muita falta, o alvo para o nosso jogo deveria ser umas 15") -> 3.4.
+        escala: 3.4,
+
+        /*
+        FONTE A — o duelo perdido. O desfecho já existe (venceuDuelo, em
+        utils.js) e hoje não custa nada a quem falha; agora custa.
+
+        O carrinho é muito mais punido do que o desarme de pé porque é o que
+        acontece no jogo: o corpo vai no chão, em movimento, e quem falha a
+        bola acerta na perna.
+        */
+        /*
+        E O DUELO PERDIDO SO E FALTA SE HOUVER CONTACTO.
+
+        O desfecho do duelo resolve-se no instante em que o carrinho e
+        LANCADO, e o corpo ainda vem a caminho: media medida, o apito saia
+        com **2.32 m entre os dois** (mediana 2.34, maximo 2.61), contra 0.90
+        no desarme e 0.91 no choque. Metade das faltas de um jogo eram assim,
+        e o que se via era o arbitro a marcar falta a dois jogadores que nao
+        se tocaram — o relato.
+
+        `raioDuelo` e a distancia a que a perna ainda alcanca o adversario:
+        mais larga do que o raio do choque (1.0 m), porque num carrinho o
+        corpo esta esticado, mas nao tanto que apanhe quem passou ao lado.
+        */
+        raioDuelo: 1.6,
+        /*
+        O carrinho esta no tecto: 0.15 x escala 4.3 = 0.645 de probabilidade
+        por carrinho falhado dentro do raio. Subir mais (ou subir a `escala`,
+        que o multiplica) leva-o para cima de 1 sem ganhar falta nenhuma — a
+        margem para mais faltas esta no desarme e no contacto, nao aqui.
+        */
+        probCarrinhoFalhado: 0.15,
+        /*
+        0.030 -> 0.075. Medido: 49 desarmes de pe tentados por jogo davam 2.6
+        faltas, quando o carrinho (35 tentados) dava 6.1. O desarme de pe
+        falhado tem de custar mais do que custava.
+
+        E e por AQUI que se sobe o resto do caminho para as 27.63, e nao pelo
+        contacto: o desarme tem gravidade base 0.14 contra os 0.10 do choque,
+        portanto rende falta E cartao, que e a metrica que fica para tras
+        quando o jogo se enche de contactos.
+        */
+        probDesarmeFalhado: 0.075,
+
+        /*
+        FONTE B — o contacto sem tentativa de desarme: empurrões e choques.
+
+        `raio` é a distância a que dois corpos se tocam; `velRelMin` é a
+        velocidade relativa abaixo da qual o encontro é só um roçar. O
+        `arrefecimento` impede que o mesmo par marque falta atrás de falta
+        enquanto continua encostado — sem ele um único choque dava dezenas.
+
+        `raioDisputa` só deixa o contacto ser falta se a bola estiver perto
+        do lance. Sem isto dois jogadores a correr um contra o outro longe da
+        bola produziam falta só porque se encostaram — por exemplo após um
+        passe para trás em que já não há disputa.
+        */
+        contacto: {
+            raio: 1.0,
+            /*
+            4.5 -> 3.2 m/s. Este limiar foi calibrado quando o piso da
+            velocidade de reposicionamento era 4.73 m/s e toda a gente andava
+            sempre a correr; com o `RepositionPace` (player_behavior.js) a
+            media por jogador passou de 4.3 para 3.1 m/s, e dois jogadores a
+            trote deixaram de chegar aos 4.5 de velocidade relativa. A fonte
+            secou por causa disso: 3.9 faltas de contacto por jogo.
+
+            3.2 e o trote contra o trote — um encontro a essa velocidade e um
+            choque, nao um rocar.
+            */
+            velRelMin: 3.2,
+
+            /*
+            QUEM VEM PELAS COSTAS E QUE COMETE A FALTA, seja qual for a
+            velocidade. Angulo em radianos entre a frente de um e a direccao
+            de onde o outro vem: 0 de frente, PI pelas costas.
+
+            O infractor era escolhido SO pela velocidade — "quem entra e quem
+            vai mais depressa". Relato: *"Um atacante estava com a bola, quase
+            dentro da area, e na hora que ia chutar foi marcado falta contra
+            ele. O marcador estava atras dele, ninguem a frente."* E e o que
+            acontecia: um atacante a arrancar para rematar vai mais depressa
+            do que o defesa que o persegue, portanto ficava ele o infractor —
+            a levar o toque nas costas e a ser punido por isso.
+
+            Medido com `tools/lab/falta_pelas_costas.js`, em 30 min de jogo:
+
+                semente 1   20 faltas de contacto, 1 com o portador punido
+                            e o adversario ATRAS dele
+                semente 3   29 faltas de contacto, 2 do mesmo caso
+
+            A velocidade continua a decidir o ombro a ombro e o encontro de
+            frente, onde nenhum dos dois vem de tras. So quando UM deles vem
+            claramente pelas costas do outro e que a geometria manda na
+            velocidade.
+
+            2.0 rad sao 115 graus: nao e "ligeiramente atras", e mesmo por
+            tras do ombro. Dois jogadores lado a lado ficam perto de PI/2
+            (90 graus) e nao entram nesta regra.
+            */
+            anguloPelasCostas: 2.0,
+            /*
+            0.035 -> 0.075, medido em passos de 207 min de relogio:
+
+                0.035   12.6 faltas por jogo, 3.05 cartoes
+                0.075   22.6 faltas por jogo, 3.05 cartoes
+                0.095   33.0 faltas por jogo, 1.73 cartoes  <- passou do alvo
+
+            O 0.095 nao foi rejeitado so por passar as 27.63: os CARTOES caem
+            quando se empurra tudo para esta fonte. O contacto tem gravidade
+            base 0.10 (ver `gravidade.base`) e quase nunca chega a amarelo, ao
+            contrario do carrinho (0.35). Encher o jogo de choques da muitas
+            faltas e um jogo sem cartoes — e os cartoes ja estao a 58% do alvo.
+            */
+            prob: 0.075,
+            arrefecimento: 3.0,
+            raioDisputa: 3.5
+        },
+
+        /*
+        GRAVIDADE: quatro parcelas somadas. Serve só para decidir o cartão.
+
+        `pesoAngulo` usa 0 de frente e π por trás, portanto entra a dobrar num
+        carrinho pelas costas. `travouAtaque` é a falta táctica.
+        */
+        gravidade: {
+            base: { carrinho: 0.35, desarme: 0.14, contacto: 0.10 },
+            pesoVelocidade: 0.020,   // por m/s do contacto
+            pesoAngulo: 0.30,        // × (angulo / π)
+            /*
+            travarAtaque SAIU DAQUI (era 0.25).
+
+            Travar um ataque promissor e amarelo pela Lei 12 — nao por o lance
+            ser violento, mas por ter tirado um ataque ao adversario. Somado a
+            gravidade misturava as duas coisas, e das duas maneiras erradas: um
+            carrinho por tras a travar somava 1.08 e escorregava para o pe do
+            vermelho, e um empurrao tactico, que e o amarelo mais comum de um
+            jogo a serio, nunca chegava la porque a gravidade dele e baixa por
+            natureza. Num lote de 30 jogos: 1.42 amarelos contra 5.22, com 68%
+            das faltas a serem contactos cujo tecto (0.74) fica abaixo do
+            limiar. A regra esta agora no `decidirCartao`.
+            */
+
+            /*
+            O JOGADOR também conta, não só o lance.
+
+            `pesoMarcacao` DESCE a gravidade: quem marca bem entra com o tempo
+            certo e leva mais bola do que perna, portanto a falta que comete
+            é mais limpa. `pesoForca` SOBE-a: no mesmo lance, um jogador forte
+            magoa mais.
+
+            Os dois entram normalizados a partir de 50 — a skill média — e
+            saturam nos extremos: um defensor de marcação 100 tira
+            `pesoMarcacao` inteiro à gravidade, um de 0 soma-o.
+            */
+            pesoMarcacao: 0.14,
+            pesoForca: 0.12
+        },
+
+        /*
+        LIMIARES, calibrados contra uma corrida de 2 jogos de 25 minutos.
+
+        A PRIMEIRA CALIBRAÇÃO FALHOU, e vale a pena saber porquê: dava ~12,6
+        vermelhos e ~34 amarelos por 90 minutos, contra 0,08 e 5,22. O erro
+        foi tratar o carrinho por trás como caso excepcional quando ele é o
+        caso COMUM — o fsm.js garante que um carrinho por trás nunca rouba a
+        bola, portanto falha sempre, portanto vira falta sempre. Com o
+        `pesoAngulo` a somar e o limiar de vermelho em 1.05, davam-se
+        vermelhos DIRECTOS a eito (uma equipa fez 0 amarelos e 3 vermelhos).
+
+        Agora, com o carrinho a deslizar a 9 m/s (SlideTackleModel):
+
+            carrinho de frente       0.35 + 0.18            = 0.53   nada
+            carrinho por trás        0.35 + 0.18 + 0.30     = 0.83   nada
+            idem, lançado a 11.7     0.35 + 0.234 + 0.30    = 0.88   AMARELO
+            idem, de um forte (95)   0.88 + 0.108           = 0.99   VERMELHO
+
+        O limiar do vermelho desceu de 1.10 para 0.95 quando o `travarAtaque`
+        saiu da gravidade: sem essa parcela nenhum lance chegava a 1.10 e o
+        vermelho directo deixava de existir. Continua a exigir o pior gesto
+        possivel — carrinho lançado, pelas costas, de um jogador forte.
+
+        O vermelho DIRECTO fica assim quase inalcançável — como deve ser:
+        quase todos os vermelhos reais saem do segundo amarelo.
+        */
+        /*
+        FALTAS SEGUIDAS DA MESMA EQUIPA DAO AMARELO (Lei 12: infraccoes repetidas, o jogo "picotado"). Pedido: *"nao e o mesmo
+        jogador fazer 3 faltas: sao faltas seguidas do mesmo time, tentando picotar o jogo"*. Conta-se a SEQUENCIA de
+        faltas da equipa: cada falta seguinte da mesma equipa, a menos de `janelaSegundos` (relogio do jogo) da anterior e
+        sem nenhuma falta do adversario pelo meio, soma 1; a `faltas`-esima da sequencia da amarelo a quem a cometeu
+        (vermelho se ele ja tinha amarelo: o segundo amarelo). Um cartao zera a sequencia, e uma falta do adversario
+        ou o tempo tambem. Acrescenta amarelos sem tocar nos limiares de gravidade nem no do vermelho.
+        */
+        reincidencia: { activo: true, faltas: 4, janelaSegundos: 600 },   // 3 -> 4 faltas seguidas (15 de Outubro de 2026): com 3 saiam 6.9 amarelos por jogo (pedido: 4-5)
+        limiarAmarelo: 0.68,   // 0.85 -> 0.68 (-20%, pedido de 15 de Outubro de 2026)
+        /*
+        SUBIR ESTE LIMIAR PARA CORTAR VERMELHOS FOI TENTADO E NAO SERVIU.
+
+        Com as faltas a subir 15% a pedido, os vermelhos foram a 0.26 por jogo
+        contra o alvo de 0.08 — 325%. Subiu-se este limiar de 0.95 para 1.06 e
+        o lote seguinte deu **os mesmos 0.26**.
+
+        PORQUE E QUE NAO MEXEU: este limiar so apanha o vermelho DIRECTO, e
+        esse quase nao acontece. A expulsao que domina e o SEGUNDO AMARELO
+        (ver `cartaoPara`, mais abaixo) — e a nota dessa funcao ja o dizia:
+        "quase todos os vermelhos reais saem do segundo amarelo".
+
+        Volta a 0.95. O corte faz-se onde a expulsao nasce.
+        */
+        limiarVermelho: 0.76,   // 0.95 -> 0.76 (-20%, pedido de 15 de Outubro de 2026)
+
+        /*
+        O LIMIAR DO SEGUNDO AMARELO — mais baixo que o do primeiro, e nao o
+        mesmo.
+
+        Primeira tentativa: exigir ao advertido a mesma gravidade do amarelo
+        (0.85). Medido em 50 jogos, deu **ZERO** expulsoes, contra o alvo de
+        0.08. A conta que faltou: quem esta advertido ja nao faz carrinhos
+        (ver `podeFazerCarrinho`), e sem carrinho uma falta quase nunca chega
+        a 0.85. Dois travoes em cima um do outro nunca deixam sair ninguem.
+
+        Por isso o advertido tem limiar PROPRIO, mais baixo: uma falta a meio
+        caminho ja o poe fora, uma falta tactica leve nao.
+
+        A ESCADA MEDIDA, 50 jogos por ponto:
+
+            limiar 0.85 (o mesmo do amarelo)    0.00 vermelhos
+            limiar 0.45                         0.02
+            limiar 0.32                          ?     <- aqui
+            sem exigencia (so `temAmarelo`)     0.26
+            alvo                                0.08
+
+        AVISO A QUEM AFINAR ISTO: 0.08 por jogo sao QUATRO expulsoes em 50
+        jogos, e 0.02 e UMA. A esta escala o ruido de Poisson e da ordem do
+        proprio numero — 4 mais ou menos 2 — portanto nao vale a pena perseguir
+        a decima. O que se quer e a ordem de grandeza certa: uma expulsao a
+        cada dez a quinze jogos, e nao uma a cada quatro nem nenhuma.
+        */
+        /*
+        QUANTO SE CONTEM QUEM JA TEM AMARELO — o factor sobre a probabilidade
+        de ele cometer a falta.
+
+        SUBSTITUI O `limiarSegundoAmarelo`, que era uma excepcao a Lei 12
+        (exigia gravidade ao advertido para o expulsar) e que o
+        tests/faltas_cartoes.test.js apanhou: um advertido que trava um ataque
+        TEM de sair, por leve que seja o lance.
+
+        A conta que aquilo tentava arranjar continua de pe, e resolve-se aqui:
+
+            amarelos     62% do alvo
+            vermelhos   325% do alvo   (com a lei aplicada tal e qual)
+
+        Menos amarelos e mais vermelhos do que o real quer dizer que o
+        advertido reincide de mais. O `podeFazerCarrinho` ja lhe tirava o
+        carrinho; isto tira-lhe tambem o desarme de pe e o choque, que sao os
+        que produzem a falta tactica.
+
+        VARRIDO no lote de 20 jogos de 20 min (tools/headless/lote_jogos.js,
+        que e o instrumento valido para faltas e cartoes — o banco de ensaio
+        ad-hoc deste repositorio da 213 faltas por 90 contra as 31 do lote):
+
+            cautela 0.45    amarelos 4.26 (82%)   vermelhos 0.00 (0 em 20)
+            cautela 0.70    amarelos 4.56 (87%)   vermelhos 0.10 (2 em 20)
+            alvo                     5.22                    0.08
+
+        Fica em 0.70. O AVISO DO POISSON vale mais do que a decima: 0.08 por
+        jogo sao 1.6 expulsoes em 20 jogos, portanto zero e tres sao ambos
+        compativeis com o alvo por puro acaso. O que estes numeros distinguem
+        e "nenhum" de "cinco", e foi so isso que se usou para escolher — nao
+        se persegue aqui nada mais fino.
+        */
+        cautelaDoAdvertido: 0.70,   // 0.85 -> 0.75 (15 de Outubro de 2026): com 0.85 os vermelhos foram a 0.43 por jogo (alvo ~0.20)
+
+        /*
+        Ate onde atras e que um ataque ainda conta como promissor, em metros a
+        contar do meio-campo para a propria baliza (referencial de quem ataca).
+        Uma falta a 40 m da baliza adversaria trava um ataque; a mesma falta a
+        cinco metros da propria area trava uma saida a jogar, que nao e o mesmo.
+        */
+        zMinAtaquePromissor: 25.0,   // 15 -> 25 (15 de Outubro de 2026): mais faltas contam como travar um ataque promissor
+
+        /*
+        Velocidade minima, em m/s, com que o portador tem de ir para a frente
+        para o ataque contar como promissor. E um jogador LANCADO, nao um a
+        andar com a bola: 3.0 e trote.
+
+        Calibrado pela FRACCAO de faltas carimbadas, que nao depende de o
+        simulador ter menos faltas que um jogo a serio: o real sao 5.22 cartoes
+        em 27.63 faltas, ou seja 18.9%. Varrido numa corrida de 148 min:
+
+            velMin 3.0   42.9% das faltas
+            velMin 4.0   28.6%
+            velMin 4.5   ~19%   <- aqui
+            velMin 5.0   11.4%
+            velMin 6.0    2.9%
+        */
+        velMinAtaquePromissor: 4.0   // 4.5 -> 3.5 -> 4.0 (15 de Outubro de 2026): com 3.5 e a reincidencia saiam 6.5 amarelos por jogo (pedido: 4-5)
+    },
+
+    /*
+    =========================================================================
+    O GESTO DO BRACO — para que lado e a falta
+    =========================================================================
+    A etiqueta diz O QUE foi marcado; o braco diz A FAVOR DE QUEM. Na
+    arbitragem real e o gesto que segue o apito: braco direito estendido na
+    direccao do ataque da equipa que beneficia.
+
+    Duas geometrias diferentes, e por isso dois angulos:
+
+      elevacaoSinal    falta. O braco na HORIZONTAL indica um SENTIDO — a
+                       baliza atacada fica longe, e apontar para baixo nao
+                       diria nada.
+      elevacaoPenalti  penalti. Aqui nao se aponta um sentido, aponta-se um
+                       SITIO: a marca, no chao, a poucos metros. O braco desce
+                       para a diagonal.
+
+    A convencao do braco e a do THROW_IN_CLIP: rotation.x MAIS NEGATIVO leva o
+    braco para cima e para tras; zero e o braco caido ao lado do corpo.
+    */
+    elevacaoSinal: -Math.PI / 2,   // 90 graus: horizontal
+    elevacaoPenalti: -1.0,         // ~57 graus: diagonal para o chao
+    duracaoSinal: 2.5,
+    /*
+    A que distancia do ponto designado o arbitro conta como "no lugar" — usado
+    pelo gesto que espera por ele (ver `ateChegar` em sinalizar).
+    */
+    raioNoLugar: 1.5,
+    marcaPenaltiZ: 11.0,           // distancia da marca a linha de fundo
+    suavizacaoBraco: 0.25,
+
+    /*
+    Com que rapidez o CORPO roda para ficar de perfil para o alvo durante o
+    gesto da falta (ver tickSinal). Fracção por frame, como a do braço: a 0.15
+    a volta de 90 graus leva pouco mais de meio segundo, dentro dos 2.5 s do
+    gesto e sem o arbitro estalar de lado no frame do apito.
+    */
+    suavizacaoCorpoSinal: 0.15,
+    /*
+    O CORPO NO GESTO DA FALTA. Relato: *"depois que o juiz apita a falta e
+    sinaliza, estranhamente ele vira para a camera. Nao faz sentido. Por que nao
+    continua acompanhando a jogada?"* O T (corpo de perfil, braco a 90 graus)
+    punha-o de lado para o lance, a olhar para a camara. Com `false` o corpo
+    fica onde o `mover` o poe (virado para a bola) e so o braco aponta o ataque,
+    sempre a pelo menos `margemBracoSinal` rad do tronco para ler-se como gesto.
+    `true` volta ao T.
+    */
+    corpoDePerfilNoSinal: false,
+    margemBracoSinal: 1.2
+};
+
+const Officials = {
+    arbitro: null,
+    assistentes: [],
+    _ativo: true,
+
+    /*
+    Corpo: o MESMO modelo dos jogadores. Instancia-se um `FootballPlayer` só
+    para nos dar `model` + `rig`, com o equipamento todo preto.
+
+    O construtor do FootballPlayer é seguro para isto: não se inscreve em lado
+    nenhum, não toca no `Match`, e o que acrescenta à cena são dois sprites
+    (etiqueta e banner) que nascem invisíveis dentro do próprio `model`. O
+    `discoTatico` do FootballPlayer — esse sim vive na cena — é criado dentro
+    do `updateShirt`, que nunca chamamos: um árbitro não leva número nas
+    costas. O disco da vista táctica é outro, feito aqui em `criarDisco` com as
+    cores e a letra dele.
+
+    Os ossos têm os mesmos nomes (`lLeg`, `rKnee`, `lArm`, `chest`…), por isso o
+    `mover()` aqui em baixo não muda nada.
+    */
+    criarCorpo: function (id) {
+        const R = RefereeModel;
+        const jogador = new FootballPlayer(id, R.corCamisa, R.corCalcao, 'TeamA');
+
+        /*
+        A ALTURA DOS OFICIAIS, fixa — ver RefereeModel.altura. O
+        `alturaDoJogador` lê a cache antes de tudo, portanto escrevê-la aqui é
+        o que faz o `aplicarAlturaAoCorpo` escalar o boneco para ela, pelo mesmo
+        caminho dos jogadores.
+        */
+        if (typeof R.altura === 'number' && typeof jogador.aplicarAlturaAoCorpo === 'function') {
+            jogador._alturaCache = R.altura;
+            jogador.aplicarAlturaAoCorpo();
+        }
+
+        /*
+        As chuteiras saem do baralho de aparências (`escolherAparencia`) e vêm
+        às cores. Aqui pintam-se de preto: recalcula-se a mesma aparência para
+        saber QUE cor procurar, e trocam-se só os materiais com essa cor — a
+        pele, o cabelo e os olhos ficam intactos.
+        */
+        if (typeof escolherAparencia === 'function') {
+            const ap = escolherAparencia(id, 11, 0);
+            const alvoBota = new THREE.Color(ap.corChuteira).getHex();
+            jogador.model.traverse(function (o) {
+                if (!o.material || !o.material.color) return;
+                if (o.material.color.getHex() === alvoBota) {
+                    o.material = o.material.clone();
+                    o.material.color.set(R.corBota);
+                }
+            });
+        }
+
+        return { corpo: jogador.model, rig: jogador.rig, jogador: jogador };
+    },
+
+    /*
+    O DISCO DA VISTA TACTICA, com a letra ja rodada.
+
+    Vive na CENA e nao dentro do `model`: assim nao sobe nem roda com o
+    boneco, fica sempre pousado no relvado — a mesma razao por que o disco dos
+    jogadores tambem vive la fora.
+
+    A letra leva `rotate(-PI/2)` no canvas pela mesma razao que a dos
+    jogadores: o disco esta deitado (`rotation.x = -PI/2`) e sem isso a letra
+    aparecia de lado para quem olha de cima.
+    */
+    criarDisco: function (scene, etiqueta) {
+        const R = RefereeModel;
+        const cv = document.createElement('canvas');
+        cv.width = 128; cv.height = 128;
+        const c = cv.getContext('2d');
+
+        c.fillStyle = R.discoFundo;
+        c.beginPath(); c.arc(64, 64, 58, 0, Math.PI * 2); c.fill();
+
+        // Duas linhas: o aro de fora e um anel fino por dentro. So o aro
+        // ficava a ler como um disco de jogador com outra cor.
+        c.strokeStyle = R.discoLinha;
+        c.lineWidth = 8;
+        c.beginPath(); c.arc(64, 64, 58, 0, Math.PI * 2); c.stroke();
+        c.lineWidth = 3;
+        c.beginPath(); c.arc(64, 64, 46, 0, Math.PI * 2); c.stroke();
+
+        c.fillStyle = R.discoLinha;
+        c.font = 'bold 54px sans-serif';
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.save();
+        c.translate(64, 64);
+        c.rotate(-Math.PI / 2);
+        c.fillText(etiqueta, 0, 0);
+        c.restore();
+
+        const disco = new THREE.Mesh(
+            new THREE.CircleGeometry(R.discoRaio, 24),
+            new THREE.MeshBasicMaterial({
+                map: new THREE.CanvasTexture(cv),
+                transparent: true,
+                depthWrite: false
+            })
+        );
+        disco.rotation.x = -Math.PI / 2;
+        disco.visible = false;
+        scene.add(disco);
+        return disco;
+    },
+
+    criarOficial: function (scene, id, etiqueta) {
+        const feito = this.criarCorpo(id);
+        scene.add(feito.corpo);
+        return {
+            model: feito.corpo,
+            rig: feito.rig,
+            animTimer: 0,
+            disco: this.criarDisco(scene, etiqueta),
+            /*
+            A INSTANCIA, e nao so o `model`.
+
+            O corpo do arbitro e um FootballPlayer e vinha a ser deitado fora
+            aqui — ficava so o `model`. Mas e na instancia que vive o
+            `showActionBanner` e o sprite do banner (que ja e filho do `model`,
+            portanto ja esta na cena a ser desenhado). Guarda-la e o que
+            permite escrever a marcacao por cima dele; ver `anunciar`.
+            */
+            jogador: feito.jogador
+        };
+    },
+
+    init: function (scene) {
+        if (this.arbitro) return;
+        this.arbitro = this.criarOficial(scene, 0, 'R');
+        this.assistentes = [this.criarOficial(scene, 1, 'A'),
+                            this.criarOficial(scene, 2, 'A')];
+        // A bandeira, na mao direita de cada assistente.
+        this.assistentes.forEach(a => this._criarBandeira(a));
+        this.colocarInicial();
+    },
+
+    /*
+    Coloca os três no sítio LOGO no arranque, em vez de os deixar nascer em
+    (0,0) e virem a correr do meio do campo até à posição — que era o que se
+    via nos primeiros segundos.
+
+    Assistentes: já sobre a linha de impedimento da metade que cobrem.
+    Árbitro: `distanciaInicial` da bola, sobre a sua diagonal e por fora do
+    círculo central.
+    */
+    colocarInicial: function () {
+        if (!this.arbitro) return;
+        // Posto a mao no sitio: o alvo amortecido recomeca daqui.
+        this.arbitro.alvoSuave = null;
+        if (typeof Match === 'undefined' || !Match.ball ||
+            !Match.players || !Match.players.length) return;
+
+        const R = RefereeModel;
+        const meiaLarg = CAMPO_LARG / 2;
+
+        const zA = this.linhaDeImpedimento(Match.players, 1);
+        const zB = this.linhaDeImpedimento(Match.opponents, -1);
+
+        this.assistentes[0].model.position.set(
+            meiaLarg + R.margemLinha, 0,
+            THREE.MathUtils.clamp(zA, -(CAMPO_COMP / 2), 0));
+        this.assistentes[1].model.position.set(
+            -(meiaLarg + R.margemLinha), 0,
+            THREE.MathUtils.clamp(zB, 0, CAMPO_COMP / 2));
+
+        const bola = Match.ball.position;
+        const ax = -meiaLarg * R.diagonalX, az = -(CAMPO_COMP / 2) * R.diagonalZ;
+        const bx = meiaLarg * R.diagonalX, bz = (CAMPO_COMP / 2) * R.diagonalZ;
+        const dx = bx - ax, dz = bz - az;
+        const comprimento = Math.hypot(dx, dz);
+
+        // Ponto da diagonal mais perto da bola, recuado `distanciaInicial`.
+        let t = ((bola.x - ax) * dx + (bola.z - az) * dz) / (comprimento * comprimento);
+        t = THREE.MathUtils.clamp(t - R.distanciaInicial / comprimento, 0, 1);
+        let px = ax + dx * t, pz = az + dz * t;
+
+        // Nunca dentro do círculo central.
+        const dCentro = Math.hypot(px, pz);
+        if (dCentro < R.raioCirculoCentral) {
+            const k = (dCentro > 0.001) ? (R.raioCirculoCentral + 1.0) / dCentro : 1;
+            px *= k; pz *= k;
+        }
+        this.arbitro.model.position.set(px, 0, pz);
+
+        // Virados para a bola, para não nascerem de costas.
+        const olhar = (o) => {
+            o.model.rotation.y = Math.atan2(
+                bola.x - o.model.position.x, bola.z - o.model.position.z);
+        };
+        olhar(this.arbitro);
+        olhar(this.assistentes[0]);
+        olhar(this.assistentes[1]);
+    },
+
+    /*
+    SEGUNDO ÚLTIMO jogador de uma equipa, medido a partir da baliza dela: é
+    esta a linha que o assistente acompanha. Inclui o guarda-redes, porque a
+    regra conta jogadores e não funções — com o GK na baliza, o segundo último
+    acaba por ser o defesa mais recuado, que é o que se quer.
+    */
+    linhaDeImpedimento: function (lista, dirZ) {
+        const zs = [];
+        for (let i = 0; i < lista.length; i++) {
+            const p = lista[i];
+            if (p && p.model) zs.push(p.model.position.z * dirZ);
+        }
+        if (zs.length < 2) return 0;
+        zs.sort(function (a, b) { return a - b; });   // do mais recuado ao mais adiantado
+        return zs[1] * dirZ;                          // o segundo mais recuado
+    },
+
+    /*
+    =====================================================================
+    FORA-DE-JOGO — os dois tempos da Lei 11
+    =====================================================================
+    Ver OffsideModel (config/defense.js) para a regra escrita por extenso.
+    Aqui ficam as tres pecas:
+
+      marcarPosicoesDeImpedimento  chamada quando a bola SAI do pe de quem
+                                   passa: congela quem estava em posicao
+      limparImpedimento            apaga as marcas (bola de um adversario,
+                                   bola parada, golo)
+      verificarImpedimento         chamada no primeiro toque: se quem tocou
+                                   estava marcado, e infraccao; se foi outro
+                                   qualquer, as marcas morrem ali
+
+    ESTAR EM POSICAO NAO E INFRACCAO — so o ENVOLVIMENTO e, e o envolvimento
+    e o TOQUE. Relato: *"as vezes um passe e dado na direccao de um jogador em
+    impedimento, mas alguem corta o passe no meio do caminho. A bola nao chega
+    ao jogador final, mas o impedimento e marcado na mesma. Nesse caso nao e
+    para marcar."*
+
+    E a Lei 11 a letra: quem corta o passe a meio termina a jogada, e o
+    atacante que ficou em posicao nunca chegou a interferir. Se a bola voltar
+    a sair num passe novo, ha uma marcacao nova — as posicoes voltam a
+    congelar nesse lancamento, e e essa a que vale.
+
+    Houve aqui uma versao que decidia tudo no LANCAMENTO: bastava o passe ir
+    dirigido a alguem em posicao para a infraccao ficar consumada, corte ou
+    nao corte. Fazia subir a contagem — medido, so 1 em 16 dos apanhados em
+    posicao chegava a tocar — mas marcava lances que nao sao falta nenhuma.
+
+    A linha e a `linhaDeImpedimento` que ja existia para posicionar o
+    assistente — o segundo adversario mais recuado, com o guarda-redes a
+    contar, que e exactamente a definicao da regra.
+    =====================================================================
+    */
+    /*
+    `destinatario` (o alvo do passe) ja NAO decide nada: fica na assinatura
+    porque quem chama tem-no a mao e porque e util a quem depura o lance (ver
+    tools/lab/impedimento.js). Quem julga e o toque — ver a nota da Lei 11 no
+    cabecalho desta seccao.
+    */
+    // Gaussiana padrao (Box-Muller) para o erro de linha do bandeirinha.
+    _gauss: function () {
+        const u = Math.max(1e-9, Math.random()), v = Math.random();
+        return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    },
+
+    marcarPosicoesDeImpedimento: function (passador, destinatario) {
+        const M = (typeof OffsideModel !== 'undefined') ? OffsideModel : null;
+        if (!M || !M.activo || !passador || typeof Match === 'undefined') return;
+        // So em jogo corrido: canto, lateral e pontape de baliza nao tem
+        // fora-de-jogo, e a bola parada resolve-se noutro sitio.
+        if (Match.state !== 'PLAY') return;
+
+        const dir = passador.dirZ;
+        const colegas = (passador.team === 'TeamA') ? Match.players : Match.opponents;
+        const advs = (passador.team === 'TeamA') ? Match.opponents : Match.players;
+        if (!colegas || !advs || advs.length < 2) return;
+
+        /*
+        A `linhaDeImpedimento` ordena por `z * dirZ` e devolve o SEGUNDO MAIS
+        RECUADO — recuado no referencial de quem DEFENDE. Por isso leva o dirZ
+        dos adversarios (`-dir`), e nao o de quem passa.
+
+        Com o sinal trocado ela devolvia o segundo mais ADIANTADO, ou seja uma
+        linha la atras, e quase toda a gente aparecia em fora-de-jogo: medido,
+        97 impedimentos por jogo contra os 3.2 de um jogo a serio. Com tres
+        adversarios em campo os dois calculos coincidem — foi por isso que o
+        teste unitario nao apanhou o erro.
+        */
+        const linhaDir = this.linhaDeImpedimento(advs, -dir) * dir;
+        const bolaDir = Match.ball.position.z * dir;
+        const tol = M.tolerancia;
+
+        /*
+        A LINHA DO INSTANTE DO PASSE, guardada em z do MUNDO para a poder
+        desenhar mais tarde. Ver `mostrarLinhaDoPasse`: sem ela a decisao e
+        impossivel de conferir a olho, porque quando o apito chega a defesa ja
+        subiu e o atacante ja recuou.
+        */
+        this._linhaNoPasse = linhaDir * dir;
+        this._dirDoPasse = dir;
+
+        this._impedidos = [];
+        for (const p of colegas) {
+            if (p === passador || !p.model) continue;
+            /*
+            O ERRO DO BANDEIRINHA (OfficialLevels): a posicao do jogador e vista com um desvio gaussiano do nivel
+            (`sigmaLinha` m). Em linha (ate ~0.5 m atras) pode ser apanhado sem o estar; um irregular pode passar.
+            As condicoes da Lei 11 abaixo ficam as mesmas, aplicadas a posicao VISTA.
+            */
+            const zReal = p.model.position.z * dir;
+            const sigma = (typeof OfficialLevels !== 'undefined') ? OfficialLevels.sigmaLinha() : 0;
+            const zDir = zReal + (sigma > 0 ? sigma * this._gauss() : 0);
+            // Na propria metade nunca ha impedimento; em linha com a bola ou
+            // com o penultimo adversario tambem nao (dai a tolerancia).
+            if (zDir <= 0) continue;
+            if (zDir <= bolaDir + tol) continue;
+            if (zDir <= linhaDir + tol) continue;
+            if (zReal <= Math.max(bolaDir, linhaDir) + tol) {
+                const ec = this.errosDeLinha || (this.errosDeLinha = { falsos: 0, omitidos: 0 });
+                ec.falsos++;   // estava em linha e foi dado como irregular
+            }
+            const marca = {
+                jogador: p,
+                x: p.model.position.x,
+                z: p.model.position.z,
+                team: p.team
+            };
+            this._impedidos.push(marca);
+        }
+    },
+
+    /*
+    =====================================================================
+    A MARCA DO MOMENTO DO PASSE — o "VAR" do impedimento
+    =====================================================================
+    Relato: *"A marcação de impedimento está errada... o jogador do Grêmio não
+    está à frente do último marcador. O último é o lateral esquerdo lá em cima.
+    Está bem longe dele."*
+
+    A marcação NÃO estava errada. Medido com `tools/lab/impedimento.js`, em
+    seis sementes de 30 minutos, 26 impedimentos assinalados:
+
+        errados pela Lei 11, com tudo congelado no instante do passe      0
+        que, quando o apito chega, ja nao estao a frente da linha         9  (35%)
+
+    A posicao congela-se no passe, como manda a regra, mas o apito so vem
+    quando alguem toca na bola ou ela sai — mediana ~1 s, ate 3.4 s depois.
+    Nesse tempo a defesa sobe e o atacante recua, e o que fica no ecra nao e a
+    situacao que foi julgada. Uma decisao certa parece errada.
+
+    E por isto que o VAR desenha as linhas. Aqui desenham-se duas, no relvado,
+    onde estavam NO INSTANTE DO PASSE:
+
+        a AMARELA   a linha do penultimo adversario
+        a VERMELHA  a linha do atacante que ficou em posicao
+
+    Nao muda regra nenhuma — a decisao ja estava tomada. Torna-a conferivel a
+    olho, que e o que faltava.
+
+    As duas malhas nascem a primeira vez e ficam guardadas: um lance de
+    impedimento por poucos minutos nao justifica criar e destruir geometria.
+    =====================================================================
+    */
+    mostrarLinhaDoPasse: function (marca) {
+        if (!marca || typeof Match === 'undefined' || !Match.scene) return;
+        if (typeof this._linhaNoPasse !== 'number') return;
+        const M = (typeof OffsideModel !== 'undefined') ? OffsideModel : null;
+        const segundos = (M && typeof M.segundosLinhaVar === 'number') ? M.segundosLinhaVar : 4.0;
+        if (segundos <= 0) return;
+
+        if (!this._varLinhas) {
+            const faz = (cor) => {
+                const g = new THREE.PlaneGeometry(CAMPO_LARG, 0.30);
+                const m = new THREE.MeshBasicMaterial({
+                    color: cor, transparent: true, opacity: 0.85,
+                    depthWrite: false, side: THREE.DoubleSide
+                });
+                const malha = new THREE.Mesh(g, m);
+                // Deitada no relvado, e um dedo acima dele para nao brigar
+                // com a relva no teste de profundidade.
+                malha.rotation.x = -Math.PI / 2;
+                malha.position.y = 0.02;
+                malha.visible = false;
+                malha.renderOrder = 3;
+                Match.scene.add(malha);
+                return malha;
+            };
+            this._varLinhas = { defesa: faz(0xffdd00), atacante: faz(0xff3322) };
+        }
+
+        this._varLinhas.defesa.position.z = this._linhaNoPasse;
+        this._varLinhas.atacante.position.z = marca.z;
+        this._varLinhas.defesa.visible = true;
+        this._varLinhas.atacante.visible = true;
+        this._varTimer = segundos;
+    },
+
+    /*
+    Apaga as duas linhas passado o prazo. Chamado do `update`, ao lado do
+    `tickEtiqueta` — que faz o mesmo pela etiqueta da ultima marcacao.
+    */
+    tickLinhaDoPasse: function (dt) {
+        if (!this._varLinhas || !(this._varTimer > 0)) return;
+        this._varTimer -= dt;
+        if (this._varTimer > 0) return;
+        this._varLinhas.defesa.visible = false;
+        this._varLinhas.atacante.visible = false;
+    },
+
+    limparImpedimento: function () {
+        this._impedidos = null;
+    },
+
+    /*
+    Devolve true se marcou impedimento (e ja montou o livre). O chamador tem de
+    abortar o toque nesse caso: a bola passa a ser da outra equipa.
+    */
+    verificarImpedimento: function (jogador) {
+        const marcas = this._impedidos;
+        if (!marcas || !marcas.length || !jogador) return false;
+
+        // Bola tocada por um adversario de quem passou: a jogada morre aqui e
+        // as marcas deixam de valer (a regra so olha para o passe do colega).
+        const daEquipaDoPasse = marcas[0].team === jogador.team;
+        if (!daEquipaDoPasse) { this.limparImpedimento(); return false; }
+
+        const marca = marcas.find(m => m.jogador === jogador);
+        if (!marca) { this.limparImpedimento(); return false; }
+
+        this.limparImpedimento();
+        return this.assinalarImpedimento(marca);
+    },
+
+    /*
+    Marca a infraccao: conta na ficha, poe a bola ONDE ELE ESTAVA no instante
+    do passe e monta o livre INDIRECTO para a defesa.
+    */
+    assinalarImpedimento: function (marca) {
+        if (!marca || typeof Match === 'undefined') return false;
+        /*
+        A MARCA DO VAR, ANTES de limpar: o `limparImpedimento` deita fora a
+        linha do passe, e e dela que o desenho vive.
+        */
+        this.mostrarLinhaDoPasse(marca);
+        this.limparImpedimento();
+
+        if (typeof MatchStats !== 'undefined' && MatchStats.registarImpedimento) {
+            MatchStats.registarImpedimento(marca.team);
+        }
+        if (typeof Eventos !== 'undefined') Eventos.registar('IMPEDIMENTO', { equipa: marca.team });
+
+        Match.ball.position.set(marca.x, BallPhysics.raio, marca.z);
+        Match.ballVel.set(0, 0, 0);
+        Match.ballCarrier = null;
+        Match.intendedReceiver = null;
+        Match.faltaIndirecta = true;
+
+        const contra = (marca.team === 'TeamA') ? 'TeamB' : 'TeamA';
+        Match.setupSetPiece('FREE_KICK', contra);
+        if (this.anunciar) this.anunciar('OFFSIDE');
+        // O assistente da metade levanta a bandeira (ver RefereeModel.bandeira).
+        this.erguerBandeira(marca);
+        if (typeof EfeitosSonoros !== 'undefined') EfeitosSonoros.apito(1.0);
+        return true;
+    },
+
+    /*
+    A BANDEIRA: uma haste fina e um pano de duas cores, filhos da mao direita e ao longo do seu eixo -y (o
+    prolongamento do braco). As medidas sao em metros do mundo; divide-se pela escala do corpo (como o cartao).
+    */
+    _criarBandeira: function (o) {
+        if (!o || !o.rig || !o.rig.rHand || typeof THREE === 'undefined') return;
+        const B = RefereeModel.bandeira;
+        const esc = o.model.scale.x || 1;
+        const g = new THREE.Group();
+        g.name = 'bandeira_assistente';
+        const haste = new THREE.Mesh(new THREE.BoxGeometry(0.02 / esc, B.comprimento / esc, 0.02 / esc),
+            new THREE.MeshLambertMaterial({ color: 0x2b2b2b }));
+        haste.position.set(0, -(B.comprimento / 2) / esc, 0);
+        g.add(haste);
+        // O pano, na ponta da haste, para o lado +z da mao; dois blocos (amarelo e vermelho) como a bandeira real.
+        const w = B.larguraPano / esc, h = B.alturaPano / esc;
+        const yPano = -(B.comprimento - B.alturaPano / 2) / esc;
+        // XADREZ: 2 x 2 quadrados, dois amarelos e dois vermelhos (os da mesma cor em diagonal).
+        const matA = new THREE.MeshLambertMaterial({ color: B.cor, side: THREE.DoubleSide });
+        const matV = new THREE.MeshLambertMaterial({ color: B.corte, side: THREE.DoubleSide });
+        const pano = new THREE.Group();
+        pano.name = 'pano_bandeira';
+        for (let iy = 0; iy < 2; iy++) {
+            for (let iz = 0; iz < 2; iz++) {
+                const q = new THREE.Mesh(new THREE.BoxGeometry(0.004 / esc, h / 2, w / 2), ((iy + iz) % 2 === 0) ? matA : matV);
+                q.position.set(0, yPano + (iy === 0 ? h / 4 : -h / 4), (iz + 0.5) * w / 2);
+                pano.add(q);
+            }
+        }
+        g.add(pano);
+        o.bandeiraPano = pano;
+        o.panoLado = -1;
+        g.traverse(m => { if (m.isMesh) m.castShadow = true; });
+        o.rig.rHand.add(g);
+        o.bandeiraMesh = g;
+    },
+
+    /*
+    O PANO ACOMPANHA O VENTO DO MOVIMENTO — pedido: *"o tecido da bandeira tem que estar para tras quando a bandeira
+    esta para a frente e para a frente quando a bandeira esta para tras"*. O pano roda em torno da haste para ficar do
+    lado OPOSTO ao de onde a haste aponta (em relacao a frente do corpo): haste para a frente, pano para tras; haste
+    para tras, pano para a frente. Com a haste na vertical (|componente a frente| < `panoZonaMorta`) fica como estava.
+    A rotacao suaviza-se (`panoSuavizacao`) para o pano arrastar-se em vez de estalar.
+    */
+    _ajustarPano: function (o, dt) {
+        const pano = o && o.bandeiraPano;
+        if (!pano || !o.rig || !o.rig.rHand) return;
+        const B = RefereeModel.bandeira;
+        o.model.updateMatrixWorld(true);
+        const v = this._vPano || (this._vPano = {
+            a: new THREE.Vector3(), b: new THREE.Vector3(), f: new THREE.Vector3(), w: new THREE.Vector3(), q: new THREE.Quaternion()
+        });
+        // Direccao da haste no mundo: o eixo -y da mao.
+        o.rig.rHand.getWorldQuaternion(v.q);
+        v.a.set(0, -1, 0).applyQuaternion(v.q).normalize();
+        // Frente do corpo.
+        v.f.set(0, 0, 1).applyQuaternion(o.model.quaternion);
+        v.f.y = 0; v.f.normalize();
+        const frente = v.a.dot(v.f);
+        if (o.bandeira) {
+            // Bandeira levantada / a apontar: pela POSICAO da haste (haste para a frente: pano para tras).
+            if (frente > B.panoZonaMorta) o.panoLado = -1;
+            else if (frente < -B.panoZonaMorta) o.panoLado = 1;
+            o.panoPonta = undefined;
+        } else {
+            /*
+            A CORRER, o braco balanca e a haste (o prolongamento do antebraco) aponta SEMPRE um pouco para a frente
+            (medido: componente a frente de 0.03 a 0.98, nunca negativa) — a regra da posicao nunca trocava o pano. O
+            que muda de sentido e a VELOCIDADE da ponta da haste ao longo do corpo: a ponta a ir para a frente: pano
+            para tras; a ir para tras: pano para a frente (o pano arrasta-se).
+            */
+            o.rig.rHand.getWorldPosition(v.b);
+            v.b.addScaledVector(v.a, B.comprimento);
+            const pf = v.b.dot(v.f) - o.model.position.dot(v.f);   // posicao da ponta ao longo da frente do corpo
+            if (o.panoPonta !== undefined && dt > 1e-5) {
+                const vel = (pf - o.panoPonta) / dt;
+                if (vel > B.panoVelMin) o.panoLado = -1;
+                else if (vel < -B.panoVelMin) o.panoLado = 1;
+            }
+            o.panoPonta = pf;
+        }
+        // Direccao desejada do pano no mundo, tirada a componente ao longo da haste.
+        v.w.copy(v.f).multiplyScalar(o.panoLado);
+        /*
+        COM A HASTE ESTICADA (apontar / horizontal) O PANO PENDE PARA BAIXO — pedido: *"quando o bandeirinha estica
+        a haste da bandeira o pano tem que ficar para baixo"*. A direcção do pano é o "para baixo" do mundo tirada a
+        componente ao longo da haste; com a haste quase vertical (erguida) isso não existe e fica a regra do vento.
+        */
+        if (o.bandeira && Math.abs(v.a.y) < B.panoPendeAte) {
+            v.w.set(0, -1, 0);
+        }
+        v.w.addScaledVector(v.a, -v.w.dot(v.a));
+        if (v.w.lengthSq() < 1e-4) return;
+        v.w.normalize();
+        // Para o espaco da mao: o pano estende-se ao longo de +z local.
+        o.rig.rHand.getWorldQuaternion(v.q);
+        v.q.invert();
+        v.w.applyQuaternion(v.q);
+        const alvo = Math.atan2(v.w.x, v.w.z);
+        const dif = Math.atan2(Math.sin(alvo - pano.rotation.y), Math.cos(alvo - pano.rotation.y));
+        pano.rotation.y += dif * (1 - Math.exp(-dt / B.panoSuavizacao));
+    },
+
+    /*
+    CANTO E TIRO DE META: o assistente aponta a bandeira (pedido: *"quando e corner o bandeirinha aponta a bandeira
+    para o corner, do seu lado mesmo; e quando e tiro de meta aponta para a quina da pequena area"*).
+
+      CANTO         o assistente do lado (x) do canto, do sitio onde esta, aponta para a bandeirola do canto;
+      TIRO DE META  o assistente da metade (z) dessa baliza aponta para a quina da pequena area do SEU lado.
+
+    Fica no sitio, vira-se para o alvo e mantem o braco ate o lance recomecar (o estado deixa de ser o do lance) ou
+    `tHorizontalMax` s. Mesma maquina da bandeira do impedimento (`tickBandeira`), com `alvo`.
+    */
+    apontarBandeira: function (tipo, canto) {
+        if (!this.assistentes || typeof Match === 'undefined') return;
+        const A = (typeof Area !== 'undefined') ? Area : { pequenaProfundidade: 5.5, pequenaMeiaLargura: 9.16 };
+        let o, alvo, estado;
+        if (tipo === 'CORNER_KICK' && canto) {
+            o = this.assistentes[canto.x > 0 ? 0 : 1];          // o 0 esta em +X, o 1 em -X
+            alvo = { x: canto.x, z: canto.z };
+            estado = 'CORNER_KICK';
+        } else if (tipo === 'GOAL_KICK' && canto) {
+            // `canto.z` e o lado da baliza (sinal). O assistente 0 cobre z <= 0, o 1 z > 0.
+            o = this.assistentes[canto.z <= 0 ? 0 : 1];
+            if (!o || !o.model) return;
+            const sx = Math.sign(o.model.position.x) || 1;
+            alvo = { x: sx * A.pequenaMeiaLargura, z: Math.sign(canto.z) * (CAMPO_COMP / 2 - A.pequenaProfundidade) };
+            estado = 'GOAL_KICK';
+        } else return;
+        if (!o || !o.rig) return;
+        o.bandeira = { fase: 'erguer', t: 0, pose: null, alvo: alvo, estado: estado };
+    },
+
+    // O impedimento acaba de ser marcado: o assistente da metade onde ele foi (z <= 0: o 0; z > 0: o 1) levanta a bandeira.
+    erguerBandeira: function (marca) {
+        if (!this.assistentes || !marca) return;
+        const o = this.assistentes[(marca.z <= 0) ? 0 : 1];
+        if (!o || !o.rig) return;
+        o.bandeira = { fase: 'erguer', t: 0, pose: null };
+    },
+
+    /*
+    OS ANGULOS DO OMBRO QUE APONTAM A HASTE. A haste e o eixo -y da mao, que tem o seu proprio rolamento (rest z) e
+    fica ~17 graus para fora do antebraco (medido), por isso a conta nao e a do braco esticado: calcula-se a direccao
+    da haste no espaco do CORPO para cada (x, z) do ombro, com a mesma ordem de Euler do rig (XYZ), e procura-se o par
+    que a poe no azimute `azRel` (positivo = a esquerda do corpo) e `grausAbaixo` abaixo da horizontal. Grelha e depois
+    refinamento; guardado por azimute, para nao refazer a procura todos os frames.
+    */
+    _ombroParaApontar: function (o, azRel, grausAbaixo) {
+        const chave = Math.round(azRel * 200) + ':' + grausAbaixo;
+        const cache = this._cacheOmbro || (this._cacheOmbro = {});
+        if (cache[chave]) return cache[chave];
+        const rig = o.rig;
+        // A haste no referencial da mao: -y; a mao roda em z (rest) e o cotovelo dobra em x (apontarCotovelo).
+        const u = new THREE.Vector3(0, -1, 0)
+            .applyEuler(new THREE.Euler(rig.rHand.rotation.x, rig.rHand.rotation.y, rig.rHand.rotation.z, rig.rHand.rotation.order))
+            .applyEuler(new THREE.Euler(RefereeModel.bandeira.apontarCotovelo, 0, 0, 'XYZ'));
+        const e = new THREE.Euler(0, 0, 0, 'XYZ'), d = new THREE.Vector3();
+        const alvoEl = grausAbaixo * Math.PI / 180;
+        const erro = (x, z) => {
+            e.set(x, 0, z, 'XYZ');
+            d.copy(u).applyEuler(e);
+            const el = Math.asin(Math.max(-1, Math.min(1, -d.y)));
+            const az = Math.atan2(d.x, d.z);
+            const da = Math.atan2(Math.sin(az - azRel), Math.cos(az - azRel));
+            return da * da + (el - alvoEl) * (el - alvoEl);
+        };
+        let melhor = { x: -1.0, z: 0, e: Infinity };
+        for (let x = -2.2; x <= 0.2; x += 0.05) for (let z = -1.9; z <= 1.5; z += 0.05) {
+            const v = erro(x, z); if (v < melhor.e) melhor = { x: x, z: z, e: v };
+        }
+        for (let passo = 0.025; passo > 0.0005; passo *= 0.5) {
+            for (let it = 0; it < 12; it++) {
+                let mudou = false;
+                for (const [dx, dz] of [[passo, 0], [-passo, 0], [0, passo], [0, -passo]]) {
+                    const v = erro(melhor.x + dx, melhor.z + dz);
+                    if (v < melhor.e) { melhor = { x: melhor.x + dx, z: melhor.z + dz, e: v }; mudou = true; }
+                }
+                if (!mudou) break;
+            }
+        }
+        return (cache[chave] = melhor);
+    },
+
+    // A coreografia da bandeira (ver RefereeModel.bandeira). A pose tem memoria propria porque o `mover` reescreve os bracos.
+    tickBandeira: function (o, dt) {
+        const B = RefereeModel.bandeira;
+        const b = o.bandeira;
+        const rig = o.rig;
+        const pos = o.model.position;
+        b.t += dt;
+
+        // No sitio: o mover com o proprio ponto mantem-no parado (e escreve a pose de repouso, que a nossa cobre).
+        this.mover(o, pos.x, pos.z, 0.1, dt);
+        /*
+        Virado para o CAMPO. Se a bandeira aponta para um sitio (canto / tiro de meta) o corpo CONTINUA virado para o campo
+        e e o BRACO que se abre para o alvo (ombro x -1.5 + z = azimute do alvo): pedido *"o bandeirinha fica virado para o
+        campo e aponta a bandeira para o corner"*. `rel` e o azimute do alvo relativo ao campo (positivo = a esquerda do
+        corpo). A direita o braco abre-se (z negativo, ate -1.7); a esquerda atravessa o peito (z positivo, tecto 1.0), e se
+        passar disso o corpo roda so o que falta.
+        */
+        const yawCampo = Math.atan2(-Math.sign(pos.x) || 1, 0);
+        let alvoYaw = yawCampo, relBraco = 0;
+        if (b.alvo) {
+            const angAlvo = Math.atan2(b.alvo.x - pos.x, b.alvo.z - pos.z);
+            let rel = Math.atan2(Math.sin(angAlvo - yawCampo), Math.cos(angAlvo - yawCampo));
+            if (rel > 1.0) { alvoYaw = yawCampo + (rel - 1.0); rel = 1.0; }
+            else if (rel < -1.7) { alvoYaw = yawCampo + (rel + 1.7); rel = -1.7; }
+            relBraco = rel;
+        }
+        const dif = Math.atan2(Math.sin(alvoYaw - o.model.rotation.y), Math.cos(alvoYaw - o.model.rotation.y));
+        o.model.rotation.y += dif * (1 - Math.exp(-dt * 8));
+        if (rig.neck) rig.neck.rotation.y = lerpTo(rig.neck.rotation.y, 0, 0.3);
+
+        if (b.alvo) {
+            // Apontar: erguer -> manter (horizontal) ate o lance recomecar -> guardar.
+            if (b.fase === 'erguer' && b.t >= B.tErguer) { b.fase = 'horizontal'; b.t = 0; }
+            else if (b.fase === 'horizontal' &&
+                ((typeof Match !== 'undefined' && Match.state !== b.estado) || b.t >= (B.tApontarMax || B.tHorizontalMax))) { b.fase = 'guardar'; b.t = 0; }
+            else if (b.fase === 'guardar' && b.t >= B.tGuardar) { o.bandeira = null; return; }
+        } else if (b.fase === 'erguer' && b.t >= B.tErguer) { b.fase = 'segurar'; b.t = 0; }
+        else if (b.fase === 'segurar' && b.t >= B.tSegurar) { b.fase = 'baixar'; b.t = 0; }
+        else if (b.fase === 'baixar' && b.t >= B.tBaixar) { b.fase = 'horizontal'; b.t = 0; }
+        else if (b.fase === 'horizontal' &&
+            ((typeof Match !== 'undefined' && Match.state !== 'FREE_KICK') || b.t >= B.tHorizontalMax)) { b.fase = 'guardar'; b.t = 0; }
+        else if (b.fase === 'guardar' && b.t >= B.tGuardar) { o.bandeira = null; return; }
+
+        // Ombro (x, z) que poe a HASTE no azimute do alvo e `apontarGrausAbaixo` abaixo da horizontal (ver _ombroParaApontar).
+        let apX = B.apontarX, apZ = relBraco + (B.apontarCorrecao || 0);
+        if (b.alvo && b.estado === 'CORNER_KICK' && typeof B.apontarGrausAbaixo === 'number') {
+            const sol = this._ombroParaApontar(o, relBraco, B.apontarGrausAbaixo);
+            apX = sol.x; apZ = sol.z;
+        }
+        const alvo = b.alvo && b.fase !== 'guardar'
+            ? { x: apX, z: apZ, c: B.apontarCotovelo }
+            : (b.fase === 'erguer' || b.fase === 'segurar')
+            ? { x: B.erguerX, z: B.erguerZ, c: B.erguerCotovelo }
+            : (b.fase === 'guardar' ? { x: 0, z: -0.08, c: -0.3 } : { x: B.horizX, z: B.horizZ, c: B.horizCotovelo });
+        if (!b.pose) b.pose = { x: rig.rArm.rotation.x, z: rig.rArm.rotation.z, c: rig.rElbow.rotation.x };
+        const P = b.pose, k = B.suavizacao;
+        P.x = lerpTo(P.x, alvo.x, k); P.z = lerpTo(P.z, alvo.z, k); P.c = lerpTo(P.c, alvo.c, k);
+        rig.rArm.rotation.set(P.x, 0, P.z);
+        rig.rElbow.rotation.x = P.c;
+    },
+
+    /*
+    O assistente acompanha a linha de impedimento (`alvoZ`) a andar ao longo da lateral. A `vigia.distancia` m ou
+    menos dela vigia: corpo a `graus` do campo e cabeca a alternar entre a bola e a linha (ver RefereeModel.vigia).
+    */
+    moverAssistente: function (o, alvoX, alvoZ, dt) {
+        this._moverAssistente(o, alvoX, alvoZ, dt);
+        // Depois de a pose do braco estar escrita: o pano acompanha a haste.
+        this._ajustarPano(o, dt);
+    },
+
+    _moverAssistente: function (o, alvoX, alvoZ, dt) {
+        // Impedimento marcado: fica no sitio com a bandeira no ar (ver RefereeModel.bandeira).
+        if (o.bandeira) { this.tickBandeira(o, dt); return; }
+        const R = RefereeModel, V = R.vigia;
+        const pos = o.model.position;
+        const perto = V && Math.abs(pos.z - alvoZ) <= V.distancia && Math.abs(pos.x - alvoX) < 3.0;
+        if (!perto) {
+            this.mover(o, alvoX, alvoZ, R.velocidadeAssistente, dt);
+            if (o.rig && o.rig.neck) o.rig.neck.rotation.y = lerpTo(o.rig.neck.rotation.y, 0, 0.2);
+            return;
+        }
+        // Direccao do campo (para dentro da lateral) e ao longo dela, para o lado da bola.
+        const fx = -Math.sign(alvoX) || 1;
+        const bz = Match.ball.position.z - pos.z;
+        if (Math.abs(bz) > 3 || o.vigiaAlong === undefined) o.vigiaAlong = Math.sign(bz) || o.vigiaAlong || 1;
+        /*
+        SE A LINHA ANDA PARA O LADO CONTRARIO AO DA BOLA, o corpo vira-se para onde ELE anda (os 45 graus continuam para
+        o campo): virado para o lado da bola e a deslocar-se para o outro, andava de costas (medido: 24% dos frames em
+        movimento, todos a menos de 2 m/s, na vigia da linha).
+        */
+        const dzMov = alvoZ - pos.z;
+        if (Math.abs(dzMov) > 0.25) o.vigiaAlong = Math.sign(dzMov);
+        const a = V.graus * Math.PI / 180;
+        // Ponto para onde o corpo se vira: `graus` para o campo a partir da linha lateral.
+        const olhar = { x: pos.x + fx * Math.sin(a) * 10, z: pos.z + o.vigiaAlong * Math.cos(a) * 10 };
+        this.mover(o, alvoX, alvoZ, R.velocidadeAssistente, dt, olhar);
+
+        // A cabeca: bola e linha, `segundos` cada.
+        o.vigiaT = (o.vigiaT || 0) + dt;
+        const fase = Math.floor(o.vigiaT / V.segundos) % 2;
+        const alvo = fase === 0
+            ? { x: Match.ball.position.x, z: Match.ball.position.z }
+            : { x: pos.x + fx * V.alcanceLinha, z: alvoZ };
+        if (o.rig && o.rig.neck) {
+            const yaw = o.model.rotation.y;
+            const fwdX = Math.sin(yaw), fwdZ = Math.cos(yaw);
+            let tx = alvo.x - pos.x, tz = alvo.z - pos.z;
+            const l = Math.hypot(tx, tz) || 1; tx /= l; tz /= l;
+            const ang = Math.atan2(fwdZ * tx - fwdX * tz, fwdX * tx + fwdZ * tz);
+            const lim = V.giroMaxCabeca;
+            o.rig.neck.rotation.y = lerpTo(o.rig.neck.rotation.y, Math.max(-lim, Math.min(lim, ang)), 0.15);
+        }
+    },
+
+    /*
+    Onde o árbitro quer estar: o RUMO sai da diagonal dele, a DISTÂNCIA sai da
+    coroa à volta da bola (`raioMin`/`raioMax`). Devolve {x, z}.
+    */
+    pontoDoArbitro: function (bola, bolaReal) {
+        const R = RefereeModel;
+
+        /*
+        PENÁLTI: posição fixa, não a diagonal. À esquerda do batedor, no
+        cruzamento da lateral da pequena área com o alinhamento da marca
+        (ver PenaltyModel.arbitroX).
+
+        Esquerda de quem olha para a baliza: o batedor ataca no sentido
+        `dirZ`, e com o Y para cima a mão esquerda aponta para x = +dirZ.
+        */
+        if (typeof Match !== 'undefined' && Match.state === 'PENALTY' &&
+            Match.setPieceTaker && typeof PenaltyModel !== 'undefined') {
+            const PM = PenaltyModel;
+            const attDir = Match.setPieceTaker.dirZ;
+            const linhaGol = attDir * (CAMPO_COMP / 2);
+            return { x: PM.arbitroX * attDir, z: linhaGol - attDir * PM.marcaZ };
+        }
+
+        /*
+        CANTO: a MESMA posição do penálti, do lado OPOSTO à cobrança.
+
+        Pedido: *"no corner, o juiz tem que se posicionar do lado oposto à
+        cobrança, na mesma posição do penálti"*. E é a colocação real: dali ele
+        vê o cruzamento a chegar de frente, tem a baliza e o aglomerado todo
+        entre ele e o batedor, e não fica na trajectória de ninguém. Do lado do
+        canto, ficaria atrás da jogada a ver as costas de vinte e dois.
+
+        A diagonal normal (mais abaixo) punha-o a 20-25 m da bola, portanto
+        fora da área e do lado do batedor: a pior das duas coisas.
+
+        AS MEDIDAS SÃO AS DO PENÁLTI, e de propósito — o pedido é explícito em
+        querer a mesma posição, e escrever aqui um x e um z próprios era ter
+        dois sítios a dizer a mesma coisa e a divergir no dia em que um deles
+        mudasse. O único acrescento é o SINAL do x, que passa a ser o contrário
+        do lado do canto.
+
+        O LADO DO CANTO LÊ-SE DO `cantoBolaAlvo` e não da bola: no instante em
+        que o canto é marcado a bola ainda está a rolar para fora do campo (ver
+        o countdown em match_loop.js), e o x dela nessa altura pode já estar do
+        outro lado. O alvo é a quina onde ela vai ser reposta, que é o que
+        define de que lado se bate.
+        */
+        if (typeof Match !== 'undefined' && Match.state === 'CORNER_KICK' &&
+            Match.setPieceTaker && typeof PenaltyModel !== 'undefined') {
+            const PM = PenaltyModel;
+            const attDir = Match.setPieceTaker.dirZ;
+            const linhaGol = attDir * (CAMPO_COMP / 2);
+            const xDoCanto = (Match.cantoBolaAlvo && typeof Match.cantoBolaAlvo.x === 'number')
+                ? Match.cantoBolaAlvo.x : bola.x;
+            const lado = Math.sign(xDoCanto) || 1;
+            return { x: -lado * PM.arbitroX, z: linhaGol - attDir * PM.marcaZ };
+        }
+
+        const ax = -(CAMPO_LARG / 2) * R.diagonalX, az = -(CAMPO_COMP / 2) * R.diagonalZ;
+        const bx = (CAMPO_LARG / 2) * R.diagonalX, bz = (CAMPO_COMP / 2) * R.diagonalZ;
+
+        const dx = bx - ax, dz = bz - az;
+        const len2 = dx * dx + dz * dz;
+
+        let t = ((bola.x - ax) * dx + (bola.z - az) * dz) / len2;
+        t = THREE.MathUtils.clamp(t, 0, 1);
+
+        const px = ax + dx * t, pz = az + dz * t;
+
+        /*
+        =================================================================
+        ELE FICA NA DIAGONAL, À DISTÂNCIA DA COROA
+        =================================================================
+        Pedido: *"vamos criar um circulo de 25 metros de raio ao redor da bola
+        e outro de 20 metros. O juiz vai ficar correndo desse espaço entre os 2
+        circulos"*.
+
+        A diagonal continua a dizer POR ONDE ele anda — é o sistema de
+        arbitragem e é o que o mantém fora do meio do lance. A coroa diz A QUE
+        DISTÂNCIA. Cruzam-se resolvendo uma coisa só: qual é o ponto DA
+        DIAGONAL que fica a `raio` metros da bola.
+
+        Em contas: com `h` a distância da bola à diagonal (a perpendicular) e
+        `raio` a hipotenusa, o cateto que falta é `sqrt(raio² - h²)`, e é esse
+        o afastamento ao longo da diagonal a partir do pé da perpendicular.
+        Dois pontos servem, um para cada lado; fica o que está mais perto de
+        onde ele já está, senão atravessava o campo de cada vez que a bola
+        mudasse de metade.
+
+        O CASO SEM SOLUÇÃO é a bola mais longe da diagonal do que o próprio
+        raio (bola encostada à linha lateral): aí nenhum ponto da diagonal
+        serve, e o que manda é a coroa — ele sai da diagonal e vai direito à
+        distância certa. É o que um árbitro faz mesmo quando o jogo se encosta
+        à linha.
+
+        Uma tentativa anterior punha o alvo em `bola + direcção_da_diagonal *
+        raio`. Não serve: essa direcção é a PERPENDICULAR à diagonal, portanto
+        troca de sentido de repente sempre que a bola cruza a diagonal — e o
+        árbitro atravessava o campo a correr atrás dela.
+        */
+        const arb = this.arbitro;
+        const distActual = arb && arb.model
+            ? Math.hypot(arb.model.position.x - bola.x, arb.model.position.z - bola.z)
+            : (R.raioMin + R.raioMax) / 2;
+
+        /*
+        O RAIO PEDIDO, e é aqui que a faixa vale alguma coisa:
+
+            dentro da coroa   fica o raio que ele já tem, e o alvo só desliza
+                              AO LONGO dela — ele corre à volta do lance em vez
+                              de entrar e sair;
+            fora da coroa     volta ao MEIO da faixa, e não à borda que
+                              atravessou. Encostado à borda, o primeiro metro
+                              que a bola andasse na direcção dele punha-o fora
+                              outra vez; pelo meio ele tem 2.5 m de folga dos
+                              dois lados.
+        */
+        const raio = (distActual >= R.raioMin && distActual <= R.raioMax)
+            ? distActual
+            : (R.raioMin + R.raioMax) / 2;
+
+        const h = Math.hypot(px - bola.x, pz - bola.z);
+        const comprimento = Math.sqrt(len2) || 1;
+
+        let alvoX, alvoZ;
+        if (h >= raio) {
+            // Sem ponto na diagonal à distância certa: manda a coroa.
+            const k = (h > 0.001) ? raio / h : 0;
+            alvoX = bola.x + (px - bola.x) * k;
+            alvoZ = bola.z + (pz - bola.z) * k;
+        } else {
+            const cateto = Math.sqrt(raio * raio - h * h) / comprimento;   // em unidades de t
+            const t1 = THREE.MathUtils.clamp(t - cateto, 0, 1);
+            const t2 = THREE.MathUtils.clamp(t + cateto, 0, 1);
+            const p1x = ax + dx * t1, p1z = az + dz * t1;
+            const p2x = ax + dx * t2, p2z = az + dz * t2;
+
+            let usa1 = true;
+            if (arb && arb.model) {
+                const d1 = Math.hypot(p1x - arb.model.position.x, p1z - arb.model.position.z);
+                const d2 = Math.hypot(p2x - arb.model.position.x, p2z - arb.model.position.z);
+                usa1 = (d1 <= d2);
+            } else {
+                // No arranque não há "onde ele está": fica do lado de onde a
+                // jogada não está, como era antes.
+                usa1 = (bola.z >= 0);
+            }
+            alvoX = usa1 ? p1x : p2x;
+            alvoZ = usa1 ? p1z : p2z;
+        }
+
+        /*
+        =================================================================
+        ENTRE AS DUAS LINHAS DOS ASSISTENTES, E NUNCA À FRENTE DA BOLA
+        =================================================================
+        Pedido: *"O Juiz deve acompanhar as jogadas entre as duas linhas dos
+        bandeirinhas. Não tem necessidade de passar pra frente da linha da
+        bola do ataque."*
+
+        A diagonal e a coroa não sabiam nada disto: com a bola a meio-campo e
+        a coroa a 20-25 m, o ponto escolhido podia ficar para lá da linha de
+        fora-de-jogo, no meio da área de quem defende, à frente do próprio
+        lance.
+
+          . À FRENTE DA BOLA NÃO: no sentido em que ataca quem tem a posse, o z
+            dele não passa o da bola. Ele acompanha o ataque por trás ou ao
+            lado, nunca à frente dele.
+          . ENTRE AS LINHAS: o z fica entre as duas linhas que os assistentes
+            seguem (`_faixaArbitro`, escrita no `update` com os mesmos alvos que
+            os move). Fora daí o lance é deles.
+
+        As linhas mandam sobre a bola: com o guarda-redes a sair a jogar, a
+        bola está atrás da linha da própria defesa, e o árbitro fica na linha
+        e não dentro da área.
+        =================================================================
+        */
+        if (typeof Match !== 'undefined' && Match.possessionTeam) {
+            const lista = (Match.possessionTeam === 'TeamA') ? Match.players : Match.opponents;
+            const dirAtaque = (lista && lista[0] && lista[0].dirZ) ? lista[0].dirZ : 0;
+            if (dirAtaque > 0 && alvoZ > bola.z) alvoZ = bola.z;
+            else if (dirAtaque < 0 && alvoZ < bola.z) alvoZ = bola.z;
+        }
+        const faixa = this ? this._faixaArbitro : null;
+        if (faixa && faixa.min <= faixa.max) {
+            alvoZ = THREE.MathUtils.clamp(alvoZ, faixa.min, faixa.max);
+        }
+
+        const limX = CAMPO_LARG / 2 - R.margemDoCampo;
+        const limZ = CAMPO_COMP / 2 - R.margemDoCampo;
+
+        /*
+        O PISO DE 6 m — ver RefereeModel.distMinDura. Depois das travas, que
+        sao elas que o encostam a bola. Afasta-se primeiro PARA O LADO (mantem
+        o z que as travas escolheram); se a linha lateral nao deixar, recua no
+        sentido da baliza de quem ataca, que e o lado onde ele pode estar.
+        */
+        if (typeof R.distMinDura === 'number') {
+            /*
+            ABAIXO DO PISO, VAI PARA O MEIO DA COROA, e nao para a borda.
+            Empurrado so ate aos 6 m ele ficava la a 5.9 (a zona morta do
+            passo) — medido nas faltas: quase todas as leituras "perto" eram
+            5.9-6.0 m, com as travas a por o alvo em cima da bola e o piso a
+            tira-lo so ate a borda.
+            */
+            const Dmin = R.distMinDura;
+            const D = Math.max(Dmin, (R.raioMin + R.raioMax) / 2);
+            /*
+            O piso vale para a bola prevista E para a real: primeiro afasta-se
+            da prevista (que e onde o alvo foi posto), depois confirma-se que
+            tambem nao ficou em cima da real.
+            */
+            const afastar = (bx, bz) => {
+                const ex = alvoX - bx, ez = alvoZ - bz, de = Math.hypot(ex, ez);
+                if (de >= Dmin) return;
+                const k = (de > 0.001) ? D / de : 0;
+                if (k > 0) { alvoX = bx + ex * k; alvoZ = bz + ez * k; }
+            };
+            if (bolaReal) afastar(bolaReal.x, bolaReal.z);
+            let ddx = alvoX - bola.x, ddz = alvoZ - bola.z;
+            if (Math.hypot(ddx, ddz) < Dmin) {
+                if (Math.abs(ddz) < D) {
+                    let lado = Math.sign(ddx);
+                    if (!lado) lado = (arb && arb.model) ? (Math.sign(arb.model.position.x - bola.x) || 1) : 1;
+                    let nx = bola.x + lado * Math.sqrt(D * D - ddz * ddz);
+                    if (Math.abs(nx) > limX) nx = bola.x - lado * Math.sqrt(D * D - ddz * ddz);
+                    alvoX = nx;
+                }
+                ddx = THREE.MathUtils.clamp(alvoX, -limX, limX) - bola.x;
+                if (Math.hypot(ddx, ddz) < D) {
+                    let dirAt = 0;
+                    if (typeof Match !== 'undefined' && Match.possessionTeam) {
+                        const lst = (Match.possessionTeam === 'TeamA') ? Match.players : Match.opponents;
+                        dirAt = (lst && lst[0] && lst[0].dirZ) ? lst[0].dirZ : 0;
+                    }
+                    const recua = -(dirAt || Math.sign(ddz) || 1);
+                    alvoZ = bola.z + recua * Math.sqrt(Math.max(0, D * D - ddx * ddx));
+                }
+            }
+        }
+        return {
+            x: THREE.MathUtils.clamp(alvoX, -limX, limX),
+            z: THREE.MathUtils.clamp(alvoZ, -limZ, limZ)
+        };
+    },
+
+    /*
+    Desloca um oficial para o alvo e anima a passada com o ciclo do jogo.
+
+    `olharPara` (opcional, {x, z}) é o ponto que o oficial quer ter debaixo de
+    olho — para o árbitro, a bola. Sem isso vira-se para onde anda.
+
+    ORIENTAÇÃO, e porque não é simplesmente "olha sempre para a bola": prender o
+    corpo à bola em plena corrida põe o ciclo de passada frontal por cima de uma
+    deslocação de lado, e o boneco DESLIZA. Medido em
+    tests/arbitro_passada.test.js: com o corpo a 90° do movimento ele percorria
+    **2.85×** o chão que as pernas davam.
+
+    Vale a mesma regra dos jogadores (LateralGait, ver animateBones em
+    player.js), que existe exactamente para isto:
+
+        acima de `velViragem` (3.6 m/s)  o corpo roda PARA O MOVIMENTO
+        abaixo dela                      fica virado para a bola e dá passo
+                                         lateral, com a velocidade encolhida
+
+    Ou seja: em corrida aberta corre de frente, como um árbitro a fechar espaço;
+    em ritmo de acompanhamento — que é a maior parte do tempo — anda de lado, de
+    cara para o jogo.
+
+    A velocidade é encolhida pelo MESMO factor que encolhe a passada. Sem isso o
+    passo lateral continuava a deslizar: as pernas dão passos curtos e o corpo
+    percorria na mesma o caminho todo. Quem anda de lado anda mais devagar.
+
+    A orientação é escrita mesmo com ele parado — daí não passar pelo corte de
+    `d > 0.4` que a viragem para o movimento tem (esse existe para não fazer
+    piruetas quando o deslocamento é ruído).
+    */
+    mover: function (o, alvoX, alvoZ, velMax, dt, olharPara) {
+        const dx = alvoX - o.model.position.x;
+        const dz = alvoZ - o.model.position.z;
+        const d = Math.hypot(dx, dz);
+
+        const L = (typeof LateralGait !== 'undefined') ? LateralGait : null;
+
+        /*
+        Decidir ORIENTAÇÃO e LATERALIDADE antes de dar o passo: é a lateralidade
+        que limita a velocidade deste frame.
+        */
+        /*
+        CHEGOU OU NAO CHEGOU — com histerese (ver paragemMax/arranqueMin).
+        Um limiar unico punha o boneco a correr/parar a cada frame quando o
+        alvo estabilizava em cima dele.
+        */
+        const R = RefereeModel;
+        if (o.paradoNoAlvo === undefined) o.paradoNoAlvo = true;
+        if (o.paradoNoAlvo) {
+            if (d > R.arranqueMin) o.paradoNoAlvo = false;
+        } else if (d < R.paragemMax) {
+            o.paradoNoAlvo = true;
+        }
+
+        let lateralidade = 0, ladoMov = 0;
+
+        /*
+        =================================================================
+        O CORPO VAI PARA ONDE ELE ANDA MESMO
+        =================================================================
+        Relato: *"o juiz está correndo para um lado virado para o outro"*.
+        Medido em 10 min de jogo: em 21% dos frames em corrida a frente do
+        corpo estava a mais de 30° do caminho que ele percorria, e em 7% a mais
+        de 90° — de costas para onde ia.
+
+        Eram duas coisas, e as duas estão aqui:
+
+        1. O CORTE ERA NA DISTÂNCIA AO ALVO, e não no movimento. `d > 0.4`
+           existia para ele não fazer piruetas com alvo a tremer, mas a zona
+           morta do passo é `paragemMax` = 0.06: entre 0.06 e 0.40 ele DAVA
+           passo (a passada é `min(d, velMax*dt)` = 12.5 cm, ou seja velocidade
+           cheia) com o rumo do frame anterior. Instrumentado: 34% dos frames
+           em corrida caiam nessa faixa, e o alvo salta de lado para lado
+           dentro dela. Agora o corte é o mesmo do passo — se ele anda, vira-se.
+
+        2. A DECISÃO DE CORRIDA VINHA DE `d / dt`, que é a velocidade que ele
+           precisaria para chegar num frame: com dt = 1/60 isso dá 60x a
+           distância, portanto o teste era sempre `velMax > velViragem` e, com o
+           árbitro a 7.5 m/s, sempre verdadeiro. O passo lateral com a cara para
+           a bola — que é o que um árbitro faz a acompanhar — nunca chegava a
+           existir. Agora vem da velocidade JÁ FILTRADA (`velAnim`, a mesma que
+           alimenta o ciclo de passada), que é o que ele anda mesmo.
+        */
+        /*
+        CORRIDA OU AJUSTE, e o critério é a DISTÂNCIA que falta — não uma
+        velocidade.
+
+        Uma pessoa a dois metros do sítio dá passo de lado sem tirar os olhos
+        do jogo; a dez metros vira-se e corre. A fronteira sai da velocidade
+        que ele vai mesmo usar neste frame — `d / tempoDeAjuste`, limitada ao
+        máximo dele —, que é exacta e contínua: no ponto de troca a velocidade
+        é a mesma dos dois lados.
+
+        As duas tentativas que não servem, e porquê:
+
+          `d / dt`      a velocidade para lá chegar NUM frame. A 1/60 isso são
+                        60x a distância, portanto dava sempre `velMax` e o
+                        passo lateral nunca existia — era o que estava.
+          `velAnim`     a velocidade filtrada. Atrasa-se uns dez frames, e
+                        durante toda a arrancada ele já corria com o corpo
+                        ainda virado para a bola: medido, 91% dos frames em que
+                        ele ia de costas eram a mais de 3.6 m/s, ou seja em
+                        plena corrida.
+
+        E quem anda de lado anda devagar por construção: abaixo da fronteira a
+        velocidade JÁ é menor do que `velViragem`, senão ficava o passo lateral
+        a deslizar a 7.5 m/s — o defeito que a LateralGait existe para evitar.
+        */
+        velMax = Math.min(velMax, d / R.tempoDeAjuste);
+        const emCorrida = !L || velMax > L.velViragem;
+        const anda = !o.paradoNoAlvo && d > R.paragemMax;
+
+        if (olharPara && !emCorrida) {
+            const ox = olharPara.x - o.model.position.x;
+            const oz = olharPara.z - o.model.position.z;
+            if (Math.hypot(ox, oz) > 0.05) o.model.rotation.y = Math.atan2(ox, oz);
+        } else if (anda) {
+            // Vira-se para onde anda; parado, mantém a orientação.
+            o.model.rotation.y = Math.atan2(dx, dz);
+
+            /*
+            MAS NUNCA DE COSTAS PARA O QUE TEM DE VIGIAR — ver
+            RefereeModel.anguloMaxDaBola. Se o rumo o obrigasse a passar desse
+            limite, fica ENCOSTADO a ele, pelo lado por onde ia: corre
+            atravessado e mantém a bola na periferia, em vez de a perder de
+            vista. A passada de lado que isso implica é a da LateralGait, aqui
+            em baixo.
+            */
+            if (olharPara && typeof R.anguloMaxDaBola === 'number') {
+                const ox = olharPara.x - o.model.position.x;
+                const oz = olharPara.z - o.model.position.z;
+                if (Math.hypot(ox, oz) > 0.05 && Math.hypot(ox, oz) < R.vigiaLonge) {
+                    const paraBola = Math.atan2(ox, oz);
+                    const desvio = Math.atan2(Math.sin(o.model.rotation.y - paraBola),
+                        Math.cos(o.model.rotation.y - paraBola));
+                    if (Math.abs(desvio) > R.anguloMaxDaBola) {
+                        o.model.rotation.y = paraBola +
+                            Math.sign(desvio) * R.anguloMaxDaBola;
+                    }
+                }
+            }
+        }
+
+        if (L && d > 0.0001) {
+            const fx = Math.sin(o.model.rotation.y), fz = Math.cos(o.model.rotation.y);
+            const mx = dx / d, mz = dz / d;
+            const alinhamento = fx * mx + fz * mz;
+            const desvio = Math.acos(THREE.MathUtils.clamp(Math.abs(alinhamento), -1, 1));
+            if (desvio > L.anguloMin) {
+                lateralidade = Math.min(1, (desvio - L.anguloMin) /
+                    (Math.PI / 2 - L.anguloMin));
+                // >0 = movimento para a direita do corpo.
+                ladoMov = Math.sign(fz * mx - fx * mz) || 1;
+            }
+        }
+
+        const amp = 1 - lateralidade * (L ? L.reducaoPassada : 0);
+
+        /*
+        RECUAR: o movimento é para trás em relação à frente dele. A passada anda
+        ao contrário e a velocidade encolhe — ver RefereeModel.recuoVelocidade.
+        */
+        let recua = false;
+        if (d > 0.0001) {
+            const fx = Math.sin(o.model.rotation.y), fz = Math.cos(o.model.rotation.y);
+            recua = ((fx * dx + fz * dz) / d) < R.recuoAlinhamento;
+        }
+        // A recuar: mais devagar e com tecto — ninguem corre de costas a 5 m/s.
+        if (recua) velMax = Math.min(velMax * R.recuoVelocidade, R.recuoVelMax);
+
+        let passo = 0;
+        if (!o.paradoNoAlvo && d > 0.0001) {
+            passo = Math.min(d, velMax * amp * dt);
+            o.model.position.x += (dx / d) * passo;
+            o.model.position.z += (dz / d) * passo;
+        }
+        /*
+        A velocidade que a ANIMACAO ve e filtrada. A instantanea (`passo/dt`)
+        salta de 0 para varios m/s num unico passo curto, e era ela que ligava
+        e desligava o ciclo de passada a cada frame.
+        */
+        const velInstant = dt > 0.0001 ? passo / dt : 0;
+        o.velAnim = lerpTo(o.velAnim || 0, velInstant, R.suavizacaoVel);
+        const vel = o.velAnim;
+
+        const rig = o.rig;
+        if (vel > 0.1 && typeof getGaitPose === 'function') {
+            /*
+            A cadência sai da velocidade REAL e da passada JÁ ENCOLHIDA — é esta
+            divisão que faz o pé ficar colado ao chão. Usar a passada inteira
+            aqui era metade do deslize.
+            */
+            const P0 = getGaitPose(0, vel);
+            // A recuar o ciclo anda para trás: as pernas passam de trás para a frente.
+            o.animTimer += (recua ? -1 : 1) * (vel * dt) / (P0.passada * amp);
+            const t = ((o.animTimer % 1.0) + 1.0) % 1.0;
+            const P = getGaitPose(t, vel);
+
+            rig.lLeg.rotation.x = P.lHip * amp; rig.lKnee.rotation.x = P.lKnee * amp;
+            rig.rLeg.rotation.x = P.rHip * amp; rig.rKnee.rotation.x = P.rKnee * amp;
+            rig.lArm.rotation.x = P.lArm * amp; rig.rArm.rotation.x = P.rArm * amp;
+            rig.lElbow.rotation.x = P.cotovelo; rig.rElbow.rotation.x = P.cotovelo;
+            rig.chest.rotation.x = P.tronco * amp;
+            o.model.position.y = P.ressalto;
+
+            if (lateralidade > 0.001) {
+                const A = LateralGait.abertura * lateralidade;
+                const osc = Math.sin(t * Math.PI * 2) * A;
+                rig.lLeg.rotation.z = lerpTo(rig.lLeg.rotation.z, ladoMov * A * 0.5 + osc, 0.35);
+                rig.rLeg.rotation.z = lerpTo(rig.rLeg.rotation.z, ladoMov * A * 0.5 - osc, 0.35);
+            } else {
+                rig.lLeg.rotation.z = lerpTo(rig.lLeg.rotation.z, 0);
+                rig.rLeg.rotation.z = lerpTo(rig.rLeg.rotation.z, 0);
+            }
+        } else {
+            const ossos = ['lLeg', 'rLeg', 'lKnee', 'rKnee', 'lArm', 'rArm'];
+            for (let i = 0; i < ossos.length; i++) {
+                rig[ossos[i]].rotation.x = lerpTo(rig[ossos[i]].rotation.x, 0, 0.2);
+            }
+            rig.lElbow.rotation.x = lerpTo(rig.lElbow.rotation.x, -0.3, 0.2);
+            rig.rElbow.rotation.x = lerpTo(rig.rElbow.rotation.x, -0.3, 0.2);
+            rig.chest.rotation.x = lerpTo(rig.chest.rotation.x, 0, 0.2);
+            // Fecha também a abdução do passo lateral, senão ficava de pernas
+            // abertas ao parar.
+            rig.lLeg.rotation.z = lerpTo(rig.lLeg.rotation.z, 0, 0.2);
+            rig.rLeg.rotation.z = lerpTo(rig.rLeg.rotation.z, 0, 0.2);
+            o.model.position.y = lerpTo(o.model.position.y, 0, 0.2);
+        }
+
+        /*
+        BRAÇOS ABERTOS DE REPOUSO (relato A761F: "braços muito fechados"). Nada
+        no mover tocava no rotation.z dos braços: ficavam onde o último gesto
+        (cartão, sinal) os deixou, e o acabarCartao zera-os, colados ao corpo. O
+        jogador de campo repousa a PI/12; o árbitro assenta aí quando nenhum gesto
+        é dono dos braços.
+        */
+        const gestoNosBracos = o.sinal || (typeof Officials !== 'undefined' && Officials.cartaoEmCurso);
+        if (!gestoNosBracos) {
+            const zRepouso = Math.PI / 12;
+            rig.lArm.rotation.z = lerpTo(rig.lArm.rotation.z, zRepouso, 0.2);
+            rig.rArm.rotation.z = lerpTo(rig.rArm.rotation.z, -zRepouso, 0.2);
+        }
+    },
+
+    /*
+    O NOME DA MARCACAO, para escrever por cima do arbitro.
+
+    Havia marcacoes a acontecer sem nada que as anunciasse: a bola muda de
+    sitio, os jogadores reorganizam-se, e quem esta a ver tem de deduzir se
+    aquilo foi falta, canto ou pontape de baliza.
+
+    Os nomes sao os do jogo em ingles, como o resto dos banners dos jogadores
+    (PASS, SHOT, TACKLE...). Um estado que nao e marcacao nenhuma devolve null,
+    e o `anunciar` nao acende nada.
+
+    O fora-de-jogo NAO esta nesta tabela, e e de proposito: o estado que ele
+    monta e um FREE_KICK como qualquer outro, e o rotulo 'OFFSIDE' e escrito a
+    mao pelo `verificarImpedimento` logo a seguir ao setup — se estivesse aqui,
+    todas as faltas passavam a dizer OFFSIDE.
+    */
+    rotulosDeMarcacao: {
+        FREE_KICK: 'FOUL',
+        PENALTY: 'PENALTY',
+        CORNER_KICK: 'CORNER',
+        GOAL_KICK: 'GOAL KICK',
+        THROW_IN: 'THROW-IN'
+    },
+
+    rotuloDaMarcacao: function (tipo) {
+        if (!tipo) return null;
+        const r = this.rotulosDeMarcacao[tipo];
+        return r !== undefined ? r : null;
+    },
+
+    /*
+    O AVISO GRANDE AO CENTRO, `duracaoAviso` s, igual ao GOOL! — pedido: *"FOUL !!!, CORNER KICK, GOAL KICK, etc.
+    por uns 3 s da mesma maneira que aparece GOOL"* e *"YELLOW CARD !, RED CARD !"*. So as marcacoes da tabela
+    `avisosCentrais` (o "CARA A CARA 30°" e outras etiquetas de depuracao ficam so no banner do arbitro).
+    */
+    duracaoAviso: 3.0,
+    avisosCentrais: {
+        'FOUL': 'FOUL !!!', 'PENALTY': 'PENALTY !!!', 'CORNER': 'CORNER KICK', 'GOAL KICK': 'GOAL KICK',
+        'THROW-IN': 'THROW-IN', 'OFFSIDE': 'OFFSIDE !', 'YELLOW CARD': 'YELLOW CARD !', 'RED CARD': 'RED CARD !'
+    },
+    avisoCentral: function (texto) {
+        const t = this.avisosCentrais[texto];
+        if (!t || typeof document === 'undefined') return;
+        const el = document.getElementById('alerta-jogo');
+        if (!el) return;
+        el.textContent = t;
+        el.style.opacity = '1';
+        el.style.transform = 'translate(-50%, -50%) scale(1.2)';
+        const marca = (this._avisoMarca = (this._avisoMarca || 0) + 1);
+        setTimeout(() => { if (this._avisoMarca === marca) el.style.transform = 'translate(-50%, -50%) scale(1)'; }, 150);
+        setTimeout(() => {
+            if (this._avisoMarca !== marca) return;
+            el.style.opacity = '0';
+            el.style.transform = 'translate(-50%, -50%) scale(0.5)';
+        }, this.duracaoAviso * 1000);
+    },
+
+    /*
+    Escreve a etiqueta por cima do arbitro, reaproveitando o banner dos
+    jogadores (player.js, showActionBanner).
+
+    Silencioso e sem rebentar quando nao ha arbitro: isto e chamado de dentro
+    do `setupSetPiece`, e uma excepcao ali levava o frame inteiro atras. Com os
+    arbitros escondidos pelo painel (`_ativo` false) tambem nao escreve — a
+    arbitragem continua a existir, o boneco e que nao esta la.
+    */
+    anunciar: function (texto) {
+        if (!texto) return;
+        // O aviso grande ao centro, como o GOOL!: independente do arbitro estar visivel.
+        if (typeof Officials !== 'undefined' && Officials.avisoCentral) Officials.avisoCentral(texto);
+        if (!this._ativo) return;
+        const arb = this.arbitro;
+        if (!arb || !arb.jogador || typeof arb.jogador.showActionBanner !== 'function') return;
+        arb.jogador.showActionBanner(texto);
+    },
+
+    /*
+    Aponta com o braco direito para um ponto do campo, durante
+    `RefereeModel.duracaoSinal` segundos.
+
+    Guarda-se o ALVO e nao o angulo do corpo: o arbitro continua a mexer-se
+    enquanto sinaliza (o `mover` corre na mesma), e um angulo fixo deixava o
+    braco a apontar para o sitio errado assim que ele desse dois passos.
+    */
+    sinalizar: function (x, z, elevacao, ateChegar) {
+        if (!this.arbitro) return;
+        this.arbitro.sinal = {
+            x: x, z: z,
+            elev: elevacao,
+            timer: RefereeModel.duracaoSinal,
+            /*
+            `ateChegar`: o gesto nao morre ao fim dos 2.5 s — fica de pe
+            enquanto o arbitro caminha para o lugar dele. E o caso do penalti:
+            ele marca a 30 m da marca e leva ~7 s a la chegar, portanto com a
+            duracao normal o braco caia a meio do caminho e a marcacao ficava
+            sem gesto nenhum durante a montagem do lance.
+            */
+            ateChegar: !!ateChegar
+        };
+    },
+
+    /*
+    O gesto que corresponde a marcacao, se houver.
+
+    FALTA: a direccao do ataque da equipa que beneficia — a baliza que ela
+    ataca, no eixo do campo. O sentido sai do `dirZ` de um jogador dela, que e
+    onde essa informacao vive.
+
+    PENALTI: a marca. Nao e uma direccao, e um ponto — e por isso leva o outro
+    angulo.
+
+    CANTO, LATERAL e PONTAPE DE BALIZA nao levam este gesto: ali o arbitro
+    aponta a BANDEIROLA ou a linha, que sao gestos diferentes e cada um com a
+    sua geometria. Melhor nao ter do que ter todos iguais e errados.
+    */
+    sinalizarMarcacao: function (tipo, team) {
+        if (!this._ativo || !this.arbitro) return;
+        if (tipo !== 'FREE_KICK' && tipo !== 'PENALTY') return;
+        if (typeof Match === 'undefined') return;
+
+        const lista = (team === 'TeamA') ? Match.players : Match.opponents;
+        if (!lista || !lista.length) return;
+        const dir = lista[0].dirZ;
+        if (typeof dir !== 'number') return;
+
+        const fundo = CAMPO_COMP / 2;
+        if (tipo === 'PENALTY') {
+            // Aponta a MARCA e mantem o braco ate estar no lugar de onde vai
+            // ver a cobranca (ver pontoDoArbitro, ramo PENALTY).
+            this.sinalizar(0, (fundo - RefereeModel.marcaPenaltiZ) * dir,
+                RefereeModel.elevacaoPenalti, true);
+        } else {
+            this.sinalizar(0, fundo * dir, RefereeModel.elevacaoSinal);
+        }
+    },
+
+    /*
+    Mantem o braco no ar enquanto o gesto dura, e vira o corpo para o alvo.
+
+    Corre DEPOIS do `mover`: e ele que escreve a pose de passada, incluindo os
+    bracos, e escrever antes era ver o gesto apagado no mesmo frame.
+    */
+    tickSinal: function (dt) {
+        const arb = this.arbitro;
+        if (!arb || !arb.sinal) return;
+
+        /*
+        No penalti o cronometro so comeca a correr quando ele chega ao lugar:
+        ate la o gesto renova-se. Se o lance sair do estado PENALTY (batido,
+        anulado), a espera acaba e o braco desce como em qualquer outro gesto.
+        */
+        if (arb.sinal.ateChegar) {
+            const aindaNoLance = (typeof Match !== 'undefined' && Match.state === 'PENALTY');
+            const alvo = this.pontoDoArbitro(Match && Match.ball);
+            const chegou = !alvo || Math.hypot(
+                alvo.x - arb.model.position.x, alvo.z - arb.model.position.z)
+                <= RefereeModel.raioNoLugar;
+            if (aindaNoLance && !chegou) arb.sinal.timer = RefereeModel.duracaoSinal;
+            else arb.sinal.ateChegar = false;
+        }
+
+        /*
+        A CORRER NÃO SE GESTICULA A FALTA. O gesto da falta roda o corpo de
+        perfil para o braço apontar o ataque; com ele a correr, isso punha-o a
+        correr de lado ou de COSTAS com a passada de frente (relato: *"o juiz
+        está correndo para um lado de costas com a animação de corrida para a
+        frente"*). Acima de `sinalVelMax` o gesto espera: o tempo dele não corre
+        e o braço fica com o `mover`. O penálti (aponta a marca, sem rodar o
+        corpo) não passa por aqui.
+        */
+        const ehFaltaAqui = Math.abs(arb.sinal.elev - RefereeModel.elevacaoSinal) < 0.01;
+        if (ehFaltaAqui && (arb.velAnim || 0) > RefereeModel.sinalVelMax) return;
+
+        arb.sinal.timer -= dt;
+        if (arb.sinal.timer <= 0) {
+            arb.sinal = null;
+            // A guinada do braco tem de ser desfeita, senao a passada seguinte
+            // desenha-se com o braco torcido para o lado.
+            if (arb.rig && arb.rig.rArm) arb.rig.rArm.rotation.y = 0;
+            if (arb.rig && arb.rig.lArm) arb.rig.lArm.rotation.y = 0;
+            return;
+        }
+
+        const rig = arb.rig;
+        if (!rig || !rig.rArm || !rig.lArm) return;
+
+        /*
+        O BRACO A 90 GRAUS DO CORPO, e a apontar o ataque — as duas coisas.
+
+        Pedido: "braco a 90 graus com o corpo apontando para o gol do ataque,
+        tipo T pose com um braco so". Antes so a segunda metade era verdade: o
+        corpo ficava virado para a BOLA e o braco guinava em mundo ate ao alvo,
+        portanto com a baliza em frente dele o braco saia quase colado ao
+        tronco (a `margem` de 0.35 rad) e nao se lia como gesto nenhum. Medido
+        em 67 min: elevacao certa, alvo certo a 1.2 graus, e mesmo assim sem
+        gesto visivel.
+
+        Para o braco ficar perpendicular E a apontar o alvo, e o CORPO que tem
+        de rodar: fica-se com o alvo a +/-90 graus dele. Das duas
+        orientacoes possiveis escolhe-se a que deixa o arbitro mais virado para
+        a bola — ele fica de perfil para o lance, que e o que um arbitro faz
+        mesmo ao assinalar a direccao, e nunca de costas.
+
+        So na FALTA. No penalti aponta-se um SITIO (a marca, a poucos metros) e
+        nao um sentido: ali o braco continua a guinar em mundo, com o corpo
+        onde o `mover` o pos.
+
+        `order = 'YXZ'` porque a guinada tem de ser aplicada ANTES da elevacao.
+        Na ordem por omissao (XYZ) a elevacao roda primeiro e a guinada passa a
+        girar em torno de um eixo ja inclinado — o braco acaba a apontar para
+        outro sitio qualquer.
+
+        `order = 'YXZ'` porque a guinada tem de ser aplicada ANTES da elevacao.
+        Na ordem por omissao (XYZ) a elevacao roda primeiro e a guinada passa a
+        girar em torno de um eixo ja inclinado — o braco acaba a apontar para
+        outro sitio qualquer.
+        */
+        const dx = arb.sinal.x - arb.model.position.x;
+        const dz = arb.sinal.z - arb.model.position.z;
+
+        const k = RefereeModel.suavizacaoBraco;
+        const ehFalta = Math.abs(arb.sinal.elev - RefereeModel.elevacaoSinal) < 0.01;
+
+        if (ehFalta && RefereeModel.corpoDePerfilNoSinal && Math.hypot(dx, dz) > 0.05) {
+            /*
+            O CORPO DE PERFIL PARA O ALVO. As duas hipoteses sao o alvo a
+            +90 ou a -90 graus do corpo; ganha a que fica mais perto de onde o
+            `mover` o tinha posto (virado para a bola), pelo menor dos dois
+            caminhos.
+            */
+            const anguloAlvo = Math.atan2(dx, dz);
+            const meiaVolta = Math.PI / 2;
+            const curto = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+            const op1 = anguloAlvo - meiaVolta;
+            const op2 = anguloAlvo + meiaVolta;
+
+            /*
+            A VOLTA TEM MEMORIA PROPRIA, e nao parte do que o `mover` escreveu.
+
+            O `mover` corre ANTES disto e poe o arbitro a olhar para a bola
+            todos os frames. Suavizar a partir do valor dele era andar 15% do
+            caminho e ser puxado de volta no frame seguinte: o corpo ficava
+            num compromisso a meio, medido a 76 graus em vez de 90, e o gesto
+            continuava a nao se ler como um T.
+
+            Guardado no proprio gesto e nao no arbitro: quando o gesto acaba,
+            some com ele e a passada seguinte volta a ser do `mover`.
+            */
+            if (typeof arb.sinal.corpoY !== 'number') arb.sinal.corpoY = arb.model.rotation.y;
+
+            /*
+            DAS DUAS ORIENTACOES, A QUE DEIXA A BOLA A FRENTE.
+
+            Relato: *"depois da falta o juiz tem que primeiro virar para a
+            jogada (para a bola) para depois escolher o braco que vai apontar
+            para o lado correto. O juiz esta apontando para o lado correto,
+            mas varias vezes esta de costa para a bola"*.
+
+            O criterio era "a orientacao mais PERTO da actual", e nao decide
+            nada: no primeiro frame do gesto o `mover` acabou de o pôr virado
+            para a bola, portanto as duas hipoteses estao exactamente a +/-90
+            graus dela. Empate, desfeito pelo arredondamento — e uma vez
+            escolhido o lado fica travado no `corpoY` para o resto do gesto.
+
+            MEDIDO ASSIM, 91 sinais em 3 jogos, 13 226 frames de falta:
+
+                angulo corpo-bola   mediana 61   p75 101   p90 137   max 180
+                acima de  90 graus (bola nas costas)   30%
+                acima de 135 graus                     12%
+
+            Agora a hipotese escolhe-se pela BOLA: fica a que tem o maior
+            produto interno com a direccao dela, ou seja aquela em que ele a
+            ve. O braco continua perpendicular e a apontar o mesmo sitio — o
+            gesto nao muda, muda o lado para onde ele fica de perfil.
+
+            Reavalia-se todos os frames e nao so no primeiro: a bola mexe-se
+            durante os 2.5 s do gesto (e o arbitro tambem), e uma escolha
+            congelada volta a deixa-lo de costas a meio. A suavizacao do
+            `corpoY` trata de o fazer sem estalar.
+            */
+            const bx = (typeof Match !== 'undefined' && Match.ball)
+                ? Match.ball.position.x - arb.model.position.x : 0;
+            const bz = (typeof Match !== 'undefined' && Match.ball)
+                ? Match.ball.position.z - arb.model.position.z : 0;
+            const nb = Math.hypot(bx, bz);
+            let alvoCorpo;
+            if (nb > 0.1) {
+                const versaBola = (ang) => Math.sin(ang) * (bx / nb) + Math.cos(ang) * (bz / nb);
+                alvoCorpo = (versaBola(op1) >= versaBola(op2)) ? op1 : op2;
+            } else {
+                // Sem bola onde olhar, fica o criterio antigo.
+                alvoCorpo =
+                    Math.abs(curto(op1 - arb.sinal.corpoY)) <= Math.abs(curto(op2 - arb.sinal.corpoY))
+                        ? op1 : op2;
+            }
+
+            // Roda pelo caminho curto e devagar, senao o arbitro estala 90
+            // graus no frame do apito.
+            arb.sinal.corpoY += curto(alvoCorpo - arb.sinal.corpoY) * RefereeModel.suavizacaoCorpoSinal;
+            arb.model.rotation.y = arb.sinal.corpoY;
+        }
+
+        if (Math.hypot(dx, dz) > 0.05) {
+            let guinada = Math.atan2(dx, dz) - arb.model.rotation.y;
+            // Ao menor dos dois caminhos: sem isto o braco dava a volta larga
+            // quando o angulo passava por +/-PI.
+            guinada = Math.atan2(Math.sin(guinada), Math.cos(guinada));
+
+            /*
+            Escolhe o braco que fica do lado da baliza apontada, para nao
+            cruzar o tronco: direito se o alvo estiver a direita do corpo,
+            esquerdo se estiver a esquerda.
+
+            E O SINAL DA GUINADA DIZ ESQUERDA, NAO DIREITA. O modelo olha
+            para +Z (ver a nota da elevacao aqui abaixo) com +Y para cima,
+            portanto a direita dele e -X: `rArm` nasce em x = -0.8 e `lArm`
+            em x = +0.8 (criarBraco, js/pose.js). Uma guinada POSITIVA roda
+            de +Z para +X, ou seja para o lado ESQUERDO do arbitro.
+
+            Estava `useRight = guinada >= 0` e via-se o arbitro a marcar a
+            falta para a direita com o braco esquerdo atravessado a frente do
+            peito — o gesto certo, no braco errado.
+            */
+            const useRight = guinada < 0;
+            const signalArm = useRight ? rig.rArm : rig.lArm;
+            const otherArm = useRight ? rig.lArm : rig.rArm;
+
+            // Desfaz a guinada do braco que nao sinaliza.
+            otherArm.rotation.y = 0;
+            otherArm.rotation.x = lerpTo(otherArm.rotation.x, 0, k);
+
+            signalArm.rotation.order = 'YXZ';
+            /*
+            Com `rotation.x = -PI/2` e `y = 0` o braco fica na horizontal a
+            apontar para a FRENTE do corpo; a guinada roda-o em torno do eixo
+            vertical, portanto `y = guinada` aponta-o exactamente para o alvo,
+            seja qual for o angulo entre o corpo (virado para a bola) e a
+            baliza. Estava fixo em +/-PI/2 — sempre perpendicular ao tronco —
+            e por isso o gesto apontava para o lado errado sempre que o alvo
+            nao estivesse mesmo de lado.
+
+            `margem` impede o braco de encostar ao tronco quando o alvo esta
+            quase em frente, e de o atravessar por tras quando esta atras: e
+            para isso que o lado do braco foi escolhido acima.
+            */
+            const margem = (ehFalta && !RefereeModel.corpoDePerfilNoSinal) ? RefereeModel.margemBracoSinal : 0.35;
+            signalArm.rotation.y = useRight
+                ? Math.max(Math.min(guinada, -margem), -Math.PI + margem)
+                : Math.min(Math.max(guinada, margem), Math.PI - margem);
+
+            // Infrações (falta livre) ficam paralelas ao chao.
+            const ehHorizontal = ehFalta;
+            signalArm.rotation.x = ehHorizontal
+                ? -Math.PI / 2
+                : lerpTo(signalArm.rotation.x, arb.sinal.elev, k);
+        }
+
+        // Cotovelo esticado: um braco dobrado nao aponta nada.
+        if (rig.rElbow) rig.rElbow.rotation.x = lerpTo(rig.rElbow.rotation.x, 0, k);
+        if (rig.lElbow) rig.lElbow.rotation.x = lerpTo(rig.lElbow.rotation.x, 0, k);
+    },
+
+    /*
+    Desconta o relogio da etiqueta e apaga-a no fim.
+
+    Os jogadores fazem isto dentro do proprio `update` (player.js), que para o
+    arbitro nunca corre — o Officials so lhe usa o `model` e move-lhe os ossos
+    a mao. Sem isto a primeira marcacao do jogo ficava escrita por cima dele
+    ate ao fim.
+    */
+    tickEtiqueta: function (dt) {
+        const arb = this.arbitro;
+        if (!arb || !arb.jogador) return;
+        const j = arb.jogador;
+        if (!(j.actionBannerTimer > 0)) return;
+        j.actionBannerTimer -= dt;
+        if (j.actionBannerTimer <= 0) {
+            j.actionBannerTimer = 0;
+            if (j.actionSprite) j.actionSprite.visible = false;
+        }
+    },
+
+    update: function (dt) {
+        if (typeof Match === 'undefined' || !Match.ball) return;
+
+        /*
+        As faltas por contacto sao vigiadas SEMPRE, mesmo com os arbitros
+        escondidos (`_ativo` false, o botao do painel): esconder os bonecos e
+        uma opcao de visualizacao, nao suspender a arbitragem. So o
+        posicionamento, daqui para baixo, e que depende deles existirem.
+        */
+        this.detectarContactos(dt);
+        // A etiqueta da ultima marcacao apaga-se sozinha (ver tickEtiqueta).
+        this.tickEtiqueta(dt);
+        // E as linhas do momento do passe, quando houve impedimento.
+        this.tickLinhaDoPasse(dt);
+
+        // A abertura do jogo (js/abertura.js): o trio anda pela coreografia, nao pelo jogo.
+        if (typeof Abertura !== 'undefined' && Abertura.activa) { Abertura.moverOficiais(dt); return; }
+
+        if (!this.arbitro || !this._ativo) return;
+
+        const R = RefereeModel;
+        const meiaLarg = CAMPO_LARG / 2;
+
+        /*
+        Assistente 1: linha lateral +X, metade z <= 0 — a que o TeamA defende
+        (dirZ +1, baliza em -Z), logo segue a linha do TeamA.
+        Assistente 2: linha lateral -X, metade z >= 0, linha do TeamB.
+        As duas metades são diagonalmente opostas, como na arbitragem real.
+        */
+        const zA = this.linhaDeImpedimento(Match.players, 1);
+        const zB = this.linhaDeImpedimento(Match.opponents, -1);
+
+        const linhaA = THREE.MathUtils.clamp(zA, -(CAMPO_COMP / 2), 0);
+        const linhaB = THREE.MathUtils.clamp(zB, 0, CAMPO_COMP / 2);
+        this.moverAssistente(this.assistentes[0], meiaLarg + R.margemLinha, linhaA, dt);
+        this.moverAssistente(this.assistentes[1], -(meiaLarg + R.margemLinha), linhaB, dt);
+
+        // O árbitro anda entre estas duas linhas: ver o fim do pontoDoArbitro.
+        this._faixaArbitro = { min: linhaA, max: linhaB };
+
+        // O cartão manda no árbitro enquanto dura: ver mostrarCartao.
+        if (this.cartaoEmCurso) {
+            this.tickCartao(dt);
+            this.atualizarVista();
+            return;
+        }
+
+        /*
+        ELE LE A JOGADA: a coroa e posta a volta de onde a bola VAI ESTAR daqui
+        a `antecipacao` segundos (pela velocidade do portador, ou da propria
+        bola se ela vai solta), e nao de onde ela esta. Sem isto um central a
+        conduzir na direccao dele a 6-7 m/s chegava-lhe sempre: o alvo era
+        refeito a volta da bola deste frame, e o passo dele (`d / tempoDeAjuste`)
+        abrandava a medida que chegava a um ponto que ja estava velho.
+        A previsao e para o ponto; o piso dos 6 m continua medido a bola real
+        (ver o fim do pontoDoArbitro, que recebe as duas).
+        */
+        const bolaReal = Match.ball.position;
+        let bolaRef = bolaReal;
+        if (typeof R.antecipacao === 'number' && R.antecipacao > 0) {
+            const car = Match.ballCarrier;
+            const v = (car && car.velocity) ? car.velocity : Match.ballVel;
+            const vh = Math.hypot(v.x, v.z);
+            const tAnt = R.antecipacao * Math.min(1, (R.antecipacaoVelMax || 8) / Math.max(0.001, vh));
+            bolaRef = { x: bolaReal.x + v.x * tAnt, y: bolaReal.y, z: bolaReal.z + v.z * tAnt };
+        }
+        const alvoArb = this.pontoDoArbitro(bolaRef, bolaReal);
+        // Amortecido: ver RefereeModel.alvoSuavizacao.
+        const S = this.arbitro;
+        /*
+        A FUGA — com a bola a menos de `distMinDura + margemFuga` metros, ele
+        sai dali JA: sem o amortecimento do alvo (que lhe dava um alvo a meio
+        metro e um arranque a 2 m/s) e a correr de frente para onde vai, sem o
+        travao do recuo (`recuoVelocidade`, 70%, que o deixava nos 5 m/s
+        enquanto um central conduzia a 6-7 na direccao dele). Medido antes
+        disto, em jogo corrido abaixo de 6 m: metade das leituras eram passes a
+        passar-lhe ao lado, a outra metade um portador a vir para cima dele com
+        o arbitro a recuar a 5 m/s.
+        */
+        const dBola = Math.hypot(S.model.position.x - Match.ball.position.x,
+            S.model.position.z - Match.ball.position.z);
+        const emFuga = (typeof R.distMinDura === 'number') &&
+            dBola < R.distMinDura + (R.margemFuga || 0);
+        if (!S.alvoSuave || !(R.alvoSuavizacao > 0) || emFuga) {
+            S.alvoSuave = { x: alvoArb.x, z: alvoArb.z };
+        } else {
+            const k = 1 - Math.exp(-dt / R.alvoSuavizacao);
+            S.alvoSuave.x += (alvoArb.x - S.alvoSuave.x) * k;
+            S.alvoSuave.z += (alvoArb.z - S.alvoSuave.z) * k;
+        }
+        /*
+        NA FUGA TAMBEM VIGIA A BOLA. Relato, com captura: *"o juiz esta correndo de
+        costas para a bola"*. Sem `olharPara` o `mover` virava-o para onde ele ia,
+        que na fuga e para longe da bola — de costas (7.5% dos frames em
+        movimento acima de 135 graus, medido). Com ela, o limite
+        `anguloMaxDaBola` mantem-no de lado.
+        */
+        this.mover(this.arbitro, S.alvoSuave.x, S.alvoSuave.z, R.velocidade, dt,
+            Match.ball.position);
+
+        // Depois do mover: e ele que escreve a pose dos bracos, e o gesto
+        // tem de ficar por cima dela (ver tickSinal).
+        this.tickSinal(dt);
+
+        // Depois de mover, para os discos nao ficarem um frame atras.
+        this.atualizarVista();
+    },
+
+    /*
+    =========================================================================
+    O CARTÃO MOSTRADO — ver RefereeModel.cartao, com o pedido.
+    =========================================================================
+    Três fases:
+
+      'ir'       o árbitro vai até `distancia` do jogador, do lado de onde vem,
+                 e vira-se para ele;
+      'mostrar'  braço esquerdo a apontar para o jogador, o direito em cima com
+                 o cartão (`tMostrar`);
+      'guardar'  o direito traz o cartão ao bolso do peito (`tGuardar`).
+
+    Enquanto dura, o jogador pára virado para o árbitro (Player.update) e o
+    lance parado ESPERA (Match.algumCaidoDaFalta). No VERMELHO a expulsão é no
+    fim, para se ver o cartão a ser-lhe mostrado. Sem árbitros na cena (o botão
+    do painel) não há cerimónia: o cartão conta e o vermelho expulsa logo.
+    =========================================================================
+    */
+    mostrarCartao: function (jogador, cor) {
+        if (!this.arbitro || !this._ativo || !jogador || !jogador.model) return false;
+        const C = RefereeModel.cartao;
+        this.cartaoEmCurso = { jogador: jogador, cor: cor, fase: 'ir', t: 0 };
+        // O cartão vive na mão direita; cria-se uma vez e muda de cor.
+        const rig = this.arbitro.rig;
+        if (!this._cartaoMesh && rig && rig.rHand && typeof THREE !== 'undefined') {
+            const esc = this.arbitro.model.scale.x || 1;
+            // A FACE do cartao e a da palma (o x local da mao): espessura em x, largura em z. Com a espessura em z
+            // (como estava) ficava de perfil para a camara e a 4 mm nao se via.
+            const geo = new THREE.BoxGeometry(0.006 / esc, C.alturaCartao / esc, C.largura / esc);
+            this._cartaoMesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: C.corAmarelo, side: THREE.DoubleSide }));
+            // Sobre a palma, a cobrir os dedos e a passar-lhes (com o braço erguido o "para baixo" da mão aponta ao céu).
+            this._cartaoMesh.position.set(-0.06, -(C.alturaCartao * 0.60) / esc, 0);
+            rig.rHand.add(this._cartaoMesh);
+        }
+        if (this._cartaoMesh) {
+            this._cartaoMesh.material.color.set(cor === 'vermelho' ? C.corVermelho : C.corAmarelo);
+            this._cartaoMesh.visible = false;
+        }
+        return true;
+    },
+
+    // O grupo do polegar da mao (o unico com a abertura em z), guardado com a rotacao de repouso.
+    _polegarDaMao: function (mao) {
+        if (this._polegar && this._polegar.mao === mao) return this._polegar;
+        let g = null;
+        mao.traverse(o => { if (!g && o.isGroup && o.rotation.z !== 0 && o.children.length === 1 && o.children[0].isMesh) g = o; });
+        this._polegar = g ? { mao: mao, grupo: g, repouso: undefined } : null;
+        return this._polegar;
+    },
+
+    cartaoAMostrar: function () {
+        return !!this.cartaoEmCurso;
+    },
+
+    acabarCartao: function () {
+        const c = this.cartaoEmCurso;
+        this.cartaoEmCurso = null;
+        if (this._cartaoMesh) this._cartaoMesh.visible = false;
+        const arb = this.arbitro;
+        if (arb && arb.rig) {
+            arb.rig.rArm.rotation.set(0, 0, arb.rig.rArm.rotation.z * 0);
+            if (arb.rig.rHand) {
+                arb.rig.rHand.rotation.y = 0;
+                const pol = this._polegarDaMao(arb.rig.rHand);
+                if (pol && pol.repouso !== undefined) pol.grupo.rotation.z = pol.repouso;
+            }
+            arb.rig.lArm.rotation.set(0, 0, 0);
+        }
+        if (c && c.jogador && c.jogador.expulsaoPendente) {
+            c.jogador.expulsaoPendente = false;
+            this.expulsar(c.jogador);
+        }
+    },
+
+    /*
+    Corre em vez do posicionamento normal do árbitro enquanto o cartão dura.
+    Os braços escrevem-se DEPOIS do `mover`, pela mesma razão do `tickSinal`.
+    */
+    tickCartao: function (dt) {
+        const c = this.cartaoEmCurso;
+        const arb = this.arbitro;
+        const C = RefereeModel.cartao;
+        const R = RefereeModel;
+        if (!c || !arb) return;
+        if (typeof Match !== 'undefined' && Match.kickoffActive) { this.acabarCartao(); return; }
+        c.t += dt;
+        const jp = c.jogador.model.position;
+        const ap = arb.model.position;
+
+        if (c.fase === 'ir') {
+            // Do lado de onde ele vem, a `distancia` do jogador.
+            let ux = ap.x - jp.x, uz = ap.z - jp.z;
+            const ul = Math.hypot(ux, uz) || 1; ux /= ul; uz /= ul;
+            const ax = jp.x + ux * C.distancia, az = jp.z + uz * C.distancia;
+            this.mover(arb, ax, az, R.velocidade, dt, jp);
+            if (Math.hypot(ax - ap.x, az - ap.z) <= C.chegou || c.t >= C.tIrMax) {
+                c.fase = 'mostrar'; c.t = 0;
+                arb.sinal = null;
+            }
+            return;
+        }
+
+        // Parado, virado para o jogador.
+        this.mover(arb, ap.x, ap.z, R.velocidade, dt, jp);
+        arb.model.rotation.y = Math.atan2(jp.x - ap.x, jp.z - ap.z);
+        /*
+        A POSE TEM MEMÓRIA PRÓPRIA, como o `corpoY` do sinal de falta: o `mover`
+        (que corre antes) leva os braços para baixo todos os frames, e suavizar
+        a partir do valor dele deixava o braço do cartão a 62% do caminho
+        (medido: -1.84 rad em vez de -2.95).
+        */
+        const rig = arb.rig;
+        const k = C.suavizacao;
+        if (rig) {
+            if (!c.pose) c.pose = { lx: rig.lArm.rotation.x, lz: rig.lArm.rotation.z, le: rig.lElbow.rotation.x,
+                rx: rig.rArm.rotation.x, rz: rig.rArm.rotation.z, re: rig.rElbow.rotation.x };
+            const P = c.pose;
+            const mostrar = (c.fase === 'mostrar');
+            P.lx = lerpTo(P.lx, mostrar ? C.apontarX : 0, k);
+            P.lz = lerpTo(P.lz, mostrar ? C.apontarZ : 0.08, k);
+            P.le = lerpTo(P.le, mostrar ? -0.05 : -0.3, k);
+            P.rx = lerpTo(P.rx, mostrar ? C.erguerX : C.bolsoX, k);
+            P.rz = lerpTo(P.rz, mostrar ? C.erguerZ : C.bolsoZ, k);
+            P.re = lerpTo(P.re, mostrar ? C.erguerCotovelo : C.bolsoCotovelo, k);
+            rig.lArm.rotation.set(P.lx, 0, P.lz);
+            rig.lElbow.rotation.x = P.le;
+            rig.rArm.rotation.set(P.rx, 0, P.rz);
+            rig.rElbow.rotation.x = P.re;
+            // A mao erguida rola-se para a palma (com o cartao) olhar o jogador (polegarRoll) e o polegar abre a 90
+            // graus dos dedos (polegarAbertura): com os dedos para cima fica PARALELO ao relvado. Volta ao normal ao guardar.
+            P.hy = lerpTo(P.hy || 0, mostrar ? C.polegarRoll : 0, k);
+            rig.rHand.rotation.y = P.hy;
+            const pol = this._polegarDaMao(rig.rHand);
+            if (pol) {
+                if (pol.repouso === undefined) pol.repouso = pol.grupo.rotation.z;
+                P.pz = lerpTo((P.pz === undefined) ? pol.repouso : P.pz, mostrar ? C.polegarAbertura : pol.repouso, k);
+                pol.grupo.rotation.z = P.pz;
+            }
+        }
+        if (this._cartaoMesh) {
+            // Sai do bolso a subir e volta a desaparecer quando lá chega.
+            this._cartaoMesh.visible = (c.fase === 'mostrar') || (c.t < C.tGuardar * 0.8);
+        }
+        if (c.fase === 'mostrar' && c.t >= C.tMostrar) { c.fase = 'guardar'; c.t = 0; }
+        else if (c.fase === 'guardar' && c.t >= C.tGuardar) this.acabarCartao();
+    },
+
+    setVisivel: function (on) {
+        this._ativo = on;
+        // A vista corrente e que decide entre boneco e disco; aqui so se
+        // guarda o interruptor e se aplica ja, para o botao do painel
+        // responder no mesmo frame.
+        this.atualizarVista();
+    },
+
+    /*
+    BONECO OU DISCO, conforme a camara — o mesmo criterio dos jogadores (ver
+    `vistaTatica` em player.js). Na vista de cima o boneco le-se mal, e um
+    arbitro em boneco no meio de vinte e dois discos lia-se como uma coisa
+    diferente do que e.
+
+    Corre todos os frames e nao so na troca de camara: o `cameraMode` e uma
+    variavel global que qualquer botao do painel pode mudar sem avisar
+    ninguem, e um sinal para aqui era mais uma coisa para esquecer de ligar.
+    */
+    atualizarVista: function () {
+        const tatico = (window.cameraMode === 'topdown');
+        const todos = this.arbitro ? [this.arbitro].concat(this.assistentes) : [];
+        for (let i = 0; i < todos.length; i++) {
+            const o = todos[i];
+            if (!o) continue;
+            o.model.visible = this._ativo && !tatico;
+            if (o.disco) {
+                o.disco.visible = this._ativo && tatico;
+                // A altura e a mesma do disco dos jogadores: pousado no
+                // relvado, e nao ao nivel dele, senao as duas superficies
+                // disputam o mesmo pixel e o disco pisca.
+                o.disco.position.set(o.model.position.x, 0.04, o.model.position.z);
+            }
+        }
+    },
+
+    /*
+    =========================================================================
+    AS REGRAS
+    =========================================================================
+    Daqui para baixo é tudo função PURA — sem Match, sem cena, sem bola. É de
+    propósito: as regras são o que se testa (tests/faltas_cartoes.test.js), e
+    testá-las obrigando a montar um jogo seria trocar um teste de meio segundo
+    por um de meio minuto.
+    =========================================================================
+    */
+
+    /*
+    Gravidade de uma falta, para decidir o cartão.
+
+    `tipo`: 'carrinho' | 'desarme' | 'contacto'
+    `velocidade`: m/s do contacto
+    `angulo`: radianos entre a frente da vítima e o infractor — 0 de frente,
+              π pelas costas
+    `travouAtaque`: falta táctica sobre quem ia em progressão
+    `marcacao`, `forca`: skills do INFRACTOR, 0..100. Omitidas valem 50 (a
+              média), portanto não mexem no resultado — é o que mantém as
+              contas do cabeçalho válidas para um jogador mediano.
+    */
+    gravidadeDaFalta: function (o) {
+        const G = RefereeModel.faltas.gravidade;
+        const base = G.base[o.tipo];
+        // Um tipo desconhecido é um erro de quem chama, não uma falta leve.
+        if (base === undefined) {
+            console.warn('Officials: tipo de falta desconhecido:', o.tipo);
+            return 0;
+        }
+        let g = base;
+        g += Math.max(0, o.velocidade || 0) * G.pesoVelocidade;
+        g += (Math.abs(o.angulo || 0) / Math.PI) * G.pesoAngulo;
+        // `travouAtaque` NAO entra aqui: e regra a parte, no decidirCartao.
+
+        // O jogador: marcação alivia, força agrava. 50 é a média e não mexe.
+        const marcacao = (typeof o.marcacao === 'number') ? o.marcacao : 50;
+        const forca = (typeof o.forca === 'number') ? o.forca : 50;
+        g -= ((marcacao - 50) / 50) * G.pesoMarcacao;
+        g += ((forca - 50) / 50) * G.pesoForca;
+
+        // Uma falta nunca é de gravidade negativa, por muito bom que o
+        // defensor seja: continua a ser uma falta.
+        return Math.max(0, g);
+    },
+
+    /*
+    Que cartão sai desta gravidade, para este jogador.
+
+    O SEGUNDO AMARELO é o que produz quase todos os vermelhos: o vermelho
+    directo exige uma gravidade que quase nenhum lance atinge.
+    */
+    // Regista a falta da EQUIPA do jogador e diz se a sequencia de faltas seguidas dessa equipa ja chegou a `faltas`.
+    _reincidente: function (jogador) {
+        const R = RefereeModel.faltas.reincidencia;
+        if (!R || !R.activo || !jogador || typeof Match === 'undefined') return false;
+        const agora = (typeof Match.tempoDeJogo === 'number') ? Match.tempoDeJogo : 0;
+        const q = Match._seqFaltas || (Match._seqFaltas = { team: null, n: 0, t: -1e9 });
+        if (q.team === jogador.team && agora - q.t <= R.janelaSegundos) q.n++;
+        else { q.team = jogador.team; q.n = 1; }
+        q.t = agora;
+        return q.n >= R.faltas;
+    },
+    _limparReincidencia: function (jogador) { if (typeof Match !== 'undefined' && Match._seqFaltas) { Match._seqFaltas.n = 0; } },
+
+    decidirCartao: function (gravidade, jogador, travouAtaque) {
+        const F = RefereeModel.faltas;
+        if (gravidade >= F.limiarVermelho) return 'vermelho';
+        /*
+        LEI 12: travar um ataque promissor e ADVERTENCIA, por leve que seja o
+        lance. E a fonte que faltava — os cartoes reais nao saem quase todos de
+        carrinhos violentos, saem de faltas tacticas que param um ataque.
+        Nunca e vermelho DIRECTO: quem ja esta advertido e que sai, e sai pelo
+        segundo amarelo.
+        */
+        if (gravidade >= F.limiarAmarelo || travouAtaque) {
+            /*
+            O SEGUNDO AMARELO NAO SAI DE UMA FALTA TACTICA LEVE.
+
+            Era `temAmarelo -> vermelho` para QUALQUER coisa que chegasse
+            aqui, incluindo um `travouAtaque` de gravidade nula. Medido, com
+            as faltas a subir 15% a pedido: 0.26 vermelhos por jogo contra o
+            alvo de 0.08 — 325%, e a subir com as faltas porque mais faltas
+            poem mais gente advertida em campo.
+
+            O `podeFazerCarrinho` ja tira o carrinho a quem esta advertido,
+            mas nao cobre a falta tactica, que da amarelo sozinha.
+
+            Agora quem ja tem amarelo so sai se a falta tiver gravidade por
+            si — ver `limiarSegundoAmarelo`, que e mais baixo que o do
+            primeiro amarelo de proposito. E o arbitro a pensar duas vezes
+            antes de deixar uma equipa com dez, sem deixar de expulsar quem
+            merece.
+            */
+            /*
+            SEGUNDO AMARELO E EXPULSAO, SEMPRE — Lei 12, sem excepcao de
+            gravidade.
+
+            Eu tinha posto aqui um limiar (`limiarSegundoAmarelo`) que exigia
+            gravidade ao advertido para o expulsar. Estava errado, e o
+            tests/faltas_cartoes.test.js apanhou-o:
+
+                X segundo amarelo por travar ataque devia dar vermelho
+
+            O amarelo por travar um ataque NAO vem da gravidade — vem de ter
+            travado o ataque. Um advertido que o faz tem de sair, por leve que
+            tenha sido o lance. Dobrar a regra para acertar numa estatistica e
+            o tipo de correccao que arranja o numero e estraga o jogo.
+
+            O NUMERO ARRANJA-SE NOUTRO SITIO, e o sitio certo esta a vista nos
+            dados que eu tinha:
+
+                amarelos     62% do alvo
+                vermelhos   325% do alvo
+
+            Menos amarelos do que o real e tres vezes mais vermelhos so pode
+            significar uma coisa: o advertido REINCIDE aqui muito mais do que
+            na vida real. O `podeFazerCarrinho` ja lhe tirava o carrinho, mas
+            nao lhe tirava a falta tactica — que e precisamente a que o
+            expulsa. Ver `cautelaDoAdvertido`.
+            */
+            if (jogador && jogador.temAmarelo) return 'vermelho';
+            return 'amarelo';
+        }
+        return null;
+    },
+
+    /*
+    O MEDO DO ADVERTIDO.
+
+    Sem isto o segundo amarelo dava ~46% de jogos com expulsão — problema do
+    aniversário, com 5,22 cartões repartidos por 22 jogadores — quando o
+    número real é 8%. Quem tem amarelo deixa de fazer carrinhos, e é isso, e
+    não uma constante inventada para o efeito, que põe os vermelhos no sítio.
+
+    Lido pelo js/bt/player_bt.js antes de escolher SLIDE_TACKLE.
+    */
+    podeFazerCarrinho: function (p) {
+        return !(p && p.temAmarelo);
+    },
+
+    /*
+    QUANTO E QUE UM ADVERTIDO SE CONTEM, como factor sobre a probabilidade de
+    ele cometer a falta. 1.0 e nao se conter nada.
+
+    Ver a nota do `decidirCartao`: com a Lei 12 de volta (segundo amarelo e
+    sempre expulsao), e AQUI que os vermelhos se calibram — no numero de
+    faltas que um advertido comete, e nao na regra que as pune. E tambem o que
+    se ve num jogo a serio: quem tem amarelo tira o pe, deixa passar o
+    adversario e prefere o golo ao banho.
+
+    Cobre o que o `podeFazerCarrinho` nao cobria: o desarme de pe e o choque.
+    Esses sao os que produzem a falta tactica, e a falta tactica e o que
+    expulsa.
+    */
+    _cautelaDe: function (p) {
+        if (!p || !p.temAmarelo) return 1.0;
+        const F = RefereeModel.faltas;
+        return (typeof F.cautelaDoAdvertido === 'number') ? F.cautelaDoAdvertido : 1.0;
+    },
+
+    /*
+    A falta é penálti? Só quando o infractor é de quem DEFENDE aquela área e
+    a falta é dentro dela.
+
+    `zSinal < 0` é a baliza do TeamA (a mesma convenção da detecção de golo em
+    match.js), portanto o TeamA defende z negativo.
+    */
+    ehPenalti: function (x, z, teamInfractor) {
+        if (typeof Area !== 'undefined' && typeof Area.contem === 'function') {
+            const ladoZ = (teamInfractor === 'TeamA' || teamInfractor === 'TeamB') ? -Lados.dirDe(teamInfractor) : 0;
+            if (!ladoZ) return false;
+            return Area.contem(x, z, ladoZ, this.margemDaLinhaDaArea);
+        }
+        const meiaLargArea = AREA_GRANDE_MEIA_LARG;
+        if (Math.abs(x) > meiaLargArea) return false;
+
+        const zLimite = CAMPO_COMP / 2 - AREA_GRANDE_PROF;
+        const dentroEmZNegativo = z < -zLimite;
+        const dentroEmZPositivo = z > zLimite;
+
+        if (teamInfractor === 'TeamA' || teamInfractor === 'TeamB') {
+            return (Lados.dirDe(teamInfractor) > 0) ? dentroEmZNegativo : dentroEmZPositivo;
+        }
+        return false;
+    },
+
+    /*
+    =========================================================================
+    A APLICAÇÃO — daqui para baixo já se mexe no jogo
+    =========================================================================
+    */
+
+    // Pares que acabaram de chocar, para o mesmo choque não marcar falta
+    // atrás de falta enquanto os dois continuam encostados.
+    _arrefecimento: null,
+
+    resetFaltas: function () {
+        this._arrefecimento = new Map();
+    },
+
+    /*
+    Marca a falta: contadores, cartão, expulsão e reposição do jogo.
+
+    A falta é no sítio onde o INFRACTOR está, que é onde o contacto foi.
+    */
+    /*
+    A LINHA DA AREA FAZ PARTE DA AREA. Relato de 5 de Outubro de 2026, com
+    captura: *"falta com a bola colocada dentro da area nao foi considerado
+    penalti. A linha faz parte da area. Falta em cima da linha e penalti"*.
+
+    A margem e a meia-largura da linha (0.06 m) mais o raio da bola (0.11 m).
+    Medido em 9 jogos de 20 min: das 228 faltas, 4 tinham a bola a ser reposta
+    DENTRO da area com o ponto medio dos dois jogadores a 0.04 a 1.0 m fora
+    (uma delas a 4 cm da linha). Ver `ehPenaltiNoLance`.
+    */
+    margemDaLinhaDaArea: 0.17,
+
+    /*
+    O LANCE, e nao so o ponto medio: e penalti se o ponto da falta (o meio dos
+    dois), a BOLA (que e onde o tiro livre ia ser batido) ou a VITIMA (onde o
+    contacto a apanhou) estiverem na area de quem defende, linha incluida.
+    */
+    ehPenaltiNoLance: function (infractor, vitima) {
+        const pi = infractor.model.position, pv = vitima.model.position;
+        const meio = { x: (pi.x + pv.x) / 2, z: (pi.z + pv.z) / 2 };
+        if (this.ehPenalti(meio.x, meio.z, infractor.team)) return true;
+        if (this.ehPenalti(pv.x, pv.z, infractor.team)) return true;
+        const b = (typeof Match !== 'undefined' && Match.ball) ? Match.ball.position : null;
+        return !!(b && this.ehPenalti(b.x, b.z, infractor.team));
+    },
+
+    marcarFalta: function (infractor, vitima, dados) {
+        if (!infractor || !vitima || infractor.expulso) return;
+        if (typeof Match === 'undefined' || Match.state !== 'PLAY') return;
+        // O MANDO (config/mando.js): o arbitro deixa passar `arbitroCasa` das faltas da equipa da casa (segue o jogo).
+        if (typeof MandoModel !== 'undefined' && MandoModel.activo && infractor.team === MandoModel.equipa &&
+            Math.random() < MandoModel.arbitroCasa) return;
+
+        const gravidade = this.gravidadeDaFalta(dados);
+
+        if (typeof MatchStats !== 'undefined') {
+            MatchStats[infractor.team].faltas.cometidas++;
+            MatchStats[vitima.team].faltas.sofridas++;
+        }
+
+        let cartao = this.decidirCartao(gravidade, infractor, !!(dados && dados.travouAtaque));
+        // As faltas SEGUIDAS (reincidencia): ver RefereeModel.faltas.reincidencia.
+        if (cartao) this._limparReincidencia(infractor);
+        // So da AMARELO: a sequencia de faltas nao expulsa por si (o segundo amarelo por reincidencia deixava 0.43 vermelhos por jogo, alvo 0.20); quem ja tem amarelo so zera a sequencia.
+        else if (this._reincidente(infractor)) { if (!infractor.temAmarelo) cartao = 'amarelo'; this._limparReincidencia(infractor); }
+        if (cartao === 'amarelo') {
+            infractor.temAmarelo = true;
+            if (typeof MatchStats !== 'undefined') MatchStats[infractor.team].cartoes.amarelos++;
+        } else if (cartao === 'vermelho') {
+            /*
+            O segundo amarelo conta como amarelo E como vermelho, que é como
+            as estatísticas reais o contam — senão faltava um amarelo aos
+            5,22 por jogo sempre que houvesse expulsão.
+            */
+            if (typeof MatchStats !== 'undefined') {
+                if (infractor.temAmarelo) MatchStats[infractor.team].cartoes.amarelos++;
+                MatchStats[infractor.team].cartoes.vermelhos++;
+            }
+            /*
+            Com árbitro em campo a expulsão é no fim do cartão (ver
+            mostrarCartao): ele tem de estar lá para o cartão lhe ser mostrado.
+            */
+            if (this.arbitro && this._ativo) infractor.expulsaoPendente = true;
+            else this.expulsar(infractor);
+        }
+
+        /*
+        DENTRO DA AREA E PENALTI — e "dentro" mede-se no PONTO DA INFRACCAO,
+        nao onde calha estar o infractor.
+
+        Era `infractor.model.position`: um defensor com o corpo em cima da
+        linha da area a derrubar o atacante ja dentro dela dava livre, e um
+        carrinho que comeca fora e acerta no homem dentro tambem. O contacto e
+        entre os dois, portanto o ponto e o meio deles — que e o que o arbitro
+        marca.
+        */
+        const pi = infractor.model.position, pv = vitima.model.position;
+        const pos = { x: (pi.x + pv.x) / 2, z: (pi.z + pv.z) / 2 };
+
+        /*
+        QUEM SOFRE A FALTA CAI — ver QuedaClip e `iniciarQueda` (player.js).
+        Tem de ser ANTES do `triggerFreeKick` / `triggerPenalty`: a montagem do
+        lance escolhe o batedor e os lugares, e tem de saber que ele está no
+        chão. O ponto da falta já foi lido acima, com ele ainda de pé.
+        */
+        if (vitima.role !== 'gk' && typeof vitima.iniciarQueda === 'function') {
+            vitima.iniciarQueda(infractor);
+        }
+        const penalti = this.ehPenaltiNoLance(infractor, vitima);
+        if (penalti && typeof MatchStats !== 'undefined') MatchStats[vitima.team].penaltis++;
+        const montar = penalti
+            ? () => Match.triggerPenalty(vitima.team)
+            : () => Match.triggerFreeKick(vitima.team);
+        /*
+        Com queda, o lance monta-se A ANDAR: ninguem salta para o lugar, e so
+        depois de ele ficar deitado e que vao. Ver Match.montarBolaParadaAndada.
+        */
+        if (vitima.queda && typeof Match.montarBolaParadaAndada === 'function') {
+            Match.montarBolaParadaAndada(montar, vitima);
+        } else {
+            montar();
+        }
+
+        /*
+        O CARTAO POR CIMA DA FALTA, e nesta ordem: o `triggerFreeKick` /
+        `triggerPenalty` acima ja anunciou FOUL ou PENALTY, e o cartao e a
+        informacao mais forte das duas. Sem cartao fica o que o lance escreveu.
+        */
+        if (cartao === 'amarelo') this.anunciar('YELLOW CARD');
+        else if (cartao === 'vermelho') this.anunciar('RED CARD');
+        // E o gesto: ver mostrarCartao. Se não houver cerimónia, o vermelho sai já.
+        if (cartao && !this.mostrarCartao(infractor, cartao) && infractor.expulsaoPendente) {
+            infractor.expulsaoPendente = false;
+            this.expulsar(infractor);
+        }
+
+        if (typeof EventBus !== 'undefined') {
+            EventBus.emit('FOUL', {
+                infractor: infractor, vitima: vitima,
+                gravidade: gravidade, cartao: cartao
+            });
+        }
+    },
+
+    /*
+    Expulsa: o jogador sai da lista da equipa e vai para `Match.expulsos`.
+
+    Tirar da lista, em vez de lá deixar uma flag para toda a gente filtrar, é
+    a mesma escolha que o cabeçalho deste ficheiro explica para os árbitros:
+    quem não joga não anda nas listas de quem joga. Os outros dez MANTÊM as
+    posições que tinham — não há reorganização para 4-4-1, porque isso exigia
+    formações novas no FormationsData para cada posição perdida.
+    */
+    expulsar: function (p) {
+        if (!p || p.expulso) return;
+        p.expulso = true;
+        p.hasBall = false;
+        if (Match.ballCarrier === p) Match.ballCarrier = null;
+
+        const lista = (p.team === 'TeamA') ? Match.players : Match.opponents;
+        const i = lista.indexOf(p);
+        /*
+        Guarda o INDICE, nao so o jogador: ha codigo que indexa a lista por
+        posicao (a cobertura de estilos do js/simulate.js), e devolver o
+        expulso ao fim da lista trocava os indices de toda a gente a seguir.
+        Ver Match.reporExpulsos.
+        */
+        if (i >= 0) { p.indiceNaFormacao = i; lista.splice(i, 1); }
+
+        Match.expulsos = Match.expulsos || [];
+        Match.expulsos.push(p);
+        if (p.model) p.model.visible = false;
+
+        console.log('Officials: ' + p.team + ' (' + p.pos + ') EXPULSO, ficam ' +
+            lista.length + ' em campo.');
+    },
+
+    /*
+    FONTE A: o duelo perdido. Chamado pelo js/fsm.js quando um desarme ou um
+    carrinho falha — o desfecho já era conhecido ali, só não custava nada.
+    */
+    avaliarDueloPerdido: function (defensor, portador, tipo) {
+        if (typeof Match === 'undefined' || Match.state !== 'PLAY') return;
+        if (!defensor || !portador || defensor.expulso) return;
+
+        const F = RefereeModel.faltas;
+
+        /*
+        SEM CONTACTO NAO HA FALTA. Ver a nota do `raioDuelo`: o desfecho do
+        duelo e conhecido quando o carrinho parte, com o corpo ainda a
+        caminho, e apitava-se a 2.3 m de distancia.
+        */
+        if (defensor.model && portador.model) {
+            const dx = defensor.model.position.x - portador.model.position.x;
+            const dz = defensor.model.position.z - portador.model.position.z;
+            const raio = (typeof F.raioDuelo === 'number') ? F.raioDuelo : 1.6;
+            if (dx * dx + dz * dz > raio * raio) return;
+        }
+
+        let prob = (tipo === 'carrinho' ? F.probCarrinhoFalhado : F.probDesarmeFalhado) * F.escala;
+        // O MEDO DO ADVERTIDO, tambem fora do carrinho — ver cautelaDoAdvertido.
+        prob *= this._cautelaDe(defensor);
+        /*
+        CAUTELA NA AREA, tambem no duelo perdido (ver CautelaNaArea em
+        config/defense.js): o defensor que falha o desarme na propria area
+        recolhe a perna. O ponto e o mesmo com que se julga o penalti.
+        */
+        if (typeof CautelaNaArea !== 'undefined' && typeof CautelaNaArea.factorFaltaDuelo === 'number' &&
+            defensor.model && portador.model) {
+            const cx = (defensor.model.position.x + portador.model.position.x) / 2;
+            const cz = (defensor.model.position.z + portador.model.position.z) / 2;
+            if (this.ehPenalti(cx, cz, defensor.team)) prob *= CautelaNaArea.factorFaltaDuelo;
+        }
+        if (Math.random() >= prob) return;
+
+        this.marcarFalta(defensor, portador, Object.assign({
+            tipo: tipo,
+            velocidade: defensor.velocity ? defensor.velocity.length() : 0,
+            angulo: this._anguloDeAtaque(defensor, portador),
+            travouAtaque: this._ehAtaqueEmProgressao(portador)
+        }, this._skillsDe(defensor)));
+    },
+
+    /*
+    FONTE B: contacto sem tentativa de desarme — empurrões e choques. Corre
+    por frame, sobre os pares de adversários que estão perto.
+    */
+    detectarContactos: function (dt) {
+        if (typeof Match === 'undefined' || Match.state !== 'PLAY') return;
+        if (!this._arrefecimento) this.resetFaltas();
+
+        const C = RefereeModel.faltas.contacto;
+        const prob = C.prob * RefereeModel.faltas.escala * dt;
+
+        for (const [chave, t] of this._arrefecimento) {
+            const restante = t - dt;
+            if (restante <= 0) this._arrefecimento.delete(chave);
+            else this._arrefecimento.set(chave, restante);
+        }
+
+        const raio2 = C.raio * C.raio;
+        const raioDisputa2 = C.raioDisputa * C.raioDisputa;
+        for (const a of Match.players) {
+            for (const b of Match.opponents) {
+                const dx = a.model.position.x - b.model.position.x;
+                const dz = a.model.position.z - b.model.position.z;
+                if (dx * dx + dz * dz > raio2) continue;
+
+                // So conta como falta se a bola estiver perto do contacto —
+                // senao e um choque longe do lance, nao uma disputa.
+                if (Match.ball) {
+                    const mx = (a.model.position.x + b.model.position.x) * 0.5;
+                    const mz = (a.model.position.z + b.model.position.z) * 0.5;
+                    const my = (a.model.position.y + b.model.position.y) * 0.5;
+                    const dbx = Match.ball.position.x - mx;
+                    const dby = Match.ball.position.y - my;
+                    const dbz = Match.ball.position.z - mz;
+                    if (dbx * dbx + dby * dby + dbz * dbz > raioDisputa2) continue;
+                }
+
+                /*
+                COM A BOLA NAS MAOS DO GUARDA-REDES NAO HA DISPUTA. A bola esta
+                "perto do contacto" porque esta no peito dele, mas ninguem a
+                pode jogar. Medido a 4 de Outubro de 2026, 18 jogos: 3 penaltis
+                apitados contra o guarda-redes a SEGURAR a bola, por um choque
+                com um avancado que passava.
+                */
+                const comBolaNasMaos = (p) => p.role === 'gk' && p.hasBall &&
+                    (p.gkEstado === 'segurando' || p.gkEstado === 'apanhar' ||
+                     p.gkEstado === 'chutando' || p.gkEstado === 'lancando');
+                if (comBolaNasMaos(a) || comBolaNasMaos(b)) continue;
+
+                const chave = a.model.id + ':' + b.model.id;
+                if (this._arrefecimento.has(chave)) continue;
+
+                const vrx = (a.velocity ? a.velocity.x : 0) - (b.velocity ? b.velocity.x : 0);
+                const vrz = (a.velocity ? a.velocity.z : 0) - (b.velocity ? b.velocity.z : 0);
+                const vRel = Math.sqrt(vrx * vrx + vrz * vrz);
+                if (vRel < C.velRelMin) continue;
+
+                /*
+                CAUTELA NA AREA, tambem no corpo a corpo (ver CautelaNaArea em
+                config/defense.js). Quem vai mais depressa e o infractor (ver
+                mais abaixo), portanto a area que conta e a que ELE defende.
+                */
+                let probAqui = prob;
+                if (typeof CautelaNaArea !== 'undefined' &&
+                    typeof CautelaNaArea.factorContacto === 'number' &&
+                    typeof Area !== 'undefined' && typeof Area.contem === 'function') {
+                    const vA0 = a.velocity ? a.velocity.length() : 0;
+                    const vB0 = b.velocity ? b.velocity.length() : 0;
+                    const quemEntra = (vA0 >= vB0) ? a : b;
+                    const cx = (a.model.position.x + b.model.position.x) * 0.5;
+                    const cz = (a.model.position.z + b.model.position.z) * 0.5;
+                    if (Area.contem(cx, cz, -quemEntra.dirZ)) {
+                        probAqui *= CautelaNaArea.factorContacto;
+                    }
+                }
+                if (Math.random() >= probAqui) continue;
+
+                /*
+                Quem entra é quem vai mais depressa. Não é sempre verdade num
+                choque real, mas é o critério que não precisa de saber a
+                intenção de ninguém.
+                */
+                const vA = a.velocity ? a.velocity.length() : 0;
+                const vB = b.velocity ? b.velocity.length() : 0;
+                let infractor = (vA >= vB) ? a : b;
+                let vitima = (infractor === a) ? b : a;
+
+                /*
+                MAS A GEOMETRIA GANHA À VELOCIDADE quando um deles vem pelas
+                COSTAS do outro — ver `anguloPelasCostas`, que tem o relato e a
+                medição. Quem persegue pode ir mais devagar do que quem foge, e
+                punir o que vai à frente por levar um toque nas costas é o
+                contrário da regra.
+
+                O ângulo já era calculado aqui ao lado, para a gravidade — mas
+                SÓ DEPOIS de o infractor estar escolhido, portanto não chegava
+                a influenciar a escolha.
+                */
+                const limiteCostas = (typeof C.anguloPelasCostas === 'number')
+                    ? C.anguloPelasCostas : Infinity;
+                const aVemDeTras = this._anguloDeAtaque(a, b) > limiteCostas;
+                const bVemDeTras = this._anguloDeAtaque(b, a) > limiteCostas;
+                // Só quando é um SÓ deles: de frente um para o outro os dois
+                // dariam verdade, e aí não há nada a corrigir.
+                if (aVemDeTras !== bVemDeTras) {
+                    infractor = aVemDeTras ? a : b;
+                    vitima = (infractor === a) ? b : a;
+                }
+
+                /*
+                E O ADVERTIDO TAMBEM SE CONTEM NOS CHOQUES. Um homem com
+                amarelo nao entra num choque que nao precisa de entrar — ver
+                `cautelaDoAdvertido`.
+                */
+                if (Math.random() >= this._cautelaDe(infractor)) continue;
+
+                this._arrefecimento.set(chave, C.arrefecimento);
+                this.marcarFalta(infractor, vitima, Object.assign({
+                    tipo: 'contacto',
+                    velocidade: vRel,
+                    angulo: this._anguloDeAtaque(infractor, vitima),
+                    travouAtaque: this._ehAtaqueEmProgressao(vitima)
+                }, this._skillsDe(infractor)));
+                return;   // uma falta por frame chega
+            }
+        }
+    },
+
+    // Ângulo entre a frente da vítima e a direcção de onde o infractor vem:
+    // 0 de frente, PI pelas costas.
+    _anguloDeAtaque: function (infractor, vitima) {
+        const vv = vitima.velocity;
+        let fx, fz;
+        if (vv && (vv.x * vv.x + vv.z * vv.z) > 0.1) {
+            const n = Math.sqrt(vv.x * vv.x + vv.z * vv.z);
+            fx = vv.x / n; fz = vv.z / n;
+        } else {
+            _v1.set(0, 0, 1).applyQuaternion(vitima.model.quaternion);
+            fx = _v1.x; fz = _v1.z;
+        }
+        let dx = infractor.model.position.x - vitima.model.position.x;
+        let dz = infractor.model.position.z - vitima.model.position.z;
+        const d = Math.sqrt(dx * dx + dz * dz) || 1;
+        dx /= d; dz /= d;
+        return Math.acos(THREE.MathUtils.clamp(fx * dx + fz * dz, -1, 1));
+    },
+
+    /*
+    Skills do infractor que pesam na gravidade. Se o jogador não tiver
+    `skillFor` — os árbitros não têm, e um Match de teste pode não ter —
+    devolve vazio, e a gravidade usa a média.
+    */
+    _skillsDe: function (p) {
+        if (!p || typeof p.skillFor !== 'function') return {};
+        return { marcacao: p.skillFor('MARKING'), forca: p.skillFor('STRENGTH') };
+    },
+
+    /*
+    O ATAQUE ERA PROMISSOR? — a condicao da Lei 12 para a advertencia.
+
+    Era `velocidade para a frente > 3 m/s` da vitima, e mais nada: qualquer
+    jogador a trotar em frente, com a bola do outro lado do campo, contava como
+    ataque travado. Medido: 53% de TODAS as faltas, o que e cinco vezes o que
+    um jogo a serio tem. Um ataque promissor tem a bola: a vitima e o portador
+    (ou o destinatario de um passe em voo), vai para a frente, e vai a caminho
+    da baliza adversaria — uma falta na propria area de canto nao para ataque
+    nenhum.
+    */
+    _ehAtaqueEmProgressao: function (vitima) {
+        if (!vitima || !vitima.velocity) return false;
+        if (typeof Match === 'undefined' || !Match) return false;
+
+        // A bola tem de ser dela: portador, ou destinatario do passe em voo.
+        const temABola = (Match.ballCarrier === vitima) || (Match.intendedReceiver === vitima);
+        if (!temABola) return false;
+
+        // E tem de ir para a frente, no referencial de quem ataca.
+        const vz = vitima.velocity.z * (vitima.dirZ || 1);
+        if (vz <= RefereeModel.faltas.velMinAtaquePromissor) return false;
+
+        // E ja na metade de quem ataca ou perto dela: um ataque que ainda vai
+        // no proprio meio-campo nao esta a ser travado a caminho do golo.
+        const z = vitima.model ? vitima.model.position.z * (vitima.dirZ || 1) : 0;
+        return z > -RefereeModel.faltas.zMinAtaquePromissor;
+    }
+};

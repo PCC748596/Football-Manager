@@ -1,0 +1,307 @@
+{
+  "seed": 20260804,
+  "matches": 760,
+  "checks": [
+    {
+      "group": "INVARIANTES",
+      "name": "Placar nunca é null/undefined",
+      "ok": true,
+      "got": "ok",
+      "want": "ok"
+    },
+    {
+      "group": "INVARIANTES",
+      "name": "Estatísticas nunca são NaN",
+      "ok": true,
+      "got": "ok",
+      "want": "ok"
+    },
+    {
+      "group": "INVARIANTES",
+      "name": "Nenhum cartão vermelho com id vazio",
+      "ok": true,
+      "got": "ok",
+      "want": "ok"
+    },
+    {
+      "group": "INVARIANTES",
+      "name": "Notas dentro de 0–10",
+      "ok": true,
+      "got": "ok",
+      "want": "ok"
+    },
+    {
+      "group": "INVARIANTES",
+      "name": "Nenhuma narração com \"undefined\"",
+      "ok": true,
+      "got": "ok",
+      "want": "ok"
+    },
+    {
+      "group": "INVARIANTES",
+      "name": "Nenhum evento com jogador inexistente",
+      "ok": true,
+      "got": "ok",
+      "want": "ok"
+    },
+    {
+      "group": "INVARIANTES",
+      "name": "Eventos dentro da janela 0–120min",
+      "ok": true,
+      "got": "ok",
+      "want": "ok"
+    },
+    {
+      "group": "INVARIANTES",
+      "name": "Motor não altera team.lineup global",
+      "ok": true,
+      "got": "ok",
+      "want": "ok"
+    },
+    {
+      "group": "INVARIANTES",
+      "name": "Motor não altera team.tactics global",
+      "ok": true,
+      "got": "ok",
+      "want": "ok"
+    },
+    {
+      "group": "INVARIANTES",
+      "name": "Máximo de 5 substituições por time",
+      "ok": true,
+      "got": "ok",
+      "want": "ok"
+    },
+    {
+      "group": "INVARIANTES",
+      "name": "Lesão grave tira o jogador de campo",
+      "ok": true,
+      "got": "ok",
+      "want": "ok"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Gols por jogo",
+      "ok": true,
+      "got": "2.41",
+      "want": "2.3–2.9"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Gols do mandante",
+      "ok": true,
+      "got": "1.44",
+      "want": "1.2–1.7"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Gols do visitante",
+      "ok": true,
+      "got": "0.97",
+      "want": "0.95–1.4"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Vitórias do mandante %",
+      "ok": true,
+      "got": "48.29%",
+      "want": "40–52%"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Empates %",
+      "ok": true,
+      "got": "27.11%",
+      "want": "22–32%"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Vitórias do visitante %",
+      "ok": true,
+      "got": "24.61%",
+      "want": "22–33%"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Posse do mandante %",
+      "ok": true,
+      "got": "53.52%",
+      "want": "50–55%"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Chutes por jogo",
+      "ok": true,
+      "got": "20.30",
+      "want": "18–27"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Chutes no gol por jogo",
+      "ok": true,
+      "got": "7.44",
+      "want": "6–10"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "xG por jogo",
+      "ok": true,
+      "got": "2.27",
+      "want": "2–3"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Desvio xG vs gols reais",
+      "ok": true,
+      "got": "0.13",
+      "want": "0–0.45"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Escanteios por jogo",
+      "ok": true,
+      "got": "8.68",
+      "want": "8–12"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Faltas por jogo",
+      "ok": true,
+      "got": "27.38",
+      "want": "22–32"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Cartões amarelos por jogo",
+      "ok": true,
+      "got": "4.55",
+      "want": "3.5–6"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Cartões vermelhos por jogo",
+      "ok": true,
+      "got": "0.29",
+      "want": "0.12–0.45"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Impedimentos por jogo",
+      "ok": true,
+      "got": "2.84",
+      "want": "1.8–3.6"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Pênaltis por jogo",
+      "ok": true,
+      "got": "0.31",
+      "want": "0.15–0.45"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Lesões por jogo",
+      "ok": true,
+      "got": "0.85",
+      "want": "0.4–1.6"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Substituições por jogo",
+      "ok": true,
+      "got": "5.87",
+      "want": "4–10"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Nota média dos jogadores",
+      "ok": true,
+      "got": "6.18",
+      "want": "5.8–7"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Quem abre o placar vence %",
+      "ok": true,
+      "got": "71.57%",
+      "want": "62–78%"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Jogos 0 gols %",
+      "ok": true,
+      "got": "9.74%",
+      "want": "4–12%"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Jogos 5+ gols %",
+      "ok": true,
+      "got": "10.13%",
+      "want": "3–12%"
+    },
+    {
+      "group": "CALIBRAÇÃO",
+      "name": "Gols após os 60min %",
+      "ok": true,
+      "got": "36.23%",
+      "want": "36–50%"
+    },
+    {
+      "group": "SENSIBILIDADE",
+      "name": "Melhor(casa) x Pior — vitórias %",
+      "ok": true,
+      "got": "63.33%",
+      "want": "62–88%"
+    },
+    {
+      "group": "SENSIBILIDADE",
+      "name": "Medianos — vitórias %",
+      "ok": true,
+      "got": "47.33%",
+      "want": "38–55%"
+    },
+    {
+      "group": "SENSIBILIDADE",
+      "name": "Pior(casa) x Melhor — vitórias %",
+      "ok": false,
+      "got": "38.00%",
+      "want": "15–36%"
+    },
+    {
+      "group": "SENSIBILIDADE",
+      "name": "Vantagem do elenco forte (p.p.)",
+      "ok": true,
+      "got": "16.00",
+      "want": "15–100"
+    },
+    {
+      "group": "SENSIBILIDADE",
+      "name": "Amplitude de OVR da liga",
+      "ok": true,
+      "got": "8.27",
+      "want": "informativo"
+    },
+    {
+      "group": "SENSIBILIDADE",
+      "name": "Nenhum arranjo de setor domina (amplitude p.p.)",
+      "ok": true,
+      "got": "11.25",
+      "want": "0–12"
+    },
+    {
+      "group": "INVARIANTES",
+      "name": "Determinismo (mesma seed => mesmo resultado)",
+      "ok": true,
+      "got": "ok",
+      "want": "ok"
+    },
+    {
+      "group": "INVARIANTES",
+      "name": "Ratings de setor finitos e positivos",
+      "ok": true,
+      "got": "ok",
+      "want": "ok"
+    }
+  ]
+}

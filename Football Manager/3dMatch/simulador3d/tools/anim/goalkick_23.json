@@ -1,0 +1,73 @@
+{
+ "nome": "GoalKick3 - contacto, vista de tras a tres quartos (principal 9)",
+ "imagem": "referencias/goalkick_23.png",
+ "bola": [
+  46,
+  100,
+  10
+ ],
+ "juntas": {
+  "cabeca": [
+   111,
+   18
+  ],
+  "pescoco": [
+   107,
+   30
+  ],
+  "anca": [
+   97,
+   62
+  ],
+  "ombroE": [
+   99,
+   34
+  ],
+  "cotoveloE": [
+   104,
+   45
+  ],
+  "maoE": [
+   106,
+   52
+  ],
+  "ombroD": [
+   112,
+   34
+  ],
+  "cotoveloD": [
+   116,
+   44
+  ],
+  "maoD": [
+   113,
+   52
+  ],
+  "joelhoChute": [
+   76,
+   82
+  ],
+  "tornozeloChute": [
+   69,
+   104
+  ],
+  "bicoChute": [
+   65,
+   109
+  ],
+  "joelhoApoio": [
+   92,
+   86
+  ],
+  "tornozeloApoio": [
+   84,
+   108
+  ],
+  "bicoApoio": [
+   80,
+   112
+  ]
+ },
+ "frente": "esquerda",
+ "leitura": "Corrigida a 2 de Outubro de 2026: ordem 24 -> 26 -> 23 -> 25, confirmada pelo autor. Os nomes Chute/Apoio estavam trocados no tracado de Setembro. "
+}

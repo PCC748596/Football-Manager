@@ -1,0 +1,73 @@
+{
+ "nome": "GoalKick2 - balanco atras, pe de apoio ao lado da bola (principal 5)",
+ "imagem": "referencias/goalkick_26.png",
+ "bola": [
+  33,
+  106,
+  12
+ ],
+ "juntas": {
+  "cabeca": [
+   107,
+   22
+  ],
+  "pescoco": [
+   106,
+   39
+  ],
+  "anca": [
+   105,
+   66
+  ],
+  "ombroE": [
+   92,
+   40
+  ],
+  "cotoveloE": [
+   77,
+   39
+  ],
+  "maoE": [
+   66,
+   38
+  ],
+  "ombroD": [
+   120,
+   40
+  ],
+  "cotoveloD": [
+   135,
+   41
+  ],
+  "maoD": [
+   145,
+   40
+  ],
+  "joelhoChute": [
+   130,
+   67
+  ],
+  "tornozeloChute": [
+   150,
+   63
+  ],
+  "bicoChute": [
+   158,
+   62
+  ],
+  "joelhoApoio": [
+   82,
+   82
+  ],
+  "tornozeloApoio": [
+   66,
+   106
+  ],
+  "bicoApoio": [
+   56,
+   112
+  ]
+ },
+ "frente": "esquerda",
+ "leitura": "Corrigida a 2 de Outubro de 2026: ordem 24 -> 26 -> 23 -> 25, confirmada pelo autor. Os nomes Chute/Apoio estavam trocados no tracado de Setembro. "
+}

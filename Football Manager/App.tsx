@@ -1,0 +1,312 @@
+
+import React, { useState, useRef, useEffect } from 'react';
+import { GameProvider, useGame } from './context/GameContext';
+import Layout from './components/Layout';
+import SquadView from './components/SquadView';
+import LeagueTable from './components/LeagueTable';
+import TacticsView from './components/TacticsView';
+import FixturesView from './components/FixturesView';
+import FinancesView from './components/FinancesView';
+import TrainingView from './components/TrainingView';
+import DashboardView from './components/DashboardView';
+import MatchDay from './components/MatchDay';
+import MatchRoundView from './components/MatchRoundView';
+import SettingsView from './components/SettingsView';
+import StatisticsView from './components/StatisticsView';
+import { COUNTRIES, generateLeagueData } from './textSim/dataGenerator';
+import { Team, GameState } from './types';
+import { TeamShield } from './components/TeamShield';
+import EditorApp from './components/EditorApp';
+
+// -- Sub-components --
+
+const StartMenu: React.FC<{ onNewGame: () => void, onContinue: () => void, onSettings: () => void, onEditor: () => void }> = ({ onNewGame, onContinue, onSettings, onEditor }) => {
+  const { t } = useGame();
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-4 bg-black transition-colors duration-300 overflow-hidden relative">
+       {/* Background: Just solid black or very dark slate as requested (removed football field image) */}
+       <div className="absolute inset-0 bg-slate-950 z-0"></div>
+       
+       <div className="w-full max-w-sm space-y-12 flex flex-col items-center relative z-10">
+          <div className="animate-fade-in flex flex-col items-start w-fit">
+            <h1 className="text-7xl font-black text-white mb-0 tracking-tighter italic leading-none drop-shadow-2xl">
+              FOOTMANAGER
+            </h1>
+            <p className="text-blue-500 text-[10px] tracking-[0.5em] font-black uppercase mt-1 drop-shadow-md">Ultimate Manager 2025</p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 w-full max-w-[320px]">
+            <button 
+              onClick={onNewGame}
+              className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xl py-4 px-8 rounded shadow-xl transition-all hover:scale-[1.02] active:scale-95 border-b-4 border-blue-800"
+            >
+              {t('start_new')}
+            </button>
+            <button 
+              onClick={onContinue}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xl py-4 px-8 rounded transition-all border-b-4 border-emerald-800 hover:scale-[1.02] active:scale-95 shadow-lg"
+            >
+              {t('start_continue')}
+            </button>
+            <button onClick={onEditor} className="bg-slate-900/80 backdrop-blur-sm text-slate-600 hover:text-white font-bold text-lg py-3 px-8 rounded border border-slate-800 hover:bg-slate-800 transition-all">{t('start_editor')}</button>
+            <button 
+              onClick={onSettings}
+              className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-lg py-3 px-8 rounded transition-all border-b-4 border-slate-900 shadow-sm"
+            >
+              {t('start_settings')}
+            </button>
+          </div>
+
+          <div className="text-center text-slate-500 text-[8px] font-mono tracking-widest uppercase mt-8 opacity-70 bg-black/40 px-2 py-1 rounded backdrop-blur-sm border border-white/5">
+            BUILD 2025.01.BETA • FILE SYSTEM ENABLED
+          </div>
+       </div>
+    </div>
+  );
+};
+
+const ManagerCreation: React.FC<{ onNext: (name: string) => void, onBack: () => void }> = ({ onNext, onBack }) => {
+  const { t } = useGame();
+  const [name, setName] = useState('');
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name.trim()) onNext(name.trim());
+  };
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-white dark:bg-manager-bg transition-colors duration-300">
+      <div className="w-full max-w-2xl bg-slate-50 dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-lg p-12 shadow-2xl transition-colors duration-300">
+        <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-8 text-center uppercase tracking-tight">{t('prof_title')}</h2>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div>
+            <label className="block text-xs font-bold text-blue-600 dark:text-blue-400 mb-3 uppercase tracking-widest">{t('prof_name_label')}</label>
+            <input 
+              type="text" 
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t('prof_placeholder')}
+              className="w-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-sm px-6 py-5 text-2xl text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-bold"
+              required
+              autoFocus
+            />
+          </div>
+          <div className="flex gap-4 pt-4">
+            <button 
+              type="button" 
+              onClick={onBack}
+              className="flex-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 font-black py-5 rounded-sm transition-all text-xl uppercase"
+            >
+              {t('prof_cancel')}
+            </button>
+            <button 
+              type="submit" 
+              className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-sm transition-all shadow-lg text-xl uppercase disabled:opacity-50"
+              disabled={!name.trim()}
+            >
+              {t('prof_continue')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+interface SelectionProps {
+  managerName: string;
+  onSelectTeam: (teamId: string, countryId: string, leagueId: string) => void;
+  onBack: () => void;
+}
+
+const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, onBack }) => {
+  const { t } = useGame();
+  const [selectedCountryId, setSelectedCountryId] = useState<string>('brazil');
+  const [selectedLeagueId, setSelectedLeagueId] = useState<string>('bra_serie_a');
+  const [previewTeams, setPreviewTeams] = useState<Team[]>([]);
+  
+  useEffect(() => {
+    if (selectedCountryId && selectedLeagueId) {
+      const { teams } = generateLeagueData(selectedCountryId, selectedLeagueId);
+      setPreviewTeams(teams);
+    }
+  }, [selectedCountryId, selectedLeagueId]);
+
+  const activeCountry = COUNTRIES.find(c => c.id === selectedCountryId);
+
+  const handleCountrySelect = (id: string) => {
+    setSelectedCountryId(id);
+    const country = COUNTRIES.find(c => c.id === id);
+    if (country && country.leagues.length > 0) {
+      setSelectedLeagueId(country.leagues[0].id);
+    }
+  };
+
+  const sortedTeams = [...previewTeams].sort((a, b) => a.name.localeCompare(b.name));
+
+  return (
+    <div className="w-full h-full flex flex-col p-8 bg-white dark:bg-manager-bg transition-colors duration-300">
+      <div className="flex justify-between items-center mb-8 bg-slate-50 dark:bg-slate-800/50 p-6 rounded border border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-sm">
+        <div className="flex items-center gap-6">
+          <button onClick={onBack} className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white flex items-center gap-2 font-bold uppercase text-sm transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            {t('sel_back')}
+          </button>
+          <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-700"></div>
+          <div>
+             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase transition-colors">{t('sel_title')}</h1>
+             <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest">Manager: {managerName}</p>
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 flex gap-6 min-h-0 overflow-hidden">
+        <div className="w-1/4 flex flex-col gap-4">
+          <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step1')}</div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+            {COUNTRIES.map(country => (
+              <button key={country.id} onClick={() => handleCountrySelect(country.id)} className={`w-full text-left p-3 rounded border-2 transition-all flex items-center justify-between group ${selectedCountryId === country.id ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-blue-400'}`}>
+                <span className={`text-lg font-black uppercase ${selectedCountryId === country.id ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>{country.name}</span>
+                <div className={`w-2 h-2 rounded-full ${selectedCountryId === country.id ? 'bg-white' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="w-1/4 flex flex-col gap-4">
+          <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step2')}</div>
+          <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+              {activeCountry?.leagues.map(league => (
+                <button key={league.id} onClick={() => setSelectedLeagueId(league.id)} className={`w-full text-left p-3 rounded border-2 transition-all group ${selectedLeagueId === league.id ? 'bg-emerald-600 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-emerald-400'}`}>
+                  <span className={`text-lg font-black uppercase ${selectedLeagueId === league.id ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>{league.name}</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedLeagueId === league.id ? 'bg-emerald-400 text-emerald-900' : 'bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500'}`}>DIV {league.tier}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="px-2 pb-2">
+              <div className="text-blue-600 dark:text-blue-400 font-black text-xs uppercase italic tracking-widest border-t border-slate-100 dark:border-slate-800 pt-3 transition-colors">
+                {selectedLeagueId === 'bra_serie_a' ? 'BRASILEIRÃO SÉRIE A.' : selectedLeagueId === 'bra_serie_b' ? 'BRASILEIRÃO SÉRIE B.' : 'PREMIER LEAGUE'}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 flex flex-col gap-4">
+          <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step3')}</div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+            <div className="grid grid-cols-2 gap-2 content-start">
+              {sortedTeams.map(team => (
+                <button key={team.id} onClick={() => onSelectTeam(team.id, selectedCountryId, selectedLeagueId)} className="bg-slate-50 dark:bg-slate-900/60 border-2 border-slate-200 dark:border-slate-800 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 py-3 px-4 rounded transition-all group text-left flex items-center justify-between shadow-sm">
+                   <div className="flex items-center gap-4">
+                      <TeamShield team={team} className="w-8 h-10" />
+                      <div>
+                        <div className="text-xl font-black text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase truncate max-w-[300px] leading-tight">{team.name}</div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase">Rep: {team.strength} OVR</div>
+                      </div>
+                   </div>
+                   <div className="text-right">
+                      <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 bg-white dark:bg-slate-950 px-2 py-1 rounded transition-colors uppercase tracking-widest border border-slate-200 dark:border-slate-800 shadow-sm">{t('sel_join')}</div>
+                   </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const GameContainer: React.FC = () => {
+  const { gameState, startGame, importGameData, t } = useGame();
+  const [appPhase, setAppPhase] = useState<'MENU' | 'CREATE_MANAGER' | 'SELECT_TEAM' | 'GAME' | 'SETTINGS' | 'EDITOR'>('MENU');
+  const [tempManagerName, setTempManagerName] = useState('');
+  const [view, setView] = useState<GameState['view']>('DASHBOARD');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleNewGame = () => setAppPhase('CREATE_MANAGER');
+  
+  const handleContinue = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (importGameData(content)) {
+        setAppPhase('GAME');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleManagerCreated = (name: string) => {
+    setTempManagerName(name);
+    setAppPhase('SELECT_TEAM');
+  };
+  const handleTeamSelected = (teamId: string, countryId: string, leagueId: string) => {
+    startGame(teamId, tempManagerName, countryId, leagueId);
+    setAppPhase('GAME');
+  };
+
+  return (
+    <div className="game-container shadow-2xl overflow-hidden relative transition-colors duration-300">
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        accept=".json" 
+        className="hidden" 
+      />
+      
+      {appPhase === 'MENU' && <StartMenu onNewGame={handleNewGame} onContinue={handleContinue} onSettings={() => setAppPhase('SETTINGS')} onEditor={() => setAppPhase('EDITOR')} />}
+      {appPhase === 'EDITOR' && <EditorApp onClose={() => setAppPhase('MENU')} />}
+      {appPhase === 'SETTINGS' && (
+        <div className="w-full h-full flex flex-col p-8 bg-slate-50 dark:bg-manager-bg transition-colors duration-300 overflow-y-auto custom-scrollbar">
+           <SettingsView onBack={() => setAppPhase('MENU')} />
+        </div>
+      )}
+      {appPhase === 'CREATE_MANAGER' && <ManagerCreation onNext={handleManagerCreated} onBack={() => setAppPhase('MENU')} />}
+      {appPhase === 'SELECT_TEAM' && <TeamSelection managerName={tempManagerName} onSelectTeam={handleTeamSelected} onBack={() => setAppPhase('CREATE_MANAGER')} />}
+      
+      {appPhase === 'GAME' && gameState.userTeamId && (
+        <Layout setView={setView} currentView={view}>
+            {view === 'TRAINING' && <MatchRoundView setView={setView} />}
+            {view === 'MATCH' && <MatchDay setView={setView} />}
+            {view === 'DASHBOARD' && (
+              <DashboardView 
+                onGoToRoundSimulation={() => setView('TRAINING')} 
+                onGoToMatchDay={() => setView('MATCH')} 
+              />
+            )}
+            {view === 'SQUAD' && (
+              <SquadView 
+                onGoToRoundSimulation={() => setView('TRAINING')} 
+                onGoToMatchDay={() => setView('MATCH')} 
+              />
+            )}
+            {view === 'LEAGUE' && <LeagueTable />}
+            {view === 'TACTICS' && <TacticsView setView={setView} />}
+            {view === 'TRAINING_VIEW' && <TrainingView />}
+            {view === 'FIXTURES' && <FixturesView />}
+            {view === 'FINANCES' && <FinancesView />}
+            {view === 'STATISTICS' && <StatisticsView />}
+            {view === 'SETTINGS' && <SettingsView />}
+        </Layout>
+      )}
+    </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <GameProvider>
+      <GameContainer />
+    </GameProvider>
+  );
+};
+
+export default App;

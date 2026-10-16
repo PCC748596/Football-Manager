@@ -1,0 +1,6 @@
+{
+  "name": "simulador3d",
+  "private": true,
+  "type": "commonjs",
+  "description": "O simulador 3D do Football Manager (scripts classicos, sem build). Testes e ferramentas em tests/ e tools/ (precisam de jsdom, ver o package.json do manager)."
+}

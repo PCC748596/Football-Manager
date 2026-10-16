@@ -1,0 +1,121 @@
+I understand perfectly. You want to transform the match engine into a Deterministic Event-Driven System.
+
+Instead of the ball wandering around and hoping a goal happens, the engine will first decide what will happen in that minute/tick based on realistic statistical probabilities, and then the field visualization will simply execute that decision.
+
+Here is the implementation plan for this structural change:
+
+Implementation Plan: Deterministic Football Engine
+
+1. The Probability Matrix (Statistical Foundation)
+We will define a MatchDecisionMatrix where every outcome has a weighted probability per game minute. Based on your provided averages, the targets for a 90-minute match are:
+
+Event Type		Target (Per Match)	Weight (Per Minute)	Note
+GOAL			2.6			~2.9%			Influenced by Attack/Defense ratings
+MISS (Chute Fora)	8.0			~8.9%	
+SAVE (Defesa GK)	6.0			~6.7%			Influenced by GK rating
+CORNER			10.0			~11.1%	
+FOUL			22.0			~24.4%	
+YELLOW CARD		4.5			~5.0%			(Subset of Foul logic)
+RED CARD		0.2			~0.2%			Game changer
+OFFSIDE			4.0			~4.4%			
+PENALTY			0.25			~0.3%			High impact
+TACKLE (Corte)		30.0			~33.3%			Ball recovery
+PASS (Lançamento)	400.0			>100%			Background flow (multiple per tick)
+
+2. Phase A: The "Decision Maker" (The Brain)
+At each simulation step (4 ticks per minute), the engine will:
+
+Determine Possession State: Based on Midfield ratings.
+Event Roll: Generate a random number [0..1] and map it to the Matrix above.
+Tactical Scaling: If a GOAL is rolled, the engine compares Home Attack vs Away Defense. If the defender wins, the event is downgraded to a SAVE, CORNER, or TACKLE.
+Action Buffer: Every minute will now strive to have 4 clear actions represented (as you requested), ensuring the narration bar never goes quiet.
+
+3. Phase B: The "Visual Executor" (The Pitch)
+The 2D Tactical Pitch will no longer try to "invent" movement. It will:
+
+Receive the command: EXECUTE GOAL for HOME.
+Move the ball linearly to Tier 4 (Attack), then to the Net.
+Trigger the "GOAL" animation.
+Receive the command: EXECUTE CUT for AWAY.
+Move the ball to MID Tier, then reset it to a defender.
+
+4. Phase C: Tactical Connection
+Offensive Style: Increases the probability of GOAL/MISS/SAVE rolls by 20%.
+Defensive Style: Increases the probability of TACKLE/FOUL rolls by 20%.
+High Pressure: Increases the probability of TACKLE but also FOUL and YELLOW CARD.
+
+===================================================================================
+
+Entendido. Vamos focar na Inteligência de Decisão (o cérebro) primeiro, garantindo que os resultados finais e a frequência de eventos (gols, cartões e faltas) estejam equilibrados e realistas.
+
+Plano de Implementação (Fase 1: Balanço de Decisão):
+Refatoração do MatchEngine:
+
+Criaremos um Sorteador de Destino para o minuto.
+No início de cada minuto (ou grupo de ticks), o motor decide: "Este minuto terminará em GOL".
+Tabela de Pesos Base:
+
+Goal: ~3% (para dar a média de 2.7 por jogo).
+Miss/Save: ~15% (ataques que não entram).
+Foul/Card: ~22% (distribuído entre amarelo/vermelho).
+Corner: ~14%
+Offside: ~4%
+Nothing: ~42% (apenas passes e controle de bola).
+Encadeamento de Consequências:
+
+Se o destino for GOAL, o MatchEvent será gravado.
+A lógica das 4 ações de movimento (a "historinha" da bolinha) será gerada para servir esse resultado final, mas faremos isso em seguida como você pediu.
+
+============================================================================
+
+Evento                     Chance (%)
+
+Passe/posse neutra         32%
+Finalização                26%
+Falta                      17%
+Escanteio                  8%
+Impedimento                4%
+Cartão amarelo             3%
+Cartão vermelho            1%
+Lesão                      1%
+Saída de bola Lateral      4%
+⚽ 🔁 Eventos derivados (IMPORTANTE)
+
+Alguns eventos não entram direto no sorteio principal:
+
+Quando cair Finalização (26%):
+Gol → 10%
+Defesa → 30%
+Fora/trave → 50%
+Escanteio → 10%
+
+👉 Isso gera:
+
+~2,6 gols por jogo ✔️
+~7 defesas ✔️
+~10 escanteios (somando diretos + derivados) ✔️
+Quando cair Falta (20%):
+Sem cartão → 80%
+Cartão amarelo → 18%
+Cartão vermelho → 2%
+
+👉 Mantém:
+
+~4 amarelos
+Vermelho raro ✔️
+🧠 Interpretação rápida
+Eventos neutros (32%) → controlam o ritmo (essencial pro realismo)
+Finalizações (26%) → garantem jogo ativo
+Faltas (20%) → deixam o jogo “travado” como na vida real
+Eventos raros (cartões, lesões) → dão imprevisibilidade
+
+============================================================
+
+Tá tendo muito gol. O contra ataque aumentou as chances de gol.
+O contra ataque leva a finalização, que leva ao gol.
+A posse é que vai fazer a bolinha se movimentar pelo campo de forma apropriada.
+A posse deveria ser pra frente, lateral, recuada ou Roubada. Pra esquerda ou para direita.
+
+O campo deverá ter 23 pontos; 
+Os 21 do centro dos tiles e os 2 gols.
+O primeiro evento do jogo tem que ser [Kickoff]. Assim a bolinha vai se movimentar para a defesa do time.

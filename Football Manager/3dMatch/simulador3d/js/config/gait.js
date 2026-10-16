@@ -1,0 +1,435 @@
+/*
+=============================================================================
+CONFIG: PASSADA E CADÊNCIA (GAIT)
+=============================================================================
+Modelos de marcha, corrida, rotação, cadência e salto para cabeceio.
+=============================================================================
+*/
+
+const TurnModel = {
+    base: 12.0,
+    comBola: 9.0
+};
+
+const LateralGait = {
+    anguloMin: 35 * Math.PI / 180,   // desvio entre a frente do corpo e o movimento
+    velViragem: 3.6,                 // m/s acima dos quais o corpo roda para o movimento
+    reducaoPassada: 0.65,            // quanto encolhe a passada no passo lateral
+    abertura: 0.30                   // abdução/adução da anca no passo lateral (rad, limite 45°)
+};
+
+const GaitModel = {
+    /*
+    QUASE PARADO. Não é um andamento — é o extremo de baixo da mistura, e
+    existe porque não existia: abaixo de `andar.vel` o `misturarAndamento`
+    devolvia o andar INTEIRO, com a coxa a oscilar 22.9 graus a 0.05 m/s
+    exactamente como a 1.8 m/s.
+
+    O custo disso era a VIBRAÇÃO no lugar. O `animateBones` troca de ramo aos
+    0.1 m/s: abaixo escreve a pose neutra com lerp, acima escreve a passada
+    inteira com set directo. Com a amplitude a não decair, atravessar esse
+    limiar era saltar entre uma passada completa e estar de pé — e quem espera
+    um passe atravessa-o o tempo todo (medido: 14.8 travessias por
+    jogador-minuto, com o jogador praticamente quieto).
+
+    Com isto a amplitude vai a zero com a velocidade e a troca de ramo deixa de
+    se ver. A `passada` NÃO vai a zero: é o avanço por ciclo, e é ela que
+    divide a cadência (`animTimer += vel * dt / passada`).
+
+    O `joelhoBase` fica: é a flexão mínima de quem está de pé, não parte da
+    passada.
+    */
+    parado: {
+        vel: 0.0,
+        passada: 1.55,        // igual à do andar: não é amplitude, é cadência
+        anca: 0.0,
+        joelhoBase: 0.06,     // de pé, o joelho não está trancado
+        joelhoOscila: 0.0,
+        pe: 0.0,
+        braco: 0.0,
+        cotovelo: -0.30,      // os braços ficam ligeiramente para a frente de pé (idle)
+        tronco: 0.0,
+        ressalto: 0.0,
+        /*
+        A QUE ALTURA O CORPO ASSENTA NESTE ANDAMENTO.
+
+        Medido: o corpo flutua mais a CORRER do que parado — a mediana do
+        ponto mais baixo passa de +6.1 cm parado para +10.8 cm a correr, e
+        74% das leituras a correr estao mais de 5 cm acima do relvado. Nao
+        e o sitio onde o corpo esta (o `model.position.y` e o mesmo nos tres
+        andamentos): e a POSE, que a correr dobra e levanta as duas pernas.
+
+        `descida` e o que o corpo baixa NESTE andamento, misturado com a
+        velocidade como todo o resto (ver misturarAndamento). Parado e zero,
+        que e o caso que ja estava aprovado.
+        */
+        descida: 0.0
+    },
+    andar: {
+        vel: 1.8,             // velocidade típica deste andamento (m/s)
+        passada: 1.55,        // metros por ciclo completo
+        anca: 0.40,           // amplitude da coxa (rad)
+        joelhoBase: 0.06,     // flexão mínima, mesmo na perna de apoio
+        joelhoOscila: 0.55,   // flexão adicional na fase de balanço
+        pe: 0.18,
+        braco: 0.16,          // a andar os braços quase não se mexem
+        cotovelo: -0.22,      // e vão quase esticados
+        tronco: 0.05,         // a prumo
+        descida: 0.0,          // a andar flutua-se MENOS do que parado (medido)
+        ressalto: 0.015       // meia-amplitude da subida/descida da anca (m)
+    },
+    trote: {
+        vel: 4.5,
+        passada: 2.90,
+        anca: 0.67,           // ver a nota da `anca` em `correr`
+        joelhoBase: 0.12,
+        joelhoOscila: 1.15,
+        pe: 0.30,
+        braco: 0.52,
+        cotovelo: -0.95,
+        tronco: 0.15,
+        descida: 0.065,
+        ressalto: 0.028
+    },
+    correr: {
+        vel: 8.0,
+        passada: 4.40,
+        /*
+        AMPLITUDE DA COXA — e é ela que decide quanto as pernas abrem.
+
+        Relato: *"durante a corrida as pernas estão abrindo demais na posição
+        mais afastada entre elas; reduzir uns 40 cm"*. Medido com
+        `tools/scratch/passada_abertura.js`, que percorre o ciclo inteiro e lê
+        a distância pé-a-pé na direção da marcha, a 8 m/s:
+
+            anca 1.20  ->  1.54 m   (o que estava)
+            anca 0.97  ->  1.37 m   <- escolhido
+            anca 0.85  ->  1.26 m
+            anca 0.74  ->  1.14 m   (−0.40 m, ficou curto de mais)
+            anca 0.70  ->  1.10 m
+
+        Os 40 cm pedidos deram 0.74, e à vista a passada ficou curta: *"a
+        passada ficou um pouco curta; aumenta um pouco, faz um meio termo
+        entre o que estava e o que foi modificado"*. 0.97 é o ponto médio
+        entre os dois — −17 cm em vez de −40.
+
+        E o TROTE desce com ele: a 0.78 ficava ACIMA da corrida, ou seja as
+        pernas abriam mais a trotar do que a sprintar. 0.67 (o mesmo meio
+        termo, de 0.78 para 0.56) mantém a progressão andar -> trote ->
+        correr que havia antes.
+
+        A `passada` (metros por ciclo) NÃO mudou: é a cadência, não a
+        amplitude. Com o passo visualmente mais curto e a mesma cadência, o
+        pé desliza um pouco mais no relvado; quem quiser o pé outra vez
+        colado à passada mexe aqui, e volta a correr a medição.
+        */
+        anca: 0.97,
+        joelhoBase: 0.20,
+        joelhoOscila: 1.95,   // calcanhar quase ao rabo
+        pe: 0.45,
+        braco: 1.00,
+        cotovelo: -1.55,      // braços bem dobrados a bombear
+        tronco: 0.30,         // inclinado para a frente
+        /*
+        OS PÉS ASSENTAM NA CORRIDA RÁPIDA. Relato: *"na corrida mais rápida os jogadores não estão
+        apoiando os pés no chão, um pouco acima da grama"*. Medido (tools/scratch/altura_corpo_clip.js):
+        a 8 m/s a bota tocava o relvado no apoio, mas no voo subia até 5 cm acima dele
+        (ressalto 0.045 = 9 cm de oscilação), e metade do ciclo ficava no ar. O ressalto desce a
+        0.02 e a descida sobe 1 cm (0.105): o apoio entra 1 cm no relvado (a sola esconde-se, em vez
+        de pairar) e o ponto mais alto do voo fica a ~1.5 cm.
+        */
+        descida: 0.105,
+        ressalto: 0.020
+    }
+};
+
+/*
+Forma do bloco. Todos os valores estão no REFERENCIAL DE ATAQUE da equipa:
+    -53 = linha de baliza própria      -36.5 = linha da própria grande área
+      0 = linha central                +53 = linha de baliza adversária
+Para converter para o mundo, multiplicar por p.dirZ.
+*/
+
+const SaltoCabeceio = {
+    duracao: 0.62,        // salto completo (s); o pico fica a meio
+    // So se cabeceia (salto ou inclinacao) uma bola que vem a menos disto da direccao dele: 60 graus para cada lado.
+    anguloFrontalMax: 60 * Math.PI / 180,
+    alturaMax: 0.80,      // subida máxima que as pernas dão (m)
+    // CABECEAR COM A TESTA E NAO COM O QUEIXO (pedido): o salto leva a testa `folgaTesta` m ABAIXO da bola, para ela bater
+    // na parte alta da testa — saltar menos (a bola mais alta em relacao a cabeca).
+    folgaTesta: 0.12,
+    /*
+    A ATERRAGEM TIRA-LHE TEMPO — pedido: *"depois de um pulo para o cabeceio o jogador tem que perder um pouco de
+    velocidade ao voltar para o chao, meio que perde o tempo de bola se nao conseguir cabecear"*. Ao aterrar entra
+    numa recuperacao: o tecto de velocidade cai para `velFrac` e volta ao normal em rampa ao longo de ~3 s
+    (`duracaoTocou` / `duracaoFalhou`: ficam iguais por pedido — *"reduz a velocidade por uns 3 seg"*).
+    */
+    aterragem: { activo: true, velFrac: 0.55, duracaoTocou: 3.0, duracaoFalhou: 3.0 },
+    // Tem de ficar <= BallControl.reach (0.9): esse é o raio que REGISTA o
+    // contacto de verdade (match.js/distanciaAoCorpo). Estava em 1.4 —
+    // saltava para bolas até 1.4m, mas entre 0.9-1.4m o contacto nunca
+    // registava: a bola passava perto (~0.5m de folga, visível), nunca
+    // colava na cabeça, nunca disparava executeHeader. Salto em vão.
+    alcanceXZ: 0.8,       // distância horizontal máxima à bola, no pico
+    subidaMin: 0.10,      // acima disto já é bola de cabeça (abaixo é peito)
+
+    /*
+    Entre subidaMin e alturaSemPulo a bola está mesmo em cima da cabeça —
+    alcança-se só inclinando o tronco para trás e esticando o pescoço, sem
+    saltar (ver aplicarCamadaCabeceioDePe em player.js). O salto só entra
+    quando ela está mesmo fora de alcance parado.
+    */
+    alturaSemPulo: 0.30,
+    cooldown: 1.5,        // era 10 s — impedia dois saltos na mesma jogada
+
+    /*
+    =====================================================================
+    CABEÇADA DE LADO — a bola vem de frente e sai para o lado
+    =====================================================================
+    O gesto do salto tinha três fases mas todas no plano SAGITAL: o tronco e
+    o pescoço recuavam e chicoteavam para a FRENTE (chest.x, neck.x). Uma
+    cabeçada que desvia a bola 60-90° para o lado não é isso — quem a faz
+    torce o tronco e vira a cabeça, e o chicote acontece à volta do eixo
+    vertical, não do horizontal.
+
+    O ângulo do desvio é medido no arranque do salto (`cabeceioAnguloY`, em
+    player.js): é o ângulo com sinal entre a frente do corpo e a direcção
+    para onde a bola vai sair. Quanto mais lateral, mais o gesto passa de
+    frontal para torcido — não há dois gestos, há um que roda.
+
+    `anguloMin`      a partir daqui já conta como cabeçada de lado (rad).
+    `anguloCheio`    daqui para cima a torção é a máxima.
+    `torcaoTronco`   rotação do tronco no contacto (rad; o limite anatómico
+                     do chest.y são 45°, ver joint_limits.js).
+    `torcaoPescoco`  o mesmo para o pescoço, que roda mais do que o tronco.
+    `preparacao`     fracção da torção que ele faz para o LADO CONTRÁRIO na
+                     subida — é o armar do chicote.
+    `inclinacao`     inclinação lateral do tronco (chest.z) para o lado do
+                     desvio, que é o que dá o "atirar-se" à bola.
+    */
+    deLado: {
+        anguloMin: 45 * Math.PI / 180,
+        anguloCheio: 80 * Math.PI / 180,
+        torcaoTronco: 0.60,
+        torcaoPescoco: 0.85,
+        preparacao: 0.45,
+        inclinacao: 0.30
+    }
+};
+
+/*
+Cadência: leva tempo real ao jogo. Sem isto, quem ganha a bola decide
+(passar/rematar/lançar) no mesmo frame, e a equipa adversária reage à posse
+instantaneamente — o jogo inteiro corre em ritmo de "últimos 5 minutos de
+final perdida". Na vida real o portador domina, olha as opções, e só depois
+executa; o marcador espera o domínio, avalia bloquear/pressionar, e só
+executa a decisão dele passado um tempo — controlado no painel por
+Defensive Pressure.
+*/
+const CadenceModel = {
+    // Quanto tempo o portador leva a decidir (passar/rematar/lançar) depois
+    // de dominar a bola. Sob pressão pesada, o toque de primeira é mais
+    // provável — a decisão sai bem mais rápido.
+    posseBase: 3.0,
+    posseSobPressao: 0.6
+};
+
+/*
+Uso dos dados da percepção (ver perception.js) na DECISÃO.
+
+A percepção já calculava `interceptable`/`timeToIntercept`/`interceptionPoint`
+por jogador, mas nada na árvore os lia: o único consumidor era o `claimScore`
+do `pickChaser`, que escolhe UM jogador por equipa. Resultado: uma bola a
+passar rente a um jogador que não fosse nem o chaser nem o destinatário do
+passe era ignorada por ele — ficava parado a ver.
+*/
+/*
+=============================================================================
+xG — QUANTO VALIA A OPORTUNIDADE
+=============================================================================
+Modelo logístico sobre duas variáveis, que é o esqueleto de qualquer xG
+público: a DISTÂNCIA à baliza e o ÂNGULO que a baliza subtende do ponto do
+remate. O ângulo é o que distingue um remate de 12 m à entrada da área de um
+de 12 m junto à linha de fundo, onde não há baliza nenhuma para acertar.
+
+    logit = base + pesoLogAngulo * ln(angulo) - pesoDistancia * distancia
+
+O que este modelo NÃO tem, e convém estar escrito: pressão (defensores entre a
+bola e a baliza), parte do corpo (pé ou cabeça), e se veio de um passe em
+profundidade. São as três variáveis que mais valem a seguir a estas duas — se
+o xG do lote ficar sistematicamente alto, é por aqui que se acrescenta.
+
+Âncoras usadas para escolher os números (remate central, jogo corrido):
+
+    5,5 m  -> ~0,54      11 m -> ~0,26
+    16,5 m -> ~0,12      25 m -> ~0,04
+
+E a âncora do lote inteiro: o alvo é 2,84 xG em 26,11 finalizações, ou seja
+uma MÉDIA de 0,109 por remate. É esse o número a olhar no painel — as âncoras
+por distância só dizem que a forma da curva é plausível.
+=============================================================================
+*/
+
+/*
+=============================================================================
+ASSENTO NO CHÃO — o pé encosta no relvado
+=============================================================================
+Relato: "alguns jogadores não estão encostando no chão".
+
+A altura do corpo é fixa (`ALTURA_BASE_Y`) e a pose é que dobra as pernas: cada
+grau de anca ou de joelho levanta a sola sem nada a compensar. Medido em jogo,
+pela caixa do modelo (a sola, não o tornozelo), com o jogador PARADO:
+
+    MARKING          0.04 m de média, 0.11 no pior caso
+    SET_PIECE_WAIT   0.05                0.24
+    SUPPORT_PASS     0.07                0.13
+    SUP_TO_INVERT    (como o SUPPORT_PASS: mesma locomocao)
+    IDLE             0.01                0.21
+    BLOCKING        -0.05 (enterrado)
+
+A correcção mede a bota mais baixa e desce (ou sobe) o corpo o que falta. NÃO
+corre a correr: numa passada a alta velocidade há uma fase de VOO em que os
+dois pés estão no ar de propósito, e assentar aí colava o jogador ao chão como
+se patinasse. Por isso `velMax`: até ao trote assenta-se, acima disso manda a
+passada. E não corre em saltos, mergulhos nem carrinhos — esses escrevem a
+altura eles próprios.
+=============================================================================
+*/
+const AssentoNoChao = {
+    activo: true,
+    // Até esta velocidade (m/s) o pé tem de estar no chão. Acima é corrida,
+    // com fase de voo (ver GaitModel.trote/correr).
+    velMax: 4.0,
+    /*
+    O TECTO POR FRAME, em metros. Fica nos 0.35, e a tentativa de o apertar
+    está escrita aqui porque foi um erro instrutivo.
+
+    Com a correcção inteira (ver a `suavizacao`, abaixo) este número passou a
+    ser o único travão, e baixei-o para 0.06 a olhar para o TREMOR DO CORPO: a
+    0.35 o `model.position.y` mexia mais de 10 cm num frame em 0.48% das
+    leituras, e isso parecia um pulo à espera de ser relatado.
+
+    Estava a medir a peça errada. O corpo a descer enquanto as pernas esticam
+    não é defeito nenhum — é o que faz a anca subir e descer numa passada a
+    sério. O que se VÊ é a BOTA. Medido o tremor da sola, o 0.35 ganha nas duas
+    pontas:
+
+        tecto   sola a andar   tiro de meta   tremor da sola   sola a saltar >2 cm
+        0.35        0.004         0.000          0.0015 m         1.42%
+        0.06        0.023         0.042          0.0039 m         4.73%
+
+    E há uma razão de fundo para o tecto não poder ser apertado: como a altura
+    é reescrita em ABSOLUTO todos os frames, a correcção não acumula, e por
+    isso este número **não é um limitador de velocidade — é o tecto do total**.
+    A pose do `resetBonesToDefault` do guarda-redes levanta-o 10.2 cm; com o
+    tecto a 6 cm sobravam 4.2 cm fixos, para sempre, que é exactamente o
+    relato "depois do chute para fora o goleiro tb fica suspenso".
+    */
+    correccaoMax: 0.35,
+    /*
+    A CORRECÇÃO É INTEIRA, E TEM DE SER.
+
+    Isto era 0.35 — "a fracção aplicada por frame, para subir/descer em vez de
+    saltar". A conta não fecha: as duas linhas que correm IMEDIATAMENTE antes
+    do `assentarNoChao`, no `animateBones`, escrevem a altura em ABSOLUTO todos
+    os frames (`= ALTURA_BASE_Y + ressalto - descida` no ramo de movimento,
+    e um `lerpTo` para a base no ramo parado). O que o assento soma neste frame
+    é apagado no seguinte, portanto a correcção NUNCA acumula e a sola fica
+    permanentemente a `1 - suavizacao` do levantamento da pose.
+
+    Não é teoria: envolvendo o método real em 111 193 frames
+    (`tools/headless/assento_convergencia.js`), a razão depois/antes deu 0.65
+    no jogador de campo e 0.65 no guarda-redes — o valor exacto de
+    `1 - 0.35`, nas duas casas.
+
+    Os relatos que isto explica: "depois de alguns segundos de jogo já não
+    encostam no chão na animação de andar" (a andar, sola a 4-5 cm ao fim de
+    oito minutos) e "quando giram para um lado ou para o outro levantam do
+    chão" (o giro muda a bota mais baixa e o seguidor a 35% fica para trás).
+    Medido depois, com a correcção inteira:
+
+                              antes    depois
+        a andar, minuto 13    0.042    0.004
+        a girar 20-90 g/s     0.039    0.000
+        a girar > 180 g/s     0.036   -0.000
+
+    A suavização protegia o desenho de um salto do corpo; quem faz esse papel
+    agora é o `correccaoMax` acima, que é o tecto por frame. Não confundir com
+    o offset persistente, que foi tentado a 8 de Setembro e MEDIU PIOR.
+    */
+    suavizacao: 1.0,
+    /*
+    A SOLA, NAO AS TRAVAS, E O QUE ASSENTA — e um pouco abaixo do relvado. Pedido: *"os jogadores
+    podem ficar ligeiramente mais para baixo no gramado; alinha-os pela sola da chuteira e nao pelas
+    travas, que podem ficar debaixo do relvado"*. O assento mede a caixa da chuteira (sem as travas,
+    que sao filhas dela), portanto a sola esta em 0; `afundamento` desce-a mais isto, em metros.
+    */
+    afundamento: 0.03
+};
+if (typeof window !== 'undefined') window.AssentoNoChao = AssentoNoChao;
+/*
+=============================================================================
+A CABEÇA NÃO OLHA PARA CIMA SEM NADA LÁ ESTAR
+=============================================================================
+Isto já foi mais: chegou a haver um seguimento da bola, com a cabeça a baixar
+para ela. Foi revertido a pedido — "agora os modelos estão todos olhando para
+baixo, para a bola; não é pra fazer isso; deixa como estava antes". Com a bola
+aos pés (46 graus abaixo do horizonte) a cabeça baixava toda para o chão, e um
+campo inteiro de cabeças baixas lê pior do que um campo de cabeças ao nível.
+
+O que fica é só o tecto: o pescoço nunca aponta ACIMA do horizonte, que era a
+outra metade do relato ("só não quero ninguém olhando pra cima sem nada a
+ver"). Medido antes, com o pescoço solto: 18.7% dos frames com o olhar entre 2
+e 7 graus acima da linha do horizonte, sem nada lá em cima.
+
+Os gestos que apontam a cabeça de propósito ficam de fora — o cabeceio, o
+carrinho (em que se olha mesmo para cima ao cair), o remate, o lançamento e a
+matada no peito escrevem a cabeça eles próprios.
+=============================================================================
+*/
+const OlharDaCabeca = {
+    activo: true,
+    // Graus que ainda se toleram acima do horizonte, para não ficar rígido.
+    margemAcima: 2 * Math.PI / 180,
+    suavizacao: 0.25
+};
+if (typeof window !== 'undefined') window.OlharDaCabeca = OlharDaCabeca;
+/*
+=============================================================================
+O TECTO HUMANO DA VELOCIDADE
+=============================================================================
+O `speedMult` é uma velocidade-alvo em m/s e é escrito em VINTE folhas da
+árvore (ver a nota do `steerArrive` em player.js). Cada uma tem a sua conta, e
+os factores multiplicam-se: o escalão de reposicionamento a 25 m dá 7.82, o
+`ganhoSkill` do `RepositionPace` põe-lhe +20% e o `bonusRecuo` outros +35% —
+7.82 x 1.2 x 1.35 = **12.7 m/s**, e medido em jogo apareceram picos de
+**15.18 m/s**.
+
+15 m/s são 54 km/h. O recorde mundial dos 100 m tem ponta a ~12.4 m/s (44.7
+km/h) e um futebolista de elite chega a 9-9.5. Não é uma questão de
+calibração: é um número impossível, e vinha de multiplicadores a empilhar sem
+ninguém a somar.
+
+O tecto entra num sítio só — o `steerArrive`, por onde TODAS as vinte folhas
+passam — e não em cada folha, pela mesma razão que o cansaço já entra lá: numa
+delas esquecia-se.
+
+Depende da SKILL de velocidade, que é o que distingue um extremo de um
+central: 100 dá `maximo`, 0 dá `maximo - amplitude`.
+=============================================================================
+*/
+const VelocidadeHumana = {
+    // +10% (9 de Outubro de 2026, pedido): 9.5 -> 10.45 e 2.2 -> 2.42 (SPEED 0: 8.03 m/s).
+    maximo: 10.45,    // m/s com SPEED 100 — ponta de um profissional rápido
+    amplitude: 2.42,  // quanto desce até SPEED 0
+
+    /*
+    O tecto deste jogador. `skillSpeed` é 0..100; fora disso corta-se, para um
+    skill em falta não abrir o tecto por acidente.
+    */
+    tecto: function (skillSpeed) {
+        const s = Math.max(0, Math.min(100, (typeof skillSpeed === 'number') ? skillSpeed : 50));
+        return this.maximo - this.amplitude * (1 - s / 100);
+    }
+};
+

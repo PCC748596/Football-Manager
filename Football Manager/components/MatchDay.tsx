@@ -1,0 +1,316 @@
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { useGame } from '../context/GameContext';
+import { Team, Player, Fixture } from '../types';
+import { TeamShield } from './TeamShield';
+import { KitSelection } from './KitSelection';
+import { MatchStatsModal } from './MatchStatsModal';
+import { calculateMatchRatings } from '../textSim/matchEngine';
+import Simulador3DView, { simulador3dArrancou, simulador3dPronto, simulador3dEnviar, simulador3dTelaCheia } from '../3dMatch/Simulador3DView';
+import { taticaParaMotor, taticaDoMotor } from '../3dMatch/simulador3dCliente';
+
+type VisualState = 'PRE_MATCH' | 'KICKOFF_SET' | 'PLAYING' | 'OFFSIDE' | 'GOAL';
+
+interface MatchDayProps {
+  setView?: (view: any) => void;
+}
+
+const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
+  const { gameState, fixtures, teams, players, playMatchDay, pauseMatch, advanceWeek, updateMatchVisualState, motor3dMensagem, updateTactics } = useGame();
+  
+  const match = fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId));
+  const homeTeam = teams.find(t => t.id === match?.homeTeamId);
+  const awayTeam = teams.find(t => t.id === match?.awayTeamId);
+  
+  const [visualState, setVisualState] = useState<VisualState>(gameState.matchVisual?.visualStatus || 'PRE_MATCH');
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [showKitSelection, setShowKitSelection] = useState(!gameState.matchVisual || gameState.matchVisual.kitHomeIdx === undefined);
+  const [activeTab, setActiveTab] = useState<'pitch3d' | 'stats'>('pitch3d');
+  const chave3d = match ? match.date + "|" + match.homeTeamId + "|" + match.awayTeamId : "";
+  const [camara, setCamara] = useState('lateraltv');
+  const [pronto3d, setPronto3d] = useState(() => simulador3dPronto());
+  const userTeam = teams.find(t => t.id === gameState.userTeamId);
+  const taticaJson = userTeam ? JSON.stringify(taticaParaMotor(userTeam.tactics)) : '';
+  // Tatica do manager -> painel do 3D: ao carregar e sempre que o utilizador a muda na aba Tactics.
+  useEffect(() => { if (pronto3d && taticaJson) simulador3dEnviar({ tipo: 'tatica', ...JSON.parse(taticaJson) }); }, [pronto3d, taticaJson]);
+  const [iniciou, setIniciou] = useState(() => simulador3dArrancou(chave3d));
+  // Sair desta tela (taticas, etc.) pausa o relogio; o 3D pausa-se sozinho e retoma ao voltar (o iframe nao e recriado).
+  useEffect(() => () => { pauseMatch(); }, []);
+
+  useEffect(() => {
+    if (gameState.matchMinute >= 90) {
+      setActiveTab('stats');
+    }
+  }, [gameState.matchMinute]);
+
+  if (!match || !homeTeam || !awayTeam) {
+    return <div className="text-white p-10 text-center font-black uppercase italic">Sem partida hoje.</div>;
+  }
+
+  const showStats = gameState.matchMinute >= 90 || activeTab === 'stats';
+
+  // O motor 3D decide a partida; o relogio do manager segue o dele (ver GameContext.motor3dMensagem).
+  const handleAction = () => {
+    if (gameState.matchMinute >= 90) {
+        advanceWeek();
+        setView?.('DASHBOARD');
+    } else if (gameState.isProcessing) {
+        pauseMatch();
+    } else {
+        if (!iniciou) { (window as any).motor3dMinuto = 0; setIniciou(true); }
+        playMatchDay('VISUAL');
+    }
+  };
+
+  const handleReset = () => { pauseMatch(); };
+
+  const handleKitSelection = (h: number, a: number) => {
+    updateMatchVisualState({ kitHomeIdx: h, kitAwayIdx: a, visualStatus: 'KICKOFF_SET' });
+    setVisualState('KICKOFF_SET');
+    setShowKitSelection(false);
+  };
+
+  const homePct = useMemo(() => {
+    const total = (gameState.matchVisual?.homePossessionCount || 0) + (gameState.matchVisual?.awayPossessionCount || 0);
+    if (total === 0) return 50;
+    return Math.round(((gameState.matchVisual?.homePossessionCount || 0) / total) * 100);
+  }, [gameState.matchVisual?.homePossessionCount, gameState.matchVisual?.awayPossessionCount]);
+
+  return (
+    <div className="w-full h-full flex flex-col bg-slate-950 rounded-xl overflow-hidden border border-slate-900 shadow-2xl">
+        <div className="h-20 bg-slate-900 border-b border-slate-800 flex flex-col items-center justify-center relative z-20 overflow-hidden">
+            {/* Possession Bar (Background) */}
+            <div className="absolute bottom-0 inset-x-0 h-1 flex w-full">
+                <div 
+                  className="h-full transition-all duration-500 ease-out" 
+                  style={{ width: `${homePct}%`, backgroundColor: homeTeam.primaryColor }}
+                />
+                <div 
+                  className="h-full flex-1 transition-all duration-500 ease-out" 
+                  style={{ backgroundColor: awayTeam.primaryColor }}
+                />
+            </div>
+
+            <div className="w-full flex items-center justify-between px-8">
+                <div className="flex items-center gap-8">
+                    <div className="flex items-center gap-3">
+                        <TeamShield team={homeTeam} className="w-12 h-14" />
+                        <span className="text-white font-black italic">{homeTeam.name}</span>
+                    </div>
+                    <div className="bg-black/80 px-5 py-1.5 rounded-lg font-mono text-xl text-blue-400 font-black border border-slate-800 shadow-inner">
+                        {match.homeScore || 0} - {match.awayScore || 0}
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-white font-black italic">{awayTeam.name}</span>
+                        <TeamShield team={awayTeam} className="w-12 h-14" />
+                    </div>
+                </div>
+                
+                <div className="flex items-center gap-8">
+                    <div className="text-right">
+                        <div className="text-2xl font-black text-blue-500 italic leading-none">{gameState.matchMinute}'</div>
+                        <div className="text-[8px] text-slate-500 font-black uppercase tracking-widest mt-1">TEMPO</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {gameState.matchMinute < 90 && (
+                            <>
+                                <button 
+                                  onClick={() => setActiveTab('pitch3d')} 
+                                  className={`${activeTab === 'pitch3d' ? 'bg-sky-650 hover:bg-sky-600 border-sky-850' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-4 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4`}
+                                >
+                                  3D
+                                </button>
+                                <button 
+                                  onClick={() => setActiveTab('stats')} 
+                                  className={`${activeTab === 'stats' ? 'bg-blue-650 hover:bg-blue-600 border-blue-850' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-4 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4`}
+                                >
+                                  ESTATÍSTICAS
+                                </button>
+                            </>
+                        )}
+                        <button onClick={handleReset} className="bg-slate-700 hover:bg-slate-600 text-white font-black px-4 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4 border-slate-900">RESET</button>
+                        <button onClick={handleAction} className="bg-blue-600 hover:bg-blue-500 text-white font-black px-8 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4 border-blue-800">
+                          {gameState.matchMinute >= 90 ? 'CONCLUIR' : gameState.isProcessing ? 'PAUSAR' : (gameState.matchMinute === 0 || gameState.matchMinute === 45) && !iniciou ? 'SAÍDA' : 'CONTINUAR'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Possession Center Label Overlay */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-6 pointer-events-none">
+                <span className="text-[9px] font-black text-slate-400 bg-slate-950/80 px-2 py-0.5 rounded-full border border-slate-800 uppercase tracking-tighter">
+                    Posse: {homePct}% vs {100 - homePct}%
+                </span>
+            </div>
+        </div>
+        
+        {!showStats && (
+        <div className="bg-slate-900 border-b border-slate-800 px-6 py-2 flex items-center gap-2 flex-wrap">
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mr-1">Câmera</span>
+            {[['orbit', 'Órbita'], ['center', 'TV Centro'], ['sideline', 'Lateral Móvel'], ['lateraltv', 'Lateral TV'], ['topdown', 'Tática'], ['grua', 'Grua'], ['cinema', 'Cinema']].map(([modo, nome]) => (
+              <button key={modo} onClick={() => { setCamara(modo); simulador3dEnviar({ tipo: 'camera', modo }); }}
+                className={`${camara === modo ? 'bg-sky-600 border-sky-800' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-3 py-1.5 rounded text-[10px] uppercase tracking-wider border-b-2 active:scale-95`}>{nome}</button>
+            ))}
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-3 mr-1">Zoom</span>
+            <button onClick={() => simulador3dEnviar({ tipo: 'zoom', fator: 0.85 })} className="bg-slate-700 hover:bg-slate-600 text-white font-black w-8 py-1.5 rounded text-xs border-b-2 border-slate-900 active:scale-95">+</button>
+            <button onClick={() => simulador3dEnviar({ tipo: 'zoom', fator: 1.18 })} className="bg-slate-700 hover:bg-slate-600 text-white font-black w-8 py-1.5 rounded text-xs border-b-2 border-slate-900 active:scale-95">−</button>
+            <button onClick={() => simulador3dTelaCheia()} className="ml-auto bg-emerald-700 hover:bg-emerald-600 text-white font-black px-4 py-1.5 rounded text-[10px] uppercase tracking-widest border-b-2 border-emerald-900 active:scale-95">Tela cheia</button>
+        </div>
+        )}
+        <div className="flex-1 bg-slate-900 flex items-center justify-center overflow-hidden relative">
+            {showStats ? (() => {
+                const events = match.events || [];
+                const posTime = match.possessionTimeline || [];
+                const hPos = posTime.length > 0 ? Math.round((posTime.filter(p => p === 'home').length / posTime.length) * 100) : 50;
+                const aPos = 100 - hPos;
+
+                const hShots = events.filter(e => e.teamId === match.homeTeamId && ['GOAL', 'MISS', 'MISS_PENALTY'].includes(e.type)).length + events.filter(e => e.teamId === match.awayTeamId && e.type === 'SAVE').length;
+                const aShots = events.filter(e => e.teamId === match.awayTeamId && ['GOAL', 'MISS', 'MISS_PENALTY'].includes(e.type)).length + events.filter(e => e.teamId === match.homeTeamId && e.type === 'SAVE').length;
+
+                const hFouls = events.filter(e => e.teamId === match.homeTeamId && e.type === 'FOUL').length;
+                const aFouls = events.filter(e => e.teamId === match.awayTeamId && e.type === 'FOUL').length;
+
+                const hCorners = events.filter(e => e.teamId === match.homeTeamId && e.type === 'CORNER').length;
+                const aCorners = events.filter(e => e.teamId === match.awayTeamId && e.type === 'CORNER').length;
+
+                const hYellows = events.filter(e => e.teamId === match.homeTeamId && e.type === 'CARD' && e.description.includes('🟨')).length;
+                const aYellows = events.filter(e => e.teamId === match.awayTeamId && e.type === 'CARD' && e.description.includes('🟨')).length;
+                
+                const hReds = events.filter(e => e.teamId === match.homeTeamId && e.type === 'CARD' && e.description.includes('🟥')).length;
+                const aReds = events.filter(e => e.teamId === match.awayTeamId && e.type === 'CARD' && e.description.includes('🟥')).length;
+
+                const timeFactor = (gameState.matchMinute > 0 ? gameState.matchMinute : 90) / 90;
+                const hPasses = Math.floor((300 + hPos * 3) * timeFactor) + hShots * 2;
+                const aPasses = Math.floor((300 + aPos * 3) * timeFactor) + aShots * 2;
+
+                const playerRatings = match.playerRatings || calculateMatchRatings(events, homeTeam, awayTeam, match.homeScore || 0, match.awayScore || 0, match.homeLineup, match.awayLineup, players);
+
+                return (
+                    <div className="bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-800 p-6 w-full max-w-5xl h-full flex flex-col overflow-hidden shadow-2xl animate-fade-in text-white">
+                         <h2 className="text-sm font-black uppercase mb-4 text-center tracking-widest text-slate-400">
+                              {gameState.matchMinute >= 90 ? "ESTATÍSTICAS FINAIS" : "ESTATÍSTICAS DA PARTIDA"}
+                         </h2>
+                         <div className="flex-1 grid grid-cols-1 md:grid-cols-[1fr_1.2fr_1fr] gap-6 overflow-hidden min-h-0">
+                             {/* HOME TEAM RATINGS */}
+                             <div className="flex flex-col gap-3 overflow-hidden h-full">
+                                 <h3 className="font-black text-sm text-center uppercase truncate text-blue-400">{homeTeam.name}</h3>
+                                 <div className="flex-1 overflow-y-auto pr-1 space-y-1 custom-scrollbar">
+                                     {Object.entries(playerRatings).filter(([id]) => {
+                                         const p = players.find(x => x.id === id);
+                                         return p && p.teamId === match.homeTeamId;
+                                     }).map(([id, rating]) => {
+                                         const p = players.find(x => x.id === id);
+                                         return (
+                                             <div key={id} className="flex justify-between items-center bg-slate-800/40 hover:bg-slate-800/80 px-3 py-1.5 rounded-lg border-l-4 transition-colors border-blue-500">
+                                                 <span className="text-[11px] font-bold text-slate-300 truncate">{p?.name.split(' ').pop()}</span>
+                                                 <span className={`font-black text-[11px] ${(rating as number) >= 7.5 ? 'text-emerald-500' : (rating as number) <= 5.5 ? 'text-rose-500' : 'text-slate-400'}`}>{(rating as number).toFixed(1)}</span>
+                                             </div>
+                                         );
+                                     })}
+                                 </div>
+                             </div>
+
+                             {/* STATS COMPARISON */}
+                             <div className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-4 flex flex-col justify-center gap-1.5 overflow-y-auto custom-scrollbar">
+                                 <h4 className="text-[10px] font-black text-center uppercase tracking-widest text-slate-500 mb-2">
+                                     {gameState.matchMinute >= 90 ? "FULL TIME STATS" : "MATCH STATS"}
+                                 </h4>
+                                 {[
+                                   { label: 'GOLS', h: match.homeScore || 0, a: match.awayScore || 0 },
+                                   { label: 'POSSE DE BOLA', h: `${hPos}%`, a: `${aPos}%` },
+                                   { label: 'CHUTES', h: hShots, a: aShots },
+                                   { label: 'PASSES', h: hPasses, a: aPasses },
+                                   { label: 'ESCANTEIOS', h: hCorners, a: aCorners },
+                                   { label: 'FALTAS', h: hFouls, a: aFouls },
+                                   { label: 'CA', h: hYellows, a: aYellows },
+                                   { label: 'CV', h: hReds, a: aReds },
+                                 ].map((stat, i) => (
+                                   <div key={i} className="flex justify-between items-center py-1.5 border-b border-slate-900/60 last:border-0">
+                                     <span className="w-1/3 text-right font-black text-sm text-slate-100">{stat.h}</span>
+                                     <span className="w-1/3 text-center text-[9px] font-black uppercase tracking-wider text-slate-500">{stat.label}</span>
+                                     <span className="w-1/3 text-left font-black text-sm text-slate-100">{stat.a}</span>
+                                   </div>
+                                 ))}
+                             </div>
+
+                             {/* AWAY TEAM RATINGS */}
+                             <div className="flex flex-col gap-3 overflow-hidden h-full">
+                                 <h3 className="font-black text-sm text-center uppercase truncate text-red-400">{awayTeam.name}</h3>
+                                 <div className="flex-1 overflow-y-auto pr-1 space-y-1 custom-scrollbar">
+                                     {Object.entries(playerRatings).filter(([id]) => {
+                                         const p = players.find(x => x.id === id);
+                                         return p && p.teamId === match.awayTeamId;
+                                     }).map(([id, rating]) => {
+                                         const p = players.find(x => x.id === id);
+                                         return (
+                                             <div key={id} className="flex justify-between items-center bg-slate-800/40 hover:bg-slate-800/80 px-3 py-1.5 rounded-lg border-r-4 transition-colors border-red-500">
+                                                 <span className="text-[11px] font-bold text-slate-300 truncate">{p?.name.split(' ').pop()}</span>
+                                                 <span className={`font-black text-[11px] ${(rating as number) >= 7.5 ? 'text-emerald-500' : (rating as number) <= 5.5 ? 'text-rose-500' : 'text-slate-400'}`}>{(rating as number).toFixed(1)}</span>
+                                             </div>
+                                         );
+                                     })}
+                                 </div>
+                             </div>
+                         </div>
+                    </div>
+                );
+             })() : null}
+             <div className={`absolute inset-0 w-full h-full ${showStats ? 'hidden' : ''}`}>
+                <Simulador3DView casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} chave={chave3d} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx}
+                    iniciar={iniciou} pausado={iniciou && !gameState.isProcessing} aoPronto={() => setPronto3d(true)}
+                    aoMensagem={(m) => {
+                      // Tatica do painel do 3D -> manager (aba Tactics): so o que mudou de nivel.
+                      if (m.tipo === 'tatica_alterada' && userTeam) {
+                        const mudou = taticaDoMotor(m, userTeam.tactics);
+                        if (Object.keys(mudou).length) updateTactics(userTeam.id, mudou);
+                      } else if (m.tipo === 'saida_pedida' || m.tipo === 'alternar_pausa') {
+                        // ESC / Pause do painel do 3D: quem manda no relogio e no botao e o manager.
+                        if (gameState.matchMinute < 90) handleAction();
+                      } else motor3dMensagem(m);
+                    }} />
+             </div>
+
+             {/* Live match overlays inside the viewport */}
+             {!showStats && visualState === 'OFFSIDE' && (
+                 <div className="absolute inset-0 bg-yellow-500/10 backdrop-blur-[1px] z-[100] flex items-center justify-center pointer-events-none">
+                     <div className="bg-black/80 text-yellow-400 px-10 py-4 rounded-xl border-4 border-yellow-500 shadow-2xl transform scale-125">
+                         <span className="text-3xl font-black italic tracking-widest uppercase animate-pulse">IMPEDIMENTO!</span>
+                     </div>
+                 </div>
+             )}
+             {!showStats && visualState === 'GOAL' && (
+                 <div className="absolute inset-0 bg-emerald-950/20 backdrop-blur-[1px] z-[100] flex items-center justify-center pointer-events-none">
+                     <div className="bg-black/90 text-emerald-400 px-12 py-5 rounded-2xl border-4 border-emerald-500 shadow-2xl transform scale-125 animate-bounce">
+                         <span className="text-4xl font-black italic tracking-widest uppercase">GOL!</span>
+                     </div>
+                 </div>
+             )}
+
+            {/* Kit Selection Overlay */}
+            {showKitSelection && (
+                <div className="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-8">
+                    <KitSelection 
+                        homeTeam={homeTeam} 
+                        awayTeam={awayTeam} 
+                        userTeamId={gameState.userTeamId} 
+                        onSelectionComplete={handleKitSelection} 
+                    />
+                </div>
+            )}
+
+            {/* Match Stats Overlay */}
+            {showStatsModal && (
+                <MatchStatsModal 
+                  fixture={match} 
+                  homeTeam={homeTeam} 
+                  awayTeam={awayTeam} 
+                  players={players} 
+                  matchMinute={gameState.matchMinute} 
+                  onClose={() => setShowStatsModal(false)} 
+                />
+            )}
+        </div>
+    </div>
+  );
+};
+
+export default MatchDay;
