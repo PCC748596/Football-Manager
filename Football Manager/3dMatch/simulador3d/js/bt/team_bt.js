@@ -1150,6 +1150,26 @@ function computeBlock(bb) {
         }
     }
 
+    /*
+    OS DOIS BLOCOS TEM DE SE ENCONTRAR — sem um vazio gigante entre eles. Cada bloco era calculado so a partir da bola e da tactica da
+    PROPRIA equipa: uma linha defensiva baixa (`linhaDefensiva` low) encostava o bloco de quem defende a 14 m ATRAS da bola, enquanto
+    quem atacava deixava a zaga a 20 m atras dela do outro lado — 34 m com so os dois 9 e a bola no meio, um time todo de um lado e o
+    outro do outro. Agora, em jogo corrido: quem ATACA nao deixa a traseira a mais de `coordenacao.atacanteRecuoMax` m atras da bola, e quem
+    DEFENDE nao deixa a frente a mais de `coordenacao.defensorFrenteMax` m atras dela. O rectangulo continua rigido (sobe inteiro) e o
+    tecto da ultima linha do painel cede so o que for preciso para isto.
+    */
+    const Co = B.coordenacao;
+    if (Co && !reposta && typeof Match !== 'undefined' && Match.state === 'PLAY') {
+        let sobe = 0;
+        // So ate a faixa central: com a bola no terco da frente o centro do bloco recua de proposito (ver `centro.rampa`).
+        if (bb.isAttacking) { if (bolaZDir <= faixaCentro) sobe = (bolaZDir - Co.atacanteRecuoMax) - z0; }
+        else sobe = (bolaZDir - Co.defensorFrenteMax) - z1;
+        if (sobe > 0) {
+            z0 += sobe; z1 += sobe;
+            if (z1 > maxZ) { const d = z1 - maxZ; z1 = maxZ; z0 -= d; }
+        }
+    }
+
     /* --- largura e centro em X (Regra 1 e Regra 2) ----------------------
        ACOMPANHA AS COORDENADAS DA BOLA EM X E LIMITA NOS LIMITES DO CAMPO (-34 a +34)
     */

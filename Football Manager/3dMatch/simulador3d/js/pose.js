@@ -326,7 +326,30 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
     else { ctxKF.fillStyle = (typeof corCalcaoFinal === 'number') ? '#' + corCalcaoFinal.toString(16).padStart(6, '0') : corCalcaoFinal; ctxKF.fillRect(0, 0, 256, 256); }
     const shortFrenteMat = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(cvsKF), roughness: 0.9 });
     const shortFrente = { mat: shortFrenteMat, cvs: cvsKF, peca: pecaCalcao, cor: corCalcaoFinal };
-    const mangaMat = corManga ? new THREE.MeshStandardMaterial({ color: corManga, roughness: 0.9 }) : shirtMat;
+    /*
+    A MANGA DA CAMISA TRICOLOR (kit do manager com as 3 cores: c1 grena, c2 branco, c3 verde — Fluminense, Gremio): 5 faixas de cor, 3 da
+    primeira e 2 da terceira, ALTERNADAS E COM O BRANCO ENTRE CADA UMA (cor, branco, cor, branco, ... : 9 faixas). Antes a manga levava a
+    textura da camisa esticada na caixa do braco, sem este desenho. Sem a cor da manga (`camisa.manga`) do kit; com ela vale a cor lisa.
+    */
+    const kitTri = (pecaCamisa && pecaCamisa.padrao === 'kit' && pecaCamisa.kit) ? pecaCamisa.kit : null;
+    const ehTricolor = !!(kitTri && kitTri.c1 && kitTri.c2 && kitTri.c3 && kitTri.c3 !== kitTri.c1 && kitTri.c3 !== kitTri.c2 &&
+        !kitTri.criciumaStripes && !kitTri.spfcStripes && !kitTri.horizontal && !kitTri.diagonal && !kitTri.dualDiagonal && !kitTri.multipleDiagonals);
+    let mangaTricolorMat = null;
+    if (ehTricolor && !corManga) {
+        const cv = document.createElement('canvas'); cv.width = 128; cv.height = 128;
+        const cx = cv.getContext('2d');
+        // c1, c2, c3, c2, c1, c2, c3, c2, c1: peso 1 nas cores e 0.5 no branco.
+        const seq = [kitTri.c1, kitTri.c2, kitTri.c3, kitTri.c2, kitTri.c1, kitTri.c2, kitTri.c3, kitTri.c2, kitTri.c1];
+        const pesos = seq.map((_, i) => (i % 2 === 0) ? 1 : 0.5);
+        const soma = pesos.reduce((a, w) => a + w, 0);
+        let acc = 0;
+        seq.forEach((cor, i) => {
+            const x0 = Math.round(128 * acc / soma); acc += pesos[i]; const x1 = Math.round(128 * acc / soma);
+            cx.fillStyle = cor; cx.fillRect(x0, 0, Math.max(1, x1 - x0), 128);
+        });
+        mangaTricolorMat = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(cv), roughness: 0.9 });
+    }
+    const mangaMat = corManga ? new THREE.MeshStandardMaterial({ color: corManga, roughness: 0.9 }) : (mangaTricolorMat || shirtMat);
     let shortMat;
     if (pecaCalcao) {
         const cvsK = document.createElement('canvas'); cvsK.width = 256; cvsK.height = 256;

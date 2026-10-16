@@ -43,3 +43,14 @@ test('faixas do Criciuma e degrade nao rebentam', () => {
     assert.ok(gravar({ c1: '#111111', c2: '#eeeeee', c3: '#ff0000', criciumaStripes: true }).length >= 4);
     assert.ok(gravar({ c1: '#111111', c2: '#eeeeee', gradient: true }).length >= 1);
 });
+
+test('a manga tricolor tem 5 faixas de cor, 3 de uma e 2 da outra, com o branco entre elas', () => {
+    const srcPose = ler('js/pose.js');
+    const m = srcPose.match(/const seq = \[([^\]]*)\]/);
+    assert.ok(m, 'a sequencia da manga tricolor desapareceu');
+    const seq = m[1].split(',').map(x => x.trim().replace('kitTri.', ''));
+    assert.deepStrictEqual(seq, ['c1', 'c2', 'c3', 'c2', 'c1', 'c2', 'c3', 'c2', 'c1']);
+    assert.strictEqual(seq.filter(c => c === 'c1').length, 3);
+    assert.strictEqual(seq.filter(c => c === 'c3').length, 2);
+    for (let i = 1; i < seq.length; i += 2) assert.strictEqual(seq[i], 'c2', 'entre as cores tem de ficar o branco');
+});

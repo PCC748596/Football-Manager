@@ -51,7 +51,7 @@ const Ponte = {
             else if (m.tipo === 'preparar') this.preparar(m);
             else if (m.tipo === 'camera') this.camera(m.modo);
             else if (m.tipo === 'zoom') this.zoom(m.fator);
-            else if (m.tipo === 'tela_cheia') document.body.classList.toggle('tela-cheia', !!m.ligada);
+            else if (m.tipo === 'tela_cheia') { document.body.classList.toggle('tela-cheia', !!m.ligada); this.barraTopo(!!m.ligada); }
             else if (m.tipo === 'tatica') this.aplicarTatica(m);
             else if (m.tipo === 'pausar') this.pausar();
             else if (m.tipo === 'continuar') this.continuar();
@@ -61,6 +61,54 @@ const Ponte = {
         } catch (e) {
             this.enviar('erro', { mensagem: String(e && e.message || e) });
         }
+    },
+
+    /*
+    A BARRA DO TOPO EM TELA CHEIA: placar, camaras, velocidade, replay e pausa NUMA LINHA SO, la em cima. Em tela cheia o manager (que tem
+    tudo isto) nao se ve; a barra e feita aqui, ao ligar, e fala com o motor pelas mesmas chamadas dos botoes do painel. O placar e lido dos
+    spans que o 3D ja actualiza (#placar-*).
+    */
+    barraTopo(ligada) {
+        let barra = document.getElementById('barra-topo-tc');
+        if (!ligada) { if (barra) barra.style.display = 'none'; clearInterval(this._tBarra); return; }
+        if (!barra) {
+            const css = document.createElement('style');
+            css.textContent = '#barra-topo-tc{position:fixed;top:0;left:0;right:0;z-index:2000;display:flex;align-items:center;gap:10px;padding:6px 12px;' +
+                'background:rgba(15,23,42,.92);color:#ecf0f1;font:700 12px/1 system-ui,sans-serif;white-space:nowrap;overflow-x:auto;border-bottom:1px solid #334155}' +
+                '#barra-topo-tc .sep{width:1px;align-self:stretch;background:#334155;margin:0 2px}' +
+                '#barra-topo-tc .pl{font-size:15px;font-weight:900;letter-spacing:1px;font-variant-numeric:tabular-nums}' +
+                '#barra-topo-tc button{background:#334155;color:#fff;border:0;border-bottom:2px solid #0f172a;border-radius:4px;padding:6px 9px;font:700 11px system-ui,sans-serif;cursor:pointer}' +
+                '#barra-topo-tc button:hover{background:#475569}#barra-topo-tc button.on{background:#0284c7}' +
+                '#barra-topo-tc button.pisca{background:#facc15;color:#000;animation:pisca-tc 0.8s ease-in-out infinite}' +
+                '@keyframes pisca-tc{50%{opacity:.45}}' +
+                'body.tela-cheia #placar-linha{display:none !important}';
+            document.head.appendChild(css);
+            barra = document.createElement('div'); barra.id = 'barra-topo-tc';
+            const cams = [['orbit', 'Órbita'], ['center', 'TV Centro'], ['sideline', 'Lateral Móvel'], ['lateraltv', 'Lateral TV'], ['grua', 'Grua'], ['cinema', 'Cinema']];
+            barra.innerHTML = '<span class="pl" id="tc-placar"></span><span class="sep"></span>' +
+                '<span>Câmera</span>' + cams.map(c => '<button data-cam="' + c[0] + '">' + c[1] + '</button>').join('') +
+                '<button data-cam="lateraltv" data-r="3d">3D</button><button data-cam="topdown">2D</button><span class="sep"></span>' +
+                '<span>Velocidade</span>' + [0.5, 1, 1.5].map(v => '<button data-vel="' + v + '">' + v + 'x</button>').join('') +
+                '<button id="tc-replay">Replay 10s</button><button id="tc-pausa">Pausa</button>';
+            document.body.appendChild(barra);
+            barra.addEventListener('click', (e) => {
+                const b = e.target.closest('button'); if (!b) return;
+                if (b.dataset.cam && Match.setCameraMode) Match.setCameraMode(b.dataset.cam);
+                else if (b.dataset.vel) { this.definirVelocidade(Number(b.dataset.vel)); }
+                else if (b.id === 'tc-replay' && window.MatchReplay) window.MatchReplay.replayUltimos(10);
+                else if (b.id === 'tc-pausa') this.enviar('alternar_pausa', {});
+            });
+        }
+        barra.style.display = 'flex';
+        clearInterval(this._tBarra);
+        const g = (id) => { const e = document.getElementById(id); return e ? e.textContent : ''; };
+        this._tBarra = setInterval(() => {
+            const pl = barra.querySelector('#tc-placar');
+            if (pl) pl.textContent = g('placar-nome-b') + ' ' + g('placar-a') + ' x ' + g('placar-b') + ' ' + g('placar-nome-a') + '  ' + g('placar-tempo');
+            barra.querySelectorAll('button[data-cam]').forEach(b => b.classList.toggle('on', window.cameraMode === b.dataset.cam && !(b.dataset.r === '3d' && false)));
+            barra.querySelectorAll('button[data-vel]').forEach(b => b.classList.toggle('on', Number(window.speedMultiplier) === Number(b.dataset.vel)));
+            const rp = barra.querySelector('#tc-replay'); if (rp) rp.classList.toggle('pisca', !!(window.MatchReplay && window.MatchReplay.isReplaying));
+        }, 250);
     },
 
     // A camara e o zoom a pedido do manager (os botoes ficam fora do 3D).

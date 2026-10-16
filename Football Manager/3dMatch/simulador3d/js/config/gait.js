@@ -369,7 +369,13 @@ const AssentoNoChao = {
     CONSTANTE DE TEMPO (s) do filtro da altura do corpo ao andar (ver Player.assentarNoChao). 0 desliga e volta a trava total, sola
     sempre a -3 cm mas com o corpo a fazer um V a cada passo.
     */
-    suavizarAndar: 0.08
+    suavizarAndar: 0.08,
+    /*
+    A CORRIDA ASSENTA O PE DE APOIO (Player.assentarNoChao): acima da `velMax` o corpo desce ate a sola assentar quando a bota mais baixa esta a
+    menos de isto (m) do relvado — o pe de apoio; mais alto e voo e fica no ar. 0 volta ao antigo (so sobe o corpo). Medido: com 0 a sola flutua
+    ate 8 cm a 4-6 m/s; com 0.10 fica a -3 cm (a sola no relvado, as travas dentro) em todas as velocidades; o corpo balanca mais.
+    */
+    corridaAssentaAte: 0.10
 };
 if (typeof window !== 'undefined') window.AssentoNoChao = AssentoNoChao;
 /*

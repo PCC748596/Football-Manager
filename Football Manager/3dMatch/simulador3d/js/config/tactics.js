@@ -448,6 +448,13 @@ const PositionSmoothing = 3.0;
 
 const BlockShape = {
     /*
+    COORDENACAO ENTRE OS DOIS BLOCOS (ver computeBlock em team_bt.js): em metros, no referencial de ataque de cada equipa, relativos a bola.
+    `atacanteRecuoMax`: quem tem a bola nao deixa a traseira do bloco a mais disto atras dela. `defensorFrenteMax`: quem defende nao deixa a
+    frente a mais disto atras dela. Somados dao o vazio maximo entre os dois blocos (~20 m). `coordenacao: null` desliga.
+    */
+    coordenacao: { atacanteRecuoMax: 16.0, defensorFrenteMax: 6.0 },
+
+    /*
     Guarda-redes com a bola nas mãos: quanto se AFASTAM da baliza dele os dois
     blocos, em metros. Aplica-se aos dois lados na mesma direcção — a equipa do
     guarda-redes sobe esta folga, a adversária recua a mesma coisa — por isso o

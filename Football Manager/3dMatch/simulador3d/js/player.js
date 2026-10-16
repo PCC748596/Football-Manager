@@ -630,7 +630,15 @@ class FootballPlayer {
 
         const chao = Math.min(solaY(this.rig.lBota), solaY(this.rig.rBota));
         if (!isFinite(chao)) return;
-        if (soASubir && chao >= 0) return;
+        /*
+        A CORRIDA TAMBEM ASSENTA O PE DE APOIO. Acima da `velMax` so se subia o corpo (bota enterrada) e nunca se descia, para deixar a
+        fase de voo. Mas com a descida do andamento a bota de apoio ficava ate 8 cm acima do relvado a 4-6 m/s (medido): "durante a corrida
+        tem jogador a uns 10 cm do solo". Agora, com a bota mais baixa a menos de `corridaAssentaAte` do relvado ela esta no apoio, e o corpo
+        desce ate a sola assentar (as travas, filhas da chuteira, ficam dentro do gramado); so um voo a sério (a bota mais baixa mais alta do
+        que isso) fica no ar.
+        */
+        const assentaNaCorrida = soASubir && chao >= 0 && A.corridaAssentaAte > 0 && chao <= A.corridaAssentaAte;
+        if (soASubir && chao >= 0 && !assentaNaCorrida) return;
         // A SOLA fica `afundamento` abaixo do relvado: as travas (mais abaixo) ficam enterradas.
         const correccao = THREE.MathUtils.clamp(-(chao + (A.afundamento || 0)), -A.correccaoMax, A.correccaoMax);
         this.model.position.y += correccao * A.suavizacao;
