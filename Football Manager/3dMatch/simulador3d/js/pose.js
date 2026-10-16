@@ -782,6 +782,12 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
             entre eles: é a folga que os faz ler como dedos e não como um bloco
             ranhurado. O primeiro fica centrado na sua fatia, não na borda.
             */
+            // Os dedos vivem num grupo com o pivo na base da palma: rodar `dedosG` em X fecha o punho (ver Player.fecharMaosDoSoco).
+            const dedosG = new THREE.Group();
+            dedosG.position.y = -MD.palmaComp;
+            palmaG.add(dedosG);
+            handG.userData.dedosG = dedosG;
+            handG.userData.ladoPalma = (x > 0 ? -1 : 1);   // a face da palma (a mesma da placa da luva)
             const n = Math.max(1, MD.dedos);
             const fatia = MD.palmaLarg / n;
             const dedoLarg = Math.max(0.02, fatia - MD.folgaEntreDedos);
@@ -802,9 +808,9 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
                 */
                 dedo.position.set(
                     u * (-MD.palmaLarg / 2 + fatia * (i + 0.5)),
-                    -(MD.palmaComp + comp / 2),
+                    -comp / 2,
                     0);
-                palmaG.add(dedo);
+                dedosG.add(dedo);
             }
 
             /*

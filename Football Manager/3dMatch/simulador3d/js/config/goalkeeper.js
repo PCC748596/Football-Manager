@@ -526,7 +526,9 @@ const GoalkeeperPose = {
         */
         pe: -0.75,
         cabeca: -0.48,
-        pesAFrente: 0.0
+        pesAFrente: 0.0,
+        // O balanco da espera do penalti (ver Player.balancarNoPenalti): a anca vai `amp` m para cada lado, ao ritmo de `periodo` s, com os pes parados.
+        balanco: { amp: 0.30, periodo: 2.4, rampa: 0.5 }
     },
 
     // Sem perigo: descontraído, praticamente direito.

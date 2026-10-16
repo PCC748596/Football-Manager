@@ -29,6 +29,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const [camara, setCamara] = useState('lateraltv');
   const [reinicios, setReinicios] = useState(0);
   const [velocidade, setVelocidade] = useState(1);
+  const [replayAtivo, setReplayAtivo] = useState(false);
   const [pronto3d, setPronto3d] = useState(() => simulador3dPronto());
   const userTeam = teams.find(t => t.id === gameState.userTeamId);
   const taticaJson = userTeam ? JSON.stringify(taticaParaMotor(userTeam.tactics)) : '';
@@ -70,6 +71,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
     resetMatchDay();
     setIniciou(false);
     setReinicios(n => n + 1);
+    setReplayAtivo(false);
   };
 
   const handleKitSelection = (h: number, a: number) => {
@@ -148,7 +150,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
             ))}
             <button onClick={() => simulador3dEnviar({ tipo: 'replay', segundos: 10 })}
               title="Repete os ultimos 10 segundos (clique de novo para parar)"
-              className="bg-slate-700 hover:bg-slate-600 border-slate-900 text-white font-black px-3 py-1.5 rounded text-[10px] uppercase tracking-wider border-b-2 active:scale-95">Replay 10s</button>
+              className={`${replayAtivo ? 'animate-pulse bg-yellow-400 hover:bg-yellow-300 border-yellow-600 text-black' : 'bg-slate-700 hover:bg-slate-600 border-slate-900 text-white'} font-black px-3 py-1.5 rounded text-[10px] uppercase tracking-wider border-b-2 active:scale-95`}>Replay 10s</button>
             <button onClick={() => simulador3dTelaCheia()} className="ml-auto bg-emerald-700 hover:bg-emerald-600 text-white font-black px-4 py-1.5 rounded text-[10px] uppercase tracking-widest border-b-2 border-emerald-900 active:scale-95">Tela cheia</button>
         </div>
         )}
@@ -258,6 +260,8 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                       if (m.tipo === 'tatica_alterada' && userTeam) {
                         const mudou = taticaDoMotor(m, userTeam.tactics);
                         if (Object.keys(mudou).length) updateTactics(userTeam.id, mudou);
+                      } else if (m.tipo === 'replay_estado') {
+                        setReplayAtivo(!!m.ativo);
                       } else if (m.tipo === 'saida_pedida' || m.tipo === 'alternar_pausa') {
                         // ESC / Pause do painel do 3D: quem manda no relogio e no botao e o manager.
                         if (gameState.matchMinute < 90) handleAction();

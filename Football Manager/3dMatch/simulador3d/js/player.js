@@ -1432,7 +1432,8 @@ class FootballPlayer {
         }
         this.actionState = new ActionState('ballControlRight', {
             onPrepare: (p, norm) => {
-                p.velocity.multiplyScalar(0.75);
+                // Nao trava no arranque do dominio (era 0.75 por frame): ver a nota do BALL_CONTROL_RIGHT em fsm.js.
+                p.velocity.multiplyScalar(0.995);
             },
             onContact: (p, norm) => {
                 // Toque orientado na bola com o pé direito na direcção de saída
@@ -1449,7 +1450,8 @@ class FootballPlayer {
             },
             onFollowThrough: (p, norm) => {
                 if (p.dominioSaidaDir) {
-                    p.velocity.lerp(p.dominioSaidaDir.clone().multiplyScalar(p.speedMult * 0.6), 0.2);
+                    // Segue na direcao de saida SEM perder o ritmo que trazia (antes baixava para `speedMult * 0.6`).
+                    p.velocity.lerp(p.dominioSaidaDir.clone().multiplyScalar(Math.max(p.velocity.length(), p.speedMult * 0.6)), 0.2);
                 }
             }
         });
@@ -9062,6 +9064,11 @@ class FootballPlayer {
                 GkDive.apontarBracos(gkRig, undefined,
                     (this.gkSoco && this.gkSoco.lado) ? [this.gkSoco.lado === 'r' ? 'l' : 'r'] : null);
             }
+            // O ANTEBRACO DA MIRA fica esticado, com o cotovelo so 10 graus dobrado (pedido); o IK deixa-o a direito.
+            if (this.gkSoco && this.gkSoco.lado) {
+                const cotMira = gkRig[(this.gkSoco.lado === 'r' ? 'l' : 'r') + 'Elbow'];
+                if (cotMira) cotMira.rotation.x = lerpTo(cotMira.rotation.x, -10 * Math.PI / 180, 0.6);
+            }
             // O braco do soco, por cima do IK: arma para tras e golpeia para a frente.
             if (this.gkSoco) this.animarSocoNoSalto(t);
 
@@ -9705,7 +9712,54 @@ class FootballPlayer {
         // O braco do soco armado na corrida ao ponto de encontro: por cima da passada.
         this._gkSocoArmouUlt = !!(this.gkSocoArma && this.gkEstado === 'idle');
         if (this._gkSocoArmouUlt) this.armarBracoDoSoco(this.gkSocoArma, 0.35);
+        this.balancarNoPenalti(dt);
+        this.fecharMaosDoSoco();
         this.assentarNoChao();
+    }
+
+    /*
+    O GUARDA-REDES BALANCA O CORPO ESPERANDO O PENALTI — pedido: *"depois de se posicionar para o penalti, o goleiro deve se mover para
+    um lado e para o outro uns 30 cm, sem tirar os pes da posicao, so balancando o corpo"*. A anca vai de um lado ao outro
+    (`GoalkeeperPose.penalti.balanco.amp`, metros, para cada lado) e as pernas inclinam-se ao contrario o que for preciso para as botas ficarem
+    onde estao. So parado, na baliza que defende, enquanto o penalti esta por bater; em qualquer outra coisa (mergulho, jogo) volta a zero.
+    */
+    /*
+    A MAO DO SOCO FECHADA — pedido: *"falta so a mao fechada"*. A mao do braco do soco (o do V, armado na corrida e no salto ate o golpe e
+    um instante depois) fecha o punho: os dedos rodam sobre a palma. A outra, e quando nao ha soco, abrem-se. Lerp para nao dar um estalo.
+    */
+    fecharMaosDoSoco() {
+        const rig = this.rig;
+        if (!rig || !rig.lHand || !rig.rHand) return;
+        const ladoSoco = this.gkSoco ? this.gkSoco.lado : (this.gkSocoArma || null);
+        for (const [mao, lado] of [[rig.lHand, 'l'], [rig.rHand, 'r']]) {
+            const d = mao.userData && mao.userData.dedosG;
+            if (!d) continue;
+            const alvo = (ladoSoco === lado) ? -mao.userData.ladoPalma * 1.45 : 0;
+            d.rotation.x = lerpTo(d.rotation.x, alvo, 0.5);
+        }
+    }
+
+    balancarNoPenalti(dt) {
+        const rig = this.rig;
+        if (!rig || !rig.pelvis || !rig.lLeg || !rig.rLeg) return;
+        const B = (typeof GoalkeeperPose !== 'undefined' && GoalkeeperPose.penalti && GoalkeeperPose.penalti.balanco) || { amp: 0.30, periodo: 2.4, rampa: 0.5 };
+        const ativo = this.role === 'gk' && Match.state === 'PENALTY' && Match.penaltiPendente &&
+            this.team !== Match.setPieceTeam && this.gkEstado === 'idle' && this.velocity.length() < 0.5;
+        const alvo = ativo ? 1 : 0;
+        // Sai de cena depressa (o mergulho nao pode herdar a anca de lado); entra devagar.
+        const taxa = ativo ? dt / Math.max(0.05, B.rampa) : Math.min(1, dt * 8);
+        this._balancoPeso = (this._balancoPeso || 0) + (alvo - (this._balancoPeso || 0)) * Math.min(1, taxa);
+        if (this._balancoPeso < 0.002 && !this._balancoX) { this._balancoPeso = 0; return; }
+        if (ativo) this._balancoT = (this._balancoT || 0) + dt; else this._balancoT = 0;
+        // 1 unidade do corpo = ~0.33 m (ver construirCorpo).
+        const x = (B.amp / 0.33) * Math.sin(2 * Math.PI * this._balancoT / B.periodo) * this._balancoPeso;
+        const L = 2.6;                                  // anca ate a sola, em unidades do corpo
+        const incl = -Math.asin(THREE.MathUtils.clamp(x / L, -0.9, 0.9));
+        rig.pelvis.position.x = x;
+        rig.lLeg.rotation.z += incl;
+        rig.rLeg.rotation.z += incl;
+        this._balancoX = (Math.abs(x) > 0.001) ? x : 0;
+        if (!this._balancoX) rig.pelvis.position.x = 0;
     }
 
     /*

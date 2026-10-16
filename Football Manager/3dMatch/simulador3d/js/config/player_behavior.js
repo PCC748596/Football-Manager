@@ -800,6 +800,8 @@ centro contra 31.6 m com ela na ala, ou seja praticamente nada.
 */
 
 const BallControl = {
+    // A perda de velocidade POR FRAME de quem domina a bola de pe (BALL_CONTROL_RIGHT): 0.5% — era 15% por frame (a "meia trava").
+    travaNoDominio: 0.005,
     /*
     Raio de contacto com a bola, medido ao CORPO (ver distanciaAoCorpo), não
     à origem do modelo. Era 1.3 m: a bola podia estar a mais de um metro do

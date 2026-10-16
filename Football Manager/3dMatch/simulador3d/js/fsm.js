@@ -2930,7 +2930,13 @@ class PlayerFSM {
                 break;
 
             case 'BALL_CONTROL_RIGHT':
-                p.velocity.multiplyScalar(0.85);
+                /*
+                SEM A "MEIA TRAVA". Era `multiplyScalar(0.85)` por frame (e 0.75 no arranque, em player.js): em ~12 frames ele perdia 85% da
+                velocidade, parava para dominar e voltava a acelerar no `onFollowThrough` — a meia trava que se via quando o defensor chega
+                primeiro a bola e depois continua o lance. Agora o dominio custa so um toque no ritmo (`BallControl.travaNoDominio` por frame,
+                0.5%): ele domina a correr e segue.
+                */
+                p.velocity.multiplyScalar((typeof BallControl !== 'undefined' && typeof BallControl.travaNoDominio === 'number') ? (1 - BallControl.travaNoDominio) : 0.995);
                 if (p.actionState) {
                     const normC = p.actionState.update(dt, p);
                     p.aplicarFrameDominioDireito(amostrarClipDominioDireito(normC));

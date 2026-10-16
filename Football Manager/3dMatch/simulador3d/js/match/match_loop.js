@@ -288,8 +288,13 @@ Object.assign(Match, {
                 // A espera pelo caído: ver `algumCaidoDaFalta`.
                 // Quem vai a caminho so segura a cobranca nos primeiros `esperaCaminhantes` s: depois larga-se (continuam a andar ate ao jogo recomecar).
                 const FKE = (typeof FreeKickModel !== 'undefined') ? FreeKickModel : null;
-                const faltaSegura = this.algumCaidoDaFalta(false) ||
-                    (this.algumACaminhoDoLugar(false) && this.setPieceTimer < ((FKE && FKE.esperaCaminhantes) || 6.0));
+                // O cartao a ser mostrado segura sempre; o caido (a rolar e deitado, ~7 s) so nos primeiros `esperaCaido` s da falta.
+                // O relogio da ESPERA (o `setPieceTimer` nao serve: recua enquanto algo segura a cobranca, ver mais abaixo).
+                this.faltaDecorrida = (this.faltaDecorrida || 0) + dt;
+                const cartaoNaMao = (typeof Officials !== 'undefined' && Officials.cartaoAMostrar && Officials.cartaoAMostrar());
+                const faltaSegura = !!cartaoNaMao ||
+                    (this.algumCaidoDaFalta(false) && this.faltaDecorrida < ((FKE && FKE.esperaCaido) || 4.0)) ||
+                    (this.algumACaminhoDoLugar(false) && this.faltaDecorrida < ((FKE && FKE.esperaCaminhantes) || 4.0));
                 if (faltaSegura) {
                     this.faltaAtraso = Math.max(this.faltaAtraso, ESPERA_APOS_REPOSICAO / 2);
                     // E o prazo da falta nao corre enquanto se espera: ver `algumACaminhoDoLugar`.

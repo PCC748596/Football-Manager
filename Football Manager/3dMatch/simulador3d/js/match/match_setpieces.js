@@ -1088,6 +1088,7 @@ Object.assign(Match, {
 
             this.faltaPendente = true;
             this.faltaAproximando = false;
+            this.faltaDecorrida = 0;
             this.faltaAtraso = (typeof FreeKickModel !== 'undefined' && typeof FreeKickModel.esperaFalta === 'number') ? FreeKickModel.esperaFalta : ESPERA_APOS_REPOSICAO;
 
         } else if (type === 'PENALTY') {

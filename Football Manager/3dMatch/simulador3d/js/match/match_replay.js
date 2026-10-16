@@ -299,6 +299,8 @@ class ReplaySystem {
         */
         this.actualizarAvisoDeReplay();
         if (typeof TouchControls !== 'undefined') TouchControls.updateButtonsState();
+        // Avisa o manager (o botao "Replay 10s" pisca enquanto isto dura).
+        if (typeof Ponte !== 'undefined' && Ponte.enviar) Ponte.enviar('replay_estado', { ativo: true });
     }
     
     stopReplay() {
@@ -333,6 +335,7 @@ class ReplaySystem {
         }
         this.actualizarAvisoDeReplay();
         if (typeof TouchControls !== 'undefined') TouchControls.updateButtonsState();
+        if (typeof Ponte !== 'undefined' && Ponte.enviar) Ponte.enviar('replay_estado', { ativo: false });
     }
 
     restoreFrame(idx) {

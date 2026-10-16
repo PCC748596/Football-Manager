@@ -887,7 +887,9 @@ Mesmos canais e mesma ordem de chaves do QuedaClip (e o `rolarY` a zero): o `amo
 =============================================================================
 */
 const QuedaFrenteClip = {
-    duracao: 5.25,
+    // 3 s do toque ao de pe (pedido: *"o jogador fica muito tempo caido depois da falta: reduz para 3 segs"*): rola ate 1.15 s, fica
+    // deitado ate 1.90 s (eram 4.15) e levanta-se em 1.1 s. As poses sao as mesmas; so os tempos recuaram 2.25 s depois do deitado.
+    duracao: 3.00,
     // Quando chega a deitado de costas. Dai os outros comecam a ir para os lugares do lance parado.
     deitadoEm: 1.15,
     frames: [
@@ -903,16 +905,16 @@ const QuedaFrenteClip = {
         { t: 0.88, leanZ: 0.00, pitchX: 4.30, chest: 0.40, coxaChute: -1.20, joelhoChute: 1.30, coxaChuteZ: 0.00, coxaApoio: -1.20, joelhoApoio: 1.30, bracoLx: -1.20, bracoLz: 0.60, bracoRx: -1.20, bracoRz: -0.60, cotoveloL: -0.30, cotoveloR: -0.30, cabecaX: 0.30, peLy: 0.00, peRy: 0.00, avanco: 1.85, rolarY: 0.00, altura: -0.55 },
         // DEITADO DE COSTAS (pitchX = 3*pi/2): pernas a esticar, bracos abertos ao lado.
         { t: 1.15, leanZ: 0.00, pitchX: 4.71, chest: -0.05, coxaChute: -0.35, joelhoChute: 0.55, coxaChuteZ: 0.00, coxaApoio: -0.15, joelhoApoio: 0.45, bracoLx: -0.10, bracoLz: 1.25, bracoRx: -0.10, bracoRz: -1.25, cotoveloL: -0.10, cotoveloR: -0.10, cabecaX: 0.10, peLy: 0.00, peRy: 0.00, avanco: 2.10, rolarY: 0.00, altura: -0.71 },
-        // ...e fica 3 s. So a cabeca e o peito mexem um pouco.
-        { t: 4.15, leanZ: 0.00, pitchX: 4.71, chest: -0.02, coxaChute: -0.35, joelhoChute: 0.55, coxaChuteZ: 0.00, coxaApoio: -0.15, joelhoApoio: 0.45, bracoLx: -0.10, bracoLz: 1.25, bracoRx: -0.10, bracoRz: -1.25, cotoveloL: -0.10, cotoveloR: -0.10, cabecaX: 0.15, peLy: 0.00, peRy: 0.00, avanco: 2.10, rolarY: 0.00, altura: -0.71 },
+        // ...e fica 0.75 s deitado. So a cabeca e o peito mexem um pouco.
+        { t: 1.90, leanZ: 0.00, pitchX: 4.71, chest: -0.02, coxaChute: -0.35, joelhoChute: 0.55, coxaChuteZ: 0.00, coxaApoio: -0.15, joelhoApoio: 0.45, bracoLx: -0.10, bracoLz: 1.25, bracoRx: -0.10, bracoRz: -1.25, cotoveloL: -0.10, cotoveloR: -0.10, cabecaX: 0.15, peLy: 0.00, peRy: 0.00, avanco: 2.10, rolarY: 0.00, altura: -0.71 },
         // Levanta-se a continuar a mesma rotacao: senta-se (o tronco sobe a frente, pernas dobradas).
-        { t: 4.45, leanZ: 0.00, pitchX: 5.20, chest: 0.35, coxaChute: -1.50, joelhoChute: 1.00, coxaChuteZ: 0.00, coxaApoio: -1.50, joelhoApoio: 1.00, bracoLx: -1.00, bracoLz: 0.50, bracoRx: -1.00, bracoRz: -0.50, cotoveloL: -0.40, cotoveloR: -0.40, cabecaX: 0.00, peLy: 0.00, peRy: 0.00, avanco: 2.10, rolarY: 0.00, altura: -0.40 },
+        { t: 2.20, leanZ: 0.00, pitchX: 5.20, chest: 0.35, coxaChute: -1.50, joelhoChute: 1.00, coxaChuteZ: 0.00, coxaApoio: -1.50, joelhoApoio: 1.00, bracoLx: -1.00, bracoLz: 0.50, bracoRx: -1.00, bracoRz: -0.50, cotoveloL: -0.40, cotoveloR: -0.40, cabecaX: 0.00, peLy: 0.00, peRy: 0.00, avanco: 2.10, rolarY: 0.00, altura: -0.40 },
         // Em cocoras, os pes por baixo do corpo.
-        { t: 4.75, leanZ: 0.00, pitchX: 5.75, chest: 0.20, coxaChute: -1.70, joelhoChute: 1.60, coxaChuteZ: 0.00, coxaApoio: -1.70, joelhoApoio: 1.60, bracoLx: -0.60, bracoLz: 0.30, bracoRx: -0.60, bracoRz: -0.30, cotoveloL: -0.50, cotoveloR: -0.50, cabecaX: 0.00, peLy: 0.00, peRy: 0.00, avanco: 2.10, rolarY: 0.00, altura: -0.30 },
+        { t: 2.50, leanZ: 0.00, pitchX: 5.75, chest: 0.20, coxaChute: -1.70, joelhoChute: 1.60, coxaChuteZ: 0.00, coxaApoio: -1.70, joelhoApoio: 1.60, bracoLx: -0.60, bracoLz: 0.30, bracoRx: -0.60, bracoRz: -0.30, cotoveloL: -0.50, cotoveloR: -0.50, cabecaX: 0.00, peLy: 0.00, peRy: 0.00, avanco: 2.10, rolarY: 0.00, altura: -0.30 },
         // Quase de pe, ainda dobrado.
-        { t: 5.05, leanZ: 0.00, pitchX: 6.10, chest: 0.10, coxaChute: -0.90, joelhoChute: 1.20, coxaChuteZ: 0.00, coxaApoio: -0.90, joelhoApoio: 1.20, bracoLx: -0.20, bracoLz: 0.20, bracoRx: -0.30, bracoRz: -0.20, cotoveloL: -0.40, cotoveloR: -0.50, cabecaX: 0.00, peLy: 0.00, peRy: 0.00, avanco: 2.10, rolarY: 0.00, altura: -0.10 },
+        { t: 2.80, leanZ: 0.00, pitchX: 6.10, chest: 0.10, coxaChute: -0.90, joelhoChute: 1.20, coxaChuteZ: 0.00, coxaApoio: -0.90, joelhoApoio: 1.20, bracoLx: -0.20, bracoLz: 0.20, bracoRx: -0.30, bracoRz: -0.20, cotoveloL: -0.40, cotoveloR: -0.50, cabecaX: 0.00, peLy: 0.00, peRy: 0.00, avanco: 2.10, rolarY: 0.00, altura: -0.10 },
         // DE PE (pitchX = 2*pi + 0.04): a bacia volta a zero no fim (actualizarQueda).
-        { t: 5.25, leanZ: 0.00, pitchX: 6.32, chest: 0.00, coxaChute: -0.04, joelhoChute: 0.10, coxaChuteZ: 0.00, coxaApoio: -0.04, joelhoApoio: 0.10, bracoLx: 0.00, bracoLz: 0.12, bracoRx: 0.00, bracoRz: -0.12, cotoveloL: -0.20, cotoveloR: -0.20, cabecaX: 0.00, peLy: 0.00, peRy: 0.00, avanco: 2.10, rolarY: 0.00, altura: 0.03 }
+        { t: 3.00, leanZ: 0.00, pitchX: 6.32, chest: 0.00, coxaChute: -0.04, joelhoChute: 0.10, coxaChuteZ: 0.00, coxaApoio: -0.04, joelhoApoio: 0.10, bracoLx: 0.00, bracoLz: 0.12, bracoRx: 0.00, bracoRz: -0.12, cotoveloL: -0.20, cotoveloR: -0.20, cabecaX: 0.00, peLy: 0.00, peRy: 0.00, avanco: 2.10, rolarY: 0.00, altura: 0.03 }
     ]
 };
 if (typeof window !== 'undefined') window.QuedaFrenteClip = QuedaFrenteClip;
