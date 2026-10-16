@@ -81,15 +81,28 @@ const Ponte = {
                 '#barra-topo-tc button:hover{background:#475569}#barra-topo-tc button.on{background:#0284c7}' +
                 '#barra-topo-tc button.pisca{background:#facc15;color:#000;animation:pisca-tc 0.8s ease-in-out infinite}' +
                 '@keyframes pisca-tc{50%{opacity:.45}}' +
-                'body.tela-cheia #placar-linha{display:none !important}';
+                'body.tela-cheia #placar-linha{display:none !important}' +
+                // TODOS os menus do 3D saem em tela cheia: o botao Tactics abre o MATCH TACTICS do manager (ver abaixo).
+                'body.tela-cheia #painel-comandos,body.tela-cheia #coluna-direita,body.tela-cheia #painel-direito,body.tela-cheia #painel-jogadores,' +
+                'body.tela-cheia .hud-jogador,body.tela-cheia #modal-skills{display:none !important}' +
+                // O placar de TV: nomes curtos nas cores dos clubes, golos num miolo escuro com "vs", e o tempo numa aba por baixo.
+                '#tc-placar-tv{display:flex;flex-direction:column;align-items:center;font-family:system-ui,sans-serif}' +
+                '#tc-placar-tv .tv-linha{display:flex;height:24px;border-radius:5px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.55);font-weight:900}' +
+                '#tc-placar-tv .tv-eq{padding:0 9px;display:flex;align-items:center;justify-content:center;min-width:38px;font-size:13px;letter-spacing:.5px}' +
+                '#tc-placar-tv .tv-gol{background:#1b0f33;color:#fff;font-size:15px;padding:0 8px;display:flex;align-items:center;min-width:12px;justify-content:center;font-variant-numeric:tabular-nums}' +
+                '#tc-placar-tv .tv-vs{background:#3b0764;color:#e9d5ff;font-size:10px;font-style:italic;padding:0 6px;display:flex;align-items:center}' +
+                '#tc-placar-tv .tv-tempo{background:#4c1d95;color:#fff;font:800 11px system-ui,sans-serif;letter-spacing:.5px;padding:1px 12px 2px;border-radius:0 0 6px 6px;font-variant-numeric:tabular-nums}' +
+                // O painel de comandos (onde esta a tatica) desce para baixo da barra do topo.
+                '';
             document.head.appendChild(css);
             barra = document.createElement('div'); barra.id = 'barra-topo-tc';
             const cams = [['orbit', 'Órbita'], ['center', 'TV Centro'], ['sideline', 'Lateral Móvel'], ['lateraltv', 'Lateral TV'], ['grua', 'Grua'], ['cinema', 'Cinema']];
-            barra.innerHTML = '<span class="pl" id="tc-placar"></span><span class="sep"></span>' +
+            barra.innerHTML = '<div id="tc-placar-tv"><div class="tv-linha"><span class="tv-eq" id="tv-eq-e">---</span><span class="tv-gol" id="tv-gol-e">0</span>' +
+                '<span class="tv-vs">vs</span><span class="tv-gol" id="tv-gol-d">0</span><span class="tv-eq" id="tv-eq-d">---</span></div><div class="tv-tempo" id="tv-tempo">00:00</div></div><span class="sep"></span>' +
                 '<span>Câmera</span>' + cams.map(c => '<button data-cam="' + c[0] + '">' + c[1] + '</button>').join('') +
                 '<button data-cam="lateraltv" data-r="3d">3D</button><button data-cam="topdown">2D</button><span class="sep"></span>' +
                 '<span>Velocidade</span>' + [0.5, 1, 1.5].map(v => '<button data-vel="' + v + '">' + v + 'x</button>').join('') +
-                '<button id="tc-replay">Replay 10s</button><button id="tc-pausa">Pausa</button>';
+                '<button id="tc-pausa">Pausa</button><button id="tc-replay">Replay 10s</button><span class="sep"></span><button id="tc-tactics">Tactics</button>';
             document.body.appendChild(barra);
             barra.addEventListener('click', (e) => {
                 const b = e.target.closest('button'); if (!b) return;
@@ -97,14 +110,27 @@ const Ponte = {
                 else if (b.dataset.vel) { this.definirVelocidade(Number(b.dataset.vel)); }
                 else if (b.id === 'tc-replay' && window.MatchReplay) window.MatchReplay.replayUltimos(10);
                 else if (b.id === 'tc-pausa') this.enviar('alternar_pausa', {});
+                else if (b.id === 'tc-tactics') {
+                    // O botao Tactics abre o MATCH TACTICS do manager: o manager sai da tela cheia, pausa o jogo e muda de aba (ver MatchDay.tsx).
+                    this.enviar('abrir_tactics', {});
+                }
             });
         }
         barra.style.display = 'flex';
         clearInterval(this._tBarra);
         const g = (id) => { const e = document.getElementById(id); return e ? e.textContent : ''; };
         this._tBarra = setInterval(() => {
-            const pl = barra.querySelector('#tc-placar');
-            if (pl) pl.textContent = g('placar-nome-b') + ' ' + g('placar-a') + ' x ' + g('placar-b') + ' ' + g('placar-nome-a') + '  ' + g('placar-tempo');
+            // Esquerda = a equipa do `placar-nome-b` (com os golos `placar-a`), direita = a do `placar-nome-a`, como no placar de sempre.
+            const sigla = (n) => String(n || '').split('-')[0].normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || '---';
+            const corDe = (lista) => { const j = lista && lista[1] ? lista[1] : null; try { return new THREE.Color(j && j.corCamisa !== undefined ? j.corCamisa : 0x334155); } catch (e) { return new THREE.Color(0x334155); } };
+            const pintar = (id, nome, lista) => {
+                const el = barra.querySelector(id); if (!el) return;
+                const c = corDe(lista); const lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+                el.textContent = sigla(nome); el.style.background = '#' + c.getHexString(); el.style.color = lum > 0.55 ? '#111' : '#fff';
+            };
+            pintar('#tv-eq-e', g('placar-nome-b'), Match.opponents); pintar('#tv-eq-d', g('placar-nome-a'), Match.players);
+            const ge = barra.querySelector('#tv-gol-e'), gd = barra.querySelector('#tv-gol-d'), tp = barra.querySelector('#tv-tempo');
+            if (ge) ge.textContent = g('placar-a'); if (gd) gd.textContent = g('placar-b'); if (tp) tp.textContent = g('placar-tempo');
             barra.querySelectorAll('button[data-cam]').forEach(b => b.classList.toggle('on', window.cameraMode === b.dataset.cam && !(b.dataset.r === '3d' && false)));
             barra.querySelectorAll('button[data-vel]').forEach(b => b.classList.toggle('on', Number(window.speedMultiplier) === Number(b.dataset.vel)));
             const rp = barra.querySelector('#tc-replay'); if (rp) rp.classList.toggle('pisca', !!(window.MatchReplay && window.MatchReplay.isReplaying));

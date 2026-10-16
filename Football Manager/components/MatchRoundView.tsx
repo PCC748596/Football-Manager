@@ -197,6 +197,8 @@ const LiveMatchRow: React.FC<{ fixture: Fixture, home: Team | undefined, away: T
 };
 
 const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView }) => {
+  // Lembra que o jogo de hoje esta a ser visto na simulacao 2D: o Resume da aba Tactics volta para ca.
+  React.useEffect(() => { try { localStorage.setItem('activeMatchView', 'TRAINING'); } catch (e) { /* sem armazenamento */ } }, []);
   const { gameState, teams, playMatchDay, pauseMatch, fixtures, advanceWeek, players, finishMatchDayInstant, updateSettings, motor3dProgresso } = useGame();
   const lang = gameState.language || 'EN';
   const t = UI_TRANSLATIONS[lang];

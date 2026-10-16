@@ -277,7 +277,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             </h2>
             <div className="flex items-center gap-3">
                  {isMatchOngoing && setView && (
-                    <button onClick={() => setView('TRAINING')} className="bg-emerald-600 text-white text-[10px] font-black uppercase px-4 py-2 rounded">Resume</button>
+                    <button onClick={() => setView(localStorage.getItem('activeMatchView') === 'MATCH' ? 'MATCH' : 'TRAINING')} className="bg-emerald-600 text-white text-[10px] font-black uppercase px-4 py-2 rounded">Resume</button>
                  )}
                  <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded p-1 border border-slate-200 dark:border-slate-700">
                     <span className="text-[9px] font-black text-slate-400 px-2 uppercase tracking-widest">FORMATION</span>

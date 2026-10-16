@@ -28,6 +28,8 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const chave3d = match ? match.date + "|" + match.homeTeamId + "|" + match.awayTeamId : "";
   const [camara, setCamara] = useState('lateraltv');
   const [reinicios, setReinicios] = useState(0);
+  // Lembra que o jogo de hoje esta a ser visto no 3D: o Resume da aba Tactics (e o botao JOGAR PARTIDA) voltam para ca, e nao para a simulacao 2D.
+  useEffect(() => { try { localStorage.setItem('activeMatchView', 'MATCH'); } catch (e) { /* sem armazenamento: fica o padrao */ } }, []);
   const [velocidade, setVelocidade] = useState(1);
   const [replayAtivo, setReplayAtivo] = useState(false);
   const [pronto3d, setPronto3d] = useState(() => simulador3dPronto());
@@ -260,6 +262,11 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                       if (m.tipo === 'tatica_alterada' && userTeam) {
                         const mudou = taticaDoMotor(m, userTeam.tactics);
                         if (Object.keys(mudou).length) updateTactics(userTeam.id, mudou);
+                      } else if (m.tipo === 'abrir_tactics') {
+                        // Botao Tactics da tela cheia do 3D: sai da tela cheia, pausa o relogio e abre o MATCH TACTICS.
+                        if (document.fullscreenElement) document.exitFullscreen?.();
+                        if (gameState.isProcessing) pauseMatch();
+                        setView?.('TACTICS');
                       } else if (m.tipo === 'replay_estado') {
                         setReplayAtivo(!!m.ativo);
                       } else if (m.tipo === 'saida_pedida' || m.tipo === 'alternar_pausa') {
