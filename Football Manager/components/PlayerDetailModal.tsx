@@ -4,6 +4,8 @@ import { Player, Position, Team } from '../types';
 import { useGame } from '../context/GameContext';
 import { TeamShield } from './TeamShield';
 import { AttributeGrowthArrow } from './SquadView';
+import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
+import { PLAYSTYLE_POSITIONS, PLAYSTYLE_DESCRICAO, PlayStyle } from '../types';
 
 interface Props {
   player: Player;
@@ -150,20 +152,25 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
     return 'text-rose-500';
   };
 
-  const playStyles = useMemo(() => {
-    // Deterministic playstyles based on position
-    const styles = [];
-    if (detailedStats.pace > 80) styles.push({ icon: '🚀', name: 'Speedster' });
-    if (detailedStats.dribbling > 80) styles.push({ icon: '🪄', name: 'Trickster' });
-    if (detailedStats.defending > 75) styles.push({ icon: '🛡️', name: 'Block' });
-    if (detailedStats.passing > 80) styles.push({ icon: '🎯', name: 'Pinged Pass' });
-    if (detailedStats.shooting > 75) styles.push({ icon: '🦊', name: 'Finisher' });
-    if (detailedStats.physical > 80) styles.push({ icon: '💪', name: 'Bruiser' });
-    if (player.position === Position.GK) styles.push({ icon: '🧤', name: 'Far Reach' });
+  // Os ICONES do PlayStyle da base (o estilo em si vem de PLAYSTYLE_DA_BASE, gerado do squads.js do 3D).
+  const ICONE_DO_ESTILO: Record<string, string> = {
+    'Fox in the Box': '🦊', 'Goal Poacher': '🎯', 'Target Man': '💪', 'Dummy Runner': '🏃', 'Extra Frontman': '⚔️',
+    'Cross Specialist': '🎯', 'Prolific Winger': '🚀', 'Roaming Flank': '🧭', 'Creative Playmaker': '🪄', 'Classic No. 10': '🔟',
+    'Hole Player': '🕳️', 'Box-to-Box': '🔁', 'Orchestrator': '🎼', 'Anchor Man': '⚓', 'The Destroyer': '🛡️', 'Build Up': '🧱',
+    'Offensive Full-back': '⚡', 'Full-back Finisher': '🦊', 'Defensive Full-back': '🛡️', 'Defensive Goalkeeper': '🧤', 'Offensive Goalkeeper': '🧤'
+  };
 
-    if (styles.length === 0) styles.push({ icon: '⚙️', name: 'Worker' });
-    return styles.slice(0, 3);
-  }, [detailedStats, player]);
+  /*
+  O PLAYSTYLE E O DA BASE (o `estilo` do jogador no squads.js do 3D, pelo id `p-<idPlayer>`; a mesma coisa que o jogo usa em campo). Nao ha
+  estilos inventados ("Worker", "Speedster"...): quem nao esta na base (jogador gerado) leva o primeiro estilo da base que serve a sua posicao,
+  e o "Creative Playmaker" quando nenhum serve.
+  */
+  const playStyles = useMemo(() => {
+    const daBase = PLAYSTYLE_DA_BASE[player.id]
+      || (Object.keys(PLAYSTYLE_POSITIONS) as PlayStyle[]).find(s => s !== 'None' && PLAYSTYLE_POSITIONS[s].includes(player.position))
+      || 'Creative Playmaker';
+    return [{ icon: ICONE_DO_ESTILO[daBase] || '🪄', name: daBase, descricao: PLAYSTYLE_DESCRICAO[daBase as PlayStyle] || '' }];
+  }, [player]);
 
   const stars = (count: number) => {
     return (
@@ -321,12 +328,15 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                 <div className="flex gap-4">
                   {playStyles.map((style, i) => (
                     <div key={i} className="flex flex-col items-center gap-3">
-                      <div className="w-12 h-12 bg-slate-800 rounded rotate-45 border border-slate-600 flex items-center justify-center shadow-lg group relative cursor-help">
+                      <div title={(style as any).descricao || style.name} className="w-12 h-12 bg-slate-800 rounded rotate-45 border border-slate-600 flex items-center justify-center shadow-lg group relative cursor-help">
                         <span className="-rotate-45 text-2xl">{style.icon}</span>
                       </div>
                       <div className="text-[9px] font-bold text-slate-300 uppercase tracking-widest text-center mt-1">
                         {style.name}
                       </div>
+                      {(style as any).descricao && (
+                        <div className="text-[9px] leading-snug text-slate-500 text-center max-w-[200px]">{(style as any).descricao}</div>
+                      )}
                     </div>
                   ))}
                 </div>

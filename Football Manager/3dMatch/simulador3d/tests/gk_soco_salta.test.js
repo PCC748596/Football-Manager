@@ -34,3 +34,28 @@ test('com soco planeado o corpo sobe a altura minima do soco, mesmo com a bola j
 test('sem soco o salto continua a ser o de sempre (curto, para a bola baixa)', () => {
     assert.ok(salto(false) < 0.25, 'salto sem soco: ' + salto(false).toFixed(2));
 });
+
+test('o braco do soco e o do lado da bola (o outro faz a mira), nos dois lados e nas duas equipas', () => {
+    const scene = new THREE.Scene();
+    Match.init(scene);
+    if (typeof Officials !== 'undefined' && Officials.init) Officials.init(scene);
+    for (const gk of [Match.players[0], Match.opponents[0]]) {
+        gk.model.position.set(0, ALTURA_BASE_Y, -50);
+        gk.model.updateMatrixWorld(true);
+        const lx = new THREE.Vector3(), rx = new THREE.Vector3();
+        gk.rig.lArm.getWorldPosition(lx); gk.rig.rArm.getWorldPosition(rx);
+        gk.gkSaiuAoCruzamento = true;
+        Match.ball.position.set(0, 1, -50);
+        // Marcado: um adversario encostado.
+        const adv = (gk.team === 'TeamA') ? Match.opponents[3] : Match.players[3];
+        adv.model.position.set(1, ALTURA_BASE_Y, -50);
+        for (const lado of [-1, 1]) {
+            gk.planearSocoNoSalto({ x: lado * 3, z: -50 });
+            assert.ok(gk.gkSoco, 'sem soco planeado');
+            // O braco do soco tem de ser o que fica do MESMO lado do mundo que a bola.
+            const braco = gk.gkSoco.lado === 'l' ? lx : rx;
+            assert.ok(Math.sign(braco.x - 0) === lado || Math.abs(braco.x) < 1e-6 === false && Math.sign(braco.x) === lado,
+                `${gk.team}: bola em x=${lado * 3}, soco com o braco ${gk.gkSoco.lado} (x=${braco.x.toFixed(2)})`);
+        }
+    }
+});

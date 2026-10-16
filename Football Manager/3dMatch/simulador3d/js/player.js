@@ -7530,7 +7530,7 @@ class FootballPlayer {
                             this.estaMarcadoNaSaida()) {
                             _v1.set(1, 0, 0).applyQuaternion(this.model.quaternion);
                             const ex = encontroSaida.x - this.model.position.x, ez = encontroSaida.z - this.model.position.z;
-                            this.gkSocoArma = ((_v1.x * ex + _v1.z * ez) >= 0) ? 'r' : 'l';
+                            this.gkSocoArma = ((_v1.x * ex + _v1.z * ez) >= 0) ? 'l' : 'r';
                         }
                     }
 
@@ -9079,6 +9079,18 @@ class FootballPlayer {
             }
             // O braco do soco, por cima do IK: arma para tras e golpeia para a frente.
             if (this.gkSoco) this.animarSocoNoSalto(t);
+            /*
+            DEPOIS DO SOCO OS BRACOS VOLTAM A POSICAO NORMAL (de andar): o que socou e o outro, que ia atras, nao vao os dois para a frente
+            nem ficam no ar na pose generica do salto. So depois de o gesto acabar (`gkSocoRepouso`, posto no fim do golpe).
+            */
+            if (!this.gkSoco && this.gkSocoRepouso) {
+                for (const [br, co, sg] of [[gkRig.lArm, gkRig.lElbow, 1], [gkRig.rArm, gkRig.rElbow, -1]]) {
+                    br.rotation.x = lerpTo(br.rotation.x, 0, 0.25);
+                    br.rotation.y = lerpTo(br.rotation.y, 0, 0.25);
+                    br.rotation.z = lerpTo(br.rotation.z, sg * Math.PI / 12, 0.25);
+                    co.rotation.x = lerpTo(co.rotation.x, -0.3, 0.25);
+                }
+            }
 
             /*
             A MÃO REAL, LIDA DO RIG — e não uma fórmula.
@@ -9840,6 +9852,7 @@ class FootballPlayer {
 
     planearSocoNoSalto(encontro) {
         this.gkSoco = null;
+        this.gkSocoRepouso = false;
         const S = (typeof GkSaidaCruzamento !== 'undefined') ? GkSaidaCruzamento : null;
         if (!S || !S.socoAnim || !this.gkSaiuAoCruzamento || typeof Match === 'undefined') return;
         if (!this.estaMarcadoNaSaida()) return;
@@ -9847,7 +9860,8 @@ class FootballPlayer {
         _v1.set(1, 0, 0).applyQuaternion(this.model.quaternion);
         const bx = (encontro ? encontro.x : Match.ball.position.x) - this.model.position.x;
         const bz = (encontro ? encontro.z : Match.ball.position.z) - this.model.position.z;
-        const lado = (_v1.x * bx + _v1.z * bz) >= 0 ? 'r' : 'l';
+        // O braco do SOCO e o do lado da bola (o rig tem o braco esquerdo em +x, o direito em -x); a mira fica com o outro. Estava ao contrario.
+        const lado = (_v1.x * bx + _v1.z * bz) >= 0 ? 'l' : 'r';
         const tc = S.socoAnim.contacto;
         this.gkSoco = { marcado: true, lado: lado, tc: tc, golpeado: false, tGolpe: null, preArmado: !!this._gkSocoArmouAntes };
     }
@@ -9871,7 +9885,7 @@ class FootballPlayer {
         // Depois do contacto, segura os bracos la e solta.
         if (so.golpeado && so.tGolpe === null) so.tGolpe = t;
         const fim = (so.tGolpe !== null ? so.tGolpe : tGolpeFim) + S.segura;
-        if (t > fim) { this.gkSoco = null; return; }
+        if (t > fim) { this.gkSoco = null; this.gkSocoRepouso = true; return; }
         if (t < tArmaIni) return;
         const poeV = (a, c, sg, u) => {
             a.rotation.x = THREE.MathUtils.lerp(a.rotation.x, V.x, u);

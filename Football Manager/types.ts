@@ -17,6 +17,7 @@ export enum Position {
 export type PlayStyle = 
   | 'None'
   | 'Defensive Goalkeeper'
+  | 'Offensive Goalkeeper'
   | 'Offensive Full-back'
   | 'Full-back Finisher'
   | 'The Destroyer'
@@ -40,6 +41,7 @@ export type PlayStyle =
 export const PLAYSTYLE_POSITIONS: Record<PlayStyle, Position[]> = {
   'None': [],
   'Defensive Goalkeeper': [Position.GK],
+  'Offensive Goalkeeper': [Position.GK],
   'Offensive Full-back': [Position.LB, Position.RB],
   'Full-back Finisher': [Position.LB, Position.RB],
   'Defensive Full-back': [Position.LB, Position.RB],
@@ -59,6 +61,32 @@ export const PLAYSTYLE_POSITIONS: Record<PlayStyle, Position[]> = {
   'Fox in the Box': [Position.ST],
   'Target Man': [Position.ST],
   'Dummy Runner': [Position.ST, Position.SS, Position.AM]
+};
+
+// A descricao de cada PlayStyle (a mesma lista das posicoes acima: cada estilo so serve as posicoes de PLAYSTYLE_POSITIONS). Mostrada no Overview do jogador.
+export const PLAYSTYLE_DESCRICAO: Record<PlayStyle, string> = {
+  'None': '',
+  'Goal Poacher': 'A predatory striker who plays off the shoulders of the last defender.',
+  'Dummy Runner': 'A player who attracts the defence to create space for other players to exploit.',
+  'Fox in the Box': 'A striker who lurks in the opposition 18 yard box just waiting for the ball.',
+  'Target Man': 'A player who becomes the focal point of attack by holding the ball up in an advanced position.',
+  'Creative Playmaker': 'A player who takes advantage of any opening in the defense to initiate attacks and assists in shots on the goal.',
+  'Prolific Winger': 'A player who positions himself on the wing to receive passes, occasionally cutting into the center when the opportunity arises.',
+  'Roaming Flank': 'A player who tends to cut inside from the wing to receive passes.',
+  'Cross Specialist': 'A player who hugs the touchline, waiting for a chance to cross the ball in.',
+  'Classic No. 10': 'An old-style static playmaker who makes use of deft touches and passes rather than pace or movement.',
+  'Hole Player': 'A player who looks to make runs into the opposition goal area when the team is on the attack.',
+  'Box-to-Box': 'A player who tirelessly covers every blade of grass for the full 90 minutes.',
+  'The Destroyer': 'A tenacious battler who keeps opposition attacks at bay through hard tackling and pressing.',
+  'Orchestrator': 'A player who lurks in deeper positions, ready to initiate attacks.',
+  'Anchor Man': 'A deep sitting defensive midfielder protecting the backline.',
+  'Build Up': 'A player who likes to drop back in order to receive the ball and trigger attacks from deep.',
+  'Offensive Full-back': 'An attack-minded full back who will run upfield and join the attack when presented with a chance.',
+  'Full-back Finisher': 'An attacking full-back who enjoys joining the attack in high central areas.',
+  'Defensive Full-back': 'A solid full-back who prefers to stay back and stick to defensive duties.',
+  'Extra Frontman': 'A defender who likes to join in the attack and lay siege on the opposition goal at every given opportunity.',
+  'Offensive Goalkeeper': 'A keeper playing a sweeper type role who often comes out to cover the area behind the defence.',
+  'Defensive Goalkeeper': 'A solid keeper who prefers to stay around the goal line.'
 };
 
 export interface League {
