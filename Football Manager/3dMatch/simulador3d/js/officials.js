@@ -81,6 +81,8 @@ const RefereeModel = {
     mantendo a distancia de uns 10-15 metros"*. A coroa e 9-13 (com o atraso de quem corre atras da bola ele fica a 10-15: medido, a coroa 10-15 dava mediana 14 e 38% acima de 15 m), o piso duro sobe para 9 m (a folga e o atraso de quem
     corre atras da bola) e a fuga arranca 3 m antes dele.
     */
+    // Escanteio: o juiz fica fora da grande area, do lado oposto ao canto (ver pontoDoArbitro): metros para la da linha lateral da area e a frente da linha dela.
+    cantoFora: { folgaX: 2.0, folgaZ: 3.0 },
     raioMin: 9.0,            // mais perto do que isto, afasta-se
     raioMax: 13.0,           // mais longe do que isto, aproxima-se
     distMinDura: 9.0,        // o alvo nunca fica mais perto da bola do que isto
@@ -1586,7 +1588,16 @@ const Officials = {
             const xDoCanto = (Match.cantoBolaAlvo && typeof Match.cantoBolaAlvo.x === 'number')
                 ? Match.cantoBolaAlvo.x : bola.x;
             const lado = Math.sign(xDoCanto) || 1;
-            return { x: -lado * PM.arbitroX, z: linhaGol - attDir * PM.marcaZ };
+            /*
+            FORA DA AREA, e nao no meio dela (pedido: *"no escanteio o juiz esta no meio da area atrapalhando os jogadores"*). A posicao do penalti
+            (`PM.arbitroX` por `PM.marcaZ`) fica DENTRO da grande area, onde se junta o aglomerado do canto. Agora fica do lado oposto ao canto,
+            `cantoFora.folgaX` m para la da linha lateral da area e `cantoFora.folgaZ` m a frente da linha dela, ou seja ao lado do aglomerado e
+            nao dentro dele; ve o cruzamento de frente e nao tapa a ninguem.
+            */
+            const CF = R.cantoFora || { folgaX: 2.0, folgaZ: 3.0 };
+            const meiaArea = (typeof Area !== 'undefined' && Area.meiaLargura) ? Area.meiaLargura : 20.16;
+            const profArea = (typeof Area !== 'undefined' && Area.profundidade) ? Area.profundidade : 16.5;
+            return { x: -lado * (meiaArea + CF.folgaX), z: linhaGol - attDir * (profArea + CF.folgaZ) };
         }
 
         const ax = -(CAMPO_LARG / 2) * R.diagonalX, az = -(CAMPO_COMP / 2) * R.diagonalZ;

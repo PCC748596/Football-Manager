@@ -1114,6 +1114,8 @@ const GoalKickPlan = {
 if (typeof window !== 'undefined') window.GoalKickPlan = GoalKickPlan;
 
 const GoalkeeperDive = {
+    // Bola solta na area: se um defesa dele esta mais perto da bola do que o guarda-redes por mais disto (m), e o defesa quem a disputa (player.js, ramo looseBallInBox).
+    margemDefesaMaisPerto: 1.0,
     /*
     TEMPO DE REACÇÃO A UM REMATE, em segundos, antes de o gesto sequer começar.
 

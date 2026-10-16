@@ -1,5 +1,5 @@
 /*
-O ÁRBITRO NO CANTO — na posição do penálti, do lado oposto à cobrança.
+O ÁRBITRO NO CANTO — fora da grande área, do lado oposto à cobrança (antes: na posição do penálti, DENTRO da área, onde atrapalhava os jogadores).
 
 Pedido: *"no corner, o juiz tem que se posicionar do lado oposto à cobrança, na
 mesma posição do penálti"*. É a colocação real: dali ele vê o cruzamento a
@@ -65,16 +65,14 @@ function correr(estado, { ladoDoCanto = 1, attDir = 1, bola = null } = {}) {
         (...Object.values(amb))(pos);
 }
 
-test('no canto ele fica na posição do penálti', () => {
-    const canto = correr('CORNER_KICK', { ladoDoCanto: 1, attDir: 1 });
-    const penalti = correr('PENALTY', { attDir: 1 });
-
-    // O MESMO z: o alinhamento da marca de penálti.
-    assert.ok(Math.abs(canto.z - penalti.z) < 1e-6,
-        `canto em z=${canto.z.toFixed(2)} e penálti em z=${penalti.z.toFixed(2)}`);
-    // E a mesma distância ao eixo: a lateral da pequena área.
-    assert.ok(Math.abs(Math.abs(canto.x) - PenaltyModel.arbitroX) < 1e-6,
-        `x=${canto.x.toFixed(2)}, e a posição do penálti é ±${PenaltyModel.arbitroX}`);
+test('no canto ele fica FORA da grande area (e nao no meio dela, onde esta o aglomerado)', () => {
+    for (const lado of [1, -1]) for (const attDir of [1, -1]) {
+        const c = correr('CORNER_KICK', { ladoDoCanto: lado, attDir });
+        const meiaArea = 20.16, profArea = 16.5;
+        const dentroDaArea = Math.abs(c.x) < meiaArea && Math.abs(Math.abs(c.z) - CAMPO_COMP / 2) < profArea;
+        assert.ok(!dentroDaArea, `canto do lado ${lado} (baliza ${attDir}): o arbitro ficou dentro da area (${c.x.toFixed(1)}, ${c.z.toFixed(1)})`);
+        assert.ok(Math.abs(c.x) >= meiaArea + 1.5, `ficou a ${Math.abs(c.x).toFixed(1)} m do eixo, perto demais do aglomerado`);
+    }
 });
 
 test('e do lado OPOSTO ao da cobrança, nos dois lados', () => {

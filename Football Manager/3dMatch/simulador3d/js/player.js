@@ -7720,8 +7720,31 @@ class FootballPlayer {
                         let looseBallInBox = (!carrier && !enderecadaAOutro &&
                             Match.ballVel.lengthSq() < 150);
 
-                        if (looseBallInBox ||
-                            (distToBall < 3.2 && !carrier && !enderecadaAOutro)) {
+                        /*
+                        UM DEFESA MAIS PERTO DA BOLA QUE ELE: e o defesa quem a disputa. Relato: "algumas vezes, quando o goleiro rebate a bola, ele sai
+                        correndo atras dela mesmo tendo zagueiros mais proximos". O ramo da bola solta na area mandava-o a 6 m/s para ela sem olhar
+                        aos companheiros. Agora, se um jogador de campo dele esta mais perto da bola do que ele (por mais de
+                        `GoalkeeperDive.margemDefesaMaisPerto` m), o guarda-redes fica na ancora e deixa a bola ao defesa — salvo bola a vir para a
+                        baliza depressa, que e dele (o ramo de baixo).
+                        */
+                        let defesaMaisPerto = false;
+                        {
+                            const margem = (typeof GoalkeeperDive !== 'undefined' && typeof GoalkeeperDive.margemDefesaMaisPerto === 'number')
+                                ? GoalkeeperDive.margemDefesaMaisPerto : 1.0;
+                            const vParaBaliza = -Match.ballVel.z * this.dirZ;   // > 0: a bola anda para a baliza dele
+                            const aVirDepressa = (vParaBaliza > 0 && Math.abs(Match.ballVel.z) > 6);
+                            if (!aVirDepressa) {
+                                const meusD = (this.team === 'TeamA') ? Match.players : Match.opponents;
+                                for (const m of meusD) {
+                                    if (m === this || m.role === 'gk' || !m.model) continue;
+                                    const dm = Math.hypot(m.model.position.x - Match.ball.position.x, m.model.position.z - Match.ball.position.z);
+                                    if (dm + margem < distToBall) { defesaMaisPerto = true; break; }
+                                }
+                            }
+                        }
+
+                        if (!defesaMaisPerto && (looseBallInBox ||
+                            (distToBall < 3.2 && !carrier && !enderecadaAOutro))) {
                             alvoGkX = Match.ball.position.x;
                             alvoGkZ = Match.ball.position.z;
                             speedLerp = 6.0;
