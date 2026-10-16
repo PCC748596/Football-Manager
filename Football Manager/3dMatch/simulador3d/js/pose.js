@@ -221,6 +221,15 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
     const luvaCostasMat = LUVAS ? new THREE.MeshStandardMaterial({ color: LUVAS.costas, roughness: 0.55 }) : null;
     const luvaPalmaMat = LUVAS ? new THREE.MeshStandardMaterial({ color: LUVAS.palma, roughness: 0.55 }) : null;
     const pecaCamisa = UNI ? UNI.camisa : null;
+    /*
+    A COR BASE DA CAMISA SAI DO UNIFORME, quando ele a tem. A frente e pintada por `pintarPadraoDeEquipamento` com a
+    cor do uniforme, mas os lados, as mangas e as costas usavam `corCamisa` — a cor fixa do `createTeams` (amarelo e
+    laranja nos guarda-redes). Resultado: frente na cor do kit e mangas e costas noutra. So afecta o desenho solido;
+    os com padrao ja tem a textura propria nas mangas e nos lados.
+    */
+    if (pecaCamisa && pecaCamisa.cores && pecaCamisa.cores.length && !(pecaCamisa.padrao && pecaCamisa.padrao !== 'solido')) {
+        corCamisa = pecaCamisa.cores[0];
+    }
     const pecaMeiao = UNI ? UNI.meiao : null;
     /*
     O CALCAO PODE SER UMA PECA e nao so uma cor — pedido: *"coloca uma barra

@@ -69,27 +69,9 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
     setShowKitSelection(false);
   };
 
-  const homePct = useMemo(() => {
-    const total = (gameState.matchVisual?.homePossessionCount || 0) + (gameState.matchVisual?.awayPossessionCount || 0);
-    if (total === 0) return 50;
-    return Math.round(((gameState.matchVisual?.homePossessionCount || 0) / total) * 100);
-  }, [gameState.matchVisual?.homePossessionCount, gameState.matchVisual?.awayPossessionCount]);
-
   return (
     <div className="w-full h-full flex flex-col bg-slate-950 rounded-xl overflow-hidden border border-slate-900 shadow-2xl">
         <div className="h-20 bg-slate-900 border-b border-slate-800 flex flex-col items-center justify-center relative z-20 overflow-hidden">
-            {/* Possession Bar (Background) */}
-            <div className="absolute bottom-0 inset-x-0 h-1 flex w-full">
-                <div 
-                  className="h-full transition-all duration-500 ease-out" 
-                  style={{ width: `${homePct}%`, backgroundColor: homeTeam.primaryColor }}
-                />
-                <div 
-                  className="h-full flex-1 transition-all duration-500 ease-out" 
-                  style={{ backgroundColor: awayTeam.primaryColor }}
-                />
-            </div>
-
             <div className="w-full flex items-center justify-between px-8">
                 <div className="flex items-center gap-8">
                     <div className="flex items-center gap-3">
@@ -133,13 +115,6 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         </button>
                     </div>
                 </div>
-            </div>
-
-            {/* Possession Center Label Overlay */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-6 pointer-events-none">
-                <span className="text-[9px] font-black text-slate-400 bg-slate-950/80 px-2 py-0.5 rounded-full border border-slate-800 uppercase tracking-tighter">
-                    Posse: {homePct}% vs {100 - homePct}%
-                </span>
             </div>
         </div>
         

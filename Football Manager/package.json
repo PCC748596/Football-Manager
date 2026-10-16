@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "3d:teste": "node 3dMatch/simulador3d/tests/ponte_manager.test.js && node 3dMatch/simulador3d/tests/ponte_tatica.test.js && node 3dMatch/simulador3d/tests/adaptador_manager.test.js && node 3dMatch/simulador3d/tests/uniformes_clubes.test.js",
-    "3d:lote": "node 3dMatch/simulador3d/tools/headless/lote_jogos.js"
+    "3d:lote": "node 3dMatch/simulador3d/tools/headless/lote_jogos.js",
+    "3d:teste:todos": "node --test --test-force-exit 3dMatch/simulador3d/tests/*.test.js"
   },
   "dependencies": {
     "@types/three": "^0.184.1",

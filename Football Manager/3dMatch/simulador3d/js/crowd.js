@@ -202,6 +202,13 @@ const CrowdModel = {
     fraccaoGolo: 1.00,
 
     /*
+    A ENTRADA DOS TIMES (Abertura.fase 'entrada'): a bancada comeca TODA sentada (0, nem o `repouso`) e vai-se
+    levantando a medida que o trio e os 22 saem do tunel, ate esta fraccao — de pe a ver, sem saltar (os ultras
+    tambem ficam quietos). Quando os times comecam a andar para as posicoes de saida de bola volta o padrao de sempre.
+    */
+    fraccaoEntrada: 0.90,
+
+    /*
     OS ULTRAS — a fatia que salta SEMPRE, jogo parado ou não.
 
     As três fracções acima descrevem uma bancada que reage ao lance, e o lance
@@ -315,6 +322,17 @@ const CrowdTrigger = {
     avaliar(dados) {
         if (!this._estado) this.reset();
         const dt = dados.dt || 0;
+
+        /*
+        A ENTRADA DOS TIMES manda sobre o resto: `dados.abertura` e { progresso 0..1 } (quem ja saiu do tunel) ou null.
+        Sem posse, sem golo, sem histerese — e a histerese limpa-se, para o primeiro lance depois da entrada nao herdar
+        nada. `semSalto` apaga tambem os ultras (ver Crowd.update).
+        */
+        if (dados.abertura) {
+            this.reset();
+            const f = CrowdModel.fraccaoEntrada * Math.max(0, Math.min(1, dados.abertura.progresso));
+            return { A: f, B: f, festa: null, semSalto: true };
+        }
 
         /*
         GOLO salta a histerese. Não faz sentido esperar 0.4 s para uma bancada
@@ -1034,7 +1052,15 @@ void crowdPesos(out float dePe, out float w1, out float w2,
 
         if (typeof Match === 'undefined' || !Match.ball) return;
 
+        // A entrada dos times (so a do inicio do jogo): progresso = fraccao do trio e dos 22 que ja saiu do tunel.
+        let abertura = null;
+        if (Match.state === 'ABERTURA' && typeof Abertura !== 'undefined' && Abertura.activa && Abertura.modo === 'inicio') {
+            const n = Abertura.partes.length;
+            abertura = { progresso: (Abertura.fase === 'entrada' && n) ? Abertura.partes.filter(s => s.spawned).length / n : 1 };
+        }
+
         const r = CrowdTrigger.avaliar({
+            abertura: abertura,
             estado: Match.state,
             posse: Match.possessionTeam,
             bolaZ: Match.ball.position.z,
@@ -1051,7 +1077,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         // No golo, os ultras de quem sofreu tambem param — senao a bancada
         // derrotada continua a saltar ao lado da que festeja.
         const luto = r.festa ? (r.festa === 'A' ? 'B' : 'A') : null;
-        const salto = (claque) => (luto === claque)
+        const salto = (claque) => r.semSalto ? 0 : (luto === claque)
             ? CrowdModel.fraccaoSaltoLuto : CrowdModel.fraccaoSaltoSempre;
 
         this.setFraccao('A', r.A, r.festa === 'A', salto('A'));

@@ -171,6 +171,9 @@ const Minimap = {
             const contorno = this.contornoEquipa[equipa];
             for (const p of lista) {
                 if (!p || !p.model) continue;
+                // Na abertura quem ainda nao saiu do tunel esta invisivel (Abertura._spawn) mas o modelo guarda a
+                // posicao antiga: sem este corte o ponto aparecia no mapa onde o jogador nao esta.
+                if (p.model.visible === false) continue;
                 // A cor sai do CALCAO (pedido: "a cor do short dos jogadores"); sem
                 // `corCalcao`, da camisola, e por fim do fallback.
                 const c = p.corCalcao || p.corCamisa || ((p.role === 'gk') ? this.cores.gk : corFallback);
