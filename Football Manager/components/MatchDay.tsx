@@ -5,7 +5,7 @@ import { TeamShield } from './TeamShield';
 import { KitSelection } from './KitSelection';
 import { MatchStatsModal } from './MatchStatsModal';
 import { calculateMatchRatings } from '../textSim/matchEngine';
-import Simulador3DView, { simulador3dArrancou, simulador3dPronto, simulador3dEnviar, simulador3dTelaCheia } from '../3dMatch/Simulador3DView';
+import Simulador3DView, { simulador3dArrancou, simulador3dPronto, simulador3dEnviar, simulador3dTelaCheia, simulador3dVelocidade } from '../3dMatch/Simulador3DView';
 import { taticaParaMotor, taticaDoMotor } from '../3dMatch/simulador3dCliente';
 
 type VisualState = 'PRE_MATCH' | 'KICKOFF_SET' | 'PLAYING' | 'OFFSIDE' | 'GOAL';
@@ -28,6 +28,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const chave3d = match ? match.date + "|" + match.homeTeamId + "|" + match.awayTeamId : "";
   const [camara, setCamara] = useState('lateraltv');
   const [reinicios, setReinicios] = useState(0);
+  const [velocidade, setVelocidade] = useState(1);
   const [pronto3d, setPronto3d] = useState(() => simulador3dPronto());
   const userTeam = teams.find(t => t.id === gameState.userTeamId);
   const taticaJson = userTeam ? JSON.stringify(taticaParaMotor(userTeam.tactics)) : '';
@@ -140,9 +141,11 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
               <button key={modo} onClick={() => { setCamara(modo); simulador3dEnviar({ tipo: 'camera', modo }); }}
                 className={`${camara === modo ? 'bg-sky-600 border-sky-800' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-3 py-1.5 rounded text-[10px] uppercase tracking-wider border-b-2 active:scale-95`}>{nome}</button>
             ))}
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-3 mr-1">Zoom</span>
-            <button onClick={() => simulador3dEnviar({ tipo: 'zoom', fator: 0.85 })} className="bg-slate-700 hover:bg-slate-600 text-white font-black w-8 py-1.5 rounded text-xs border-b-2 border-slate-900 active:scale-95">+</button>
-            <button onClick={() => simulador3dEnviar({ tipo: 'zoom', fator: 1.18 })} className="bg-slate-700 hover:bg-slate-600 text-white font-black w-8 py-1.5 rounded text-xs border-b-2 border-slate-900 active:scale-95">−</button>
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-3 mr-1">Velocidade</span>
+            {[0.5, 1, 1.5].map(v => (
+              <button key={v} onClick={() => { setVelocidade(v); simulador3dVelocidade(v); }}
+                className={`${velocidade === v ? 'bg-sky-600 border-sky-800' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-3 py-1.5 rounded text-[10px] tracking-wider border-b-2 active:scale-95`}>{v}x</button>
+            ))}
             <button onClick={() => simulador3dTelaCheia()} className="ml-auto bg-emerald-700 hover:bg-emerald-600 text-white font-black px-4 py-1.5 rounded text-[10px] uppercase tracking-widest border-b-2 border-emerald-900 active:scale-95">Tela cheia</button>
         </div>
         )}

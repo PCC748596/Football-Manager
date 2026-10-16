@@ -722,6 +722,21 @@ Object.assign(Match, {
             if (p.role === 'gk' && !maosProibidasNoRecuo(this.recuoParaGR, p.team)) return;
             // Companheiro de time NÃO tira a bola do próprio jogador com a bola
             if (this.ballCarrier && p !== this.ballCarrier && p.team === this.ballCarrier.team) return;
+            /*
+            O MESMO QUANDO O `ballCarrier` ESTA APAGADO. Ele e limpo a cada toque de conducao (a bola passa dos 2 m do pe), e nesses
+            frames um companheiro que corria a pedir a bola, ou so a ocupar o espaco a frente do portador, ficava com o corpo mais
+            perto dela e tirava-lha — sem ser um passe. O dono e entao quem lhe tocou por ultimo, enquanto a bola estiver a menos de
+            `rouboPorTras.bolaSolta` dele; so o destinatario de um passe (`intendedReceiver`) a leva. Bola mais longe, ou sem dono
+            vivo, e de quem chegar, como sempre.
+            */
+            {
+                const dono = this.lastTouchedPlayer;
+                if (dono && dono !== p && dono.team === p.team && p !== this.intendedReceiver && dono.model && !this.ballCarrier) {
+                    const lim = (BallControl.rouboPorTras && BallControl.rouboPorTras.bolaSolta) || 1.6;
+                    const dBolaAoDono = Math.hypot(this.ball.position.x - dono.model.position.x, this.ball.position.z - dono.model.position.z);
+                    if (dBolaAoDono <= lim && this.ball.position.y < 0.9) return;
+                }
+            }
             // Distância ao CORPO (pés..testa), não à origem do modelo — ver
             // distanciaAoCorpo em utils.js.
             // CCD: raycasting contínuo (segmento de reta entre a posição anterior e atual)

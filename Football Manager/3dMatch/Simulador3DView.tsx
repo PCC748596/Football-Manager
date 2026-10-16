@@ -26,6 +26,9 @@ const sessao: { iframe: HTMLIFrameElement | null; chave: string; pronto: boolean
 
 export const simulador3dArrancou = (chave: string) => sessao.chave === chave && sessao.arrancou;
 export const simulador3dPronto = () => sessao.pronto;
+// Velocidade do jogo (0.5x, 1x, 1.5x): guardada para a partida que ainda vai arrancar (o `iniciar` do motor usa-a) e enviada ao motor ja em curso.
+let velocidadeDoJogo = 1;
+export const simulador3dVelocidade = (v: number) => { velocidadeDoJogo = v; sessao.iframe?.contentWindow?.postMessage({ para: 'simulador3d', tipo: 'velocidade', valor: v }, '*'); };
 // Mensagem solta para o motor (camara, zoom, tatica...).
 export const simulador3dEnviar = (m: any) => sessao.iframe?.contentWindow?.postMessage({ para: 'simulador3d', ...m }, '*');
 // Tela cheia no proprio iframe; ao sair/entrar avisa o motor, que mostra os botoes de camara dele so em tela cheia.
@@ -75,7 +78,7 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
     const d = dados.current;
     if (iniciarRef.current) {
       sessao.arrancou = true;
-      enviar(montarPayload(d.casa, d.fora, d.players, d.userTeamId, { modo: 'visivel', velocidade: 1, fimEmMinutos: 90 }, d.kits));
+      enviar(montarPayload(d.casa, d.fora, d.players, d.userTeamId, { modo: 'visivel', velocidade: velocidadeDoJogo, fimEmMinutos: 90 }, d.kits));
     } else {
       // A entrada dos times so comeca depois de os uniformes escolhidos (o modal de kits ainda aberto = kits indefinidos).
       if (d.kits.casa === undefined || d.kits.fora === undefined) return;

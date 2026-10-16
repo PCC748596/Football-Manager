@@ -1256,7 +1256,9 @@ Object.assign(Match, {
                 [cornerX, -cornerZ, 3 * Math.PI / 2]
             ];
             const avArco = BA.coberturaAvanco;
-            const yCobArco = yFim + BA.alturaParede + BA.coberturaEspessura / 2;
+            // 1.2 cm mais baixa do que a recta: onde as duas se sobrepoem (a emenda, e os segmentos entre si pelo 1.06) as faces de
+            // baixo ficavam no mesmo plano — cor escura de uma e clara da outra a piscar por baixo da cobertura.
+            const yCobArco = yFim + BA.alturaParede + BA.coberturaEspessura / 2 - 0.012;
             for (const [cx, cz, ang0] of esquinas) {
                 // A parede: espessura no RADIAL, comprimento no TANGENCIAL.
                 aoLongoDoArco(geosParedeArco, cx, cz, ang0, rArcoFim,

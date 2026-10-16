@@ -37,7 +37,9 @@ const Tunel = {
         const hP = H + 0.3;
         caixa(L, hP, t, xc, hP / 2, W / 2 + t / 2, mat(T.cores.parede), true);
         caixa(L, hP, t, xc, hP / 2, -(W / 2 + t / 2), mat(T.cores.parede), true);
-        caixa(L, 0.3, W + 2 * t, xc, H + 0.15, 0, mat(T.cores.tecto), true);
+        // O tecto e um pouco MAIOR em altura e mais curto/estreito do que as paredes (2 cm / 1 cm): com as mesmas medidas as faces do topo, as
+        // pontas e as faces de fora das paredes e do tecto ficavam no MESMO plano e brigavam no teste de profundidade (textura a piscar).
+        caixa(L - 0.02, 0.32, W + 2 * t - 0.02, xc, H + 0.16, 0, mat(T.cores.tecto), true);
         // Fundo escuro, a frente da face do degrau que fecha o corredor.
         caixa(0.1, H, W, T.xFundo - T.lado * 0.05, H / 2, 0,
             new THREE.MeshBasicMaterial({ color: T.cores.fundo }), false);

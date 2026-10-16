@@ -1342,7 +1342,7 @@ document.addEventListener("DOMContentLoaded", () => {
         scene.background = new THREE.Color(0x87CEEB);
         window.sceneCore = scene;
 
-        cameraCore = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 800);
+        cameraCore = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.3, 800);   // near 0.3 (era 0.1): 3x mais precisao de profundidade, menos z-fighting
         window.cameraCore = cameraCore;
 
         const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 850);
