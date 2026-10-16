@@ -227,11 +227,31 @@ test('o assento continua a NAO correr a correr, em saltos e em carrinhos', () =>
         p.peitoHopTimer = 0;
     };
 
-    preparar();
-    p.velocity.set(0, 0, AssentoNoChao.velMax + 1);
+    /*
+    A CORRIDA ASSENTA O PE DE APOIO (AssentoNoChao.corridaAssentaAte): a correr o corpo desce quando a bota mais baixa esta a menos de
+    `corridaAssentaAte` do relvado (o pe de apoio) e NAO quando esta mais alta (o voo). Antes era nunca (o teste dizia "a correr nao assenta").
+    */
+    const voo = () => {
+        p.model.position.y = ALTURA_BASE_Y;
+        p.rig.lLeg.rotation.x = -1.5; p.rig.lKnee.rotation.x = 2.3;
+        p.rig.rLeg.rotation.x = -1.5; p.rig.rKnee.rotation.x = 2.3;
+        p.velocity.set(0, 0, AssentoNoChao.velMax + 1);
+        p.jumpTimer = 0; p.peitoHopTimer = 0; p._yCorrida = null;
+    };
+    voo();
     let y = p.model.position.y;
     p.assentarNoChao();
-    assert.strictEqual(p.model.position.y, y, 'a correr nao assenta');
+    assert.strictEqual(p.model.position.y, y, 'em pleno voo (bota mais alta que corridaAssentaAte) a correr nao assenta');
+
+    preparar();
+    p.velocity.set(0, 0, AssentoNoChao.velMax + 1);
+    p._yCorrida = null;
+    const antes = AssentoNoChao.corridaAssentaAte;
+    AssentoNoChao.corridaAssentaAte = 0;
+    y = p.model.position.y;
+    p.assentarNoChao();
+    assert.strictEqual(p.model.position.y, y, 'com corridaAssentaAte = 0 a correr nao assenta (o comportamento antigo)');
+    AssentoNoChao.corridaAssentaAte = antes;
 
     preparar();
     p.jumpTimer = 0.5;

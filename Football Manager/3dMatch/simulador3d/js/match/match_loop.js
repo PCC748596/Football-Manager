@@ -292,7 +292,8 @@ Object.assign(Match, {
                 // O relogio da ESPERA (o `setPieceTimer` nao serve: recua enquanto algo segura a cobranca, ver mais abaixo).
                 this.faltaDecorrida = (this.faltaDecorrida || 0) + dt;
                 const cartaoNaMao = (typeof Officials !== 'undefined' && Officials.cartaoAMostrar && Officials.cartaoAMostrar());
-                const faltaSegura = !!cartaoNaMao ||
+                const batedorACaminho = !!(this.setPieceTaker && this.setPieceTaker.lugarBolaParada);
+                const faltaSegura = !!cartaoNaMao || batedorACaminho ||
                     (this.algumCaidoDaFalta(false) && this.faltaDecorrida < ((FKE && FKE.esperaCaido) || 4.0)) ||
                     (this.algumACaminhoDoLugar(false) && this.faltaDecorrida < ((FKE && FKE.esperaCaminhantes) || 4.0));
                 if (faltaSegura) {
@@ -354,6 +355,14 @@ Object.assign(Match, {
                         this.faltaAproximando = false;
                     }
                 }
+
+                /*
+                O BATEDOR NUNCA E LARGADO A CAMINHO DO LUGAR. O `baterFalta` arrancava com ele ainda a ir a pe para o lugar (`lugarBolaParada`), e o
+                Player.update poe esse caminho por cima do gesto (SET_PIECE_WAIT, sem ActionState): o chute nunca saia, o prazo (`timeout_falta`) metia o
+                jogo em PLAY e ele ficava com a bola nos pes — "bate a falta para si mesmo e sai carregando". Medido: 10 de 17 faltas. Vinha do limite de
+                espera por quem caminha (`esperaCaminhantes`), que largava tambem o batedor.
+                */
+                if (this.faltaAtraso <= 0 && takerFalta && takerFalta.lugarBolaParada) this.faltaAtraso = 0.05;
 
                 if (this.faltaAtraso <= 0) {
                     this.faltaPendente = false;
