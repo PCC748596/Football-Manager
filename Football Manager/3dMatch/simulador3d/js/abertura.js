@@ -365,7 +365,8 @@ const Abertura = {
         Match.tempoParada = 0;
         [...Match.players, ...Match.opponents].forEach(p => {
             p.fsm.changeState('MOVE_TO_POS');
-            p.speedMult = 3.0;
+            // Trote (4.2 m/s; era 3.0, um passo rapido) para chegarem as posicoes de saida de bola.
+            p.speedMult = 4.2;
             p.dynamicTarget = p.model.position.clone();
         });
         if (Officials.colocarInicial) Officials.arbitro.alvoSuave = null;

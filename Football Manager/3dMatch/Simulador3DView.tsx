@@ -77,6 +77,8 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
       sessao.arrancou = true;
       enviar(montarPayload(d.casa, d.fora, d.players, d.userTeamId, { modo: 'visivel', velocidade: 1, fimEmMinutos: 90 }, d.kits));
     } else {
+      // A entrada dos times so comeca depois de os uniformes escolhidos (o modal de kits ainda aberto = kits indefinidos).
+      if (d.kits.casa === undefined || d.kits.fora === undefined) return;
       // So prepara (e faz a entrada dos times) uma vez por combinacao de kits: voltar a esta tela nao a reinicia.
       const chaveKits = JSON.stringify(d.kits);
       if (sessao.preparadoCom === chaveKits) return;

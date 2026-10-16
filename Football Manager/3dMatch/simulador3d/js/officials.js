@@ -1451,6 +1451,22 @@ const Officials = {
         if (o.bandeira) { this.tickBandeira(o, dt); return; }
         const R = RefereeModel, V = R.vigia;
         const pos = o.model.position;
+        /*
+        O ASSISTENTE DO LADO DAS CAMERAS (alvoX > 0, o das cameras em +X) CORRE PRIMEIRO ATE A LINHA LATERAL e so depois segue ao
+        longo dela para a linha de impedimento. Antes ia em diagonal desde o meio-campo: o movimento era para as cameras e o corpo
+        e a passada viravam para o outro lado ("movimento para um lado com animacao para o outro"). O do lado oposto vai em
+        diagonal, como sempre. `aNaLinha` tem histerese: assenta a 0.6 m da linha e so volta a cortar caminho se se afastar 3 m.
+        */
+        if (alvoX > 0) {
+            const dxLinha = Math.abs(pos.x - alvoX);
+            if (o.aNaLinha === undefined || dxLinha > 3.0) o.aNaLinha = dxLinha <= 0.6;
+            else if (dxLinha <= 0.6) o.aNaLinha = true;
+            if (!o.aNaLinha) {
+                this.mover(o, alvoX, pos.z, R.velocidadeAssistente, dt);
+                if (o.rig && o.rig.neck) o.rig.neck.rotation.y = lerpTo(o.rig.neck.rotation.y, 0, 0.2);
+                return;
+            }
+        }
         const perto = V && Math.abs(pos.z - alvoZ) <= V.distancia && Math.abs(pos.x - alvoX) < 3.0;
         if (!perto) {
             this.mover(o, alvoX, alvoZ, R.velocidadeAssistente, dt);

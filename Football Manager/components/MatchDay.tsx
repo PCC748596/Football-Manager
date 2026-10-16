@@ -96,10 +96,17 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         {gameState.matchMinute < 90 && (
                             <>
                                 <button 
-                                  onClick={() => setActiveTab('pitch3d')} 
-                                  className={`${activeTab === 'pitch3d' ? 'bg-sky-650 hover:bg-sky-600 border-sky-850' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-4 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4`}
+                                  onClick={() => { setActiveTab('pitch3d'); if (camara === 'topdown') { setCamara('lateraltv'); simulador3dEnviar({ tipo: 'camera', modo: 'lateraltv' }); } }} 
+                                  className={`${activeTab === 'pitch3d' && camara !== 'topdown' ? 'bg-sky-650 hover:bg-sky-600 border-sky-850' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-4 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4`}
                                 >
                                   3D
+                                </button>
+                                {/* 2D = a camara tatica (vista de cima), que era um botao da fila de cameras */}
+                                <button 
+                                  onClick={() => { setActiveTab('pitch3d'); setCamara('topdown'); simulador3dEnviar({ tipo: 'camera', modo: 'topdown' }); }} 
+                                  className={`${activeTab === 'pitch3d' && camara === 'topdown' ? 'bg-sky-650 hover:bg-sky-600 border-sky-850' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-4 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4`}
+                                >
+                                  2D
                                 </button>
                                 <button 
                                   onClick={() => setActiveTab('stats')} 
@@ -121,7 +128,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
         {!showStats && (
         <div className="bg-slate-900 border-b border-slate-800 px-6 py-2 flex items-center gap-2 flex-wrap">
             <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mr-1">Câmera</span>
-            {[['orbit', 'Órbita'], ['center', 'TV Centro'], ['sideline', 'Lateral Móvel'], ['lateraltv', 'Lateral TV'], ['topdown', 'Tática'], ['grua', 'Grua'], ['cinema', 'Cinema']].map(([modo, nome]) => (
+            {[['orbit', 'Órbita'], ['center', 'TV Centro'], ['sideline', 'Lateral Móvel'], ['lateraltv', 'Lateral TV'], ['grua', 'Grua'], ['cinema', 'Cinema']].map(([modo, nome]) => (
               <button key={modo} onClick={() => { setCamara(modo); simulador3dEnviar({ tipo: 'camera', modo }); }}
                 className={`${camara === modo ? 'bg-sky-600 border-sky-800' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-3 py-1.5 rounded text-[10px] uppercase tracking-wider border-b-2 active:scale-95`}>{nome}</button>
             ))}
