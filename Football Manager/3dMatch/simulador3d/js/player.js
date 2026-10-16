@@ -640,11 +640,19 @@ class FootballPlayer {
         desce ate a sola assentar (as travas, filhas da chuteira, ficam dentro do gramado); so um voo a sério (a bota mais baixa mais alta do
         que isso) fica no ar.
         */
-        const assentaNaCorrida = soASubir && chao >= 0 && A.corridaAssentaAte > 0 && chao <= A.corridaAssentaAte;
-        if (soASubir && chao >= 0 && !assentaNaCorrida) return;
+        /*
+        COM RAMPA, E NAO DE UM SO GOLPE: ao cruzar o `corridaAssentaAte` a descida entrava de 0 a 10 cm num frame — o "tranco para baixo". O
+        peso sobe de 0 (bota a `corridaAssentaAte` do relvado) a 1 (a `corridaRampa` m mais perto), e a correccao e multiplicada por ele.
+        */
+        let pesoCorrida = 1;
+        if (soASubir && chao >= 0) {
+            const lim = A.corridaAssentaAte || 0;
+            pesoCorrida = lim > 0 ? THREE.MathUtils.clamp((lim - chao) / (A.corridaRampa || 0.06), 0, 1) : 0;
+            if (pesoCorrida <= 0) return;
+        }
         // A SOLA fica `afundamento` abaixo do relvado: as travas (mais abaixo) ficam enterradas.
         const correccao = THREE.MathUtils.clamp(-(chao + (A.afundamento || 0)), -A.correccaoMax, A.correccaoMax);
-        this.model.position.y += correccao * A.suavizacao;
+        this.model.position.y += correccao * A.suavizacao * pesoCorrida;
         /*
         A ANDAR E A TROTAR O CORPO NAO SEGUE A SOLA A CADA FRAME. Com a sola travada ao relvado, o corpo sobe e desce no ritmo em que a
         bota mais baixa troca de pe (um bico em V por passo): 3 cm a 1.9 m/s, 6 cm a 2.5, 11 cm a 3.2 — relato: "na caminhada de
@@ -652,6 +660,25 @@ class FootballPlayer {
         a 1.9 m/s o quique cai de 2.7 para 2.0 cm e a sola fica a +-1 cm do relvado (medido, tools/scratch). Parado nao se filtra (o
         pe tem de assentar de imediato), e o filtro encurta de 2.8 m/s ate a `velMax`, onde a sola ja enterrava mais.
         */
+        /*
+        A CORRIDA NAO DA TRANCOS: ao assentar o pe de apoio o corpo descia (ou subia) ate 6 cm NUM frame quando a bota mais baixa trocava de pe — o
+        "tranco para baixo". A altura final DESCE no maximo `corridaVelMax` m/s (por frame: x dt) em relacao a do frame anterior (a subida nao se limita); a queda de 6 cm
+        leva dois ou tres frames em vez de um. So acima da `velMax` (a andar manda o filtro de baixo) e nunca para saltos grandes (> 0.3 m).
+        */
+        if (soASubir && A.corridaVelMax > 0) {
+            const dtc = (typeof Match !== 'undefined' && Match.delta) ? Match.delta : 1 / 60;
+            const yAlvo = this.model.position.y;
+            if (typeof this._yCorrida === 'number' && Math.abs(this._yCorrida - yAlvo) <= 0.3) {
+                const passo = A.corridaVelMax * dtc;
+                // So a DESCIDA e limitada (o tranco); a subida (bota enterrada) e imediata, para a chuteira nunca ficar enfiada no relvado.
+                this._yCorrida += Math.max(-passo, yAlvo - this._yCorrida);
+                this.model.position.y = this._yCorrida;
+            } else {
+                this._yCorrida = yAlvo;
+            }
+        } else {
+            this._yCorrida = null;
+        }
         const vel = this.velocity.length();
         const tau0 = A.suavizarAndar || 0;
         if (tau0 > 0 && vel >= 0.5 && !soASubir) {
@@ -6470,7 +6497,9 @@ class FootballPlayer {
                 const sinal = paraEsquerda ? 1 : -1;
                 braco.rotation.z = lerpTo(braco.rotation.z, sinal * G.z, G.suavizacao);
                 braco.rotation.x = lerpTo(braco.rotation.x, G.x, G.suavizacao);
-                if (cotovelo) cotovelo.rotation.x = lerpTo(cotovelo.rotation.x, G.cotovelo, G.suavizacao);
+                // O ANTEBRACO FICA ESTICADO: o ciclo de corrida reescreve o cotovelo (-1.0 a -1.5 rad) TODOS os frames e um lerp de 35% por cima nunca o
+                // chegava a esticar — o braco subia mas o antebraco ficava dobrado. Aqui vai (quase) directo ao valor do pedido.
+                if (cotovelo) cotovelo.rotation.x = lerpTo(cotovelo.rotation.x, G.cotovelo, 0.95);
             }
 
             // O `descida` baixa o corpo com a velocidade: a correr a pose

@@ -1245,6 +1245,8 @@ Object.assign(Match, {
 
         this.players.forEach(p => PosicionamentoAI.tickFinal(p, bbA));
         this.opponents.forEach(p => PosicionamentoAI.tickFinal(p, bbB));
+        // Lateral: os companheiros afastam-se uns dos outros (ThrowInModel.distMinEntreCompanheiros).
+        if (this.state === 'THROW_IN') this.afastarCompanheirosNoLateral();
 
         /*
         Quem se oferece como opcao de passe. Tambem e decisao de EQUIPA: cada
@@ -1393,6 +1395,50 @@ Object.assign(Match, {
 
     _profilingActivo: function () {
         return this.profiling && !(typeof Sim !== 'undefined' && Sim.running);
+    },
+
+    /*
+    NO LATERAL, OS JOGADORES DO MESMO TIME FICAM A PELO MENOS `ThrowInModel.distMinEntreCompanheiros` (12 m) UNS DOS OUTROS — pedido. Corre depois do
+    `tickFinal`, sobre os alvos (`dynamicTarget`) de cada equipa: pares a menos disso afastam-se (os dois, metade cada, no eixo que os une), em varias
+    passagens porque afastar um pode aproximar de outro, e sempre dentro do campo. O batedor fica onde esta (fora da linha) e conta como companheiro
+    dos outros; o guarda-redes fica de fora. Os jogadores continuam a ir a pe aos alvos — nao ha teletransporte.
+    */
+    afastarCompanheirosNoLateral: function () {
+        const M = (typeof ThrowInModel !== 'undefined') ? ThrowInModel : null;
+        const D = (M && typeof M.distMinEntreCompanheiros === 'number') ? M.distMinEntreCompanheiros : 12.0;
+        if (!(D > 0)) return;
+        const limX = CAMPO_LARG / 2 - 1.5, limZ = CAMPO_COMP / 2 - 1.5;
+        for (const lista of [this.players, this.opponents]) {
+            const jog = lista.filter(p => p && p.model && p.role !== 'gk' && !p.expulso);
+            const pts = jog.map(p => {
+                const fixo = (p === this.setPieceTaker);
+                const t = (!fixo && p.dynamicTarget) ? p.dynamicTarget : p.model.position;
+                return { p: p, x: t.x, z: t.z, fixo: fixo };
+            });
+            for (let it = 0; it < 16; it++) {
+                let mexeu = false;
+                for (let i = 0; i < pts.length; i++) {
+                    for (let j = i + 1; j < pts.length; j++) {
+                        const a = pts[i], b = pts[j];
+                        let dx = b.x - a.x, dz = b.z - a.z;
+                        let d = Math.hypot(dx, dz);
+                        if (d >= D) continue;
+                        if (d < 0.001) { const ang = (i * 7 + j * 13) * 0.61803; dx = Math.cos(ang); dz = Math.sin(ang); d = 1; }
+                        const falta = D - d, ux = dx / d, uz = dz / d;
+                        const pa = a.fixo ? 0 : (b.fixo ? 1 : 0.5), pb = b.fixo ? 0 : (a.fixo ? 1 : 0.5);
+                        a.x -= ux * falta * pa; a.z -= uz * falta * pa;
+                        b.x += ux * falta * pb; b.z += uz * falta * pb;
+                        mexeu = true;
+                    }
+                }
+                for (const q of pts) { if (!q.fixo) { q.x = THREE.MathUtils.clamp(q.x, -limX, limX); q.z = THREE.MathUtils.clamp(q.z, -limZ, limZ); } }
+                if (!mexeu) break;
+            }
+            for (const q of pts) {
+                if (q.fixo || !q.p.dynamicTarget) continue;
+                q.p.dynamicTarget.x = q.x; q.p.dynamicTarget.z = q.z;
+            }
+        }
     },
 
     nivel2Activo: function () {

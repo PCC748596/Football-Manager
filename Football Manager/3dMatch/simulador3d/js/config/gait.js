@@ -375,7 +375,11 @@ const AssentoNoChao = {
     menos de isto (m) do relvado — o pe de apoio; mais alto e voo e fica no ar. 0 volta ao antigo (so sobe o corpo). Medido: com 0 a sola flutua
     ate 8 cm a 4-6 m/s; com 0.10 fica a -3 cm (a sola no relvado, as travas dentro) em todas as velocidades; o corpo balanca mais.
     */
-    corridaAssentaAte: 0.10
+    corridaAssentaAte: 0.14,
+    // A correccao entra em rampa nos `corridaRampa` m antes do limite (e nao de golpe): sem isto o corpo levava um tranco para baixo ao cruzar o limite.
+    corridaRampa: 0.03,
+    // Velocidade maxima (m/s) a que o corpo DESCE na corrida (Player.assentarNoChao): 0 desliga. 3.5 m/s = 5.8 cm por frame a 60 fps. Medido por fase do ciclo (R0-R59): com 2.2 m/s e rampa de 6 cm, a 4.5 m/s havia 13 fases com a sola a 3-6 cm do relvado (R18-R22, R47-R54); com 3.5, rampa de 3 cm e limite de 14 cm, nenhuma.
+    corridaVelMax: 3.5
 };
 if (typeof window !== 'undefined') window.AssentoNoChao = AssentoNoChao;
 /*

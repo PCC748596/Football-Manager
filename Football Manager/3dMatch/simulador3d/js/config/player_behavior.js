@@ -1708,6 +1708,8 @@ marcado): 5.9 dos 10 jogadores de campo de quem bate a menos de 25 m da bola. So
 podem ficar a menos de `raioNaoReceptor` m (26); o alvo dos outros e empurrado para fora desse raio e eles mantem a forma.
 */
 const ThrowInModel = {
+    // No lateral, os jogadores do mesmo time ficam a pelo menos isto (m) uns dos outros (Match.afastarCompanheirosNoLateral).
+    distMinEntreCompanheiros: 12.0,
     receptoresMax: 3,
     raioNaoReceptor: 26.0,
     alcanceMin: 9.0,

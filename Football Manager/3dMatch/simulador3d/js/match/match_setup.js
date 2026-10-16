@@ -517,7 +517,7 @@ Object.assign(Match, {
             addLinha(esp, Area.pequenaProfundidade + esp, Area.pequenaMeiaLargura, zPA);
             addLinha(esp, Area.pequenaProfundidade + esp, -Area.pequenaMeiaLargura, zPA);
 
-            const ptPen = new THREE.Mesh(new THREE.CircleGeometry(0.2, 16), matLinha); ptPen.rotation.x = -Math.PI / 2; ptPen.position.set(0, 0.02, zSinal + Area.distanciaPenalti * dir); campoGrupo.add(ptPen);
+            const ptPen = new THREE.Mesh(new THREE.CircleGeometry(0.2 * 0.65, 16), matLinha);   // a marca do penalti 35% menor (raio 0.20 -> 0.13 m) ptPen.rotation.x = -Math.PI / 2; ptPen.position.set(0, 0.02, zSinal + Area.distanciaPenalti * dir); campoGrupo.add(ptPen);
             const theta = Math.acos(Area.pequenaProfundidade / Area.raioMeiaLua); const arcRot = lado === 1 ? Math.PI / 2 - theta : -Math.PI / 2 - theta;
             const arco = new THREE.Mesh(new THREE.RingGeometry(Area.raioMeiaLua - esp / 2, Area.raioMeiaLua + esp / 2, 32, 1, arcRot, theta * 2), matLinha); arco.rotation.x = -Math.PI / 2; arco.position.set(0, 0.02, zSinal + Area.distanciaPenalti * dir); campoGrupo.add(arco);
 

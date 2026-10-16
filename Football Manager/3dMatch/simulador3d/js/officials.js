@@ -76,10 +76,15 @@ const RefereeModel = {
     depois de todas as travas: era a trava "nunca a frente da bola" que o
     encostava, ao por-lhe o z igual ao da bola.
     */
-    raioMin: 7.0,            // mais perto do que isto, afasta-se
-    raioMax: 11.0,           // mais longe do que isto, aproxima-se
-    distMinDura: 6.0,        // o alvo nunca fica mais perto da bola do que isto
-    margemFuga: 1.5,         // abaixo de distMinDura + isto, foge sem amortecer nem recuar
+    /*
+    QUARTO PEDIDO, de volta aos 10-15 m (outubro de 2026): *"o juiz esta muito em cima da jogada, as vezes passa por cima da bola, nao esta
+    mantendo a distancia de uns 10-15 metros"*. A coroa e 9-13 (com o atraso de quem corre atras da bola ele fica a 10-15: medido, a coroa 10-15 dava mediana 14 e 38% acima de 15 m), o piso duro sobe para 9 m (a folga e o atraso de quem
+    corre atras da bola) e a fuga arranca 3 m antes dele.
+    */
+    raioMin: 9.0,            // mais perto do que isto, afasta-se
+    raioMax: 13.0,           // mais longe do que isto, aproxima-se
+    distMinDura: 9.0,        // o alvo nunca fica mais perto da bola do que isto
+    margemFuga: 3.0,         // abaixo de distMinDura + isto, foge sem amortecer nem recuar
     antecipacao: 0.6,        // s: a coroa e posta a volta da bola prevista (ver o update)
     antecipacaoVelMax: 8.0,  // m/s: uma bola mais rapida do que isto antecipa-se menos tempo
     /*
