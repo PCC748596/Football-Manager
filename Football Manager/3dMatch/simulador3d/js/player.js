@@ -2055,6 +2055,7 @@ class FootballPlayer {
         const onContact = () => {
                 const PM = PenaltyModel;
                 Match.mudarEstado('PLAY', 'penalty_taken');
+                Match.penaltiEmVoo = 4.0;   // o remate esta no ar: a defesa nao encaixa (resolverDefesaGK)
                 // Lei 14: o batedor não volta a tocar antes de outro.
                 Match.marcarRepositor(this, 'penalti');
 

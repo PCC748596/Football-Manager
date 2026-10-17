@@ -81,6 +81,8 @@ const Match = {
     // Equipa cujo guarda-redes nao pode usar as maos (recuo com o pe de um
     // companheiro). Null e o caso normal. Ver maosProibidasNoRecuo em utils.js.
     recuoParaGR: null,
+    // Segundos que faltam para deixar de contar como "remate de penalti no ar" (a defesa nao encaixa).
+    penaltiEmVoo: 0,
 
     /*
     Quem deu o passe anterior, e por quanto tempo ainda conta. É o um-dois:

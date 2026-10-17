@@ -4195,6 +4195,15 @@ function resolverDefesaGK(o) {
         pAgarra = 0;
         semAgarrar = true;
     }
+    /*
+    O PENALTI NAO SE ENCAIXA (pedido: *"o goleiro esta encaixando demais as bolas nos penaltis; tem que rebater mais para a frente ou para fora"*): enquanto
+    o remate do penalti esta no ar (`Match.penaltiEmVoo`, marcado no contacto) a defesa e sempre uma espalmada, e `semAgarrar` manda-a para fora/para a
+    frente em vez de a devolver ao miolo. (A 11 m e com o remate a < 22 m/s o `semAgarrar` normal nao disparava.)
+    */
+    if (typeof Match !== 'undefined' && Match.penaltiEmVoo > 0) {
+        pAgarra = 0;
+        semAgarrar = true;
+    }
 
     /*
     ROÇAR: só em bolas rápidas e esticadas. O `rocarPesoExt` reparte a culpa
