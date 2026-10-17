@@ -9490,7 +9490,14 @@ class FootballPlayer {
             oposto do esperado).
             */
             _v1.set(gkCorpo.position.x, gkCorpo.position.y, gkCorpo.position.z + this.dirZ * 10);
-            lookAtBola(gkCorpo, _v1);
+            // Depois do golo (GkAposGolo) apanhou a bola virado para a rede: gira DEVAGAR para o campo (pedido), em vez de num frame.
+            if (typeof Match !== 'undefined' && Match.golGK && Match.golGK.gk === this) {
+                // A VELOCIDADE ANGULAR LIMITADA (GkAposGolo.giroMax, rad/s): gira de frente para a rede ate ao campo sem arrancar de golpe.
+                const alvoYaw = Math.atan2(_v1.x - gkCorpo.position.x, _v1.z - gkCorpo.position.z);
+                const qAlvo = this._giroQ || (this._giroQ = new THREE.Quaternion());
+                qAlvo.setFromAxisAngle(this._giroEixo || (this._giroEixo = new THREE.Vector3(0, 1, 0)), alvoYaw);
+                gkCorpo.quaternion.rotateTowards(qAlvo, GkAposGolo.giroMax * dt);
+            } else lookAtBola(gkCorpo, _v1);
 
             /*
             ANDAR COM A BOLA NA MÃO. Ficava completamente imóvel os 5 a 8
@@ -10477,7 +10484,7 @@ class FootballPlayer {
         Vira já de frente pro campo (mesmo lookAtBola usado no resto do
         jogo — um rotation.y=0/PI calculado à mão dava de costas).
         */
-        if (!manterPose) {
+        if (!manterPose && !depoisDoGolo) {   // (depois do golo gira devagar no ramo 'segurando')
             _v1.set(this.model.position.x, this.model.position.y, this.model.position.z + this.dirZ * 10);
             lookAtBola(this.model, _v1);
         }

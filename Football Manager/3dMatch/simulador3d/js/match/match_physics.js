@@ -471,8 +471,9 @@ Object.assign(Match, {
                 gk.gkEstado = 'apanhar';
                 gk.gkTempoMergulho = 0;
                 g.fase = 'apanhar';
-                // O corpo não passa da linha de fundo e a bola pode estar um metro atrás dela, na rede: traz-se para o alcance dos braços (0.55 m à frente dele).
-                this.ball.position.set(gk.model.position.x, this.ball.position.y, gk.model.position.z + gk.dirZ * 0.55);
+                // O corpo não passa da linha de fundo e a bola pode estar um metro atrás dela, na rede: aproxima-se dos braços (0.55 m atrás dele, para dentro da baliza).
+                // (para o lado da REDE: ele fica na linha virado para dentro da baliza e a bola 0.55 m atras dele, em vez de a trazer para o campo)
+                this.ball.position.set(gk.model.position.x, this.ball.position.y, gk.model.position.z - gk.dirZ * 0.55);
                 this.ballVel.set(0, 0, 0);
             }
         } else if (g.fase === 'apanhar') {
@@ -484,7 +485,11 @@ Object.assign(Match, {
             const alvo = { x: 0, z: gk.ownGoalZ + gk.dirZ * (Area.pequenaProfundidade / 2) };
             const chegou = !C.chutaNoMeioDaPequena ||
                 Math.hypot(gk.model.position.x - alvo.x, gk.model.position.z - alvo.z) < C.chegouA;
-            if (g.seguro >= C.segurar && chegou && gk.gkEstado === 'segurando') gk.gkTempoMergulho = Math.max(gk.gkTempoMergulho, 99);
+            // E so chuta virado para o campo (o giro de frente para a rede e suave: ver GkAposGolo.giroSuave): o eixo do corpo a menos de ~15 graus da frente.
+            const q = gk.model.quaternion;
+            const frenteZ = 1 - 2 * (q.x * q.x + q.y * q.y);
+            const viradoParaCampo = (frenteZ * gk.dirZ) > 0.96;
+            if (g.seguro >= C.segurar && chegou && viradoParaCampo && gk.gkEstado === 'segurando') gk.gkTempoMergulho = Math.max(gk.gkTempoMergulho, 99);
             if (gk.gkEstado === 'chutando') g.chutou = true;
             if (g.chutou && gk.gkEstado !== 'chutando') g.fase = 'depois';
         } else if (g.fase === 'depois') {

@@ -1126,6 +1126,9 @@ const GoalKickPlan = {
 if (typeof window !== 'undefined') window.GoalKickPlan = GoalKickPlan;
 
 const GoalkeeperDive = {
+    // Defesa baixa: os cotovelos no relvado e a cabeca levantada (ver GkDive.cotovelosNoChao).
+    baixaCotovelos: { activo: true, alturaMao: 0.06, cabecaX: -0.65, peitoX: 0 },
+
     // Bola solta na area: se um defesa dele esta mais perto da bola do que o guarda-redes por mais disto (m), e o defesa quem a disputa (player.js, ramo looseBallInBox).
     margemDefesaMaisPerto: 1.0,
     /*
@@ -2681,6 +2684,8 @@ const GkAposGolo = {
     // Depois de a segurar, caminha até ao meio da pequena área (Area.pequenaProfundidade / 2) e só aí chuta.
     chutaNoMeioDaPequena: true,
     chegouA: 0.35,
+    // O giro de frente para a rede para o campo, depois de a agarrar: velocidade angular maxima (rad/s). 1.6 = meia volta em ~2 s.
+    giroMax: 1.6,
     prazoMax: 12.0
 };
 if (typeof window !== 'undefined') window.GkAposGolo = GkAposGolo;

@@ -588,6 +588,8 @@ const GkDive = {
                 // Depois de toda a gente escrever os bracos — ver a nota da
                 // funcao: e uma correccao por cima do que ficou, nao uma pose.
                 if (!d.ladoComBola) this.maosForaDoRelvado(rig);
+                // Defesa BAIXA: os cotovelos apoiados no relvado e a cabeca levantada (cotovelosNoChao).
+                if (d.tipo === 'baixo') this.cotovelosNoChao(rig, corpo);
 
                 // O prazo é o do lance, escrito no `iniciar` — ver `tempoChaoAlto`.
                 let prazoChao = (typeof d.tempoChao === 'number') ? d.tempoChao : D.tempoChao;
@@ -1639,6 +1641,29 @@ const GkDive = {
 
     Ver GoalkeeperDive.abracoBola para os angulos e para a convencao do sinal.
     */
+    /*
+    DEFESA BAIXA: OS COTOVELOS APOIADOS NO CHAO (pedido, com captura: *"os cotovelos tem que ficar apoiados no chao para o goleiro nao ficar com a cara
+    enfiada na grama"*). Deitado de barriga para baixo, as maos a frente (na bola ou a chamar), os bracos ficavam esticados por baixo do corpo e a cabeca
+    caia no relvado. Depois de a pose dos bracos estar escrita, cada braco vai por IK a mesma posicao de mao que ja tinha, mas com o POLO PARA BAIXO
+    (o cotovelo dobra para o chao: ombro acima, cotovelo no relvado, antebraco para a frente) e a cabeca levanta-se (`GoalkeeperDive.baixaCotovelos`).
+    */
+    cotovelosNoChao(rig, corpo) {
+        const C = GoalkeeperDive.baixaCotovelos;
+        if (!C || !C.activo || !rig.lArm || !rig.rArm || !rig.lHand || !rig.rHand) return;
+        corpo.updateMatrixWorld(true);
+        const alvo = this._cotAlvo || (this._cotAlvo = new THREE.Vector3());
+        // O polo do IK e para ONDE APONTA o plano do osso (ver ik.js): com o polo para CIMA o cotovelo fica por BAIXO da linha ombro-mao, que e o que se quer.
+        const baixo = this._cotBaixo || (this._cotBaixo = new THREE.Vector3(0, 1, 0));
+        for (const [arm, elb, hand] of [[rig.lArm, rig.lElbow, rig.lHand], [rig.rArm, rig.rElbow, rig.rHand]]) {
+            hand.getWorldPosition(alvo);
+            alvo.y = Math.max(C.alturaMao, alvo.y);          // a mao nunca abaixo do relvado
+            IK.resolverSuave(arm, elb, IKChains.braco.L1, IKChains.braco.L2, alvo, baixo, 1.0);
+        }
+        // O PEITO ARQUEIA para tras (o tronco apoiado nos antebracos, como quem se ergue de barriga para baixo): sobe os ombros e a cabeca do relvado.
+        if (rig.chest) rig.chest.rotation.x += C.peitoX;
+        if (rig.neck) rig.neck.rotation.x = lerpTo(rig.neck.rotation.x, C.cabecaX, 0.4);
+    },
+
     poseAbracoBola(rig, d, mix) {
         const P = GoalkeeperDive.abracoBola;
         if (!P || !rig) return;
