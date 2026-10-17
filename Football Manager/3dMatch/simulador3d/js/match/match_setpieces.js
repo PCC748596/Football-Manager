@@ -436,9 +436,17 @@ Object.assign(Match, {
                 para la de uma vez (com ele de pe) ou se vai a pe (a meio de
                 um mergulho) — que era a intencao original.
                 */
+                defGK.voltaAoMeioNoCanto = false;
                 if (this.reporGuardaRedes(defGK, 0, linhaZ - attDir * 1.5, this.ball.position)) {
                     defGK.dynamicTarget.set(0, ALTURA_BASE_Y, linhaZ - attDir * 2.0);
                     defGK.fsm.changeState('SET_PIECE_WAIT');
+                } else {
+                    /*
+                    A MEIO DE UM MERGULHO: o corpo nao e posto no meio (nao se teletransporta quem esta a cair). Marca-se que, ACABADO o mergulho, ele tem
+                    de ir a pe ao meio da baliza (Player.update chama o `updateGK` ate la chegar). Sem isto, o `updateGK` deixava de correr com o mergulho
+                    acabado e ele ficava onde se levantou — a 2-3 m do meio, e as vezes a 4 m a frente da linha (medido: 11 de 34 cantos).
+                    */
+                    defGK.voltaAoMeioNoCanto = true;
                 }
                 /*
                 E SE ELE ESTAVA A MERGULHAR, quem o leva ao meio e o proprio

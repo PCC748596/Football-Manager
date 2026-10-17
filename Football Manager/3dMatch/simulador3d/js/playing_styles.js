@@ -267,7 +267,7 @@ const PlayingStyleTriggers = {
 
     // Laterais ofensivos: a partir do momento em que a equipa passa o meio.
     // Só ativam se a bola estiver no meio ou do seu lado (s.meuLado). No oposto, Position BT.
-    offensive_fullback: (p, bb, s) => s.atacando && s.meuLado && s.bolaAvanco > -5,
+    offensive_fullback: (p, bb, s) => s.atacando && s.meuLado && s.bolaAvanco > -22,
     fullback_finisher: (p, bb, s) => s.atacando && s.ultimoTerco,
 
     // Restrição defensiva: está sempre em vigor.
@@ -342,6 +342,8 @@ function avaliarEstilo(p, bb, dt) {
             p.playingStyle === 'the_destroyer' ||
             p.playingStyle === 'orchestrator' ||
             p.playingStyle === 'build_up' ||
+            // O lateral ofensivo apoia logo que a equipa tem a bola (não só na posse "estabelecida"); perdida a bola desliga na hora (faseDefensiva).
+            (p.playingStyle === 'offensive_fullback' && bb.isAttacking && typeof Match !== 'undefined' && Match.state === 'PLAY') ||
             (p.playingStyle === 'fox_in_the_box' && bb.isAttacking &&
                 typeof Match !== 'undefined' && Match.state === 'PLAY'));
         if (!excepcao) quer = false;
@@ -569,6 +571,76 @@ function distanciaComEstilo(p, distancia) {
     return Math.max(minimo, distancia / D.pressao);
 }
 
+/*
+O MEIA DA ALA DO LATERAL: LM/LW do mesmo lado; sem ele, o companheiro de meio/ataque mais próximo desse lado. null se não houver.
+*/
+function meiaDaAlaDoLateral(p, bb) {
+    const lado = Math.sign(p.baseTarget.x) || 1;
+    let melhor = null, dMin = Infinity;
+    for (const m of (bb.own || [])) {
+        if (m === p || m.role === 'gk' || m.role === 'def' || m.expulso) continue;
+        if ((Math.sign(m.baseTarget.x) || 1) !== lado) continue;
+        const dono = (m.pos === 'LM' || m.pos === 'RM' || m.pos === 'LW' || m.pos === 'RW');
+        const d = Math.hypot(m.model.position.x - p.model.position.x, m.model.position.z - p.model.position.z) - (dono ? 100 : 0);
+        if (d < dMin) { dMin = d; melhor = m; }
+    }
+    return melhor;
+}
+
+/*
+APOIO DO LATERAL (ver ApoioLateral em config/tactics.js). Devolve o novo alvo {x, z} ou null (fica o que o estilo já calculou).
+Medido antes: o Offensive ficava 11-13 m ATRÁS do meia e à mesma largura dele (nem ultrapassagem nem troca).
+*/
+function apoioDoLateral(p, bb, targetX, targetZ) {
+    p._apoioModo = null;
+    p._apoioLarg = false;
+    if (typeof ApoioLateral === 'undefined' || !ApoioLateral.activo || !bb || !bb.isAttacking) return null;
+    if (p.pos !== 'LB' && p.pos !== 'RB') return null;
+    const chave = p.playingStyle;
+    if ((chave !== 'offensive_fullback' && chave !== 'defensive_fullback') || p.playingStyleDesligado) return null;
+
+    const lado = Math.sign(p.baseTarget.x) || 1;
+    const meuLado = Math.sign(bb.ballX) === lado || Math.abs(bb.ballX) < 6;
+    if (!meuLado) return null;
+    const bolaAvanco = bb.ballZ * bb.dir;
+    const meia = meiaDaAlaDoLateral(p, bb);
+    if (!meia) return null;
+
+    // Uma jogada = uma posse: sorteia-se quando a posse começa (o relógio da posse volta a zero).
+    const relogio = (typeof Match !== 'undefined') ? Match.possessionTimer : 0;
+    if (!p._apoioRolado || relogio < (p._apoioRelogio || 0) - 0.01) {
+        p._apoioRolado = true;
+        p._apoioComoOfensivo = Math.random() < ApoioLateral.defensivo.chanceDeApoiar;
+    }
+    p._apoioRelogio = relogio;
+
+    const dz = p.dirZ;
+    const mx = Math.abs(meia.model.position.x);
+    const mz = meia.model.position.z * dz;
+    const t = THREE.MathUtils.clamp((mx - ApoioLateral.central) / (ApoioLateral.ponta - ApoioLateral.central), 0, 1);
+
+    const comoOfensivo = chave === 'offensive_fullback' ? !!p.styleAtivo : (p._apoioComoOfensivo && bolaAvanco > -5);
+    if (comoOfensivo) {
+        const O = ApoioLateral.ofensivo;
+        const zPasso = Math.min(Math.max(targetZ * dz, mz + O.aFrente), O.tectoZ, bolaAvanco + O.aFrenteDaBolaMax);
+        const zTroca = mz + O.zNaTroca;
+        const xPasso = O.xFora;
+        const xTroca = Math.max(O.xMinDentro, mx - O.entra);
+        p._apoioModo = t < 0.5 ? 'ultra' : 'troca';
+        p._apoioLarg = true;
+        return { x: lado * (xPasso + (xTroca - xPasso) * t), z: (zPasso + (zTroca - zPasso) * t) * dz };
+    }
+    if (chave === 'defensive_fullback') {
+        const D = ApoioLateral.defensivo;
+        const zPosto = targetZ * dz;
+        const z = THREE.MathUtils.clamp(mz - D.atras, zPosto - D.maxAtrasDoPosto, zPosto + D.maxAFrenteDoPosto);
+        const xFecha = Math.max(D.xAla - 2 * D.fecha, mx - D.fecha);
+        p._apoioLarg = true;
+        return { x: lado * (D.xAla + (xFecha - D.xAla) * t), z: Math.min(z, mz - D.atras + 0) * dz };
+    }
+    return null;
+}
+
 /* =========================================================================
    CAMADA POSICIONAL DO PLAYING STYLE
    =========================================================================
@@ -614,6 +686,9 @@ function aplicarEstiloPosicional(p, bb, targetX, targetZ) {
             (bb.state === TeamState.TRANSITION_DEFENSIVE || bb.state === TeamState.DEFENSIVE));
 
     if (faseDefensivaEst) {
+        p._apoioModo = null;
+        p._apoioLarg = false;
+        p._apoioRolado = false;   // a próxima posse volta a sortear o apoio do lateral
         // NÃO pelo `est`: o estiloAtivoDe devolve EstiloBase quando o estilo
         // está desligado, e é precisamente isso que a fase defensiva faz. Ver
         // a nota do estiloDefensivoDe.
@@ -980,6 +1055,9 @@ function aplicarEstiloPosicional(p, bb, targetX, targetZ) {
             const centro = (bb.bloco.z0 + bb.bloco.z1) / 2 * bb.dir;
             targetZ = centro + (targetZ - centro) * est.amplitudeZ;
         }
+
+    const apoio = apoioDoLateral(p, bb, targetX, targetZ);
+    if (apoio) { targetX = apoio.x; targetZ = apoio.z; }
 
     // Regra do lateral do lado oposto da jogada: fica entre a linha da bola e a linha dos zagueiros
     if (['LB', 'RB', 'LWB', 'RWB'].includes(p.pos)) {

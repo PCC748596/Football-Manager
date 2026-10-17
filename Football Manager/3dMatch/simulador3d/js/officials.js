@@ -143,8 +143,8 @@ const RefereeModel = {
         // O antebraco/haste aponta ~17 graus para fora do ombro (medido): correccao em rad somada ao azimute.
         apontarCorrecao: -0.30,
         // Canto e tiro de meta: fica no sitio com a bandeira apontada `tApontarMax` s (ou ate o lance recomecar) e volta
-        // a vigiar a linha de impedimento (pedido: uns 7 s).
-        tApontarMax: 7.0
+        // a vigiar a linha de impedimento (pedido: 3 s; era uns 7 s).
+        tApontarMax: 3.0
     },
 
     /*

@@ -4798,10 +4798,15 @@ class FootballPlayer {
         o canto volta a ser tratado como sempre.
         */
         const gkAMergulhar = (this.role === 'gk' && this.gkEstado === 'mergulho' && this.dive);
-        if (this.role === 'gk' && (Match.state !== 'CORNER_KICK' || gkAMergulhar)) {
+        // Acabado o mergulho que deu o canto, o `updateGK` continua a correr (so aqui, so ate chegar ao meio da baliza): ver `voltaAoMeioNoCanto`.
+        if (this.voltaAoMeioNoCanto && (this.role !== 'gk' || Match.state !== 'CORNER_KICK')) this.voltaAoMeioNoCanto = false;
+        const gkVoltaAoMeio = !!(this.role === 'gk' && this.voltaAoMeioNoCanto && Match.state === 'CORNER_KICK' && !gkAMergulhar);
+        if (this.role === 'gk' && (Match.state !== 'CORNER_KICK' || gkAMergulhar || gkVoltaAoMeio)) {
             // Corre também durante GOAL_KICK: é o updateGK que conduz o gesto
             // do tiro de meta (estados 'tiro_meta' -> 'chutando').
             this.updateGK(dt);
+            if (gkVoltaAoMeio && this.gkEstado === 'idle' && Math.abs(this.model.position.x) < 0.4 &&
+                Math.abs(this.model.position.z - this.ownGoalZ) < 3.0) this.voltaAoMeioNoCanto = false;
         } else {
             this.runBehaviorTree(dt);
             this.fsm.update(dt);

@@ -294,12 +294,19 @@ const Ponte = {
         if (this.estado !== 'a_correr') return;
         this.estado = 'pausado';
         if (this.modo === 'visivel') window.isPaused = true;
+        this._somEmPausa(true);
     },
     continuar() {
         if (this.estado !== 'pausado') return;
         this.estado = 'a_correr';
         this._ultimoTempo = this._agora();
         if (this.modo === 'visivel') window.isPaused = false;
+        this._somEmPausa(false);
+    },
+    // O som pára com o jogo (o mesmo que o botão Pause do 3D faz em match_ui.js): estádio e efeitos.
+    _somEmPausa(on) {
+        if (typeof AmbienteSonoro !== 'undefined' && AmbienteSonoro.setPausa) AmbienteSonoro.setPausa(on);
+        if (on && typeof EfeitosSonoros !== 'undefined' && EfeitosSonoros.pararTudo) EfeitosSonoros.pararTudo();
     },
     parar() {
         if (this._timer) { clearTimeout(this._timer); clearInterval(this._timer); this._timer = null; }

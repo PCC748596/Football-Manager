@@ -3100,6 +3100,8 @@ function actHoldPosition(ctx) {
         velocidade média com 18% dos companheiros parados. A marca vem do
         posicionamento (`saidaDeBolaPressa`, tickFinal em team_bt.js).
         */
+        // Ultrapassar / trocar com o meia pede ritmo (apoioDoLateral): sem isto o lateral chegava sempre 10 m atrás do meia.
+        if (p._apoioModo && typeof ApoioLateral !== 'undefined' && ApoioLateral.bonusVel) p.speedMult *= ApoioLateral.bonusVel;
         if (p.saidaDeBolaPressa && RepositionPace.bonusSaidaDeBola) {
             p.speedMult *= RepositionPace.bonusSaidaDeBola;
             /*

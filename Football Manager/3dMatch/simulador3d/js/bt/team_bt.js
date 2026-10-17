@@ -2693,8 +2693,9 @@ const PosicionamentoAI = {
         if (B_LIM && B_LIM.restDefense && !temTarefaDeBola && bb && bb.isAttacking &&
             p.baseTarget && typeof Match !== 'undefined') {
             const R = B_LIM.restDefense;
+            // O lateral que ultrapassa / troca com o meia (apoioDoLateral) não fica em casa: fica o outro.
             const meus = ((p.team === 'TeamA') ? Match.players : Match.opponents)
-                .filter(o => o && o.role !== 'gk' && o.baseTarget);
+                .filter(o => o && o.role !== 'gk' && o.baseTarget && !o._apoioModo);
 
             const maisRecuados = (papel, quantos) => meus
                 .filter(o => o.role === papel)
@@ -2997,7 +2998,8 @@ const PosicionamentoAI = {
         */
         const B_SEP = (typeof BlockShape !== 'undefined') ? BlockShape : null;
         let sepX = molaX, sepZ = finalZ;   // a separacao da ala escreve-os de volta
-        if (B_SEP && (p.pos === 'LB' || p.pos === 'RB')) {
+        // Na ultrapassagem / troca o lateral vai de propósito À FRENTE do meia ou ao lado dele (apoioDoLateral): esta separação não o desfaz.
+        if (B_SEP && (p.pos === 'LB' || p.pos === 'RB') && !p._apoioModo) {
             const parPos = (p.pos === 'LB') ? 'LM' : 'RM';
             const meus = (typeof Match !== 'undefined')
                 ? ((p.team === 'TeamA') ? Match.players : Match.opponents) : [];
@@ -3326,7 +3328,8 @@ const PosicionamentoAI = {
         onde têm de ir — e não se aplica a defender no próprio terço, onde
         fechar o corredor interior é o que se pede a um lateral.
         */
-        if (typeof WideAnchor !== 'undefined' && p.model && bb &&
+        // (o lateral que ultrapassa, troca ou apoia por trás do meia — apoioDoLateral — decide ele a largura)
+        if (typeof WideAnchor !== 'undefined' && p.model && bb && !p._apoioLarg &&
             bb.chaser !== p && bb.intercetor !== p && bb.bloqueador !== p) {
             const W = (p.pos === 'LM' || p.pos === 'RM' || p.pos === 'LW' || p.pos === 'RW')
                 ? WideAnchor.ala
