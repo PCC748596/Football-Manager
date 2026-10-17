@@ -859,6 +859,7 @@ const BancosDeReservas = {
         passeio: 4.5,           // vai até `passeio` m para cada lado do centro do banco
         alcanceDaBola: 25,      // com a bola a esta distância (z) do banco, ele está no extremo da área
         velocidade: 0.7,        // m/s
+        suavizarOlhar: 3.0,     // quão depressa o olhar acompanha a bola (1/s): ele observa o jogo sem dar piruetas nos passes longos
         camisa: 0xf2f2f2, gravata: 0x9c1c2a,
         // O fato inteiro (blazer, mangas e calças): um destes, escolhido pelo nome da equipa.
         fatos: [{ nome: 'preto', cor: 0x15171c }, { nome: 'azul-marinho', cor: 0x14213d }, { nome: 'castanho', cor: 0x5a3e2b }, { nome: 'bege', cor: 0xc8b48c }]

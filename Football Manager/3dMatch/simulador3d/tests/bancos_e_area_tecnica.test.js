@@ -86,3 +86,22 @@ test('o treinador anda ao ritmo do jogo: acompanha a bola, devagar e dentro da �
 test('o fato do treinador é um dos quatro pedidos (preto, azul-marinho, castanho, bege)', () => {
     for (const b of Bancos.bancos) assert.ok(['preto', 'azul-marinho', 'castanho', 'bege'].includes(b.treinador.fato), b.treinador.fato);
 });
+
+test('o treinador observa o jogo: de cara para a bola, parado e a andar', () => {
+    const t = Bancos.bancos[0].treinador;
+    const dt = 1 / 60;
+    const erroDeOlhar = () => {
+        const b = Match.ball.position, p = t.model.position;
+        const alvo = Math.atan2(b.x - p.x, b.z - p.z);
+        return Math.abs(Math.atan2(Math.sin(alvo - t.model.rotation.y), Math.cos(alvo - t.model.rotation.y)));
+    };
+    const erros = [];
+    for (const z of [t.zc + 30, t.zc - 30, t.zc]) {
+        Match.ball.position.set(5, 0.2, z);
+        for (let i = 0; i < 60 * 30; i++) { Bancos.update(dt); if (i > 60 * 8 && i % 30 === 0) erros.push(erroDeOlhar()); }
+    }
+    erros.sort((a, b) => a - b);
+    const mediana = erros[Math.floor(erros.length / 2)];
+    assert.ok(mediana < 0.35, 'olha para a bola (erro mediano ' + (mediana * 180 / Math.PI).toFixed(0) + '°)');
+    assert.ok(erros[Math.floor(erros.length * 0.95)] < 0.8, 'nunca de costas para o jogo');
+});

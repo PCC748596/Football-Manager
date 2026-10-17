@@ -247,12 +247,22 @@ const Bancos = {
                 const k = THREE.MathUtils.clamp((bola.z - t.zc) / T.alcanceDaBola, -1, 1);
                 t.alvoZ = t.zc + k * T.passeio;
             }
-            Officials.mover(t, T.x, t.alvoZ, T.velocidade, dt);
-            // Parado, vira-se devagar para a bola; a andar, o `mover` vira-o para o sentido da marcha.
-            if (t.paradoNoAlvo !== false && bola) {
-                const alvo = Math.atan2(bola.x - t.model.position.x, bola.z - t.model.position.z);
+            /*
+            OLHA SEMPRE PARA A BOLA, a andar e parado: o ponto para onde olha acompanha a bola com atraso (`olhar`), para o corpo não dar
+            piruetas nos passes longos. O `mover` vira o corpo para esse ponto e, com ele a andar de lado, usa o passo lateral.
+            */
+            if (bola) {
+                if (!t.olhar) t.olhar = { x: bola.x, z: bola.z };
+                const k = Math.min(1, dt * T.suavizarOlhar);
+                t.olhar.x += (bola.x - t.olhar.x) * k;
+                t.olhar.z += (bola.z - t.olhar.z) * k;
+            }
+            Officials.mover(t, T.x, t.alvoZ, T.velocidade, dt, t.olhar || undefined);
+            // Parado o `mover` não vira o corpo (ver `paradoNoAlvo`): acompanha a bola à mão.
+            if (t.olhar && t.paradoNoAlvo !== false) {
+                const alvo = Math.atan2(t.olhar.x - t.model.position.x, t.olhar.z - t.model.position.z);
                 const dif = Math.atan2(Math.sin(alvo - t.model.rotation.y), Math.cos(alvo - t.model.rotation.y));
-                t.model.rotation.y += dif * Math.min(1, dt * 2.0);
+                t.model.rotation.y += dif * Math.min(1, dt * 4.0);
             }
         }
     }
