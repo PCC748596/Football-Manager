@@ -4,7 +4,7 @@ O motor 3D decide a partida e gera a narracao. Dois usos:
   . jogarOculto  corre a partida do utilizador sem desenhar (modo "2D simulador": so a narracao) e devolve o resultado inteiro;
   . montarPayload  monta a mensagem `iniciar` (usada tambem pelo Simulador3DView, que mostra o 3D num iframe).
 */
-import { Team, Player, Fixture, MatchEvent, Tactics, FORMATIONS, getKitDetails, getGKKitDetails, kitShorts, KitDetails } from '../types';
+import { Team, Player, Fixture, MatchEvent, Tactics, FORMATIONS, getKitDetails, getGKKitDetails, kitShorts, ehVerde, KitDetails } from '../types';
 
 const CAMINHO_SIMULADOR = '/simulador3d/index.html';
 /*
@@ -82,6 +82,8 @@ export const uniformeDoKit = (k: KitDetails, camisaDeLinha = true) => {
     gola: k.clc,   // cor da gola do kit (KitDetails.clc); sem ela o 3D usa o cinza de sempre
     numero: k.nc || (ehClara(k.c1) ? '#000000' : '#ffffff'),
     contorno: k.noc || 'rgba(0,0,0,0.8)',
+    // Número do short: branco em short verde (o da camisa pode ser outro, ver `numero`).
+    ...(ehVerde(sh.cor) ? { numeroCalcao: '#ffffff', contornoCalcao: 'rgba(0,0,0,0.8)' } : {}),
     mangaComprida: !camisaDeLinha
   };
 };

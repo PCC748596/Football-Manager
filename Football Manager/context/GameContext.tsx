@@ -978,10 +978,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       totalTicks++;
       const currentSpeed = simulationSpeedRef.current || 1;
-      const delay = currentSpeed === 3 ? 333 : currentSpeed === 2 ? 500 : 1000;
+      let delay = currentSpeed === 3 ? 333 : currentSpeed === 2 ? 500 : 1000;
+
+      // O relógio do manager acompanha o do 3D: com o 3D à frente (o jogo dele corre ao ritmo próprio), recupera depressa, minuto a minuto,
+      // em vez de ficar a mostrar 6' enquanto o placar do 3D diz 30:03.
+      const w3dAtras = (window as any).motor3dMinuto;
+      const atrasadoDoMotor = mode === 'VISUAL' && typeof w3dAtras === 'number' && w3dAtras < 900 && (w3dAtras - Math.floor(totalTicks / 4)) > 1;
+      if (atrasadoDoMotor) delay = 30;
 
       const scheduleNext = () => {
-        if ((window as any).isNarrationPlaying) {
+        if ((window as any).isNarrationPlaying && !atrasadoDoMotor) {
           matchTimerRef.current = setTimeout(scheduleNext, 150);
         } else {
           runTick();

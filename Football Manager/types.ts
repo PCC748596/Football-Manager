@@ -236,7 +236,26 @@ export const kitShorts = (k: KitDetails, camisaDeLinha = true): { cor: string; a
   const comDesenho = !!k.c2 && ((!!k.horizontal) ||
     (listrado && !!(k.centerVerticalStripes || k.spfcStripes || k.criciumaStripes || k.diagonal || k.multipleDiagonals || k.dualDiagonal)));
   const cor = k.shc || ((camisaDeLinha && comDesenho) ? (k.c2 as string) : k.c1);
-  return { cor, aba: k.shtc || k.clc || undefined };
+  // Short verde: a barra da bainha é branca (a do Juventude-RS vinha preta, da gola do kit); só se o kit não fixar `shtc`.
+  const aba = k.shtc || ((ehVerde(cor) && (!k.clc || ehEscura(k.clc))) ? 'white' : (k.clc || undefined));
+  return { cor, aba };
+};
+
+// Verde (qualquer tom): o canal G domina claramente. Aceita #rgb/#rrggbb; nomes de cor CSS não verdes ficam de fora.
+export const ehVerde = (c?: string): boolean => {
+  if (!c) return false;
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c.trim());
+  if (!m) return /^(green|darkgreen|limegreen|seagreen|forestgreen)$/i.test(c.trim());
+  const h = m[1].length === 3 ? m[1].split('').map(x => x + x).join('') : m[1];
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return g > r * 1.25 && g > b * 1.25 && g > 60;
+};
+const ehEscura = (c: string): boolean => {
+  if (/^black$/i.test(c.trim())) return true;
+  const m = /^#([0-9a-f]{6})$/i.exec(c.trim());
+  if (!m) return false;
+  const r = parseInt(m[1].slice(0, 2), 16), g = parseInt(m[1].slice(2, 4), 16), b = parseInt(m[1].slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) < 70;
 };
 
 export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
