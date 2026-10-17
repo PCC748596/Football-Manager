@@ -7985,6 +7985,13 @@ class FootballPlayer {
                 }
             }
 
+            // DEPOIS DO GOLO: o goleiro que sofreu vai à bola dentro da baliza (GkAposGolo, tickGolGoleiro em match_physics.js).
+            if (typeof Match !== 'undefined' && Match.golGK && Match.golGK.gk === this && Match.golGK.fase === 'ir') {
+                alvoGkX = Match.ball.position.x;
+                alvoGkZ = Match.ball.position.z - this.dirZ * 0.4;
+                speedLerp = GkAposGolo.velocidade;
+            }
+
             if (this.dynamicTarget) {
                 this.dynamicTarget.set(alvoGkX, ALTURA_BASE_Y, alvoGkZ);
             }
@@ -9311,7 +9318,9 @@ class FootballPlayer {
                 (mais do que `apanharDistCorpo` do corpo ou ainda a andar) e que ele volta a decidir.
                 */
                 const distCorpoApanhar = gkCorpo.position.distanceTo(Match.ball.position);
-                const aoPe = distCorpoApanhar <= GoalkeeperPose.apanharDistCorpo && Match.ballVel.length() < 3.0;
+                // Depois do golo (GkAposGolo) a bola está parada na rede, atrás da linha: as mãos nem sempre chegam, e basta estar junto.
+                const aoPe = (distCorpoApanhar <= GoalkeeperPose.apanharDistCorpo && Match.ballVel.length() < 3.0) ||
+                    (Match.golGK && Match.golGK.gk === this && distCorpoApanhar < 1.6);
                 if (dMaoApanhar > alcanceApanhar && !aoPe) this.gkEstado = 'idle';
                 else if (!this.grabBall()) this.gkEstado = 'idle';
             }
@@ -9328,6 +9337,8 @@ class FootballPlayer {
             do lateral (acharLateralParaSaida) em player.js.
             */
             this.runBehaviorTree(dt);
+            // Depois do golo o relançamento é sempre o chutão das mãos, para a frente (GkAposGolo).
+            if (typeof Match !== 'undefined' && Match.golGK && Match.golGK.gk === this) { this.gkSaida = 'chuteFrente'; this.gkThrowTarget = null; }
 
             /*
             Pose única: `segurar` já É a pose de repouso (de pé, direito,
@@ -10196,10 +10207,12 @@ class FootballPlayer {
         Devolve false sem tocar em nada: a bola continua viva e o guarda-redes
         joga-a com o pe, como manda a regra.
         */
-        if (typeof maosProibidasNoRecuo === 'function' &&
+        // (Depois do golo — GkAposGolo — a bola é dele sem discussão: o jogo está parado.)
+        const depoisDoGolo = (typeof Match !== 'undefined' && Match.golGK && Match.golGK.gk === this);
+        if (!depoisDoGolo && typeof maosProibidasNoRecuo === 'function' &&
             maosProibidasNoRecuo(Match.recuoParaGR, this.team)) return false;
 
-        if (this.gkFalhaTimer > 0) return false;
+        if (!depoisDoGolo && this.gkFalhaTimer > 0) return false;
         // De onde vem a agarrada: de pe (os bracos ja estao a frente, nao se estalam) ou nao.
         const vinhaDeEncaixe = !!(this.gkEstado === 'maos' && (this.gkEncaixe || this.gkBarreira));
         const vinhaDeMaos = (this.gkEstado === 'maos' && !this.gkEncaixe && !this.gkBarreira) || vinhaDeEncaixe;

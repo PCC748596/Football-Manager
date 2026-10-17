@@ -341,6 +341,7 @@ Object.assign(Match, {
             if (this.goalSequenceStage === undefined) {
                 this.goalSequenceStage = 0;
                 this.tempoParada = 0;
+                this.golGK = null;
             }
             if (typeof Comemoracao !== 'undefined' && Comemoracao.ativa) Comemoracao.update(this.delta);
             
@@ -357,8 +358,12 @@ Object.assign(Match, {
             if (this.goalSequenceStage === 0) {
                 // Estágio 0: A bola fica na baliza e a câmara foca a bola enquanto os jogadores se dirigem para as suas posições
                 this.tempoParada += this.delta;
+                // O goleiro que sofreu apanha a bola e chuta-a para o meio-campo (GkAposGolo); a sequência espera por ele.
+                const golGoleiroFeito = this.tickGolGoleiro(this.delta);
                 // A festa do autor segura a sequência (até ao tecto da ComemoracaoGol.tempoMax).
-                if (this.tempoParada >= 4.5 && !(typeof Comemoracao !== 'undefined' && Comemoracao.emCurso())) {
+                if (this.tempoParada >= 4.5 && golGoleiroFeito && !(typeof Comemoracao !== 'undefined' && Comemoracao.emCurso())) {
+                    this.terminarGolGoleiro();
+                    this.golGK = null;
                     this.tempoParada = 0;
                     this.goalSequenceStage = 1;
 
@@ -438,6 +443,61 @@ Object.assign(Match, {
                 this.resetPlay();
             }
         }
+    },
+
+    /*
+    O GOLEIRO DEPOIS DO GOLO (ver GkAposGolo, config/goalkeeper.js). Devolve true quando a sequência pode seguir: desligado, sem goleiro que
+    sofreu, feito, ou passado o `prazoMax`. Chamado todos os frames do estágio 0 do golo.
+    */
+    tickGolGoleiro: function (dt) {
+        const C = (typeof GkAposGolo !== 'undefined') ? GkAposGolo : null;
+        if (!C || !C.activo) return true;
+        if (!this.golGK) {
+            if (this.tempoParada < C.espera) return false;
+            const gks = [this.players[0], this.opponents[0]].filter(Boolean);
+            const gk = gks.find(g => Math.sign(g.ownGoalZ) === Math.sign(this.ball.position.z));
+            if (!gk || gk.expulso || !gk.model) { this.golGK = { gk: null, fase: 'fim', total: 0 }; return true; }
+            this.golGK = { gk: gk, fase: 'ir', total: 0, seguro: 0, chutou: false, depois: 0 };
+            return false;
+        }
+        const g = this.golGK;
+        if (g.fase === 'fim') return true;
+        g.total += dt;
+        if (g.total > C.prazoMax) { this.terminarGolGoleiro(); g.fase = 'fim'; return true; }
+        const gk = g.gk;
+        if (g.fase === 'ir') {
+            const d = Math.hypot(gk.model.position.x - this.ball.position.x, gk.model.position.z - this.ball.position.z);
+            if (d < C.distApanhar && gk.gkEstado === 'idle') {
+                gk.gkEstado = 'apanhar';
+                gk.gkTempoMergulho = 0;
+                g.fase = 'apanhar';
+            }
+        } else if (g.fase === 'apanhar') {
+            if (gk.gkEstado === 'segurando') { g.fase = 'segurar'; g.seguro = 0; }
+            else if (gk.gkEstado === 'idle') g.fase = 'ir';   // a agarrada falhou: volta a ir à bola
+        } else if (g.fase === 'segurar') {
+            g.seguro += dt;
+            // Passado o tempo de segurar, o ramo 'segurando' solta o chutão no frame seguinte (t >= prazo).
+            if (g.seguro >= C.segurar && gk.gkEstado === 'segurando') gk.gkTempoMergulho = Math.max(gk.gkTempoMergulho, 99);
+            if (gk.gkEstado === 'chutando') g.chutou = true;
+            if (g.chutou && gk.gkEstado !== 'chutando') g.fase = 'depois';
+        } else if (g.fase === 'depois') {
+            g.depois += dt;
+            if (g.depois >= C.esperaAposChute) { g.fase = 'fim'; return true; }
+        }
+        return false;
+    },
+
+    // Larga o que o goleiro ainda tenha (prazo ou fim da sequência): a bola é posta no meio logo a seguir.
+    terminarGolGoleiro: function () {
+        const g = this.golGK;
+        if (!g || !g.gk) return;
+        const gk = g.gk;
+        if (gk.hasBall) gk.hasBall = false;
+        if (this.ballCarrier === gk) this.ballCarrier = null;
+        if (this.gkHoldingBall) this.gkHoldingBall[gk.team] = false;
+        if (gk.gkEstado === 'segurando' || gk.gkEstado === 'apanhar' || gk.gkEstado === 'chutando') gk.gkEstado = 'idle';
+        gk.gkKickAction = null;
     },
 
     /*

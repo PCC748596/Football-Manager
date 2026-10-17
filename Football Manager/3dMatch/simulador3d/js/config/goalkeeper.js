@@ -2644,3 +2644,28 @@ const GkCanto = {
     desvioParaOLadoDoCanto: 0.6
 };
 if (typeof window !== 'undefined') window.GkCanto = GkCanto;
+
+/*
+=============================================================================
+O GOLEIRO DEPOIS DO GOLO — apanha a bola dentro da baliza e chuta para o meio-campo
+=============================================================================
+Pedido: *"depois do gol eu quero que o goleiro pegue a bola dentro do gol e chute para o meio campo, depois de uns 3 segundos"*.
+
+Corre dentro do estágio 0 da sequência do golo (`tickGolGoleiro`, match_physics.js), com a festa a decorrer. O goleiro que sofreu:
+    ir        anda até à bola (`velocidade` m/s) ... ao chegar a `distApanhar` m
+    apanhar   agacha e agarra (o `apanhar` de sempre)
+    segurar   fica `segurar` s com ela no peito e solta o chutão das mãos (o `puntBall` do jogo corrido, sempre para a frente)
+    depois    espera `esperaAposChute` s a ver a bola ir, e só então a sequência segue (a bola é posta no meio-campo para a saída)
+O estágio 0 só acaba com isto feito ou ao fim de `prazoMax` s (rede de segurança: nunca pode prender o jogo).
+=============================================================================
+*/
+const GkAposGolo = {
+    activo: true,
+    espera: 3.0,
+    velocidade: 3.0,
+    distApanhar: 1.5,
+    segurar: 0.8,
+    esperaAposChute: 3.2,
+    prazoMax: 12.0
+};
+if (typeof window !== 'undefined') window.GkAposGolo = GkAposGolo;
