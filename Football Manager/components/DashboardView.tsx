@@ -396,8 +396,8 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
     const days = [];
     const curr = new Date(gameState.currentDate + 'T12:00:00');
     const day = curr.getDay();
-    const diff = curr.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(curr.setDate(diff));
+    // A barra mostra 10 dias, a começar no dia de hoje.
+    const monday = new Date(curr);
 
     const locale = gameState.language === 'PT' ? 'pt-BR' : 'en-US';
     const monthYearLabel = monday.toLocaleDateString(locale, { month: 'long', year: 'numeric' }).toUpperCase();
@@ -406,7 +406,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
     // @ts-ignore
     const dayNames = gameState.language === 'PT' ? ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'] : ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 10; i++) {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
       const dStr = d.toISOString().split('T')[0];
@@ -497,7 +497,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
         <div className="text-[10px] font-black text-slate-900 dark:text-slate-400 uppercase tracking-[0.2em] italic transition-colors px-1">
           {calendarInfo.monthYearLabel}
         </div>
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-10 gap-2">
           {calendarInfo.days.map((day, idx) => (
             <button 
               key={idx} 

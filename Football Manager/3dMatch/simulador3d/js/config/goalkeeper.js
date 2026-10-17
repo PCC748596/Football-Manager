@@ -551,16 +551,16 @@ const GoalkeeperPose = {
     -0.35 — e via-se de joelhos dobrados de forma estranha (a mesma pose do regresso à bola que lhe passou ao lado).
     */
     apanhar: {
-        chest: 1.35,
-        joelho: 0.90,
-        coxa: 0.70,
+        chest: 1.57,
+        joelho: 0.35,
+        coxa: 0.20,
         abertura: 0.08,
         bracoZ: 0.12,
-        bracoX: -1.50,
-        cotovelo: -0.08,
-        altura: -0.31,
+        bracoX: -1.60,
+        cotovelo: -0.05,
+        altura: 0.0,
         // Distância (m) a que o corpo fica da bola ao apanhar: os braços esticados é que a alcançam.
-        recuoDoCorpo: 0.50
+        recuoDoCorpo: 0.53
     },
 
     /*

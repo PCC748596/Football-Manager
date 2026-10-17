@@ -74,6 +74,10 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
     setIniciou(false);
     setReinicios(n => n + 1);
     setReplayAtivo(false);
+    // Volta a tela dos uniformes, antes do jogo: o 3D so e preparado depois de novos kits escolhidos.
+    updateMatchVisualState({ kitHomeIdx: undefined, kitAwayIdx: undefined, visualStatus: 'PRE_MATCH' });
+    setVisualState('PRE_MATCH');
+    setShowKitSelection(true);
   };
 
   const handleKitSelection = (h: number, a: number) => {
