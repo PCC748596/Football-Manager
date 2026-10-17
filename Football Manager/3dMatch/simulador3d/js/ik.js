@@ -166,6 +166,55 @@ const IK = {
     A solução resolvida tem de ser guardada num quaternião à parte ANTES de a
     raiz ser reposta.
     */
+    /*
+    A PERNA COMO O RIG A POSE (anca com `rotation.x` e `rotation.z`, joelho com `rotation.x` POSITIVO = canela para trás): o `resolver` acima é feito para o
+    braço (o meio dobra para a frente) e deixava o joelho ao contrario. Aqui a conta é a do rig:
+
+        coxa   u1 = (sin rz, -cos rz cos rx, -cos rz sin rx)            (Rx(rx) Rz(rz) aplicado a (0,-1,0))
+        canela u2 = Rx(rx) Rz(rz) (0, -cos k, -sin k)                    (k = a flexão do joelho)
+        pé     d  = L1 u1 + L2 u2
+
+    `d` é o vector anca -> pé NO ESPAÇO DO PAI da anca (a pélvis). Resolve-se (rx, rz, k) por Newton (jacobiano numérico), a partir dos valores actuais (o
+    arranque a quente dá a solução continua entre frames: a mesma perna não salta de um ramo da solução para o outro). Devolve { rx, rz, k, erro } ou null.
+    */
+    resolverPerna(L1, L2, d, rx0, rz0, k0) {
+        const f = (rx, rz, k, o) => {
+            const cz = Math.cos(rz), sz = Math.sin(rz), cx = Math.cos(rx), sx = Math.sin(rx);
+            // u1
+            const u1x = sz, u1y = -cz * cx, u1z = -cz * sx;
+            // v = (0, -cos k, -sin k): Rz depois Rx
+            const vx = 0, vy = -Math.cos(k), vz = -Math.sin(k);
+            const ax = vx * cz - vy * sz, ay = vx * sz + vy * cz, az = vz;     // Rz(rz) v
+            const bx = ax, by = ay * cx - az * sx, bz = ay * sx + az * cx;      // Rx(rx) (...)
+            o[0] = L1 * u1x + L2 * bx; o[1] = L1 * u1y + L2 * by; o[2] = L1 * u1z + L2 * bz;
+        };
+        let rx = rx0, rz = rz0, k = Math.max(0.05, k0);
+        const F = [0, 0, 0], G = [0, 0, 0];
+        const h = 1e-4;
+        let erro = Infinity;
+        for (let it = 0; it < 30; it++) {
+            f(rx, rz, k, F);
+            const e = [d.x - F[0], d.y - F[1], d.z - F[2]];
+            erro = Math.hypot(e[0], e[1], e[2]);
+            if (erro < 1e-4) break;
+            // Jacobiano numerico (colunas = d f / d rx, rz, k).
+            const J = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+            const ps = [rx, rz, k];
+            for (let c = 0; c < 3; c++) {
+                const q = ps.slice(); q[c] += h; f(q[0], q[1], q[2], G);
+                for (let r = 0; r < 3; r++) J[r][c] = (G[r] - F[r]) / h;
+            }
+            // Resolve J dq = e (Cramer, 3x3).
+            const det = J[0][0] * (J[1][1] * J[2][2] - J[1][2] * J[2][1]) - J[0][1] * (J[1][0] * J[2][2] - J[1][2] * J[2][0]) + J[0][2] * (J[1][0] * J[2][1] - J[1][1] * J[2][0]);
+            if (Math.abs(det) < 1e-9) break;
+            const col = (c, v) => { const M = [J[0].slice(), J[1].slice(), J[2].slice()]; for (let r = 0; r < 3; r++) M[r][c] = v[r]; return M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) - M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0]) + M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]); };
+            const dq = [col(0, e) / det, col(1, e) / det, col(2, e) / det];
+            const passo = Math.min(1, 0.6 / Math.max(1e-6, Math.max(Math.abs(dq[0]), Math.abs(dq[1]), Math.abs(dq[2]))));   // passo limitado: ~0.6 rad
+            rx += dq[0] * passo; rz += dq[1] * passo; k = Math.min(2.6, Math.max(0.05, k + dq[2] * passo));
+        }
+        return erro < 5e-3 ? { rx, rz, k, erro } : null;
+    },
+
     resolverSuave(raiz, meio, L1, L2, alvoMundo, planoMundo, peso) {
         const qAnt = this._qAnt || (this._qAnt = new THREE.Quaternion());
         const qNovo = this._qNovo || (this._qNovo = new THREE.Quaternion());

@@ -490,7 +490,8 @@ Object.assign(Match, {
             const modoOk = (window.cameraMode !== 'topdown' && window.cameraMode !== 'cinema');
             const k0 = this._faltaK || 0;
             let k = k0;
-            if (!modoOk) k = 0;
+            // PENALTI: a bola fica no centro do enquadramento (pedido) — sem o ponto medio bola/baliza e sem o peso que ficava a descer da falta que o deu.
+            if (!modoOk || this.state === 'PENALTY') k = 0;
             else if (faltaAplica) k = Math.min(1, k0 + dtFalta / tIn);
             else k = Math.max(0, k0 - dtFalta / tOut);
             this._faltaK = k;

@@ -9855,13 +9855,73 @@ class FootballPlayer {
         if (ativo) this._balancoT = (this._balancoT || 0) + dt; else this._balancoT = 0;
         // 1 unidade do corpo = ~0.33 m (ver construirCorpo).
         const x = (B.amp / 0.33) * Math.sin(2 * Math.PI * this._balancoT / B.periodo) * this._balancoPeso;
-        const L = 2.6;                                  // anca ate a sola, em unidades do corpo
-        const incl = -Math.asin(THREE.MathUtils.clamp(x / L, -0.9, 0.9));
         rig.pelvis.position.x = x;
-        rig.lLeg.rotation.z += incl;
-        rig.rLeg.rotation.z += incl;
         this._balancoX = (Math.abs(x) > 0.001) ? x : 0;
         if (!this._balancoX) rig.pelvis.position.x = 0;
+        /*
+        OS PES FICAM FIXOS NO SOLO E AS PERNAS FAZEM O MOVIMENTO (pedido, depois de duas tentativas erradas: *"os pes nao se movem; uma perna dobra um pouco
+        enquanto a outra se estica; movimento para um lado, depois inverte; o corpo acompanha o movimento das pernas"*). A anca desloca-se `x` para o lado e cada
+        perna e RESOLVIDA por cinematica inversa (IK.resolverPerna) para a bota continuar exactamente onde estava ao comecar a espera: do lado para onde a anca
+        vai a perna dobra mais, do outro estica. Antes rodavam-se as pernas de lado em torno da anca (abertura), o que as fazia balancar e levantava as botas.
+        A bota fica a direito no chao (a sola assente com a inclinacao da canela).
+        */
+        if (ativo) {
+            const mdl = this.model, pel = rig.pelvis;
+            const pe0 = (this.gkBalPlanta || (this.gkBalPlanta = {}));
+            const v = this._balV || (this._balV = new THREE.Vector3());
+            /*
+            ONDE AS BOTAS FICAM: onde a POSTURA DO PENALTI as poe, sem o deslocamento da anca — calculado todos os frames com as pernas na pose-alvo
+            (coxa, joelho e abertura de GoalkeeperPose.penalti) e a anca no centro. Guardar as botas no instante em que a espera comeca era
+            apanhar a pose a meio da transicao (de pe ou a andar) e prender-lhe as botas a esse sitio: a anca descia para a postura e o IK
+            dobrava as pernas ate ele ficar de joelhos no chao. Assim as botas seguem a postura (ate esta assentar) e so a anca se desloca.
+            */
+            const Pp = GoalkeeperPose.penalti;
+            const guarda = [rig.lLeg.rotation.x, rig.lLeg.rotation.z, rig.lKnee.rotation.x, rig.rLeg.rotation.x, rig.rLeg.rotation.z, rig.rKnee.rotation.x, pel.position.x];
+            rig.lLeg.rotation.x = rig.rLeg.rotation.x = Pp.coxa;
+            rig.lLeg.rotation.z = Pp.abertura; rig.rLeg.rotation.z = -Pp.abertura;
+            rig.lKnee.rotation.x = rig.rKnee.rotation.x = Pp.joelho;
+            pel.position.x = 0;
+            mdl.updateMatrixWorld(true);
+            pe0.l = (pe0.l || new THREE.Vector3()); pe0.r = (pe0.r || new THREE.Vector3());
+            rig.lFoot.getWorldPosition(pe0.l); rig.rFoot.getWorldPosition(pe0.r);
+            rig.lLeg.rotation.x = guarda[0]; rig.lLeg.rotation.z = guarda[1]; rig.lKnee.rotation.x = guarda[2];
+            rig.rLeg.rotation.x = guarda[3]; rig.rLeg.rotation.z = guarda[4]; rig.rKnee.rotation.x = guarda[5];
+            /*
+            O DESLOCAMENTO CABE NO ALCANCE DAS PERNAS: com as botas fixas, a anca so pode ir ate onde a perna do lado oposto ainda chega (coxa 1.6 +
+            canela 0.9 = 2.5, a 98.5%). Passado isso o IK nao tem solucao e a bota salta (medido: +0.3 m). O `x` do seno e cortado por esse intervalo.
+            */
+            const R = 0.985 * 2.5;
+            let lo = -Infinity, hi = Infinity;
+            for (const [leg, planta] of [[rig.lLeg, pe0.l], [rig.rLeg, pe0.r]]) {
+                v.copy(planta); pel.worldToLocal(v); v.sub(leg.position);
+                const s2 = R * R - v.y * v.y - v.z * v.z;
+                const sr = s2 > 0 ? Math.sqrt(s2) : 0;
+                lo = Math.max(lo, v.x - sr); hi = Math.min(hi, v.x + sr);
+            }
+            const xCortado = (lo <= hi) ? Math.max(lo, Math.min(hi, guarda[6])) : 0;
+            pel.position.x = xCortado;
+            this._balancoX = (Math.abs(xCortado) > 0.001) ? xCortado : 0;
+            mdl.updateMatrixWorld(true);
+            const peso = this._balancoPeso;
+            const perna = (leg, knee, foot, planta) => {
+                v.copy(planta);
+                pel.worldToLocal(v);                      // alvo no espaco da pelvis (o pai da anca)
+                v.sub(leg.position);                      // anca -> pe
+                // Arranque a quente nos valores actuais; se o Newton nao fechar, recomeca da propria postura do penalti (a solucao de referencia).
+                const zAb = (leg === rig.lLeg) ? Pp.abertura : -Pp.abertura;
+                const sol = IK.resolverPerna(1.6, 0.9, v, leg.rotation.x, leg.rotation.z, knee.rotation.x) ||
+                    IK.resolverPerna(1.6, 0.9, v, Pp.coxa, zAb, Pp.joelho);
+                if (!sol) return;
+                leg.rotation.x += (sol.rx - leg.rotation.x) * peso;
+                leg.rotation.z += (sol.rz - leg.rotation.z) * peso;
+                knee.rotation.x += (sol.k - knee.rotation.x) * peso;
+                // Sola assente: o pe roda o que a canela inclinou (canela para tras = +).
+                const inclCanela = pel.rotation.x + sol.rx + sol.k;      // canela para tras = pelvis + coxa + joelho (a pose: 0.35 - 0.70 + 1.10 = 0.75)
+                foot.rotation.x += (-inclCanela - foot.rotation.x) * peso;
+            };
+            perna(rig.lLeg, rig.lKnee, rig.lFoot, pe0.l);
+            perna(rig.rLeg, rig.rKnee, rig.rFoot, pe0.r);
+        }
     }
 
     /*
