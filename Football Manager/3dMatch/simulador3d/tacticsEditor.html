@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editor de formações — Soccer Simulator</title>
+<!--
+=============================================================================
+EDITOR DE FORMAÇÕES POR ZONA
+=============================================================================
+Para cada formação: o campo dividido em 9 zonas (3x3) pela posição da BOLA, e duas abas — COM BOLA e SEM BOLA. Escolhe-se uma zona e arrastam-se os 11
+jogadores: aquela posição é a que a equipa toma quando a bola está nessa zona. No jogo as posições interpolam entre as 4 zonas mais próximas da bola
+(js/formacoes_zonas.js), por isso a equipa desliza em vez de saltar.
+
+Os dados vêm de data/formacoes_zonas.js (gerado por tools/gerar_formacoes_zonas.js a partir do comportamento actual do jogo). O que se edita fica no
+localStorage deste navegador; "Exportar" descarrega um formacoes_zonas.js novo para pôr em data/.
+
+O campo está no REFERENCIAL DE ATAQUE: a baliza adversária em cima. A esquerda do ecrã é a esquerda do jogador (o lateral esquerdo, LB, fica à esquerda).
+Nesta página o treinador não edita: é uma ferramenta de desenvolvimento.
+=============================================================================
+-->
+<style>
+:root { --bg:#0f1420; --pn:#171e2e; --bd:#27304a; --tx:#e6ebf5; --mt:#8a96b3; --ac:#3b82f6; --ok:#22c55e; --wn:#f59e0b; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--tx); font:14px/1.4 system-ui,Segoe UI,Arial,sans-serif; }
+header { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--bd); background:var(--pn); }
+header h1 { font-size:16px; margin:0 8px 0 0; letter-spacing:.3px; }
+label.sel { display:flex; gap:6px; align-items:center; color:var(--mt); }
+select, button, input[type=file]::file-selector-button { background:#202a42; color:var(--tx); border:1px solid var(--bd); border-radius:6px; padding:6px 10px; font:inherit; cursor:pointer; }
+button:hover, select:hover { border-color:var(--ac); }
+button.pri { background:var(--ac); border-color:var(--ac); }
+.tabs { display:flex; gap:0; }
+.tabs button { border-radius:0; }
+.tabs button:first-child { border-radius:6px 0 0 6px; } .tabs button:last-child { border-radius:0 6px 6px 0; }
+.tabs button.on { background:var(--ac); border-color:var(--ac); }
+main { display:grid; grid-template-columns: minmax(280px, 520px) 1fr; gap:16px; padding:16px; align-items:start; }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+#campoBox { background:var(--pn); border:1px solid var(--bd); border-radius:10px; padding:10px; }
+svg#campo { width:100%; height:auto; display:block; touch-action:none; user-select:none; }
+.painel { background:var(--pn); border:1px solid var(--bd); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:12px; }
+.painel h2 { font-size:13px; margin:0; color:var(--mt); text-transform:uppercase; letter-spacing:1px; }
+.grelha { display:grid; grid-template-columns:repeat(3, 56px); gap:4px; }
+.grelha button { height:44px; font-size:12px; padding:0; position:relative; }
+.grelha button.on { background:var(--ac); border-color:var(--ac); }
+.grelha button .n { position:absolute; right:3px; bottom:1px; font-size:9px; color:var(--mt); }
+.linha { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; }
+.dica { color:var(--mt); font-size:12px; }
+table { border-collapse:collapse; width:100%; font-size:12px; }
+th, td { padding:3px 6px; border-bottom:1px solid var(--bd); text-align:right; } th:first-child, td:first-child { text-align:left; }
+tr.sel td { background:#1c2a4a; }
+#msg { color:var(--ok); min-height:1.4em; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Editor de formações</h1>
+  <label class="sel">Formação <select id="selFormacao"></select></label>
+  <div class="tabs"><button id="tabCom" class="on">Com bola</button><button id="tabSem">Sem bola</button></div>
+  <label class="sel"><input type="checkbox" id="chkEspelho" checked> espelhar (esq. ↔ dir.)</label>
+  <label class="sel"><input type="checkbox" id="chkFantasma" checked> fantasma da outra fase</label>
+  <label class="sel"><input type="checkbox" id="chkPrevia"> pré-visualizar (interpolação)</label>
+  <span style="flex:1"></span>
+  <button id="btnExportar" class="pri">Exportar .js</button>
+  <label class="sel"><input type="file" id="fileImportar" accept=".js,.json"></label>
+  <button id="btnRepor">Repor tudo</button>
+</header>
+<main>
+  <div id="campoBox"><svg id="campo"></svg></div>
+  <div class="painel">
+    <div><h2>Zona da bola</h2>
+      <div class="dica">Escolhe a zona onde a bola está (a de cima é a do ataque). As posições mostradas são as dessa zona.</div></div>
+    <div class="grelha" id="grelha"></div>
+    <div class="linha">
+      <button id="btnCopiarOutra">Copiar esta zona para a outra fase</button>
+      <button id="btnReporZona">Repor esta zona</button>
+      <button id="btnCopiarEspelho">Espelhar esta zona na oposta</button>
+    </div>
+    <div><h2>Jogadores (metros, referencial de ataque)</h2>
+      <table id="tab"><thead><tr><th>Slot</th><th>x</th><th>z</th></tr></thead><tbody></tbody></table></div>
+    <div id="msg"></div>
+    <div class="dica">Arrasta os círculos no campo; os números mostram metros (x: + = lado do lateral esquerdo; z: + = para a baliza adversária). Prévia: clica no campo para pôr a bola e ver a interpolação.</div>
+  </div>
+</main>
+
+<script src="data/formacoes_zonas.js"></script>
+<script src="js/formacoes_zonas.js"></script>
+<script>
+(function () {
+'use strict';
+const LS = 'tacticsEditor.formacoesZonas.v1';
+const L = 34, H = 53;                     // meia-largura / meia-altura (m)
+const NS = 'http://www.w3.org/2000/svg';
+const original = JSON.parse(JSON.stringify(window.FormacoesZonas));
+let T = JSON.parse(JSON.stringify(window.FormacoesZonas));
+try { const g = localStorage.getItem(LS); if (g) { const o = JSON.parse(g); if (o && o.formacoes) T = o; } } catch (e) { /* sem armazenamento */ }
+
+const st = { formacao: Object.keys(T.formacoes)[0], fase: 'com', zona: 4, previa: false, bola: { x: 0, z: 0 } };
+const $ = (id) => document.getElementById(id);
+const svg = $('campo');
+svg.setAttribute('viewBox', '-6 -6 ' + (2 * L + 12) + ' ' + (2 * H + 12));
+
+const guardar = () => { try { localStorage.setItem(LS, JSON.stringify(T)); } catch (e) { /* sem armazenamento */ } };
+const dicaMsg = (t) => { $('msg').textContent = t; clearTimeout(dicaMsg._t); dicaMsg._t = setTimeout(() => { $('msg').textContent = ''; }, 3000); };
+const F = () => T.formacoes[st.formacao];
+const tabAtual = () => (st.fase === 'com' ? F().com : F().sem);
+const tabOutra = () => (st.fase === 'com' ? F().sem : F().com);
+// Referencial de ataque (x + = esquerda do jogador, z + = para a baliza adversária) -> SVG (esquerda do ecrã = esquerda do jogador; cima = baliza adversária).
+const sx = (x) => L - x * L, sy = (z) => H - z * H;
+const ex = (px) => (L - px) / L, ez = (py) => (H - py) / H;
+
+function el(tag, attrs, pai) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (pai) pai.appendChild(e); return e; }
+
+function desenharCampo() {
+  svg.innerHTML = '';
+  el('rect', { x: -6, y: -6, width: 2 * L + 12, height: 2 * H + 12, fill: '#0d1a12' }, svg);
+  el('rect', { x: 0, y: 0, width: 2 * L, height: 2 * H, fill: '#1f6b3a', stroke: '#e6f4ea', 'stroke-width': .35 }, svg);
+  el('line', { x1: 0, y1: H, x2: 2 * L, y2: H, stroke: '#e6f4ea', 'stroke-width': .3 }, svg);
+  el('circle', { cx: L, cy: H, r: 9.15, fill: 'none', stroke: '#e6f4ea', 'stroke-width': .3 }, svg);
+  for (const topo of [true, false]) {
+    const y = topo ? 0 : 2 * H - 16.5, y2 = topo ? 0 : 2 * H - 5.5;
+    el('rect', { x: L - 20.15, y, width: 40.3, height: 16.5, fill: 'none', stroke: '#e6f4ea', 'stroke-width': .3 }, svg);
+    el('rect', { x: L - 9.16, y: y2, width: 18.32, height: 5.5, fill: 'none', stroke: '#e6f4ea', 'stroke-width': .3 }, svg);
+  }
+  // As 9 zonas: fronteiras em x = +-corredorX e z = +-terco (referencial de ataque).
+  const cx = T.corredorX, tz = T.terco;
+  const col = [[-L, -cx], [-cx, cx], [cx, L]], lin = [[-H, -tz], [-tz, tz], [tz, H]];   // x do ataque (esq. = -) / z do ataque
+  for (let li = 0; li < 3; li++) for (let ci = 0; ci < 3; ci++) {
+    const zona = li * 3 + ci;
+    // x + = esquerda do jogador = esquerda do ecrã: o ecrã é L - x (metros).
+    const x0 = L - col[ci][0], x1 = L - col[ci][1];
+    const y0 = H - lin[li][1], y1 = H - lin[li][0];
+    const r = el('rect', { x: Math.min(x0, x1), y: Math.min(y0, y1), width: Math.abs(x1 - x0), height: Math.abs(y1 - y0),
+      fill: zona === st.zona ? 'rgba(59,130,246,.22)' : 'rgba(255,255,255,0)', stroke: '#9fb4d8', 'stroke-width': .25, 'stroke-dasharray': '1.2 1' }, svg);
+    r.style.cursor = 'pointer';
+    r.addEventListener('click', () => { if (st.previa) { return; } st.zona = zona; render(); });
+    const t = el('text', { x: Math.min(x0, x1) + 1.2, y: Math.min(y0, y1) + 3.2, fill: '#cfe0ff', 'font-size': 3, opacity: .7 }, svg);
+    t.textContent = zona; t.style.pointerEvents = 'none';
+  }
+  // A bola: no centro da zona escolhida (ou onde se clicou, na prévia).
+  const C = FormacoesZonasLib.centros(T);
+  const bx = st.previa ? st.bola.x : C.x[st.zona % 3], bz = st.previa ? st.bola.z : C.z[Math.floor(st.zona / 3)];
+  const bola = el('circle', { cx: L - bx, cy: H - bz, r: 1.4, fill: '#fff', stroke: '#111', 'stroke-width': .35 }, svg);
+  bola.style.pointerEvents = 'none';
+
+  const slots = F().slots;
+  const posicoes = st.previa
+    ? FormacoesZonasLib.posicoes(T, st.formacao, bx, bz, st.fase === 'com')
+    : tabAtual()[st.zona];
+  if ($('chkFantasma').checked && !st.previa) {
+    tabOutra()[st.zona].forEach((p, i) => {
+      el('circle', { cx: sx(p.x), cy: sy(p.z), r: 2.1, fill: 'none', stroke: '#ffffff', 'stroke-width': .25, 'stroke-dasharray': '.8 .8', opacity: .45 }, svg);
+    });
+  }
+  posicoes.forEach((p, i) => {
+    const g = el('g', { transform: 'translate(' + sx(p.x) + ',' + sy(p.z) + ')' }, svg);
+    const cor = slots[i].role === 'gk' ? '#f1c40f' : (st.fase === 'com' ? '#3b82f6' : '#ef4444');
+    const c = el('circle', { r: 2.6, fill: cor, stroke: '#fff', 'stroke-width': .35 }, g);
+    const t = el('text', { y: 1, 'text-anchor': 'middle', fill: '#fff', 'font-size': 2.4, 'font-weight': 700 }, g);
+    t.textContent = slots[i].pos; t.style.pointerEvents = 'none';
+    if (!st.previa) { c.style.cursor = 'grab'; c.addEventListener('pointerdown', (ev) => arrastar(ev, i)); }
+  });
+}
+
+function arrastar(ev, i) {
+  ev.preventDefault();
+  const ponto = (e) => { const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(svg.getScreenCTM().inverse()); };
+  const mover = (e) => {
+    const p = ponto(e);
+    const x = Math.max(-1, Math.min(1, ex(p.x))), z = Math.max(-1, Math.min(1, ez(p.y)));
+    definir(i, x, z);
+    render(true);
+  };
+  const fim = () => { window.removeEventListener('pointermove', mover); window.removeEventListener('pointerup', fim); guardar(); };
+  window.addEventListener('pointermove', mover); window.addEventListener('pointerup', fim);
+}
+
+// O parceiro de espelho de um slot: o do mesmo papel com o x mais perto do simétrico (LB <-> RB, LM <-> RM, CB esq. <-> CB dir.); ele próprio no eixo.
+function parceiro(i) {
+  const tab = tabAtual();
+  const base = tab[4];                       // a zona central dá a geometria "neutra"
+  const alvo = -base[i].x;
+  let melhor = i, dMin = Infinity;
+  F().slots.forEach((s, j) => {
+    if (s.role !== F().slots[i].role) return;
+    const d = Math.abs(base[j].x - alvo) + Math.abs(base[j].z - base[i].z) * 0.5;
+    if (d < dMin) { dMin = d; melhor = j; }
+  });
+  return melhor;
+}
+const zonaOposta = (z) => Math.floor(z / 3) * 3 + (2 - (z % 3));
+
+function definir(i, x, z) {
+  const t = tabAtual();
+  t[st.zona][i] = { x: +x.toFixed(3), z: +z.toFixed(3) };
+  if ($('chkEspelho').checked) {
+    const oz = zonaOposta(st.zona), j = parceiro(i);
+    t[oz][j] = { x: +(-x).toFixed(3), z: +z.toFixed(3) };
+    if (oz === st.zona && j !== i) t[st.zona][j] = { x: +(-x).toFixed(3), z: +z.toFixed(3) };
+  }
+}
+
+function tabela() {
+  const tb = document.querySelector('#tab tbody'); tb.innerHTML = '';
+  const posicoes = tabAtual()[st.zona];
+  F().slots.forEach((s, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + (i + 1) + ' ' + s.pos + '</td><td>' + (posicoes[i].x * L).toFixed(1) + '</td><td>' + (posicoes[i].z * H).toFixed(1) + '</td>';
+    tb.appendChild(tr);
+  });
+}
+
+function grelha() {
+  const g = $('grelha'); g.innerHTML = '';
+  // Linha de cima = o terço ofensivo (zonas 6, 7, 8); a coluna da esquerda do ecrã = a 2 (x da bola > corredorX = esquerda do jogador).
+  for (let li = 2; li >= 0; li--) for (const ci of [2, 1, 0]) {
+    const zona = li * 3 + ci;
+    const b = document.createElement('button');
+    b.textContent = zona; b.className = zona === st.zona ? 'on' : '';
+    const n = F().amostras ? (F().amostras[(st.fase === 'com' ? 0 : 9) + zona] || 0) : 0;
+    b.innerHTML = zona + (n ? '<span class="n">' + n + '</span>' : '');
+    b.title = (li === 2 ? 'ofensivo' : li === 1 ? 'meio' : 'defensivo') + ' / ' + (ci === 2 ? 'esquerda' : ci === 1 ? 'centro' : 'direita') + (n ? ' — ' + n + ' amostras medidas' : '');
+    b.addEventListener('click', () => { st.zona = zona; st.previa = false; $('chkPrevia').checked = false; render(); });
+    g.appendChild(b);
+  }
+}
+
+function render(leve) {
+  desenharCampo(); tabela();
+  if (!leve) grelha();
+  $('tabCom').className = st.fase === 'com' ? 'on' : ''; $('tabSem').className = st.fase === 'sem' ? 'on' : '';
+}
+
+// ---- controlos
+const sel = $('selFormacao');
+Object.keys(T.formacoes).forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = k; sel.appendChild(o); });
+sel.addEventListener('change', () => { st.formacao = sel.value; render(); });
+$('tabCom').addEventListener('click', () => { st.fase = 'com'; render(); });
+$('tabSem').addEventListener('click', () => { st.fase = 'sem'; render(); });
+$('chkFantasma').addEventListener('change', () => render(true));
+$('chkPrevia').addEventListener('change', () => { st.previa = $('chkPrevia').checked; render(); });
+svg.addEventListener('click', (e) => {
+  if (!st.previa) return;
+  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+  st.bola = { x: ex(p.x) * L, z: ez(p.y) * H }; render(true);
+});
+$('btnCopiarOutra').addEventListener('click', () => {
+  tabOutra()[st.zona] = JSON.parse(JSON.stringify(tabAtual()[st.zona])); guardar(); dicaMsg('Zona ' + st.zona + ' copiada para a outra fase.');
+});
+$('btnReporZona').addEventListener('click', () => {
+  const o = original.formacoes[st.formacao]; const k = st.fase === 'com' ? 'com' : 'sem';
+  F()[k][st.zona] = JSON.parse(JSON.stringify(o[k][st.zona])); guardar(); render(); dicaMsg('Zona reposta.');
+});
+$('btnCopiarEspelho').addEventListener('click', () => {
+  const t = tabAtual(), z = st.zona, oz = zonaOposta(z);
+  F().slots.forEach((s, i) => { const j = parceiro(i); t[oz][j] = { x: -t[z][i].x, z: t[z][i].z }; });
+  guardar(); dicaMsg('Zona ' + z + ' espelhada na ' + oz + '.'); render();
+});
+$('btnRepor').addEventListener('click', () => {
+  if (!confirm('Repor todas as formações para o ficheiro original (perde o que editaste neste navegador)?')) return;
+  T = JSON.parse(JSON.stringify(original)); guardar(); render(); dicaMsg('Tudo reposto.');
+});
+$('btnExportar').addEventListener('click', () => {
+  const corpo = '/* Gerado por tools/gerar_formacoes_zonas.js e editado no tacticsEditor.html. Coordenadas normalizadas no referencial de ataque: x [-1,1] (meia-largura), z [-1,1] (+1 = baliza adversária). Índice da zona = linha*3 + coluna (linha 0 = terço defensivo; coluna 0 = x da bola < -11.33 m). */\n' +
+    'const FormacoesZonas = ' + JSON.stringify(T) + ';\nif (typeof window !== \'undefined\') window.FormacoesZonas = FormacoesZonas;\n';
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([corpo], { type: 'text/javascript' })); a.download = 'formacoes_zonas.js'; a.click();
+  dicaMsg('Exportado: põe o ficheiro em data/formacoes_zonas.js.');
+});
+$('fileImportar').addEventListener('change', (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const txt = String(r.result);
+      const j = txt.indexOf('{'), k = txt.lastIndexOf('};');
+      const obj = JSON.parse(txt.slice(j, k >= 0 ? k + 1 : txt.length));
+      if (!obj.formacoes) throw new Error('sem formacoes');
+      T = obj; guardar(); st.formacao = Object.keys(T.formacoes)[0]; sel.innerHTML = '';
+      Object.keys(T.formacoes).forEach(kk => { const o = document.createElement('option'); o.value = kk; o.textContent = kk; sel.appendChild(o); });
+      render(); dicaMsg('Importado.');
+    } catch (e) { dicaMsg('Ficheiro inválido: ' + e.message); }
+  };
+  r.readAsText(f);
+});
+render();
+})();
+</script>
+</body>
+</html>

@@ -216,6 +216,7 @@ export interface KitDetails {
   nc?: string;  // number color
   noc?: string; // number outline color
   diagonal?: boolean;
+  cruzMalta?: boolean; // cruz de malta na faixa (Vasco-RJ): o 3D desenha-a na faixa, à altura do coração
   diagonalWidth?: number; // 0 to 100, default around 20 for MatchDay
   multipleDiagonals?: boolean;
   horizontal?: boolean;
@@ -476,7 +477,8 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
         }
     }
 
-    return { c1, c2, c3, sc, nc, clc, noc, diagonal, horizontal, multipleDiagonals, dualDiagonal, centerVerticalStripes, gradient, spfcStripes, criciumaStripes };
+    const cruzMalta = isVasco && diagonal;
+    return { c1, c2, c3, sc, nc, clc, noc, diagonal, horizontal, multipleDiagonals, dualDiagonal, centerVerticalStripes, gradient, spfcStripes, criciumaStripes, cruzMalta };
 };
 
 export const isColorLight = (hex: string) => {
@@ -490,6 +492,10 @@ export const isColorLight = (hex: string) => {
 };
 
 export const getGKKitDetails = (team: Team, fieldKitIdx: 0 | 1 | 2 = 0, gkKitIdx: 0 | 1 = 0, opponentTeam?: Team): KitDetails => {
+    // Fluminense-RJ com o uniforme 3 (o de linha é o terceiro): goleiro todo amarelo (camisa e short; o short sai da cor da camisa lisa).
+    if (team.name === 'Fluminense-RJ' && fieldKitIdx === 2) {
+        return { c1: '#facc15', c2: undefined, c3: undefined, nc: 'black', noc: undefined as string | undefined, clc: '#facc15', shc: '#facc15', diagonal: false };
+    }
     if (team.name === 'Vasco-RJ') {
         return { c1: '#ff8c00', c2: undefined, c3: undefined, nc: 'black', noc: 'white', clc: 'black', diagonal: false };
     }

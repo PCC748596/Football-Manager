@@ -304,13 +304,13 @@ Object.assign(Match, {
             lookTarget.copy(foco);
             // O ZOOM APROXIMA DA BOLA e nao do centro do campo: posicao = bola + (base - bola) * zoom.
             // Com a bola a caminho da lateral da camara (+X) ela baixa e recua (ver CameraCentroLado).
-            let baseX = 58, baseY = 34;
-            const CL = (typeof CameraCentroLado !== 'undefined') ? CameraCentroLado : null;
-            if (CL && CL.activo) {
-                const k = THREE.MathUtils.clamp((foco.x - CL.xInicio) / (CL.xFim - CL.xInicio), 0, 1);
-                baseX += CL.recua * k;
-                baseY -= CL.baixa * k;
-            }
+            // NA PONTA DA PRIMEIRA COBERTURA (pedido: *"tem que ficar na ponta da cobertura, senao aparece a arquibancada"*): o bordo do telhado
+            // do 1.o anel, a `rows*1.2 - coberturaAvanco` m (8) atras da 1.a fila (x 46) e a 13 m de altura (degraus x 0.5 + parede 3) mais a espessura.
+            // Era x 58 / y 34. Ali em cima nao se recua nem se baixa com a bola na lateral +X (CameraCentroLado): a camara ja esta colada ao campo.
+            const BAc = (typeof BancadaAneis !== 'undefined') ? BancadaAneis : null;
+            const primeiraFilaX = (typeof CAMPO_LARG !== 'undefined' ? CAMPO_LARG / 2 : 34) + 12.0;
+            const baseX = BAc ? primeiraFilaX + BAc.degrausPorAnel * 1.2 - BAc.coberturaAvanco - 0.3 : 53.7;
+            const baseY = BAc ? BAc.degrausPorAnel * 0.5 + BAc.alturaParede + BAc.coberturaEspessura : 13.45;
             targetPos.set(lookTarget.x + (baseX - lookTarget.x) * zoom,
                 lookTarget.y + (baseY - lookTarget.y) * zoom,
                 lookTarget.z + (0 - lookTarget.z) * zoom);

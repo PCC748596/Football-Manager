@@ -69,7 +69,7 @@ export const uniformeDoKit = (k: KitDetails, camisaDeLinha = true) => {
     ? { padrao: 'kit', cores: [k.c1, k.c2, k.c3].filter(Boolean), kit: {
         c1: k.c1, c2: k.c2, c3: k.c3, diagonal: k.diagonal, diagonalWidth: k.diagonalWidth, horizontal: k.horizontal,
         multipleDiagonals: k.multipleDiagonals, dualDiagonal: k.dualDiagonal, centerVerticalStripes: k.centerVerticalStripes,
-        gradient: k.gradient, spfcStripes: k.spfcStripes, criciumaStripes: k.criciumaStripes } }
+        gradient: k.gradient, spfcStripes: k.spfcStripes, criciumaStripes: k.criciumaStripes, cruzMalta: k.cruzMalta } }
     : { padrao: 'solido', cores: [k.c1] };
   if (k.sc) camisa.manga = k.sc;
   const sh = kitShorts(k, camisaDeLinha);

@@ -302,7 +302,13 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
 
     let shirtMat;
     // MANGA de uma cor so (uniforme.camisa.manga): ver criarBraco. Sem ela, a manga leva o padrao.
-    const corManga = (pecaCamisa && pecaCamisa.manga) ? pecaCamisa.manga : null;
+    /*
+    FAIXA DIAGONAL UNICA (Vasco-RJ): a faixa so existe na FRENTE e nas COSTAS. As mangas e as laterais/topo do tronco sao da cor de fundo
+    (c1), lisas — pedido: *"manga da camisa e a parte de cima do uniforme do Vasco sao pretas; a faixa e so na frente e atras"*.
+    */
+    const kitFaixa = (pecaCamisa && pecaCamisa.padrao === 'kit' && pecaCamisa.kit && pecaCamisa.kit.diagonal && pecaCamisa.kit.c2 &&
+        !pecaCamisa.kit.multipleDiagonals && !pecaCamisa.kit.dualDiagonal) ? pecaCamisa.kit : null;
+    const corManga = (pecaCamisa && pecaCamisa.manga) ? pecaCamisa.manga : (kitFaixa ? kitFaixa.c1 : null);
     if (temPadraoCamisa) {
         const cvsC = document.createElement('canvas'); cvsC.width = 256; cvsC.height = 256;
         pintarPadraoDeEquipamento(cvsC.getContext('2d'), 256, 256, pecaCamisa, corCamisa);
@@ -414,6 +420,34 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
     O `#dcdde1` e o mesmo cinza claro de antes — e o tom da gola, nao da
     camisola, e por isso nao sai do uniforme.
     */
+    /*
+    CRUZ DE MALTA na faixa (kit.cruzMalta): a altura do coracao (a ~30% da altura do tronco, para o lado do coracao do jogador = a direita de quem
+    olha de frente). Acha-se a faixa LENDO a textura: na linha do coracao procura-se o troco branco (c2) mais perto desse lado e centra-se la a cruz.
+    */
+    if (pecaCamisa && pecaCamisa.kit && pecaCamisa.kit.cruzMalta) {
+        const yC = Math.round(512 * 0.26);
+        const linha = ctxV.getImageData(0, yC, 512, 1).data;
+        const claro = (i) => linha[i * 4] > 200 && linha[i * 4 + 1] > 200 && linha[i * 4 + 2] > 200;
+        let ini = -1, melhor = null;
+        for (let x = 0; x <= 512; x++) {
+            const c = x < 512 && claro(x);
+            if (c && ini < 0) ini = x;
+            if (!c && ini >= 0) { const tr = { a: ini, b: x - 1 }; if (!melhor || (tr.a + tr.b) > (melhor.a + melhor.b)) melhor = tr; ini = -1; }
+        }
+        const cx = melhor ? (melhor.a + melhor.b) / 2 : 330;
+        const R = 46;
+        ctxV.save();
+        ctxV.translate(cx, yC);
+        ctxV.fillStyle = '#d4101f';
+        // Cruz de malta: quatro pontas em V (triangulos de bico cortado) a volta do centro.
+        for (let k = 0; k < 4; k++) {
+            ctxV.rotate(Math.PI / 2);
+            ctxV.beginPath();
+            ctxV.moveTo(0, 0); ctxV.lineTo(-R * 0.34, -R * 0.55); ctxV.lineTo(-R * 0.5, -R); ctxV.lineTo(0, -R * 0.78); ctxV.lineTo(R * 0.5, -R); ctxV.lineTo(R * 0.34, -R * 0.55);
+            ctxV.closePath(); ctxV.fill();
+        }
+        ctxV.restore();
+    }
     const RAIO_GOLA = 86;
     // DENTRO DO DECOTE: a cor da pele do jogador (a gola e so a borda, ver abaixo).
     ctxV.fillStyle = new THREE.Color(corPele).getStyle();
@@ -437,7 +471,8 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
     baixo dele, porque so lá se sabe qual e o numero.
     */
     const backMat = new THREE.MeshStandardMaterial({ color: corCamisa, roughness: 0.9 });
-    const chestMats = [shirtMat, shirtMat, shirtMat, shirtMat, new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(cvsV) }), backMat];
+    const ladoMat = kitFaixa ? new THREE.MeshStandardMaterial({ color: kitFaixa.c1, roughness: 0.9 }) : shirtMat;
+    const chestMats = [ladoMat, ladoMat, ladoMat, ladoMat, new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(cvsV) }), backMat];
 
     /*
     O MEIAO. Sem uniforme fica o de sempre: a cor da camisa com duas argolas
