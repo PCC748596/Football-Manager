@@ -1127,7 +1127,7 @@ if (typeof window !== 'undefined') window.GoalKickPlan = GoalKickPlan;
 
 const GoalkeeperDive = {
     // Defesa baixa: os cotovelos no relvado e a cabeca levantada (ver GkDive.cotovelosNoChao).
-    baixaCotovelos: { activo: true, alturaMao: 0.06, cabecaX: -0.65, peitoX: 0 },
+    baixaCotovelos: { activo: true, alturaMao: 0.07, cabecaX: -0.65, peitoX: -0.45, antebraco: 0.27, rolamentoBaixo: 0.30, peitoBaixoFator: 0 },
 
     // Bola solta na area: se um defesa dele esta mais perto da bola do que o guarda-redes por mais disto (m), e o defesa quem a disputa (player.js, ramo looseBallInBox).
     margemDefesaMaisPerto: 1.0,

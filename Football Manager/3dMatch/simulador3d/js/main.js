@@ -871,8 +871,11 @@ function preencherHudJogador(elId, p) {
 
 function updateHudJogadores() {
     const carrier = Match.ballCarrier;
-    // Na ENTRADA EM CAMPO (estado ABERTURA) o cartao nao aparece (pedido): so a partir do ajuste da formacao para a saida de bola.
-    if (!carrier || Match.state === 'ABERTURA') {
+    // O cartao SO aparece depois de os times sairem da formacao alinhada (pedido): nao na entrada em campo (ABERTURA, `Abertura.activa`), nem com os
+    // times alinhados a espera da saida (`kickoffActive`, `segurarSaida`). O batedor da saida ja tem a bola, e era isso que o acendia.
+    const antesDaSaida = Match.state === 'ABERTURA' || Match.kickoffActive || Match.segurarSaida ||
+        (typeof Abertura !== 'undefined' && Abertura.activa);
+    if (!carrier || antesDaSaida) {
         preencherHudJogador('hud-jogador-esq', null);
         preencherHudJogador('hud-jogador-dir', null);
         return;

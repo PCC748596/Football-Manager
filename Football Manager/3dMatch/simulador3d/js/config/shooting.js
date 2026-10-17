@@ -1469,30 +1469,6 @@ const PenaltyModel = {
     arranqueDoGesto: 2.0,         // onde o gesto arranca, atrás da bola
     velocidadeAproximacao: 2.6,   // m/s a caminhar para a bola, antes do gesto
     paragemNoContacto: 0.55,      // onde o pé fica no instante do contacto
-    /*
-    O CHUTE EM TRES TEMPOS — L1, L2, L3 (as capturas de referencia do chute). Feito por IK nas pernas (IK.resolverPerna) a partir de pontos no CAMPO, em volta
-    da bola, e nao pelo PlayerKickClip (que punha o pe de apoio atras do corpo e os bracos abertos):
-
-        L1  o pe de apoio PLANTA-SE `apoioAtras` m atras da bola e `apoioLado` m ao lado dela; o corpo vem atras desse pe (`recuoPlantio`) e a perna de
-            chute fica atras, com o calcanhar no ar (`armacaoAtras`, `armacaoAltura`).
-        L2  o corpo passa por cima do pe de apoio (`avancoContacto` a frente dele) e o pe de chute vai a bola: CONTACTO.
-        L3  a perna acompanha o remate (`seguimentoFrente`, `seguimentoAltura`), o corpo segue (`seguimentoCorpo`) e o pe de apoio sai a dar o passo.
-
-    A corrida e calculada para o corpo chegar ao L1 num numero INTEIRO de passadas (match_loop.js, `_penPlano`). `duracao` e o tempo total do gesto e
-    `contacto` a fraccao em que a bola e batida.
-    */
-    apoioAtras: 0.00, apoioLado: 0.22, corpoLado: 0.18, recuoPlantio: 0.25, avancoContacto: 0.12,
-    armacaoAtras: 0.65, armacaoLado: 0.10, armacaoAltura: 0.28,
-    seguimentoFrente: 1.15, seguimentoAltura: 0.42, seguimentoCorpo: 0.40,
-    duracao: 0.95, contacto: 0.45,
-    // O tornozelo de quem esta de pe e parado fica a 0.24 m do relvado (medido no rig): com 0.14 as botas afundavam 10 cm.
-    alturaTornozelo: 0.24,
-    /*
-    L4 — o KEYFRAME DO SEGUIMENTO, uns 6 frames (`l4Tempo`, s) depois do contacto (a referencia do chute: a perna de chute esticada a frente, ao nivel da
-    anca, a de apoio um pouco dobrada, o tronco ligeiramente atras e os bracos abertos, um a frente e outro atras). O gesto passa por ele entre o
-    contacto (L2) e o fim (L3): interpolacao L2 -> L4 -> L3.
-    */
-    l4Tempo: 0.10, l4Frente: 0.85, l4Altura: 0.72,
     passoDoClip: 0.70,            // metros que o corpo avança DENTRO do gesto (o último passo); o resto da corrida é andado, em passadas inteiras
 
     potencia: 26.0,            // m/s à saída

@@ -183,6 +183,13 @@
                     onclick="Match.setSpeed(1.2)">1.2x</button>
             </div>
 
+            <!-- Comemoracao de golo: a demonstracao, sem golo (Match.celebracaoTeste). So com o jogo a correr. -->
+            <label>Comemoração</label>
+            <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+                <button type="button" class="btn-sector" id="btn-celebration-1"
+                    onclick="Match.celebracaoTeste('joelhos')">Celebration 1</button>
+            </div>
+
 
             <!-- BLUE/RED AVERAGE e ESTATISTICA/JOGO escondidos do painel da esquerda (pedido). Ficam no DOM porque Tatics.updateSkills e updatePainelEstatisticas (main.js) leem estes elementos. -->
             <div id="painel-oculto-medicoes" style="display:none">

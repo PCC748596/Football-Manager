@@ -37,14 +37,17 @@ const Comemoracao = {
     `autor`: quem marcou (null num autogolo — não há festa). `zSinal`: o lado da baliza onde entrou.
     Devolve true se a comemoração arrancou.
     */
-    iniciar(autor, zSinal) {
+    iniciar(autor, zSinal, forcar, tipoForcado) {
         this.limpar();
         const C = (typeof ComemoracaoGol !== 'undefined') ? ComemoracaoGol : null;
         if (!C || !C.activo || !autor || !autor.model || autor.role === 'gk') return false;
-        if (typeof Sim !== 'undefined' && Sim.running && !window.comemoracaoNaSimulacao) return false;
-        if (Math.random() > C.chance) return false;
+        // `forcar` (o botao "Celebration 1" do painel): ignora a simulacao e a chance — e uma demonstracao.
+        if (!forcar) {
+            if (typeof Sim !== 'undefined' && Sim.running && !window.comemoracaoNaSimulacao) return false;
+            if (Math.random() > C.chance) return false;
+        }
 
-        const tipo = this._sortear();
+        const tipo = tipoForcado || this._sortear();
         if (tipo === 'joelhos') return this._iniciarJoelhos(autor, zSinal);
         return false;
     },

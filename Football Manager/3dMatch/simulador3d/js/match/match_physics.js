@@ -379,7 +379,7 @@ Object.assign(Match, {
                     `stopReplay` devolver o jogo ao andamento. Desligado no
                     painel, devolve false e o golo segue como sempre seguiu.
                     */
-                    if (window.MatchReplay) window.MatchReplay.replayDoGolo();
+                    if (window.MatchReplay && !this.golTeste) window.MatchReplay.replayDoGolo();
 
                     // Oculta o aviso de golo antes de transitar a bola para o centro
                     const alerta = document.getElementById('alerta-golo');
@@ -432,6 +432,7 @@ Object.assign(Match, {
                 if (this.tempoParada > 1.0 && !this.segurarSaida) {
                     this.tempoParada = 0;
                     this.goalSequenceStage = undefined;
+                    this.golTeste = false;
                     this.resetPlay(this.nextKickoffTeam);
                     this.nextKickoffTeam = null;
                 }
@@ -446,12 +447,46 @@ Object.assign(Match, {
     },
 
     /*
+    A COMEMORACAO DE TESTE (botao "Celebration 1" do painel da esquerda): faz de conta que houve golo — sem o contar nem o registar — e corre a comemoracao do tipo
+    pedido (`'joelhos'` = Celebration 1). O autor e o portador da bola (ou, sem portador, o jogador de campo mais perto dela) e o golo e na baliza que a equipa dele
+    ataca. Segue a sequencia normal do golo (estagios, volta aos postos, nova saida) mas sem a repeticao e sem o guarda-redes a apanhar a bola (`golTeste`).
+    So com o jogo em PLAY.
+    */
+    celebracaoTeste: function (tipo) {
+        if (this.state !== 'PLAY' || !this.ball) return false;
+        let autor = this.ballCarrier && this.ballCarrier.role !== 'gk' ? this.ballCarrier : null;
+        if (!autor) {
+            let melhor = Infinity;
+            for (const p of this.players.concat(this.opponents)) {
+                if (!p || !p.model || p.role === 'gk' || p.expulso) continue;
+                const d = p.model.position.distanceTo(this.ball.position);
+                if (d < melhor) { melhor = d; autor = p; }
+            }
+        }
+        if (!autor) return false;
+        const zSinal = Math.sign(autor.dirZ) || 1;
+        this.golTeste = true;
+        this.ball.position.set(0, BallPhysics.raio, zSinal * (CAMPO_COMP / 2 + 1.2));
+        this.ballVel.set(0, 0, 0);
+        this.mudarEstado('GOAL', 'celebracao_teste');
+        this.goalSequenceStage = 0;
+        this.tempoParada = 0;
+        this.golMarcadoPor = autor.team;
+        this.nextKickoffTeam = Lados.donoDaBaliza(zSinal);
+        this.ballCarrier = null; this.intendedReceiver = null; this.passTargetPos = null;
+        this.gkHoldingBall.TeamA = false; this.gkHoldingBall.TeamB = false;
+        this.arrumarGuardaRedesNoGolo();
+        [this.players, this.opponents].forEach(l => l.forEach(p => { p.hasBall = false; p.isCross = false; p.touchLock = 0; }));
+        return Comemoracao.iniciar(autor, zSinal, true, tipo || 'joelhos');
+    },
+
+    /*
     O GOLEIRO DEPOIS DO GOLO (ver GkAposGolo, config/goalkeeper.js). Devolve true quando a sequência pode seguir: desligado, sem goleiro que
     sofreu, feito, ou passado o `prazoMax`. Chamado todos os frames do estágio 0 do golo.
     */
     tickGolGoleiro: function (dt) {
         const C = (typeof GkAposGolo !== 'undefined') ? GkAposGolo : null;
-        if (!C || !C.activo) return true;
+        if (!C || !C.activo || this.golTeste) return true;
         if (!this.golGK) {
             if (this.tempoParada < C.espera) return false;
             const gks = [this.players[0], this.opponents[0]].filter(Boolean);

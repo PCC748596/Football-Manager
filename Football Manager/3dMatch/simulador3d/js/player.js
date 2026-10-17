@@ -2042,115 +2042,6 @@ class FootballPlayer {
     o duelo com o guarda-redes resolve-se pelo mergulho normal — ele reage com
     `gkDelayReacao = 0`, posto no setupSetPiece.
     */
-    /*
-    O CHUTE DO PENALTI EM TRES TEMPOS (L1, L2, L3), por IK. `norm` 0..1 do gesto inteiro (PenaltyModel.duracao); o contacto cai em `PenaltyModel.contacto`.
-    As pernas sao resolvidas por IK.resolverPerna para pontos no MUNDO (geometria em Match._penPlano): o pe de apoio fica PLANTADO ao lado da bola,
-    `apoioAtras` m atras dela, e o de chute vai da armacao (atras do pe de apoio, calcanhar no ar) a bola e dai ao seguimento. O tronco, a bacia e os
-    bracos seguem a mesma divisao em tres poses. Nada aqui usa o PlayerKickClip: era ele que punha o pe de apoio atras do corpo e os bracos abertos.
-    */
-    aplicarChuteIK(norm) {
-        const geo = this.chuteGeo, rig = this.rig, M = PenaltyModel;
-        if (!geo || !rig) return;
-        const ct = M.contacto;
-        const suave = (u) => u * u * (3 - 2 * u);
-        const u1 = Math.max(0, Math.min(1, norm / ct));                      // L1 -> L2
-        const u2 = Math.max(0, Math.min(1, (norm - ct) / (1 - ct)));          // L2 -> L3
-        const mix = (a, b, u) => a + (b - a) * u;
-        // Quatro tempos: L1 (norm 0), L2 (contacto), L4 (`l4Tempo` s depois) e L3 (fim). `quatro(l1, l2, l3, l4)`.
-        const t4 = Math.min(0.95, ct + M.l4Tempo / M.duracao);
-        const ua = Math.max(0, Math.min(1, (norm - ct) / (t4 - ct)));          // L2 -> L4
-        const ub = Math.max(0, Math.min(1, (norm - t4) / (1 - t4)));            // L4 -> L3
-        const quatro = (a, b, c, d) => (norm < ct) ? mix(a, b, suave(u1)) : (norm < t4) ? mix(b, d, suave(ua)) : mix(d, c, suave(ub));
-        const tres = (a, b, c) => quatro(a, b, c, (b + c) / 2);
-
-        // O corpo: R1 -> R2 -> R3 (chao). A altura e a de sempre.
-        const R = (norm < ct)
-            ? { x: mix(geo.R1.x, geo.R2.x, 1 - (1 - u1) * (1 - u1)), z: mix(geo.R1.z, geo.R2.z, 1 - (1 - u1) * (1 - u1)) }   // DESACELERA ate ao contacto: parte com a velocidade da marcha (sem parar), e para por cima do pe de apoio
-            : { x: mix(geo.R2.x, geo.R3.x, suave(u2)), z: mix(geo.R2.z, geo.R3.z, suave(u2)) };
-        this.model.position.x = R.x; this.model.position.z = R.z;
-        this.model.position.y = ALTURA_BASE_Y;
-        // De frente para a direccao da corrida (a da bola).
-        this.model.rotation.y = Math.atan2(geo.f.x, geo.f.z);
-
-        // Tronco, bacia, bracos e cabeca: tres poses. Os bracos ficam ao lado do corpo, sem abrir (o do lado contrario a perna de chute vai a frente).
-        // (L1, L2, L3, L4): no L4 o tronco vai um pouco para tras, a bacia fecha, um braco vai a frente e o outro atras/aberto.
-        rig.chest.rotation.x = quatro(0.30, 0.15, 0.20, -0.12);
-        rig.pelvis.rotation.y = quatro(0.15, -0.05, -0.25, -0.35);
-        rig.lArm.rotation.x = quatro(-0.40, -0.30, -0.15, -0.90); rig.lArm.rotation.z = quatro(0.45, 0.55, 0.50, 0.50);
-        rig.rArm.rotation.x = quatro(0.35, 0.15, 0.40, 0.45);     rig.rArm.rotation.z = quatro(-0.40, -0.50, -0.55, -0.95);
-        rig.lElbow.rotation.x = quatro(-0.45, -0.45, -0.40, -0.35); rig.rElbow.rotation.x = quatro(-0.45, -0.45, -0.40, -0.35);
-        if (rig.neck) rig.neck.rotation.x = quatro(-0.20, -0.25, -0.10, -0.05);
-
-        // Alvos dos pes (mundo). `f`/`l`: a frente e a esquerda do batedor.
-        const f = geo.f, l = geo.l, B = geo.B, S = geo.S, yT = M.alturaTornozelo;
-        const P = (base, af, al, y) => ({ x: base.x + f.x * af + l.x * al, z: base.z + f.z * af + l.z * al, y: y });
-        // Pe de CHUTE: armacao (atras do apoio, calcanhar no ar) -> a bola -> seguimento. A subida ao contacto e acelerada (u^2): a perna chicoteia.
-        const K1 = P(S, -M.armacaoAtras, -M.armacaoLado, yT + M.armacaoAltura);
-        const C = P(B, -0.10, 0, yT);
-        const F = P(B, M.seguimentoFrente, 0.05, yT + M.seguimentoAltura);
-        /*
-        A PERNA DE CHUTE: primeiro a ARMACAO (os primeiros 40% do tempo ate ao contacto: o pe vai ainda um pouco mais atras e acima, o joelho dobra), depois o
-        CHICOTE para a frente — acelerado (v^2) ate a bola, com a perna a esticar. Antes o pe ia da armacao a bola num so movimento linear e o pe ficava quase
-        a prumo, sem o gesto de chutar (relato: *"a perna fica dobrada e parada na vertical"*).
-        */
-        const KA = P(S, -(M.armacaoAtras + 0.12), -M.armacaoLado, yT + M.armacaoAltura + 0.08);
-        const FASE = 0.40;
-        let pk;
-        if (norm < ct) {
-            if (u1 < FASE) { const a = suave(u1 / FASE); pk = { x: mix(K1.x, KA.x, a), z: mix(K1.z, KA.z, a), y: mix(K1.y, KA.y, a) }; }
-            else { const v2 = Math.pow((u1 - FASE) / (1 - FASE), 2.0); pk = { x: mix(KA.x, C.x, v2), z: mix(KA.z, C.z, v2), y: mix(KA.y, C.y, v2) }; }
-        } else {
-            pk = null;
-        }
-        // Depois do contacto: C -> L4 (a perna esticada a frente, ao nivel da anca) -> F (o fim do seguimento).
-        const L4 = P(B, M.l4Frente, 0.05, M.l4Altura);
-        if (norm >= ct) {
-            pk = (norm < t4)
-                ? { x: mix(C.x, L4.x, suave(ua)), z: mix(C.z, L4.z, suave(ua)), y: mix(C.y, L4.y, suave(ua)) }
-                : { x: mix(L4.x, F.x, suave(ub)), z: mix(L4.z, F.z, suave(ub)), y: mix(L4.y, F.y, suave(ub)) };
-        }
-        // Pe de APOIO: plantado em S; depois do contacto da o passo a frente (acompanha o corpo).
-        let ps = { x: S.x, z: S.z, y: yT };
-        if (u2 > 0.5) {
-            const w = suave((u2 - 0.5) / 0.5);
-            ps = { x: S.x + (geo.R3.x - geo.R2.x) * w, z: S.z + (geo.R3.z - geo.R2.z) * w, y: yT + 0.12 * Math.sin(Math.PI * w) };
-        }
-
-        this.model.updateMatrixWorld(true);
-        const pel = rig.pelvis;
-        const v = this._chV || (this._chV = new THREE.Vector3());
-        const perna = (leg, knee, foot, alvo, bico) => {
-            v.set(alvo.x, alvo.y, alvo.z); pel.worldToLocal(v); v.sub(leg.position);
-            const zAb = (leg === rig.lLeg) ? 0.08 : -0.08;
-            const sol = IK.resolverPerna(1.6, 0.9, v, leg.rotation.x, leg.rotation.z, knee.rotation.x) ||
-                IK.resolverPerna(1.6, 0.9, v, -0.2, zAb, 0.3);
-            if (!sol) return;
-            leg.rotation.x = sol.rx; leg.rotation.z = sol.rz; knee.rotation.x = sol.k;
-            foot.rotation.x = -(pel.rotation.x + sol.rx + sol.k) + bico;       // sola a direito; `bico` baixa a ponta (o pe de chute no contacto)
-        };
-        // O alvo e o do TORNOZELO no mundo: o `y` e a altura dele (alturaTornozelo = a do pe pousado).
-        perna(rig.lLeg, rig.lKnee, rig.lFoot, ps, 0);
-        const bicoK = (norm < ct) ? mix(0.15, 0.45, u1) : mix(0.45, 0.25, u2);
-        perna(rig.rLeg, rig.rKnee, rig.rFoot, pk, bicoK);
-    }
-
-    // O SEGUIMENTO (L3) depois de a bola sair: o gesto continua `PenaltyModel.duracao * (1 - contacto)` s com o jogo ja em PLAY. Devolve true enquanto manda.
-    tickChuteSeguimento(dt) {
-        const seg = this.chuteSeg;
-        if (!seg || !this.chuteGeo) return false;
-        seg.t += dt;
-        const M = PenaltyModel;
-        const norm = M.contacto + (seg.t / (M.duracao * (1 - M.contacto))) * (1 - M.contacto);
-        if (norm >= 1) {
-            this.chuteSeg = null; this.chuteGeo = null; this.actionState = null; this.misturaPose = null;
-            this.resetBonesToDefault();
-            return false;
-        }
-        this.velocity.set(0, 0, 0);
-        this.aplicarChuteIK(norm);
-        return true;
-    }
-
     baterPenalti() {
         /*
         O CHUTE DO PENALTI E O DO CANTO (pedido, depois de tres tentativas por IK): o LancamentoClip — L1 (a aproximacao), L2 (o contacto) e L3 (o seguimento),
@@ -4484,8 +4375,6 @@ class FootballPlayer {
 
     update(dt) {
         // A abertura do jogo (js/abertura.js) manda neste jogador enquanto ele sai do tunel e se alinha.
-        // O seguimento do chute do penalti (L3) manda no batedor depois de a bola sair: ver tickChuteSeguimento.
-        if (this.chuteSeg && this.tickChuteSeguimento(dt)) return;
         if (this.aberturaOrdem && typeof Abertura !== 'undefined' && Abertura.activa) {
             Abertura.passoDoJogador(this, dt);
             return;

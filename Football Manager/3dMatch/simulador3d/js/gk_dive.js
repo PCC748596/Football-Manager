@@ -588,8 +588,6 @@ const GkDive = {
                 // Depois de toda a gente escrever os bracos — ver a nota da
                 // funcao: e uma correccao por cima do que ficou, nao uma pose.
                 if (!d.ladoComBola) this.maosForaDoRelvado(rig);
-                // Defesa BAIXA: os cotovelos apoiados no relvado e a cabeca levantada (cotovelosNoChao).
-                if (d.tipo === 'baixo') this.cotovelosNoChao(rig, corpo);
 
                 // O prazo é o do lance, escrito no `iniciar` — ver `tempoChaoAlto`.
                 let prazoChao = (typeof d.tempoChao === 'number') ? d.tempoChao : D.tempoChao;
@@ -710,6 +708,23 @@ const GkDive = {
         }
 
         corpo.quaternion.copy(d.qFacing).multiply(this._qTilt);
+        // O rolamento da defesa baixa para ficar de barriga para baixo (ver cotovelosNoChao): por cima da orientacao acabada de compor.
+        if (d._rolo && d._roloAng) {
+            const qR = this._cotQ || (this._cotQ = new THREE.Quaternion());
+            qR.setFromAxisAngle(d._rolo.eixo, d._roloAng);
+            corpo.quaternion.premultiply(qR);
+            /*
+            Rolar para ficar de barriga para baixo muda a altura do corpo deitado: desce-o (so enquanto rola e no frame em que acaba) ate o osso mais baixo
+            ficar `folgaDeitado`/2 acima do relvado, como no mergulho de meia altura. O `assentarDeitado` nao serve (e um tiro unico e mexe na orientacao).
+            */
+            if (!d._roloFim) {
+                corpo.updateMatrixWorld(true);
+                let mn = Infinity;
+                for (let i = 0; i < this._ossosDeitado.length; i++) { const o = rig && rig[this._ossosDeitado[i]]; if (!o) continue; o.getWorldPosition(this._v); if (this._v.y < mn) mn = this._v.y; }
+                if (isFinite(mn)) { corpo.position.y -= (mn - 0.05); d.yDeitado = corpo.position.y; }
+                if (d.t >= GoalkeeperDive.baixaCotovelos.rolamentoBaixo) d._roloFim = true;
+            }
+        }
 
         /*
         O FRAME EM QUE AGARROU: os braços fecham-se sobre a bola já aqui, e não
@@ -908,6 +923,10 @@ const GkDive = {
 
             Match.ballVel.set(0, 0, 0);
         }
+
+        // OS COTOVELOS NO RELVADO, no FIM do update: depois da orientacao, do assento e das correccoes das maos (o `maosForaDoRelvado` levantava as maos
+        // que o IK tinha posto no chao). So na fase de chao.
+        if (d.fase === 'chao' && rig) this.cotovelosNoChao(rig, corpo, d.tipo, d);
 
         return true;
     },
@@ -1647,20 +1666,84 @@ const GkDive = {
     caia no relvado. Depois de a pose dos bracos estar escrita, cada braco vai por IK a mesma posicao de mao que ja tinha, mas com o POLO PARA BAIXO
     (o cotovelo dobra para o chao: ombro acima, cotovelo no relvado, antebraco para a frente) e a cabeca levanta-se (`GoalkeeperDive.baixaCotovelos`).
     */
-    cotovelosNoChao(rig, corpo) {
+    cotovelosNoChao(rig, corpo, tipo, d) {
         const C = GoalkeeperDive.baixaCotovelos;
         if (!C || !C.activo || !rig.lArm || !rig.rArm || !rig.lHand || !rig.rHand) return;
         corpo.updateMatrixWorld(true);
+        /*
+        A DEFESA BAIXA TAMBEM TERMINA SOBRE OS COTOVELOS (pedido): o mergulho baixo aterra de LADO, e no chao o corpo ROLA em `rolamentoBaixo` s sobre o seu eixo
+        comprido ate ficar de barriga para baixo (para o lado a que a barriga ja estava virada), e dai segue o mesmo apoio de antebracos do mergulho de meia altura.
+        O eixo e a direccao da cabeca (pelve -> pescoco) no instante da aterragem, e a rotacao e aplicada por cima da orientacao que o mergulho reescreve todos os
+        frames (corpo.quaternion = qFacing * qTilt), por isso nao acumula.
+        */
+        let pesoApoio = 1;
+        if (tipo === 'baixo' && C.rolamentoBaixo > 0 && d) {
+            if (!d._rolo) {
+                const h = new THREE.Vector3(), pv = new THREE.Vector3(), f = new THREE.Vector3();
+                rig.neck.getWorldPosition(h); rig.pelvis.getWorldPosition(pv); h.sub(pv); h.y = 0;
+                if (h.lengthSq() > 1e-4) {
+                    h.normalize();
+                    f.set(0, 0, 1).transformDirection(corpo.matrixWorld);
+                    const sy = new THREE.Vector3().crossVectors(h, f).y;
+                    d._rolo = { eixo: h, sinal: -(Math.sign(sy) || 1) };
+                }
+            }
+            if (d._rolo) {
+                const u = Math.min(1, d.t / C.rolamentoBaixo), e = u * u * (3 - 2 * u);
+                // (o angulo e aplicado na composicao da orientacao, no fim do update — escrever aqui seria reescrito no mesmo frame)
+                d._roloAng = d._rolo.sinal * (Math.PI / 2) * e;
+                pesoApoio = e;
+                // O IK dos bracos (mais abaixo) tem de ver o corpo JA ROLADO: recompoe-se aqui a orientacao do frame (a mesma do fim do update) com o rolamento.
+                const qR0 = this._cotQ || (this._cotQ = new THREE.Quaternion());
+                qR0.setFromAxisAngle(d._rolo.eixo, d._roloAng);
+                corpo.quaternion.copy(d.qFacing).multiply(this._qTilt).premultiply(qR0);
+                corpo.updateMatrixWorld(true);
+            } else return;
+        }
+        /*
+        SO DE BARRIGA PARA BAIXO (pedido: *"se o goleiro cair de lado nao precisa ficar com os cotovelos apoiados, o corpo ja e o apoio; se cair com a barriga
+        e o rosto para baixo, ai sim"*): a barriga e a frente do corpo (+z local); deitado de bruços ela aponta para o relvado. De lado (o mergulho baixo, p. ex.)
+        nao se mexe em nada.
+        */
+        const barriga = this._cotBarriga || (this._cotBarriga = new THREE.Vector3());
+        barriga.set(0, 0, 1).transformDirection(corpo.matrixWorld);
+        if (tipo !== 'baixo' && barriga.y > -0.6) return;
+        if (tipo === 'baixo' && pesoApoio < 0.5) return;
         const alvo = this._cotAlvo || (this._cotAlvo = new THREE.Vector3());
         // O polo do IK e para ONDE APONTA o plano do osso (ver ik.js): com o polo para CIMA o cotovelo fica por BAIXO da linha ombro-mao, que e o que se quer.
         const baixo = this._cotBaixo || (this._cotBaixo = new THREE.Vector3(0, 1, 0));
+        // A FRENTE do corpo deitado: a direccao da cabeca, no plano do relvado (os antebracos seguem-na).
+        const fr = this._cotFr || (this._cotFr = new THREE.Vector3());
+        // (do pelve ao pescoco, no mundo: e a direccao da cabeca de facto, qualquer que seja o tombo)
+        rig.neck.getWorldPosition(fr);
+        const pv = this._cotPv || (this._cotPv = new THREE.Vector3());
+        rig.pelvis.getWorldPosition(pv);
+        fr.sub(pv);
+        fr.y = 0;
+        // Entra devagar (0.15 s desde o inicio do chao): sem estalo no frame da aterragem.
+        const w = ((d && typeof d.t === 'number') ? Math.min(1, d.t / 0.15) : 1) * pesoApoio;
+        const temFrente = fr.lengthSq() > 1e-4;
+        if (temFrente) fr.normalize();
         for (const [arm, elb, hand] of [[rig.lArm, rig.lElbow, rig.lHand], [rig.rArm, rig.rElbow, rig.rHand]]) {
-            hand.getWorldPosition(alvo);
-            alvo.y = Math.max(C.alturaMao, alvo.y);          // a mao nunca abaixo do relvado
-            IK.resolverSuave(arm, elb, IKChains.braco.L1, IKChains.braco.L2, alvo, baixo, 1.0);
+            if (temFrente) {
+                // OS ANTEBRACOS APOIADOS NO RELVADO: a mao vai ao chao, `antebraco` m a frente do ombro; com o polo para cima o cotovelo
+                // fica por baixo da linha ombro-mao, ou seja no relvado, e o antebraco deitado.
+                arm.getWorldPosition(alvo);
+                alvo.x += fr.x * C.antebraco; alvo.z += fr.z * C.antebraco;
+                alvo.y = C.alturaMao;
+            } else {
+                // (Com a bola AGARRADA as maos ficam onde o abraco as pos — junto a bola — e so o cotovelo desce ao relvado.)
+                hand.getWorldPosition(alvo);
+                alvo.y = Math.max(C.alturaMao, alvo.y);          // a mao nunca abaixo do relvado
+            }
+            IK.resolverSuave(arm, elb, IKChains.braco.L1, IKChains.braco.L2, alvo, baixo, w);
         }
         // O PEITO ARQUEIA para tras (o tronco apoiado nos antebracos, como quem se ergue de barriga para baixo): sobe os ombros e a cabeca do relvado.
-        if (rig.chest) rig.chest.rotation.x += C.peitoX;
+        // ABSOLUTO: a pose do chao reescreve o peito todos os frames (com lerp), e somar a cada frame acumulava ate varias vezes o valor.
+        if (rig.chest) {
+            if (typeof d._peitoBase !== 'number') d._peitoBase = rig.chest.rotation.x;
+            rig.chest.rotation.x = d._peitoBase + C.peitoX * ((tipo === 'baixo') ? (C.peitoBaixoFator !== undefined ? C.peitoBaixoFator : 1) : 1);
+        }
         if (rig.neck) rig.neck.rotation.x = lerpTo(rig.neck.rotation.x, C.cabecaX, 0.4);
     },
 

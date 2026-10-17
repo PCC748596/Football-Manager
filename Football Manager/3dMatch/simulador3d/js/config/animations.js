@@ -109,8 +109,6 @@ const ActionAnimClips = {
     lento mexe aqui, e volta a correr os dois testes.
     */
     playerKick: { duration: 0.55, contactTime: 1 },
-    // O chute do penalti em tres tempos (L1, L2, L3), por IK: ver PenaltyModel.duracao / contacto.
-    penaltyKick: { duration: 0.95, contactTime: 0.45 },
     /*
     TIRO DE META (ver GoalKickClip) — gesto PRÓPRIO, separado do `playerKick`.
 

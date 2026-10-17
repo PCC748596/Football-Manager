@@ -2916,8 +2916,7 @@ class PlayerFSM {
                     if (p.bolaParadaLancamento && typeof amostrarClipLancamento === 'function') {
                         p.aplicarFrameLancamento(amostrarClipLancamento(normPK));
                     } else {
-                        if (p.chuteGeo) p.aplicarChuteIK(normPK);      // o penalti: L1, L2, L3 por IK (Player.aplicarChuteIK)
-                        else p.aplicarFramePlayerKick(amostrarClipPlayerKick(normPK));
+                        p.aplicarFramePlayerKick(amostrarClipPlayerKick(normPK));
                     }
                     // Entrada suave: a pose da marcha funde-se no clip por grupo de ossos (MisturaDePose), sem o salto do frame 0 (penalti: a corrida acaba e o gesto parte).
                     if (p.misturaPose && !MisturaDePose.aplicar(p.rig, p.model, p.misturaPose, dt)) p.misturaPose = null;
