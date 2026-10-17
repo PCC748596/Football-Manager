@@ -1281,7 +1281,7 @@ class PlayerFSM {
                     zerava-a todos os frames: medido, ficava parado a 4.75 m e o
                     gesto do remate levava-o à bola a 11.5 m/s, com a pose parada.
                     */
-                    (Match.state === 'PENALTY' && Match.penaltiPendente && Match.penaltiAtraso < (typeof ESPERA_APOS_REPOSICAO !== 'undefined' ? ESPERA_APOS_REPOSICAO / 3 : 1.0))))) {
+                    (Match.state === 'PENALTY' && Match.penaltiPendente && Match._penPlano && Match._penPlano.andou)))) {
                     // O batedor da falta só mantém a velocidade durante a aproximação andada
                     // (último terço da espera). Durante a espera inicial e para os outros jogadores, velocidade é 0.
                     p.velocity.set(0, 0, 0);
@@ -2916,8 +2916,11 @@ class PlayerFSM {
                     if (p.bolaParadaLancamento && typeof amostrarClipLancamento === 'function') {
                         p.aplicarFrameLancamento(amostrarClipLancamento(normPK));
                     } else {
-                        p.aplicarFramePlayerKick(amostrarClipPlayerKick(normPK));
+                        if (p.chuteGeo) p.aplicarChuteIK(normPK);      // o penalti: L1, L2, L3 por IK (Player.aplicarChuteIK)
+                        else p.aplicarFramePlayerKick(amostrarClipPlayerKick(normPK));
                     }
+                    // Entrada suave: a pose da marcha funde-se no clip por grupo de ossos (MisturaDePose), sem o salto do frame 0 (penalti: a corrida acaba e o gesto parte).
+                    if (p.misturaPose && !MisturaDePose.aplicar(p.rig, p.model, p.misturaPose, dt)) p.misturaPose = null;
                     if (p.actionState && p.actionState.isDone()) {
                         p.actionState = null;
                         p.bolaParadaLancamento = null;

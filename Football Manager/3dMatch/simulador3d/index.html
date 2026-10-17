@@ -184,6 +184,8 @@
             </div>
 
 
+            <!-- BLUE/RED AVERAGE e ESTATISTICA/JOGO escondidos do painel da esquerda (pedido). Ficam no DOM porque Tatics.updateSkills e updatePainelEstatisticas (main.js) leem estes elementos. -->
+            <div id="painel-oculto-medicoes" style="display:none">
             <div class="subpainel-cabecalho">
                 <h2 style="border-bottom: 2px solid #3498db; color: #3498db;">BLUE AVERAGE</h2>
                 <button type="button" class="btn-subpainel" id="btn-skills-a"
@@ -260,6 +262,7 @@
                     <tbody id="estat-linhas"></tbody>
                 </table>
             </div>
+            </div><!-- /painel-oculto-medicoes -->
 
         </div><!-- /painel-conteudo -->
     </div>

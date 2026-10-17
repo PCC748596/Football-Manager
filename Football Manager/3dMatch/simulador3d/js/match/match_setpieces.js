@@ -1100,6 +1100,7 @@ Object.assign(Match, {
             this.faltaAtraso = (typeof FreeKickModel !== 'undefined' && typeof FreeKickModel.esperaFalta === 'number') ? FreeKickModel.esperaFalta : ESPERA_APOS_REPOSICAO;
 
         } else if (type === 'PENALTY') {
+            this._penPlano = null;   // o plano da corrida do batedor (match_loop.js) e por penalti
             /*
             PENÁLTI. Bola na marca, batedor atrás dela, guarda-redes na linha e
             toda a gente fora da área E fora da meia-lua. O remate tem resolução

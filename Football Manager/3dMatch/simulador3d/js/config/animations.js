@@ -109,6 +109,8 @@ const ActionAnimClips = {
     lento mexe aqui, e volta a correr os dois testes.
     */
     playerKick: { duration: 0.55, contactTime: 1 },
+    // O chute do penalti em tres tempos (L1, L2, L3), por IK: ver PenaltyModel.duracao / contacto.
+    penaltyKick: { duration: 0.95, contactTime: 0.45 },
     /*
     TIRO DE META (ver GoalKickClip) — gesto PRÓPRIO, separado do `playerKick`.
 
@@ -154,7 +156,9 @@ lançamento, parar o corpo a 0.55 m da bola deixava o pé a 0.38 m dela.
 */
 const LancamentoBolaParada = {
     peFrente: 0.17,
-    peLado: 0.26
+    peLado: 0.26,
+    // A que distancia da bola o canto arranca o gesto (pontoDeCanto: 1.6 m para alem da bola). O penalti arranca o gesto aqui tambem, depois da corrida.
+    arranque: 1.6
 };
 if (typeof window !== 'undefined') window.LancamentoBolaParada = LancamentoBolaParada;
 

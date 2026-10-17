@@ -1707,6 +1707,63 @@ function amostrarClipBolaParada(clip, norm) {
 /*
 Amostra o PlayerKickClip — o chute de bola parada da falta e do penálti.
 */
+
+/*
+=============================================================================
+MISTURA DE POSE — a transição suave de uma pose para um clip, por GRUPO de ossos
+=============================================================================
+Quando um gesto (o chute de bola parada, p. ex.) arranca a meio de outra animação (a marcha), o clip escreve a pose dele de uma vez e o corpo SALTA: era
+o "pulo" e a "meia trava" na entrada do chute do penalti — o pé de apoio chegava ao lado da bola na marcha e o frame 0 do clip punha-o outra vez atras.
+
+`capturar` guarda a pose que o rig TEM nesse instante (rotações de todos os ossos e a altura do corpo). Depois do clip escrever o frame dele, `aplicar` puxa cada
+osso de volta para a pose guardada com um peso que desce a zero: `1 - suave(t / duracao do GRUPO)`. Cada grupo tem a sua duração (`MisturaDePoseModel`): as
+pernas mais devagar que o tronco e os bracos, para o pe de apoio nao saltar.
+
+Genérico: serve a qualquer gesto que arranque a meio de outra pose (aplicar depois do desenhador do clip, todos os frames, com o tempo desde o arranque).
+=============================================================================
+*/
+const MisturaDePoseModel = {
+    // Segundos até o grupo estar 100% no clip.
+    pernas: 0.08, tronco: 0.12, bracos: 0.12,
+    grupos: {
+        pernas: ['lLeg', 'rLeg', 'lKnee', 'rKnee', 'lFoot', 'rFoot'],
+        tronco: ['pelvis', 'chest', 'neck'],
+        bracos: ['lArm', 'rArm', 'lElbow', 'rElbow', 'lHand', 'rHand']
+    }
+};
+const MisturaDePose = {
+    capturar: function (rig, corpo) {
+        const snap = { t: 0, ossos: {}, y: corpo ? corpo.position.y : 0 };
+        for (const g in MisturaDePoseModel.grupos) {
+            for (const nome of MisturaDePoseModel.grupos[g]) {
+                const o = rig[nome];
+                if (o) snap.ossos[nome] = { g: g, x: o.rotation.x, y: o.rotation.y, z: o.rotation.z };
+            }
+        }
+        return snap;
+    },
+    // Chamar DEPOIS de o clip escrever o frame. `dt`: segundos desde a chamada anterior. Devolve false quando a mistura acabou (pode largar-se o `snap`).
+    aplicar: function (rig, corpo, snap, dt) {
+        if (!snap) return false;
+        snap.t += dt;
+        let ativo = false;
+        for (const nome in snap.ossos) {
+            const o = rig[nome]; if (!o) continue;
+            const s = snap.ossos[nome];
+            const dur = MisturaDePoseModel[s.g];
+            const u = Math.min(1, snap.t / dur);
+            if (u >= 1) continue;
+            ativo = true;
+            const w = 1 - u * u * (3 - 2 * u);        // peso da pose guardada: 1 -> 0
+            o.rotation.x += (s.x - o.rotation.x) * w;
+            o.rotation.y += (s.y - o.rotation.y) * w;
+            o.rotation.z += (s.z - o.rotation.z) * w;
+        }
+        return ativo;
+    }
+};
+if (typeof window !== 'undefined') { window.MisturaDePose = MisturaDePose; window.MisturaDePoseModel = MisturaDePoseModel; }
+
 function amostrarClipPlayerKick(norm) {
     return amostrarClipBolaParada(PlayerKickClip, norm);
 }

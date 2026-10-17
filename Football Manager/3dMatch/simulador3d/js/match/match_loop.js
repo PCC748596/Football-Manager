@@ -418,17 +418,48 @@ Object.assign(Match, {
                 // A caminho do lugar quem o leva e o Player.update (lugarBolaParada):
                 // zerar-lhe aqui a velocidade todos os frames deixava-o preso.
                 if (takerPen && takerPen.model && !takerPen.actionState && !takerPen.lugarBolaParada) {
-                    if (this.penaltiAtraso < ESPERA_APOS_REPOSICAO / 3) {
-                        const dirPx = takerPen.model.position.x - this.ball.position.x;
-                        const dirPz = takerPen.model.position.z - this.ball.position.z;
-                        const dPen = Math.hypot(dirPx, dirPz);
-                        const alvoDist = PMa.arranqueDoGesto;
-                        if (dPen > alvoDist + 0.05) {
-                            const passo = Math.min(dPen - alvoDist, PMa.velocidadeAproximacao * dt);
+                    /*
+                    A CORRIDA TERMINA NUM NUMERO INTEIRO DE PASSADAS (pedido: *"ele deveria ir caminhando ate chutar e nao deslizando; a distancia da bola tem de
+                    coincidir com o numero de passos que acaba com o pe de apoio ao lado da bola, sem mudar o clip da cobranca"*). O gesto (playerKick) leva o
+                    corpo uns `passoDoClip` m ate ao pe junto a bola; o resto e andado, em `n` ciclos de passada INTEIROS (a `passada` da marcha a
+                    `velocidadeAproximacao`). Assim o gesto arranca no mesmo ponto do ciclo em que a caminhada comecou (o ciclo parte de zero) e o pe de apoio
+                    chega a bola com um passo, nao a escorregar. A distancia de arranque sai da distancia inicial do batedor, uma vez por penalti.
+                    */
+                    const bx = this.ball.position.x, bz = this.ball.position.z;
+                    if (!this._penPlano) {
+                        // A GEOMETRIA DO CHUTE (L1, L2, L3), uma vez: ver PenaltyModel. `f` = a direccao do batedor para a bola; `l` = a sua esquerda.
+                        const sx = takerPen.model.position.x, sz = takerPen.model.position.z;
+                        let fx = bx - sx, fz = bz - sz; const fl = Math.hypot(fx, fz) || 1; fx /= fl; fz /= fl;
+                        const lx = fz, lz = -fx;
+                        // O gesto e o do canto (LancamentoClip): arranca a `LancamentoBolaParada.arranque` m da bola, na linha batedor->bola; ate la andam-se passadas inteiras.
+                        const arq = (typeof LancamentoBolaParada !== 'undefined') ? LancamentoBolaParada.arranque : 1.6;
+                        const R1 = { x: bx - fx * arq, z: bz - fz * arq };
+                        const geo = { f: { x: fx, z: fz }, l: { x: lx, z: lz }, B: { x: bx, z: bz }, R1 };
+                        // A corrida: de onde ele esta ate ao R1, em n ciclos INTEIROS de passada (bisseccao da velocidade: a passada cresce com ela).
+                        const D = Math.hypot(R1.x - sx, R1.z - sz);
+                        const pas = (v) => (typeof getGaitPose === 'function') ? getGaitPose(0, v).passada : 1.5;
+                        const n = Math.max(1, Math.round(D / pas(PMa.velocidadeAproximacao)));
+                        let lo = 1.2, hi = 3.6;
+                        for (let it = 0; it < 30; it++) { const mid = (lo + hi) / 2; if (n * pas(mid) < D) lo = mid; else hi = mid; }
+                        const v = Math.min(3.6, Math.max(1.2, (lo + hi) / 2));
+                        this._penPlano = { passada: pas(v), n, v, geo, tempo: D / v, andou: false };
+                        // O penalti so e marcado depois de a corrida acabar (o batedor pode chegar ao lugar tarde): estica a espera o que faltar.
+                        this.penaltiAtraso = Math.max(this.penaltiAtraso, D / v + 0.05);
+                    }
+                    const plano = this._penPlano;
+                    const alvoX = plano.geo.R1.x, alvoZ = plano.geo.R1.z;
+                    const dirPx = takerPen.model.position.x - alvoX, dirPz = takerPen.model.position.z - alvoZ;
+                    const dPen = Math.hypot(dirPx, dirPz);
+                    // Comeca a andar a tempo de chegar ao L1 quando o penalti e marcado.
+                    if (this.penaltiAtraso < Math.max(ESPERA_APOS_REPOSICAO / 3, plano.tempo + 0.03)) {
+                        if (!plano.andou) { plano.andou = true; takerPen.animTimer = 0; }   // o ciclo da marcha parte de zero
+                        if (dPen > 0.03) {
+                            const passo = Math.min(dPen, plano.v * dt);
                             const v = passo / dt;
                             takerPen.velocity.set(-(dirPx / dPen) * v, 0, -(dirPz / dPen) * v);
                         } else {
-                            takerPen.velocity.set(0, 0, 0);
+                            // Chegou ao L1: o gesto parte NESTE frame, com a marcha a andar (sem parar para depois chutar).
+                            this.penaltiAtraso = 0;
                         }
                     } else {
                         takerPen.velocity.set(0, 0, 0);
@@ -438,8 +469,9 @@ Object.assign(Match, {
                 if (this.penaltiAtraso <= 0) {
                     this.penaltiPendente = false;
                     const t = this.setPieceTaker;
-                    if (t) t.baterPenalti();
+                    if (t) t.baterPenalti();        // le a geometria em `_penPlano.geo`
                     else this.mudarEstado('PLAY', 'penalti_sem_batedor');
+                    this._penPlano = null;
                 }
             }
             const prazoPenalti = SetPiecePrazos.penalti;

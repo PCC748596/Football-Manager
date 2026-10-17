@@ -178,6 +178,14 @@ const IK = {
     arranque a quente dá a solução continua entre frames: a mesma perna não salta de um ramo da solução para o outro). Devolve { rx, rz, k, erro } ou null.
     */
     resolverPerna(L1, L2, d, rx0, rz0, k0) {
+        // Alvo fora de alcance (ou colado a anca): leva-se ao alcance da perna esticada (98.5%) / dobrada ao minimo: o pe pára onde a perna chega em vez de
+        // a solucao falhar e o osso ficar parado na ultima pose (medido: um terco das chamadas do chute falhavam e a perna ficava atras).
+        const dl = Math.hypot(d.x, d.y, d.z);
+        const dMax = 0.985 * (L1 + L2), dMin = Math.abs(L1 - L2) + 0.08;
+        if (dl > dMax || dl < dMin) {
+            const k = (dl > dMax ? dMax : dMin) / (dl || 1);
+            d = { x: d.x * k, y: d.y * k, z: d.z * k };
+        }
         const f = (rx, rz, k, o) => {
             const cz = Math.cos(rz), sz = Math.sin(rz), cx = Math.cos(rx), sx = Math.sin(rx);
             // u1
@@ -212,7 +220,7 @@ const IK = {
             const passo = Math.min(1, 0.6 / Math.max(1e-6, Math.max(Math.abs(dq[0]), Math.abs(dq[1]), Math.abs(dq[2]))));   // passo limitado: ~0.6 rad
             rx += dq[0] * passo; rz += dq[1] * passo; k = Math.min(2.6, Math.max(0.05, k + dq[2] * passo));
         }
-        return erro < 5e-3 ? { rx, rz, k, erro } : null;
+        return erro < 5e-3 ? { rx, rz, k, erro } : (erro < 0.12 ? { rx, rz, k, erro } : null);   // quase la: serve (o erro e em unidades do corpo, 0.12 = 4 cm)
     },
 
     resolverSuave(raiz, meio, L1, L2, alvoMundo, planoMundo, peso) {
