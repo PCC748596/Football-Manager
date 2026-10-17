@@ -544,15 +544,23 @@ const GoalkeeperPose = {
     },
 
     // Agachado a apanhar bola mansa/rolando (estado 'apanhar').
+    /*
+    Curvado sobre a bola, como quem apanha do chão: o TRONCO QUASE PARALELO AO RELVADO (`chest` 1.35 rad, ~77°), as pernas quase esticadas
+    (joelho dobrado só o preciso para as mãos chegarem ao chão: medido com o rig, `altura` -0.31 põe a sola no relvado e a mão a 0.17 m dele) e os BRAÇOS ESTICADOS na direcção da bola (`cotovelo` ~0; `bracoX` = -(chest + `bracoAFrente`) põe-nos a
+    apontar para baixo e um pouco à frente do ombro, já que o braço roda com o tronco). Era um agachamento — coxa 0.75, joelho 1.1, altura
+    -0.35 — e via-se de joelhos dobrados de forma estranha (a mesma pose do regresso à bola que lhe passou ao lado).
+    */
     apanhar: {
-        chest: 0.55,
-        joelho: 1.1,
-        coxa: 0.75,
-        abertura: 0.10,
-        bracoZ: 0.30,
-        bracoX: -0.9,
-        cotovelo: -0.9,
-        altura: -0.35
+        chest: 1.35,
+        joelho: 0.90,
+        coxa: 0.70,
+        abertura: 0.08,
+        bracoZ: 0.12,
+        bracoX: -1.50,
+        cotovelo: -0.08,
+        altura: -0.31,
+        // Distância (m) a que o corpo fica da bola ao apanhar: os braços esticados é que a alcançam.
+        recuoDoCorpo: 0.50
     },
 
     /*
@@ -2664,8 +2672,11 @@ const GkAposGolo = {
     espera: 3.0,
     velocidade: 3.0,
     distApanhar: 1.5,
-    segurar: 0.8,
+    segurar: 0.8,   // mínimo a segurar antes de poder chutar
     esperaAposChute: 3.2,
+    // Depois de a segurar, caminha até ao meio da pequena área (Area.pequenaProfundidade / 2) e só aí chuta.
+    chutaNoMeioDaPequena: true,
+    chegouA: 0.35,
     prazoMax: 12.0
 };
 if (typeof window !== 'undefined') window.GkAposGolo = GkAposGolo;

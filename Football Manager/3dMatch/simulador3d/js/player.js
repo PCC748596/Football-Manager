@@ -9270,9 +9270,16 @@ class FootballPlayer {
             gkRig.chest.rotation.x = lerpTo(gkRig.chest.rotation.x, P.chest, 0.5);
             gkCorpo.position.y = lerpTo(gkCorpo.position.y, ALTURA_BASE_Y + P.altura, 0.5);
 
-            // Segue a bola devagar enquanto se agacha, sem voltar a acelerar.
-            gkCorpo.position.x = lerpTo(gkCorpo.position.x, Match.ball.position.x, 0.15);
-            gkCorpo.position.z = lerpTo(gkCorpo.position.z, Match.ball.position.z, 0.15);
+            // Segue a bola devagar enquanto se curva, sem voltar a acelerar. O corpo pára `recuoDoCorpo` antes dela: curvado, são os braços
+            // esticados que a alcançam (e não o peito em cima dela).
+            {
+                const recuo = (typeof P.recuoDoCorpo === 'number') ? P.recuoDoCorpo : 0;
+                const dxA = Match.ball.position.x - gkCorpo.position.x, dzA = Match.ball.position.z - gkCorpo.position.z;
+                const dA = Math.hypot(dxA, dzA);
+                const k = dA > 0.001 ? Math.max(0, dA - recuo) / dA : 0;
+                gkCorpo.position.x = lerpTo(gkCorpo.position.x, gkCorpo.position.x + dxA * k, 0.15);
+                gkCorpo.position.z = lerpTo(gkCorpo.position.z, gkCorpo.position.z + dzA * k, 0.15);
+            }
 
             // Vira-se para a bola enquanto se aproxima — sem isto ficava com a
             // rotação de onde quer que viesse a correr, de lado ou de costas.
@@ -9421,7 +9428,11 @@ class FootballPlayer {
             quando o alvo salta. Não sai da grande área: com a bola na mão,
             fora dela é falta.
             */
-            const alvoSeg = gkAlvoSegurando(this.ownGoalZ, this.dirZ);
+            let alvoSeg = gkAlvoSegurando(this.ownGoalZ, this.dirZ);
+            // Depois do golo (GkAposGolo): caminha com a bola até ao meio da pequena área e só aí chuta.
+            if (typeof Match !== 'undefined' && Match.golGK && Match.golGK.gk === this && GkAposGolo.chutaNoMeioDaPequena) {
+                alvoSeg = { x: 0, z: this.ownGoalZ + this.dirZ * (Area.pequenaProfundidade / 2) };
+            }
             const dxSeg = alvoSeg.x - gkCorpo.position.x;
             const dzSeg = alvoSeg.z - gkCorpo.position.z;
             const distSeg = Math.hypot(dxSeg, dzSeg);

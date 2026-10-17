@@ -471,14 +471,20 @@ Object.assign(Match, {
                 gk.gkEstado = 'apanhar';
                 gk.gkTempoMergulho = 0;
                 g.fase = 'apanhar';
+                // O corpo não passa da linha de fundo e a bola pode estar um metro atrás dela, na rede: traz-se para o alcance dos braços (0.55 m à frente dele).
+                this.ball.position.set(gk.model.position.x, this.ball.position.y, gk.model.position.z + gk.dirZ * 0.55);
+                this.ballVel.set(0, 0, 0);
             }
         } else if (g.fase === 'apanhar') {
             if (gk.gkEstado === 'segurando') { g.fase = 'segurar'; g.seguro = 0; }
             else if (gk.gkEstado === 'idle') g.fase = 'ir';   // a agarrada falhou: volta a ir à bola
         } else if (g.fase === 'segurar') {
             g.seguro += dt;
-            // Passado o tempo de segurar, o ramo 'segurando' solta o chutão no frame seguinte (t >= prazo).
-            if (g.seguro >= C.segurar && gk.gkEstado === 'segurando') gk.gkTempoMergulho = Math.max(gk.gkTempoMergulho, 99);
+            // Segura, CAMINHA até ao meio da pequena área e só aí solta o chutão (o ramo 'segurando' chuta no frame seguinte, t >= prazo).
+            const alvo = { x: 0, z: gk.ownGoalZ + gk.dirZ * (Area.pequenaProfundidade / 2) };
+            const chegou = !C.chutaNoMeioDaPequena ||
+                Math.hypot(gk.model.position.x - alvo.x, gk.model.position.z - alvo.z) < C.chegouA;
+            if (g.seguro >= C.segurar && chegou && gk.gkEstado === 'segurando') gk.gkTempoMergulho = Math.max(gk.gkTempoMergulho, 99);
             if (gk.gkEstado === 'chutando') g.chutou = true;
             if (g.chutou && gk.gkEstado !== 'chutando') g.fase = 'depois';
         } else if (g.fase === 'depois') {
