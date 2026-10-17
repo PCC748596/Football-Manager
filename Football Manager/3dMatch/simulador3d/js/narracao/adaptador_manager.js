@@ -129,7 +129,11 @@ const AdaptadorManager = {
             plantel.push(this.jogador(mp, slots[i].label, opcoes));
         }
         const v = []; for (const j of plantel) for (const k of ['gk', 'tec', 'marking', 'intercept', 'pass', 'speed', 'strength', 'tacticknow', 'stamina', 'fitness']) v.push(j[k]);
+        // O BANCO (os substitutos da aba Tactics) só para o cenário: o motor ainda não faz substituições. Vai para os bancos de reservas 3D.
+        const banco = (equipaMgr.bench || []).map(id => jogadoresPorId[id]).filter(Boolean).slice(0, 10)
+            .map(mp => { const real = this._jogadorReal(mp.id); return { id: real ? real.id : this.idReal(mp.id), nome: mp.name, numero: mp.shirtNumber || 0 }; });
         return {
+            banco: banco,
             id: this._novoId(), nome: equipaMgr.name, cidade: equipaMgr.city || '', estadio: equipaMgr.stadium || '', pais: equipaMgr.country || '',
             prestigio: 0, adeptos: equipaMgr.fanBase || 0, forca: Math.round(v.reduce((a, b) => a + b, 0) / v.length), plantel: plantel
         };

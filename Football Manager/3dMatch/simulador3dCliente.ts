@@ -36,7 +36,8 @@ export interface ResultadoMotor {
 
 const ladoDe = (team: Team, players: Player[]): LadoPayload => {
   const porId: Record<string, any> = {};
-  const ids = [...team.lineup.filter(Boolean)];
+  // O onze e os substitutos (o banco 3D mostra os 10 da aba Tactics).
+  const ids = [...team.lineup.filter(Boolean), ...(((team as any).bench || []) as string[]).filter(Boolean)];
   for (const id of ids) {
     const p = players.find(x => x.id === id);
     if (p) porId[id] = p;

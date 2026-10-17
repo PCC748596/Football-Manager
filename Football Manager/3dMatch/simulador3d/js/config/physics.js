@@ -831,6 +831,45 @@ if (typeof window !== 'undefined') window.RelvaCores = RelvaCores;
 
 /*
 =============================================================================
+BANCOS DE RESERVAS E ÁREAS TÉCNICAS — o lado das câmaras (+X)
+=============================================================================
+Dois bancos (um por equipa) atrás das placas de publicidade, cada um com 10 reservas sentados, e à frente deles a ÁREA TÉCNICA demarcada a
+tracejado, com o treinador de fato e gravata a passear devagar lá dentro. Em frente a cada banco abre-se UM painel de publicidade
+(`larguraVao`) para o banco ter passagem para o campo.
+
+    xBanco        centro do banco em x (entre a placa, a 39 m, e a bancada, a 45.4 m)
+    zBanco        |z| do centro de cada banco; o da equipa A fica na METADE QUE ELA DEFENDE
+    lugares       reservas por banco (os substitutos do manager); `passoLugar` metros entre eles (10 x 1 m = 10 m = duas placas)
+    area          a área técnica: do `xInterior` (1 m para fora da linha lateral) até à frente do banco, `meiaLargura` para cada lado
+    treinador     passeia entre -`passeio` e +`passeio` em z em torno do centro, a `velocidade` m/s, sempre de cara para a bola
+=============================================================================
+*/
+const BancosDeReservas = {
+    activo: true,
+    lado: 1,                 // +X: o das câmaras (o túnel está do lado oposto, TunelJogadores.lado)
+    xBanco: 42.4,
+    zBanco: 12.0,
+    lugares: 10,
+    passoLugar: 1.0,
+    larguraVao: 10.0,        // metros de placa retirados em frente a cada banco: duas placas de 5 m
+    cores: { assento: 0x23262d, costas: 0x2e323b, cobertura: 0x9fb4c8, estrutura: 0x3a3f4a, linha: 0xffffff },
+    area: { xInterior: 35.0, meiaLargura: 6.0, tracoDash: 0.45, tracoVazio: 0.30, larguraLinha: 0.12 },
+    treinador: {
+        x: 37.0,                // onde anda, em x (dentro da área técnica, entre a linha e a placa)
+        passeio: 4.5,           // vai até `passeio` m para cada lado do centro do banco
+        alcanceDaBola: 25,      // com a bola a esta distância (z) do banco, ele está no extremo da área
+        velocidade: 0.7,        // m/s
+        camisa: 0xf2f2f2, gravata: 0x9c1c2a,
+        // O fato inteiro (blazer, mangas e calças): um destes, escolhido pelo nome da equipa.
+        fatos: [{ nome: 'preto', cor: 0x15171c }, { nome: 'azul-marinho', cor: 0x14213d }, { nome: 'castanho', cor: 0x5a3e2b }, { nome: 'bege', cor: 0xc8b48c }]
+    },
+    // Equipas sem uniforme conhecido: os reservas vestem isto.
+    coresPorOmissao: { A: '#3498db', B: '#e74c3c' }
+};
+if (typeof window !== 'undefined') window.BancosDeReservas = BancosDeReservas;
+
+/*
+=============================================================================
 PLACAS DE PUBLICIDADE — a cintura que fecha o recinto
 =============================================================================
 Um anel de painéis a toda a volta, `recuo` metros para fora das linhas. Fecha

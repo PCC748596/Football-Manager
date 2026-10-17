@@ -421,11 +421,21 @@ Object.assign(Match, {
             const addPlacaLateral = (sinal) => {
                 const TJp = (typeof TunelJogadores !== 'undefined' && TunelJogadores.activo &&
                     TunelJogadores.lado === sinal) ? TunelJogadores : null;
-                if (!TJp) { addPlaca(compLateral, null, sinal * xLateral, 0, Math.PI / 2); return; }
-                const meia = TJp.largura / 2 + TJp.folgaPlaca;
-                const len = compLateral / 2 - meia, c = (compLateral / 2 + meia) / 2;
-                addPlaca(len, null, sinal * xLateral, c, Math.PI / 2);
-                addPlaca(len, null, sinal * xLateral, -c, Math.PI / 2);
+                // Os vãos: o do túnel (centro) e, no lado das câmaras, um por banco de reservas (Bancos.vaosDasPlacas).
+                const vaos = [];
+                if (TJp) { const meia = TJp.largura / 2 + TJp.folgaPlaca; vaos.push([-meia, meia]); }
+                if (typeof Bancos !== 'undefined' && typeof BancosDeReservas !== 'undefined' &&
+                    BancosDeReservas.activo && BancosDeReservas.lado === sinal) {
+                    for (const v of Bancos.vaosDasPlacas()) vaos.push(v);
+                }
+                if (!vaos.length) { addPlaca(compLateral, null, sinal * xLateral, 0, Math.PI / 2); return; }
+                vaos.sort((p, q) => p[0] - q[0]);
+                let z0 = -compLateral / 2;
+                for (const [v0, v1] of vaos.concat([[compLateral / 2, compLateral / 2]])) {
+                    const len = v0 - z0;
+                    if (len > 0.05) addPlaca(len, null, sinal * xLateral, (z0 + v0) / 2, Math.PI / 2);
+                    z0 = Math.max(z0, v1);
+                }
             };
             addPlacaLateral(1);
             addPlacaLateral(-1);
@@ -1703,6 +1713,9 @@ Object.assign(Match, {
         const recuoPlacas = (typeof PlacasPublicidade !== 'undefined' &&
             PlacasPublicidade.activo) ? PlacasPublicidade.recuo : 5.0;
 
+        // Bancos de reservas e áreas técnicas, do lado das câmaras (bancos.js). Os vãos nas placas já foram abertos acima.
+        if (typeof Bancos !== 'undefined') Bancos.build(campoGrupo, this.scene);
+
         if (typeof Staff !== 'undefined' && typeof FuncionariosEstadio !== 'undefined' &&
             FuncionariosEstadio.activo) {
             Staff.build(campoGrupo, {
@@ -2126,6 +2139,9 @@ Object.assign(Match, {
         LUVAS SORTEADAS, uma vez por guarda-redes (ver LuvasModel): nunca com a
         cor de uma camisa em campo — as duas de linha e as dos dois GR.
         */
+        // Os substitutos de cada equipa sentam-se nos bancos (bancos.js), com o uniforme dela.
+        if (typeof Bancos !== 'undefined' && Bancos.preencher) Bancos.preencher(this.equipaInfoA, this.equipaInfoB, uniA, uniB);
+
         const camisasEmCampo = [
             '#f1c40f', '#e67e22',
             (typeof corDoUniforme === 'function') ? corDoUniforme(uniA, '#3498db') : '#3498db',

@@ -140,6 +140,7 @@ Object.assign(Match, {
             this.players.forEach(p => p.update(dt));
             this.opponents.forEach(p => p.update(dt));
             if (typeof Officials !== 'undefined') Officials.update(dt);
+            if (typeof Bancos !== 'undefined') Bancos.update(dt);
             // A torcida acompanha a entrada (CrowdModel.fraccaoEntrada). Sem isto o frame saia daqui e ela ficava parada.
             if (typeof Crowd !== 'undefined' && !(typeof Config !== 'undefined' && Config.enableCrowd === false)) Crowd.update(dt);
             this.somDoEstadio(dt);
@@ -966,6 +967,7 @@ Object.assign(Match, {
 
         // Arbitragem: fora das listas de jogadores, corre à parte (officials.js).
         if (typeof Officials !== 'undefined') Officials.update(dt);
+        if (typeof Bancos !== 'undefined') Bancos.update(dt);
 
         /*
         A BOLA ATRASADA PARA O GUARDA-REDES, decidida antes de a bola andar
