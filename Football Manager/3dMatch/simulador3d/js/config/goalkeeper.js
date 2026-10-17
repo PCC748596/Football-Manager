@@ -551,17 +551,21 @@ const GoalkeeperPose = {
     -0.35 — e via-se de joelhos dobrados de forma estranha (a mesma pose do regresso à bola que lhe passou ao lado).
     */
     apanhar: {
-        chest: 1.57,
-        joelho: 0.35,
-        coxa: 0.20,
+        chest: 1.45,
+        joelho: 0.90,
+        coxa: 0.70,
         abertura: 0.08,
         bracoZ: 0.12,
-        bracoX: -1.60,
-        cotovelo: -0.05,
-        altura: 0.0,
+        bracoX: -1.50,
+        cotovelo: -0.08,
+        // O corpo desce o preciso para as maos chegarem a bola com os pes no chao: as PERNAS e os BRACOS sao depois resolvidos por IK (apanharPorIK, player.js).
+        altura: -0.38,
         // Distância (m) a que o corpo fica da bola ao apanhar: os braços esticados é que a alcançam.
-        recuoDoCorpo: 0.53
-    },
+        recuoDoCorpo: 0.45,
+        // Os pes assentam `peLado` m para cada lado do corpo e `peFrente` a frente (metros), com o tornozelo a `alturaTornozelo` do relvado.
+        peLado: 0.17, peFrente: 0.05, alturaTornozelo: 0.152,
+        // A palma toca a bola: o pulso fica a este afastamento do centro dela, para cada lado (raio da bola 0.11 + o meio da mao).
+        afastaMao: 0.17    },
 
     /*
     Bola agarrada junto ao PEITO, à espera de relançar (estado 'segurando').

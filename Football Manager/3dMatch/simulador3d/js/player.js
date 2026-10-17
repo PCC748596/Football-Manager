@@ -583,7 +583,7 @@ class FootballPlayer {
         */
         if (this.role === 'gk' &&
             (this.gkEstado === 'mergulho' || this.gkEstado === 'salto_alto' ||
-             this.gkEstado === 'saida_pes')) return;
+             this.gkEstado === 'saida_pes' || this.gkEstado === 'apanhar')) return;   // `apanhar`: as pernas vao por IK (apanharPorIK), que ja poe as solas no relvado
         const st = this.fsm ? this.fsm.currentState : null;
         if (st === 'SLIDE_TACKLE' || st === 'COMEMORAR') return;
         /*
@@ -9359,6 +9359,9 @@ class FootballPlayer {
                 lookAtBola(gkCorpo, lookPos);
             }
 
+            // As solas no relvado e as palmas na bola, por IK: ver apanharPorIK.
+            this.apanharPorIK(gkCorpo, gkRig, P);
+
             if (k >= 1) {
                 /*
                 E A BOLA TEM DE ESTAR MESMO AO ALCANCE DA MAO.
@@ -10337,6 +10340,61 @@ class FootballPlayer {
     Não larga logo para o BT/FSM decidir — entra em 'segurando' para as
     equipas terem tempo de se reorganizar antes do relançamento.
     */
+    /*
+    APANHAR COM OS PES NO CHAO E AS PALMAS NA BOLA (pedido, com captura: *"quando baixa para pegar a bola a sola dos pes tem que estar no chao; palma das maos
+    encostando na bola"*). A pose de `apanhar` (tronco quase paralelo ao relvado, `altura` baixa) deixava as botas no ar e as maos a 0.5 m da bola. Depois de a pose
+    ser escrita, cada frame:
+      . as PERNAS vao por IK (IK.resolverPerna) a pontos no relvado, `peLado` para cada lado do corpo — os joelhos dobram o que for preciso;
+      . os BRACOS vao por IK (IK.resolverSuave) ao pulso `afastaMao` do centro da bola, um de cada lado: as palmas ficam a toca-la.
+    */
+    apanharPorIK(gkCorpo, gkRig, P) {
+        if (!gkRig || typeof IK === 'undefined' || !Match.ball) return;
+        gkCorpo.updateMatrixWorld(true);
+        const pel = gkRig.pelvis;
+        const v = this._apV || (this._apV = new THREE.Vector3());
+        const E = (typeof ESCALA_CORPO === 'number') ? ESCALA_CORPO : 0.334;
+        // PERNAS: o ponto do pe no mundo = o corpo + (+-peLado, 0, peFrente) no referencial dele; o `y` e o do tornozelo de quem esta de pe.
+        const pe = (leg, knee, foot, lado) => {
+            v.set(lado * P.peLado / E, 0, P.peFrente / E);
+            gkCorpo.localToWorld(v);
+            v.y = P.alturaTornozelo;
+            pel.worldToLocal(v); v.sub(leg.position);
+            const zAb = (lado > 0) ? 0.08 : -0.08;
+            const sol = IK.resolverPerna(1.6, 0.9, v, leg.rotation.x, leg.rotation.z, knee.rotation.x) ||
+                IK.resolverPerna(1.6, 0.9, v, -0.5, zAb, 0.9);
+            if (!sol) return;
+            leg.rotation.x = sol.rx; leg.rotation.z = sol.rz; knee.rotation.x = sol.k;
+            foot.rotation.x = -(pel.rotation.x + sol.rx + sol.k);          // sola a direito (primeira estimativa)
+            // Afinacao: mede-se a inclinacao REAL da bota no mundo (o eixo da ponta) e corrige-se ate a sola ficar horizontal — a formula acima
+            // ignora o pivo da anca e deixava as botas inclinadas, com a sola no ar.
+            const bota = (leg === gkRig.lLeg) ? gkRig.lBota : gkRig.rBota;
+            if (bota) {
+                for (let it = 0; it < 3; it++) {
+                    gkCorpo.updateMatrixWorld(true);
+                    const dirP = this._apDir || (this._apDir = new THREE.Vector3());
+                    dirP.set(0, 0, 1).transformDirection(bota.matrixWorld);
+                    const incl = Math.atan2(dirP.y, Math.hypot(dirP.x, dirP.z));     // > 0: a ponta esta mais alta que o calcanhar
+                    if (Math.abs(incl) < 0.02) break;
+                    foot.rotation.x += incl;       // roda para baixo o que a ponta esta acima (sinal confirmado pela medicao no teste)
+                }
+            }
+        };
+        pe(gkRig.lLeg, gkRig.lKnee, gkRig.lFoot, 1);
+        pe(gkRig.rLeg, gkRig.rKnee, gkRig.rFoot, -1);
+        // BRACOS: o pulso de cada lado da bola (o eixo x local do corpo e a esquerda dele).
+        gkCorpo.updateMatrixWorld(true);
+        const eixo = this._apEx || (this._apEx = new THREE.Vector3());
+        eixo.set(1, 0, 0).transformDirection(gkCorpo.matrixWorld);
+        eixo.y = 0; eixo.normalize();
+        const alvoMao = this._apAlvo || (this._apAlvo = new THREE.Vector3());
+        const cima = this._apCima || (this._apCima = new THREE.Vector3(0, 1, 0));
+        const b = Match.ball.position;
+        alvoMao.set(b.x + eixo.x * P.afastaMao, b.y, b.z + eixo.z * P.afastaMao);
+        IK.resolverSuave(gkRig.lArm, gkRig.lElbow, IKChains.braco.L1, IKChains.braco.L2, alvoMao, cima, 1.0);
+        alvoMao.set(b.x - eixo.x * P.afastaMao, b.y, b.z - eixo.z * P.afastaMao);
+        IK.resolverSuave(gkRig.rArm, gkRig.rElbow, IKChains.braco.L1, IKChains.braco.L2, alvoMao, cima, 1.0);
+    }
+
     grabBall(manterPose) {
         /*
         RECUO COM O PE DE UM COMPANHEIRO: as maos estao proibidas.
