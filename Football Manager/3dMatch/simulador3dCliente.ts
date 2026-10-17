@@ -19,7 +19,7 @@ export const urlSimulador = (): string => {
 };
 
 export interface LadoPayload {
-  equipa: { id: string; name: string; city?: string; lineup: string[]; bench: string[]; tactics: any };
+  equipa: { id: string; name: string; city?: string; logoUrl?: string; cores?: string[]; lineup: string[]; bench: string[]; tactics: any };
   jogadoresPorId: Record<string, any>;
   formacao: { nome: string; slots: { id: number; x: number; y: number; label: string }[] };
 }
@@ -44,7 +44,7 @@ const ladoDe = (team: Team, players: Player[]): LadoPayload => {
   }
   const formacao = team.tactics?.formation || '4-4-2';
   return {
-    equipa: { id: team.id, name: team.name, city: (team as any).city, lineup: team.lineup, bench: (team as any).bench || [], tactics: team.tactics },
+    equipa: { id: team.id, name: team.name, city: (team as any).city, logoUrl: (team as any).logoUrl, cores: [team.primaryColor, team.secondaryColor, team.tertiaryColor], lineup: team.lineup, bench: (team as any).bench || [], tactics: team.tactics },
     jogadoresPorId: porId,
     formacao: { nome: formacao, slots: FORMATIONS[formacao as keyof typeof FORMATIONS] }
   };
@@ -91,7 +91,9 @@ export const uniformeDoKit = (k: KitDetails, camisaDeLinha = true) => {
 export const montarPayload = (casa: Team, fora: Team, players: Player[], userTeamId: string, extra: Record<string, any> = {}, kits?: { casa?: number; fora?: number }) => {
   const lado = (t: Team, idx?: number) => {
     const i = ((idx ?? (t === casa ? 0 : 1)) as 0 | 1 | 2);
-    return { ...ladoDe(t, players), uniforme: { titular: i === 0, linha: uniformeDoKit(getKitDetails(t, i)), gk: uniformeDoKit(getGKKitDetails(t, i), false) } };
+    // O escudo na camisa (pose.js): a imagem do clube ou as tres cores em barras. O Vasco-RJ fica sem ele (a camisa tem a cruz de malta).
+    const escudo = t.name === 'Vasco-RJ' ? null : { logo: (t as any).logoUrl || null, cores: [t.primaryColor, t.secondaryColor, t.tertiaryColor] };
+    return { ...ladoDe(t, players), uniforme: { titular: i === 0, linha: { ...uniformeDoKit(getKitDetails(t, i)), escudo }, gk: { ...uniformeDoKit(getGKKitDetails(t, i), false), escudo } } };
   };
   return {
     para: 'simulador3d', tipo: 'iniciar',

@@ -55,13 +55,10 @@ test('a aproximação andada existe e deixa corrida para o gesto', () => {
     assert.ok(F.arranqueDoGesto > F.paragemNoContacto + 1.0,
         'não sobra corrida nenhuma entre o arranque do gesto e o contacto');
 
-    // E a caminhada tem de caber no tempo que lhe é dado (o último terço da
-    // espera regulamentar, 3 s).
-    const distAndada = F.recuoBatedor - F.arranqueDoGesto;
-    const tempoDisponivel = 3.0 / 3;
-    assert.ok(distAndada <= F.velocidadeAproximacao * tempoDisponivel + 0.01,
-        `${distAndada.toFixed(1)} m a ${F.velocidadeAproximacao} m/s não cabem em ` +
-        `${tempoDisponivel.toFixed(2)} s de espera`);
+    // A corrida (plano em passadas inteiras, match_loop.js) vai ao arranque a no máximo 3.6 m/s e cabe na espera regulamentar (3 s): o recuo menos o
+    // arranque mais curto (o do canto, 1.6 m) tem de ser andável nesse tempo.
+    const distAndada = F.recuoBatedor - 1.6;
+    assert.ok(distAndada <= 3.6 * 3.0, `${distAndada.toFixed(1)} m não cabem em 3 s a 3.6 m/s`);
 });
 
 test('a corrida final é uma corrida, não um teletransporte', () => {

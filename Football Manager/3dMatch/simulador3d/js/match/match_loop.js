@@ -330,25 +330,45 @@ Object.assign(Match, {
                     */
                     if (!faltaSegura && this.faltaAtraso > 0) {
                         const bx = this.ball.position.x, bz = this.ball.position.z;
-                        let alvoX = bx;
-                        let alvoZ = bz;
-                        if (takerFalta.alvoFalta) {
-                            alvoX = takerFalta.alvoFalta.x;
-                            alvoZ = takerFalta.alvoFalta.z;
+                        /*
+                        O MESMO PADRAO DO PENALTI: a corrida e andada em passadas INTEIRAS ate ao ponto de arranque do gesto, e o gesto parte sem parar. O
+                        ponto e o do canto/penalti (`LancamentoBolaParada.arranque` da bola, na linha batedor->bola) para o remate, que se bate com o
+                        LancamentoClip; para o passe e o cruzamento (PlayerKickClip) fica o `arranqueDoGesto` de sempre. A velocidade sai da bisseccao da
+                        passada (ver o plano do penalti, mais abaixo), uma vez por falta.
+                        */
+                        if (!this._faltaPlano) {
+                            let fx = bx - takerFalta.model.position.x, fz = bz - takerFalta.model.position.z;
+                            const fl = Math.hypot(fx, fz) || 1; fx /= fl; fz /= fl;
+                            const remate = (typeof decisaoDeFalta === 'function') &&
+                                decisaoDeFalta(bx, bz, takerFalta.dirZ) === 'remate' && typeof LancamentoBolaParada !== 'undefined';
+                            const arq = remate ? LancamentoBolaParada.arranque : FK.arranqueDoGesto;
+                            const ax = bx - fx * arq, az = bz - fz * arq;
+                            const D = Math.hypot(ax - takerFalta.model.position.x, az - takerFalta.model.position.z);
+                            const pas = (v) => (typeof getGaitPose === 'function') ? getGaitPose(0, v).passada : 1.5;
+                            const n = Math.max(1, Math.round(D / pas(FK.velocidadeAproximacao)));
+                            let lo = 1.2, hi = 3.6;
+                            for (let it = 0; it < 30; it++) { const mid = (lo + hi) / 2; if (n * pas(mid) < D) lo = mid; else hi = mid; }
+                            const v = Math.min(3.6, Math.max(1.2, (lo + hi) / 2));
+                            this._faltaPlano = { v, ax, az, tempo: D / v };
                         }
-
-                        const dx = takerFalta.model.position.x - alvoX;
-                        const dz = takerFalta.model.position.z - alvoZ;
+                        const pl = this._faltaPlano;
+                        const dx = takerFalta.model.position.x - pl.ax;
+                        const dz = takerFalta.model.position.z - pl.az;
                         const d = Math.hypot(dx, dz);
-
-                        if (d > 0.05) {
-                            const v = Math.min(FK.velocidadeAproximacao * 1.5, d / Math.max(this.faltaAtraso, 0.05));
-                            takerFalta.velocity.set(-(dx / d) * v, 0, -(dz / d) * v);
-                            this.faltaAproximando = true;
-                        } else {
-                            // Ja la esta: segue o gesto sem parar de pernas (a velocidade minima de andar), nao fica hirto.
+                        // So arranca a andar a tempo de chegar quando a espera acaba (o resto do tempo fica no recuo).
+                        if (this.faltaAtraso > pl.tempo + 0.03 && d > 0.03) {
                             takerFalta.velocity.set(0, 0, 0);
                             this.faltaAproximando = false;
+                        } else if (d > 0.03) {
+                            const passo = Math.min(d, pl.v * dt);
+                            const vv = passo / dt;
+                            takerFalta.velocity.set(-(dx / d) * vv, 0, -(dz / d) * vv);
+                            this.faltaAproximando = true;
+                        } else {
+                            // Chegou ao arranque: o gesto parte NESTE frame, com a marcha a andar.
+                            takerFalta.velocity.set(0, 0, 0);
+                            this.faltaAproximando = false;
+                            this.faltaAtraso = Math.min(this.faltaAtraso, 0.0);
                         }
                     } else {
                         // Segurado (caido, alguem a caminho do lugar): fica parado no recuo.

@@ -829,8 +829,26 @@ function preencherHudJogador(elId, p) {
     if (!p || !p.skills) { el.classList.add('oculto'); return; }
 
     const cor = (p.team === 'TeamA') ? '#3498db' : '#e74c3c';
-    el.querySelector('.hud-jog-logo').style.background = cor;
-    el.querySelector('.hud-jog-nome').textContent = p.skills.nome;
+    // O ESCUDO do time no lugar do circulo: a imagem do clube, ou 3 barras verticais com as cores dele (como o TeamShield do manager); sem nada, a cor da equipa.
+    const info = (p.team === 'TeamA') ? Match.equipaInfoA : Match.equipaInfoB;
+    const esc = info && info.escudo ? info.escudo : null;
+    const logoEl = el.querySelector('.hud-jog-logo');
+    const chaveEscudo = esc ? (esc.logo || (esc.cores || []).join(',')) : cor;
+    if (logoEl.dataset.escudo !== chaveEscudo) {
+        logoEl.dataset.escudo = chaveEscudo;
+        if (esc && esc.logo) {
+            logoEl.innerHTML = '<img src="' + esc.logo + '" alt="" style="width:100%;height:100%;object-fit:contain">';
+        } else {
+            const c = (esc && esc.cores && esc.cores[0]) ? esc.cores : [cor, cor, cor];
+            const c1 = c[0] || cor, c2 = c[1] || c1, c3 = (c[2] && c[2] !== 'transparent') ? c[2] : c1;
+            logoEl.innerHTML = '<svg viewBox="0 0 100 120" style="width:100%;height:100%"><defs><clipPath id="hudesc-' + el.id + '"><path d="M0 0 L100 0 L100 40 C100 100 50 120 50 120 C50 120 0 100 0 40 Z"/></clipPath></defs>' +
+                '<g clip-path="url(#hudesc-' + el.id + ')"><rect x="0" y="0" width="33" height="120" fill="' + c1 + '"/><rect x="33" y="0" width="34" height="120" fill="' + c2 + '"/><rect x="67" y="0" width="33" height="120" fill="' + c3 + '"/></g>' +
+                '<path d="M0 0 L100 0 L100 40 C100 100 50 120 50 120 C50 120 0 100 0 40 Z" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="4"/></svg>';
+        }
+    }
+    // Nome | numero | posicao.
+    const numero = (p.skills.numero !== undefined && p.skills.numero !== null && p.skills.numero !== '') ? p.skills.numero : p.num;
+    el.querySelector('.hud-jog-nome').textContent = [p.skills.nome, numero, p.pos].filter(x => x !== undefined && x !== null && x !== '').join(' | ');
 
     /*
     Barra em 5 segmentos de 20 pontos, TODOS acesos na mesma cor — a cor
@@ -853,7 +871,8 @@ function preencherHudJogador(elId, p) {
 
 function updateHudJogadores() {
     const carrier = Match.ballCarrier;
-    if (!carrier) {
+    // Na ENTRADA EM CAMPO (estado ABERTURA) o cartao nao aparece (pedido): so a partir do ajuste da formacao para a saida de bola.
+    if (!carrier || Match.state === 'ABERTURA') {
         preencherHudJogador('hud-jogador-esq', null);
         preencherHudJogador('hud-jogador-dir', null);
         return;
@@ -866,8 +885,12 @@ function updateHudJogadores() {
         if (d < melhorDist) { melhorDist = d; marcador = opp; }
     }
 
-    preencherHudJogador('hud-jogador-esq', carrier);
-    preencherHudJogador('hud-jogador-dir', marcador);
+    // O cartao da ESQUERDA e o do time que esta a esquerda do ecra (o que defende a esquerda e ataca para a direita, dirZ -1 na camara lateral TV); o da
+    // DIREITA, o do outro. Antes a esquerda era sempre o portador, e a direita o marcador.
+    const dirLado = (p) => (typeof Lados !== 'undefined' && Lados.dirDe) ? Lados.dirDe(p.team) : (p.team === 'TeamA' ? 1 : -1);
+    const esqEhCarrier = dirLado(carrier) < 0;
+    preencherHudJogador('hud-jogador-esq', esqEhCarrier ? carrier : marcador);
+    preencherHudJogador('hud-jogador-dir', esqEhCarrier ? marcador : carrier);
 }
 
 window.cameraFrustum = new THREE.Frustum();

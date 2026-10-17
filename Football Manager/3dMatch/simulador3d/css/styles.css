@@ -263,33 +263,39 @@ canvas {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(255, 255, 255, 0.96);
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    /* Retangulo preto com 20% de opacidade (rgba 0.2), sem cantos arredondados nem borda (pedido). */
+    background: rgba(0, 0, 0, 0.2);
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
     padding: 8px 12px;
 }
 
+/* 40% maiores (pedido): escala presa ao canto de baixo do lado de cada um. */
 #hud-jogador-esq {
     left: 20px;
+    transform: scale(1.4);
+    transform-origin: left bottom;
 }
 
 #hud-jogador-dir {
     right: 20px;
+    transform: scale(1.4);
+    transform-origin: right bottom;
 }
 
+/* O escudo do time (imagem ou barras com as cores dele), no lugar do circulo. */
 .hud-jog-logo {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 2px solid rgba(0, 0, 0, 0.15);
+    width: 29px;
+    height: 35px;
     flex: 0 0 auto;
 }
 
 .hud-jog-nome {
     font-weight: 700;
     font-size: 13px;
-    color: #1e293b;
+    color: #ffffff;
+    white-space: nowrap;
 }
 
 .hud-jog-stamina-bar {
@@ -300,10 +306,10 @@ canvas {
 
 .hud-jog-stamina-bar .seg {
     width: 14px;
-    height: 8px;
-    border-radius: 2px;
-    background: #e2e8f0;
-    border: 1px solid #cbd5e1;
+    height: 4px;   /* a metade da altura que tinha (8 px) */
+    border-radius: 0;
+    background: #475569;
+    border: none;
 }
 
 .hud-jog-stamina-bar .seg.on-red { background: #ef4444; border-color: #dc2626; }

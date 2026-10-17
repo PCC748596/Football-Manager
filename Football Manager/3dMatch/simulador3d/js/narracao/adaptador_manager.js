@@ -134,6 +134,8 @@ const AdaptadorManager = {
             .map(mp => { const real = this._jogadorReal(mp.id); return { id: real ? real.id : this.idReal(mp.id), nome: mp.name, numero: mp.shirtNumber || 0 }; });
         return {
             banco: banco,
+            // O ESCUDO (HUD do portador, main.js): a imagem do clube ou, sem ela, as tres cores em barras verticais (a mesma do TeamShield do manager).
+            escudo: { logo: equipaMgr.logoUrl || null, cores: equipaMgr.cores || null },
             id: this._novoId(), nome: equipaMgr.name, cidade: equipaMgr.city || '', estadio: equipaMgr.stadium || '', pais: equipaMgr.country || '',
             prestigio: 0, adeptos: equipaMgr.fanBase || 0, forca: Math.round(v.reduce((a, b) => a + b, 0) / v.length), plantel: plantel
         };

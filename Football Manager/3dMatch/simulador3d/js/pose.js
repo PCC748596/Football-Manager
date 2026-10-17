@@ -448,6 +448,44 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
         }
         ctxV.restore();
     }
+    /*
+    O ESCUDO DO CLUBE NO PEITO (`uniforme.escudo`: { logo, cores }): do lado do CORACAO (a direita de quem olha de frente), por baixo da gola. Com a imagem do clube
+    (`logo`) desenha-se quando ela carrega (a textura e marcada para actualizar); sem imagem, ou se ela falhar, o escudo gerado: tres barras verticais com as
+    cores do clube, na forma do TeamShield do manager. O Vasco-RJ nao leva (a cruz de malta, acima, e a marca dele).
+    */
+    let texFrenteEscudo = null;
+    const escudoU = (UNI && UNI.escudo) ? UNI.escudo : null;
+    const desenharEscudo = (img) => {
+        const w = 124, h = 148, x0 = 345, y0 = 67;   // 2x o tamanho original (62 x 74); 10 cm mais alto, menos 5 cm (53 px) depois de ficar alto demais (o peito tem ~0.48 m em 512 px: 106 px), e mais para o lado para nao tocar na gola
+        ctxV.save();
+        ctxV.translate(x0, y0);
+        if (img) {
+            const r = Math.min(w / img.width, h / img.height);
+            ctxV.drawImage(img, (w - img.width * r) / 2, (h - img.height * r) / 2, img.width * r, img.height * r);
+        } else if (escudoU && escudoU.cores && typeof Path2D !== 'undefined') {
+            const c = escudoU.cores, c1 = c[0] || '#333', c2 = c[1] || '#fff', c3 = (c[2] && c[2] !== 'transparent') ? c[2] : c1;
+            ctxV.scale(w / 100, h / 120);
+            const caminho = new Path2D('M0 0 L100 0 L100 40 C100 100 50 120 50 120 C50 120 0 100 0 40 Z');
+            ctxV.save(); ctxV.clip(caminho);
+            ctxV.fillStyle = c1; ctxV.fillRect(0, 0, 33, 120);
+            ctxV.fillStyle = c2; ctxV.fillRect(33, 0, 34, 120);
+            ctxV.fillStyle = c3; ctxV.fillRect(67, 0, 33, 120);
+            ctxV.restore();
+            ctxV.lineWidth = 5; ctxV.strokeStyle = 'rgba(0,0,0,0.35)'; ctxV.stroke(caminho);
+        }
+        ctxV.restore();
+    };
+    if (escudoU) {
+        if (escudoU.logo && typeof Image !== 'undefined') {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => { desenharEscudo(img); if (texFrenteEscudo) texFrenteEscudo.needsUpdate = true; };
+            img.onerror = () => { desenharEscudo(null); if (texFrenteEscudo) texFrenteEscudo.needsUpdate = true; };
+            img.src = escudoU.logo;
+        } else {
+            desenharEscudo(null);
+        }
+    }
     const RAIO_GOLA = 86;
     // DENTRO DO DECOTE: a cor da pele do jogador (a gola e so a borda, ver abaixo).
     ctxV.fillStyle = new THREE.Color(corPele).getStyle();
@@ -472,7 +510,8 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
     */
     const backMat = new THREE.MeshStandardMaterial({ color: corCamisa, roughness: 0.9 });
     const ladoMat = kitFaixa ? new THREE.MeshStandardMaterial({ color: kitFaixa.c1, roughness: 0.9 }) : shirtMat;
-    const chestMats = [ladoMat, ladoMat, ladoMat, ladoMat, new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(cvsV) }), backMat];
+    texFrenteEscudo = new THREE.CanvasTexture(cvsV);
+    const chestMats = [ladoMat, ladoMat, ladoMat, ladoMat, new THREE.MeshStandardMaterial({ map: texFrenteEscudo }), backMat];
 
     /*
     O MEIAO. Sem uniforme fica o de sempre: a cor da camisa com duas argolas

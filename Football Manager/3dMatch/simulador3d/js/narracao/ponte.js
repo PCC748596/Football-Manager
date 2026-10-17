@@ -84,7 +84,7 @@ const Ponte = {
                 'body.tela-cheia #placar-linha{display:none !important}' +
                 // TODOS os menus do 3D saem em tela cheia: o botao Tactics abre o MATCH TACTICS do manager (ver abaixo).
                 'body.tela-cheia #painel-comandos,body.tela-cheia #coluna-direita,body.tela-cheia #painel-direito,body.tela-cheia #painel-jogadores,' +
-                'body.tela-cheia .hud-jogador,body.tela-cheia #modal-skills{display:none !important}' +
+                'body.tela-cheia #modal-skills{display:none !important}' +
                 // O placar de TV: nomes curtos nas cores dos clubes, golos num miolo escuro com "vs", e o tempo numa aba por baixo.
                 '#tc-placar-tv{display:flex;flex-direction:column;align-items:center;font-family:system-ui,sans-serif}' +
                 '#tc-placar-tv .tv-linha{display:flex;height:24px;border-radius:5px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.55);font-weight:900}' +

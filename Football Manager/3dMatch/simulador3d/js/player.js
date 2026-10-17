@@ -1553,6 +1553,8 @@ class FootballPlayer {
             const ddx = Match.ball.position.x - this.model.position.x;
             const ddz = Match.ball.position.z - this.model.position.z;
             const dd = Math.hypot(ddx, ddz) || 1;
+            // A pose da marcha entra no clip por grupo de ossos (MisturaDePose), como no penalti.
+            this.misturaPose = (typeof MisturaDePose !== 'undefined' && this.rig) ? MisturaDePose.capturar(this.rig, this.model) : null;
             this.iniciarLancamentoBolaParada(ddx / dd, ddz / dd, () => {
                 Match.mudarEstado('PLAY', 'free_kick_taken');
                 Match.marcarRepositor(this, 'falta');

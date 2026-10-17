@@ -959,7 +959,7 @@ const FreeKickModel = {
     `ActionState` leva-o de `recuoBatedor` até junto da bola durante a fase de
     preparação do clip, e a bola só parte no `contactTime`.
     */
-    recuoBatedor: 3.0,         // onde ESPERA, atrás da bola (3 m atrás da linha da bola, alinhado com o remate)
+    recuoBatedor: 5.7,         // onde ESPERA, atrás da bola (era 3.0; 5.7 como no penálti: 4 passos andados a mais antes do gesto)
     lateralBatedor: 0.0,       // alinhado na direcção da cobrança como no penálti
     /*
     A corrida do gesto cobre só os últimos metros: o `contactTime` do ShotClip
