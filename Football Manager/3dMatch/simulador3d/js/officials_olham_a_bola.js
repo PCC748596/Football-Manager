@@ -53,7 +53,12 @@ const OficiaisOlhamABola = {
             FRENTE PARA ONDE ANDA. Com a bola atras dele a guarda virava-o 90 graus para o lado e a passada era de frente: movimento
             para um lado, animacao para o outro. Quando chega perto da linha (`emTransito` falso) a regra volta.
             */
-            // (excepcao retirada: no 2.o tempo o assistente corria de costas para a bola; ver o relato) if (a.emTransito && ... Match.state === 'GOAL' && Match.semFestaDeGolo) continue;
+            /*
+            O ASSISTENTE A CAMINHO DO POSTO (caminhada para a saida de bola depois da abertura/intervalo: estado GOAL sem festa de golo) VAI DE FRENTE PARA ONDE ANDA.
+            Com a regra da bola ele corria de lado ou de costas para o rumo (relato do 2.o tempo: "correm para o lado certo mas virados de costas"). Quando chega perto
+            da linha (`emTransito` falso) a regra volta.
+            */
+            if (a.emTransito && typeof Match !== 'undefined' && Match.state === 'GOAL' && Match.semFestaDeGolo) continue;
             this._corrigir(a, G.assistente * k, dt);
         }
     },

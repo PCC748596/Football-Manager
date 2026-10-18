@@ -817,7 +817,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     type Linha = { t: Team; pts: number; v: number; gf: number; ga: number; forma: ('V' | 'E' | 'D')[] };
     const tab = new Map<string, Linha>(teams.map(t => [t.id, { t, pts: 0, v: 0, gf: 0, ga: 0, forma: [] }]));
     const jogos = fixtures.filter(f => f.played && countsForLeague(f)).map(f => ({ f, hs: f.homeScore || 0, as: f.awayScore || 0 }));
-    if (uf && !uf.played && countsForLeague(uf)) jogos.push({ f: uf, hs: uf.homeScore || 0, as: uf.awayScore || 0 });
+    // Os jogos de HOJE ainda a decorrer (o do utilizador e os outros da jornada, que o manager simula minuto a minuto) entram com o resultado parcial.
+    // O placar parcial: o do jogo, ou (se ainda nao estiver escrito) os golos contados nos eventos ate agora.
+    const golosDe = (f: Fixture, casa: boolean) => {
+      const doEstado = casa ? (f.homeScore || 0) : (f.awayScore || 0);
+      const dosEventos = (f.events || []).filter(e => e.type === 'GOAL' && e.teamId === (casa ? f.homeTeamId : f.awayTeamId)).length;
+      return Math.max(doEstado, dosEventos);
+    };
+    fixtures.filter(f => !f.played && f.date === uf.date && countsForLeague(f)).forEach(f => jogos.push({ f, hs: golosDe(f, true), as: golosDe(f, false) }));
+    if (uf && !uf.played && countsForLeague(uf) && !jogos.some(j => j.f.id === uf.id)) jogos.push({ f: uf, hs: uf.homeScore || 0, as: uf.awayScore || 0 });
     jogos.sort((a, b) => (a.f.date < b.f.date ? -1 : a.f.date > b.f.date ? 1 : 0));
     jogos.forEach(({ f, hs, as }) => {
       const h = tab.get(f.homeTeamId), a = tab.get(f.awayTeamId);
@@ -1005,7 +1013,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // HALFTIME STOP: Stop when we hit the dynamic halftime limit, but only if we didn't start the simulation AFTER it.
       // We use the 'gameState.matchMinute' captured at the moment playMatchDay was called.
-      if (min === maxHTDurationRef.current && tick === 0 && totalTicks > 0 && gameState.matchMinute < maxHTDurationRef.current) {
+      // Com o 3D ao vivo quem manda no intervalo e ele (a mensagem `intervalo_pronto`, que para o relogio): parar aos 45' fazia o jogo pausar no meio do 1.o tempo
+      // do 3D, que corre ate 45' mais o acrescimo.
+      const intervaloDoMotor3D = mode === 'VISUAL' && typeof (window as any).motor3dMinuto === 'number';
+      if (!intervaloDoMotor3D && min === maxHTDurationRef.current && tick === 0 && totalTicks > 0 && gameState.matchMinute < maxHTDurationRef.current) {
         setGameState(prev => ({ ...prev, isProcessing: false }));
         return;
       }

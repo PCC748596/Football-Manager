@@ -243,17 +243,9 @@ const Ponte = {
     tunel) e o ecra volta (fade in). Fora do iframe (testes, jogo solto) corre de imediato.
     */
     preparar(m) {
-        const emIframe = typeof window !== 'undefined' && window.parent && window.parent !== window && typeof requestAnimationFrame === 'function';
-        if (!emIframe) return this._preparar(m);
-        const FADE_MS = 3000;
-        this._fade(1, FADE_MS);
-        setTimeout(() => {
-            try {
-                this._preparar(m);
-                if (Match.ball) Match.ball.visible = true;
-            } catch (e) { this.enviar('erro', { mensagem: String(e && e.message || e) }); }
-            setTimeout(() => this._fade(0, 3000), 250);
-        }, FADE_MS + 80);
+        // Sem fade (pedido): os times entram logo depois dos uniformes. A bola, escondida no arranque, volta a ver-se.
+        this._preparar(m);
+        if (typeof Match !== 'undefined' && Match.ball) Match.ball.visible = true;
     },
 
     _preparar(m) {

@@ -220,7 +220,7 @@ const MatchDuration = {
     de relogio de jogo, contados no proprio tempo. O tempo acaba a 45:00 (90:00) mais o acrescimo. Nao se aplica nos lotes do `Sim` (oculto), que decidem
     eles proprios quando param. `maximo` (s) corta o total; null = sem corte.
     */
-    acrescimo: { activo: true, porSubstituicao: 60, porFalta: [40, 80], maximo: null },
+    acrescimo: { activo: true, porSubstituicao: 60, porFalta: [30, 30], maximo: null },
     get timeScale() {
         return (typeof GAME_SPEED !== 'undefined' && GAME_SPEED > 0)
             ? (this.gameSecondsPerRealSecond / GAME_SPEED)
