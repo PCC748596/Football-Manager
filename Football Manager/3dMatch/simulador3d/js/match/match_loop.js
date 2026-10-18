@@ -53,6 +53,12 @@ Object.assign(Match, {
         this.mudarEstado('INTERVALO', 'intervalo');
         this.pararTodos();
         this.intervaloTimer = MatchDuration.intervaloSegundos;
+        // A saida de campo (js/abertura.js) e o modal das estatisticas; sem tunel (lotes) fica so a pausa de sempre.
+        this.intervaloSaiu = false;
+        this.intervaloSegura = false;
+        this.intervaloAvisou = false;
+        this.intervaloComSaida = (typeof Abertura !== 'undefined' && Abertura.saidaIntervalo) ? Abertura.saidaIntervalo() : false;
+        if (this.intervaloComSaida && typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(true);
         if (typeof EfeitosSonoros !== 'undefined') EfeitosSonoros.apito(1.0);
         // Recupera parte do deposito, escalado pela fitness como em jogo.
         const S = (typeof StaminaModel !== 'undefined') ? StaminaModel : null;
@@ -65,9 +71,22 @@ Object.assign(Match, {
     },
 
     correrPausaDeJogo: function (dt) {
+        if (this.state === 'INTERVALO' && this.intervaloComSaida && typeof Abertura !== 'undefined' && Abertura.activa) Abertura.update(dt);
         this.players.forEach(p => p.update(dt));
         this.opponents.forEach(p => p.update(dt));
+        if (this.state === 'INTERVALO' && this.intervaloComSaida) {
+            if (typeof Officials !== 'undefined') Officials.update(dt);
+            if (typeof Bancos !== 'undefined') Bancos.update(dt);
+        }
         if (this.state !== 'INTERVALO') return;
+        // Com saida de campo o tempo so conta depois de o campo estar vazio; e com o manager a mandar (Ponte.aoIntervaloPronto) o jogo espera
+        // por ele: o treinador analisa e muda a equipa, e o 2.o tempo so sai quando o manager o pedir (`Ponte.segundoTempo`).
+        if (this.intervaloComSaida && !this.intervaloSaiu) return;
+        if (this.intervaloComSaida && !this.intervaloAvisou) {
+            this.intervaloAvisou = true;
+            if (typeof Ponte !== 'undefined' && Ponte.aoIntervaloPronto) this.intervaloSegura = !!Ponte.aoIntervaloPronto();
+        }
+        if (this.intervaloSegura) return;
         this.intervaloTimer -= dt;
         if (this.intervaloTimer <= 0) this.iniciarSegundoTempo();
     },
@@ -80,6 +99,9 @@ Object.assign(Match, {
     nao abriu o jogo.
     */
     iniciarSegundoTempo: function () {
+        this.intervaloAvisou = false;
+        this.intervaloSegura = false;
+        if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(false);
         Lados.trocados = !Lados.trocados;
         [...this.players, ...this.opponents].forEach(p => {
             p.dirZ = Lados.dirDe(p.team);

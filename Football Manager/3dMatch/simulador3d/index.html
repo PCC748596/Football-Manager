@@ -447,6 +447,19 @@
         <div class="hud-jog-logo" id="hud-evento-logo-dir"></div>
     </div>
 
+    <!-- Estatisticas do intervalo (main.js, mostrarModalIntervalo): aparece enquanto os jogadores saem de campo e fica ate ao 2.o tempo -->
+    <div id="modal-intervalo" class="oculto">
+        <div class="mi-titulo">INTERVALO</div>
+        <div class="mi-placar">
+            <div class="hud-jog-logo" id="mi-logo-esq"></div>
+            <div class="mi-nome" id="mi-nome-esq">-</div>
+            <div class="mi-golos" id="mi-golos">0 - 0</div>
+            <div class="mi-nome" id="mi-nome-dir">-</div>
+            <div class="hud-jog-logo" id="mi-logo-dir"></div>
+        </div>
+        <div id="mi-linhas"></div>
+    </div>
+
     <div id="modal-skills" class="oculto" onclick="if(event.target===this) fecharModalSkills()">
         <div id="modal-skills-caixa">
             <div id="modal-skills-cabecalho">

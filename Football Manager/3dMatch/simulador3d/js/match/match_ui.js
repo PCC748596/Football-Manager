@@ -286,7 +286,7 @@ Object.assign(Match, {
         let lookTarget = this._cLTar;
 
         // A abertura do jogo tem a camara dela (js/abertura.js). A orbital, que e do utilizador, nao se toca.
-        if (typeof Abertura !== 'undefined' && Abertura.activa && Abertura.modo !== 'segundo') {
+        if (typeof Abertura !== 'undefined' && Abertura.activa && Abertura.modo !== 'segundo' && Abertura.modo !== 'intervalo') {
             Abertura.camera(targetPos, lookTarget);
         } else if (window.cameraMode === 'center') {
             /*

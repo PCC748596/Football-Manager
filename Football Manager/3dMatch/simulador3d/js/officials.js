@@ -2810,9 +2810,9 @@ const Officials = {
         for (let i = 0; i < todos.length; i++) {
             const o = todos[i];
             if (!o) continue;
-            o.model.visible = this._ativo && !tatico;
+            o.model.visible = this._ativo && !tatico && !o.foraDeCampo;
             if (o.disco) {
-                o.disco.visible = this._ativo && tatico;
+                o.disco.visible = this._ativo && tatico && !o.foraDeCampo;
                 // A altura e a mesma do disco dos jogadores: pousado no
                 // relvado, e nao ao nivel dele, senao as duas superficies
                 // disputam o mesmo pixel e o disco pisca.

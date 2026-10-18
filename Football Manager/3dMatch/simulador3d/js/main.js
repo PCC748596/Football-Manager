@@ -823,6 +823,56 @@ atributo era mostrar o que ele aguenta em vez do que lhe resta. A `stamina`
 continua a contar — é ela que manda no ritmo a que o depósito desce — e
 aparece no título da barra.
 */
+/*
+O MODAL DAS ESTATISTICAS DO INTERVALO (pedido): enquanto os jogadores saem de campo e durante a pausa do treinador. Equipa da esquerda do ecra a esquerda (como os cartoes);
+linhas: % posse, finalizacoes, % passes certos, amarelos, vermelhos, corners, faltas, impedimentos, defesas do guarda-redes. Match.iniciarSegundoTempo esconde-o.
+*/
+function mostrarModalIntervalo(ligar) {
+    const el = document.getElementById('modal-intervalo');
+    if (!el) return;
+    if (!ligar) { el.classList.add('oculto'); return; }
+    if (typeof MatchStats === 'undefined' || !MatchStats.TeamA) return;
+    const dirLado = (t) => (typeof Lados !== 'undefined' && Lados.dirDe) ? Lados.dirDe(t) : (t === 'TeamA' ? 1 : -1);
+    const esq = dirLado('TeamA') < 0 ? 'TeamA' : 'TeamB';
+    const dir = esq === 'TeamA' ? 'TeamB' : 'TeamA';
+    const S = { esq: MatchStats[esq], dir: MatchStats[dir] };
+    const info = (t) => (t === 'TeamA') ? Match.equipaInfoA : Match.equipaInfoB;
+    const cor = (t) => {
+        const i = info(t), c = i && i.escudo && i.escudo.cores ? i.escudo.cores[0] : null;
+        return c && c !== 'transparent' ? c : (t === 'TeamA' ? '#3498db' : '#e74c3c');
+    };
+    preencherEscudoHud(document.getElementById('mi-logo-esq'), 'mi-esq', esq);
+    preencherEscudoHud(document.getElementById('mi-logo-dir'), 'mi-dir', dir);
+    document.getElementById('mi-nome-esq').textContent = (info(esq) && info(esq).nome) || esq;
+    document.getElementById('mi-nome-dir').textContent = (info(dir) && info(dir).nome) || dir;
+    const golos = (t) => (t === 'TeamA' ? Match.placarA : Match.placarB) || 0;
+    document.getElementById('mi-golos').textContent = golos(esq) + ' - ' + golos(dir);
+
+    const pct = (a, b) => (b > 0 ? Math.round(100 * a / b) : 0);
+    const posse = (s, o) => { const t = (s.posseSegundos || 0) + (o.posseSegundos || 0); return t > 0 ? Math.round(100 * (s.posseSegundos || 0) / t) : 50; };
+    const passes = (s) => pct(s.passes.certos + s.lancamentos.certos + s.cruzamentos.certos, s.passes.tentados + s.lancamentos.tentados + s.cruzamentos.tentados);
+    const linhas = [
+        { r: 'POSSE DE BOLA %', e: posse(S.esq, S.dir), d: posse(S.dir, S.esq), sufixo: '%' },
+        { r: 'FINALIZAÇÕES', e: S.esq.remates.tentados, d: S.dir.remates.tentados },
+        { r: 'PASSES CERTOS %', e: passes(S.esq), d: passes(S.dir), sufixo: '%' },
+        { r: 'CARTÕES AMARELOS', e: S.esq.cartoes.amarelos, d: S.dir.cartoes.amarelos },
+        { r: 'CARTÕES VERMELHOS', e: S.esq.cartoes.vermelhos, d: S.dir.cartoes.vermelhos },
+        { r: 'CORNERS', e: S.esq.cantos, d: S.dir.cantos },
+        { r: 'FALTAS', e: S.esq.faltas.cometidas, d: S.dir.faltas.cometidas },
+        { r: 'IMPEDIMENTOS', e: S.esq.impedimentos, d: S.dir.impedimentos },
+        { r: 'DEFESAS DO GOLEIRO', e: S.esq.defesas, d: S.dir.defesas }
+    ];
+    const cE = cor(esq), cD = cor(dir);
+    el.querySelector('#mi-linhas').innerHTML = linhas.map(l => {
+        const e = l.e || 0, d = l.d || 0, t = e + d;
+        const pe = t > 0 ? 100 * e / t : 50;
+        const sf = l.sufixo || '';
+        return '<div class="mi-linha"><div class="mi-valor esq">' + e + sf + '</div><div class="mi-rotulo">' + l.r + '</div><div class="mi-valor dir">' + d + sf + '</div>' +
+            '<div class="mi-barra"><span style="width:' + pe + '%;background:' + cE + '"></span><span style="width:' + (100 - pe) + '%;background:' + cD + '"></span></div></div>';
+    }).join('');
+    el.classList.remove('oculto');
+}
+
 // O ESCUDO do time num elemento `.hud-jog-logo`: a imagem do clube, ou 3 barras verticais com as cores dele (como o TeamShield do manager); sem nada, a cor da equipa.
 function preencherEscudoHud(logoEl, uid, team) {
     if (!logoEl) return;
@@ -877,7 +927,7 @@ function updateHudEvento() {
         }
         H._antes = atual;
     }
-    const antesDaSaida = Match.state === 'ABERTURA' || (typeof Abertura !== 'undefined' && Abertura.activa);
+    const antesDaSaida = Match.state === 'ABERTURA' || Match.state === 'INTERVALO' || (typeof Abertura !== 'undefined' && Abertura.activa);
     if (novo >= 0 && !antesDaSaida) {
         const dirLado = (t) => (typeof Lados !== 'undefined' && Lados.dirDe) ? Lados.dirDe(t) : (t === 'TeamA' ? 1 : -1);
         const esq = dirLado('TeamA') < 0 ? 'TeamA' : 'TeamB';
@@ -935,7 +985,7 @@ function updateHudJogadores() {
         ((ultimo && ultimo.model && ultimo.model.parent && agoraHud - (window._hudUltimoPortadorT || 0) < 5.0) ? ultimo : null);
     // O cartao SO aparece depois de os times sairem da formacao alinhada (pedido): nao na entrada em campo (ABERTURA, `Abertura.activa`), nem com os
     // times alinhados a espera da saida (`kickoffActive`, `segurarSaida`). O batedor da saida ja tem a bola, e era isso que o acendia.
-    const antesDaSaida = Match.state === 'ABERTURA' || Match.kickoffActive || Match.segurarSaida ||
+    const antesDaSaida = Match.state === 'ABERTURA' || Match.state === 'INTERVALO' || Match.kickoffActive || Match.segurarSaida ||
         (typeof Abertura !== 'undefined' && Abertura.activa);
     if (!carrier || antesDaSaida) {
         preencherHudJogador('hud-jogador-esq', null);

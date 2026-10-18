@@ -113,6 +113,7 @@ const Abertura = {
         if (typeof Sim !== 'undefined' && Sim.running) return false;
         if (typeof Officials === 'undefined' || !Officials.arbitro || !Officials.assistentes) return false;
 
+        [].concat(Match.players, Match.opponents, [Officials.arbitro], Officials.assistentes).forEach(o => { if (o) o.foraDeCampo = false; });
         this.activa = true;
         this.modo = 'segundo';
         this.fase = 'entrada';
@@ -178,6 +179,77 @@ const Abertura = {
         return true;
     },
 
+    /*
+    A SAIDA DO INTERVALO (pedido): enquanto o modal das estatisticas esta no ecra, os 22 e o trio saem de campo a trote para o tunel, por ordem aleatoria,
+    e escondem-se ao entrar nele. No fim (`Match.intervaloSaiu`) o campo esta vazio e o jogo espera (ver Match.correrPausaDeJogo). A volta e o `segundoTempo`.
+    Devolve false se nao puder correr (lotes, sem tunel...): o intervalo e entao o de sempre, so uma pausa.
+    */
+    saidaIntervalo: function () {
+        const AM = (typeof AberturaModel !== 'undefined') ? AberturaModel : null;
+        const T = (typeof TunelJogadores !== 'undefined') ? TunelJogadores : null;
+        if (!AM || !AM.activa || !AM.saidaIntervalo || !T || !T.activo || this.activa) return false;
+        if (typeof Match === 'undefined' || !Match.players || !Match.players.length) return false;
+        if (typeof Sim !== 'undefined' && Sim.running) return false;
+        if (typeof Officials === 'undefined' || !Officials.arbitro || !Officials.assistentes) return false;
+        const C = AM.saidaIntervalo;
+
+        this.activa = true;
+        this.modo = 'intervalo';
+        this.fase = 'saida';
+        this.t = 0;
+        this.partes = [];
+        if (!this._v) this._v = new THREE.Vector3();
+
+        const f = -T.lado;
+        const xBoca = T.xBoca + f * 3.0;              // a entrada do tunel, 3 m para fora da boca
+        const xDentro = T.xFundo + f * 0.9;           // dentro do tunel
+        const frente = new THREE.Vector3();
+        const nova = (tipo, obj, model, atraso) => {
+            const z = model.position.z;
+            const zf = THREE.MathUtils.clamp(z, -AM.zFileira * 2, AM.zFileira * 2);
+            frente.set(0, 0, 1).applyQuaternion(model.quaternion);
+            const s = { tipo: tipo, obj: obj, model: model, k: 0, tSpawn: atraso, spawned: true, chegou: false, i: 0, x0: xDentro, z0: zf,
+                wps: [{ x: xBoca, z: z }, { x: xDentro, z: zf }], vel: C.velocidade, yaw: Math.atan2(frente.x, frente.z) };
+            this.partes.push(s);
+            return s;
+        };
+        // O trio sai primeiro.
+        const arb = Officials.arbitro, lins = Officials.assistentes;
+        nova('arb', arb, arb.model, 0);
+        nova('lin', lins[0], lins[0].model, 0.5);
+        nova('lin', lins[1], lins[1].model, 0.5);
+        // Os 22, em ordem aleatoria.
+        const todos = [].concat(Match.players, Match.opponents);
+        for (let i = todos.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const tmp = todos[i]; todos[i] = todos[j]; todos[j] = tmp;
+        }
+        todos.forEach((p, idx) => {
+            const s = nova('jog', p, p.model, 1.0 + idx * C.intervalo);
+            p.aberturaOrdem = s;
+            p.hasBall = false;
+            p.velocity.set(0, 0, 0);
+            if (p.fsm) p.fsm.changeState('IDLE');
+        });
+        return true;
+    },
+
+    // Um frame da saida do intervalo: quem ainda nao arrancou espera; quem chegou ao tunel esconde-se; todos fora = campo vazio.
+    _actualizarSaida: function (dt) {
+        const C = AberturaModel.saidaIntervalo;
+        for (const s of this.partes) {
+            s.cmdParado = (s.tipo === 'jog' && this.t < s.tSpawn);
+            if (s.chegou && s.model.visible) { s.model.visible = false; s.obj.foraDeCampo = true; if (s.obj.discoTatico) s.obj.discoTatico.visible = false; if (s.obj.disco) s.obj.disco.visible = false; }
+        }
+        if (this.partes.every(s => s.chegou) || this.t > C.prazo) {
+            for (const s of this.partes) if (s.tipo === 'jog') s.obj.velocity.set(0, 0, 0);
+            const partes = this.partes;
+            this._libertar();
+            partes.forEach(s => { s.model.visible = false; s.obj.foraDeCampo = true; });   // `_libertar` mostra-os: ficam no tunel, escondidos
+            Match.intervaloSaiu = true;
+        }
+    },
+
     _spawn: function (s) {
         const T = TunelJogadores;
         s.spawned = true;
@@ -230,6 +302,7 @@ const Abertura = {
         for (const s of this.partes) {
             if (!s.spawned && this.t >= s.tSpawn) this._spawn(s);
         }
+        if (this.modo === 'intervalo') { this._actualizarSaida(dt); return; }
         if (this.fase === 'entrada') {
             if (this.modo === 'segundo') {
                 // Espera `viraParaBola` s depois de o ultimo chegar, para os jogadores acabarem de se virar para a bola.
@@ -262,9 +335,10 @@ const Abertura = {
         const s = p.aberturaOrdem;
         const AM = AberturaModel;
         if (!s || !s.spawned) { p.velocity.set(0, 0, 0); return; }
+        if (this.modo === 'intervalo' && s.cmdParado) { p.velocity.set(0, 0, 0); p.animateBones(dt); return; }
         const pos = p.model.position;
         const T = TunelJogadores;
-        let yawAlvo = (this.modo === 'segundo') ? s.yaw : Math.PI / 2 * (-T.lado);
+        let yawAlvo = (this.modo === 'segundo' || this.modo === 'intervalo') ? s.yaw : Math.PI / 2 * (-T.lado);
         if (s.i < s.wps.length) {
             const w = s.wps[s.i];
             const dx = w.x - pos.x, dz = w.z - pos.z, d = Math.hypot(dx, dz);
@@ -304,6 +378,16 @@ const Abertura = {
             const w = s.wps[s.wps.length - 1];
             const olhar = { x: s.model.position.x - T.lado * 20, z: s.model.position.z };
             // A volta do intervalo: o trio vai para os postos de sempre, a andar.
+            if (this.modo === 'intervalo') {
+                // O trio sai pelo mesmo caminho dos jogadores: primeiro a boca do tunel, depois o fundo.
+                if (this.t < s.tSpawn) continue;
+                const alvo = s.wps[Math.min(s.i, s.wps.length - 1)];
+                Officials.mover(s.obj, alvo.x, alvo.z, s.vel, dt, undefined);
+                if (Math.hypot(alvo.x - s.model.position.x, alvo.z - s.model.position.z) < AM.chegada) s.i = Math.min(s.wps.length, s.i + 1);
+                s.chegou = s.i >= s.wps.length;
+                if (s.tipo === 'lin') Officials._ajustarPano(s.obj, dt);
+                continue;
+            }
             Officials.mover(s.obj, w.x, w.z, s.vel || AM.velocidade, dt, this.modo === 'segundo' ? undefined : olhar);
             if (Math.hypot(w.x - s.model.position.x, w.z - s.model.position.z) < AM.chegada) s.chegou = true;
             else s.chegou = false;
@@ -375,6 +459,7 @@ const Abertura = {
     // ESC: salta direto para a formacao inicial de sempre.
     cancelar: function () {
         if (!this.activa) return;
+        if (this.modo === 'intervalo') return;   // o ESC nao salta o intervalo
         // Na volta do intervalo o ESC so poe toda a gente a andar ja para as posicoes.
         if (this.modo === 'segundo') { this.terminar(); return; }
         this._libertar();

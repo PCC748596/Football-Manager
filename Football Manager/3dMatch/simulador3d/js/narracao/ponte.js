@@ -49,6 +49,7 @@ const Ponte = {
         try {
             if (m.tipo === 'iniciar') this.iniciar(m);
             else if (m.tipo === 'preparar') this.preparar(m);
+            else if (m.tipo === 'segundo_tempo') this.segundoTempo();
             else if (m.tipo === 'camera') this.camera(m.modo);
             else if (m.tipo === 'zoom') this.zoom(m.fator);
             else if (m.tipo === 'tela_cheia') { document.body.classList.toggle('tela-cheia', !!m.ligada); this.barraTopo(!!m.ligada); }
@@ -210,7 +211,51 @@ const Ponte = {
 
     // So monta as equipas no campo (para o 3D mostrar os times certos antes da saida); nao arranca a partida.
     // No modo visivel a ENTRADA DOS TIMES corre ja aqui (ao abrir o 3D) e os times esperam alinhados pela saida (`iniciar`).
+    /*
+    O JOGO NASCE VAZIO: ao abrir o 3D (embutido) os times de omissao do simulador ja estavam em campo por tras do modal dos uniformes, e eram retirados quando
+    a entrada comecava. Agora os 22, o trio e a bola ficam escondidos ate a entrada (`preparar`); a abertura mostra cada um quando sai do tunel.
+    */
+    esconderTimes() {
+        if (typeof Match === 'undefined') return;
+        for (const p of [].concat(Match.players || [], Match.opponents || [])) if (p && p.model) p.model.visible = false;
+        if (typeof Officials !== 'undefined' && Officials.arbitro) [Officials.arbitro].concat(Officials.assistentes || []).forEach(o => { if (o && o.model) o.model.visible = false; });
+        if (Match.ball) Match.ball.visible = false;
+    },
+
+    // O fundo preto por cima do 3D (so no iframe): `opacidade` 1 = tapa tudo, 0 = nada; a transicao dura `ms`.
+    _fade(opacidade, ms) {
+        if (typeof document === 'undefined' || !document.body) return;
+        let el = document.getElementById('fade-preto');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'fade-preto';
+            el.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;background:#000;opacity:0;pointer-events:none;z-index:100000;transition:opacity 0.6s ease';
+            document.body.appendChild(el);
+        }
+        el.style.transition = 'opacity ' + (ms / 1000) + 's ease';
+        // dois quadros: o navegador tem de ter pintado o estado anterior para a transicao correr
+        requestAnimationFrame(() => requestAnimationFrame(() => { el.style.opacity = String(opacidade); }));
+    },
+
+    /*
+    Depois dos uniformes escolhidos: o ecra escurece (FADE_MS), com o ecra preto monta-se a partida e a entrada dos times (a camara da abertura e a do
+    tunel) e o ecra volta (fade in). Fora do iframe (testes, jogo solto) corre de imediato.
+    */
     preparar(m) {
+        const emIframe = typeof window !== 'undefined' && window.parent && window.parent !== window && typeof requestAnimationFrame === 'function';
+        if (!emIframe) return this._preparar(m);
+        const FADE_MS = 3000;
+        this._fade(1, FADE_MS);
+        setTimeout(() => {
+            try {
+                this._preparar(m);
+                if (Match.ball) Match.ball.visible = true;
+            } catch (e) { this.enviar('erro', { mensagem: String(e && e.message || e) }); }
+            setTimeout(() => this._fade(0, 3000), 250);
+        }, FADE_MS + 80);
+    },
+
+    _preparar(m) {
         AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala });
         this._preparada = this._chave(m);
         this._medir();
@@ -263,6 +308,7 @@ const Ponte = {
         const jaPreparada = (this.modo === 'visivel' && this._preparada === this._chave(m));
         if (!jaPreparada) AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala });
         this._preparada = null;
+        if (Match.ball) Match.ball.visible = true;   // o `esconderTimes` do arranque
         if (typeof Abertura !== 'undefined') Abertura.aguardarSaida = false;
         Match.segurarSaida = false;
         MatchStats.reset();
@@ -288,6 +334,23 @@ const Ponte = {
         if (this.modo === 'visivel' && !jaPreparada && typeof Abertura !== 'undefined') { Abertura.jaCorreu = false; Abertura.activa = false; Abertura.iniciar(); }
         if (this.modo === 'oculto') this._arrancarCiclo();
         else this._arrancarVigia();
+    },
+
+    /*
+    O INTERVALO COM O MANAGER (pedido): com o campo vazio o 3D avisa (`intervalo_pronto`) e ESPERA — so o treinador mexe na equipa. O 2.o tempo sai quando o
+    manager manda `segundo_tempo` (o botao de continuar dele). Fora do manager (jogo solto, lotes) devolve false e o intervalo conta o tempo de sempre.
+    */
+    aoIntervaloPronto() {
+        const noManager = typeof window !== 'undefined' && window.parent && window.parent !== window;
+        if (!noManager || this.modo !== 'visivel' || this.estado === 'parado' || this.estado === 'terminado') return false;
+        this.enviar('intervalo_pronto', { minuto: Math.floor(Match.tempoDeJogo / 60) });
+        return true;
+    },
+
+    segundoTempo() {
+        if (typeof Match === 'undefined' || Match.state !== 'INTERVALO') return;
+        Match.intervaloSegura = false;
+        Match.intervaloTimer = Math.min(Match.intervaloTimer, 0.5);
     },
 
     pausar() {
@@ -425,7 +488,10 @@ if (typeof window !== 'undefined') {
     window.addEventListener('message', (e) => Ponte.aoMensagem(e.data));
     // Avisa o manager quando o motor estiver pronto (a inicializacao do jogo e assincrona).
     const avisar = () => {
-        if (typeof Match !== 'undefined' && Match.players && Match.players.length > 0) Ponte.enviar('pronto', {});
+        if (typeof Match !== 'undefined' && Match.players && Match.players.length > 0) {
+            if (window.parent && window.parent !== window) Ponte.esconderTimes();
+            Ponte.enviar('pronto', {});
+        }
         else setTimeout(avisar, 200);
     };
     if (typeof document !== 'undefined' && document.readyState !== 'loading') setTimeout(avisar, 0);

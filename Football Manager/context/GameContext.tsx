@@ -5,6 +5,7 @@ import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calcul
 import { ACTIVITIES } from '../textSim/trainingService';
 import { REAL_TEAMS_JSON } from '../textSim/realDatabase';
 import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager } from '../3dMatch/simulador3dCliente';
+import { simulador3dEnviar } from '../3dMatch/Simulador3DView';
 
 const TRANSLATIONS: Record<string, any> = {
   EN: {
@@ -850,6 +851,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Determine mode based on current view
     const mode: MatchMode = modo;
+    // Continuar depois do intervalo: o 3D espera o treinador (campo vazio, estatisticas); o 2.o tempo so sai quando ele manda continuar.
+    if (mode === 'VISUAL' && (window as any).motor3dMinuto !== undefined && gameState.matchMinute >= maxHTDurationRef.current) simulador3dEnviar({ tipo: 'segundo_tempo' });
     setGameState(prev => ({ ...prev, isProcessing: true, matchMode: mode }));
 
     const todays = fixtures.filter(f => f.date === gameState.currentDate);

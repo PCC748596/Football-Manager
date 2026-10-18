@@ -4987,9 +4987,10 @@ class FootballPlayer {
         a troca no frame seguinte.
         */
         const vistaTatica = (window.cameraMode === 'topdown');
-        this.model.visible = (!vistaTatica && !headless);
+        // `foraDeCampo`: no tunel durante o intervalo (Abertura.saidaIntervalo): nem boneco nem disco.
+        this.model.visible = (!vistaTatica && !headless && !this.foraDeCampo);
         if (this.discoTatico) {
-            this.discoTatico.visible = (vistaTatica && !headless);
+            this.discoTatico.visible = (vistaTatica && !headless && !this.foraDeCampo);
             if (!headless) this.discoTatico.position.set(this.model.position.x, 0.04, this.model.position.z);
         }
 

@@ -81,6 +81,8 @@ const AberturaModel = {
     velocidade2T: 3.2,
     atrasoSegundoTempo: 2.0,
     intervaloSegundoTempo: 0.45,
+    // A SAIDA DO INTERVALO: os 22 e o trio vao a trote para o tunel, um a um (`intervalo` s entre eles); `prazo` s e a rede de seguranca.
+    saidaIntervalo: { velocidade: 5.0, intervalo: 0.2, prazo: 45.0 },
     // Depois de o ultimo chegar ao posto (2.o tempo), espera isto (s) para todos se virarem para a bola.
     viraParaBola: 0.9,
     // Margem para considerar que chegou a um ponto (m) e rede de seguranca da fase de entrada (s).
