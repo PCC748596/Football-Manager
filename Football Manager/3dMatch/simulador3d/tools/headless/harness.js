@@ -63,6 +63,7 @@ const FICHEIROS = [
     'js/config/defense.js', 'js/config/goalkeeper.js', 'js/config/player_behavior.js',
     'js/config/skill_map.js', 'js/config/comemoracao.js', 'js/config/balanco_corredores.js', 'js/config/mando.js',
     'js/stats.js',
+    'data/formacoes_zonas.js', 'js/formacoes_zonas.js',
     'js/utils.js', 'js/ik.js', 'js/reach.js', 'js/gk_dive.js',
     'js/bt/action_state.js', 'js/perception.js', 'js/playing_styles.js',
     'js/spatial_grid.js', 'js/pass_candidates.js', 'js/pass_types.js',

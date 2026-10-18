@@ -2074,6 +2074,18 @@ de `desvioMax` o par nem entra.
 Pura: sem Match, sem Tatics, sem THREE (usa o linhaLivre, tambem puro).
 */
 
+/*
+FORMACOES POR ZONA (tacticsEditor.html -> data/formacoes_zonas.js -> js/formacoes_zonas.js): com `activo`, o POSTO de cada jogador (o `slotTarget`, nivel 1)
+sai das tabelas — 9 zonas da bola x com/sem bola, interpoladas — e nao do bloco rigido (BlockShape). Marcacao, estilo, impedimento e o resto continuam por
+cima. `activo: false` volta ao bloco de antes. Formacoes sem tabela (ou jogadores sem indice) caem no bloco.
+*/
+const ZonasModel = {
+    activo: true,
+    // Margem (m) da linha lateral / de fundo onde o alvo da tabela e cortado.
+    margemX: 0.8, margemZ: 1.0
+};
+if (typeof window !== 'undefined') window.ZonasModel = ZonasModel;
+
 const FormationsData = {
     '442': [
         { x: 0, z: -0.95, role: 'gk', pos: 'GK', num: 1 },

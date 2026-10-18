@@ -1360,6 +1360,30 @@ function limitesDoBloco(bb) {
     };
 }
 
+/*
+O POSTO PELAS TABELAS POR ZONA (ZonasModel): onde a formacao do editor (data/formacoes_zonas.js) poe este jogador com a bola onde esta e a fase (com/sem bola),
+interpolado entre as 4 zonas mais proximas. Devolve { x, z } no MUNDO, ou null (desligado, formacao sem tabela, ou sem indice) e o bloco manda como sempre.
+*/
+function posicaoPorZona(p, bb) {
+    const Z = (typeof ZonasModel !== 'undefined') ? ZonasModel : null;
+    if (!Z || !Z.activo || typeof FormacoesZonasLib === 'undefined' || typeof FormacoesZonas === 'undefined') return null;
+    if (typeof p.idxFormacao !== 'number' || !bb || typeof Tatics === 'undefined') return null;
+    const chave = (bb.team === 'TeamB') ? Tatics.formacaoB : Tatics.formacaoA;
+    const dir = p.dirZ || bb.dir || 1;
+    const bx = (typeof bb.bolaXSuave === 'number' ? bb.bolaXSuave : (bb.ballX || 0)) * dir;
+    const bz = (typeof bb.bolaZSuave === 'number' ? bb.bolaZSuave : (bb.ballZ || 0)) * dir;
+    let cache = bb._zonasCache;
+    const k = chave + '|' + (bb.isAttacking ? 1 : 0) + '|' + bx.toFixed(2) + '|' + bz.toFixed(2);
+    if (!cache || cache.k !== k) {
+        const lista = FormacoesZonasLib.posicoes(FormacoesZonas, chave, bx, bz, !!bb.isAttacking);
+        cache = bb._zonasCache = { k: k, lista: lista };
+    }
+    if (!cache.lista || !cache.lista[p.idxFormacao]) return null;
+    const m = FormacoesZonasLib.emMetros(FormacoesZonas, cache.lista[p.idxFormacao]);
+    const maxX = CAMPO_LARG / 2 - Z.margemX, maxZ = CAMPO_COMP / 2 - Z.margemZ;
+    return { x: THREE.MathUtils.clamp(m.x * dir, -maxX, maxX), z: THREE.MathUtils.clamp(m.z * dir, -maxZ, maxZ) };
+}
+
 function calcularPontoDoSlot(slot, pos, role, fbStyle, bb, linhaActual, fecharPorPar, ordemNaLinha, totalNaLinha) {
     const bloco = bb.bloco;
     if (!bloco || !slot) return null;
@@ -2508,7 +2532,9 @@ const PosicionamentoAI = {
     tickBase: function (p, bb) {
         if (p.role === 'gk') return;   // o GK posiciona-se em updateGK()
 
-        const slot = slotNoBloco(p, bb);
+        // As tabelas por zona (ZonasModel) mandam no posto; sem elas, o bloco de sempre.
+        const zonal = posicaoPorZona(p, bb);
+        const slot = zonal ? zonal : slotNoBloco(p, bb);
         let targetX = slot ? slot.x : p.baseTarget.x;
         let targetZ = slot ? slot.z : p.baseTarget.z;
 
@@ -2517,7 +2543,7 @@ const PosicionamentoAI = {
         sobe acima da linha de trás. Ver a regra do mínimo em
         classificarLinhas.
         */
-        if (p.seguraLinha && bb.bloco) {
+        if (!zonal && p.seguraLinha && bb.bloco) {
             const L = (typeof LineShape !== 'undefined') ? LineShape : null;
             const faixa = (L && typeof L.faixaDaLinha === 'number') ? L.faixaDaLinha : 6.0;
             const tecto = bb.bloco.z0 + faixa;
@@ -2528,7 +2554,7 @@ const PosicionamentoAI = {
         E O CONTRÁRIO: com o outro lateral já na linha de trás, este não cai
         abaixo da linha média. Ver LineShape.pisoLinhaMedia.
         */
-        if (p.pisoLinhaMedia && bb.bloco) {
+        if (!zonal && p.pisoLinhaMedia && bb.bloco) {
             const L = (typeof LineShape !== 'undefined') ? LineShape : null;
             const fr = (L && typeof L.pisoLinhaMedia === 'number') ? L.pisoLinhaMedia : 0.5;
             const piso = bb.bloco.z0 + (bb.bloco.z1 - bb.bloco.z0) * fr;
@@ -2580,7 +2606,7 @@ const PosicionamentoAI = {
         propósito: o desvio do playing style é a terceira leitura (anel pequeno)
         e tem de poder ver-se a sair do bloco, senão não há como distingui-lo.
         */
-        const limB = limitesDoBloco(bb);
+        const limB = zonal ? null : limitesDoBloco(bb);   // com as tabelas por zona a moldura e a do campo (ja cortada em posicaoPorZona)
         if (limB) {
             targetX = THREE.MathUtils.clamp(targetX, limB.xMin, limB.xMax);
             targetZ = THREE.MathUtils.clamp(targetZ, limB.zMin, limB.zMax);

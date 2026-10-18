@@ -2435,6 +2435,7 @@ Object.assign(Match, {
 
                 teamList[i].baseTarget.set(x * (CAMPO_LARG / 2) * compMult, ALTURA_BASE_Y, z * (CAMPO_COMP / 2));
                 teamList[i].role = fData[i].role;
+                teamList[i].idxFormacao = i;   // o indice do posto nas tabelas por zona (FormacoesZonasLib)
                 teamList[i].slot = slot;
                 const numReal = teamList[i].skills && teamList[i].skills.numero;
                 const num = (numReal && contagemNum[numReal] === 1) ? numReal : fData[i].num;
