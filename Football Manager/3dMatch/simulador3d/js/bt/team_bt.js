@@ -1371,7 +1371,12 @@ function posicaoPorZona(p, bb) {
     const chave = (bb.team === 'TeamB') ? Tatics.formacaoB : Tatics.formacaoA;
     const dir = p.dirZ || bb.dir || 1;
     const bx = (typeof bb.bolaXSuave === 'number' ? bb.bolaXSuave : (bb.ballX || 0)) * dir;
-    const bz = (typeof bb.bolaZSuave === 'number' ? bb.bolaZSuave : (bb.ballZ || 0)) * dir;
+    let bz = (typeof bb.bolaZSuave === 'number' ? bb.bolaZSuave : (bb.ballZ || 0)) * dir;
+    // A transicao (ZonasModel.transicao): a bola lida mais a frente ao ganhar, mais atras ao perder, a desvanecer-se.
+    const Tr = Z.transicao;
+    if (Tr && typeof bb.possessionTime === 'number' && bb.possessionTime < Tr.duracao && typeof Match !== 'undefined' && Match.state === 'PLAY') {
+        bz += (bb.isAttacking ? Tr.avancoOfensivo : -Tr.recuoDefensivo) * (1 - bb.possessionTime / Tr.duracao);
+    }
     let cache = bb._zonasCache;
     const k = chave + '|' + (bb.isAttacking ? 1 : 0) + '|' + bx.toFixed(2) + '|' + bz.toFixed(2);
     if (!cache || cache.k !== k) {

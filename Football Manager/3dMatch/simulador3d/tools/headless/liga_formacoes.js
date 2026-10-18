@@ -48,6 +48,8 @@ if (process.env.LIGA_WORKER) {
     if (typeof Officials !== 'undefined' && Officials.init) Officials.init(cena);
     if (typeof Sim === 'undefined') global.Sim = {};
     Sim.running = true;
+    if (process.env.LIGA_SEM_ZONAS === '1') ZonasModel.activo = false;
+    if (process.env.LIGA_SEM_TRANSICAO === '1') ZonasModel.transicao = null;   // o controlo: o bloco de antes das tabelas
     const pares = calendario(NOMES.length, 2);
     const ladosIniciais = Lados.trocados;
     const dt = 1 / 60;
@@ -74,10 +76,18 @@ if (process.env.LIGA_WORKER) {
         });
         const total = Math.round(minutos * 60 / dt);
         let erro = null;
+        const din = { trocas: 0, ultima: null, dist: 0, jogoCorrido: 0 };
         try {
             for (let f = 0; f < total; f++) {
                 Match.update(dt);
+                if (Match.state === 'PLAY') {
+                    din.jogoCorrido++;
+                    const eq = Match.possessionTeam;
+                    if (eq && din.ultima && eq !== din.ultima) din.trocas++;
+                    if (eq) din.ultima = eq;
+                }
                 if (f % 30 || Match.state !== 'PLAY') continue;
+                for (const p of Match.players.concat(Match.opponents)) if (p.role !== 'gk' && p.velocity) din.dist += p.velocity.length() * 0.5;
                 for (const [lista, nome] of [[Match.players, nomesF[fa]], [Match.opponents, nomesF[fb]]]) {
                     if (lista.length < 11 || !lista[1].slot) continue;
                     const dz = lista[0].dirZ;
@@ -123,7 +133,7 @@ if (process.env.LIGA_WORKER) {
                 }
             }
         } catch (e) { erro = String(e && e.message || e); }
-        res.push({ i, casa: NOMES[par.casa], fora: NOMES[par.fora], fa: nomesF[fa], fb: nomesF[fb], golos: [Match.placarA, Match.placarB], acc, erro });
+        res.push({ i, casa: NOMES[par.casa], fora: NOMES[par.fora], fa: nomesF[fa], fb: nomesF[fb], golos: [Match.placarA, Match.placarB], remates: MatchStats.TeamA.remates.tentados + MatchStats.TeamB.remates.tentados, passes: MatchStats.TeamA.passes.tentados + MatchStats.TeamB.passes.tentados, din, acc, erro });
         process.send && process.send({ tipo: 'jogo', i });
     }
     process.send({ tipo: 'fim', res });
@@ -176,7 +186,11 @@ function fim() {
             centroMenosBolaZ: f1(g.cz / n), centroMenosBolaX: f1(g.cx / n), corrLateral: Math.round(r * 100) / 100, pctParados: f1(100 * g.parados / g.jogN), velMedia: f1(g.velSoma / g.jogN) };
     }
     fs.mkdirSync(path.join(__dirname, 'saida'), { recursive: true });
-    fs.writeFileSync(path.join(__dirname, 'saida', 'liga_formacoes.json'), JSON.stringify({ jogos: resultados.length, golosPorJogo: golos / Math.max(1, resultados.length), erros, out }, null, 1));
+    fs.writeFileSync(path.join(__dirname, 'saida', process.env.LIGA_SEM_ZONAS === '1' ? 'liga_formacoes_sem_zonas.json' : 'liga_formacoes.json'), JSON.stringify({ jogos: resultados.length, golosPorJogo: golos / Math.max(1, resultados.length), erros, out }, null, 1));
+    const med = (f) => resultados.reduce((a, r) => a + f(r), 0) / Math.max(1, resultados.length);
+    const dinamismo = { rematesPorJogo: med(r => r.remates), passesPorJogo: med(r => r.passes), trocasDePossePorJogo: med(r => r.din.trocas), trocasPorMinutoDeJogoCorrido: med(r => r.din.trocas / Math.max(1, r.din.jogoCorrido / 3600)), kmPorJogador: med(r => r.din.dist / 10 / 1000) };
+    console.log('DINAMISMO', JSON.stringify(dinamismo));
+    try { const f2 = path.join(__dirname, 'saida', 'liga_dinamismo_' + (process.env.LIGA_ROTULO || 'x') + '.json'); fs.writeFileSync(f2, JSON.stringify(dinamismo)); } catch (e) {}
     console.log('FIM: jogos', resultados.length, 'golos/jogo', (golos / Math.max(1, resultados.length)).toFixed(2), 'erros', erros, 'tempo', ((Date.now() - t0) / 60000).toFixed(1), 'min');
     console.log(JSON.stringify(out));
 }

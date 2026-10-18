@@ -2082,7 +2082,14 @@ cima. `activo: false` volta ao bloco de antes. Formacoes sem tabela (ou jogadore
 const ZonasModel = {
     activo: true,
     // Margem (m) da linha lateral / de fundo onde o alvo da tabela e cortado.
-    margemX: 0.8, margemZ: 1.0
+    margemX: 0.8, margemZ: 1.0,
+    /*
+    AS TRANSICOES (T.Offensive / T.Defensive, os primeiros `duracao` s depois de ganhar / perder a bola): as tabelas so tem com e sem bola, e a troca de uma para a
+    outra deixava a equipa sem urgencia. Aqui a bola e LIDA mais a frente (`avancoOfensivo` m) quando a equipa acaba de a ganhar — as linhas sobem de uma vez, com o
+    ataque a abrir — e mais atras (`recuoDefensivo` m) quando acaba de a perder — as linhas recuam depressa. O efeito desvanece-se linearmente em `duracao` s.
+    `transicao: null` desliga. Pedido: mais dinamismo nas transicoes.
+    */
+    transicao: { duracao: 3.0, avancoOfensivo: 14.0, recuoDefensivo: 8.0 }
 };
 if (typeof window !== 'undefined') window.ZonasModel = ZonasModel;
 
