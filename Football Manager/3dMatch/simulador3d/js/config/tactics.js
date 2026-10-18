@@ -533,7 +533,7 @@ const BlockShape = {
     GANHO DO INTERVALO ENTRE LINHAS POR FORMACAO (medido, 6 min por formacao, media de com e sem bola: 4-4-2 = 10.9 m entre linhas, a referencia).
     Multiplica o esticamento do bloco: > 1 afasta as linhas, < 1 aproxima-as. Chave = a da formacao no motor (`mgr:` + nome do manager). Sem entrada = 1.
     */
-    ganhoDeLinhas: { 'mgr:4-3-3': 1.17, 'mgr:4-3-3 ATA': 1.30, 'mgr:3-5-2': 0.87, 'mgr:5-4-1': 1.04, 'mgr:4-2-3-1': 1.18 },
+    ganhoDeLinhas: { 'mgr:4-3-3': 1.30, 'mgr:4-3-3 ATA': 1.55, 'mgr:3-5-2': 0.84, 'mgr:5-4-1': 0.98, 'mgr:4-2-3-1': 1.37 },
 
     /*
     TECTO DE DESVIO AO SLOT, por função e em metros.

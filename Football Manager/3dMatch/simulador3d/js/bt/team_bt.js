@@ -1062,7 +1062,7 @@ function computeBlock(bb) {
     const chaveFormacao = (typeof Tatics !== 'undefined') ? (bb.team === 'TeamB' ? Tatics.formacaoB : Tatics.formacaoA) : null;
     const ganhoLinhas = (B.ganhoDeLinhas && chaveFormacao && B.ganhoDeLinhas[chaveFormacao]) || 1;
     const esticaoBloco = Math.max(1, (nLinhasK - 1) / 2) * ganhoLinhas;
-    if (esticaoBloco !== 1) z1 += profundidade * (esticaoBloco - 1);
+    const extraFrente = profundidade * (esticaoBloco - 1);   // aplicado so no fim, depois dos limites: nao empurra a traseira (a defesa) para tras
 
     /* --- limites em Z (Regra 2 e Regra 3) ------------------------------- */
     const fundo = typeof LINHA_FUNDO !== 'undefined' ? LINHA_FUNDO : CAMPO_COMP / 2;
@@ -1182,6 +1182,9 @@ function computeBlock(bb) {
             if (z1 > maxZ) { const d = z1 - maxZ; z1 = maxZ; z0 -= d; }
         }
     }
+
+    // O ESTICAMENTO DA FRENTE (formacoes de 4+ linhas e ganho por formacao): so a frente se mexe, e nunca alem da linha de fundo; a traseira fica onde os limites a puseram.
+    if (extraFrente !== 0) z1 = (extraFrente > 0) ? Math.min(z1 + extraFrente, Math.max(z1, maxZ)) : z1 + extraFrente;
 
     /* --- largura e centro em X (Regra 1 e Regra 2) ----------------------
        ACOMPANHA AS COORDENADAS DA BOLA EM X E LIMITA NOS LIMITES DO CAMPO (-34 a +34)
