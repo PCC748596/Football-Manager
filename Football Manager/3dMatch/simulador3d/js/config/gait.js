@@ -19,6 +19,8 @@ const LateralGait = {
 };
 
 const GaitModel = {
+    // +15% na cadencia das pernas (pedido, depois dos +20% de velocidade: os jogadores patinavam). Divide a `passada` em getGaitPose. 1.0 = como era.
+    cadenciaEscala: 1.15,
     /*
     QUASE PARADO. Não é um andamento — é o extremo de baixo da mistura, e
     existe porque não existia: abaixo de `andar.vel` o `misturarAndamento`
@@ -434,6 +436,9 @@ central: 100 dá `maximo`, 0 dá `maximo - amplitude`.
 =============================================================================
 */
 const VelocidadeHumana = {
+    // +20% em TODAS as velocidades dos jogadores (pedido, 17 de Outubro de 2026): multiplica o alvo e o tecto no `steerArrive`. 1.0 = como era.
+    escala: 1.2,
+
     // +10% (9 de Outubro de 2026, pedido): 9.5 -> 10.45 e 2.2 -> 2.42 (SPEED 0: 8.03 m/s).
     maximo: 10.45,    // m/s com SPEED 100 — ponta de um profissional rápido
     amplitude: 2.42,  // quanto desce até SPEED 0

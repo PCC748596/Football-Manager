@@ -284,6 +284,33 @@ canvas {
     transform-origin: right bottom;
 }
 
+/* O cartao de EVENTO: no topo, centrado, 50 px abaixo; 40% maior como os outros. */
+#hud-evento {
+    top: 50px;
+    bottom: auto;
+    left: 50%;
+    gap: 14px;
+    padding: 8px 16px;
+    transform: translateX(-50%) scale(1.4);
+    transform-origin: center top;
+}
+
+.hud-evento-num {
+    font-weight: 700;
+    font-size: 20px;
+    color: #ffffff;
+    min-width: 18px;
+    text-align: center;
+}
+
+.hud-evento-nome {
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: #ffffff;
+    white-space: nowrap;
+}
+
 /* O escudo do time (imagem ou barras com as cores dele), no lugar do circulo. */
 .hud-jog-logo {
     width: 29px;

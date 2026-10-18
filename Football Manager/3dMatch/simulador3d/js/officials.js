@@ -778,7 +778,7 @@ const Officials = {
     Os ossos têm os mesmos nomes (`lLeg`, `rKnee`, `lArm`, `chest`…), por isso o
     `mover()` aqui em baixo não muda nada.
     */
-    criarCorpo: function (id, camisa, calcao) {
+    criarCorpo: function (id, camisa, calcao, simples) {
         const R = RefereeModel;
         /*
         GOLAS, BARRA DO SHORT E LISTAS DAS MEIAS PRETAS (pedido): num traje de cor o resto e preto — a gola (e os punhos), a barra do short (quando o
@@ -788,7 +788,7 @@ const Officials = {
         const uniforme = camisa ? {
             gola: preto,
             argolas: preto,
-            calcao: { cores: [calcao || camisa], barra: (calcao && calcao !== preto) ? { cor: preto, altura: 0.12 } : null }
+            calcao: { cores: [calcao || camisa], barra: (!simples && calcao && calcao !== preto) ? { cor: preto, altura: 0.12 } : null }
         } : null;
         const jogador = new FootballPlayer(id, camisa || R.corCamisa, calcao || R.corCalcao, 'TeamA', uniforme);
 

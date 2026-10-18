@@ -1092,6 +1092,14 @@ const BallControl = {
     peitoVelYMa: 1.2,     // ... e quando falha (repica para cima)
 
     /*
+    MATAR NO PEITO JA A TOCAR PARA O LADO (pedido): sem marcador em cima, o jogador amortece a bola e, em vez de a deixar a 0.5 m a frente, toca-a
+    `dist` m para o lado livre (e para a frente, para onde ataca) e sai a correr atras dela com `vel` m/s, a girar o corpo `giro` rad/s.
+    `chance` e a base (escala com a tecnica: x (0.5 + tec/100)); precisa de `minLivre` m sem adversarios no ponto de destino e de nenhum a menos de
+    `minMarcador` m de si. Ver Player.escolherSaidaDoPeito / largarDoPeito.
+    */
+    peitoLado: { activo: true, chance: 0.35, dist: 1.4, frente: 0.6, vel: 3.2, giro: 7.0, minLivre: 3.5, minMarcador: 3.0 },
+
+    /*
     Pequeno salto opcional na matada no peito. Só para bolas que chegam mais
     altas dentro da faixa de peito — perto do chão não há razão para saltar.
 

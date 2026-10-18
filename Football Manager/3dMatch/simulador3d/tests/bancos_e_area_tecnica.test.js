@@ -105,3 +105,32 @@ test('o treinador observa o jogo: de cara para a bola, parado e a andar', () => 
     assert.ok(mediana < 0.35, 'olha para a bola (erro mediano ' + (mediana * 180 / Math.PI).toFixed(0) + '°)');
     assert.ok(erros[Math.floor(erros.length * 0.95)] < 0.8, 'nunca de costas para o jogo');
 });
+
+test('o médico e o massagista: 2 lugares no fim do banco, sentados, de manga e calça compridas numa cor do clube diferente da camisa dos jogadores', () => {
+    const uni = { camisa: { padrao: 'solido', cores: ['#d71920'] }, calcao: '#f2f2f2' };
+    const info = { nome: 'Teste FC', escudo: { cores: ['#d71920', '#0b2a6b', '#f2f2f2'] }, banco: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => ({ id: 269000 + i, nome: 'S' + i, numero: i })) };
+    Bancos.preencher(info, info, uni, uni);
+    assert.strictEqual(B.lugares, B.reservas + B.staff.length, 'os lugares = reservas + staff');
+    for (const b of Bancos.bancos) {
+        assert.strictEqual(b.staff.length, 2, 'médico e massagista');
+        assert.deepStrictEqual(b.staff.map(s => s.funcao), ['medico', 'massagista']);
+        const zs = b.reservas.concat(b.staff).map(r => r.model.position.z);
+        assert.ok(Math.max(...zs) - Math.min(...zs) <= B.larguraVao, 'os 12 cabem no vão da placa');
+        const zMaxRes = Math.max(...b.reservas.map(r => r.model.position.z));
+        assert.ok(b.staff.every(s => s.model.position.z > zMaxRes), 'o staff senta-se depois dos reservas');
+        assert.ok(b.staff.every(s => s.rig.lLeg.rotation.x < -1), 'sentados');
+        for (const s of b.staff) {
+            assert.ok(Bancos._deltaCor(s.cor, (typeof corDoUniforme === 'function') ? corDoUniforme(uni, B.coresPorOmissao.A) : B.coresPorOmissao.A) >= 35, 'cor diferente da camisa dos jogadores: ' + s.cor);
+            // manga e calça compridas: nenhum material de pele no braço/perna (fora a mão) sobra da cor da pele.
+            const pele = s.jogador.aparencia.pele;
+            let sobra = 0;
+            for (const osso of [s.rig.lArm, s.rig.rArm, s.rig.lLeg, s.rig.rLeg]) osso.traverse(o => {
+                if (!o.isMesh || !o.material || o.material.map) return;
+                let q = o, daMao = false; for (; q; q = q.parent) if (q === s.rig.lHand || q === s.rig.rHand) daMao = true;
+                if (!daMao && o.material.color && o.material.color.getHex() === pele) sobra++;
+            });
+            assert.strictEqual(sobra, 0, 'sem pele à vista nos braços e pernas');
+        }
+    }
+    Bancos.preencher(null, null, null, null);
+});

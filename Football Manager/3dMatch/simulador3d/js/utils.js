@@ -205,7 +205,9 @@ function getGaitPose(t, vel) {
     r.ressalto = g.ressalto * (1.0 + Math.sin(t * Math.PI * 4 + Math.PI)) * 0.5;
     // Quanto o corpo assenta mais abaixo neste andamento — ver GaitModel.descida.
     r.descida = (g.descida || 0) + descidaExtra;
-    r.passada = passada;
+    // Cadencia das pernas (GaitModel.cadenciaEscala, 1.15): passada mais curta por ciclo = pernas mais rapidas para a mesma velocidade (menos "patinar").
+    const escalaCad = (typeof GaitModel !== 'undefined' && GaitModel.cadenciaEscala) || 1;
+    r.passada = passada / escalaCad;
     return r;
 }
 

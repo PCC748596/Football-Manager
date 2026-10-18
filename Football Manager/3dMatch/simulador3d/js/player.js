@@ -2629,10 +2629,45 @@ class FootballPlayer {
         // com o pé enquanto ainda está dobrado para trás.
         this.touchLock = B.peitoDur;
         this.peitoTimer = 0;
+        this.peitoSaida = this.escolherSaidaDoPeito();
         this.fsm.changeState('CHEST_CONTROL');
 
         if (typeof MatchStats !== 'undefined') MatchStats.registarRecepcao(this, bom);
         if (typeof EventBus !== 'undefined') EventBus.emit('CHEST_CONTROL', { p: this, bom: bom });
+    }
+
+    /*
+    SAIDA LATERAL DA MATADA NO PEITO (BallControl.peitoLado): devolve a direccao horizontal (THREE.Vector3 unitario) para onde tocar a bola e sair a
+    correr, ou null (matada normal). So com a chance sorteada, sem marcador perto e com o lado livre; escolhe o lado com mais espaco.
+    */
+    escolherSaidaDoPeito() {
+        const C = BallControl.peitoLado;
+        if (!C || !C.activo || this.role === 'gk') return null;
+        const tec = this.skillFor('TEC');
+        if (Math.random() > C.chance * (0.5 + tec / 100)) return null;
+        const rivais = (this.team === 'TeamA') ? Match.opponents : Match.players;
+        const p0 = this.model.position;
+        for (const r of rivais) {
+            if (r.model && r.model.position.distanceTo(p0) < C.minMarcador) return null;
+        }
+        // Os dois lados do corpo (perpendiculares ao olhar), inclinados para onde a equipa ataca.
+        _v1.set(0, 0, 1).applyQuaternion(this.model.quaternion);
+        const px = -_v1.z, pz = _v1.x;
+        const meioX = CAMPO_LARG / 2 - 1.5, meioZ = CAMPO_COMP / 2 - 1.5;
+        let melhor = null, folgaMelhor = -1;
+        for (const lado of [1, -1]) {
+            let dx = px * lado, dz = pz * lado + this.dirZ * C.frente;
+            const n = Math.hypot(dx, dz) || 1; dx /= n; dz /= n;
+            const ax = p0.x + dx * C.dist * 2, az = p0.z + dz * C.dist * 2;
+            if (Math.abs(ax) > meioX || Math.abs(az) > meioZ) continue;
+            let folga = Infinity;
+            for (const r of rivais) {
+                if (!r.model) continue;
+                folga = Math.min(folga, Math.hypot(r.model.position.x - ax, r.model.position.z - az));
+            }
+            if (folga >= C.minLivre && folga > folgaMelhor) { folgaMelhor = folga; melhor = new THREE.Vector3(dx, 0, dz); }
+        }
+        return melhor;
     }
 
     /*
@@ -2667,7 +2702,8 @@ class FootballPlayer {
         const B = BallControl;
         const g = BallPhysics.gravidade;
         const tec = this.skillFor('TEC');
-        const dist = quedaNoPeito(tec, amostraGaussiana(Math.random));
+        const saida = this.peitoSaida || null;   // matada com toque para o lado (escolherSaidaDoPeito)
+        const dist = saida ? B.peitoLado.dist : quedaNoPeito(tec, amostraGaussiana(Math.random));
 
         const frac = THREE.MathUtils.clamp(tec / 100, 0, 1);
         const vy = B.peitoVelYMa + (B.peitoVelYBoa - B.peitoVelYMa) * frac;
@@ -2704,7 +2740,7 @@ class FootballPlayer {
         const a = 1 / (2 * desaceleracao);
         const vh = (-t + Math.sqrt(t * t + 4 * a * Math.max(0, dist))) / (2 * a);
 
-        _v1.set(0, 0, 1).applyQuaternion(this.model.quaternion);
+        if (saida) _v1.copy(saida); else _v1.set(0, 0, 1).applyQuaternion(this.model.quaternion);
         Match.ballVel.set(_v1.x * vh, vy, _v1.z * vh);
         this.peitoCola = 0;
         /*
@@ -5390,6 +5426,9 @@ class FootballPlayer {
         uma delas era garantir esquecer metade. Ver factorCansaco.
         */
         maxSpeed *= this.factorCansaco();
+        // +20% em todas as velocidades dos jogadores (pedido): VelocidadeHumana.escala, no funil por onde passam todas as corridas.
+        const escalaVel = (typeof VelocidadeHumana !== 'undefined' && VelocidadeHumana.escala) || 1;
+        maxSpeed *= escalaVel;
 
         /*
         E O TECTO HUMANO, aqui e só aqui — ver VelocidadeHumana (config/gait.js)
@@ -5400,7 +5439,7 @@ class FootballPlayer {
         inteiro, e um jogador gasto não passa a correr mais por causa dele.
         */
         if (typeof VelocidadeHumana !== 'undefined') {
-            const tecto = VelocidadeHumana.tecto(this.skillFor('SPEED')) * this.factorCansaco();
+            const tecto = VelocidadeHumana.tecto(this.skillFor('SPEED')) * this.factorCansaco() * escalaVel;
             if (maxSpeed > tecto) maxSpeed = tecto;
         }
 
@@ -9469,10 +9508,16 @@ class FootballPlayer {
                 const peDoPasso = (hip) => THREE.MathUtils.clamp(hip * 0.9, 0, 0.55);
                 if (gkRig.lFoot) gkRig.lFoot.rotation.x = lerpTo(gkRig.lFoot.rotation.x, peDoPasso(poseSeg.lHip), 0.4);
                 if (gkRig.rFoot) gkRig.rFoot.rotation.x = lerpTo(gkRig.rFoot.rotation.x, peDoPasso(poseSeg.rHip), 0.4);
-            } else if (!this.gkLevanta) {
-                // Parado com a bola: pes direitos (o encaixe deixa-os na ponta).
-                if (gkRig.lFoot) gkRig.lFoot.rotation.x = lerpTo(gkRig.lFoot.rotation.x, 0, 0.3);
-                if (gkRig.rFoot) gkRig.rFoot.rotation.x = lerpTo(gkRig.rFoot.rotation.x, 0, 0.3);
+            } else {
+                /*
+                Parado com a bola, ou a levantar-se com ela: as SOLAS A DIREITO, qualquer que seja o angulo da perna. O pe ficava preso na pose do
+                encaixe (-1.15) enquanto as pernas se esticavam e as pontas subiam ate ~50 graus (captura A153A); e, solto para 0, a ponta
+                apontava para baixo com o joelho ainda dobrado. O pe compensa o que a anca, a coxa e o joelho somam.
+                */
+                const pelX = gkRig.pelvis ? gkRig.pelvis.rotation.x : 0;
+                const planta = (leg, knee) => THREE.MathUtils.clamp(-(pelX + leg.rotation.x + knee.rotation.x), -1.3, 0.5);
+                if (gkRig.lFoot) gkRig.lFoot.rotation.x = lerpTo(gkRig.lFoot.rotation.x, planta(gkRig.lLeg, gkRig.lKnee), 0.5);
+                if (gkRig.rFoot) gkRig.rFoot.rotation.x = lerpTo(gkRig.rFoot.rotation.x, planta(gkRig.rLeg, gkRig.rKnee), 0.5);
             }
 
             /*

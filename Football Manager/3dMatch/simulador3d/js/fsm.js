@@ -2308,7 +2308,17 @@ class PlayerFSM {
                     }
 
                     const nP = Math.min(1, p.peitoTimer / BallControl.peitoDur);
-                    p.velocity.multiplyScalar(0.75);
+                    if (p.peitoSaida && !(p.peitoCola > 0)) {
+                        /*
+                        MATADA COM TOQUE PARA O LADO: largada a bola, o corpo gira para o lado dela e o jogador arranca atras dela (BallControl.peitoLado).
+                        */
+                        const L = BallControl.peitoLado;
+                        const yaw = Math.atan2(p.peitoSaida.x, p.peitoSaida.z);
+                        const qs = p._peitoQ || (p._peitoQ = new THREE.Quaternion());
+                        qs.setFromAxisAngle(p._peitoEixo || (p._peitoEixo = new THREE.Vector3(0, 1, 0)), yaw);
+                        p.model.quaternion.rotateTowards(qs, L.giro * dt);
+                        p.velocity.set(p.peitoSaida.x * L.vel, 0, p.peitoSaida.z * L.vel);
+                    } else p.velocity.multiplyScalar(0.75);
 
                     /*
                     Inclina depressa e desfaz devagar: a bola bate no peito no
@@ -2322,6 +2332,7 @@ class PlayerFSM {
 
                     if (nP >= 1) {
                         p.peitoIntens = 0;
+                        p.peitoSaida = null;
                         this.changeState('IDLE');
                     }
                 }

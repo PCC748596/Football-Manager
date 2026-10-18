@@ -117,18 +117,14 @@ const Bancos = {
         return lista[h % lista.length];
     },
 
-    // O treinador: o corpo dos oficiais com o fato vestido (mangas e calças inteiras) + camisa branca e gravata ao peito.
-    _treinador(scene, zc, B, id, nomeEquipa) {
-        if (typeof Officials === 'undefined' || !Officials.criarCorpo) return null;
-        const T = B.treinador, fato = this._fato(nomeEquipa, B);
-        const feito = Officials.criarCorpo(id);
+    // Mangas e calças compridas: tudo o que é pele nos braços (menos a mão) e nas pernas passa a ser do pano `cor`.
+    _vestirPano(feito, cor) {
         const rig = feito.rig, jogador = feito.jogador;
-        // Mangas e calças compridas: tudo o que é pele nos braços (menos a mão) e nas pernas passa a ser do pano do fato.
         const pele = (jogador.aparencia && typeof jogador.aparencia.pele === 'number') ? jogador.aparencia.pele : null;
         // As juntas (joelhos, cotovelos) levam um tom de pele ligeiramente mais escuro: vem do primeiro joelho.
         let junta = null;
         rig.lKnee.traverse(o => { if (junta === null && o.isMesh && o.material && !Array.isArray(o.material) && o.material.color && !o.material.map) junta = o.material.color.getHex(); });
-        const panoMat = new THREE.MeshStandardMaterial({ color: fato.cor, roughness: 0.85 });
+        const panoMat = new THREE.MeshStandardMaterial({ color: cor, roughness: 0.85 });
         const daMao = (o) => { for (let q = o; q; q = q.parent) { if (q === rig.lHand || q === rig.rHand) return true; } return false; };
         const vestir = (osso) => {
             osso.traverse((o) => {
@@ -139,6 +135,15 @@ const Bancos = {
             });
         };
         [rig.lLeg, rig.rLeg, rig.lArm, rig.rArm].forEach(o => o && vestir(o));
+    },
+
+    // O treinador: o corpo dos oficiais com o fato vestido (mangas e calças inteiras) + camisa branca e gravata ao peito.
+    _treinador(scene, zc, B, id, nomeEquipa) {
+        if (typeof Officials === 'undefined' || !Officials.criarCorpo) return null;
+        const T = B.treinador, fato = this._fato(nomeEquipa, B);
+        const feito = Officials.criarCorpo(id);
+        const rig = feito.rig, jogador = feito.jogador;
+        this._vestirPano(feito, fato.cor);
         // A camisa e a gravata, coladas ao peito (filhos do `rig.chest`, que roda pela cintura).
         const tronco = rig.chest, prof = 0.75 * 0.5 + 0.02;
         const mk = (w, h, d, cor, y, z) => {
@@ -166,9 +171,52 @@ const Bancos = {
             const zc = z[equipa];
             this._estrutura(grupo, zc, B, hAssento);
             this._area(grupo, zc, B);
-            this.bancos.push({ equipa, zc, reservas: [], treinador: null, nome: null });
+            this.bancos.push({ equipa, zc, reservas: [], staff: [], treinador: null, nome: null });
         }
         return this.bancos.length;
+    },
+
+    // A posicao (z, relativa ao centro) do assento `i` do banco: reservas primeiro, depois o staff.
+    _zDoLugar(i, B) { return (i - (B.lugares - 1) / 2) * B.passoLugar; },
+
+    // Distancia entre duas cores em Lab (CIE76): o mesmo que o Officials usa para o traje da arbitragem.
+    _deltaCor(a, b) {
+        if (typeof Officials === 'undefined' || !Officials._corParaLab) return 100;
+        const la = Officials._corParaLab(a), lb = Officials._corParaLab(b);
+        return Math.hypot(la[0] - lb[0], la[1] - lb[1], la[2] - lb[2]);
+    },
+
+    /*
+    AS CORES DO STAFF: as do clube (escudo, camisa e calcao do uniforme) que mais se afastam da camisa dos jogadores — o medico veste a primeira,
+    o massagista a segunda (ou a mesma, se o clube so tiver uma). Sem nenhuma que sirva (>= 35 de distancia), um azul-escuro ou um cinza claro.
+    */
+    _coresDoStaff(info, uni, corCamisa) {
+        const cand = [];
+        const juntar = (c) => { if (c !== undefined && c !== null && c !== '' && c !== 'transparent') cand.push(c); };
+        if (info && info.escudo && info.escudo.cores) info.escudo.cores.forEach(juntar);
+        if (uni && uni.camisa && uni.camisa.cores) uni.camisa.cores.forEach(juntar);
+        if (uni && uni.calcao) juntar(typeof uni.calcao === 'string' ? uni.calcao : (uni.calcao.cores && uni.calcao.cores[0]));
+        const ok = [];
+        for (const c of cand) {
+            let valida = true;
+            try { new THREE.Color(c); } catch (e) { valida = false; }
+            if (valida && this._deltaCor(c, corCamisa) >= 35 && !ok.some(o => this._deltaCor(o, c) < 12)) ok.push(c);
+        }
+        if (!ok.length) ok.push(this._deltaCor('#1b2a4a', corCamisa) >= 35 ? '#1b2a4a' : '#d9dde3');
+        return ok;
+    },
+
+    // Um membro do staff: o corpo dos jogadores com camisa e calca compridas da cor do clube, sentado no banco.
+    _staff(B, cor, id, z, funcao) {
+        if (typeof Officials === 'undefined' || !Officials.criarCorpo) return null;
+        const feito = Officials.criarCorpo(id, cor, cor, true);
+        this._vestirPano(feito, new THREE.Color(cor).getHex());
+        this._sentar({ rig: feito.rig, model: feito.corpo });
+        feito.corpo.position.x = B.xBanco - 0.05;
+        feito.corpo.position.z = z;
+        feito.corpo.rotation.y = -Math.PI / 2;
+        this._scene.add(feito.corpo);
+        return { model: feito.corpo, rig: feito.rig, jogador: feito.jogador, funcao, cor };
     },
 
     // A pose sentada do público aplicada ao rig de um jogador, com a bacia à altura certa e os pés no chão.
@@ -192,8 +240,9 @@ const Bancos = {
     },
 
     _limpar(b) {
-        for (const r of b.reservas) { if (r.model && r.model.parent) r.model.parent.remove(r.model); }
+        for (const r of b.reservas.concat(b.staff || [])) { if (r.model && r.model.parent) r.model.parent.remove(r.model); }
         b.reservas = [];
+        b.staff = [];
     },
 
     /*
@@ -210,18 +259,24 @@ const Bancos = {
             const uni = b.equipa === 'A' ? uniA : uniB;
             const time = b.equipa === 'A' ? 'TeamA' : 'TeamB';
             const lista = (info && Array.isArray(info.banco))
-                ? info.banco.slice(0, B.lugares)
-                : Array.from({ length: B.lugares }, () => ({ id: null }));
+                ? info.banco.slice(0, B.reservas)
+                : Array.from({ length: B.reservas }, () => ({ id: null }));
             const corCamisa = (typeof corDoUniforme === 'function') ? corDoUniforme(uni, B.coresPorOmissao[b.equipa]) : B.coresPorOmissao[b.equipa];
             lista.forEach((j, i) => {
                 const p = new FootballPlayer(200 + (b.equipa === 'A' ? 0 : 20) + i, corCamisa, '#ffffff', time, uni, j.id || null);
                 this._sentar(p);
                 p.model.position.x = B.xBanco - 0.05;
-                p.model.position.z = b.zc + (i - (lista.length - 1) / 2) * B.passoLugar;
+                p.model.position.z = b.zc + this._zDoLugar(i, B);
                 p.model.rotation.y = -Math.PI / 2;
                 this._scene.add(p.model);
                 b.reservas.push(p);
                 n++;
+            });
+            // O MEDICO e o MASSAGISTA: nos ultimos assentos do banco, de camisa e calca compridas numa cor do clube.
+            const cores = this._coresDoStaff(info, uni, corCamisa);
+            (B.staff || []).forEach((funcao, k) => {
+                const feito = this._staff(B, cores[k % cores.length], 93 + (b.equipa === 'A' ? 0 : 2) + k, b.zc + this._zDoLugar(B.reservas + k, B), funcao);
+                if (feito) b.staff.push(feito);
             });
             // O treinador: o nome da equipa só decide a cor do fato.
             const nome = info && info.nome ? info.nome : b.equipa;

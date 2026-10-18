@@ -823,29 +823,83 @@ atributo era mostrar o que ele aguenta em vez do que lhe resta. A `stamina`
 continua a contar — é ela que manda no ritmo a que o depósito desce — e
 aparece no título da barra.
 */
+// O ESCUDO do time num elemento `.hud-jog-logo`: a imagem do clube, ou 3 barras verticais com as cores dele (como o TeamShield do manager); sem nada, a cor da equipa.
+function preencherEscudoHud(logoEl, uid, team) {
+    if (!logoEl) return;
+    const cor = (team === 'TeamA') ? '#3498db' : '#e74c3c';
+    const info = (team === 'TeamA') ? Match.equipaInfoA : Match.equipaInfoB;
+    const esc = info && info.escudo ? info.escudo : null;
+    const chaveEscudo = esc ? (esc.logo || (esc.cores || []).join(',')) : cor;
+    if (logoEl.dataset.escudo === chaveEscudo) return;
+    logoEl.dataset.escudo = chaveEscudo;
+    if (esc && esc.logo) {
+        logoEl.innerHTML = '<img src="' + esc.logo + '" alt="" style="width:100%;height:100%;object-fit:contain">';
+    } else {
+        const c = (esc && esc.cores && esc.cores[0]) ? esc.cores : [cor, cor, cor];
+        const c1 = c[0] || cor, c2 = c[1] || c1, c3 = (c[2] && c[2] !== 'transparent') ? c[2] : c1;
+        logoEl.innerHTML = '<svg viewBox="0 0 100 120" style="width:100%;height:100%"><defs><clipPath id="hudesc-' + uid + '"><path d="M0 0 L100 0 L100 40 C100 100 50 120 50 120 C50 120 0 100 0 40 Z"/></clipPath></defs>' +
+            '<g clip-path="url(#hudesc-' + uid + ')"><rect x="0" y="0" width="33" height="120" fill="' + c1 + '"/><rect x="33" y="0" width="34" height="120" fill="' + c2 + '"/><rect x="67" y="0" width="33" height="120" fill="' + c3 + '"/></g>' +
+            '<path d="M0 0 L100 0 L100 40 C100 100 50 120 50 120 C50 120 0 100 0 40 Z" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="4"/></svg>';
+    }
+}
+
+/*
+O CARTAO DE EVENTO (pedido): quando um contador sobe — remate, canto, falta, cartao... — mostra no topo, centrado, 50 px abaixo: ESCUDO numero NOME numero ESCUDO,
+cada equipa do seu lado (a da esquerda do ecra a esquerda). Dura `HUD_EVENTO.duracao` s; um evento novo substitui o anterior. Compara os contadores do MatchStats
+a cada frame (a primeira leitura e as quedas — novo jogo — so refazem a referencia).
+*/
+const HUD_EVENTO = {
+    duracao: 4.0,
+    eventos: [
+        { nome: 'SHOTS', le: s => s.remates.tentados },
+        { nome: 'SHOTS ON TARGET', le: s => s.remates.noAlvo },
+        { nome: 'CORNERS', le: s => s.cantos },
+        { nome: 'FOULS', le: s => s.faltas.cometidas },
+        { nome: 'OFFSIDES', le: s => s.impedimentos },
+        { nome: 'YELLOW CARDS', le: s => s.cartoes.amarelos },
+        { nome: 'RED CARDS', le: s => s.cartoes.vermelhos }
+    ],
+    _antes: null, _fim: 0, _ultimoAgora: 0
+};
+
+function updateHudEvento() {
+    const el = document.getElementById('hud-evento');
+    if (!el || typeof MatchStats === 'undefined' || !MatchStats.TeamA || !MatchStats.TeamB) return;
+    const H = HUD_EVENTO;
+    const agora = performance.now() / 1000;
+    const atual = H.eventos.map(e => [e.le(MatchStats.TeamA) || 0, e.le(MatchStats.TeamB) || 0]);
+    let novo = -1;
+    if (!H._antes) {
+        H._antes = atual;
+    } else {
+        for (let i = 0; i < atual.length; i++) {
+            if (atual[i][0] > H._antes[i][0] || atual[i][1] > H._antes[i][1]) novo = i;
+        }
+        H._antes = atual;
+    }
+    const antesDaSaida = Match.state === 'ABERTURA' || (typeof Abertura !== 'undefined' && Abertura.activa);
+    if (novo >= 0 && !antesDaSaida) {
+        const dirLado = (t) => (typeof Lados !== 'undefined' && Lados.dirDe) ? Lados.dirDe(t) : (t === 'TeamA' ? 1 : -1);
+        const esq = dirLado('TeamA') < 0 ? 'TeamA' : 'TeamB';
+        const dir = esq === 'TeamA' ? 'TeamB' : 'TeamA';
+        preencherEscudoHud(document.getElementById('hud-evento-logo-esq'), 'evento-esq', esq);
+        preencherEscudoHud(document.getElementById('hud-evento-logo-dir'), 'evento-dir', dir);
+        document.getElementById('hud-evento-num-esq').textContent = atual[novo][esq === 'TeamA' ? 0 : 1];
+        document.getElementById('hud-evento-num-dir').textContent = atual[novo][dir === 'TeamA' ? 0 : 1];
+        document.getElementById('hud-evento-nome').textContent = H.eventos[novo].nome;
+        el.classList.remove('oculto');
+        H._fim = agora + H.duracao;
+    }
+    if (!el.classList.contains('oculto') && (agora >= H._fim || antesDaSaida)) el.classList.add('oculto');
+}
+
 function preencherHudJogador(elId, p) {
     const el = document.getElementById(elId);
     if (!el) return;
     if (!p || !p.skills) { el.classList.add('oculto'); return; }
 
     const cor = (p.team === 'TeamA') ? '#3498db' : '#e74c3c';
-    // O ESCUDO do time no lugar do circulo: a imagem do clube, ou 3 barras verticais com as cores dele (como o TeamShield do manager); sem nada, a cor da equipa.
-    const info = (p.team === 'TeamA') ? Match.equipaInfoA : Match.equipaInfoB;
-    const esc = info && info.escudo ? info.escudo : null;
-    const logoEl = el.querySelector('.hud-jog-logo');
-    const chaveEscudo = esc ? (esc.logo || (esc.cores || []).join(',')) : cor;
-    if (logoEl.dataset.escudo !== chaveEscudo) {
-        logoEl.dataset.escudo = chaveEscudo;
-        if (esc && esc.logo) {
-            logoEl.innerHTML = '<img src="' + esc.logo + '" alt="" style="width:100%;height:100%;object-fit:contain">';
-        } else {
-            const c = (esc && esc.cores && esc.cores[0]) ? esc.cores : [cor, cor, cor];
-            const c1 = c[0] || cor, c2 = c[1] || c1, c3 = (c[2] && c[2] !== 'transparent') ? c[2] : c1;
-            logoEl.innerHTML = '<svg viewBox="0 0 100 120" style="width:100%;height:100%"><defs><clipPath id="hudesc-' + el.id + '"><path d="M0 0 L100 0 L100 40 C100 100 50 120 50 120 C50 120 0 100 0 40 Z"/></clipPath></defs>' +
-                '<g clip-path="url(#hudesc-' + el.id + ')"><rect x="0" y="0" width="33" height="120" fill="' + c1 + '"/><rect x="33" y="0" width="34" height="120" fill="' + c2 + '"/><rect x="67" y="0" width="33" height="120" fill="' + c3 + '"/></g>' +
-                '<path d="M0 0 L100 0 L100 40 C100 100 50 120 50 120 C50 120 0 100 0 40 Z" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="4"/></svg>';
-        }
-    }
+    preencherEscudoHud(el.querySelector('.hud-jog-logo'), el.id, p.team);
     // Nome | numero | posicao.
     const numero = (p.skills.numero !== undefined && p.skills.numero !== null && p.skills.numero !== '') ? p.skills.numero : p.num;
     el.querySelector('.hud-jog-nome').textContent = [p.skills.nome, numero, p.pos].filter(x => x !== undefined && x !== null && x !== '').join(' | ');
@@ -1091,6 +1145,7 @@ function animate(time) {
     if (!window._hudJogadoresLast || time - window._hudJogadoresLast > 200) {
         window._hudJogadoresLast = time;
         updateHudJogadores();
+        updateHudEvento();
     }
 
     // Minimapa a cada frame: são 23 pontos num canvas 2D, custa menos que

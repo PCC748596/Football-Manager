@@ -438,6 +438,15 @@
         </div>
     </div>
 
+    <!-- Evento do jogo (remate, canto, falta, cartao...): escudo, numero, NOME, numero, escudo; topo centrado, 50 px abaixo (main.js, updateHudEvento) -->
+    <div id="hud-evento" class="hud-jogador oculto">
+        <div class="hud-jog-logo" id="hud-evento-logo-esq"></div>
+        <div class="hud-evento-num" id="hud-evento-num-esq">0</div>
+        <div class="hud-evento-nome" id="hud-evento-nome">-</div>
+        <div class="hud-evento-num" id="hud-evento-num-dir">0</div>
+        <div class="hud-jog-logo" id="hud-evento-logo-dir"></div>
+    </div>
+
     <div id="modal-skills" class="oculto" onclick="if(event.target===this) fecharModalSkills()">
         <div id="modal-skills-caixa">
             <div id="modal-skills-cabecalho">

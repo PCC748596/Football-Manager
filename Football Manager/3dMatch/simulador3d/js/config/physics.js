@@ -849,8 +849,11 @@ const BancosDeReservas = {
     lado: 1,                 // +X: o das câmaras (o túnel está do lado oposto, TunelJogadores.lado)
     xBanco: 42.4,
     zBanco: 12.0,
-    lugares: 10,
-    passoLugar: 1.0,
+    lugares: 12,             // os assentos do banco: `reservas` jogadores + `staff.length` (medico e massagista)
+    reservas: 10,
+    passoLugar: 0.83,        // 12 assentos cabem nos 10 m do vao
+    // O medico e o massagista: sentam-se no fim do banco, com camisa e calca compridas numa cor do clube (a que mais se afasta da camisa dos jogadores).
+    staff: ['medico', 'massagista'],
     larguraVao: 10.0,        // metros de placa retirados em frente a cada banco: duas placas de 5 m
     cores: { assento: 0x23262d, costas: 0x2e323b, cobertura: 0x9fb4c8, estrutura: 0x3a3f4a, linha: 0xffffff },
     area: { xInterior: 35.0, meiaLargura: 6.0, tracoDash: 0.45, tracoVazio: 0.30, larguraLinha: 0.12 },
