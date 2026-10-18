@@ -830,7 +830,15 @@ linhas: % posse, finalizacoes, % passes certos, amarelos, vermelhos, corners, fa
 function mostrarModalIntervalo(ligar) {
     const el = document.getElementById('modal-intervalo');
     if (!el) return;
-    if (!ligar) { el.classList.add('oculto'); return; }
+    if (!ligar) {
+        el.classList.add('oculto');
+        const mc = document.getElementById('modal-classificacao');
+        if (mc) mc.classList.add('oculto');
+        window._classificacaoIntervalo = null;
+        return;
+    }
+    // Pede ao manager a classificacao actualizada (chega em `classificacao` e e mostrada por mostrarClassificacaoIntervalo).
+    if (typeof Ponte !== 'undefined' && Ponte.aoIntervaloIniciado) Ponte.aoIntervaloIniciado();
     if (typeof MatchStats === 'undefined' || !MatchStats.TeamA) return;
     const dirLado = (t) => (typeof Lados !== 'undefined' && Lados.dirDe) ? Lados.dirDe(t) : (t === 'TeamA' ? 1 : -1);
     const esq = dirLado('TeamA') < 0 ? 'TeamA' : 'TeamB';
@@ -869,6 +877,33 @@ function mostrarModalIntervalo(ligar) {
         const sf = l.sufixo || '';
         return '<div class="mi-linha"><div class="mi-valor esq">' + e + sf + '</div><div class="mi-rotulo">' + l.r + '</div><div class="mi-valor dir">' + d + sf + '</div>' +
             '<div class="mi-barra"><span style="width:' + pe + '%;background:' + cE + '"></span><span style="width:' + (100 - pe) + '%;background:' + cD + '"></span></div></div>';
+    }).join('');
+    el.classList.remove('oculto');
+}
+
+/*
+A CLASSIFICACAO DO INTERVALO (pedido): ao lado das estatisticas, a tabela do campeonato ate este momento (com o resultado provisorio do jogo em curso), para o treinador:
+posicao, escudo, nome, pontos, vitorias e os ultimos 5 jogos (bolinhas verde = vitoria, amarela = empate, vermelha = derrota). `linhas` vem do manager
+([{ pos, nome, logo, cores, pts, v, forma: ['V','E','D'...], destaque }]); so aparece enquanto o modal das estatisticas esta aberto.
+*/
+function mostrarClassificacaoIntervalo(linhas) {
+    const el = document.getElementById('modal-classificacao');
+    const stats = document.getElementById('modal-intervalo');
+    if (!el || !Array.isArray(linhas) || !linhas.length) return;
+    window._classificacaoIntervalo = linhas;
+    if (!stats || stats.classList.contains('oculto')) return;
+    const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const escudo = (l) => {
+        if (l.logo) return '<img src="' + esc(l.logo) + '" alt="" style="width:100%;height:100%;object-fit:contain">';
+        const c = l.cores || [], c1 = c[0] || '#64748b', c2 = (c[1] && c[1] !== 'transparent') ? c[1] : c1, c3 = (c[2] && c[2] !== 'transparent') ? c[2] : c1;
+        return '<svg viewBox="0 0 100 120" style="width:100%;height:100%"><path d="M0 0 L100 0 L100 40 C100 100 50 120 50 120 C50 120 0 100 0 40 Z" fill="' + esc(c1) + '"/>' +
+            '<rect x="33" y="0" width="34" height="115" fill="' + esc(c2) + '" opacity="0.9"/><rect x="67" y="0" width="33" height="100" fill="' + esc(c3) + '" opacity="0.9"/></svg>';
+    };
+    document.getElementById('mc-linhas').innerHTML = linhas.map(l => {
+        const forma = (l.forma || []).slice(-5);
+        const bolas = [0, 1, 2, 3, 4].map(i => '<i class="' + (forma[i - (5 - forma.length)] || '') + '"></i>').join('');
+        return '<div class="mc-linha' + (l.destaque ? ' dest' : '') + '"><span class="mc-pos">' + l.pos + '</span><span class="mc-esc">' + escudo(l) + '</span><span class="mc-nome">' + esc(l.nome) +
+            '</span><span class="mc-num">' + l.pts + '</span><span class="mc-num">' + l.v + '</span><span class="mc-forma">' + bolas + '</span></div>';
     }).join('');
     el.classList.remove('oculto');
 }

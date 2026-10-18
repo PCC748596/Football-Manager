@@ -6804,7 +6804,15 @@ class FootballPlayer {
         */
         const pecaCamisa = this.uniforme ? this.uniforme.camisa : null;
         if (pecaCamisa && typeof pintarPadraoDeEquipamento === 'function') {
-            pintarPadraoDeEquipamento(ctxBack, 512, 512, pecaCamisa, this.corCamisa);
+            /*
+            FAIXA DIAGONAL UNICA (Vasco-RJ): a faixa e SO NA FRENTE (pedido: *"a camisa do Vasco so tem a faixa na parte da frente; na de tras nao tem"*). As costas
+            ficam lisas na cor de fundo (`c1`), com o nome e o numero por cima.
+            */
+            const k = pecaCamisa.padrao === 'kit' ? pecaCamisa.kit : null;
+            const faixaUnica = !!(k && k.diagonal && k.c2 && !k.multipleDiagonals && !k.dualDiagonal);
+            if (faixaUnica) {
+                ctxBack.fillStyle = k.c1; ctxBack.fillRect(0, 0, 512, 512);
+            } else pintarPadraoDeEquipamento(ctxBack, 512, 512, pecaCamisa, this.corCamisa);
         } else {
             ctxBack.fillStyle = this.corCamisa; ctxBack.fillRect(0, 0, 512, 512);
         }

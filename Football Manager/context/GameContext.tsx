@@ -811,6 +811,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { ...res, events, homeScore: h, awayScore: a, played: false };
   };
 
+  // A classificacao do campeonato para o modal do intervalo no 3D: so jogos de liga ja jogados mais o resultado provisorio do jogo em curso. Por equipa: pontos,
+  // vitorias e os ultimos 5 resultados (V/E/D, do mais antigo para o mais recente).
+  const classificacaoDoIntervalo = (uf: Fixture) => {
+    type Linha = { t: Team; pts: number; v: number; gf: number; ga: number; forma: ('V' | 'E' | 'D')[] };
+    const tab = new Map<string, Linha>(teams.map(t => [t.id, { t, pts: 0, v: 0, gf: 0, ga: 0, forma: [] }]));
+    const jogos = fixtures.filter(f => f.played && countsForLeague(f)).map(f => ({ f, hs: f.homeScore || 0, as: f.awayScore || 0 }));
+    if (uf && !uf.played && countsForLeague(uf)) jogos.push({ f: uf, hs: uf.homeScore || 0, as: uf.awayScore || 0 });
+    jogos.sort((a, b) => (a.f.date < b.f.date ? -1 : a.f.date > b.f.date ? 1 : 0));
+    jogos.forEach(({ f, hs, as }) => {
+      const h = tab.get(f.homeTeamId), a = tab.get(f.awayTeamId);
+      if (!h || !a) return;
+      h.gf += hs; h.ga += as; a.gf += as; a.ga += hs;
+      if (hs > as) { h.pts += 3; h.v++; h.forma.push('V'); a.forma.push('D'); }
+      else if (as > hs) { a.pts += 3; a.v++; a.forma.push('V'); h.forma.push('D'); }
+      else { h.pts++; a.pts++; h.forma.push('E'); a.forma.push('E'); }
+    });
+    const ordem = Array.from(tab.values()).sort((a, b) => (b.pts - a.pts) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf));
+    return ordem.map((l, i) => ({
+      pos: i + 1, nome: l.t.name, logo: (l.t as any).logoUrl || null, cores: [l.t.primaryColor, l.t.secondaryColor, l.t.tertiaryColor],
+      pts: l.pts, v: l.v, forma: l.forma.slice(-5), destaque: !!uf && (l.t.id === uf.homeTeamId || l.t.id === uf.awayTeamId)
+    }));
+  };
+
   // Modo 3D: o motor corre ao vivo no iframe; aqui chegam os eventos dele. O relogio do manager espera por window.motor3dMinuto.
   const motor3dMensagem = (m: any) => {
     const uf = fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId));
@@ -829,6 +852,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         novos.forEach(e => { if (e.type === 'GOAL') { if (e.teamId === f.homeTeamId) h++; else a++; } });
         return { ...f, events: [...(f.events || []), ...novos], homeScore: h, awayScore: a };
       }));
+    } else if (m.tipo === 'intervalo_iniciado') {
+      // As estatisticas abriram no 3D: manda a classificacao ate este momento (com o resultado provisorio do jogo em curso).
+      const linhas = classificacaoDoIntervalo(uf);
+      if (linhas.length) simulador3dEnviar({ tipo: 'classificacao', linhas });
     } else if (m.tipo === 'intervalo_pronto') {
       // O campo ficou vazio e o 3D mostra as estatisticas: o relogio do manager para no intervalo (o botao passa a CONTINUAR) e o treinador decide quando sai o 2.o tempo.
       if (matchTimerRef.current) clearTimeout(matchTimerRef.current);
