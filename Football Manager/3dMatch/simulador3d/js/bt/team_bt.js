@@ -1050,6 +1050,19 @@ function computeBlock(bb) {
 
     let z0 = centroZ - (profundidade / 2);
     let z1 = centroZ + (profundidade / 2);
+    /*
+    COM MAIS DE 3 LINHAS o bloco estica-se na FRENTE (a traseira fica onde estava): `(K - 1) / 2` vezes a profundidade, para o intervalo entre linhas ser
+    o mesmo de uma formacao de 3 (ver BlockShape.linhasJuntaAte). K vem dos postos da propria equipa.
+    */
+    let nLinhasK = 3;
+    if (B.esticaBlocoComLinhas && bb.own) {
+        const ref = bb.own.find(pl => pl && pl.slot && typeof pl.slot.nLinhas === 'number');
+        if (ref) nLinhasK = ref.slot.nLinhas;
+    }
+    const chaveFormacao = (typeof Tatics !== 'undefined') ? (bb.team === 'TeamB' ? Tatics.formacaoB : Tatics.formacaoA) : null;
+    const ganhoLinhas = (B.ganhoDeLinhas && chaveFormacao && B.ganhoDeLinhas[chaveFormacao]) || 1;
+    const esticaoBloco = Math.max(1, (nLinhasK - 1) / 2) * ganhoLinhas;
+    if (esticaoBloco !== 1) z1 += profundidade * (esticaoBloco - 1);
 
     /* --- limites em Z (Regra 2 e Regra 3) ------------------------------- */
     const fundo = typeof LINHA_FUNDO !== 'undefined' ? LINHA_FUNDO : CAMPO_COMP / 2;
@@ -1205,6 +1218,9 @@ function computeBlock(bb) {
         terço da frente do bloco vazio por construção: o avançado (v = 1.0)
         parava a dois terços e arrastava a formação toda com ele.
         */
+        profBase: profundidade,   // a profundidade sem o esticamento das formacoes de 4+ linhas
+        esticao: esticaoBloco,
+        nLinhas: nLinhasK,
         zDef: z0 + (z1 - z0) * L.defesa,
         zMid: z0 + (z1 - z0) * L.meio,
         zAtk: z0 + (z1 - z0) * L.ataque,
@@ -1428,7 +1444,20 @@ function calcularPontoDoSlot(slot, pos, role, fbStyle, bb, linhaActual, fecharPo
     jogador está na formação, o segundo é onde a linha do meio está no bloco.
     */
     let targetZRaw;
-    if (v < 0.5) {
+    if (typeof slot.nLinhas === 'number' && slot.nLinhas >= 2 && typeof slot.linha === 'number') {
+        /*
+        AS LINHAS DA FORMACAO A INTERVALOS IGUAIS (ver `slot.linha` em assignFormations): a linha k de K fica a k/(K-1) do caminho entre a defesa e o
+        ataque do bloco. O desvio do desenho DENTRO da linha (`internaLinha`) e os ajustes de funcao e de posicao (v - slot.v) somam-se em metros, na escala
+        de sempre (a do bloco de 3 linhas: dividida pelo esticamento `(K - 1) / 2`).
+        */
+        const K = slot.nLinhas;
+        const esticao = bloco.esticao || Math.max(1, (K - 1) / 2);
+        const inclina = (bloco.zAtk - bloco.zDef) / esticao;
+        const intra = (slot.v - slot.vLinha) * ((typeof BlockShape !== 'undefined' && BlockShape.internaLinha) || 0.4);
+        const ajuste = v - slot.v;
+        targetZRaw = bloco.zDef + (slot.linha / (K - 1)) * (bloco.zAtk - bloco.zDef) + (intra + ajuste) * inclina;
+        targetZRaw = THREE.MathUtils.clamp(targetZRaw, Math.min(bloco.zDef, bloco.zAtk), Math.max(bloco.zDef, bloco.zAtk));
+    } else if (v < 0.5) {
         // Metade de trás da formação: entre a linha de defesa e a do meio.
         targetZRaw = bloco.zDef + (v / 0.5) * (bloco.zMid - bloco.zDef);
     } else {
@@ -1446,7 +1475,7 @@ function calcularPontoDoSlot(slot, pos, role, fbStyle, bb, linhaActual, fecharPo
         let distFrente = 5;
         let distTras = 5;
 
-        let emProfundidade = bb.isCounter || role === 'atk' || pos === 'LW' || pos === 'RW' || pos === 'LWB' || pos === 'RWB';
+        let emProfundidade = bb.isCounter || role === 'atk' || pos === 'LW' || pos === 'RW' || pos === 'LWB' || pos === 'RWB' || pos === 'AM';   // o AM e um criativo da frente: nao fica colado a bola
         if (emProfundidade) {
             distFrente = 20;
         }
@@ -1501,7 +1530,7 @@ function calcularPontoDoSlot(slot, pos, role, fbStyle, bb, linhaActual, fecharPo
         if (role === 'def') {
             const limiteCirculo = (typeof TeamShape !== 'undefined' && typeof TeamShape.limiteSaidaCirculoCentral === 'number')
                 ? TeamShape.limiteSaidaCirculoCentral : 0.0;
-            const zMidDir = bloco.z0 + 0.45 * (bloco.z1 - bloco.z0);
+            const zMidDir = bloco.z0 + 0.45 * (bloco.profBase || (bloco.z1 - bloco.z0));
             const zDefTeto = zMidDir - 3.5;
             
             const zLatAcompanha = Math.min(limiteCirculo, zDefTeto + 1.5);

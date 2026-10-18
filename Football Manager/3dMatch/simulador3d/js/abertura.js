@@ -202,6 +202,9 @@ const Abertura = {
 
         const f = -T.lado;
         const xBoca = T.xBoca + f * 3.0;              // a entrada do tunel, 3 m para fora da boca
+        // O CAMINHO PELO VAO DA PLACA (pedido: *"tem jogador saindo pela lateral e passando por cima das placas"*): todos vao primeiro ao ponto do relvado
+        // em frente a boca do tunel — onde a placa de publicidade esta aberta —, e so dai entram. Nunca em linha reta pela lateral.
+        const xVao = T.lado * (CAMPO_LARG / 2 + 1.5);
         const xDentro = T.xFundo + f * 0.9;           // dentro do tunel
         const frente = new THREE.Vector3();
         const nova = (tipo, obj, model, atraso) => {
@@ -209,7 +212,7 @@ const Abertura = {
             const zf = THREE.MathUtils.clamp(z, -AM.zFileira * 2, AM.zFileira * 2);
             frente.set(0, 0, 1).applyQuaternion(model.quaternion);
             const s = { tipo: tipo, obj: obj, model: model, k: 0, tSpawn: atraso, spawned: true, chegou: false, i: 0, x0: xDentro, z0: zf,
-                wps: [{ x: xBoca, z: z }, { x: xDentro, z: zf }], vel: C.velocidade, yaw: Math.atan2(frente.x, frente.z) };
+                wps: [{ x: xVao, z: zf }, { x: xBoca, z: zf }, { x: xDentro, z: zf }], vel: C.velocidade, yaw: Math.atan2(frente.x, frente.z) };
             this.partes.push(s);
             return s;
         };

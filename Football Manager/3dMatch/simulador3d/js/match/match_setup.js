@@ -2401,11 +2401,33 @@ Object.assign(Match, {
             const zSpan = (zMax - zMin) || 1;
             const contagemPos = {};
 
+            /*
+            AS LINHAS DA FORMACAO (pedido: *"tem sistemas com mais de 3 linhas, 4-2-3-1 por exemplo"*). Os postos do onze agrupam-se em linhas pelo desenho: dois
+            postos na mesma linha se a distancia deles em profundidade e menor que `BlockShape.linhasJuntaAte` metros (a defesa e os laterais, os dois meio-campistas
+            de um triangulo, os pontas e o avancado...). `slot.linha` e o indice da linha (0 = a de tras), `slot.nLinhas` quantas ha e `slot.vLinha` o v medio dela.
+            O `calcularPontoDoSlot` reparte as linhas por intervalos IGUAIS no bloco, sejam 3, 4 ou 5.
+            */
+            const juntaAte = (typeof BlockShape !== 'undefined' && BlockShape.linhasJuntaAte) || 10.0;
+            const vOrdenados = campo.map(f => (f.z - zMin) / zSpan).sort((a, b) => a - b);
+            const grupos = [];
+            for (const v of vOrdenados) {
+                const g = grupos[grupos.length - 1];
+                if (g && (v - g[g.length - 1]) * zSpan * (CAMPO_COMP / 2) < juntaAte) g.push(v); else grupos.push([v]);
+            }
+            const centros = grupos.map(g => g.reduce((a, b) => a + b, 0) / g.length);
+            const linhaDoV = (v) => { let k = 0, d = Infinity; centros.forEach((c, i) => { if (Math.abs(c - v) < d) { d = Math.abs(c - v); k = i; } }); return k; };
+
             for (let i = 0; i < 11; i++) {
                 const uVal = sentidoA ? (fData[i].x + 1) / 2 : (-fData[i].x + 1) / 2;
+                const vSlot = (fData[i].z - zMin) / zSpan;
+                const kLinha = (fData[i].role === 'gk') ? 0 : linhaDoV(vSlot);
                 const slot = (fData[i].role === 'gk') ? null : {
                     u: uVal,
-                    v: (fData[i].z - zMin) / zSpan
+                    v: vSlot,
+                    linha: kLinha,
+                    nLinhas: centros.length,
+                    vLinha: centros[kLinha],
+                    spanM: zSpan * (CAMPO_COMP / 2)
                 };
 
                 const x = sentidoA ? fData[i].x : -fData[i].x;

@@ -521,6 +521,21 @@ const BlockShape = {
     },
 
     /*
+    FORMACOES COM MAIS DE 3 LINHAS (4-2-3-1, 4-3-3 ATA...). `linhasJuntaAte`: dois postos a menos de tantos metros de profundidade (no desenho da formacao)
+    contam como a MESMA linha. As linhas de uma formacao ficam a intervalos IGUAIS entre `defesa` e `ataque`, e o bloco estica-se na frente `(K - 1) / 2`
+    vezes a profundidade (K = linhas; 3 linhas = como sempre), para o intervalo entre linhas ser o mesmo do 4-4-2 em qualquer sistema. `internaLinha`: quanto
+    do desnível de desenho DENTRO de uma linha (o 6 recuado do triangulo, o lateral a frente do central...) se mantem.
+    */
+    linhasJuntaAte: 10.0,
+    internaLinha: 0.4,
+    esticaBlocoComLinhas: true,
+    /*
+    GANHO DO INTERVALO ENTRE LINHAS POR FORMACAO (medido, 6 min por formacao, media de com e sem bola: 4-4-2 = 10.9 m entre linhas, a referencia).
+    Multiplica o esticamento do bloco: > 1 afasta as linhas, < 1 aproxima-as. Chave = a da formacao no motor (`mgr:` + nome do manager). Sem entrada = 1.
+    */
+    ganhoDeLinhas: { 'mgr:4-3-3': 1.17, 'mgr:4-3-3 ATA': 1.30, 'mgr:3-5-2': 0.87, 'mgr:5-4-1': 1.04, 'mgr:4-2-3-1': 1.18 },
+
+    /*
     TECTO DE DESVIO AO SLOT, por função e em metros.
 
     O slot é a formação; tudo o que vem depois (estilo, marcação, mola de
