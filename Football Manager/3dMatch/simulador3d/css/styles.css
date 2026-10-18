@@ -290,16 +290,22 @@ canvas {
 }
 
 /* O modal das ESTATISTICAS DO INTERVALO: o padrao dos cartoes (preto, a 40% aqui; sem cantos arredondados, texto branco), centrado. */
-#modal-intervalo {
+#intervalo-par {
     position: absolute;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%) scale(1.3);   /* +30% (pedido) */
     z-index: 20;
+    display: flex;
+    align-items: stretch;      /* as duas com a mesma altura */
+    gap: 8px;                  /* ~10 px depois da escala */
+    pointer-events: none;
+}
+#modal-intervalo {
     width: 520px;
     max-width: 92vw;
     padding: 16px 22px 18px;
-    background: rgba(0, 0, 0, 0.4);   /* 40% (pedido) */
+    background: rgba(0, 0, 0, 0.6);   /* 60% (pedido) */
     border: none;
     border-radius: 0;
     color: #ffffff;
@@ -320,21 +326,20 @@ canvas {
 
 /* A CLASSIFICACAO do intervalo: ao lado das estatisticas, no mesmo padrao (preto a 40%, sem cantos arredondados, texto branco). */
 #modal-classificacao {
-    position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 20;
     width: 330px;
     padding: 12px 14px 12px;
-    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.6);   /* 60% (pedido) */
     border: none;
     border-radius: 0;
     color: #ffffff;
 }
+#mc-linhas { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: space-between; }
+#modal-intervalo .hud-jog-logo { width: 52px; height: 63px; }   /* escudos +80% (pedido) */
 #modal-classificacao.oculto { display: none; }
 .mc-titulo { text-align: center; font-weight: 700; letter-spacing: 3px; font-size: 12px; margin-bottom: 8px; }
-.mc-cabeca, .mc-linha { display: flex; align-items: center; gap: 6px; height: 21px; font-size: 11px; }
+.mc-cabeca, .mc-linha { display: flex; align-items: center; gap: 6px; min-height: 21px; font-size: 11px; }
 .mc-cabeca { font-weight: 700; opacity: 0.75; font-size: 9px; letter-spacing: 1px; }
 .mc-linha.dest { background: rgba(255, 255, 255, 0.18); }
 .mc-pos { width: 18px; text-align: right; font-weight: 700; }

@@ -391,7 +391,10 @@ const Abertura = {
                 if (s.tipo === 'lin') Officials._ajustarPano(s.obj, dt);
                 continue;
             }
-            Officials.mover(s.obj, w.x, w.z, s.vel || AM.velocidade, dt, this.modo === 'segundo' ? undefined : olhar);
+            // A volta do intervalo: o trio sai do tunel e vai para os postos de frente para a BOLA (o centro) — antes ia de frente para onde andava e,
+            // ao chegar, ficava de costas para ela (relato: "no segundo tempo o juiz e os bandeirinhas correm de costas para a bola").
+            const bolaSeg = (this.modo === 'segundo' && typeof Match !== 'undefined' && Match.ball) ? { x: Match.ball.position.x, z: Match.ball.position.z } : undefined;
+            Officials.mover(s.obj, w.x, w.z, s.vel || AM.velocidade, dt, this.modo === 'segundo' ? bolaSeg : olhar);
             if (Math.hypot(w.x - s.model.position.x, w.z - s.model.position.z) < AM.chegada) s.chegou = true;
             else s.chegou = false;
             if (s.tipo === 'lin') Officials._ajustarPano(s.obj, dt);
