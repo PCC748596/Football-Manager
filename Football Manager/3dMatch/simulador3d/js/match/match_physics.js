@@ -150,7 +150,10 @@ Object.assign(Match, {
             Math.abs(this.ball.position.x) - BallPhysics.raio > CAMPO_LARG / 2 &&
             // ...e a ir para FORA. Uma bola já lá fora mas a entrar (a reposição
             // acabada de fazer, um ressalto na barreira) não é lateral nenhum.
-            Math.sign(this.ballVel.x) === Math.sign(this.ball.position.x)) {
+            // CONDUZIDA: com um jogador a levar a bola a `ballVel` é 0 (ela segue o pé dele) e a regra nunca disparava — o jogador passava a linha lateral
+            // a conduzir sem lateral. Conta como a sair se ele nao vem para dentro.
+            (Math.sign(this.ballVel.x) === Math.sign(this.ball.position.x) ||
+             (this.ballCarrier && this.ballCarrier.velocity && Math.sign(this.ballCarrier.velocity.x) !== -Math.sign(this.ball.position.x)))) {
             const ultimo = this.lastTouchedTeam || 'TeamA';
             const repoe = (ultimo === 'TeamA') ? 'TeamB' : 'TeamA';
             this.setupSetPiece('THROW_IN', repoe);

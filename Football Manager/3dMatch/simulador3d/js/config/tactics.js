@@ -215,6 +215,12 @@ const MatchDuration = {
     halfRealMinutes: 10,
     gameSecondsPerRealSecond: 4.5,
     intervaloSegundos: 8,       // duracao REAL do intervalo, em segundos
+    /*
+    O ACRESCIMO de cada tempo (pedido): cada substituicao soma `porSubstituicao` s, e cada falta um tempo sorteado entre `porFalta[0]` e `porFalta[1]` s —
+    de relogio de jogo, contados no proprio tempo. O tempo acaba a 45:00 (90:00) mais o acrescimo. Nao se aplica nos lotes do `Sim` (oculto), que decidem
+    eles proprios quando param. `maximo` (s) corta o total; null = sem corte.
+    */
+    acrescimo: { activo: true, porSubstituicao: 60, porFalta: [40, 80], maximo: null },
     get timeScale() {
         return (typeof GAME_SPEED !== 'undefined' && GAME_SPEED > 0)
             ? (this.gameSecondsPerRealSecond / GAME_SPEED)

@@ -829,6 +829,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         novos.forEach(e => { if (e.type === 'GOAL') { if (e.teamId === f.homeTeamId) h++; else a++; } });
         return { ...f, events: [...(f.events || []), ...novos], homeScore: h, awayScore: a };
       }));
+    } else if (m.tipo === 'intervalo_pronto') {
+      // O campo ficou vazio e o 3D mostra as estatisticas: o relogio do manager para no intervalo (o botao passa a CONTINUAR) e o treinador decide quando sai o 2.o tempo.
+      if (matchTimerRef.current) clearTimeout(matchTimerRef.current);
+      setGameState(prev => ({ ...prev, isProcessing: false, matchMode: 'NONE', matchMinute: Math.max(prev.matchMinute, maxHTDurationRef.current) }));
     } else if (m.tipo === 'fim') {
       motor3dRes.current[uf.id] = aplicarResultado(uf, m.resultado, casa, fora, players);
       w.motor3dMinuto = 999;

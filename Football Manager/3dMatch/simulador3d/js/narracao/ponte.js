@@ -313,6 +313,7 @@ const Ponte = {
         Match.segurarSaida = false;
         MatchStats.reset();
         Match.tempoDeJogo = 0; Match.placarA = 0; Match.placarB = 0;
+        Match.acrescimo1 = 0; Match.acrescimo2 = 0; Match.acr1Calculado = false; Match.acr2Calculado = false; Match.faltasNoIntervalo = 0; Match.substituicoes = 0; Match.substituicoesNoIntervalo = 0;
         Match.primeiroTempoAcabou = false;
         Eventos.reset();
         if (!this._ouvinte) {
@@ -425,6 +426,8 @@ const Ponte = {
 
     _acabou() {
         if (Match.state === 'FIM_DE_JOGO') return true;
+        // No jogo visivel quem acaba o jogo e o `verificarFimDeTempo` (45:00 / 90:00 mais o acrescimo): so o lote (oculto) conta pelo relogio.
+        if (!(typeof Sim !== 'undefined' && Sim.running)) return false;
         return Match.primeiroTempoAcabou && Match.tempoDeJogo >= this.fimEmMinutos * 60;
     },
 

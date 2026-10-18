@@ -289,7 +289,7 @@ canvas {
     transform-origin: right bottom;
 }
 
-/* O modal das ESTATISTICAS DO INTERVALO: o mesmo padrao dos cartoes (preto a 20%, sem cantos arredondados, texto branco), centrado. */
+/* O modal das ESTATISTICAS DO INTERVALO: o padrao dos cartoes (preto, a 40% aqui; sem cantos arredondados, texto branco), centrado. */
 #modal-intervalo {
     position: absolute;
     left: 50%;
@@ -299,7 +299,7 @@ canvas {
     width: 520px;
     max-width: 92vw;
     padding: 16px 22px 18px;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.4);   /* 40% (pedido) */
     border: none;
     border-radius: 0;
     color: #ffffff;

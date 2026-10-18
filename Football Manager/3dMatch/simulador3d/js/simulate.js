@@ -992,6 +992,7 @@ const Sim = {
             por jogo quando as fichas mostravam 2 a 3.
             */
             Match.tempoDeJogo = 0;
+            Match.acrescimo1 = 0; Match.acrescimo2 = 0; Match.acr1Calculado = false; Match.acr2Calculado = false; Match.faltasNoIntervalo = 0; Match.substituicoes = 0; Match.substituicoesNoIntervalo = 0;
             vigia.pos = null; vigia.parada = 0; vigia.jaRegistou = false;
 
             const totalPassos = Math.round(duracaoSeg / dt);

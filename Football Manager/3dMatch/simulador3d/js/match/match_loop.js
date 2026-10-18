@@ -9,19 +9,59 @@ Object.assign(Match, {
     verificarFimDeTempo: function () {
         if (this.state !== 'PLAY') return false;
         const meio = MatchDuration.halfGameMinutes * 60;
-        if (!this.primeiroTempoAcabou && this.tempoDeJogo >= meio) {
-            this.primeiroTempoAcabou = true;
-            this.iniciarIntervalo();
-            return true;
-        }
         const emLote = (typeof Sim !== 'undefined' && Sim.running);
-        if (this.primeiroTempoAcabou && !emLote && this.tempoDeJogo >= 2 * meio) {
-            this.mudarEstado('FIM_DE_JOGO', 'apito_final');
-            this.pararTodos();
-            if (typeof EfeitosSonoros !== 'undefined') EfeitosSonoros.apito(1.0);
-            return true;
+        if (!this.primeiroTempoAcabou) {
+            // 45:00: calcula-se o acrescimo (as faltas e substituicoes do 1.o tempo) e o tempo continua ate la.
+            if (!this.acr1Calculado && this.tempoDeJogo >= meio) {
+                this.acr1Calculado = true;
+                this.acrescimo1 = emLote ? 0 : this.calcularAcrescimo(0, 0);
+            }
+            if (this.acr1Calculado && this.tempoDeJogo >= meio + this.acrescimo1) {
+                this.primeiroTempoAcabou = true;
+                this.faltasNoIntervalo = this.faltasTotais();
+                this.substituicoesNoIntervalo = this.substituicoes || 0;
+                this.updatePlacar();   // o relogio mostra o minuto em que o tempo acabou (e nao o do frame anterior)
+                this.iniciarIntervalo();
+                return true;
+            }
+            return false;
+        }
+        if (!emLote) {
+            const fimBase = 2 * meio + this.acrescimo1;
+            if (!this.acr2Calculado && this.tempoDeJogo >= fimBase) {
+                this.acr2Calculado = true;
+                this.acrescimo2 = this.calcularAcrescimo(this.faltasNoIntervalo, this.substituicoesNoIntervalo);
+            }
+            if (this.acr2Calculado && this.tempoDeJogo >= fimBase + this.acrescimo2) {
+                this.updatePlacar();
+                this.mudarEstado('FIM_DE_JOGO', 'apito_final');
+                this.pararTodos();
+                if (typeof EfeitosSonoros !== 'undefined') EfeitosSonoros.apito(1.0);
+                return true;
+            }
         }
         return false;
+    },
+
+    // As faltas cometidas pelas duas equipas ate agora.
+    faltasTotais: function () {
+        if (typeof MatchStats === 'undefined' || !MatchStats.TeamA || !MatchStats.TeamB) return 0;
+        return (MatchStats.TeamA.faltas.cometidas || 0) + (MatchStats.TeamB.faltas.cometidas || 0);
+    },
+
+    /*
+    O ACRESCIMO de um tempo, em segundos de relogio de jogo (MatchDuration.acrescimo): `faltasAntes` / `substituicoesAntes` sao as contagens ate ao inicio do
+    tempo, para so contar as deste.
+    */
+    calcularAcrescimo: function (faltasAntes, substituicoesAntes) {
+        const A = MatchDuration.acrescimo;
+        if (!A || !A.activo) return 0;
+        const faltas = Math.max(0, this.faltasTotais() - (faltasAntes || 0));
+        const subs = Math.max(0, (this.substituicoes || 0) - (substituicoesAntes || 0));
+        let total = subs * A.porSubstituicao;
+        for (let i = 0; i < faltas; i++) total += A.porFalta[0] + Math.random() * (A.porFalta[1] - A.porFalta[0]);
+        if (typeof A.maximo === 'number') total = Math.min(total, A.maximo);
+        return Math.round(total);
     },
 
     /*

@@ -96,6 +96,8 @@ const Match = {
     ultimoToque: null,
     tempoParada: 0, delta: 0,
     placarA: 0, placarB: 0, tempoDeJogo: 0,
+    // O ACRESCIMO (ver verificarFimDeTempo): segundos de relogio de jogo somados a cada tempo; `substituicoes` conta as trocas feitas no tempo em curso.
+    acrescimo1: 0, acrescimo2: 0, acr1Calculado: false, acr2Calculado: false, faltasNoIntervalo: 0, substituicoes: 0, substituicoesNoIntervalo: 0,
     chaserA: null, chaserB: null,
     possessionTeam: null, possessionTimer: 0,
     lastTouchedTeam: 'TeamA', lastTouchedPlayer: null,
