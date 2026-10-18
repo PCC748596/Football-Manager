@@ -524,7 +524,7 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
     if (pecaMeiao) {
         pintarPadraoDeEquipamento(ctxS, 256, 256, pecaMeiao, corCamisa);
     } else {
-        ctxS.fillStyle = corCamisa; ctxS.fillRect(0, 0, 256, 256); ctxS.fillStyle = '#ffffff'; ctxS.fillRect(0, 20, 256, 30); ctxS.fillRect(0, 70, 256, 15);
+        ctxS.fillStyle = corCamisa; ctxS.fillRect(0, 0, 256, 256); ctxS.fillStyle = (UNI && UNI.argolas) ? UNI.argolas : '#ffffff'; ctxS.fillRect(0, 20, 256, 30); ctxS.fillRect(0, 70, 256, 15);
     }
     // (sem moldura: o contorno escuro pintado nas bordas da textura era o que marcava as arestas do meião)
     const sockTex = new THREE.CanvasTexture(cvsS);
@@ -1041,7 +1041,7 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
         const PERNA_BAIXO_AFUNIL = 0.85;
         const canela = criarPeca(caixaAfunilada(u * 0.35, u * 0.9, u * 0.35, PERNA_BAIXO_AFUNIL), blockMat, true); canela.position.y = -0.45;
         // 7 cm mais comprido para baixo (ESCALA_CORPO ~0.327 m/unidade: 0.07/0.327 = 0.214): o cano chega à chuteira.
-        const meiao = criarPeca(caixaAfunilada(u * 0.4, u * 1.064, u * 0.4, PERNA_BAIXO_AFUNIL), sockMats); meiao.position.y = -0.107; canela.add(meiao); joelho.add(canela);
+        const meiao = criarPeca(caixaAfunilada(u * 0.4, u * 1.064, u * 0.4, PERNA_BAIXO_AFUNIL), sockMats); meiao.position.y = -0.107; meiao.userData.meiao = { y: -0.107, meio: u * 1.064 / 2 }; canela.add(meiao); joelho.add(canela);
         const peG = new THREE.Group(); peG.position.y = -0.9; joelho.add(peG);
 
         // Largura do meião (0.40): os 2 cm de cada lado (0.52) foram retirados a pedido — a chuteira volta a ter a largura do meião.

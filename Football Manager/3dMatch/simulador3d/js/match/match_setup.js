@@ -2029,6 +2029,8 @@ Object.assign(Match, {
         this.esquecerJogadoresAntigos(todos);
         this.resetPlay();
         if (typeof MatchStats !== 'undefined' && MatchStats.reset) MatchStats.reset();
+        // A roupa do trio de arbitragem sorteia-se contra as camisas das equipas novas (Officials.vestir).
+        if (typeof Officials !== 'undefined' && Officials.vestir) Officials.vestir();
 
         /*
         QUEM MOSTRA JOGADORES TEM DE SABER QUE ELES MUDARAM.

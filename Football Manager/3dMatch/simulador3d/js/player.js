@@ -59,6 +59,7 @@ class FootballPlayer {
         proporções pedidas garantidas.
         */
         // Com o id REAL do jogador (manager / squads.js) a aparencia e a dele, sempre; sem ele, o baralho da equipa.
+        this._idMeiao = idReal || (this.id + (team === 'TeamB' ? 1000 : 0));
         this.aparencia = (idReal && typeof aparenciaDoJogador === 'function')
             ? aparenciaDoJogador(idReal)
             : escolherAparencia(this.id, 11, team === 'TeamA' ? 0 : 1);
@@ -3860,6 +3861,8 @@ class FootballPlayer {
     }
 
     initiateShoot() {
+        // Depois de tentar um remate o jogador fica `ShootingModel.esperaEntreRemates` s sem tentar outro (emZonaDeRemate).
+        this.chuteEspera = (typeof ShootingModel !== 'undefined' && ShootingModel.esperaEntreRemates) || 3.0;
         this.showActionBanner('SHOT');
         if (typeof MatchStats !== 'undefined') MatchStats[this.team].remates.tentados++;
         /*
@@ -4375,6 +4378,7 @@ class FootballPlayer {
     }
 
     update(dt) {
+        if (this.chuteEspera > 0) this.chuteEspera -= dt;
         // A abertura do jogo (js/abertura.js) manda neste jogador enquanto ele sai do tunel e se alinha.
         if (this.aberturaOrdem && typeof Abertura !== 'undefined' && Abertura.activa) {
             Abertura.passoDoJogador(this, dt);
@@ -6525,6 +6529,25 @@ class FootballPlayer {
     }
 
 
+    /*
+    MEIAO BAIXO (pedido: *"sorteia 20% dos jogadores de meio-campo ou ataque e ajusta o meiao mais baixo, na canela"*): 20% dos meias e atacantes,
+    sorteados pelo id (fixo para o mesmo jogador, como a aparencia), levam o meiao so ate `MeiaoBaixo.altura` da altura normal, a contar da chuteira;
+    acima dele fica a canela a descoberto. Chamado do updateShirt, onde o posto ja se conhece.
+    */
+    ajustarMeiaoBaixo() {
+        const M = (typeof MeiaoBaixo !== 'undefined') ? MeiaoBaixo : { chance: 0.2, altura: 0.55 };
+        const baixo = (this.role === 'mid' || this.role === 'atk') && typeof hashAparencia === 'function' &&
+            (hashAparencia(Number(this._idMeiao) >>> 0, 31) % 1000) < M.chance * 1000;
+        this.meiaoBaixo = !!baixo;
+        const s = baixo ? M.altura : 1;
+        this.model.traverse(o => {
+            const d = o.userData && o.userData.meiao;
+            if (!d) return;
+            o.scale.y = s;
+            o.position.y = (d.y - d.meio) + d.meio * s;
+        });
+    }
+
     updateShirt(num, pos) {
         /*
         VISTA TÁCTICA: na câmara de cima o jogador é um disco da cor da
@@ -6704,6 +6727,7 @@ class FootballPlayer {
         this.num = num;
         this.pos = pos;
         this.nomeCamisola = nome;
+        this.ajustarMeiaoBaixo();
         /*
         O PE BOM resolve-se AQUI, que e onde o posto se conhece: determinista
         pelo id (ver `pePreferido` em utils.js e o `FootModel`), com vies para

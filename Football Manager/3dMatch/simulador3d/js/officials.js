@@ -319,6 +319,29 @@ const RefereeModel = {
     corBota: '#0f1114',
 
     /*
+    OS TRAJES POSSIVEIS DO TRIO (ver Officials.sortearTraje). `prioridade`: tudo preto, tudo amarelo, tudo laranja — sorteia-se aqui primeiro.
+    `demais`: camisa de cor com calcao preto. `deltaMin`: a distancia minima (CIE76, Lab) entre a camisa do traje e qualquer camisa em campo.
+    */
+    trajes: {
+        deltaMin: 38,
+        prioridade: [
+            { nome: 'tudo preto',   camisa: '#14161a', calcao: '#14161a' },
+            { nome: 'tudo amarelo', camisa: '#f5e61b', calcao: '#f5e61b' },
+            { nome: 'tudo laranja', camisa: '#ff7a00', calcao: '#ff7a00' }
+        ],
+        demais: [
+            { nome: 'vermelha',        camisa: '#d6201f', calcao: '#14161a' },
+            { nome: 'azul claro',      camisa: '#4fb8ff', calcao: '#14161a' },
+            { nome: 'verde limao',     camisa: '#9be31a', calcao: '#14161a' },
+            { nome: 'amarelo fosfor.', camisa: '#e8ff1f', calcao: '#14161a' },
+            { nome: 'laranja',         camisa: '#ff7a00', calcao: '#14161a' },
+            { nome: 'preta',           camisa: '#14161a', calcao: '#14161a' },
+            { nome: 'rosa',            camisa: '#ff6fb5', calcao: '#14161a' },
+            { nome: 'lilas',           camisa: '#b58cf0', calcao: '#14161a' }
+        ]
+    },
+
+    /*
     DISCOS DA VISTA TACTICA. De 40 m de altura o boneco le-se mal, e os
     jogadores ja aparecem como discos da cor da equipa (ver updateShirt em
     player.js) — sem isto os arbitros eram os unicos bonecos no meio de vinte e
@@ -755,9 +778,19 @@ const Officials = {
     Os ossos têm os mesmos nomes (`lLeg`, `rKnee`, `lArm`, `chest`…), por isso o
     `mover()` aqui em baixo não muda nada.
     */
-    criarCorpo: function (id) {
+    criarCorpo: function (id, camisa, calcao) {
         const R = RefereeModel;
-        const jogador = new FootballPlayer(id, R.corCamisa, R.corCalcao, 'TeamA');
+        /*
+        GOLAS, BARRA DO SHORT E LISTAS DAS MEIAS PRETAS (pedido): num traje de cor o resto e preto — a gola (e os punhos), a barra do short (quando o
+        short e de cor) e as argolas do cano; a meia leva a cor da camisa. Sem cor, o traje de sempre.
+        */
+        const preto = R.corCamisa;
+        const uniforme = camisa ? {
+            gola: preto,
+            argolas: preto,
+            calcao: { cores: [calcao || camisa], barra: (calcao && calcao !== preto) ? { cor: preto, altura: 0.12 } : null }
+        } : null;
+        const jogador = new FootballPlayer(id, camisa || R.corCamisa, calcao || R.corCalcao, 'TeamA', uniforme);
 
         /*
         A ALTURA DOS OFICIAIS, fixa — ver RefereeModel.altura. O
@@ -872,6 +905,91 @@ const Officials = {
         // A bandeira, na mao direita de cada assistente.
         this.assistentes.forEach(a => this._criarBandeira(a));
         this.colocarInicial();
+        this.vestir();
+    },
+
+    /*
+    A ROUPA DO TRIO, SORTEADA PARA NAO SE CONFUNDIR COM A DOS JOGADORES (pedido: *"a roupa do trio de arbitragem nao pode confundir com a dos
+    jogadores"*). Reune todas as cores de camisa em campo (as duas equipas e os dois guarda-redes, riscas e golas incluidas) e sorteia entre os
+    trajes de `RefereeModel.trajes` por prioridade: primeiro os de `prioridade` (tudo preto, tudo amarelo, tudo laranja), depois os de `demais`
+    (camisa de cor com calcao preto). Um traje serve se a camisa dele estiver a `RefereeModel.trajes.deltaMin` (distancia CIE76 em Lab) ou mais de
+    TODAS as camisas em campo. Se nenhum servir, fica o que mais se afasta delas. As tres peças (arbitro e os dois assistentes) vestem o mesmo.
+    Chamado quando as equipas mudam (`Match.trocarEquipas`) e no arranque.
+    */
+    _corParaLab: function (cor) {
+        const c = new THREE.Color(cor);
+        const lin = (v) => v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        const r = lin(c.r), g = lin(c.g), b = lin(c.b);
+        const x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047;
+        const y = (0.2126 * r + 0.7152 * g + 0.0722 * b);
+        const z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883;
+        const f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+        return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
+    },
+
+    _coresDeCamisaEmCampo: function () {
+        const cores = [];
+        if (typeof Match === 'undefined') return cores;
+        const lista = [].concat(Match.players || [], Match.opponents || [], Match.expulsos || []);
+        const juntar = (c) => { if (c !== undefined && c !== null && c !== '') cores.push(c); };
+        for (const p of lista) {
+            if (!p) continue;
+            juntar(p.corCamisa);
+            const u = p.uniforme;
+            if (u) {
+                juntar(u.corPrincipal);
+                if (u.camisa && u.camisa.cores) u.camisa.cores.forEach(juntar);
+            }
+        }
+        return cores;
+    },
+
+    sortearTraje: function () {
+        const T = RefereeModel.trajes;
+        const labs = [];
+        for (const c of this._coresDeCamisaEmCampo()) {
+            try { labs.push(this._corParaLab(c)); } catch (e) { /* cor ilegivel: ignora-se */ }
+        }
+        const folga = (traje) => {
+            const l = this._corParaLab(traje.camisa);
+            let m = Infinity;
+            for (const o of labs) m = Math.min(m, Math.hypot(l[0] - o[0], l[1] - o[1], l[2] - o[2]));
+            return m;
+        };
+        const avaliar = (lista) => lista.map(t => ({ traje: t, folga: folga(t) }));
+        for (const grupo of [T.prioridade, T.demais]) {
+            const bons = avaliar(grupo).filter(a => a.folga >= T.deltaMin);
+            if (bons.length) {
+                const a = bons[Math.floor(Math.random() * bons.length)];
+                return Object.assign({ folga: a.folga }, a.traje);
+            }
+        }
+        // Nenhum serve: o que mais se afasta (empate: o de maior prioridade, que vem primeiro).
+        let melhor = null;
+        for (const a of avaliar(T.prioridade.concat(T.demais))) if (!melhor || a.folga > melhor.folga + 1e-6) melhor = a;
+        return Object.assign({ folga: melhor.folga }, melhor.traje);
+    },
+
+    vestir: function () {
+        if (!this.arbitro || typeof RefereeModel === 'undefined' || !RefereeModel.trajes) return null;
+        if (typeof Match === 'undefined' || !Match.players || !Match.players.length) return null;
+        const traje = this.sortearTraje();
+        this.trajeSorteado = traje;
+        const oficiais = [this.arbitro].concat(this.assistentes);
+        oficiais.forEach((o, i) => {
+            const velho = o.model;
+            const feito = this.criarCorpo(i, traje.camisa, traje.calcao);
+            feito.corpo.position.copy(velho.position);
+            feito.corpo.rotation.copy(velho.rotation);
+            feito.corpo.visible = velho.visible;
+            if (velho.parent) velho.parent.add(feito.corpo);
+            if (velho.parent) velho.parent.remove(velho);
+            o.model = feito.corpo;
+            o.rig = feito.rig;
+            o.jogador = feito.jogador;
+            if (i > 0) this._criarBandeira(o);
+        });
+        return traje;
     },
 
     /*

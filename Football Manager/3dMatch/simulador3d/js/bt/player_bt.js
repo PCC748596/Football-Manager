@@ -3390,6 +3390,8 @@ const ehGK = (ctx) => ctx.p.role === 'gk';
 // o jogador "pensar" 3s com o guarda-redes já batido à sua frente).
 function emZonaDeRemate(ctx) {
     const p = ctx.p;
+    // 3 s sem novo remate depois de um (ShootingModel.esperaEntreRemates).
+    if (p.chuteEspera > 0) return false;
 
     // Posição E jogador: um ST de técnica 90 e outro de 40 não rematam da mesma
     // maneira (ver tendenciaDeAccao, config/physics.js).

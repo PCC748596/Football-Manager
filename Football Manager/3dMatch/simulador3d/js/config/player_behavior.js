@@ -6,6 +6,9 @@ Aparência, visão, condução, drible, recepção/controlo de bola, percepção
 =============================================================================
 */
 
+// O meiao baixo (Player.ajustarMeiaoBaixo): `chance` dos meias e atacantes; `altura` = fraccao do cano normal que fica (a contar da chuteira).
+const MeiaoBaixo = { chance: 0.2, altura: 0.55 };
+
 const AppearanceModel = {
     tipos: [
         // Castanho claro é o mais comum, como pedido.

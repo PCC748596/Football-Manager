@@ -77,7 +77,7 @@ export const uniformeDoKit = (k: KitDetails, camisaDeLinha = true) => {
     camisa,
     // A aba e a barra da bainha do short (pose.js: calcao.barra), na cor da aba do kit.
     calcao: sh.aba ? { padrao: 'solido', cores: [sh.cor], barra: { cor: sh.aba, altura: 0.14 } } : { padrao: 'solido', cores: [sh.cor] },
-    meiao: { padrao: 'solido', cores: [k.c1] },
+    meiao: k.meiao ? { padrao: 'faixas', cores: k.meiao.cores, pesos: k.meiao.pesos, divisoes: k.meiao.cores.length } : { padrao: 'solido', cores: [k.c1] },
     corPrincipal: k.c1,
     gola: k.clc,   // cor da gola do kit (KitDetails.clc); sem ela o 3D usa o cinza de sempre
     numero: k.nc || (ehClara(k.c1) ? '#000000' : '#ffffff'),

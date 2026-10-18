@@ -225,6 +225,7 @@ export interface KitDetails {
   gradient?: boolean;
   spfcStripes?: boolean;
   criciumaStripes?: boolean;
+  meiao?: { cores: string[]; pesos: number[] }; // meião às faixas (de cima para baixo); sem ele é liso na cor c1
 }
 
 /*
@@ -478,7 +479,16 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
     }
 
     const cruzMalta = isVasco && diagonal;
-    return { c1, c2, c3, sc, nc, clc, noc, diagonal, horizontal, multipleDiagonals, dualDiagonal, centerVerticalStripes, gradient, spfcStripes, criciumaStripes, cruzMalta };
+    // O meião com desenho (faixas horizontais de cima para baixo; sem isto o meião é liso na cor da camisa).
+    let meiao: KitDetails['meiao'];
+    if (isFluminense && kitIdx <= 1) {
+        // Branco com uma lista grená e outra verde, separadas por uma branca.
+        meiao = { cores: ['#f2f2f2', '#831d1c', '#f2f2f2', '#004c27', '#f2f2f2'], pesos: [1, 1.1, 0.8, 1.1, 6] };
+    } else if (isVasco && kitIdx === 0) {
+        // Preto com a aba branca no alto.
+        meiao = { cores: ['#f2f2f2', '#000000'], pesos: [1.3, 8.7] };
+    }
+    return { c1, c2, c3, sc, nc, clc, noc, diagonal, horizontal, multipleDiagonals, dualDiagonal, centerVerticalStripes, gradient, spfcStripes, criciumaStripes, cruzMalta, meiao };
 };
 
 export const isColorLight = (hex: string) => {

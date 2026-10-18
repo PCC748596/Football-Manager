@@ -7,6 +7,8 @@ Remates, livres directos, penáltis, cantos, cruzamentos, cabeceamentos e xG.
 */
 
 const ShootingModel = {
+    // Segundos que um jogador espera, depois de tentar um remate a baliza, antes de poder tentar outro (Player.chuteEspera).
+    esperaEntreRemates: 3.0,
     /*
     Alcance a skill 0. 8.0 -> 10.5: medido em lotes de 30 jogos, as
     finalizacoes ficavam em 14.6 por jogo contra as 26.11 de um jogo a serio
