@@ -271,6 +271,11 @@ canvas {
     padding: 8px 12px;
 }
 
+/* O `.oculto` generico vem ANTES do display:flex do cartao e perdia: sem isto os cartoes nunca se escondiam. */
+.hud-jogador.oculto {
+    display: none;
+}
+
 /* 40% maiores (pedido): escala presa ao canto de baixo do lado de cada um. */
 #hud-jogador-esq {
     left: 20px;

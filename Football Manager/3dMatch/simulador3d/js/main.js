@@ -845,11 +845,11 @@ function preencherEscudoHud(logoEl, uid, team) {
 
 /*
 O CARTAO DE EVENTO (pedido): quando um contador sobe — remate, canto, falta, cartao... — mostra no topo, centrado, 50 px abaixo: ESCUDO numero NOME numero ESCUDO,
-cada equipa do seu lado (a da esquerda do ecra a esquerda). Dura `HUD_EVENTO.duracao` s; um evento novo substitui o anterior. Compara os contadores do MatchStats
+cada equipa do seu lado (a da esquerda do ecra a esquerda). Dura `HUD_EVENTO.duracao` (7) s; um evento novo substitui o anterior. Compara os contadores do MatchStats
 a cada frame (a primeira leitura e as quedas — novo jogo — so refazem a referencia).
 */
 const HUD_EVENTO = {
-    duracao: 4.0,
+    duracao: 7.0,
     eventos: [
         { nome: 'SHOTS', le: s => s.remates.tentados },
         { nome: 'SHOTS ON TARGET', le: s => s.remates.noAlvo },
@@ -924,7 +924,15 @@ function preencherHudJogador(elId, p) {
 }
 
 function updateHudJogadores() {
-    const carrier = Match.ballCarrier;
+    /*
+    SEM PISCAR: entre dois toques a bola fica solta (`ballCarrier` nulo) e o cartao apagava-se para voltar a acender no toque seguinte. Mantem-se o ultimo
+    portador 5 s depois de ele largar a bola; so depois disso (bola mesmo solta, lance parado...) o cartao se apaga.
+    */
+    const agoraHud = performance.now() / 1000;
+    if (Match.ballCarrier) { window._hudUltimoPortador = Match.ballCarrier; window._hudUltimoPortadorT = agoraHud; }
+    const ultimo = window._hudUltimoPortador;
+    const carrier = Match.ballCarrier ||
+        ((ultimo && ultimo.model && ultimo.model.parent && agoraHud - (window._hudUltimoPortadorT || 0) < 5.0) ? ultimo : null);
     // O cartao SO aparece depois de os times sairem da formacao alinhada (pedido): nao na entrada em campo (ABERTURA, `Abertura.activa`), nem com os
     // times alinhados a espera da saida (`kickoffActive`, `segurarSaida`). O batedor da saida ja tem a bola, e era isso que o acendia.
     const antesDaSaida = Match.state === 'ABERTURA' || Match.kickoffActive || Match.segurarSaida ||

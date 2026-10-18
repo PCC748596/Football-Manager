@@ -4798,7 +4798,11 @@ class FootballPlayer {
         Só enquanto o mergulho dura: acabado ele, o `GkDive` põe-o em 'idle' e
         o canto volta a ser tratado como sempre.
         */
-        const gkAMergulhar = (this.role === 'gk' && this.gkEstado === 'mergulho' && this.dive);
+        /*
+        O SALTO (do soco ou da cabeçada) TAMBEM: bola socada para canto a meio do salto passa o estado a CORNER_KICK com ele no ar, o `updateGK` deixava de
+        correr e o salto nunca acabava (o goleiro ficava no ar). Corre ate o gesto acabar e o goleiro cair ('idle').
+        */
+        const gkAMergulhar = (this.role === 'gk' && ((this.gkEstado === 'mergulho' && this.dive) || this.gkEstado === 'salto_alto'));
         // Acabado o mergulho que deu o canto, o `updateGK` continua a correr (so aqui, so ate chegar ao meio da baliza): ver `voltaAoMeioNoCanto`.
         if (this.voltaAoMeioNoCanto && (this.role !== 'gk' || Match.state !== 'CORNER_KICK')) this.voltaAoMeioNoCanto = false;
         const gkVoltaAoMeio = !!(this.role === 'gk' && this.voltaAoMeioNoCanto && Match.state === 'CORNER_KICK' && !gkAMergulhar);
@@ -9116,6 +9120,19 @@ class FootballPlayer {
                 this.gkEstado = 'idle';
                 this.gkSoco = null;
                 this.resetBonesToDefault();
+                /*
+                A SOLA NO RELVADO LOGO NA ATERRAGEM (relato: *"depois do soco o goleiro fica uns 7 ou 8 cm no ar; quando anda volta para a grama"*): a
+                altura da base nao e a do pe assente com as pernas na pose de repouso, e num canto (o `updateGK` pára e o assento so corre a andar) ficava
+                assim. Assenta-se de uma vez, sem o filtro de suavizacao.
+                */
+                const AS = (typeof AssentoNoChao !== 'undefined') ? AssentoNoChao : null;
+                if (AS) {
+                    const sv = AS.suavizacao, cm = AS.correccaoMax;
+                    AS.suavizacao = 1; AS.correccaoMax = Math.max(cm || 0, 0.3);
+                    this.jumpTimer = 0;
+                    for (let k = 0; k < 3; k++) this.assentarNoChao();
+                    AS.suavizacao = sv; AS.correccaoMax = cm;
+                }
             }
 
             /*
