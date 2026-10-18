@@ -94,7 +94,9 @@ const original = JSON.parse(JSON.stringify(window.FormacoesZonas));
 let T = JSON.parse(JSON.stringify(window.FormacoesZonas));
 try { const g = localStorage.getItem(LS); if (g) { const o = JSON.parse(g); if (o && o.formacoes) T = o; } } catch (e) { /* sem armazenamento */ }
 
-const st = { formacao: Object.keys(T.formacoes)[0], fase: 'com', zona: 4, previa: false, bola: { x: 0, z: 0 } };
+// So as formacoes do jogo com o manager (4-4-2, 4-3-3...): as chaves so com digitos (442, 433, 4231) sao as do simulador 3d solto e repetem estas.
+function chavesDoJogo() { const todas = Object.keys(T.formacoes); const doManager = todas.filter(k => !/^\d+$/.test(k)); return doManager.length ? doManager : todas; }
+const st = { formacao: chavesDoJogo()[0], fase: 'com', zona: 4, previa: false, bola: { x: 0, z: 0 } };
 const $ = (id) => document.getElementById(id);
 const svg = $('campo');
 svg.setAttribute('viewBox', '-6 -6 ' + (2 * L + 12) + ' ' + (2 * H + 12));
@@ -232,7 +234,7 @@ function render(leve) {
 
 // ---- controlos
 const sel = $('selFormacao');
-Object.keys(T.formacoes).forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = k; sel.appendChild(o); });
+chavesDoJogo().forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = k; sel.appendChild(o); });
 sel.addEventListener('change', () => { st.formacao = sel.value; render(); });
 $('tabCom').addEventListener('click', () => { st.fase = 'com'; render(); });
 $('tabSem').addEventListener('click', () => { st.fase = 'sem'; render(); });
@@ -274,8 +276,8 @@ $('fileImportar').addEventListener('change', (ev) => {
       const j = txt.indexOf('{'), k = txt.lastIndexOf('};');
       const obj = JSON.parse(txt.slice(j, k >= 0 ? k + 1 : txt.length));
       if (!obj.formacoes) throw new Error('sem formacoes');
-      T = obj; guardar(); st.formacao = Object.keys(T.formacoes)[0]; sel.innerHTML = '';
-      Object.keys(T.formacoes).forEach(kk => { const o = document.createElement('option'); o.value = kk; o.textContent = kk; sel.appendChild(o); });
+      T = obj; guardar(); st.formacao = chavesDoJogo()[0]; sel.innerHTML = '';
+      chavesDoJogo().forEach(kk => { const o = document.createElement('option'); o.value = kk; o.textContent = kk; sel.appendChild(o); });
       render(); dicaMsg('Importado.');
     } catch (e) { dicaMsg('Ficheiro inválido: ' + e.message); }
   };

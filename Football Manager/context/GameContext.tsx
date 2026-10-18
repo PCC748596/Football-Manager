@@ -824,8 +824,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const dosEventos = (f.events || []).filter(e => e.type === 'GOAL' && e.teamId === (casa ? f.homeTeamId : f.awayTeamId)).length;
       return Math.max(doEstado, dosEventos);
     };
-    fixtures.filter(f => !f.played && f.date === uf.date && countsForLeague(f)).forEach(f => jogos.push({ f, hs: golosDe(f, true), as: golosDe(f, false) }));
-    if (uf && !uf.played && countsForLeague(uf) && !jogos.some(j => j.f.id === uf.id)) jogos.push({ f: uf, hs: uf.homeScore || 0, as: uf.awayScore || 0 });
+    // (inclui o jogo mesmo que seja um amistoso: e a tabela "como ficaria" com os resultados de agora)
+    fixtures.filter(f => !f.played && f.date === uf.date).forEach(f => jogos.push({ f, hs: golosDe(f, true), as: golosDe(f, false) }));
+    if (uf && !uf.played && !jogos.some(j => j.f.id === uf.id)) jogos.push({ f: uf, hs: uf.homeScore || 0, as: uf.awayScore || 0 });
     jogos.sort((a, b) => (a.f.date < b.f.date ? -1 : a.f.date > b.f.date ? 1 : 0));
     jogos.forEach(({ f, hs, as }) => {
       const h = tab.get(f.homeTeamId), a = tab.get(f.awayTeamId);
@@ -835,10 +836,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       else if (as > hs) { a.pts += 3; a.v++; a.forma.push('V'); h.forma.push('D'); }
       else { h.pts++; a.pts++; h.forma.push('E'); a.forma.push('E'); }
     });
+    const emCurso = jogos.filter(j => !j.f.played).map(j => `${tab.get(j.f.homeTeamId)?.t.name} ${j.hs}-${j.as} ${tab.get(j.f.awayTeamId)?.t.name}`);
+    console.log('[classificacao do intervalo] jogos em curso incluidos:', emCurso.length, emCurso);
+    (classificacaoDoIntervalo as any).ultimoEmCurso = emCurso.length;
+    const vivo = new Map<string, string>();
+    jogos.filter(j => !j.f.played).forEach(j => { vivo.set(j.f.homeTeamId, `${j.hs}-${j.as}`); vivo.set(j.f.awayTeamId, `${j.as}-${j.hs}`); });
     const ordem = Array.from(tab.values()).sort((a, b) => (b.pts - a.pts) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf));
     return ordem.map((l, i) => ({
       pos: i + 1, nome: l.t.name, logo: (l.t as any).logoUrl || null, cores: [l.t.primaryColor, l.t.secondaryColor, l.t.tertiaryColor],
-      pts: l.pts, v: l.v, forma: l.forma.slice(-5), destaque: !!uf && (l.t.id === uf.homeTeamId || l.t.id === uf.awayTeamId)
+      pts: l.pts, v: l.v, forma: l.forma.slice(-5), vivo: vivo.get(l.t.id) || null, destaque: !!uf && (l.t.id === uf.homeTeamId || l.t.id === uf.awayTeamId)
     }));
   };
 
@@ -863,7 +869,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else if (m.tipo === 'intervalo_iniciado') {
       // As estatisticas abriram no 3D: manda a classificacao ate este momento (com o resultado provisorio do jogo em curso).
       const linhas = classificacaoDoIntervalo(uf);
-      if (linhas.length) simulador3dEnviar({ tipo: 'classificacao', linhas });
+      if (linhas.length) simulador3dEnviar({ tipo: 'classificacao', linhas, emCurso: (classificacaoDoIntervalo as any).ultimoEmCurso || 0 });
     } else if (m.tipo === 'intervalo_pronto') {
       // O campo ficou vazio e o 3D mostra as estatisticas: o relogio do manager para no intervalo (o botao passa a CONTINUAR) e o treinador decide quando sai o 2.o tempo.
       if (matchTimerRef.current) clearTimeout(matchTimerRef.current);

@@ -50,7 +50,7 @@ const Ponte = {
             if (m.tipo === 'iniciar') this.iniciar(m);
             else if (m.tipo === 'preparar') this.preparar(m);
             else if (m.tipo === 'segundo_tempo') this.segundoTempo();
-            else if (m.tipo === 'classificacao') { if (typeof mostrarClassificacaoIntervalo === 'function') mostrarClassificacaoIntervalo(m.linhas); }
+            else if (m.tipo === 'classificacao') { if (typeof mostrarClassificacaoIntervalo === 'function') mostrarClassificacaoIntervalo(m.linhas, m.emCurso); }
             else if (m.tipo === 'camera') this.camera(m.modo);
             else if (m.tipo === 'zoom') this.zoom(m.fator);
             else if (m.tipo === 'tela_cheia') { document.body.classList.toggle('tela-cheia', !!m.ligada); this.barraTopo(!!m.ligada); }

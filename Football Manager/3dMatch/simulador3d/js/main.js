@@ -827,7 +827,7 @@ aparece no título da barra.
 O MODAL DAS ESTATISTICAS DO INTERVALO (pedido): enquanto os jogadores saem de campo e durante a pausa do treinador. Equipa da esquerda do ecra a esquerda (como os cartoes);
 linhas: % posse, finalizacoes, % passes certos, amarelos, vermelhos, corners, faltas, impedimentos, defesas do guarda-redes. Match.iniciarSegundoTempo esconde-o.
 */
-function mostrarModalIntervalo(ligar) {
+function mostrarModalIntervalo(ligar, titulo) {
     const el = document.getElementById('modal-intervalo');
     if (!el) return;
     if (!ligar) {
@@ -837,6 +837,7 @@ function mostrarModalIntervalo(ligar) {
         window._classificacaoIntervalo = null;
         return;
     }
+    const tt = el.querySelector('.mi-titulo'); if (tt) tt.textContent = titulo || 'INTERVALO';
     // Pede ao manager a classificacao actualizada (chega em `classificacao` e e mostrada por mostrarClassificacaoIntervalo).
     if (typeof Ponte !== 'undefined' && Ponte.aoIntervaloIniciado) Ponte.aoIntervaloIniciado();
     if (typeof MatchStats === 'undefined' || !MatchStats.TeamA) return;
@@ -886,7 +887,7 @@ A CLASSIFICACAO DO INTERVALO (pedido): ao lado das estatisticas, a tabela do cam
 posicao, escudo, nome, pontos, vitorias e os ultimos 5 jogos (bolinhas verde = vitoria, amarela = empate, vermelha = derrota). `linhas` vem do manager
 ([{ pos, nome, logo, cores, pts, v, forma: ['V','E','D'...], destaque }]); so aparece enquanto o modal das estatisticas esta aberto.
 */
-function mostrarClassificacaoIntervalo(linhas) {
+function mostrarClassificacaoIntervalo(linhas, emCurso) {
     const el = document.getElementById('modal-classificacao');
     const stats = document.getElementById('modal-intervalo');
     if (!el || !Array.isArray(linhas) || !linhas.length) return;
@@ -902,9 +903,11 @@ function mostrarClassificacaoIntervalo(linhas) {
     document.getElementById('mc-linhas').innerHTML = linhas.map(l => {
         const forma = (l.forma || []).slice(-5);
         const bolas = [0, 1, 2, 3, 4].map(i => '<i class="' + (forma[i - (5 - forma.length)] || '') + '"></i>').join('');
-        return '<div class="mc-linha' + (l.destaque ? ' dest' : '') + '"><span class="mc-pos">' + l.pos + '</span><span class="mc-esc">' + escudo(l) + '</span><span class="mc-nome">' + esc(l.nome) +
+        return '<div class="mc-linha' + (l.destaque ? ' dest' : '') + '"><span class="mc-pos">' + l.pos + '</span><span class="mc-esc">' + escudo(l) + '</span><span class="mc-nome">' + esc(l.nome) + (l.vivo ? ' <small style="opacity:.8;font-weight:400">(' + esc(l.vivo) + ' ao vivo)</small>' : '') +
             '</span><span class="mc-num">' + l.pts + '</span><span class="mc-num">' + l.v + '</span><span class="mc-forma">' + bolas + '</span></div>';
     }).join('');
+    const nota = document.getElementById('mc-nota');
+    if (nota) nota.textContent = (typeof emCurso === 'number') ? ('inclui ' + emCurso + ' jogos em curso') : '';
     el.classList.remove('oculto');
 }
 

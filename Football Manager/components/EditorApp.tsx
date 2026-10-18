@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { REAL_TEAMS_JSON, REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from '../textSim/realDatabase';
 import { ShirtIcon } from './ShirtIcon';
+import { urlSimulador } from '../3dMatch/simulador3dCliente';
 
-type EditorTab = 'TEAMS' | 'PLAYERS' | 'LEAGUES';
+type EditorTab = 'TEAMS' | 'PLAYERS' | 'LEAGUES' | 'TACTICS';
 
 export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState<EditorTab>('TEAMS');
@@ -64,7 +65,7 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       </div>
 
       <div className="flex gap-4 border-b border-slate-800 mb-4">
-        {(['TEAMS', 'PLAYERS', 'LEAGUES'] as EditorTab[]).map(tab => (
+        {(['TEAMS', 'PLAYERS', 'LEAGUES', 'TACTICS'] as EditorTab[]).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -436,6 +437,11 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                )}
             </div>
           </>
+        )}
+
+        {activeTab === 'TACTICS' && (
+          // O editor de formacoes por zona do simulador 3D (tacticsEditor.html), servido pelo mesmo servidor do 3D.
+          <iframe title="Tactics editor" src={urlSimulador().replace(/index\.html$/, 'tacticsEditor.html')} className="w-full h-full border-0 rounded bg-slate-900" />
         )}
 
         {activeTab === 'LEAGUES' && (

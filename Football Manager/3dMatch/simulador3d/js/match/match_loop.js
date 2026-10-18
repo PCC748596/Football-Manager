@@ -36,6 +36,8 @@ Object.assign(Match, {
                 this.updatePlacar();
                 this.mudarEstado('FIM_DE_JOGO', 'apito_final');
                 this.pararTodos();
+                // As estatisticas totais e a classificacao no fim do jogo (os mesmos paineis do intervalo).
+                if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(true, 'FIM DE JOGO');
                 if (typeof EfeitosSonoros !== 'undefined') EfeitosSonoros.apito(1.0);
                 return true;
             }
