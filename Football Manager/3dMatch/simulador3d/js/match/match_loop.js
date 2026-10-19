@@ -357,10 +357,28 @@ Object.assign(Match, {
                 const FKE = (typeof FreeKickModel !== 'undefined') ? FreeKickModel : null;
                 // O cartao a ser mostrado segura sempre; o caido (a rolar e deitado, ~7 s) so nos primeiros `esperaCaido` s da falta.
                 // O relogio da ESPERA (o `setPieceTimer` nao serve: recua enquanto algo segura a cobranca, ver mais abaixo).
-                this.faltaDecorrida = (this.faltaDecorrida || 0) + dt;
                 const cartaoNaMao = (typeof Officials !== 'undefined' && Officials.cartaoAMostrar && Officials.cartaoAMostrar());
+                /*
+                FALTA COM CARTAO: so se cobra depois de o juiz acabar de dar o cartao E apitar (pedido: *"o batedor cobra a falta mas nao da tempo da barreira se arrumar"*).
+                Dois erros: o relogio da espera (`faltaDecorrida`) corria durante o cartao, e quando ele acabava os prazos dos caidos e de quem ia a caminho do lugar
+                (`esperaCaido`, `esperaCaminhantes`) ja tinham esgotado — cobrava-se logo, com a barreira ainda a andar. Agora o relogio so conta sem o cartao, e quando o
+                cartao acaba o juiz apita (`FreeKickModel.apitoAposCartao` s) antes de a falta poder sair.
+                */
+                if (!cartaoNaMao) this.faltaDecorrida = (this.faltaDecorrida || 0) + dt;
+                if (cartaoNaMao) this._cartaoVisto = true;
+                else if (this._cartaoVisto) {
+                    this._cartaoVisto = false;
+                    this._apitoPosCartao = (FKE && FKE.apitoAposCartao) || 1.5;
+                    if (typeof EfeitosSonoros !== 'undefined' && EfeitosSonoros.apito) EfeitosSonoros.apito(1.0);
+                }
+                const aApitar = this._apitoPosCartao > 0;
+                if (aApitar) this._apitoPosCartao -= dt;
                 const batedorACaminho = !!(this.setPieceTaker && this.setPieceTaker.lugarBolaParada);
-                const faltaSegura = !!cartaoNaMao || batedorACaminho ||
+                // A BARREIRA ARRUMADA: enquanto algum dos seus nao estiver no lugar (a menos de 0.6 m), ate `esperaBarreira` s depois do cartao/apito, a falta nao sai
+                // (relato: 5 na barreira, 3 atras e 2 a frente).
+                const barreiraDesarrumada = !!(this.faltaDirectaBarreira && this.faltaDirectaBarreira.length && this.faltaDecorrida < ((FKE && FKE.esperaBarreira) || 6.0) &&
+                    this.faltaDirectaBarreira.some(b => b && b.barreiraSlot && b.model && Math.hypot(b.barreiraSlot.x - b.model.position.x, b.barreiraSlot.z - b.model.position.z) > 0.6));
+                const faltaSegura = !!cartaoNaMao || aApitar || barreiraDesarrumada || batedorACaminho ||
                     (this.algumCaidoDaFalta(false) && this.faltaDecorrida < ((FKE && FKE.esperaCaido) || 4.0)) ||
                     (this.algumACaminhoDoLugar(false) && this.faltaDecorrida < ((FKE && FKE.esperaCaminhantes) || 4.0));
                 if (faltaSegura) {

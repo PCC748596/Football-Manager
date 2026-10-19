@@ -1098,6 +1098,7 @@ Object.assign(Match, {
             this._faltaPlano = null;   // o plano da corrida do batedor (match_loop.js) e por falta
             this.faltaAproximando = false;
             this.faltaDecorrida = 0;
+            this._cartaoVisto = false; this._apitoPosCartao = 0;
             this.faltaAtraso = (typeof FreeKickModel !== 'undefined' && typeof FreeKickModel.esperaFalta === 'number') ? FreeKickModel.esperaFalta : ESPERA_APOS_REPOSICAO;
 
         } else if (type === 'PENALTY') {

@@ -841,6 +841,10 @@ const BolaParadaAndada = {
 if (typeof window !== 'undefined') window.BolaParadaAndada = BolaParadaAndada;
 
 const FreeKickModel = {
+    // Segundos entre o fim do cartao e a cobranca (o juiz apita antes de a falta sair).
+    apitoAposCartao: 1.5,
+    // Segundos de espera, no maximo (contados sem o cartao), para a barreira ficar toda no lugar antes de a falta sair.
+    esperaBarreira: 6.0,
     /*
     DECISÃO DA COBRANÇA — ver decisaoDeFalta em utils.js. Três casos:
 
