@@ -134,6 +134,7 @@ Object.assign(Match, {
             if (pr.estado === 'sentado') {
                 if (!ativo) continue;
                 pr.assento = { x: s.model.position.x, z: s.model.position.z, rot: s.model.rotation.y };
+                Bancos.descongelar(s);
                 const r = s.rig;
                 r.lLeg.rotation.set(0, 0, 0); r.rLeg.rotation.set(0, 0, 0); r.lKnee.rotation.set(0, 0, 0); r.rKnee.rotation.set(0, 0, 0);
                 r.chest.rotation.x = 0;
@@ -178,6 +179,7 @@ Object.assign(Match, {
                         s.rig.lArm.rotation.set(0, 0, 0); s.rig.rArm.rotation.set(0, 0, 0);
                         Bancos._sentar(s);
                         s.model.rotation.y = a.rot;
+                        Bancos.congelar(s);
                         pr.estado = 'sentado';
                     }
                 }
@@ -240,6 +242,7 @@ Object.assign(Match, {
         req.passos = passos; req.passo = req.junto ? req.idxEspera : 0; req.t = 0;
         // Levanta-se: a pose do banco sai, a posicao de pe fica onde estava sentado.
         req.assento = { x: B.model.position.x, z: B.model.position.z, rot: B.model.rotation.y };
+        if (typeof Bancos !== 'undefined') Bancos.descongelar(B);
         B.resetBonesToDefault();
         B.model.position.y = (typeof ALTURA_BASE_Y === 'number') ? ALTURA_BASE_Y : 0;
         B.animTimer = 0; B.velAnim = 0; B.paradoNoAlvo = true;
@@ -374,7 +377,7 @@ Object.assign(Match, {
             if (req.passo >= pontos.length) {
                 P.model.position.set(req.assento.x, P.model.position.y, req.assento.z);
                 P.model.rotation.y = req.assento.rot;
-                if (typeof Bancos !== 'undefined' && Bancos._sentar) { P.resetBonesToDefault(); Bancos._sentar(P); P.model.rotation.y = req.assento.rot; }
+                if (typeof Bancos !== 'undefined' && Bancos._sentar) { P.resetBonesToDefault(); Bancos._sentar(P); P.model.rotation.y = req.assento.rot; if (Bancos.congelar) Bancos.congelar(P); }
                 req.feita = true;
             }
         }

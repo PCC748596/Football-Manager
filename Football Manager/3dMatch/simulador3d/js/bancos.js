@@ -240,8 +240,63 @@ const Bancos = {
         if (isFinite(minY)) p.model.position.y = -minY;
     },
 
+    /*
+    CONGELAR UM CORPO PARADO (desempenho). Cada boneco sao ~60 malhas, ou seja ~60 chamadas de desenho: os 20 reservas e o staff sentados duplicavam as do jogo
+    inteiro (a queda de FPS que ligava o modo de desempenho e fazia a torcida sumir). Sentados nao mexem: as malhas de cada MATERIAL (8 por corpo) fundem-se numa
+    so, ja na posicao do mundo, e as originais escondem-se (~12 chamadas em vez de 59). As de material em lista (os numeros da camisa) ficam como estao.
+    `descongelar` repoe tudo (o reserva que se levanta para aquecer).
+    */
+    congelar(p) {
+        if (!p || !p.model || p._congelado || !p.model.parent || typeof THREE === 'undefined') return;
+        const m = p.model;
+        m.updateMatrixWorld(true);
+        const porMaterial = new Map();
+        const visivel = (o) => { for (let q = o; q; q = q.parent) { if (!q.visible) return false; if (q === m) break; } return true; };
+        m.traverse(o => {
+            if (!o.isMesh || !o.geometry || Array.isArray(o.material) || !visivel(o)) return;
+            if (!o.geometry.attributes.position || !o.geometry.attributes.normal) return;
+            if (!porMaterial.has(o.material)) porMaterial.set(o.material, []);
+            porMaterial.get(o.material).push(o);
+        });
+        const novos = [], ocultos = [];
+        for (const [mat, lista] of porMaterial) {
+            let nv = 0, ni = 0, comUv = true;
+            const geos = lista.map(o => { const g = o.geometry.clone(); g.applyMatrix4(o.matrixWorld); nv += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; if (!g.attributes.uv) comUv = false; return g; });
+            const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), uv = comUv ? new Float32Array(nv * 2) : null;
+            const idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+            let vo = 0, io = 0;
+            for (const g of geos) {
+                const n = g.attributes.position.count;
+                pos.set(g.attributes.position.array, vo * 3); nor.set(g.attributes.normal.array, vo * 3);
+                if (uv) uv.set(g.attributes.uv.array, vo * 2);
+                if (g.index) { for (let i = 0; i < g.index.count; i++) idx[io++] = g.index.array[i] + vo; }
+                else { for (let i = 0; i < n; i++) idx[io++] = vo + i; }
+                vo += n; g.dispose();
+            }
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+            if (uv) geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+            geo.setIndex(new THREE.BufferAttribute(idx, 1));
+            const malha = new THREE.Mesh(geo, mat);
+            malha.matrixAutoUpdate = false; malha.castShadow = false; malha.receiveShadow = lista[0].receiveShadow;
+            m.parent.add(malha);
+            novos.push(malha);
+            for (const o of lista) { o.visible = false; ocultos.push(o); }
+        }
+        p._congelado = { novos, ocultos };
+    },
+
+    descongelar(p) {
+        const c = p && p._congelado;
+        if (!c) return;
+        for (const o of c.ocultos) o.visible = true;
+        for (const n of c.novos) { if (n.parent) n.parent.remove(n); if (n.geometry) n.geometry.dispose(); }
+        p._congelado = null;
+    },
+
     _limpar(b) {
-        for (const r of b.reservas.concat(b.staff || [])) { if (r.model && r.model.parent) r.model.parent.remove(r.model); }
+        for (const r of b.reservas.concat(b.staff || [])) { this.descongelar(r); if (r.model && r.model.parent) r.model.parent.remove(r.model); }
         b.reservas = [];
         b.staff = [];
     },
@@ -273,13 +328,14 @@ const Bancos = {
                 p.model.rotation.y = -Math.PI / 2;
                 this._scene.add(p.model);
                 b.reservas.push(p);
+                this.congelar(p);
                 n++;
             });
             // O MEDICO e o MASSAGISTA: nos ultimos assentos do banco, de camisa e calca compridas numa cor do clube.
             const cores = this._coresDoStaff(info, uni, corCamisa);
             (B.staff || []).forEach((funcao, k) => {
                 const feito = this._staff(B, cores[k % cores.length], 93 + (b.equipa === 'A' ? 0 : 2) + k, b.zc + this._zDoLugar(B.reservas + k, B), funcao);
-                if (feito) b.staff.push(feito);
+                if (feito) { b.staff.push(feito); this.congelar(feito); }
             });
             // O treinador: o nome da equipa só decide a cor do fato.
             const nome = info && info.nome ? info.nome : b.equipa;

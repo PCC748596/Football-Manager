@@ -1095,9 +1095,9 @@ function animate(time) {
         let titleEl = document.getElementById('app-title');
         if (titleEl) titleEl.innerText = 'SOCCER SIM | FPS: ' + fps;
         
-        if (fps < 40 && window.Config && window.Config.enableCrowd && !window.crowdDisabledByFps) {
+        if (fps < 30 && window.Config && window.Config.enableCrowd && !window.crowdDisabledByFps) {
             window.consecutiveLowFps = (window.consecutiveLowFps || 0) + 1;
-            if (window.consecutiveLowFps >= 4) { // 4 segundos consecutivos abaixo de 40 FPS
+            if (window.consecutiveLowFps >= 10) { // 10 segundos consecutivos abaixo de 30 FPS (a torcida sumia por quedas curtas)
                 window.crowdDisabledByFps = true;
                 if (typeof Crowd !== 'undefined') Crowd.setVisivel(false);
                 let uiToggle = document.getElementById('toggle-fans');
