@@ -739,6 +739,7 @@ Object.assign(Match, {
         sai da posição em Z de cada lugar face aos extremos do estádio.
         */
         const lugares = [];
+        const ADEPTO_DESCE = (typeof Crowd !== 'undefined' && Crowd.descidaDoAdepto) || 0.30, ADEPTO_AVANCA = 0.30;   // ver addSeatInstance
 
         function addSeatInstance(x, y, z, rotY, fila, coluna) {
             if (seatIndex >= maxSeats) return;
@@ -750,7 +751,13 @@ Object.assign(Match, {
             seatIndex++;
 
             // O adepto senta-se um pouco acima do assento.
-            lugares.push({ x: x, y: y + 0.13, z: z, rotY: rotY });
+            /*
+            ONDE O ADEPTO SE SENTA, sem as cadeiras (que ja nao se desenham). O boneco sentado tem os pes em y = 0 e o calcao a 0.32-0.63 m, e a origem estava em
+            `y + 0.13` = 0.28 m ACIMA do degrau: com a cadeira por baixo nao se dava por isso, sem ela o adepto flutuava 0.6 m por cima do degrau. Agora o calcao assenta
+            no degrau (a origem desce `ADEPTO_DESCE`) e o corpo avanca `ADEPTO_AVANCA` m para o campo, para os pes ficarem a pender sobre a beira do degrau.
+            O topo do degrau e `y - 0.15`.
+            */
+            lugares.push({ x: x + Math.sin(rotY) * ADEPTO_AVANCA, y: y - 0.15 - ADEPTO_DESCE, z: z + Math.cos(rotY) * ADEPTO_AVANCA, rotY: rotY });
 
             const crowdAllowed = false && (typeof Config === 'undefined' || Config.enableCrowd !== false);
             if (crowdAllowed && Math.random() < 0.75 && spectatorIndex < maxSeats) {

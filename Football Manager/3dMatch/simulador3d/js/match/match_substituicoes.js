@@ -216,6 +216,8 @@ Object.assign(Match, {
         const banco = this._bancoDoLado(req.lado);
         const B = (!emBatch && Aquecimento.activo) ? this._reservaDoBanco(banco, req.entra) : null;
         req.banco = banco; req.B = B;
+        // So quando se levanta para aquecer a camisa leva o numero e as costas do clube (sentado, no banco, fica como estava).
+        if (B && B.updateShirt) { try { B.updateShirt(this._numeroDoEntrante(req, P, this._equipaDoLado(req.lado)), P.pos); } catch (e) { /* sem textura: fica como estava */ } }
         if (!B) { req.estado = 'pronto'; return; }            // sem banco/reserva: sem aquecimento, troca na primeira parada
         // O aquecimento: os passos.
         const A = Aquecimento;
@@ -268,6 +270,13 @@ Object.assign(Match, {
                 // A olhar para outro lado o `mover` leva o corpo (passo lateral/de costas); so se o deixar quieto se avanca a mao, sem mexer na orientacao.
                 p.x = x0 + (x - x0) / d * esperado * 0.6; p.z = z0 + (z - z0) / d * esperado * 0.6;
             }
+        }
+        // A cabeca e a cintura endireitam-se para o rumo: quem sai vinha a olhar para a bola (pescoco ate ~80 graus) e ia de corpo virado para um lado e cara para outro.
+        const rg = o.rig;
+        if (rg) {
+            if (rg.neck) rg.neck.rotation.y += (0 - rg.neck.rotation.y) * 0.25;
+            if (rg.chest) rg.chest.rotation.y += (0 - rg.chest.rotation.y) * 0.25;
+            if (rg.pelvis) rg.pelvis.rotation.y += (0 - rg.pelvis.rotation.y) * 0.25;
         }
         this._assentar(o, dt, x0, z0);
     },

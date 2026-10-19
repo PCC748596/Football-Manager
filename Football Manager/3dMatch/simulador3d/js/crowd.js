@@ -596,8 +596,13 @@ const Crowd = {
 
     Os vectores por claque são `[A, B]`, indexados pelo `aAdepto.w` da instância.
     */
+    // Quanto a origem do adepto desce em relacao ao assento (match_setup.js, addSeatInstance): sentado, o calcao fica no degrau. De pe os pes tem de ficar no degrau
+    // e nao 0.30 m por baixo dele, por isso o shader sobe os de pe outro tanto (`uSobeDePe`).
+    descidaDoAdepto: 0.30,
+
     _criarUniforms() {
         return {
+            uSobeDePe: { value: 0.30 }, // = descidaDoAdepto
             uTempo: { value: 0 },
             uDurTransicao: { value: CrowdModel.duracaoTransicao },
             uAmpIdle: { value: CrowdModel.amplitudeIdle },
@@ -654,6 +659,7 @@ attribute vec3 aNorFesta;
 // x = limiar, y = fase, z = ritmo, w = claque (0 = A, 1 = B).
 attribute vec4 aAdepto;
 uniform float uTempo;
+uniform float uSobeDePe;
 uniform float uDurTransicao;
 uniform float uAmpIdle;
 uniform float uRitmoIdle;
@@ -715,6 +721,9 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     // Salto do golo, so a quem esta de pe.
     crowdPos.y += uSalto * festa * dePe *
         abs(sin(uTempo * uRitmoSalto * aAdepto.z + aAdepto.y));
+
+    // De pe: os pes sobem ao degrau (a origem do adepto desce para o sentado assentar).
+    crowdPos.y += uSobeDePe * w1;
 
     vec3 transformed = crowdPos;
 `;
