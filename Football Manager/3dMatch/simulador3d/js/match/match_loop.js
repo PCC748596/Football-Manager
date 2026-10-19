@@ -189,6 +189,16 @@ Object.assign(Match, {
         for (let p of this.players) { p.debugPoints = null; }
         for (let p of this.opponents) { p.debugPoints = null; }
         this.delta = dt;
+        // As substituicoes pedidas pelo manager fazem-se numa parada (js/match/match_substituicoes.js).
+        if (this.tickSubstituicoes) this.tickSubstituicoes(dt);
+        // Enquanto a troca dura o jogo ESPERA: so os jogadores andam (os que ja iam para o lugar da parada) — ver js/match/match_substituicoes.js.
+        if (this.subsEmCurso && this._paradaParaSubstituir()) {
+            this.correrPausaDeJogo(dt);
+            if (typeof Officials !== 'undefined') Officials.update(dt);
+            if (typeof Bancos !== 'undefined') Bancos.update(dt);
+            this.somDoEstadio(dt);
+            return;
+        }
 
         // Intervalo e apito final: o relogio para, a bola fica no sitio.
         if (this.state === 'INTERVALO' || this.state === 'FIM_DE_JOGO') {

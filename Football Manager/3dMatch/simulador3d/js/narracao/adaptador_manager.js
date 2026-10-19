@@ -195,6 +195,7 @@ const AdaptadorManager = {
     */
     prepararPartida(casa, fora, opcoes) {
         opcoes = opcoes || {};
+        this._opcoes = opcoes;   // as mesmas opcoes (escala das skills) valem para os substitutos (Match.executarSubstituicao)
         const eC = this.equipa(casa.equipa, casa.jogadoresPorId, casa.formacao.slots, opcoes);
         const eF = this.equipa(fora.equipa, fora.jogadoresPorId, fora.formacao.slots, opcoes);
         // As equipas ficam no catalogo do motor so enquanto a partida durar (e limpam-se na seguinte).

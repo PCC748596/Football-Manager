@@ -4414,6 +4414,8 @@ class FootballPlayer {
     }
 
     update(dt) {
+        // Quem esta a ser substituido anda a pe para a lateral, conduzido pelo Match (js/match/match_substituicoes.js): o jogo nao lhe mexe.
+        if (this.subSaindo) return;
         if (this.chuteEspera > 0) this.chuteEspera -= dt;
         // A abertura do jogo (js/abertura.js) manda neste jogador enquanto ele sai do tunel e se alinha.
         if (this.aberturaOrdem && typeof Abertura !== 'undefined' && Abertura.activa) {

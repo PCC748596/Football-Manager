@@ -904,6 +904,8 @@ const Officials = {
                             this.criarOficial(scene, 2, 'A')];
         // A bandeira, na mao direita de cada assistente.
         this.assistentes.forEach(a => this._criarBandeira(a));
+        // O arbitro reserva (js/officials_quarto.js), com o uniforme do trio.
+        if (this.criarQuarto) this.criarQuarto(scene);
         this.colocarInicial();
         this.vestir();
     },
@@ -975,7 +977,7 @@ const Officials = {
         if (typeof Match === 'undefined' || !Match.players || !Match.players.length) return null;
         const traje = this.sortearTraje();
         this.trajeSorteado = traje;
-        const oficiais = [this.arbitro].concat(this.assistentes);
+        const oficiais = [this.arbitro].concat(this.assistentes).concat(this.quarto ? [this.quarto] : []);
         oficiais.forEach((o, i) => {
             const velho = o.model;
             const feito = this.criarCorpo(i, traje.camisa, traje.calcao);
@@ -987,7 +989,9 @@ const Officials = {
             o.model = feito.corpo;
             o.rig = feito.rig;
             o.jogador = feito.jogador;
-            if (i > 0) this._criarBandeira(o);
+            if (o !== this.arbitro && o !== this.quarto) this._criarBandeira(o);
+            // O quarto arbitro volta a levar a placa no corpo novo (js/officials_quarto.js).
+            if (o === this.quarto) { const antes = o.placa && o.placa.visible, nums = o.placa && o.placa.userData.numeros; o.placa = this._criarPlaca(o); if (antes && nums) this.mostrarPlaca(nums.sai, nums.entra); }
         });
         return traje;
     },
@@ -2806,7 +2810,7 @@ const Officials = {
     */
     atualizarVista: function () {
         const tatico = (window.cameraMode === 'topdown');
-        const todos = this.arbitro ? [this.arbitro].concat(this.assistentes) : [];
+        const todos = this.arbitro ? [this.arbitro].concat(this.assistentes).concat(this.quarto ? [this.quarto] : []) : [];
         for (let i = 0; i < todos.length; i++) {
             const o = todos[i];
             if (!o) continue;

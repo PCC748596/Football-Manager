@@ -1188,6 +1188,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const newcomers = lineup ? lineup.filter(id => id && !oldLineup.includes(id)) : [];
         const outgoing = lineup ? oldLineup.filter(id => id && !lineup.includes(id)) : [];
 
+        // 3D ao vivo: cada substituto novo (a mesma posicao da escalacao com outro jogador, vindo do banco) vai ao motor, que o aquece e troca na proxima parada.
+        if (lineup && typeof (window as any).motor3dMinuto === 'number') {
+          const fx = fixtures.find(f => f.date === gameState.currentDate && !f.played && (f.homeTeamId === teamId || f.awayTeamId === teamId));
+          if (fx) {
+            lineup.forEach((id, i) => {
+              const velho = oldLineup[i];
+              if (!id || !velho || id === velho || oldLineup.includes(id)) return;
+              const jog = players.find(p => p.id === id);
+              if (jog) simulador3dEnviar({ tipo: 'substituicao', lado: fx.homeTeamId === teamId ? 'casa' : 'fora', sai: velho, entra: id, jogador: JSON.parse(JSON.stringify(jog)) });
+            });
+          }
+        }
+
         // Run after state commit to avoid React double-run issues
         setTimeout(() => {
           setFixtures(prevFix => prevFix.map(f => {
