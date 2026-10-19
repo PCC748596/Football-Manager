@@ -1456,7 +1456,7 @@ const Officials = {
         const A = (typeof Area !== 'undefined') ? Area : { pequenaProfundidade: 5.5, pequenaMeiaLargura: 9.16 };
         let o, alvo, estado;
         if (tipo === 'CORNER_KICK' && canto) {
-            o = this.assistentes[canto.x > 0 ? 0 : 1];          // o 0 esta em +X, o 1 em -X
+            o = this.assistentes[canto.z <= 0 ? 0 : 1];         // so sinaliza o da SUA metade (z <= 0: o 0; z > 0: o 1); o outro esta longe do lance
             alvo = { x: canto.x, z: canto.z };
             estado = 'CORNER_KICK';
         } else if (tipo === 'GOAL_KICK' && canto) {
@@ -1588,6 +1588,8 @@ const Officials = {
     menos dela vigia: corpo a `graus` do campo e cabeca a alternar entre a bola e a linha (ver RefereeModel.vigia).
     */
     moverAssistente: function (o, alvoX, alvoZ, dt) {
+        // Substituicao em curso: o assistente dos bancos vai a ponta da area tecnica (Match._zBandeira) e la fica.
+        if (o === this.assistentes[0] && typeof Match !== 'undefined' && Match.subsEmCurso && typeof Match._zBandeira === 'number') alvoZ = Match._zBandeira;
         this._moverAssistente(o, alvoX, alvoZ, dt);
         // Depois de a pose do braco estar escrita: o pano acompanha a haste.
         this._ajustarPano(o, dt);

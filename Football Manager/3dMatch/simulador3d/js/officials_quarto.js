@@ -12,12 +12,14 @@ const QuartoArbitro = {
     activo: true,
     x: 37.4,                  // entre a linha lateral (34) e as placas de publicidade (39), no meio entre os dois bancos
     z: 0,
-    larguraPlaca: 0.95, alturaPlaca: 0.46,   // metros
-    alturaDoCentro: 2.17,     // do relvado ao centro da placa, com os bracos erguidos (m)
-    xPlaca: 35.2,             // com a placa no ar o 4.o arbitro chega-se a linha lateral (34); sem ela volta ao x de cima
-    recuoPlaca: 0.06,         // a placa a esta distancia do corpo, para a frente (m)
-    // Bracos erguidos (rad, convencao do rig: x negativo = para a frente/cima).
-    bracoX: -3.0, bracoZ: 0.22, cotovelo: -0.10
+    larguraPlaca: 0.79, alturaPlaca: 0.46,   // metros
+    xPlaca: 35.2,             // com a placa no ar o 4.o arbitro chega-se a linha lateral (34): da 2 passos para a frente e levanta-a
+    velPassos: 1.5,           // m/s a andar de x a xPlaca (e de volta)
+    // A placa segura-se SEMPRE, em baixo (pose `parado`) ate ao momento da troca; erguida (pose `erguido`) so com a troca. Angulos do rig (x negativo = para a frente/cima).
+    parado:  { bracoX: -0.40, bracoZ: 0.32, cotovelo: -0.30 },   // bracos para baixo, so um pouco a frente (a placa nao bate no corpo)
+    erguido: { bracoX: -3.0, bracoZ: 0.32, cotovelo: -0.10 },
+    // A placa segura-se pela sua borda de baixo (a das maos): o centro fica meia altura (menos `folga`) ao longo do "cima" da placa, que roda com os bracos.
+    folga: 0.03, avanco: 0.03
 };
 if (typeof window !== 'undefined') window.QuartoArbitro = QuartoArbitro;
 
@@ -33,10 +35,11 @@ Object.assign(Officials, {
         o.braco = 0;
         o.placa = this._criarPlaca(o);
         this.quarto = o;
+        this.mostrarPlaca(null, null);               // em branco ate a troca
         return o;
     },
 
-    // A placa: uma caixa fina com a textura dos dois numeros, pendurada do corpo (escala do corpo compensada).
+    // A placa: uma caixa fina com a textura dos dois numeros, filha do corpo (escala do corpo compensada); a posicao vem das maos (tickQuarto).
     _criarPlaca: function (o) {
         const Q = QuartoArbitro;
         const esc = o.model.scale.x || 1;
@@ -44,16 +47,16 @@ Object.assign(Officials, {
         const tex = new THREE.CanvasTexture(cv);
         const mat = new THREE.MeshBasicMaterial({ map: tex });
         const corpoMat = new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.6 });
-        const g = new THREE.Mesh(new THREE.BoxGeometry(Q.larguraPlaca / esc, Q.alturaPlaca / esc, 0.05 / esc), [corpoMat, corpoMat, corpoMat, corpoMat, mat, mat]);
-        g.visible = false;
+        const g = new THREE.Mesh(new THREE.BoxGeometry(Q.larguraPlaca / esc, Q.alturaPlaca / esc, 0.05 / esc), [corpoMat, corpoMat, corpoMat, corpoMat, mat, corpoMat]);
+        g.visible = true;
         g.userData = { cv: cv, tex: tex };
-        // Acima da cabeca, virada para o campo (o corpo olha para -X; o `model` roda, a placa e filha dele: a face +z do filho e a frente).
-        g.position.set(0, Q.alturaDoCentro / esc, Q.recuoPlaca / esc);
+        g.position.set(0, 1.0 / esc, 0.3 / esc);
         o.model.add(g);
         return g;
     },
 
     // Escreve os numeros: `sai` a vermelho (esquerda), `entra` a verde (direita), em PONTOS de led (matriz 5x7 por digito, os apagados em tom escuro).
+    // `null` nos dois = placa em branco (so os pontos apagados).
     mostrarPlaca: function (sai, entra) {
         const o = this.quarto;
         if (!o || !o.placa) return;
@@ -69,7 +72,7 @@ Object.assign(Officials, {
         c.fillStyle = '#0b0d10'; c.fillRect(0, 0, 512, 256);
         const celX = 21, celY = 26, r = 8.5;          // 11 colunas (2 digitos + 1 de espaco) x 7 linhas por numero
         const desenhar = (n, x0, aceso, apagado, brilho) => {
-            const txt = String(n).padStart(2, ' ').slice(-2);
+            const txt = (n === null || n === undefined) ? '  ' : String(n).padStart(2, ' ').slice(-2);
             for (let d = 0; d < 2; d++) {
                 const g = FONTE[txt[d]] || FONTE[' '];
                 for (let l = 0; l < 7; l++) for (let col = 0; col < 5; col++) {
@@ -88,30 +91,48 @@ Object.assign(Officials, {
         o.placa.userData.numeros = { sai: sai, entra: entra };
     },
 
-    esconderPlaca: function () {
-        const o = this.quarto;
-        if (o && o.placa) o.placa.visible = false;
-    },
+    esconderPlaca: function () { this.mostrarPlaca(null, null); },
 
-    // Os bracos sobem (k -> 1) ou descem (k -> 0) em `dur` s; escreve a pose todos os frames (o quarto nao passa pelo `mover`).
+    /*
+    O 4.o ARBITRO: segura a placa em baixo; com a troca em curso (`erguer`) da 2 passos em frente, ate perto da linha lateral, e SO ENTAO levanta os bracos e a
+    placa juntos (k 0 -> 1 em ~0.7 s); depois da troca baixa-a e volta ao sitio. Escreve a pose todos os frames (o quarto nao passa pelo `Officials.update`), com o
+    `mover` a dar a passada. A placa fica sempre entre as maos.
+    */
     tickQuarto: function (dt, erguer) {
         const o = this.quarto;
         if (!o || !o.rig) return;
-        const Q = QuartoArbitro;
-        const alvo = erguer ? 1 : 0;
-        o.braco += Math.max(-1, Math.min(1, alvo - o.braco)) * Math.min(1, dt / 0.7);
-        if (Math.abs(alvo - o.braco) < 0.01) o.braco = alvo;
-        const k = o.braco;
-        o.model.position.x = Q.x + (Q.xPlaca - Q.x) * k;
-        const r = o.rig;
-        if (k > 0 || o._erguido) {
-            r.lArm.rotation.x = Q.bracoX * k; r.rArm.rotation.x = Q.bracoX * k;
-            r.lArm.rotation.z = Q.bracoZ * k; r.rArm.rotation.z = -Q.bracoZ * k;
-            r.lElbow.rotation.x = Q.cotovelo * k; r.rElbow.rotation.x = Q.cotovelo * k;
-            o._erguido = k > 0;
-            if (k === 0) { r.lArm.rotation.set(0, 0, Math.PI / 12); r.rArm.rotation.set(0, 0, -Math.PI / 12); }
+        const Q = QuartoArbitro, r = o.rig;
+        const alvoX = erguer ? Q.xPlaca : Q.x;
+        const dx = alvoX - o.model.position.x;
+        const andando = Math.abs(dx) > 0.3 && (erguer || o.braco === 0);   // o `mover` chega a alvo em desaceleracao: 0.3 m conta como chegou
+        const olhar = { x: 0, z: o.model.position.z };
+        if (andando) this.mover(o, alvoX, Q.z, Q.velPassos, dt, olhar);
+        else this.mover(o, o.model.position.x, o.model.position.z, 0, dt, olhar);
+        const alvoK = (erguer && Math.abs(dx) <= 0.3) ? 1 : 0;
+        o.braco += Math.max(-1, Math.min(1, alvoK - o.braco)) * Math.min(1, dt / 0.7);
+        if (Math.abs(alvoK - o.braco) < 0.01) o.braco = alvoK;
+        const k = o.braco, A = Q.parado, B = Q.erguido, m = (a, b) => a + (b - a) * k;
+        r.lArm.rotation.set(m(A.bracoX, B.bracoX), 0, m(A.bracoZ, B.bracoZ));
+        r.rArm.rotation.set(m(A.bracoX, B.bracoX), 0, -m(A.bracoZ, B.bracoZ));
+        r.lElbow.rotation.x = m(A.cotovelo, B.cotovelo); r.rElbow.rotation.x = m(A.cotovelo, B.cotovelo);
+        // A placa entre as maos.
+        if (o.placa && o.model.parent !== null) {
+            o.model.updateMatrixWorld(true);
+            if (!this._vQ) this._vQ = { a: new THREE.Vector3(), b: new THREE.Vector3() };
+            r.lHand.getWorldPosition(this._vQ.a); r.rHand.getWorldPosition(this._vQ.b);
+            this._vQ.a.add(this._vQ.b).multiplyScalar(0.5);
+            const l = o.model.worldToLocal(this._vQ.a);
+            const esc = o.model.scale.x || 1;
+            /*
+            A ORIENTACAO SAI DOS BRACOS: a placa e rigida com o antebraco, que roda `bracoX + cotovelo` em torno do ombro. Em baixo a placa pende de cabeca para baixo com as
+            COSTAS para a frente (a face com os numeros vira-se para o corpo); com os bracos erguidos (~177 graus) o mesmo giro deixa-a de pe e com a face para a frente.
+            */
+            const fi = r.lArm.rotation.x + r.lElbow.rotation.x;
+            const rx = fi + Math.PI;
+            o.placa.rotation.set(rx, 0, 0);
+            const meia = (Q.alturaPlaca / 2 - Q.folga) / esc;
+            o.placa.position.set(0, l.y + Math.cos(rx) * meia, l.z + Math.sin(rx) * meia + Q.avanco / esc);
         }
-        if (k === 0 && o.placa && !erguer) o.placa.visible = false;
     }
 });
 
@@ -132,7 +153,7 @@ Object.assign(Officials, {
         const a = this.assistentes && this.assistentes[0];
         if (!a || !a.rig) return;
         const B = BandeiraSubstituicao;
-        const alvo = (typeof Match !== 'undefined' && Match.subsEmCurso) ? 1 : 0;
+        const alvo = (typeof Match !== 'undefined' && Match.subsEmCurso && Match._bandeiraPronta && Match._bandeiraPronta()) ? 1 : 0;
         const k0 = this._kBandeiraSub;
         this._kBandeiraSub += Math.max(-1, Math.min(1, alvo - k0)) * Math.min(1, dt / B.velocidade);
         if (Math.abs(alvo - this._kBandeiraSub) < 0.01) this._kBandeiraSub = alvo;

@@ -211,12 +211,13 @@ const Bancos = {
         if (typeof Officials === 'undefined' || !Officials.criarCorpo) return null;
         const feito = Officials.criarCorpo(id, cor, cor, true);
         this._vestirPano(feito, new THREE.Color(cor).getHex());
+        const pelvisY0 = feito.rig.pelvis.position.y;
         this._sentar({ rig: feito.rig, model: feito.corpo });
         feito.corpo.position.x = B.xBanco - 0.05;
         feito.corpo.position.z = z;
         feito.corpo.rotation.y = -Math.PI / 2;
         this._scene.add(feito.corpo);
-        return { model: feito.corpo, rig: feito.rig, jogador: feito.jogador, funcao, cor };
+        return { model: feito.corpo, rig: feito.rig, jogador: feito.jogador, funcao, cor, pelvisY0, animTimer: 0 };
     },
 
     // A pose sentada do público aplicada ao rig de um jogador, com a bacia à altura certa e os pés no chão.
@@ -264,6 +265,8 @@ const Bancos = {
             const corCamisa = (typeof corDoUniforme === 'function') ? corDoUniforme(uni, B.coresPorOmissao[b.equipa]) : B.coresPorOmissao[b.equipa];
             lista.forEach((j, i) => {
                 const p = new FootballPlayer(200 + (b.equipa === 'A' ? 0 : 20) + i, corCamisa, '#ffffff', time, uni, j.id || null);
+                // O numero e as costas da camisa (como nos titulares): sem isto o reserva sentado/a aquecer tinha as costas lisas.
+                p.updateShirt(j.numero || (12 + i), 'CM');
                 this._sentar(p);
                 p.model.position.x = B.xBanco - 0.05;
                 p.model.position.z = b.zc + this._zDoLugar(i, B);

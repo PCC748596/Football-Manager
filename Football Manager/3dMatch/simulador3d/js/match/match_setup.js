@@ -1818,7 +1818,8 @@ Object.assign(Match, {
 
         seatMesh.instanceMatrix.needsUpdate = true;
         if (seatMesh.instanceColor) seatMesh.instanceColor.needsUpdate = true;
-        campoGrupo.add(seatMesh);
+        // As cadeiras (~24 000 caixinhas nas arquibancadas) nao se desenham: pedido, por desempenho (`CadeirasDaBancada.desenhar`).
+        if (typeof CadeirasDaBancada === 'undefined' || CadeirasDaBancada.desenhar) campoGrupo.add(seatMesh);
 
         specMesh.count = spectatorIndex;
         specMesh.instanceMatrix.needsUpdate = true;

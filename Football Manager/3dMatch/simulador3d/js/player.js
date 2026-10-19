@@ -4546,7 +4546,7 @@ class FootballPlayer {
         if (this.lugarBolaParada) {
             const L = this.lugarBolaParada;
             if (Match.state === 'PLAY' || Match.kickoffActive ||
-                (Match.state !== 'FREE_KICK' && Match.state !== 'PENALTY')) {
+                (Match.state !== 'FREE_KICK' && Match.state !== 'PENALTY' && !this.lugarBolaParada.entrada)) {   // `entrada`: o substituto que vai para o posto em qualquer parada
                 this.lugarBolaParada = null;
             } else {
                 const B = BolaParadaAndada;

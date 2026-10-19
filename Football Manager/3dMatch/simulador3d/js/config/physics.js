@@ -1431,3 +1431,7 @@ const GruaDeCamera = {
     }
 };
 if (typeof window !== 'undefined') window.GruaDeCamera = GruaDeCamera;
+
+// As cadeiras das arquibancadas (caixinhas instanciadas, ~24 000): desligadas por desempenho. `true` volta a desenha-las.
+const CadeirasDaBancada = { desenhar: false };
+if (typeof window !== 'undefined') window.CadeirasDaBancada = CadeirasDaBancada;

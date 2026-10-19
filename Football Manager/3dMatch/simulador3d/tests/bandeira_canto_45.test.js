@@ -12,7 +12,7 @@ const cena = new THREE.Scene(); Match.init(cena); Officials.arbitro = null; Offi
 
 for (const [cx, cz] of [[34, 52.5], [-34, 52.5], [34, -52.5], [-34, -52.5]]) {
     Match.state = 'CORNER_KICK';
-    const o = Officials.assistentes[cx > 0 ? 0 : 1];
+    const o = Officials.assistentes[cz <= 0 ? 0 : 1];   // so o da metade do canto (z) sinaliza
     Officials.apontarBandeira('CORNER_KICK', { x: cx, z: cz });
     let medido = null;
     for (let i = 0; i < 60 * 3 && !medido; i++) {
