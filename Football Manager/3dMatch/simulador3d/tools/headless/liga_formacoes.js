@@ -50,6 +50,8 @@ if (process.env.LIGA_WORKER) {
     Sim.running = true;
     if (process.env.LIGA_SEM_ZONAS === '1') ZonasModel.activo = false;
     if (process.env.LIGA_SEM_TRANSICAO === '1') ZonasModel.transicao = null;
+    if (process.env.LIGA_SEM_ACAO === '1') ZonasModel.transicaoAcao.activo = false;
+    if (process.env.LIGA_ACAO) { const [a, b, c] = process.env.LIGA_ACAO.split(',').map(Number); Object.assign(ZonasModel.transicaoAcao, { pressores: a, corredores: b, profundidade: c }); }
     // LIGA_TABELA=ajustada: usa data/formacoes_zonas.ajustada.js; LIGA_TRANSICAO="avanco,recuo": transicao mais forte.
     if (process.env.LIGA_TABELA) {
         const o = require('vm').runInNewContext(fs.readFileSync(path.join(RAIZ, 'data', 'formacoes_zonas.' + process.env.LIGA_TABELA + '.js'), 'utf8').replace(/^const FormacoesZonas =/m, 'FZ =') + ';FZ;', { window: undefined });
@@ -60,6 +62,7 @@ if (process.env.LIGA_WORKER) {
     const ladosIniciais = Lados.trocados;
     const dt = 1 / 60;
     const res = [];
+    window.__camadas = {};
     for (const i of indices) {
         Math.random = mulberry32(5000 + i * 977);
         const par = pares[i];
@@ -77,7 +80,7 @@ if (process.env.LIGA_WORKER) {
         // acumuladores por (formacao, fase)
         const acc = {};
         const get = (nome, fase) => (acc[nome + '|' + fase] = acc[nome + '|' + fase] || {
-            n: 0, K: 0, linhaZ: [], linhaN: [], distAlvo: 0, distAlvoN: 0, longe5: 0, longeN: 0, cruzam: 0, cruzamN: 0, comp: 0, defLinha: 0,
+            dEst: 0, dFin: 0, dLag: 0, dN: 0, n: 0, K: 0, linhaZ: [], linhaN: [], distAlvo: 0, distAlvoN: 0, longe5: 0, longeN: 0, cruzam: 0, cruzamN: 0, comp: 0, defLinha: 0,
             largLinha: [], largN: [], centroZ_menos_bola: 0, centroX_menos_bola: 0, corrX: 0, corrY: 0, corrXY: 0, corrXX: 0, corrYY: 0, parados: 0, jogN: 0, velSoma: 0
         });
         const total = Math.round(minutos * 60 / dt);
@@ -108,6 +111,12 @@ if (process.env.LIGA_WORKER) {
                         (porLinha[p.slot.linha] = porLinha[p.slot.linha] || []).push(z);
                         (lat[p.slot.linha] = lat[p.slot.linha] || []).push(x);
                         zMin = Math.min(zMin, z); zMax = Math.max(zMax, z); sx += x * dz; sz += z; nj++;
+                        if (p.slotTarget && p.postoBase && p.dynamicTarget) {
+                            a.dEst += Math.hypot(p.postoBase.x - p.slotTarget.x, p.postoBase.z - p.slotTarget.z);
+                            a.dFin += Math.hypot(p.dynamicTarget.x - p.postoBase.x, p.dynamicTarget.z - p.postoBase.z);
+                            a.dLag += Math.hypot(p.model.position.x - p.dynamicTarget.x, p.model.position.z - p.dynamicTarget.z);
+                            a.dN++;
+                        }
                         if (p.slotTarget) {
                             const d = Math.hypot(p.model.position.x - p.slotTarget.x, p.model.position.z - p.slotTarget.z);
                             a.distAlvo += d; a.distAlvoN++; a.longeN++; if (d > 5) a.longe5++;
@@ -142,7 +151,7 @@ if (process.env.LIGA_WORKER) {
         res.push({ i, casa: NOMES[par.casa], fora: NOMES[par.fora], fa: nomesF[fa], fb: nomesF[fb], golos: [Match.placarA, Match.placarB], remates: MatchStats.TeamA.remates.tentados + MatchStats.TeamB.remates.tentados, passes: MatchStats.TeamA.passes.tentados + MatchStats.TeamB.passes.tentados, din, acc, erro });
         process.send && process.send({ tipo: 'jogo', i });
     }
-    process.send({ tipo: 'fim', res });
+    process.send({ tipo: 'fim', res, camadas: window.__camadas });
     process.exit(0);
 }
 
@@ -154,6 +163,7 @@ const todos = []; for (let i = 0; i < JOGOS; i++) todos.push(i);
 const grupos = Array.from({ length: WORKERS }, () => []);
 todos.forEach((i, k) => grupos[k % WORKERS].push(i));
 const resultados = [];
+const CAMADAS = {};
 let feitos = 0, acabados = 0;
 const t0 = Date.now();
 grupos.forEach(g => {
@@ -161,7 +171,7 @@ grupos.forEach(g => {
     const w = fork(__filename, [], { env: Object.assign({}, process.env, { LIGA_WORKER: JSON.stringify(g), LIGA_MIN: MIN }), silent: true });
     w.on('message', (m) => {
         if (m.tipo === 'jogo') { feitos++; if (feitos % 20 === 0) console.log('jogos feitos:', feitos, '/', JOGOS, ((Date.now() - t0) / 60000).toFixed(1), 'min'); }
-        if (m.tipo === 'fim') { resultados.push(...m.res); acabados++; if (acabados === WORKERS) fim(); }
+        if (m.tipo === 'fim') { resultados.push(...m.res); for (const [k, v] of Object.entries(m.camadas || {})) { const c = CAMADAS[k] = CAMADAS[k] || { s: 0, n: 0 }; c.s += v.s; c.n += v.n; } acabados++; if (acabados === WORKERS) fim(); }
     });
     w.on('exit', () => { /* tratado em 'fim' */ });
 });
@@ -172,8 +182,8 @@ function fim() {
         if (r.erro) { erros++; console.log('ERRO jogo', r.i, r.erro); }
         golos += r.golos[0] + r.golos[1];
         for (const [k, a] of Object.entries(r.acc)) {
-            const g = agg[k] = agg[k] || { n: 0, K: a.K, linhaZ: [], linhaN: [], distAlvo: 0, distAlvoN: 0, longe5: 0, cruzam: 0, cruzamN: 0, comp: 0, defLinha: 0, largLinha: [], largN: [], cz: 0, cx: 0, corrX: 0, corrY: 0, corrXY: 0, corrXX: 0, corrYY: 0, parados: 0, jogN: 0, velSoma: 0 };
-            g.n += a.n; g.distAlvo += a.distAlvo; g.distAlvoN += a.distAlvoN; g.longe5 += a.longe5; g.cruzam += a.cruzam; g.cruzamN += a.cruzamN; g.comp += a.comp; g.defLinha += a.defLinha;
+            const g = agg[k] = agg[k] || { dEst: 0, dFin: 0, dLag: 0, dN: 0, n: 0, K: a.K, linhaZ: [], linhaN: [], distAlvo: 0, distAlvoN: 0, longe5: 0, cruzam: 0, cruzamN: 0, comp: 0, defLinha: 0, largLinha: [], largN: [], cz: 0, cx: 0, corrX: 0, corrY: 0, corrXY: 0, corrXX: 0, corrYY: 0, parados: 0, jogN: 0, velSoma: 0 };
+            g.dEst += a.dEst; g.dFin += a.dFin; g.dLag += a.dLag; g.dN += a.dN; g.n += a.n; g.distAlvo += a.distAlvo; g.distAlvoN += a.distAlvoN; g.longe5 += a.longe5; g.cruzam += a.cruzam; g.cruzamN += a.cruzamN; g.comp += a.comp; g.defLinha += a.defLinha;
             g.cz += a.centroZ_menos_bola; g.cx += a.centroX_menos_bola; g.corrX += a.corrX; g.corrY += a.corrY; g.corrXY += a.corrXY; g.corrXX += a.corrXX; g.corrYY += a.corrYY;
             g.parados += a.parados; g.jogN += a.jogN; g.velSoma += a.velSoma; g.K = Math.max(g.K, a.K);
             for (let q = 0; q < a.linhaZ.length; q++) { g.linhaZ[q] = (g.linhaZ[q] || 0) + (a.linhaZ[q] || 0); g.linhaN[q] = (g.linhaN[q] || 0) + (a.linhaN[q] || 0); g.largLinha[q] = (g.largLinha[q] || 0) + (a.largLinha[q] || 0); g.largN[q] = (g.largN[q] || 0) + (a.largN[q] || 0); }
@@ -188,7 +198,7 @@ function fim() {
         const n = g.n;
         const r = (g.corrXY / n - (g.corrX / n) * (g.corrY / n)) / (Math.sqrt(g.corrXX / n - (g.corrX / n) ** 2) * Math.sqrt(g.corrYY / n - (g.corrY / n) ** 2) || 1);
         out[k] = { amostras: n, K: g.K, linhasZ: lz.map(f1), intervalos: gaps.map(f1), largLinhas: g.largLinha.map((s, q) => f1(s / g.largN[q])), profundidadeTotal: f1(g.comp / n), zDaDefesaMaisRecuada: f1(g.defLinha / n),
-            distMediaAoAlvo: f1(g.distAlvo / g.distAlvoN), pctLonge5m: f1(100 * g.longe5 / g.distAlvoN), pctLinhasCruzadas: f1(100 * g.cruzam / Math.max(1, g.cruzamN)),
+            distMediaAoAlvo: f1(g.distAlvo / g.distAlvoN), camadaEstilo: f1(g.dEst / Math.max(1, g.dN)), camadaFinal: f1(g.dFin / Math.max(1, g.dN)), atrasoAteAoAlvoFinal: f1(g.dLag / Math.max(1, g.dN)), pctLonge5m: f1(100 * g.longe5 / g.distAlvoN), pctLinhasCruzadas: f1(100 * g.cruzam / Math.max(1, g.cruzamN)),
             centroMenosBolaZ: f1(g.cz / n), centroMenosBolaX: f1(g.cx / n), corrLateral: Math.round(r * 100) / 100, pctParados: f1(100 * g.parados / g.jogN), velMedia: f1(g.velSoma / g.jogN) };
     }
     fs.mkdirSync(path.join(__dirname, 'saida'), { recursive: true });
@@ -197,6 +207,8 @@ function fim() {
     const dinamismo = { rematesPorJogo: med(r => r.remates), passesPorJogo: med(r => r.passes), trocasDePossePorJogo: med(r => r.din.trocas), trocasPorMinutoDeJogoCorrido: med(r => r.din.trocas / Math.max(1, r.din.jogoCorrido / 3600)), kmPorJogador: med(r => r.din.dist / 10 / 1000) };
     console.log('DINAMISMO', JSON.stringify(dinamismo));
     try { const f2 = path.join(__dirname, 'saida', 'liga_dinamismo_' + (process.env.LIGA_ROTULO || 'x') + '.json'); fs.writeFileSync(f2, JSON.stringify(dinamismo)); } catch (e) {}
+    const cam = Object.entries(CAMADAS).map(([k, v]) => [k, Math.round(v.s / v.n * 100) / 100]).sort((a, b) => b[1] - a[1]);
+    console.log('CAMADAS (m medios por jogador-frame)', JSON.stringify(cam));
     console.log('FIM: jogos', resultados.length, 'golos/jogo', (golos / Math.max(1, resultados.length)).toFixed(2), 'erros', erros, 'tempo', ((Date.now() - t0) / 60000).toFixed(1), 'min');
     console.log(JSON.stringify(out));
 }

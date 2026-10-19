@@ -1389,6 +1389,47 @@ function posicaoPorZona(p, bb) {
     return { x: THREE.MathUtils.clamp(m.x * dir, -maxX, maxX), z: THREE.MathUtils.clamp(m.z * dir, -maxZ, maxZ) };
 }
 
+/*
+A ACAO DAS TRANSICOES (ZonasModel.transicaoAcao): contra-pressao ao perder a bola, desmarcacao ao ganha-la. Devolve o posto { x, z } alterado, ou o mesmo.
+Os escolhidos refrescam-se de 0.5 em 0.5 s (cache em `bb._transAcao`) — ninguem troca de papel a cada frame.
+*/
+function aplicarAcaoDeTransicao(p, bb, posto) {
+    const Z = (typeof ZonasModel !== 'undefined') ? ZonasModel : null;
+    const A = Z && Z.transicaoAcao;
+    if (!A || !A.activo || !bb || typeof Match === 'undefined' || Match.state !== 'PLAY') return posto;
+    if (p.role !== 'mid' && p.role !== 'atk') return posto;
+    if (typeof bb.possessionTime !== 'number' || bb.possessionTime >= A.duracao) { bb._transAcao = null; return posto; }
+    const ofensiva = !!bb.isAttacking;
+    const portador = ofensiva ? bb.carrier : bb.oppCarrier;
+    if (!portador || !portador.model || portador.role === 'gk') return posto;
+    const k = Math.floor((Match.tempoDeJogo || 0) * 2) + (ofensiva ? 'o' : 'd');
+    let c = bb._transAcao;
+    if (!c || c.k !== k) {
+        const meus = bb.outfield.filter(o => o && o !== portador && (o.role === 'mid' || o.role === 'atk') && o.model && o.postoBase);
+        let escolhidos;
+        if (ofensiva) {
+            escolhidos = meus.slice().sort((a, b) => (b.postoBase.z * b.dirZ) - (a.postoBase.z * a.dirZ)).slice(0, A.corredores);
+        } else {
+            const pp = portador.model.position;
+            escolhidos = meus.slice().sort((a, b) =>
+                Math.hypot(a.model.position.x - pp.x, a.model.position.z - pp.z) - Math.hypot(b.model.position.x - pp.x, b.model.position.z - pp.z)).slice(0, A.pressores);
+        }
+        c = bb._transAcao = { k: k, ids: escolhidos };
+    }
+    if (c.ids.indexOf(p) < 0) return posto;
+    if (ofensiva) {
+        const dir = p.dirZ || bb.dir || 1;
+        let zDir = posto.z * dir + A.profundidade;
+        const limite = (typeof bb.offsideLimitDir === 'number') ? bb.offsideLimitDir - 1.0 : CAMPO_COMP / 2 - 3;
+        zDir = Math.min(zDir, limite, CAMPO_COMP / 2 - 3);
+        return { x: posto.x, z: Math.max(zDir, posto.z * dir) * dir };
+    }
+    const pp = portador.model.position;
+    const dx = p.model.position.x - pp.x, dz = p.model.position.z - pp.z;
+    const d = Math.hypot(dx, dz) || 1;
+    return { x: pp.x + (dx / d) * A.distPressao, z: pp.z + (dz / d) * A.distPressao };
+}
+
 function calcularPontoDoSlot(slot, pos, role, fbStyle, bb, linhaActual, fecharPorPar, ordemNaLinha, totalNaLinha) {
     const bloco = bb.bloco;
     if (!bloco || !slot) return null;
@@ -2539,6 +2580,7 @@ const PosicionamentoAI = {
 
         // As tabelas por zona (ZonasModel) mandam no posto; sem elas, o bloco de sempre.
         const zonal = posicaoPorZona(p, bb);
+        p._zonal = !!zonal;   // o tickFinal salta as camadas que a tabela ja faz (ZonasModel.camadas)
         const slot = zonal ? zonal : slotNoBloco(p, bb);
         let targetX = slot ? slot.x : p.baseTarget.x;
         let targetZ = slot ? slot.z : p.baseTarget.z;
@@ -2628,6 +2670,9 @@ const PosicionamentoAI = {
         if (!p.postoBase) p.postoBase = { x: 0, z: 0 };
         p.postoBase.x = comEstilo.x;
         p.postoBase.z = comEstilo.z;
+        // A acao das transicoes (contra-pressao / desmarcacao) por cima do posto: ver aplicarAcaoDeTransicao.
+        const comTransicao = aplicarAcaoDeTransicao(p, bb, p.postoBase);
+        if (comTransicao !== p.postoBase) { p.postoBase.x = comTransicao.x; p.postoBase.z = comTransicao.z; }
     },
 
     /*
@@ -2638,6 +2683,11 @@ const PosicionamentoAI = {
         if (p.role === 'gk') return;
         if (!p.postoBase) return;
         const comEstilo = p.postoBase;
+        const saltaZ = (k) => p._zonal && typeof ZonasModel !== 'undefined' && ZonasModel.camadas && ZonasModel.camadas[k] === false;
+        // MEDICAO (tools/headless/liga_formacoes.js): quanto cada camada desloca o alvo. So com window.__camadas.
+        const _D = (typeof window !== 'undefined') ? window.__camadas : null;
+        let _px = comEstilo.x, _pz = comEstilo.z;
+        const dbgCamada = (nome, x, z) => { if (!_D) return; const k = (bb && bb.isAttacking ? 'com:' : 'sem:') + nome; const o = _D[k] || (_D[k] = { s: 0, n: 0 }); o.s += Math.hypot(x - _px, z - _pz); o.n++; _px = x; _pz = z; };
 
         // Quinto passo: acompanhar quem entra no setor. Depois do estilo, para
         // a marcação partir do slot que o estilo já inclinou.
@@ -2645,12 +2695,14 @@ const PosicionamentoAI = {
             ? aplicarMarcacaoPosicional(p, bb, comEstilo.x, comEstilo.z)
             : comEstilo;
 
+        dbgCamada('marcacao', comMarcacao.x, comMarcacao.z);
         // Sexto passo: quem já chegou não fica estátua. Antes do tecto, para
         // dois metros de irrequietude não voltarem a furá-lo.
         const comInquietacao = (typeof aplicarInquietacao === 'function')
             ? aplicarInquietacao(p, bb, comMarcacao.x, comMarcacao.z)
             : comMarcacao;
 
+        dbgCamada('inquietacao', comInquietacao.x, comInquietacao.z);
         /*
         O tecto do estilo é o ÚLTIMO a falar: o Box-to-Box não passa da entrada
         da área, e a marcação (acima) chega a desviar 10 m no terço de ataque.
@@ -2661,6 +2713,7 @@ const PosicionamentoAI = {
             ? aplicarTectoDoEstilo(p, comInquietacao.z, bb)
             : comInquietacao.z;
 
+        dbgCamada('tectoEstilo', comInquietacao.x, comTecto);
         // O apoio do lateral que não recebeu e viu o jogo virar de banda.
         let finalZ = aplicarRecuoAposApoio(p, bb, comTecto);
         // Inércia pós-passe de 4 segundos: mantém a presença ofensiva sem recuar contra o fluxo do jogo
@@ -2683,8 +2736,9 @@ const PosicionamentoAI = {
 
         O guarda-redes fica de fora: a posicao dele vem do gkAnchor.
         */
+        dbgCamada('recuoApoio+inercia', comInquietacao.x, finalZ);
         let molaX = comInquietacao.x;
-        if (p.role !== 'gk' && typeof MolaDeCoesao !== 'undefined' &&
+        if (p.role !== 'gk' && !saltaZ('molaCoesao') && typeof MolaDeCoesao !== 'undefined' &&
             typeof molaParaABola === 'function' &&
             typeof Match !== 'undefined' && Match.ball) {
             const M = MolaDeCoesao;
@@ -2697,6 +2751,7 @@ const PosicionamentoAI = {
             finalZ = puxado.z;
         }
 
+        dbgCamada('molaCoesao', molaX, finalZ);
         /*
         OS LIMITES SEM BOLA, E O REST DEFENSE.
 
@@ -2741,6 +2796,7 @@ const PosicionamentoAI = {
             }
         }
 
+        dbgCamada('limitesSemBola', molaX, finalZ);
         /*
         REST DEFENSE: com bola, os mais recuados não passam a linha dela.
 
@@ -2774,6 +2830,7 @@ const PosicionamentoAI = {
             }
         }
 
+        dbgCamada('restDefense', molaX, finalZ);
         /*
         NA TRANSIÇÃO DEFENSIVA, NINGUÉM SOBE.
 
@@ -2794,6 +2851,7 @@ const PosicionamentoAI = {
             if (finalZ * p.dirZ > tecto) finalZ = tecto * p.dirZ;
         }
 
+        dbgCamada('transicaoDef', molaX, finalZ);
         /*
         TECTO DE DESVIO AO SLOT — a formação tem de continuar a existir.
 
@@ -2804,7 +2862,7 @@ const PosicionamentoAI = {
 
         Aplica-se ao fim de tudo e cede, como os outros, a quem vai à bola.
         */
-        if (B_LIM && B_LIM.desvioMaxDoSlot && !temTarefaDeBola && p.postoBase) {
+        if (B_LIM && B_LIM.desvioMaxDoSlot && !saltaZ('desvioMaxDoSlot') && !temTarefaDeBola && p.postoBase) {
             const tecto = B_LIM.desvioMaxDoSlot[p.role];
             if (typeof tecto === 'number' && tecto > 0) {
                 const dx = molaX - p.postoBase.x;
@@ -2818,6 +2876,7 @@ const PosicionamentoAI = {
             }
         }
 
+        dbgCamada('desvioMaxDoSlot', molaX, finalZ);
         /*
         O PÊNDULO — ninguém fica na outra ponta do campo.
 
@@ -2836,7 +2895,7 @@ const PosicionamentoAI = {
         adversário. E cede a quem tem tarefa de bola — chaser, intercetor,
         bloqueador — que vai onde tem de ir.
         */
-        if (typeof BlockShape !== 'undefined' && BlockShape.penduloParaABola && p.role !== 'gk' &&
+        if (typeof BlockShape !== 'undefined' && BlockShape.penduloParaABola && p.role !== 'gk' && !saltaZ('pendulo') &&
             bb && bb.isAttacking && typeof Match !== 'undefined' && Match.ball &&
             bb.chaser !== p && bb.intercetor !== p && bb.bloqueador !== p) {
             const tectoX = BlockShape.distanciaMaxX || 22.0;
@@ -2846,6 +2905,7 @@ const PosicionamentoAI = {
             }
         }
 
+        dbgCamada('pendulo', molaX, finalZ);
         /*
         O LADO FRACO FECHA. Pedido: *"com a bola na esquerda do ataque, os jogadores do lado direito podem
         fechar uns 5 metros; o mesmo do outro lado; quando a bola vai para o corredor do meio, voltam às
@@ -2870,19 +2930,21 @@ const PosicionamentoAI = {
             }
         }
 
+        dbgCamada('ladoFraco', molaX, finalZ);
         /*
         COM A BOLA NA DEFESA, OS MEIAS NAO SE MANDAM PARA O ATAQUE (BlockShape.meiasComBola, utils.js
         `tectoDoMeiaComBola`): o alvo do meia fica a `frente` m da bola no maximo, e esse limite sobe a medida que a
         bola sobe no campo. Aplica-se NO FIM (depois do tecto de desvio ao slot e do pendulo, que o puxavam para a
         frente) e so cede a quem tem a bola, ao receptor e a quem vai a bola.
         */
-        if (p.role === 'mid' && !p.hasBall && !temTarefaDeBola &&
+        if (p.role === 'mid' && !saltaZ('tectoMeias') && !p.hasBall && !temTarefaDeBola &&
             !(typeof Match !== 'undefined' && Match.intendedReceiver === p) &&
             typeof tectoDoMeiaComBola === 'function') {
             const tectoM = tectoDoMeiaComBola(p);
             if (isFinite(tectoM) && finalZ * p.dirZ > tectoM) finalZ = tectoM * p.dirZ;
         }
 
+        dbgCamada('tectoMeias', molaX, finalZ);
         /*
         O CENTRAL CONDUZ, OS MEIAS SOBEM COM ELE (BlockShape.meiasComBola.aSeguirODefesa): com um defesa na bola o meia
         central fica no minimo `lead` m a frente dele. Depois do tecto acima (que o segurava atras) e antes do corte do
@@ -2898,6 +2960,7 @@ const PosicionamentoAI = {
             }
         }
 
+        dbgCamada('seguirODefesa', molaX, finalZ);
         /*
         Respeito ao limite legal de fora-de-jogo (offside) mesmo com inércia.
 
@@ -2914,12 +2977,14 @@ const PosicionamentoAI = {
             }
         }
 
+        dbgCamada('foraDeJogo', molaX, finalZ);
         // Wing Play: com a bola na ala, os atacantes ocupam a area (ver playing_styles.js).
         if (typeof ocuparAreaComBolaNaAla === 'function' && !temTarefaDeBola) {
             const ocupa = ocuparAreaComBolaNaAla(p, bb, molaX, finalZ);
             molaX = ocupa.x; finalZ = ocupa.z;
         }
 
+        dbgCamada('ocuparArea', molaX, finalZ);
         /*
         LANCE DE LATERAL: quem se aproxima, e quanto.
 
@@ -2954,6 +3019,7 @@ const PosicionamentoAI = {
                 }
             }
         }
+        dbgCamada('lateralThrowIn', molaX, finalZ);
         // Afastar companheiros de equipa no mesmo espaco (evitar o empilhamento tatico como o caso LB + LM + LW)
         if (p.role !== 'gk' && typeof Match !== 'undefined') {
             const companheiros = (p.team === 'TeamA' ? Match.players : Match.opponents).filter(c => c !== p && c.role !== 'gk' && c.postoBase);
@@ -3007,6 +3073,7 @@ const PosicionamentoAI = {
             // Suaviza a tentativa de espacamento mantendo-a dentro da faixa de accao original (nao empurrar alas pra lateral muito longe)
             // molaX ja estara com a forca aplicada
         }
+        dbgCamada('repulsaoEFuga', molaX, finalZ);
         // Regra do lateral do lado oposto da jogada: fica entre a linha da bola e a linha dos zagueiros
         const isLateral = (p.pos === 'LB' || p.pos === 'RB' || p.pos === 'LWB' || p.pos === 'RWB');
         if (isLateral) {

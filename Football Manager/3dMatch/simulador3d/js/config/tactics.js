@@ -2089,7 +2089,21 @@ const ZonasModel = {
     ataque a abrir — e mais atras (`recuoDefensivo` m) quando acaba de a perder — as linhas recuam depressa. O efeito desvanece-se linearmente em `duracao` s.
     `transicao: null` desliga. Pedido: mais dinamismo nas transicoes.
     */
-    transicao: { duracao: 3.0, avancoOfensivo: 14.0, recuoDefensivo: 8.0 }
+    transicao: { duracao: 3.0, avancoOfensivo: 14.0, recuoDefensivo: 8.0 },
+    /*
+    AS CAMADAS DO `tickFinal` QUE A TABELA JA FAZ (medido na liga de 380 jogos): com bola o alvo final afastava-se 11-12 m do posto da tabela; as maiores parcelas eram a mola de
+    coesao a bola (2.6 m), o pendulo (1.2 m), o tecto dos meias (1.2 m) e o desvio maximo ao slot (0.7 m) — todas escritas para o bloco rigido, e a tabela ja poe cada jogador
+    em relacao a bola. `false` = esta camada nao corre quando o posto vem da tabela (a marcacao, o fora-de-jogo, o rest defense e a repulsao continuam). `true` volta a correr.
+    */
+    camadas: { molaCoesao: false, pendulo: false, tectoMeias: false, desvioMaxDoSlot: false },
+    /*
+    COMPORTAMENTO NAS TRANSICOES (pedido: mais dinamismo; medido: so mexer na leitura das tabelas nao muda o jogo). Nos primeiros `duracao` s:
+      . T.Defensive (acabou de perder a bola): CONTRA-PRESSAO — os `pressores` meias/avancados mais perto do adversario com a bola vao a ele (ate `distPressao` m).
+      . T.Offensive (acabou de ganhar): DESMARCACAO — os `corredores` meias/avancados mais adiantados atacam o espaco, `profundidade` m a frente do posto
+        (nunca alem da linha de fora-de-jogo) para dar opcao ao portador.
+    Escolhidos de 0.5 em 0.5 s para ninguem trocar de papel a cada frame. `activo: false` desliga.
+    */
+    transicaoAcao: { activo: true, duracao: 3.0, pressores: 2, distPressao: 2.0, corredores: 0, profundidade: 12.0 }
 };
 if (typeof window !== 'undefined') window.ZonasModel = ZonasModel;
 
