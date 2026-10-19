@@ -58,7 +58,7 @@ const NARRATION = {
     penalty_missed: "MISSED! The penalty goes wide!",
     sub_made: "comes on for",
     sub_injury: "forced change due to injury:",
-    intent: { ATTACK: "all-out attack", COUNTER: "counter-attack", POSSESS: "keep possession", RETREAT: "sit back", PRESS: "high press" } as Record<string, string>
+    intent: { BALANCED: "back to the game plan", ATTACK: "all-out attack", COUNTER: "counter-attack", POSSESS: "keep possession", RETREAT: "sit back", PRESS: "high press" } as Record<string, string>
   },
   PT: {
     midfield_dom: [
@@ -104,7 +104,7 @@ const NARRATION = {
     penalty_missed: "PERDEU! O pênalti foi para fora!",
     sub_made: "entra no lugar de",
     sub_injury: "mudança forçada por lesão:",
-    intent: { ATTACK: "todos ao ataque", COUNTER: "contra-ataque", POSSESS: "segurar a posse", RETREAT: "recuar as linhas", PRESS: "pressão alta" } as Record<string, string>
+    intent: { BALANCED: "volta ao plano de jogo", ATTACK: "todos ao ataque", COUNTER: "contra-ataque", POSSESS: "segurar a posse", RETREAT: "recuar as linhas", PRESS: "pressão alta" } as Record<string, string>
   }
 };
 
@@ -736,6 +736,9 @@ export const simulateMatch = (fixture: Fixture, allTeams: Team[], allPlayers: Pl
   // Deep clone das táticas para não alterar o banco de dados principal
   let homeTactics: Tactics = JSON.parse(JSON.stringify(homeTeam.tactics));
   let awayTactics: Tactics = JSON.parse(JSON.stringify(awayTeam.tactics));
+  // A tactica de partida: a intencao BALANCED volta a ela, e as outras partem dela (nao da anterior), para as mudancas nao se acumularem.
+  const homeBase: Tactics = JSON.parse(JSON.stringify(homeTeam.tactics));
+  const awayBase: Tactics = JSON.parse(JSON.stringify(awayTeam.tactics));
 
   // Estados da IA
   let homeIntent: TeamIntent | null = null;
@@ -824,7 +827,7 @@ export const simulateMatch = (fixture: Fixture, allTeams: Team[], allPlayers: Pl
     userTeamId !== null && (isHomeSide ? fixture.homeTeamId : fixture.awayTeamId) === userTeamId;
 
   /** Faz uma troca. Devolve true se a substituição aconteceu. */
-  const makeSub = (isHomeSide: boolean, minute: number, playerOut: Player | null, forced: boolean): boolean => {
+  const makeSub = (isHomeSide: boolean, minute: number, playerOut: Player | null, forced: boolean, modo: 'ATTACK' | 'DEFEND' | null = null): boolean => {
     // O motor NÃO mexe na escalação do usuário. Quem decide quem entra e quem
     // sai do time do treinador é o próprio treinador.
     if (isUserSide(isHomeSide) && !SIM_CONFIG.autoSubUserTeam) return false;
@@ -842,16 +845,32 @@ export const simulateMatch = (fixture: Fixture, allTeams: Team[], allPlayers: Pl
         .map(id => allPlayers.find(p => p.id === id))
         .filter((p): p is Player => !!p && !reds.has(p.id) && p.position !== Position.GK);
       if (candidates.length === 0) return false;
-      out = candidates.reduce((worst, p) =>
+      const maisCansado = (lista: Player[]) => lista.reduce((worst, p) =>
         (matchFitness.get(p.id) ?? p.fitness) < (matchFitness.get(worst.id) ?? worst.fitness) ? p : worst);
+      // TROCA TACTICA: a perder, sai um jogador de defesa/meio defensivo e entra um atacante; a ganhar, sai um atacante e entra um defensor.
+      const defensivos = candidates.filter(p => [Position.CB, Position.LB, Position.RB, Position.DM].includes(p.position));
+      const atacantes = candidates.filter(p => [Position.ST, Position.SS, Position.LW, Position.RW, Position.AM].includes(p.position));
+      if (modo === 'ATTACK' && defensivos.length > 2) out = maisCansado(defensivos);
+      else if (modo === 'DEFEND' && atacantes.length > 1) out = maisCansado(atacantes);
+      else out = maisCansado(candidates);
     }
 
     const group = positionGroup(out.position);
     const benchPlayers = bench.map(id => allPlayers.find(p => p.id === id)).filter((p): p is Player => !!p);
-    const sameGroup = benchPlayers.filter(p => group.includes(p.position));
-    const pool = sameGroup.length > 0 ? sameGroup : benchPlayers.filter(p => p.position !== Position.GK);
+    let pool: Player[] = [];
+    if (modo === 'ATTACK') pool = benchPlayers.filter(p => [Position.ST, Position.SS, Position.LW, Position.RW, Position.AM].includes(p.position));
+    else if (modo === 'DEFEND') pool = benchPlayers.filter(p => [Position.CB, Position.DM, Position.LB, Position.RB, Position.CM].includes(p.position));
+    if (pool.length === 0) {
+      const sameGroup = benchPlayers.filter(p => group.includes(p.position));
+      pool = sameGroup.length > 0 ? sameGroup : benchPlayers.filter(p => p.position !== Position.GK);
+    }
     if (pool.length === 0) return false;
-    const incoming = pool.reduce((best, p) => (p.skill > best.skill ? p : best));
+    // O substituto: o melhor, mas descansado (um reserva exausto nao entra).
+    const incoming = pool.reduce((best, p) => {
+      const sp = p.skill - Math.max(0, 85 - (matchFitness.get(p.id) ?? p.fitness)) * 0.3;
+      const sb = best.skill - Math.max(0, 85 - (matchFitness.get(best.id) ?? best.fitness)) * 0.3;
+      return sp > sb ? p : best;
+    });
 
     const idx = lineup.indexOf(out.id);
     if (idx === -1) return false;
@@ -959,14 +978,14 @@ export const simulateMatch = (fixture: Fixture, allTeams: Team[], allPlayers: Pl
       // decideTeamIntent para "perdendo no fim do jogo", o comportamento mais
       // importante da IA, que nunca chegava a ser aplicado.
       if (newHomeIntent !== homeIntent && homeIntent !== null) {
-          homeTactics = applyIntentToTactics(homeTactics, newHomeIntent);
+          homeTactics = applyIntentToTactics(homeBase, newHomeIntent);
           events.push({ minute, type: 'TACTICS', description: `${t.tactics_change} ${homeTeam.name} → ${t.intent[newHomeIntent]}`, teamId: homeTeam.id });
           changed = true;
       }
       homeIntent = newHomeIntent;
 
       if (newAwayIntent !== awayIntent && awayIntent !== null) {
-          awayTactics = applyIntentToTactics(awayTactics, newAwayIntent);
+          awayTactics = applyIntentToTactics(awayBase, newAwayIntent);
           events.push({ minute, type: 'TACTICS', description: `${t.tactics_change} ${awayTeam.name} → ${t.intent[newAwayIntent]}`, teamId: awayTeam.id });
           changed = true;
       }
@@ -1438,7 +1457,12 @@ export const simulateMatch = (fixture: Fixture, allTeams: Team[], allPlayers: Pl
                 isAtGoal = null;
             } else if (outcome === 'SUB') {
                  // Trocas táticas só a partir do segundo tempo, como no futebol real.
-                 if (minute >= 46) makeSub(isHomeActive, minute, null, false);
+                 if (minute >= 46) {
+                    // Troca tactica conforme o placar do time que faz a troca.
+                    const diffLado = isHomeActive ? homeScore - awayScore : awayScore - homeScore;
+                    const modoSub = (diffLado < 0 && minute >= 55) ? 'ATTACK' : (diffLado > 0 && minute >= 70) ? 'DEFEND' : null;
+                    makeSub(isHomeActive, minute, null, false, modoSub);
+                 }
                  isAtGoal = null;
             } else {
                  events.push({ minute, type: 'COMMENT', description: t.midfield_chaos, teamId: curTeam.id });
@@ -1799,24 +1823,66 @@ export const buildLineupForFormation = (
     return lineup.filter(Boolean);
 };
 
+/*
+O TREINADOR DA CPU (antes: formacao SORTEADA a cada jogo — 76% de trocas entre jogos seguidos —, escalacao so por skill e nenhuma leitura do adversario).
+Agora, antes de cada jogo:
+  1. O ELENCO DISPONIVEL: sem lesionados; o skill de cada um desconta a fadiga (um titular a 50% de preparo vale ~10 pontos menos) e quem esta abaixo de 40 so joga
+     se faltar gente. E assim que a CPU roda os jogadores quando o calendario aperta.
+  2. A FORMACAO: monta-se o onze de cada formacao possivel e fica a que melhor encaixa neste elenco, com um bonus a que ja usava (nao muda por capricho) e outro
+     conforme o adversario: contra um time claramente mais forte, o 5-3-2; contra um claramente mais fraco, o 4-3-3.
+  3. A TACTICA: azarao joga fechado (Defensive), favorito joga a atacar (Offensive), equilibrado fica Balanced.
+  4. O BANCO: cobre todas as zonas (1 goleiro, 3 defesas, 3 meios, 2 atacantes) com os mais fortes e descansados e completa com os melhores restantes.
+*/
 export const manageCPUTeam = (team: Team, opponent: Team, allPlayers: Player[]) => {
-    const teamPlayers = allPlayers.filter(p => p.teamId === team.id && !p.injury);
+    let teamPlayers = allPlayers.filter(p => p.teamId === team.id && !p.injury);
     if (teamPlayers.length === 0) return;
-    const sorted = [...teamPlayers].sort((a,b) => b.skill - a.skill);
+    // Sem nenhum goleiro apto, entra o melhor goleiro lesionado (melhor que um jogador de linha no gol).
+    if (!teamPlayers.some(p => p.position === Position.GK)) {
+        const gk = allPlayers.filter(p => p.teamId === team.id && p.position === Position.GK).sort((a, b) => b.skill - a.skill)[0];
+        if (gk) teamPlayers = [...teamPlayers, gk];
+    }
+    const penalidade = (p: Player) => Math.max(0, 90 - p.fitness) * 0.25;
+    const pool = teamPlayers.filter(p => p.fitness >= 40);
+    const candidatos = (pool.length >= 14 && pool.some(p => p.position === Position.GK) ? pool : teamPlayers)
+        .map(p => ({ ...p, skill: Math.max(1, p.skill - penalidade(p)) }) as Player);
 
-    // A formação é escolhida ANTES da escalação, para que o time seja montado
-    // para ela e não o contrário.
-    const formations: Tactics['formation'][] = ['4-4-2', '4-3-3', '4-2-3-1', '5-3-2'];
-    team.tactics.formation = formations[Math.floor(Math.random() * formations.length)];
-
-    const lineup = buildLineupForFormation(sorted, team.tactics.formation);
+    const forcaMedia = (id: string) => {
+        const l = allPlayers.filter(p => p.teamId === id).sort((a, b) => b.skill - a.skill).slice(0, 14);
+        return l.length ? l.reduce((s, p) => s + p.skill, 0) / l.length : 0;
+    };
+    const minha = forcaMedia(team.id), deles = forcaMedia(opponent.id);
+    const formacoes: Tactics['formation'][] = ['4-4-2', '4-3-3', '4-2-3-1', '5-3-2'];
+    let melhorForm = formacoes[0], melhorNota = -Infinity, melhorLineup: string[] = [];
+    for (const f of formacoes) {
+        const slots = FORMATIONS[f];
+        const lu = buildLineupForFormation(candidatos, f);
+        let nota = lu.reduce((s, id, i) => s + getEffectiveSkill(candidatos.find(p => p.id === id), slots[i]?.label || ''), 0) / Math.max(1, lu.length);
+        if (f === team.tactics.formation) nota += 0.6;
+        if (deles - minha >= 3 && f === '5-3-2') nota += 1.2;
+        if (minha - deles >= 3 && f === '4-3-3') nota += 1.2;
+        if (nota > melhorNota) { melhorNota = nota; melhorForm = f; melhorLineup = lu; }
+    }
+    team.tactics.formation = melhorForm;
+    const lineup = melhorLineup.slice();
     const used = new Set(lineup);
-    sorted.forEach(p => { if (!used.has(p.id) && lineup.length < 11) { lineup.push(p.id); used.add(p.id); } });
+    [...candidatos].sort((a, b) => b.skill - a.skill).forEach(p => { if (!used.has(p.id) && lineup.length < 11) { lineup.push(p.id); used.add(p.id); } });
     team.lineup = lineup;
-    // Monta bench com os melhores restantes (incluindo lesionados se necessário)
+
+    // Tactica pelo confronto.
+    if (deles - minha >= 3) { team.tactics.style = 'Defensive'; team.tactics.pressure = Math.min(team.tactics.pressure, 50); }
+    else if (minha - deles >= 3) { team.tactics.style = 'Offensive'; team.tactics.pressure = Math.max(team.tactics.pressure, 60); }
+    else team.tactics.style = 'Balanced';
+
+    // Banco que cobre as zonas.
+    const restantes = [...candidatos].filter(p => !used.has(p.id)).sort((a, b) => b.skill - a.skill);
     const bench: string[] = [];
-    const allTeamPlayers = allPlayers.filter(p => p.teamId === team.id);
-    const benchSorted = [...allTeamPlayers].filter(p => !used.has(p.id) && !p.injury).sort((a,b) => b.skill - a.skill);
-    benchSorted.slice(0, 9).forEach(p => bench.push(p.id));
+    const tomar = (pred: (p: Player) => boolean, n: number) => {
+        for (const p of restantes) { if (n <= 0) break; if (!bench.includes(p.id) && pred(p)) { bench.push(p.id); n--; } }
+    };
+    tomar(p => p.position === Position.GK, 1);
+    tomar(p => [Position.CB, Position.LB, Position.RB].includes(p.position), 3);
+    tomar(p => [Position.DM, Position.CM, Position.LM, Position.RM, Position.AM].includes(p.position), 3);
+    tomar(p => [Position.ST, Position.SS, Position.LW, Position.RW].includes(p.position), 2);
+    for (const p of restantes) { if (bench.length >= 9) break; if (!bench.includes(p.id)) bench.push(p.id); }
     team.bench = bench;
-};
+    };

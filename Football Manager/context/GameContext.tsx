@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useRef, useEffect } from 'r
 import { Team, Player, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode } from '../types';
 import { generateLeagueData, generateFixtures } from '../textSim/dataGenerator';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
-import { ACTIVITIES } from '../textSim/trainingService';
+import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino } from '../textSim/trainingService';
 import { REAL_TEAMS_JSON } from '../textSim/realDatabase';
 import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager } from '../3dMatch/simulador3dCliente';
 import { simulador3dEnviar } from '../3dMatch/Simulador3DView';
@@ -407,6 +407,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const d = new Date(gameState.currentDate + 'T12:00:00');
       const dayIdx = (d.getDay() + 6) % 7; // Monday = 0, Sunday = 6
 
+      // O treino da CPU: por time, descansa na vespera do jogo ou com o grupo cansado, e treina nos outros dias (textSim/trainingService.ts).
+      const planosCpu = new Map<string, { recuperacao: number; treina: boolean }>();
+      {
+        const porTime = new Map<string, Player[]>();
+        prevPlayers.forEach(pl => { if (pl.teamId !== gameState.userTeamId) { if (!porTime.has(pl.teamId)) porTime.set(pl.teamId, []); porTime.get(pl.teamId)!.push(pl); } });
+        porTime.forEach((elenco, tid) => {
+          const prox = fixtures.filter(f => !f.played && f.date >= gameState.currentDate && (f.homeTeamId === tid || f.awayTeamId === tid)).map(f => f.date).sort()[0];
+          const dias = prox ? Math.round((new Date(prox + 'T12:00:00').getTime() - new Date(gameState.currentDate + 'T12:00:00').getTime()) / 86400000) : 7;
+          planosCpu.set(tid, cpuPlanoDoDia(elenco, dias));
+        });
+      }
+
       return prevPlayers.map(p => {
         let dailyRecovery = 0;
         let moraleBoost = 0;
@@ -436,8 +448,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             moraleBoost += 1;
           }
         } else {
-          // Other teams use a balanced default recovery
-          dailyRecovery = 15;
+          // Outros times: o plano do treinador da CPU (descanso ou treino do dia)
+          const plano = planosCpu.get(p.teamId) || { recuperacao: 15, treina: false };
+          dailyRecovery = plano.recuperacao;
+          if (plano.treina) { p = { ...p, trainingAccumulated: p.trainingAccumulated ? { ...p.trainingAccumulated } : undefined } as Player; cpuAplicarTreino(p); }
         }
 
         return {

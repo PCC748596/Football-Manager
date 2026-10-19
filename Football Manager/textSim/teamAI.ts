@@ -4,7 +4,7 @@ import { Tactics } from '../types';
 // TEAM AI — Decide a intenção coletiva do time para cada minuto
 // =====================================================================
 
-export type TeamIntent = 'ATTACK' | 'COUNTER' | 'POSSESS' | 'RETREAT' | 'PRESS';
+export type TeamIntent = 'BALANCED' | 'ATTACK' | 'COUNTER' | 'POSSESS' | 'RETREAT' | 'PRESS';
 
 /**
  * Decide o que o time quer fazer coletivamente baseado em:
@@ -23,30 +23,24 @@ export const decideTeamIntent = (
   scoreDiff: number,       // positivo = time está ganhando
   avgFitness: number       // média do time (0-100)
 ): TeamIntent => {
-  // Perdendo no final do jogo → atacar desesperadamente
-  if (scoreDiff < 0 && matchMinute > 75) return 'ATTACK';
-  if (scoreDiff < -1 && matchMinute > 60) return 'ATTACK';
-  
-  // Ganhando com estilo defensivo → recuar
-  if (scoreDiff > 0 && (tactics.style === 'Very Defensive' || tactics.style === 'Defensive')) return 'RETREAT';
-  
-  // Momentum muito negativo e cansado → recuar
+  // Perdendo: ataca (por 2 ou mais, mais cedo)
+  if (scoreDiff <= -2 && matchMinute > 45) return 'ATTACK';
+  if (scoreDiff < 0 && matchMinute >= 60) return 'ATTACK';
+
+  // Ganhando perto do fim: segura o resultado
+  if (scoreDiff >= 2 && matchMinute >= 70) return 'POSSESS';
+  if (scoreDiff === 1 && matchMinute >= 80) return 'RETREAT';
+  if (scoreDiff === 1 && matchMinute >= 70) return 'POSSESS';
+  if (scoreDiff > 0 && (tactics.style === 'Very Defensive' || tactics.style === 'Defensive') && matchMinute >= 55) return 'RETREAT';
+
+  // Momentum muito negativo e cansado -> recuar
   if (momentum < -30 && avgFitness < 40) return 'RETREAT';
-  
-  // Pressão alta → pressionar
-  if (tactics.pressure > 70 && avgFitness > 50) return 'PRESS';
-  
-  // Estilo ofensivo → atacar
-  if (tactics.style === 'Very Offensive' || tactics.style === 'Offensive') return 'ATTACK';
-  
-  // Tempo baixo → manter posse
-  if (tactics.tempo < 30) return 'POSSESS';
-  
-  // Ganhando confortavelmente → manter posse
-  if (scoreDiff >= 2 && matchMinute > 60) return 'POSSESS';
-  
-  // Default
-  return 'ATTACK';
+
+  // Pressao alta -> pressionar (so com folego e sem estar a ganhar)
+  if (tactics.pressure > 70 && avgFitness > 50 && scoreDiff <= 0) return 'PRESS';
+
+  // Neutro: a tactica do treinador, sem alteracao. (Antes o neutro era ATTACK e a intencao de partida tambem: quem perdia nunca "mudava".)
+  return 'BALANCED';
 };
 
 /**
@@ -55,6 +49,8 @@ export const decideTeamIntent = (
 export const applyIntentToTactics = (tactics: Tactics, intent: TeamIntent): Tactics => {
   const newTactics = { ...tactics };
   switch (intent) {
+    case 'BALANCED':
+      break;
     case 'ATTACK':
       newTactics.style = 'Offensive';
       newTactics.pressure = Math.max(newTactics.pressure, 70);

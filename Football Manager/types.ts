@@ -643,6 +643,9 @@ export const getEffectiveSkill = (player: any, assignedPos: string): number => {
   const horizontalDist = Math.abs(pA.lane - pB.lane);
   
   const penalty = (verticalDist * 2) + (sectorDist * 2) + (horizontalDist * 2);
+  // O GOLEIRO e uma posicao a parte: um jogador de linha nao joga no gol (a penalizacao normal de 8 pontos deixava um volante de 78 ficar com a vaga do goleiro de 68), nem um goleiro joga na linha.
+  const gkA = player.position === Position.GK, gkB = assignedPos === Position.GK;
+  if (gkA !== gkB) return Math.max(1, player.skill - penalty - 60);
   return Math.max(1, player.skill - penalty);
 };
 
