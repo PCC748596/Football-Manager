@@ -49,7 +49,13 @@ if (process.env.LIGA_WORKER) {
     if (typeof Sim === 'undefined') global.Sim = {};
     Sim.running = true;
     if (process.env.LIGA_SEM_ZONAS === '1') ZonasModel.activo = false;
-    if (process.env.LIGA_SEM_TRANSICAO === '1') ZonasModel.transicao = null;   // o controlo: o bloco de antes das tabelas
+    if (process.env.LIGA_SEM_TRANSICAO === '1') ZonasModel.transicao = null;
+    // LIGA_TABELA=ajustada: usa data/formacoes_zonas.ajustada.js; LIGA_TRANSICAO="avanco,recuo": transicao mais forte.
+    if (process.env.LIGA_TABELA) {
+        const o = require('vm').runInNewContext(fs.readFileSync(path.join(RAIZ, 'data', 'formacoes_zonas.' + process.env.LIGA_TABELA + '.js'), 'utf8').replace(/^const FormacoesZonas =/m, 'FZ =') + ';FZ;', { window: undefined });
+        FormacoesZonas.formacoes = o.formacoes;
+    }
+    if (process.env.LIGA_TRANSICAO) { const [av, re] = process.env.LIGA_TRANSICAO.split(',').map(Number); ZonasModel.transicao = { duracao: 3.0, avancoOfensivo: av, recuoDefensivo: re }; }   // o controlo: o bloco de antes das tabelas
     const pares = calendario(NOMES.length, 2);
     const ladosIniciais = Lados.trocados;
     const dt = 1 / 60;
