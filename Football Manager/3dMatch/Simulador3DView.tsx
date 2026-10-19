@@ -12,6 +12,7 @@ interface Props {
   pausado: boolean;
   kitCasa?: number;            // kit escolhido (0 casa, 1 fora, 2 terceiro)
   kitFora?: number;
+  qualidade?: 'HIGH' | 'MEDIUM' | 'LOW';   // Game Settings > Graphics
   aoMensagem: (m: any) => void; // eventos do motor (evento, estado, fim, erro)
   aoPronto?: () => void;        // o motor carregou (para enviar a tatica)
 }
@@ -21,6 +22,15 @@ O simulador 3D ao vivo num iframe (modo visivel). Mover ou remover um iframe do 
 tela e voltar. Por isso o iframe e UNICO e vive no <body> (position: fixed); o componente so o posiciona por cima do seu espaco
 e esconde-o quando sai. A partida (e o iframe) so se perdem quando a `chave` muda.
 */
+// A qualidade grafica (Game Settings > Graphics): vai no URL do iframe ao criar e na mensagem `qualidade` depois.
+let qualidadeGrafica: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW';
+export const simulador3dQualidade = (q?: 'HIGH' | 'MEDIUM' | 'LOW') => {
+  const nova = q || 'LOW';
+  if (nova === qualidadeGrafica) return;
+  qualidadeGrafica = nova;
+  sessao.iframe?.contentWindow?.postMessage({ para: 'simulador3d', tipo: 'qualidade', nivel: nova }, '*');
+};
+
 const sessao: { iframe: HTMLIFrameElement | null; chave: string; pronto: boolean; arrancou: boolean; preparadoCom: string; cb: (m: any) => void; ouvinte: boolean } =
   { iframe: null, chave: '', pronto: false, arrancou: false, cb: () => {}, ouvinte: false, preparadoCom: "" };
 
@@ -53,7 +63,7 @@ const garantirIframe = (chave: string) => {
   if (sessao.iframe && sessao.chave === chave) return;
   if (sessao.iframe) { enviar({ para: 'simulador3d', tipo: 'parar' }); sessao.iframe.remove(); }
   const f = document.createElement('iframe');
-  f.src = urlSimulador() + '?embutido=1';
+  f.src = urlSimulador() + '?embutido=1&q=' + qualidadeGrafica;
   f.title = 'Simulador 3D';
   f.allow = 'autoplay; fullscreen';
   f.style.cssText = 'position:fixed;border:0;background:#000;z-index:5;visibility:hidden;left:0;top:0;width:0;height:0';
@@ -69,7 +79,8 @@ const garantirIframe = (chave: string) => {
   }
 };
 
-const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, chave, iniciar, pausado, kitCasa, kitFora, aoMensagem, aoPronto }) => {
+const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, chave, iniciar, pausado, kitCasa, kitFora, qualidade, aoMensagem, aoPronto }) => {
+  simulador3dQualidade(qualidade);   // antes de o iframe ser criado (useLayoutEffect) para entrar no URL
   const caixa = useRef<HTMLDivElement>(null);
   const dados = useRef<any>({});
   dados.current = { casa, fora, players, userTeamId, kits: { casa: kitCasa, fora: kitFora } };

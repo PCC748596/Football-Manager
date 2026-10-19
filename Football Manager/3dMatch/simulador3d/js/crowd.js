@@ -853,7 +853,14 @@ void crowdPesos(out float dePe, out float w1, out float w2,
             if (isTabletOrMobile) crowdLimit = 5000;
         }
         
-        const nTotal = Math.min(crowdLimit, lugares.length);
+        /*
+        A TORCIDA E UMA FRACAO DOS LUGARES do estadio (Qualidade.cfg().adeptos: HIGH 100%, MEDIUM 50%, LOW 25%), seja qual for o estadio; sem `Qualidade` vale o
+        teto de sempre (`CrowdModel.total`). Em tablet/telemovel o teto de 5000 continua a valer por cima.
+        */
+        const fracao = (typeof Qualidade !== 'undefined') ? Qualidade.cfg().adeptos : null;
+        const nTotal = (fracao !== null && fracao !== undefined)
+            ? Math.min(Math.round(lugares.length * fracao), (crowdLimit < CrowdModel.total) ? crowdLimit : Infinity)
+            : Math.min(crowdLimit, lugares.length);
 
         const dummy = new THREE.Object3D();
         const cor = new THREE.Color();

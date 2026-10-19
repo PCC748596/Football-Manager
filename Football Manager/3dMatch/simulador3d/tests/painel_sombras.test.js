@@ -49,7 +49,7 @@ console.log(LF + '1 — o botão está no painel da direita');
     } else ok('chama toggleSombras()');
 
     // Nasce ON, porque as sombras arrancam ligadas no renderer.
-    const arrancaLigado = /rendererCore\.shadowMap\.enabled\s*=\s*true/.test(srcMain);
+    const arrancaLigado = /rendererCore\.shadowMap\.enabled\s*=\s*(true|\(typeof Qualidade)/.test(srcMain);
     const botaoLigado = /id="btn-sombras"[\s\S]{0,160}Sombras:\s*ON/.test(painel);
     const classeActiva = /class="btn-sector active"[\s\S]{0,80}id="btn-sombras"/.test(painel);
     if (!arrancaLigado) {

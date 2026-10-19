@@ -1526,9 +1526,9 @@ document.addEventListener("DOMContentLoaded", () => {
         rendererCore = new THREE.WebGLRenderer({ antialias: !isTouchDevice, powerPreference: "high-performance" });
         // Max pixel ratio of 1.0 on tablets to save fill rate
         // Embutido no manager (?embutido=1): pixel ratio 1 (o iframe divide a GPU com a pagina do manager).
-        rendererCore.setPixelRatio((isTouchDevice || /[?&]embutido/.test(location.search)) ? 1 : Math.min(window.devicePixelRatio || 1, 1.5));
+        rendererCore.setPixelRatio((typeof Qualidade !== 'undefined') ? Math.min(window.devicePixelRatio || 1, Qualidade.cfg().pixelRatio) : ((isTouchDevice || /[?&]embutido/.test(location.search)) ? 1 : Math.min(window.devicePixelRatio || 1, 1.5)));   // Qualidade (config/qualidade.js)
         rendererCore.setSize(window.innerWidth, window.innerHeight);
-        rendererCore.shadowMap.enabled = true;
+        rendererCore.shadowMap.enabled = (typeof Qualidade === 'undefined') ? true : Qualidade.cfg().sombras;
         rendererCore.shadowMap.type = THREE.PCFShadowMap; // Better performance
         document.body.appendChild(rendererCore.domElement);
         window.rendererCore = rendererCore;
@@ -1538,7 +1538,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
         dirLight.position.set(50, 100, 40);
-        dirLight.castShadow = true;
+        dirLight.castShadow = (typeof Qualidade === 'undefined') ? true : Qualidade.cfg().sombras;
         /*
         NITIDEZ DA SOMBRA = texels por metro, e é uma divisão simples:
         `mapSize / (2*d)`. Estava em 1024 sobre uma área de 160x160 m, ou seja
@@ -1554,8 +1554,9 @@ document.addEventListener("DOMContentLoaded", () => {
         Em tablets fica como estava — lá as peças nem projectam (ver
         criarPeca em pose.js).
         */
-        dirLight.shadow.mapSize.width = isTouchDevice ? 512 : 2048;
-        dirLight.shadow.mapSize.height = isTouchDevice ? 512 : 2048;
+        const mapaSombra = (typeof Qualidade !== 'undefined') ? Math.min(Qualidade.cfg().mapa, isTouchDevice ? 512 : 4096) : (isTouchDevice ? 512 : 2048);
+        dirLight.shadow.mapSize.width = mapaSombra;
+        dirLight.shadow.mapSize.height = mapaSombra;
 
         const d = isTouchDevice ? 80 : 70;
         dirLight.shadow.camera.left = -d;
@@ -1577,6 +1578,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Guardada para o botão das sombras: desligar só o `shadowMap` do
         // renderer não chega (ver toggleSombras).
         window.dirLightCore = dirLight;
+        if (typeof Qualidade !== 'undefined') Qualidade.aplicar();   // acerta o rotulo do botao das sombras com o nivel (config/qualidade.js)
         scene.add(dirLight);
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);

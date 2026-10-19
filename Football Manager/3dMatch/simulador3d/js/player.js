@@ -6568,7 +6568,7 @@ class FootballPlayer {
 
     buildBody(corCamisa, corCalcao) {
         const { corpo, rig, backMat, shortFrente } = construirCorpo(corCamisa, corCalcao,
-            this.aparencia, this.uniforme);
+            this.aparencia, this.uniforme, (typeof Qualidade !== 'undefined') ? Qualidade.cfg().corpo : 0);
         this.backMat = backMat;
         this.shortFrente = shortFrente || null;
         return { corpo, rig };

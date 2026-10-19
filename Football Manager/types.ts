@@ -761,6 +761,7 @@ export interface GameState {
   matchDuration: MatchDuration;
   matchMode: MatchMode;
   simulationSpeed?: 1 | 2 | 3;
+  graphicsQuality?: 'HIGH' | 'MEDIUM' | 'LOW';   // Game Settings > Graphics; sem valor vale LOW
   view: 'DASHBOARD' | 'SQUAD' | 'LEAGUE' | 'MATCH' | 'FINANCES' | 'STATISTICS' | 'TACTICS' | 'FIXTURES' | 'TRAINING' | 'TRAINING_VIEW' | 'SETTINGS';
   activities: CalendarActivity[];
   themeMode: ThemeMode;

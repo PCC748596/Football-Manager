@@ -102,6 +102,30 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
               </div>
           </section>
 
+          {/* Graphics Section */}
+          <section className="space-y-4">
+              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">Graphics</h3>
+              <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">3D Match Quality</label>
+                  <div className="flex gap-2">
+                      {(['HIGH', 'MEDIUM', 'LOW'] as const).map((q) => (
+                          <button
+                            key={q}
+                            onClick={() => updateSettings({ graphicsQuality: q })}
+                            className={`flex-1 py-3 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
+                                (gameState.graphicsQuality || 'LOW') === q
+                                ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-400'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                              {q}
+                          </button>
+                      ))}
+                  </div>
+                  <p className="text-xs text-slate-400">LOW: no shadows, light player model, 25% of the stadium seats filled. MEDIUM: shadows, 50% crowd. HIGH: everything, 100% crowd. Crowd size applies from the next match.</p>
+              </div>
+          </section>
+
           {/* Financial Section */}
           <section className="space-y-4">
               <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">{t('set_fin')}</h3>

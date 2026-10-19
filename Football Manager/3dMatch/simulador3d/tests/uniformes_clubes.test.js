@@ -496,9 +496,9 @@ test('a manga comprida cobre o braço todo e dobra com o cotovelo', () => {
 });
 
 test('o corpo recebe o uniforme e o número sai da cor do clube', () => {
-    assert.ok(/construirCorpo\(corCamisa, corCalcao,\s*\n?\s*this\.aparencia, this\.uniforme\)/.test(srcPlayer),
+    assert.ok(/construirCorpo\(corCamisa, corCalcao,\s*\n?\s*this\.aparencia, this\.uniforme.*\)/.test(srcPlayer),
         'o buildBody deixou de passar o uniforme ao construirCorpo');
-    assert.ok(/function construirCorpo\(corCamisa, corCalcao, aparencia, uniforme\)/.test(srcPose),
+    assert.ok(/function construirCorpo\(corCamisa, corCalcao, aparencia, uniforme(, leve)?\)/.test(srcPose),
         'o construirCorpo deixou de aceitar o uniforme');
     assert.ok(/this\.uniforme && this\.uniforme\.numero/.test(srcPlayer),
         'a cor do número já não sai do uniforme');

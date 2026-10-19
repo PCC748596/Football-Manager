@@ -232,7 +232,13 @@ if (typeof window !== 'undefined') window.pintarPadraoDeEquipamento = pintarPadr
 (config/uniformes.js). Sem ele, o corpo sai como sempre saiu: camisa e meiao
 da cor `corCamisa`, calcao de `corCalcao`.
 */
-function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
+/*
+`leve` (0, 1 ou 2) gasta menos triangulos no MESMO corpo, para comparar no editor (animEditor): 0 = o de sempre (6544 triangulos); 1 = metade (~3500): o torax
+deixa de ser subdividido em X (so a subdivisao em Y mantem a textura direita no afunilamento) e as juntas esfericas levam menos segmentos; 2 = minimo (~1700):
+juntas ainda mais simples. O corpo dos jogadores continua em 0.
+*/
+function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
+    leve = leve || 0;
     // Pele e juntas seguem o tom do jogador; as juntas ficam um pouco mais
     // escuras que a pele, para o contorno das articulações não desaparecer.
     const ap = aparencia || escolherAparencia(0, 11, 0);
@@ -647,7 +653,8 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
     desvio para o lado.
     */
     function caixaTorax(w, h, d, afunilTopoX = 0.75, segs = 16) {
-        const geo = new THREE.BoxGeometry(w, h, d, segs, segs, 1);
+        // O afunilamento so depende de y: a subdivisao em x nao servia a nada (1152 triangulos por caixa, 2 caixas).
+        const geo = new THREE.BoxGeometry(w, h, d, leve ? 1 : segs, segs, 1);
         const pos = geo.attributes.position;
         const yMin = -h / 2;
         for (let i = 0; i < pos.count; i++) {
@@ -704,14 +711,14 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
     const cintura = new THREE.Group(); cintura.position.y = 0.275;
     pelvis.add(cintura); rig.chest = cintura;
 
-    const chest = criarPeca(caixaTorax(u * 1.4, u * 1.45, u * 0.75, 0.75), blockMat);
+    const chest = criarPeca(caixaTorax(u * 1.4, u * 1.45, u * 0.75, 0.75, leve ? 1 : 16), blockMat);
     chest.position.y = 1.025 - 0.275;
     /*
     A SOMBRA DO TRONCO vive aqui. Era a caixa da pélvis que a projectava e ela
     deixou de existir; sem esta linha o jogador passa a fazer sombra de pernas
     e cabeça com um buraco no meio.
     */
-    chest.add(criarPeca(caixaTorax(u * 1.45, u * 1.5, u * 0.8, 0.75), chestMats, true));
+    chest.add(criarPeca(caixaTorax(u * 1.45, u * 1.5, u * 0.8, 0.75, leve === 2 ? 4 : leve === 1 ? 8 : 16), chestMats, true));
     /*
     SEM BAINHA. A camisa acaba no peito — pedido: *"ajusta a cor da camisa só
     no peito"*.
@@ -758,7 +765,10 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
         }
     }
 
-    const jointGeo = new THREE.SphereGeometry(u * 0.2, 16, 16); const smallJointGeo = new THREE.SphereGeometry(u * 0.15, 16, 16);
+    // Versoes leves (`leve` >= 1): SEM esferas nas juntas — cada membro entra EXTRA unidades no seguinte (antebraco no braco, canela na coxa), para o movimento nao abrir fresta.
+    const EXTRA = leve ? 0.18 : 0;
+    const segJ = leve === 2 ? [8, 6] : leve === 1 ? [14, 12] : [16, 16];
+    const jointGeo = new THREE.SphereGeometry(u * 0.2, segJ[0], segJ[1]); const smallJointGeo = new THREE.SphereGeometry(u * 0.15, segJ[0], segJ[1]);
 
     function criarBraco(x) {
         /*
@@ -809,10 +819,10 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
             punhoCurto.position.y = (0.5 - alturaManga) + 0.06;   // no fim da manga
             up.add(punhoCurto);
         }
-        const elb = new THREE.Group(); elb.position.y = -1.0; elb.rotation.x = -0.3; grp.add(elb); elb.add(criarPeca(smallJointGeo, jointMat));
+        const elb = new THREE.Group(); elb.position.y = -1.0; elb.rotation.x = -0.3; grp.add(elb); if (!leve) elb.add(criarPeca(smallJointGeo, jointMat));
         // O ANTEBRACO AFUNILA para o punho: a ponta de baixo fica 25% mais estreita (`ANTEBRACO_AFUNIL`; eram 15%, pedido: "10% mais"), de cima para baixo.
         const ANTEBRACO_AFUNIL = 0.75;
-        const low = criarPeca(caixaAfunilada(u * 0.3, u * 0.8, u * 0.3, ANTEBRACO_AFUNIL), blockMat, true); low.position.y = -0.4; elb.add(low);
+        const low = criarPeca(caixaAfunilada(u * 0.3, u * (0.8 + EXTRA), u * 0.3, ANTEBRACO_AFUNIL), blockMat, true); low.position.y = -0.4 + EXTRA / 2; elb.add(low);
         /*
         A METADE DE BAIXO DA MANGA COMPRIDA, no antebraco. Fica filha do `low`
         e nao do `elb`: assim dobra com o cotovelo em vez de atravessar o braco
@@ -820,11 +830,11 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
         */
         if (mangaComprida) {
             const mangaBaixo = criarPeca(caixaAfunilada(u * 0.35, u * 0.8, u * 0.35, ANTEBRACO_AFUNIL), mangaMat);
-            mangaBaixo.position.y = 0.0;
+            mangaBaixo.position.y = -EXTRA / 2;
             low.add(mangaBaixo);
             if (punhoMat) {
                 const punhoLongo = criarPeca(new THREE.BoxGeometry(u * 0.36 * 0.8, u * 0.12, u * 0.36 * 0.8), punhoMat);   // 0.8: perto do punho o antebraco e mais estreito
-                punhoLongo.position.y = -0.34;
+                punhoLongo.position.y = -0.34 - EXTRA / 2;
                 low.add(punhoLongo);
             }
         }
@@ -850,8 +860,8 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
         folga, e é o que torna o pulso animável nas defesas do guarda-redes
         (ver MaoDetalhada.juntaRaio, com os canais já existentes).
         */
-        if (MD && MD.activo && MD.juntaRaio > 0) {
-            handG.add(criarPeca(new THREE.SphereGeometry(u * MD.juntaRaio, 12, 12), jointMat));
+        if (!leve && MD && MD.activo && MD.juntaRaio > 0) {
+            handG.add(criarPeca(new THREE.SphereGeometry(u * MD.juntaRaio, leve === 2 ? 8 : leve === 1 ? 10 : 12, leve === 2 ? 6 : leve === 1 ? 8 : 12), jointMat));
         }
 
         const maoMat = luvaCostasMat || blockMat;
@@ -1000,7 +1010,7 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
         pivo ela ficaria meia de fora, na costura da camisa.
         */
         const grp = new THREE.Group(); grp.position.set(x, 0.3, 0);
-        const ancaBola = criarPeca(jointGeo, jointMat); ancaBola.position.y = -0.6; grp.add(ancaBola);
+        if (!leve) { const ancaBola = criarPeca(jointGeo, jointMat); ancaBola.position.y = -0.6; grp.add(ancaBola); }
         const coxa = criarPeca(new THREE.BoxGeometry(u * 0.45, u * 1.0, u * 0.45), blockMat, true); coxa.position.y = -1.1;
         /*
         O CALÇÃO: da cintura a meio da coxa, e nunca mais largo que o tronco.
@@ -1036,12 +1046,12 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme) {
             x > 0 ? [shortMat, shortMat, shortMat, shortMat, shortFrenteMat, shortMat] : shortMat);
         shortL.position.set(x > 0 ? -0.08 : 0.08, 0.55, 0);
         coxa.add(shortL); grp.add(coxa);
-        const joelho = new THREE.Group(); joelho.position.y = -1.6; grp.add(joelho); joelho.add(criarPeca(smallJointGeo, jointMat));
+        const joelho = new THREE.Group(); joelho.position.y = -1.6; grp.add(joelho); if (!leve) joelho.add(criarPeca(smallJointGeo, jointMat));
         // A PARTE DE BAIXO DA PERNA 15% MAIS FINA (`PERNA_BAIXO_AFUNIL`): canela e meiao afunilam para o tornozelo.
         const PERNA_BAIXO_AFUNIL = 0.85;
-        const canela = criarPeca(caixaAfunilada(u * 0.35, u * 0.9, u * 0.35, PERNA_BAIXO_AFUNIL), blockMat, true); canela.position.y = -0.45;
+        const canela = criarPeca(caixaAfunilada(u * 0.35, u * (0.9 + EXTRA), u * 0.35, PERNA_BAIXO_AFUNIL), blockMat, true); canela.position.y = -0.45 + EXTRA / 2;
         // 7 cm mais comprido para baixo (ESCALA_CORPO ~0.327 m/unidade: 0.07/0.327 = 0.214): o cano chega à chuteira.
-        const meiao = criarPeca(caixaAfunilada(u * 0.4, u * 1.064, u * 0.4, PERNA_BAIXO_AFUNIL), sockMats); meiao.position.y = -0.107; meiao.userData.meiao = { y: -0.107, meio: u * 1.064 / 2 }; canela.add(meiao); joelho.add(canela);
+        const meiao = criarPeca(caixaAfunilada(u * 0.4, u * 1.064, u * 0.4, PERNA_BAIXO_AFUNIL), sockMats); meiao.position.y = -0.107 - EXTRA / 2; meiao.userData.meiao = { y: -0.107 - EXTRA / 2, meio: u * 1.064 / 2 }; canela.add(meiao); joelho.add(canela);
         const peG = new THREE.Group(); peG.position.y = -0.9; joelho.add(peG);
 
         // Largura do meião (0.40): os 2 cm de cada lado (0.52) foram retirados a pedido — a chuteira volta a ter a largura do meião.

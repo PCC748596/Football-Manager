@@ -164,7 +164,7 @@ interface GameContextType {
   currentFixtures: Fixture[];
   userTeam: Team | undefined;
   setThemeMode: (mode: ThemeMode) => void;
-  updateSettings: (settings: Partial<Pick<GameState, 'language' | 'currency' | 'wageFrequency' | 'themeMode' | 'matchDuration' | 'simulationSpeed'>>) => void;
+  updateSettings: (settings: Partial<Pick<GameState, 'language' | 'currency' | 'wageFrequency' | 'themeMode' | 'matchDuration' | 'simulationSpeed' | 'graphicsQuality'>>) => void;
   isTransferWindowOpen: () => boolean;
   formatCurrency: (value: number) => string;
   formatCurrencyShort: (value: number) => string;
@@ -200,6 +200,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isProcessing: false,
       matchMinute: 0,
       matchDuration: 10,
+      graphicsQuality: 'LOW',
       view: 'DASHBOARD',
       activities: [],
       themeMode: 'AUTO',
@@ -294,7 +295,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const setThemeMode = (mode: ThemeMode) => setGameState(prev => ({ ...prev, themeMode: mode }));
 
-  const updateSettings = (settings: Partial<Pick<GameState, 'language' | 'currency' | 'wageFrequency' | 'themeMode' | 'matchDuration' | 'simulationSpeed'>>) => {
+  const updateSettings = (settings: Partial<Pick<GameState, 'language' | 'currency' | 'wageFrequency' | 'themeMode' | 'matchDuration' | 'simulationSpeed' | 'graphicsQuality'>>) => {
     if (settings.language) localStorage.setItem('fm_lang', settings.language);
     setGameState(prev => ({ ...prev, ...settings }));
   };
