@@ -21,10 +21,14 @@ aparencia do id real), com o POSTO do que sai (slot, formacao, funcao), no lugar
 */
 const Aquecimento = {
     activo: true,
+    depurar: true,        // escreve na consola uma linha por segundo do aquecimento / volta
     ciclos: 4,            // idas a linha de fundo
     parada: 4.0,          // s a olhar o jogo em cada ponta
     velocidade: 3.4,      // m/s a correr
-    xAquecer: 36.4,       // entre a linha lateral (34) e as placas (39)
+    xAquecer: 41.3,       // o TRILHO DE IDA, atras das placas (39) e dos reporters (40.4), entre eles e o banco (42.4): o aquecimento nao entra na area tecnica nem no relvado
+    xVolta: 41.9,         // o TRILHO DE VOLTA: a ida e a volta nao se cruzam, nem com varias substituicoes ao mesmo tempo
+    zSobraBanco: 6.5,     // a volta acaba tanto (m, em z) do centro do banco: fora do banco, onde os reservas sentados tem as pernas no trilho
+    xVao: 36.4,           // o vao das placas em frente ao banco leva a faixa da lateral (34 a 39), por onde se vai ao meio da lateral
     xEspera: 36.0,        // a espera, ao lado do 4.o arbitro
     zSobraFundo: 4.0,     // a corrida acaba tantos metros antes da linha de fundo
     saida: { x: 34.4, z: 0 },   // onde quem sai deixa o campo e quem entra o pisa (meio da lateral)
@@ -124,15 +128,21 @@ Object.assign(Match, {
         const indice = this.subsPendentes.filter(r => !r.feita && r.lado === req.lado).indexOf(req);
         const off = Math.max(0, indice) * 1.2;
         const sinal = Math.sign(banco.zc) || 1;
-        const zPerto = banco.zc + sinal * (4 + off);
+        const zPerto = banco.zc + sinal * (A.zSobraBanco + off);
         const zFim = sinal * (CAMPO_COMP / 2 - A.zSobraFundo) - sinal * off;
-        const passos = [{ tipo: 'ir', x: A.xAquecer, z: banco.zc }];
+        const zAssento = B.model.position.z;
+        const passos = [{ tipo: 'ir', x: A.xAquecer, z: zAssento }, { tipo: 'ir', x: A.xAquecer, z: banco.zc + sinal * (A.zSobraBanco + off) }];   // do assento para o trilho de ida
         for (let c = 0; c < A.ciclos; c++) {
-            passos.push({ tipo: 'ir', x: A.xAquecer, z: zFim });
+            passos.push({ tipo: 'ir', x: A.xAquecer, z: zFim });          // ida pelo trilho de ida
             passos.push({ tipo: 'parar', s: A.parada });
-            passos.push({ tipo: 'ir', x: A.xAquecer, z: zPerto });
+            passos.push({ tipo: 'ir', x: A.xVolta, z: zFim });            // muda de trilho (passo ao lado)
+            passos.push({ tipo: 'ir', x: A.xVolta, z: zPerto });          // volta pelo trilho de volta
             passos.push({ tipo: 'parar', s: A.parada });
+            passos.push({ tipo: 'ir', x: A.xAquecer, z: zPerto });        // e regressa ao de ida
         }
+        // Para a espera: de volta ao banco, pelo vao da placa ate a faixa da lateral e dai ao meio.
+        passos.push({ tipo: 'ir', x: A.xAquecer, z: banco.zc });
+        passos.push({ tipo: 'ir', x: A.xEspera, z: banco.zc });
         passos.push({ tipo: 'ir', x: A.xEspera, z: (indice % 2 ? 1.6 : -1.6) * Math.ceil((indice + 1) / 2) * 0.9 });
         req.passos = passos; req.passo = 0; req.t = 0;
         // Levanta-se: a pose do banco sai, a posicao de pe fica onde estava sentado.
@@ -141,6 +151,41 @@ Object.assign(Match, {
         B.model.position.y = (typeof ALTURA_BASE_Y === 'number') ? ALTURA_BASE_Y : 0;
         B.animTimer = 0; B.velAnim = 0; B.paradoNoAlvo = true;
         req.estado = 'aquecer';
+    },
+
+    /*
+    ANDAR (reserva, quem sai): o `Officials.mover` leva o corpo e a passada; aqui garante-se (1) que ele SAI DO SITIO — se por qualquer razao o `mover` o deixar quieto a
+    animar a corrida, avanca-se a mao (relato: *"a corrida de volta: a animacao esta ok mas o jogador fica no lugar"*) — e (2) que ele PISA O RELVADO: a sola assenta
+    (`assentarNoChao`) como nos jogadores de campo (relato: *"o jogador aquecendo esta meio no ar"*).
+    */
+    _andar: function (o, x, z, vel, dt) {
+        const p = o.model.position, x0 = p.x, z0 = p.z;
+        const d = Math.hypot(x - x0, z - z0);
+        Officials.mover(o, x, z, vel, dt, undefined);
+        // O `mover` so da a passada: o AVANCO e sempre este (vel * dt em linha recta para o alvo), seja qual for o estado do `mover` (relato repetido: corrida so com a animacao).
+        const esperado = Math.min(d, vel * dt);
+        if (d > 0.05 && vel > 0) {
+            p.x = x0 + (x - x0) / d * esperado; p.z = z0 + (z - z0) / d * esperado;
+            o.model.rotation.y = Math.atan2(x - x0, z - z0);
+        }
+        this._assentar(o, dt, x0, z0);
+    },
+
+    // Diagnostico (consola do iframe): uma linha por segundo com onde o corpo esta e para onde vai. `Aquecimento.depurar = false` desliga.
+    _depurar: function (req, o, alvo) {
+        if (!Aquecimento.depurar || typeof console === 'undefined') return;
+        req._dbgT = (req._dbgT || 0) + 1;
+        if (req._dbgT % 60 !== 1) return;
+        const p = o.model.position;
+        console.log('[subs]', req.estado, 'passo', req.passo, 'pos', p.x.toFixed(2), p.z.toFixed(2), '-> alvo', alvo ? alvo.x.toFixed(2) + ',' + alvo.z.toFixed(2) : '-',
+            '| na cena', !!o.model.parent, 'visivel', o.model.visible, '| estado jogo', this.state);
+    },
+
+    _assentar: function (o, dt, x0, z0) {
+        const p = o.model.position;
+        if (o.velocity && dt > 0) o.velocity.set((p.x - x0) / dt, 0, (p.z - z0) / dt);
+        o.jumpTimer = 0; o.peitoHopTimer = 0;
+        for (let k = 0; k < 3; k++) { if (o.assentarNoChao) o.assentarNoChao(); }   // varias passagens: a correccao e suavizada e o corpo parte de cima
     },
 
     _virarPara: function (o, x, z, k) {
@@ -156,12 +201,16 @@ Object.assign(Match, {
         if (!st) { req.estado = 'pronto'; return; }
         const bola = this.ball.position;
         if (st.tipo === 'ir') {
-            Officials.mover(B, st.x, st.z, Aquecimento.velocidade, dt, undefined);
-            if (Math.hypot(st.x - B.model.position.x, st.z - B.model.position.z) < 0.6) { req.passo++; req.t = 0; }
+            this._andar(B, st.x, st.z, Aquecimento.velocidade, dt);
+            this._depurar(req, B, st);
+            req.t += dt;
+            if (Math.hypot(st.x - B.model.position.x, st.z - B.model.position.z) < 0.6 || req.t > 40) { req.passo++; req.t = 0; }
         } else {
             // Parado a olhar o jogo.
-            Officials.mover(B, B.model.position.x, B.model.position.z, 0, dt, undefined);
+            const bx = B.model.position.x, bz = B.model.position.z;
+            Officials.mover(B, bx, bz, 0, dt, undefined);
             this._virarPara(B, bola.x, bola.z, dt * 5);
+            this._assentar(B, dt, bx, bz);
             req.t += dt;
             if (req.t >= st.s) { req.passo++; req.t = 0; }
         }
@@ -189,7 +238,9 @@ Object.assign(Match, {
             return;
         }
         // 'sai': quem sai vai ao meio da lateral e sai de campo.
-        Officials.mover(P, A.saida.x, A.saida.z + (req.lado === 'fora' ? 0.9 : -0.9), A.velSai, dt, undefined);
+        this._andar(P, A.saida.x, A.saida.z + (req.lado === 'fora' ? 0.9 : -0.9), A.velSai, dt);
+        // Caminha a olhar para o substituto, que o espera ao lado do 4.o arbitro.
+        if (req.B) this._virarPara(P, req.B.model.position.x, req.B.model.position.z, dt * 10);
         const d = Math.hypot(A.saida.x - P.model.position.x, (A.saida.z + (req.lado === 'fora' ? 0.9 : -0.9)) - P.model.position.z);
         if (d < 0.7 || req.t > 28) {
             this.executarSubstituicao(req, P, lista, { x: A.saida.x - 0.6, z: A.saida.z, entrada: true });
@@ -206,9 +257,12 @@ Object.assign(Match, {
         const P = req.sai, banco = req.banco;
         if (!P || !banco || !req.assento) { req.feita = true; return; }
         const A = Aquecimento;
-        const pontos = [{ x: A.xAquecer, z: banco.zc }, { x: req.assento.x, z: req.assento.z }];
+        const pontos = [{ x: A.xVao, z: banco.zc }, { x: A.xAquecer, z: banco.zc }, { x: A.xAquecer, z: req.assento.z }, { x: req.assento.x, z: req.assento.z }];
         const alvo = pontos[Math.min(req.passo, pontos.length - 1)];
-        Officials.mover(P, alvo.x, alvo.z, A.velVolta, dt, undefined);
+        this._andar(P, alvo.x, alvo.z, A.velVolta, dt);
+        this._depurar(req, P, alvo);
+        // Depois de sair, olha para o lugar vago no banco (o dele) enquanto la vai; sentado, fica na direccao dos outros.
+        this._virarPara(P, req.assento.x, req.assento.z, dt * 8);
         if (Math.hypot(alvo.x - P.model.position.x, alvo.z - P.model.position.z) < 0.35) {
             req.passo++;
             if (req.passo >= pontos.length) {

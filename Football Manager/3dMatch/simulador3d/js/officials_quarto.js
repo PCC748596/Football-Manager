@@ -13,9 +13,11 @@ const QuartoArbitro = {
     x: 37.4,                  // entre a linha lateral (34) e as placas de publicidade (39), no meio entre os dois bancos
     z: 0,
     larguraPlaca: 0.95, alturaPlaca: 0.46,   // metros
-    alturaDoCentro: 2.45,     // do relvado ao centro da placa, com os bracos erguidos (m)
+    alturaDoCentro: 2.17,     // do relvado ao centro da placa, com os bracos erguidos (m)
+    xPlaca: 35.2,             // com a placa no ar o 4.o arbitro chega-se a linha lateral (34); sem ela volta ao x de cima
+    recuoPlaca: 0.06,         // a placa a esta distancia do corpo, para a frente (m)
     // Bracos erguidos (rad, convencao do rig: x negativo = para a frente/cima).
-    bracoX: -2.85, bracoZ: 0.22, cotovelo: -0.25
+    bracoX: -3.0, bracoZ: 0.22, cotovelo: -0.10
 };
 if (typeof window !== 'undefined') window.QuartoArbitro = QuartoArbitro;
 
@@ -46,25 +48,41 @@ Object.assign(Officials, {
         g.visible = false;
         g.userData = { cv: cv, tex: tex };
         // Acima da cabeca, virada para o campo (o corpo olha para -X; o `model` roda, a placa e filha dele: a face +z do filho e a frente).
-        g.position.set(0, Q.alturaDoCentro / esc, 0.25 / esc);
+        g.position.set(0, Q.alturaDoCentro / esc, Q.recuoPlaca / esc);
         o.model.add(g);
         return g;
     },
 
-    // Escreve os numeros: `sai` a vermelho (esquerda), `entra` a verde (direita), em "digitos" de led.
+    // Escreve os numeros: `sai` a vermelho (esquerda), `entra` a verde (direita), em PONTOS de led (matriz 5x7 por digito, os apagados em tom escuro).
     mostrarPlaca: function (sai, entra) {
         const o = this.quarto;
         if (!o || !o.placa) return;
+        const FONTE = {
+            '0': ['01110','10001','10011','10101','11001','10001','01110'], '1': ['00100','01100','00100','00100','00100','00100','01110'],
+            '2': ['01110','10001','00001','00010','00100','01000','11111'], '3': ['11110','00001','00001','01110','00001','00001','11110'],
+            '4': ['00010','00110','01010','10010','11111','00010','00010'], '5': ['11111','10000','11110','00001','00001','10001','01110'],
+            '6': ['00110','01000','10000','11110','10001','10001','01110'], '7': ['11111','00001','00010','00100','01000','01000','01000'],
+            '8': ['01110','10001','10001','01110','10001','10001','01110'], '9': ['01110','10001','10001','01111','00001','00010','01100'],
+            ' ': ['00000','00000','00000','00000','00000','00000','00000']
+        };
         const cv = o.placa.userData.cv, c = cv.getContext('2d');
         c.fillStyle = '#0b0d10'; c.fillRect(0, 0, 512, 256);
-        c.fillStyle = '#6b7280'; c.fillRect(8, 8, 496, 6); c.fillRect(8, 242, 496, 6);
-        c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.font = 'bold 190px "Courier New", monospace';
-        const digitos = (n) => String(n).padStart(2, ' ');
-        c.shadowBlur = 18;
-        c.shadowColor = '#ff2a2a'; c.fillStyle = '#ff3b30'; c.fillText(digitos(sai), 135, 132);
-        c.shadowColor = '#2dff6a'; c.fillStyle = '#30d158'; c.fillText(digitos(entra), 380, 132);
-        c.shadowBlur = 0;
+        const celX = 21, celY = 26, r = 8.5;          // 11 colunas (2 digitos + 1 de espaco) x 7 linhas por numero
+        const desenhar = (n, x0, aceso, apagado, brilho) => {
+            const txt = String(n).padStart(2, ' ').slice(-2);
+            for (let d = 0; d < 2; d++) {
+                const g = FONTE[txt[d]] || FONTE[' '];
+                for (let l = 0; l < 7; l++) for (let col = 0; col < 5; col++) {
+                    const on = g[l][col] === '1';
+                    c.shadowBlur = on ? 10 : 0; c.shadowColor = brilho;
+                    c.fillStyle = on ? aceso : apagado;
+                    c.beginPath(); c.arc(x0 + (d * 6 + col) * celX + celX / 2, 37 + l * celY + celY / 2, r, 0, Math.PI * 2); c.fill();
+                }
+            }
+            c.shadowBlur = 0;
+        };
+        desenhar(sai, 12, '#ff3b30', '#2a1210', '#ff2a2a');
+        desenhar(entra, 270, '#30d158', '#10241a', '#2dff6a');
         o.placa.userData.tex.needsUpdate = true;
         o.placa.visible = true;
         o.placa.userData.numeros = { sai: sai, entra: entra };
@@ -84,6 +102,7 @@ Object.assign(Officials, {
         o.braco += Math.max(-1, Math.min(1, alvo - o.braco)) * Math.min(1, dt / 0.7);
         if (Math.abs(alvo - o.braco) < 0.01) o.braco = alvo;
         const k = o.braco;
+        o.model.position.x = Q.x + (Q.xPlaca - Q.x) * k;
         const r = o.rig;
         if (k > 0 || o._erguido) {
             r.lArm.rotation.x = Q.bracoX * k; r.rArm.rotation.x = Q.bracoX * k;

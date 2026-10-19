@@ -301,8 +301,23 @@ class ReplaySystem {
         if (typeof TouchControls !== 'undefined') TouchControls.updateButtonsState();
         // Avisa o manager (o botao "Replay 10s" pisca enquanto isto dura).
         if (typeof Ponte !== 'undefined' && Ponte.enviar) Ponte.enviar('replay_estado', { ativo: true });
+        this.travarEsc(true);
     }
     
+    /*
+    ESC NA TELA CHEIA: o navegador gasta o ESC a sair da tela cheia e o `preventDefault` nao o impede. Com uma repeticao a correr pede-se o
+    BLOQUEIO DO TECLADO para o ESC (Keyboard Lock, Chromium; so funciona em tela cheia): a tecla chega ao jogo, que fecha so a repeticao.
+    Libertado ao sair dela, o ESC volta a sair da tela cheia. Sem suporte (ou fora da tela cheia) nada muda.
+    */
+    travarEsc(liga) {
+        try {
+            const k = (typeof navigator !== 'undefined') ? navigator.keyboard : null;
+            if (!k) return;
+            if (liga) { if (k.lock) { const p = k.lock(['Escape']); if (p && p.catch) p.catch(() => {}); } }
+            else if (k.unlock) k.unlock();
+        } catch (e) { /* sem suporte */ }
+    }
+
     stopReplay() {
         if (this.isReplaying) {
             this.isReplaying = false; // Set to false FIRST to prevent infinite loop!
@@ -336,6 +351,7 @@ class ReplaySystem {
         this.actualizarAvisoDeReplay();
         if (typeof TouchControls !== 'undefined') TouchControls.updateButtonsState();
         if (typeof Ponte !== 'undefined' && Ponte.enviar) Ponte.enviar('replay_estado', { ativo: false });
+        this.travarEsc(false);
     }
 
     restoreFrame(idx) {

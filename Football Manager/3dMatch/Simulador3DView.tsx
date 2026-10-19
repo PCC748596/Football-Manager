@@ -38,6 +38,9 @@ export const simulador3dTelaCheia = () => {
   if (document.fullscreenElement) { document.exitFullscreen(); return; }
   f.requestFullscreen?.().catch(() => {});
 };
+// Tela cheia -> Tactics -> volta em tela cheia; tela normal -> Tactics -> volta em tela normal: lembra-se do estado ao sair para o Tactics e repoe-no ao voltar.
+let voltarEmTelaCheia = false;
+export const simulador3dLembrarTelaCheia = () => { voltarEmTelaCheia = !!document.fullscreenElement && document.fullscreenElement === sessao.iframe; };
 if (typeof document !== 'undefined') {
   document.addEventListener('fullscreenchange', () => {
     simulador3dEnviar({ tipo: 'tela_cheia', ligada: !!document.fullscreenElement && document.fullscreenElement === sessao.iframe });
@@ -101,6 +104,7 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
     };
     pos();
     f.style.visibility = 'visible';
+    if (voltarEmTelaCheia) { voltarEmTelaCheia = false; f.requestFullscreen?.().catch(() => {}); }
     const ro = new ResizeObserver(pos);
     if (caixa.current) ro.observe(caixa.current);
     window.addEventListener('resize', pos);

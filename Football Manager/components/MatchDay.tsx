@@ -5,7 +5,7 @@ import { TeamShield } from './TeamShield';
 import { KitSelection } from './KitSelection';
 import { MatchStatsModal } from './MatchStatsModal';
 import { calculateMatchRatings } from '../textSim/matchEngine';
-import Simulador3DView, { simulador3dArrancou, simulador3dPronto, simulador3dEnviar, simulador3dTelaCheia, simulador3dVelocidade } from '../3dMatch/Simulador3DView';
+import Simulador3DView, { simulador3dArrancou, simulador3dPronto, simulador3dEnviar, simulador3dTelaCheia, simulador3dLembrarTelaCheia, simulador3dVelocidade } from '../3dMatch/Simulador3DView';
 import { taticaParaMotor, taticaDoMotor } from '../3dMatch/simulador3dCliente';
 
 type VisualState = 'PRE_MATCH' | 'KICKOFF_SET' | 'PLAYING' | 'OFFSIDE' | 'GOAL';
@@ -268,6 +268,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         if (Object.keys(mudou).length) updateTactics(userTeam.id, mudou);
                       } else if (m.tipo === 'abrir_tactics') {
                         // Botao Tactics da tela cheia do 3D: sai da tela cheia, pausa o relogio e abre o MATCH TACTICS.
+                        simulador3dLembrarTelaCheia();
                         if (document.fullscreenElement) document.exitFullscreen?.();
                         if (gameState.isProcessing) pauseMatch();
                         setView?.('TACTICS');

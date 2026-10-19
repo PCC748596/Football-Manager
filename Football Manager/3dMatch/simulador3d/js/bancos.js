@@ -166,7 +166,7 @@ const Bancos = {
         this._scene = scene || grupo;
         this.bancos = [];
         const z = this._zDosBancos();
-        const hAssento = this._alturaDoAssento();
+        const hAssento = Math.max(0.12, this._alturaDoAssento() - (B.baixarAssento || 0));
         for (const equipa of ['A', 'B']) {
             const zc = z[equipa];
             this._estrutura(grupo, zc, B, hAssento);
