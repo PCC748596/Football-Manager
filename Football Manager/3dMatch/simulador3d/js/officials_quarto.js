@@ -12,7 +12,7 @@ const QuartoArbitro = {
     activo: true,
     x: 37.4,                  // entre a linha lateral (34) e as placas de publicidade (39), no meio entre os dois bancos
     z: 0,
-    larguraPlaca: 0.79, alturaPlaca: 0.46,   // metros
+    larguraPlaca: 0.65, alturaPlaca: 0.46,   // metros
     xPlaca: 35.2,             // com a placa no ar o 4.o arbitro chega-se a linha lateral (34): da 2 passos para a frente e levanta-a
     velPassos: 1.5,           // m/s a andar de x a xPlaca (e de volta)
     // A placa segura-se SEMPRE, em baixo (pose `parado`) ate ao momento da troca; erguida (pose `erguido`) so com a troca. Angulos do rig (x negativo = para a frente/cima).

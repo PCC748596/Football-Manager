@@ -47,7 +47,9 @@ const Bancos = {
         let h = 0.5;
         if (typeof Staff !== 'undefined' && typeof CrowdModel !== 'undefined') {
             const g = Staff._geometrias(CrowdModel.poses.sentado);
-            if (g.calcao) { g.calcao.computeBoundingBox(); h = g.calcao.boundingBox.max.y; }
+            // Com o corpo do jogador nos funcionarios o canal `calcao` leva tambem as mangas (ate aos ombros): a altura do assento e o topo das PERNAS (Staff._assentoCorpo).
+            if (Staff._assentoCorpo && Staff._assentoCorpo.s) h = Staff._assentoCorpo.s;
+            else if (g.calcao) { g.calcao.computeBoundingBox(); h = g.calcao.boundingBox.max.y; }
         }
         return h;
     },
@@ -216,6 +218,7 @@ const Bancos = {
         feito.corpo.position.x = B.xBanco - 0.05;
         feito.corpo.position.z = z;
         feito.corpo.rotation.y = -Math.PI / 2;
+        feito.corpo.userData.corpoDoBanco = true;
         this._scene.add(feito.corpo);
         return { model: feito.corpo, rig: feito.rig, jogador: feito.jogador, funcao, cor, pelvisY0, animTimer: 0 };
     },
@@ -247,6 +250,7 @@ const Bancos = {
     `descongelar` repoe tudo (o reserva que se levanta para aquecer).
     */
     congelar(p) {
+        if (typeof BancosDeReservas === 'undefined' || !BancosDeReservas.congelarCorpos) return;   // interruptor (config/physics.js): desligado, os bonecos do banco sao desenhados como antes da fusao
         if (!p || !p.model || p._congelado || !p.model.parent || typeof THREE === 'undefined') return;
         const m = p.model;
         m.updateMatrixWorld(true);
@@ -279,6 +283,7 @@ const Bancos = {
             if (uv) geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
             geo.setIndex(new THREE.BufferAttribute(idx, 1));
             const malha = new THREE.Mesh(geo, mat);
+            malha.userData.corpoDoBanco = true; malha.userData.fundida = true;
             malha.matrixAutoUpdate = false; malha.castShadow = false; malha.receiveShadow = lista[0].receiveShadow;
             m.parent.add(malha);
             novos.push(malha);
@@ -295,6 +300,19 @@ const Bancos = {
         p._congelado = null;
     },
 
+    // APAGA todos os corpos do banco (reservas, staff e malhas fundidas) que estejam na cena, mesmo os que nenhuma lista guarda (de um `preencher` anterior): corpos
+    // duplicados sobrepostos davam a camisa "pela metade" (so uma faixa ao centro do peito).
+    _varrer() {
+        const cena = this._scene;
+        if (!cena || !cena.children) return;
+        for (const o of cena.children.slice()) {
+            if (o.userData && o.userData.corpoDoBanco) {
+                cena.remove(o);
+                o.traverse(x => { if (x.isMesh && x.geometry && x.userData && x.userData.fundida) x.geometry.dispose(); });
+            }
+        }
+    },
+
     _limpar(b) {
         for (const r of b.reservas.concat(b.staff || [])) { this.descongelar(r); if (r.model && r.model.parent) r.model.parent.remove(r.model); }
         b.reservas = [];
@@ -308,6 +326,7 @@ const Bancos = {
     preencher(infoA, infoB, uniA, uniB) {
         const B = (typeof BancosDeReservas !== 'undefined') ? BancosDeReservas : null;
         if (!B || !B.activo || !this.bancos.length || typeof FootballPlayer === 'undefined') return 0;
+        this._varrer();
         let n = 0;
         for (const b of this.bancos) {
             this._limpar(b);
@@ -321,11 +340,12 @@ const Bancos = {
             lista.forEach((j, i) => {
                 const p = new FootballPlayer(200 + (b.equipa === 'A' ? 0 : 20) + i, corCamisa, '#ffffff', time, uni, j.id || null);
                 // O numero e as costas da camisa (como nos titulares): sem isto o reserva sentado/a aquecer tinha as costas lisas.
-                p.updateShirt(j.numero || (12 + i), 'CM');
+                if (B.numeroNosReservas) p.updateShirt(j.numero || (12 + i), 'CM');   // desligado (`numeroNosReservas`): voltou-se ao banco de antes disto
                 this._sentar(p);
                 p.model.position.x = B.xBanco - 0.05;
                 p.model.position.z = b.zc + this._zDoLugar(i, B);
                 p.model.rotation.y = -Math.PI / 2;
+                p.model.userData.corpoDoBanco = true;
                 this._scene.add(p.model);
                 b.reservas.push(p);
                 this.congelar(p);

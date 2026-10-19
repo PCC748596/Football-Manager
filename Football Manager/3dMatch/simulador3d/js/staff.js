@@ -179,7 +179,106 @@ const Staff = {
     crowd.js: escrita à mão, os funcionários ficariam de outro tamanho que todo
     o mundo assim que ela mudasse.
     */
+    /*
+    O MODELO DO JOGADOR, de verdade (pedido: *"ajusta os reporters para o mesmo modelo do jogador, com a roupa de reporter"*). O corpo vem do `Officials.criarCorpo`
+    (o mesmo `construirCorpo` dos jogadores, com cabeca, olhos, maos e botas) na pose pedida (de pe, ou sentada como a do banco de reservas) e as malhas fundem-se
+    em canais de cor, para as InstancedMesh de sempre pintarem cada pessoa:
+
+        cabeca / pescoco    pele, cabelo (o que nao e pele nem olho) e rosto (olhos)
+        maos                pele
+        bracos e pernas     `calcao`: mangas e calcas compridas (a roupa civil) — a perna inteira, calcao e meiao incluidos
+        botas               `sapato`
+        tronco              `camisa`: o colete
+
+    Devolve null sem o `Officials`/`FootballPlayer` (os testes sem o corpo caem no desenho antigo do crowd.js).
+    */
+    _geometriasDoJogador(pose) {
+        if (typeof Officials === 'undefined' || !Officials.criarCorpo || typeof THREE === 'undefined') return null;
+        const sentado = (typeof CrowdModel !== 'undefined' && pose === CrowdModel.poses.sentado);
+        this._cacheCorpo = this._cacheCorpo || {};
+        const chave = sentado ? 's' : 'p';
+        if (this._cacheCorpo[chave]) return this._cacheCorpo[chave];
+        let feito;
+        try { feito = Officials.criarCorpo(990 + (sentado ? 1 : 0), '#ff0000', '#00ff00', true); } catch (e) { return null; }
+        if (!feito || !feito.corpo || !feito.rig) return null;
+        const rig = feito.rig, m = feito.corpo;
+        if (sentado && typeof Bancos !== 'undefined' && Bancos._sentar) Bancos._sentar({ rig: rig, model: m });
+        m.updateMatrixWorld(true);
+        const dono = (o) => {
+            for (let q = o; q; q = q.parent) {
+                if (q === rig.lHand || q === rig.rHand) return 'mao';
+                if (q === rig.lBota || q === rig.rBota) return 'bota';
+                if (q === rig.lLeg || q === rig.rLeg) return 'perna';
+                if (q === rig.lArm || q === rig.rArm) return 'braco';
+                if (q === rig.neck) return 'cabeca';
+                if (q === rig.chest) return 'tronco';
+            }
+            return 'tronco';
+        };
+        const pele = (feito.jogador && feito.jogador.aparencia && typeof feito.jogador.aparencia.pele === 'number') ? feito.jogador.aparencia.pele : null;
+        const hexDe = (mat) => (!Array.isArray(mat) && mat && mat.color) ? mat.color.getHex() : null;
+        const canalDe = (o) => {
+            const d = dono(o);
+            if (d === 'mao') return 'pele';
+            if (d === 'bota') return 'sapato';
+            if (d === 'perna' || d === 'braco') return 'calcao';
+            if (d === 'cabeca') {
+                const h = hexDe(o.material);
+                if (h === 0x2f3640) return 'rosto';
+                if (h !== null && pele !== null && (h === pele || o.material.color.getHexString() === 'c9ad91')) return 'pele';
+                if (h !== null && pele === null && (h === 0xe8c9a8 || h === 0xc9ad91)) return 'pele';
+                return h === null ? 'pele' : 'cabelo';
+            }
+            return 'camisa';
+        };
+        const porCanal = {};
+        m.traverse(o => {
+            if (!o.isMesh || !o.geometry || !o.geometry.attributes.position || !o.geometry.attributes.normal) return;
+            for (let q = o; q; q = q.parent) { if (!q.visible) return; if (q === m) break; }
+            (porCanal[canalDe(o)] = porCanal[canalDe(o)] || []).push(o);
+        });
+        const saida = {};
+        let minY = Infinity, topoPernas = -Infinity;
+        for (const o of (porCanal.calcao || [])) { if (dono(o) === 'perna') topoPernas = Math.max(topoPernas, new THREE.Box3().setFromObject(o).max.y); }
+        for (const canal in porCanal) {
+            const lista = porCanal[canal];
+            let nv = 0, ni = 0;
+            const geos = lista.map(o => { const g = o.geometry.clone(); g.applyMatrix4(o.matrixWorld); nv += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; return g; });
+            const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), idx = new Uint32Array(ni);
+            let vo = 0, io = 0;
+            geos.forEach((g, gi) => {
+                const n = g.attributes.position.count, esp = lista[gi].matrixWorld.determinant() < 0;
+                pos.set(g.attributes.position.array, vo * 3); nor.set(g.attributes.normal.array, vo * 3);
+                const ia = g.index ? g.index.array : null, cnt = ia ? ia.length : n;
+                for (let i = 0; i < cnt; i += 3) {
+                    const a = ia ? ia[i] : i, b = ia ? ia[i + 1] : i + 1, c = ia ? ia[i + 2] : i + 2;
+                    idx[io++] = a + vo; idx[io++] = (esp ? c : b) + vo; idx[io++] = (esp ? b : c) + vo;
+                }
+                vo += n; g.dispose();
+            });
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+            geo.setIndex(new THREE.BufferAttribute(idx, 1));
+            geo.computeBoundingBox();
+            minY = Math.min(minY, geo.boundingBox.min.y);
+            saida[canal] = geo;
+        }
+        if (isFinite(minY)) for (const canal in saida) { saida[canal].translate(0, -minY, 0); saida[canal].computeBoundingBox(); saida[canal].computeBoundingSphere(); }
+        // A altura do assento e o topo das PERNAS (o canal `calcao` tambem leva as mangas, que chegam aos ombros).
+        this._assentoCorpo = this._assentoCorpo || {};
+        this._assentoCorpo[chave] = isFinite(topoPernas) ? topoPernas - minY : 0.5;
+        this._cacheCorpo[chave] = saida;
+        return saida;
+    },
+
     _geometriasVestidas(pose) {
+        const doJogador = this._geometriasDoJogador(pose);
+        if (doJogador && Object.keys(doJogador).length) {
+            // As geometrias sao partilhadas pelas InstancedMesh das duas poses: copias, para a translacao dos pes (em `_geometrias`) nao se somar.
+            const c = {}; for (const k in doJogador) c[k] = doJogador[k].clone();
+            return c;
+        }
         const pecas = Crowd._pecas(pose, { perna: 'calcao', pe: 'sapato' });
         const escala = (typeof ESCALA_CORPO === 'number') ? ESCALA_CORPO : 1.8 / 5.5;
         const saida = {};
@@ -345,7 +444,8 @@ const Staff = {
             desalinhava-a sem ninguém dar por isso.
             */
             let alturaAssento = 0;
-            if (geos.calcao) {
+            if (this._assentoCorpo && this._assentoCorpo[nomePose === 'sentado' ? 's' : 'p']) alturaAssento = this._assentoCorpo[nomePose === 'sentado' ? 's' : 'p'];
+            else if (geos.calcao) {
                 geos.calcao.computeBoundingBox();
                 alturaAssento = geos.calcao.boundingBox.max.y;
             }

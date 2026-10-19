@@ -851,6 +851,8 @@ const BancosDeReservas = {
     zBanco: 12.0,
     lugares: 12,             // os assentos do banco: `reservas` jogadores + `staff.length` (medico e massagista)
     reservas: 10,
+    congelarCorpos: false,   // funde as malhas dos bonecos sentados no banco (desempenho); `false` desenha-os como antes
+    numeroNosReservas: false, // `true`: os reservas do banco levam numero e costas da camisa (updateShirt)
     baixarAssento: 0.30,     // m a menos na altura do assento corrido (os jogadores sentados ficavam "dentro" dele)
     passoLugar: 0.83,       // 12 assentos cabem nos 10 m do vao
     // O medico e o massagista: sentam-se no fim do banco, com camisa e calca compridas numa cor do clube (a que mais se afasta da camisa dos jogadores).
