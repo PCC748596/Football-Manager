@@ -1015,7 +1015,7 @@ const MatchStats = {
     O que é derivado e de onde:
 
         posse %              posseSegundos / (posse das duas equipas)
-        foraDoAlvo           tentados - noAlvo - bloqueados - furados
+        foraDoAlvo           tentados - noAlvo - bloqueados   (as furadas ficam so em `furados`, nao em `tentados`)
         qualidadeDasChances  xg / remates tentados     (xG por remate)
         xgPorAtaque          xg / ataques totais
         eficienciaRemate     golos / remates tentados
@@ -1035,7 +1035,7 @@ const MatchStats = {
 
         const porEquipa = (s, adversario) => {
             const remForaDoAlvo = Math.max(0,
-                s.remates.tentados - s.remates.noAlvo - s.remateBloqueados - s.remates.furados);
+                s.remates.tentados - s.remates.noAlvo - s.remateBloqueados);   // as furadas ja nao entram em `tentados`
             const duelosTotais = s.duelos.ganhos + s.duelos.perdidos;
             const aereosTotais = s.duelosAereos.ganhos + s.duelosAereos.perdidos;
 

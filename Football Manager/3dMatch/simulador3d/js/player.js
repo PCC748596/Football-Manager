@@ -3900,7 +3900,7 @@ class FootballPlayer {
         // Depois de tentar um remate o jogador fica `ShootingModel.esperaEntreRemates` s sem tentar outro (emZonaDeRemate).
         this.chuteEspera = (typeof ShootingModel !== 'undefined' && ShootingModel.esperaEntreRemates) || 3.0;
         this.showActionBanner('SHOT');
-        if (typeof MatchStats !== 'undefined') MatchStats[this.team].remates.tentados++;
+        // `remates.tentados` NAO se conta aqui: so conta o remate em que a bola sai (onContact); a furada vai para `remates.furados`.
         /*
         O gesto tem duração própria (ShotClip) e a bola só sai no contactTime —
         tal como no passe. Antes o remate era resolvido no frame seguinte ao da
@@ -3915,12 +3915,14 @@ class FootballPlayer {
             bola ainda vem a caminho do pé, o gesto completa-se e não sai bola
             nenhuma.
 
-            O `remates.tentados` já foi contado acima, portanto uma furada
-            entra nas estatísticas como remate. Contá-las à parte diz quanto
-            das finalizações dos relatórios é gesto sem bola.
+            O remate so e CONTADO (`remates.tentados`, o SHOTS do cartao, as finalizacoes do intervalo, o xG por remate) quando a bola sai. Antes contava-se
+            na decisao, e a furada entrava como remate (relato: *"as furadas estao sendo contadas como chutes"*); agora vai so para `remates.furados`, a parte.
             */
             onContact: () => {
-                if (this.hasBall) executeShotGameplay(this);
+                if (this.hasBall) {
+                    if (typeof MatchStats !== 'undefined') MatchStats[this.team].remates.tentados++;
+                    executeShotGameplay(this);
+                }
                 else if (typeof MatchStats !== 'undefined') MatchStats[this.team].remates.furados++;
             }
         });

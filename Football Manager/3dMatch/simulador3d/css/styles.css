@@ -289,6 +289,25 @@ canvas {
     transform-origin: right bottom;
 }
 
+/*
+O ESCUDO DOS CARTOES DOS JOGADORES (portador e marcador): bem maior, e so um pouco mais da metade dele se ve — entra pelo lado do cartao, que o corta (`clip-path`), como se estivesse a entrar pelo container. O do portador entra pela esquerda, o do marcador pela direita. So estes dois cartoes: o do evento e o do intervalo
+mantem o escudo normal.
+*/
+/* O cartao NAO muda de tamanho; o escudo e que cresce, e o que ficar fora do cartao e cortado (dos quatro lados). */
+#hud-jogador-esq, #hud-jogador-dir { overflow: hidden; }
+#hud-jogador-esq .hud-jog-logo, #hud-jogador-dir .hud-jog-logo {
+    position: absolute;
+    top: 50%;
+    width: 60px;
+    height: 72px;          /* mais alto que o cartao (~49 px): o excesso, em cima e em baixo, e cortado */
+    transform: translateY(-50%);
+}
+#hud-jogador-esq .hud-jog-logo { left: -26px; }    /* 26 de 60 fora: ~57% visivel */
+#hud-jogador-dir .hud-jog-logo { right: -26px; }
+/* So a folga do lado do escudo (o texto nao fica por baixo dele); a altura do cartao e a de sempre. */
+#hud-jogador-esq { padding-left: 42px; }
+#hud-jogador-dir { padding-right: 42px; }
+
 /* O modal das ESTATISTICAS DO INTERVALO: o padrao dos cartoes (preto, a 40% aqui; sem cantos arredondados, texto branco), centrado. */
 #intervalo-par {
     position: absolute;
@@ -362,6 +381,18 @@ canvas {
     transform: translateX(-50%) scale(1.4);
     transform-origin: center top;
 }
+
+/* O MESMO ESCUDO dos cartoes dos jogadores (grande, entra pelo lado e o que passa do cartao e cortado): esquerdo a entrar pela esquerda, direito pela direita. */
+#hud-evento { overflow: hidden; padding: 8px 42px; }
+#hud-evento .hud-jog-logo {
+    position: absolute;
+    top: 50%;
+    width: 60px;
+    height: 72px;
+    transform: translateY(-50%);
+}
+#hud-evento-logo-esq { left: -26px; }
+#hud-evento-logo-dir { right: -26px; }
 
 .hud-evento-num {
     font-weight: 700;
@@ -930,6 +961,12 @@ arrastar a câmara mesmo por cima dele).
         width: 22px;
         height: 22px;
     }
+
+    #hud-jogador-esq .hud-jog-logo, #hud-jogador-dir .hud-jog-logo { width: 38px; height: 46px; }
+    #hud-jogador-esq .hud-jog-logo { left: -16px; }
+    #hud-jogador-dir .hud-jog-logo { right: -16px; }
+    #hud-jogador-esq { padding-left: 28px; }
+    #hud-jogador-dir { padding-right: 28px; }
 
     .hud-jog-nome {
         font-size: 11px;
