@@ -63,6 +63,17 @@ Object.assign(Match, {
             depois: (opcao.depois || []).map(d => ({ apos: d.apos, quem: d.quem, alvo: ponto(d.alvo) })),
             fase: 0, tFase: 0, espera: 0, disparou: false
         };
+        /*
+        O AVANCO DO TRACEJADO (FaltaRotinas.velPasseRef / avancoMax): quanto antes do contacto os atacantes arrancam, para o recetor do 1.o passe chegar ao alvo quando a bola chega.
+        */
+        plano.avanco = FR.tempoCorrida;
+        const p0 = plano.passos[0];
+        const rec0 = p0 && p0.para ? num[p0.para] : null;
+        if (p0 && p0.alvo && rec0 && rec0.model) {
+            const tRun = Math.hypot(p0.alvo.x - rec0.model.position.x, p0.alvo.z - rec0.model.position.z) / FR.velCorrida;
+            const tBola = Math.hypot(p0.alvo.x - bolaFK.x, p0.alvo.z - bolaFK.z) / FR.velPasseRef;
+            plano.avanco = THREE.MathUtils.clamp(tRun - tBola + FR.margemAvanco, FR.tempoCorrida, FR.avancoMax);
+        }
         this.rotinaPlano = plano;
         return plano;
     },
@@ -149,6 +160,23 @@ Object.assign(Match, {
         let saiu = false;
 
         if (st.tipo === 'passe' && receptor && st.alvo) {
+            /*
+            O PASSE RASTEIRO NAO ATRAVESSA A BARREIRA (relato: *"tem sempre o corte da defesa"*; medido: 15 de 22 cortes eram de jogadores da propria barreira, aos 0.3-0.4 s). Se a linha
+            batedor -> alvo passa a menos de `FaltaRotinas.folgaBarreira` m de um dela, o passe sai picado por cima.
+            */
+            if (i === 0 && !st.picado && typeof FaltaRotinas !== 'undefined') {
+                const bx0 = Match.ball.position.x, bz0 = Match.ball.position.z;
+                const sx = st.alvo.x - bx0, sz = st.alvo.z - bz0, sl = Math.hypot(sx, sz) || 1;
+                const adv = (de.team === 'TeamA') ? Match.opponents : Match.players;
+                const folga = FaltaRotinas.folgaBarreira || 1.4;
+                const atravessa = adv.some(q => {
+                    if (!q || !q.naBarreiraFalta || !q.model) return false;
+                    const u = ((q.model.position.x - bx0) * sx + (q.model.position.z - bz0) * sz) / (sl * sl);
+                    if (u < 0 || u > 1) return false;
+                    return Math.hypot(q.model.position.x - (bx0 + sx * u), q.model.position.z - (bz0 + sz * u)) < folga;
+                });
+                if (atravessa) st.picado = true;
+            }
             de.isCross = false; de.isThroughBall = false; de.isPasseEspaco = false;
             de.passTarget = receptor;
             de.passTargetPos = new THREE.Vector3(st.alvo.x, 0, st.alvo.z);
@@ -179,6 +207,18 @@ Object.assign(Match, {
                 const ddx = st.alvo.x - de.model.position.x, ddz = st.alvo.z - de.model.position.z;
                 de.cosCorpoNoPasse = (_vFrenteCorpo.x * ddx + _vFrenteCorpo.z * ddz) / (Math.hypot(ddx, ddz) || 1);
                 executePassGameplay(de);
+                // A velocidade da bola casa com a chegada do recetor ao alvo (so passe rasteiro: o picado e o aereo ja casam pela balistica).
+                {
+                    const FR = FaltaRotinas;
+                    const dBola = Math.hypot(st.alvo.x - Match.ball.position.x, st.alvo.z - Match.ball.position.z);
+                    const dRec = receptor.model ? Math.hypot(st.alvo.x - receptor.model.position.x, st.alvo.z - receptor.model.position.z) : 0;
+                    const tR = Math.max(0.25, dRec / FR.velCorrida);
+                    const vH = Math.hypot(Match.ballVel.x, Match.ballVel.z);
+                    if (FR.casarChegada !== false && vH > 0.1 && Match.ballVel.y < 1.5 && dBola > 2) {
+                        const v = THREE.MathUtils.clamp(dBola / (tR + FR.margemAvanco) * 1.04, 8, 26);
+                        Match.ballVel.x *= v / vH; Match.ballVel.z *= v / vH;
+                    }
+                }
                 de.showActionBanner('PASS');
             } else {
                 de.passAimPoint = new THREE.Vector3(st.alvo.x, 0, st.alvo.z);

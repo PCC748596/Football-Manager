@@ -53,6 +53,17 @@ const FaltaRotinas = {
     // do cobrador tocar na bola"*) e nao antes: era 1.6 s antes da cobranca. Contado a partir do contacto
     // do gesto de bola parada (ver baterFalta em player.js).
     tempoCorrida: 0.20,
+    /*
+    O TRACEJADO ARRANCA A TEMPO DE O PASSE E O JOGADOR CHEGAREM JUNTOS (pedido: *"as vezes o passe sai e eles so se deslocam depois; nunca chegam na bola; o passe tem que ser
+    calculado para chegar junto com o jogador na posicao, tirando a margem de erro"*). O arranque e `tRun - tBola + margemAvanco` antes do contacto — `tRun` o que o recetor
+    leva a correr ate ao alvo a `velCorrida`, `tBola` o que a bola leva a `velPasseRef` — entre `tempoCorrida` e `avancoMax` s; o gesto do batedor demora `gestoAteContacto` s
+    ate ao contacto. E o passe sai com a velocidade que faz a bola chegar ao alvo quando o recetor la chega (ver executarPassoDaRotina). `margemAvanco`: a bola chega ate aqui
+    depois dele (s), para ele nao a ter de esperar parado e a defesa nao a cortar.
+    */
+    // O passe rasteiro cuja linha passa a menos disto (m) de alguem da barreira sai picado por cima.
+    folgaBarreira: 1.4,
+    casarChegada: true,   // false = o passe sai com a velocidade de sempre
+    velPasseRef: 18.0, avancoMax: 1.8, margemAvanco: 0.10, gestoAteContacto: 0.32,
     // Depois do ultimo passo as ordens de corrida duram mais isto (s): os atacantes acabam o tracejado.
     sobraDepoisDoFim: 1.5,
     // Velocidade das corridas tracejadas (m/s).

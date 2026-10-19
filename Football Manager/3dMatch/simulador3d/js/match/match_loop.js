@@ -381,6 +381,14 @@ Object.assign(Match, {
                 const faltaSegura = !!cartaoNaMao || aApitar || barreiraDesarrumada || batedorACaminho ||
                     (this.algumCaidoDaFalta(false) && this.faltaDecorrida < ((FKE && FKE.esperaCaido) || 4.0)) ||
                     (this.algumACaminhoDoLugar(false) && this.faltaDecorrida < ((FKE && FKE.esperaCaminhantes) || 4.0));
+                // O TRACEJADO DA ROTINA arranca a tempo de o passe e o recetor chegarem juntos (plano.avanco): conta-se a partir do contacto (a espera + o gesto do batedor).
+                {
+                    const pr = this.rotinaPlano;
+                    if (pr && !pr.disparou && !faltaSegura && typeof FaltaRotinas !== 'undefined' &&
+                        this.faltaAtraso <= Math.max(0, (pr.avanco || FaltaRotinas.tempoCorrida) - FaltaRotinas.gestoAteContacto)) {
+                        this.dispararCorridasDaFalta(pr);
+                    }
+                }
                 if (faltaSegura) {
                     this.faltaAtraso = Math.max(this.faltaAtraso, ESPERA_APOS_REPOSICAO / 2);
                     // E o prazo da falta nao corre enquanto se espera: ver `algumACaminhoDoLugar`.
@@ -1328,7 +1336,8 @@ Object.assign(Match, {
 
     algumACaminhoDoLugar: function (comVitima) {
         const v = this.bolaParadaVitima;
-        const aCaminho = p => !!(p && p.lugarBolaParada && (comVitima || p !== v));
+        // Os atacantes do tracejado da rotina vao a correr de proposito enquanto a falta sai (`rotinaOrdem`): nao seguram a cobranca.
+        const aCaminho = p => !!(p && p.lugarBolaParada && !p.rotinaOrdem && (comVitima || p !== v));
         return this.players.some(aCaminho) || this.opponents.some(aCaminho);
     },
 
