@@ -1,0 +1,411 @@
+{
+ "jogos": 380,
+ "golosPorJogo": 1.3868421052631579,
+ "erros": 0,
+ "out": {
+  "3-5-2|sem": {
+   "amostras": 36354,
+   "K": 3,
+   "linhasZ": [
+    -16.4,
+    -4.2,
+    7
+   ],
+   "intervalos": [
+    12.2,
+    11.2
+   ],
+   "largLinhas": [
+    24.3,
+    39.2,
+    12
+   ],
+   "profundidadeTotal": 29,
+   "zDaDefesaMaisRecuada": -19.1,
+   "distMediaAoAlvo": 9.1,
+   "pctLonge5m": 61.7,
+   "pctLinhasCruzadas": 3.8,
+   "centroMenosBolaZ": -9.2,
+   "centroMenosBolaX": 0.1,
+   "corrLateral": 0.87,
+   "pctParados": 12.5,
+   "velMedia": 4.8
+  },
+  "4-3-3 ATA|sem": {
+   "amostras": 35149,
+   "K": 4,
+   "linhasZ": [
+    -16.7,
+    -8,
+    -1.1,
+    7.8
+   ],
+   "intervalos": [
+    8.8,
+    6.9,
+    8.9
+   ],
+   "largLinhas": [
+    35,
+    12,
+    0,
+    34.2
+   ],
+   "profundidadeTotal": 33.2,
+   "zDaDefesaMaisRecuada": -21,
+   "distMediaAoAlvo": 9.1,
+   "pctLonge5m": 60,
+   "pctLinhasCruzadas": 13.2,
+   "centroMenosBolaZ": -4.1,
+   "centroMenosBolaX": -0.1,
+   "corrLateral": 0.86,
+   "pctParados": 12.4,
+   "velMedia": 4.7
+  },
+  "3-5-2|com": {
+   "amostras": 36767,
+   "K": 3,
+   "linhasZ": [
+    -12.6,
+    1,
+    14.2
+   ],
+   "intervalos": [
+    13.6,
+    13.2
+   ],
+   "largLinhas": [
+    22.9,
+    39.1,
+    13.1
+   ],
+   "profundidadeTotal": 33.4,
+   "zDaDefesaMaisRecuada": -15.7,
+   "distMediaAoAlvo": 15.2,
+   "pctLonge5m": 87.5,
+   "pctLinhasCruzadas": 5,
+   "centroMenosBolaZ": -2.3,
+   "centroMenosBolaX": 0,
+   "corrLateral": 0.87,
+   "pctParados": 13.6,
+   "velMedia": 5.1
+  },
+  "4-3-3 ATA|com": {
+   "amostras": 34241,
+   "K": 4,
+   "linhasZ": [
+    -11.6,
+    -2.3,
+    1.4,
+    13.4
+   ],
+   "intervalos": [
+    9.3,
+    3.7,
+    12
+   ],
+   "largLinhas": [
+    33.2,
+    12,
+    0,
+    35.9
+   ],
+   "profundidadeTotal": 35.6,
+   "zDaDefesaMaisRecuada": -17.3,
+   "distMediaAoAlvo": 15.4,
+   "pctLonge5m": 87.5,
+   "pctLinhasCruzadas": 22.8,
+   "centroMenosBolaZ": 0.6,
+   "centroMenosBolaX": 0.1,
+   "corrLateral": 0.85,
+   "pctParados": 14.8,
+   "velMedia": 5
+  },
+  "4-4-2|com": {
+   "amostras": 36180,
+   "K": 3,
+   "linhasZ": [
+    -10.2,
+    1,
+    12.3
+   ],
+   "intervalos": [
+    11.3,
+    11.3
+   ],
+   "largLinhas": [
+    33.2,
+    38.5,
+    13.2
+   ],
+   "profundidadeTotal": 31.1,
+   "zDaDefesaMaisRecuada": -15.4,
+   "distMediaAoAlvo": 14.3,
+   "pctLonge5m": 86.6,
+   "pctLinhasCruzadas": 7.2,
+   "centroMenosBolaZ": -1.9,
+   "centroMenosBolaX": 0.5,
+   "corrLateral": 0.84,
+   "pctParados": 13.3,
+   "velMedia": 5.2
+  },
+  "4-3-3|sem": {
+   "amostras": 37019,
+   "K": 3,
+   "linhasZ": [
+    -14.6,
+    -3.9,
+    4.2
+   ],
+   "intervalos": [
+    10.6,
+    8.1
+   ],
+   "largLinhas": [
+    35.5,
+    13.8,
+    35.6
+   ],
+   "profundidadeTotal": 28.8,
+   "zDaDefesaMaisRecuada": -19.9,
+   "distMediaAoAlvo": 9.4,
+   "pctLonge5m": 64.4,
+   "pctLinhasCruzadas": 8.3,
+   "centroMenosBolaZ": -6.5,
+   "centroMenosBolaX": -0.2,
+   "corrLateral": 0.85,
+   "pctParados": 12.8,
+   "velMedia": 4.7
+  },
+  "4-4-2|sem": {
+   "amostras": 35816,
+   "K": 3,
+   "linhasZ": [
+    -14.6,
+    -4.1,
+    4.8
+   ],
+   "intervalos": [
+    10.4,
+    8.9
+   ],
+   "largLinhas": [
+    34.4,
+    36.9,
+    12.7
+   ],
+   "profundidadeTotal": 26.4,
+   "zDaDefesaMaisRecuada": -18.9,
+   "distMediaAoAlvo": 9.5,
+   "pctLonge5m": 62.9,
+   "pctLinhasCruzadas": 6.7,
+   "centroMenosBolaZ": -7.5,
+   "centroMenosBolaX": 0,
+   "corrLateral": 0.83,
+   "pctParados": 13.5,
+   "velMedia": 4.7
+  },
+  "4-3-3|com": {
+   "amostras": 35405,
+   "K": 3,
+   "linhasZ": [
+    -9.9,
+    0.8,
+    11.3
+   ],
+   "intervalos": [
+    10.6,
+    10.5
+   ],
+   "largLinhas": [
+    33.8,
+    13.9,
+    36.7
+   ],
+   "profundidadeTotal": 32.5,
+   "zDaDefesaMaisRecuada": -16,
+   "distMediaAoAlvo": 14.9,
+   "pctLonge5m": 86.7,
+   "pctLinhasCruzadas": 9.8,
+   "centroMenosBolaZ": -1,
+   "centroMenosBolaX": 0,
+   "corrLateral": 0.85,
+   "pctParados": 13.6,
+   "velMedia": 5.1
+  },
+  "5-4-1|com": {
+   "amostras": 38012,
+   "K": 3,
+   "linhasZ": [
+    -12.4,
+    -0.8,
+    13
+   ],
+   "intervalos": [
+    11.6,
+    13.8
+   ],
+   "largLinhas": [
+    33,
+    37.8,
+    0
+   ],
+   "profundidadeTotal": 32.3,
+   "zDaDefesaMaisRecuada": -18.1,
+   "distMediaAoAlvo": 15.3,
+   "pctLonge5m": 87.6,
+   "pctLinhasCruzadas": 7.1,
+   "centroMenosBolaZ": -3,
+   "centroMenosBolaX": -0.2,
+   "corrLateral": 0.85,
+   "pctParados": 15.6,
+   "velMedia": 4.7
+  },
+  "5-4-1|sem": {
+   "amostras": 34839,
+   "K": 3,
+   "linhasZ": [
+    -16.1,
+    -3.5,
+    6
+   ],
+   "intervalos": [
+    12.6,
+    9.5
+   ],
+   "largLinhas": [
+    35.1,
+    36.1,
+    0
+   ],
+   "profundidadeTotal": 27.8,
+   "zDaDefesaMaisRecuada": -20.8,
+   "distMediaAoAlvo": 9,
+   "pctLonge5m": 61.2,
+   "pctLinhasCruzadas": 7.8,
+   "centroMenosBolaZ": -8.7,
+   "centroMenosBolaX": -0.4,
+   "corrLateral": 0.86,
+   "pctParados": 13.1,
+   "velMedia": 4.6
+  },
+  "5-3-2|com": {
+   "amostras": 23963,
+   "K": 3,
+   "linhasZ": [
+    -9.6,
+    0.7,
+    13.5
+   ],
+   "intervalos": [
+    10.3,
+    12.7
+   ],
+   "largLinhas": [
+    37.9,
+    14.8,
+    11.9
+   ],
+   "profundidadeTotal": 32.9,
+   "zDaDefesaMaisRecuada": -16.2,
+   "distMediaAoAlvo": 14.7,
+   "pctLonge5m": 87,
+   "pctLinhasCruzadas": 7.7,
+   "centroMenosBolaZ": -1.8,
+   "centroMenosBolaX": -0.1,
+   "corrLateral": 0.89,
+   "pctParados": 14.5,
+   "velMedia": 5
+  },
+  "5-3-2|sem": {
+   "amostras": 23349,
+   "K": 3,
+   "linhasZ": [
+    -14.2,
+    -4.2,
+    6.5
+   ],
+   "intervalos": [
+    9.9,
+    10.7
+   ],
+   "largLinhas": [
+    38.7,
+    14.9,
+    10.1
+   ],
+   "profundidadeTotal": 28.5,
+   "zDaDefesaMaisRecuada": -19.3,
+   "distMediaAoAlvo": 8.7,
+   "pctLonge5m": 60.1,
+   "pctLinhasCruzadas": 5.7,
+   "centroMenosBolaZ": -8.1,
+   "centroMenosBolaX": 0.1,
+   "corrLateral": 0.88,
+   "pctParados": 13.1,
+   "velMedia": 4.7
+  },
+  "4-2-3-1|com": {
+   "amostras": 34129,
+   "K": 4,
+   "linhasZ": [
+    -10.3,
+    -0.9,
+    8.2,
+    17.4
+   ],
+   "intervalos": [
+    9.4,
+    9.1,
+    9.2
+   ],
+   "largLinhas": [
+    33.5,
+    11.6,
+    36.3,
+    0
+   ],
+   "profundidadeTotal": 35.2,
+   "zDaDefesaMaisRecuada": -15.9,
+   "distMediaAoAlvo": 14.8,
+   "pctLonge5m": 88.4,
+   "pctLinhasCruzadas": 13.2,
+   "centroMenosBolaZ": 0.2,
+   "centroMenosBolaX": 0.1,
+   "corrLateral": 0.85,
+   "pctParados": 14,
+   "velMedia": 5.1
+  },
+  "4-2-3-1|sem": {
+   "amostras": 36691,
+   "K": 4,
+   "linhasZ": [
+    -15.3,
+    -6.6,
+    3.2,
+    13.4
+   ],
+   "intervalos": [
+    8.7,
+    9.8,
+    10.2
+   ],
+   "largLinhas": [
+    35.3,
+    11.8,
+    34,
+    0
+   ],
+   "profundidadeTotal": 33.8,
+   "zDaDefesaMaisRecuada": -19.6,
+   "distMediaAoAlvo": 9.1,
+   "pctLonge5m": 60.1,
+   "pctLinhasCruzadas": 9.5,
+   "centroMenosBolaZ": -4.4,
+   "centroMenosBolaX": -0.6,
+   "corrLateral": 0.85,
+   "pctParados": 12.4,
+   "velMedia": 4.7
+  }
+ }
+}
