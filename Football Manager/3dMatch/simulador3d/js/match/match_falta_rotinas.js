@@ -187,7 +187,7 @@ Object.assign(Match, {
                 const bx = Match.ball.position.x, bz = Match.ball.position.z;
                 const dx = st.alvo.x - bx, dz = st.alvo.z - bz;
                 const R = Math.hypot(dx, dz) || 1;
-                const th = 38 * Math.PI / 180;
+                const th = ((typeof FaltaRotinas !== 'undefined' && FaltaRotinas.anguloPicado) || 38) * Math.PI / 180;
                 const v = Math.sqrt(R * g / Math.sin(2 * th));
                 Match.ballVel.set(dx / R * v * Math.cos(th), v * Math.sin(th), dz / R * v * Math.cos(th));
                 Match.ball.position.y = BallPhysics.raio;
