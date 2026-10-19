@@ -64,6 +64,8 @@ const FaltaRotinas = {
     folgaBarreira: 1.4,
     // Elevacao (graus) do passe picado por cima da barreira.
     anguloPicado: 38,
+    // Segundos depois do passe de rotina em que a barreira nao toca na bola.
+    reacaoBarreira: 0,   // testado a 0.8: nao mudou os cortes (a bola bate no corpo deles, nao e uma decisao de tocar); fica desligado
     casarChegada: true,   // false = o passe sai com a velocidade de sempre
     velPasseRef: 18.0, avancoMax: 1.8, margemAvanco: 0.10, gestoAteContacto: 0.32,
     // Depois do ultimo passo as ordens de corrida duram mais isto (s): os atacantes acabam o tracejado.

@@ -164,6 +164,11 @@ Object.assign(Match, {
             O PASSE RASTEIRO NAO ATRAVESSA A BARREIRA (relato: *"tem sempre o corte da defesa"*; medido: 15 de 22 cortes eram de jogadores da propria barreira, aos 0.3-0.4 s). Se a linha
             batedor -> alvo passa a menos de `FaltaRotinas.folgaBarreira` m de um dela, o passe sai picado por cima.
             */
+            // A REACCAO DA BARREIRA: nos primeiros `reacaoBarreira` s depois do passe de rotina quem esta na barreira nao toca na bola (estava parado a olhar para a bola e a sair dali
+            // leva tempo) — medido, 55% dos cortes eram dela, aos 0.3-0.4 s.
+            if (i === 0 && typeof FaltaRotinas !== 'undefined' && FaltaRotinas.reacaoBarreira > 0) {
+                ((de.team === 'TeamA') ? Match.opponents : Match.players).forEach(q => { if (q && q.naBarreiraFalta) q.touchLock = Math.max(q.touchLock || 0, FaltaRotinas.reacaoBarreira); });
+            }
             if (i === 0 && !st.picado && typeof FaltaRotinas !== 'undefined') {
                 const bx0 = Match.ball.position.x, bz0 = Match.ball.position.z;
                 const sx = st.alvo.x - bx0, sz = st.alvo.z - bz0, sl = Math.hypot(sx, sz) || 1;
