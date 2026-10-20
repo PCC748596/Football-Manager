@@ -181,6 +181,12 @@ export interface Team {
   sponsorAmount?: number;
   fanBase?: number;
   avrAttendance?: number;
+  stadiumOccupancy?: number;   // 0..1: a ocupacao-BASE do estadio (comeca em 70%, minimo 20%; ver textSim/stadiumEconomy.ts)
+  drawStreak?: number;         // empates seguidos do time (zera com vitoria ou derrota)
+  stadiumOwned?: boolean;      // estadio proprio (custo -30%); sem valor, decide a lista de estadios alugados
+  homeGames?: number;          // jogos em casa liquidados (para o publico medio)
+  gateRevenue?: number;        // renda de bilheteira acumulada (dolares do jogo)
+  stadiumCosts?: number;       // custo de estadio acumulado (dolares do jogo)
   played: number;
   won: number;
   drawn: number;
@@ -681,6 +687,12 @@ export interface Fixture {
   ballZone?: number; // Current zone for UI
   ballZoneTimeline?: number[]; // History for every minute (0-10)
   isFriendly?: boolean;
+  isFinal?: boolean;
+  isDecisive?: boolean;        // jogo decisivo: +10% de ocupacao nesse jogo (alem das ultimas jornadas de liga)           // final: custo do estadio x1,4
+  financeSettled?: boolean;    // renda e custo do jogo ja liquidados
+  attendance?: number;         // publico do jogo
+  gateRevenue?: number;        // renda do jogo (dolares do jogo), do mandante
+  stadiumCost?: number;        // custo do estadio no jogo (dolares do jogo), do mandante
   type?: 'LEAGUE' | 'FRIENDLY' | 'CUP';
   processedInStandings?: boolean;
   homeLineup?: string[];

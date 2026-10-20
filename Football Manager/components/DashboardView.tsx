@@ -5,6 +5,7 @@ import ActivityModal from './ActivityModal';
 import { TeamShield } from './TeamShield';
 import { ShirtIcon } from './ShirtIcon';
 import FitnessBar from './FitnessBar';
+import { settleMatch, type CurrencyCode } from '../textSim/stadiumEconomy';
 
 interface Props {
   onGoToRoundSimulation?: () => void;
@@ -388,9 +389,8 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
   // Calculations for Financial Summary Cards
   const teamPlayers = players.filter(p => p.teamId === userTeam.id);
   const totalSalaries = teamPlayers.reduce((sum, p) => sum + p.salary, 0);
-  const ticketPrice = 50; 
-  const attendance = userTeam.avrAttendance || (userTeam.strength * 400);
-  const estMatchRevenue = Math.round(attendance * ticketPrice);
+  const eco = settleMatch(userTeam, userTeam, { id: '', week: 0, date: '', homeTeamId: userTeam.id, awayTeamId: '', homeScore: 0, awayScore: 0 } as any, gameState.currency as CurrencyCode);
+  const estMatchRevenue = Math.round(eco.revenueUSD);
 
   const calendarInfo = useMemo(() => {
     const days = [];

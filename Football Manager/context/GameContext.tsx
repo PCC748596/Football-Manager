@@ -3,6 +3,7 @@ import { Team, Player, Fixture, GameState, CalendarActivity, ActivityType, Theme
 import { generateLeagueData, generateFixtures } from '../textSim/dataGenerator';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino } from '../textSim/trainingService';
+import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
 import { REAL_TEAMS_JSON } from '../textSim/realDatabase';
 import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager } from '../3dMatch/simulador3dCliente';
 import { simulador3dEnviar } from '../3dMatch/Simulador3DView';
@@ -221,6 +222,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const matchResultsCache = useRef<Fixture[]>([]);
   // O jogo do utilizador e decidido pelo motor 3D (3dMatch/simulador3d): fixtureId -> fixture completo, que os ticks vao revelando.
   const motor3dRes = useRef<Record<string, Fixture>>({});
+  const liquidadosRef = useRef<Set<string>>(new Set());   // jogos com renda/custo de estadio ja liquidados (nao conta duas vezes, nem com o React em modo dev)
   const [motor3dProgresso, setMotor3dProgresso] = useState<number | null>(null);
   const matchTimerRef = useRef<any>(null);
   const simulationSpeedRef = useRef<number>(1);
@@ -486,7 +488,47 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const advanceWeek = () => {
     motor3dRes.current = {};
     if (matchTimerRef.current) clearInterval(matchTimerRef.current);
+
+    // RENDA E CUSTO DO ESTADIO (textSim/stadiumEconomy.ts): cada jogo do dia, uma vez. O mandante recebe a bilheteira (publico = capacidade x ocupacao, x preco medio)
+    // e paga o custo do estadio; a ocupacao de AMBOS os times muda com o resultado (+3% vitoria, -2% empate, -3% derrota, minimo 50%).
+    const jornadas = fixtures.filter(f => !f.isFriendly).reduce((m, f) => Math.max(m, f.week || 0), 0);
+    const liquidacoes = fixtures
+      .filter(f => f.date === gameState.currentDate && !f.financeSettled && !liquidadosRef.current.has(f.id))
+      .map(f => {
+        const h = teams.find(x => x.id === f.homeTeamId), a = teams.find(x => x.id === f.awayTeamId);
+        const decisivo = !!f.isDecisive || (!f.isFriendly && jornadas > 0 && (f.week || 0) > jornadas - ECONOMIA_ESTADIO.ultimasJornadasDecisivas);
+        return (h && a) ? { f, h, a, s: settleMatch(h, a, f, gameState.currency as CurrencyCode, decisivo) } : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => !!x);
+    liquidacoes.forEach(x => liquidadosRef.current.add(x.f.id));
+    if (liquidacoes.length) {
+      setTeams(prev => prev.map(t => {
+        let nt = t;
+        for (const x of liquidacoes) {
+          const hs = x.f.homeScore || 0, as = x.f.awayScore || 0;
+          if (t.id === x.h.id) {
+            const jogos = nt.homeGames || 0;
+            nt = {
+              ...nt,
+              cash: nt.cash + x.s.revenueUSD - x.s.costUSD,
+              gateRevenue: (nt.gateRevenue || 0) + x.s.revenueUSD,
+              stadiumCosts: (nt.stadiumCosts || 0) + x.s.costUSD,
+              homeGames: jogos + 1,
+              avrAttendance: Math.round(((jogos ? (nt.avrAttendance || 0) : 0) * jogos + x.s.attendance) / (jogos + 1)),
+              ...(() => { const r = applyResult(nt.stadiumOccupancy ?? ECONOMIA_ESTADIO.ocupacaoInicial, nt.drawStreak || 0, hs > as ? 'W' : hs < as ? 'L' : 'D'); return { stadiumOccupancy: r.base, drawStreak: r.drawStreak }; })(),
+            };
+          } else if (t.id === x.a.id) {
+            const r = applyResult(nt.stadiumOccupancy ?? ECONOMIA_ESTADIO.ocupacaoInicial, nt.drawStreak || 0, as > hs ? 'W' : as < hs ? 'L' : 'D');
+            nt = { ...nt, stadiumOccupancy: r.base, drawStreak: r.drawStreak };
+          }
+        }
+        return nt;
+      }));
+    }
+
     setFixtures(prevFixtures => prevFixtures.map(f => {
+      const liq = liquidacoes.find(x => x.f.id === f.id);
+      if (liq) f = { ...f, attendance: liq.s.attendance, gateRevenue: liq.s.revenueUSD, stadiumCost: liq.s.costUSD, financeSettled: true };
       if (f.date === gameState.currentDate) {
         let ratings = f.playerRatings;
         if (!ratings) {

@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { generatePlayer } from '../textSim/dataGenerator';
 import { Position, Player } from '../types';
+import { settleMatch, type CurrencyCode } from '../textSim/stadiumEconomy';
 
 const FinancesView: React.FC = () => {
   const { userTeam, players, hirePlayer, sellPlayer, gameState, isTransferWindowOpen, formatCurrency, formatWage, t } = useGame();
@@ -54,9 +55,11 @@ const FinancesView: React.FC = () => {
   const totalSalaries = teamPlayers.reduce((sum, p) => sum + p.salary, 0);
   
   // Use real attendance data for revenue estimation
-  const ticketPrice = 50;
-  const attendance = userTeam.avrAttendance || (userTeam.strength * 400);
-  const estMatchRevenue = Math.round(attendance * ticketPrice);
+  // Proximo jogo em casa: publico = capacidade x ocupacao actual; renda = publico x preco medio; custo do estadio pela capacidade (textSim/stadiumEconomy.ts).
+  const eco = settleMatch(userTeam, userTeam, { id: '', week: 0, date: '', homeTeamId: userTeam.id, awayTeamId: '', homeScore: 0, awayScore: 0 } as any, gameState.currency as CurrencyCode);
+  const attendance = eco.attendance;
+  const estMatchRevenue = Math.round(eco.revenueUSD);
+  const estStadiumCost = Math.round(eco.costUSD);
 
   const formatNumber = (val: number) => {
     return new Intl.NumberFormat('en-US').format(val);
@@ -142,6 +145,7 @@ const FinancesView: React.FC = () => {
                <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xl transition-colors">
                   <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{t('fin_match_rev')}</div>
                   <div className="text-2xl font-black text-blue-500 dark:text-blue-400 transition-colors">{formatCurrency(estMatchRevenue)}</div>
+                  <div className="text-[9px] text-slate-400 mt-1">{formatNumber(attendance)} fans · {Math.round(eco.occupancy * 100)}% full · stadium cost {formatCurrency(estStadiumCost)}/match</div>
                </div>
                <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xl transition-colors">
                   <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{t('fin_sponsor')}</div>
@@ -210,7 +214,7 @@ const FinancesView: React.FC = () => {
                     <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">{t('fin_avg_att')}</div>
                         <div className="text-xl font-black text-blue-600 mt-1">{formatNumber(userTeam.avrAttendance || 0)}</div>
-                        <div className="text-[9px] text-slate-400 mt-1">Stadia Capacity: 50,000 (Est)</div>
+                        <div className="text-[9px] text-slate-400 mt-1">Stadium capacity: {formatNumber(userTeam.stadiumCapacity || 0)}</div>
                     </div>
                  </div>
             </div>

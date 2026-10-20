@@ -1,5 +1,6 @@
 
 import { Team, Player, Fixture, Position, Tactics } from '../types';
+import { ECONOMIA_ESTADIO } from './stadiumEconomy';
 import { REAL_TEAMS_JSON, REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 
 const DEFAULT_TACTICS: Tactics = {
@@ -454,6 +455,7 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
       sponsorAmount: t.sponsorAmount,
       fanBase: t.fanBase || 10000,
       avrAttendance: t.avrAttendance || 5000,
+      stadiumOccupancy: ECONOMIA_ESTADIO.ocupacaoInicial,   // no inicio do campeonato os estadios estao a 70%
       played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0,
       primaryColor: getColorHex(t.color1 || t.color || '#333'),
       secondaryColor: getColorHex(t.color2 || '#fff'),
