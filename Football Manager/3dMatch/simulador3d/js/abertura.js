@@ -446,10 +446,8 @@ const Abertura = {
     */
     _travarEsc: function (liga) {
         try {
-            const k = (typeof navigator !== 'undefined') ? navigator.keyboard : null;
-            if (!k) return;
-            if (liga) { if (k.lock) { const pr = k.lock(['Escape']); if (pr && pr.catch) pr.catch(() => {}); } }
-            else if (k.unlock) k.unlock();
+            // O bloqueio do ESC tem de ser pedido pelo documento de TOPO (o do manager, que e o que esta em tela cheia; o iframe nao e): pede-se-lhe por mensagem (Simulador3DView).
+            if (typeof Ponte !== 'undefined' && Ponte.enviar) Ponte.enviar('esc_travar', { ligar: !!liga });
         } catch (e) { /* sem suporte */ }
     },
 

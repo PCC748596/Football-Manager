@@ -65,7 +65,8 @@ const CrowdModel = {
     modeloJogador: true,
     // Fatias da torcida (adeptos por malha) e o alcance do corte em multiplos do viewport: so se desenha ate 1.2x o ecra.
     tamanhoDaFatia: 600,
-    viewportCull: 1.2,
+    detalheAte: 60,        // metros: mais longe que isto a fatia usa o shader simplificado (sem aplausos nem cabecas a virar)
+    viewportCull: 0.9,     // so se desenha o que cai nos 90% centrais do ecra (pedido; era 1.2x)
     total: 10000,
 
     /*
@@ -616,6 +617,11 @@ const Crowd = {
             if (canal === 'peito') {
                 const o = lista[0], g = o.geometry.clone();
                 g.applyMatrix4(o.matrixWorld);
+                // 3 GRUPOS DE MATERIAL em vez de 6: as quatro faces dos lados/topo/baixo (grupos 0 a 3, contiguos) levam o mesmo material; cada grupo e uma chamada de desenho.
+                if (g.groups.length === 6) {
+                    const G = g.groups, lado = { start: G[0].start, count: G[0].count + G[1].count + G[2].count + G[3].count }, frente = G[4], costas = G[5];
+                    g.clearGroups(); g.addGroup(lado.start, lado.count, 0); g.addGroup(frente.start, frente.count, 1); g.addGroup(costas.start, costas.count, 2);
+                }
                 g.computeBoundingBox();
                 minY = Math.min(minY, g.boundingBox.min.y);
                 saida[canal] = g;
@@ -776,6 +782,8 @@ const Crowd = {
     _aplicarShader(mat, uniforms) {
         mat.onBeforeCompile = (shader) => {
             for (const k in uniforms) shader.uniforms[k] = uniforms[k];
+            // O DETALHE desta malha (1 = perto: aplausos e cabecas a virar; 0 = longe: so as poses basicas): um uniform por material, posto por `cullar` conforme a distancia da fatia a camara.
+            shader.uniforms.uDetalhe = (mat.userData && mat.userData.uDetalhe) ? mat.userData.uDetalhe : { value: 1 };
 
             const prefixo = `
 attribute vec3 aPosIdle;
@@ -804,6 +812,7 @@ uniform vec2 uTempoTroca;
 uniform vec2 uFesta;
 uniform float uEspalhar;
 uniform float uAplauso;
+uniform float uDetalhe;
 
 // Pesos deste adepto neste instante. Usados pela posicao E pela normal, que
 // tem de andar juntas: senao o sombreamento denuncia a pose antiga.
@@ -862,6 +871,8 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     crowdPos.y += uSobeDePe * w1;
 
     // APLAUSOS: uma fracao dos adeptos aplaude em rajadas, sentada ou de pe (a pose das palmas), com os bracos a abrir e fechar; nao com a bancada em festa.
+    // SHADER SIMPLIFICADO LONGE DA CAMARA: sem aplausos nem cabecas a virar (nem as poses das palmas): nao se distinguem de longe e custam por vertice.
+    if (uDetalhe > 0.5) {
     float quem = step(fract(aAdepto.x * 37.1), ${CrowdModel.aplauso.fracao.toFixed(3)});
     float rajada = smoothstep(0.1, 0.5, sin(uTempo * 0.4 * aAdepto.z + aAdepto.y * 1.7));
     float palma = quem * rajada * uAplauso * (1.0 - w2);
@@ -875,6 +886,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     float cabeca = smoothstep(mix(1.02, 1.48, w1) - 0.03, mix(1.02, 1.48, w1) + 0.03, crowdPos.y);
     float ca = cos(ang * cabeca), sa = sin(ang * cabeca);
     crowdPos.xz = vec2(crowdPos.x * ca - crowdPos.z * sa, crowdPos.x * sa + crowdPos.z * ca);
+    }
 
     vec3 transformed = crowdPos;
 `;
@@ -1026,10 +1038,10 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                 const a = new Float32Array(fans.length * 4); fans.forEach((f, j) => a.set(f.a, j * 4));
                 geo.setAttribute('aAdepto', new THREE.InstancedBufferAttribute(a, 4));
                 geo.boundingSphere = g.peito.geometry.boundingSphere;
-                const mk = (opts) => { const mt = new THREE.MeshStandardMaterial(Object.assign({ roughness: 0.85, metalness: 0 }, opts)); mt.userData = {}; this._aplicarShader(mt, this._uniforms); return mt; };
+                const mk = (opts) => { const mt = new THREE.MeshStandardMaterial(Object.assign({ roughness: 0.85, metalness: 0 }, opts)); mt.userData = { uDetalhe: { value: 1 } }; this._aplicarShader(mt, this._uniforms); return mt; };
                 const mCostas = mk({ map: t.costas }); mCostas.userData.costas = true;
                 const lado = mk({ color: t.lado });
-                const mats = [lado, lado, lado, lado, mk({ map: t.frente }), mCostas];
+                const mats = [lado, mk({ map: t.frente }), mCostas];   // lados (4 faces numa chamada), frente, costas
                 const im = new THREE.InstancedMesh(geo, mats, fans.length);
                 im.castShadow = false; im.receiveShadow = false; im.frustumCulled = false;   // corte nosso: `cullar`
                 im.userData.grupo = gi;
@@ -1047,6 +1059,26 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     RENDERIZAR SO ATE 1.2x O VIEWPORT (pedido): por frame, cada fatia da torcida (e as camisas dos kits dela) so se desenha se a sua esfera cair dentro do frustum da camara com
     `CrowdModel.viewportCull` (1.2) vezes a largura e a altura do ecra. Fora disso `visible = false`. Chamado do `animate` depois de a camara se actualizar.
     */
+    definirOcupacao(o) {
+        const v = Math.max(0.05, Math.min(1, Number(o)));
+        if (!isFinite(v)) return;
+        if (typeof this._ocupacao === 'number' && Math.abs(this._ocupacao - v) < 0.005) return;
+        this._ocupacao = v;
+        if (this._lugares && this._cena) this.reconstruir();
+    },
+
+    // Refaz a torcida com a ocupacao actual (tira as malhas de agora e volta a construir).
+    reconstruir() {
+        const cena = this._cena, lugares = this._lugares;
+        if (!cena || !lugares) return;
+        const tirar = (m) => { if (m.parent) m.parent.remove(m); if (m.geometry) m.geometry.dispose(); (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => x && x.dispose && x.dispose()); };
+        for (const g of (this._grupos || [])) for (const n in g) if (g[n] && g[n].isObject3D) tirar(g[n]);
+        for (const m of (this._camisasAntigas || [])) tirar(m);
+        this._camisasAntigas = [];
+        this._grupos = []; this._fansPorGrupo = []; this._esferas = [];
+        this.build(cena, lugares);
+    },
+
     cullar(camera, fator) {
         if (!this._grupos || !this._esferas || !camera) return;
         if (this._ligada === false) { this._cullVisiveis = 0; for (const g of this._grupos) for (const n in g) if (g[n] && g[n].isObject3D) g[n].visible = false; if (this._camisasAntigas) for (const m of this._camisasAntigas) m.visible = false; return; }
@@ -1061,11 +1093,15 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         const F = this._fCull || (this._fCull = new THREE.Frustum());
         F.setFromProjectionMatrix(M);
         const vis = this._esferas.map(e => F.intersectsSphere(e));
+        // Detalhe por distancia: as fatias a mais de `detalheAte` m (da superficie da esfera a camara) usam o shader simplificado.
+        const cp = camera.position, D = CrowdModel.detalheAte || 60;
+        const detalhe = this._esferas.map(e => ((Math.hypot(e.center.x - cp.x, e.center.y - cp.y, e.center.z - cp.z) - e.radius) < D) ? 1 : 0);
+        const poeDetalhe = (m, v) => { const mats = Array.isArray(m.material) ? m.material : [m.material]; for (const x of mats) if (x && x.userData && x.userData.uDetalhe) x.userData.uDetalhe.value = v; };
         for (let gi = 0; gi < this._grupos.length; gi++) {
             const g = this._grupos[gi];
-            for (const n in g) { const m = g[n]; if (m && m.isObject3D) m.visible = vis[gi] && !(n === 'peito' && g._semPeito); }
+            for (const n in g) { const m = g[n]; if (m && m.isObject3D) { m.visible = vis[gi] && !(n === 'peito' && g._semPeito); poeDetalhe(m, detalhe[gi]); } }
         }
-        if (this._camisasAntigas) for (const m of this._camisasAntigas) m.visible = vis[m.userData.grupo];
+        if (this._camisasAntigas) for (const m of this._camisasAntigas) { m.visible = vis[m.userData.grupo]; poeDetalhe(m, detalhe[m.userData.grupo]); }
         this._cullVisiveis = vis.filter(Boolean).length;
     },
 
@@ -1144,6 +1180,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     build(scene, lugares) {
         if (!lugares || !lugares.length) return null;
         this._cena = scene;
+        this._lugares = lugares;
 
         const geos = this.geometrias();
         const canais = Object.keys(geos);
@@ -1161,10 +1198,12 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         A TORCIDA E UMA FRACAO DOS LUGARES do estadio (Qualidade.cfg().adeptos: HIGH 100%, MEDIUM 50%, LOW 25%), seja qual for o estadio; sem `Qualidade` vale o
         teto de sempre (`CrowdModel.total`). Em tablet/telemovel o teto de 5000 continua a valer por cima.
         */
+        // A OCUPACAO do jogo (manager): a torcida e a fracao da qualidade (HIGH 100%, MEDIUM 50%, LOW 25%) DOS LUGARES OCUPADOS, nao dos lugares todos.
+        const ocup = (typeof this._ocupacao === 'number') ? this._ocupacao : 1;
         const fracao = (typeof Qualidade !== 'undefined') ? Qualidade.cfg().adeptos : null;
         const nTotal = (fracao !== null && fracao !== undefined)
-            ? Math.min(Math.round(lugares.length * fracao), (crowdLimit < CrowdModel.total) ? crowdLimit : Infinity)
-            : Math.min(crowdLimit, lugares.length);
+            ? Math.min(Math.round(lugares.length * fracao * ocup), (crowdLimit < CrowdModel.total) ? crowdLimit : Infinity)
+            : Math.min(crowdLimit, Math.round(lugares.length * ocup));
 
         const dummy = new THREE.Object3D();
         const cor = new THREE.Color();
@@ -1243,6 +1282,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                 geoChunk.boundingSphere = chunkSphere;
 
                 const mat = new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0.0 });
+                mat.userData.uDetalhe = { value: 1 };
                 this._aplicarShader(mat, uniforms);
                 const m = new THREE.InstancedMesh(geoChunk, mat, nChunk);
                 m.castShadow = false;

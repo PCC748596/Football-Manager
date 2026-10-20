@@ -843,7 +843,7 @@ não à pequena área.
 =============================================================================
 */
 const GkSaidaCruzamento = {
-    raioSemMarcacao: 2.0,    // adversário mais perto do que isto = marcado
+    raioSemMarcacao: 1.3,    // adversário mais perto do que isto = marcado (2.0 -> 1.3: com 2.0 quase todo cruzamento era "marcado" e o guarda-redes so socava; 2 defesas seguras em 22 saltos)
     chanceSegurar: 0.95,     // sem marcação, agarra; nos outros 5% escapa-lhe
     /*
     A ANIMACAO DO SOCO, no ar. Relato de 5 de Outubro de 2026: *"o goleiro esta

@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { Team, Player } from '../types';
 import { urlSimulador, montarPayload } from './simulador3dCliente';
+import { settleMatch } from '../textSim/stadiumEconomy';
 
 interface Props {
   casa: Team;
@@ -59,6 +60,28 @@ if (typeof document !== 'undefined') {
   });
 }
 
+/*
+ESC NA TELA CHEIA com uma entrada em campo ou uma repeticao a correr: o navegador gasta o ESC a sair da tela cheia. O 3D avisa (`esc_travar`) e este documento — o de TOPO, que e o que esta
+em tela cheia — pede o BLOQUEIO DO TECLADO para o ESC (Keyboard Lock, Chromium). O foco pode estar fora do iframe, por isso o ESC que chega aqui e REENCAMINHADO ao 3D (`esc`), que cancela
+a entrada ou fecha a repeticao. Libertado quando o 3D avisa que acabou.
+*/
+let escTravado = false;
+const definirEscTravado = (ligar: boolean) => {
+  escTravado = ligar;
+  try {
+    const k = (navigator as any).keyboard;
+    if (!k) return;
+    if (ligar) { const p = k.lock?.(['Escape']); p?.catch?.(() => {}); } else k.unlock?.();
+  } catch { /* sem suporte */ }
+};
+if (typeof window !== 'undefined') {
+  window.addEventListener('keydown', (ev: KeyboardEvent) => {
+    if (ev.key !== 'Escape' || !escTravado) return;
+    ev.preventDefault(); ev.stopPropagation();
+    sessao.iframe?.contentWindow?.postMessage({ para: 'simulador3d', tipo: 'esc' }, '*');
+  }, true);
+}
+
 const enviar = (m: any) => sessao.iframe?.contentWindow?.postMessage(m, '*');
 
 const garantirIframe = (chave: string) => {
@@ -75,10 +98,16 @@ const garantirIframe = (chave: string) => {
     sessao.ouvinte = true;
     window.addEventListener('message', (e: MessageEvent) => {
       if (!sessao.iframe || e.source !== sessao.iframe.contentWindow || !e.data || e.data.fonte !== 'simulador3d') return;
+      if (e.data.tipo === 'esc_travar') { definirEscTravado(!!e.data.ligar); return; }
       if (e.data.tipo === 'pronto') { sessao.pronto = true; sessao.cb({ tipo: '__pronto' }); }
       else sessao.cb(e.data);
     });
   }
+};
+
+// A ocupacao do estadio neste jogo (0..1): a base do mandante mais o bonus do jogo (classico). O 3D desenha a torcida com ela.
+const ocupacaoDoJogo = (casa: Team, fora: Team): number => {
+  try { return settleMatch(casa, fora, { id: '', week: 0, date: '', homeTeamId: casa.id, awayTeamId: fora.id, homeScore: 0, awayScore: 0 } as any, 'USD').occupancy; } catch { return 1; }
 };
 
 const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, chave, iniciar, pausado, kitCasa, kitFora, qualidade, aoMensagem, aoPronto }) => {
@@ -94,7 +123,7 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
     const d = dados.current;
     if (iniciarRef.current) {
       sessao.arrancou = true;
-      enviar(montarPayload(d.casa, d.fora, d.players, d.userTeamId, { modo: 'visivel', velocidade: velocidadeDoJogo, fimEmMinutos: 90 }, d.kits));
+      enviar(montarPayload(d.casa, d.fora, d.players, d.userTeamId, { modo: 'visivel', velocidade: velocidadeDoJogo, fimEmMinutos: 90, ocupacao: ocupacaoDoJogo(d.casa, d.fora) }, d.kits));
     } else {
       // A entrada dos times so comeca depois de os uniformes escolhidos (o modal de kits ainda aberto = kits indefinidos).
       if (d.kits.casa === undefined || d.kits.fora === undefined) return;
@@ -102,7 +131,7 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
       const chaveKits = JSON.stringify(d.kits);
       if (sessao.preparadoCom === chaveKits) return;
       sessao.preparadoCom = chaveKits;
-      enviar({ ...montarPayload(d.casa, d.fora, d.players, d.userTeamId, {}, d.kits), tipo: 'preparar' });
+      enviar({ ...montarPayload(d.casa, d.fora, d.players, d.userTeamId, { ocupacao: ocupacaoDoJogo(d.casa, d.fora) }, d.kits), tipo: 'preparar' });
     }
   };
 

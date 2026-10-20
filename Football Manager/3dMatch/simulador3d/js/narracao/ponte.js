@@ -60,6 +60,7 @@ const Ponte = {
             else if (m.tipo === 'continuar') this.continuar();
             else if (m.tipo === 'parar') this.parar();
             else if (m.tipo === 'velocidade') this.definirVelocidade(m.valor);
+            else if (m.tipo === 'esc') this.esc();
             else if (m.tipo === 'qualidade') { if (window.Qualidade) window.Qualidade.definir(m.nivel); }
             else if (m.tipo === 'replay') { if (window.MatchReplay && window.MatchReplay.replayUltimos) window.MatchReplay.replayUltimos(m.segundos || 10); }
         } catch (e) {
@@ -144,6 +145,13 @@ const Ponte = {
             if (fpsEl && typeof window._fpsAtual === 'number') { const v = window._fpsAtual; fpsEl.textContent = 'FPS ' + v; fpsEl.style.color = v >= 50 ? '#22c55e' : v >= 30 ? '#facc15' : '#ef4444'; }
             const rp = barra.querySelector('#tc-replay'); if (rp) rp.classList.toggle('pisca', !!(window.MatchReplay && window.MatchReplay.isReplaying));
         }, 250);
+    },
+
+    // O ESC que o manager reencaminha (a tela cheia do manager fica com o foco, nao o iframe): faz o mesmo que a tecla no jogo — cancela a entrada em campo, ou fecha a repeticao.
+    esc() {
+        if (typeof Abertura !== 'undefined' && Abertura.activa) { Abertura.cancelar(); return; }
+        const R = window.MatchReplay;
+        if (R && R.isReplaying) R.stopReplay();
     },
 
     // A camara e o zoom a pedido do manager (os botoes ficam fora do 3D).
@@ -256,7 +264,7 @@ const Ponte = {
     },
 
     _preparar(m) {
-        AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala });
+        AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala, ocupacao: m.ocupacao });
         this._preparada = this._chave(m);
         this._medir();
         this._ligarPainel();
@@ -306,7 +314,7 @@ const Ponte = {
         // A partida no motor: elencos, escalacao, formacoes e tatica.
         // Se o `preparar` ja montou esta partida (e a entrada dos times esta a correr), nao se refaz nada: so se solta a espera.
         const jaPreparada = (this.modo === 'visivel' && this._preparada === this._chave(m));
-        if (!jaPreparada) AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala });
+        if (!jaPreparada) AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala, ocupacao: m.ocupacao });
         this._preparada = null;
         if (Match.ball) Match.ball.visible = true;   // o `esconderTimes` do arranque
         if (typeof Abertura !== 'undefined') Abertura.aguardarSaida = false;

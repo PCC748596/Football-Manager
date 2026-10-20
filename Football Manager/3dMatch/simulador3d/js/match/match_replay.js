@@ -311,10 +311,8 @@ class ReplaySystem {
     */
     travarEsc(liga) {
         try {
-            const k = (typeof navigator !== 'undefined') ? navigator.keyboard : null;
-            if (!k) return;
-            if (liga) { if (k.lock) { const p = k.lock(['Escape']); if (p && p.catch) p.catch(() => {}); } }
-            else if (k.unlock) k.unlock();
+            // Pedido ao documento de TOPO (o do manager, em tela cheia), por mensagem: ver Simulador3DView (`esc_travar`).
+            if (typeof Ponte !== 'undefined' && Ponte.enviar) Ponte.enviar('esc_travar', { ligar: !!liga });
         } catch (e) { /* sem suporte */ }
     }
 
