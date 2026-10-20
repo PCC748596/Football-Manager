@@ -36,7 +36,7 @@ o jogo DESACELERA o relogio. De 5.00 passa a 4.55 s de relogio por segundo
 real, e um lote de 1080 s deixa de dar 90 minutos: passa a dar ~82. Para um
 lote de 90 minutos a duracao passa a ser 90*60 / 4.55 = 1188 s.
 */
-const GAME_SPEED = 0.99;
+const GAME_SPEED = 1.00;   // 0.99 -> 1.00 (pedido): timeScale = 4.5 / 1.00 = 4.5 s de relogio por segundo real, e um lote de 1200 s (20 min) da exactamente 90 minutos
 
 /*
 Pausa (segundos reais) entre o fim de uma reposição e o recomeço do jogo:

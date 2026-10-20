@@ -58,6 +58,8 @@ if (process.env.LIGA_WORKER) {
         FormacoesZonas.formacoes = o.formacoes;
     }
     if (process.env.LIGA_TRANSICAO) { const [av, re] = process.env.LIGA_TRANSICAO.split(',').map(Number); ZonasModel.transicao = { duracao: 3.0, avancoOfensivo: av, recuoDefensivo: re }; }   // o controlo: o bloco de antes das tabelas
+    // LIGA_SET="Objecto.campo=valor;Outro.campo=valor": ajustes de configuracao para isolar causas (ex.: "FaltaRotinas.activo=false;ShootingModel.esperaBarreira=0").
+    if (process.env.LIGA_SET) for (const par of process.env.LIGA_SET.split(';')) { const [lhs, rhs] = par.split('='); const parts = lhs.trim().split('.'); let o = global[parts[0]] || (global.window && global.window[parts[0]]); for (let q = 1; q < parts.length - 1; q++) o = o[parts[q]]; if (o) o[parts[parts.length - 1]] = JSON.parse(rhs); else console.error('LIGA_SET: nao encontrei', lhs); }
     const pares = calendario(NOMES.length, 2);
     const ladosIniciais = Lados.trocados;
     const dt = 1 / 60;
@@ -91,7 +93,8 @@ if (process.env.LIGA_WORKER) {
 const JOGOS = Number(process.argv[2] || 380);
 const WORKERS = Number(process.argv[3] || Math.min(14, Math.max(1, os.cpus().length - 2)));
 const MIN = process.argv[4] || '20';
-const todos = []; for (let i = 0; i < JOGOS; i++) todos.push(i);
+// Os jogos escolhem-se espalhados pelo calendario de 380 (e nao os primeiros), para a amostra pequena nao ser so das duas primeiras jornadas.
+const todos = []; for (let i = 0; i < JOGOS; i++) todos.push(Math.floor(i * 380 / JOGOS));
 const grupos = Array.from({ length: WORKERS }, () => []);
 todos.forEach((i, k) => grupos[k % WORKERS].push(i));
 const resultados = [];
