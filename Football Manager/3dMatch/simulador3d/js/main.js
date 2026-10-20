@@ -1479,7 +1479,7 @@ function ligarActualizacaoDoElenco() {
     if (typeof EventBus === 'undefined') return;
     EventBus.on('TEAMS_CHANGED', () => {
         if (typeof Crowd !== 'undefined' && Crowd.recolorir) {
-            Crowd.recolorir({ A: Crowd.coresDaEquipa(Match.players), B: Crowd.coresDaEquipa(Match.opponents) });
+            Crowd.recolorir({ A: Crowd.coresDaEquipa(Match.players, 'A'), B: Crowd.coresDaEquipa(Match.opponents, 'B') });
             if (Match.pintarBandeirasDeCanto) Match.pintarBandeirasDeCanto(Crowd.coresDaEquipa(Match.players));
         }
         if (jogadorNoModal) {
@@ -1579,6 +1579,8 @@ document.addEventListener("DOMContentLoaded", () => {
         // renderer não chega (ver toggleSombras).
         window.dirLightCore = dirLight;
         if (typeof Qualidade !== 'undefined') Qualidade.aplicar();   // acerta o rotulo do botao das sombras com o nivel (config/qualidade.js)
+        // Na tela de jogo do manager (embutido) os paineis arrancam MINIMIZADOS (pedido).
+        if (/[?&]embutido/.test(location.search)) { try { toggleTodosPaineis(true); } catch (e) { /* sem paineis */ } }
         scene.add(dirLight);
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
@@ -1606,7 +1608,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Match.equipasPorOmissao): sem isto diziam "genérica" com o Grêmio
         // e o Internacional a jogar.
         sincronizarSelectoresDeEquipa();
-        if (typeof Crowd !== 'undefined' && Crowd.recolorir) Crowd.recolorir({ A: Crowd.coresDaEquipa(Match.players), B: Crowd.coresDaEquipa(Match.opponents) });
+        if (typeof Crowd !== 'undefined' && Crowd.recolorir) Crowd.recolorir({ A: Crowd.coresDaEquipa(Match.players, 'A'), B: Crowd.coresDaEquipa(Match.opponents, 'B') });
         if (typeof Crowd !== 'undefined' && Match.pintarBandeirasDeCanto) Match.pintarBandeirasDeCanto(Crowd.coresDaEquipa(Match.players));
         popularPainelJogadores();
         actualizarNomesNoPlacar();

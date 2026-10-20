@@ -113,7 +113,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                             key={q}
                             onClick={() => updateSettings({ graphicsQuality: q })}
                             className={`flex-1 py-3 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
-                                (gameState.graphicsQuality || 'LOW') === q
+                                (gameState.graphicsQuality || 'HIGH') === q
                                 ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-400'
                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                             }`}
@@ -122,7 +122,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                           </button>
                       ))}
                   </div>
-                  <p className="text-xs text-slate-400">LOW: no shadows, light player model, 25% of the stadium seats filled. MEDIUM: shadows, 50% crowd. HIGH: everything, 100% crowd. Crowd size applies from the next match.</p>
+                  <p className="text-xs text-slate-400">HIGH (default): everything, 100% crowd. MEDIUM: shadows, 50% crowd. LOW: no shadows, light player model, 25% of the stadium seats filled. Crowd size applies from the next match.</p>
               </div>
           </section>
 

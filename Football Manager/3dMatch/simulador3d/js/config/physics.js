@@ -1214,7 +1214,7 @@ const FuncionariosEstadio = {
     activo: true,
 
     // --- o anel colado à bancada ---------------------------------------
-    recuoDaBancada: 1.0,    // metros à frente da primeira fila
+    recuoDaBancada: 3.0,    // metros à frente da primeira fila (1 -> 3, pedido: "afasta os funcionarios 2 m das arquibancadas")
     /*
     ESPAÇAMENTO NO ANEL. Esteve em 5 m — o número do pedido inicial — e eram
     85 pessoas a toda a volta, uma parede de coletes: *"funcionários de 5 em 5

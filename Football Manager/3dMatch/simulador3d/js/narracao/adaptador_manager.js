@@ -227,6 +227,8 @@ const AdaptadorManager = {
         uni(casa, eC); uni(fora, eF);
         Match.uniformeGKA = (casa.uniforme && casa.uniforme.gk) || null;
         Match.uniformeGKB = (fora.uniforme && fora.uniforme.gk) || null;
+        // As OUTRAS camisas de cada time (os outros dois kits do manager), para a torcida (crowd.js, `_kitsDaEquipa`).
+        Match.uniformesOutros = { A: (casa.uniforme && casa.uniforme.outros) || [], B: (fora.uniforme && fora.uniforme.outros) || [] };
         Match.trocarEquipas({ A: eC.id, B: eF.id });
         this._refrescarLados();
         this.mostrarNoPainel(eC, eF);

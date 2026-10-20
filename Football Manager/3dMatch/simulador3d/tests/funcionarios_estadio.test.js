@@ -240,7 +240,7 @@ function construir() {
             c.fromBufferAttribute(im.instanceColor, i);
             // Quem está entre as placas e o anel é imprensa; o anel está a 1 m
             // da bancada.
-            const noAnel = Math.abs(v.x) > GEO.bancadaX - 2 || Math.abs(v.z) > GEO.bancadaZ - 2;
+            const noAnel = Math.abs(v.x) > GEO.bancadaX - 4 || Math.abs(v.z) > GEO.bancadaZ - 4;   // o anel esta a 3 m da bancada (recuoDaBancada)
 
             if (perto(c, laranja)) { nLaranja++; if (!noAnel) foraDeSitio++; }
             else if (perto(c, amarelo)) { nAmarelo++; if (noAnel) foraDeSitio++; }
@@ -303,7 +303,7 @@ function construir() {
             frente.set(0, 0, 1).applyQuaternion(q);
             // Positivo = a olhar para o centro do campo.
             const paraOCampo = frente.x * -v.x + frente.z * -v.z;
-            const noAnel = Math.abs(v.x) > GEO.bancadaX - 2 || Math.abs(v.z) > GEO.bancadaZ - 2;
+            const noAnel = Math.abs(v.x) > GEO.bancadaX - 4 || Math.abs(v.z) > GEO.bancadaZ - 4;   // o anel esta a 3 m da bancada (recuoDaBancada)
             if (noAnel) { nAnel++; if (paraOCampo > 0) anelErrado++; }
             else { nImprensa++; if (paraOCampo < 0) imprensaErrada++; }
         }

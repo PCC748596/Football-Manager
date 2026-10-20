@@ -61,6 +61,8 @@ Não há casos especiais.
 const _zeroM = new THREE.Matrix4();
 
 const CrowdModel = {
+    // TESTE DE DESEMPENHO: o adepto com o corpo dos jogadores na versao leve (888 triangulos) em vez do boneco de caixas (468). `false` volta ao de sempre.
+    modeloJogador: true,
     total: 10000,
 
     /*
@@ -88,7 +90,9 @@ const CrowdModel = {
     do clube; 20% de bone. As fraccoes sao sorteadas por adepto, na construcao.
     */
     torcida: {
-        camisaPrincipal: 0.50, camisaCor1: 0.25,      // o resto (0.25) e a cor 2
+        // AS CAMISAS DOS ADEPTOS (pedido): 50% com a camisa que o time usa neste jogo, 30% com outra camisa do time, 10% com uma cor do time que nao seja a dos jogadores
+        // (camisa lisa) e 10% com a camisa do guarda-redes. Ver `coresDaEquipa` (os kits) e `recolorir`.
+        camisas: { atual: 0.50, outra: 0.30, cor: 0.10, goleiro: 0.10 },
         calcaComprida: 0.50,
         bone: 0.20,
         calcas: ['#2c3e66', '#1f1f24', '#3a3f4a', '#8a7a5a', '#4a5568']
@@ -512,7 +516,103 @@ const Crowd = {
     pose.js. Esteve escrita à mão aqui, e quando a do corpo mudou os adeptos
     ficaram 10% mais pequenos do que toda a gente sem ninguém dar por isso.
     */
+    /*
+    O ADEPTO COM O MODELO DOS JOGADORES (teste de desempenho; `CrowdModel.modeloJogador`). Em vez do boneco de caixas do adepto, usa-se o corpo dos jogadores na versao LEVE
+    (construirCorpo com `leve` = 1: 888 triangulos, sem esferas nas juntas), posto em cada pose do adepto (anca, joelho, tronco, ombro, cotovelo) e fundido por canal de cor:
+
+        camisa   tronco e mangas          calcao   o calcao
+        perna    coxas, canelas e meias   pele     cabeca, pescoco, bracos e maos
+        cabelo   cabelo                   rosto    olhos e as botas (escuros)
+
+    Cada pose da o MESMO numero de vertices por canal (a classificacao nao depende da pose), que e o que o shader do morph pede. Sem listras nem bone.
+    */
+    _geometriasDoJogadorLeve(pose) {
+        if (typeof construirCorpo !== 'function') return null;
+        const P = pose || CrowdModel.poses.sentado;
+        const f = construirCorpo('#ff0000', '#00ff00', undefined, undefined, 1);
+        const rig = f.rig, m = f.corpo;
+        const por = (k, lado) => { const v = P[k + (lado < 0 ? 'E' : 'D')]; return v !== undefined ? v : P[k]; };
+        rig.lLeg.rotation.x = por('anca', -1); rig.rLeg.rotation.x = por('anca', 1);
+        rig.lKnee.rotation.x = por('joelho', -1); rig.rKnee.rotation.x = por('joelho', 1);
+        rig.chest.rotation.x = P.tronco;
+        rig.lArm.rotation.x = por('ombro', -1); rig.rArm.rotation.x = por('ombro', 1);
+        rig.lElbow.rotation.x = por('cotovelo', -1); rig.rElbow.rotation.x = por('cotovelo', 1);
+        // A CASCA DO PEITO (a camisa, com a textura de cada kit): canal `peito`, que mantem os UV e os grupos de material; o resto da camisa (mangas, o miolo do tronco) e o canal `camisa`, de cor lisa.
+        const casca = (() => { let r0 = null; rig.chest.traverse(o => { if (!r0 && o.isMesh && Array.isArray(o.material)) r0 = o; }); return r0; })();
+        if (casca) casca.userData.canal = 'peito';
+        // A CARA E A DOS JOGADORES: olhos (planos), nariz e boca. No jogador o nariz e a boca sao LINHAS finas (THREE.Line, pose.js), que a fusao em malhas nao apanha:
+        // desenham-se aqui como faixas finas (planos) no mesmo sitio da cara — nariz em L (traco vertical e pe para a direita), boca horizontal —, da cor dos olhos.
+        const faceGrp = rig.olhoEsq && rig.olhoEsq.parent;
+        if (faceGrp) {
+            const z = rig.olhoEsq.position.z + 0.001, u = 1.0, fino = 0.035;
+            const faixa = (w, h, x, y) => { const q = new THREE.Mesh(new THREE.PlaneGeometry(w, h), rig.olhoEsq.material); q.position.set(x, y, z); faceGrp.add(q); };
+            faixa(fino, u * 0.13 + fino, 0, -u * 0.015);          // nariz: do (0, 0.05) ao (0, -0.08)
+            faixa(u * 0.06 + fino, fino, u * 0.03, -u * 0.08);    // nariz: pe, do (0, -0.08) ao (0.06, -0.08)
+            faixa(u * 0.24, fino, 0, -u * 0.22);                  // boca: de (-0.12, -0.22) a (0.12, -0.22)
+        }
+        m.updateMatrixWorld(true);
+        const dono = (o) => {
+            for (let q = o; q; q = q.parent) {
+                if (q === rig.lHand || q === rig.rHand) return 'mao';
+                if (q === rig.lBota || q === rig.rBota) return 'bota';
+                if (q === rig.lLeg || q === rig.rLeg) return 'perna';
+                if (q === rig.lArm || q === rig.rArm) return 'braco';
+                if (q === rig.neck) return 'cabeca';
+                if (q === rig.chest) return 'tronco';
+            }
+            return 'tronco';
+        };
+        const hexDe = (mat) => (!Array.isArray(mat) && mat && mat.color) ? mat.color.getHex() : null;
+        // Os tons de pele: os das maos (o tom e a sombra das juntas); o que na cabeca nao for pele nem olhos e cabelo.
+        const tonsDePele = new Set(); rig.lHand.traverse(o => { if (o.isMesh) { const x = hexDe(o.material); if (x !== null) tonsDePele.add(x); } }); rig.rHand.traverse(o => { if (o.isMesh) { const x = hexDe(o.material); if (x !== null) tonsDePele.add(x); } });
+        const canalDe = (o) => {
+            if (o.userData && o.userData.canal) return o.userData.canal;
+            const d = dono(o), h = hexDe(o.material);
+            if (d === 'mao') return 'pele';
+            if (d === 'bota') return 'rosto';
+            if (d === 'perna') return Array.isArray(o.material) || h === 0xffffff || h === 0x00ff00 ? 'calcao' : 'perna';
+            if (d === 'braco') return h === 0xff0000 ? 'camisa' : 'antebraco';   // o braco sem manga: pele, ou a cor da camisa nos adeptos de goleiro (manga comprida)
+            if (d === 'cabeca') { if (h === 0x2f3640) return 'rosto'; return (h === null || tonsDePele.has(h)) ? 'pele' : 'cabelo'; }
+            return 'camisa';
+        };
+        const porCanal = {};
+        m.traverse(o => {
+            if (!o.isMesh || !o.geometry || !o.geometry.attributes.position || !o.geometry.attributes.normal) return;
+            for (let q = o; q; q = q.parent) { if (!q.visible) return; if (q === m) break; }
+            if (o.geometry.type === 'CylinderGeometry' && dono(o) === 'bota') return;   // sem as travas das chuteiras
+            const c = canalDe(o);
+            (porCanal[c] = porCanal[c] || []).push(o);
+        });
+        const saida = {};
+        let minY = Infinity;
+        for (const canal of Object.keys(porCanal).sort()) {
+            const lista = porCanal[canal];
+            if (canal === 'peito') {
+                const o = lista[0], g = o.geometry.clone();
+                g.applyMatrix4(o.matrixWorld);
+                g.computeBoundingBox();
+                minY = Math.min(minY, g.boundingBox.min.y);
+                saida[canal] = g;
+                continue;
+            }
+            const partes = lista.map(o => { const g = o.geometry.toNonIndexed(); g.applyMatrix4(o.matrixWorld); if (o.matrixWorld.determinant() < 0) { const pa = g.attributes.position.array, na = g.attributes.normal.array; for (let i = 0; i < pa.length; i += 9) { for (let k = 0; k < 3; k++) { const t = pa[i + 3 + k]; pa[i + 3 + k] = pa[i + 6 + k]; pa[i + 6 + k] = t; const u = na[i + 3 + k]; na[i + 3 + k] = na[i + 6 + k]; na[i + 6 + k] = u; } } } return g; });
+            let nv = 0; partes.forEach(g => { nv += g.attributes.position.count; });
+            const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3);
+            let vo = 0; partes.forEach(g => { pos.set(g.attributes.position.array, vo * 3); nor.set(g.attributes.normal.array, vo * 3); vo += g.attributes.position.count; g.dispose(); });
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+            geo.computeBoundingBox();
+            minY = Math.min(minY, geo.boundingBox.min.y);
+            saida[canal] = geo;
+        }
+        // Os pes no zero em todas as poses (a convencao do adepto: o `lugar` e onde os pes assentam).
+        if (isFinite(minY)) for (const canal in saida) { saida[canal].translate(0, -minY, 0); saida[canal].computeBoundingBox(); saida[canal].computeBoundingSphere(); }
+        return saida;
+    },
+
     _geometriasDaPose(pose) {
+        if (CrowdModel.modeloJogador) { const g = this._geometriasDoJogadorLeve(pose); if (g && Object.keys(g).length) return g; }
         const pecas = this._pecas(pose);
         const escala = (typeof ESCALA_CORPO === 'number') ? ESCALA_CORPO : 1.8 / 5.5;
         const saida = {};
@@ -776,8 +876,14 @@ void crowdPesos(out float dePe, out float w1, out float w2,
             for (const f of (this._fansPorGrupo[gi] || [])) {
                 const eq = cores[f.claque];
                 if (!eq) continue;
-                const camHex = f.cam === 0 ? eq.principal : (f.cam === 1 ? eq.cor1 : eq.cor2);
+                // O KIT deste adepto: o do jogo (0), outro do time (1), uma cor do time (2) ou o do guarda-redes (3); sem `kits` (equipa sem dados) cai nas cores de sempre.
+                const K = eq.kits;
+                const kit = K ? (f.cam === 0 ? K.atual : f.cam === 1 ? (K.outras.length ? K.outras[Math.min(K.outras.length - 1, Math.floor(f.sub * K.outras.length))] : K.atual) : f.cam === 2 ? K.cor : (K.gk || K.cor)) : null;
+                const camHex = kit ? kit.principal : (f.cam === 0 ? eq.principal : (f.cam === 1 ? eq.cor1 : eq.cor2));
                 if (g.camisa) g.camisa.setColorAt(f.i, tom(camHex, f.k));
+                if (g.peito) g.peito.setColorAt(f.i, tom(camHex, f.k));
+                // A camisa do GOLEIRO leva manga comprida: o braco (sem a mao) na cor da camisa; os outros adeptos, pele.
+                if (g.antebraco) g.antebraco.setColorAt(f.i, tom(f.cam === 3 ? camHex : f.pele, f.k));   // reserva: so se ve se as texturas dos kits nao puderem ser montadas
                 if (g.calcao) g.calcao.setColorAt(f.i, tom(f.longa ? f.calcaHex : eq.calcao, f.k));
                 if (g.perna) g.perna.setColorAt(f.i, tom(f.longa ? f.calcaHex : f.pele, f.k));
                 if (g.bone) g.bone.setColorAt(f.i, tom(f.boneCor === 0 ? eq.cor1 : eq.cor2, f.k));
@@ -785,31 +891,148 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                 O DESENHO: quem veste a camisa do clube (cam 0) leva as listras/faixas dela, na segunda
                 cor; as outras camisas (cor 1 / cor 2) sao lisas.
                 */
-                const comDesenho = (f.cam === 0) && eq.padrao;
+                const padraoDoKit = kit ? kit.padrao : (f.cam === 0 ? eq.padrao : null);
+                const listraDoKit = kit ? kit.listra : eq.listra;
+                const comDesenho = !!padraoDoKit;
                 for (const [canal, padrao] of [['listraV', 'listras'], ['listraH', 'faixas']]) {
                     if (!g[canal]) continue;
-                    if (comDesenho && eq.padrao === padrao) {
+                    if (comDesenho && padraoDoKit === padrao) {
                         g[canal].setMatrixAt(f.i, f.m);
-                        g[canal].setColorAt(f.i, tom(eq.listra, f.k));
+                        g[canal].setColorAt(f.i, tom(listraDoKit, f.k));
                     } else {
                         _zeroM.makeScale(0, 0, 0);
                         g[canal].setMatrixAt(f.i, _zeroM);
                     }
                 }
             }
-            for (const n of ['camisa', 'calcao', 'perna', 'bone', 'listraV', 'listraH']) {
+            for (const n of ['camisa', 'peito', 'antebraco', 'calcao', 'perna', 'bone', 'listraV', 'listraH']) {
                 if (g[n] && g[n].instanceColor) g[n].instanceColor.needsUpdate = true;
                 if (g[n] && (n === 'listraV' || n === 'listraH')) g[n].instanceMatrix.needsUpdate = true;
             }
+        }
+        // A camisa de cada adepto com a textura do kit dos jogadores (ver `_montarCamisas`).
+        try { this._montarCamisas(cores); } catch (e) { if (typeof console !== 'undefined') console.warn('Crowd: camisas dos kits nao montadas', e && e.message); }
+    },
+
+    /*
+    AS CAMISAS DOS ADEPTOS, IGUAIS AS DOS JOGADORES. A camisa do jogador e uma textura (o desenho do kit, a gola, o escudo) na frente e nas costas da casca do peito. O adepto
+    veste a MESMA casca (canal `peito`, com UV e grupos de material) com a textura do kit tirada de um corpo de jogador feito com esse uniforme; as costas levam o mesmo desenho
+    sem numero. Cada kit de cada claque e uma InstancedMesh propria so com os adeptos que o vestem (as animacoes do morph vao no `aAdepto` de cada uma).
+    */
+    _texturasDoKit(uniforme, corCamisa, corCalcao) {
+        if (typeof construirCorpo !== 'function') return null;
+        const f = construirCorpo(corCamisa || '#888888', corCalcao || '#ffffff', undefined, uniforme || undefined, 1);
+        let casca = null; f.rig.chest.traverse(o => { if (!casca && o.isMesh && Array.isArray(o.material)) casca = o; });
+        if (!casca) return null;
+        const frente = casca.material[4].map;
+        const lado = casca.material[0].color.getHex();
+        // As costas: o mesmo desenho, sem numero (a regra do `Player.updateShirt`: a faixa unica so vai na frente).
+        const cv = document.createElement('canvas'); cv.width = 512; cv.height = 512;
+        const ctx = cv.getContext('2d');
+        const peca = uniforme && uniforme.camisa;
+        if (peca && typeof pintarPadraoDeEquipamento === 'function') {
+            const k = peca.padrao === 'kit' ? peca.kit : null;
+            const faixaUnica = !!(k && k.diagonal && k.c2 && !k.multipleDiagonals && !k.dualDiagonal);
+            if (faixaUnica) { ctx.fillStyle = k.c1; ctx.fillRect(0, 0, 512, 512); }
+            else pintarPadraoDeEquipamento(ctx, 512, 512, peca, corCamisa);
+        } else { ctx.fillStyle = corCamisa || '#888888'; ctx.fillRect(0, 0, 512, 512); }
+        return { frente, lado, costas: new THREE.CanvasTexture(cv) };
+    },
+
+    _montarCamisas(cores) {
+        if (!this._grupos || !this._cena || !this._uniforms || typeof THREE === 'undefined') return;
+        // As texturas por claque: [atual, ...outras, cor do time, goleiro], com o indice de cada um.
+        const porClaque = {};
+        for (const lado of ['A', 'B']) {
+            const eq = cores[lado], K = eq && eq.kits;
+            if (!K) continue;
+            const lista = [K.atual].concat(K.outras || []);
+            const idxCor = lista.length; lista.push(K.cor);
+            const idxGK = lista.length; lista.push(K.gk || K.cor);
+            const tex = lista.map(k => { try { return k ? this._texturasDoKit(k.uniforme, k.principal, k.corCalcao) : null; } catch (e) { return null; } });
+            porClaque[lado] = { tex, nOutras: (K.outras || []).length, idxCor, idxGK };
+        }
+        if (this._camisasAntigas) for (const m of this._camisasAntigas) { if (m.parent) m.parent.remove(m); m.geometry.dispose(); (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => { if (x.map && x.userData.costas) x.map.dispose(); x.dispose(); }); }
+        this._camisasAntigas = [];
+        const branco = new THREE.Color();
+        for (let gi = 0; gi < this._grupos.length; gi++) {
+            const g = this._grupos[gi];
+            if (!g.peito) continue;
+            const baldes = {};
+            for (const f of (this._fansPorGrupo[gi] || [])) {
+                const pc = porClaque[f.claque];
+                if (!pc) continue;
+                const vi = f.cam === 0 ? 0 : f.cam === 1 ? (pc.nOutras ? 1 + Math.min(pc.nOutras - 1, Math.floor(f.sub * pc.nOutras)) : 0) : f.cam === 2 ? pc.idxCor : pc.idxGK;
+                const t = pc.tex[vi] || pc.tex[0];
+                if (!t) continue;
+                const chave = f.claque + ':' + (pc.tex[vi] ? vi : 0);
+                (baldes[chave] = baldes[chave] || { t, fans: [] }).fans.push(f);
+            }
+            for (const chave of Object.keys(baldes)) {
+                const { t, fans } = baldes[chave];
+                const geo = g.peito.geometry.clone();
+                const a = new Float32Array(fans.length * 4); fans.forEach((f, j) => a.set(f.a, j * 4));
+                geo.setAttribute('aAdepto', new THREE.InstancedBufferAttribute(a, 4));
+                geo.boundingSphere = g.peito.geometry.boundingSphere;
+                const mk = (opts) => { const mt = new THREE.MeshStandardMaterial(Object.assign({ roughness: 0.85, metalness: 0 }, opts)); mt.userData = {}; this._aplicarShader(mt, this._uniforms); return mt; };
+                const mCostas = mk({ map: t.costas }); mCostas.userData.costas = true;
+                const lado = mk({ color: t.lado });
+                const mats = [lado, lado, lado, lado, mk({ map: t.frente }), mCostas];
+                const im = new THREE.InstancedMesh(geo, mats, fans.length);
+                im.castShadow = false; im.receiveShadow = false; im.frustumCulled = true;
+                im.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+                fans.forEach((f, j) => { im.setMatrixAt(j, f.m); branco.setRGB(1, 1, 1).multiplyScalar(f.k); im.setColorAt(j, branco); });
+                im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true;
+                this._cena.add(im);
+                this._camisasAntigas.push(im);
+            }
+            g.peito.visible = false;
         }
     },
 
     /*
     As cores de uma equipa em campo: do uniforme do clube se ele existir, senao das cores do boneco.
     */
-    coresDaEquipa(lista) {
+    /*
+    OS KITS DE UMA EQUIPA para os adeptos: { principal, listra, padrao } por camisa. `padrao` e 'listras' (verticais) ou 'faixas' (horizontais) quando o desenho as tem, senao
+    camisa lisa. Vem do uniforme de jogo (`atual`), dos outros kits do manager (`outras`, `Match.uniformesOutros[lado]`), do guarda-redes (`gk`, `Match.uniformeGK*`) e de uma cor
+    do time que nao seja a dos jogadores (`cor`, das cores do escudo).
+    */
+    _kitDeUniforme(u, porOmissao) {
+        if (!u || !u.camisa) return porOmissao ? { principal: porOmissao, listra: porOmissao, padrao: null, uniforme: u || null } : null;
+        const cs = (u.camisa.cores || []).filter(Boolean);
+        const principal = (typeof corDoUniforme === 'function') ? corDoUniforme(u, cs[0] || porOmissao) : (cs[0] || porOmissao);
+        let padrao = null, listra = cs[1] || principal;
+        if (u.camisa.padrao === 'listras' || u.camisa.padrao === 'faixas') padrao = u.camisa.padrao;
+        else if (u.camisa.padrao === 'kit' && u.camisa.kit) {
+            const k = u.camisa.kit;
+            if (k.horizontal && k.c2) { padrao = 'faixas'; listra = k.c2; }
+            else if (!k.diagonal && !k.gradient && !k.multipleDiagonals && !k.dualDiagonal && !k.cruzMalta && k.c2 && k.c2 !== 'transparent' && k.c2 !== k.c1) { padrao = 'listras'; listra = k.c2; }
+        }
+        return { principal, listra, padrao, uniforme: u };
+    },
+
+    _kitsDaEquipa(p, lado) {
+        const M = (typeof Match !== 'undefined') ? Match : null;
+        const atual = Object.assign(this._kitDeUniforme(p.uniforme, p.corCamisa), { corCalcao: p.corCalcao });
+        const outras = ((M && M.uniformesOutros && M.uniformesOutros[lado]) || []).map(u => this._kitDeUniforme(u)).filter(Boolean);
+        const gkU = M ? (lado === 'A' ? M.uniformeGKA : M.uniformeGKB) : null;
+        const gk = gkU ? this._kitDeUniforme(gkU) : null;
+        // Uma cor do time (do escudo) que nao seja a camisa dos jogadores; sem escudo, a segunda cor do desenho.
+        const info = M ? (lado === 'A' ? M.equipaInfoA : M.equipaInfoB) : null;
+        const cores = ((info && info.escudo && info.escudo.cores) || []).filter(c => c && c !== 'transparent');
+        const dist = (a, b) => { const x = new THREE.Color(a), y = new THREE.Color(b); return Math.hypot(x.r - y.r, x.g - y.g, x.b - y.b); };
+        const outraCor = cores.find(c => dist(c, atual.principal) > 0.3) || (atual.listra !== atual.principal ? atual.listra : null);
+        const corFinal = outraCor || atual.principal;
+        // A camisa lisa dessa cor, sem escudo (a textura e a do corpo do jogador feito com este uniforme).
+        const cor = { principal: corFinal, listra: corFinal, padrao: null, uniforme: { camisa: { padrao: 'solido', cores: [corFinal] }, corPrincipal: corFinal, gola: atual.uniforme && atual.uniforme.gola, numero: '#ffffff' } };
+        return { atual, outras, gk, cor };
+    },
+
+    coresDaEquipa(lista, lado) {
         const p = lista && (lista[1] || lista[0]);
         if (!p) return null;
+        const lado2 = lado || ((lista === (typeof Match !== 'undefined' ? Match.opponents : null)) ? 'B' : 'A');
         const u = p.uniforme;
         if (u && u.camisa) {
             const cs = u.camisa.cores || [];
@@ -825,10 +1048,11 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                 cor2: cs[1] || calc || p.corCamisa,
                 calcao: calc || '#ffffff',
                 padrao: (u.camisa.padrao === 'listras' || u.camisa.padrao === 'faixas') ? u.camisa.padrao : null,
-                listra
+                listra,
+                kits: this._kitsDaEquipa(p, lado2)
             };
         }
-        return { principal: p.corCamisa, cor1: p.corCamisa, cor2: p.corCalcao || p.corCamisa, calcao: p.corCalcao || '#ffffff' };
+        return { principal: p.corCamisa, cor1: p.corCamisa, cor2: p.corCalcao || p.corCamisa, calcao: p.corCalcao || '#ffffff', kits: this._kitsDaEquipa(p, lado2) };
     },
 
     /*
@@ -840,6 +1064,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     */
     build(scene, lugares) {
         if (!lugares || !lugares.length) return null;
+        this._cena = scene;
 
         const geos = this.geometrias();
         const canais = Object.keys(geos);
@@ -963,10 +1188,12 @@ void crowdPesos(out float dePe, out float w1, out float w2,
 
                 // Escolhas do adepto (sorteadas SEMPRE, para a sequencia nao depender da equipa).
                 const TC = CrowdModel.torcida;
-                const rCam = rnd(), rCalca = rnd(), rBone = rnd(), rCorBone = rnd(), rCalcaCor = rnd();
+                const rCam = rnd(), rCalca = rnd(), rBone = rnd(), rCorBone = rnd(), rCalcaCor = rnd(), rSub = rnd();
                 const fan = {
                     i, claque,
-                    cam: rCam < TC.camisaPrincipal ? 0 : (rCam < TC.camisaPrincipal + TC.camisaCor1 ? 1 : 2),
+                    // 0 = camisa do jogo, 1 = outra camisa do time, 2 = uma cor do time, 3 = camisa do guarda-redes; `sub` escolhe entre as outras camisas
+                    cam: rCam < TC.camisas.atual ? 0 : (rCam < TC.camisas.atual + TC.camisas.outra ? 1 : (rCam < TC.camisas.atual + TC.camisas.outra + TC.camisas.cor ? 2 : 3)),
+                    sub: rSub,
                     longa: rCalca < TC.calcaComprida,
                     bone: rBone < TC.bone,
                     boneCor: rCorBone < 0.5 ? 0 : 1,
@@ -994,11 +1221,14 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                 aAdepto[i * 4 + 1] = rnd() * Math.PI * 2;
                 aAdepto[i * 4 + 2] = 0.85 + rnd() * 0.30;
                 aAdepto[i * 4 + 3] = (claque === 'A') ? 0 : 1;
+                fan.a = [aAdepto[i * 4], aAdepto[i * 4 + 1], aAdepto[i * 4 + 2], aAdepto[i * 4 + 3]];
 
                 meshes.camisa && meshes.camisa.setColorAt(i, variar(eq.camisa));
+                meshes.peito && meshes.peito.setColorAt(i, variar(eq.camisa));
                 meshes.calcao && meshes.calcao.setColorAt(i, variar(eq.calcao));
                 meshes.pele && meshes.pele.setColorAt(i, variar(fan.pele));
                 meshes.perna && meshes.perna.setColorAt(i, variar(fan.pele));
+                meshes.antebraco && meshes.antebraco.setColorAt(i, variar(fan.pele));
                 meshes.bone && meshes.bone.setColorAt(i, variar(eq.camisa));
                 meshes.listraV && meshes.listraV.setColorAt(i, variar(eq.camisa));
                 meshes.listraH && meshes.listraH.setColorAt(i, variar(eq.camisa));

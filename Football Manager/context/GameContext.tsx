@@ -201,7 +201,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isProcessing: false,
       matchMinute: 0,
       matchDuration: 10,
-      graphicsQuality: 'LOW',
+      graphicsQuality: 'HIGH',
       view: 'DASHBOARD',
       activities: [],
       themeMode: 'AUTO',

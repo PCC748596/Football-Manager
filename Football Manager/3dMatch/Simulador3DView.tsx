@@ -23,9 +23,9 @@ tela e voltar. Por isso o iframe e UNICO e vive no <body> (position: fixed); o c
 e esconde-o quando sai. A partida (e o iframe) so se perdem quando a `chave` muda.
 */
 // A qualidade grafica (Game Settings > Graphics): vai no URL do iframe ao criar e na mensagem `qualidade` depois.
-let qualidadeGrafica: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW';
+let qualidadeGrafica: 'HIGH' | 'MEDIUM' | 'LOW' = 'HIGH';
 export const simulador3dQualidade = (q?: 'HIGH' | 'MEDIUM' | 'LOW') => {
-  const nova = q || 'LOW';
+  const nova = q || 'HIGH';
   if (nova === qualidadeGrafica) return;
   qualidadeGrafica = nova;
   sessao.iframe?.contentWindow?.postMessage({ para: 'simulador3d', tipo: 'qualidade', nivel: nova }, '*');
@@ -50,6 +50,8 @@ export const simulador3dTelaCheia = () => {
 };
 // Tela cheia -> Tactics -> volta em tela cheia; tela normal -> Tactics -> volta em tela normal: lembra-se do estado ao sair para o Tactics e repoe-no ao voltar.
 let voltarEmTelaCheia = false;
+// TELA CHEIA POR OMISSAO ao entrar no Match Day: uma vez por partida (chave). Voltar do Tactics respeita o que estava (ver `voltarEmTelaCheia`).
+let chaveComTelaCheia = '';
 export const simulador3dLembrarTelaCheia = () => { voltarEmTelaCheia = !!document.fullscreenElement && document.fullscreenElement === sessao.iframe; };
 if (typeof document !== 'undefined') {
   document.addEventListener('fullscreenchange', () => {
@@ -115,7 +117,7 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
     };
     pos();
     f.style.visibility = 'visible';
-    if (voltarEmTelaCheia) { voltarEmTelaCheia = false; f.requestFullscreen?.().catch(() => {}); }
+    if (voltarEmTelaCheia) { voltarEmTelaCheia = false; chaveComTelaCheia = chave; f.requestFullscreen?.().catch(() => {}); }
     const ro = new ResizeObserver(pos);
     if (caixa.current) ro.observe(caixa.current);
     window.addEventListener('resize', pos);
@@ -131,6 +133,14 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
 
   useEffect(() => { sessao.cb = (m) => { if (m.tipo === '__pronto') { arrancar(); aoPronto?.(); } else if (m.tipo === 'erro') { console.error('[3D erro]', m.mensagem); aoMensagem(m); } else if (m.tipo === 'perf') console.log('[3D desempenho]', m.fps + ' fps', 'Match.update ' + m.msJogo + ' ms', m.passosPorQuadro + ' passos/quadro'); else aoMensagem(m); }; });
   useEffect(() => { if (iniciar) arrancar(); }, [iniciar]);
+  // TELA CHEIA POR OMISSAO, mas SO DEPOIS de os uniformes escolhidos: o modal de escolha dos kits e do manager (fica fora do iframe) e a tela cheia do iframe esconde-o. O clique
+  // que confirma os kits da o gesto que o navegador exige. Uma vez por partida; voltar do Tactics respeita o estado que estava (`voltarEmTelaCheia`).
+  useEffect(() => {
+    if (kitCasa === undefined || kitFora === undefined) return;
+    if (chaveComTelaCheia === chave) return;
+    chaveComTelaCheia = chave;
+    sessao.iframe?.requestFullscreen?.().catch(() => {});
+  }, [kitCasa, kitFora, chave]);
   // Escolher outro kit antes da saida refaz a preparacao (o motor so veste as equipas ao prepara-las).
   useEffect(() => { if (sessao.pronto && !sessao.arrancou) arrancar(); }, [kitCasa, kitFora]);
   useEffect(() => {

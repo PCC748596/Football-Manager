@@ -259,7 +259,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 );
              })() : null}
              <div className={`absolute inset-0 w-full h-full ${showStats ? 'hidden' : ''}`}>
-                <Simulador3DView qualidade={gameState.graphicsQuality || 'LOW'} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx}
+                <Simulador3DView qualidade={gameState.graphicsQuality || 'HIGH'} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx}
                     iniciar={iniciou} pausado={iniciou && !gameState.isProcessing} aoPronto={() => setPronto3d(true)}
                     aoMensagem={(m) => {
                       // Tatica do painel do 3D -> manager (aba Tactics): so o que mudou de nivel.
