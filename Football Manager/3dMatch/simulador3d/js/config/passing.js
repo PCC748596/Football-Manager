@@ -1596,7 +1596,14 @@ const PullAwayModel = {
     duracao: 2.5,
     arrefecimento: 4.0,
     chance: 0.04,
-    posicoes: ['CF', 'SS', 'AM', 'LW', 'RW', 'LM', 'RM']
+    posicoes: ['CF', 'SS', 'AM', 'LW', 'RW', 'LM', 'RM'],
+    /*
+    DEPOIS DE PASSAR, DESMARCA-SE (pedido: *"os defensores dao um passe e ficam parados a olhar; se nao saem da marcacao ficam sem condicoes de receber outra vez — por isso ha pouca
+    tabela e poucos passes para tras para virar o jogo"*). Quem acaba de passar (QUALQUER jogador de linha, defesas incluidos) tem `janela` s em que, havendo um adversario a menos de
+    `raioMarcador`, sai de cima dele JA — sem a chance por tick nem o arrefecimento do desmarque normal — para se oferecer outra vez. Os numeros do cone (`distMin`, `distMax`, `recuoMax`,
+    `folgaMin`) sao os desta janela: saidas curtas, e os defesas nao sobem nem recuam muito (`recuoMax`). O portador de referencia (para a distancia de passe ideal) e o receptor.
+    */
+    aposPasse: { activo: true, janela: 2.0, raioMarcador: 5.0, distMin: 3.5, distMax: 7.0, recuoMax: 5.0, folgaMin: 2.5, distPortadorIdeal: 10.0 }
 };
 
 /*

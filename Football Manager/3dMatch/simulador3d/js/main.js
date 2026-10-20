@@ -991,6 +991,8 @@ function preencherHudJogador(elId, p) {
     // Nome | numero | posicao.
     const numero = (p.skills.numero !== undefined && p.skills.numero !== null && p.skills.numero !== '') ? p.skills.numero : p.num;
     el.querySelector('.hud-jog-nome').textContent = [p.skills.nome, numero, p.pos].filter(x => x !== undefined && x !== null && x !== '').join(' | ');
+    // Quem tem cartao AMARELO leva o nome em amarelo no cartao (pedido).
+    el.querySelector('.hud-jog-nome').style.color = p.temAmarelo ? '#facc15' : '';
 
     /*
     Barra em 5 segmentos de 20 pontos, TODOS acesos na mesma cor — a cor

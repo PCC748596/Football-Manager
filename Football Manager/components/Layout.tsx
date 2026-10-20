@@ -23,7 +23,17 @@ interface Props {
 }
 
 const Layout: React.FC<Props> = ({ children, setView, currentView }) => {
-  const { gameState, userTeam, saveGame, fixtures, pauseMatch, advanceDay, t } = useGame();
+  const { gameState, userTeam, saveGame, importGameData, fixtures, pauseMatch, advanceDay, t } = useGame();
+  const loadInputRef = React.useRef<HTMLInputElement>(null);
+  // LOAD GAME: escolhe o ficheiro .json do Save Game e carrega-o (o mesmo importGameData do ecra inicial).
+  const carregarJogo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const ficheiro = e.target.files && e.target.files[0];
+    if (!ficheiro) return;
+    const leitor = new FileReader();
+    leitor.onload = () => { if (!importGameData(String(leitor.result))) alert('Save file invalid.'); };
+    leitor.readAsText(ficheiro);
+    e.target.value = '';
+  };
   const [isSimulating, setIsSimulating] = React.useState(false);
 
   const isMatchDay = fixtures.some(f => f.date === gameState.currentDate && (f.homeTeamId === userTeam?.id || f.awayTeamId === userTeam?.id));
@@ -160,6 +170,15 @@ const Layout: React.FC<Props> = ({ children, setView, currentView }) => {
            >
              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="group-hover:animate-pulse"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
              {t('nav_save_game')}
+           </button>
+
+           <input ref={loadInputRef} type="file" accept=".json,application/json" className="hidden" onChange={carregarJogo} />
+           <button
+             onClick={() => loadInputRef.current?.click()}
+             className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 text-white font-black py-2.5 rounded border border-slate-700 dark:border-slate-700 hover:border-blue-400 transition-all flex items-center justify-center gap-2 text-[10px] tracking-widest uppercase group"
+           >
+             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 5 17 10"></polyline><line x1="12" y1="5" x2="12" y2="15"></line></svg>
+             LOAD GAME
            </button>
         </div>
       </aside>

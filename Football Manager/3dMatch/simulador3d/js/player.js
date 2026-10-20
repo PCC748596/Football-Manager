@@ -213,6 +213,8 @@ class FootballPlayer {
         // O desmarque de afastamento em curso ({x, z, t}) e a espera ate ao seguinte — ver PullAwayModel.
         this.pullAway = null;
         this.pullAwayCooldown = 0;
+        this.apoioAposPasse = 0;          // janela (s) depois de passar em que se desmarca ja (PullAwayModel.aposPasse)
+        this.apoioAposPasseRef = null;    // onde esta o receptor (para a distancia de passe ideal)
         // Espera depois de uma tentativa de corte — ver CorteModel.
         this.corteCooldown = 0;
 
@@ -3493,6 +3495,11 @@ class FootballPlayer {
         `update` conta-lhe o tempo.
         */
         {
+            const PA = (typeof PullAwayModel !== 'undefined') ? PullAwayModel.aposPasse : null;
+            if (PA && PA.activo && targetPlayer && targetPlayer.model && this.role !== 'gk') {
+                this.apoioAposPasse = PA.janela;
+                this.apoioAposPasseRef = { x: targetPlayer.model.position.x, z: targetPlayer.model.position.z };
+            }
             const A = (typeof RunIntoSpaceModel !== 'undefined')
                 ? RunIntoSpaceModel.arranqueAposPasse : null;
             if (A && targetPlayer && targetPlayer.model && this.role !== 'gk') {
@@ -4485,6 +4492,7 @@ class FootballPlayer {
         if (this.arrancarAposPasse > 0) {
             this.arrancarAposPasse = Math.max(0, this.arrancarAposPasse - dt);
         }
+        if (this.apoioAposPasse > 0) this.apoioAposPasse = Math.max(0, this.apoioAposPasse - dt);
         // O desmarque de afastamento acaba por tempo (corre aqui, e nao na arvore, para acabar tambem
         // quando a equipa perde a bola e a arvore deixa de passar por ele) e deixa o arrefecimento.
         if (this.pullAway) {

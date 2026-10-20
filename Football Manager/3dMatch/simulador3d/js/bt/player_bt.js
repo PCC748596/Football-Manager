@@ -3020,9 +3020,13 @@ function podeDesmarcar(ctx) {
     const p = ctx.p;
     if (typeof PullAwayModel === 'undefined' || !PullAwayModel.activo) return false;
     if (typeof destinoDeDesmarque !== 'function') return false;
-    const M = PullAwayModel;
-    if (p.role === 'gk' || p.role === 'def' || p === Match.ballCarrier) return false;
-    if (M.posicoes.indexOf(p.pos) < 0) return false;
+    const M0 = PullAwayModel;
+    // DEPOIS DE PASSAR (qualquer jogador de linha, defesas incluidos): sai da marcacao ja, com o cone curto de `PullAwayModel.aposPasse`.
+    const AP = M0.aposPasse;
+    const aposPasse = !!(AP && AP.activo && p.apoioAposPasse > 0 && p.role !== 'gk' && p !== Match.ballCarrier);
+    const M = aposPasse ? Object.assign({}, M0, AP) : M0;
+    if (p.role === 'gk' || p === Match.ballCarrier) return false;
+    if (!aposPasse && (p.role === 'def' || M.posicoes.indexOf(p.pos) < 0)) return false;
 
     // Ja a desmarcar-se: mantem enquanto o prazo correr e ele nao tiver chegado.
     if (p.pullAway) {
@@ -3032,13 +3036,17 @@ function podeDesmarcar(ctx) {
         }
         return true;
     }
-    if (p.pullAwayCooldown > 0) return false;
+    if (p.pullAwayCooldown > 0 && !aposPasse) return false;
     if (p.fsm.currentState === 'RUN_INTO_SPACE') return false;
 
-    const c = Match.ballCarrier;
+    // O portador de referencia: o actual; na janela do pos-passe, o receptor (a bola ainda vai a caminho).
+    let c = Match.ballCarrier;
+    if (aposPasse && (!c || c.team !== p.team || !c.model) && p.apoioAposPasseRef) c = { team: p.team, model: { position: { x: p.apoioAposPasseRef.x, z: p.apoioAposPasseRef.z, distanceTo: (o) => Math.hypot(o.x - p.apoioAposPasseRef.x, o.z - p.apoioAposPasseRef.z) } } };
     if (!c || c.team !== p.team || !c.model) return false;
-    const dPort = p.model.position.distanceTo(c.model.position);
-    if (dPort < M.distPortadorMin || dPort > M.distPortadorMax) return false;
+    if (!aposPasse) {
+        const dPort = p.model.position.distanceTo(c.model.position);
+        if (dPort < M.distPortadorMin || dPort > M.distPortadorMax) return false;
+    }
 
     const adversarios = ((p.team === 'TeamA') ? Match.opponents : Match.players)
         .filter(o => o && o.model && o.role !== 'gk' && !o.expulso)
@@ -3050,7 +3058,7 @@ function podeDesmarcar(ctx) {
     }
     if (!marcador) return false;
 
-    if (Math.random() >= M.chance) return false;
+    if (!aposPasse && Math.random() >= M.chance) return false;
 
     const alvo = destinoDeDesmarque({
         px: p.model.position.x, pz: p.model.position.z, dirZ: p.dirZ,
@@ -3061,6 +3069,7 @@ function podeDesmarcar(ctx) {
     if (!alvo) return false;
 
     p.pullAway = { x: alvo.x, z: alvo.z, t: M.duracao };
+    if (aposPasse) p.apoioAposPasse = 0;   // uma saida por passe
     return true;
 }
 

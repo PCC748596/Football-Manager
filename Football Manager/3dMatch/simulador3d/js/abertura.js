@@ -42,6 +42,7 @@ const Abertura = {
         this.jaCorreu = true;
         this.activa = true;
         this.modo = 'inicio';
+        this._travarEsc(true);
         this.fase = 'entrada';
         this.t = 0;
         this.tEspera = 0;
@@ -116,6 +117,7 @@ const Abertura = {
         [].concat(Match.players, Match.opponents, [Officials.arbitro], Officials.assistentes).forEach(o => { if (o) o.foraDeCampo = false; });
         this.activa = true;
         this.modo = 'segundo';
+        this._travarEsc(true);
         this.fase = 'entrada';
         this.t = 0;
         this.partes = [];
@@ -435,6 +437,20 @@ const Abertura = {
         this.partes = [];
         this.activa = false;
         this.fase = null;
+        this._travarEsc(false);
+    },
+
+    /*
+    ESC NA TELA CHEIA durante a ENTRADA dos times: o navegador gasta o ESC a sair da tela cheia, e o `preventDefault` nao o impede. Com a entrada a correr pede-se o BLOQUEIO DO TECLADO para
+    o ESC (Keyboard Lock, Chromium, so em tela cheia): a tecla chega ao jogo, que cancela so a entrada (`cancelar`). Liberta-se quando a entrada acaba, e o ESC volta a sair da tela cheia.
+    */
+    _travarEsc: function (liga) {
+        try {
+            const k = (typeof navigator !== 'undefined') ? navigator.keyboard : null;
+            if (!k) return;
+            if (liga) { if (k.lock) { const pr = k.lock(['Escape']); if (pr && pr.catch) pr.catch(() => {}); } }
+            else if (k.unlock) k.unlock();
+        } catch (e) { /* sem suporte */ }
     },
 
     // Fim natural: os 22 vao a andar para as posicoes de saida de bola e o jogo comeca.
