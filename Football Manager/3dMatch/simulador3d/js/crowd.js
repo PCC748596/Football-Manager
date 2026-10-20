@@ -63,6 +63,9 @@ const _zeroM = new THREE.Matrix4();
 const CrowdModel = {
     // TESTE DE DESEMPENHO: o adepto com o corpo dos jogadores na versao leve (888 triangulos) em vez do boneco de caixas (468). `false` volta ao de sempre.
     modeloJogador: true,
+    // Fatias da torcida (adeptos por malha) e o alcance do corte em multiplos do viewport: so se desenha ate 1.2x o ecra.
+    tamanhoDaFatia: 600,
+    viewportCull: 1.2,
     total: 10000,
 
     /*
@@ -175,6 +178,18 @@ const CrowdModel = {
         festa: {
             anca: 0.0, joelho: 0.0, tronco: -0.06,
             ombro: -2.85, cotovelo: -0.35, alturaBacia: 2.40
+        },
+        /*
+        APLAUDIR: bracos a frente do peito, antebracos dobrados (as palmas). `palmasS` e o sentado a aplaudir, `palmasP` o de pe. O bater das palmas (os bracos a fecharem e a abrirem)
+        e feito no shader, a partir destas poses. So posicoes (sem normais): o orcamento de atributos e de 16.
+        */
+        palmasS: {
+            anca: -1.45, joelho: 1.45, tronco: 0.10,
+            ombro: -1.05, cotovelo: -1.55, alturaBacia: 1.55
+        },
+        palmasP: {
+            anca: 0.0, joelho: 0.0, tronco: 0.04,
+            ombro: -1.05, cotovelo: -1.55, alturaBacia: 2.40
         }
     },
 
@@ -188,6 +203,17 @@ const CrowdModel = {
     para não parecer um poste. `salto` é o do golo.
     */
     duracaoTransicao: 0.55,
+    /*
+    O CAOS (pedido: *"esta muito robotizado, varios torcedores ficando de pe juntos"*): cada adepto levanta-se e senta-se com um ATRASO proprio (ate `espalharLevantar` s depois de a bancada
+    mudar) e com uma duracao propria (+-40% da `duracaoTransicao`), em vez de todos no mesmo instante.
+    */
+    espalharLevantar: 6.0,
+    /*
+    APLAUSOS E CABECAS: `fracao` dos adeptos aplaude em rajadas (sentados ou de pe, conforme estejam), a intensidade global `repouso`/`entrada` (1.0 e a entrada dos times); `olhaParaTras` e a
+    fracao que de vez em quando vira a cabeca para tras. Tudo sorteado por adepto no shader.
+    */
+    aplauso: { fracao: 0.16, repouso: 0.6, entrada: 1.0 },
+    olhaParaTras: 0.12,
     amplitudeIdle: 0.35,
     ritmoIdle: 1.6,
     bobDePe: 0.06,
@@ -637,7 +663,9 @@ const Crowd = {
         const extras = {
             Idle: this._geometriasDaPose(CrowdModel.poses.idle),
             DePe: this._geometriasDaPose(CrowdModel.poses.dePe),
-            Festa: this._geometriasDaPose(CrowdModel.poses.festa)
+            Festa: this._geometriasDaPose(CrowdModel.poses.festa),
+            PalmasS: this._geometriasDaPose(CrowdModel.poses.palmasS),
+            PalmasP: this._geometriasDaPose(CrowdModel.poses.palmasP)
         };
 
         for (const canal in base) {
@@ -660,7 +688,7 @@ const Crowd = {
                 normal da pose sentada serve. Cada attribute custa um dos 16
                 slots do hardware, e este era o mais fácil de dispensar.
                 */
-                if (nome !== 'Idle') {
+                if (nome === 'DePe') {
                     base[canal].setAttribute('aNor' + nome,
                         new THREE.BufferAttribute(g.attributes.normal.array, 3));
                 }
@@ -717,7 +745,9 @@ const Crowd = {
             uFracAnt: { value: new THREE.Vector2(0, 0) },
             uFracNova: { value: new THREE.Vector2(0, 0) },
             uTempoTroca: { value: new THREE.Vector2(-99, -99) },
-            uFesta: { value: new THREE.Vector2(0, 0) }
+            uFesta: { value: new THREE.Vector2(0, 0) },
+            uEspalhar: { value: CrowdModel.espalharLevantar },
+            uAplauso: { value: CrowdModel.aplauso.repouso }
         };
     },
 
@@ -751,8 +781,9 @@ const Crowd = {
 attribute vec3 aPosIdle;
 attribute vec3 aPosDePe;
 attribute vec3 aPosFesta;
+attribute vec3 aPosPalmasS;
+attribute vec3 aPosPalmasP;
 attribute vec3 aNorDePe;
-attribute vec3 aNorFesta;
 // Os quatro valores por adepto num vec4 e nao em quatro floats: cada
 // attribute ocupa um slot dos 16 que o hardware da, e a instanceMatrix
 // sozinha come quatro. Ver o comentario em _aplicarShader.
@@ -771,6 +802,8 @@ uniform vec2 uFracAnt;
 uniform vec2 uFracNova;
 uniform vec2 uTempoTroca;
 uniform vec2 uFesta;
+uniform float uEspalhar;
+uniform float uAplauso;
 
 // Pesos deste adepto neste instante. Usados pela posicao E pela normal, que
 // tem de andar juntas: senao o sombreamento denuncia a pose antiga.
@@ -787,7 +820,10 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     // deixa mudar a bancada inteira com dois uniforms.
     float antes = step(aAdepto.x, fAnt);
     float depois = step(aAdepto.x, fNova);
-    float k = clamp((uTempo - tTroca) / max(uDurTransicao, 0.0001), 0.0, 1.0);
+    // CAOS: atraso e duracao proprios de cada adepto (hashes do limiar/fase/ritmo).
+    float atraso = fract(aAdepto.y * 0.15915 + aAdepto.x * 3.7) * uEspalhar;
+    float durA = uDurTransicao * (0.6 + 0.8 * fract(aAdepto.z * 57.3 + aAdepto.x * 5.1));
+    float k = clamp((uTempo - tTroca - atraso) / max(durA, 0.0001), 0.0, 1.0);
     dePe = mix(antes, depois, smoothstep(0.0, 1.0, k));
 
     // OS ULTRAS: saltam sempre, sem esperar pelo lance. O limiar passa por um
@@ -825,6 +861,21 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     // De pe: os pes sobem ao degrau (a origem do adepto desce para o sentado assentar).
     crowdPos.y += uSobeDePe * w1;
 
+    // APLAUSOS: uma fracao dos adeptos aplaude em rajadas, sentada ou de pe (a pose das palmas), com os bracos a abrir e fechar; nao com a bancada em festa.
+    float quem = step(fract(aAdepto.x * 37.1), ${CrowdModel.aplauso.fracao.toFixed(3)});
+    float rajada = smoothstep(0.1, 0.5, sin(uTempo * 0.4 * aAdepto.z + aAdepto.y * 1.7));
+    float palma = quem * rajada * uAplauso * (1.0 - w2);
+    crowdPos = mix(crowdPos, mix(aPosPalmasS, aPosPalmasP, w1), palma);
+    float bracos = step(0.27, abs(crowdPos.x));
+    crowdPos.x -= sign(crowdPos.x) * bracos * 0.045 * sin(uTempo * 11.0 + aAdepto.y) * palma;
+    // ALGUNS OLHAM PARA TRAS: de vez em quando viram a cabeca (so o que esta acima do pescoco).
+    float olha = step(fract(aAdepto.x * 91.7), ${CrowdModel.olhaParaTras.toFixed(3)});
+    float virar = smoothstep(0.55, 0.85, sin(uTempo * 0.35 * aAdepto.z + aAdepto.y * 2.3)) * olha * (1.0 - w2) * (1.0 - palma);
+    float ang = virar * 2.3 * (fract(aAdepto.x * 53.1) < 0.5 ? 1.0 : -1.0);
+    float cabeca = smoothstep(mix(1.02, 1.48, w1) - 0.03, mix(1.02, 1.48, w1) + 0.03, crowdPos.y);
+    float ca = cos(ang * cabeca), sa = sin(ang * cabeca);
+    crowdPos.xz = vec2(crowdPos.x * ca - crowdPos.z * sa, crowdPos.x * sa + crowdPos.z * ca);
+
     vec3 transformed = crowdPos;
 `;
 
@@ -832,7 +883,8 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     float nDePe, nW1, nW2, nOsc, nFesta;
     crowdPesos(nDePe, nW1, nW2, nOsc, nFesta);
     vec3 crowdNor = mix(normal, aNorDePe, nW1);
-    crowdNor = mix(crowdNor, aNorFesta, nW2);
+    // (a pose de festa usa a normal da de pe: um attribute a menos para caber as poses das palmas; os bracos no ar mudam pouco o sombreamento)
+    crowdNor = mix(crowdNor, aNorDePe, nW2);
     // A pose idle nao tem normal propria: inclina o tronco uns graus e a
     // normal da pose sentada serve. Um attribute a menos, e sao contados.
     vec3 objectNormal = normalize(crowdNor);
@@ -979,15 +1031,42 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                 const lado = mk({ color: t.lado });
                 const mats = [lado, lado, lado, lado, mk({ map: t.frente }), mCostas];
                 const im = new THREE.InstancedMesh(geo, mats, fans.length);
-                im.castShadow = false; im.receiveShadow = false; im.frustumCulled = true;
+                im.castShadow = false; im.receiveShadow = false; im.frustumCulled = false;   // corte nosso: `cullar`
+                im.userData.grupo = gi;
                 im.instanceMatrix.setUsage(THREE.StaticDrawUsage);
                 fans.forEach((f, j) => { im.setMatrixAt(j, f.m); branco.setRGB(1, 1, 1).multiplyScalar(f.k); im.setColorAt(j, branco); });
                 im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true;
                 this._cena.add(im);
                 this._camisasAntigas.push(im);
             }
-            g.peito.visible = false;
+            g.peito.visible = false; g._semPeito = true;
         }
+    },
+
+    /*
+    RENDERIZAR SO ATE 1.2x O VIEWPORT (pedido): por frame, cada fatia da torcida (e as camisas dos kits dela) so se desenha se a sua esfera cair dentro do frustum da camara com
+    `CrowdModel.viewportCull` (1.2) vezes a largura e a altura do ecra. Fora disso `visible = false`. Chamado do `animate` depois de a camara se actualizar.
+    */
+    cullar(camera, fator) {
+        if (!this._grupos || !this._esferas || !camera) return;
+        if (this._ligada === false) { this._cullVisiveis = 0; for (const g of this._grupos) for (const n in g) if (g[n] && g[n].isObject3D) g[n].visible = false; if (this._camisasAntigas) for (const m of this._camisasAntigas) m.visible = false; return; }
+        const k = fator || CrowdModel.viewportCull || 1.2;
+        camera.updateMatrixWorld();
+        camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
+        const P = this._pCull || (this._pCull = new THREE.Matrix4());
+        P.copy(camera.projectionMatrix);
+        P.elements[0] /= k; P.elements[5] /= k;      // x e y do ecra alargados k vezes
+        const M = this._mCull || (this._mCull = new THREE.Matrix4());
+        M.multiplyMatrices(P, camera.matrixWorldInverse);
+        const F = this._fCull || (this._fCull = new THREE.Frustum());
+        F.setFromProjectionMatrix(M);
+        const vis = this._esferas.map(e => F.intersectsSphere(e));
+        for (let gi = 0; gi < this._grupos.length; gi++) {
+            const g = this._grupos[gi];
+            for (const n in g) { const m = g[n]; if (m && m.isObject3D) m.visible = vis[gi] && !(n === 'peito' && g._semPeito); }
+        }
+        if (this._camisasAntigas) for (const m of this._camisasAntigas) m.visible = vis[m.userData.grupo];
+        this._cullVisiveis = vis.filter(Boolean).length;
     },
 
     /*
@@ -1130,7 +1209,9 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         }
 
         // 4 InstancedMesh (um por canal de cor) para o total de adeptos
-        const TAMANHO_CHUNK = nTotal;
+        // Fatias de ~1500 adeptos (por angulo, em volta do estadio): permitem NAO desenhar o que esta fora do ecra (ver `cullar`). Uma fatia so (`nTotal`) desenhava a torcida toda sempre.
+        const TAMANHO_CHUNK = Math.max(1, CrowdModel.tamanhoDaFatia || nTotal);
+        this._esferas = [];
         const numChunks = Math.ceil(nTotal / TAMANHO_CHUNK);
         this._grupos = [];
         this._fansPorGrupo = [];
@@ -1168,7 +1249,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                 m.receiveShadow = false;
                 m.instanceMatrix.setUsage(THREE.StaticDrawUsage);
                 
-                m.frustumCulled = true;
+                m.frustumCulled = false;   // o corte e nosso, com folga de 1.2x o ecra (`cullar`)
                 
                 geoChunk.setAttribute('aAdepto', new THREE.InstancedBufferAttribute(aAdepto, 4));
                 meshes[canal] = m;
@@ -1244,6 +1325,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                 scene.add(meshes[canal]);
             }
             
+            this._esferas.push(chunkSphere);
             this._fansPorGrupo.push(fans);
             this._grupos.push(meshes);
         }
@@ -1307,6 +1389,9 @@ void crowdPesos(out float dePe, out float w1, out float w2,
             abertura = { progresso: (Abertura.fase === 'entrada' && n) ? Abertura.partes.filter(s => s.spawned).length / n : 1 };
         }
 
+        // Aplausos: a toda a forca na entrada dos times; no resto do jogo o nivel de repouso.
+        if (this._uniforms.uAplauso) this._uniforms.uAplauso.value = abertura ? CrowdModel.aplauso.entrada : CrowdModel.aplauso.repouso;
+
         const r = CrowdTrigger.avaliar({
             abertura: abertura,
             estado: Match.state,
@@ -1333,6 +1418,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     },
 
     setVisivel(on) {
+        this._ligada = on !== false;   // `cullar` respeita: com a torcida desligada nao volta a mostra-la
         if (!this._grupos) return;
         for (const meshes of this._grupos) {
             for (const canal in meshes) {

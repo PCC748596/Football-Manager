@@ -1214,6 +1214,21 @@ const FuncionariosEstadio = {
     activo: true,
 
     // --- o anel colado à bancada ---------------------------------------
+    /*
+    A GRADE entre os segurancas e a torcida (pedido: *"uma grade como a da ponta da arquibancada superior, pitada de branco e um pouco mais fechada, deixando o espaco do tunel para o acesso
+    dos torcedores"*): um gradeamento a toda a volta da bancada, `recuo` m a frente da primeira fila (entre ela e o anel de funcionarios), com barras finas e juntas, corrimao de cima branco
+    e um intermedio escuro; algumas barras brancas. Fica aberta onde esta o tunel dos jogadores (TunelJogadores.bloqueia).
+    */
+    grade: {
+        activo: true,
+        recuo: 1.5,            // metros a frente da primeira fila (o anel de funcionarios esta a `recuoDaBancada`)
+        altura: 1.15,
+        passo: 0.14,           // entre barras: mais fechada (uma grade comum tem ~0.25)
+        barra: 0.035,
+        corBarra: '#39414f', corCorrimao: '#f1f3f5', corBarraBranca: '#e9ecef',
+        fracaoBarrasBrancas: 0.18,
+        alturaCorrimaoMeio: 0.55
+    },
     recuoDaBancada: 3.0,    // metros à frente da primeira fila (1 -> 3, pedido: "afasta os funcionarios 2 m das arquibancadas")
     /*
     ESPAÇAMENTO NO ANEL. Esteve em 5 m — o número do pedido inicial — e eram

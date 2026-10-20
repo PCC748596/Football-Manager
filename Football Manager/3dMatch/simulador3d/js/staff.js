@@ -387,6 +387,54 @@ const Staff = {
     Devolve o número de funcionários postos, ou 0 se estiver desligado (é o que
     os testes leem).
     */
+    /*
+    A GRADE entre os seguranca e a torcida (config: `FuncionariosEstadio.grade`): barras finas e juntas, um corrimao de cima (branco) e outro a meia altura (escuro), seguindo o
+    mesmo anel dos funcionarios mas `recuoDaBancada - grade.recuo` mais para dentro da bancada; aberta onde esta o tunel dos jogadores. Tres InstancedMesh (barras, corrimao de cima,
+    corrimao do meio), sem nada por frame.
+    */
+    buildGrade(grupo, geo, F) {
+        const G = F && F.grade;
+        if (!G || !G.activo || !grupo || !geo) return 0;
+        const rnd = this._semear(777);
+        const dRec = F.recuoDaBancada - G.recuo;   // a grade esta entre a primeira fila e o anel de funcionarios
+        const pts = this._pontosDoAnel(
+            geo.bancadaX - (F.recuoDaBancada - dRec + 0), geo.bancadaZ - (F.recuoDaBancada - dRec + 0),
+            Math.max(0.5, geo.raioPrimeiraFila - (F.recuoDaBancada - dRec + 0)), geo.cantoX, geo.cantoZ, G.passo);
+        const livre = (p) => !(typeof TunelJogadores !== 'undefined' && TunelJogadores.bloqueia(p.x, p.z));
+        const n = pts.length;
+        const lista = [];
+        for (let i = 0; i < n; i++) {
+            const a = pts[i], b = pts[(i + 1) % n];
+            if (!livre(a) || !livre(b)) continue;
+            lista.push({ x: a.x, z: a.z, rot: Math.atan2(b.x - a.x, b.z - a.z), len: Math.hypot(b.x - a.x, b.z - a.z) });
+        }
+        if (!lista.length) return 0;
+        const mk = (geo3, cor, fonte) => {
+            const im = new THREE.InstancedMesh(geo3, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, metalness: 0.35 }), fonte.length);
+            im.castShadow = false; im.receiveShadow = false; im.frustumCulled = false;
+            im.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+            return im;
+        };
+        const barras = mk(new THREE.BoxGeometry(G.barra, G.altura, G.barra), null, lista);
+        const cima = mk(new THREE.BoxGeometry(G.barra * 2.2, G.barra * 2.2, 1), null, lista);
+        const meio = mk(new THREE.BoxGeometry(G.barra * 1.4, G.barra * 1.4, 1), null, lista);
+        const dummy = new THREE.Object3D(), c = new THREE.Color();
+        lista.forEach((p, i) => {
+            dummy.rotation.set(0, p.rot, 0); dummy.scale.set(1, 1, 1);
+            dummy.position.set(p.x, G.altura / 2, p.z); dummy.updateMatrix(); barras.setMatrixAt(i, dummy.matrix);
+            barras.setColorAt(i, c.set(rnd() < G.fracaoBarrasBrancas ? G.corBarraBranca : G.corBarra));
+            dummy.scale.set(1, 1, p.len * 1.04);
+            dummy.position.set(p.x, G.altura, p.z); dummy.updateMatrix(); cima.setMatrixAt(i, dummy.matrix); cima.setColorAt(i, c.set(G.corCorrimao));
+            dummy.position.set(p.x, G.alturaCorrimaoMeio, p.z); dummy.updateMatrix(); meio.setMatrixAt(i, dummy.matrix); meio.setColorAt(i, c.set(G.corBarra));
+        });
+        // Num grupo proprio (nao se mistura com os bancos dos sentados nem com a gente do anel).
+        const gr = new THREE.Group(); gr.name = 'Grade';
+        for (const m of [barras, cima, meio]) { m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; gr.add(m); }
+        grupo.add(gr);
+        this._grade = { barras, cima, meio, n: lista.length };
+        return lista.length;
+    },
+
     build(grupo, geo) {
         const F = (typeof FuncionariosEstadio !== 'undefined') ? FuncionariosEstadio : null;
         if (!F || !F.activo || !grupo || !geo) return 0;
@@ -548,6 +596,7 @@ const Staff = {
         }
 
         this._grupo = grupo;
+        this.buildGrade(grupo, geo, F);
         return lugares.dePe.length + lugares.sentado.length;
     }
 };

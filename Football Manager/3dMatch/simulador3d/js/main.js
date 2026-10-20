@@ -1092,6 +1092,7 @@ function animate(time) {
     fpsFrames++;
     if (time - fpsLastTime >= 1000) {
         let fps = Math.round((fpsFrames * 1000) / (time - fpsLastTime));
+        window._fpsAtual = fps;   // lido pela barra da tela cheia (ponte.js, #tc-fps)
         let titleEl = document.getElementById('app-title');
         if (titleEl) titleEl.innerText = 'SOCCER SIM | FPS: ' + fps;
         
@@ -1205,6 +1206,8 @@ function animate(time) {
     } else {
         Match.updateCamera();
     }
+    // Torcida: so ate 1.2x o viewport (crowd.js, `cullar`).
+    if (typeof Crowd !== 'undefined' && Crowd.cullar && window.cameraCore) Crowd.cullar(window.cameraCore);
     // Discos em vez de bonecos na câmara de cima — ver atualizarVistaTatica.
     Match.atualizarVistaTatica();
     updateCameraFrustum();
@@ -1479,7 +1482,7 @@ function ligarActualizacaoDoElenco() {
     if (typeof EventBus === 'undefined') return;
     EventBus.on('TEAMS_CHANGED', () => {
         if (typeof Crowd !== 'undefined' && Crowd.recolorir) {
-            Crowd.recolorir({ A: Crowd.coresDaEquipa(Match.players, 'A'), B: Crowd.coresDaEquipa(Match.opponents, 'B') });
+            { const cs = { A: Crowd.coresDaEquipa(Match.players, 'A'), B: Crowd.coresDaEquipa(Match.opponents, 'B') }; Crowd.recolorir(cs); if (typeof CidadeGente !== 'undefined' && CidadeGente.recolorirComTimes) CidadeGente.recolorirComTimes(cs); }
             if (Match.pintarBandeirasDeCanto) Match.pintarBandeirasDeCanto(Crowd.coresDaEquipa(Match.players));
         }
         if (jogadorNoModal) {
@@ -1608,7 +1611,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Match.equipasPorOmissao): sem isto diziam "genérica" com o Grêmio
         // e o Internacional a jogar.
         sincronizarSelectoresDeEquipa();
-        if (typeof Crowd !== 'undefined' && Crowd.recolorir) Crowd.recolorir({ A: Crowd.coresDaEquipa(Match.players, 'A'), B: Crowd.coresDaEquipa(Match.opponents, 'B') });
+        if (typeof Crowd !== 'undefined' && Crowd.recolorir) { const cs = { A: Crowd.coresDaEquipa(Match.players, 'A'), B: Crowd.coresDaEquipa(Match.opponents, 'B') }; Crowd.recolorir(cs); if (typeof CidadeGente !== 'undefined' && CidadeGente.recolorirComTimes) CidadeGente.recolorirComTimes(cs); }
         if (typeof Crowd !== 'undefined' && Match.pintarBandeirasDeCanto) Match.pintarBandeirasDeCanto(Crowd.coresDaEquipa(Match.players));
         popularPainelJogadores();
         actualizarNomesNoPlacar();

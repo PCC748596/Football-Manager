@@ -85,6 +85,8 @@ const Ponte = {
                 '#barra-topo-tc button:hover{background:#475569}#barra-topo-tc button.on{background:#0284c7}' +
                 '#barra-topo-tc button.pisca{background:#facc15;color:#000;animation:pisca-tc 0.8s ease-in-out infinite}' +
                 '@keyframes pisca-tc{50%{opacity:.45}}' +
+                // O indicador de FPS fica no canto direito da barra.
+                '#barra-topo-tc #tc-fps{margin-left:auto;font:900 13px/1 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.5px;padding:5px 9px;border-radius:4px;background:#0f172a;color:#22c55e;min-width:62px;text-align:center}' +
                 'body.tela-cheia #placar-linha{display:none !important}' +
                 // TODOS os menus do 3D saem em tela cheia: o botao Tactics abre o MATCH TACTICS do manager (ver abaixo).
                 'body.tela-cheia #painel-comandos,body.tela-cheia #coluna-direita,body.tela-cheia #painel-direito,body.tela-cheia #painel-jogadores,' +
@@ -106,7 +108,8 @@ const Ponte = {
                 '<span>Câmera</span>' + cams.map(c => '<button data-cam="' + c[0] + '">' + c[1] + '</button>').join('') +
                 '<button data-cam="lateraltv" data-r="3d">3D</button><button data-cam="topdown">2D</button><span class="sep"></span>' +
                 '<span>Velocidade</span>' + [0.5, 1, 1.5].map(v => '<button data-vel="' + v + '">' + v + 'x</button>').join('') +
-                '<button id="tc-pausa">Pausa</button><button id="tc-replay">Replay 10s</button><span class="sep"></span><button id="tc-tactics">Tactics</button>';
+                '<button id="tc-pausa">Pausa</button><button id="tc-replay">Replay 10s</button><span class="sep"></span><button id="tc-tactics">Tactics</button>' +
+                '<span id="tc-fps" title="Quadros por segundo">FPS --</span>';
             document.body.appendChild(barra);
             barra.addEventListener('click', (e) => {
                 const b = e.target.closest('button'); if (!b) return;
@@ -137,6 +140,8 @@ const Ponte = {
             if (ge) ge.textContent = g('placar-a'); if (gd) gd.textContent = g('placar-b'); if (tp) tp.textContent = g('placar-tempo');
             barra.querySelectorAll('button[data-cam]').forEach(b => b.classList.toggle('on', window.cameraMode === b.dataset.cam && !(b.dataset.r === '3d' && false)));
             barra.querySelectorAll('button[data-vel]').forEach(b => b.classList.toggle('on', Number(window.speedMultiplier) === Number(b.dataset.vel)));
+            const fpsEl = barra.querySelector('#tc-fps');
+            if (fpsEl && typeof window._fpsAtual === 'number') { const v = window._fpsAtual; fpsEl.textContent = 'FPS ' + v; fpsEl.style.color = v >= 50 ? '#22c55e' : v >= 30 ? '#facc15' : '#ef4444'; }
             const rp = barra.querySelector('#tc-replay'); if (rp) rp.classList.toggle('pisca', !!(window.MatchReplay && window.MatchReplay.isReplaying));
         }, 250);
     },

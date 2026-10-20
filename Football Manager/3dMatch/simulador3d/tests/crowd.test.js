@@ -116,6 +116,7 @@ let meshes;
 {
     const cena = new THREE.Object3D();
     const t0 = Date.now();
+    CrowdModel.tamanhoDaFatia = 0;   // o teste le uma malha so (sem fatias por angulo)
     meshes = Crowd.build(cena, lugares);
     const ms = Date.now() - t0;
 

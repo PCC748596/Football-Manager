@@ -359,7 +359,10 @@ const CidadeGente = {
             ancaE: 0.42, ancaD: -0.5, joelhoE: 0.55, joelhoD: 0.05,
             ombroE: -0.55, ombroD: 0.5, cotoveloE: -0.75, cotoveloD: -0.2
         });
-        const gA = this._geometriasVestidas(A), gB = this._geometriasVestidas(B);
+        // O MESMO CORPO DOS TORCEDORES DE DENTRO (o corpo leve dos jogadores, `Crowd._geometriasDoJogadorLeve`) nas duas poses da passada; sem ele, o boneco de caixas de antes.
+        const leve = (typeof CrowdModel !== 'undefined' && CrowdModel.modeloJogador && typeof Crowd._geometriasDoJogadorLeve === 'function');
+        let gA = leve ? Crowd._geometriasDoJogadorLeve(A) : null, gB = leve ? Crowd._geometriasDoJogadorLeve(B) : null;
+        if (!gA || !gB) { gA = this._geometriasVestidas(A); gB = this._geometriasVestidas(B); }   // sem o corpo (testes, ou o crowd sem `construirCorpo`)
         const matriz = new THREE.InstancedBufferAttribute(new Float32Array(N * 16), 16);
         const aw = new THREE.InstancedBufferAttribute(new Float32Array(N).fill(0.5), 1);
         matriz.setUsage(THREE.DynamicDrawUsage); aw.setUsage(THREE.DynamicDrawUsage);
@@ -405,6 +408,31 @@ const CidadeGente = {
         return saida;
     },
 
+    /*
+    AS CAMISAS DA GENTE FORA DO ESTADIO, como as dos torcedores de dentro (crowd.js): metade com a camisa que o time usa no jogo, 30% com outra camisa do time, 10% com uma cor do time
+    e 10% com a camisa do goleiro (de manga comprida); cada pessoa e de uma das duas equipas. `cores` = { A, B } do `Crowd.coresDaEquipa` (flat: a cor principal do kit).
+    */
+    recolorirComTimes(cores) {
+        if (!this.agentes.length || !this._mesh || !cores) return;
+        const T = (typeof CrowdModel !== 'undefined' && CrowdModel.torcida && CrowdModel.torcida.camisas) || { atual: 0.5, outra: 0.3, cor: 0.1, goleiro: 0.1 };
+        let h = 12345;
+        const rnd = () => { h = (h * 1103515245 + 12345) & 0x7fffffff; return h / 0x7fffffff; };
+        for (const a of this.agentes) {
+            const eq = cores[rnd() < 0.5 ? 'A' : 'B'] || cores.A || cores.B;
+            const K = eq && eq.kits;
+            if (!K) continue;
+            const r = rnd();
+            let kit;
+            a.cam3 = false;
+            if (r < T.atual) kit = K.atual;
+            else if (r < T.atual + T.outra) kit = K.outras.length ? K.outras[Math.min(K.outras.length - 1, Math.floor(rnd() * K.outras.length))] : K.atual;
+            else if (r < T.atual + T.outra + T.cor) kit = K.cor;
+            else { kit = K.gk || K.cor; a.cam3 = !!K.gk; }
+            a.camisa = kit.principal;
+        }
+        this._pintar();
+    },
+
     // Cor por pessoa em cada canal (instanceColor).
     _pintar() {
         const cc = new THREE.Color();
@@ -413,6 +441,9 @@ const CidadeGente = {
             if (this._modelo === 'jogador') {
                 if (mesh.pele) mesh.pele.setColorAt(a.i, cc.setHex(0xffffff).set(a.pele));
                 if (mesh.camisa) mesh.camisa.setColorAt(a.i, cc.set(a.camisa));
+                if (mesh.peito) mesh.peito.setColorAt(a.i, cc.set(a.camisa));            // a casca da camisa (corpo dos torcedores)
+                if (mesh.antebraco) mesh.antebraco.setColorAt(a.i, cc.set(a.cam3 ? a.camisa : a.pele));   // braco: pele (manga comprida so na camisa de goleiro)
+                if (mesh.perna) mesh.perna.setColorAt(a.i, cc.set(a.calca));             // calcas compridas
                 if (mesh.calcao) mesh.calcao.setColorAt(a.i, cc.set(a.calca));
                 if (mesh.cabelo) mesh.cabelo.setColorAt(a.i, cc.set(a.cabelo));
                 if (mesh.sapato) mesh.sapato.setColorAt(a.i, cc.set(0x1b1b1d));
