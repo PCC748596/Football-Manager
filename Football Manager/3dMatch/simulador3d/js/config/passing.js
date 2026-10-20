@@ -125,7 +125,13 @@ const PasseParaOLivre = {
     a circulacao e a percentagem de acerto cai, porque se passa a insistir em
     bolas longas que o `fiab` ja dizia serem piores.
     */
-    bonus: 260
+    bonus: 260,
+
+    // O lancamento em profundidade: ver o uso em findPassTarget (player.js). `profundoMin` m a frente da bola, sem adversario a menos de `profundoLivre` m.
+    bonusProfundo: 260,
+    profundoMin: 15.0,
+    profundoLivre: 6.0,
+    profundoFiabMin: 0.6
 };
 
 if (typeof window !== 'undefined') window.PasseParaOLivre = PasseParaOLivre;

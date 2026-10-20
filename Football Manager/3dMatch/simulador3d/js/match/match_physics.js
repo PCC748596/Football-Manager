@@ -1192,7 +1192,9 @@ Object.assign(Match, {
         que é o ÚNICO sítio que faz esta conta.
         */
         const testaBest = alturaTestaDe(best);
-        if (alturaRealDaBola > testaBest + HeaderModel.janelaAcima) return false;
+        // A posse ja foi dada acima (`best.hasBall = true`): se o contacto afinal nao existe (bola alta demais), desfaz-se, senao a bola ficava colada aos pes dele com ele no ar.
+        const desfazerPosse = () => { if (this.ballCarrier === best) this.ballCarrier = null; best.hasBall = false; return false; };
+        if (alturaRealDaBola > testaBest + HeaderModel.janelaAcima) return desfazerPosse();
 
         /*
         O DRIBLE DE DEIXAR PASSAR — ver DribleDeixarPassar
@@ -1281,8 +1283,14 @@ Object.assign(Match, {
             this.ball.position.z - best.model.position.z);
         const raioTesta = (typeof HeaderModel.raioContacto === 'number')
             ? HeaderModel.raioContacto : BallControl.reach;
-        if (naAlturaDaTesta && distHorizontal > raioTesta) return false;
-        if (naAlturaDaTesta) {
+        if (naAlturaDaTesta && distHorizontal > raioTesta) return desfazerPosse();
+        /*
+        NO AR, A BOLA NAO SE DOMINA COM O PE. Medido: ~1 vez por jogo de 20 min um jogador a saltar apanhava a bola um pouco abaixo da testa (peito/ombro, fora da janela da
+        testa) e ela caia no dominio de chao: a bola ia para os pes dele com ele ainda no ar (relato: *"pulou para cabecear e a bola foi direto para o chao"*). Com ele no ar e a
+        bola acima do chao e sempre cabeceio.
+        */
+        const noArComBola = best.jumpTimer > 0 && best.jumpAltura > 0.1 && alturaRealDaBola > 0.5 && distHorizontal <= raioTesta;
+        if (naAlturaDaTesta || noArComBola) {
             best.executeHeader();
         } else {
             window.bolaChutada = false;

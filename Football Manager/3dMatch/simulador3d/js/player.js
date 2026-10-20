@@ -1524,9 +1524,32 @@ class FootballPlayer {
         rectângulo, que não sabe nada de ângulo com a trave. Dali remata-se de
         posições sem baliza à vista e não se remata de frente a 25 m.
         */
-        const decisao = (typeof decisaoDeFalta === 'function')
-            ? decisaoDeFalta(Match.ball.position.x, Match.ball.position.z, this.dirZ)
-            : 'passe';
+        const decisao = (Match.decisaoFaltaMontada && Match.state === 'FREE_KICK')
+            ? Match.decisaoFaltaMontada
+            : (typeof decisaoDeFalta === 'function')
+                ? decisaoDeFalta(Match.ball.position.x, Match.ball.position.z, this.dirZ)
+                : 'passe';
+
+        /*
+        NINGUEM NA LINHA DO REMATE (relato: *"ainda tem jogador do proprio time entre o batedor da falta direta e o gol, a bola pega nele"*). A montagem ja afasta quem fica no
+        corredor, mas os companheiros acabam la depois (medido: 5 em 14 remates de falta tinham um a ~4 m da bola, em cima da linha). Na hora de bater, quem esta no corredor
+        sai a trote para o lado mais perto; a cobranca espera por quem vai a caminho (`algumACaminhoDoLugar`).
+        */
+        if (decisao === 'remate') {
+            const b = Match.ball.position, gz = this.dirZ * (CAMPO_COMP / 2);
+            let ux = -b.x, uz = gz - b.z; const L = Math.hypot(ux, uz) || 1; ux /= L; uz /= L;
+            const meia = 2.5, saida = 3.4;
+            const meus = (this.team === 'TeamA' ? Match.players : Match.opponents);
+            for (const o of meus) {
+                if (o === this || o.role === 'gk' || !o.model || o.expulso || o.lugarBolaParada) continue;
+                const rx = o.model.position.x - b.x, rz = o.model.position.z - b.z;
+                const ao = rx * ux + rz * uz, lat = rx * uz - rz * ux;
+                if (ao <= 0.5 || ao >= L || Math.abs(lat) >= meia) continue;
+                const lado = (Math.abs(lat) > 0.05) ? Math.sign(lat) : (b.x > 0 ? -1 : 1);
+                const nx = b.x + ux * ao + uz * lado * saida, nz = b.z + uz * ao - ux * lado * saida;
+                o.lugarBolaParada = { x: THREE.MathUtils.clamp(nx, -(CAMPO_LARG / 2 - 2), CAMPO_LARG / 2 - 2), z: THREE.MathUtils.clamp(nz, -(CAMPO_COMP / 2 - 2), CAMPO_COMP / 2 - 2), t: 0, vel: 5.0 };
+            }
+        }
 
         /*
         A CORRIDA. Isto executava tudo no mesmo frame, a partir de onde ele
@@ -3088,7 +3111,17 @@ class FootballPlayer {
                     const linha = teamBB ? teamBB.offsideLimitDir : null;
                     const irregular = (typeof linha === 'number') &&
                         (optPos.z * dirZ > linha);
-                    if (!irregular) score += LV.bonus * fiab;
+                    if (!irregular) {
+                        score += LV.bonus * fiab;
+                        /*
+                        O LANCAMENTO EM PROFUNDIDADE (pedido: *"tem muito pouco lancamento em profundidade: os jogadores ficam com espaco livre a frente e nao recebem"*).
+                        O bonus acima escala com `fiab`, que cai a pique nos passes longos, e por isso o homem livre a 20-30 m perdia sempre para o toque curto. Para o homem livre
+                        MESMO a frente (`profundoMin` m) soma-se um bonus com piso na fiabilidade, sem passar por cima da linha (o `penalLinha` continua a ser somado).
+                        */
+                        if (LV.bonusProfundo && aFrente >= LV.profundoMin && distMarcador >= LV.profundoLivre) {
+                            score += LV.bonusProfundo * Math.max(fiab, LV.profundoFiabMin);
+                        }
+                    }
                 }
             }
 
@@ -5410,6 +5443,14 @@ class FootballPlayer {
         // que é o que faz o contacto na testa acontecer (ver resolveBallContact).
         this.jumpAltura = 0;
         if (this.jumpTimer > 0) {
+            /*
+            A BOLA JA ESTA NO CHAO: o salto acaba. Medido: ~1 vez por jogo de 20 min ele agarrava (dominava) uma bola rasteira ainda no ar (relato: *"pulou para cabecear
+            e a bola foi para o chao direto, com o jogador ainda no ar"*). Sem toque de cabeca e com a bola rasteira, desce depressa (no maximo `descidaRapida` s) em vez de
+            esperar o fim da duracao do salto.
+            */
+            if ((!this.hasHeaderedInJump && Match.ball && Match.ball.position.y < 0.45) || (Match.state !== 'PLAY' && !this.hasHeaderedInJump)) {
+                this.jumpTimer = Math.min(this.jumpTimer, SaltoCabeceio.descidaRapida || 0.10);
+            }
             this.jumpTimer -= dt;
             const jt = this.jumpTimer / SaltoCabeceio.duracao;
             this.jumpAltura = Math.sin(jt * Math.PI) * (this.jumpApex || SaltoCabeceio.alturaMax);
@@ -10646,7 +10687,9 @@ class FootballPlayer {
         if (!P || !P.activo || typeof Match === 'undefined' || Match.state !== 'GOAL_KICK') return null;
         const estilo = (typeof estiloDaEquipaDe === 'function') ? estiloDaEquipaDe(this.team) : null;
         const chaveCurto = (typeof TeamPlayStyles !== 'undefined') ? P.curtoEm.some(k => TeamPlayStyles[k] === estilo) : false;
-        const meus = ((this.team === 'TeamA') ? Match.players : Match.opponents).filter(o => o && o.model && o !== this && o.role !== 'gk' && !o.expulso);
+        // Quem esta FORA DO CAMPO (foi atras da bola que saiu, ou ainda volta de uma saida) nao e opcao: o tiro de meta nao e batido para ele (relato).
+        const dentro = (o) => Math.abs(o.model.position.x) <= CAMPO_LARG / 2 - 0.5 && Math.abs(o.model.position.z) <= CAMPO_COMP / 2 - 0.5;
+        const meus = ((this.team === 'TeamA') ? Match.players : Match.opponents).filter(o => o && o.model && o !== this && o.role !== 'gk' && !o.expulso && dentro(o));
         const advs = ((this.team === 'TeamA') ? Match.opponents : Match.players).filter(o => o && o.model && !o.expulso);
         const b = Match.ball.position;
         const livre = (o) => advs.reduce((m, a) => Math.min(m, Math.hypot(a.model.position.x - o.model.position.x, a.model.position.z - o.model.position.z)), 99);

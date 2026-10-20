@@ -1197,6 +1197,8 @@ class PlayerFSM {
         */
         if (!semDesenho && typeof p.assentarCorpoInteiro === 'function') {
             p.assentarCorpoInteiro([rig.lArm, rig.rArm]);
+            // Mais perto do chao (pedido: *"baixa uns 10 cm o jogador dando carrinho, a bunda esta muito afastada do chao"*).
+            p.model.position.y -= (SlideTackleModel.rebaixar || 0) * k;
             /*
             E A MÃO DE APOIO À SUPERFÍCIE. A inclinação do tronco que a leva à
             relva foi medida num jogador de altura média; nos mais altos ela
@@ -2734,7 +2736,9 @@ class PlayerFSM {
                     const semDesenho = (typeof Sim !== 'undefined' && Sim.running);
                     if (!c.entrou) {
                         c.entrou = true;
-                        if (c.tipo === 'joelhos') p.model.rotation.y = Math.atan2(c.dx, c.dz);
+                        // PELO QUATERNIAO: o corpo e orientado por `lookAt`, e o Euler dele passa a (pi, y, pi) quando a frente aponta para tras (z negativo); escrever so o `rotation.y`
+                        // dava a frente invertida: ele deslizava para um lado com o corpo virado para o outro (relato).
+                        if (c.tipo === 'joelhos') p.model.quaternion.setFromAxisAngle(_vUp, Math.atan2(c.dx, c.dz));
                     }
 
                     if (c.tipo === 'joelhos') {
@@ -2785,7 +2789,8 @@ class PlayerFSM {
                         p.velocity.set(0, 0, 0);
                         if (c.mira) {
                             const ya = Math.atan2(c.mira.x - p.model.position.x, c.mira.z - p.model.position.z);
-                            p.model.rotation.y += Math.atan2(Math.sin(ya - p.model.rotation.y), Math.cos(ya - p.model.rotation.y)) * Math.min(1, dt * 8);
+                            _q1.setFromAxisAngle(_vUp, ya);
+                            p.model.quaternion.slerp(_q1, Math.min(1, dt * 8));
                         }
                         rig.lArm.rotation.set(A.bracoX, 0, A.bracoZ);
                         rig.rArm.rotation.set(A.bracoX, 0, -A.bracoZ);

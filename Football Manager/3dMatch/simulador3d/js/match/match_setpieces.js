@@ -576,6 +576,9 @@ Object.assign(Match, {
             const decisaoFK = indirecta ? 'passe'
                 : ((typeof decisaoDeFalta === 'function')
                     ? decisaoDeFalta(bolaFK.x, bolaFK.z, attDir) : 'passe');
+            // A decisao MONTADA e a que vale na cobranca (a `baterFalta` lia-a de novo da posicao da bola: se mudasse, a montagem tinha libertado o corredor para um passe
+            // e o batedor rematava, com um companheiro na linha bola->baliza; e o livre indirecto rematava na mesma).
+            this.decisaoFaltaMontada = decisaoFK;
             const setorPreliminar = (typeof setorDaFalta === 'function')
                 ? setorDaFalta(bolaFK.x, bolaFK.z, attDir, decisaoFK) : 'meio_avancado';
 

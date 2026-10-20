@@ -320,7 +320,7 @@ const Ponte = {
         if (typeof Abertura !== 'undefined') Abertura.aguardarSaida = false;
         Match.segurarSaida = false;
         MatchStats.reset();
-        Match.tempoDeJogo = 0; Match.placarA = 0; Match.placarB = 0;
+        Match.tempoDeJogo = 0; Match.placarA = 0; Match.placarB = 0; Match.segundoTempoIniciado = false;
         Match.acrescimo1 = 0; Match.acrescimo2 = 0; Match.acr1Calculado = false; Match.acr2Calculado = false; Match.faltasNoIntervalo = 0; Match.substituicoes = 0; Match.substituicoesNoIntervalo = 0;
         Match.primeiroTempoAcabou = false;
         Eventos.reset();

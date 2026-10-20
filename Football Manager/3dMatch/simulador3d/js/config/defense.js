@@ -122,7 +122,17 @@ const ClearanceModel = {
     nenhum para aliviar: quem la esta cruza, remata ou segura a bola — e e
     isso que o ramo seguinte (`conduzir`) faz quando este desiste.
     */
-    avancoMaxParaAlivio: 10.0
+    avancoMaxParaAlivio: 10.0,
+
+    /*
+    CHUTAO PARA A FRENTE EM VEZ DE CANTO (pedido: *"os jogadores estao chutando muito para escanteio. Coloca um chutao pra frente quando
+    tiver pressionado. Reduz em uns 30% o chute pra escanteio sem precisar"*). Das vezes em que o alivio escolheria a linha de fundo, esta
+    fraccao vira um chutao para a frente, para o meio do campo, e nao concede o canto. `frenteAlcance` e quantos metros a frente (em z) vai o
+    alvo, e `frenteMeioX` quanto o x dele se aproxima do meio (0 = onde esta, 1 = o meio).
+    */
+    chanceChutaoFrente: 0.30,
+    frenteAlcance: 34.0,
+    frenteMeioX: 0.6
 };
 
 if (typeof window !== 'undefined') window.ClearanceModel = ClearanceModel;
@@ -297,6 +307,7 @@ const SlideTackleModel = {
     velMin: 4.5,            // nem o carrinho dado parado desliza mais devagar
     velMax: 12.0,           // nem o mais lançado passa disto
     alturaAnca: -0.55,      // quanto o corpo desce ao sentar no relvado
+    rebaixar: 0.10,         // m a mais depois de assentar o corpo (a anca ficava afastada do relvado)
 
     janelaToqueIni: 0.08,   // quando o pé pode começar a tocar na bola
     janelaToqueFim: 1.10,

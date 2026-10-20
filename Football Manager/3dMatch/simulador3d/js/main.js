@@ -968,7 +968,9 @@ function updateHudEvento() {
     const antesDaSaida = Match.state === 'ABERTURA' || Match.state === 'INTERVALO' || (typeof Abertura !== 'undefined' && Abertura.activa);
     if (novo >= 0 && !antesDaSaida) {
         const dirLado = (t) => (typeof Lados !== 'undefined' && Lados.dirDe) ? Lados.dirDe(t) : (t === 'TeamA' ? 1 : -1);
-        const esq = dirLado('TeamA') < 0 ? 'TeamA' : 'TeamB';
+        // O CARTAO DE ESTATISTICAS NAO VIRA NO 2.o TEMPO (pedido): fica na ordem do 1.o, mesmo com as equipas a trocar de lado.
+        let esq = dirLado('TeamA') < 0 ? 'TeamA' : 'TeamB';
+        if (Match.segundoTempoIniciado) esq = esq === 'TeamA' ? 'TeamB' : 'TeamA';
         const dir = esq === 'TeamA' ? 'TeamB' : 'TeamA';
         preencherEscudoHud(document.getElementById('hud-evento-logo-esq'), 'evento-esq', esq);
         preencherEscudoHud(document.getElementById('hud-evento-logo-dir'), 'evento-dir', dir);

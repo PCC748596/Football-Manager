@@ -145,6 +145,7 @@ Object.assign(Match, {
         this.intervaloSegura = false;
         if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(false);
         Lados.trocados = !Lados.trocados;
+        this.segundoTempoIniciado = true;   // o cartao de estatisticas do HUD nao troca de lado com as equipas (main.js)
         [...this.players, ...this.opponents].forEach(p => {
             p.dirZ = Lados.dirDe(p.team);
             p.targetGoalZ = (CAMPO_COMP / 2) * p.dirZ;

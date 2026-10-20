@@ -1930,10 +1930,19 @@ function actClearance(ctx) {
     a bola por cima da linha de fundo e concede o canto — é o que falta aqui.
     */
     const C = (typeof ClearanceModel !== 'undefined') ? ClearanceModel : null;
-    const alvo = (typeof alvoDeAlivio === 'function')
+    let alvo = (typeof alvoDeAlivio === 'function')
         ? alvoDeAlivio(p.model.position.x, p.model.position.z, p.dirZ, C)
         : { x: (p.model.position.x >= 0) ? (CAMPO_LARG / 2 + 2.0) : (-CAMPO_LARG / 2 - 2.0),
             z: p.model.position.z + p.dirZ * 12.0, fundo: false };
+    // Uma parte dos alivios que dariam canto vira chutao para a frente (ver ClearanceModel.chanceChutaoFrente).
+    if (alvo.fundo && C && C.chanceChutaoFrente && Math.random() < C.chanceChutaoFrente) {
+        const lim = CAMPO_COMP / 2 - 6.0;
+        alvo = {
+            x: p.model.position.x * (1 - (C.frenteMeioX || 0)),
+            z: Math.max(-lim, Math.min(lim, p.model.position.z + p.dirZ * (C.frenteAlcance || 34.0))),
+            fundo: false
+        };
+    }
 
     if (alvo.fundo && typeof MatchStats !== 'undefined' && MatchStats.registarAfastamento) {
         MatchStats.registarAfastamento(p.team);
