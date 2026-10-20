@@ -2499,7 +2499,8 @@ class PlayerFSM {
                     
                     // Perna direita fletida com joelho no chão a amparar
                     rig.rLeg.rotation.x = lerpTo(rig.rLeg.rotation.x, Math.PI / 5, 0.3);
-                    rig.rKnee.rotation.x = lerpTo(rig.rKnee.rotation.x, -Math.PI / 1.6, 0.3);
+                    // Joelho + dobra a canela PARA TRAS (como no carrinho, `joelhoDobrado` 1.90); com sinal negativo dobrava para a frente.
+                    rig.rKnee.rotation.x = lerpTo(rig.rKnee.rotation.x, Math.PI / 1.6, 0.3);
 
                 } else if (tTackle < 0.8) {
                     if (p.hasBall === false && Match.ballCarrier && Match.ballCarrier.team !== p.team && Match.ballCarrier.role !== 'gk') {
