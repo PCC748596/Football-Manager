@@ -15,8 +15,9 @@ O que muda a meio do jogo: sombras, resolucao do mapa e pixel ratio. A torcida s
 */
 const Qualidade = {
     niveis: {
-        HIGH:   { sombras: true,  mapa: 2048, pixelRatio: 1.5, adeptos: 1.00, corpo: 0 },
-        MEDIUM: { sombras: true,  mapa: 1024, pixelRatio: 1.0, adeptos: 0.50, corpo: 0 },
+        // Todos os niveis usam o corpo leve (pedido: sem esferas nas juntas e 888 triangulos, a qualidade e a mesma).
+        HIGH:   { sombras: true,  mapa: 2048, pixelRatio: 1.5, adeptos: 1.00, corpo: 1 },
+        MEDIUM: { sombras: true,  mapa: 1024, pixelRatio: 1.0, adeptos: 0.50, corpo: 1 },
         LOW:    { sombras: false, mapa: 512,  pixelRatio: 1.0, adeptos: 0.25, corpo: 1 }
     },
     nivel: 'HIGH',   // sem `?q=` (a pagina do simulador aberta sozinha) fica como sempre foi; o manager manda sempre o nivel, e o dele e LOW

@@ -8128,7 +8128,16 @@ class FootballPlayer {
             const lookZ = zDeOlharDoGuardaRedes(
                 Match.ball.position.z, this.ownGoalZ, this.dirZ);
             _v1.set(Match.ball.position.x, gkCorpo.position.y, lookZ);
-            lookAtBola(gkCorpo, _v1);
+            /*
+            COM A BOLA NOS PES ELE OLHA PARA ONDE VAI, nao para a bola. A bola esta colada aos pes (a frente do corpo), entao "olhar para a bola" mantinha-o virado para onde
+            estava e ele recuava para a ancora de costas, com a bola nos pes e passos de frente (relato). O ritmo de giro e o do jogador de campo com bola (`TurnModel.comBola`).
+            */
+            if (this.hasBall && Math.hypot(velX, velZ) > 0.3) {
+                _v2.set(gkCorpo.position.x + velX, gkCorpo.position.y, gkCorpo.position.z + velZ);
+                this.virarPara(_v2);
+            } else {
+                lookAtBola(gkCorpo, _v1);
+            }
 
             /*
             A pélvis volta a direito — menos na postura do penálti, que inclina o
