@@ -133,12 +133,15 @@ const Layout: React.FC<Props> = ({ children, setView, currentView }) => {
         </nav>
 
         <div className="p-6 border-t border-slate-200 dark:border-slate-900 flex flex-col gap-4 transition-colors">
+            {/* No Dashboard em dia de jogo o botao JOGAR PARTIDA sai do painel da esquerda: o Dashboard tem o seu proprio botao do jogo do dia. */}
+            {!(isMatchDay && currentView === 'DASHBOARD') && (
             <button 
               onClick={handleContinue}
               className={`w-full font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 text-sm tracking-widest uppercase active:scale-95 border-b-4 ${isMatchDay ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 border-emerald-800' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20 border-blue-800'}`}
             >
               {isSimulating ? 'SIMULANDO...' : (isMatchDay ? 'JOGAR PARTIDA' : 'CONTINUAR')}
             </button>
+            )}
 
            <div className="bg-slate-100 dark:bg-slate-900/40 rounded-lg p-4 text-center border border-slate-200 dark:border-slate-800 shadow-inner">
              <div className="text-[11px] text-slate-800 dark:text-white uppercase font-black tracking-tight italic mb-2">Match Week</div>
