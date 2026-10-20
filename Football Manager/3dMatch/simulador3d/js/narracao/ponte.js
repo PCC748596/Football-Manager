@@ -51,6 +51,7 @@ const Ponte = {
             else if (m.tipo === 'preparar') this.preparar(m);
             else if (m.tipo === 'segundo_tempo') this.segundoTempo();
             else if (m.tipo === 'substituicao') { if (typeof Match !== 'undefined' && Match.pedirSubstituicao) Match.pedirSubstituicao(m); }
+            else if (m.tipo === 'notas') { if (typeof mostrarNotasIntervalo === 'function') mostrarNotasIntervalo(m); }
             else if (m.tipo === 'classificacao') { if (typeof mostrarClassificacaoIntervalo === 'function') mostrarClassificacaoIntervalo(m.linhas, m.emCurso); }
             else if (m.tipo === 'camera') this.camera(m.modo);
             else if (m.tipo === 'zoom') this.zoom(m.fator);
@@ -474,6 +475,9 @@ const Ponte = {
         this.estado = 'terminado';
         Eventos.registar('FIM', { placar: { A: Match.placarA, B: Match.placarB } });
         this.enviar('fim', { resultado: this.resultado() });
+        // Acabado o jogo o som (torcida e efeitos) pode parar (pedido).
+        // So a torcida: os efeitos (o apito final) acabam sozinhos.
+        if (this.modo === 'visivel' && typeof AmbienteSonoro !== 'undefined' && AmbienteSonoro.setPausa) AmbienteSonoro.setPausa(true);
         if (this.modo === 'oculto') Sim.running = false;
     },
 

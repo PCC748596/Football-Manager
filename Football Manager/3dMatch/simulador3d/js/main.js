@@ -834,6 +834,10 @@ function mostrarModalIntervalo(ligar, titulo) {
         el.classList.add('oculto');
         const mc = document.getElementById('modal-classificacao');
         if (mc) mc.classList.add('oculto');
+        const mn = document.getElementById('modal-notas');
+        if (mn) mn.classList.add('oculto');
+        const par0 = document.getElementById('intervalo-par');
+        if (par0) par0.style.transform = '';
         window._classificacaoIntervalo = null;
         return;
     }
@@ -909,6 +913,29 @@ function mostrarClassificacaoIntervalo(linhas, emCurso) {
     const nota = document.getElementById('mc-nota');
     if (nota) nota.textContent = (typeof emCurso === 'number') ? ('inclui ' + emCurso + ' jogos em curso') : '';
     el.classList.remove('oculto');
+}
+
+// AS NOTAS DOS JOGADORES no ecra das estatisticas (intervalo e fim): `dados` = { casa: { nome, jogadores: [{ nome, nota }] }, fora: ... }, do manager.
+function mostrarNotasIntervalo(dados) {
+    const el = document.getElementById('modal-notas');
+    const stats = document.getElementById('modal-intervalo');
+    if (!el || !dados || !dados.casa || !dados.fora) return;
+    if (!stats || stats.classList.contains('oculto')) return;
+    const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const coluna = (id, lado) => {
+        document.getElementById(id).innerHTML = '<div class="mn-eq">' + esc(String(lado.nome || '').split('-')[0]) + '</div>' + (lado.jogadores || []).map(j =>
+            '<div class="mn-linha"><span>' + esc(j.nome || '') + '</span><span class="' + (j.nota >= 7.5 ? 'alta' : j.nota <= 5.5 ? 'baixa' : '') + '">' + Number(j.nota).toFixed(1) + '</span></div>').join('');
+    };
+    coluna('mn-casa', dados.casa); coluna('mn-fora', dados.fora);
+    el.classList.remove('oculto');
+    // As tres caixas lado a lado cabem no ecra: reduz a escala (a de sempre e 1.3) se for preciso.
+    const par = document.getElementById('intervalo-par');
+    if (par) {
+        par.style.transform = 'translate(-50%, -50%) scale(1.3)';
+        const w = par.getBoundingClientRect().width / 1.3;
+        const s = Math.min(1.3, (window.innerWidth * 0.97) / Math.max(1, w));
+        par.style.transform = 'translate(-50%, -50%) scale(' + s.toFixed(3) + ')';
+    }
 }
 
 // O ESCUDO do time num elemento `.hud-jog-logo`: a imagem do clube, ou 3 barras verticais com as cores dele (como o TeamShield do manager); sem nada, a cor da equipa.

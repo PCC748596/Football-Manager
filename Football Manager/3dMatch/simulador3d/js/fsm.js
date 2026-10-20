@@ -143,7 +143,8 @@ function executePassGameplay(p) {
         tecSkill: tecSkill,
         distAdversario: distAdversario,
         cosCorpo: cosCorpo,
-        distPasse: distToTarget
+        distPasse: distToTarget,
+        role: p.role
     });
     const desvio = sigma * amostraGaussiana(Math.random);
     const rodado = rodarNoPlano(dxAlvo, dzAlvo, desvio);
@@ -157,7 +158,7 @@ function executePassGameplay(p) {
     quadratico fazia o erro na distancia explodir de forma nao-linear —
     passes saiam absurdamente longos ou curtos.
     */
-    const erroDist = 1 + (Math.random() * 2 - 1) * PassModel.erroPesoMax * (1 - passSkill / 100);
+    const erroDist = 1 + (Math.random() * 2 - 1) * PassModel.erroPesoMax * (1 - passSkill / 100) * ((p.role === 'def' && typeof PassErrorModel.defesaFator === 'number') ? PassErrorModel.defesaFator : 1);
     distToTarget *= erroDist * fatorForcaSobPressao(distAdversario);
 
     /*

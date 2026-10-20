@@ -298,7 +298,7 @@ const PassModel = {
     bloqueioDist: 14.0,         // até que distância à frente conta
     bloqueioLargura: 6.0,       // meia-largura do corredor
 
-    throughBallGap: 14.0,       // quão atrás da linha o colega pode estar
+    throughBallGap: 18.0,       // quão atrás da linha o colega pode estar
     throughBallDepth: 9.0,      // metros além da linha onde se põe a bola
     /*
     Baixou de 45: com o alvo posto `throughBallDepth` ALÉM do companheiro, um
@@ -360,7 +360,7 @@ const PassModel = {
     // O LANÇAMENTO A QUEM ROMPE (RUN_INTO_SPACE, braço no ar): arranca de mais longe e a bola não precisa de 30 m.
     distMinRuptura: 18.0,
     throughBallGapRuptura: 24.0,
-    distMinLonga: 30.0,
+    distMinLonga: 24.0,        // 30 -> 24: o lancamento em profundidade (pedido: havia pouco), ver tambem PasseParaOLivre.bonusProfundo
     throughBallCorredorLargura: 7.0,
     throughBallVaoMax: 13.0,
     distAereo: 30.0,
@@ -809,6 +809,8 @@ const PassErrorModel = {
     // Adversario atras de quem passa: a distancia dele conta isto vezes mais (ver fsm.js, contacto do passe).
     adversarioAtrasFator: 2.5,
     costasMult: 2.0,
+    // Os DEFESAS passam com mais precisao (pedido: *"muito passe errado dos defensores"*): multiplica a dispersao da direccao e o erro de peso. So para defesas (ver sigmaDePasse e fsm.js).
+    defesaFator: 0.55,
     forcaMinPressao: 0.85,
     sigmaTecto: 0.1755     // reduzido 10% e depois 25%
 };

@@ -927,6 +927,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // As estatisticas abriram no 3D: manda a classificacao ate este momento (com o resultado provisorio do jogo em curso).
       const linhas = classificacaoDoIntervalo(uf);
       if (linhas.length) simulador3dEnviar({ tipo: 'classificacao', linhas, emCurso: (classificacaoDoIntervalo as any).ultimoEmCurso || 0 });
+      // As notas dos jogadores ate este momento, no mesmo ecra das estatisticas (nome curto e nota, de cada equipa, pela nota).
+      try {
+        const notas = calculateMatchRatings(uf.events || [], casa, fora, uf.homeScore || 0, uf.awayScore || 0, uf.homeLineup, uf.awayLineup, players);
+        const lado = (t: Team) => Object.entries(notas)
+          .map(([id, nota]) => ({ p: players.find(x => x.id === id), nota: nota as number }))
+          .filter(x => x.p && x.p.teamId === t.id)
+          .sort((a, b) => b.nota - a.nota)
+          .map(x => ({ nome: String(x.p!.name).split(' ').pop(), nota: Math.round(x.nota * 10) / 10 }));
+        simulador3dEnviar({ tipo: 'notas', casa: { nome: casa.name, jogadores: lado(casa) }, fora: { nome: fora.name, jogadores: lado(fora) } });
+      } catch (e) { console.warn('[notas do intervalo]', e); }
     } else if (m.tipo === 'intervalo_pronto') {
       // O campo ficou vazio e o 3D mostra as estatisticas: o relogio do manager para no intervalo (o botao passa a CONTINUAR) e o treinador decide quando sai o 2.o tempo.
       if (matchTimerRef.current) clearTimeout(matchTimerRef.current);

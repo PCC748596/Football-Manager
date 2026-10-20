@@ -357,6 +357,7 @@ function sigmaDePasse(o) {
     escolhia pior, mas executava igualmente bem.
     */
     const d = o.distAdversario;
+    if (o.role === 'def' && typeof M.defesaFator === 'number') sigma *= M.defesaFator;
     const passeCurto = (typeof o.distPasse === 'number' && o.distPasse <= 14.0);
     const multPressao = passeCurto ? (1 + (M.pressaoMult - 1) * 0.45) : M.pressaoMult;
     if (typeof d === 'number' && d < M.raioPressao) {

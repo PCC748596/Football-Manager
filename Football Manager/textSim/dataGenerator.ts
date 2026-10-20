@@ -194,7 +194,9 @@ const initialLineupAssignment = (team: Team, squad: Player[]) => {
   let bestLineup: string[] = [];
   let bestBench: string[] = [];
 
-  Object.keys(FORMATION_ROLES).forEach(form => {
+  // O Internacional joga em 4-4-2 (pedido), seja qual for a formacao que desse a melhor escalacao.
+  const formacoes = team.name === 'Internacional-RS' ? ['4-4-2'] : Object.keys(FORMATION_ROLES);
+  formacoes.forEach(form => {
     const res = getLineupForFormation(form, squad);
     if (res.score > bestScore) {
       bestScore = res.score;
