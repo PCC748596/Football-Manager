@@ -129,7 +129,7 @@ const Ponte = {
         clearInterval(this._tBarra);
         const g = (id) => { const e = document.getElementById(id); return e ? e.textContent : ''; };
         this._tBarra = setInterval(() => {
-            // Esquerda = a equipa do `placar-nome-b` (com os golos `placar-a`), direita = a do `placar-nome-a`, como no placar de sempre.
+            // Esquerda = a CASA (TeamA: `placar-nome-a`, com os golos em `placar-b`), direita = a de fora (TeamB) — a casa primeiro (pedido).
             const sigla = (n) => String(n || '').split('-')[0].normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || '---';
             const corDe = (lista) => { const j = lista && lista[1] ? lista[1] : null; try { return new THREE.Color(j && j.corCamisa !== undefined ? j.corCamisa : 0x334155); } catch (e) { return new THREE.Color(0x334155); } };
             const pintar = (id, nome, lista) => {
@@ -137,9 +137,9 @@ const Ponte = {
                 const c = corDe(lista); const lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
                 el.textContent = sigla(nome); el.style.background = '#' + c.getHexString(); el.style.color = lum > 0.55 ? '#111' : '#fff';
             };
-            pintar('#tv-eq-e', g('placar-nome-b'), Match.opponents); pintar('#tv-eq-d', g('placar-nome-a'), Match.players);
+            pintar('#tv-eq-e', g('placar-nome-a'), Match.players); pintar('#tv-eq-d', g('placar-nome-b'), Match.opponents);
             const ge = barra.querySelector('#tv-gol-e'), gd = barra.querySelector('#tv-gol-d'), tp = barra.querySelector('#tv-tempo');
-            if (ge) ge.textContent = g('placar-a'); if (gd) gd.textContent = g('placar-b'); if (tp) tp.textContent = g('placar-tempo');
+            if (ge) ge.textContent = g('placar-b'); if (gd) gd.textContent = g('placar-a'); if (tp) tp.textContent = g('placar-tempo');
             barra.querySelectorAll('button[data-cam]').forEach(b => b.classList.toggle('on', window.cameraMode === b.dataset.cam && !(b.dataset.r === '3d' && false)));
             barra.querySelectorAll('button[data-vel]').forEach(b => b.classList.toggle('on', Number(window.speedMultiplier) === Number(b.dataset.vel)));
             const fpsEl = barra.querySelector('#tc-fps');

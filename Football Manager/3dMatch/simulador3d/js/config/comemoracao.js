@@ -22,7 +22,7 @@ const ComemoracaoGol = {
     // Probabilidade de o golo ter comemoração em corrida. Os restantes seguem como sempre (volta ao meio-campo).
     chance: 0.85,
     // As comemorações a sortear, com pesos. Para juntar outra: um novo `tipo` no ComemoracaoGol.sorteio.
-    comemoracoes: [{ tipo: 'joelhos', peso: 1.0 }],
+    comemoracoes: [{ tipo: 'joelhos', peso: 0.6 }, { tipo: 'punho', peso: 0.4 }],
     // O estado do jogo não espera mais do que isto (s), aconteça o que acontecer.
     tempoMax: 12.0,
 
@@ -43,7 +43,7 @@ const ComemoracaoGol = {
         velocidadeDeslize: 8.5,   // m/s à entrada; cai ao longo do deslize
         tQueda: 0.60,             // quadro 4: vai-se abaixando a correr
         tDeslize: 1.9,            // quadros 3 e 2: desliza de joelhos
-        tBracos: 0.45,            // quadro 1: os braços sobem
+        tBracos: 0.90,            // quadro 1: os braços sobem
         tManter: 2.2,             // fica assim
         tLevantar: 0.8,           // e levanta-se
         limiteLateral: 31.0,      // |x| máximo onde pode parar (a linha lateral é 34)
@@ -66,6 +66,14 @@ const ComemoracaoGol = {
                 bracoEx: 0.25, bracoEz: 0.30, cotoveloE: -0.15,
                 bracoDx: 0.25, bracoDz: 0.30, cotoveloD: -0.15
             },
+            // 4 da referencia (BRACOS ABERTOS): ainda a deslizar, tronco mais para tras e os dois bracos abertos na horizontal.
+            bracosAbertos: {
+                pelvisX: 0.0, peitoX: -0.32, pescocoX: -0.15,
+                coxaE: -0.90, joelhoE: 2.45, peE: 0.9,
+                coxaD: -0.90, joelhoD: 2.45, peD: 0.9,
+                bracoEx: 0.05, bracoEz: 1.50, cotoveloE: -0.10,
+                bracoDx: 0.05, bracoDz: 1.50, cotoveloD: -0.10
+            },
             // 1: ainda sentado nos calcanhares, tronco levemente para trás, braços levantados para cima.
             bracosAcima: {
                 pelvisX: 0.0, peitoX: -0.22, pescocoX: -0.20,
@@ -73,6 +81,33 @@ const ComemoracaoGol = {
                 coxaD: -0.90, joelhoD: 2.45, peD: 0.9,
                 bracoEx: -0.15, bracoEz: 2.85, cotoveloE: -0.05,
                 bracoDx: -0.15, bracoDz: 2.85, cotoveloD: -0.05
+            }
+        }
+    },
+
+    /*
+    COMEMORACAO 2 — PUNHO ERGUIDO (referencia: corrida, parada, punho erguido, olhar para a torcida, final). Corre como a dos joelhos, trava, ergue o braco direito
+    com o punho fechado e fica a olhar para a torcida (a cabeca vira de um lado para o outro) antes de voltar.
+    */
+    punho: {
+        corrida: { min: 4.0, max: 9.0, margemLinha: 5.0, recuoDaBaliza: 0.6, velocidade: 7.5, prazo: 6.0 },
+        tParada: 0.45,    // trava a corrida
+        tErguer: 0.55,    // o braco sobe
+        tManter: 2.8,     // fica assim, a olhar para a torcida
+        tBaixar: 0.7,
+        olhar: { amplitude: 0.55, ritmo: 1.6 },   // rad e rad/s do pescoco (esquerda-direita)
+        pose: {
+            parada: {
+                pelvisX: 0.0, peitoX: 0.08, pescocoX: 0.0,
+                coxaE: -0.10, joelhoE: 0.25, peE: 0.0, coxaD: 0.10, joelhoD: 0.20, peD: 0.0,
+                bracoEx: 0.30, bracoEz: 0.20, cotoveloE: -0.55,
+                bracoDx: 0.30, bracoDz: 0.20, cotoveloD: -0.55
+            },
+            punho: {
+                pelvisX: 0.0, peitoX: -0.14, pescocoX: -0.14,
+                coxaE: -0.12, joelhoE: 0.12, peE: 0.0, coxaD: 0.12, joelhoD: 0.10, peD: 0.0,
+                bracoEx: 0.05, bracoEz: 0.30, cotoveloE: -0.35,
+                bracoDx: -0.20, bracoDz: 2.80, cotoveloD: -0.15
             }
         }
     },

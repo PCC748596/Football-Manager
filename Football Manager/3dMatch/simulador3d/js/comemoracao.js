@@ -48,12 +48,13 @@ const Comemoracao = {
         }
 
         const tipo = tipoForcado || this._sortear();
-        if (tipo === 'joelhos') return this._iniciarJoelhos(autor, zSinal);
+        if (tipo === 'joelhos' || tipo === 'punho') return this._iniciarJoelhos(autor, zSinal, tipo);
         return false;
     },
 
-    _iniciarJoelhos(autor, zSinal) {
-        const C = ComemoracaoGol, J = C.joelhos, K = J.corrida;
+    _iniciarJoelhos(autor, zSinal, tipo) {
+        tipo = tipo || 'joelhos';
+        const C = ComemoracaoGol, J = (tipo === 'punho' ? C.punho : C.joelhos), K = J.corrida;
         const P0 = autor.model.position;
         const sx = Math.sign(P0.x) || 1;
 
@@ -78,12 +79,12 @@ const Comemoracao = {
         dx /= l; dz /= l;
 
         // Onde vai parar: o deslize percorre ~ v0 * tDeslize / 2.6 (a velocidade cai com expoente 1.6).
-        const desliza = J.velocidadeDeslize * J.tDeslize / 2.6;
+        const desliza = (tipo === 'punho') ? 0 : J.velocidadeDeslize * J.tDeslize / 2.6;
         const E = new THREE.Vector3(
             THREE.MathUtils.clamp(S.x + dx * desliza, -J.limiteLateral, J.limiteLateral), ALTURA_BASE_Y, S.z + dz * desliza);
 
         this.autor = autor;
-        this.plano = { tipo: 'joelhos', S, E, dx, dz, fase: 'corre', tFase: 0 };
+        this.plano = { tipo: tipo, S, E, dx, dz, fase: 'corre', tFase: 0 };
         this.participantes = [];
 
         this._mandar(autor, S, K.velocidade);
@@ -147,8 +148,8 @@ const Comemoracao = {
             if (par.papel === 'autor') {
                 if (par.fase === 'corre') {
                     const perto = p.model.position.distanceTo(pl.S) < 1.0;
-                    if (perto || par.t > C.joelhos.corrida.prazo) {
-                        p.comemoracao = { tipo: 'joelhos', dx: pl.dx, dz: pl.dz };
+                    if (perto || par.t > (pl.tipo === 'punho' ? C.punho : C.joelhos).corrida.prazo) {
+                        p.comemoracao = { tipo: pl.tipo, dx: pl.dx, dz: pl.dz };
                         p.fsm.changeState('COMEMORAR');
                         par.fase = 'festa'; par.t = 0;
                     }

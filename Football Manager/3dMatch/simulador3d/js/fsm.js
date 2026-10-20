@@ -1110,12 +1110,80 @@ class PlayerFSM {
         return m;
     }
 
-    applySlidePose(intens) {
+    /*
+    O DESARME EM PE (TACKLE), com os DOIS PES NO RELVADO (pedido, com imagens de referencia: ligeiro agachamento, uma perna esticada para o lado da bola com o pe no chao,
+    a outra dobrada a apoiar, tronco inclinado, bracos abertos para equilibrar). Antes a perna esticada ia quase horizontal e ficava no ar, com o corpo 0.5 m abaixo.
+    Os numeros estao em DesarmeEmPe (config/defense.js); a altura sai do corpo (`assentarCorpoInteiro`, que poe o ponto mais baixo no relvado) e, depois, o pe
+    mais alto desce ate ao chao dobrando a perna de apoio.
+    */
+    aplicarPoseDesarmeEmPe() {
+        const p = this.p, rig = p.rig;
+        if (!rig) return;
+        const D = (typeof DesarmeEmPe !== 'undefined') ? DesarmeEmPe : null;
+        if (!D) return;
+        // O lado da perna esticada: o da bola (decidido uma vez, a entrar no estado), para o corte ser para o lado dela.
+        if (p.tackleLado === undefined || this.timer < 0.02) {
+            let lado = -1;   // -1 = perna esquerda
+            const alvo = Match.ballCarrier ? Match.ballCarrier.model.position : (Match.ball ? Match.ball.position : null);
+            if (alvo) {
+                _v3.set(1, 0, 0).applyQuaternion(p.model.quaternion);   // o lado esquerdo do modelo (x local +)
+                const lat = (alvo.x - p.model.position.x) * _v3.x + (alvo.z - p.model.position.z) * _v3.z;
+                lado = lat >= 0 ? -1 : 1;                               // bola do lado esquerdo -> estica a perna esquerda
+            }
+            p.tackleLado = lado;
+        }
+        const esqEst = p.tackleLado < 0;
+        const sz = esqEst ? 1 : -1;   // sinal do `rotation.z` que abre a perna para fora
+        const coxaE = esqEst ? rig.lLeg : rig.rLeg, joE = esqEst ? rig.lKnee : rig.rKnee, peE = esqEst ? rig.lFoot : rig.rFoot;
+        const coxaA = esqEst ? rig.rLeg : rig.lLeg, joA = esqEst ? rig.rKnee : rig.lKnee, peA = esqEst ? rig.rFoot : rig.lFoot;
+        const k = 0.35;
+        rig.chest.rotation.x = lerpTo(rig.chest.rotation.x, D.tronco, k);
+        rig.pelvis.rotation.x = lerpTo(rig.pelvis.rotation.x, D.pelvis, k);
+        coxaE.rotation.x = lerpTo(coxaE.rotation.x, D.coxaEst, k);
+        coxaE.rotation.z = lerpTo(coxaE.rotation.z, sz * D.coxaEstZ, k);
+        joE.rotation.x = lerpTo(joE.rotation.x, D.joelhoEst, k);
+        if (peE) peE.rotation.x = lerpTo(peE.rotation.x, D.peEst, k);
+        coxaA.rotation.x = lerpTo(coxaA.rotation.x, D.coxaApoio, k);
+        coxaA.rotation.z = lerpTo(coxaA.rotation.z, -sz * D.coxaApoioZ, k);
+        joA.rotation.x = lerpTo(joA.rotation.x, D.joelhoApoio, k);
+        if (peA) peA.rotation.x = lerpTo(peA.rotation.x, D.peApoio, k);
+        // Bracos abertos a equilibrar.
+        rig.lArm.rotation.z = lerpTo(rig.lArm.rotation.z, D.bracoZ, k); rig.rArm.rotation.z = lerpTo(rig.rArm.rotation.z, -D.bracoZ, k);
+        rig.lArm.rotation.x = lerpTo(rig.lArm.rotation.x, D.bracoX, k); rig.rArm.rotation.x = lerpTo(rig.rArm.rotation.x, D.bracoX, k);
+        rig.lElbow.rotation.x = lerpTo(rig.lElbow.rotation.x, D.cotovelo, k); rig.rElbow.rotation.x = lerpTo(rig.rElbow.rotation.x, D.cotovelo, k);
+
+        const semDesenho = (typeof Sim !== 'undefined' && Sim.running);
+        if (semDesenho) { p.model.position.y = ALTURA_BASE_Y + D.alturaSondas; return; }
+        // O ponto mais baixo no relvado; e o pe de apoio sobe/desce ate os dois tocarem (a perna de apoio dobra o que for preciso).
+        p.assentarCorpoInteiro([rig.lArm, rig.rArm]);
+        for (let i = 0; i < 6; i++) {
+            const fe = this.fundoDoRamo(coxaE), fa = this.fundoDoRamo(coxaA);
+            const dif = fe - fa;               // >0: o pe esticado esta mais alto que o de apoio
+            if (Math.abs(dif) < 0.015) break;
+            // Perna esticada no ar: abre-a um pouco mais para fora/baixo; o de apoio no ar: dobra menos.
+            if (dif > 0) coxaE.rotation.x = Math.min(0, coxaE.rotation.x + 0.06 * Math.min(1, dif * 6));
+            else joA.rotation.x = Math.max(0.2, joA.rotation.x - 0.08 * Math.min(1, -dif * 6));
+            p.assentarCorpoInteiro([rig.lArm, rig.rArm]);
+        }
+    }
+
+    applySlidePose(intens, q) {
         const p = this.p;
         const rig = p.rig;
         if (!rig) return;
 
-        const P = SlideTackleModel.pose;
+        /*
+        DO INICIO DO DESLIZE AO FIM (referencia do carrinho: o corpo vai reclinando e as pernas ficam estendidas a frente): `P` e a mistura de `pose` (inicio) com
+        `pose.final` pelo progresso `q` (0..1) do deslize. Sem `q` e a pose de inicio.
+        */
+        const P0 = SlideTackleModel.pose, PF = P0.final || null;
+        let P = P0;
+        if (PF && q > 0) {
+            P = Object.assign({}, P0);
+            // As pernas so se desdobram no fim (a anca nao sobe a meio do deslize); o tronco e os bracos acompanham o progresso todo.
+            const qPernas = Math.pow(Math.max(0, (q - 0.45) / 0.55), 1.5);
+            for (const c in PF) if (typeof PF[c] === 'number') P[c] = P0[c] + (PF[c] - P0[c]) * (/^(coxa|joelho|pe)/.test(c) ? qPernas : q);
+        }
         const s = p.slideSide || 1;
         const k = intens;
 
@@ -1200,6 +1268,13 @@ class PlayerFSM {
             p.assentarCorpoInteiro([rig.lArm, rig.rArm]);
             // Mais perto do chao (pedido: *"baixa uns 10 cm o jogador dando carrinho, a bunda esta muito afastada do chao"*).
             p.model.position.y -= (SlideTackleModel.rebaixar || 0) * k;
+            // A anca perto do relvado durante todo o deslize (referencia: o corpo desliza sentado/deitado): afunda o excesso, ate `afundarMax`.
+            if (SlideTackleModel.alturaAncaAlvo) {
+                p.model.updateMatrixWorld(true);
+                rig.pelvis.getWorldPosition(_p_v1);
+                const sobra = _p_v1.y - (ALTURA_BASE_Y + SlideTackleModel.alturaAncaAlvo);
+                if (sobra > 0) p.model.position.y -= Math.min(SlideTackleModel.afundarMax || 0.12, sobra) * k;
+            }
             /*
             E A MÃO DE APOIO À SUPERFÍCIE. A inclinação do tronco que a leva à
             relva foi medida num jogador de altura média; nos mais altos ela
@@ -2491,21 +2566,11 @@ class PlayerFSM {
                     rig.lLeg.rotation.x = lerpTo(rig.lLeg.rotation.x, Math.PI / 4, 0.3);
                     */
                     
-                    // --- NOVA POSE DE CORTE ---
-                    rig.chest.rotation.x = lerpTo(rig.chest.rotation.x, 0.05, 0.3); // tronco erguido
-                    p.model.position.y = lerpTo(p.model.position.y, ALTURA_BASE_Y - 0.5, 0.3); // baixa o centro de gravidade
-                    
-                    // Perna esquerda esticada para cortar a bola
-                    rig.lLeg.rotation.x = lerpTo(rig.lLeg.rotation.x, -Math.PI / 2.2, 0.3);
-                    rig.lLeg.rotation.z = lerpTo(rig.lLeg.rotation.z, Math.PI / 8, 0.3); 
-                    rig.lKnee.rotation.x = lerpTo(rig.lKnee.rotation.x, 0.0, 0.3);
-                    
-                    // Perna direita fletida com joelho no chão a amparar
-                    rig.rLeg.rotation.x = lerpTo(rig.rLeg.rotation.x, Math.PI / 5, 0.3);
-                    // Joelho + dobra a canela PARA TRAS (como no carrinho, `joelhoDobrado` 1.90); com sinal negativo dobrava para a frente.
-                    rig.rKnee.rotation.x = lerpTo(rig.rKnee.rotation.x, Math.PI / 1.6, 0.3);
+                    // --- POSE DE CORTE EM PE: os dois pes no relvado (ver aplicarPoseDesarmeEmPe) ---
+                    this.aplicarPoseDesarmeEmPe();
 
                 } else if (tTackle < 0.8) {
+                    this.aplicarPoseDesarmeEmPe();
                     if (p.hasBall === false && Match.ballCarrier && Match.ballCarrier.team !== p.team && Match.ballCarrier.role !== 'gk') {
                         let distToBall = Match.ball.position.distanceTo(p.model.position);
                         if (distToBall < 1.4 && !p.tackleResolvido) {
@@ -2620,7 +2685,7 @@ class PlayerFSM {
                         intens = Math.max(0, 1.0 - (tSlide - S.paragem) / (S.levantar - S.paragem));
                     }
 
-                    this.applySlidePose(intens);
+                    { const u = Math.max(0, Math.min(1, tSlide / S.paragem)); this.applySlidePose(intens, u * u * (3 - 2 * u)); }
 
                     // Toque na bola: uma unica vez por carrinho.
                     if (!p.slideTouched && !p.hasBall &&
@@ -2739,10 +2804,35 @@ class PlayerFSM {
                         c.entrou = true;
                         // PELO QUATERNIAO: o corpo e orientado por `lookAt`, e o Euler dele passa a (pi, y, pi) quando a frente aponta para tras (z negativo); escrever so o `rotation.y`
                         // dava a frente invertida: ele deslizava para um lado com o corpo virado para o outro (relato).
-                        if (c.tipo === 'joelhos') p.model.quaternion.setFromAxisAngle(_vUp, Math.atan2(c.dx, c.dz));
+                        if (c.tipo === 'joelhos' || c.tipo === 'punho') p.model.quaternion.setFromAxisAngle(_vUp, Math.atan2(c.dx, c.dz));
                     }
 
-                    if (c.tipo === 'joelhos') {
+                    if (c.tipo === 'punho') {
+                        // COMEMORACAO 2: o punho erguido (ver ComemoracaoGol.punho).
+                        const J = CG.punho, PJ = J.pose;
+                        const t1 = J.tParada, t2 = t1 + J.tErguer, t3 = t2 + J.tManter, t4 = t3 + J.tBaixar;
+                        const sv = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+                        const DE_PE0 = { pelvisX: 0, peitoX: 0, pescocoX: 0, coxaE: 0, joelhoE: 0, peE: 0, coxaD: 0, joelhoD: 0, peD: 0,
+                            bracoEx: 0, bracoEz: 0.1, cotoveloE: -0.1, bracoDx: 0, bracoDz: 0.1, cotoveloD: -0.1 };
+                        let P;
+                        if (t < t1) P = this._poseMistura(DE_PE0, PJ.parada, sv(t / t1));
+                        else if (t < t2) P = this._poseMistura(PJ.parada, PJ.punho, sv((t - t1) / J.tErguer));
+                        else if (t < t3) P = PJ.punho;
+                        else if (t < t4) P = this._poseMistura(PJ.punho, DE_PE0, sv((t - t3) / J.tBaixar));
+                        else P = DE_PE0;
+                        this._escreverPoseComemorar(P);
+                        // Olha para a torcida: o pescoco vira de um lado para o outro enquanto segura o punho.
+                        if (rig.neck) rig.neck.rotation.y = (t > t1 && t < t3) ? Math.sin((t - t1) * J.olhar.ritmo) * J.olhar.amplitude * sv((t - t1) / 0.4) : 0;
+                        // Trava a corrida e fica de pe (a corrida e a MOVE_TO_POS; aqui desliza-se ate parar).
+                        p.velocity.multiplyScalar(Math.max(0, 1 - 7.0 * dt));
+                        p.model.position.y = ALTURA_BASE_Y;
+                        if (t >= t4) {
+                            c.fim = true;
+                            if (rig.neck) rig.neck.rotation.y = 0;
+                            p.resetBonesToDefault();
+                            this.changeState('MOVE_TO_POS');
+                        }
+                    } else if (c.tipo === 'joelhos') {
                         const J = CG.joelhos, PJ = J.pose;
                         const t1 = J.tQueda, t2 = t1 + J.tDeslize, t3 = t2 + J.tBracos,
                             t4 = t3 + J.tManter, t5 = t4 + J.tLevantar;
@@ -2756,7 +2846,14 @@ class PlayerFSM {
                         if (t < 0.5 * t1) { P = this._poseMistura(DE_PE, PJ.queda, suave(t / (0.5 * t1))); baixo = t / t1; }
                         else if (t < t1) { P = this._poseMistura(PJ.queda, PJ.deslize, suave((t - 0.5 * t1) / (0.5 * t1))); baixo = t / t1; }
                         else if (t < t2) { P = PJ.deslize; baixo = 1; }
-                        else if (t < t3) { P = this._poseMistura(PJ.deslize, PJ.bracosAcima, suave((t - t2) / J.tBracos)); baixo = 1; }
+                        else if (t < t3) {
+                            // Primeiro os bracos abrem na horizontal (quadro 4 da referencia), depois sobem (quadro 5).
+                            const u = (t - t2) / J.tBracos;
+                            P = PJ.bracosAbertos
+                                ? (u < 0.5 ? this._poseMistura(PJ.deslize, PJ.bracosAbertos, suave(u / 0.5)) : this._poseMistura(PJ.bracosAbertos, PJ.bracosAcima, suave((u - 0.5) / 0.5)))
+                                : this._poseMistura(PJ.deslize, PJ.bracosAcima, suave(u));
+                            baixo = 1;
+                        }
                         else if (t < t4) { P = PJ.bracosAcima; baixo = 1; }
                         else if (t < t5) { const u = suave((t - t4) / J.tLevantar); P = this._poseMistura(PJ.bracosAcima, DE_PE, u); baixo = 1 - u; }
                         else { P = DE_PE; baixo = 0; }

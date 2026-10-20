@@ -217,6 +217,19 @@ const CorteModel = {
 };
 if (typeof window !== 'undefined') window.CorteModel = CorteModel;
 
+/*
+O DESARME EM PE (fsm.js, aplicarPoseDesarmeEmPe): ligeiro agachamento com os dois pes no relvado. Angulos do rig, em radianos (coxa x negativo = para a frente;
+joelho positivo dobra a canela para tras; `...Z` abre a perna para fora).
+*/
+const DesarmeEmPe = {
+    tronco: 0.30, pelvis: 0.0,
+    coxaEst: -0.80, coxaEstZ: 0.45, joelhoEst: 0.10, peEst: -0.10,      // a perna que corta a bola, esticada para a frente e um pouco para o lado
+    coxaApoio: -0.85, coxaApoioZ: 0.10, joelhoApoio: 1.35, peApoio: -0.15,   // a de apoio, dobrada
+    bracoX: 0.0, bracoZ: 0.55, cotovelo: -0.55,
+    alturaSondas: -0.25     // so nas simulacoes sem desenho
+};
+if (typeof window !== 'undefined') window.DesarmeEmPe = DesarmeEmPe;
+
 const SlideTackleModel = {
     /*
     =========================================================================
@@ -307,7 +320,9 @@ const SlideTackleModel = {
     velMin: 4.5,            // nem o carrinho dado parado desliza mais devagar
     velMax: 12.0,           // nem o mais lançado passa disto
     alturaAnca: -0.55,      // quanto o corpo desce ao sentar no relvado
-    rebaixar: 0.10,         // m a mais depois de assentar o corpo (a anca ficava afastada do relvado)
+    alturaAncaAlvo: 0.24,   // m: a anca (junta) nao fica acima disto durante o deslize; o excesso afunda o corpo ate `afundarMax` (as pernas tocam o relvado)
+    afundarMax: 0.14,
+    rebaixar: 0.02,         // m a mais depois de assentar o corpo (a anca ficava afastada do relvado)
 
     janelaToqueIni: 0.08,   // quando o pé pode começar a tocar na bola
     janelaToqueFim: 1.10,
@@ -386,7 +401,20 @@ const SlideTackleModel = {
 
         bracoLivreZ: 0.25,  // o outro levantado, para cima e para a frente
         bracoLivreX: -1.70,
-        cotoveloLivre: -0.30
+        cotoveloLivre: -0.30,
+
+        /*
+        O FIM DO DESLIZE (referencia do carrinho, vistas frontal e lateral): o corpo vai reclinando durante o deslize e acaba quase deitado de costas, apoiado num
+        cotovelo/mao atras, com AS DUAS PERNAS ESTENDIDAS A FRENTE (uma ligeiramente dobrada) e o outro braco aberto. `applySlidePose` mistura a pose de cima (inicio)
+        com esta, pelo progresso do deslize.
+        */
+        final: {
+            ancaTras: -1.25, peito: 0.15,
+            coxaEstendida: -0.30, joelhoEstendido: 0.05, coxaEstendidaY: 0.10, peEstendido: -0.50,
+            coxaDobrada: -0.20, coxaDobradaY: -0.05, coxaDobradaZ: 0.30, joelhoDobrado: 0.55, peDobrado: -0.40,
+            bracoApoioX: 0.95, bracoApoioZ: 0.35,
+            bracoLivreX: -0.60, bracoLivreZ: 0.80, cotoveloLivre: -0.50
+        }
     }
 };
 
