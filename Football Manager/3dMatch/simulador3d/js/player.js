@@ -533,7 +533,7 @@ class FootballPlayer {
         if (this.jumpTimer > 0) return;                    // o cabeceio escreve a cabeça
         const st = this.fsm ? this.fsm.currentState : null;
         if (st === 'SHOOT' || st === 'SET_PIECE_KICK' || st === 'LATERAL' ||
-            st === 'SLIDE_TACKLE' || st === 'COMEMORAR' ||
+            st === 'SLIDE_TACKLE' || st === 'COMEMORAR' || st === 'PEIXINHO' ||
             st === 'CHEST_CONTROL' || st === 'BALL_CONTROL_RIGHT') return;
 
         const neck = this.rig.neck;
@@ -588,7 +588,7 @@ class FootballPlayer {
             (this.gkEstado === 'mergulho' || this.gkEstado === 'salto_alto' ||
              this.gkEstado === 'saida_pes' || this.gkEstado === 'apanhar')) return;   // `apanhar`: as pernas vao por IK (apanharPorIK), que ja poe as solas no relvado
         const st = this.fsm ? this.fsm.currentState : null;
-        if (st === 'SLIDE_TACKLE' || st === 'COMEMORAR') return;
+        if (st === 'SLIDE_TACKLE' || st === 'COMEMORAR' || st === 'PEIXINHO') return;
         /*
         ACIMA DA `velMax` O ASSENTO NÃO DESLIGA — fica só num sentido.
 
@@ -1574,7 +1574,8 @@ class FootballPlayer {
         iniciarLancamentoBolaParada. Os outros desfechos (passe, cruzamento)
         continuam com o PlayerKickClip, aqui em baixo.
         */
-        if (decisao === 'remate' && typeof LancamentoClip !== 'undefined' &&
+        // TODAS as cobrancas (remate, passe e cruzamento) levam o gesto do penalti/canto (pedido: a falta nao directa tambem usa a animacao do penalti).
+        if (typeof LancamentoClip !== 'undefined' &&
             typeof LancamentoBolaParada !== 'undefined') {
             const ddx = Match.ball.position.x - this.model.position.x;
             const ddz = Match.ball.position.z - this.model.position.z;
@@ -4872,7 +4873,7 @@ class FootballPlayer {
         estar no pico com onde ELE vai estar, e usar a posição do frame
         anterior era pedir-lhe para saltar para onde já não está.
         */
-        if (this.role !== 'gk') this.avaliarSaltoDeCabeceio(dt);
+        if (this.role !== 'gk') { this.avaliarPeixinho(dt); this.avaliarSaltoDeCabeceio(dt); }
 
         if (this.hasBall) {
             /*
@@ -5327,6 +5328,55 @@ class FootballPlayer {
     Fica de fora quem tem a bola, o guarda-redes (tem o seu próprio salto no
     updateGK) e quem está a meio de um gesto com clip.
     */
+    /*
+    O PEIXINHO (ver `Peixinho`, config/player_behavior.js): avalia se vale a pena atirar-se de cabeca a uma bola baixa (40-60 cm) que vai passar a frente dele. Chamado todos os
+    frames pelo `update`, para os jogadores de campo sem bola. Devolve true se arrancou o estado PEIXINHO.
+    */
+    avaliarPeixinho(dt) {
+        const K = (typeof Peixinho !== 'undefined') ? Peixinho : null;
+        if (!K || !K.activo) return false;
+        if (this.peixinhoCooldown > 0) this.peixinhoCooldown -= dt;
+        if (this.role === 'gk' || this.hasBall || this.peixinhoCooldown > 0 || this.jumpTimer > 0 || this.queda) return false;
+        if (Match.state !== 'PLAY' || Match.kickoffActive || !Match.ball) return false;
+        const s = this.fsm ? this.fsm.currentState : '';
+        if (s === 'PEIXINHO' || s === 'SHOOT' || s === 'PASS' || s === 'CROSS' || s === 'SET_PIECE_KICK' || s === 'SET_PIECE_WAIT' || s === 'TACKLE' ||
+            s === 'SLIDE_TACKLE' || s === 'CHEST_CONTROL' || s === 'BALL_CONTROL_RIGHT' || s === 'LATERAL' || s === 'COMEMORAR') return false;
+        if (this.skillFor('TEC') <= K.tecMin || this.skillFor('tacticknow') <= K.leituraMin) return false;
+        // A bola vem para a baliza que ele ataca, e nao e de ninguem (ou e do adversario).
+        const v = Match.ballVel;
+        if (!v || v.z * this.dirZ <= 0.5) return false;
+        const vel = Math.hypot(v.x, v.y, v.z);
+        if (vel < K.velBolaMin || vel > K.velBolaMax) return false;
+        if (Match.ballCarrier && Match.ballCarrier.team === this.team) return false;
+        const prev = preverBolaEm(K.tContacto);
+        if (!prev || prev.y < K.alturaMin || prev.y > K.alturaMax) return false;
+        const dx = prev.x - this.model.position.x, dz = prev.z - this.model.position.z, d = Math.hypot(dx, dz);
+        if (d < K.alcanceMin || d > K.alcanceMax) return false;
+        // SO EM FINALIZACAO PARA A BALIZA (pedido): o contacto a `golMax` m do centro da baliza e o mergulho virado para ela (nao para a lateral nem para a linha de fundo).
+        const gx = -prev.x, gz = this.targetGoalZ - prev.z, dg = Math.hypot(gx, gz);
+        if (dg > K.golMax || dg < 0.5) return false;
+        if ((dx * gx + dz * gz) / (d * dg) < Math.cos(K.anguloGol)) return false;
+        // Dentro do cone a frente dele (a direccao do corpo, ou a do movimento se corre).
+        const vv = this.velocity ? Math.hypot(this.velocity.x, this.velocity.z) : 0;
+        let fx, fz;
+        if (vv > 1.0) { fx = this.velocity.x / vv; fz = this.velocity.z / vv; }
+        else { _v2.set(0, 0, 1).applyQuaternion(this.model.quaternion); fx = _v2.x; fz = _v2.z; }
+        const cosA = (fx * dx + fz * dz) / (Math.hypot(fx, fz) * d || 1);
+        if (cosA < Math.cos(K.cone)) return false;
+        // So se for o primeiro a chegar: nenhum adversario mais perto do ponto do contacto.
+        const advs = (this.team === 'TeamA') ? Match.opponents : Match.players;
+        for (const o of advs) {
+            if (!o.model || o.role === 'gk') continue;
+            if (Math.hypot(o.model.position.x - prev.x, o.model.position.z - prev.z) < d - 0.3) return false;
+        }
+        this.peixinhoCooldown = K.cooldown;      // a espera conta desde a decisao (a decisao e sorteada)
+        if (Math.random() > K.chance) return false;
+        this.peixinho = { x0: this.model.position.x, z0: this.model.position.z, bx: prev.x, bz: prev.z, by: prev.y, dirx: dx / d, dirz: dz / d, d: d, tocou: false, vx: 0, vz: 0 };
+        this.actionState = null;
+        this.fsm.changeState('PEIXINHO');
+        return true;
+    }
+
     avaliarSaltoDeCabeceio(dt) {
         if (this.jumpCooldown > 0) this.jumpCooldown -= dt;
 
@@ -5969,6 +6019,30 @@ class FootballPlayer {
         rig.lElbow.rotation.x = lerpTo(rig.lElbow.rotation.x, -0.3 * intens, 0.4);
         rig.rElbow.rotation.x = lerpTo(rig.rElbow.rotation.x, -0.3 * intens, 0.4);
 
+        // As FASES (ver BallControl.peitoFases): amortece (peito para tras, joelhos dobrados, cabeca para cima), a bola cai (tronco endireita, cabeca desce), controle.
+        const F = B.peitoFases;
+        if (F) {
+            const n = this.peitoN || 0;
+            const sv = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+            const amort = n < F.nAmortece ? sv(n / F.nAmortece) : 1 - sv((n - F.nAmortece) / (F.nQueda - F.nAmortece));   // 0 -> 1 -> 0
+            const A = Math.max(0, Math.min(1, amort));
+            const ate = sv((n - F.nAmortece) / (1 - F.nAmortece));                                                          // 0 no amortecimento, 1 no controle
+            const dobra = F.joelhoControle + (F.joelhoAmortece - F.joelhoControle) * A;
+            const coxa = F.coxaControle + (F.coxaAmortece - F.coxaControle) * A;
+            rig.chest.rotation.x = lerpTo(rig.chest.rotation.x, F.peitoAmortece * A + F.peitoQueda * (1 - A) * ate, 0.5);
+            rig.lLeg.rotation.x = lerpTo(rig.lLeg.rotation.x, coxa, 0.5); rig.rLeg.rotation.x = lerpTo(rig.rLeg.rotation.x, coxa, 0.5);
+            rig.lKnee.rotation.x = lerpTo(rig.lKnee.rotation.x, dobra, 0.5); rig.rKnee.rotation.x = lerpTo(rig.rKnee.rotation.x, dobra, 0.5);
+            const pe = F.peAmortece * A;
+            rig.lFoot.rotation.x = lerpTo(rig.lFoot.rotation.x, pe, 0.5); rig.rFoot.rotation.x = lerpTo(rig.rFoot.rotation.x, pe, 0.5);
+            rig.pelvis.rotation.x = lerpTo(rig.pelvis.rotation.x, 0, 0.5);
+            if (rig.neck) rig.neck.rotation.x = lerpTo(rig.neck.rotation.x, F.pescocoCima * A + F.pescocoBaixo * (1 - A) * (n > F.nAmortece ? 1 : 0) * (1 - ate * 0.6), 0.5);
+            // Com os joelhos dobrados os pes ficam no relvado: assenta-se o corpo (nao enquanto salta).
+            if (!(this.peitoHopTimer > 0) && !(typeof Sim !== 'undefined' && Sim.running) && typeof this.assentarCorpoInteiro === 'function') {
+                this.assentarCorpoInteiro([rig.lArm, rig.rArm]);
+            }
+            return;
+        }
+
         // Pernas, joelhos, tornozelos e pelve permanecem estáveis e a prumo no solo
         rig.pelvis.rotation.x = lerpTo(rig.pelvis.rotation.x, 0, 0.4);
         rig.lLeg.rotation.x = lerpTo(rig.lLeg.rotation.x, 0, 0.4);
@@ -6094,7 +6168,7 @@ class FootballPlayer {
         if (s === 'BALL_CONTROL_RIGHT') {
             return;
         }
-        if (s !== 'TACKLE' && s !== 'SLIDE_TACKLE' && s !== 'COMEMORAR' && s !== 'SHOOT' && s !== 'SET_PIECE_KICK' && this.jumpTimer <= 0 && (this.role !== 'gk' || (this.gkEstado !== 'mergulho' && this.gkEstado !== 'salto_alto'))) {
+        if (s !== 'TACKLE' && s !== 'SLIDE_TACKLE' && s !== 'COMEMORAR' && s !== 'PEIXINHO' && s !== 'SHOOT' && s !== 'SET_PIECE_KICK' && this.jumpTimer <= 0 && (this.role !== 'gk' || (this.gkEstado !== 'mergulho' && this.gkEstado !== 'salto_alto'))) {
             rig.pelvis.rotation.x = lerpTo(rig.pelvis.rotation.x, 0, 0.25);
             rig.pelvis.rotation.y = lerpTo(rig.pelvis.rotation.y, 0, 0.25);
             rig.pelvis.rotation.z = lerpTo(rig.pelvis.rotation.z, 0, 0.25);
@@ -6313,7 +6387,7 @@ class FootballPlayer {
             }
         }
 
-        if (this.fsm.currentState === 'TACKLE' || this.fsm.currentState === 'SLIDE_TACKLE' || this.fsm.currentState === 'COMEMORAR') {
+        if (this.fsm.currentState === 'TACKLE' || this.fsm.currentState === 'SLIDE_TACKLE' || this.fsm.currentState === 'COMEMORAR' || this.fsm.currentState === 'PEIXINHO') {
             return;
         }
 

@@ -1044,37 +1044,51 @@ function preencherHudJogador(elId, p) {
 
 function updateHudJogadores() {
     /*
-    SEM PISCAR: entre dois toques a bola fica solta (`ballCarrier` nulo) e o cartao apagava-se para voltar a acender no toque seguinte. Mantem-se o ultimo
-    portador 5 s depois de ele largar a bola; so depois disso (bola mesmo solta, lance parado...) o cartao se apaga.
+    OS CARTOES NAO SOMEM DURANTE O JOGO (pedido): saem na entrada em campo, no intervalo e no fim, e voltam depois. Mostram sempre quem esta com a bola e o marcador dele
+    (o adversario mais perto); sem ninguem com a bola dominada, o mais perto da bola de cada equipa. Quem esta num cartao so e trocado quando outro esta mais de
+    `HISTERESE` m mais perto, para o cartao nao piscar de nome em nome.
     */
-    const agoraHud = performance.now() / 1000;
-    if (Match.ballCarrier) { window._hudUltimoPortador = Match.ballCarrier; window._hudUltimoPortadorT = agoraHud; }
-    const ultimo = window._hudUltimoPortador;
-    const carrier = Match.ballCarrier ||
-        ((ultimo && ultimo.model && ultimo.model.parent && agoraHud - (window._hudUltimoPortadorT || 0) < 5.0) ? ultimo : null);
-    // O cartao SO aparece depois de os times sairem da formacao alinhada (pedido): nao na entrada em campo (ABERTURA, `Abertura.activa`), nem com os
-    // times alinhados a espera da saida (`kickoffActive`, `segurarSaida`). O batedor da saida ja tem a bola, e era isso que o acendia.
-    const antesDaSaida = Match.state === 'ABERTURA' || Match.state === 'INTERVALO' || Match.kickoffActive || Match.segurarSaida ||
+    const HISTERESE = 1.0;
+    const naoJoga = Match.state === 'ABERTURA' || Match.state === 'INTERVALO' || Match.state === 'FIM_DE_JOGO' ||
         (typeof Abertura !== 'undefined' && Abertura.activa);
-    if (!carrier || antesDaSaida) {
+    if (naoJoga || !Match.ball) {
         preencherHudJogador('hud-jogador-esq', null);
         preencherHudJogador('hud-jogador-dir', null);
+        window._hudMemoria = null;
         return;
     }
-
-    const adversarios = (carrier.team === 'TeamA') ? Match.opponents : Match.players;
-    let marcador = null, melhorDist = Infinity;
-    for (const opp of adversarios) {
-        const d = opp.model.position.distanceTo(carrier.model.position);
-        if (d < melhorDist) { melhorDist = d; marcador = opp; }
+    const maisPerto = (lista, pos, anterior) => {
+        let melhor = null, dm = Infinity, dAnt = Infinity;
+        for (const o of lista) {
+            if (!o || !o.model || o.expulso) continue;
+            const d = o.model.position.distanceTo(pos);
+            if (o === anterior) dAnt = d;
+            if (d < dm) { dm = d; melhor = o; }
+        }
+        return (anterior && dAnt <= dm + HISTERESE) ? anterior : melhor;
+    };
+    const mem = window._hudMemoria || (window._hudMemoria = { A: null, B: null });
+    const carrier = Match.ballCarrier;
+    let pA, pB;
+    if (carrier && carrier.model) {
+        // O portador, e o adversario mais perto dele.
+        const adversarios = (carrier.team === 'TeamA') ? Match.opponents : Match.players;
+        const outro = maisPerto(adversarios, carrier.model.position, carrier.team === 'TeamA' ? mem.B : mem.A);
+        pA = carrier.team === 'TeamA' ? carrier : outro;
+        pB = carrier.team === 'TeamA' ? outro : carrier;
+    } else {
+        // Bola solta: o mais perto da bola de cada equipa.
+        pA = maisPerto(Match.players, Match.ball.position, mem.A);
+        pB = maisPerto(Match.opponents, Match.ball.position, mem.B);
     }
+    mem.A = pA; mem.B = pB;
 
     // O cartao da ESQUERDA e o do time que esta a esquerda do ecra (o que defende a esquerda e ataca para a direita, dirZ -1 na camara lateral TV); o da
-    // DIREITA, o do outro. Antes a esquerda era sempre o portador, e a direita o marcador.
-    const dirLado = (p) => (typeof Lados !== 'undefined' && Lados.dirDe) ? Lados.dirDe(p.team) : (p.team === 'TeamA' ? 1 : -1);
-    const esqEhCarrier = dirLado(carrier) < 0;
-    preencherHudJogador('hud-jogador-esq', esqEhCarrier ? carrier : marcador);
-    preencherHudJogador('hud-jogador-dir', esqEhCarrier ? marcador : carrier);
+    // DIREITA, o do outro.
+    const dirLado = (t) => (typeof Lados !== 'undefined' && Lados.dirDe) ? Lados.dirDe(t) : (t === 'TeamA' ? 1 : -1);
+    const aEsquerda = dirLado('TeamA') < 0;
+    preencherHudJogador('hud-jogador-esq', aEsquerda ? pA : pB);
+    preencherHudJogador('hud-jogador-dir', aEsquerda ? pB : pA);
 }
 
 window.cameraFrustum = new THREE.Frustum();

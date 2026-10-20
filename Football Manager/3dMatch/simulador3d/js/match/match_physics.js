@@ -905,6 +905,8 @@ Object.assign(Match, {
         lhe tocar. E a distância abaixo trata do resto — passada a bola, ela
         afasta-se e a protecção desliga-se sozinha.
         */
+        // Em mergulho de peixinho o contacto e o do proprio estado (fsm.js, case 'PEIXINHO'), nao este.
+        if (best.fsm && best.fsm.currentState === 'PEIXINHO') return false;
         const RT = BallControl.rouboPorTras;
         const dono = this.ballCarrier || this.lastTouchedPlayer;
         if (RT && dono && dono.model && best !== dono && best.team !== dono.team) {

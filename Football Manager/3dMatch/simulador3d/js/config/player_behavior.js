@@ -1075,6 +1075,18 @@ const BallControl = {
     */
     peitoInclinacao: -0.20, // rotação da cintura (negativo = para trás) — só o tronco, reduzido pra não ler como o corpo inteiro a tombar
     peitoBracos: 0.35,      // abertura dos braços (rotation.z, somado à pose)
+    /*
+    AS FASES DA MATADA NO PEITO (referencia: expectativa, preparacao, amortecimento, queda da bola, controle). O estado arranca no contacto, por isso o gesto cobre
+    o AMORTECIMENTO (ate `nAmortece`: o peito recua, os joelhos dobram, os bracos abrem, a cabeca olha para cima), a QUEDA DA BOLA (ate `nQueda`: o tronco endireita
+    e a cabeca desce atras da bola) e o CONTROLE (de pe, a bola aos pes). Angulos em radianos; joelhos: coxa para a frente (negativo), canela para tras (positivo).
+    */
+    peitoFases: {
+        nAmortece: 0.30, nQueda: 0.70,
+        joelhoAmortece: 0.65, coxaAmortece: -0.32, peAmortece: -0.15,     // o agachamento ao amortecer
+        joelhoControle: 0.18, coxaControle: -0.10,                         // e o que sobra no controle
+        peitoAmortece: -0.34, peitoQueda: 0.06,
+        pescocoCima: 0.30, pescocoBaixo: -0.30                               // cabeca: olha a bola a chegar e depois a cair
+    },
 
     /*
     A bola COLA ao peito antes de cair.
@@ -1109,9 +1121,59 @@ const BallControl = {
     corre), ela sobe e desce com o corpo — nunca ultrapassa esse 1/3, que é
     a "altura máxima do pulo" pedida.
     */
-    peitoPuloLimiar: 0.98, // altura de contacto (dos pés) acima da qual salta
+    peitoPuloLimiar: 9.0, // SEM SALTO (pedido: a matada no peito é parada, com os pés no relvado); era 0.98 — altura de contacto (dos pés) acima da qual saltava
     peitoPuloMax: 0.27     // pico do salto (m) — 1/3 de SaltoCabeceio.alturaMax
 };
+
+/*
+=============================================================================
+FINALIZACAO DE PEIXINHO — o cabeceio em mergulho
+=============================================================================
+Pedido, com a sequencia de 5 poses (impulso, o voo, o cabeceio, apreensao da queda, queda/deslize): *"se a bola estiver entre 40-60 cm do solo o jogador pode
+pular para a frente e tocar nela de cabeca. Tem que ter tecnica acima de 75 e leitura de jogo acima de 75"*.
+
+`tecMin` e `leituraMin` sao o TEC e o `tacticknow` (leitura de jogo). A bola tem de estar, no instante do contacto (`tContacto` s adiante, prevista pela fisica da
+bola), entre `alturaMin` e `alturaMax` m do relvado, a `alcanceMin`..`alcanceMax` m do jogador e dentro do cone a frente dele (`cone`). So no ataque (`avancoMin`
+m para la do meio-campo) e com a bola a vir para a baliza que ele ataca; sorteio por decisao (`chance`) e espera de `cooldown` s.
+Os tempos (s, desde o arranque): impulso, voo ate ao contacto (`tContacto`), apreensao da queda, queda/deslize, e o levantar. As poses estao em fsm.js (case 'PEIXINHO').
+=============================================================================
+*/
+const Peixinho = {
+    activo: true,
+    tecMin: 75, leituraMin: 75,
+    alturaMin: 0.40, alturaMax: 0.60,
+    alcanceMin: 2.0, alcanceMax: 4.0,
+    cone: 0.60,               // rad (~26 graus) para cada lado da frente do jogador
+    golMax: 9.0,              // m: o contacto tem de ser a no maximo isto do CENTRO da baliza (pedido)
+    anguloGol: 1.05,          // rad (~60 graus): o mergulho tem de ir (no maximo) a este angulo da direccao do contacto ao centro da baliza
+    golMiraMax: 3.2,          // m do centro: a mira dentro da baliza (as traves estao a 3.66)
+    erroFora: 0.30, erroForaMin: 1.0, erroForaMax: 3.0,   // chance de ir fora e a que distancia da trave (m): perto, com perigo
+    velBolaMin: 2.0, velBolaMax: 16.0,
+    chance: 0.7, cooldown: 8.0,
+    tImpulso: 0.12, tContacto: 0.34, tApreensao: 0.22, tQueda: 0.50, tLevantar: 0.60,
+    saidaVy: 0.5, saidaVel: 11.0,   // o remate de peixinho: sempre para o golo (ver fsm.js), rasteiro e a esta velocidade
+    cabecaAlcance: 1.55,      // m a frente da origem do corpo a que a cabeca fica no contacto (corpo deitado)
+    pitch: { impulso: 0.55, voo: 0.95, contacto: 1.20, apreensao: 1.10, queda: 1.45 },   // rad: inclinacao do corpo para a frente
+    alturaPescoco: { inicio: 1.45, queda: 0.38 },   // m do pescoco ao relvado, no arranque e no deslize
+    pose: {
+        // 1 IMPULSO: inclina-se, uma perna a frente e a outra a empurrar, bracos a levar o balanco.
+        impulso: { pelvisX: 0.0, peitoX: 0.30, pescocoX: 0.0, coxaE: -0.50, joelhoE: 0.70, peE: 0.0, coxaD: 0.35, joelhoD: 1.00, peD: -0.2,
+            bracoEx: -0.50, bracoEz: 0.45, cotoveloE: -0.60, bracoDx: -0.50, bracoDz: 0.45, cotoveloD: -0.60 },
+        // 2 O VOO: corpo deitado no ar, pernas atras dobradas, bracos abertos atras, olhar na bola.
+        voo: { pelvisX: 0.0, peitoX: 0.12, pescocoX: -0.30, coxaE: 0.50, joelhoE: 1.20, peE: 0.0, coxaD: 0.35, joelhoD: 1.00, peD: 0.0,
+            bracoEx: 0.60, bracoEz: 0.95, cotoveloE: -0.20, bracoDx: 0.60, bracoDz: 0.95, cotoveloD: -0.20 },
+        // 3 O CABECEIO: o peito arqueia, a cabeca vai a bola, bracos bem abertos para tras.
+        cabeceio: { pelvisX: 0.0, peitoX: -0.18, pescocoX: -0.55, coxaE: 0.70, joelhoE: 1.40, peE: 0.0, coxaD: 0.55, joelhoD: 1.30, peD: 0.0,
+            bracoEx: 0.45, bracoEz: 1.25, cotoveloE: -0.10, bracoDx: 0.45, bracoDz: 1.25, cotoveloD: -0.10 },
+        // 4 APREENSAO DA QUEDA: os bracos vem para a frente a proteger, pernas no ar.
+        apreensao: { pelvisX: 0.0, peitoX: 0.10, pescocoX: -0.40, coxaE: 0.50, joelhoE: 1.50, peE: 0.0, coxaD: 0.45, joelhoD: 1.40, peD: 0.0,
+            bracoEx: -2.30, bracoEz: 0.45, cotoveloE: -0.35, bracoDx: -2.30, bracoDz: 0.45, cotoveloD: -0.35 },
+        // 5 QUEDA / DESLIZE: de barriga no relvado, cabeca levantada, cotovelos dobrados, pernas dobradas para cima.
+        queda: { pelvisX: 0.0, peitoX: -0.30, pescocoX: -0.70, coxaE: 0.25, joelhoE: 1.75, peE: 0.0, coxaD: 0.20, joelhoD: 1.65, peD: 0.0,
+            bracoEx: -1.90, bracoEz: 0.40, cotoveloE: -1.00, bracoDx: -1.90, bracoDz: 0.40, cotoveloD: -1.00 }
+    }
+};
+if (typeof window !== 'undefined') window.Peixinho = Peixinho;
 
 /*
 Salto para cabecear.

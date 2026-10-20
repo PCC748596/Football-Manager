@@ -5020,7 +5020,7 @@ const PlayerAI = {
         // por cima dele todos os frames — e como o `podeDriblar` responde
         // false a quem já está a driblar, o ramo seguinte era o passe. Medido:
         // das 14 entradas no estado, 10 saíam para PASS antes do toque.
-        if (player.actionState || s === "PASS" || s === "SHOOT" || s === "CROSS" || s === "TACKLE" || s === "SLIDE_TACKLE" || s === "CHEST_CONTROL" || s === "LATERAL" || s === "DRIBBLE") return;
+        if (player.actionState || s === "PASS" || s === "SHOOT" || s === "CROSS" || s === "TACKLE" || s === "SLIDE_TACKLE" || s === "CHEST_CONTROL" || s === "PEIXINHO" || s === "LATERAL" || s === "DRIBBLE") return;
 
         /*
         AS ORDENS DA ROTINA DA FALTA (ver Match.correrRotinaDaFalta): `ir` leva-o ao ponto do diagrama

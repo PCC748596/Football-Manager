@@ -800,6 +800,15 @@ function executeShotGameplay(p) {
 
         alvoX = mira.x + sigma.lateral * amostraGaussiana(Math.random);
         alvoY = Math.max(0.08, mira.y + sigma.vertical * amostraGaussiana(Math.random));
+        /*
+        O REMATE QUE ERRA, ERRA PERTO (pedido: *"chutando errado muito longe do gol; e pra chutar errado, mas com mais perigo: de 1 a 3 m das traves"*): o erro (gaussiano)
+        podia mandar a bola a 6-10 m do poste. Quanto passa dos postes ou do travessao fica limitado a `ErroPertoDaBaliza` (ver config/shooting.js).
+        */
+        if (typeof ErroPertoDaBaliza !== 'undefined' && ErroPertoDaBaliza.activo) {
+            const EP = ErroPertoDaBaliza, poste = LARGURA_BALIZA / 2;
+            if (Math.abs(alvoX) > poste + EP.foraMax) alvoX = Math.sign(alvoX) * (poste + EP.foraMax);
+            if (alvoY > ALTURA_BALIZA + EP.cimaMax) alvoY = ALTURA_BALIZA + EP.cimaMax;
+        }
 
         /*
         O TECTO E O FACTOR SAO DEPOIS do multiplicador do tipo, e nao antes:
@@ -952,7 +961,7 @@ movendo sem animação"*.
 function estadoSemPassada(estado) {
     return temGestoComClip(estado) ||
         estado === 'TACKLE' || estado === 'SLIDE_TACKLE' ||
-        estado === 'DRIBBLE' || estado === 'CHEST_CONTROL';
+        estado === 'DRIBBLE' || estado === 'CHEST_CONTROL' || estado === 'PEIXINHO';
 }
 
 
@@ -1002,7 +1011,7 @@ class PlayerFSM {
     }
     changeState(newState) {
         if (this.currentState === newState) return;
-        if (this.currentState === 'SLIDE_TACKLE' || this.currentState === 'COMEMORAR' || this.currentState === 'TACKLE' ||
+        if (this.currentState === 'SLIDE_TACKLE' || this.currentState === 'COMEMORAR' || this.currentState === 'PEIXINHO' || this.currentState === 'TACKLE' ||
             this.currentState === 'SHOOT' || this.currentState === 'SET_PIECE_KICK' ||
             this.currentState === 'PASS') {
             this.p.resetBonesToDefault();
@@ -2407,11 +2416,124 @@ class PlayerFSM {
                     depois do animateBones; aqui só se guarda a intensidade.
                     */
                     p.peitoIntens = (nP < 0.3) ? (nP / 0.3) : (1 - (nP - 0.3) / 0.7);
+                    p.peitoN = nP;   // o progresso do gesto, para as fases da pose (aplicarCamadaPeito)
 
                     if (nP >= 1) {
                         p.peitoIntens = 0;
                         p.peitoSaida = null;
                         this.changeState('IDLE');
+                    }
+                }
+                break;
+
+            /* =============================================================
+               PEIXINHO — a finalizacao de cabeca em mergulho (ver `Peixinho`, config/player_behavior.js; o gatilho e o `avaliarPeixinho`, player.js).
+               Cinco poses: impulso, o voo, o cabeceio, apreensao da queda, queda/deslize; depois levanta-se. O corpo INTEIRO inclina-se para a frente (quaternio:
+               yaw da direccao do mergulho + inclinacao em x), a altura sai do pescoco (a cabeca fica a altura da bola no contacto) e a cabeca chega ao ponto previsto.
+               ============================================================= */
+            case 'PEIXINHO':
+                {
+                    const K = Peixinho, S = p.peixinho;
+                    if (!S) { this.changeState('MOVE_TO_POS'); break; }
+                    const t = this.timer;
+                    const sv = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+                    const T1 = K.tImpulso, T2 = K.tContacto, T3 = T2 + K.tApreensao, T4 = T3 + K.tQueda, T5 = T4 + K.tLevantar;
+                    const DE_PE = { pelvisX: 0, peitoX: 0, pescocoX: 0, coxaE: 0, joelhoE: 0, peE: 0, coxaD: 0, joelhoD: 0, peD: 0, bracoEx: 0, bracoEz: 0.1, cotoveloE: -0.1, bracoDx: 0, bracoDz: 0.1, cotoveloD: -0.1 };
+                    const PZ = K.pose;
+                    let P, pitch, hN;
+                    const hIni = K.alturaPescoco.inicio, hQ = K.alturaPescoco.queda;
+                    const hC = Math.max(0.35, Math.min(0.75, S.by + 0.10));   // pescoco a altura da bola no contacto
+                    if (t < T1) { const u = sv(t / T1); P = this._poseMistura(DE_PE, PZ.impulso, u); pitch = K.pitch.impulso * u; hN = hIni - 0.05 * u; }
+                    else if (t < T2) {
+                        const u = (t - T1) / (T2 - T1);
+                        P = this._poseMistura(PZ.voo, PZ.cabeceio, sv(u));
+                        pitch = K.pitch.voo + (K.pitch.contacto - K.pitch.voo) * sv(u);
+                        hN = (hIni - 0.05) + (hC - (hIni - 0.05)) * sv(u) + 0.14 * Math.sin(Math.PI * u);
+                    }
+                    else if (t < T3) {
+                        const u = (t - T2) / (T3 - T2);
+                        P = this._poseMistura(PZ.cabeceio, PZ.apreensao, sv(u));
+                        pitch = K.pitch.contacto + (K.pitch.apreensao - K.pitch.contacto) * sv(u);
+                        hN = hC + (0.55 - hC) * sv(u) * 0.5;
+                    }
+                    else if (t < T4) {
+                        const u = (t - T3) / (T4 - T3);
+                        P = this._poseMistura(PZ.apreensao, PZ.queda, sv(u / 0.6));
+                        pitch = K.pitch.apreensao + (K.pitch.queda - K.pitch.apreensao) * sv(u / 0.6);
+                        const h0 = (hC + 0.55) / 2;
+                        hN = h0 + (hQ - h0) * sv(u / 0.7);
+                    }
+                    else if (t < T5) {
+                        const u = sv((t - T4) / K.tLevantar);
+                        P = this._poseMistura(PZ.queda, DE_PE, u);
+                        pitch = K.pitch.queda * (1 - u);
+                        hN = hQ + (hIni - hQ) * u;
+                    }
+                    else { P = DE_PE; pitch = 0; hN = hIni; }
+                    this._escreverPoseComemorar(P);
+
+                    // O corpo todo: o yaw do mergulho, mais a inclinacao para a frente.
+                    const yaw = Math.atan2(S.dirx, S.dirz);
+                    _q1.setFromAxisAngle(_vUp, yaw);
+                    const qPitch = p._peixQ || (p._peixQ = new THREE.Quaternion());
+                    qPitch.setFromAxisAngle(_v3.set(1, 0, 0), pitch);
+                    p.model.quaternion.copy(_q1).multiply(qPitch);
+
+                    // Para onde vai: ate ao ponto onde a cabeca encontra a bola, e dai desliza a travar.
+                    if (t <= T2) {
+                        const u = sv(t / T2);
+                        const alvoX = S.bx - S.dirx * K.cabecaAlcance, alvoZ = S.bz - S.dirz * K.cabecaAlcance;
+                        p.model.position.x = S.x0 + (alvoX - S.x0) * u;
+                        p.model.position.z = S.z0 + (alvoZ - S.z0) * u;
+                        S.vx = (alvoX - S.x0) / T2 * 1.3; S.vz = (alvoZ - S.z0) / T2 * 1.3;
+                    } else if (t < T4) {
+                        const f = Math.exp(-3.2 * dt);
+                        S.vx *= f; S.vz *= f;
+                        p.model.position.x += S.vx * dt; p.model.position.z += S.vz * dt;
+                    }
+                    p.velocity.set(0, 0, 0);
+
+                    // A altura: o pescoco a `hN` do relvado (mede-se e corrige-se).
+                    p.model.position.y = ALTURA_BASE_Y;
+                    if (rig && rig.neck) {
+                        p.model.updateMatrixWorld(true);
+                        rig.neck.getWorldPosition(_v4);
+                        p.model.position.y = ALTURA_BASE_Y + (hN - (_v4.y - ALTURA_BASE_Y));
+                        if (p.model.position.y < ALTURA_BASE_Y - 0.02) p.model.position.y = ALTURA_BASE_Y - 0.02;
+                    }
+
+                    // O CONTACTO: no fim do voo, se a bola esta ao alcance da cabeca.
+                    if (!S.tocou && t >= T2 && Match.ball && rig && rig.neck) {
+                        S.tocou = true;
+                        p.model.updateMatrixWorld(true);
+                        rig.neck.getWorldPosition(_v4);
+                        S.distContacto = _v4.distanceTo(Match.ball.position);
+                        if (S.distContacto < 1.0 && Match.state === 'PLAY') {
+                            p.hasHeaderedInJump = true;
+                            // O executeHeader cola a bola a testa de PE (altura do jogador direito): aqui a bola fica onde a cabeca a encontrou.
+                            // (um vetor PROPRIO: o `_v3` e partilhado e o executeHeader reescreve-o — a bola era "teletransportada" para o sitio errado)
+                            const bolaNoContacto = p._peixBola || (p._peixBola = new THREE.Vector3());
+                            bolaNoContacto.copy(Match.ball.position);
+                            p.executeHeader();
+                            Match.ball.position.copy(bolaNoContacto);
+                            // O PEIXINHO E UM REMATE A BALIZA: mira um ponto dentro dela (ou, as vezes, fora mas PERTO — 1 a 3 m da trave, com perigo), rasteiro e com forca.
+                            const gz = p.targetGoalZ;
+                            let ax = (Math.random() * 2 - 1) * K.golMiraMax;
+                            if (Math.random() < K.erroFora) {
+                                const lado = Math.random() < 0.5 ? -1 : 1;
+                                ax = lado * (LARGURA_BALIZA / 2 + K.erroForaMin + Math.random() * (K.erroForaMax - K.erroForaMin));
+                            }
+                            const ddx = ax - bolaNoContacto.x, ddz = gz - bolaNoContacto.z, dd = Math.hypot(ddx, ddz) || 1;
+                            Match.ballVel.set(ddx / dd * K.saidaVel, K.saidaVy, ddz / dd * K.saidaVel);
+                            Match.intendedReceiver = null;
+                        }
+                    }
+                    if (t >= T5) {
+                        p.peixinho = null;
+                        p.resetBonesToDefault();
+                        p.model.quaternion.copy(_q1);
+                        p.model.position.y = ALTURA_BASE_Y;
+                        this.changeState('MOVE_TO_POS');
                     }
                 }
                 break;

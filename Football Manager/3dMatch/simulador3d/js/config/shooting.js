@@ -357,6 +357,12 @@ Agora:
 =============================================================================
 */
 
+/*
+O REMATE QUE ERRA, ERRA PERTO DA BALIZA (pedido): o ponto visado depois do erro nunca fica a mais de `foraMax` m do poste (para o lado) nem de `cimaMax` m do travessao (por cima).
+*/
+const ErroPertoDaBaliza = { activo: true, foraMax: 3.0, cimaMax: 2.5 };
+if (typeof window !== 'undefined') window.ErroPertoDaBaliza = ErroPertoDaBaliza;
+
 const ShotModel = {
     /*
     Subiu de 28/8 para 32/9 depois de se ver em campo: continuava a ler como
