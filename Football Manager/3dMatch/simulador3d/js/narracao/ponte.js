@@ -57,6 +57,12 @@ const Ponte = {
             else if (m.tipo === 'zoom') this.zoom(m.fator);
             else if (m.tipo === 'tela_cheia') { document.body.classList.toggle('tela-cheia', !!m.ligada); this.barraTopo(!!m.ligada); }
             else if (m.tipo === 'tatica') this.aplicarTatica(m);
+            else if (m.tipo === 'cobradores') {
+                // Os cobradores designados passam a valer ja (ids do manager -> ids do motor).
+                const o = {}; for (const k of Object.keys(m.cobradores || {})) { const id = AdaptadorManager.idReal(m.cobradores[k]); if (id !== null) o[k] = id; }
+                Match.cobradores = Match.cobradores || { A: null, B: null };
+                Match.cobradores[m.lado === 'B' ? 'B' : 'A'] = o;
+            }
             else if (m.tipo === 'pausar') this.pausar();
             else if (m.tipo === 'continuar') this.continuar();
             else if (m.tipo === 'parar') this.parar();

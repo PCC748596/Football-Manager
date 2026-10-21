@@ -4,7 +4,7 @@ O motor 3D decide a partida e gera a narracao. Dois usos:
   . jogarOculto  corre a partida do utilizador sem desenhar (modo "2D simulador": so a narracao) e devolve o resultado inteiro;
   . montarPayload  monta a mensagem `iniciar` (usada tambem pelo Simulador3DView, que mostra o 3D num iframe).
 */
-import { Team, Player, Fixture, MatchEvent, Tactics, FORMATIONS, getKitDetails, getGKKitDetails, kitShorts, ehVerde, KitDetails } from '../types';
+import { Team, Player, Fixture, MatchEvent, Tactics, FORMATIONS, getKitDetails, getGKKitDetails, resolveSetPieceTakers, kitShorts, ehVerde, KitDetails } from '../types';
 
 const CAMINHO_SIMULADOR = '/simulador3d/index.html';
 /*
@@ -44,7 +44,7 @@ const ladoDe = (team: Team, players: Player[]): LadoPayload => {
   }
   const formacao = team.tactics?.formation || '4-4-2';
   return {
-    equipa: { id: team.id, name: team.name, city: (team as any).city, logoUrl: (team as any).logoUrl, cores: [team.primaryColor, team.secondaryColor, team.tertiaryColor], lineup: team.lineup, bench: (team as any).bench || [], tactics: team.tactics, cobradores: (team as any).setPieceTakers || null },
+    equipa: { id: team.id, name: team.name, city: (team as any).city, logoUrl: (team as any).logoUrl, cores: [team.primaryColor, team.secondaryColor, team.tertiaryColor], lineup: team.lineup, bench: (team as any).bench || [], tactics: team.tactics, cobradores: resolveSetPieceTakers(team, players) },
     jogadoresPorId: porId,
     formacao: { nome: formacao, slots: FORMATIONS[formacao as keyof typeof FORMATIONS] }
   };

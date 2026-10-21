@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
-import { Team, Player, Fixture } from '../types';
+import { Team, Player, Fixture, resolveSetPieceTakers } from '../types';
 import { TeamShield } from './TeamShield';
 import { KitSelection } from './KitSelection';
 import { MatchStatsModal } from './MatchStatsModal';
@@ -37,6 +37,11 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const taticaJson = userTeam ? JSON.stringify(taticaParaMotor(userTeam.tactics)) : '';
   // Tatica do manager -> painel do 3D: ao carregar e sempre que o utilizador a muda na aba Tactics.
   useEffect(() => { if (pronto3d && taticaJson) simulador3dEnviar({ tipo: 'tatica', ...JSON.parse(taticaJson) }); }, [pronto3d, taticaJson]);
+  // Os cobradores/capitao do utilizador mudados na aba Tactics com o jogo em curso vao ao motor (o lado A e a casa).
+  const cobradoresJson = userTeam ? JSON.stringify(resolveSetPieceTakers(userTeam, players)) : '';
+  useEffect(() => {
+    if (pronto3d && cobradoresJson && match) simulador3dEnviar({ tipo: 'cobradores', lado: match.homeTeamId === gameState.userTeamId ? 'A' : 'B', cobradores: JSON.parse(cobradoresJson) });
+  }, [pronto3d, cobradoresJson]);
   const [iniciou, setIniciou] = useState(() => simulador3dArrancou(chave3d));
   // Sair desta tela (taticas, etc.) pausa o relogio; o 3D pausa-se sozinho e retoma ao voltar (o iframe nao e recriado).
   useEffect(() => () => { pauseMatch(); }, []);

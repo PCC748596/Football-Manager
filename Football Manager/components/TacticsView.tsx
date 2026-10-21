@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
-import { Tactics, Position, Player, Team, SetPieceRole, getEffectiveSkill, FORMATIONS, POSITION_ORDER, getKitDetails, getGKKitDetails, KitDetails } from '../types';
+import { Tactics, Position, Player, Team, SetPieceRole, getEffectiveSkill, resolveSetPieceTakers, FORMATIONS, POSITION_ORDER, getKitDetails, getGKKitDetails, KitDetails } from '../types';
 import { TeamKit } from './TeamKit';
 import FitnessBar from './FitnessBar';
 import { getMatchEndMinute } from '../textSim/matchEngine';
@@ -85,29 +85,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   */
   useEffect(() => {
     if (!userTeam) return;
-    const onze = userTeam.lineup.map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p && p.position !== Position.GK && !p.injury);
-    if (!onze.length) return;
-    const por = (f: (p: Player) => number) => [...onze].sort((a, b) => f(b) - f(a));
-    const melhorPas = por(p => p.pas), melhorSht = por(p => p.sht), melhorOvr = por(p => p.skill);
-    const sugestao: Record<string, string | undefined> = {
-      captain: melhorOvr[0]?.id,
-      cornerL: melhorPas[0]?.id,
-      cornerR: (melhorPas[1] || melhorPas[0])?.id,
-      freeKickLong: melhorPas[0]?.id,
-      freeKickDirectL: melhorSht[0]?.id,
-      freeKickDirectR: melhorSht[0]?.id,
-      penalty: melhorSht[0]?.id
-    };
-    const atual = userTeam.setPieceTakers || {};
-    const noOnze = new Set(userTeam.lineup);
-    let mudou = false;
-    const novo: any = { ...atual };
-    for (const role of Object.keys(sugestao)) {
-      const escolhido = (atual as any)[role];
-      const vale = escolhido && noOnze.has(escolhido) && !players.find(p => p.id === escolhido)?.injury;
-      if (!vale && sugestao[role]) { novo[role] = sugestao[role]; mudou = true; }
-    }
-    if (mudou) updateSetPieceTakers(userTeam.id, novo);
+    const r = resolveSetPieceTakers(userTeam, players);
+    const atual: any = userTeam.setPieceTakers || {};
+    if (Object.keys(r).some(k => atual[k] !== (r as any)[k])) updateSetPieceTakers(userTeam.id, r);
   }, [userTeam?.id, userTeam?.lineup]);
 
   if (!userTeam) return null;
