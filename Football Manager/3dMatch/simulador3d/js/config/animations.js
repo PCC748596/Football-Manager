@@ -1285,7 +1285,7 @@ const MaoDetalhada = {
 if (typeof window !== 'undefined') window.MaoDetalhada = MaoDetalhada;
 
 const CamisolaTipografia = {
-    fonteNumero: '"Bauhaus 93", "Segoe UI", Arial, sans-serif',
+    fonteNumero: '"College Block 2.0", "College Block", "CollegeBlock", "Bauhaus 93", "Segoe UI", Arial, sans-serif',
     pesoNumero: '',
     fonteNome: '"Segoe UI", Arial, sans-serif',
     pesoNome: 'bold'
