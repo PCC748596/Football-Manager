@@ -5,7 +5,7 @@ Só a liga do utilizador usa o motor completo (`simulateMatch`, com escalacao, c
 forca dos dois clubes (e vantagem de casa). E instantaneo, nao precisa de jogadores nem de eventos, e da ~2,6 golos por jogo como o motor completo (ver tools/validar_ligas.ts).
 O mundo cria-se SO quando a aba WORLD se abre pela primeira vez (gerar as 12 ligas leva um segundo ou dois) e logo recupera ate a data do jogo; depois acompanha o calendario.
 */
-import { Team, Fixture } from '../types';
+import { Team, Fixture, Player } from '../types';
 import { COUNTRIES, generateLeagueData, generateFixtures } from './dataGenerator';
 
 export interface WorldLeague {
@@ -17,6 +17,8 @@ export interface WorldLeague {
   relegated: number;
   teams: Team[];
   fixtures: Fixture[];
+  /** Os jogadores (so em memoria, nao vao no save): servem para pôr em campo os adversarios de copa do utilizador. */
+  players?: Player[];
 }
 
 /** Resultados guardados no save: id do jogo -> [golos casa, golos fora]. */
@@ -59,12 +61,12 @@ export const createWorld = (excludeLeagueId: string | undefined, ate: string, re
   for (const c of COUNTRIES as any[]) {
     for (const lg of c.leagues) {
       if (lg.id === excludeLeagueId) continue;
-      const { teams } = generateLeagueData(c.id, lg.id);
+      const { teams, players } = generateLeagueData(c.id, lg.id);
       const fixtures = generateFixtures(teams, lg.id).map(f => {
         const r = results && results[f.id];
         return r ? { ...f, homeScore: r[0], awayScore: r[1], played: true } : f;
       });
-      leagues.push({ countryId: c.id, countryName: c.name, leagueId: lg.id, leagueName: lg.name, tier: lg.tier, relegated: lg.relegated || 0, teams, fixtures });
+      leagues.push({ countryId: c.id, countryName: c.name, leagueId: lg.id, leagueName: lg.name, tier: lg.tier, relegated: lg.relegated || 0, teams, fixtures, players });
     }
   }
   return simulateWorldTo(leagues, ate);

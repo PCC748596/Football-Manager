@@ -368,7 +368,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
   }, [nextMatch, teams]);
 
   // Sort: Points DESC, but if all 0 played, then alphabetical
-  const sortedTeams = [...teams].sort((a, b) => {
+  const sortedTeams = teams.filter(t => !userTeam || t.leagueId === userTeam.leagueId).sort((a, b) => {
     if (a.played === 0 && b.played === 0) {
         return a.name.localeCompare(b.name);
     }

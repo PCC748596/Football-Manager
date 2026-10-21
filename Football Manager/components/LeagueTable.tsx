@@ -7,7 +7,8 @@ const LeagueTable: React.FC = () => {
   const { teams, userTeam } = useGame();
 
   // Sort teams: Points DESC, GoalDiff DESC, GoalsFor DESC
-  const sortedTeams = [...teams].sort((a, b) => {
+  // So a liga do utilizador (os adversarios de copa tambem estao em `teams`).
+  const sortedTeams = teams.filter(t => !userTeam || t.leagueId === userTeam.leagueId).sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
     const gdA = a.goalsFor - a.goalsAgainst;
     const gdB = b.goalsFor - b.goalsAgainst;

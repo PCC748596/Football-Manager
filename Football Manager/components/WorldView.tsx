@@ -41,7 +41,7 @@ const WorldView: React.FC = () => {
     return () => window.clearTimeout(id);
   }, [world]);
 
-  const meu = useMemo(() => ligaDoUtilizador(userTeam, teams, fixtures), [userTeam, teams, fixtures]);
+  const meu = useMemo(() => ligaDoUtilizador(userTeam, teams.filter(t => !userTeam || t.leagueId === userTeam.leagueId), fixtures), [userTeam, teams, fixtures]);
   const ligas: WorldLeague[] = useMemo(() => {
     const out: WorldLeague[] = [];
     if (meu) out.push(meu);

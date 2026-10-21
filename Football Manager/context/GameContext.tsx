@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useRef, useEffect } from 'r
 import { Team, Player, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode } from '../types';
 import { generateLeagueData, generateFixtures } from '../textSim/dataGenerator';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults } from '../textSim/world';
-import { Competition, criarCopas, avancarCompeticao, mapaDeClubes, ligaDoUtilizador } from '../textSim/competitions';
+import { Competition, prepararCopas } from '../textSim/competitions';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino } from '../textSim/trainingService';
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
@@ -295,28 +295,33 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const userTeam = teams.find(t => t.id === gameState.userTeamId);
 
-  // O MUNDO (aba WORLD): cria-se na primeira vez que a aba abre e depois joga os jogos das outras ligas conforme a data do jogo avanca (textSim/world.ts).
+  // O MUNDO (aba WORLD COMPETITIONS): as outras ligas e as copas. Cria-se no arranque do jogo (ou ao carregar um save) e avanca com a data (textSim/world.ts, textSim/competitions.ts).
+  // Os jogos de copa do utilizador entram nas `fixtures` (tipo CUP) sem coincidir com outros jogos dos clubes, e os adversarios entram em `teams`/`players`.
   const openWorld = () => {
-    if (world) return;
-    const w = createWorld(userTeam?.leagueId, gameState.currentDate, worldSaved.current);
+    if (world || !userTeam) return;   // normalmente ja existe (startGame / importGameData)
+    const w = createWorld(userTeam.leagueId, gameState.currentDate, worldSaved.current);
+    const r = prepararCopas({ world: w, userTeamId: userTeam.id, teams, players, fixtures, date: gameState.currentDate, comps: compsSaved.current });
+    worldSaved.current = null; compsSaved.current = null;
     setWorld(w);
-    worldSaved.current = null;
-    // As copas: quem joga vem da classificacao do ano anterior (textSim/competitions.ts); depois recuperam ate a data do jogo.
-    const meu = ligaDoUtilizador(userTeam, teams, fixtures);
-    const todas = meu ? [meu, ...w] : w;
-    const mapa = mapaDeClubes(todas);
-    const cs = (compsSaved.current || criarCopas(todas)).map(c => avancarCompeticao(c, mapa, gameState.currentDate));
-    compsSaved.current = null;
-    setComps(cs);
-  };
-  useEffect(() => {
-    if (world) setWorld(prev => (prev ? simulateWorldTo(prev, gameState.currentDate) : prev));
-    if (world && comps) {
-      const meu = ligaDoUtilizador(userTeam, teams, fixtures);
-      const mapa = mapaDeClubes(meu ? [meu, ...world] : world);
-      setComps(prev => { if (!prev) return prev; const n = prev.map(c => avancarCompeticao(c, mapa, gameState.currentDate)); return n.every((c, i) => c === prev[i]) ? prev : n; });
+    if (r) {
+      setComps(r.comps);
+      if (r.fixtures.length) setFixtures(prev => [...prev, ...r.fixtures].sort((a, b) => a.date.localeCompare(b.date)));
+      if (r.teams.length) setTeams(prev => [...prev, ...r.teams]);
+      if (r.players.length) setPlayers(prev => [...prev, ...r.players]);
     }
-  }, [gameState.currentDate, world === null]);
+  };
+  const cupSig = fixtures.reduce((n, f) => n + (f.type === 'CUP' && f.played ? 1 : 0), 0);   // muda quando um jogo de copa do utilizador acaba
+  useEffect(() => {
+    if (!world) return;
+    setWorld(prev => (prev ? simulateWorldTo(prev, gameState.currentDate) : prev));
+    if (!comps || !userTeam) return;
+    const r = prepararCopas({ world, userTeamId: userTeam.id, teams, players, fixtures, date: gameState.currentDate, comps });
+    if (!r) return;
+    if (r.mudouComps) setComps(r.comps);
+    if (r.fixtures.length) setFixtures(prev => [...prev, ...r.fixtures].sort((a, b) => a.date.localeCompare(b.date)));
+    if (r.teams.length) setTeams(prev => [...prev, ...r.teams]);
+    if (r.players.length) setPlayers(prev => [...prev, ...r.players]);
+  }, [gameState.currentDate, cupSig, world, comps, userTeam?.id]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -413,15 +418,26 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     initFixtures = [...initFixtures, ...cpuFriendlies].sort((a, b) => a.date.localeCompare(b.date));
+    // O numero de jornadas e o da liga (os jogos de copa, semana 0, vem depois e podem acabar mais tarde).
+    const jornadasDaLiga = initFixtures.reduce((m, f) => Math.max(m, f.week || 0), 0) || 38;
 
-    setTeams(initTeams);
-    setPlayers(initPlayers);
+    // O MUNDO e as COPAS: criam-se agora, para os jogos de copa do utilizador entrarem no calendario desde o primeiro dia.
+    const mundo = createWorld(leagueId, '2024-04-01', null);
+    const copas = prepararCopas({ world: mundo, userTeamId: teamId, teams: initTeams, players: initPlayers, fixtures: initFixtures, date: '2024-04-01', comps: null });
+    worldSaved.current = null; compsSaved.current = null;
+    setWorld(mundo);
+    if (copas) {
+      setComps(copas.comps);
+      initFixtures = [...initFixtures, ...copas.fixtures].sort((a, b) => a.date.localeCompare(b.date));
+    } else setComps(null);
+
+    setTeams(copas ? [...initTeams, ...copas.teams] : initTeams);
+    setPlayers(copas ? [...initPlayers, ...copas.players] : initPlayers);
     setFixtures(initFixtures);
-    setWorld(null); setComps(null); worldSaved.current = null; compsSaved.current = null;   // novo jogo: o mundo refaz-se quando a aba WORLD abrir
     setGameState(prev => ({
       ...prev,
       currentWeek: 1,
-      totalWeeks: initFixtures[initFixtures.length - 1].week || 38,
+      totalWeeks: jornadasDaLiga,
       currentDate: '2024-04-01',
       userTeamId: teamId,
       managerName,
@@ -908,7 +924,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // vitorias e os ultimos 5 resultados (V/E/D, do mais antigo para o mais recente).
   const classificacaoDoIntervalo = (uf: Fixture) => {
     type Linha = { t: Team; pts: number; v: number; gf: number; ga: number; forma: ('V' | 'E' | 'D')[] };
-    const tab = new Map<string, Linha>(teams.map(t => [t.id, { t, pts: 0, v: 0, gf: 0, ga: 0, forma: [] }]));
+    const tab = new Map<string, Linha>(teams.filter(t => !userTeam || t.leagueId === userTeam.leagueId).map(t => [t.id, { t, pts: 0, v: 0, gf: 0, ga: 0, forma: [] }]));
     const jogos = fixtures.filter(f => f.played && countsForLeague(f)).map(f => ({ f, hs: f.homeScore || 0, as: f.awayScore || 0 }));
     // Os jogos de HOJE ainda a decorrer (o do utilizador e os outros da jornada, que o manager simula minuto a minuto) entram com o resultado parcial.
     // O placar parcial: o do jogo, ou (se ainda nao estiver escrito) os golos contados nos eventos ate agora.
@@ -1567,11 +1583,23 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
         });
 
-        setTeams(patchedTeams);
-        setPlayers(data.players);
-        setFixtures(data.fixtures);
+        // O mundo refaz-se (repondo os resultados do save) e as copas voltam do save; um save antigo, sem copas, ganha-as agora (com os jogos do utilizador no calendario).
+        let tm: Team[] = patchedTeams, pl: Player[] = data.players, fx: Fixture[] = data.fixtures;
+        const donoId = data.gameState.userTeamId, dono = patchedTeams.find((t: Team) => t.id === donoId);
+        if (dono) {
+          const mundo = createWorld(dono.leagueId, data.gameState.currentDate, data.worldResults || null);
+          const copas = prepararCopas({ world: mundo, userTeamId: donoId, teams: patchedTeams, players: data.players, fixtures: data.fixtures, date: data.gameState.currentDate, comps: data.comps || null });
+          worldSaved.current = null; compsSaved.current = null;
+          setWorld(mundo);
+          if (copas) {
+            setComps(copas.comps);
+            fx = [...fx, ...copas.fixtures].sort((a, b) => a.date.localeCompare(b.date)); tm = [...tm, ...copas.teams]; pl = [...pl, ...copas.players];
+          } else setComps(null);
+        } else { setWorld(null); setComps(null); }
+        setTeams(tm);
+        setPlayers(pl);
+        setFixtures(fx);
         setGameState(data.gameState);
-        worldSaved.current = data.worldResults || null; compsSaved.current = data.comps || null; setWorld(null); setComps(null);   // o mundo refaz-se (e repoem os resultados do save) quando a aba WORLD abrir
         return true;
       }
     } catch (e) {

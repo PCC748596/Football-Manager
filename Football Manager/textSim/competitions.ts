@@ -125,7 +125,42 @@ const sortearGrupos = (itens: { key: string; team: Team; countryId: string }[]):
 const jogo = (id: string, stage: string, date: string, home: string, away: string, extra: Partial<CompMatch> = {}): CompMatch =>
   ({ id, stage, date, homeKey: home, awayKey: away, homeScore: null, awayScore: null, played: false, ...extra });
 
-const jogosDeGrupo = (prefixo: string, grupos: Record<string, string[]>, datas: string[]): CompMatch[] => {
+// ------------------------------------------------------------------ agenda: nunca dois jogos do mesmo clube no mesmo dia
+
+/** Dias ocupados por clube (chave `liga|id`): jogos de liga e de copa. */
+export type Ocupacao = Map<string, Set<string>>;
+
+export const somarDias = (d: string, n: number): string => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n); return x.toISOString().split('T')[0]; };
+const marcar = (oc: Ocupacao, keys: string[], d: string) => keys.forEach(k => { let s = oc.get(k); if (!s) { s = new Set(); oc.set(k, s); } s.add(d); });
+
+/**
+ * A data de um jogo: a nominal se os DOIS clubes estiverem livres nesse dia e nos vizinhos (um dia de descanso); senao a mais proxima (+1, -1, +2, -2...) que esteja. Se nao houver,
+ * aceita um dia sem jogo (sem folga). Nunca antes de `minimo`. Marca o dia nos dois clubes.
+ */
+export const agendarJogo = (oc: Ocupacao, nominal: string, keys: string[], minimo: string): string => {
+  const livre = (d: string, folga: number) => d >= minimo && keys.every(k => { const s = oc.get(k); if (!s) return true; for (let i = -folga; i <= folga; i++) if (s.has(somarDias(d, i))) return false; return true; });
+  const deslocamentos: number[] = [0]; for (let i = 1; i <= 12; i++) deslocamentos.push(i, -i);
+  let escolhida: string | null = null;
+  for (const folga of [1, 0]) {
+    for (const off of deslocamentos) { const d = somarDias(nominal, off); if (livre(d, folga)) { escolhida = d; break; } }
+    if (escolhida) break;
+  }
+  const d = escolhida || (nominal >= minimo ? nominal : minimo);
+  marcar(oc, keys, d);
+  return d;
+};
+
+/** A ocupacao actual: jogos de liga de todas as ligas e os jogos das copas dadas. */
+export const ocupacaoDe = (ligas: { leagueId: string; fixtures: import('../types').Fixture[] }[], comps: Competition[]): Ocupacao => {
+  const oc: Ocupacao = new Map();
+  ligas.forEach(l => l.fixtures.forEach(f => { if (f.isFriendly) return; marcar(oc, [teamKey(l.leagueId, f.homeTeamId), teamKey(l.leagueId, f.awayTeamId)], f.date); }));
+  comps.forEach(c => c.matches.forEach(m => marcar(oc, [m.homeKey, m.awayKey], m.date)));
+  return oc;
+};
+
+const INICIO_DA_EPOCA = '2024-04-02';
+
+const jogosDeGrupo = (prefixo: string, grupos: Record<string, string[]>, datas: string[], oc: Ocupacao): CompMatch[] => {
   const out: CompMatch[] = [];
   const rondas = [[[0, 1], [2, 3]], [[2, 0], [1, 3]], [[0, 3], [1, 2]]];
   for (const g of Object.keys(grupos)) {
@@ -134,31 +169,31 @@ const jogosDeGrupo = (prefixo: string, grupos: Record<string, string[]>, datas: 
       const volta = md >= 3;
       rondas[md % 3].forEach(([a, b], k) => {
         const [h, v] = volta ? [t[b], t[a]] : [t[a], t[b]];
-        out.push(jogo(`${prefixo}-G${g}-${md + 1}-${k}`, 'G' + (md + 1), datas[md], h, v, { group: g }));
+        out.push(jogo(`${prefixo}-G${g}-${md + 1}-${k}`, 'G' + (md + 1), agendarJogo(oc, datas[md], [h, v], INICIO_DA_EPOCA), h, v, { group: g }));
       });
     }
   }
   return out;
 };
 
-export const criarLibertadores = (lib: { key: string; team: Team; countryId: string }[]): Competition => {
+export const criarLibertadores = (lib: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map()): Competition => {
   const grupos = sortearGrupos(lib);
-  return { id: 'LIB', name: 'Copa Libertadores', teamKeys: lib.map(x => x.key), groups: grupos, matches: jogosDeGrupo('LIB', grupos, GRUPOS_LIB) };
+  return { id: 'LIB', name: 'Copa Libertadores', teamKeys: lib.map(x => x.key), groups: grupos, matches: jogosDeGrupo('LIB', grupos, GRUPOS_LIB, oc) };
 };
-export const criarSulAmericana = (sul: { key: string; team: Team; countryId: string }[]): Competition => {
+export const criarSulAmericana = (sul: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map()): Competition => {
   const grupos = sortearGrupos(sul);
-  return { id: 'SUL', name: 'Copa Sul-Americana', teamKeys: sul.map(x => x.key), groups: grupos, matches: jogosDeGrupo('SUL', grupos, GRUPOS_SUL) };
+  return { id: 'SUL', name: 'Copa Sul-Americana', teamKeys: sul.map(x => x.key), groups: grupos, matches: jogosDeGrupo('SUL', grupos, GRUPOS_SUL, oc) };
 };
 
 /** Copa do Brasil: fase 1 (jogo unico) entre os cabecas de serie 25-40; o pior cabeca joga em casa. */
-export const criarCopaDoBrasil = (copa: { key: string; team: Team }[]): Competition => {
+export const criarCopaDoBrasil = (copa: { key: string; team: Team }[], oc: Ocupacao = new Map()): Competition => {
   const keys = copa.map(c => c.key);
   const n = keys.length;
   const matches: CompMatch[] = [];
   const baixos = keys.slice(Math.max(0, n - 16));   // os 16 ultimos
   for (let i = 0; i < baixos.length / 2; i++) {
     const melhor = baixos[i], pior = baixos[baixos.length - 1 - i];
-    matches.push(jogo(`COPA_BR-R1-${i}`, 'R1', FASES_COPA[0].datas[0], pior, melhor, { tie: 'R1-' + i }));
+    matches.push(jogo(`COPA_BR-R1-${i}`, 'R1', agendarJogo(oc, FASES_COPA[0].datas[0], [pior, melhor], INICIO_DA_EPOCA), pior, melhor, { tie: 'R1-' + i }));
   }
   return { id: 'COPA_BR', name: 'Copa do Brasil', teamKeys: keys, matches };
 };
@@ -192,14 +227,17 @@ export const vencedorDoConfronto = (jogos: CompMatch[], teams: Map<string, Team>
 const faseDoComp = (c: Competition) => (c.id === 'LIB' ? FASES_LIB : c.id === 'SUL' ? FASES_SUL : FASES_COPA);
 
 /** Cria os jogos de uma fase a partir de pares [melhor, pior] (ida em casa do pior, volta em casa do melhor; jogo unico: em casa o 1.o). */
-const jogosDaFase = (c: Competition, fase: { nome: string; datas: string[] }, pares: [string, string][]): CompMatch[] => {
+const jogosDaFase = (c: Competition, fase: { nome: string; datas: string[] }, pares: [string, string][], oc: Ocupacao): CompMatch[] => {
   const out: CompMatch[] = [];
+  // Nunca antes do ultimo jogo da fase anterior.
+  const minimo = c.matches.length ? somarDias(c.matches.reduce((m, x) => (x.date > m ? x.date : m), '0000-00-00'), 1) : INICIO_DA_EPOCA;
   pares.forEach(([melhor, pior], i) => {
     const tie = `${fase.nome}-${i}`;
-    if (fase.datas.length === 1) out.push(jogo(`${c.id}-${tie}`, fase.nome, fase.datas[0], melhor, pior, { tie }));
+    if (fase.datas.length === 1) out.push(jogo(`${c.id}-${tie}`, fase.nome, agendarJogo(oc, fase.datas[0], [melhor, pior], minimo), melhor, pior, { tie }));
     else {
-      out.push(jogo(`${c.id}-${tie}-1`, fase.nome, fase.datas[0], pior, melhor, { tie, leg: 1 }));
-      out.push(jogo(`${c.id}-${tie}-2`, fase.nome, fase.datas[1], melhor, pior, { tie, leg: 2 }));
+      const d1 = agendarJogo(oc, fase.datas[0], [melhor, pior], minimo);
+      out.push(jogo(`${c.id}-${tie}-1`, fase.nome, d1, pior, melhor, { tie, leg: 1 }));
+      out.push(jogo(`${c.id}-${tie}-2`, fase.nome, agendarJogo(oc, fase.datas[1], [melhor, pior], somarDias(d1, 2)), melhor, pior, { tie, leg: 2 }));
     }
   });
   return out;
@@ -226,16 +264,20 @@ const classificadosDosGrupos = (c: Competition): { primeiros: string[]; segundos
  * Joga os jogos com data ate `hoje` e cria as fases seguintes quando a anterior acaba. Devolve a MESMA competicao se nada mudou (evita renders em ciclo).
  * `teams`: clubes por chave (para a forca nos jogos e nos penaltis).
  */
-export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, hoje: string): Competition => {
+export interface OpcoesAvanco { usuario?: string | null; ocupado?: Ocupacao }
+export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, hoje: string, opcoes: OpcoesAvanco = {}): Competition => {
+  const oc: Ocupacao = opcoes.ocupado || new Map();
+  const uk = opcoes.usuario || null;
   let c = comp, mudou = false;
   const copia = () => { if (c === comp) c = { ...comp, matches: comp.matches.map(m => ({ ...m })) }; mudou = true; };
   for (let volta = 0; volta < 12; volta++) {
     let progressou = false;
     // 1. joga o que ja devia ter sido jogado
-    if (c.matches.some(m => !m.played && m.date <= hoje)) {
+    if (c.matches.some(m => !m.played && m.date <= hoje && !(uk && (m.homeKey === uk || m.awayKey === uk)))) {
       copia();
       c.matches.forEach(m => {
         if (m.played || m.date > hoje) return;
+        if (uk && (m.homeKey === uk || m.awayKey === uk)) return;   // os jogos do utilizador jogam-se no jogo (motor completo) e voltam por `sincronizarResultados`
         const h = teams.get(m.homeKey), a = teams.get(m.awayKey);
         const [hs, as] = (h && a) ? simulateFast(h, a) : [1, 1];
         m.homeScore = hs; m.awayScore = as; m.played = true;
@@ -277,14 +319,14 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         // cada primeiro joga contra um segundo de OUTRO grupo
         let seg = embaralhar(segundos), ok = false;
         for (let t = 0; t < 200 && !ok; t++) { seg = embaralhar(segundos); ok = primeiros.every((p, i) => (c.groups![Object.keys(c.groups!).find(g => c.groups![g].includes(p))!]).indexOf(seg[i]) < 0); }
-        c.matches.push(...jogosDaFase(c, fase('R16'), primeiros.map((p, i) => [p, seg[i]] as [string, string])));
+        c.matches.push(...jogosDaFase(c, fase('R16'), primeiros.map((p, i) => [p, seg[i]] as [string, string]), oc));
         progressou = true;
       }
     } else if (c.id === 'COPA_BR' && feitaFase('R1') && !temFase('R32')) {
       copia();
       const venc = vencedoresDe('R1')!;
       const todos = c.teamKeys.slice(0, Math.max(0, c.teamKeys.length - 16)).concat(venc);
-      c.matches.push(...jogosDaFase(c, fase('R32'), parear(todos, seed)));
+      c.matches.push(...jogosDaFase(c, fase('R32'), parear(todos, seed), oc));
       progressou = true;
     } else {
       for (let i = (c.id === 'COPA_BR' ? 1 : 0); i < sequencia.length - 1; i++) {
@@ -293,7 +335,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         copia();
         const venc = vencedoresDe(a)!;
         const par = c.id === 'COPA_BR' ? parear(venc, seed) : (() => { const p: [string, string][] = []; for (let k = 0; k < venc.length; k += 2) p.push([venc[k], venc[k + 1]]); return p; })();
-        c.matches.push(...jogosDaFase(c, fase(b), par));
+        c.matches.push(...jogosDaFase(c, fase(b), par, oc));
         progressou = true;
         break;
       }
@@ -347,11 +389,79 @@ export const mapaDeClubes = (ligas: WorldLeague[]): Map<string, Team> => {
 };
 
 /** Cria as tres copas a partir das ligas (a classificacao do ano anterior define quem joga). `anterior`: tabelas finais da temporada passada por liga (nomes), se houver. */
-export const criarCopas = (ligas: WorldLeague[], anterior?: Record<string, string[]>): Competition[] => {
+export const criarCopas = (ligas: WorldLeague[], anterior?: Record<string, string[]>, ocupado?: Ocupacao): Competition[] => {
+  const oc = ocupado || ocupacaoDe(ligas, []);
   const paraCopas: LigaParaCopas[] = ligas.map(l => {
     const lg: any = (COUNTRIES as any[]).find(c => c.id === l.countryId)?.leagues.find((x: any) => x.id === l.leagueId);
     return { leagueId: l.leagueId, countryId: l.countryId, tier: l.tier, teams: l.teams, teamIds: ((lg && lg.teamIds) || []).map(String), anterior: anterior ? anterior[l.leagueId] : null };
   });
   const q = qualificados(paraCopas);
-  return [criarLibertadores(q.lib), criarSulAmericana(q.sul), criarCopaDoBrasil(q.copa)];
+  // Uma de cada vez, para a seguinte ja ver os dias que a anterior ocupou.
+  const lib = criarLibertadores(q.lib, oc), sul = criarSulAmericana(q.sul, oc), copa = criarCopaDoBrasil(q.copa, oc);
+  return [lib, sul, copa];
+};
+
+/** Copia para a copa os resultados dos jogos do utilizador ja jogados no jogo (fixtures `fix-cup-<id>`). Devolve a MESMA copa se nada mudou. */
+export const sincronizarResultados = (comp: Competition, fixtures: import('../types').Fixture[]): Competition => {
+  const jogados = new Map(fixtures.filter(f => f.type === 'CUP' && f.played).map(f => [f.id, f]));
+  if (!comp.matches.some(m => !m.played && jogados.has('fix-cup-' + m.id))) return comp;
+  return { ...comp, matches: comp.matches.map(m => {
+    const f = jogados.get('fix-cup-' + m.id);
+    return (!m.played && f) ? { ...m, homeScore: f.homeScore || 0, awayScore: f.awayScore || 0, played: true } : m;
+  }) };
+};
+
+/** Os jogos de copa do utilizador como fixtures do jogo (tipo CUP, semana 0 como os amistosos). */
+export const fixturesDoUtilizador = (comps: Competition[], userKey: string): import('../types').Fixture[] => {
+  const out: import('../types').Fixture[] = [];
+  comps.forEach(c => c.matches.forEach(m => {
+    if (m.homeKey !== userKey && m.awayKey !== userKey) return;
+    out.push({
+      id: 'fix-cup-' + m.id, week: 0, date: m.date, homeTeamId: m.homeKey.split('|')[1], awayTeamId: m.awayKey.split('|')[1],
+      homeScore: m.homeScore as any, awayScore: m.awayScore as any, played: m.played, isFriendly: false, type: 'CUP', events: []
+    } as any);
+  }));
+  return out;
+};
+
+export interface EntradaCopas { world: WorldLeague[]; userTeamId: string; teams: Team[]; players: import('../types').Player[]; fixtures: import('../types').Fixture[]; date: string; comps?: Competition[] | null; }
+export interface SaidaCopas { comps: Competition[]; mudouComps: boolean; fixtures: import('../types').Fixture[]; teams: Team[]; players: import('../types').Player[]; }
+
+/**
+ * O QUE O JOGO PRECISA DAS COPAS, numa chamada (no arranque, ao carregar um save e a cada dia):
+ *  - cria as copas (se ainda nao existem) pela classificacao do ano anterior, com os jogos agendados SEM coincidir com nenhum outro jogo dos mesmos clubes;
+ *  - copia para elas os resultados dos jogos do utilizador ja jogados e joga os dos outros clubes (modelo rapido) ate `date`;
+ *  - devolve as fixtures dos jogos do utilizador que ainda nao estao no jogo (as de fases novas aparecem quando a fase anterior acaba) e os clubes e jogadores adversarios
+ *    que ainda nao estao no jogo (para o motor completo os poder pôr em campo).
+ */
+export const prepararCopas = (a: EntradaCopas): SaidaCopas | null => {
+  const user = a.teams.find(t => t.id === a.userTeamId);
+  if (!user) return null;
+  const minha = ligaDoUtilizador(user, a.teams.filter(t => t.leagueId === user.leagueId), a.fixtures);
+  if (!minha) return null;
+  const todas = [minha, ...a.world];
+  const base = a.comps ? a.comps.map(c => sincronizarResultados(c, a.fixtures)) : null;
+  const oc = ocupacaoDe(todas, base || []);
+  let cs = base || criarCopas(todas, undefined, oc);
+  const mapa = mapaDeClubes(todas);
+  const uk = teamKey(user.leagueId, user.id);
+  cs = cs.map(c => avancarCompeticao(c, mapa, a.date, { usuario: uk, ocupado: oc }));
+  const mudouComps = !a.comps || cs.some((c, i) => c !== a.comps![i]);
+
+  const fixtures = fixturesDoUtilizador(cs, uk).filter(f => !a.fixtures.some(x => x.id === f.id));
+  const presentes = new Set(a.teams.map(t => t.id));
+  const teams: Team[] = [], players: import('../types').Player[] = [];
+  cs.forEach(c => c.matches.forEach(m => {
+    if (m.homeKey !== uk && m.awayKey !== uk) return;
+    const k = m.homeKey === uk ? m.awayKey : m.homeKey;
+    const [ligaId, tid] = k.split('|');
+    if (presentes.has(tid)) return;
+    const liga = a.world.find(l => l.leagueId === ligaId);
+    const t = liga && liga.teams.find(x => x.id === tid);
+    if (!liga || !t) return;
+    presentes.add(tid);
+    teams.push({ ...t });
+    (liga.players || []).filter(p => p.teamId === tid).forEach(p => players.push({ ...p, fitness: 90 }));
+  }));
+  return { comps: cs, mudouComps, fixtures, teams, players };
 };

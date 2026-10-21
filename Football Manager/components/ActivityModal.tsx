@@ -112,7 +112,7 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
         return (
           <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-2">
             <p className="text-xs text-slate-500 font-bold mb-4 uppercase tracking-widest text-center">Selecione o adversário:</p>
-            {teams.filter(t => t.id !== userTeam?.id).slice(0, 15).map(t => (
+            {teams.filter(t => t.id !== userTeam?.id && t.leagueId === userTeam?.leagueId).slice(0, 15).map(t => (
               <button 
                 key={t.id}
                 onClick={() => { onSchedule('FRIENDLY', { opponentId: t.id }); onClose(); }}
