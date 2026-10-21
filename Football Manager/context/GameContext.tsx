@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { Team, Player, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode } from '../types';
 import { generateLeagueData, generateFixtures } from '../textSim/dataGenerator';
+import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults } from '../textSim/world';
+import { Competition, criarCopas, avancarCompeticao, mapaDeClubes, ligaDoUtilizador } from '../textSim/competitions';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino } from '../textSim/trainingService';
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
@@ -12,7 +14,7 @@ const TRANSLATIONS: Record<string, any> = {
   EN: {
     // Nav
     nav_home: "Home", nav_squad: "Squad", nav_tactics: "Tactics", nav_training: "Training",
-    nav_fixtures: "Fixtures", nav_standings: "Standings", nav_finance: "Finance", nav_statistics: "Statistics", nav_settings: "Settings",
+    nav_fixtures: "Fixtures", nav_standings: "Standings", nav_finance: "Finance", nav_statistics: "Statistics", nav_settings: "Settings", nav_world: "World",
     nav_match_day: "Match Day", nav_sim_round: "Simulate Round", nav_save_game: "Save Game",
     // Start Menu
     start_new: "START NEW CAREER", start_continue: "CONTINUE CAREER", start_editor: "EDITOR", start_settings: "SETTINGS",
@@ -75,7 +77,7 @@ const TRANSLATIONS: Record<string, any> = {
   PT: {
     // Nav
     nav_home: "Início", nav_squad: "Elenco", nav_tactics: "Tática", nav_training: "Treino",
-    nav_fixtures: "Jogos", nav_standings: "Tabela", nav_finance: "Finanças", nav_statistics: "Estatísticas", nav_settings: "Config.",
+    nav_fixtures: "Jogos", nav_standings: "Tabela", nav_finance: "Finanças", nav_statistics: "Estatísticas", nav_settings: "Config.", nav_world: "Mundo",
     nav_match_day: "Dia de Jogo", nav_sim_round: "Simular Rodada", nav_save_game: "Salvar Jogo",
     // Start Menu
     start_new: "INICIAR NOVA CARREIRA", start_continue: "CONTINUAR CARREIRA", start_editor: "EDITOR", start_settings: "CONFIGURAÇÕES",
@@ -165,6 +167,11 @@ interface GameContextType {
   importGameData: (jsonString: string) => boolean;
   currentFixtures: Fixture[];
   userTeam: Team | undefined;
+  /** As outras ligas (aba WORLD); null ate a aba se abrir pela primeira vez. A liga do utilizador nao esta aqui: vive em `teams`/`fixtures`. */
+  world: WorldLeague[] | null;
+  /** Libertadores, Sul-Americana e Copa do Brasil (aba WORLD COMPETITIONS); null ate a aba abrir. */
+  comps: Competition[] | null;
+  openWorld: () => void;
   setThemeMode: (mode: ThemeMode) => void;
   updateSettings: (settings: Partial<Pick<GameState, 'language' | 'currency' | 'wageFrequency' | 'themeMode' | 'matchDuration' | 'simulationSpeed' | 'graphicsQuality'>>) => void;
   isTransferWindowOpen: () => boolean;
@@ -190,6 +197,10 @@ export const countsForLeague = (f: Fixture): boolean =>
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [world, setWorld] = useState<WorldLeague[] | null>(null);
+  const [comps, setComps] = useState<Competition[] | null>(null);
+  const compsSaved = useRef<Competition[] | null>(null);
+  const worldSaved = useRef<WorldResults | null>(null);   // resultados vindos de um save, para repor ao criar o mundo
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [gameState, setGameState] = useState<GameState>(() => {
     const savedLang = localStorage.getItem('fm_lang') as Language;
@@ -283,6 +294,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [fixtures]);
 
   const userTeam = teams.find(t => t.id === gameState.userTeamId);
+
+  // O MUNDO (aba WORLD): cria-se na primeira vez que a aba abre e depois joga os jogos das outras ligas conforme a data do jogo avanca (textSim/world.ts).
+  const openWorld = () => {
+    if (world) return;
+    const w = createWorld(userTeam?.leagueId, gameState.currentDate, worldSaved.current);
+    setWorld(w);
+    worldSaved.current = null;
+    // As copas: quem joga vem da classificacao do ano anterior (textSim/competitions.ts); depois recuperam ate a data do jogo.
+    const meu = ligaDoUtilizador(userTeam, teams, fixtures);
+    const todas = meu ? [meu, ...w] : w;
+    const mapa = mapaDeClubes(todas);
+    const cs = (compsSaved.current || criarCopas(todas)).map(c => avancarCompeticao(c, mapa, gameState.currentDate));
+    compsSaved.current = null;
+    setComps(cs);
+  };
+  useEffect(() => {
+    if (world) setWorld(prev => (prev ? simulateWorldTo(prev, gameState.currentDate) : prev));
+    if (world && comps) {
+      const meu = ligaDoUtilizador(userTeam, teams, fixtures);
+      const mapa = mapaDeClubes(meu ? [meu, ...world] : world);
+      setComps(prev => { if (!prev) return prev; const n = prev.map(c => avancarCompeticao(c, mapa, gameState.currentDate)); return n.every((c, i) => c === prev[i]) ? prev : n; });
+    }
+  }, [gameState.currentDate, world === null]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -383,6 +417,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTeams(initTeams);
     setPlayers(initPlayers);
     setFixtures(initFixtures);
+    setWorld(null); setComps(null); worldSaved.current = null; compsSaved.current = null;   // novo jogo: o mundo refaz-se quando a aba WORLD abrir
     setGameState(prev => ({
       ...prev,
       currentWeek: 1,
@@ -1496,6 +1531,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       players,
       fixtures,
       gameState,
+      worldResults: worldResults(world),
+      comps,
       saveDate: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(saveData, null, 2)], { type: 'application/json' });
@@ -1534,6 +1571,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setPlayers(data.players);
         setFixtures(data.fixtures);
         setGameState(data.gameState);
+        worldSaved.current = data.worldResults || null; compsSaved.current = data.comps || null; setWorld(null); setComps(null);   // o mundo refaz-se (e repoem os resultados do save) quando a aba WORLD abrir
         return true;
       }
     } catch (e) {
@@ -1553,7 +1591,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <GameContext.Provider value={{
       teams, players, fixtures, gameState, startGame, advanceDay, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
-      hirePlayer, sellPlayer, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode,
+      hirePlayer, sellPlayer, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, updateSettings, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
       t,

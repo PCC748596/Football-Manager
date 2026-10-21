@@ -12,6 +12,7 @@ import DashboardView from './components/DashboardView';
 import MatchDay from './components/MatchDay';
 import MatchRoundView from './components/MatchRoundView';
 import SettingsView from './components/SettingsView';
+import WorldView from './components/WorldView';
 import StatisticsView from './components/StatisticsView';
 import { COUNTRIES, generateLeagueData } from './textSim/dataGenerator';
 import { Team, GameState } from './types';
@@ -295,6 +296,7 @@ const GameContainer: React.FC = () => {
             {view === 'FINANCES' && <FinancesView />}
             {view === 'STATISTICS' && <StatisticsView />}
             {view === 'SETTINGS' && <SettingsView />}
+            {view === 'WORLD' && <WorldView />}
         </Layout>
       )}
     </div>

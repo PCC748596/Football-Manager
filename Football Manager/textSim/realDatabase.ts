@@ -154,7 +154,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
     "leagues": [
       {
         "id": "eng_prem",
-        "name": "Premier Division",
+        "name": "Premier League",
         "tier": 1,
         "teamIds": [
           650001,
