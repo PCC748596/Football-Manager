@@ -487,7 +487,12 @@ centímetros abaixo dos olhos.
 const ALTURA_TESTA = 1.74;
 const CAMPO_LARG = 68; const CAMPO_COMP = 106;
 const LINHA_FUNDO = CAMPO_COMP / 2;          // 53.0 m (distância do centro a cada linha de fundo)
-const MEIA_LARGURA_CAMPO = CAMPO_LARG / 2;   // 34.0 m (distância do centro a cada linha lateral)
+const MEIA_LARGURA_CAMPO = CAMPO_LARG / 2;
+/*
+A LINHA DO CAMPO tem 0.15 m (match_setup.js, `esp`) e esta CENTRADA no limite (34.0 / 53.0 m): a borda de fora fica a MEIA_LINHA = 0.075 m. REGRA: a bola so esta fora (lateral, fundo, golo)
+quando ultrapassa A LINHA TODA — o ponto mais proximo da linha (centro menos o raio) passa a borda de fora. A linha da area faz parte da area (ver Area.contem e Officials.margemDaLinhaDaArea).
+*/
+const MEIA_LINHA = 0.075;
 
 /*
 =============================================================================
@@ -557,6 +562,7 @@ if (typeof window !== 'undefined') {
     window.Area = Area;
     window.LINHA_FUNDO = LINHA_FUNDO;
     window.MEIA_LARGURA_CAMPO = MEIA_LARGURA_CAMPO;
+    window.MEIA_LINHA = MEIA_LINHA;
     window.AREA_GRANDE_PROF = AREA_GRANDE_PROF;
     window.AREA_GRANDE_MEIA_LARG = AREA_GRANDE_MEIA_LARG;
 }

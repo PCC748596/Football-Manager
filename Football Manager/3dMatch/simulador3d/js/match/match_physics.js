@@ -147,7 +147,7 @@ Object.assign(Match, {
         Repõe quem NÃO lhe tocou por último.
         */
         if (this.state === 'PLAY' &&
-            Math.abs(this.ball.position.x) - BallPhysics.raio > CAMPO_LARG / 2 &&
+            Math.abs(this.ball.position.x) - BallPhysics.raio > CAMPO_LARG / 2 + MEIA_LINHA &&   // a bola inteira passou a linha toda
             // ...e a ir para FORA. Uma bola já lá fora mas a entrar (a reposição
             // acabada de fazer, um ressalto na barreira) não é lateral nenhum.
             // CONDUZIDA: com um jogador a levar a bola a `ballVel` é 0 (ela segue o pé dele) e a regra nunca disparava — o jogador passava a linha lateral
@@ -202,7 +202,7 @@ Object.assign(Match, {
         this.colidirComBaliza();
         this.destravarBolaEmCimaDaBaliza();
 
-        if (Math.abs(this.ball.position.z) - BallPhysics.raio > CAMPO_COMP / 2) {
+        if (Math.abs(this.ball.position.z) - BallPhysics.raio > CAMPO_COMP / 2 + MEIA_LINHA) {   // a bola inteira passou a linha toda (fora e golo)
             let zSinal = Math.sign(this.ball.position.z);
             this.colidirComRede(zSinal);
             if (Math.abs(this.ball.position.x) < (LARGURA_BALIZA / 2 - 0.1) && this.ball.position.y < ALTURA_BALIZA) {

@@ -3044,7 +3044,7 @@ const Officials = {
     DENTRO da area com o ponto medio dos dois jogadores a 0.04 a 1.0 m fora
     (uma delas a 4 cm da linha). Ver `ehPenaltiNoLance`.
     */
-    margemDaLinhaDaArea: 0.17,
+    margemDaLinhaDaArea: 0.075 + 0.11,   // meia linha (MEIA_LINHA) + raio da bola: a linha faz parte da area
 
     /*
     O LANCE, e nao so o ponto medio: e penalti se o ponto da falta (o meio dos
