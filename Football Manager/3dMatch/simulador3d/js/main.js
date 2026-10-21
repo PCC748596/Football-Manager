@@ -1180,6 +1180,7 @@ function animate(time) {
     if (time - fpsLastTime >= 1000) {
         let fps = Math.round((fpsFrames * 1000) / (time - fpsLastTime));
         window._fpsAtual = fps;   // lido pela barra da tela cheia (ponte.js, #tc-fps)
+        if (typeof Qualidade !== 'undefined' && Qualidade.ajustarPelaFps) Qualidade.ajustarPelaFps(fps, 60);   // resolucao dinamica
         let titleEl = document.getElementById('app-title');
         if (titleEl) titleEl.innerText = 'SOCCER SIM | FPS: ' + fps;
         
