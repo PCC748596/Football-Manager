@@ -2,7 +2,7 @@
 CLUBES DAS LIGAS DA AMERICA LATINA (Libertadores / Sul-Americana). Os NOMES dos clubes sao os reais; cidade, estadio, cores e ano de fundacao sao melhor-esforco e devem ser
 revistos no editor (os clubes menores sobretudo). Ano 0 = nao sei (fica 1900 no jogo).
 
-Cada pais: `serieA` (por ordem aproximada de forca: o gerador usa a ordem para dar OVR) e `acesso` (os 6 clubes extra, para o acesso e o descenso).
+Cada pais: `id` numerico (como o do Brasil, '45', e o da Inglaterra, '65'; aqui o mesmo codigo do pais nas nacionalidades dos jogadores: Argentina 52, Bolivia 53, Brasil 54, Chile 55, Colombia 56, Equador 57, Paraguai 58, Peru 59, Uruguai 60, Venezuela 61), `sigla` (so para os ids das ligas, ex.: arg_serie_a), `serieA` (por ordem aproximada de forca: o gerador usa a ordem para dar OVR) e `acesso` (os 6 clubes extra, para o acesso e o descenso).
 Campo de cada clube: [nome, sigla, cidade, estadio, cor1, cor2, padrao, ano]   padrao: s = liso, v = listras verticais, h = listras horizontais
 Cores: R vermelho, W branco, K preto, B azul, LB azul-claro, N azul-marinho, Y amarelo, G verde, O laranja, M grena, V violeta, P rosa, GR cinza
 Nomes iguais em paises diferentes levam sufixo do pais (ex.: "Nacional-URU"): o jogo liga jogadores a clubes pelo nome.
@@ -11,7 +11,7 @@ const COR = { R: '#c8102e', W: '#ffffff', K: '#111111', B: '#1d4ed8', LB: '#6cb4
 
 const PAISES = [
   {
-    id: 'arg', nome: 'Argentina', nacionalidade: 'ARG', idBase: 710000,
+    sigla: 'arg', id: '52', nome: 'Argentina', nacionalidade: 'ARG', idBase: 520000,
     ligaA: 'Liga Profesional', ligaB: 'Primera Nacional (acceso)', rebaixados: 3,
     serieA: [
       ['River Plate', 'RIV', 'Buenos Aires', 'Monumental', 'W', 'R', 'v', 1901],
@@ -55,7 +55,7 @@ const PAISES = [
     ]
   },
   {
-    id: 'chi', nome: 'Chile', nacionalidade: 'CHI', idBase: 730000,
+    sigla: 'chi', id: '55', nome: 'Chile', nacionalidade: 'CHI', idBase: 550000,
     ligaA: 'Primera División', ligaB: 'Primera B (acceso)', rebaixados: 3,
     serieA: [
       ['Colo-Colo', 'COC', 'Santiago', 'Monumental David Arellano', 'W', 'K', 's', 1925],
@@ -85,7 +85,7 @@ const PAISES = [
     ]
   },
   {
-    id: 'col', nome: 'Colombia', nacionalidade: 'COL', idBase: 740000,
+    sigla: 'col', id: '56', nome: 'Colombia', nacionalidade: 'COL', idBase: 560000,
     ligaA: 'Categoría Primera A', ligaB: 'Categoría Primera B (acceso)', rebaixados: 3,
     serieA: [
       ['Atlético Nacional', 'NAC', 'Medellín', 'Atanasio Girardot', 'G', 'W', 'v', 1947],
@@ -119,7 +119,7 @@ const PAISES = [
     ]
   },
   {
-    id: 'uru', nome: 'Uruguay', nacionalidade: 'URU', idBase: 780000,
+    sigla: 'uru', id: '60', nome: 'Uruguay', nacionalidade: 'URU', idBase: 600000,
     ligaA: 'Primera División', ligaB: 'Segunda División (ascenso)', rebaixados: 3,
     serieA: [
       ['Peñarol', 'PEN', 'Montevidéu', 'Campeón del Siglo', 'Y', 'K', 'v', 1891],
@@ -149,7 +149,7 @@ const PAISES = [
     ]
   },
   {
-    id: 'par', nome: 'Paraguay', nacionalidade: 'PAR', idBase: 760000,
+    sigla: 'par', id: '58', nome: 'Paraguay', nacionalidade: 'PAR', idBase: 580000,
     ligaA: 'Primera División', ligaB: 'División Intermedia (ascenso)', rebaixados: 2,
     serieA: [
       ['Olimpia', 'OLI', 'Assunção', 'Manuel Ferreira', 'W', 'K', 'h', 1902],
@@ -175,7 +175,7 @@ const PAISES = [
     ]
   },
   {
-    id: 'equ', nome: 'Ecuador', nacionalidade: 'ECU', idBase: 750000,
+    sigla: 'equ', id: '57', nome: 'Ecuador', nacionalidade: 'ECU', idBase: 570000,
     ligaA: 'LigaPro Serie A', ligaB: 'LigaPro Serie B (ascenso)', rebaixados: 3,
     serieA: [
       ['Independiente del Valle', 'IDV', 'Sangolquí', 'Banco Guayaquil', 'K', 'B', 'v', 1958],
@@ -205,7 +205,7 @@ const PAISES = [
     ]
   },
   {
-    id: 'per', nome: 'Peru', nacionalidade: 'PER', idBase: 770000,
+    sigla: 'per', id: '59', nome: 'Peru', nacionalidade: 'PER', idBase: 590000,
     ligaA: 'Liga 1', ligaB: 'Liga 2 (ascenso)', rebaixados: 3,
     serieA: [
       ['Universitario', 'UNI', 'Lima', 'Monumental', 'W', 'R', 's', 1924],
@@ -237,7 +237,7 @@ const PAISES = [
     ]
   },
   {
-    id: 'bol', nome: 'Bolivia', nacionalidade: 'BOL', idBase: 720000,
+    sigla: 'bol', id: '53', nome: 'Bolivia', nacionalidade: 'BOL', idBase: 530000,
     ligaA: 'División Profesional', ligaB: 'Copa Simón Bolívar (ascenso)', rebaixados: 3,
     serieA: [
       ['Bolívar', 'BOL', 'La Paz', 'Hernando Siles', 'LB', 'W', 's', 1925],
@@ -267,7 +267,7 @@ const PAISES = [
     ]
   },
   {
-    id: 'ven', nome: 'Venezuela', nacionalidade: 'VEN', idBase: 790000,
+    sigla: 'ven', id: '61', nome: 'Venezuela', nacionalidade: 'VEN', idBase: 610000,
     ligaA: 'Liga FUTVE', ligaB: 'Segunda División (ascenso)', rebaixados: 2,
     serieA: [
       ['Caracas FC', 'CCS', 'Caracas', 'Olímpico de la UCV', 'R', 'W', 's', 1967],

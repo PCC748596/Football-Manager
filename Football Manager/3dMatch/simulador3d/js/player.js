@@ -6733,8 +6733,10 @@ class FootballPlayer {
     }
 
     buildBody(corCamisa, corCalcao) {
+        // Os que nao sao jogadores em campo (arbitros, staff, reservas no banco: ver `FootballPlayer.extra`) levam o corpo `corpoExtras` (456 triangulos); os titulares o `corpo`.
+        const nivelCorpo = (typeof Qualidade !== 'undefined') ? (FootballPlayer.extra ? (Qualidade.cfg().corpoExtras || Qualidade.cfg().corpo) : Qualidade.cfg().corpo) : 0;
         const { corpo, rig, backMat, shortFrente } = construirCorpo(corCamisa, corCalcao,
-            this.aparencia, this.uniforme, (typeof Qualidade !== 'undefined') ? Qualidade.cfg().corpo : 0);
+            this.aparencia, this.uniforme, nivelCorpo);
         this.backMat = backMat;
         this.shortFrente = shortFrente || null;
         return { corpo, rig };
@@ -10939,6 +10941,7 @@ class FootballPlayer {
         if (typeof MatchStats !== 'undefined') MatchStats.registarPasseIniciado(this.team, 'lancamento');
     }
 }
+FootballPlayer.extra = false;   // `true` so durante a construcao de um nao-jogador (arbitros, staff, reservas): ver buildBody
 
 
 

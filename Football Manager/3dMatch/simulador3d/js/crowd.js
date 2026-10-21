@@ -556,7 +556,7 @@ const Crowd = {
     _geometriasDoJogadorLeve(pose) {
         if (typeof construirCorpo !== 'function') return null;
         const P = pose || CrowdModel.poses.sentado;
-        const f = construirCorpo('#ff0000', '#00ff00', undefined, undefined, 1);
+        const f = construirCorpo('#ff0000', '#00ff00', undefined, undefined, (typeof Qualidade !== 'undefined' && Qualidade.cfg().corpoExtras) || 1);
         const rig = f.rig, m = f.corpo;
         const por = (k, lado) => { const v = P[k + (lado < 0 ? 'E' : 'D')]; return v !== undefined ? v : P[k]; };
         rig.lLeg.rotation.x = por('anca', -1); rig.rLeg.rotation.x = por('anca', 1);
@@ -985,7 +985,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     */
     _texturasDoKit(uniforme, corCamisa, corCalcao) {
         if (typeof construirCorpo !== 'function') return null;
-        const f = construirCorpo(corCamisa || '#888888', corCalcao || '#ffffff', undefined, uniforme || undefined, 1);
+        const f = construirCorpo(corCamisa || '#888888', corCalcao || '#ffffff', undefined, uniforme || undefined, (typeof Qualidade !== 'undefined' && Qualidade.cfg().corpoExtras) || 1);
         let casca = null; f.rig.chest.traverse(o => { if (!casca && o.isMesh && Array.isArray(o.material)) casca = o; });
         if (!casca) return null;
         const frente = casca.material[4].map;

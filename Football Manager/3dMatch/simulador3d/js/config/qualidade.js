@@ -8,6 +8,7 @@ O manager passa o nivel no URL do iframe (`?q=LOW`) e, a meio do jogo, na mensag
     mapa         resolucao do mapa de sombras
     pixelRatio   quantos pixeis por pixel do ecra (1.5 = 2.25x o trabalho de 1)
     corpo        o modelo dos bonecos (jogadores, arbitros, reservas, staff): 0 = o de sempre (6 520 triangulos), 1 = leve, sem esferas nas juntas (888): so vale ao criar o corpo, ou seja na partida seguinte
+    corpoExtras  o modelo de TODOS os que nao sao os jogadores em campo (arbitros, staff, treinadores, reservas no banco, adeptos): 4 = metade dos triangulos (456, ver `leve` 4 em pose.js); 1 = o de 888
     adeptos      a FRACAO dos lugares do estadio que a torcida ocupa (1, 0.5, 0.25), seja qual for o estadio: lida ao construir o estadio, vale na proxima partida
 
 O que muda a meio do jogo: sombras, resolucao do mapa e pixel ratio. A torcida so muda quando a partida e montada de novo.
@@ -16,9 +17,9 @@ O que muda a meio do jogo: sombras, resolucao do mapa e pixel ratio. A torcida s
 const Qualidade = {
     niveis: {
         // Todos os niveis usam o corpo leve (pedido: sem esferas nas juntas e 888 triangulos, a qualidade e a mesma).
-        HIGH:   { sombras: true,  mapa: 2048, pixelRatio: 1.5, adeptos: 1.00, corpo: 1, relvaTufos: true },
-        MEDIUM: { sombras: true,  mapa: 1024, pixelRatio: 1.5, adeptos: 0.50, corpo: 1, relvaTufos: true },
-        LOW:    { sombras: false, mapa: 512,  pixelRatio: 1.5, adeptos: 0.25, corpo: 1, relvaTufos: false }
+        HIGH:   { sombras: true,  mapa: 2048, pixelRatio: 1.5, adeptos: 1.00, corpo: 1, corpoExtras: 4, relvaTufos: true },
+        MEDIUM: { sombras: true,  mapa: 1024, pixelRatio: 1.5, adeptos: 0.50, corpo: 1, corpoExtras: 4, relvaTufos: true },
+        LOW:    { sombras: false, mapa: 512,  pixelRatio: 1.5, adeptos: 0.25, corpo: 1, corpoExtras: 4, relvaTufos: false }
     },
     // RESOLUCAO DINAMICA: a escala (0.85..1) que multiplica o pixel ratio do nivel. Desce se o FPS cai e sobe quando recupera (ver `ajustarPelaFps`, chamado uma vez por segundo).
     escala: 1, _baixos: 0, _altos: 0, escalaMin: 1,

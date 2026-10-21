@@ -56,9 +56,14 @@ const countries = lerLista('REAL_COUNTRIES_JSON');
 let teams = lerLista('REAL_TEAMS_JSON');
 let players = lerLista('REAL_PLAYERS_JSON');
 
-const ID_CLUBE_MIN = 710001, ID_CLUBE_MAX = 799999, ID_JOGADOR_BASE = 8000000;
-const IDS_PAIS = PAISES.map(p => p.id);
-const jaTemLatam = countries.some(c => IDS_PAIS.includes(c.id)) || teams.some(t => t.teamID >= ID_CLUBE_MIN && t.teamID <= ID_CLUBE_MAX);
+// Ids dos clubes = id do pais x 10000 + n (como o Brasil: 45 -> 450001..). Os paises latam vao de 52 a 61.
+const ID_CLUBE_MIN = 520001, ID_CLUBE_MAX = 619999, ID_JOGADOR_BASE = 8000000;
+// A nacionalidade dos jogadores e o codigo NUMERICO do pais (o mesmo de players.json: Brasil 54, Argentina 52...).
+const NAC_ID = { ARG: '52', BOL: '53', BRA: '54', CHI: '55', COL: '56', ECU: '57', PAR: '58', PER: '59', URU: '60', VEN: '61' };
+// (+ os ids de texto e a faixa de ids da 1.a versao do gerador, para limpar uma base gerada por ela)
+const IDS_PAIS = PAISES.map(p => p.id).concat(PAISES.map(p => p.sigla));
+const eClubeLatam = (id) => (id >= ID_CLUBE_MIN && id <= ID_CLUBE_MAX) || (id >= 710001 && id <= 799999);
+const jaTemLatam = countries.some(c => IDS_PAIS.includes(c.id)) || teams.some(t => eClubeLatam(t.teamID));
 const dry = process.argv.includes('--dry'), force = process.argv.includes('--force');
 if (jaTemLatam && !dry && !force) {
     console.error('Ja ha ligas latam na base (talvez editadas). Use --force para as refazer do zero (apaga o que editou), ou --dry para so ver o relatorio.');
@@ -67,7 +72,7 @@ if (jaTemLatam && !dry && !force) {
 if (jaTemLatam) {
     // Tira o que o gerador pôs antes.
     for (let i = countries.length - 1; i >= 0; i--) if (IDS_PAIS.includes(countries[i].id)) countries.splice(i, 1);
-    teams = teams.filter(t => !(t.teamID >= ID_CLUBE_MIN && t.teamID <= ID_CLUBE_MAX));
+    teams = teams.filter(t => !eClubeLatam(t.teamID));
     players = players.filter(p => p.idPlayer < ID_JOGADOR_BASE);
 }
 
@@ -119,7 +124,7 @@ function nomeDe(nac) {
 
 // ---------------------------------------------------------------- um clube
 function pico(pais, rank, nA, noAcesso) {
-    const teto = CONFIG.teto[pais.id];
+    const teto = CONFIG.teto[pais.sigla];
     if (noAcesso) return teto - CONFIG.quedaAcesso - rank * 0.3;
     if (rank < CONFIG.melhoresClubes) return teto;
     return teto - 1 - (rank - CONFIG.melhoresClubes) * ((CONFIG.quedaSerieA - 1) / Math.max(1, nA - CONFIG.melhoresClubes - 1));
@@ -138,7 +143,7 @@ function gerarElenco(pais, nomeClube, rankA, nA, noAcesso, rankNoAcesso) {
     const nEstrelas = (!noAcesso && rankA < CONFIG.melhoresClubes) ? 2 : 1;
     const candidatos = tit.filter(s => PESO_ESTRELA[s.pos]);
     for (let e = 0; e < nEstrelas; e++) {
-        const cont = estrelasDoPais[pais.id] = estrelasDoPais[pais.id] || {};
+        const cont = estrelasDoPais[pais.sigla] = estrelasDoPais[pais.sigla] || {};
         const peso = (s) => PESO_ESTRELA[s.pos] / Math.pow(1 + (cont[s.pos] || 0), 1.5);
         const pool = candidatos.filter(s => !s.estrela); const tot = pool.reduce((a, s) => a + peso(s), 0); let r = rnd() * tot, esc = pool[0];
         for (const s of pool) { r -= peso(s); if (r <= 0) { esc = s; break; } }
@@ -185,8 +190,8 @@ for (const pais of PAISES) {
         const id = pais.idBase + seq;
         (item.acesso ? idsB : idsA).push(id);
         const rank = item.acesso ? nA + item.rankNoAcesso : item.rankA, nTot = nA + 6;
-        const cap = Math.round(CONFIG.capitalTopo[pais.id] * Math.pow(0.2, rank / (nTot - 1)) / 1000) * 1000;
-        const torcida = Math.round(CONFIG.torcidaTopo[pais.id] * Math.pow(0.1, rank / (nTot - 1)));
+        const cap = Math.round(CONFIG.capitalTopo[pais.sigla] * Math.pow(0.2, rank / (nTot - 1)) / 1000) * 1000;
+        const torcida = Math.round(CONFIG.torcidaTopo[pais.sigla] * Math.pow(0.1, rank / (nTot - 1)));
         const c1 = COR[k1], c2 = COR[k2];
         const club = {
             teamID: id, teamName: nome, teamAbb: sigla, color: c1, color2: c2, color3: '', teamCityName: cidade, teamStadiumName: estadio, yearOfFoundation: ano || 0,
@@ -217,13 +222,13 @@ for (const pais of PAISES) {
             const j = {
                 idPlayer: ++idJog, team: nome, namePlayer: nomeDe(nac), posPlayer: s.pos, agePlayer: s.idade, ovrPlayer: s.ovr,
                 fitPlayer: ri(70, 90), morplayer: ri(4, 6), defPlayer: st(0), pasPlayer: st(1), drbplayer: st(2), shtPlayer: st(3),
-                valPlayer: valorDe(s.ovr, s.idade, 0.5 + 0.5 * (CONFIG.teto[pais.id] - 66) / 12), nationality: nac
+                valPlayer: valorDe(s.ovr, s.idade, 0.5 + 0.5 * (CONFIG.teto[pais.sigla] - 66) / 12), nationality: NAC_ID[nac]
             };
             elenco.push(j);
         }
         novosJogadores.push(...elenco);
         const ov = elenco.map(j => j.ovrPlayer), tit = elenco.filter((j, i) => slots[i].onze);
-        relatorio.push({ pais: pais.id, clube: nome, acesso: item.acesso, rank, pico: Math.max(...ov), onze: +(tit.reduce((a, j) => a + j.ovrPlayer, 0) / tit.length).toFixed(1), plantel: +(ov.reduce((a, b) => a + b, 0) / ov.length).toFixed(1), estr: estrangeiros.size, alvoPico: +picoClube.toFixed(1), alvoOnze: +mediaOnze.toFixed(1), elenco, slots });
+        relatorio.push({ pais: pais.sigla, clube: nome, acesso: item.acesso, rank, pico: Math.max(...ov), onze: +(tit.reduce((a, j) => a + j.ovrPlayer, 0) / tit.length).toFixed(1), plantel: +(ov.reduce((a, b) => a + b, 0) / ov.length).toFixed(1), estr: estrangeiros.size, alvoPico: +picoClube.toFixed(1), alvoOnze: +mediaOnze.toFixed(1), elenco, slots });
     }
     // So a Serie A tem jogos. Os 6 clubes extra ficam em `reserveTeamIds`: no fim da temporada sorteiam-se deles os que entram no lugar dos rebaixados.
     const rounds = 2 * (nA - 1), passos = rounds * 4.67 + 105 < 360 ? [4, 6, 4, 4, 6] : [3, 4, 4];
@@ -231,7 +236,7 @@ for (const pais of PAISES) {
     novoPaises.push({
         id: pais.id, name: pais.nome, continent: 'South America',
         leagues: [
-            { id: pais.id + '_serie_a', name: pais.ligaA, tier: 1, teamIds: idsA, promoted: 0, relegated: pais.rebaixados, matchDates: datas }
+            { id: pais.sigla + '_serie_a', name: pais.ligaA, tier: 1, teamIds: idsA, promoted: 0, relegated: pais.rebaixados, matchDates: datas }
         ],
         reserveTeamIds: idsB
     });
@@ -251,8 +256,8 @@ const L = [];
 L.push('RELATORIO DAS LIGAS LATAM (semente ' + CONFIG.semente + ')', '');
 L.push('Clubes: ' + novoClubes.length + '   Jogadores: ' + novosJogadores.length, '');
 for (const pais of PAISES) {
-    const rs = relatorio.filter(r => r.pais === pais.id);
-    L.push(pais.nome.toUpperCase() + '  teto ' + CONFIG.teto[pais.id] + '  Serie A: ' + pais.serieA.length + ' clubes (+6 de reserva)');
+    const rs = relatorio.filter(r => r.pais === pais.sigla);
+    L.push(pais.nome.toUpperCase() + '  teto ' + CONFIG.teto[pais.sigla] + '  Serie A: ' + pais.serieA.length + ' clubes (+6 de reserva)');
     L.push('  #  clube'.padEnd(36) + 'pico  onze  plantel  estrangeiros');
     rs.forEach((r, i) => L.push(('  ' + (i + 1)).padEnd(5) + (r.clube + (r.acesso ? ' (reserva)' : '')).padEnd(31) + String(r.pico).padEnd(6) + String(r.onze).padEnd(6) + String(r.plantel).padEnd(9) + r.estr));
     // equilibrio por posicao nos 4 melhores e no resto da serie A

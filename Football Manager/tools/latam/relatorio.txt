@@ -261,5 +261,5 @@ VENEZUELA  teto 71  Serie A: 14 clubes (+6 de reserva)
 
 Idades: 17-20 1483, 21-24 1109, 25-28 1683, 29-32 1376, 33+ 709
 Maximo de jogadores na mesma posicao em qualquer clube: 4
-Jogadores por nacionalidade: ARG 1055, PAR 549, PER 678, COL 795, BRA 110, BOL 607, CHI 658, VEN 562, URU 687, ECU 659
+Jogadores por nacionalidade: 52 1055, 53 607, 54 110, 55 658, 56 795, 57 659, 58 549, 59 678, 60 687, 61 562
 Regressao do valor de mercado (ln valor = a + b*ovr + c*(idade-27)^2): 12.4397, 0.0573, -0.0052

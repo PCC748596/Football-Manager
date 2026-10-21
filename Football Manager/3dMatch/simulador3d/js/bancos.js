@@ -338,7 +338,9 @@ const Bancos = {
                 : Array.from({ length: B.reservas }, () => ({ id: null }));
             const corCamisa = (typeof corDoUniforme === 'function') ? corDoUniforme(uni, B.coresPorOmissao[b.equipa]) : B.coresPorOmissao[b.equipa];
             lista.forEach((j, i) => {
-                const p = new FootballPlayer(200 + (b.equipa === 'A' ? 0 : 20) + i, corCamisa, '#ffffff', time, uni, j.id || null);
+                FootballPlayer.extra = true;   // reservas no banco: corpo de metade dos triangulos (Qualidade.corpoExtras)
+                let p;
+                try { p = new FootballPlayer(200 + (b.equipa === 'A' ? 0 : 20) + i, corCamisa, '#ffffff', time, uni, j.id || null); } finally { FootballPlayer.extra = false; }
                 // O numero e as costas da camisa (como nos titulares): sem isto o reserva sentado/a aquecer tinha as costas lisas.
                 if (B.numeroNosReservas) p.updateShirt(j.numero || (12 + i), 'CM');   // desligado (`numeroNosReservas`): voltou-se ao banco de antes disto
                 this._sentar(p);

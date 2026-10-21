@@ -790,7 +790,9 @@ const Officials = {
             argolas: preto,
             calcao: { cores: [calcao || camisa], barra: (!simples && calcao && calcao !== preto) ? { cor: preto, altura: 0.12 } : null }
         } : null;
-        const jogador = new FootballPlayer(id, camisa || R.corCamisa, calcao || R.corCalcao, 'TeamA', uniforme);
+        FootballPlayer.extra = true;   // corpo de metade dos triangulos (Qualidade.corpoExtras)
+        let jogador;
+        try { jogador = new FootballPlayer(id, camisa || R.corCamisa, calcao || R.corCalcao, 'TeamA', uniforme); } finally { FootballPlayer.extra = false; }
 
         /*
         A ALTURA DOS OFICIAIS, fixa — ver RefereeModel.altura. O
