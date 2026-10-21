@@ -794,6 +794,39 @@ Começa só pelo PASS; os valores replicam exactamente o timing antigo
 */
 
 /*
+DETALHE DA RELVA (shader, sem geometria): ruido em coordenadas do MUNDO somado ao material do relvado em match_setup.js. Tres camadas: manchas largas de cor (`manchas`), graos finos de cor
+(`graos`) e relevo das laminas (`relevo`, inclina a normal para a luz riscar a relva). O grao e o relevo esbatem-se com a distancia (`fadeIni`..`fadeFim`, em metros) para nao cintilar ao longe.
+`activo: false` volta ao relvado liso de antes. Nenhuma textura nem triangulo novo: o custo e um punhado de contas por pixel do relvado.
+*/
+const RelvaDetalhe = {
+    activo: false,
+    escalaManchas: 0.35,   // ciclos por metro das manchas largas
+    manchas: 0.03,         // variacao de brilho das manchas (+-)
+    escalaGraos: 22.0,     // ciclos por metro do grao fino
+    graos: 0,              // variacao de brilho do grao (+-)
+    escalaRelevo: 40.0,    // ciclos por metro das laminas (relevo)
+    relevo: 0,             // inclinacao da normal pelo relevo
+    fadeIni: 8.0, fadeFim: 28.0
+};
+if (typeof window !== 'undefined') window.RelvaDetalhe = RelvaDetalhe;
+
+/*
+TUFOS DE RELVA 3D (js/relva_tufos.js): tufos de 3 laminas numa grelha a volta da bola, instanciados (1 draw call, 3 triangulos por tufo). So nos niveis de qualidade com `relvaTufos` (MEDIUM e HIGH).
+Triangulos = 3 x (2*raio/celula+1)^2: com raio 20 e celula 0.45 sao ~24 000. `activo: false` desliga.
+*/
+const RelvaTufos = {
+    activo: false,
+    raio: 20.0,           // m a volta da bola (os tufos esbatem-se dos 55% do raio ate ao raio)
+    celula: 0.45,         // m entre tufos (menor = mais denso e mais pesado)
+    altura: 0.09,         // m (altura media da lamina)
+    variacaoAltura: 0.35, // +- fraccao da altura
+    largura: 0.035,       // m na base da lamina
+    inclinacao: 0.035,    // m que a ponta se inclina para fora
+    vento: 0.012          // m de balanco da ponta
+};
+if (typeof window !== 'undefined') window.RelvaTufos = RelvaTufos;
+
+/*
 =============================================================================
 AS DUAS CORES DO RELVADO
 =============================================================================

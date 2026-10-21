@@ -1,3 +1,49 @@
+/*
+DETALHE DA RELVA no shader (ver RelvaDetalhe, config/physics.js): ruido de valor em coordenadas do mundo (x,z), sem textura nova. Mexe na cor (manchas e grao) e inclina a normal pelo
+gradiente do ruido de laminas (derivadas de ecra), esbatendo com a distancia a camara. O resto do material (mapa das faixas, luz, sombras) fica como estava.
+*/
+function aplicarDetalheDaRelva(mat) {
+    const D = (typeof RelvaDetalhe !== 'undefined') ? RelvaDetalhe : null;
+    if (!D || !D.activo) return;
+    const f = (n) => Number(n).toFixed(4);
+    mat.onBeforeCompile = function (sh) {
+        sh.vertexShader = sh.vertexShader
+            .replace('#include <common>', `#include <common>
+varying vec2 vRelvaXZ;`)
+            .replace('#include <begin_vertex>', `#include <begin_vertex>
+vRelvaXZ = (modelMatrix * vec4(transformed, 1.0)).xz;`);
+        sh.fragmentShader = sh.fragmentShader
+            .replace('#include <common>', `#include <common>
+varying vec2 vRelvaXZ;
+float rvHash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float rvNoise(vec2 p) {
+    vec2 i = floor(p), u = fract(p); u = u * u * (3.0 - 2.0 * u);
+    return mix(mix(rvHash(i), rvHash(i + vec2(1.0, 0.0)), u.x), mix(rvHash(i + vec2(0.0, 1.0)), rvHash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+float rvAltura(vec2 p) {
+    // laminas: ruido esticado ao longo do comprimento (z), como o corte
+    return rvNoise(p * vec2(${f(D.escalaRelevo)}, ${f(D.escalaRelevo * 0.55)})) * 0.65 + rvNoise(p * ${f(D.escalaRelevo * 2.3)}) * 0.35;
+}`)
+            .replace('#include <map_fragment>', `#include <map_fragment>
+float rvDist = length(vViewPosition);
+float rvFade = 1.0 - smoothstep(${f(D.fadeIni)}, ${f(D.fadeFim)}, rvDist);
+float rvManchas = rvNoise(vRelvaXZ * ${f(D.escalaManchas)}) - 0.5;
+float rvGrao = rvNoise(vRelvaXZ * ${f(D.escalaGraos)}) - 0.5;
+diffuseColor.rgb *= 1.0 + rvManchas * ${f(D.manchas * 2.0)} + rvGrao * ${f(D.graos * 2.0)} * rvFade;`)
+            .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+{
+    float rvH = rvAltura(vRelvaXZ);
+    vec2 rvD = vec2(dFdx(rvH), dFdy(rvH)) * ${f(D.relevo)} * rvFade;
+    vec3 rvS1 = dFdx(-vViewPosition), rvS2 = dFdy(-vViewPosition);
+    vec3 rvR1 = cross(rvS2, normal), rvR2 = cross(normal, rvS1);
+    float rvDet = dot(rvS1, rvR1);
+    vec3 rvG = sign(rvDet) * (rvD.x * rvR1 + rvD.y * rvR2);
+    normal = normalize(abs(rvDet) * normal - rvG);
+}`);
+    };
+    mat.customProgramCacheKey = function () { return 'relvaDetalhe'; };
+}
+
 Object.assign(Match, {
     init: function (scene) {
         this.scene = scene;
@@ -244,8 +290,11 @@ Object.assign(Match, {
         }
         const relvaTex = new THREE.CanvasTexture(cvsR);
         relvaTex.wrapS = THREE.ClampToEdgeWrapping; relvaTex.wrapT = THREE.ClampToEdgeWrapping;
-        window.relva = new THREE.Mesh(new THREE.PlaneGeometry(gramaLarg, gramaComp), new THREE.MeshStandardMaterial({ map: relvaTex, roughness: 1.0 }));
+        const relvaMat = new THREE.MeshStandardMaterial({ map: relvaTex, roughness: 1.0 });
+        if (typeof aplicarDetalheDaRelva === 'function') aplicarDetalheDaRelva(relvaMat);
+        window.relva = new THREE.Mesh(new THREE.PlaneGeometry(gramaLarg, gramaComp), relvaMat);
         window.relva.rotation.x = -Math.PI / 2; window.relva.receiveShadow = true; campoGrupo.add(window.relva);
+        if (typeof criarTufosDaRelva === 'function') criarTufosDaRelva(campoGrupo, relvaTex, gramaLarg, gramaComp);   // tufos 3D perto da bola (MEDIUM/HIGH)
 
         const matLinha = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
         const esp = 0.15; const comp = CAMPO_COMP; const larg = CAMPO_LARG;

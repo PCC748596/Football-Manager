@@ -1104,6 +1104,8 @@ const Sim = {
         if (planoCobertura) {
             Tatics.formacao = formacaoOriginal;
             for (const [p, valor] of fixoOriginais) p.playingStyleFixo = valor;
+            // Quem foi expulso no ultimo jogo volta ao plantel: com uma equipa a dez o assignFormations indexa um jogador que nao existe e o lote morria aqui, depois de todos os jogos, sem devolver o relatorio.
+            Match.reporExpulsos();
             Match.assignFormations();
 
             const sobrou = [];

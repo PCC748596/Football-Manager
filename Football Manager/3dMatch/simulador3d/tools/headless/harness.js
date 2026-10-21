@@ -70,7 +70,7 @@ const FICHEIROS = [
     'js/bt/alvo.js', 'js/bt/core.js', 'js/bt/team_bt.js', 'js/bt/player_bt.js',
     'js/goal_net.js',
     // O monólito js/match.js foi dividido; a ordem é a do index.html.
-    'js/match/match_state.js', 'js/match/match_setup.js', 'js/match/match_physics.js',
+    'js/match/match_state.js', 'js/match/match_setup.js', 'js/relva_tufos.js', 'js/match/match_physics.js',
     'js/match/match_setpieces.js', 'js/match/match_falta_rotinas.js', 'js/match/match_substituicoes.js', 'js/match/match_loop.js', 'js/match/match_ui.js',
     'js/pose.js', 'js/player.js', 'js/gk_saida_aos_pes.js', 'js/balanco_corredores.js', 'js/inversao_sinalizada.js', 'js/narracao/eventos.js', 'js/narracao/narrador.js', 'js/narracao/adaptador_manager.js', 'js/narracao/ponte.js',
     'js/fsm.js', 'js/comemoracao.js', 'js/officials.js', 'js/officials_olham_a_bola.js', 'js/officials_quarto.js', 'js/tunel.js', 'js/abertura.js'

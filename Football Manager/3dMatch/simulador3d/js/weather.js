@@ -41,6 +41,13 @@ const Weather = {
     fatorVelocidadeNuvens: 0.70,
     sombrasGroup: null,
     rainParticles: null,
+    /*
+    NEVE LEVE (condicao 'neve'): `neveCount` flocos (THREE.Points, 1 draw call) a cair a `neveVel` m/s com um balanco lateral suave, numa caixa de 160 x 45 x 180 m como a da chuva. Ver _criarNeve.
+    */
+    neveParticles: null,
+    neveCount: 4500,
+    neveVel: 2.2,
+    neveTamanho: 0.4,
     rainCount: 3500,
     rainSpeed: 45,
     rainGeometry: null,
@@ -207,6 +214,26 @@ const Weather = {
                 nuvensQtd: 4,
                 chuva: false
             },
+            neve: {
+                // NEVE LEVE: ceu claro e encoberto, luz suave e fria, flocos a cair devagar (ver _criarNeve). Sem chuva nem respingos.
+                ceu: 0xb9c4cf,
+                fogColor: 0xb9c4cf,
+                fogNear: 70,
+                fogFar: 240,
+                solColor: 0xe6ecf2,
+                solIntensidade: 0.45,
+                solPos: [30, 85, 25],
+                ambienteColor: 0xc9d4de,
+                ambienteIntensidade: 0.45,
+                holofotes: true,
+                holofotesIntensidade: 0.3,
+                nuvensVisiveis: true,
+                nuvensOpacidade: 0.80,
+                nuvensCor: 0xb4bec8,
+                nuvensQtd: 4,
+                chuva: false,
+                neve: true
+            },
             chuva: {
                 ceu: 0x36414d,
                 fogColor: 0x36414d,
@@ -284,6 +311,25 @@ const Weather = {
                 nuvensQtd: 4,
                 chuva: false
             },
+            neve: {
+                ceu: 0x141a24,
+                fogColor: 0x141a24,
+                fogNear: 55,
+                fogFar: 210,
+                solColor: 0x6f80a0,
+                solIntensidade: 0.08,
+                solPos: [20, 70, 30],
+                ambienteColor: 0x182231,
+                ambienteIntensidade: 0.16,
+                holofotes: true,
+                holofotesIntensidade: 0.7,
+                nuvensVisiveis: true,
+                nuvensOpacidade: 0.70,
+                nuvensCor: 0x1c2531,
+                nuvensQtd: 4,
+                chuva: false,
+                neve: true
+            },
             chuva: {
                 ceu: 0x080b12,
                 fogColor: 0x080b12,
@@ -319,6 +365,7 @@ const Weather = {
 
         this._criarNuvens();
         this._criarChuva();
+        this._criarNeve();
         this._criarRespingos();
         this.apply();
     },
@@ -332,7 +379,7 @@ const Weather = {
     },
 
     setCondicao(c) {
-        if (!['limpo', 'nublado', 'encoberto', 'chuva'].includes(c)) return;
+        if (!['limpo', 'nublado', 'encoberto', 'chuva', 'neve'].includes(c)) return;
         this.condicao = c;
         this.apply();
         this._atualizarUI();
@@ -420,6 +467,9 @@ const Weather = {
         if (this.rainParticles) {
             this.rainParticles.visible = pConfig.chuva;
         }
+
+        // 7b. Neve
+        if (this.neveParticles) this.neveParticles.visible = !!pConfig.neve;
 
         // 8. Respingos — sem chuva nao ha agua no relvado, e a pool esvazia-se
         if (this.splashParticles) {
@@ -722,7 +772,9 @@ const Weather = {
         const M = this._mascara;
         const mat = relva.material;
         const self = this;
+        const antes = mat.onBeforeCompile;   // o detalhe da relva (aplicarDetalheDaRelva) usa o mesmo gancho: encadeia-se, nao se substitui
         mat.onBeforeCompile = (shader) => {
+            if (typeof antes === 'function' && antes !== THREE.Material.prototype.onBeforeCompile) antes(shader);
             shader.uniforms.uMascaraNuvem = { value: M.tex };
             shader.uniforms.uMascaraBox = { value: M.u };
             shader.uniforms.uSombraNaNuvem = { value: self.intensidadeSombraNaNuvem };
@@ -742,7 +794,7 @@ const Weather = {
                     'float nuvemSombra = texture2D(uMascaraNuvem, (vNuvemW.xz - uMascaraBox.xy) / uMascaraBox.zw).a;\n' +
                     'nuvemSombra = clamp(nuvemSombra / 0.5, 0.0, 1.0);\n' + luzes);
         };
-        mat.customProgramCacheKey = () => 'relva-sombra-nuvem';
+        mat.customProgramCacheKey = () => 'relva-sombra-nuvem-detalhe';
         mat.needsUpdate = true;
         this._mascaraRelva = relva;
     },
@@ -853,6 +905,61 @@ const Weather = {
         this.rainParticles.name = "Weather_Rain";
         this.rainParticles.visible = false;
         this.scene.add(this.rainParticles);
+    },
+
+    _criarNeve() {
+        if (this.neveParticles) return;
+        const n = this.neveCount;
+        const pos = new Float32Array(n * 3);
+        this._neveFase = new Float32Array(n);
+        for (let i = 0; i < n; i++) {
+            pos[i * 3] = (Math.random() - 0.5) * 160;
+            pos[i * 3 + 1] = Math.random() * 45;
+            pos[i * 3 + 2] = (Math.random() - 0.5) * 180;
+            this._neveFase[i] = Math.random() * Math.PI * 2;
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        // Floco redondo e macio: um disco num canvas pequeno (sem ficheiro de imagem).
+        let tex = null;
+        if (typeof document !== 'undefined') {
+            const c = document.createElement('canvas'); c.width = c.height = 32;
+            const x = c.getContext('2d');
+            if (x) {
+                const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+                gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+                x.fillStyle = gr; x.fillRect(0, 0, 32, 32);
+                tex = new THREE.CanvasTexture(c);
+            }
+        }
+        const mat = new THREE.PointsMaterial({
+            color: 0xffffff, size: this.neveTamanho, sizeAttenuation: true, map: tex,
+            transparent: true, opacity: 0.85, depthWrite: false
+        });
+        this.neveParticles = new THREE.Points(g, mat);
+        this.neveParticles.name = 'Weather_Neve';
+        this.neveParticles.frustumCulled = false;
+        this.neveParticles.visible = false;
+        this.scene.add(this.neveParticles);
+    },
+
+    _atualizarNeve(dt) {
+        if (!this.neveParticles || !this.neveParticles.visible) return;
+        const attr = this.neveParticles.geometry.attributes.position, p = attr.array, n = this.neveCount;
+        this._neveT = (this._neveT || 0) + dt;
+        const t = this._neveT;
+        for (let i = 0; i < n; i++) {
+            const f = this._neveFase[i];
+            p[i * 3 + 1] -= this.neveVel * (0.7 + 0.5 * Math.sin(f * 3.0)) * dt;
+            p[i * 3] += Math.sin(t * 0.6 + f) * 0.55 * dt + 0.35 * dt;      // balanco lateral e uma brisa fraca
+            p[i * 3 + 2] += Math.cos(t * 0.5 + f * 1.7) * 0.45 * dt;
+            if (p[i * 3 + 1] < 0) {
+                p[i * 3] = (Math.random() - 0.5) * 160;
+                p[i * 3 + 1] = 35 + Math.random() * 10;
+                p[i * 3 + 2] = (Math.random() - 0.5) * 180;
+            }
+        }
+        attr.needsUpdate = true;
     },
 
     _criarRespingos() {
@@ -1202,6 +1309,7 @@ const Weather = {
             attr.needsUpdate = true;
         }
 
+        this._atualizarNeve(dt);
         this._respingosDeChuva(dt);
         this._atualizarRespingos(dt);
     },
