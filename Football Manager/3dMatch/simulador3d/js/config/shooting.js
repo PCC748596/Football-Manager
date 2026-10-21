@@ -2015,6 +2015,10 @@ const HeaderModel = {
     precisão, e isso é obra de outro tamanho: o alvo aéreo, o steering na
     chegada e o salto.
     */
+    // Cabeceio EM SALTO: o corpo nao gira no ar. `giroMaxNoAr` (rad) e quanto se ajusta no contacto; a bola a mais de `anguloMaxNoAr` (rad, ~70 graus) da frente do salto passa.
+    giroMaxNoAr: 0.45,
+    giroMaxDePe: 0.90,
+    anguloMaxNoAr: 1.22,
     raioContacto: 0.90,
 
     /*

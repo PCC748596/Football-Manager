@@ -4135,7 +4135,29 @@ class FootballPlayer {
         // De frente para a bola, mesma correcção do controlarNoPeito — sem
         // isto o corpo ficava com a orientação da última corrida, muitas
         // vezes atravessado em relação à bola que chega para a cabeçada.
-        lookAtBola(this.model, Match.ball.position);
+        if (this.jumpTimer > 0) {
+            /*
+            NO AR O CORPO NAO GIRA 180 GRAUS (relato: *"pula numa direccao e, quando chega perto da bola, gira o corpo quase 180 graus no ar e acerta o cabeceio"*).
+            Isto virava-o de vez para a bola no frame do contacto: medido, 30% dos cabeceios em salto rodavam mais de 60 graus e 10% mais de 120 (ate 179). No ar so se
+            ajusta ate `HeaderModel.giroMaxNoAr` rad (a cabeca/pescoco fazem o resto).
+            */
+            const f = _v2.set(0, 0, 1).applyQuaternion(this.model.quaternion);
+            const yawAtual = Math.atan2(f.x, f.z);
+            const yawBola = Math.atan2(Match.ball.position.x - this.model.position.x, Match.ball.position.z - this.model.position.z);
+            let dy = yawBola - yawAtual;
+            while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
+            const lim = (typeof HeaderModel !== 'undefined' && typeof HeaderModel.giroMaxNoAr === 'number') ? HeaderModel.giroMaxNoAr : 0.5;
+            this.model.quaternion.setFromAxisAngle(_vUp, yawAtual + Math.max(-lim, Math.min(lim, dy)));
+        } else {
+            // De pe tambem nao vira de vez (ate `giroMaxDePe`): era um estalo de ate 180 graus no frame do contacto.
+            const f2 = _v2.set(0, 0, 1).applyQuaternion(this.model.quaternion);
+            const yaw2 = Math.atan2(f2.x, f2.z);
+            const yawB = Math.atan2(Match.ball.position.x - this.model.position.x, Match.ball.position.z - this.model.position.z);
+            let d2 = yawB - yaw2;
+            while (d2 > Math.PI) d2 -= 2 * Math.PI; while (d2 < -Math.PI) d2 += 2 * Math.PI;
+            const lim2 = (typeof HeaderModel !== 'undefined' && typeof HeaderModel.giroMaxDePe === 'number') ? HeaderModel.giroMaxDePe : 0.9;
+            this.model.quaternion.setFromAxisAngle(_vUp, yaw2 + Math.max(-lim2, Math.min(lim2, d2)));
+        }
 
         // Cola a bola à testa antes de a mandar embora — sem isto o
         // contacto era aceite até `BallControl.reach` (0.9 m) de distância

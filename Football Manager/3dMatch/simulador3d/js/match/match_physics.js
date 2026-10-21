@@ -1292,6 +1292,15 @@ Object.assign(Match, {
         bola acima do chao e sempre cabeceio.
         */
         const noArComBola = best.jumpTimer > 0 && best.jumpAltura > 0.1 && alturaRealDaBola > 0.5 && distHorizontal <= raioTesta;
+        /*
+        NO AR NAO SE CABECEIA UMA BOLA QUE ESTA ATRAS/AO LADO: o corpo nao gira no ar (ver executeHeaderNucleo). Se a bola esta a mais de `HeaderModel.anguloMaxNoAr` rad da frente do
+        salto, o contacto nao existe e ela passa.
+        */
+        if ((naAlturaDaTesta || noArComBola) && best.jumpTimer > 0 && typeof HeaderModel.anguloMaxNoAr === 'number') {
+            const ff = _v2.set(0, 0, 1).applyQuaternion(best.model.quaternion);
+            const bx = this.ball.position.x - best.model.position.x, bz = this.ball.position.z - best.model.position.z, bn = Math.hypot(bx, bz);
+            if (bn > 0.25 && (ff.x * bx + ff.z * bz) / (Math.hypot(ff.x, ff.z) * bn || 1) < Math.cos(HeaderModel.anguloMaxNoAr)) return desfazerPosse();
+        }
         if (naAlturaDaTesta || noArComBola) {
             best.executeHeader();
         } else {
