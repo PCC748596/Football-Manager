@@ -2031,6 +2031,25 @@ class FootballPlayer {
             return;
         }
 
+        // INTENCOES: quem arrancou antes da cobranca em posicao regular diz para onde vai; o batedor lanca a bola ao ponto dele (ver `Intencoes`).
+        {
+            const meusF = (this.team === 'TeamA') ? Match.players : Match.opponents;
+            const advsF = (this.team === 'TeamA') ? Match.opponents : Match.players;
+            const lf = (typeof melhorIntencaoDeLancamento === 'function') ? melhorIntencaoDeLancamento(this, meusF, advsF) : null;
+            if (lf) {
+                this.passTarget = lf.mate;
+                this.passTargetPos = new THREE.Vector3(lf.alvoX, 0, lf.alvoZ);
+                this.isThroughBall = true;
+                this.throughBallAlto = !!lf.alto;
+                this.throughBallTarget = { x: lf.alvoX, z: lf.alvoZ };
+                this.hasBall = true;
+                Match.ballCarrier = this;
+                executePassGameplay(this);
+                this.showActionBanner('PASS');
+                return;
+            }
+        }
+
         const alvo = this.findPassTarget('frente') || this.findPassTarget() ||
             this.findPassTargetRelaxed('frente');
         if (alvo) {

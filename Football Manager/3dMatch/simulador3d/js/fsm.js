@@ -1742,8 +1742,24 @@ class PlayerFSM {
                 e é essa a condição que faz sentido.
                 */
                 const passeParaOutro = false;
-                const chegou = p.dynamicTarget &&
+                let chegou = p.dynamicTarget &&
                     p.model.position.distanceTo(p.dynamicTarget) < 1.5;
+
+                /*
+                INTENCOES (ver `Intencoes`): QUEM RECEBE O PASSE NAO PARA A MEIO DO CAMINHO — continua a correr `persistenciaComPasse` s e, se chega ao destino com a bola
+                ainda a vir, o alvo avanca (`prolongar` m, ate perto da linha de fundo). QUEM NAO RECEBEU (o passe foi para outro) ve a corrida encurtada: a intencao foi resetada.
+                */
+                if (typeof Intencoes !== 'undefined' && Intencoes.activo && Match.intendedReceiver) {
+                    if (Match.intendedReceiver === p) {
+                        p.runTimer = Math.max(p.runTimer, Intencoes.persistenciaComPasse);
+                        if (chegou && p.dynamicTarget) {
+                            p.dynamicTarget.z = Math.max(-47, Math.min(47, p.dynamicTarget.z + p.dirZ * Intencoes.prolongar));
+                            chegou = false;
+                        }
+                    } else if (Match.intendedReceiver.team === p.team && this.timer > Intencoes.reacaoMin) {
+                        p.runTimer = Math.min(p.runTimer, Intencoes.restanteSemPasse);
+                    }
+                }
 
                 /*
                 REDE DE SEGURANÇA: uma corrida ao espaço é para a FRENTE.

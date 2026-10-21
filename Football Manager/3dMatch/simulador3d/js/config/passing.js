@@ -136,6 +136,37 @@ const PasseParaOLivre = {
 
 if (typeof window !== 'undefined') window.PasseParaOLivre = PasseParaOLivre;
 
+/*
+=============================================================================
+INTENCOES — quem corre diz ao portador para onde vai, e o portador decide com isso
+=============================================================================
+Pedido (entrosamento): *"o jogador com a bola tem de saber a intencao dos outros: o ponta dispara e emite 'vou correr para a posicao (x,z), lanca para mim'. As intencoes
+ficam por mais tempo e dependem da linha de impedimento. Um atacante em posicao regular que comeca a correr continua uns 6 ou 7 s se o passe for para ele; se o portador
+passar a outro, a intencao e resetada. A posicao tem de ir ao portador para ele fazer o lancamento."*
+
+A INTENCAO e lida do proprio estado de quem corre (RUN_INTO_SPACE + `dynamicTarget`), ver `intencaoDeCorrida` (utils.js): destino da corrida, e o PONTO onde a bola deve cair
+(no caminho dele, `velCorrida` x tempo de voo da bola a frente do sitio onde ele esta, ate ao destino). So conta se ele esta em posicao REGULAR (nao alem da linha de
+impedimento no instante do passe) e passada a `reacaoMin` s do arranque (o ponto onde entra o ENTROSAMENTO: quanto mais jogam juntos, menos o portador demora a le-la).
+O portador (ramo `LancarParaIntencao` da arvore, bt/player_bt.js) escolhe a melhor e lanca: passe em profundidade para o ponto. Quem recebe continua a correr
+`persistenciaComPasse` s (fsm.js, RUN_INTO_SPACE), sem parar a meio do caminho; quem NAO recebeu (passe para outro) ve a corrida encurtada (`restanteSemPasse`).
+=============================================================================
+*/
+const Intencoes = {
+    activo: true,
+    reacaoMin: 0.25,            // s desde o arranque da corrida ate o portador a "ver" (futuro: depende do entrosamento do par)
+    persistenciaComPasse: 6.5,  // s que continua a correr se o passe e para ele
+    prolongar: 10.0,            // m que o alvo avanca quando ele chega ao destino e a bola ainda vem
+    restanteSemPasse: 1.5,      // s que sobram a quem corria quando o passe vai para outro
+    velCorrida: 8.0, velBola: 14.0, velAdversario: 6.2,
+    distMin: 12.0, distMax: 42.0,   // distancia do portador ao ponto de queda
+    ganhoMin: 8.0,              // m a frente do portador (no sentido do ataque) que o ponto tem de ficar: um lancamento ganha terreno
+    livreDestino: 4.5,          // m: nenhum adversario mais perto que isto do ponto
+    margemTempo: 0.1,           // s: o corredor chega ao ponto antes do adversario mais rapido, com esta folga
+    corredorLargura: 7.0, vaoMax: 13.0,
+    chance: 0.85
+};
+if (typeof window !== 'undefined') window.Intencoes = Intencoes;
+
 const PassModel = {
 
     /*
@@ -1102,7 +1133,7 @@ const PassTypeModel = {
         */
         disputaDoPonto: {
             velReceptor: 6.5,
-            velAdversario: 7.0,
+            velAdversario: 6.2,
             margem: 0.15
         },
 

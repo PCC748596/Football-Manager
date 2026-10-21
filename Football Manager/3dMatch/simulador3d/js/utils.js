@@ -5948,6 +5948,92 @@ corredor entre dois homens, e campo aberto.
 
 Pura: sem Match, sem THREE. `adversarios` e uma lista de {x, z}.
 */
+/*
+A INTENCAO DE CORRIDA de um companheiro (ver `Intencoes`, config/passing.js): `null` se nao ha, ou
+`{ mate, destino: {x, z}, ponto: {x, z}, dist }` — o `ponto` e onde a bola deve cair para ele a apanhar a correr.
+Pura sobre o estado dos jogadores; nao altera nada.
+*/
+function intencaoDeCorrida(mate, portador) {
+    const K = (typeof Intencoes !== 'undefined') ? Intencoes : null;
+    if (!K || !K.activo || !mate || mate === portador || mate.role === 'gk' || !mate.model || !mate.fsm) return null;
+    if (mate.fsm.currentState !== 'RUN_INTO_SPACE' || !mate.dynamicTarget) return null;
+    if (mate.fsm.timer < K.reacaoMin) return null;
+    // Posicao REGULAR no instante do passe: nao alem da linha de impedimento (a que o portador le).
+    const bb = (typeof TeamAI !== 'undefined') ? TeamAI.get(mate.team) : null;
+    const linha = bb ? bb.offsideLimitDir : null;
+    const av = mate.model.position.z * mate.dirZ;
+    if (typeof linha === 'number' && av > linha + 0.3) return null;
+    const dest = { x: mate.dynamicTarget.x, z: mate.dynamicTarget.z };
+    // Corrida para a frente.
+    if ((dest.z - mate.model.position.z) * mate.dirZ < 3.0) return null;
+    const d0 = portador.model.position.distanceTo(mate.model.position);
+    const tVoo = d0 / K.velBola;
+    const dx = dest.x - mate.model.position.x, dz = dest.z - mate.model.position.z, dd = Math.hypot(dx, dz) || 1;
+    const corre = Math.min(dd, K.velCorrida * tVoo);
+    const lim = CAMPO_LARG / 2 - 3.0;
+    const ponto = {
+        x: Math.max(-lim, Math.min(lim, mate.model.position.x + dx / dd * corre)),
+        z: Math.max(-46, Math.min(46, mate.model.position.z + dz / dd * corre))
+    };
+    return { mate: mate, destino: dest, ponto: ponto, dist: portador.model.position.distanceTo(_vIntencao.set(ponto.x, portador.model.position.y, ponto.z)) };
+}
+const _vIntencao = new THREE.Vector3();
+
+/*
+A MELHOR INTENCAO para lancar (o que o ramo `LancarParaIntencao` e a cobranca de falta usam): a que tem o ponto a `distMin`..`distMax` do portador, livre de adversarios,
+alcancavel antes deles e com a linha de passe aberta (passa por entre dois adversarios). Devolve `{ mate, alvoX, alvoZ, alto }` (o formato do `actThroughBall`) ou null.
+*/
+function melhorIntencaoDeLancamento(portador, colegas, adversarios) {
+    const K = (typeof Intencoes !== 'undefined') ? Intencoes : null;
+    if (!K || !K.activo) return null;
+    const advPontos = [];
+    for (const o of adversarios) { if (o.role !== 'gk' && o.model) advPontos.push({ x: o.model.position.x, z: o.model.position.z }); }
+    let melhor = null, melhorNota = -Infinity;
+    for (const mate of colegas) {
+        const it = intencaoDeCorrida(mate, portador);
+        if (!it || it.dist < K.distMin || it.dist > K.distMax) continue;
+        if ((it.ponto.z - portador.model.position.z) * portador.dirZ < K.ganhoMin) continue;
+        // O ponto livre, e o corredor la chega primeiro.
+        const dMate = Math.hypot(it.ponto.x - mate.model.position.x, it.ponto.z - mate.model.position.z);
+        const tMate = dMate / K.velCorrida;
+        let livre = true;
+        for (const a of advPontos) {
+            const da = Math.hypot(a.x - it.ponto.x, a.z - it.ponto.z);
+            if (da < K.livreDestino || da / 7.0 < tMate + K.margemTempo) { livre = false; break; }
+        }
+        if (!livre) continue;
+        if (typeof passaEntreAdversarios === 'function' &&
+            !passaEntreAdversarios(portador.model.position.x, portador.model.position.z, it.ponto.x, it.ponto.z, advPontos, K.corredorLargura, K.vaoMax)) continue;
+        // NINGUEM CORTA A BOLA pelo caminho: em oito pontos da trajectoria, nenhum adversario la chega antes da bola (velBola contra velAdversario).
+        {
+            const px = portador.model.position.x, pz = portador.model.position.z;
+            let cortada = false;
+            for (let i = 1; i <= 8 && !cortada; i++) {
+                const s = i / 8, qx = px + (it.ponto.x - px) * s, qz = pz + (it.ponto.z - pz) * s;
+                const tBola = (it.dist * s) / K.velBola;
+                for (const a of advPontos) {
+                    if (Math.hypot(a.x - qx, a.z - qz) / K.velAdversario < tBola - 0.1) { cortada = true; break; }
+                }
+            }
+            if (cortada) continue;
+        }
+        const nota = (it.ponto.z - portador.model.position.z) * portador.dirZ - it.dist * 0.2;
+        if (nota > melhorNota) { melhorNota = nota; melhor = { mate: mate, alvoX: it.ponto.x, alvoZ: it.ponto.z }; }
+    }
+    if (!melhor) return null;
+    // Pelo alto se alguem fecha a linha do passe.
+    _vIntencao.set(portador.model.position.x, 0, portador.model.position.z);
+    const ln = new THREE.Line3(_vIntencao.clone(), new THREE.Vector3(melhor.alvoX, 0, melhor.alvoZ));
+    let naLinha = 0; const tmp = new THREE.Vector3();
+    for (const o of adversarios) {
+        if (o.role === 'gk' || !o.model) continue;
+        ln.closestPointToPoint(new THREE.Vector3(o.model.position.x, 0, o.model.position.z), true, tmp);
+        if (tmp.distanceTo(new THREE.Vector3(o.model.position.x, 0, o.model.position.z)) < (typeof PassModel !== 'undefined' ? PassModel.corredorBloqueio : 1.0)) naLinha++;
+    }
+    melhor.alto = naLinha > 0;
+    return melhor;
+}
+
 function passaEntreAdversarios(ox, oz, ax, az, adversarios, larguraCorredor, vaoMax) {
     const dx = ax - ox, dz = az - oz;
     const comp = Math.hypot(dx, dz);

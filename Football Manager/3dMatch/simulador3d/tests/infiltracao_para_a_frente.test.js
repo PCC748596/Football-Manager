@@ -115,7 +115,7 @@ test('a condição da infiltração desiste antes de gastar o frame', () => {
 
 test('a FSM aborta uma corrida cujo alvo esteja atrás', () => {
     const ini = srcFSM.indexOf("case 'RUN_INTO_SPACE'");
-    const corpo = srcFSM.slice(ini, ini + 3000);
+    const corpo = srcFSM.slice(ini, ini + 4500);   // (era 3000: o bloco das Intencoes entrou antes da rede de seguranca)
     assert.ok(corpo.includes('alvoAtras'), 'a rede de segurança do estado desapareceu');
     assert.ok(corpo.includes('* p.dirZ) < -1.0'),
         'o teste do alvo atrás tem de ser no referencial de ataque do jogador');

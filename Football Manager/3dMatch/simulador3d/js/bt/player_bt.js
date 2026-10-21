@@ -2466,6 +2466,11 @@ certo, e ir para onde ela pára seria deixá-la morrer sozinha.
 function actReceivePass(ctx) {
     const p = ctx.p;
     p.speedMult = 5.8 * 1.25 * 0.9;
+    // INTENCOES: quem recebe um lancamento para o espaco (o ponto de queda esta longe) continua a CORRER, a sprintar, ate la — nao abranda a meio do caminho.
+    if (typeof Intencoes !== 'undefined' && Intencoes.activo && Match.intendedReceiver === p && Match.passTargetPos &&
+        Math.hypot(Match.passTargetPos.x - p.model.position.x, Match.passTargetPos.z - p.model.position.z) > 6.0) {
+        p.speedMult = Math.max(p.speedMult, p.sprintSpeed || (6.5 * 1.3));
+    }
 
     const bola = Match.ball.position;
     const noAr = bola.y > BallPhysics.raio + 0.35 && Match.ballVel.lengthSq() > 1.0;
@@ -4281,6 +4286,24 @@ const PlayerBT = sel('PlayerRoot',
                     return Math.random() < Math.min(CrossModel.chanceMax, ctx.cross.chance * mult);
                 }),
                 act('cruzar', actCross)
+            ),
+
+            // 2b. LANCAR PARA A INTENCAO de quem corre (ver `Intencoes`): o companheiro que arrancou em posicao regular diz para onde vai e o portador lanca-lhe a bola la.
+            seq('LancarParaIntencao',
+                cond('haIntencaoBoa', (ctx) => {
+                    const p = ctx.p;
+                    if (p.role === 'gk' || typeof melhorIntencaoDeLancamento !== 'function' || typeof Intencoes === 'undefined' || !Intencoes.activo) return false;
+                    if (Match.state !== 'PLAY') return false;
+                    const l = melhorIntencaoDeLancamento(p, ctx.teammates, ctx.opponents);
+                    if (!l) return false;
+                    if (Math.random() > Intencoes.chance) return false;
+                    ctx._lancIntencao = l;
+                    return true;
+                }),
+                act('lancarParaIntencao', (ctx) => {
+                    ctx.throughBall = ctx._lancIntencao;
+                    actThroughBall(ctx);
+                })
             ),
 
             // 3. Conduzir em espaço aberto (+165 pontos se sem marcação a 10m em 20 graus)
