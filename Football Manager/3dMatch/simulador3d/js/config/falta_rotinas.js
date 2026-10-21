@@ -67,11 +67,13 @@ const FaltaRotinas = {
     // Segundos depois do passe de rotina em que a barreira nao toca na bola.
     reacaoBarreira: 0,   // testado a 0.8: nao mudou os cortes (a bola bate no corpo deles, nao e uma decisao de tocar); fica desligado
     casarChegada: true,   // false = o passe sai com a velocidade de sempre
-    velPasseRef: 18.0, avancoMax: 1.8, margemAvanco: 0.10, gestoAteContacto: 0.32,
+    velPasseRef: 18.0, avancoMax: 3.2, margemAvanco: 0.10, gestoAteContacto: 0.32,
     // Depois do ultimo passo as ordens de corrida duram mais isto (s): os atacantes acabam o tracejado.
     sobraDepoisDoFim: 1.5,
     // Velocidade das corridas tracejadas (m/s).
     velCorrida: 5.5,
+    // A velocidade EFECTIVA de quem corre o tracejado (medida: mediana 6.5 m/s com `velCorrida` 5.5; o steerArrive acelera): e com ela que se calcula quando arrancar.
+    velEfectiva: 6.5,
     // Quem marca fica deste lado do atacante, em direccao a baliza (m).
     folgaMarcacao: 1.1,
     // So se marcam os atacantes a menos disto da linha de fundo (m).

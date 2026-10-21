@@ -55,15 +55,15 @@ const anguloEntre = (a, b) => {
     return Math.acos(c) / GRAU;
 };
 
-test('o limite existe na configuracao e sao 70 graus', () => {
+test('o limite existe na configuracao e sao 45 graus (pedido: era 70)', () => {
     assert.strictEqual(typeof PassModel.anguloLivreGraus, 'number',
         'PassModel.anguloLivreGraus desapareceu');
-    assert.strictEqual(PassModel.anguloLivreGraus, 70);
+    assert.strictEqual(PassModel.anguloLivreGraus, 45);
 });
 
-test('ate 70 graus o corpo nao roda nada', () => {
+test('ate 45 graus o corpo nao roda nada', () => {
     const frente = dir(0);
-    for (const g of [0, 15, 35, 55, 69, 70]) {
+    for (const g of [0, 15, 30, 40, 44, 45]) {
         for (const s of [1, -1]) {
             const alvo = dir(g * s);
             const novo = direccaoDoCorpoNoPasse(frente, alvo, PassModel.anguloLivreGraus * GRAU);
@@ -86,7 +86,7 @@ na janela. Com um passo so isto reprovava a 101 graus e acima.
 test('depois do giro o passe cabe sempre na janela dos 70', () => {
     const frente = dir(0);
     const lim = PassModel.anguloLivreGraus;
-    for (const g of [71, 75, 90, 100, 101, 120, 150, 179, 180]) {
+    for (const g of [46, 75, 90, 100, 101, 120, 150, 179, 180]) {
         for (const s of [1, -1]) {
             const alvo = dir(g * s);
             const novo = direccaoDoCorpoNoPasse(frente, alvo,
@@ -103,7 +103,7 @@ test('depois do giro o passe cabe sempre na janela dos 70', () => {
 test('e roda sempre um MULTIPLO do passo, para o lado do passe', () => {
     const frente = dir(0);
     const passo = PassModel.giroGraus;
-    for (const g of [71, 75, 90, 100, 101, 120, 150, 179, 180]) {
+    for (const g of [46, 75, 90, 100, 101, 120, 150, 179, 180]) {
         for (const s of [1, -1]) {
             const alvo = dir(g * s);
             const novo = direccaoDoCorpoNoPasse(frente, alvo,
@@ -131,7 +131,7 @@ regra podia satisfazer as duas acima girando sempre 180 graus.
 test('nao roda mais passos do que os precisos', () => {
     const frente = dir(0);
     const lim = PassModel.anguloLivreGraus, passo = PassModel.giroGraus;
-    for (const g of [71, 100, 101, 120, 180]) {
+    for (const g of [46, 100, 101, 120, 180]) {
         const alvo = dir(g);
         const novo = direccaoDoCorpoNoPasse(frente, alvo, lim * GRAU, passo * GRAU);
         const rodou = anguloEntre(frente, novo);
@@ -151,11 +151,11 @@ test('a tabela do pedido bate certo', () => {
     const esperado = [
         // alvo, giro total, o que sobra
         [75, 30, 45],
-        [100, 30, 70],
+        [100, 60, 40],
         [101, 60, 41],
-        [120, 60, 60],
-        [150, 90, 60],
-        [180, 120, 60]
+        [120, 90, 30],
+        [150, 120, 30],
+        [180, 150, 30]
     ];
     for (const [g, giro, sobra] of esperado) {
         const novo = direccaoDoCorpoNoPasse(frente, dir(g), lim, passo);

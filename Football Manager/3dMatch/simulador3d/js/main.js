@@ -445,6 +445,48 @@ o que cada objecto FAZ com as sombras — a bancada, por exemplo, está
 deliberadamente fora delas (ver createField) — e reescrevê-los aqui perdia
 essas decisões assim que se voltasse a ligar.
 */
+/*
+INTENTIONS ON/OFF (painel Teams States): desenha no campo, para cada jogador com uma intencao, uma linha AMARELA da posicao dele ate ao alvo — e um circulo pequeno em cada ponto
+de destino (se houver mais de um ponto, como uma mudanca de direccao, cada um leva o seu). Ver `intencoesDoJogador` (utils.js).
+*/
+window.mostrarIntencoes = false;
+const _intVis = { grupo: null, linhas: [], circulos: [] };
+function toggleIntencoes() {
+    window.mostrarIntencoes = !window.mostrarIntencoes;
+    const b = document.getElementById('btn-intencoes');
+    if (b) { b.innerText = 'Intentions: ' + (window.mostrarIntencoes ? 'ON' : 'OFF'); b.classList.toggle('active', window.mostrarIntencoes); }
+    if (!window.mostrarIntencoes && _intVis.grupo) _intVis.grupo.visible = false;
+}
+function atualizarIntencoesVis() {
+    if (!window.mostrarIntencoes || typeof Match === 'undefined' || !Match.scene) { if (_intVis.grupo) _intVis.grupo.visible = false; return; }
+    if (!_intVis.grupo) {
+        _intVis.grupo = new THREE.Group();
+        _intVis.matLinha = new THREE.LineBasicMaterial({ color: 0xffe000, depthTest: false, transparent: true, opacity: 0.95 });
+        _intVis.matCirculo = new THREE.MeshBasicMaterial({ color: 0xffe000, depthTest: false, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
+        _intVis.geoCirculo = new THREE.CircleGeometry(0.45, 20);
+        _intVis.grupo.renderOrder = 999;
+        Match.scene.add(_intVis.grupo);
+    }
+    const G = _intVis.grupo; G.visible = true;
+    const Y = 0.15;
+    let il = 0, ic = 0;
+    for (const p of Match.players.concat(Match.opponents)) {
+        const pts = intencoesDoJogador(p);
+        if (!pts) continue;
+        let linha = _intVis.linhas[il];
+        if (!linha) { linha = new THREE.Line(new THREE.BufferGeometry(), _intVis.matLinha); linha.renderOrder = 999; linha.frustumCulled = false; G.add(linha); _intVis.linhas[il] = linha; }
+        linha.geometry.setFromPoints(pts.map(q => new THREE.Vector3(q.x, Y, q.z)));
+        linha.visible = true; il++;
+        for (let i = 1; i < pts.length; i++) {
+            let c = _intVis.circulos[ic];
+            if (!c) { c = new THREE.Mesh(_intVis.geoCirculo, _intVis.matCirculo); c.rotation.x = -Math.PI / 2; c.renderOrder = 999; c.frustumCulled = false; G.add(c); _intVis.circulos[ic] = c; }
+            c.position.set(pts[i].x, Y, pts[i].z); c.visible = true; ic++;
+        }
+    }
+    for (let i = il; i < _intVis.linhas.length; i++) _intVis.linhas[i].visible = false;
+    for (let i = ic; i < _intVis.circulos.length; i++) _intVis.circulos[i].visible = false;
+}
+
 function toggleSombras() {
     const r = window.rendererCore;
     if (!r) return;
@@ -1289,6 +1331,7 @@ function animate(time) {
     if (!window._hudJogadoresLast || time - window._hudJogadoresLast > 200) {
         window._hudJogadoresLast = time;
         updateHudJogadores();
+        atualizarIntencoesVis();
         updateHudEvento();
     }
 

@@ -1365,6 +1365,67 @@ function procurarTabelinha(p) {
 }
 
 /*
+OVERLAP COM INTENCAO: o lateral (LB/RB) toca para o meia da ala do MESMO lado, a frente dele, e corre por fora para receber a devolucao no espaco. Devolve {mate, alvo} ou null.
+*/
+function procurarOverlapComIntencao(p) {
+    const O = (typeof JogadasCombinadas !== 'undefined') ? JogadasCombinadas.overlapIntencao : null;
+    if (!O || !O.activo || (p.pos !== 'LB' && p.pos !== 'RB')) return null;
+    const colegas = (p.team === 'TeamA') ? Match.players : Match.opponents;
+    const advs = (p.team === 'TeamA') ? Match.opponents : Match.players;
+    const lado = Math.sign(p.model.position.x) || 1;
+    let melhor = null, melhorD = Infinity;
+    for (const mate of colegas) {
+        if (mate === p || !mate.model || ['LM', 'RM', 'LW', 'RW'].indexOf(mate.pos) < 0) continue;
+        if (Math.sign(mate.model.position.x) !== lado) continue;
+        const frente = (mate.model.position.z - p.model.position.z) * p.dirZ;
+        if (frente < 3.0) continue;
+        const d = p.model.position.distanceTo(mate.model.position);
+        if (d < O.distMin || d > O.distMax) continue;
+        if (!corredorLivre(p.model.position.x, p.model.position.z, mate.model.position.x, mate.model.position.z, advs, 1.0, true)) continue;
+        if (d < melhorD) { melhorD = d; melhor = mate; }
+    }
+    if (!melhor) return null;
+    const alvo = {
+        x: lado * (CAMPO_LARG / 2 - O.margemLinha),
+        z: Math.max(-46, Math.min(46, melhor.model.position.z + p.dirZ * O.avanco))
+    };
+    // O ponto da devolucao tem de estar livre.
+    for (const a of advs) { if (a.role !== 'gk' && a.model && Math.hypot(a.model.position.x - alvo.x, a.model.position.z - alvo.z) < 2.5) return null; }
+    return { mate: melhor, alvo: alvo };
+}
+
+/*
+TABELA E CHUTE: quem vem de tras toca para o da frente (a `distGoloMax` m da baliza) e corre para o espaco onde ele lhe rola a bola de primeira, para chutar de primeira.
+Devolve {mate, alvo} ou null.
+*/
+function procurarTabelaEChute(p) {
+    const T = (typeof JogadasCombinadas !== 'undefined') ? JogadasCombinadas.tabelaChute : null;
+    if (!T || !T.activo || p.role === 'gk') return null;
+    const colegas = (p.team === 'TeamA') ? Match.players : Match.opponents;
+    const advs = (p.team === 'TeamA') ? Match.opponents : Match.players;
+    const golZ = p.targetGoalZ;
+    let melhor = null, melhorD = Infinity;
+    for (const mate of colegas) {
+        if (mate === p || mate.role === 'gk' || !mate.model) continue;
+        const dGolo = Math.hypot(mate.model.position.x, golZ - mate.model.position.z);
+        if (dGolo > T.distGoloMax) continue;
+        if ((mate.model.position.z - p.model.position.z) * p.dirZ < T.vindoDeTrasMin) continue;
+        const d = p.model.position.distanceTo(mate.model.position);
+        if (d < T.distMin || d > T.distMax) continue;
+        if (!corredorLivre(p.model.position.x, p.model.position.z, mate.model.position.x, mate.model.position.z, advs, 1.4, true)) continue;
+        if (d < melhorD) { melhorD = d; melhor = mate; }
+    }
+    if (!melhor) return null;
+    // O espaco para o chute: ao lado do parceiro, do lado de quem passou, mais perto da baliza e dentro do raio de `distGoloMax`.
+    const lado = Math.sign(p.model.position.x - melhor.model.position.x) || (melhor.model.position.x > 0 ? -1 : 1);
+    let alvo = { x: melhor.model.position.x + lado * 3.5, z: melhor.model.position.z + p.dirZ * 1.5 };
+    alvo.x = Math.max(-CAMPO_LARG / 2 + 3, Math.min(CAMPO_LARG / 2 - 3, alvo.x));
+    if (Math.hypot(alvo.x, golZ - alvo.z) > T.distGoloMax) return null;
+    for (const a of advs) { if (a.role !== 'gk' && a.model && Math.hypot(a.model.position.x - alvo.x, a.model.position.z - alvo.z) < T.livreAlvo) return null; }
+    return { mate: melhor, alvo: alvo };
+}
+
+/*
 O ramo, chamado do topo do `actPass`. Devolve true se a bola foi jogada.
 */
 function tratarJogadaCombinada(ctx) {
@@ -1396,6 +1457,30 @@ function tratarJogadaCombinada(ctx) {
         if (typeof MatchStats !== 'undefined' && MatchStats[p.team] &&
             MatchStats[p.team].caraACara !== undefined) MatchStats[p.team].caraACara++;
         return true;
+    }
+
+    // 2b. TABELA E CHUTE e OVERLAP com intencao (ver as funcoes acima): toca ao parceiro e deixa-lhe o pedido de devolucao no espaco; quem passou arranca para la.
+    {
+        const JC = J;
+        let combinada = null, chute = false;
+        if (JC.tabelaChute && JC.tabelaChute.activo && Math.random() < JC.tabelaChute.chance) {
+            const t = procurarTabelaEChute(p);
+            if (t) { combinada = t; chute = true; }
+        }
+        if (!combinada && JC.overlapIntencao && JC.overlapIntencao.activo && Math.random() < JC.overlapIntencao.chance) {
+            const o = procurarOverlapComIntencao(p);
+            if (o) combinada = o;
+        }
+        if (combinada) {
+            const dur = chute ? JC.tabelaChute.duracaoPedido : JC.overlapIntencao.duracaoPedido;
+            p.carryRecuo = false;
+            p.carryHold = 0;
+            combinada.mate.devolverPara = { mate: p, alvo: combinada.alvo, timer: dur, chute: chute };
+            p.esperarDevolucao = { alvo: combinada.alvo, timer: dur, chute: chute, tipo: chute ? 'tabelaChute' : 'overlap' };
+            aplicarMiraDoPasse(p, PassTypes.DIRECT, null);
+            p.initiatePass(combinada.mate);
+            return true;
+        }
     }
 
     // 3. TABELINHA (iniciar).
@@ -2168,6 +2253,11 @@ function actTackle(ctx) {
 
 
 function podeFazerOverlap(ctx) {
+    if (typeof Intencoes !== 'undefined' && Intencoes.activo) {
+        const meusO = (ctx.p.team === 'TeamA') ? Match.players : Match.opponents;
+        let n = 0; for (const m of meusO) if (m !== ctx.p && m.fsm && m.fsm.currentState === 'RUN_INTO_SPACE' && m.runTimer > 0) n++;
+        if (n >= Intencoes.maxSimultaneas && !(ctx.p.fsm.currentState === 'RUN_INTO_SPACE')) return false;   // no maximo 3 corridas por equipa
+    }
     const p = ctx.p;
     if (p.role === 'gk') return false;
     
@@ -2676,6 +2766,19 @@ function podeInfiltrar(ctx) {
 
     // Se já está a infiltrar, mantém a corrida enquanto tiver timer
     if (p.fsm.currentState === 'RUN_INTO_SPACE' && p.runTimer > 0) return true;
+
+    // INTENCOES: no maximo 3 corridas ao mesmo tempo por equipa, e de preferencia dos atacantes (ver Intencoes, config/passing.js).
+    if (typeof Intencoes !== 'undefined' && Intencoes.activo) {
+        const meus = (p.team === 'TeamA') ? Match.players : Match.opponents;
+        let ativas = 0, ativasOutros = 0;
+        for (const m of meus) {
+            if (m === p || !m.fsm || m.fsm.currentState !== 'RUN_INTO_SPACE' || !(m.runTimer > 0)) continue;
+            ativas++;
+            if (Intencoes.posicoesAtaque.indexOf(m.pos) < 0) ativasOutros++;
+        }
+        if (ativas >= Intencoes.maxSimultaneas) return false;
+        if (Intencoes.posicoesAtaque.indexOf(p.pos) < 0 && ativasOutros >= Intencoes.maxOutros) return false;
+    }
 
     /*
     QUEM ACABOU DE DESCARREGAR PARA TRAS ARRANCA, sem esperar pelo dado nem

@@ -310,11 +310,19 @@ Object.assign(Match, {
             */
             const subiuAoAtaque = (p) => (typeof estiloAtivoDe === 'function') &&
                 !!estiloAtivoDe(p).juntaSeAoAtaque;
-            attackersInBox.sort((a, b) => {
+            /*
+            OS MELHORES CABECEADORES NO MEIO DA AREA (pedido: *"no corner os melhores cabeceadores ficam no meio da area; normalmente atacantes e zagueiros; se os zagueiros forem
+            para a area, laterais e meias fazem o papel deles ate poderem trocar de posicao"*): os seis lugares da area vao para os seis de MELHOR nota de cabeceio, seja qual for
+            a posicao; os restantes (sobra, segurança) ficam por papel, com os defesas por ultimo — cobrem a retaguarda no lugar dos que subiram.
+            */
+            const notaCabeceio = (p) => p.skillFor('TEC') * 0.65 + p.skillFor('STRENGTH') * 0.35 + (typeof alturaTestaDe === 'function' ? (alturaTestaDe(p) - 1.7) * 40 : 0) + (subiuAoAtaque(p) ? 15 : 0);
+            const porNotaCabeceio = attackersInBox.slice().sort((a, b) => notaCabeceio(b) - notaCabeceio(a));
+            const naArea = porNotaCabeceio.slice(0, 6);
+            const restoAtaque = attackersInBox.filter(p => naArea.indexOf(p) < 0).sort((a, b) => {
                 const roleOrder = { 'ata': 1, 'mid': 2, 'def': 3 };
-                const nota = (p) => subiuAoAtaque(p) ? 1 : (roleOrder[p.role] || 2);
-                return nota(a) - nota(b);
+                return (roleOrder[a.role] || 2) - (roleOrder[b.role] || 2);
             });
+            attackersInBox = naArea.concat(restoAtaque);
 
             attackersInBox.forEach((p, idx) => {
                 const cfg = attackSetup[idx] || attackSetup[attackSetup.length - 1];
@@ -376,10 +384,17 @@ Object.assign(Match, {
             campo). Sem isto o slot era pela ordem do plantel — um avançado
             podia ficar no poste e um central lá longe no meio-campo.
             */
-            defendersInBox.sort((a, b) => {
-                const roleOrder = { 'def': 1, 'mid': 2, 'ata': 3 };
-                return (roleOrder[a.role] || 2) - (roleOrder[b.role] || 2);
-            });
+            // Os MARCADORES da area (lugares 3 a 8) sao os de melhor cabeceio; os postes e a sobra ficam com os outros, por papel (defesas primeiro).
+            {
+                const nCab = (p) => p.skillFor('TEC') * 0.65 + p.skillFor('STRENGTH') * 0.35 + (typeof alturaTestaDe === 'function' ? (alturaTestaDe(p) - 1.7) * 40 : 0);
+                const melhores = defendersInBox.slice().sort((a, b) => nCab(b) - nCab(a)).slice(0, 6);
+                const resto = defendersInBox.filter(p => melhores.indexOf(p) < 0).sort((a, b) => {
+                    const roleOrder = { 'def': 1, 'mid': 2, 'ata': 3 };
+                    return (roleOrder[a.role] || 2) - (roleOrder[b.role] || 2);
+                });
+                // [poste, poste, 6 marcadores, entrada da area, saida]
+                defendersInBox = resto.slice(0, 2).concat(melhores, resto.slice(2));
+            }
             /*
             QUEM MARCA QUEM. Os slots 3-8 da defesa emparelham com os slots 1-6
             do ataque (ver os comentários dos dois arrays); guarda-se o par para

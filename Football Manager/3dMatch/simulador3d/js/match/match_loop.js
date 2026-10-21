@@ -357,7 +357,7 @@ Object.assign(Match, {
         }
 
         // A cadeia de passes da rotina da falta (so em jogo, depois da cobranca).
-        if (this.rotinaPlano) this.correrRotinaDaFalta(dt);
+        if (this.rotinaPlano) { this.correrAgendaDaFalta(dt); this.correrRotinaDaFalta(dt); }
 
         if (this.state === 'FREE_KICK') {
             this.setPieceTimer += dt;

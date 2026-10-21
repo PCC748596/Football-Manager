@@ -5949,6 +5949,27 @@ corredor entre dois homens, e campo aberto.
 Pura: sem Match, sem THREE. `adversarios` e uma lista de {x, z}.
 */
 /*
+AS INTENCOES DE UM JOGADOR PARA DESENHAR (botao "Intentions" do painel Teams States): a lista de pontos {x, z} da trajectoria ate ao alvo, a comecar onde ele esta; ou `null` se
+nao tem nenhuma. Le o estado dele: corrida para o espaco / overlap (`dynamicTarget`), pedido de tabela (`esperarDevolucao`), corrida do bola parada (`setPieceTarget`) e o
+destino de um lancamento que ele vai receber. Quando o alvo da corrida e a bola (outros pontos, como a extensao da corrida de quem recebe), os pontos intermedios vao na lista.
+*/
+function intencoesDoJogador(p) {
+    if (!p || !p.model || !p.fsm) return null;
+    const pos = { x: p.model.position.x, z: p.model.position.z };
+    const pts = [pos];
+    const juntar = (x, z) => { const u = pts[pts.length - 1]; if (Math.hypot(x - u.x, z - u.z) > 1.0) pts.push({ x: x, z: z }); };
+    const est = p.fsm.currentState;
+    if (est === 'RUN_INTO_SPACE' && p.dynamicTarget) {
+        if (p.runAlvo) juntar(p.runAlvo.x, p.runAlvo.z);
+        juntar(p.dynamicTarget.x, p.dynamicTarget.z);
+    }
+    if (p.esperarDevolucao && p.esperarDevolucao.timer > 0 && p.esperarDevolucao.alvo) juntar(p.esperarDevolucao.alvo.x, p.esperarDevolucao.alvo.z);
+    if (typeof Match !== 'undefined' && Match.intendedReceiver === p && Match.passTargetPos && p !== Match.ballCarrier) juntar(Match.passTargetPos.x, Match.passTargetPos.z);
+    if (est === 'SET_PIECE_WAIT' && p.setPieceTarget && p !== (typeof Match !== 'undefined' ? Match.setPieceTaker : null)) juntar(p.setPieceTarget.x, p.setPieceTarget.z);
+    return pts.length > 1 ? pts : null;
+}
+
+/*
 A INTENCAO DE CORRIDA de um companheiro (ver `Intencoes`, config/passing.js): `null` se nao ha, ou
 `{ mate, destino: {x, z}, ponto: {x, z}, dist }` — o `ponto` e onde a bola deve cair para ele a apanhar a correr.
 Pura sobre o estado dos jogadores; nao altera nada.

@@ -1091,6 +1091,18 @@ Object.assign(Match, {
                 if (d < distAdv) distAdv = d;
             }
             best.jogarDePrimeira = jogaDePrimeira(best.skillFor('TEC'), distAdv);
+            // TABELA E CHUTE: quem arrancou para o espaco da devolucao chuta de primeira ao receber (ver JogadasCombinadas.tabelaChute).
+            if (best.esperarDevolucao && best.esperarDevolucao.chute && best.esperarDevolucao.timer > 0) {
+                best.jogarDePrimeira = true;
+                best.chutarDePrimeira = 1.0;
+                best.esperarDevolucao = null;
+            }
+            // Em perigo na propria area: de primeira, sempre (ver FirstTouchModel.perigoNaArea).
+            const PA = FirstTouchModel.perigoNaArea;
+            if (!best.jogarDePrimeira && PA && PA.activo && distAdv <= PA.distAdversario &&
+                typeof Area !== 'undefined' && Area.contem(best.model.position.x, best.model.position.z, -best.dirZ)) {
+                best.jogarDePrimeira = true;
+            }
             if (best.jogarDePrimeira) {
                 // Decide já: sem isto ficava à espera da cadência do
                 // `Dominar` na mesma, e "de primeira" era só um nome.

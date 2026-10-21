@@ -153,6 +153,12 @@ O portador (ramo `LancarParaIntencao` da arvore, bt/player_bt.js) escolhe a melh
 */
 const Intencoes = {
     activo: true,
+    // AS INTENCOES SAO DOS ATACANTES (pedido): so estes arrancam em corrida para o espaco (infiltracao), no maximo `maxSimultaneas` por equipa ao mesmo tempo (nao se pode ter 7
+    // jogadores a correr de uma vez: desfaz o TeamBT) — os de outras posicoes so se houver menos de `maxOutros` ja a correr. Quem arranca cumpre ate ao fim (so a perda da posse ou
+    // um passe para outro a cortam; ver fsm.js, RUN_INTO_SPACE).
+    posicoesAtaque: ['CF', 'ST', 'SS', 'RW', 'LW', 'RM', 'LM'],
+    maxSimultaneas: 3,
+    maxOutros: 1,
     reacaoMin: 0.25,            // s desde o arranque da corrida ate o portador a "ver" (futuro: depende do entrosamento do par)
     persistenciaComPasse: 6.5,  // s que continua a correr se o passe e para ele
     prolongar: 10.0,            // m que o alvo avanca quando ele chega ao destino e a bola ainda vem
@@ -229,7 +235,7 @@ const PassModel = {
     A referência é a linha de DESLOCAMENTO quando ele corre (é o que o pedido
     diz) e a frente do corpo quando está parado.
     */
-    anguloLivreGraus: 70,
+    anguloLivreGraus: 45,   // 70 -> 45 (pedido): passes longos sem o corpo virado para a linha do passe
 
     /*
     O PASSO DO GIRO — roda-se de 30 em 30 até o passe caber na janela.
@@ -1237,7 +1243,14 @@ const FirstTouchModel = {
 
     // Probabilidade, interpolada entre `tecMin` e 100 de técnica.
     chanceMin: 0.45,
-    chanceMax: 0.80
+    chanceMax: 0.80,
+
+    /*
+    EM PERIGO NA PROPRIA AREA NAO SE DOMINA (pedido: *"muitos lances de defensores dentro da area que dominam a bola para depois passar; em perigo pode chutar para a frente
+    ou passar de primeira, sem dominio, para aliviar"*): dentro da propria grande area, com um adversario a `distAdversario` m ou menos, joga-se de primeira sempre
+    (sem sorteio nem minimo de tecnica). Quem decide o que fazer a seguir e a arvore (alivio / passe), com o `decisionTimer` ja esgotado.
+    */
+    perigoNaArea: { activo: true, distAdversario: 6.5 }
 };
 
 /*
@@ -1296,6 +1309,18 @@ const JogadasCombinadas = {
         // Ponto do passe: metros à frente dele, na direcção da baliza.
         avancoDoPasse: 7.0
     },
+
+    /*
+    OVERLAP COM INTENCAO (pedido): o lateral toca para o meia da ala e CORRE POR FORA, na frente dele, para receber a devolucao no espaco. Sem pressao necessaria; e uma chance
+    por posse. `avanco` e quantos metros a frente do meia fica o ponto da devolucao (na faixa exterior do campo).
+    */
+    overlapIntencao: { activo: true, distMin: 6.0, distMax: 22.0, avanco: 13.0, chance: 0.30, duracaoPedido: 3.0, margemLinha: 4.0 },
+
+    /*
+    TABELA E CHUTE (pedido): um jogador que vem de TRAS toca para o da frente (a no maximo `distGoloMax` m do centro da baliza), que roda a bola de primeira para o ESPACO a
+    frente de quem passou, para ele chutar de primeira. O ponto fica tambem dentro de `distGoloMax` m da baliza e livre de adversarios.
+    */
+    tabelaChute: { activo: true, distGoloMax: 17.0, vindoDeTrasMin: 3.0, distMin: 5.0, distMax: 20.0, chance: 0.55, duracaoPedido: 3.0, livreAlvo: 3.0 },
 
     tabelinha: {
         // Só sob pressão: sem ninguém em cima não há razão para dar e receber.

@@ -66,14 +66,18 @@ Object.assign(Match, {
         /*
         O AVANCO DO TRACEJADO (FaltaRotinas.velPasseRef / avancoMax): quanto antes do contacto os atacantes arrancam, para o recetor do 1.o passe chegar ao alvo quando a bola chega.
         */
-        plano.avanco = FR.tempoCorrida;
+        plano.avanco = FR.avancoMax;   // provisorio: so decide QUANDO se dispara (cedo); o valor certo calcula-se no disparo
         const p0 = plano.passos[0];
         const rec0 = p0 && p0.para ? num[p0.para] : null;
-        if (p0 && p0.alvo && rec0 && rec0.model) {
-            const tRun = Math.hypot(p0.alvo.x - rec0.model.position.x, p0.alvo.z - rec0.model.position.z) / FR.velCorrida;
-            const tBola = Math.hypot(p0.alvo.x - bolaFK.x, p0.alvo.z - bolaFK.z) / FR.velPasseRef;
-            plano.avanco = THREE.MathUtils.clamp(tRun - tBola + FR.margemAvanco, FR.tempoCorrida, FR.avancoMax);
-        }
+        /*
+        CADA UM ARRANCA QUANDO O SEU TEMPO ATE AO PONTO FINAL IGUALA O QUE A BOLA LEVA A CHEGAR (pedido: *"os jogadores so podem correr quando o tempo ate o ponto final for igual ao
+        da chegada da bola; nao faz sentido correr antes e ficar parado esperando"*). `tBola` e o do 1.o passe (batedor -> alvo do recetor); para cada corredor a antecedencia
+        e `need = tRun - tBola + margem` (tRun: o que ele leva a correr ate ao ponto dele). O disparo e a antecedencia MAIOR; os outros esperam `avanco - need` s antes de arrancar
+        (ver `correrAgendaDaFalta`), e quem esta tao perto que `need` e negativo arranca ate depois do contacto.
+        */
+        plano.tBola = 0;
+        if (p0 && p0.alvo) plano.tBola = Math.hypot(p0.alvo.x - bolaFK.x, p0.alvo.z - bolaFK.z) / FR.velPasseRef;
+        // (As antecedencias calculam-se no DISPARO, `dispararCorridasDaFalta`: so la os jogadores estao nos seus lugares; na montagem ainda estao onde estavam antes da falta.)
         this.rotinaPlano = plano;
         return plano;
     },
@@ -134,14 +138,44 @@ Object.assign(Match, {
         if (!plano || plano.disparou) return;
         plano.disparou = true;
         const FR = FaltaRotinas;
+        // A ANTECEDENCIA de cada corredor, com as posicoes de AGORA: `need = tRun - tBola + margem`. A do disparo e a maior (entre `tempoCorrida` e `avancoMax`).
+        {
+            const antecedencia = (p, x, z) => (!p || !p.model) ? -9 : Math.hypot(x - p.model.position.x, z - p.model.position.z) / (FR.velEfectiva || FR.velCorrida) - (plano.tBola || 0) + FR.margemAvanco;
+            let maior = -Infinity;
+            for (const c of plano.corridas) { c.need = antecedencia(c.p, c.x, c.z); if (c.need > maior) maior = c.need; }
+            plano.avanco = (maior > -Infinity) ? THREE.MathUtils.clamp(maior, FR.tempoCorrida, FR.avancoMax) : FR.tempoCorrida;
+        }
+        // O CONTACTO FICA A `avanco` s DO DISPARO: se a espera que resta ate a cobranca e menor que isso, alonga-se (senao os corredores que precisam de mais tempo chegavam depois da bola
+        // e os outros arrancavam cedo de mais e ficavam parados).
+        if (typeof this.faltaAtraso === 'number' && this.state === 'FREE_KICK') this.faltaAtraso = Math.max(0, (plano.avanco || 0) - FR.gestoAteContacto);
         const ir = (p, x, z) => {
             if (!p || !p.model || p === plano.taker) return;
             // Pre-contacto: a caminhada de bola parada; depois do contacto (PLAY) a ordem do PlayerAI continua o tracejado.
             p.lugarBolaParada = { x: x, z: z, t: 0, vel: FR.velCorrida };
             p.rotinaOrdem = { tipo: 'ir', x: x, z: z, vel: FR.velCorrida };
         };
-        plano.corridas.forEach(c => ir(c.p, c.x, c.z));
-        plano.marcadores.forEach(m => { if (m.corrida) ir(m.d, m.corrida.x, m.corrida.z); });
+        // A AGENDA: cada corredor arranca quando lhe corresponde (ver `plano.avanco` / `need`); o marcador arranca com o atacante dele.
+        plano.agenda = [];
+        plano.tAgenda = 0;
+        const atraso = (c) => (c && typeof c.need === 'number') ? Math.max(0, plano.avanco - c.need) : 0;
+        plano.corridas.forEach(c => plano.agenda.push({ p: c.p, x: c.x, z: c.z, atraso: atraso(c), feito: false }));
+        plano.marcadores.forEach(m => {
+            if (!m.corrida) return;
+            const cA = plano.corridas.find(c => c.p === m.atacante);
+            plano.agenda.push({ p: m.d, x: m.corrida.x, z: m.corrida.z, atraso: atraso(cA), feito: false });
+        });
+        plano._ir = ir;
+        this.correrAgendaDaFalta(0);
+    },
+
+    // Larga as corridas da agenda quando chega a vez de cada uma (chamado todos os frames).
+    correrAgendaDaFalta: function (dt) {
+        const pl = this.rotinaPlano;
+        if (!pl || !pl.agenda || !pl.disparou) return;
+        pl.tAgenda += dt;
+        for (const e of pl.agenda) {
+            if (!e.feito && pl.tAgenda >= e.atraso) { e.feito = true; pl._ir(e.p, e.x, e.z); }
+        }
     },
 
     /*
