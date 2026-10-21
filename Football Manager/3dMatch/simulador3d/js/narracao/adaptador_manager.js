@@ -232,6 +232,9 @@ const AdaptadorManager = {
         // As OUTRAS camisas de cada time (os outros dois kits do manager), para a torcida (crowd.js, `_kitsDaEquipa`).
         Match.uniformesOutros = { A: (casa.uniforme && casa.uniforme.outros) || [], B: (fora.uniforme && fora.uniforme.outros) || [] };
         Match.trocarEquipas({ A: eC.id, B: eF.id });
+        // OS COBRADORES E O CAPITAO que o treinador designou (aba Match Tactics): ids do motor, por equipa. Sem designado, o motor escolhe como sempre (ver `cobradorDesignado`, utils.js).
+        const mapaCobradores = (c) => { if (!c) return null; const o = {}; for (const k of Object.keys(c)) { const id = this.idReal(c[k]); if (id !== null) o[k] = id; } return o; };
+        Match.cobradores = { A: mapaCobradores(casa.equipa.cobradores), B: mapaCobradores(fora.equipa.cobradores) };
         this._refrescarLados();
         this.mostrarNoPainel(eC, eF);
         return { chaveCasa: kC, chaveFora: kF, equipaCasa: eC, equipaFora: eF };

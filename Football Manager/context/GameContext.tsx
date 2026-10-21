@@ -152,6 +152,7 @@ interface GameContextType {
   motor3dMensagem: (m: any) => void; // mensagens do iframe 3D visivel (modo 3D)
   motor3dProgresso: number | null; // minutos ja simulados pelo motor 3D (null = parado)
   updateTactics: (teamId: string, tactics: Partial<Team['tactics']>, lineup?: string[], bench?: string[]) => void;
+  updateSetPieceTakers: (teamId: string, takers: Team['setPieceTakers']) => void;
   updateTeamLogo: (teamId: string, logoUrl: string) => void;
   hirePlayer: (player: Player) => void;
   sellPlayer: (playerId: string) => void;
@@ -1245,6 +1246,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Os cobradores e o capitao do time (aba Match Tactics): guarda-se no time e vai ao motor 3D com a partida.
+  const updateSetPieceTakers = (teamId: string, takers: Team['setPieceTakers']) => {
+    setTeams(prev => prev.map(t => t.id === teamId ? { ...t, setPieceTakers: takers } : t));
+  };
+
   const updateTactics = (teamId: string, tactics: any, lineup?: string[], bench?: string[]) => {
     setTeams(prev => prev.map(t => {
       if (t.id !== teamId) return t;
@@ -1546,7 +1552,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <GameContext.Provider value={{
-      teams, players, fixtures, gameState, startGame, advanceDay, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateTeamLogo,
+      teams, players, fixtures, gameState, startGame, advanceDay, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
       hirePlayer, sellPlayer, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, updateSettings, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,

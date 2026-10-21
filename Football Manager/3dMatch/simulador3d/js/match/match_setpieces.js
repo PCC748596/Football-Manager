@@ -223,9 +223,12 @@ Object.assign(Match, {
             this.players.concat(this.opponents).forEach(p => { p.hasBall = false; });
             this.ballCarrier = null;
 
-            let taker = null;
+            // O cobrador de canto designado (esquerda/direita, do ponto de vista de quem ataca); sem ele, o mais perto da bola.
+            let taker = (typeof cobradorDesignado === 'function')
+                ? cobradorDesignado(team, ladoDaBola(this.ball.position.x, attDir) === 'L' ? 'cornerL' : 'cornerR', attackingPlayers.filter(p => p.role !== 'gk'))
+                : null;
             let minDist = 999;
-            attackingPlayers.forEach(p => {
+            if (!taker) attackingPlayers.forEach(p => {
                 if (p.role !== 'gk') {
                     let d = p.model.position.distanceTo(this.ball.position);
                     if (d < minDist) { minDist = d; taker = p; }
@@ -618,6 +621,12 @@ Object.assign(Match, {
             let takerFK = (typeof batedorDaFalta === 'function')
                 ? batedorDaFalta(attackingPlayers.filter(p => !p.queda), criterioFK, p => p.skillFor('TEC'), ladoBolaFK)
                 : null;
+            // O COBRADOR DESIGNADO: falta direta (remate) por lado da bola; falta longa (passe/cruzamento) um so.
+            {
+                const papelFK = (decisaoFK === 'remate') ? (ladoBolaFK === 'R' ? 'freeKickDirectR' : 'freeKickDirectL') : 'freeKickLong';
+                const des = (typeof cobradorDesignado === 'function') ? cobradorDesignado(team, papelFK, attackingPlayers.filter(p => p.role !== 'gk')) : null;
+                if (des) takerFK = des;
+            }
 
             /*
             NA PROPRIA AREA BATE O GUARDA-REDES — ver
@@ -1137,7 +1146,8 @@ Object.assign(Match, {
             this.ballCarrier = null;
 
             // Bate o melhor rematador da equipa.
-            let takerPen = null, melhorTec = -1;
+            let takerPen = (typeof cobradorDesignado === 'function') ? cobradorDesignado(team, 'penalty', attackingPlayers.filter(p => p.role !== 'gk')) : null;
+            let melhorTec = takerPen ? 1e9 : -1;
             attackingPlayers.forEach(p => {
                 // Quem está caído da falta não bate (ver iniciarQueda).
                 if (p.role === 'gk' || p.queda) return;

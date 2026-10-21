@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
-import { Tactics, Position, Player, Team, getEffectiveSkill, FORMATIONS, POSITION_ORDER, getKitDetails, getGKKitDetails, KitDetails } from '../types';
+import { Tactics, Position, Player, Team, SetPieceRole, getEffectiveSkill, FORMATIONS, POSITION_ORDER, getKitDetails, getGKKitDetails, KitDetails } from '../types';
 import { TeamKit } from './TeamKit';
 import FitnessBar from './FitnessBar';
 import { getMatchEndMinute } from '../textSim/matchEngine';
@@ -47,12 +47,23 @@ const getInjuryColorClass = (injury: any) => {
   return 'text-emerald-500';
 };
 
+// As funcoes da bola parada: o texto no topo do espaco e o atributo que se mostra por baixo da camisa (o manager so tem chute `sht` e passe `pas`: o cruzamento sai do passe).
+const SET_PIECE_ROLES: { role: SetPieceRole; label: string; attr: { rotulo: string; valor: (p: Player) => number } }[] = [
+  { role: 'captain', label: 'Captain', attr: { rotulo: 'OVR', valor: p => p.skill } },
+  { role: 'cornerL', label: 'Corner taker (left)', attr: { rotulo: 'CRO', valor: p => p.pas } },
+  { role: 'cornerR', label: 'Corner taker (right)', attr: { rotulo: 'CRO', valor: p => p.pas } },
+  { role: 'freeKickLong', label: 'Long free-kick taker', attr: { rotulo: 'CRO', valor: p => p.pas } },
+  { role: 'freeKickDirectL', label: 'Direct free-kick taker (left)', attr: { rotulo: 'SHT', valor: p => p.sht } },
+  { role: 'freeKickDirectR', label: 'Direct free-kick taker (right)', attr: { rotulo: 'SHT', valor: p => p.sht } },
+  { role: 'penalty', label: 'Penalty taker', attr: { rotulo: 'PEN', valor: p => p.sht } }
+];
+
 interface TacticsViewProps {
   setView?: (view: any) => void;
 }
 
 const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
-  const { userTeam, players, updateTactics, gameState, fixtures } = useGame();
+  const { userTeam, players, updateTactics, updateSetPieceTakers, gameState, fixtures } = useGame();
   const [localLineup, setLocalLineup] = useState<string[]>([]);
   const [localBench, setLocalBench] = useState<string[]>([]);
   const [isOverBench, setIsOverBench] = useState(false);
@@ -66,6 +77,38 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
       setLocalBench([...userTeam.bench]);
     }
   }, [userTeam?.id, userTeam?.lineup, userTeam?.bench]);
+
+  /*
+  AO CARREGAR (e quando a escalacao muda) os MELHORES de cada funcao entre os que vao a campo: quem ainda nao tem designado, ou cujo designado saiu do onze (banco, lesionado,
+  expulso), recebe o melhor da escalacao para a funcao — capitao o de maior nota; corners (esquerda a melhor, direita a segunda) e falta longa o de melhor passe; falta direta e
+  penalti o de melhor chute. Quem foi escolhido a mao e continua no onze nao e tocado. O goleiro nao cobra.
+  */
+  useEffect(() => {
+    if (!userTeam) return;
+    const onze = userTeam.lineup.map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p && p.position !== Position.GK && !p.injury);
+    if (!onze.length) return;
+    const por = (f: (p: Player) => number) => [...onze].sort((a, b) => f(b) - f(a));
+    const melhorPas = por(p => p.pas), melhorSht = por(p => p.sht), melhorOvr = por(p => p.skill);
+    const sugestao: Record<string, string | undefined> = {
+      captain: melhorOvr[0]?.id,
+      cornerL: melhorPas[0]?.id,
+      cornerR: (melhorPas[1] || melhorPas[0])?.id,
+      freeKickLong: melhorPas[0]?.id,
+      freeKickDirectL: melhorSht[0]?.id,
+      freeKickDirectR: melhorSht[0]?.id,
+      penalty: melhorSht[0]?.id
+    };
+    const atual = userTeam.setPieceTakers || {};
+    const noOnze = new Set(userTeam.lineup);
+    let mudou = false;
+    const novo: any = { ...atual };
+    for (const role of Object.keys(sugestao)) {
+      const escolhido = (atual as any)[role];
+      const vale = escolhido && noOnze.has(escolhido) && !players.find(p => p.id === escolhido)?.injury;
+      if (!vale && sugestao[role]) { novo[role] = sugestao[role]; mudou = true; }
+    }
+    if (mudou) updateSetPieceTakers(userTeam.id, novo);
+  }, [userTeam?.id, userTeam?.lineup]);
 
   if (!userTeam) return null;
 
@@ -261,6 +304,14 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     return POSITION_ORDER[pa.position] - POSITION_ORDER[pb.position];
   });
 
+  // Designa (ou remove, com `undefined`) o jogador de uma funcao: capitao e cobradores. Um jogador pode ter varias funcoes; so e do plantel do time.
+  const assignSetPiece = (role: SetPieceRole, playerId?: string) => {
+    if (playerId && !players.some(x => x.id === playerId && x.teamId === userTeam.id)) return;
+    const atual = { ...(userTeam.setPieceTakers || {}) };
+    if (playerId) atual[role] = playerId; else delete atual[role];
+    updateSetPieceTakers(userTeam.id, atual);
+  };
+
   const handleTacticChange = (field: keyof Tactics, value: any) => {
     let finalValue = value;
     if (field === 'defensiveLine') {
@@ -270,7 +321,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   };
 
   return (
-    <div className="flex flex-col gap-4 animate-fade-in" style={{ height: 'calc(100vh - 120px)' }}>
+    <div className="flex flex-col gap-4 animate-fade-in" style={{ height: 'calc(100vh - 80px)' }}>
         <div className="flex justify-between items-center shrink-0">
             <h2 className="text-4xl font-black italic tracking-tighter uppercase">
                 <span className="text-slate-300 dark:text-slate-600">MATCH</span> <span className="text-blue-400">TACTICS</span>
@@ -292,8 +343,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             </div>
         </div>
 
-        <div className="flex-1 grid grid-cols-12 gap-6 min-h-0">
-            <div className="col-span-8 flex flex-col gap-4 min-h-0">
+        <div className="flex-1 grid grid-cols-[7.5fr_1.5fr_3fr] gap-4 min-h-0">
+            <div className="flex flex-col gap-4 min-h-0 min-w-0">
                 <div className="flex-1 relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ minHeight: '350px' }}>
                     <div className="absolute top-6 left-6 z-20">
                         <button 
@@ -511,7 +562,39 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                 </div>
             </div>
 
-            <div className="col-span-4 flex flex-col gap-4 min-h-0">
+            {/* OS COBRADORES E O CAPITAO: arrastar a camisa do jogador (campo, banco ou squad pool) para a funcao. Fica entre o campo e as instrucoes. */}
+            <div className="flex flex-col gap-2 min-h-0 min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-sm overflow-y-auto custom-scrollbar">
+                <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">CAPTAIN & SET-PIECE TAKERS</h3>
+                {SET_PIECE_ROLES.map(r => {
+                    const pid = userTeam.setPieceTakers?.[r.role];
+                    const pl = pid ? players.find(x => x.id === pid && x.teamId === userTeam.id) : undefined;
+                    // Acompanha o campo: com o botao em 'Uniforme' leva o kit escolhido; em 'Posicao', a cor da posicao do jogador.
+                    const d: KitDetails = !pl ? { c1: '#e2e8f0' } : (showMatchKit ? (pl.position === Position.GK ? getGKKitDetails(userTeam, selectedKitIdx) : getKitDetailsWrapper(userTeam, selectedKitIdx)) : { c1: getPosColor(pl.position) });
+                    return (
+                        <div key={r.role}
+                             onDragOver={(e) => { e.preventDefault(); }}
+                             onDrop={(e) => { e.preventDefault(); const id = e.dataTransfer.getData("playerId"); if (id) assignSetPiece(r.role, id); }}
+                             className="flex flex-col items-center gap-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 py-1.5 px-1 hover:border-blue-400 transition-colors">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-blue-400 text-center leading-tight">{r.label}</span>
+                            {pl ? (
+                                <div draggable onDragStart={(e) => e.dataTransfer.setData("playerId", pl.id)} className="relative flex flex-col items-center cursor-grab active:cursor-grabbing">
+                                    <ShirtIcon color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes}
+                                        gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} horizontal={(d as any).horizontal}
+                                        multipleDiagonals={(d as any).multipleDiagonals} diagonalWidth={d.diagonalWidth} number={pl.shirtNumber} numberColor={d.nc} collarColor={d.clc}
+                                        numberOutlineColor={d.noc} sleeveColor={d.sc} scale={0.8} longSleeves={pl.position === Position.GK} />
+                                    <span className="text-[9px] font-black text-slate-500 dark:text-slate-300 uppercase truncate max-w-full leading-tight">{pl.name.split(' ').pop()}</span>
+                                    <span className="text-[10px] font-black text-amber-500 leading-none">{r.attr.rotulo} {r.attr.valor(pl)}</span>
+                                    <button onClick={() => assignSetPiece(r.role, undefined)} title="Remove" className="absolute -top-1 -right-3 text-[10px] font-black text-slate-400 hover:text-rose-500">✕</button>
+                                </div>
+                            ) : (
+                                <div className="h-[62px] flex items-center justify-center text-[9px] font-bold text-slate-400 uppercase italic text-center px-2">drag a player here</div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+
+            <div className="flex flex-col gap-4 min-h-0 min-w-0">
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm pb-6">
                     <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic mb-4">UNIFORME</h3>
                     <div className="flex justify-around items-center">

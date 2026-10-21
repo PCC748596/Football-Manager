@@ -209,7 +209,12 @@ export interface Team {
   lineup: string[]; 
   bench: string[];  
   synergyMap?: Record<string, number>;
+  /** Os cobradores e o capitao designados na aba Match Tactics (ids de jogador). Sem valor: o motor escolhe como sempre. */
+  setPieceTakers?: SetPieceTakers;
 }
+
+export type SetPieceRole = 'captain' | 'cornerL' | 'cornerR' | 'freeKickLong' | 'freeKickDirectL' | 'freeKickDirectR' | 'penalty';
+export type SetPieceTakers = Partial<Record<SetPieceRole, string>>;
 
 export interface KitDetails {
   c1: string;   // primary

@@ -19,7 +19,7 @@ export const urlSimulador = (): string => {
 };
 
 export interface LadoPayload {
-  equipa: { id: string; name: string; city?: string; logoUrl?: string; cores?: string[]; lineup: string[]; bench: string[]; tactics: any };
+  equipa: { id: string; name: string; city?: string; logoUrl?: string; cores?: string[]; lineup: string[]; bench: string[]; tactics: any; cobradores?: any };
   jogadoresPorId: Record<string, any>;
   formacao: { nome: string; slots: { id: number; x: number; y: number; label: string }[] };
 }
@@ -44,7 +44,7 @@ const ladoDe = (team: Team, players: Player[]): LadoPayload => {
   }
   const formacao = team.tactics?.formation || '4-4-2';
   return {
-    equipa: { id: team.id, name: team.name, city: (team as any).city, logoUrl: (team as any).logoUrl, cores: [team.primaryColor, team.secondaryColor, team.tertiaryColor], lineup: team.lineup, bench: (team as any).bench || [], tactics: team.tactics },
+    equipa: { id: team.id, name: team.name, city: (team as any).city, logoUrl: (team as any).logoUrl, cores: [team.primaryColor, team.secondaryColor, team.tertiaryColor], lineup: team.lineup, bench: (team as any).bench || [], tactics: team.tactics, cobradores: (team as any).setPieceTakers || null },
     jogadoresPorId: porId,
     formacao: { nome: formacao, slots: FORMATIONS[formacao as keyof typeof FORMATIONS] }
   };

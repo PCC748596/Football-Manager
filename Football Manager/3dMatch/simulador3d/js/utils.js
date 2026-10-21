@@ -815,6 +815,21 @@ duas equipas é esta: a esquerda de quem ataca está em `x * attDir > 0`.
 Sem o `attDir` o lado sairia trocado para uma das equipas — o defeito que o
 `escolherBatedorDoLateral` (js/match/match_state.js) ainda tem no lateral.
 */
+/*
+O COBRADOR DESIGNADO pelo treinador para um papel ('cornerL', 'cornerR', 'freeKickLong', 'freeKickDirectL', 'freeKickDirectR', 'penalty', 'captain'): o jogador de campo da lista que tem o id
+guardado em `Match.cobradores`, ou `null` (nao designado, fora de campo, expulso ou caido). Pura sobre os jogadores.
+*/
+function cobradorDesignado(team, papel, candidatos) {
+    const m = (typeof Match !== 'undefined') ? Match.cobradores : null;
+    const c = m ? m[team === 'TeamA' ? 'A' : 'B'] : null;
+    const id = c ? c[papel] : null;
+    if (id === null || id === undefined) return null;
+    for (const p of candidatos) {
+        if (p && p.model && !p.expulso && !p.queda && p.skills && p.skills.id === id) return p;
+    }
+    return null;
+}
+
 function ladoDaBola(bolaX, attDir) {
     return (bolaX * (attDir || 1) >= 0) ? 'L' : 'R';
 }
