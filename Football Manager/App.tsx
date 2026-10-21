@@ -184,7 +184,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             </div>
             <div className="px-2 pb-2">
               <div className="text-blue-600 dark:text-blue-400 font-black text-xs uppercase italic tracking-widest border-t border-slate-100 dark:border-slate-800 pt-3 transition-colors">
-                {selectedLeagueId === 'bra_serie_a' ? 'BRASILEIRÃO SÉRIE A.' : selectedLeagueId === 'bra_serie_b' ? 'BRASILEIRÃO SÉRIE B.' : 'PREMIER LEAGUE'}
+                {selectedLeagueId === 'bra_serie_a' ? 'BRASILEIRÃO SÉRIE A.' : selectedLeagueId === 'bra_serie_b' ? 'BRASILEIRÃO SÉRIE B.' : selectedLeagueId === 'eng_prem' ? 'PREMIER LEAGUE' : (activeCountry?.leagues.find(l => l.id === selectedLeagueId)?.name || '').toUpperCase() + '.'}
               </div>
             </div>
           </div>

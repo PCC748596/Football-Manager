@@ -106,6 +106,8 @@ export interface Country {
   name: string;
   continent?: string;
   leagues: League[];
+  /** Clubes sem liga nem jogos: no fim da temporada sorteiam-se daqui os que entram no lugar dos rebaixados (ligas da America Latina; o Brasil tem Serie B a serio). */
+  reserveTeamIds?: number[];
 }
 
 export interface Player {

@@ -20,7 +20,7 @@ function databaseSaverPlugin() {
             try {
               const data = JSON.parse(body);
               const { countries, teams, players } = data;
-              const content = `\n// Paste your full JSON content here in the respective arrays.\n\nexport const REAL_COUNTRIES_JSON = ${JSON.stringify(countries, null, 2)};\n\nexport const REAL_TEAMS_JSON = ${JSON.stringify(teams, null, 2)};\n\nexport const REAL_PLAYERS_JSON = ${JSON.stringify(players, null, 2)};\n`;
+              const content = `\n// Paste your full JSON content here in the respective arrays.\n\nexport const REAL_COUNTRIES_JSON: any[] = ${JSON.stringify(countries, null, 2)};\n\nexport const REAL_TEAMS_JSON: any[] = ${JSON.stringify(teams, null, 2)};\n\nexport const REAL_PLAYERS_JSON: any[] = ${JSON.stringify(players, null, 2)};\n`;
               fs.writeFileSync(path.resolve(__dirname, 'textSim/realDatabase.ts'), content, 'utf8');
               
               res.setHeader('Content-Type', 'application/json');
