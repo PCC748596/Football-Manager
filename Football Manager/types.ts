@@ -120,6 +120,12 @@ export interface Country {
   classificacaoAnterior?: Record<string, string[]>;
 }
 
+export interface Contract {
+  start: string;   // ISO yyyy-mm-dd: dia da assinatura
+  end: string;     // ISO: dia do vencimento
+  years: number;   // duracao sorteada na assinatura (pela idade nessa data)
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -135,6 +141,16 @@ export interface Player {
   value: number;
   salary: number; 
   contractExpiry: string; 
+  /** Datas ISO reais do contrato (textSim/contracts.ts). `contractExpiry` ("W12 2026") e o campo antigo, sem uso. */
+  contract?: Contract;
+  /** Data de nascimento (ISO). Os jogadores da base a tem; `age` acompanha-a. */
+  birthDate?: string;
+  /** Potencial REAL (50-99), interno: nunca mostrado ao treinador. */
+  potential?: number;
+  /** A estimativa do olheiro (50-99, com margem de erro que encolhe com a idade): e dela que saem as estrelas. */
+  potentialEstimate?: number;
+  /** Ganhos fracionarios do desenvolvimento mensal (a parte que ainda nao completou 1 ponto de atributo). */
+  devAcc?: { def: number; pas: number; drb: number; sht: number };
   teamId: string;
   shirtNumber: number;
   def: number;
@@ -835,7 +851,7 @@ export interface GameState {
   matchMode: MatchMode;
   simulationSpeed?: 1 | 2 | 3;
   graphicsQuality?: 'HIGH' | 'MEDIUM' | 'LOW';   // Game Settings > Graphics; sem valor vale LOW
-  view: 'DASHBOARD' | 'SQUAD' | 'LEAGUE' | 'MATCH' | 'FINANCES' | 'STATISTICS' | 'TACTICS' | 'FIXTURES' | 'TRAINING' | 'TRAINING_VIEW' | 'SETTINGS' | 'WORLD';
+  view: 'DASHBOARD' | 'SQUAD' | 'LEAGUE' | 'MATCH' | 'FINANCES' | 'STATISTICS' | 'TACTICS' | 'FIXTURES' | 'TRAINING' | 'TRAINING_VIEW' | 'SETTINGS' | 'WORLD' | 'INBOX';
   activities: CalendarActivity[];
   themeMode: ThemeMode;
   language: Language;

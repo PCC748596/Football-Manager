@@ -5,6 +5,8 @@ import { useGame } from '../context/GameContext';
 import { TeamShield } from './TeamShield';
 import { AttributeGrowthArrow } from './SquadView';
 import { PlayerFace } from './PlayerFace';
+import { ContractPanel } from './ContractPanel';
+import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
 import { PLAYSTYLE_AJUSTES } from '../textSim/playStylesAjustes';
 import { PLAYSTYLE_POSITIONS, PLAYSTYLE_DESCRICAO, PlayStyle } from '../types';
@@ -154,14 +156,6 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
     return 'text-rose-500';
   };
 
-  // Os ICONES do PlayStyle da base (o estilo em si vem de PLAYSTYLE_DA_BASE, gerado do squads.js do 3D).
-  const ICONE_DO_ESTILO: Record<string, string> = {
-    'Fox in the Box': '🦊', 'Goal Poacher': '🎯', 'Target Man': '💪', 'Dummy Runner': '🏃', 'Extra Frontman': '⚔️',
-    'Cross Specialist': '🎯', 'Prolific Winger': '🚀', 'Roaming Flank': '🧭', 'Creative Playmaker': '🪄', 'Classic No. 10': '🔟',
-    'Hole Player': '🕳️', 'Box-to-Box': '🔁', 'Orchestrator': '🎼', 'Anchor Man': '⚓', 'The Destroyer': '🛡️', 'Build Up': '🧱',
-    'Offensive Full-back': '⚡', 'Full-back Finisher': '🦊', 'Defensive Full-back': '🛡️', 'Defensive Goalkeeper': '🧤', 'Offensive Goalkeeper': '🧤'
-  };
-
   /*
   O PLAYSTYLE E O DA BASE (o `estilo` do jogador no squads.js do 3D, pelo id `p-<idPlayer>`; a mesma coisa que o jogo usa em campo). Nao ha
   estilos inventados ("Worker", "Speedster"...): quem nao esta na base (jogador gerado) leva o primeiro estilo da base que serve a sua posicao,
@@ -169,6 +163,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
   */
   const playStyles = useMemo(() => {
     const daBase = (team ? PLAYSTYLE_AJUSTES[`${team.name}|${player.name}`] : undefined)
+      || (player.playStyle && player.playStyle !== 'None' ? player.playStyle : undefined)   // o estilo definido pela base Sub-20 (a partir dos 18 anos)
       || PLAYSTYLE_DA_BASE[player.id]
       || (Object.keys(PLAYSTYLE_POSITIONS) as PlayStyle[]).find(s => s !== 'None' && PLAYSTYLE_POSITIONS[s].includes(player.position))
       || 'Creative Playmaker';
@@ -188,7 +183,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div
-        className="w-full max-w-5xl h-[600px] bg-slate-950 rounded-xl overflow-hidden flex border border-slate-800 shadow-2xl relative"
+        className="w-full max-w-6xl h-[92vh] max-h-[900px] bg-slate-950 rounded-xl overflow-hidden flex border border-slate-800 shadow-2xl relative"
         onClick={e => e.stopPropagation()}
       >
         {/* Background Art */}
@@ -220,7 +215,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
         </div>
 
         {/* RIGHT PANEL: Main Content */}
-        <div className="flex-1 flex flex-col relative z-10">
+        <div className="flex-1 flex flex-col relative z-10 min-h-0 min-w-0 overflow-y-auto custom-scrollbar">
           {/* Header */}
           <div className="p-8 pb-4 flex justify-between items-start">
             <div className="flex gap-6">
@@ -242,15 +237,16 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                 </div>
               </div>
             </div>
-            <div className="text-right pr-12">
+            <div className="text-right pr-14">
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Overall</div>
               <div className={`text-6xl font-black italic ${getColorClass(player.skill)} drop-shadow-lg`}>{player.skill}</div>
             </div>
           </div>
 
-          <div className="flex-1 p-8 pt-2 grid grid-cols-2 gap-8">
+          <div className="p-8 pt-2 grid grid-cols-2 gap-8 items-start">
             {/* Column 1: Info & Summary */}
             <div className="flex flex-col gap-3">
+              <ContractPanel player={player} />
               {/* Bio Data */}
               <div className="grid grid-cols-2 gap-5 bg-slate-900/50 p-3 rounded-lg border border-slate-800">
                 <div>
@@ -352,14 +348,15 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
             </div>
           </div>
 
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded-full transition-colors"
-          >
-            ✕
-          </button>
         </div>
+
+        {/* Close Button (fixo no modal: o painel da direita rola) */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded-full transition-colors"
+        >
+          ✕
+        </button>
       </div>
     </div>
   );

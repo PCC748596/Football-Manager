@@ -6,6 +6,9 @@ import PlayerDetailModal from './PlayerDetailModal';
 import FitnessBar from './FitnessBar';
 import { ShirtIcon } from './ShirtIcon';
 import { getKitDetails, getGKKitDetails } from '../types';
+import YouthView from './YouthView';
+import { ContractChip } from './ContractPanel';
+import { estadoDoContrato } from '../textSim/contracts';
 
 const MoraleArrow = ({ morale }: { morale: number }) => {
   if (morale >= 90) return <span className="text-amber-400 transform -rotate-90 inline-block font-bold drop-shadow-[0_0_2px_rgba(251,191,36,0.5)]">➤</span>; // Excelência
@@ -63,12 +66,35 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
   const { players, userTeam, fixtures, gameState, swapShirtNumbers, formatCurrencyShort, advanceDay, t } = useGame();
   const [draggingPlayerId, setDraggingPlayerId] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [aba, setAba] = useState<'MAIN' | 'U20'>('MAIN');
+  // Ordenacao das colunas (vale para os quatro grupos de posicao): clicar no titulo ordena; clicar de novo inverte.
+  const [ordem, setOrdem] = useState<{ chave: string; dir: 1 | -1 }>({ chave: 'ovr', dir: -1 });
 
   if (!userTeam) return null;
 
   const matchToday = fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === userTeam.id || f.awayTeamId === userTeam.id));
 
   const myPlayers = players.filter(p => p.teamId === userTeam.id);
+
+  const VALOR_DA_COLUNA: Record<string, (p: Player) => number | string> = {
+    num: p => p.shirtNumber, pos: p => p.position, name: p => p.name, age: p => p.age, ovr: p => p.skill, fit: p => p.fitness, mor: p => p.morale,
+    def: p => p.def, pas: p => p.pas, drb: p => p.drb, sht: p => p.sht, prog: p => p.weeklyGrowth, val: p => p.value,
+    contract: p => (p.contract ? p.contract.end : '9999-99-99')   // o que vence primeiro vem primeiro
+  };
+  const comparar = (a: Player, b: Player) => {
+    const f = VALOR_DA_COLUNA[ordem.chave] || VALOR_DA_COLUNA.ovr;
+    const x = f(a), y = f(b);
+    const c = typeof x === 'string' ? (x as string).localeCompare(y as string) : (x as number) - (y as number);
+    return c * ordem.dir || b.skill - a.skill;
+  };
+  const alternarOrdem = (chave: string) => setOrdem(o => (o.chave === chave ? { chave, dir: (o.dir * -1) as 1 | -1 } : { chave, dir: ['name', 'pos', 'contract', 'num'].includes(chave) ? 1 : -1 }));
+  const seta = (chave: string) => (ordem.chave === chave ? <span className="ml-1 text-blue-500">{ordem.dir === 1 ? '▲' : '▼'}</span> : null);
+
+  // Contratos que pedem uma decisao (renovar ou vender): critico (6 meses ou menos) e atencao (12 meses ou menos).
+  const hoje = gameState.currentDate;
+  const comEstado = myPlayers.map(p => ({ p, estado: estadoDoContrato(p.contract, hoje) }));
+  const criticos = comEstado.filter(x => x.estado === 'CRITICO').map(x => x.p);
+  const atencao = comEstado.filter(x => x.estado === 'ATENCAO').map(x => x.p);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('playerId', id);
@@ -102,7 +128,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
   };
 
   const PositionGroup = ({ title, positions, heightClass }: { title: string, positions: Position[], heightClass: string }) => {
-    const groupPlayers = myPlayers.filter(p => positions.includes(p.position)).sort((a,b) => b.skill - a.skill);
+    const groupPlayers = myPlayers.filter(p => positions.includes(p.position)).sort(comparar);
     
     return (
       <div className={`flex flex-col ${heightClass} min-h-0`}>
@@ -119,20 +145,21 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
             <table className="w-full text-left border-separate border-spacing-0">
                <thead className="bg-slate-200/40 dark:bg-slate-950/60 text-[9px] text-slate-400 dark:text-slate-500 font-black uppercase sticky top-0 z-10 transition-colors">
                  <tr>
-                   <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 w-12 text-center">#</th>
-                   <th className="px-2 py-2 border-b border-slate-200 dark:border-slate-800 text-center w-12">Pos</th>
-                   <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800">Name</th>
+                   <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 w-12 text-center cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('num')}>#{seta('num')}</th>
+                   <th className="px-2 py-2 border-b border-slate-200 dark:border-slate-800 text-center w-12 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pos')}>Pos{seta('pos')}</th>
+                   <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('name')}>Name{seta('name')}</th>
                    <th className="px-2 py-2 border-b border-slate-200 dark:border-slate-800 w-16"></th> {/* Star Column */}
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800">Age</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800">OVR</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800">Fit</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800">Mor</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800">Def</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800">Pas</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800">Drb</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800">Sht</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800">Prog</th>
-                   <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800">Val</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('age')}>Age{seta('age')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('ovr')}>OVR{seta('ovr')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('fit')}>Fit{seta('fit')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('mor')}>Mor{seta('mor')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('def')}>Def{seta('def')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pas')}>Pas{seta('pas')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('drb')}>Drb{seta('drb')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('sht')}>Sht{seta('sht')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('prog')}>Prog{seta('prog')}</th>
+                   <th className="px-3 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('contract')}>Contract{seta('contract')}</th>
+                   <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('val')}>Val{seta('val')}</th>
                  </tr>
                </thead>
                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30 transition-colors">
@@ -226,6 +253,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                            {p.weeklyGrowth > 0 ? '+' : ''}{p.weeklyGrowth}
                         </span>
                      </td>
+                     <td className="px-3 py-2 text-center"><ContractChip player={p} hoje={hoje} /></td>
                      <td className="px-4 py-2 text-right text-emerald-600 dark:text-emerald-400 text-[11px] font-black tracking-tight font-mono transition-colors">
                        {formatCurrencyShort(p.value)}
                      </td>
@@ -298,6 +326,21 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
          </div>
       </div>
       
+      <div className="flex gap-2">
+        {([['MAIN', 'Main team'], ['U20', 'Sub-20']] as const).map(([id, rotulo]) => (
+          <button key={id} onClick={() => setAba(id)} className={`px-6 py-2 rounded text-sm font-black uppercase tracking-widest transition-colors ${aba === id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-800 dark:hover:text-white'}`}>{rotulo}</button>
+        ))}
+      </div>
+
+      {aba === 'U20' ? <YouthView /> : (<>
+      {(criticos.length > 0 || atencao.length > 0) && (
+        <div className={`rounded-lg border px-4 py-2.5 text-sm font-bold flex flex-wrap items-center gap-x-4 gap-y-1 ${criticos.length ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-300 dark:border-rose-500/40 text-rose-600 dark:text-rose-400' : 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/40 text-amber-600 dark:text-amber-400'}`}>
+          <span className="font-black uppercase tracking-widest">⚠ Contracts</span>
+          {criticos.length > 0 && <span>Critical (6 months or less): {criticos.map(p => p.name).join(', ')}</span>}
+          {atencao.length > 0 && <span>Attention (12 months or less): {atencao.map(p => p.name).join(', ')}</span>}
+          <span className="opacity-80">Negotiate a renewal or sell — click a player to open the contract.</span>
+        </div>
+      )}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-0">
         <div className="flex flex-col gap-8 min-h-0">
           <PositionGroup title="Goalkeepers" positions={[Position.GK]} heightClass="h-[25%]" />
@@ -308,6 +351,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
           <PositionGroup title="Forwards" positions={[Position.LW, Position.RW, Position.SS, Position.ST]} heightClass="h-1/2" />
         </div>
       </div>
+      </>)}
 
       {selectedPlayer && (
         <PlayerDetailModal 

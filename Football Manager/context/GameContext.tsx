@@ -4,6 +4,11 @@ import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/data
 import { gruposDaSerieD } from '../textSim/competitions';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults } from '../textSim/world';
 import { Competition, prepararCopas, ligaIdDoClube } from '../textSim/competitions';
+import { BaseState, garantirBase, processarBase, promoverJovem } from '../textSim/youth';
+import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
+import { MensagemInbox, adicionar, chavesDe, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase } from '../textSim/inbox';
+import { regiaoDoClube } from '../textSim/dataGenerator';
+import { rotuloDaFase } from '../textSim/competitions';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino } from '../textSim/trainingService';
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
@@ -14,7 +19,7 @@ import { simulador3dEnviar } from '../3dMatch/Simulador3DView';
 const TRANSLATIONS: Record<string, any> = {
   EN: {
     // Nav
-    nav_home: "Home", nav_squad: "Squad", nav_tactics: "Tactics", nav_training: "Training",
+    nav_home: "Home", nav_inbox: "Inbox", nav_squad: "Squad", nav_tactics: "Tactics", nav_training: "Training",
     nav_fixtures: "Fixtures", nav_standings: "Standings", nav_finance: "Finance", nav_statistics: "Statistics", nav_settings: "Settings", nav_world: "World",
     nav_match_day: "Match Day", nav_sim_round: "Simulate Round", nav_save_game: "Save Game",
     // Start Menu
@@ -77,7 +82,7 @@ const TRANSLATIONS: Record<string, any> = {
   },
   PT: {
     // Nav
-    nav_home: "Início", nav_squad: "Elenco", nav_tactics: "Tática", nav_training: "Treino",
+    nav_home: "Início", nav_inbox: "Caixa de Entrada", nav_squad: "Elenco", nav_tactics: "Tática", nav_training: "Treino",
     nav_fixtures: "Jogos", nav_standings: "Tabela", nav_finance: "Finanças", nav_statistics: "Estatísticas", nav_settings: "Config.", nav_world: "Mundo",
     nav_match_day: "Dia de Jogo", nav_sim_round: "Simular Rodada", nav_save_game: "Salvar Jogo",
     // Start Menu
@@ -158,6 +163,14 @@ interface GameContextType {
   updateSetPieceTakers: (teamId: string, takers: Team['setPieceTakers']) => void;
   updateTeamLogo: (teamId: string, logoUrl: string) => void;
   hirePlayer: (player: Player) => void;
+  /** Sub-20 de todos os clubes (null ate o motor gerar). */
+  base: BaseState | null;
+  inbox: MensagemInbox[];
+  markInboxRead: (ids: string[]) => void;
+  markAllInboxRead: () => void;
+  deleteInbox: (ids: string[]) => void;
+  promoteYouth: (playerId: string) => boolean;
+  renewPlayer: (playerId: string) => void;
   sellPlayer: (playerId: string) => void;
   swapShirtNumbers: (playerId1: string, playerId2: string) => void;
   scheduleActivity: (date: string, type: ActivityType, details: any) => void;
@@ -200,6 +213,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [players, setPlayers] = useState<Player[]>([]);
   const [world, setWorld] = useState<WorldLeague[] | null>(null);
   const [comps, setComps] = useState<Competition[] | null>(null);
+  // As categorias de base (Sub-20) de todos os clubes: lista a parte (mesmo tipo `Player`), para nao entrar nas contas do elenco, da folha e do motor de partidas.
+  const [base, setBase] = useState<BaseState | null>(null);
+  // A caixa de entrada (Inbox): e-mails de boas-vindas e avisos de todos os setores (textSim/inbox.ts). Vai no save.
+  const [inbox, setInbox] = useState<MensagemInbox[]>([]);
   const compsSaved = useRef<Competition[] | null>(null);
   const worldSaved = useRef<WorldResults | null>(null);   // resultados vindos de um save, para repor ao criar o mundo
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
@@ -324,6 +341,101 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (r.players.length) setPlayers(prev => [...prev, ...r.players]);
   }, [gameState.currentDate, cupSig, world, comps, userTeam?.id]);
 
+  // INBOX — o motor escreve; a tela so le. Cada razao gera uma mensagem so (as `keys` evitam repeticao ao recarregar ou reprocessar um dia).
+  const empurrarInbox = (novas: MensagemInbox[]) => { if (novas.length) setInbox(prev => adicionar(prev, novas)); };
+  const markInboxRead = (ids: string[]) => setInbox(prev => (prev.some(m => !m.lida && ids.includes(m.id)) ? prev.map(m => (ids.includes(m.id) ? { ...m, lida: true } : m)) : prev));
+  const markAllInboxRead = () => setInbox(prev => (prev.some(m => !m.lida) ? prev.map(m => ({ ...m, lida: true })) : prev));
+  const deleteInbox = (ids: string[]) => setInbox(prev => prev.filter(m => !ids.includes(m.id)));
+
+  // E-mails de boas-vindas ao clube (uma vez por clube do utilizador).
+  useEffect(() => {
+    if (!userTeam || !teams.length) return;
+    if (inbox.some(m => m.keys.includes('welcome|board'))) return;
+    const liga = ligaIdDoClube(userTeam);
+    const doCampeonato = teams.filter(t => { try { return ligaIdDoClube(t) === liga; } catch { return false; } }).sort((a, b) => b.strength - a.strength);
+    const nomeLiga = (COUNTRIES as any[]).flatMap(c => c.leagues).find((l: any) => l.id === liga)?.name || liga;
+    const meus = players.filter(p => p.teamId === userTeam.id);
+    empurrarInbox(boasVindas({
+      hoje: gameState.currentDate, lang: gameState.language, treinador: gameState.managerName, clube: userTeam.name, estadio: userTeam.stadium, cidade: userTeam.city, liga: nomeLiga,
+      forca: userTeam.strength, posicaoNaForca: Math.max(1, doCampeonato.findIndex(t => t.id === userTeam.id) + 1), clubesNaLiga: Math.max(doCampeonato.length, 1),
+      caixa: formatCurrency(userTeam.cash), tamanhoDoElenco: meus.length,
+      contratosEmAtencao: meus.filter(p => ['ATENCAO', 'CRITICO'].includes(estadoDoContrato(p.contract, gameState.currentDate))).length
+    }));
+  }, [userTeam?.id, teams.length, players.length > 0]);
+
+  // Avisos automaticos de cada dia: contratos, jogos importantes, lesoes e fisico, olheiros (base), financas e janela de transferencias.
+  const jogosDoUtilizadorSig = fixtures.reduce((n, f) => n + ((f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId) && f.played ? 1 : 0), 0);
+  useEffect(() => {
+    if (!userTeam) return;
+    const hoje = gameState.currentDate;
+    const rotulos = new Map<string, string>();
+    (comps || []).forEach(c => c.matches.forEach(j => rotulos.set('fix-cup-' + j.id, rotuloDaFase(c.id, j.stage))));
+    const regiaoMeu = regiaoDoClube(userTeam);
+    const jogos = fixtures.filter(f => f.homeTeamId === userTeam.id || f.awayTeamId === userTeam.id).map(f => {
+      const casa = f.homeTeamId === userTeam.id, adv = teams.find(t => t.id === (casa ? f.awayTeamId : f.homeTeamId));
+      return {
+        id: f.id, date: f.date, adversario: adv?.name || '?', casa, jogado: !!f.played, golsPro: (casa ? f.homeScore : f.awayScore) || 0, golsContra: (casa ? f.awayScore : f.homeScore) || 0,
+        derbi: !!adv && !!regiaoMeu && regiaoDoClube(adv) === regiaoMeu, copa: f.type === 'CUP' ? rotulos.get(f.id) : undefined, amistoso: !!f.isFriendly
+      };
+    });
+    const meus = players.filter(p => p.teamId === userTeam.id);
+    const jovens = (base?.jogadores || []).filter(p => p.teamId === userTeam.id).map(p => ({ p, r: base!.relatorios[p.id]?.slice(-1)[0] })).filter(x => x.r && x.r.mes === base!.mesProcessado)
+      .map(x => ({ nome: x.p.name, posicao: x.p.position, delta: x.r!.delta, estrelas: x.r!.estrelas, ovr: x.p.skill, mudou: x.r!.mudancas.length > 0 }));
+    empurrarInbox(avisosDoDia({
+      hoje, lang: gameState.language, elenco: meus, jogos, jovens, mesDoRelatorio: base?.mesProcessado || '',
+      caixa: userTeam.cash, folhaSemanal: meus.reduce((a, p) => a + p.salary, 0), formatar: formatCurrency, janelaAberta: isTransferWindowOpen()
+    }, chavesDe(inbox)));
+  }, [gameState.currentDate, jogosDoUtilizadorSig, base?.mesProcessado, userTeam?.id]);
+
+  // CATEGORIAS DE BASE E CONTRATOS — corre no motor (a cada mudanca de data), nao na tela: a aba Sub-20 so mostra o resultado.
+  //  . todo clube tem exatamente 20 jovens de 15 a 20 anos (clubes que entram depois, como os das copas, ganham a base aqui);
+  //  . a idade acompanha o nascimento; quem faz 21 anos sai da base (o do utilizador vira jogador livre no MARKET; os da CPU deixam o jogo) e a vaga e reposta;
+  //  . cada mes novo e processado uma vez (o marcador `mesProcessado` vai no save, entao recarregar nao repete).
+  useEffect(() => {
+    if (!teams.length || !gameState.userTeamId) return;
+    const hoje = gameState.currentDate;
+    const r = processarBase(garantirBase(base, teams.map(t => t.id), hoje), hoje);
+    if (r.base !== base) setBase(r.base);
+    const doUtilizador = r.saidas.filter(j => j.teamId === gameState.userTeamId).map(j => ({ ...j, teamId: 'MARKET' }));
+    if (doUtilizador.length) { setPlayers(prev => [...prev, ...doUtilizador.filter(j => !prev.some(p => p.id === j.id))]); empurrarInbox(avisoDeSaidaDaBase(hoje, gameState.language, doUtilizador)); }
+  }, [gameState.currentDate, teams.length, gameState.userTeamId]);
+
+  // Contratos dos profissionais: quem ainda nao tem contrato recebe um coerente com as faixas; a idade acompanha o nascimento (quem veio da base);
+  // no dia do vencimento o jogador do utilizador fica livre (MARKET, fora da escalacao) e os da CPU renovam (contrato novo a partir de hoje, sem alterar o passado).
+  useEffect(() => {
+    if (!players.length || !gameState.userTeamId) return;
+    const hoje = gameState.currentDate, dono = gameState.userTeamId;
+    const expirados = new Set(processarContratos(players, hoje, dono).liberados);
+    if (expirados.size) empurrarInbox(avisoDeLiberados(hoje, gameState.language, players.filter(p => expirados.has(p.id))));
+    setPlayers(prev => processarContratos(prev, hoje, dono).jogadores);
+    if (expirados.size) setTeams(prev => prev.map(t => t.id === dono
+      ? { ...t, lineup: t.lineup.map(id => (expirados.has(id) ? '' : id)), bench: (t.bench || []).map(id => (expirados.has(id) ? '' : id)) } : t));
+  }, [gameState.currentDate, players.length, gameState.userTeamId]);
+
+  // Renovar: um contrato novo a partir de hoje, com a duracao sorteada pela idade de hoje (o antigo e substituido, nunca editado).
+  const renewPlayer = (playerId: string) => {
+    if (!userTeam) return;
+    const alvo = players.find(p => p.id === playerId && p.teamId === userTeam.id);
+    if (!alvo) return;
+    const renovado: Player = { ...alvo, contract: renovarContrato(alvo.age, gameState.currentDate) };
+    setPlayers(prev => prev.map(p => (p.id === playerId ? renovado : p)));
+    empurrarInbox([avisoDeRenovacao(gameState.currentDate, gameState.language, renovado)]);
+  };
+
+  // Promover um jovem da base ao time principal: decisao manual do treinador. O jogador passa inteiro (id, atributos, potencial, contrato); a vaga e reposta.
+  const promoteYouth = (playerId: string): boolean => {
+    if (!base || !userTeam) return false;
+    const r = promoverJovem(base, playerId, gameState.currentDate);
+    if (!r || r.jogador.teamId !== userTeam.id) return false;
+    const usados = new Set(players.filter(p => p.teamId === userTeam.id).map(p => p.shirtNumber));
+    let numero = r.jogador.shirtNumber; if (usados.has(numero)) { numero = 1; while (usados.has(numero) && numero < 99) numero++; }
+    const profissional: Player = { ...r.jogador, shirtNumber: numero };
+    setBase(r.base);
+    setPlayers(prev => (prev.some(p => p.id === profissional.id) ? prev : [...prev, profissional]));
+    empurrarInbox([avisoDePromocao(gameState.currentDate, gameState.language, profissional)]);
+    return true;
+  };
+
   useEffect(() => {
     const root = window.document.documentElement;
     const applyTheme = () => {
@@ -446,6 +558,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setTeams(copas ? [...initTeams, ...copas.teams] : initTeams);
     setPlayers(copas ? [...initPlayers, ...copas.players] : initPlayers);
+    setBase(null);   // a base nasce no motor (efeito acima), com a data do jogo
+    setInbox([]);    // as boas-vindas nascem no motor, com o clube escolhido
     setFixtures(initFixtures);
     setGameState(prev => ({
       ...prev,
@@ -1428,7 +1542,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!userTeam || userTeam.cash < player.value) return;
 
     setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash - player.value } : t));
-    setPlayers(prev => prev.map(p => p.id === player.id ? { ...p, teamId: userTeam.id, shirtNumber: 25 + Math.floor(Math.random() * 50) } : p));
+    const contratado: Player = { ...player, teamId: userTeam.id, shirtNumber: 25 + Math.floor(Math.random() * 50), contract: novoContrato(player.age, gameState.currentDate) };
+    setPlayers(prev => prev.map(p => p.id === player.id ? contratado : p));
+    empurrarInbox([avisoDeContratacao(gameState.currentDate, gameState.language, contratado, formatCurrency(player.value))]);
   };
 
   const sellPlayer = (playerId: string) => {
@@ -1439,6 +1555,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const sellPrice = Math.round(player.value * 0.8);
     setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + sellPrice } : t));
     setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, teamId: 'MARKET' } : p));
+    empurrarInbox([avisoDeVenda(gameState.currentDate, gameState.language, player, formatCurrency(sellPrice))]);
   };
 
   const swapShirtNumbers = (p1: string, p2: string) => {
@@ -1562,6 +1679,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       gameState,
       worldResults: worldResults(world),
       comps,
+      base,
+      inbox,
       saveDate: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(saveData, null, 2)], { type: 'application/json' });
@@ -1625,6 +1744,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else { setWorld(null); setComps(null); }
         setTeams(tm);
         setPlayers(pl);
+        setBase(data.base || null);   // save antigo, sem base: o motor gera as bases
+        setInbox(data.inbox || []);
         setFixtures(fx);
         setGameState(data.gameState);
         return true;
@@ -1646,7 +1767,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <GameContext.Provider value={{
       teams, players, fixtures, gameState, startGame, advanceDay, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
-      hirePlayer, sellPlayer, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
+      hirePlayer, sellPlayer, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, renewPlayer, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, updateSettings, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
       t,

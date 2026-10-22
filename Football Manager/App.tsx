@@ -14,6 +14,7 @@ import MatchRoundView from './components/MatchRoundView';
 import SettingsView from './components/SettingsView';
 import WorldView from './components/WorldView';
 import StatisticsView from './components/StatisticsView';
+import InboxView from './components/InboxView';
 import { COUNTRIES, generateLeagueData } from './textSim/dataGenerator';
 import { gruposDaSerieD } from './textSim/competitions';
 import { Team, Player, GameState } from './types';
@@ -371,6 +372,7 @@ const GameContainer: React.FC = () => {
             {view === 'STATISTICS' && <StatisticsView />}
             {view === 'SETTINGS' && <SettingsView />}
             {view === 'WORLD' && <WorldView />}
+            {view === 'INBOX' && <InboxView setView={setView} />}
         </Layout>
       )}
     </div>

@@ -1,6 +1,7 @@
 
 import { Team, Player, Fixture, Position, Tactics } from '../types';
 import { ECONOMIA_ESTADIO } from './stadiumEconomy';
+import { calcularSkill } from './overall';
 import { REAL_TEAMS_JSON, REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 
 const DEFAULT_TACTICS: Tactics = {
@@ -34,21 +35,8 @@ export const generatePlayer = (teamId: string, position: Position, idCounter: nu
   const drb = randomInt(50, 100);
   const sht = randomInt(50, 100);
 
-  // Cálculo de Skill (OVR) baseado na posição
-  let skill = 50;
-  if (position === Position.GK) {
-    // GK 70% DEF, 15% PAS, 15% SHT
-    skill = Math.round((def * 0.7) + (pas * 0.15) + (sht * 0.15));
-  } else if ([Position.LB, Position.CB, Position.RB].includes(position)) {
-    // Defensores: 70% DEF, 20% PAS, 10% SHT
-    skill = Math.round((def * 0.7) + (pas * 0.2) + (sht * 0.1));
-  } else if ([Position.DM, Position.LM, Position.CM, Position.RM, Position.AM].includes(position)) {
-    // Meio campo: 20% DEF, 30% DRB, 30% PAS, 20% SHT
-    skill = Math.round((def * 0.2) + (drb * 0.3) + (pas * 0.3) + (sht * 0.2));
-  } else {
-    // Atacantes: 10% DEF, 10% PAS, 30% DRB, 50% SHT
-    skill = Math.round((def * 0.1) + (pas * 0.1) + (drb * 0.3) + (sht * 0.5));
-  }
+  // Cálculo de Skill (OVR) baseado na posição (textSim/overall.ts)
+  let skill = calcularSkill(position, def, pas, drb, sht);
 
   // Bônus de "Auge" (24-30 anos)
   if (age > 24 && age < 30) {
@@ -294,7 +282,7 @@ OS CLASSICOS NO MEIO DE CADA TURNO. O calendario e um todos-contra-todos pelo me
 encontra (e o returno repete o turno na mesma ordem). Procura-se, por subida de colina com sorteio fixo (o mesmo calendario sempre), a ordem que poe os jogos entre
 clubes da MESMA REGIAO — o estado nos clubes brasileiros (o sufixo do nome: Atletico-MG, Cruzeiro-MG), a cidade nos outros paises — o mais perto possivel do meio do turno.
 */
-const regiaoDoClube = (t: Team): string => {
+export const regiaoDoClube = (t: Team): string => {
   const m = /-([A-Z]{2})$/.exec(t.name);
   return m ? m[1] : (t.city || '').trim();
 };
