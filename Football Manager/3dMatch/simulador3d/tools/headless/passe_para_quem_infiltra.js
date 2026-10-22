@@ -35,6 +35,10 @@ if (typeof Sim === 'undefined') global.Sim = {};
 Sim.running = true;
 
 let comInfiltrado = 0, escolheuInfiltrado = 0, totalEscolhas = 0;
+const motivos = { longe: 0, impedimento: 0, linhaBloqueada: 0, perdeuNaNota: 0 };
+let comNoQuarto = 0, escolheuNoQuarto = 0, passesParaQuarto = 0;
+// Infiltrado no ULTIMO QUARTO (a menos de 26.5 m da linha de fundo adversaria): a bola que chega a ele e remate de primeira ou 1x1.
+const noQuarto = (c) => c.fsm && c.fsm.currentState === 'RUN_INTO_SPACE' && (c.model.position.z * c.dirZ) >= (CAMPO_COMP / 2) - CAMPO_COMP * 0.25;
 let passesFeitos = 0, passesParaInfiltrado = 0;
 
 const proto = Object.getPrototypeOf(Match.players[0]);
@@ -52,6 +56,22 @@ proto.findPassTarget = function (filtro) {
         const houve = colegas.some(c => c !== this && c.fsm &&
             c.fsm.currentState === 'RUN_INTO_SPACE' &&
             this.model.position.distanceTo(c.model.position) <= maxDist);
+        // Diagnostico: por que o infiltrado do ultimo quarto NAO foi o escolhido?
+        colegas.forEach(c => {
+            if (c === this || !noQuarto(c) || !alvo || c === alvo) return;
+            const dist = this.model.position.distanceTo(c.model.position);
+            if (dist > maxDist) { motivos.longe++; return; }
+            const linha = TeamAI.get(this.team).offsideLimitDir;
+            if (typeof linha === 'number' && (c.model.position.z * this.dirZ) > linha) { motivos.impedimento++; return; }
+            const adv = (this.team === 'TeamA') ? Match.opponents : Match.players;
+            const seg = new THREE.Line3(this.model.position.clone(), c.model.position.clone());
+            const tmp = new THREE.Vector3();
+            let min = 999;
+            adv.forEach(o => { if (o.role === 'gk') return; seg.closestPointToPoint(o.model.position, true, tmp); min = Math.min(min, tmp.distanceTo(o.model.position)); });
+            if (min < 1.0) motivos.linhaBloqueada++; else motivos.perdeuNaNota++;
+        });
+        const houveQuarto = colegas.some(c => c !== this && noQuarto(c) && this.model.position.distanceTo(c.model.position) <= maxDist);
+        if (houveQuarto) { comNoQuarto++; if (noQuarto(alvo)) escolheuNoQuarto++; }
         if (houve) {
             comInfiltrado++;
             if (alvo.fsm && alvo.fsm.currentState === 'RUN_INTO_SPACE') escolheuInfiltrado++;
@@ -68,6 +88,7 @@ if (typeof global.executePassGameplay === 'function') {
         if (alvo) {
             passesFeitos++;
             if (alvo.fsm && alvo.fsm.currentState === 'RUN_INTO_SPACE') passesParaInfiltrado++;
+            if (noQuarto(alvo)) passesParaQuarto++;
         }
         return origPasse(p);
     };
@@ -82,3 +103,5 @@ console.log(`  escolhas de alvo: ${totalEscolhas}, ` +
 console.log(`  e nessas o infiltrado foi escolhido ${escolheuInfiltrado} vezes (${pct(escolheuInfiltrado, comInfiltrado)})`);
 console.log(`  passes executados: ${passesFeitos}, para quem infiltrava: ` +
     `${passesParaInfiltrado} (${pct(passesParaInfiltrado, passesFeitos)})`);
+console.log(`  NO ULTIMO QUARTO: havia infiltrado ao alcance em ${comNoQuarto} escolhas, escolhido ${escolheuNoQuarto} (${pct(escolheuNoQuarto, comNoQuarto)}); passes que lhe saem: ${passesParaQuarto}`);
+console.log('  infiltrados do ultimo quarto que NAO foram escolhidos, por motivo:', JSON.stringify(motivos));

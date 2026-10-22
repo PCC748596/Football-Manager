@@ -76,9 +76,9 @@ test('e a tabela de pares de posicoes ja nao o apaga', () => {
     const fs = require('fs');
     const path = require('path');
     const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'player.js'), 'utf8');
-    const i = src.indexOf('RUN_INTO_SPACE');
+    const i = src.indexOf('let bonusInfiltracao = 0');   // o inicio do acumulador proprio (o 'RUN_INTO_SPACE' aparece antes, no corte duro do ultimo quarto)
     assert.ok(i > 0, 'o bonus da infiltracao desapareceu do findPassTarget');
-    const corpo = src.slice(i, i + 2500);
+    const corpo = src.slice(i, i + 6000);
     assert.ok(!/priorityBonus \+= 400/.test(corpo),
         'o bonus continua somado ao mesmo acumulador que a tabela reescreve');
     assert.ok(/score \+= priorityBonus \+ bonusInfiltracao/.test(corpo),

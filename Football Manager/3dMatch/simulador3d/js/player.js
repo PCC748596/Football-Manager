@@ -3002,6 +3002,12 @@ class FootballPlayer {
             }
             let bloqueio = PL.bloqueioDuro * fatorIntercept;
             if (isOrchestrator) bloqueio *= PL.factorOrquestrador;
+            // Quem infiltra no ultimo quarto recebe o lancamento PELO ALTO: os defensores na reta nao o bloqueiam (PassModel.infiltradoBloqueioFator).
+            // E a quem faz OVERLAP (o lateral ofensivo que ultrapassa por fora): o lancamento tambem vai por cima.
+            if (opt.fsm && opt.fsm.currentState === 'RUN_INTO_SPACE' && typeof PassModel !== 'undefined' && PassModel.infiltradoBloqueioFator &&
+                dist >= PassModel.infiltradoAereoDist && (opt.overlapTimer > 0 || (optPos.z * opt.dirZ) >= (CAMPO_COMP / 2) - CAMPO_COMP * (PassModel.ultimoQuarto || 0.25))) {
+                bloqueio *= PassModel.infiltradoBloqueioFator;
+            }
             if (minOppDist < bloqueio) continue;
 
             let circulacao = teamStyle ? teamStyle.circulacao : 1.0;
@@ -3162,6 +3168,17 @@ class FootballPlayer {
                 bonusInfiltracao = (typeof PassModel !== 'undefined' &&
                     typeof PassModel.bonusInfiltracao === 'number')
                     ? PassModel.bonusInfiltracao : 400;
+            }
+
+            /*
+            NO ULTIMO QUARTO DO CAMPO, QUEM INFILTRA TEM PRIORIDADE EXTRA (PassModel.bonusInfiltracaoUltimoQuarto): a bola que chega a ele ali e remate de primeira ou 1x1
+            com o goleiro. So em posicao regular (a linha que a equipa le), senao o passe era impedimento.
+            */
+            if (opt.fsm && opt.fsm.currentState === 'RUN_INTO_SPACE' && typeof PassModel !== 'undefined' && PassModel.bonusInfiltracaoUltimoQuarto) {
+                const noQuarto = (optPos.z * dirZ) >= (CAMPO_COMP / 2) - CAMPO_COMP * (PassModel.ultimoQuarto || 0.25);
+                const linhaBB = teamBB ? teamBB.offsideLimitDir : null;
+                const regular = !(typeof linhaBB === 'number' && (optPos.z * dirZ) > linhaBB);
+                if (noQuarto && regular) bonusInfiltracao += PassModel.bonusInfiltracaoUltimoQuarto;
             }
 
             // O UM-DOIS: quem me passou a bola e arrancou livre para a frente.

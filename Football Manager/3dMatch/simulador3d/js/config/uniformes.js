@@ -250,6 +250,26 @@ Uniformes['Bahia-BA'] = {
 };
 
 /*
+COLO-COLO. Pedido: *"o uniforme 1 igual ao do Bahia-BA"*, e depois *"azul escuro com vermelho e faixa fina branca"* — e exatamente o do Bahia (12 listras, a larga no meio, filete branco
+entre o azul escuro e o vermelho; short e meiao brancos; numero azul com contorno branco). Os uniformes 2 (branco/branco) e 3 (vermelha com faixa preta, short vermelho com barra preta)
+vem do manager (`getKitDetails`).
+*/
+Uniformes['Colo-Colo'] = {
+    camisa: {
+        padrao: 'listras',
+        cores: ['#0b2a6b', '#f2f2f2', '#d71920', '#f2f2f2'],
+        pesos: [2.6, 0.5, 2.6, 0.5],
+        divisoes: 12,
+        centrada: true
+    },
+    corPrincipal: '#0b2a6b',
+    calcao: '#f2f2f2',
+    meiao: { padrao: 'solido', cores: ['#f2f2f2'] },
+    numero: '#0b2a6b',
+    contorno: 'rgba(255,255,255,0.85)'
+};
+
+/*
 BOTAFOGO-RJ, BOTAFOGO-PB (o `teamName` do Botafogo da Paraíba nos dados) E
 BOTAFOGO-SP, E O CEARÁ-CE. Pedido: *"Camisa listas verticais pretas e brancas do
 mesmo tamanho. 5 pretas e 4 brancas. Short preto com barra branca. Meião preto."*

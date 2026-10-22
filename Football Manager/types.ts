@@ -310,6 +310,8 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
     let nc: string | undefined = undefined;
     let clc: string | undefined = undefined; // collar color
     let noc: string | undefined = undefined; // number outline color
+    let shcK: string | undefined = undefined;   // short color (so os kits que o fixam)
+    let shtcK: string | undefined = undefined;  // aba (barra) do short
     let multipleDiagonals = false;
     let horizontal = false;
     let dualDiagonal = false;
@@ -348,6 +350,7 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
     const isAtleticoGO = team.name === 'Atlético-GO';
     const isVitoriaBA = team.name === 'Vitória-BA';
     const isBahiaBA = team.name === 'Bahia-BA';
+    const isColoColo = team.name === 'Colo-Colo';   // 1: igual ao do Bahia-BA (azul escuro e vermelho com filete branco); 2: branco/branco; 3: vermelha com faixa preta
     const isCruzeiroMG = team.name === 'Cruzeiro-MG';
     const isBragantinoSP = team.name === 'Bragantino-SP';
     const isSaoPauloSP = team.name === 'São Paulo-SP';
@@ -361,7 +364,7 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
     let spfcStripes = false;
     let criciumaStripes = false;
 
-    if (isFluminense || isGremio || isSampaio || isJuventude || isPalmeiras || isInter || isCorinthians || isVasco || isCuiaba || isBotafogoRJ || isFortalezaCE || isAtleticoPR || isVitoriaBA || isAtleticoGO || isBahiaBA || isCruzeiroMG || isBragantinoSP || isSaoPauloSP || isAtleticoMG || isFlamengoRJ || isCriciumaSC) {
+    if (isFluminense || isGremio || isSampaio || isColoColo || isJuventude || isPalmeiras || isInter || isCorinthians || isVasco || isCuiaba || isBotafogoRJ || isFortalezaCE || isAtleticoPR || isVitoriaBA || isAtleticoGO || isBahiaBA || isCruzeiroMG || isBragantinoSP || isSaoPauloSP || isAtleticoMG || isFlamengoRJ || isCriciumaSC) {
         const darkerGreen = '#004c27';
         const palmeirasGreen = '#054432';
         const interRed = '#c1121f';
@@ -456,6 +459,14 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
             } else if (kitIdx === 2) { // Third: Preta com lista diagonal vermelha. Igual a Vasco, num branco sem linha.
                 c1 = 'black'; c2 = '#ef4444'; c3 = undefined; diagonal = true; nc = 'white'; noc = 'transparent';
             }
+        } else if (isColoColo) {
+            if (kitIdx === 0) { // Home: igual ao do Bahia-BA: azul escuro e vermelho com filete branco fino; short branco; numero azul com linha branca.
+                c1 = '#0b2a6b'; c2 = 'white'; c3 = '#d71920'; clc = 'white'; nc = '#0b2a6b'; noc = 'white'; shcK = 'white';
+            } else if (kitIdx === 1) { // Away: branco / branco (camisa e short), gola e numero pretos.
+                c1 = 'white'; c2 = undefined; c3 = undefined; clc = '#151515'; nc = '#151515'; noc = undefined; shcK = 'white';
+            } else if (kitIdx === 2) { // Third: vermelha com faixa preta (as laterais, aproximado pelas listas centrais), gola preta; short vermelho com barra preta.
+                c1 = '#e30613'; c2 = '#151515'; c3 = '#151515'; centerVerticalStripes = true; clc = '#151515'; nc = 'white'; noc = '#000000'; shcK = '#e30613'; shtcK = '#151515';
+            }
         } else if (isBahiaBA) {
             if (kitIdx === 1) { // Away: Branca com 2 listas vermelha e azul verticais no centro. Golas azuis. Numero branco sem linha.
                 c1 = 'white'; c2 = '#ef4444'; c3 = '#1d4ed8'; centerVerticalStripes = true; clc = '#1d4ed8'; nc = 'white'; noc = 'transparent';
@@ -542,7 +553,7 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
         // Preto com a aba branca no alto.
         meiao = { cores: ['#f2f2f2', '#000000'], pesos: [1.3, 8.7] };
     }
-    return { c1, c2, c3, sc, nc, clc, noc, diagonal, horizontal, multipleDiagonals, dualDiagonal, centerVerticalStripes, gradient, spfcStripes, criciumaStripes, cruzMalta, meiao };
+    return { c1, c2, c3, sc, nc, clc, noc, diagonal, horizontal, multipleDiagonals, dualDiagonal, centerVerticalStripes, gradient, spfcStripes, criciumaStripes, cruzMalta, meiao, shc: shcK, shtc: shtcK };
 };
 
 export const isColorLight = (hex: string) => {

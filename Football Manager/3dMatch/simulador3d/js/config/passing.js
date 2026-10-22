@@ -162,7 +162,11 @@ const Intencoes = {
     reacaoMin: 0.25,            // s desde o arranque da corrida ate o portador a "ver" (futuro: depende do entrosamento do par)
     persistenciaComPasse: 6.5,  // s que continua a correr se o passe e para ele
     prolongar: 10.0,            // m que o alvo avanca quando ele chega ao destino e a bola ainda vem
-    restanteSemPasse: 1.5,      // s que sobram a quem corria quando o passe vai para outro
+    // 1.5 -> 3.0: com 1.5 a infiltracao acabava ~1.7 s depois do arranque (medido: media 1.29 s numa corrida que pede 3.5) sempre que a equipa passava a outro, e via-se o
+    // jogador a arrancar com o braco no ar e a parar logo. Ver tools/headless/infiltracao_duracao.js.
+    // Quando quem corre e um lateral com o estilo offensive_fullback (overlap), a chance de o portador lhe lancar a bola e esta (a normal e `chance`).
+    chanceLateralOfensivo: 0.9,
+    restanteSemPasse: 3.0,      // s que sobram a quem corria quando o passe vai para outro
     velCorrida: 8.0, velBola: 14.0, velAdversario: 6.2,
     distMin: 12.0, distMax: 42.0,   // distancia do portador ao ponto de queda
     ganhoMin: 8.0,              // m a frente do portador (no sentido do ataque) que o ponto tem de ficar: um lancamento ganha terreno
@@ -284,6 +288,24 @@ const PassModel = {
     intencao e nao sobe a entrega, portanto fica nos 700.
     */
     bonusInfiltracao: 700,
+
+    /*
+    QUEM SE INFILTRA NO ULTIMO QUARTO DO CAMPO (o do ataque) TEM PRIORIDADE EXTRA NO PASSE — pedido: *"os jogadores se infiltrando no ultimo quarto do campo tem que ter
+    preferencia no passe, para poder chutar de primeira para o gol ou tentar driblar o goleiro"*. Ali a corrida vale muito mais do que no meio-campo: a bola que chega a
+    ele ja e remate de primeira ou 1x1 com o goleiro. Soma-se ao `bonusInfiltracao` quando o receptor esta em RUN_INTO_SPACE, a menos de `ultimoQuarto` do comprimento do
+    campo da linha de fundo adversaria (26.5 m), e em posicao REGULAR (nao alem da linha de impedimento que a equipa le): premiar quem esta em impedimento so daria
+    falta. Mede-se com `tools/headless/passe_para_quem_infiltra.js` (as linhas "no ultimo quarto").
+    */
+    bonusInfiltracaoUltimoQuarto: 900,
+    ultimoQuarto: 0.25,
+    /*
+    A LINHA DO PASSE NAO BLOQUEIA O LANCAMENTO PELO ALTO A QUEM INFILTRA NO ULTIMO QUARTO. Medido (`tools/headless/passe_para_quem_infiltra.js`): dos infiltrados do ultimo quarto
+    que NAO foram escolhidos, a maioria (144 de 270) caiu no corte duro "alguem a menos de `PassLineModel.bloqueioDuro` da reta do passe" — e quem rompe esta, por definicao, por
+    tras da defesa, ou seja com defensores na reta. Mas a essa distancia o passe vai pelo ar (ver `distAereo`) e passa por cima deles. A partir de `infiltradoAereoDist` m o corte
+    duro passa a valer so `infiltradoBloqueioFator` do normal para esse receptor.
+    */
+    infiltradoAereoDist: 15,
+    infiltradoBloqueioFator: 0.3,
 
     /*
     =====================================================================
@@ -1394,7 +1416,19 @@ const JogadasCombinadas = {
         larguraDoCorredor: 21.0,
         velocidade: 7.9,
         // Enquanto corre, o passe para ele vale isto a mais na nota.
-        bonusNota: 220
+        bonusNota: 220,
+        /*
+        O LATERAL OFENSIVO DO LADO DA JOGADA DA MAIS OPCAO DE OVERLAP (pedido: *"o lateral do lado em que a jogada esta acontecendo, se for ofensivo, tem que dar mais opcao de
+        overlapping para receber os lancamentos"*). Quem tem o estilo offensive_fullback e esta do lado do portador:
+          chanceOfensivo   chance por frame de arrancar (os outros: 0.05) — arranca bem mais vezes;
+          distOfensivo     arranca de mais longe do portador (os outros: 20 m), porque o lancamento vem de longe;
+          lancamentoDist   a partir desta distancia o passe para quem faz overlap e um LANCAMENTO pelo alto, e a linha de passe rasteira livre deixa de ser exigida
+                           (os defensores na reta nao o bloqueiam, a bola passa por cima).
+        Mede-se com `tools/headless/overlap_lateral.js`.
+        */
+        chanceOfensivo: 0.20,
+        distOfensivo: 32.0,
+        lancamentoDist: 18.0
     }
 };
 

@@ -9,7 +9,7 @@ com a forma de um estádio, e mede o que se pode medir sem olhar para o ecrã:
     (é isso que faz as quatro peças coincidirem no mesmo corpo);
   - a pose está sentada — o corpo é mais baixo do que largo em Z, ao contrário
     de um boneco de pé;
-  - as duas claques ficam nas duas pontas e mesclam-se no meio;
+  - 90% da torcida e da casa e 10% do visitante, o visitante todo junto no canto direito das cameras;
   - a construção é determinística: o estádio é igual em cada arranque.
 */
 const fs = require('fs');
@@ -150,62 +150,37 @@ let meshes;
 }
 
 /*
-3 — as duas claques: uma em cada ponta, mescladas no meio.
+3 — as duas claques: 90% da casa e 10% do visitante, o visitante TODO JUNTO NO CANTO do lado direito das cameras (as cameras ficam em +X; a direita do ecra e o -Z).
 */
 {
     const cor = new THREE.Color();
     const m = new THREE.Matrix4();
     const pos = new THREE.Vector3();
-
-    // Divide o estádio em cinco faixas em Z e conta as camisas de cada claque.
-    const faixas = 5;
-    const conta = Array.from({ length: faixas }, () => ({ A: 0, B: 0 }));
-    let zMin = Infinity, zMax = -Infinity;
-    for (const l of lugares) { zMin = Math.min(zMin, l.z); zMax = Math.max(zMax, l.z); }
-
+    let zMin = Infinity, zMax = -Infinity, xMin = Infinity, xMax = -Infinity;
+    for (const l of lugares) { zMin = Math.min(zMin, l.z); zMax = Math.max(zMax, l.z); xMin = Math.min(xMin, l.x); xMax = Math.max(xMax, l.x); }
     const azul = new THREE.Color(CrowdModel.equipas.A.camisa);
     const vermelho = new THREE.Color(CrowdModel.equipas.B.camisa);
 
+    let casa = 0, visitante = 0, foraDoCanto = 0, somaT = 0, somaU = 0;
     for (let i = 0; i < meshes.camisa.count; i++) {
         meshes.camisa.getMatrixAt(i, m);
         pos.setFromMatrixPosition(m);
         meshes.camisa.getColorAt(i, cor);
-
         // A cor leva variação por adepto; classifica-se pela mais próxima.
         const dA = Math.abs(cor.r - azul.r) + Math.abs(cor.g - azul.g) + Math.abs(cor.b - azul.b);
         const dB = Math.abs(cor.r - vermelho.r) + Math.abs(cor.g - vermelho.g) + Math.abs(cor.b - vermelho.b);
-
-        const t = (pos.z - zMin) / (zMax - zMin);
-        const f = Math.max(0, Math.min(faixas - 1, Math.floor(t * faixas)));
-        conta[f][dA <= dB ? 'A' : 'B']++;
+        if (dA <= dB) { casa++; continue; }
+        visitante++;
+        const t = (pos.z - zMin) / (zMax - zMin), u = (pos.x - xMin) / (xMax - xMin);
+        somaT += t; somaU += u;
+        if (t > CrowdModel.visitanteT + CrowdModel.visitanteMescla + 0.02 || u < CrowdModel.visitanteU - CrowdModel.visitanteMescla - 0.02) foraDoCanto++;
     }
-
-    console.log('\ndistribuição das claques por faixa do estádio (topo -Z -> topo +Z)');
-    conta.forEach((c, i) => {
-        const tot = c.A + c.B;
-        const pctA = tot ? (100 * c.A / tot) : 0;
-        const barra = '#'.repeat(Math.round(pctA / 5)) + '.'.repeat(20 - Math.round(pctA / 5));
-        console.log(`  faixa ${i + 1}: ${barra} ${pctA.toFixed(0)}% claque A, ` +
-            `${(100 - pctA).toFixed(0)}% B  (${tot} adeptos)`);
-    });
-
-    const pct = conta.map(c => 100 * c.A / Math.max(1, c.A + c.B));
-    /*
-    QUE PONTA É DE QUEM. `t = 0` (primeira faixa) é o z mais negativo, onde
-    está a baliza do TeamA — e lá senta-se a claque **B**: cada claque fica
-    atrás da baliza que a sua equipa ATACA. A claque A ocupa a última faixa.
-    A percentagem de A tem portanto de SUBIR ao longo do estádio.
-    */
-    if (pct[0] > 10) erro(`a primeira faixa devia ser quase toda da claque B, tem ${pct[0].toFixed(0)}% de A`);
-    if (pct[faixas - 1] < 90) erro(`a última faixa devia ser quase toda da claque A, é ${pct[faixas - 1].toFixed(0)}%`);
-    const meio = pct[Math.floor(faixas / 2)];
-    if (meio < 15 || meio > 85) {
-        erro(`a faixa do meio devia estar mesclada, tem ${meio.toFixed(0)}% de A`);
-    }
-    // E tem de subir sempre: sem transição via-se uma fronteira a direito.
-    for (let i = 1; i < faixas; i++) {
-        if (pct[i] < pct[i - 1] - 1) erro('a mescla não é monótona ao longo do estádio');
-    }
+    const pctCasa = 100 * casa / Math.max(1, casa + visitante);
+    console.log(`
+torcida da casa: ${pctCasa.toFixed(1)}% | visitante: ${(100 - pctCasa).toFixed(1)}% | visitante: posicao media t=${(somaT / Math.max(1, visitante)).toFixed(2)} (0 = fundo -Z), u=${(somaU / Math.max(1, visitante)).toFixed(2)} (1 = lado das cameras)`);
+    if (pctCasa < 86 || pctCasa > 94) erro(`a casa devia ter ~90% da torcida, tem ${pctCasa.toFixed(1)}%`);
+    if (foraDoCanto > 0) erro(`${foraDoCanto} adepto(s) visitante(s) fora do canto: a torcida visitante tem de ficar toda junta`);
+    if (somaT / visitante > 0.3 || somaU / visitante < 0.6) erro('o visitante devia estar no canto do fundo -Z com o lado das cameras (+X)');
 }
 
 /*

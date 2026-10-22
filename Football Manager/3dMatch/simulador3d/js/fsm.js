@@ -1779,6 +1779,7 @@ class PlayerFSM {
                     chegou || alvoAtras) {
                     p.runTimer = 0;
                     p.runCarrier = null;
+                    p.overlapAlvo = null;   // o overlap acabou (ver `podeFazerOverlap`)
                     // Arrefecimento: sem isto ele reavalia no frame seguinte,
                     // volta a achar espaço no mesmo sítio e fica a arrancar
                     // e a parar no lugar.

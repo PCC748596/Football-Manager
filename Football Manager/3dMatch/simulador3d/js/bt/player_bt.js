@@ -1528,7 +1528,10 @@ function tratarJogadaCombinada(ctx) {
     const advs = (p.team === 'TeamA') ? Match.opponents : Match.players;
     for (const mate of colegas) {
         if (mate === p || !mate.model || !(mate.overlapTimer > 0)) continue;
-        if (!corredorLivre(Match.ball.position.x, Match.ball.position.z,
+        // A distancias de lancamento (pelo alto) os defensores na reta nao bloqueiam: so se exige a linha livre nos passes curtos.
+        const JOv = (typeof JogadasCombinadas !== 'undefined') ? JogadasCombinadas.overlap : null;
+        const noAr = !!(JOv && JOv.lancamentoDist && p.model.position.distanceTo(mate.model.position) >= JOv.lancamentoDist);
+        if (!noAr && !corredorLivre(Match.ball.position.x, Match.ball.position.z,
             mate.model.position.x, mate.model.position.z, advs, 1.5, true)) continue;
         aplicarMiraDoPasse(p, PassTypes.LEADING, {
             x: mate.model.position.x,
@@ -2260,7 +2263,16 @@ function podeFazerOverlap(ctx) {
     }
     const p = ctx.p;
     if (p.role === 'gk') return false;
-    
+
+    /*
+    UM OVERLAP EM CURSO CONTINUA. O sorteio por frame (5%, ou `chanceOfensivo`) so serve para ARRANCAR: sem esta saida o `actOverlap` so corria no frame do arranque, o
+    posicionamento reescrevia o `dynamicTarget` logo a seguir (o destino ficava na propria posicao: a corrida morria em ~0.3 s e, para o portador, a intencao nao existia —
+    medido: 100% "sem intencao" no `tools/headless/overlap_lateral.js`). Enquanto a corrida dura e a equipa tem a bola, o destino guardado e reescrito todos os frames.
+    */
+    if (p.fsm.currentState === 'RUN_INTO_SPACE' && p.overlapAlvo && p.runTimer > 0) {
+        return !!(Match.ballCarrier && Match.ballCarrier.team === p.team);
+    }
+
     // Apenas defesas laterais ou extremos
     if (p.role !== 'lat' && p.role !== 'ml' && p.pos !== 'LB' && p.pos !== 'RB' && p.pos !== 'LW' && p.pos !== 'RW') return false;
     
@@ -2280,15 +2292,30 @@ function podeFazerOverlap(ctx) {
     
     if (meuAvanco > bcAvanco + 5) return false; // Já estou lá à frente
     
-    if (p.model.position.distanceTo(bc.model.position) > 20.0) return false;
+    // O lateral OFENSIVO do lado da jogada arranca mais vezes e de mais longe (JogadasCombinadas.overlap.chanceOfensivo / distOfensivo).
+    const JO = (typeof JogadasCombinadas !== 'undefined') ? JogadasCombinadas.overlap : null;
+    const ofensivo = !!(JO && JO.chanceOfensivo && p.playingStyle === 'offensive_fullback' && !p.playingStyleDesligado &&
+        (p.pos === 'LB' || p.pos === 'RB' || p.role === 'lat'));
+    if (p.model.position.distanceTo(bc.model.position) > (ofensivo ? JO.distOfensivo : 20.0)) return false;
     if (Math.abs(p.model.position.x) < Math.abs(bc.model.position.x)) return false; // Estou por dentro
-    if (Math.random() > 0.05) return false; // Não arranca sempre
+    if (Math.random() > (ofensivo ? JO.chanceOfensivo : 0.05)) return false; // Não arranca sempre
 
     return true;
 }
 
 function actOverlap(ctx) {
     const p = ctx.p;
+    // Corrida em curso: o destino guardado e reescrito todos os frames (e revalidado contra a linha de fora-de-jogo, como na infiltracao).
+    if (p.fsm.currentState === 'RUN_INTO_SPACE' && p.overlapAlvo && p.runTimer > 0) {
+        if (typeof avancoLegalDeCorrida === 'function') {
+            const legal = avancoLegalDeCorrida(p.overlapAlvo.z * p.dirZ, linhaLidaPor(p, true));
+            p.overlapAlvo.z = legal * p.dirZ;
+        }
+        p.dynamicTarget.set(p.overlapAlvo.x, ALTURA_BASE_Y, p.overlapAlvo.z);
+        p.speedMult = p.sprintSpeed || (6.5 * 1.3);
+        p.overlapTimer = 1.0;
+        return;
+    }
     let targetX = (Math.abs(p.model.position.x) > 5) ? p.model.position.x : (CAMPO_LARG / 2 - 2) * (Math.sign(p.model.position.x) || 1);
     
     /*
@@ -2310,6 +2337,7 @@ function actOverlap(ctx) {
     // Sem espaço à frente não há overlap: fica no posicionamento normal.
     if (avancoDestino === null) return;
 
+    p.overlapAlvo = { x: targetX, z: avancoDestino * p.dirZ };
     p.dynamicTarget.set(targetX, ALTURA_BASE_Y, avancoDestino * p.dirZ);
     p.speedMult = p.sprintSpeed || (6.5 * 1.3);
     p.overlapTimer = 1.0; 
@@ -4399,7 +4427,9 @@ const PlayerBT = sel('PlayerRoot',
                     if (Match.state !== 'PLAY') return false;
                     const l = melhorIntencaoDeLancamento(p, ctx.teammates, ctx.opponents);
                     if (!l) return false;
-                    if (Math.random() > Intencoes.chance) return false;
+                    // Quem corre e o LATERAL OFENSIVO (overlap): o lancamento a ele quase sempre sai (`Intencoes.chanceLateralOfensivo`), nao so com a chance normal.
+                    const chance = (l.mate && l.mate.playingStyle === 'offensive_fullback' && Intencoes.chanceLateralOfensivo) ? Intencoes.chanceLateralOfensivo : Intencoes.chance;
+                    if (Math.random() > chance) return false;
                     ctx._lancIntencao = l;
                     return true;
                 }),

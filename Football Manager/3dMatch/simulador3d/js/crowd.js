@@ -79,14 +79,17 @@ const CrowdModel = {
     },
 
     /*
-    DISTRIBUIÇÃO: uma claque de cada lado e mescla no meio.
+    DISTRIBUIÇÃO: 90% DA TORCIDA É DA CASA (TeamA) E 10% É DO VISITANTE (TeamB) — pedido: *"os jogos normalmente são com 90% de torcida do time da casa e 10% do visitante"*, e
+    *"a torcida adversária toda junta no cantinho do lado direito do estádio, lado direito das câmeras"*.
 
-    `fracaoPura` é a fatia de cada ponta onde a bancada é toda de uma cor; o
-    que sobra no meio é a faixa mesclada, onde a probabilidade transita de uma
-    claque para a outra. Sem a transição via-se uma fronteira a direito no meio
-    da bancada, que não é como um estádio se enche.
+    As câmeras ficam do lado +X; olhando para o campo dali, a DIREITA do ecrã é o -Z. O visitante ocupa por isso o CANTO onde a bancada do fundo -Z encontra a lateral das câmeras
+    (+X): os lugares com `t` (posição em Z, 0 = o fundo -Z) até `visitanteT` E `u` (posição em X, 1 = o lado das câmeras) a partir de `visitanteU`. Nas duas bordas do canto há uma
+    faixa curta (`visitanteMescla`, na mesma escala 0-1) onde a probabilidade cai linearmente, para não aparecer uma fronteira a direito. O resto do estádio é da casa. Os números
+    foram afinados para dar ~10% dos adeptos (medido em `tests/crowd.test.js`).
     */
-    fracaoPura: 0.35,
+    visitanteT: 0.24,
+    visitanteU: 0.68,
+    visitanteMescla: 0.08,
 
     /*
     COMO SE VESTE O ADEPTO (pedido): metade com a camisa do clube, um quarto com a cor 1 e outro
@@ -706,21 +709,19 @@ const Crowd = {
     /*
     Qual das claques neste ponto da bancada.
 
-    `t` é 0 numa ponta do estádio e 1 na outra. As pontas são puras; no meio a
-    probabilidade transita, e é aí que as duas claques se misturam.
+    `t` é a posição em Z (0 = o fundo -Z) e `u` a posição em X (1 = o lado das câmeras). O visitante só ocupa o canto t baixo + u alto, o resto é da casa (ver `visitanteT`).
 
     QUE LADO É DE QUEM: `t = 0` é o z mais negativo, que é onde está a baliza
     do TeamA (`ownGoalZ = -(CAMPO_COMP/2) * dirZ`, com dirZ +1 para o TeamA).
     Lá fica a claque **B** — cada claque senta-se atrás da baliza que a sua
     equipa ATACA, e não atrás da que defende, que é o que se vê no ecrã.
     */
-    claqueEm(t, rnd) {
-        const f = CrowdModel.fracaoPura;
-        if (t <= f) return 'B';
-        if (t >= 1 - f) return 'A';
-        // Faixa do meio: transição linear de B para A.
-        const k = (t - f) / Math.max(1e-6, 1 - 2 * f);
-        return (rnd() < k) ? 'A' : 'B';
+    claqueEm(t, rnd, u = 0) {
+        const M = CrowdModel, m = Math.max(1e-6, M.visitanteMescla);
+        // 1 dentro do canto, descendo a 0 numa faixa de largura `m` para fora dele.
+        const pT = Math.max(0, Math.min(1, (M.visitanteT + m - t) / m));
+        const pU = Math.max(0, Math.min(1, (u - (M.visitanteU - m)) / m));
+        return (rnd() < pT * pU) ? 'B' : 'A';
     },
 
     /*
@@ -1219,6 +1220,9 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         let zMin = Infinity, zMax = -Infinity;
         for (const l of lugares) { if (l.z < zMin) zMin = l.z; if (l.z > zMax) zMax = l.z; }
         const spanZ = Math.max(1e-6, zMax - zMin);
+        let xMin = Infinity, xMax = -Infinity;
+        for (const l of lugares) { if (l.x < xMin) xMin = l.x; if (l.x > xMax) xMax = l.x; }
+        const spanX = Math.max(1e-6, xMax - xMin);
 
         // Baralha os lugares
         const ordem = lugares.map((_, i) => i);
@@ -1298,7 +1302,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
             for (let i = 0; i < nChunk; i++) {
                 const l = lugaresEscolhidos[inicio + i];
                 const t = (l.z - zMin) / spanZ;
-                const claque = this.claqueEm(t, rnd);
+                const claque = this.claqueEm(t, rnd, (l.x - xMin) / spanX);
                 const eq = CrowdModel.equipas[claque];
                 const escala = CrowdModel.escalaMin + rnd() * (CrowdModel.escalaMax - CrowdModel.escalaMin);
 
