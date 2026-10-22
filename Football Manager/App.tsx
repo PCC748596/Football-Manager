@@ -241,8 +241,8 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             <div className="flex-1 relative overflow-hidden rounded border-2 border-slate-200 dark:border-slate-800 min-h-0" style={{ background: `linear-gradient(165deg, ${c1} 0%, ${c1} 18%, ${c2} 62%, #020617 100%)` }}>
               <div className="absolute inset-0 flex flex-col gap-2 p-1.5 min-h-0">
                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-3 min-h-0">
-                  <div className={`relative overflow-hidden h-[84px] flex flex-col justify-center pl-[88px] pr-3 ${painel}`}>
-                    <div className="absolute top-1/2 -translate-y-1/2 -left-[26px] w-[120px] h-[144px]"><TeamShield team={clubeSel} className="w-full h-full" /></div>
+                  <div className={`relative overflow-hidden h-[84px] flex flex-col justify-center text-left pl-3 pr-[88px] ${painel}`}>
+                    <div className="absolute top-1/2 -translate-y-1/2 -right-[26px] w-[120px] h-[144px]"><TeamShield team={clubeSel} className="w-full h-full" /></div>
                     <div className="text-2xl font-black text-white uppercase leading-tight truncate">{clubeSel.name}</div>
                     <div className="text-[10px] font-bold text-blue-300 uppercase tracking-widest">{activeCountry?.leagues.find(l => l.id === selectedLeagueId)?.name}</div>
                   </div>

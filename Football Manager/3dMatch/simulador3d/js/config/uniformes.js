@@ -210,6 +210,26 @@ const Uniformes = {
 };
 
 /*
+SAMPAIO CORRÊA-MA. Pedido: *"o padrão de camisa do Grêmio nas cores do Sampaio"* — as mesmas doze listras com a larga no meio, o VERDE como filete entre as
+duas largas e o vermelho e o amarelo do escudo no lugar do preto e do azul. O short é vermelho, o meião branco; o número preto leva um contorno branco (sobre o
+vermelho e o amarelo é o que se lê).
+*/
+Uniformes['Sampaio Corrêa-MA'] = {
+    camisa: {
+        padrao: 'listras',
+        cores: ['#e93034', '#16a34a', '#f6eb17', '#16a34a'],
+        pesos: [2.6, 0.5, 2.6, 0.5],
+        divisoes: 12,
+        centrada: true
+    },
+    corPrincipal: '#f6eb17',
+    calcao: '#e93034',
+    meiao: { padrao: 'solido', cores: ['#f2f2f2'] },
+    numero: '#111111',
+    contorno: 'rgba(255,255,255,0.85)'
+};
+
+/*
 BAHIA. Pedido: *"Camisa tricolor em azul escuro, branco e vermelho. Short branco,
 meião branco."* O mesmo desenho do Fluminense (listras verticais, doze, com a
 larga no meio e o branco como filete entre as duas cores largas).

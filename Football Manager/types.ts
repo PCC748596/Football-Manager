@@ -319,6 +319,7 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
     // Special Cases: Tricolor or Striped Pattern Clubs
     const isFluminense = team.name === 'Fluminense-RJ';
     const isGremio = team.name === 'Grêmio-RS';
+    const isSampaio = team.name === 'Sampaio Corrêa-MA';   // o desenho do Grêmio (listras largas separadas por um filete) nas cores dele: amarelo e vermelho do escudo, filete verde
     const isJuventude = team.name === 'Juventude-RS';
     const isPalmeiras = team.name === 'Palmeiras-SP';
     const isInter = team.name === 'Internacional-RS';
@@ -344,7 +345,7 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
     let spfcStripes = false;
     let criciumaStripes = false;
 
-    if (isFluminense || isGremio || isJuventude || isPalmeiras || isInter || isCorinthians || isVasco || isCuiaba || isBotafogoRJ || isFortalezaCE || isAtleticoPR || isVitoriaBA || isAtleticoGO || isBahiaBA || isCruzeiroMG || isBragantinoSP || isSaoPauloSP || isAtleticoMG || isFlamengoRJ || isCriciumaSC) {
+    if (isFluminense || isGremio || isSampaio || isJuventude || isPalmeiras || isInter || isCorinthians || isVasco || isCuiaba || isBotafogoRJ || isFortalezaCE || isAtleticoPR || isVitoriaBA || isAtleticoGO || isBahiaBA || isCruzeiroMG || isBragantinoSP || isSaoPauloSP || isAtleticoMG || isFlamengoRJ || isCriciumaSC) {
         const darkerGreen = '#004c27';
         const palmeirasGreen = '#054432';
         const interRed = '#c1121f';
@@ -493,6 +494,8 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
             } else if (kitIdx === 2) { // Third: Branca com golas pretas e numero preto
                 c1 = 'white'; c2 = undefined; c3 = undefined; clc = 'black'; nc = 'black'; noc = undefined;
             }
+        } else if (isSampaio) {
+            if (kitIdx === 0) { c1 = '#f6eb17'; c2 = '#16a34a'; c3 = '#e93034'; nc = 'black'; clc = 'black'; }
         } else if (isFluminense || isGremio) {
             const fluRed = '#831d1c';
             if (kitIdx === 0) {

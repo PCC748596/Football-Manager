@@ -195,7 +195,12 @@ export const ShirtIcon: React.FC<ShirtIconProps> = ({
 
   const finalNumberColor = numberColor || (hasTriStripes || (color !== 'white' && color !== '#fff') ? 'white' : '#333');
   const finalCollarColor = collarColor || (hasTriStripes && color2 === 'white' ? 'white' : undefined);
-  const finalNumberOutline = numberOutlineColor || 'transparent';
+  // Camisa listrada com numero branco: contorno preto fino no numero (o numero branco some nas listras claras). Um contorno ja definido no kit manda.
+  const listrada = hasStripes || hasTriStripes || horizontal || centerVerticalStripes || spfcStripes || criciumaStripes || /stripe/i.test(pattern || '');
+  const numeroBranco = ['white', '#fff', '#ffffff'].includes(String(finalNumberColor).toLowerCase());
+  const finalNumberOutline = numberOutlineColor || (listrada && numeroBranco ? '#000000' : 'transparent');
+  // Espessura do contorno: 1.5px no preto automatico das listradas de numero branco (0.5px + 1px), 0.5px nos contornos que o kit define.
+  const espessura = !numberOutlineColor && listrada && numeroBranco ? 1.5 : 0.5;
 
   const comShort = !!shortColor;
   const shirtNode = (
@@ -258,7 +263,7 @@ export const ShirtIcon: React.FC<ShirtIconProps> = ({
             textShadow: finalNumberOutline === 'none'
               ? 'none'
               : finalNumberOutline !== 'transparent'
-                ? `-0.5px -0.5px 0 ${finalNumberOutline}, 0.5px -0.5px 0 ${finalNumberOutline}, -0.5px 0.5px 0 ${finalNumberOutline}, 0.5px 0.5px 0 ${finalNumberOutline}`
+                ? `-${espessura}px -${espessura}px 0 ${finalNumberOutline}, ${espessura}px -${espessura}px 0 ${finalNumberOutline}, -${espessura}px ${espessura}px 0 ${finalNumberOutline}, ${espessura}px ${espessura}px 0 ${finalNumberOutline}`
                 : (hasTriStripes ? `-1px -1px 0 ${color3}, 1px -1px 0 ${color3}, -1px 1px 0 ${color3}, 1px 1px 0 ${color3}` : '0 1px 2px rgba(0,0,0,0.3)')
           }}
         >
