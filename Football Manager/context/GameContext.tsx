@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
-import { Team, Player, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador } from '../types';
+import { Team, Player, Contract, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador } from '../types';
 import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/dataGenerator';
 import { gruposDaSerieD } from '../textSim/competitions';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults } from '../textSim/world';
 import { Competition, prepararCopas, ligaIdDoClube } from '../textSim/competitions';
 import { BaseState, garantirBase, processarBase, promoverJovem } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
-import { MensagemInbox, adicionar, chavesDe, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase } from '../textSim/inbox';
+import { MensagemInbox, adicionar, chavesDe, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao } from '../textSim/inbox';
 import { regiaoDoClube } from '../textSim/dataGenerator';
+import { Negociacao, Oferta, abrirNegociacao, assinar, chanceDeAceitar, propostaDoJogador, resolverNegociacoes } from '../textSim/negociacao';
 import { rotuloDaFase } from '../textSim/competitions';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino } from '../textSim/trainingService';
@@ -170,7 +171,10 @@ interface GameContextType {
   markAllInboxRead: () => void;
   deleteInbox: (ids: string[]) => void;
   promoteYouth: (playerId: string) => boolean;
-  renewPlayer: (playerId: string) => void;
+  /** Negociacoes de renovacao em andamento. */
+  negociacoes: Negociacao[];
+  /** Faz a oferta de renovacao: aceitar a proposta do jogador assina na hora; mudar o salario ou os anos abre uma negociacao de 2-3 dias. */
+  proporRenovacao: (playerId: string, oferta: Oferta) => 'ASSINADO' | 'EM_ANALISE' | 'BLOQUEADO';
   sellPlayer: (playerId: string) => void;
   swapShirtNumbers: (playerId1: string, playerId2: string) => void;
   scheduleActivity: (date: string, type: ActivityType, details: any) => void;
@@ -217,6 +221,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [base, setBase] = useState<BaseState | null>(null);
   // A caixa de entrada (Inbox): e-mails de boas-vindas e avisos de todos os setores (textSim/inbox.ts). Vai no save.
   const [inbox, setInbox] = useState<MensagemInbox[]>([]);
+  // Negociacoes de renovacao em andamento (o jogador responde em 2 ou 3 dias; textSim/negociacao.ts). Vai no save.
+  const [negociacoes, setNegociacoes] = useState<Negociacao[]>([]);
   const compsSaved = useRef<Competition[] | null>(null);
   const worldSaved = useRef<WorldResults | null>(null);   // resultados vindos de um save, para repor ao criar o mundo
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
@@ -412,15 +418,35 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ? { ...t, lineup: t.lineup.map(id => (expirados.has(id) ? '' : id)), bench: (t.bench || []).map(id => (expirados.has(id) ? '' : id)) } : t));
   }, [gameState.currentDate, players.length, gameState.userTeamId]);
 
-  // Renovar: um contrato novo a partir de hoje, com a duracao sorteada pela idade de hoje (o antigo e substituido, nunca editado).
-  const renewPlayer = (playerId: string) => {
-    if (!userTeam) return;
+  // RENOVAR: o jogador pede um salario e uma duracao (`propostaDoJogador`). Aceitar a proposta dele assina na hora (moral em alta); mudar o salario ou os anos abre uma
+  // negociacao: ele analisa 2 ou 3 dias e depois aceita (contrato e salario novos, moral em alta) ou recusa (contrato como estava, moral em baixa).
+  const proporRenovacao = (playerId: string, oferta: Oferta): 'ASSINADO' | 'EM_ANALISE' | 'BLOQUEADO' => {
+    if (!userTeam) return 'BLOQUEADO';
     const alvo = players.find(p => p.id === playerId && p.teamId === userTeam.id);
-    if (!alvo) return;
-    const renovado: Player = { ...alvo, contract: renovarContrato(alvo.age, gameState.currentDate) };
-    setPlayers(prev => prev.map(p => (p.id === playerId ? renovado : p)));
-    empurrarInbox([avisoDeRenovacao(gameState.currentDate, gameState.language, renovado)]);
+    if (!alvo || negociacoes.some(n => n.playerId === playerId)) return 'BLOQUEADO';
+    const hoje = gameState.currentDate, pedido = propostaDoJogador(alvo, hoje);
+    if (chanceDeAceitar(alvo, oferta, pedido) === 1) {
+      const novo = assinar(alvo, oferta, hoje);
+      setPlayers(prev => prev.map(p => (p.id === playerId ? novo : p)));
+      empurrarInbox([avisoDeRenovacao(hoje, gameState.language, novo)]);
+      return 'ASSINADO';
+    }
+    const neg = abrirNegociacao(alvo, oferta, pedido, hoje);
+    setNegociacoes(prev => [...prev, neg]);
+    empurrarInbox([avisoDeNegociacaoIniciada(hoje, gameState.language, alvo, neg.decide, formatCurrency(oferta.salario), oferta.anos)]);
+    return 'EM_ANALISE';
   };
+
+  // O dia da resposta chegou: os jogadores respondem (decisao com semente: recarregar o jogo nao muda o resultado).
+  useEffect(() => {
+    if (!userTeam || !negociacoes.length) return;
+    const hoje = gameState.currentDate;
+    const r = resolverNegociacoes(negociacoes, players, hoje, userTeam.id);
+    if (r.negociacoes === negociacoes) return;
+    setNegociacoes(r.negociacoes);
+    setPlayers(prev => resolverNegociacoes(negociacoes, prev, hoje, userTeam.id).jogadores);
+    empurrarInbox(r.respostas.map(x => avisoDeRespostaRenovacao(hoje, gameState.language, x.jogador, x.aceitou, formatCurrency(x.negociacao.oferta.salario), x.negociacao.oferta.anos)));
+  }, [gameState.currentDate]);
 
   // Promover um jovem da base ao time principal: decisao manual do treinador. O jogador passa inteiro (id, atributos, potencial, contrato); a vaga e reposta.
   const promoteYouth = (playerId: string): boolean => {
@@ -560,6 +586,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPlayers(copas ? [...initPlayers, ...copas.players] : initPlayers);
     setBase(null);   // a base nasce no motor (efeito acima), com a data do jogo
     setInbox([]);    // as boas-vindas nascem no motor, com o clube escolhido
+    setNegociacoes([]);
     setFixtures(initFixtures);
     setGameState(prev => ({
       ...prev,
@@ -1681,6 +1708,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       comps,
       base,
       inbox,
+      negociacoes,
       saveDate: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(saveData, null, 2)], { type: 'application/json' });
@@ -1746,6 +1774,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setPlayers(pl);
         setBase(data.base || null);   // save antigo, sem base: o motor gera as bases
         setInbox(data.inbox || []);
+        setNegociacoes(data.negociacoes || []);
         setFixtures(fx);
         setGameState(data.gameState);
         return true;
@@ -1767,7 +1796,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <GameContext.Provider value={{
       teams, players, fixtures, gameState, startGame, advanceDay, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
-      hirePlayer, sellPlayer, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, renewPlayer, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
+      hirePlayer, sellPlayer, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, negociacoes, proporRenovacao, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, updateSettings, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
       t,

@@ -103,6 +103,13 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
   const [activePlayerId, setActivePlayerId] = React.useState(initialPlayer.id);
   const { teams, players } = useGame();
 
+  // ESC fecha o Overview (se o modal de renovacao estiver aberto, o ESC fecha primeiro esse: ele escuta na fase de captura e para o evento).
+  React.useEffect(() => {
+    const aoTeclar = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, [onClose]);
+
   React.useEffect(() => {
     setActivePlayerId(initialPlayer.id);
   }, [initialPlayer.id]);

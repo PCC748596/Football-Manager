@@ -231,3 +231,16 @@ export const avisoDeSaidaDaBase = (hoje: string, lang: Idioma, jogadores: Player
   keys: [`u20-out|${p.id}`], date: hoje, categoria: 'SCOUTING', ir: 'SQUAD', de: L(lang, 'Head of Scouting', 'Chefe de Olheiros'),
   assunto: L(lang, `${p.name} turned 21 and left the academy`, `${p.name} fez 21 anos e deixou a base`),
   corpo: L(lang, `${p.name} (${p.position}, OVR ${p.skill}) is no longer eligible for the Sub-20 and was not promoted. He is now a free agent; a new youngster replaced him.`, `${p.name} (${p.position}, OVR ${p.skill}) não pode mais ficar no Sub-20 e não foi promovido. Agora é jogador livre; um novo jovem ocupou a vaga.`) }));
+
+// ------------------------------------------------------------------ negociacao de renovacao
+export const avisoDeNegociacaoIniciada = (hoje: string, lang: Idioma, p: Player, decide: string, salario: string, anos: number): MensagemInbox => criar({
+  keys: [], date: hoje, categoria: 'CONTRACT', ir: 'SQUAD', de: L(lang, 'Director of Football', 'Diretor de Futebol'),
+  assunto: L(lang, `Negotiation: ${p.name} is analysing your offer`, `Negociação: ${p.name} está analisando sua proposta`),
+  corpo: L(lang, `You offered ${p.name} ${salario} per week for ${anos} year(s). He will answer on ${dataLonga(decide, lang)}.`, `Você ofereceu a ${p.name} ${salario} por semana por ${anos} ano(s). Ele responde em ${dataLonga(decide, lang)}.`) });
+
+export const avisoDeRespostaRenovacao = (hoje: string, lang: Idioma, p: Player, aceitou: boolean, salario: string, anos: number): MensagemInbox => criar({
+  keys: [], date: hoje, categoria: 'CONTRACT', alta: !aceitou, ir: 'SQUAD', de: L(lang, 'Director of Football', 'Diretor de Futebol'),
+  assunto: aceitou ? L(lang, `${p.name} accepted the renewal`, `${p.name} aceitou a renovação`) : L(lang, `${p.name} rejected your offer`, `${p.name} recusou sua proposta`),
+  corpo: aceitou
+    ? L(lang, `${p.name} signed until ${p.contract ? dataLonga(p.contract.end, lang) : '-'} (${anos} year(s)) for ${salario} per week. His morale went up.`, `${p.name} assinou até ${p.contract ? dataLonga(p.contract.end, lang) : '-'} (${anos} ano(s)) por ${salario} por semana. A moral dele subiu.`)
+    : L(lang, `${p.name} turned down ${salario} per week for ${anos} year(s) and is unhappy about it: his morale dropped. The current contract stays as it was; you can make a new offer.`, `${p.name} recusou ${salario} por semana por ${anos} ano(s) e ficou chateado: a moral dele caiu. O contrato atual continua como estava; você pode fazer uma nova proposta.`) });
