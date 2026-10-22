@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { lerFaceDaFoto, rostoPixelado, cabeloPixelado, RESOLUCAO_ROSTO, RESOLUCAO_CABELO } from '../textSim/faceFromPhoto';
 import { FACES } from '../textSim/facesDatabase';
-import { aparenciaDoJogador } from '../textSim/aparencia';
+import { aparenciaDoJogador, ROSTO_PIXELADO } from '../textSim/aparencia';
 
 const luma = (h: string) => { const n = parseInt(h.slice(1), 16); return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255); };
 const rgb = (h: string) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
@@ -93,7 +93,7 @@ test('cara em pixels: 20 x 25, opaca, escura nos olhos e clara na testa, e grava
   assert.ok(olhos < testa, `olhos (${olhos.toFixed(0)}) mais escuros que a testa (${testa.toFixed(0)})`);
   for (const id of ['269253', '269245']) {
     assert.ok(FACES[id].rosto && FACES[id].rosto!.startsWith('data:image/png;base64,') && FACES[id].rosto!.length < 20000, 'rosto gravado em ' + id);
-    assert.equal(aparenciaDoJogador('p-' + id).rosto, FACES[id].rosto, '2D usa o rosto gravado');
+    assert.equal(aparenciaDoJogador('p-' + id).rosto, ROSTO_PIXELADO ? FACES[id].rosto : undefined, '2D usa o rosto gravado so se a cara em pixels estiver ligada');
     assert.ok(fs.readFileSync('3dMatch/simulador3d/data/faces.js', 'utf8').includes(FACES[id].rosto!), 'o 3D le o mesmo rosto');
   }
 });

@@ -12,6 +12,8 @@ usa a pele, o cabelo, o estilo do cabelo, a barba, os oculos e a largura do rost
 */
 export type EstiloCabelo = 'curto' | 'degrade' | 'raspado' | 'longo' | 'topete' | 'careca';
 export type EstiloBarba = 'nenhuma' | 'rala' | 'cheia' | 'bigode' | 'cavanhaque';
+/** Desligado: a cara em pixels (foto) nao e usada; fica so a face desenhada (cor, estilo, barba, oculos). Os dados `rosto` continuam gravados: ligar de volta = `true` aqui e em utils.js. */
+export const ROSTO_PIXELADO = false;
 /** `rosto` (opcional): a cara de frente em pixels (PNG pequeno, data URL), gerada da foto no Editor de Faces: quando existe, ela substitui os olhos, nariz, boca, barba e oculos desenhados. */
 export interface FaceCustom { pele: string; cabelo: string; estilo: EstiloCabelo; barba: EstiloBarba; oculos: boolean; largura: number; rosto?: string; cabeloTextura?: string; }
 export interface Aparencia {
@@ -65,6 +67,6 @@ export const aparenciaDoJogador = (id: string | number): Aparencia => {
   const tipo = porPeso(TIPOS, hashAparencia(n, 1));
   const bota = porPeso(CHUTEIRAS, hashAparencia(n, 2));
   const f = FACES[String(n)];
-  if (f) return { tipo: 'custom', cabelo: hexParaNumero(f.cabelo), pele: hexParaNumero(f.pele), chuteira: bota.nome, corChuteira: bota.cor, estilo: f.estilo, barba: f.barba, oculos: !!f.oculos, largura: f.largura, rosto: f.rosto, cabeloTextura: f.cabeloTextura };
+  if (f) return { tipo: 'custom', cabelo: hexParaNumero(f.cabelo), pele: hexParaNumero(f.pele), chuteira: bota.nome, corChuteira: bota.cor, estilo: f.estilo, barba: f.barba, oculos: !!f.oculos, largura: f.largura, rosto: ROSTO_PIXELADO ? f.rosto : undefined, cabeloTextura: ROSTO_PIXELADO ? f.cabeloTextura : undefined };
   return { tipo: tipo.nome, cabelo: tipo.cabelo, pele: tipo.pele, chuteira: bota.nome, corChuteira: bota.cor };
 };

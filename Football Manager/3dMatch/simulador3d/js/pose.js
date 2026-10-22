@@ -286,6 +286,96 @@ function subTextura(tex, u0, v0, du, dv) {
     return t;
 }
 
+/*
+A CARA EM VOXELS (relevo): a mesma cara de 20 x 25 pixels, mas cada pixel e uma COLUNA que sai da frente da cabeca, com a altura (em degraus de `PASSO_VOXEL`) tirada da propria foto e de um molde de rosto:
+  . o cabelo (pixels escuros no alto e nas laterais) e a barba (escuros na parte de baixo) saem 2 degraus; as sobrancelhas 1; o nariz 2-3 (ponta no meio); os labios e o queixo 1;
+  . os olhos (escuros) ficam no fundo (0): ali aparece a foto plana da face da caixa.
+So as faces voltadas a frente, ao lado e acima/abaixo de cada coluna que sobe sao desenhadas (uma malha so, 1 chamada de desenho, ~2 mil triangulos); a luz do jogo faz o resto do sombreado.
+Resolucao, altura e molde: aqui (e RESOLUCAO_ROSTO em textSim/faceFromPhoto.ts).
+*/
+const PASSO_VOXEL = 0.055;
+function profundidadesDoRosto(px, W, H) {
+    const lum = (x, y) => { const i = (y * W + x) * 4; return 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]; };
+    const amostra = [];
+    for (let y = Math.round(H * 0.2); y <= Math.round(H * 0.5); y++) for (let x = Math.round(W * 0.15); x <= Math.round(W * 0.85); x++) amostra.push(lum(x, y));
+    amostra.sort((a, b) => a - b);
+    const pele = amostra[Math.floor(amostra.length * 0.7)];   // a luminosidade da pele: o percentil 70 (os olhos e as sobrancelhas sao a minoria escura)
+    const escuro = (x, y) => lum(x, y) < pele * 0.62;
+    const d = [];
+    const cx = (W - 1) / 2;
+    for (let y = 0; y < H; y++) {
+        d.push([]);
+        for (let x = 0; x < W; x++) {
+            const fy = y / (H - 1), lado = Math.abs(x - cx) / cx;   // fy: 0 topo .. 1 queixo; lado: 0 centro .. 1 borda
+            let v = 1;
+            if (fy < 0.22 && escuro(x, y)) v = 4;                                    // volume do cabelo
+            else if (fy < 0.55 && lado > 0.82 && escuro(x, y)) v = 2;               // costeletas
+            else if (fy > 0.55 && escuro(x, y)) v = 2;                                // barba
+            else if (fy > 0.28 && fy < 0.46 && lado > 0.12 && lado < 0.8 && escuro(x, y)) v = 0;   // olhos
+            else if (fy > 0.26 && fy < 0.34 && lado > 0.12 && lado < 0.8) v = 2;      // sobrancelhas
+            if (v === 1 || v === 2) {
+                if (lado < 0.14 && fy >= 0.4 && fy <= 0.62) v = fy >= 0.52 ? 4 : 3;   // o nariz: mais alto na ponta
+                else if (lado < 0.34 && fy >= 0.5 && fy <= 0.62) v = Math.max(v, 3);  // as asas do nariz
+                else if (lado < 0.4 && fy >= 0.68 && fy <= 0.76) v = Math.max(v, 2);  // os labios
+                else if (lado < 0.4 && fy > 0.9) v = Math.max(v, 2);                  // o queixo
+            }
+            if (lado > 0.95 && v > 1) v = 1;
+            d[y].push(v);
+        }
+    }
+    return d;
+}
+function geometriaVoxelDoRosto(px, W, H, u) {
+    const d = profundidadesDoRosto(px, W, H);
+    const cw = 0.8 * u / W, ch = 1.0 * u / H, z0 = 0.425 * u + 0.003 * u;
+    const pos = [], cor = [];
+    const quad = (a, b, c, e, rgb) => { for (const p of [a, b, c, a, c, e]) { pos.push(p[0], p[1], p[2]); cor.push(rgb[0], rgb[1], rgb[2]); } };
+    const prof = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? 0 : d[y][x];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const k = d[y][x]; if (k <= 0) continue;
+        const i = (y * W + x) * 4, rgb = [px[i] / 255 * 0.86, px[i + 1] / 255 * 0.86, px[i + 2] / 255 * 0.86];
+        const xa = -0.4 * u + x * cw, xb = xa + cw, yb = 0.5 * u - y * ch, ya = yb - ch, z = z0 + k * PASSO_VOXEL * u;
+        quad([xa, ya, z], [xb, ya, z], [xb, yb, z], [xa, yb, z], rgb);   // a frente da coluna
+        const lados = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+        for (const [dx, dy] of lados) {
+            const vizinho = prof(x + dx, y + dy);
+            if (vizinho >= k) continue;
+            const zv = z0 + vizinho * PASSO_VOXEL * u, escuroLado = [rgb[0] * 0.8, rgb[1] * 0.8, rgb[2] * 0.8];
+            if (dx === -1) quad([xa, ya, zv], [xa, ya, z], [xa, yb, z], [xa, yb, zv], escuroLado);
+            else if (dx === 1) quad([xb, ya, z], [xb, ya, zv], [xb, yb, zv], [xb, yb, z], escuroLado);
+            else if (dy === -1) quad([xa, yb, z], [xb, yb, z], [xb, yb, zv], [xa, yb, zv], escuroLado);
+            else quad([xa, ya, zv], [xb, ya, zv], [xb, ya, z], [xa, ya, z], escuroLado);
+        }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(cor, 3));
+    g.computeVertexNormals();
+    return g;
+}
+/** A malha do relevo da cara (url = a PNG do rosto): vazia ate a imagem carregar; a geometria e partilhada entre os jogadores com a mesma cara. */
+function malhaVoxelDoRosto(url, u) {
+    const cache = malhaVoxelDoRosto._cache || (malhaVoxelDoRosto._cache = {});
+    const mat = malhaVoxelDoRosto._mat || (malhaVoxelDoRosto._mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, flatShading: true }));
+    const malha = new THREE.Mesh(new THREE.BufferGeometry(), mat);
+    malha.castShadow = false;
+    const aplicar = (g) => { malha.geometry = g; };
+    if (cache[url] && cache[url].geo) { aplicar(cache[url].geo); return malha; }
+    const entrada = cache[url] || (cache[url] = { geo: null, esperando: [] });
+    entrada.esperando.push(aplicar);
+    if (entrada.esperando.length === 1) {
+        const img = new Image();
+        img.onload = () => {
+            const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+            const cx = c.getContext('2d'); cx.drawImage(img, 0, 0);
+            entrada.geo = geometriaVoxelDoRosto(cx.getImageData(0, 0, c.width, c.height).data, c.width, c.height, u);
+            entrada.esperando.forEach(f => f(entrada.geo)); entrada.esperando = [];
+        };
+        img.src = url;
+    }
+    return malha;
+}
+
 function aplicarFaceCustom(ap, head, boca, partes, u) {
     const { hT, hB, hL, hR, hF } = partes;
     const estilo = ap.estilo || 'curto', barba = ap.rosto ? 'nenhuma' : (ap.barba || 'nenhuma');   // com a cara em pixels a barba ja vem nela
@@ -860,9 +950,7 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
         // O RELEVO: orelhas (nas laterais, a altura dos olhos e do nariz) e um nariz que sai do rosto, com o pedaco do nariz da foto na frente.
         const caixaPele = (w, h, d, x, y, z, mats) => { const m = new THREE.Mesh(mats ? dividirFrente(new THREE.BoxGeometry(u * w, u * h, u * d)) : new THREE.BoxGeometry(u * w, u * h, u * d), mats || blockMat); m.position.set(u * x, u * y, u * z); m.castShadow = false; head.add(m); return m; };
         if ((ap.estilo || 'curto') !== 'longo') { caixaPele(0.06, 0.22, 0.14, -0.43, 0.02, -0.02); caixaPele(0.06, 0.22, 0.14, 0.43, 0.02, -0.02); }
-        const rostoTex = texturaDoRostoPixelado(ap.rosto);
-        const narizFace = new THREE.MeshStandardMaterial({ map: subTextura(rostoTex, 0.4, 0.36, 0.2, 0.2), color: 0xdcdcdc, roughness: 0.8 });   // colunas 8-12 e linhas 11-16 (de cima) da cara em pixels
-        caixaPele(0.14, 0.16, 0.06, 0, -0.01, 0.455, [blockMat, narizFace]);
+        head.add(malhaVoxelDoRosto(ap.rosto, u));   // o relevo: cada pixel da cara e uma coluna (nariz, sobrancelhas, barba, cabelo)
     }
 
     /*

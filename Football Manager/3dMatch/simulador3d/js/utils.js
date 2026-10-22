@@ -5422,7 +5422,8 @@ function aparenciaDoJogador(id) {
     const F = (typeof FacesPersonalizadas !== 'undefined') ? FacesPersonalizadas[String(n)] : null;
     if (F) {
         const hexN = (c) => parseInt(String(c).replace('#', ''), 16);
-        return { tipo: 'custom', cabelo: hexN(F.cabelo), pele: hexN(F.pele), chuteira: bota.nome, corChuteira: bota.cor, estilo: F.estilo, barba: F.barba, oculos: !!F.oculos, largura: F.largura, rosto: F.rosto, cabeloTextura: F.cabeloTextura };
+        const ROSTO_PIXELADO = false;   // desligado: sem a cara em pixels (foto), so a face desenhada. Ligar de volta = true (e em textSim/aparencia.ts)
+        return { tipo: 'custom', cabelo: hexN(F.cabelo), pele: hexN(F.pele), chuteira: bota.nome, corChuteira: bota.cor, estilo: F.estilo, barba: F.barba, oculos: !!F.oculos, largura: F.largura, rosto: ROSTO_PIXELADO ? F.rosto : undefined, cabeloTextura: ROSTO_PIXELADO ? F.cabeloTextura : undefined };
     }
     return { tipo: tipo.nome, cabelo: tipo.cabelo, pele: tipo.pele, chuteira: bota.nome, corChuteira: bota.cor };
 }
