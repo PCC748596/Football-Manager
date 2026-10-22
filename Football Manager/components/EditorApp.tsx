@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { REAL_TEAMS_JSON, REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from '../textSim/realDatabase';
 import { ShirtIcon } from './ShirtIcon';
 import { urlSimulador } from '../3dMatch/simulador3dCliente';
+import FaceEditor from './FaceEditor';
 
-type EditorTab = 'TEAMS' | 'PLAYERS' | 'LEAGUES' | 'TACTICS' | 'MODELS';
+type EditorTab = 'TEAMS' | 'PLAYERS' | 'LEAGUES' | 'TACTICS' | 'MODELS' | 'FACES';
 
 export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState<EditorTab>('TEAMS');
@@ -65,7 +66,7 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       </div>
 
       <div className="flex gap-4 border-b border-slate-800 mb-4">
-        {(['TEAMS', 'PLAYERS', 'LEAGUES', 'TACTICS', 'MODELS'] as EditorTab[]).map(tab => (
+        {(['TEAMS', 'PLAYERS', 'LEAGUES', 'TACTICS', 'MODELS', 'FACES'] as EditorTab[]).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -438,6 +439,8 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </div>
           </>
         )}
+
+        {activeTab === 'FACES' && <FaceEditor />}
 
         {activeTab === 'MODELS' && (
           // Comparacao do corpo dos jogadores em T-pose (modelosComparar.html): actual, metade dos triangulos e minimo.

@@ -5418,6 +5418,12 @@ function aparenciaDoJogador(id) {
     };
     const tipo = M.tipos.length ? porPeso(M.tipos, hashAparencia(n, 1)) : { nome: 'default', cabelo: 0x000000, pele: 0xd1a384 };
     const bota = M.chuteiras.length ? porPeso(M.chuteiras, hashAparencia(n, 2)) : { nome: 'default', cor: 0x000000 };
+    // FACE PERSONALIZADA (Editor de Faces: data/faces.js): pele, cabelo, estilo, barba, oculos e largura dela mandam sobre o sorteio. E a MESMA conta do manager (textSim/aparencia.ts).
+    const F = (typeof FacesPersonalizadas !== 'undefined') ? FacesPersonalizadas[String(n)] : null;
+    if (F) {
+        const hexN = (c) => parseInt(String(c).replace('#', ''), 16);
+        return { tipo: 'custom', cabelo: hexN(F.cabelo), pele: hexN(F.pele), chuteira: bota.nome, corChuteira: bota.cor, estilo: F.estilo, barba: F.barba, oculos: !!F.oculos, largura: F.largura };
+    }
     return { tipo: tipo.nome, cabelo: tipo.cabelo, pele: tipo.pele, chuteira: bota.nome, corChuteira: bota.cor };
 }
 

@@ -7,6 +7,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 import fs from 'fs';
+import { createRequire } from 'module';
+const require_ = createRequire(import.meta.url);
 
 function databaseSaverPlugin() {
   return {
@@ -42,6 +44,34 @@ function databaseSaverPlugin() {
 
 // Serve o simulador 3D (3dMatch/simulador3d) em /simulador3d/ no dev e copia para dist/ no build.
 // A pagina corre dentro de um iframe do manager (ver 3dMatch/simulador3dCliente.ts).
+// O Editor de Faces (components/FaceEditor.tsx) grava a face de um jogador por aqui: atualiza data/faces.json e regenera data/faces.js (3D) e textSim/facesDatabase.ts (manager).
+function facesSaverPlugin() {
+  return {
+    name: 'faces-saver',
+    configureServer(server) {
+      server.middlewares.use('/api/save-face', (req, res) => {
+        if (req.method !== 'POST') { res.statusCode = 404; res.end(); return; }
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', () => {
+          try {
+            const { id, face } = JSON.parse(body);
+            if (!/^\d+$/.test(String(id))) throw new Error('id invalido');
+            if (face) {
+              const ok = /^#[0-9a-f]{6}$/i;
+              if (!ok.test(face.pele) || !ok.test(face.cabelo)) throw new Error('cor invalida');
+              if (!['curto', 'raspado', 'longo', 'topete', 'careca'].includes(face.estilo)) throw new Error('estilo invalido');
+              if (!['nenhuma', 'rala', 'cheia', 'bigode'].includes(face.barba)) throw new Error('barba invalida');
+            }
+            const total = require_(path.resolve(__dirname, 'tools/gerar_faces.cjs')).gravar(__dirname, id, face ? { pele: face.pele, cabelo: face.cabelo, estilo: face.estilo, barba: face.barba, oculos: !!face.oculos, largura: Math.max(0.9, Math.min(1.1, Number(face.largura) || 1)) } : null);
+            res.setHeader('Content-Type', 'application/json'); res.statusCode = 200; res.end(JSON.stringify({ success: true, total }));
+          } catch (e) { res.statusCode = 500; res.end(JSON.stringify({ error: e.message || String(e) })); }
+        });
+      });
+    }
+  };
+}
+
 function simulador3dPlugin() {
   const raiz = path.resolve(__dirname, '3dMatch/simulador3d');
   const tipos: Record<string, string> = {
@@ -84,7 +114,7 @@ export default defineConfig(() => {
         port: 3000,
         host: '0.0.0.0',
       },
-      plugins: [react(), databaseSaverPlugin(), simulador3dPlugin()],
+      plugins: [react(), databaseSaverPlugin(), facesSaverPlugin(), simulador3dPlugin()],
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),

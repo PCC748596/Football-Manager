@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "teste:base": "tsx --test tests/contratos_e_base.test.ts tests/inbox.test.ts tests/negociacao.test.ts",
+    "teste:base": "tsx --test tests/contratos_e_base.test.ts tests/inbox.test.ts tests/negociacao.test.ts tests/valuation.test.ts tests/transferencias.test.ts tests/face_da_foto.test.ts",
     "3d:teste": "node 3dMatch/simulador3d/tests/ponte_manager.test.js && node 3dMatch/simulador3d/tests/ponte_tatica.test.js && node 3dMatch/simulador3d/tests/adaptador_manager.test.js && node 3dMatch/simulador3d/tests/uniformes_clubes.test.js",
     "3d:lote": "node 3dMatch/simulador3d/tools/headless/lote_jogos.js",
     "3d:teste:todos": "node --test --test-force-exit 3dMatch/simulador3d/tests/*.test.js"

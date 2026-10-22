@@ -239,6 +239,58 @@ juntas ainda mais simples. O corpo dos jogadores continua em 0.
 NOTA: os numeros acima sao de antes; medido agora (T-pose): 0 = 6520, 1 = 888, 2 = 856, 3 = 952 triangulos.
 `leve` 4 = METADE do 1 (456 triangulos, 51%): o do 1 sem as 12 travas das chuteiras (-384) e com a casca do torax em 2 subdivisoes de altura em vez de 8 (-48).
 */
+/*
+A FACE PERSONALIZADA (Editor de Faces do manager: data/faces.js, `FacesPersonalizadas`; o mesmo desenho do `PlayerFace` 2D, components/PlayerFace.tsx). Sobre o cabelo de blocos de sempre
+(topo `hT`, costas `hB`, lados `hL`/`hR`, franja `hF`) a face pode levar:
+  estilo  curto (o de sempre), raspado, longo, topete, careca;
+  barba   rala (a cor da pele escurecida), cheia (cor do cabelo, com os labios por cima), bigode;
+  oculos  armacao fina em volta dos olhos;
+  largura a cabeca mais estreita ou mais larga (aplicada depois da proporcao da cabeca, ver `construirCorpo`).
+So corre quando a aparencia traz `estilo`/`barba`/`oculos` (faces personalizadas): quem nao tem nao muda em nada.
+*/
+function aplicarFaceCustom(ap, head, boca, partes, u) {
+    const { hT, hB, hL, hR, hF } = partes;
+    const estilo = ap.estilo || 'curto', barba = ap.barba || 'nenhuma';
+    const ajusta = (m, escalaY, topo, folgaX) => {   // encolhe/estica a peca mantendo o TOPO onde estava
+        const h0 = m.geometry.parameters.height * u;
+        m.scale.y = escalaY;
+        m.position.y = topo - (h0 * escalaY) / 2;
+        if (folgaX) m.position.x += folgaX;
+    };
+    if (estilo === 'careca') { hT.visible = hB.visible = hL.visible = hR.visible = hF.visible = false; }
+    else if (estilo === 'raspado') {
+        ajusta(hT, 0.48, u * 0.625); ajusta(hB, 0.4, u * 0.5); ajusta(hL, 0.45, u * 0.5); ajusta(hR, 0.45, u * 0.5); hF.visible = false;
+    } else if (estilo === 'longo') {
+        ajusta(hB, 1.7, u * 0.5); ajusta(hL, 1.7, u * 0.5, -u * 0.03); ajusta(hR, 1.7, u * 0.5, u * 0.03);
+    } else if (estilo === 'topete') {
+        ajusta(hT, 1.7, u * 0.8); ajusta(hL, 0.75, u * 0.5); ajusta(hR, 0.75, u * 0.5);
+        hF.scale.y = 1.2; hF.position.y = u * 0.52;
+    }
+    const mat = (cor) => new THREE.MeshStandardMaterial({ color: cor, roughness: 0.85 });
+    const caixa = (w, h, d, x, y, z, cor) => { const m = new THREE.Mesh(new THREE.BoxGeometry(u * w, u * h, u * d), mat(cor)); m.position.set(u * x, u * y, u * z); head.add(m); return m; };
+    const pele = new THREE.Color(ap.pele), cabelo = new THREE.Color(ap.cabelo);
+    const mistura = (t) => pele.clone().lerp(cabelo, t);
+    // A barba comeca LOGO ABAIXO DO NARIZ (o nariz acaba em y = -0.08): nunca por cima dele.
+    if (barba === 'rala') caixa(0.82, 0.4, 0.05, 0, -0.3, 0.43, mistura(0.3));
+    else if (barba === 'cheia') {
+        const c = mistura(0.9);
+        caixa(0.82, 0.4, 0.05, 0, -0.3, 0.43, c);
+        caixa(0.05, 0.25, 0.7, -0.4, -0.08, -0.05, c); caixa(0.05, 0.25, 0.7, 0.4, -0.08, -0.05, c);
+    } else if (barba === 'bigode') caixa(0.36, 0.07, 0.04, 0, -0.145, 0.435, cabelo);
+    if (barba === 'cheia' || barba === 'bigode') {   // os labios por cima da barba (a linha da boca ficava escondida)
+        if (boca) boca.visible = false;
+        caixa(0.24, 0.05, 0.03, 0, -0.22, 0.447, pele.clone().lerp(new THREE.Color(0xb0524f), 0.45));
+    }
+    if (ap.oculos) {
+        const aro = 0x1f2937;
+        [-0.16, 0.16].forEach((cx) => {
+            caixa(0.28, 0.03, 0.03, cx, 0.26, 0.44, aro); caixa(0.28, 0.03, 0.03, cx, 0.04, 0.44, aro);
+            caixa(0.03, 0.22, 0.03, cx - 0.135, 0.15, 0.44, aro); caixa(0.03, 0.22, 0.03, cx + 0.135, 0.15, 0.44, aro);
+        });
+        caixa(0.06, 0.03, 0.03, 0, 0.18, 0.44, aro);
+    }
+}
+
 function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
     leve = leve || 0;
     // Pele e juntas seguem o tom do jogador; as juntas ficam um pouco mais
@@ -748,6 +800,7 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
     const hR = criarPeca(new THREE.BoxGeometry(u * 0.15, u * 0.6, u * 0.65), hairMat); hR.position.set(u * 0.4, u * 0.2, -u * 0.1);
     const hF = criarPeca(new THREE.BoxGeometry(u * 0.88, u * 0.15, u * 0.2), hairMat); hF.position.set(0, u * 0.45, u * 0.38);
     hairGrp.add(hT, hB, hL, hR, hF); head.add(hairGrp); neck.add(head);
+    if (ap.tipo === 'custom') aplicarFaceCustom(ap, head, boca, { hT, hB, hL, hR, hF }, u);   // face personalizada: estilo do cabelo, barba e oculos
 
     /*
     A PROPORÇÃO EM CABEÇAS — ver ProporcaoCorpo (config/physics.js).
@@ -766,6 +819,7 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
             head.position.y = 0.075 + 0.5 * k;
         }
     }
+    if (ap.tipo === 'custom' && ap.largura) head.scale.x *= ap.largura;   // face personalizada: a largura do rosto (depois da proporcao da cabeca)
 
     // Versoes leves (`leve` >= 1): SEM esferas nas juntas — cada membro entra EXTRA unidades no seguinte (antebraco no braco, canela na coxa), para o movimento nao abrir fresta.
     const EXTRA = leve ? 0.18 : 0;
