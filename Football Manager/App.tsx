@@ -21,6 +21,7 @@ import { TeamShield } from './components/TeamShield';
 import { TeamKit } from './components/TeamKit';
 import { PlayerFace } from './components/PlayerFace';
 import EditorApp from './components/EditorApp';
+import ManagerCreation from './components/ManagerCreation';
 
 // -- Sub-components --
 
@@ -65,52 +66,6 @@ const StartMenu: React.FC<{ onNewGame: () => void, onContinue: () => void, onSet
             BUILD 2025.01.BETA • FILE SYSTEM ENABLED
           </div>
        </div>
-    </div>
-  );
-};
-
-const ManagerCreation: React.FC<{ onNext: (name: string) => void, onBack: () => void }> = ({ onNext, onBack }) => {
-  const { t } = useGame();
-  const [name, setName] = useState('');
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (name.trim()) onNext(name.trim());
-  };
-  return (
-    <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-white dark:bg-manager-bg transition-colors duration-300">
-      <div className="w-full max-w-2xl bg-slate-50 dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-lg p-12 shadow-2xl transition-colors duration-300">
-        <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-8 text-center uppercase tracking-tight">{t('prof_title')}</h2>
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div>
-            <label className="block text-xs font-bold text-blue-600 dark:text-blue-400 mb-3 uppercase tracking-widest">{t('prof_name_label')}</label>
-            <input 
-              type="text" 
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t('prof_placeholder')}
-              className="w-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-sm px-6 py-5 text-2xl text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-bold"
-              required
-              autoFocus
-            />
-          </div>
-          <div className="flex gap-4 pt-4">
-            <button 
-              type="button" 
-              onClick={onBack}
-              className="flex-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-200 font-black py-5 rounded-sm transition-all text-xl uppercase"
-            >
-              {t('prof_cancel')}
-            </button>
-            <button 
-              type="submit" 
-              className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-sm transition-all shadow-lg text-xl uppercase disabled:opacity-50"
-              disabled={!name.trim()}
-            >
-              {t('prof_continue')}
-            </button>
-          </div>
-        </form>
-      </div>
     </div>
   );
 };

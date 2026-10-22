@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manager Preview</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0e1a33 url('assets/manager_fundo.jpg') center bottom / cover no-repeat; }
+  #cena { width: 100%; height: 100%; cursor: grab; }
+  #cena:active { cursor: grabbing; }
+</style>
+</head>
+<body>
+<div id="cena"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/config/physics.js"></script>
+<script src="js/config/animations.js"></script>
+<script src="js/config/gait.js"></script>
+<script src="js/config/gait_clips.js"></script>
+<script src="js/config/gk_clips_pes.js"></script>
+<script src="js/config/tactics.js"></script>
+<script src="js/config/passing.js"></script>
+<script src="js/config/shooting.js"></script>
+<script src="js/config/defense.js"></script>
+<script src="js/config/goalkeeper.js"></script>
+<script src="js/config/player_behavior.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/pose.js"></script>
+<script>
+/*
+PREVIEW DO TREINADOR — o corpo de `construirCorpo` (o mesmo do jogo, js/pose.js) vestido como o treinador do banco (js/bancos.js `_treinador`):
+o pano cobre pernas e bracos, camisa branca e gravata ao peito. O manager (components/ManagerCreation.tsx) manda o aspeto por postMessage:
+  { tipo: 'look', look: { gender, body, skin, hairStyle, hair, outfit, outfitColor } }   { tipo: 'rodar' }
+*/
+const div = document.getElementById('cena');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+div.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x1a2030, 1.0));
+const sol = new THREE.DirectionalLight(0xfff0d8, 0.95); sol.position.set(2, 4, 5); scene.add(sol);
+const recorte = new THREE.DirectionalLight(0x6f8cff, 0.35); recorte.position.set(-3, 2, -4); scene.add(recorte);
+const palco = new THREE.Group(); scene.add(palco);
+
+// O fundo e a imagem (assets/manager_fundo.jpg, no CSS); a cena so tem o treinador, uma sombra no chao e as luzes.
+const sombra = new THREE.Mesh(new THREE.CircleGeometry(0.75, 32), new THREE.MeshBasicMaterial({
+    map: (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'), r = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+        r.addColorStop(0, 'rgba(0,0,0,0.55)'); r.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })(),
+    transparent: true, depthWrite: false }));
+sombra.rotation.x = -Math.PI / 2; sombra.position.y = 0.01; scene.add(sombra);
+
+// Medidas por corpo: largura (x), profundidade (z) e altura (y) sobre o corpo base.
+const CORPOS = { SLIM: [0.88, 0.9, 1.0], AVERAGE: [1.0, 1.08, 0.98], ATHLETIC: [1.1, 1.0, 1.02] };
+const ALTURA = 1.8;
+let atual = null, angulo = 0.35, alvoAngulo = 0.35, arrastando = false, ultimoX = 0;
+
+function hex(s) { return new THREE.Color(s).getHex(); }
+
+function vestirPano(corpo, rig, pele, cor) {
+    let junta = null;
+    rig.lKnee.traverse(o => { if (junta === null && o.isMesh && o.material && !Array.isArray(o.material) && o.material.color && !o.material.map) junta = o.material.color.getHex(); });
+    const panoMat = new THREE.MeshStandardMaterial({ color: cor, roughness: 0.85 });
+    const daMao = o => { for (let q = o; q; q = q.parent) { if (q === rig.lHand || q === rig.rHand) return true; } return false; };
+    [rig.lLeg, rig.rLeg, rig.lArm, rig.rArm].forEach(osso => osso && osso.traverse(o => {
+        // O meiao (canela) leva materiais em lista com a textura das argolas: no terno e uma perna de calca lisa.
+        if (o.isMesh && o.userData && o.userData.meiao) { o.material = panoMat; return; }
+        if (!o.isMesh || !o.material || Array.isArray(o.material) || daMao(o)) return;
+        const h = (o.material.color && !o.material.map) ? o.material.color.getHex() : null;
+        if (h !== null && (h === pele || (junta !== null && h === junta && h !== 0x222222))) o.material = panoMat;
+    }));
+}
+
+function caixa(w, h, d, cor, x, y, z, pai) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color: cor, roughness: 0.7 }));
+    m.position.set(x, y, z); pai.add(m); return m;
+}
+
+// O calcao do corpo (0.68 x 1.10, so a metade de cima da coxa) vira parte da calca comprida: mesma cor das pernas e afinado ate a largura da coxa,
+// senao fica uma "saia" larga por cima de pernas finas.
+function calcaLonga(rig, cor) {
+    const mat = new THREE.MeshStandardMaterial({ color: cor, roughness: 0.85 });
+    [rig.lLeg, rig.rLeg].forEach(perna => perna && perna.traverse(o => {
+        const g = o.isMesh && o.geometry && o.geometry.parameters;
+        if (g && Math.abs(g.width - 0.68) < 0.01 && Math.abs(g.height - 1.10) < 0.01) { o.material = mat; o.scale.x *= 0.85; o.scale.z *= 0.8; }
+    }));
+}
+
+function esconderCalcao(rig) {
+    [rig.lLeg, rig.rLeg].forEach(perna => perna && perna.traverse(o => {
+        const g = o.isMesh && o.geometry && o.geometry.parameters;
+        if (g && Math.abs(g.width - 0.68) < 0.01 && Math.abs(g.height - 1.10) < 0.01) o.visible = false;
+    }));
+}
+
+function montar(look) {
+    if (atual) { palco.remove(atual); }
+    const pele = hex(look.skin), cabelo = hex(look.hair);
+    const ap = { pele, cabelo, corChuteira: 0x1c1c1c, tipo: 'treinador', chuteira: 'preta' };
+    const fatoCor = hex(look.outfitColor);
+    const calca = look.outfit === 'CASUAL' ? hex(look.pantsColor || '#334155') : new THREE.Color(fatoCor).multiplyScalar(look.outfit === 'SUIT' ? 0.85 : 0.9).getHex();
+    const feito = construirCorpo(look.outfitColor, '#' + calca.toString(16).padStart(6, '0'), ap, null, 0);
+    const corpo = feito.corpo, rig = feito.rig;
+
+    // O fato: pano nos bracos (manga comprida) e nas pernas. A mulher de terno ou casual usa SAIA: pernas de meia escura (terno) ou nuas (casual).
+    const mulher = look.gender === 'FEMALE';
+    const saia = mulher && look.outfit !== 'TRACKSUIT';
+    const corPernas = look.outfit === 'CASUAL' ? calca : fatoCor;
+    vestirPano(corpo, { ...rig, lLeg: null, rLeg: null }, pele, fatoCor);
+    if (!saia) { vestirPano(corpo, { ...rig, lArm: null, rArm: null }, pele, corPernas); calcaLonga(rig, corPernas); }
+    else { if (look.outfit === 'SUIT') vestirPano(corpo, { ...rig, lArm: null, rArm: null }, pele, 0x24242a); esconderCalcao(rig); }
+
+    const tronco = rig.chest, prof = 0.75 * 0.5 + 0.02;
+    if (look.outfit === 'SUIT') {
+        caixa(0.42, 0.7, 0.03, 0xf8fafc, 0, 1.1, prof, tronco);
+        if (!mulher) caixa(0.13, 0.85, 0.04, hex(look.tieColor || '#7f1d1d'), 0, 0.98, prof + 0.02, tronco);
+        // Lapelas do casaco
+        const l = caixa(0.2, 0.72, 0.035, fatoCor, -0.27, 1.08, prof + 0.005, tronco); l.rotation.z = -0.12;
+        const r = caixa(0.2, 0.72, 0.035, fatoCor, 0.27, 1.08, prof + 0.005, tronco); r.rotation.z = 0.12;
+        // O corte do paletó: a aba sobre o quadril (um pouco mais larga que o tronco), a abertura em V, dois botões, bolsos e a gola por cima da camisa.
+        const escuro = new THREE.Color(fatoCor).multiplyScalar(0.7).getHex();
+        const aba = mulher ? 0.5 : 0.8, abaY = mulher ? -0.15 : -0.3;
+        caixa(1.46, aba, 0.82, fatoCor, 0, abaY, 0, tronco);
+        caixa(0.04, aba - 0.02, 0.03, escuro, 0, abaY, 0.42, tronco);
+        [0.38, 0.12].forEach(y => caixa(0.07, 0.07, 0.04, escuro, 0.05, y, prof + 0.035, tronco));
+        [-1, 1].forEach(lado => {
+            const bolso = caixa(0.34, 0.07, 0.04, escuro, lado * 0.42, -0.22, 0.43, tronco); bolso.rotation.z = lado * 0.08;
+        });
+        caixa(0.5, 0.1, 0.3, fatoCor, 0, 1.52, 0.02, tronco);   // gola
+    } else if (look.outfit === 'TRACKSUIT') {
+        caixa(0.03, 1.1, 0.035, 0xf8fafc, 0, 1.0, prof, tronco);
+        caixa(0.5, 0.12, 0.05, new THREE.Color(fatoCor).multiplyScalar(0.7).getHex(), 0, 1.5, prof - 0.01, tronco);
+    }
+
+    // A saia: um tronco de piramide ate logo acima do joelho, um pouco mais larga no quadril que a perna.
+    if (saia) {
+        // O tronco de piramide de 4 lados alinhado aos eixos (a geometria roda 45 graus ANTES da escala, senao a saia vira um losango).
+        const geo = new THREE.CylinderGeometry(1.0, 0.92, 1.6, 4); geo.rotateY(Math.PI / 4);
+        const sai = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: corPernas, roughness: 0.85 }));
+        sai.scale.z = 0.62; sai.position.set(0, -0.7, 0); tronco.add(sai);
+    }
+
+    // O cabelo: as pecas de `construirCorpo` com a cor do cabelo (cabeca nao). Careca esconde-as; buzz achata; feminino ganha rabo.
+    const cabeca = rig.head || (rig.neck && rig.neck.children.find(o => o.isMesh));
+    const pecasCabelo = [];
+    if (cabeca) cabeca.traverse(o => { if (o.isMesh && o.material && !Array.isArray(o.material) && o.material.color && o.material.color.getHex() === cabelo && !o.material.map) pecasCabelo.push(o); });
+    pecasCabelo.forEach(o => {
+        if (look.hairStyle === 'BALD') o.visible = false;
+        else if (look.hairStyle === 'BUZZ') { o.scale.multiplyScalar(0.9); o.scale.y *= 0.55; }
+        else if (look.hairStyle === 'LONG' && !mulher) o.scale.y *= 1.5;
+    });
+    if (mulher && cabeca) {
+        // Cabelo: cortina atras da cabeca e madeixas dos lados (curto = chanel, longo = ate aos ombros); o buzz fica curto (pixie).
+        if (look.hairStyle !== 'BALD' && look.hairStyle !== 'BUZZ') {
+            const h = look.hairStyle === 'LONG' ? 1.7 : 0.95, hl = h * 0.8;
+            caixa(0.96, h, 0.24, cabelo, 0, 0.45 - h / 2, -0.4, cabeca);
+            [-1, 1].forEach(lado => caixa(0.15, hl, 0.5, cabelo, lado * 0.46, 0.42 - hl / 2, -0.12, cabeca));
+        }
+        // Cara: cabeca mais estreita, cilios e labios.
+        cabeca.scale.x *= 0.92;
+        const olho = rig.olhoEsq, olhoD = rig.olhoDir;
+        if (olho && olhoD) {
+            const pai = olho.parent, z = olho.position.z + 0.012, tinta = 0x1b1b1f;
+            [olho, olhoD].forEach(o => caixa(0.16, 0.035, 0.02, tinta, o.position.x, o.position.y + 0.1, z, pai));
+            caixa(0.24, 0.055, 0.02, 0xc2455a, 0, olho.position.y - 0.37, z, pai);
+        }
+    }
+
+    // Corpo: largura/profundidade pelo tipo; altura normalizada para ALTURA metros.
+    const [sx, sz, sy] = CORPOS[look.body] || CORPOS.ATHLETIC;
+    const generoX = look.gender === 'FEMALE' ? 0.93 : 1;
+    const base = corpo.scale.x;
+    const h0 = new THREE.Box3().setFromObject(corpo); const f = ALTURA / (h0.max.y - h0.min.y);
+    corpo.scale.set(base * f * sx * generoX, base * f * sy, base * f * sz);
+
+    // Pose de repouso: bracos junto ao corpo (a T-pose do editor nao serve para um retrato).
+    if (rig.lArm && rig.rArm) { rig.lArm.rotation.z = 0.12; rig.rArm.rotation.z = -0.12; }
+
+    const g = new THREE.Group(); g.add(corpo);
+    const b2 = new THREE.Box3().setFromObject(g);
+    corpo.position.y -= b2.min.y;
+    palco.add(g); atual = g;
+}
+
+function redimensionar() {
+    const w = div.clientWidth || 300, h = div.clientHeight || 400;
+    renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+    // A distancia em que cabem 2.9 m de altura (o boneco tem 1.8: pes a cabeca com muita folga) e 2.2 m de largura (ombros e bracos), seja qual for o formato do painel.
+    const meiaTan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const dist = Math.max(2.9 / (2 * meiaTan), 2.2 / (2 * meiaTan * camera.aspect));
+    camera.position.set(0, 1.0, dist);
+    camera.lookAt(0, 1.0, 0);
+}
+window.addEventListener('resize', redimensionar);
+div.addEventListener('pointerdown', e => { arrastando = true; ultimoX = e.clientX; div.setPointerCapture(e.pointerId); });
+div.addEventListener('pointermove', e => { if (!arrastando) return; alvoAngulo += (e.clientX - ultimoX) * 0.012; ultimoX = e.clientX; });
+div.addEventListener('pointerup', () => { arrastando = false; });
+
+window.addEventListener('message', e => {
+    const m = e.data || {};
+    if (m.tipo === 'look' && m.look) montar(m.look);
+    else if (m.tipo === 'rodar') alvoAngulo += Math.PI;
+});
+
+function laco() {
+    requestAnimationFrame(laco);
+    angulo += (alvoAngulo - angulo) * 0.12;
+    palco.rotation.y = angulo;
+    // respirar de leve
+    if (atual) atual.position.y = Math.sin(performance.now() / 900) * 0.006;
+    renderer.render(scene, camera);
+}
+redimensionar();
+montar({ gender: 'MALE', body: 'ATHLETIC', skin: '#b98560', hairStyle: 'SHORT', hair: '#1a1410', outfit: 'SUIT', outfitColor: '#1f2937' });
+laco();
+parent.postMessage({ tipo: 'managerPreviewPronto' }, '*');
+</script>
+</body>
+</html>
