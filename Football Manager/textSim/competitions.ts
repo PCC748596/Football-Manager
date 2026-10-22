@@ -524,13 +524,22 @@ export const NOMES_FASES: Record<string, string> = { L: 'First phase', G: 'Group
 import type { WorldLeague } from './world';
 import { COUNTRIES } from './dataGenerator';
 
+/** A liga do clube: `leagueId` se for valido; senao (saves antigos) a liga que o tem na lista de clubes. */
+export const ligaIdDoClube = (t: Team): string => {
+  const c: any = (COUNTRIES as any[]).find(x => x.id === t.country);
+  if (t.leagueId && c && c.leagues.some((l: any) => l.id === t.leagueId)) return t.leagueId;
+  const l = c && c.leagues.find((x: any) => (x.teamIds || []).map(String).includes(String(t.id)));
+  return l ? l.id : t.leagueId;
+};
+
 /** A liga do utilizador como WorldLeague (clubes e jogos vivos do jogo), para entrar no mapa de clubes e nos qualificados das copas. */
 export const ligaDoUtilizador = (userTeam: Team | undefined, teams: Team[], fixtures: import('../types').Fixture[]): WorldLeague | null => {
   if (!userTeam) return null;
   const c: any = (COUNTRIES as any[]).find(x => x.id === userTeam.country);
-  const lg = c && c.leagues.find((l: any) => l.id === userTeam.leagueId);
+  const lid = ligaIdDoClube(userTeam);
+  const lg = c && c.leagues.find((l: any) => l.id === lid);
   return {
-    countryId: userTeam.country, countryName: c ? c.name : userTeam.country, leagueId: userTeam.leagueId, leagueName: lg ? lg.name : userTeam.leagueId,
+    countryId: userTeam.country, countryName: c ? c.name : userTeam.country, leagueId: lid, leagueName: lg ? lg.name : lid,
     tier: lg ? lg.tier : 1, relegated: lg ? (lg.relegated || 0) : 0, teams, fixtures: fixtures.filter(f => !f.isFriendly && (f.type === undefined || f.type === 'LEAGUE'))
   };
 };
@@ -602,21 +611,21 @@ export const prepararCopas = (a: EntradaCopas): SaidaCopas | null => {
   if (!minha) return null;
   // As ligas de formato proprio (C, D) estao sempre no mundo com TODOS os clubes: a do utilizador so entra por si se o mundo nao a tiver.
   const todas = a.world.some(l => l.leagueId === minha.leagueId) ? a.world.slice() : [minha, ...a.world];
-  const uk = teamKey(user.leagueId, user.id);
+  const uk = teamKey(minha.leagueId, user.id);
   let base = a.comps ? a.comps.map(c => sincronizarResultados(c, a.fixtures)) : null;
   let oc = ocupacaoDe([...todas, minha], base || []);
   // Um save de antes das Series C e D: cria so as que faltam.
   if (base && !base.some(c => c.id === 'SERIE_C') && todas.some(l => l.leagueId === 'bra_serie_c')) {
-    const novas = criarCopas(todas, undefined, oc, uk, user.leagueId).filter(c => !base!.some(b => b.id === c.id));
+    const novas = criarCopas(todas, undefined, oc, uk, minha.leagueId).filter(c => !base!.some(b => b.id === c.id));
     if (novas.length) base = [...base, ...novas];
   }
-  let cs = base || criarCopas(todas, undefined, oc, uk, user.leagueId);
+  let cs = base || criarCopas(todas, undefined, oc, uk, minha.leagueId);
   const mapa = mapaDeClubes(todas);
   // Serie C / D com o utilizador: a 1.a fase (C) ou o grupo (D) e a liga do jogo; quando acaba, a classificacao dela alimenta a competicao.
   const ligaAcabou = minha.fixtures.length > 0 && minha.fixtures.every(f => f.played);
   const tab = ligaAcabou ? buildTable(minha.teams, minha.fixtures) : null;
-  const ordemL = tab ? tab.map(r => teamKey(user.leagueId, r.team.id)) : null;
-  const grupoExterno = tab ? { ord: tab.map(r => teamKey(user.leagueId, r.team.id)), pts: Object.fromEntries(tab.map(r => [teamKey(user.leagueId, r.team.id), { p: r.points, sg: r.gd, gf: r.gf }])) } : null;
+  const ordemL = tab ? tab.map(r => teamKey(minha.leagueId, r.team.id)) : null;
+  const grupoExterno = tab ? { ord: tab.map(r => teamKey(minha.leagueId, r.team.id)), pts: Object.fromEntries(tab.map(r => [teamKey(minha.leagueId, r.team.id), { p: r.points, sg: r.gd, gf: r.gf }])) } : null;
   cs = cs.map(c => avancarCompeticao(c, mapa, a.date, { usuario: uk, ocupado: oc, ordemL: c.id === 'SERIE_C' ? ordemL : null, grupoExterno: c.id === 'SERIE_D' ? grupoExterno : null }));
   const mudouComps = !a.comps || cs.some((c, i) => c !== a.comps![i]);
 

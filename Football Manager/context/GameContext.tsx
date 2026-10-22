@@ -3,7 +3,7 @@ import { Team, Player, Fixture, GameState, CalendarActivity, ActivityType, Theme
 import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/dataGenerator';
 import { gruposDaSerieD } from '../textSim/competitions';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults } from '../textSim/world';
-import { Competition, prepararCopas } from '../textSim/competitions';
+import { Competition, prepararCopas, ligaIdDoClube } from '../textSim/competitions';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino } from '../textSim/trainingService';
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
@@ -300,7 +300,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Os jogos de copa do utilizador entram nas `fixtures` (tipo CUP) sem coincidir com outros jogos dos clubes, e os adversarios entram em `teams`/`players`.
   const openWorld = () => {
     if (world || !userTeam) return;   // normalmente ja existe (startGame / importGameData)
-    const w = createWorld(userTeam.leagueId, gameState.currentDate, worldSaved.current);
+    const w = createWorld(ligaIdDoClube(userTeam), gameState.currentDate, worldSaved.current);
     const r = prepararCopas({ world: w, userTeamId: userTeam.id, teams, players, fixtures, date: gameState.currentDate, comps: compsSaved.current });
     worldSaved.current = null; compsSaved.current = null;
     setWorld(w);
@@ -1600,7 +1600,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         let tm: Team[] = patchedTeams, pl: Player[] = data.players, fx: Fixture[] = data.fixtures;
         const donoId = data.gameState.userTeamId, dono = patchedTeams.find((t: Team) => t.id === donoId);
         if (dono) {
-          const mundo = createWorld(dono.leagueId, data.gameState.currentDate, data.worldResults || null);
+          const mundo = createWorld(ligaIdDoClube(dono), data.gameState.currentDate, data.worldResults || null);
           const copas = prepararCopas({ world: mundo, userTeamId: donoId, teams: patchedTeams, players: data.players, fixtures: data.fixtures, date: data.gameState.currentDate, comps: data.comps || null });
           worldSaved.current = null; compsSaved.current = null;
           setWorld(mundo);

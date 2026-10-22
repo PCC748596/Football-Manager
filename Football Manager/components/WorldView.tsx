@@ -11,21 +11,10 @@ WORLD COMPETITIONS: as ligas do jogo (tabela e jogos de cada uma) e as copas (Li
 (motor completo); o resto vem do mundo simulado em modo rapido (textSim/world.ts, textSim/competitions.ts) e anda com a data do jogo.
 */
 
-// Cores das bandeiras: [cor principal, cor secundaria]. Os botoes das ligas usam-nas.
-const CORES_PAIS: Record<string, [string, string]> = {
-  '45': ['#009739', '#FEDD00'], '65': ['#FFFFFF', '#CF081F'], '52': ['#75AADB', '#FFFFFF'], '53': ['#D52B1E', '#F9E300'], '55': ['#D52B1E', '#0039A6'],
-  '56': ['#FCD116', '#003893'], '57': ['#FFDD00', '#034EA2'], '58': ['#D52B1E', '#0038A8'], '59': ['#D91023', '#FFFFFF'], '60': ['#5CBFEB', '#FFFFFF'], '61': ['#FFCC00', '#00247D']
-};
-const CORES_COPA: Record<string, [string, string]> = { LIB: ['#C8A24A', '#111111'], SUL: ['#0B3D91', '#F2C400'], COPA_BR: ['#0B7A3B', '#FEDD00'], SERIE_C: ['#009739', '#FEDD00'], SERIE_D: ['#FEDD00', '#009739'] };
+// Bandeiras (Assets/Bandeiras/<id do pais>.png) e logos das copas (Assets/Competicoes/<id>.png).
+const bandeira = (countryId: string) => `/Assets/Bandeiras/${countryId}.png`;
+const logoCopa = (id: string) => `/Assets/Competicoes/${id}.png`;
 const nomeGrupo = (c: Competition, g: string) => (c.id === 'SERIE_C' && g === 'L') ? 'First phase' : (c.id === 'SERIE_C' && /^G\d$/.test(g)) ? 'Group ' + g.slice(1) : 'Group ' + g;
-const luz = (hex: string) => { const n = parseInt(hex.slice(1), 16); return (0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255; };
-const estiloBotao = (cores: [string, string], ativo: boolean): React.CSSProperties => ({
-  background: `linear-gradient(100deg, ${cores[0]} 0%, ${cores[0]} 62%, ${cores[1]} 100%)`,
-  color: luz(cores[0]) > 0.6 ? '#0f172a' : '#ffffff',
-  boxShadow: ativo ? `0 0 0 3px #ffffff, 0 0 0 5px ${cores[1]}` : 'none',
-  opacity: ativo ? 1 : 0.82,
-  borderColor: cores[1]
-});
 
 type Selecao = { tipo: 'LIGA'; id: string } | { tipo: 'COPA'; id: Competition['id'] };
 
@@ -241,16 +230,17 @@ const WorldView: React.FC = () => {
   };
 
   const cabecalho = liga ? `${liga.countryName} · ${liga.leagueName}` : copa ? copa.name : '';
-  const botaoLiga = (l: WorldLeague) => {
-    const ativo = selecao?.tipo === 'LIGA' && selecao.id === l.leagueId;
-    return (
-      <button key={l.leagueId} onClick={() => setSel({ tipo: 'LIGA', id: l.leagueId })} style={estiloBotao(CORES_PAIS[l.countryId] || ['#64748b', '#94a3b8'], ativo)}
-        className="w-full text-left px-3 py-2 rounded border-2 transition-all">
-        <div className="text-xs font-black uppercase leading-tight">{l.countryName}{meu && l.leagueId === meu.leagueId ? ' ★' : ''}</div>
-        <div className="text-[10px] font-bold opacity-80">{l.leagueName} · {l.teams.length} clubs</div>
-      </button>
-    );
-  };
+  // A lista da esquerda: as copas soltas e, por pais, as divisoes (ligas + as Series C e D do Brasil, que sao competicoes) dentro do cartao do pais.
+  type Item = { sel: Selecao; titulo: string; sub: string; tier: number };
+  const paises = (() => {
+    const m = new Map<string, { id: string; nome: string; itens: Item[] }>();
+    const pais = (id: string, nome: string) => { let p = m.get(id); if (!p) { p = { id, nome, itens: [] }; m.set(id, p); } return p; };
+    ligas.forEach(l => pais(l.countryId, l.countryName).itens.push({ sel: { tipo: 'LIGA', id: l.leagueId }, titulo: l.leagueName, sub: `${l.teams.length} clubs`, tier: l.tier }));
+    comps.filter(c => c.id === 'SERIE_C' || c.id === 'SERIE_D').forEach(c => pais('45', 'Brazil').itens.push({ sel: { tipo: 'COPA', id: c.id }, titulo: c.name, sub: `${c.teamKeys.length} clubs${c.champion ? ' · finished' : ''}`, tier: c.id === 'SERIE_C' ? 3 : 4 }));
+    const ordem = (COUNTRIES as any[]).map(c => c.id);
+    return Array.from(m.values()).sort((x, y) => ordem.indexOf(x.id) - ordem.indexOf(y.id)).map(p => ({ ...p, itens: p.itens.sort((a, b) => a.tier - b.tier) }));
+  })();
+  const copasSoltas = comps.filter(c => c.id === 'LIB' || c.id === 'SUL' || c.id === 'COPA_BR');
 
   return (
     <div className="h-full flex flex-col animate-fade-in min-h-0">
@@ -262,18 +252,44 @@ const WorldView: React.FC = () => {
       </div>
       <div className="flex-1 flex gap-4 min-h-0">
         <div className="w-64 flex-shrink-0 overflow-y-auto custom-scrollbar pr-1 space-y-1">
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-1">Cups &amp; lower divisions</div>
-          {comps.map(c => {
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-1">Cups</div>
+          {copasSoltas.map(c => {
             const ativo = selecao?.tipo === 'COPA' && selecao.id === c.id;
             return (
-              <button key={c.id} onClick={() => setSel({ tipo: 'COPA', id: c.id })} style={estiloBotao(CORES_COPA[c.id], ativo)} className="w-full text-left px-3 py-2 rounded border-2 transition-all">
-                <div className="text-xs font-black uppercase leading-tight">{c.name}</div>
-                <div className="text-[10px] font-bold opacity-80">{c.teamKeys.length} clubs{c.champion ? ' · finished' : ''}</div>
+              <button key={c.id} onClick={() => setSel({ tipo: 'COPA', id: c.id })}
+                className={`w-full flex items-center gap-3 text-left px-3 py-2 rounded-lg border-2 transition-all ${ativo ? 'bg-blue-600/15 border-blue-500' : 'bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 hover:border-blue-400'}`}>
+                <span className="w-11 h-11 flex-shrink-0 rounded bg-white flex items-center justify-center p-1"><img src={logoCopa(c.id)} alt="" className="max-w-full max-h-full object-contain" /></span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-black uppercase leading-tight text-slate-800 dark:text-slate-100">{c.name}</span>
+                  <span className="block text-[10px] font-bold text-slate-400">{c.teamKeys.length} clubs{c.champion ? ' · finished' : ''}</span>
+                </span>
               </button>
             );
           })}
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-3">Leagues</div>
-          {ligas.map(botaoLiga)}
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-3">Countries</div>
+          {paises.map(p => {
+            const meuPais = !!meu && p.itens.some(it => it.sel.tipo === 'LIGA' && it.sel.id === meu.leagueId);
+            return (
+              <div key={p.id} className="rounded-lg border-2 border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50 dark:bg-slate-800/70">
+                <div className="flex items-center gap-3 px-3 py-2 border-b border-slate-200 dark:border-slate-700">
+                  <img src={bandeira(p.id)} alt="" className="w-8 h-[22px] object-cover rounded-sm shadow flex-shrink-0" />
+                  <span className="text-xs font-black uppercase leading-tight text-slate-800 dark:text-slate-100">{p.nome}{meuPais ? ' ★' : ''}</span>
+                </div>
+                <div className="p-1 space-y-1">
+                  {p.itens.map(it => {
+                    const ativo = !!selecao && selecao.tipo === it.sel.tipo && selecao.id === it.sel.id;
+                    return (
+                      <button key={it.sel.tipo + it.sel.id} onClick={() => setSel(it.sel)}
+                        className={`w-full text-left px-3 py-1.5 rounded transition-all ${ativo ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/70'}`}>
+                        <div className="text-[11px] font-black uppercase leading-tight">{it.titulo}{meu && it.sel.tipo === 'LIGA' && it.sel.id === meu.leagueId ? ' ★' : ''}</div>
+                        <div className={`text-[10px] font-bold ${ativo ? 'text-blue-100' : 'text-slate-400'}`}>{it.sub}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
         <div className="flex-1 min-w-0 flex flex-col bg-white/80 dark:bg-slate-900/40 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800/50 overflow-hidden">
           {liga && painelLiga(liga)}
