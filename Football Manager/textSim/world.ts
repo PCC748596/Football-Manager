@@ -17,6 +17,8 @@ export interface WorldLeague {
   relegated: number;
   teams: Team[];
   fixtures: Fixture[];
+  /** Reserva de clubes sem jogos (liga `hidden`): so serve para as copas; nao aparece na aba WORLD. */
+  oculta?: boolean;
   /** Os jogadores (so em memoria, nao vao no save): servem para pôr em campo os adversarios de copa do utilizador. */
   players?: Player[];
 }
@@ -60,8 +62,9 @@ export const createWorld = (excludeLeagueId: string | undefined, ate: string, re
   const leagues: WorldLeague[] = [];
   for (const c of COUNTRIES as any[]) {
     for (const lg of c.leagues) {
-      if (lg.id === excludeLeagueId) continue;
+      if (lg.id === excludeLeagueId && !lg.worldOnly) continue;   // (C e D entram sempre: sao a lista de clubes das competicoes)
       const { teams, players } = generateLeagueData(c.id, lg.id);
+      if (lg.hidden || lg.worldOnly) { leagues.push({ countryId: c.id, countryName: c.name, leagueId: lg.id, leagueName: lg.name, tier: lg.tier, relegated: 0, teams, fixtures: [], players, oculta: true }); continue; }
       const fixtures = generateFixtures(teams, lg.id).map(f => {
         const r = results && results[f.id];
         return r ? { ...f, homeScore: r[0], awayScore: r[1], played: true } : f;

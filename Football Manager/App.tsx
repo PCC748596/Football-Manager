@@ -174,7 +174,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step2')}</div>
           <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
-              {activeCountry?.leagues.map(league => (
+              {activeCountry?.leagues.filter(l => !l.hidden).map(league => (
                 <button key={league.id} onClick={() => setSelectedLeagueId(league.id)} className={`w-full text-left p-3 rounded border-2 transition-all group ${selectedLeagueId === league.id ? 'bg-emerald-600 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-emerald-400'}`}>
                   <span className={`text-lg font-black uppercase ${selectedLeagueId === league.id ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>{league.name}</span>
                   <div className="flex items-center gap-2 mt-1">

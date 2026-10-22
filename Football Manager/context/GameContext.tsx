@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
-import { Team, Player, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode } from '../types';
-import { generateLeagueData, generateFixtures } from '../textSim/dataGenerator';
+import { Team, Player, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador } from '../types';
+import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/dataGenerator';
+import { gruposDaSerieD } from '../textSim/competitions';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults } from '../textSim/world';
 import { Competition, prepararCopas } from '../textSim/competitions';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
@@ -376,8 +377,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const startGame = (teamId: string, managerName: string, countryId: string, leagueId: string = 'bra_serie_a') => {
-    const { teams: initTeams, players: initPlayers } = generateLeagueData(countryId, leagueId);
+    let { teams: initTeams, players: initPlayers } = generateLeagueData(countryId, leagueId);
+    // Series C e D do Brasil (formato proprio): na C a liga do jogo e a 1.a fase (todos contra todos, 19 rodadas); na D e o GRUPO do clube (12 clubes, ida e volta). O resto
+    // (grupos, mata-mata) vem da competicao (textSim/competitions.ts); os outros 7 grupos da D jogam-se la.
+    const formato: string | undefined = ((COUNTRIES as any[]).find(c => c.id === countryId)?.leagues.find((l: any) => l.id === leagueId) || {}).format;
+    if (formato === 'SERIE_D') {
+      const ordem = ((COUNTRIES as any[]).find(c => c.id === countryId).leagues.find((l: any) => l.id === leagueId).teamIds as number[]).map(String);
+      const grupos = gruposDaSerieD(ordem);
+      const nomeGrupo = Object.keys(grupos).find(g => grupos[g].includes(teamId)) || 'A';
+      const doGrupo = new Set(grupos[nomeGrupo]);
+      initTeams = initTeams.filter(t => doGrupo.has(t.id)).map(t => ({ ...t, groupId: nomeGrupo }));
+      initPlayers = initPlayers.filter(p => doGrupo.has(p.teamId));
+    }
     let initFixtures = generateFixtures(initTeams, leagueId);
+    if (formato === 'SERIE_C') initFixtures = initFixtures.filter(f => f.week <= initTeams.length - 1);   // so o 1.o turno
 
     // --- CPU FRIENDLY SCHEDULING (PRE-SEASON) ---
     const preseasonDates = ["2024-04-04", "2024-04-07", "2024-04-11"];
@@ -924,7 +937,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // vitorias e os ultimos 5 resultados (V/E/D, do mais antigo para o mais recente).
   const classificacaoDoIntervalo = (uf: Fixture) => {
     type Linha = { t: Team; pts: number; v: number; gf: number; ga: number; forma: ('V' | 'E' | 'D')[] };
-    const tab = new Map<string, Linha>(teams.filter(t => !userTeam || t.leagueId === userTeam.leagueId).map(t => [t.id, { t, pts: 0, v: 0, gf: 0, ga: 0, forma: [] }]));
+    const tab = new Map<string, Linha>(teams.filter(t => naLigaDoUtilizador(t, userTeam)).map(t => [t.id, { t, pts: 0, v: 0, gf: 0, ga: 0, forma: [] }]));
     const jogos = fixtures.filter(f => f.played && countsForLeague(f)).map(f => ({ f, hs: f.homeScore || 0, as: f.awayScore || 0 }));
     // Os jogos de HOJE ainda a decorrer (o do utilizador e os outros da jornada, que o manager simula minuto a minuto) entram com o resultado parcial.
     // O placar parcial: o do jogo, ou (se ainda nao estiver escrito) os golos contados nos eventos ate agora.

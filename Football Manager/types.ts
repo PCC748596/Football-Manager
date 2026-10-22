@@ -93,6 +93,12 @@ export interface League {
   id: string;
   name: string;
   type?: 'LEAGUE' | 'CUP';
+  /** Reserva de clubes sem jogos (ex.: os clubes da Copa do Brasil fora das Series A e B): nao aparece na escolha de liga nem na aba WORLD. */
+  hidden?: boolean;
+  /** Liga de formato proprio (Serie C e D do Brasil): no mundo nao tem calendario de pontos corridos (ver `format`). */
+  worldOnly?: boolean;
+  /** ROUND_ROBIN (por omissao), SERIE_C (1.a fase de 20 + quadrangulares + meias e final) ou SERIE_D (8 grupos de 12 + mata-mata de 32). Ver textSim/competitions.ts. */
+  format?: 'ROUND_ROBIN' | 'SERIE_C' | 'SERIE_D';
   cupFormat?: 'KNOCKOUT' | 'GROUPS_KNOCKOUT';
   tier: number;
   promoted?: number;
@@ -108,6 +114,10 @@ export interface Country {
   leagues: League[];
   /** Clubes sem liga nem jogos: no fim da temporada sorteiam-se daqui os que entram no lugar dos rebaixados (ligas da America Latina; o Brasil tem Serie B a serio). */
   reserveTeamIds?: number[];
+  /** Brasil: os 126 clubes da Copa do Brasil (ids). */
+  copaTeamIds?: number[];
+  /** Classificacao final do ano anterior por liga (nomes dos clubes, do 1.o ao ultimo): decide as vagas da Libertadores/Sul-Americana. */
+  classificacaoAnterior?: Record<string, string[]>;
 }
 
 export interface Player {
@@ -205,6 +215,8 @@ export interface Team {
   thirdKit?: { pattern: string; color1: string; color2: string; color3: string; numberColor?: string; numberOutlineColor?: string; collarColor?: string; sleeveColor?: string; };
   gkKit?: { pattern: string; color1: string; color2: string; color3: string; numberColor?: string; numberOutlineColor?: string; collarColor?: string; sleeveColor?: string; };
   leagueId: string;
+  /** Serie D: o grupo (A-H) em que o clube joga no jogo; so os 12 do grupo do utilizador estao na liga dele. */
+  groupId?: string;
   logoUrl?: string;
   kitUrls?: [string, string, string];
   tactics: Tactics;
@@ -873,3 +885,5 @@ export const POSITION_ORDER: Record<Position, number> = {
   [Position.DM]: 5, [Position.LM]: 6, [Position.CM]: 7, [Position.RM]: 8, [Position.AM]: 9,
   [Position.LW]: 10, [Position.RW]: 11, [Position.SS]: 12, [Position.ST]: 13
 };
+/** O clube `t` joga na liga (e no grupo) do clube do utilizador? Os adversarios de copa tambem estao em `teams`: as vistas de liga filtram com isto. */
+export const naLigaDoUtilizador = (t: Team, user?: Team): boolean => !user || (t.leagueId === user.leagueId && (t.groupId || '') === (user.groupId || ''));

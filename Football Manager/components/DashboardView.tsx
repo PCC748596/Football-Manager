@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
-import { Position, ActivityType, Team, Player, Tactics, getKitDetails, getGKKitDetails, kitShorts } from '../types';
+import { Position, ActivityType, Team, Player, Tactics, getKitDetails, getGKKitDetails, kitShorts, naLigaDoUtilizador } from '../types';
 import ActivityModal from './ActivityModal';
 import { TeamShield } from './TeamShield';
 import { ShirtIcon } from './ShirtIcon';
@@ -368,7 +368,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
   }, [nextMatch, teams]);
 
   // Sort: Points DESC, but if all 0 played, then alphabetical
-  const sortedTeams = teams.filter(t => !userTeam || t.leagueId === userTeam.leagueId).sort((a, b) => {
+  const sortedTeams = teams.filter(t => naLigaDoUtilizador(t, userTeam)).sort((a, b) => {
     if (a.played === 0 && b.played === 0) {
         return a.name.localeCompare(b.name);
     }

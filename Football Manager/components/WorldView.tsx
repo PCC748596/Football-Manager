@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { COUNTRIES } from '../textSim/dataGenerator';
 import { WorldLeague, buildTable } from '../textSim/world';
-import { Competition, CompMatch, NOMES_FASES, ligaDoUtilizador, mapaDeClubes, tabelaDoGrupo, vencedorDoConfronto } from '../textSim/competitions';
-import { Fixture, Team } from '../types';
+import { Competition, CompMatch, NOMES_FASES, ligaDoUtilizador, mapaDeClubes, tabelaDoGrupo, teamKey, vencedorDoConfronto } from '../textSim/competitions';
+import { Fixture, Team, naLigaDoUtilizador } from '../types';
 import { TeamShield } from './TeamShield';
 
 /*
@@ -16,7 +16,8 @@ const CORES_PAIS: Record<string, [string, string]> = {
   '45': ['#009739', '#FEDD00'], '65': ['#FFFFFF', '#CF081F'], '52': ['#75AADB', '#FFFFFF'], '53': ['#D52B1E', '#F9E300'], '55': ['#D52B1E', '#0039A6'],
   '56': ['#FCD116', '#003893'], '57': ['#FFDD00', '#034EA2'], '58': ['#D52B1E', '#0038A8'], '59': ['#D91023', '#FFFFFF'], '60': ['#5CBFEB', '#FFFFFF'], '61': ['#FFCC00', '#00247D']
 };
-const CORES_COPA: Record<string, [string, string]> = { LIB: ['#C8A24A', '#111111'], SUL: ['#0B3D91', '#F2C400'], COPA_BR: ['#0B7A3B', '#FEDD00'] };
+const CORES_COPA: Record<string, [string, string]> = { LIB: ['#C8A24A', '#111111'], SUL: ['#0B3D91', '#F2C400'], COPA_BR: ['#0B7A3B', '#FEDD00'], SERIE_C: ['#009739', '#FEDD00'], SERIE_D: ['#FEDD00', '#009739'] };
+const nomeGrupo = (c: Competition, g: string) => (c.id === 'SERIE_C' && g === 'L') ? 'First phase' : (c.id === 'SERIE_C' && /^G\d$/.test(g)) ? 'Group ' + g.slice(1) : 'Group ' + g;
 const luz = (hex: string) => { const n = parseInt(hex.slice(1), 16); return (0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255; };
 const estiloBotao = (cores: [string, string], ativo: boolean): React.CSSProperties => ({
   background: `linear-gradient(100deg, ${cores[0]} 0%, ${cores[0]} 62%, ${cores[1]} 100%)`,
@@ -41,15 +42,15 @@ const WorldView: React.FC = () => {
     return () => window.clearTimeout(id);
   }, [world]);
 
-  const meu = useMemo(() => ligaDoUtilizador(userTeam, teams.filter(t => !userTeam || t.leagueId === userTeam.leagueId), fixtures), [userTeam, teams, fixtures]);
+  const meu = useMemo(() => ligaDoUtilizador(userTeam, teams.filter(t => naLigaDoUtilizador(t, userTeam)), fixtures), [userTeam, teams, fixtures]);
   const ligas: WorldLeague[] = useMemo(() => {
     const out: WorldLeague[] = [];
     if (meu) out.push(meu);
-    (world || []).forEach(l => out.push(l));
+    (world || []).filter(l => !l.oculta).forEach(l => out.push(l));
     const ordem = (COUNTRIES as any[]).map(c => c.id);
     return out.sort((a, b) => ordem.indexOf(a.countryId) - ordem.indexOf(b.countryId) || a.tier - b.tier);
   }, [world, meu]);
-  const mapa = useMemo(() => mapaDeClubes(ligas), [ligas]);
+  const mapa = useMemo(() => mapaDeClubes([...ligas, ...(world || []).filter(l => l.oculta)]), [ligas, world]);
 
   const selecao: Selecao | null = sel || (ligas.length ? { tipo: 'LIGA', id: (meu && meu.leagueId) || ligas[0].leagueId } : null);
   const liga = selecao && selecao.tipo === 'LIGA' ? ligas.find(l => l.leagueId === selecao.id) || null : null;
@@ -148,6 +149,14 @@ const WorldView: React.FC = () => {
     </div>
   );
 
+  // Serie C / D com o utilizador: a 1.a fase / o grupo dele e a liga do jogo; a tabela vem das fixtures dele.
+  const tabelaDaVista = (c: Competition, g: string) => {
+    if (meu && ((c.ligaExterna && g === 'L') || (c.grupoExterno && g === c.grupoExterno))) {
+      return buildTable(meu.teams, meu.fixtures).map(r => ({ key: teamKey(meu.leagueId, r.team.id), team: r.team, played: r.played, won: r.won, drawn: r.drawn, lost: r.lost, gf: r.gf, ga: r.ga, points: r.points }));
+    }
+    return tabelaDoGrupo(c, g, mapa);
+  };
+
   const painelCopa = (c: Competition) => {
     const fases = Array.from(new Set(c.matches.filter(m => !m.group).map(m => m.stage)));
     return (
@@ -163,11 +172,11 @@ const WorldView: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               {Object.keys(c.groups).map(g => (
                 <div key={g} className="rounded border border-slate-200 dark:border-slate-800 overflow-hidden">
-                  <div className="px-3 py-1 bg-slate-100 dark:bg-slate-950/70 text-[10px] font-black uppercase tracking-widest text-slate-500">Group {g}</div>
+                  <div className="px-3 py-1 bg-slate-100 dark:bg-slate-950/70 text-[10px] font-black uppercase tracking-widest text-slate-500">{nomeGrupo(c, g)}</div>
                   <table className="w-full">
                     <thead><tr><th className={th + ' text-left'}>Team</th><th className={th}>P</th><th className={th}>W</th><th className={th}>D</th><th className={th}>L</th><th className={th}>GD</th><th className={th + ' text-blue-600 dark:text-white'}>Pts</th></tr></thead>
                     <tbody>
-                      {tabelaDoGrupo(c, g, mapa).map((r, i) => (
+                      {tabelaDaVista(c, g).map((r, i) => (
                         <tr key={r.key} className={souEu(r.key) ? 'bg-blue-600/10' : ''}>
                           <td className="px-3 py-1 text-xs font-bold text-slate-800 dark:text-slate-200"><div className="flex items-center gap-2"><span className={`w-3 text-[10px] ${i < 2 ? 'text-emerald-500' : 'text-slate-400'}`}>{i + 1}</span><Escudo k={r.key} /><span className="truncate">{nomeDe(r.key)}</span></div></td>
                           {[r.played, r.won, r.drawn, r.lost, r.gf - r.ga].map((v, k) => <td key={k} className="px-2 py-1 text-center text-xs text-slate-600 dark:text-slate-300">{k === 4 && v > 0 ? '+' + v : v}</td>)}
@@ -253,7 +262,7 @@ const WorldView: React.FC = () => {
       </div>
       <div className="flex-1 flex gap-4 min-h-0">
         <div className="w-64 flex-shrink-0 overflow-y-auto custom-scrollbar pr-1 space-y-1">
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-1">Cups</div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-1">Cups &amp; lower divisions</div>
           {comps.map(c => {
             const ativo = selecao?.tipo === 'COPA' && selecao.id === c.id;
             return (

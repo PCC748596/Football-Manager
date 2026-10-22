@@ -14,6 +14,7 @@ const corr = (x: number[], y: number[]) => { const n = x.length, mx = x.reduce((
 
 for (const c of COUNTRIES as any[]) {
   for (const lg of c.leagues) {
+    if (lg.hidden || lg.worldOnly) continue;   // reserva de clubes / ligas so da aba WORLD (formato proprio)
     const { teams, players } = generateLeagueData(c.id, lg.id);
     players.forEach(p => { p.fitness = 100; });
     const N = teams.length;

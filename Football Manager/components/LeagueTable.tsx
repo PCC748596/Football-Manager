@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGame } from '../context/GameContext';
-import { Team } from '../types';
+import { Team, naLigaDoUtilizador } from '../types';
 import { TeamShield } from './TeamShield';
 
 const LeagueTable: React.FC = () => {
@@ -8,7 +8,7 @@ const LeagueTable: React.FC = () => {
 
   // Sort teams: Points DESC, GoalDiff DESC, GoalsFor DESC
   // So a liga do utilizador (os adversarios de copa tambem estao em `teams`).
-  const sortedTeams = teams.filter(t => !userTeam || t.leagueId === userTeam.leagueId).sort((a, b) => {
+  const sortedTeams = teams.filter(t => naLigaDoUtilizador(t, userTeam)).sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
     const gdA = a.goalsFor - a.goalsAgainst;
     const gdB = b.goalsFor - b.goalsAgainst;
