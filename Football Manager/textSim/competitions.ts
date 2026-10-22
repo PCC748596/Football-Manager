@@ -28,6 +28,8 @@ export interface Competition {
   teamKeys: string[];
   groups?: Record<string, string[]>;
   matches: CompMatch[];
+  /** Serie C: os 4 que sobem a Serie B (2 primeiros de cada grupo); Serie D: os 6 (4 semifinalistas + 2 vencedores do playoff de acesso). */
+  promovidos?: string[];
   /** Serie C com o utilizador: a 1.a fase e a liga do jogo (nao tem jogos aqui); a ordem vem das fixtures. */
   ligaExterna?: boolean;
   /** Serie D com o utilizador: o grupo (A-H) dele e a liga do jogo (sem jogos aqui). */
@@ -60,12 +62,13 @@ const FASES_COPA = [
 // SERIE C (20 clubes): 1.a fase todos contra todos (19 rodadas, sabados), os 8 primeiros vao a 2 grupos de 4 (ida e volta, 6 rodadas), os 2 primeiros de cada grupo as meias (ida e volta) e final (ida e volta).
 // Os 4 semifinalistas sobem; os 4 ultimos da 1.a fase descem. Datas nominais (o agendador desloca o que coincidir com outro jogo do clube).
 const C_L_INICIO = '2024-04-13', C_G_INICIO = '2024-08-24';
-const FASES_C = [{ nome: 'SF', datas: ['2024-10-19', '2024-10-26'] }, { nome: 'F', datas: ['2024-11-02', '2024-11-09'] }];
-// SERIE D (96 clubes): 8 grupos de 12 (ida e volta, 22 rodadas, domingos), os 4 primeiros de cada grupo (32) vao ao mata-mata em ida e volta: 32 avos, oitavas, quartas, meias e final.
-// Os 4 semifinalistas sobem. Os grupos seguem a ordem da liga (que e por regiao: Norte, Nordeste, Centro-Oeste, Sudeste, Sul).
+const FASES_C = [{ nome: 'F', datas: ['2024-11-02', '2024-11-09'] }];
+// SERIE D (96 clubes, regulamento): 16 grupos de 6 (ida e volta, 10 rodadas, domingos); os 4 primeiros de cada grupo (64) vao ao mata-mata, SEMPRE em ida e volta e sem gol fora (saldo do
+// confronto e depois penaltis): 2.a fase (64), 3.a fase (32), oitavas, quartas, semifinal, playoff de acesso (os 4 que perdem nas quartas, 2 confrontos) e final. Sobem 6: os 4 semifinalistas e
+// os 2 vencedores do playoff. Os grupos seguem a ordem da liga (por regiao: Norte, Nordeste, Centro-Oeste, Sudeste, Sul). Desempate nos grupos: vitorias, saldo, golos, confronto direto.
 const D_INICIO = '2024-04-07';
-const FASES_D = [{ nome: 'R32', datas: ['2024-09-14', '2024-09-21'] }, { nome: 'R16', datas: ['2024-09-28', '2024-10-05'] }, { nome: 'QF', datas: ['2024-10-19', '2024-10-26'] },
-  { nome: 'SF', datas: ['2024-11-02', '2024-11-09'] }, { nome: 'F', datas: ['2024-11-23', '2024-11-30'] }];
+const FASES_D = [{ nome: 'R64', datas: ['2024-06-16', '2024-06-23'] }, { nome: 'R32', datas: ['2024-07-07', '2024-07-14'] }, { nome: 'R16', datas: ['2024-07-28', '2024-08-04'] },
+  { nome: 'QF', datas: ['2024-08-18', '2024-08-25'] }, { nome: 'SF', datas: ['2024-09-15', '2024-09-22'] }, { nome: 'PA', datas: ['2024-09-15', '2024-09-22'] }, { nome: 'F', datas: ['2024-10-13', '2024-10-20'] }];
 
 // Quem entra em cada fase da Copa do Brasil alem dos vencedores da anterior (por nome do clube na base).
 const COPA_CAMPEOES = new Set(['Paysandu-PA', 'Ponte Preta-SP', 'Confiança-SE', 'Barra-SC']);   // campeoes de competicoes de 2025: entram na 3.a fase
@@ -250,10 +253,10 @@ export const criarSerieC = (clubes: { key: string; team: Team }[], oc: Ocupacao 
   return { id: 'SERIE_C', name: 'Série C', teamKeys: keys, groups: { L: keys }, matches: externa ? [] : jogosDeLiga('SERIE_C', 'L', 'L', keys, false, C_L_INICIO, oc), ligaExterna: externa || undefined };
 };
 
-/** Os 8 grupos da Serie D: fatias de 12 da lista de clubes (que vai por regiao). */
+/** Os 16 grupos da Serie D (A-P): fatias de 6 da lista de clubes (que vai por regiao). */
 export const gruposDaSerieD = (ordem: string[]): Record<string, string[]> => {
-  const g: Record<string, string[]> = {}, tam = Math.ceil(ordem.length / 8);
-  'ABCDEFGH'.split('').forEach((n, i) => { g[n] = ordem.slice(i * tam, (i + 1) * tam); });
+  const g: Record<string, string[]> = {}, tam = Math.ceil(ordem.length / 16);
+  'ABCDEFGHIJKLMNOP'.split('').forEach((n, i) => { g[n] = ordem.slice(i * tam, (i + 1) * tam); });
   return g;
 };
 
@@ -343,18 +346,33 @@ const jogosDaFase = (c: Competition, fase: { nome: string; datas: string[] }, pa
 };
 
 /** A classificacao de um grupo (chaves por ordem: pontos, saldo, golos marcados, e por fim um desempate fixo). */
-const ordemDoGrupo = (c: Competition, g: string): string[] => {
-  const pts: Record<string, { p: number; sg: number; gf: number }> = {};
-  (c.groups![g] || []).forEach(k => { pts[k] = { p: 0, sg: 0, gf: 0 }; });
-  c.matches.filter(m => m.group === g && m.played).forEach(m => {
+/**
+ * Criterios da Serie C: pontos, mais vitorias, saldo de golos, golos marcados e (so na 2.a fase, `confrontoDireto`) os pontos nos jogos entre os empatados; por fim sorteio (aqui um
+ * desempate fixo). Os cartoes (vermelhos, amarelos) nao existem nas copas simuladas.
+ */
+const ordemDoGrupo = (c: Competition, g: string, confrontoDireto = false): string[] => {
+  const pts: Record<string, { p: number; v: number; sg: number; gf: number }> = {};
+  (c.groups![g] || []).forEach(k => { pts[k] = { p: 0, v: 0, sg: 0, gf: 0 }; });
+  const jogos = c.matches.filter(m => m.group === g && m.played);
+  jogos.forEach(m => {
     const h = pts[m.homeKey], a = pts[m.awayKey], hs = m.homeScore || 0, as = m.awayScore || 0;
     h.gf += hs; a.gf += as; h.sg += hs - as; a.sg += as - hs;
-    if (hs > as) h.p += 3; else if (as > hs) a.p += 3; else { h.p++; a.p++; }
+    if (hs > as) { h.p += 3; h.v++; } else if (as > hs) { a.p += 3; a.v++; } else { h.p++; a.p++; }
   });
-  return (c.groups![g] || []).slice().sort((x, y) => pts[y].p - pts[x].p || pts[y].sg - pts[x].sg || pts[y].gf - pts[x].gf || hash(x) - hash(y));
+  const dir = (k: string, grupo: string[]) => jogos.reduce((s, m) => {
+    if (!grupo.includes(m.homeKey) || !grupo.includes(m.awayKey) || (m.homeKey !== k && m.awayKey !== k)) return s;
+    const meus = m.homeKey === k ? m.homeScore || 0 : m.awayScore || 0, deles = m.homeKey === k ? m.awayScore || 0 : m.homeScore || 0;
+    return s + (meus > deles ? 3 : meus === deles ? 1 : 0);
+  }, 0);
+  const base = (x: string, y: string) => pts[y].p - pts[x].p || pts[y].v - pts[x].v || pts[y].sg - pts[x].sg || pts[y].gf - pts[x].gf;
+  return (c.groups![g] || []).slice().sort((x, y) => {
+    const b = base(x, y); if (b !== 0) return b;
+    if (confrontoDireto) { const iguais = (c.groups![g] || []).filter(k => base(x, k) === 0); const d = dir(y, iguais) - dir(x, iguais); if (d !== 0) return d; }
+    return hash(x) - hash(y);
+  });
 };
 const estatDoGrupo = (c: Competition, g: string) => {
-  const ord = ordemDoGrupo(c, g), pts: Record<string, { p: number; sg: number; gf: number }> = {};
+  const ord = ordemDoGrupo(c, g, true), pts: Record<string, { p: number; sg: number; gf: number }> = {};
   ord.forEach(k => { pts[k] = { p: 0, sg: 0, gf: 0 }; });
   c.matches.filter(m => m.group === g && m.played).forEach(m => {
     const h = pts[m.homeKey], a = pts[m.awayKey], hs = m.homeScore || 0, as = m.awayScore || 0;
@@ -434,7 +452,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
       for (let i = 0; i < o.length / 2; i++) p.push([o[i], o[o.length - 1 - i]]);
       return p;
     };
-    const sequencia = c.id === 'COPA_BR' ? ['P1', 'P2', 'P3', 'P4', 'P5', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_D' ? ['R32', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_C' ? ['SF', 'F'] : ['R16', 'QF', 'SF', 'F'];
+    const sequencia = c.id === 'COPA_BR' ? ['P1', 'P2', 'P3', 'P4', 'P5', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_D' ? ['R64', 'R32', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_C' ? ['F'] : ['R16', 'QF', 'SF', 'F'];
     const fase = (nome: string) => fases.find(f => f.nome === nome)!;
     const seed = (k: string) => c.teamKeys.indexOf(k);
 
@@ -460,15 +478,24 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         c.matches.push(...jogosDeLiga('SERIE_C', 'G', 'G1', g1, true, C_G_INICIO, oc), ...jogosDeLiga('SERIE_C', 'G', 'G2', g2, true, C_G_INICIO, oc));
         progressou = true;
       }
-    } else if (c.id === 'SERIE_C' && !temFase('SF')) {
+    } else if (c.id === 'SERIE_C' && !temFase('F')) {
       // Fim dos grupos: o 1.o de cada grupo joga com o 2.o do outro (ida e volta; o primeiro do grupo decide em casa).
       if (feitaFase('G')) {
         copia();
-        const o1 = ordemDoGrupo(c, 'G1'), o2 = ordemDoGrupo(c, 'G2');
-        c.matches.push(...jogosDaFase(c, fase('SF'), [[o1[0], o2[1]], [o2[0], o1[1]]], oc, somarDias(hoje, 1)));
+        // Os dois primeiros de cada grupo sobem a Serie B; os primeiros jogam a FINAL (ida e volta). O 2.o jogo e em casa de quem teve a melhor campanha nas fases anteriores (pontos,
+        // vitorias, saldo, golos marcados somados).
+        const o1 = ordemDoGrupo(c, 'G1', true), o2 = ordemDoGrupo(c, 'G2', true);
+        const campanha = (k: string) => c.matches.filter(m => m.played && (m.homeKey === k || m.awayKey === k)).reduce((s, m) => {
+          const meus = m.homeKey === k ? m.homeScore || 0 : m.awayScore || 0, deles = m.homeKey === k ? m.awayScore || 0 : m.homeScore || 0;
+          return { p: s.p + (meus > deles ? 3 : meus === deles ? 1 : 0), v: s.v + (meus > deles ? 1 : 0), sg: s.sg + meus - deles, gf: s.gf + meus };
+        }, { p: 0, v: 0, sg: 0, gf: 0 });
+        const a = campanha(o1[0]), b = campanha(o2[0]);
+        const melhor = (a.p - b.p || a.v - b.v || a.sg - b.sg || a.gf - b.gf) >= 0 ? [o1[0], o2[0]] : [o2[0], o1[0]];
+        c.promovidos = [o1[0], o1[1], o2[0], o2[1]];
+        c.matches.push(...jogosDaFase(c, fase('F'), [[melhor[0], melhor[1]]], oc, somarDias(hoje, 1)));
         progressou = true;
       }
-    } else if (c.id === 'SERIE_D' && !temFase('R32')) {
+    } else if (c.id === 'SERIE_D' && !temFase('R64')) {
       // Fim da 1.a fase: os 4 primeiros de cada grupo (32) entram no mata-mata, cabecas de serie por posicao no grupo e depois pontos e saldo.
       if (c.matches.filter(m => m.group).every(m => m.played) && (!c.grupoExterno || opcoes.grupoExterno)) {
         copia();
@@ -478,7 +505,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         const top = q.map(x => x.k);
         c.teamKeys = top.concat(c.teamKeys.filter(k => top.indexOf(k) < 0));
         const seedD = (k: string) => c.teamKeys.indexOf(k);
-        c.matches.push(...jogosDaFase(c, fase('R32'), parear(top, seedD), oc, somarDias(hoje, 1)));
+        c.matches.push(...jogosDaFase(c, fase('R64'), parear(top, seedD), oc, somarDias(hoje, 1)));
         progressou = true;
       }
     } else {
@@ -490,9 +517,24 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         // Copa do Brasil: os vencedores mais quem entra nesta fase, pareados por cabeca de serie; nas copas de grupos: o quadro fixo (1.o com 2.o...).
         const par = (c.id === 'COPA_BR' || c.id === 'SERIE_D') ? parear(venc.concat((c.entradas && c.entradas[b]) || []), seed) : (() => { const p: [string, string][] = []; for (let k = 0; k < venc.length; k += 2) p.push([venc[k], venc[k + 1]]); return p; })();
         c.matches.push(...jogosDaFase(c, fase(b), par, oc, somarDias(hoje, 1)));
+        // Serie D: os 4 que perdem nas quartas jogam o PLAYOFF DE ACESSO (2 confrontos); os 4 semifinalistas e os 2 vencedores do playoff sobem (6 clubes).
+        if (c.id === 'SERIE_D' && b === 'SF') {
+          const perdedores = c.matches.filter(m => m.stage === 'QF').map(m => m.tie).filter((t, i, arr) => arr.indexOf(t) === i).map(t => {
+            const js = c.matches.filter(m => m.stage === 'QF' && m.tie === t); const v = vencedorDoConfronto(js, teams, false);
+            return js[0].homeKey === v ? js[0].awayKey : js[0].homeKey;
+          });
+          c.matches.push(...jogosDaFase(c, fase('PA'), parear(perdedores, seed), oc, somarDias(hoje, 1)).map(m => ({ ...m, id: m.id.replace('SERIE_D-PA', 'SERIE_D-PA'), stage: 'PA' })));
+          c.promovidos = venc.slice();
+        }
         progressou = true;
         break;
       }
+    }
+    // Serie D: os 2 vencedores do playoff de acesso juntam-se aos 4 semifinalistas.
+    if (c.id === 'SERIE_D' && temFase('PA') && feitaFase('PA') && c.promovidos && c.promovidos.length === 4) {
+      copia();
+      const v = vencedoresDe('PA');
+      if (v) { c.promovidos = c.promovidos.concat(v); progressou = true; }
     }
     // 3. campeao
     if (!c.champion && feitaFase('F')) {
@@ -514,10 +556,10 @@ export const tabelaDoGrupo = (c: Competition, grupo: string, teams: Map<string, 
     h.played++; a.played++; h.gf += hs; h.ga += as; a.gf += as; a.ga += hs;
     if (hs > as) { h.won++; h.points += 3; a.lost++; } else if (as > hs) { a.won++; a.points += 3; h.lost++; } else { h.drawn++; a.drawn++; h.points++; a.points++; }
   });
-  return rows.sort((x, y) => y.points - x.points || (y.gf - y.ga) - (x.gf - x.ga) || y.gf - x.gf);
+  return rows.sort((x, y) => y.points - x.points || y.won - x.won || (y.gf - y.ga) - (x.gf - x.ga) || y.gf - x.gf);
 };
 
-export const NOMES_FASES: Record<string, string> = { L: 'First phase', G: 'Group stage', D: 'Group stage', P1: 'Phase 1', P2: 'Phase 2', P3: 'Phase 3', P4: 'Phase 4', P5: 'Phase 5', R1: 'First round', R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-finals', SF: 'Semi-finals', F: 'Final', G1: 'Group MD1', G2: 'Group MD2', G3: 'Group MD3', G4: 'Group MD4', G5: 'Group MD5', G6: 'Group MD6' };
+export const NOMES_FASES: Record<string, string> = { R64: 'Round of 64', PA: 'Promotion playoff', L: 'First phase', G: 'Group stage', D: 'Group stage', P1: 'Phase 1', P2: 'Phase 2', P3: 'Phase 3', P4: 'Phase 4', P5: 'Phase 5', R1: 'First round', R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-finals', SF: 'Semi-finals', F: 'Final', G1: 'Group MD1', G2: 'Group MD2', G3: 'Group MD3', G4: 'Group MD4', G5: 'Group MD5', G6: 'Group MD6' };
 
 // ------------------------------------------------------------------ ligas -> copas
 

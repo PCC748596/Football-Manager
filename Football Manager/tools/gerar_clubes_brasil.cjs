@@ -183,8 +183,8 @@ if (dry) { console.log('(--dry) nada gravado.'); process.exit(0); }
 
 serieA.teamIds = idsA; serieB.teamIds = idsB;
 brasil.leagues.push(
-    { id: 'bra_serie_c', name: 'Série C', tier: 3, worldOnly: true, format: 'SERIE_C', teamIds: idsC, promoted: 4, relegated: 4, matchDates: [] },
-    { id: 'bra_serie_d', name: 'Série D', tier: 4, worldOnly: true, format: 'SERIE_D', teamIds: idsD, promoted: 4, relegated: 0, matchDates: [] },
+    { id: 'bra_serie_c', name: 'Série C', tier: 3, worldOnly: true, format: 'SERIE_C', teamIds: idsC, promoted: 4, relegated: 2, matchDates: [] },
+    { id: 'bra_serie_d', name: 'Série D', tier: 4, worldOnly: true, format: 'SERIE_D', teamIds: idsD, promoted: 6, relegated: 0, matchDates: [] },
     { id: 'bra_clubes', name: 'Outros clubes (Copa do Brasil)', tier: 9, hidden: true, teamIds: soCopa, promoted: 0, relegated: 0, matchDates: [] }
 );
 brasil.copaTeamIds = copaIds;

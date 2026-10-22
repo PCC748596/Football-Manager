@@ -54,7 +54,7 @@ export const buildTable = (teams: Team[], fixtures: Fixture[]): TableRow[] => {
   }
   const out = Array.from(rows.values());
   out.forEach(r => { r.gd = r.gf - r.ga; });
-  return out.sort((x, y) => y.points - x.points || y.gd - x.gd || y.gf - x.gf || x.team.name.localeCompare(y.team.name));
+  return out.sort((x, y) => y.points - x.points || y.won - x.won || y.gd - x.gd || y.gf - x.gf || x.team.name.localeCompare(y.team.name));
 };
 
 /** Cria todas as ligas menos a do utilizador (essa vive no estado do jogo). Os resultados do save, se houver, repoem-se; o resto joga-se ate `ate`. */

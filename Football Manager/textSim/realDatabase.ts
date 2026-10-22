@@ -174,7 +174,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
           451020
         ],
         "promoted": 4,
-        "relegated": 4,
+        "relegated": 2,
         "matchDates": []
       },
       {
@@ -281,7 +281,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
           451115,
           451116
         ],
-        "promoted": 4,
+        "promoted": 6,
         "relegated": 0,
         "matchDates": []
       },
