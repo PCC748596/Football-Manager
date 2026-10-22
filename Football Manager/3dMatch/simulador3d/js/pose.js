@@ -93,7 +93,7 @@ function pintarKitComoIcone(ctx, largura, altura, kit) {
             rect(x + 21, 0, 7, 200, c2); rect(x + 28, 0, 21, 200, c3); rect(x + 49, 0, 7, 200, c2);
         }
     } else if (hasStripes) {
-        for (let x = 20; x < 200; x += 40) rect(x, 0, 20, 200, c2);
+        for (let x = 10; x < 200; x += 40) rect(x, 0, 20, 200, c2);
     }
     ctx.restore();
 }

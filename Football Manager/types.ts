@@ -454,8 +454,10 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
                 c1 = '#1d4ed8'; c2 = undefined; c3 = undefined; clc = '#ef4444'; nc = '#ef4444'; noc = 'white';
             }
         } else if (isSaoPauloSP) {
-            if (kitIdx === 1) { // Away: Branca com duas listas horizontais preta e vermalha com uma branca no meio.
-                c1 = 'white'; c2 = '#ef4444'; c3 = 'black'; spfcStripes = true; nc = 'black'; noc = 'white'; clc = 'white';
+            if (kitIdx === 0) { // Home: Branca com as duas listas horizontais vermelha e preta (e nao o tricolor vertical do Fluminense).
+                c1 = 'white'; c2 = '#ef4444'; c3 = 'black'; spfcStripes = true; nc = 'black'; noc = 'white'; clc = 'black';
+            } else if (kitIdx === 1) { // Away: Vermelha lisa, gola preta. Numero branco com linha preta.
+                c1 = '#ef4444'; c2 = undefined; c3 = undefined; nc = 'white'; noc = 'black'; clc = 'black';
             } else if (kitIdx === 2) { // Third: Igual a 2 só que preta. Numero branco
                 c1 = 'black'; c2 = '#ef4444'; c3 = 'white'; spfcStripes = true; nc = 'white'; noc = 'black'; clc = 'black';
             }

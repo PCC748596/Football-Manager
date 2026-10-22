@@ -18,6 +18,8 @@ import { COUNTRIES, generateLeagueData } from './textSim/dataGenerator';
 import { gruposDaSerieD } from './textSim/competitions';
 import { Team, Player, GameState } from './types';
 import { TeamShield } from './components/TeamShield';
+import { TeamKit } from './components/TeamKit';
+import { PlayerFace } from './components/PlayerFace';
 import EditorApp from './components/EditorApp';
 
 // -- Sub-components --
@@ -145,6 +147,15 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
       const { teams, players } = generateLeagueData(selectedCountryId, selectedLeagueId);
       setPreviewTeams(teams);
       setPreviewPlayers(players);
+      // o 1.o clube da lista (a ordem mostrada: alfabetica; na Serie D, o 1.o do Grupo A) ja aparece no overview
+      const ordenados = [...teams].sort((a, b) => a.name.localeCompare(b.name));
+      const liga = COUNTRIES.find(c => c.id === selectedCountryId)?.leagues.find(l => l.id === selectedLeagueId) as any;
+      let primeiro = ordenados[0];
+      if (liga?.format === 'SERIE_D') {
+        const grupos = Object.values(gruposDaSerieD((liga.teamIds as number[]).map(String))) as string[][];
+        primeiro = ordenados.find(t => grupos[0]?.includes(t.id)) || primeiro;
+      }
+      setClubeSelId(primeiro ? primeiro.id : '');
     }
   }, [selectedCountryId, selectedLeagueId]);
 
@@ -169,11 +180,11 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
   const elencoSel = previewPlayers.filter(p => p.teamId === clubeSelId).sort((a, b) => b.skill - a.skill);
   const sortedTeams = [...previewTeams].sort((a, b) => a.name.localeCompare(b.name));
   const botaoTime = (team: Team) => (
-                <button key={team.id} onClick={() => setClubeSelId(team.id)} className={`${clubeSelId === team.id ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500' : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'} border-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 ${selectedCountryId === '52' ? 'py-1 px-3' : 'py-3 px-4'} rounded transition-all group text-left flex items-center justify-between shadow-sm`}>
-                   <div className="flex items-center gap-4">
-                      <TeamShield team={team} className={selectedCountryId === '52' ? 'w-[22px] h-[28px]' : 'w-[46px] h-[58px]'} />
-                      <div>
-                        <div className="text-xl font-black text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase truncate max-w-[300px] leading-tight">{team.name}</div>
+                <button key={team.id} onClick={() => setClubeSelId(team.id)} className={`${clubeSelId === team.id ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500' : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'} border-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 ${selectedCountryId === '52' ? 'py-1 px-3' : 'py-3 px-4'} rounded transition-all group text-left flex items-center justify-between shadow-sm min-w-0 overflow-hidden`}>
+                   <div className="flex items-center gap-4 min-w-0 w-full">
+                      <TeamShield team={team} className={`shrink-0 ${selectedCountryId === '52' ? 'w-[22px] h-[28px]' : 'w-[46px] h-[58px]'}`} />
+                      <div className="min-w-0">
+                        <div className={`${team.name.length > 20 ? 'text-xs' : team.name.length > 15 ? 'text-sm' : team.name.length > 11 ? 'text-base' : 'text-lg'} font-black text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase truncate leading-tight`}>{team.name}</div>
                         <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase">Rep: {team.strength} OVR</div>
                       </div>
                    </div>
@@ -273,7 +284,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             const painel = 'bg-black/45 backdrop-blur-sm border border-white/15 rounded';
             return (
             <div className="flex-1 relative overflow-hidden rounded border-2 border-slate-200 dark:border-slate-800 min-h-0" style={{ background: `linear-gradient(165deg, ${c1} 0%, ${c1} 18%, ${c2} 62%, #020617 100%)` }}>
-              <div className="absolute inset-0 flex flex-col gap-3 p-3 min-h-0">
+              <div className="absolute inset-0 flex flex-col gap-2 p-1.5 min-h-0">
                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-3 min-h-0">
                   <div className={`relative overflow-hidden h-[84px] flex flex-col justify-center pl-[88px] pr-3 ${painel}`}>
                     <div className="absolute top-1/2 -translate-y-1/2 -left-[26px] w-[120px] h-[144px]"><TeamShield team={clubeSel} className="w-full h-full" /></div>
@@ -292,15 +303,20 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
                     <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">City</span><span className="font-bold text-white">{clubeSel.city || '-'}</span></div>
                     <div className="flex justify-between gap-2"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Stadium</span><span className="font-bold text-white text-right">{clubeSel.stadium || '-'}</span></div>
                     {clubeSel.stadiumCapacity ? <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Capacity</span><span className="font-bold text-white">{clubeSel.stadiumCapacity.toLocaleString()}</span></div> : null}
-                    <div className="flex justify-between items-center"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Kit</span>
-                      <span className="flex gap-1">{[clubeSel.homeKit?.color1, clubeSel.homeKit?.color2, clubeSel.awayKit?.color1].filter(Boolean).map((c, i) => <span key={i} className="w-5 h-5 rounded-full border border-white/40" style={{ background: c }}></span>)}</span>
+                  </div>
+                  <div className={`${painel} px-0 py-1`}>
+                    <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-0 px-2">Kits</div>
+                    <div className="flex flex-wrap justify-center gap-x-0 gap-y-2">
+                      {([0, 1, 2] as const).map(k => <TeamKit key={k} team={clubeSel} kitIndex={k} className="w-[95px] h-[122px]" showLabel number={10} />)}
+                      <TeamKit team={clubeSel} gk className="w-[95px] h-[122px]" showLabel number={1} />
                     </div>
                   </div>
                   <div className={`${painel} p-3`}>
                     <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-2">Key players ({elencoSel.length})</div>
                     {elencoSel.slice(0, 6).map(p => (
-                      <div key={p.id} className="flex items-center justify-between text-sm py-0.5">
-                        <span className="font-bold text-white truncate">{p.name}</span>
+                      <div key={p.id} className="flex items-center justify-between text-sm py-0.5 gap-2">
+                        <PlayerFace playerId={p.id} camisa={clubeSel.homeKit?.color1 || clubeSel.primaryColor} className="w-[49px] h-[49px] shrink-0 rounded-lg overflow-hidden bg-black/30 border border-white/20" />
+                        <span className="font-bold text-white truncate flex-1 min-w-0">{p.name}</span>
                         <span className="text-white/60 font-bold text-xs shrink-0 ml-2">{p.position} · {p.age}y · <span className="text-blue-300">{p.skill}</span></span>
                       </div>
                     ))}

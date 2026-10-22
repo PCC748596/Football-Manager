@@ -184,7 +184,8 @@ export const ShirtIcon: React.FC<ShirtIconProps> = ({
     }
     if (hasStripes) {
       const strips = [];
-      for (let x = 20; x < 200; x += 40) {
+      // x = 10, 50, 90...: a listra de 90 a 110 fica no eixo (100) da camisa
+      for (let x = 10; x < 200; x += 40) {
         strips.push(<rect key={`${x}-v`} x={x} y="0" width="20" height="200" fill={color2} />);
       }
       return strips;
