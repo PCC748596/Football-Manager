@@ -16,7 +16,7 @@ import WorldView from './components/WorldView';
 import StatisticsView from './components/StatisticsView';
 import { COUNTRIES, generateLeagueData } from './textSim/dataGenerator';
 import { gruposDaSerieD } from './textSim/competitions';
-import { Team, GameState } from './types';
+import { Team, Player, GameState } from './types';
 import { TeamShield } from './components/TeamShield';
 import EditorApp from './components/EditorApp';
 
@@ -136,11 +136,15 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
   const [selectedCountryId, setSelectedCountryId] = useState<string>('45');
   const [selectedLeagueId, setSelectedLeagueId] = useState<string>('bra_serie_a');
   const [previewTeams, setPreviewTeams] = useState<Team[]>([]);
+  const [previewPlayers, setPreviewPlayers] = useState<Player[]>([]);
+  const [clubeSelId, setClubeSelId] = useState<string>('');
   
   useEffect(() => {
+    setClubeSelId('');
     if (selectedCountryId && selectedLeagueId) {
-      const { teams } = generateLeagueData(selectedCountryId, selectedLeagueId);
+      const { teams, players } = generateLeagueData(selectedCountryId, selectedLeagueId);
       setPreviewTeams(teams);
+      setPreviewPlayers(players);
     }
   }, [selectedCountryId, selectedLeagueId]);
 
@@ -161,18 +165,17 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
     }
   };
 
+  const clubeSel = previewTeams.find(t => t.id === clubeSelId);
+  const elencoSel = previewPlayers.filter(p => p.teamId === clubeSelId).sort((a, b) => b.skill - a.skill);
   const sortedTeams = [...previewTeams].sort((a, b) => a.name.localeCompare(b.name));
   const botaoTime = (team: Team) => (
-                <button key={team.id} onClick={() => onSelectTeam(team.id, selectedCountryId, selectedLeagueId)} className={`bg-slate-50 dark:bg-slate-900/60 border-2 border-slate-200 dark:border-slate-800 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 ${selectedCountryId === '52' ? 'py-1 px-3' : 'py-3 px-4'} rounded transition-all group text-left flex items-center justify-between shadow-sm`}>
+                <button key={team.id} onClick={() => setClubeSelId(team.id)} className={`${clubeSelId === team.id ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500' : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'} border-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 ${selectedCountryId === '52' ? 'py-1 px-3' : 'py-3 px-4'} rounded transition-all group text-left flex items-center justify-between shadow-sm`}>
                    <div className="flex items-center gap-4">
                       <TeamShield team={team} className={selectedCountryId === '52' ? 'w-[22px] h-[28px]' : 'w-[46px] h-[58px]'} />
                       <div>
                         <div className="text-xl font-black text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase truncate max-w-[300px] leading-tight">{team.name}</div>
                         <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase">Rep: {team.strength} OVR</div>
                       </div>
-                   </div>
-                   <div className="text-right">
-                      <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 bg-white dark:bg-slate-950 px-2 py-1 rounded transition-colors uppercase tracking-widest border border-slate-200 dark:border-slate-800 shadow-sm">{t('sel_join')}</div>
                    </div>
                 </button>
   );
@@ -193,7 +196,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
         </div>
       </div>
       <div className="flex-1 flex gap-6 min-h-0 overflow-hidden">
-        <div className="w-[16%] flex flex-col gap-4">
+        <div className="w-[12%] flex flex-col gap-4">
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">Confederations</div>
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
             {CONFEDERACOES.map(f => {
@@ -207,7 +210,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             })}
           </div>
         </div>
-        <div className="w-[calc(22%-50px)] flex flex-col gap-4">
+        <div className="w-[calc(18%-50px)] flex flex-col gap-4">
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step1')}</div>
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
             {paisesDaConf.length === 0 && <div className="text-xs text-slate-400 font-bold px-2 pt-2">No national associations in this confederation yet.</div>}
@@ -219,7 +222,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             ))}
           </div>
         </div>
-        <div className="w-[22%] flex flex-col gap-4">
+        <div className="w-[17%] flex flex-col gap-4">
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step2')}</div>
           <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
@@ -262,6 +265,54 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
               </div>
             )}
           </div>
+        </div>
+        <div className="w-[24%] flex flex-col gap-4 min-h-0">
+          <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">Club Overview</div>
+          {clubeSel ? (() => {
+            const c1 = clubeSel.homeKit?.color1 || '#1e293b', c2 = clubeSel.homeKit?.color2 || c1;
+            const painel = 'bg-black/45 backdrop-blur-sm border border-white/15 rounded';
+            return (
+            <div className="flex-1 relative overflow-hidden rounded border-2 border-slate-200 dark:border-slate-800 min-h-0" style={{ background: `linear-gradient(165deg, ${c1} 0%, ${c1} 18%, ${c2} 62%, #020617 100%)` }}>
+              <div className="absolute inset-0 flex flex-col gap-3 p-3 min-h-0">
+                <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-3 min-h-0">
+                  <div className={`relative overflow-hidden h-[84px] flex flex-col justify-center pl-[88px] pr-3 ${painel}`}>
+                    <div className="absolute top-1/2 -translate-y-1/2 -left-[26px] w-[120px] h-[144px]"><TeamShield team={clubeSel} className="w-full h-full" /></div>
+                    <div className="text-2xl font-black text-white uppercase leading-tight truncate">{clubeSel.name}</div>
+                    <div className="text-[10px] font-bold text-blue-300 uppercase tracking-widest">{activeCountry?.leagues.find(l => l.id === selectedLeagueId)?.name}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    {[['OVR', clubeSel.strength], ['Founded', clubeSel.foundedYear || '-'], ['Fan base', (clubeSel.fanBase || 0).toLocaleString()], ['Budget', '$' + Math.round((clubeSel.cash || 0) / 1000).toLocaleString() + 'k']].map(([k, v]) => (
+                      <div key={String(k)} className={`${painel} p-2`}>
+                        <div className="text-[9px] font-black text-white/60 uppercase tracking-widest">{k}</div>
+                        <div className="text-lg font-black text-white">{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={`${painel} p-3 text-sm space-y-1`}>
+                    <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">City</span><span className="font-bold text-white">{clubeSel.city || '-'}</span></div>
+                    <div className="flex justify-between gap-2"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Stadium</span><span className="font-bold text-white text-right">{clubeSel.stadium || '-'}</span></div>
+                    {clubeSel.stadiumCapacity ? <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Capacity</span><span className="font-bold text-white">{clubeSel.stadiumCapacity.toLocaleString()}</span></div> : null}
+                    <div className="flex justify-between items-center"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Kit</span>
+                      <span className="flex gap-1">{[clubeSel.homeKit?.color1, clubeSel.homeKit?.color2, clubeSel.awayKit?.color1].filter(Boolean).map((c, i) => <span key={i} className="w-5 h-5 rounded-full border border-white/40" style={{ background: c }}></span>)}</span>
+                    </div>
+                  </div>
+                  <div className={`${painel} p-3`}>
+                    <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-2">Key players ({elencoSel.length})</div>
+                    {elencoSel.slice(0, 6).map(p => (
+                      <div key={p.id} className="flex items-center justify-between text-sm py-0.5">
+                        <span className="font-bold text-white truncate">{p.name}</span>
+                        <span className="text-white/60 font-bold text-xs shrink-0 ml-2">{p.position} · {p.age}y · <span className="text-blue-300">{p.skill}</span></span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={() => onSelectTeam(clubeSel.id, selectedCountryId, selectedLeagueId)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-sm transition-all shadow-lg text-xl uppercase tracking-widest">{t('sel_join')}</button>
+              </div>
+            </div>
+            );
+          })() : (
+            <div className="flex-1 flex items-center justify-center text-center text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest px-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded">Select a club to see its overview</div>
+          )}
         </div>
       </div>
     </div>
