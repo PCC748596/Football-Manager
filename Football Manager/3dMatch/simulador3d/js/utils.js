@@ -5422,7 +5422,7 @@ function aparenciaDoJogador(id) {
     const F = (typeof FacesPersonalizadas !== 'undefined') ? FacesPersonalizadas[String(n)] : null;
     if (F) {
         const hexN = (c) => parseInt(String(c).replace('#', ''), 16);
-        return { tipo: 'custom', cabelo: hexN(F.cabelo), pele: hexN(F.pele), chuteira: bota.nome, corChuteira: bota.cor, estilo: F.estilo, barba: F.barba, oculos: !!F.oculos, largura: F.largura };
+        return { tipo: 'custom', cabelo: hexN(F.cabelo), pele: hexN(F.pele), chuteira: bota.nome, corChuteira: bota.cor, estilo: F.estilo, barba: F.barba, oculos: !!F.oculos, largura: F.largura, rosto: F.rosto };
     }
     return { tipo: tipo.nome, cabelo: tipo.cabelo, pele: tipo.pele, chuteira: bota.nome, corChuteira: bota.cor };
 }

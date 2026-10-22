@@ -30,7 +30,7 @@ do rosto: as mesmas pecas que o 3D desenha (pose.js, `aplicarFaceCustom`).
 export const PlayerFace: React.FC<Props> = ({ playerId, camisa = '#475569', face, className = '' }) => {
   const base: Aparencia = aparenciaDoJogador(playerId);
   const ap: Aparencia = face
-    ? { ...base, tipo: 'custom', pele: parseInt(face.pele.replace('#', ''), 16), cabelo: parseInt(face.cabelo.replace('#', ''), 16), estilo: face.estilo, barba: face.barba, oculos: face.oculos, largura: face.largura }
+    ? { ...base, tipo: 'custom', pele: parseInt(face.pele.replace('#', ''), 16), cabelo: parseInt(face.cabelo.replace('#', ''), 16), estilo: face.estilo, barba: face.barba, oculos: face.oculos, largura: face.largura, rosto: face.rosto }
     : base;
   const pele = hex(ap.pele), cabelo = hex(ap.cabelo);
   // A tinta da cara, como no 3D: cinza escuro em pele clara, clara em pele escura (luminosidade < 0.42).
@@ -38,7 +38,7 @@ export const PlayerFace: React.FC<Props> = ({ playerId, camisa = '#475569', face
   const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
   const tinta = lum < 0.42 ? '#d9c4b8' : '#2f3640';
   const sombra = 'rgba(0,0,0,0.18)';
-  const estilo = ap.estilo || 'curto', barba = ap.barba || 'nenhuma', largura = ap.largura || 1;
+  const estilo = ap.estilo || 'curto', barba = ap.rosto ? 'nenhuma' : (ap.barba || 'nenhuma'), largura = ap.largura || 1;   // com a cara em pixels a barba ja vem nela
   const labios = misturar(pele, '#b0524f', 0.45);
   return (
     <svg viewBox="-0.85 -0.95 1.7 1.87" className={className} role="img" aria-label="Rosto do jogador">
@@ -49,12 +49,21 @@ export const PlayerFace: React.FC<Props> = ({ playerId, camisa = '#475569', face
       <g transform={`scale(${largura} 1)`}>
         {/* Cabeca */}
         <rect x="-0.4" y="-0.5" width="0.8" height="1.0" fill={pele} />
+        {/* A cara em pixels (da foto): cobre o rosto, ANTES do cabelo (a franja fica por cima); os olhos, o nariz, a boca, a barba e os oculos ja vem nela */}
+        {ap.rosto && <image href={ap.rosto} x="-0.4" y="-0.5" width="0.8" height="1" preserveAspectRatio="none" style={{ imageRendering: 'pixelated' }} />}
         {/* Cabelo: laterais, topo e franja, por estilo */}
         {estilo === 'curto' && (<>
           <rect x="-0.475" y="-0.5" width="0.15" height="0.6" fill={cabelo} />
           <rect x="0.325" y="-0.5" width="0.15" height="0.6" fill={cabelo} />
           <rect x="-0.44" y="-0.625" width="0.88" height="0.25" fill={cabelo} />
           <rect x="-0.44" y="-0.525" width="0.88" height="0.15" fill={cabelo} />
+        </>)}
+        {estilo === 'degrade' && (<>
+          {/* Degrade (fade): lados baixos e finos, mais claros (so a sombra do pelo), com topo e franja de sempre */}
+          <rect x="-0.43" y="-0.5" width="0.06" height="0.26" fill={misturar(cabelo, pele, 0.45)} />
+          <rect x="0.37" y="-0.5" width="0.06" height="0.26" fill={misturar(cabelo, pele, 0.45)} />
+          <rect x="-0.43" y="-0.625" width="0.86" height="0.25" fill={cabelo} />
+          <rect x="-0.42" y="-0.525" width="0.84" height="0.12" fill={cabelo} />
         </>)}
         {estilo === 'raspado' && (<>
           <rect x="-0.43" y="-0.5" width="0.07" height="0.3" fill={cabelo} />
@@ -81,16 +90,23 @@ export const PlayerFace: React.FC<Props> = ({ playerId, camisa = '#475569', face
           <rect x="-0.4" y="-0.05" width="0.1" height="0.25" fill={misturar(pele, cabelo, 0.9)} />
           <rect x="0.3" y="-0.05" width="0.1" height="0.25" fill={misturar(pele, cabelo, 0.9)} />
         </>)}
+        {barba === 'cavanhaque' && (<>
+          {/* Cavanhaque ralo: so o queixo e uma linha fina sobre a boca, mais clara que a barba cheia */}
+          <rect x="-0.15" y="0.3" width="0.3" height="0.2" fill={misturar(pele, cabelo, 0.6)} />
+          <rect x="-0.16" y="0.12" width="0.32" height="0.05" fill={misturar(pele, cabelo, 0.6)} />
+        </>)}
         {barba === 'bigode' && <rect x="-0.18" y="0.11" width="0.36" height="0.07" fill={cabelo} />}
-        {/* Olhos, nariz e boca */}
-        <rect x="-0.2" y="-0.22" width="0.08" height="0.14" fill={tinta} />
-        <rect x="0.12" y="-0.22" width="0.08" height="0.14" fill={tinta} />
-        <polyline points="0,-0.05 0,0.08 0.06,0.08" fill="none" stroke={tinta} strokeWidth="0.025" />
-        {barba === 'cheia' || barba === 'bigode'
-          ? <rect x="-0.12" y="0.2" width="0.24" height="0.05" fill={labios} />
-          : <line x1="-0.12" y1="0.22" x2="0.12" y2="0.22" stroke={tinta} strokeWidth="0.03" />}
+        {/* Olhos, nariz e boca (desenhados so quando nao ha a cara em pixels) */}
+        {!ap.rosto && (<>
+          <rect x="-0.2" y="-0.22" width="0.08" height="0.14" fill={tinta} />
+          <rect x="0.12" y="-0.22" width="0.08" height="0.14" fill={tinta} />
+          <polyline points="0,-0.05 0,0.08 0.06,0.08" fill="none" stroke={tinta} strokeWidth="0.025" />
+          {barba === 'cheia' || barba === 'bigode'
+            ? <rect x="-0.12" y="0.2" width="0.24" height="0.05" fill={labios} />
+            : <line x1="-0.12" y1="0.22" x2="0.12" y2="0.22" stroke={tinta} strokeWidth="0.03" />}
+        </>)}
         {/* Oculos */}
-        {ap.oculos && (<>
+        {ap.oculos && !ap.rosto && (<>
           <rect x="-0.29" y="-0.3" width="0.26" height="0.22" fill="none" stroke="#1f2937" strokeWidth="0.035" />
           <rect x="0.03" y="-0.3" width="0.26" height="0.22" fill="none" stroke="#1f2937" strokeWidth="0.035" />
           <line x1="-0.03" y1="-0.22" x2="0.03" y2="-0.22" stroke="#1f2937" strokeWidth="0.035" />

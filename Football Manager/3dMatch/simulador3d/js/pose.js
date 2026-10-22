@@ -248,9 +248,26 @@ A FACE PERSONALIZADA (Editor de Faces do manager: data/faces.js, `FacesPersonali
   largura a cabeca mais estreita ou mais larga (aplicada depois da proporcao da cabeca, ver `construirCorpo`).
 So corre quando a aparencia traz `estilo`/`barba`/`oculos` (faces personalizadas): quem nao tem nao muda em nada.
 */
+/*
+A CARA EM PIXELS (Editor de Faces: `rosto`, um PNG de 20 x 25 pixels gerado da foto): vai na face da FRENTE da cabeca (a caixa de 0.8 x 1.0), com filtro `nearest` para ficar de voxels. Custo: nenhum
+triangulo a mais (a cabeca continua a ser uma caixa) e uma textura de ~1 KB por jogador, em cache por imagem. Os olhos, o nariz e a boca desenhados escondem-se (ja vem na foto). So jogadores e
+arbitros (construirCorpo com `leve` = 0): a torcida usa as faces simples.
+*/
+function texturaDoRostoPixelado(url) {
+    const cache = texturaDoRostoPixelado._cache || (texturaDoRostoPixelado._cache = {});
+    if (cache[url]) return cache[url];
+    const img = new Image();
+    const tex = new THREE.Texture(img);
+    tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
+    img.onload = () => { tex.needsUpdate = true; };
+    img.src = url;
+    cache[url] = tex;
+    return tex;
+}
+
 function aplicarFaceCustom(ap, head, boca, partes, u) {
     const { hT, hB, hL, hR, hF } = partes;
-    const estilo = ap.estilo || 'curto', barba = ap.barba || 'nenhuma';
+    const estilo = ap.estilo || 'curto', barba = ap.rosto ? 'nenhuma' : (ap.barba || 'nenhuma');   // com a cara em pixels a barba ja vem nela
     const ajusta = (m, escalaY, topo, folgaX) => {   // encolhe/estica a peca mantendo o TOPO onde estava
         const h0 = m.geometry.parameters.height * u;
         m.scale.y = escalaY;
@@ -260,6 +277,11 @@ function aplicarFaceCustom(ap, head, boca, partes, u) {
     if (estilo === 'careca') { hT.visible = hB.visible = hL.visible = hR.visible = hF.visible = false; }
     else if (estilo === 'raspado') {
         ajusta(hT, 0.48, u * 0.625); ajusta(hB, 0.4, u * 0.5); ajusta(hL, 0.45, u * 0.5); ajusta(hR, 0.45, u * 0.5); hF.visible = false;
+    } else if (estilo === 'degrade') {
+        // Degrade (fade): lados e costas baixos e finos, de uma cor mais clara (a sombra do pelo); topo e franja de sempre
+        const fade = new THREE.MeshStandardMaterial({ color: new THREE.Color(ap.cabelo).lerp(new THREE.Color(ap.pele), 0.45), roughness: 0.9 });
+        ajusta(hL, 0.45, u * 0.5, u * 0.045); ajusta(hR, 0.45, u * 0.5, -u * 0.045); ajusta(hB, 0.45, u * 0.5);
+        hL.scale.x = hR.scale.x = 0.5; hL.material = hR.material = hB.material = fade;
     } else if (estilo === 'longo') {
         ajusta(hB, 1.7, u * 0.5); ajusta(hL, 1.7, u * 0.5, -u * 0.03); ajusta(hR, 1.7, u * 0.5, u * 0.03);
     } else if (estilo === 'topete') {
@@ -272,7 +294,11 @@ function aplicarFaceCustom(ap, head, boca, partes, u) {
     const mistura = (t) => pele.clone().lerp(cabelo, t);
     // A barba comeca LOGO ABAIXO DO NARIZ (o nariz acaba em y = -0.08): nunca por cima dele.
     if (barba === 'rala') caixa(0.82, 0.4, 0.05, 0, -0.3, 0.43, mistura(0.3));
-    else if (barba === 'cheia') {
+    else if (barba === 'cavanhaque') {
+        // Cavanhaque ralo: o queixo e uma linha fina sobre a boca, mais claros que a barba cheia (a barba comeca abaixo do nariz: o topo do bigode fica em -0.12)
+        const c = mistura(0.6);
+        caixa(0.3, 0.2, 0.05, 0, -0.4, 0.43, c); caixa(0.32, 0.05, 0.04, 0, -0.145, 0.435, c);
+    } else if (barba === 'cheia') {
         const c = mistura(0.9);
         caixa(0.82, 0.4, 0.05, 0, -0.3, 0.43, c);
         caixa(0.05, 0.25, 0.7, -0.4, -0.08, -0.05, c); caixa(0.05, 0.25, 0.7, 0.4, -0.08, -0.05, c);
@@ -281,7 +307,7 @@ function aplicarFaceCustom(ap, head, boca, partes, u) {
         if (boca) boca.visible = false;
         caixa(0.24, 0.05, 0.03, 0, -0.22, 0.447, pele.clone().lerp(new THREE.Color(0xb0524f), 0.45));
     }
-    if (ap.oculos) {
+    if (ap.oculos && !ap.rosto) {
         const aro = 0x1f2937;
         [-0.16, 0.16].forEach((cx) => {
             caixa(0.28, 0.03, 0.03, cx, 0.26, 0.44, aro); caixa(0.28, 0.03, 0.03, cx, 0.04, 0.44, aro);
@@ -801,6 +827,11 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
     const hF = criarPeca(new THREE.BoxGeometry(u * 0.88, u * 0.15, u * 0.2), hairMat); hF.position.set(0, u * 0.45, u * 0.38);
     hairGrp.add(hT, hB, hL, hR, hF); head.add(hairGrp); neck.add(head);
     if (ap.tipo === 'custom') aplicarFaceCustom(ap, head, boca, { hT, hB, hL, hR, hF }, u);   // face personalizada: estilo do cabelo, barba e oculos
+    if (ap.tipo === 'custom' && ap.rosto && !leve && typeof Image !== 'undefined') {   // a cara em pixels so nos jogadores e arbitros (a torcida usa `leve`)
+        const faceMat = new THREE.MeshStandardMaterial({ map: texturaDoRostoPixelado(ap.rosto), roughness: 0.8 });
+        head.material = [blockMat, blockMat, blockMat, blockMat, faceMat, blockMat];   // ordem do Box: +x, -x, +y, -y, +z (frente), -z
+        rig.olhoEsq.visible = rig.olhoDir.visible = nariz.visible = boca.visible = false;
+    }
 
     /*
     A PROPORÇÃO EM CABEÇAS — ver ProporcaoCorpo (config/physics.js).

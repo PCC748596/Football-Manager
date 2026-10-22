@@ -17,7 +17,7 @@ A leitura e uma SUGESTAO: o editor mostra a previa e deixa ajustar cada campo.
 import type { EstiloBarba, EstiloCabelo, FaceCustom } from './aparencia';
 
 export interface Imagem { data: ArrayLike<number>; width: number; height: number; }
-export interface LeituraFace { face: FaceCustom; avisos: string[]; detalhe: { fundo: string; rosto: { x0: number; x1: number; y0: number; y1: number }; razaoCabelo: number; fracaoBarba: number; fracaoBigode: number; razaoRosto: number }; }
+export interface LeituraFace { face: FaceCustom; avisos: string[]; detalhe: { fundo: string; rosto: { x0: number; x1: number; y0: number; y1: number }; razaoCabelo: number; fracaoBarba: number; fracaoBigode: number; razaoRosto: number; alturaLados: number; fracaoQueixo: number; fracaoMandibulas: number }; }
 
 type Rgb = [number, number, number];
 const hex = (c: Rgb) => '#' + c.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
@@ -80,9 +80,9 @@ export const lerFaceDaFoto = (img: Imagem): LeituraFace => {
   x0 = x1 = centro;
   for (let x = centro, buraco = 0; x > 0 && buraco < 5; x--) { if (naLinha(x)) { x0 = x; buraco = 0; } else buraco++; }
   for (let x = centro, buraco = 0; x < W - 1 && buraco < 5; x++) { if (naLinha(x)) { x1 = x; buraco = 0; } else buraco++; }
-  // O QUEIXO pela proporcao do rosto (da linha do cabelo ao queixo ~ 1.3 x a largura): nem a pele nem o fundo o marcam — a barba corta a mascara de pele e o pescoco tem a largura do queixo.
+  // O QUEIXO pela proporcao do rosto (da linha do cabelo ao queixo ~ 1.17 x a largura, medido em duas fotos de referencia): nem a pele nem o fundo o marcam — a barba corta a mascara de pele e o pescoco tem a largura do queixo.
   const larg = Math.max(1, x1 - x0);
-  const y1 = Math.min(yMax - 1, y0 + Math.round(larg * 1.3));
+  const y1 = Math.min(yMax - 1, y0 + Math.round(larg * 1.17));
   const alt = Math.max(1, y1 - y0);
   const razaoRosto = larg / alt;
 
@@ -118,8 +118,12 @@ export const lerFaceDaFoto = (img: Imagem): LeituraFace => {
   if (ladoTotal && ladoLongo / ladoTotal > 0.35) estilo = 'longo';
 
   // 5. barba: a parte de baixo do rosto
-  const lp = luma(pele);
-  const maisEscuro = (c: Rgb) => luma(c) < lp * 0.84 && ((c[0] - c[1]) / Math.max(1, c[0]) < 0.30);
+  // A luminosidade de referencia da pele para a barba: a das BOCHECHAS (a meio do rosto, sem testa brilhante nem sombra do queixo).
+  const lumasBochecha: number[] = [];
+  for (let y = Math.floor(y0 + alt * 0.4); y < Math.floor(y0 + alt * 0.55); y++) for (let x = Math.floor(x0 + larg * 0.2); x < Math.floor(x1 - larg * 0.2); x++) lumasBochecha.push(luma(px(x, y)));
+  const lp = lumasBochecha.length ? mediana(lumasBochecha) : luma(pele);
+  // Barba: bem mais escura que a pele das bochechas (72%): a sombra sob o queixo e nas mandibulas e mais clara que isso, o pelo nao.
+  const maisEscuro = (c: Rgb) => luma(c) < lp * 0.72 && ((c[0] - c[1]) / Math.max(1, c[0]) < 0.30);
   const regiao = (ya: number, yb: number, xa: number, xb: number): number => {
     let n = 0, d = 0;
     for (let y = Math.floor(ya); y < Math.floor(yb); y++) for (let x = Math.floor(xa); x < Math.floor(xb); x++) { d++; const c = px(x, y); if (pareceCarne(c) || luma(c) < lp) { if (maisEscuro(c)) n++; } }
@@ -128,16 +132,63 @@ export const lerFaceDaFoto = (img: Imagem): LeituraFace => {
   const fracaoBarba = regiao(y0 + alt * 0.68, y1 - 1, x0 + larg * 0.15, x1 - larg * 0.15);
   const fracaoBigode = regiao(y0 + alt * 0.56, y0 + alt * 0.66, x0 + larg * 0.3, x1 - larg * 0.3);
   let barba: EstiloBarba = 'nenhuma';
-  if (fracaoBarba > 0.55) barba = 'cheia';
-  else if (fracaoBarba > 0.14) barba = 'rala';
-  else if (fracaoBigode > 0.35) barba = 'bigode';
 
+  // Onde esta a barba: no queixo (o centro) ou tambem nas mandibulas (os lados)? Cavanhaque = queixo e bigode, mandibulas limpas.
+  const xc = (x0 + x1) / 2;
+  const fracaoQueixo = regiao(y0 + alt * 0.72, y1 - 1, xc - larg * 0.14, xc + larg * 0.14);
+  const fracaoMandibulas = (regiao(y0 + alt * 0.62, y1 - 1, x0 + larg * 0.08, x0 + larg * 0.3) + regiao(y0 + alt * 0.62, y1 - 1, x1 - larg * 0.3, x1 - larg * 0.08)) / 2;
+  // O cabelo dos lados: ate onde (em fracao da altura do rosto, a partir da linha do cabelo) ha cabelo nas temporas? Degrade (fade) = so ate a altura da testa/ponta da sobrancelha.
+  const alturaDoLado = (xa: number, xb: number): number => {
+    let ultimo = y0;
+    for (let y = y0; y < y0 + Math.floor(alt * 0.62); y++) {
+      let n = 0, d = 0;
+      for (let x = Math.floor(xa); x < Math.floor(xb); x++) { d++; const c = px(x, y); if (dist(c, fundo) > 38 && luma(c) < lp * 0.5) n++; }   // cabelo ESCURO: o degrade (fade) e so a sombra de pelo, bem mais claro
+      if (d && n / d > 0.45) ultimo = y;
+    }
+    return (ultimo - y0) / alt;
+  };
+  const alturaLados = (alturaDoLado(x0 - larg * 0.04, x0 + larg * 0.13) + alturaDoLado(x1 - larg * 0.13, x1 + larg * 0.04)) / 2;
+  // A barba pelo QUEIXO (centro) e pelas MANDIBULAS (lados): as duas escuras = cheia; so o queixo = cavanhaque; pouco de tudo = rala; so por cima da boca = bigode.
+  const media = (fracaoQueixo + fracaoMandibulas) / 2;
+  if (media > 0.4) barba = 'cheia';
+  else if (fracaoQueixo > 0.08 && fracaoQueixo > fracaoMandibulas + 0.06 && fracaoMandibulas < 0.15) barba = 'cavanhaque';
+  else if (media > 0.1) barba = 'rala';
+  else if (fracaoBigode > 0.3) barba = 'bigode';
+  if (estilo === 'curto' && alturaLados < 0.3) estilo = 'degrade';
   const largura = 1;   // a largura do rosto nao se mede bem de uma foto so (o queixo e estimado): fica neutra e ajusta-se no editor
   if (estilo === 'careca') avisos.push('Cabelo curto demais ou muito parecido com a pele: confira o estilo do cabelo.');
 
   return {
     face: { pele: hex(pele), cabelo: hex(cabelo), estilo, barba, oculos: false, largura: Math.round(largura * 100) / 100 },
     avisos,
-    detalhe: { fundo: hex(fundo), rosto: { x0, x1, y0, y1 }, razaoCabelo, fracaoBarba, fracaoBigode, razaoRosto }
+    detalhe: { fundo: hex(fundo), rosto: { x0, x1, y0, y1 }, razaoCabelo, fracaoBarba, fracaoBigode, razaoRosto, alturaLados, fracaoQueixo, fracaoMandibulas }
   };
+};
+
+/**
+ * A CARA EM PIXELS: a regiao do rosto (da testa ao queixo, sem as orelhas) da foto, reduzida a `w` x `h` pixels pela media de cada celula — o mesmo rosto de frente, so que com a
+ * resolucao do jogo (20 x 25 por defeito; a face do modelo e uma caixa de 0.8 x 1.0). Devolve RGBA (w*h*4): o Editor de Faces codifica-o num PNG pequeno (guardado em `FaceCustom.rosto`)
+ * e o 2D (`PlayerFace`) e o 3D (a face da frente da cabeca, `pose.js`) mostram-no com filtro "nearest": parece de voxels, e custa uma caixa de 12 triangulos e uma textura minuscula.
+ */
+export const rostoPixelado = (img: Imagem, det: LeituraFace['detalhe'], w = 20, h = 25): Uint8ClampedArray => {
+  const { x0, x1, y0, y1 } = det.rosto;
+  const larg = x1 - x0, alt = y1 - y0;
+  const xa = x0 + larg * 0.1, xb = x1 - larg * 0.1;            // sem as orelhas nem o fundo que sobra nas faces mais estreitas
+  const ya = y0 - alt * 0.02, yb = y1 - alt * 0.03;              // da linha do cabelo ao queixo
+  const out = new Uint8ClampedArray(w * h * 4);
+  for (let j = 0; j < h; j++) {
+    for (let i = 0; i < w; i++) {
+      const cx0 = xa + ((xb - xa) * i) / w, cx1 = xa + ((xb - xa) * (i + 1)) / w, cy0 = ya + ((yb - ya) * j) / h, cy1 = ya + ((yb - ya) * (j + 1)) / h;
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let y = Math.floor(cy0); y <= Math.ceil(cy1) - 1; y++) {
+        for (let x = Math.floor(cx0); x <= Math.ceil(cx1) - 1; x++) {
+          if (x < 0 || y < 0 || x >= img.width || y >= img.height) continue;
+          const k = (y * img.width + x) * 4; r += img.data[k]; g += img.data[k + 1]; b += img.data[k + 2]; n++;
+        }
+      }
+      const o = (j * w + i) * 4;
+      out[o] = n ? r / n : 0; out[o + 1] = n ? g / n : 0; out[o + 2] = n ? b / n : 0; out[o + 3] = 255;
+    }
+  }
+  return out;
 };

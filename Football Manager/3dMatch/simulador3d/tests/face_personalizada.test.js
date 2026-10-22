@@ -36,6 +36,15 @@ function cabeca() {
 const ap = (extra) => Object.assign({ tipo: 'custom', pele: 0xd09472, cabelo: 0x262221, estilo: 'curto', barba: 'nenhuma', oculos: false, largura: 1 }, extra);
 const topo = (m) => m.position.y + (m.geometry.parameters.height * m.scale.y) / 2;
 
+test('degrade: lados e costas baixos e finos, topo e franja de sempre', () => {
+    const c = cabeca(); const topoT = topo(c.partes.hT), alturaL = c.partes.hL.geometry.parameters.height;
+    aplicarFaceCustom(ap({ estilo: 'degrade' }), c.head, c.boca, c.partes, 1);
+    assert.ok(c.partes.hL.scale.y < 0.5 && c.partes.hL.scale.x < 0.6 && topo(c.partes.hL) <= 0.5 + 1e-6);
+    assert.strictEqual(topo(c.partes.hT), topoT, 'o topo nao muda');
+    assert.ok(c.partes.hF.visible !== false, 'a franja fica');
+    assert.ok(c.partes.hL.geometry.parameters.height * c.partes.hL.scale.y < alturaL * 0.5);
+});
+
 test('curto deixa o cabelo como estava', () => {
     const c = cabeca(); const antes = Object.values(c.partes).map(m => [m.position.y, m.scale.y]);
     aplicarFaceCustom(ap({}), c.head, c.boca, c.partes, 1);
@@ -57,7 +66,7 @@ test('careca esconde o cabelo; raspado encolhe mantendo o topo; longo e topete e
 });
 
 test('a barba comeca abaixo do nariz, em todos os tipos (nunca o bigode acima do nariz)', () => {
-    for (const barba of ['rala', 'cheia', 'bigode']) {
+    for (const barba of ['rala', 'cheia', 'bigode', 'cavanhaque']) {
         const c = cabeca();
         aplicarFaceCustom(ap({ barba }), c.head, c.boca, c.partes, 1);
         const novas = c.head.children.slice(c.base);
@@ -70,7 +79,7 @@ test('a barba comeca abaixo do nariz, em todos os tipos (nunca o bigode acima do
 });
 
 test('labios por cima da barba cheia e do bigode (a linha da boca fica escondida); rala e nenhuma mantem a linha', () => {
-    for (const [barba, escondida] of [['nenhuma', false], ['rala', false], ['cheia', true], ['bigode', true]]) {
+    for (const [barba, escondida] of [['nenhuma', false], ['rala', false], ['cavanhaque', false], ['cheia', true], ['bigode', true]]) {
         const c = cabeca();
         aplicarFaceCustom(ap({ barba }), c.head, c.boca, c.partes, 1);
         assert.strictEqual(c.boca.visible === false, escondida, barba);
