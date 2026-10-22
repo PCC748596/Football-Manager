@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt"><head><meta charset="utf-8"><title>Face teste 3D</title>
+<style>html,body{margin:0;background:#101626;overflow:hidden}canvas{display:block}</style></head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/config/physics.js"></script><script src="js/config/animations.js"></script><script src="js/config/gait.js"></script><script src="js/config/gait_clips.js"></script>
+<script src="js/config/gk_clips_pes.js"></script><script src="js/config/tactics.js"></script><script src="js/config/passing.js"></script><script src="js/config/shooting.js"></script>
+<script src="js/config/defense.js"></script><script src="js/config/goalkeeper.js"></script><script src="js/config/player_behavior.js"></script>
+<script src="js/utils.js"></script><script src="js/pose.js"></script><script src="data/faces.js"></script>
+<script>
+/*
+FERRAMENTA DE DESENVOLVIMENTO — as cabecas (de frente, 3/4 e de lado) de jogadores com face personalizada, para ver como o `construirCorpo` as desenha de verdade em 3D.
+Abre-se em /simulador3d/faceTeste.html?ids=269245,269253[&sem=1 para a versao SEM a cara em pixels]. Nao entra no jogo.
+*/
+const q = new URLSearchParams(location.search);
+const ids = (q.get('ids') || '269245,269253').split(',').map(Number);
+const comRosto = !q.get('sem');
+const LARG = 1200, ALT = 720;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(LARG, ALT); document.body.appendChild(renderer.domElement);
+renderer.setScissorTest(true);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x1a2236);
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x1a2030, 1.0));
+const sol = new THREE.DirectionalLight(0xffffff, 0.9); sol.position.set(2, 4, 5); scene.add(sol);
+const camera = new THREE.PerspectiveCamera(25, (LARG / 3) / (ALT / ids.length), 0.05, 50);
+const corpos = ids.map((id, i) => {
+    const ap = aparenciaDoJogador(id);
+    if (!comRosto) delete ap.rosto;
+    const f = construirCorpo('#aa2233', '#ffffff', ap, null, 0);
+    f.corpo.position.set(i * 3, 0, 0);
+    scene.add(f.corpo);
+    return f;
+});
+setTimeout(() => {
+    scene.updateMatrixWorld(true);
+    ids.forEach((id, linha) => {
+        const cabeca = corpos[linha].rig.neck.children.find(o => o.isMesh);
+        const alvo = new THREE.Vector3(); cabeca.getWorldPosition(alvo);
+        [0, 0.7, 1.45].forEach((ang, col) => {
+            const d = 1.15;
+            camera.position.set(alvo.x + Math.sin(ang) * d, alvo.y + 0.02, alvo.z + Math.cos(ang) * d);
+            camera.lookAt(alvo);
+            const w = LARG / 3, h = ALT / ids.length;
+            renderer.setViewport(col * w, (ids.length - 1 - linha) * h, w, h); renderer.setScissor(col * w, (ids.length - 1 - linha) * h, w, h);
+            renderer.render(scene, camera);
+        });
+    });
+    document.title = 'pronto';
+    const dc = document.createElement('div'); dc.style.cssText = 'position:fixed;left:8px;top:6px;color:#9fb0d0;font:12px monospace'; dc.textContent = 'draw calls (ultima vista): ' + renderer.info.render.calls + ' | triangulos: ' + renderer.info.render.triangles + ' | ' + (comRosto ? 'com rosto em pixels' : 'SEM rosto'); document.body.appendChild(dc);
+}, 1500);
+</script></body></html>

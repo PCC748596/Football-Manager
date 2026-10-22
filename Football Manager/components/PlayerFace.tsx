@@ -30,7 +30,7 @@ do rosto: as mesmas pecas que o 3D desenha (pose.js, `aplicarFaceCustom`).
 export const PlayerFace: React.FC<Props> = ({ playerId, camisa = '#475569', face, className = '' }) => {
   const base: Aparencia = aparenciaDoJogador(playerId);
   const ap: Aparencia = face
-    ? { ...base, tipo: 'custom', pele: parseInt(face.pele.replace('#', ''), 16), cabelo: parseInt(face.cabelo.replace('#', ''), 16), estilo: face.estilo, barba: face.barba, oculos: face.oculos, largura: face.largura, rosto: face.rosto }
+    ? { ...base, tipo: 'custom', pele: parseInt(face.pele.replace('#', ''), 16), cabelo: parseInt(face.cabelo.replace('#', ''), 16), estilo: face.estilo, barba: face.barba, oculos: face.oculos, largura: face.largura, rosto: face.rosto, cabeloTextura: face.cabeloTextura }
     : base;
   const pele = hex(ap.pele), cabelo = hex(ap.cabelo);
   // A tinta da cara, como no 3D: cinza escuro em pele clara, clara em pele escura (luminosidade < 0.42).
@@ -55,15 +55,19 @@ export const PlayerFace: React.FC<Props> = ({ playerId, camisa = '#475569', face
         {estilo === 'curto' && (<>
           <rect x="-0.475" y="-0.5" width="0.15" height="0.6" fill={cabelo} />
           <rect x="0.325" y="-0.5" width="0.15" height="0.6" fill={cabelo} />
-          <rect x="-0.44" y="-0.625" width="0.88" height="0.25" fill={cabelo} />
-          <rect x="-0.44" y="-0.525" width="0.88" height="0.15" fill={cabelo} />
+          {ap.cabeloTextura ? <image href={ap.cabeloTextura} x="-0.44" y="-0.625" width="0.88" height="0.25" preserveAspectRatio="none" style={{ imageRendering: 'pixelated' }} /> : <>
+            <rect x="-0.44" y="-0.625" width="0.88" height="0.25" fill={cabelo} />
+            <rect x="-0.44" y="-0.525" width="0.88" height="0.15" fill={cabelo} />
+          </>}
         </>)}
         {estilo === 'degrade' && (<>
           {/* Degrade (fade): lados baixos e finos, mais claros (so a sombra do pelo), com topo e franja de sempre */}
           <rect x="-0.43" y="-0.5" width="0.06" height="0.26" fill={misturar(cabelo, pele, 0.45)} />
           <rect x="0.37" y="-0.5" width="0.06" height="0.26" fill={misturar(cabelo, pele, 0.45)} />
-          <rect x="-0.43" y="-0.625" width="0.86" height="0.25" fill={cabelo} />
-          <rect x="-0.42" y="-0.525" width="0.84" height="0.12" fill={cabelo} />
+          {ap.cabeloTextura ? <image href={ap.cabeloTextura} x="-0.43" y="-0.625" width="0.86" height="0.25" preserveAspectRatio="none" style={{ imageRendering: 'pixelated' }} /> : <>
+            <rect x="-0.43" y="-0.625" width="0.86" height="0.25" fill={cabelo} />
+            <rect x="-0.42" y="-0.525" width="0.84" height="0.12" fill={cabelo} />
+          </>}
         </>)}
         {estilo === 'raspado' && (<>
           <rect x="-0.43" y="-0.5" width="0.07" height="0.3" fill={cabelo} />

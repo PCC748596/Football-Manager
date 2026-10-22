@@ -62,9 +62,9 @@ function facesSaverPlugin() {
               if (!ok.test(face.pele) || !ok.test(face.cabelo)) throw new Error('cor invalida');
               if (!['curto', 'degrade', 'raspado', 'longo', 'topete', 'careca'].includes(face.estilo)) throw new Error('estilo invalido');
               if (!['nenhuma', 'rala', 'cheia', 'bigode', 'cavanhaque'].includes(face.barba)) throw new Error('barba invalida');
-              if (face.rosto && !(/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(face.rosto) && face.rosto.length < 20000)) throw new Error('rosto invalido');
+              for (const campo of ['rosto', 'cabeloTextura']) if (face[campo] && !(/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(face[campo]) && face[campo].length < 20000)) throw new Error(campo + ' invalido');
             }
-            const total = require_(path.resolve(__dirname, 'tools/gerar_faces.cjs')).gravar(__dirname, id, face ? { pele: face.pele, cabelo: face.cabelo, estilo: face.estilo, barba: face.barba, oculos: !!face.oculos, largura: Math.max(0.9, Math.min(1.1, Number(face.largura) || 1)), ...(face.rosto ? { rosto: face.rosto } : {}) } : null);
+            const total = require_(path.resolve(__dirname, 'tools/gerar_faces.cjs')).gravar(__dirname, id, face ? { pele: face.pele, cabelo: face.cabelo, estilo: face.estilo, barba: face.barba, oculos: !!face.oculos, largura: Math.max(0.9, Math.min(1.1, Number(face.largura) || 1)), ...(face.rosto ? { rosto: face.rosto } : {}), ...(face.cabeloTextura ? { cabeloTextura: face.cabeloTextura } : {}) } : null);
             res.setHeader('Content-Type', 'application/json'); res.statusCode = 200; res.end(JSON.stringify({ success: true, total }));
           } catch (e) { res.statusCode = 500; res.end(JSON.stringify({ error: e.message || String(e) })); }
         });

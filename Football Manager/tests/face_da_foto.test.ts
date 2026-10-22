@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { lerFaceDaFoto, rostoPixelado } from '../textSim/faceFromPhoto';
+import { lerFaceDaFoto, rostoPixelado, cabeloPixelado, RESOLUCAO_ROSTO, RESOLUCAO_CABELO } from '../textSim/faceFromPhoto';
 import { FACES } from '../textSim/facesDatabase';
 import { aparenciaDoJogador } from '../textSim/aparencia';
 
@@ -96,4 +96,21 @@ test('cara em pixels: 20 x 25, opaca, escura nos olhos e clara na testa, e grava
     assert.equal(aparenciaDoJogador('p-' + id).rosto, FACES[id].rosto, '2D usa o rosto gravado');
     assert.ok(fs.readFileSync('3dMatch/simulador3d/data/faces.js', 'utf8').includes(FACES[id].rosto!), 'o 3D le o mesmo rosto');
   }
+});
+
+test('faixa de cabelo em pixels: escura, na resolucao configurada, e nula quando nao ha cabelo', () => {
+  const meta = JSON.parse(fs.readFileSync('tests/fixtures/martinelli.json', 'utf8'));
+  const img = { data: fs.readFileSync('tests/fixtures/martinelli.rgba'), width: meta.width, height: meta.height };
+  const faixa = cabeloPixelado(img, lerFaceDaFoto(img).detalhe)!;
+  assert.ok(faixa, 'ha cabelo em cima da testa');
+  assert.equal(faixa.length, RESOLUCAO_CABELO.w * RESOLUCAO_CABELO.h * 4);
+  let soma = 0; for (let i = 0; i < faixa.length; i += 4) soma += 0.299 * faixa[i] + 0.587 * faixa[i + 1] + 0.114 * faixa[i + 2];
+  assert.ok(soma / (faixa.length / 4) < 100, 'cabelo escuro: ' + soma / (faixa.length / 4));
+  assert.equal(rostoPixelado(img, lerFaceDaFoto(img).detalhe).length, RESOLUCAO_ROSTO.w * RESOLUCAO_ROSTO.h * 4);
+  // sem cabelo (cabeca careca sintetica): nada
+  const W = 160, H = 180, d = new Uint8ClampedArray(W * H * 4);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const dx = (x - 80) / 38, dy = (y - 80) / 50, i = (y * W + x) * 4, dentro = dx * dx + dy * dy < 1; d[i] = dentro ? 208 : 244; d[i + 1] = dentro ? 148 : 244; d[i + 2] = dentro ? 114 : 244; d[i + 3] = 255; }
+  const careca = { data: d, width: W, height: H };
+  assert.equal(cabeloPixelado(careca, lerFaceDaFoto(careca).detalhe), null);
+  for (const id of ['269253', '269245']) assert.ok(FACES[id].cabeloTextura, 'faixa de cabelo gravada em ' + id);
 });

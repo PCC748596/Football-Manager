@@ -13,10 +13,10 @@ usa a pele, o cabelo, o estilo do cabelo, a barba, os oculos e a largura do rost
 export type EstiloCabelo = 'curto' | 'degrade' | 'raspado' | 'longo' | 'topete' | 'careca';
 export type EstiloBarba = 'nenhuma' | 'rala' | 'cheia' | 'bigode' | 'cavanhaque';
 /** `rosto` (opcional): a cara de frente em pixels (PNG pequeno, data URL), gerada da foto no Editor de Faces: quando existe, ela substitui os olhos, nariz, boca, barba e oculos desenhados. */
-export interface FaceCustom { pele: string; cabelo: string; estilo: EstiloCabelo; barba: EstiloBarba; oculos: boolean; largura: number; rosto?: string; }
+export interface FaceCustom { pele: string; cabelo: string; estilo: EstiloCabelo; barba: EstiloBarba; oculos: boolean; largura: number; rosto?: string; cabeloTextura?: string; }
 export interface Aparencia {
   tipo: string; cabelo: number; pele: number; chuteira: string; corChuteira: number;
-  estilo?: EstiloCabelo; barba?: EstiloBarba; oculos?: boolean; largura?: number; rosto?: string;   // so nas faces personalizadas
+  estilo?: EstiloCabelo; barba?: EstiloBarba; oculos?: boolean; largura?: number; rosto?: string; cabeloTextura?: string;   // so nas faces personalizadas
 }
 
 const TIPOS = [
@@ -65,6 +65,6 @@ export const aparenciaDoJogador = (id: string | number): Aparencia => {
   const tipo = porPeso(TIPOS, hashAparencia(n, 1));
   const bota = porPeso(CHUTEIRAS, hashAparencia(n, 2));
   const f = FACES[String(n)];
-  if (f) return { tipo: 'custom', cabelo: hexParaNumero(f.cabelo), pele: hexParaNumero(f.pele), chuteira: bota.nome, corChuteira: bota.cor, estilo: f.estilo, barba: f.barba, oculos: !!f.oculos, largura: f.largura, rosto: f.rosto };
+  if (f) return { tipo: 'custom', cabelo: hexParaNumero(f.cabelo), pele: hexParaNumero(f.pele), chuteira: bota.nome, corChuteira: bota.cor, estilo: f.estilo, barba: f.barba, oculos: !!f.oculos, largura: f.largura, rosto: f.rosto, cabeloTextura: f.cabeloTextura };
   return { tipo: tipo.nome, cabelo: tipo.cabelo, pele: tipo.pele, chuteira: bota.nome, corChuteira: bota.cor };
 };

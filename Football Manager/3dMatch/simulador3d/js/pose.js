@@ -259,10 +259,31 @@ function texturaDoRostoPixelado(url) {
     const img = new Image();
     const tex = new THREE.Texture(img);
     tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
-    img.onload = () => { tex.needsUpdate = true; };
+    tex.userData = { filhas: [] };   // as sub-texturas (o nariz) que usam a mesma imagem
+    img.onload = () => { tex.needsUpdate = true; tex.userData.filhas.forEach(t => { t.needsUpdate = true; }); };
     img.src = url;
     cache[url] = tex;
     return tex;
+}
+/*
+UMA CAIXA COM A FRENTE DIFERENTE EM 2 CHAMADAS DE DESENHO, e nao 6: um BoxGeometry com um material por face desenha cada face separada (6 `draw calls`). Aqui as 5 faces que levam o mesmo material
+ficam contiguas e a frente fica sozinha (2 grupos: material 0 = as 5, material 1 = a frente). Para as caixas da cabeca (rosto), do topo do cabelo (faixa) e do nariz.
+*/
+function dividirFrente(geo) {
+    const idx = geo.index.array, novo = new idx.constructor(idx.length);
+    [0, 1, 2, 3, 5, 4].forEach((f, i) => { for (let k = 0; k < 6; k++) novo[i * 6 + k] = idx[f * 6 + k]; });   // +x, -x, +y, -y, -z e por fim +z (a frente)
+    geo.setIndex(new THREE.BufferAttribute(novo, 1));
+    geo.clearGroups(); geo.addGroup(0, 30, 0); geo.addGroup(30, 6, 1);
+    return geo;
+}
+/** Um pedaco da textura (u, v em 0..1, a partir de baixo e da esquerda): o relevo do nariz mostra a parte do nariz da foto. */
+function subTextura(tex, u0, v0, du, dv) {
+    const t = tex.clone();
+    t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false;
+    t.repeat.set(du, dv); t.offset.set(u0, v0);
+    tex.userData.filhas.push(t);
+    if (tex.image && tex.image.complete) t.needsUpdate = true;
+    return t;
 }
 
 function aplicarFaceCustom(ap, head, boca, partes, u) {
@@ -828,9 +849,20 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
     hairGrp.add(hT, hB, hL, hR, hF); head.add(hairGrp); neck.add(head);
     if (ap.tipo === 'custom') aplicarFaceCustom(ap, head, boca, { hT, hB, hL, hR, hF }, u);   // face personalizada: estilo do cabelo, barba e oculos
     if (ap.tipo === 'custom' && ap.rosto && !leve && typeof Image !== 'undefined') {   // a cara em pixels so nos jogadores e arbitros (a torcida usa `leve`)
-        const faceMat = new THREE.MeshStandardMaterial({ map: texturaDoRostoPixelado(ap.rosto), roughness: 0.8 });
-        head.material = [blockMat, blockMat, blockMat, blockMat, faceMat, blockMat];   // ordem do Box: +x, -x, +y, -y, +z (frente), -z
+        const faceMat = new THREE.MeshStandardMaterial({ map: texturaDoRostoPixelado(ap.rosto), color: 0xdcdcdc, roughness: 0.8 });   // `color` < branco: a luz do jogo estoura a foto
+        dividirFrente(head.geometry); head.material = [blockMat, faceMat];   // as 5 faces de pele e a frente com a foto: 2 chamadas de desenho
         rig.olhoEsq.visible = rig.olhoDir.visible = nariz.visible = boca.visible = false;
+        // Com a foto na face, o topo do cabelo alinha com ela (sem o degrau de 2.5 cm a frente do rosto nem a aba larga dos lados): menos "laje", mais cabelo.
+        hT.position.z -= u * 0.025; hT.scale.x *= 0.94;
+        hF.visible = false;   // a franja era um bloco liso sobre a testa: a faixa de cabelo da foto (ou o proprio topo) ocupa o lugar
+        // A FAIXA DE CABELO da foto, na frente do bloco do topo (ordem das faces do Box: +x, -x, +y, -y, +z frente, -z)
+        if (ap.cabeloTextura) { dividirFrente(hT.geometry); hT.material = [hairMat, new THREE.MeshStandardMaterial({ map: texturaDoRostoPixelado(ap.cabeloTextura), color: 0xdcdcdc, roughness: 0.9 })]; }
+        // O RELEVO: orelhas (nas laterais, a altura dos olhos e do nariz) e um nariz que sai do rosto, com o pedaco do nariz da foto na frente.
+        const caixaPele = (w, h, d, x, y, z, mats) => { const m = new THREE.Mesh(mats ? dividirFrente(new THREE.BoxGeometry(u * w, u * h, u * d)) : new THREE.BoxGeometry(u * w, u * h, u * d), mats || blockMat); m.position.set(u * x, u * y, u * z); m.castShadow = false; head.add(m); return m; };
+        if ((ap.estilo || 'curto') !== 'longo') { caixaPele(0.06, 0.22, 0.14, -0.43, 0.02, -0.02); caixaPele(0.06, 0.22, 0.14, 0.43, 0.02, -0.02); }
+        const rostoTex = texturaDoRostoPixelado(ap.rosto);
+        const narizFace = new THREE.MeshStandardMaterial({ map: subTextura(rostoTex, 0.4, 0.36, 0.2, 0.2), color: 0xdcdcdc, roughness: 0.8 });   // colunas 8-12 e linhas 11-16 (de cima) da cara em pixels
+        caixaPele(0.14, 0.16, 0.06, 0, -0.01, 0.455, [blockMat, narizFace]);
     }
 
     /*

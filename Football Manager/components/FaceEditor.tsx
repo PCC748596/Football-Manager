@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { REAL_PLAYERS_JSON } from '../textSim/realDatabase';
 import { FACES } from '../textSim/facesDatabase';
 import { PlayerFace } from './PlayerFace';
-import { lerFaceDaFoto, rostoPixelado } from '../textSim/faceFromPhoto';
+import { lerFaceDaFoto, rostoPixelado, cabeloPixelado, RESOLUCAO_ROSTO, RESOLUCAO_CABELO } from '../textSim/faceFromPhoto';
 import type { FaceCustom, EstiloBarba, EstiloCabelo } from '../textSim/aparencia';
 
 const FACE_PADRAO: FaceCustom = { pele: '#c68a5e', cabelo: '#2a2420', estilo: 'curto', barba: 'nenhuma', oculos: false, largura: 1 };
@@ -24,7 +24,7 @@ export const FaceEditor: React.FC = () => {
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
   const arquivo = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
-  const rostoGerado = useRef<string | undefined>(undefined);   // o ultimo rosto em pixels lido da foto (para ligar/desligar sem reler)
+  const rostoGerado = useRef<{ rosto?: string; cabeloTextura?: string }>({});   // o ultimo rosto e faixa de cabelo em pixels lidos da foto (para ligar/desligar sem reler)
   const lerAoCarregar = useRef(false);   // foto colada/enviada: le a face assim que a imagem carregar
 
   const jogadores = useMemo(() => {
@@ -51,11 +51,11 @@ export const FaceEditor: React.FC = () => {
     const dados = ctx.getImageData(0, 0, c.width, c.height);
     const r = lerFaceDaFoto({ data: dados.data, width: c.width, height: c.height });
     // A cara em pixels (20 x 25) da regiao do rosto: e o que o jogo mostra no lugar dos tracos desenhados.
-    const px = rostoPixelado({ data: dados.data, width: c.width, height: c.height }, r.detalhe);
-    const pc = document.createElement('canvas'); pc.width = 20; pc.height = 25;
-    const pctx = pc.getContext('2d');
-    if (pctx) { pctx.putImageData(new ImageData(px, 20, 25), 0, 0); rostoGerado.current = pc.toDataURL('image/png'); }
-    setFace(f => ({ ...r.face, oculos: f.oculos, rosto: rostoGerado.current }));
+    const foto = { data: dados.data, width: c.width, height: c.height };
+    const png = (px: Uint8ClampedArray, w: number, h: number) => { const pc = document.createElement('canvas'); pc.width = w; pc.height = h; const pctx = pc.getContext('2d'); if (!pctx) return undefined; pctx.putImageData(new ImageData(px, w, h), 0, 0); return pc.toDataURL('image/png'); };
+    const cab = cabeloPixelado(foto, r.detalhe);
+    rostoGerado.current = { rosto: png(rostoPixelado(foto, r.detalhe), RESOLUCAO_ROSTO.w, RESOLUCAO_ROSTO.h), cabeloTextura: cab ? png(cab, RESOLUCAO_CABELO.w, RESOLUCAO_CABELO.h) : undefined };
+    setFace(f => ({ ...r.face, oculos: f.oculos, ...rostoGerado.current }));
     setAvisos(r.avisos);
     setMsg({ tipo: 'ok', texto: 'Photo read: adjust anything that looks off.' });
   };
@@ -156,7 +156,7 @@ export const FaceEditor: React.FC = () => {
             <div><label className={rotulo}>Hair colour</label><div className="flex gap-2 items-center"><input type="color" value={face.cabelo} onChange={e => mudar({ cabelo: e.target.value })} className="w-12 h-9 bg-transparent" /><span className="text-xs text-slate-400 font-mono">{face.cabelo}</span></div></div>
             <div><label className={rotulo}>Hair style</label><select className={campo + ' w-full'} value={face.estilo} onChange={e => mudar({ estilo: e.target.value as EstiloCabelo })}>{ESTILOS.map(([v, r]) => <option key={v} value={v}>{r}</option>)}</select></div>
             <div><label className={rotulo}>Beard</label><select className={campo + ' w-full'} value={face.barba} onChange={e => mudar({ barba: e.target.value as EstiloBarba })}>{BARBAS.map(([v, r]) => <option key={v} value={v}>{r}</option>)}</select></div>
-            <div><label className={rotulo}>Pixel face from photo</label><button onClick={() => setFace(f => ({ ...f, rosto: f.rosto ? undefined : rostoGerado.current }))} disabled={!face.rosto && !rostoGerado.current}
+            <div><label className={rotulo}>Pixel face from photo</label><button onClick={() => setFace(f => (f.rosto ? { ...f, rosto: undefined, cabeloTextura: undefined } : { ...f, ...rostoGerado.current }))} disabled={!face.rosto && !rostoGerado.current.rosto}
               className={`w-full py-2 rounded text-xs font-black uppercase tracking-widest disabled:opacity-40 ${face.rosto ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}>{face.rosto ? 'On' : 'Off'}</button></div>
             <div><label className={rotulo}>Glasses</label><button onClick={() => mudar({ oculos: !face.oculos })} className={`w-full py-2 rounded text-xs font-black uppercase tracking-widest ${face.oculos ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}>{face.oculos ? 'On' : 'Off'}</button></div>
             <div><label className={rotulo}>Face width ({face.largura.toFixed(2)})</label><input type="range" min={0.9} max={1.1} step={0.01} value={face.largura} onChange={e => mudar({ largura: Number(e.target.value) })} className="w-full" /></div>
