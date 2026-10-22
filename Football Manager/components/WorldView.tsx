@@ -52,7 +52,7 @@ const WorldView: React.FC = () => {
 
   const fmtData = (s: string) => { const d = new Date(s + 'T12:00:00'); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`; };
   const th = 'px-3 py-2 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 text-center';
-  const Escudo = ({ k }: { k: string }) => <TeamShield team={mapa.get(k)} className="w-5 h-6" />;
+  const Escudo = ({ k }: { k: string }) => <TeamShield team={mapa.get(k)} className="w-[30px] h-9" />;
   const nomeDe = (k: string) => mapa.get(k)?.name || '?';
   const souEu = (k: string) => !!userTeam && mapa.get(k)?.id === userTeam.id && k.startsWith(userTeam.leagueId + '|');
 
@@ -94,7 +94,7 @@ const WorldView: React.FC = () => {
                   return (
                     <tr key={r.team.id} className={`${eu ? 'bg-blue-600/10' : ''} ${rebaixado ? 'bg-red-500/5' : ''}`}>
                       <td className={`px-3 py-1.5 text-center text-xs font-black border-b border-slate-100 dark:border-slate-800/30 ${i < 4 ? 'text-emerald-600 dark:text-emerald-400' : rebaixado ? 'text-red-500' : 'text-slate-500'}`}>{i + 1}</td>
-                      <td className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800/30"><div className="flex items-center gap-3"><TeamShield team={r.team} className="w-5 h-6" /><span className={`text-sm font-bold ${eu ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>{r.team.name}</span></div></td>
+                      <td className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800/30"><div className="flex items-center gap-3"><TeamShield team={r.team} className="w-[30px] h-9" /><span className={`text-sm font-bold ${eu ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>{r.team.name}</span></div></td>
                       {[r.played, r.won, r.drawn, r.lost, r.gf, r.ga, r.gd].map((v, k) => <td key={k} className="px-3 py-1.5 text-center text-xs text-slate-600 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800/30">{k === 6 && v > 0 ? '+' + v : v}</td>)}
                       <td className="px-3 py-1.5 text-center text-sm font-black text-blue-600 dark:text-white border-b border-slate-100 dark:border-slate-800/30">{r.points}</td>
                     </tr>
@@ -112,9 +112,9 @@ const WorldView: React.FC = () => {
                   <div key={f.id} className={`flex items-center gap-3 px-4 py-2 rounded border ${eu ? 'border-blue-400 bg-blue-600/10' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40'}`}>
                     <span className="w-12 text-[10px] font-black text-slate-400">{fmtData(f.date)}</span>
                     <span className="flex-1 text-right text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{h?.name}</span>
-                    <TeamShield team={h} className="w-5 h-6" />
+                    <TeamShield team={h} className="w-[30px] h-9" />
                     <span className="w-16 text-center text-sm font-black text-slate-900 dark:text-white">{f.played ? `${f.homeScore} - ${f.awayScore}` : '—'}</span>
-                    <TeamShield team={a} className="w-5 h-6" />
+                    <TeamShield team={a} className="w-[30px] h-9" />
                     <span className="flex-1 text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{a?.name}</span>
                   </div>
                 );
