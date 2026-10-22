@@ -289,9 +289,66 @@ const mapPosString = (posStr: string | number): Position => {
 
 const ENGLISH_NAMES = ["Man City", "Arsenal", "Liverpool", "Aston Villa", "Tottenham", "Chelsea", "Newcastle", "Man Utd", "West Ham", "Brighton", "Bournemouth", "Wolves", "Fulham", "Everton", "Brentford", "Nottingham Forest", "Luton Town", "Burnley", "Sheffield Utd", "Crystal Palace"];
 
+/*
+OS CLASSICOS NO MEIO DE CADA TURNO. O calendario e um todos-contra-todos pelo metodo do circulo: a ordem inicial dos clubes decide em que rodada cada par se
+encontra (e o returno repete o turno na mesma ordem). Procura-se, por subida de colina com sorteio fixo (o mesmo calendario sempre), a ordem que poe os jogos entre
+clubes da MESMA REGIAO — o estado nos clubes brasileiros (o sufixo do nome: Atletico-MG, Cruzeiro-MG), a cidade nos outros paises — o mais perto possivel do meio do turno.
+*/
+const regiaoDoClube = (t: Team): string => {
+  const m = /-([A-Z]{2})$/.exec(t.name);
+  return m ? m[1] : (t.city || '').trim();
+};
+
+const rodadasDoCirculo = (ordem: number[]): Map<string, number> => {
+  const n = ordem.length, rodadas = new Map<string, number>();
+  const arr = [...ordem];
+  for (let r = 0; r < n - 1; r++) {
+    for (let m = 0; m < n / 2; m++) {
+      const a = arr[m], b = arr[n - 1 - m];
+      rodadas.set(a < b ? a + '-' + b : b + '-' + a, r);
+    }
+    arr.splice(1, 0, arr.pop()!);
+  }
+  return rodadas;
+};
+
+export const ordemComClassicosNoMeio = (teams: Team[], leagueId: string): string[] => {
+  const n = teams.length;
+  const ids = teams.map(t => t.id);
+  if (n < 4 || n % 2) return ids;
+  const regioes = new Map<string, number[]>();
+  teams.forEach((t, i) => { const r = regiaoDoClube(t); if (r) regioes.set(r, [...(regioes.get(r) || []), i]); });
+  const classicos: [number, number][] = [];
+  regioes.forEach(is => { for (let a = 0; a < is.length; a++) for (let b = a + 1; b < is.length; b++) classicos.push([is[a], is[b]]); });
+  if (!classicos.length) return ids;
+
+  const meio = (n - 2) / 2;   // rodadas 0..n-2: o meio do turno
+  const custo = (ordem: number[]) => {
+    const rodadas = rodadasDoCirculo(ordem);
+    let c = 0;
+    for (const [a, b] of classicos) c += Math.abs((rodadas.get(a < b ? a + '-' + b : b + '-' + a) as number) - meio);
+    return c;
+  };
+
+  // Sorteio fixo (mulberry32) a partir da liga e dos clubes: o calendario nao muda entre aberturas do jogo.
+  let h = 1779033703;
+  for (const ch of leagueId + ids.join(',')) h = Math.imul(h ^ ch.charCodeAt(0), 3432918353) >>> 0;
+  const rnd = () => { h = (h + 0x6D2B79F5) >>> 0; let t = h; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+
+  let ordem = teams.map((_, i) => i), melhor = custo(ordem);
+  for (let it = 0; it < 6000; it++) {
+    const i = Math.floor(rnd() * n), j = Math.floor(rnd() * n);
+    if (i === j) continue;
+    [ordem[i], ordem[j]] = [ordem[j], ordem[i]];
+    const c = custo(ordem);
+    if (c <= melhor) melhor = c; else [ordem[i], ordem[j]] = [ordem[j], ordem[i]];
+  }
+  return ordem.map(i => ids[i]);
+};
+
 export const generateFixtures = (teams: Team[], leagueId: string): Fixture[] => {
   const fixtures: Fixture[] = [];
-  const teamIds = teams.map(t => t.id);
+  const teamIds = ordemComClassicosNoMeio(teams, leagueId);
   const totalTeams = teamIds.length;
 
   if (totalTeams < 2) return [];

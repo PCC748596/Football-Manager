@@ -565,6 +565,24 @@ export const tabelaDoGrupo = (c: Competition, grupo: string, teams: Map<string, 
 
 export const NOMES_FASES: Record<string, string> = { R64: 'Round of 64', PA: 'Promotion playoff', L: 'First phase', G: 'Group stage', D: 'Group stage', P1: 'Phase 1', P2: 'Phase 2', P3: 'Phase 3', P4: 'Phase 4', P5: 'Phase 5', R1: 'First round', R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-finals', SF: 'Semi-finals', F: 'Final', G1: 'Group MD1', G2: 'Group MD2', G3: 'Group MD3', G4: 'Group MD4', G5: 'Group MD5', G6: 'Group MD6' };
 
+/**
+ * O RÓTULO CURTO DA FASE, para a coluna Type do calendario (components/FixturesView.tsx): LIBERT-G, LIBERT-16, LIBERT-8, LIBERT-4, LIBERT FINAL; o mesmo para a
+ * Sul-Americana (SULA-...), a Copa do Brasil (COPA-1 ... COPA-5, COPA-16 ...), a Serie C (C-G, C FINAL) e a Serie D (D-G, D-64 ... D FINAL). O numero e quantos clubes
+ * ficam na fase (16 = oitavas, 8 = quartas, 4 = meias); a final e `... FINAL`, e nao ha fase de 2 alem dela.
+ */
+const PREFIXO_COMP: Record<Competition['id'], string> = { LIB: 'LIBERT', SUL: 'SULA', COPA_BR: 'COPA', SERIE_C: 'C', SERIE_D: 'D' };
+export const rotuloDaFase = (compId: Competition['id'], stage: string): string => {
+  const p = PREFIXO_COMP[compId];
+  if (stage === 'F') return p + ' FINAL';
+  if (/^G\d*$/.test(stage) || stage === 'D') return p + '-G';
+  if (/^P\d$/.test(stage)) return p + '-' + stage[1];
+  if (stage === 'QF') return p + '-8';
+  if (stage === 'SF') return p + '-4';
+  if (stage === 'PA') return p + '-PLAYOFF';
+  if (/^R\d+$/.test(stage)) return p + '-' + stage.slice(1);
+  return p + '-' + stage;
+};
+
 // ------------------------------------------------------------------ ligas -> copas
 
 import type { WorldLeague } from './world';
