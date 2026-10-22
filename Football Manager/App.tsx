@@ -15,6 +15,7 @@ import SettingsView from './components/SettingsView';
 import WorldView from './components/WorldView';
 import StatisticsView from './components/StatisticsView';
 import { COUNTRIES, generateLeagueData } from './textSim/dataGenerator';
+import { gruposDaSerieD } from './textSim/competitions';
 import { Team, GameState } from './types';
 import { TeamShield } from './components/TeamShield';
 import EditorApp from './components/EditorApp';
@@ -118,9 +119,21 @@ interface SelectionProps {
   onBack: () => void;
 }
 
+// As confederacoes da FIFA e o continente (campo `continent` do pais) que cada uma cobre.
+const CONFEDERACOES: { id: string; nome: string; continentes: string[] }[] = [
+  { id: 'UEFA', nome: 'UEFA', continentes: ['Europe'] },
+  { id: 'CONMEBOL', nome: 'CONMEBOL', continentes: ['South America'] },
+  { id: 'CONCACAF', nome: 'CONCACAF', continentes: ['North America', 'Central America', 'Caribbean'] },
+  { id: 'AFC', nome: 'AFC', continentes: ['Asia'] },
+  { id: 'CAF', nome: 'CAF', continentes: ['Africa'] },
+  { id: 'OFC', nome: 'OFC', continentes: ['Oceania'] }
+];
+const confederacaoDe = (c: any) => (CONFEDERACOES.find(f => f.continentes.includes(c.continent)) || { id: '' }).id;
+
 const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, onBack }) => {
   const { t } = useGame();
-  const [selectedCountryId, setSelectedCountryId] = useState<string>('brazil');
+  const [selectedConf, setSelectedConf] = useState<string>('CONMEBOL');
+  const [selectedCountryId, setSelectedCountryId] = useState<string>('45');
   const [selectedLeagueId, setSelectedLeagueId] = useState<string>('bra_serie_a');
   const [previewTeams, setPreviewTeams] = useState<Team[]>([]);
   
@@ -133,6 +146,13 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
 
   const activeCountry = COUNTRIES.find(c => c.id === selectedCountryId);
 
+  const paisesDaConf = COUNTRIES.filter(c => confederacaoDe(c) === selectedConf);
+  const handleConfSelect = (id: string) => {
+    setSelectedConf(id);
+    const primeiro = COUNTRIES.find(c => confederacaoDe(c) === id);
+    if (primeiro) handleCountrySelect(primeiro.id); else { setSelectedCountryId(''); setSelectedLeagueId(''); setPreviewTeams([]); }
+  };
+
   const handleCountrySelect = (id: string) => {
     setSelectedCountryId(id);
     const country = COUNTRIES.find(c => c.id === id);
@@ -142,6 +162,20 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
   };
 
   const sortedTeams = [...previewTeams].sort((a, b) => a.name.localeCompare(b.name));
+  const botaoTime = (team: Team) => (
+                <button key={team.id} onClick={() => onSelectTeam(team.id, selectedCountryId, selectedLeagueId)} className={`bg-slate-50 dark:bg-slate-900/60 border-2 border-slate-200 dark:border-slate-800 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 ${selectedCountryId === '52' ? 'py-1 px-3' : 'py-3 px-4'} rounded transition-all group text-left flex items-center justify-between shadow-sm`}>
+                   <div className="flex items-center gap-4">
+                      <TeamShield team={team} className={selectedCountryId === '52' ? 'w-[22px] h-[28px]' : 'w-[46px] h-[58px]'} />
+                      <div>
+                        <div className="text-xl font-black text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase truncate max-w-[300px] leading-tight">{team.name}</div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase">Rep: {team.strength} OVR</div>
+                      </div>
+                   </div>
+                   <div className="text-right">
+                      <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 bg-white dark:bg-slate-950 px-2 py-1 rounded transition-colors uppercase tracking-widest border border-slate-200 dark:border-slate-800 shadow-sm">{t('sel_join')}</div>
+                   </div>
+                </button>
+  );
 
   return (
     <div className="w-full h-full flex flex-col p-8 bg-white dark:bg-manager-bg transition-colors duration-300">
@@ -159,10 +193,25 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
         </div>
       </div>
       <div className="flex-1 flex gap-6 min-h-0 overflow-hidden">
-        <div className="w-1/4 flex flex-col gap-4">
+        <div className="w-[16%] flex flex-col gap-4">
+          <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">Confederations</div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+            {CONFEDERACOES.map(f => {
+              const n = COUNTRIES.filter(c => confederacaoDe(c) === f.id).length;
+              return (
+                <button key={f.id} onClick={() => handleConfSelect(f.id)} className={`w-full text-left p-3 rounded border-2 transition-all ${selectedConf === f.id ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-blue-400'} ${n === 0 ? 'opacity-60' : ''}`}>
+                  <div className={`text-lg font-black uppercase ${selectedConf === f.id ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>{f.nome}</div>
+                  <div className={`text-[10px] font-bold uppercase tracking-widest ${selectedConf === f.id ? 'text-blue-100' : 'text-slate-400 dark:text-slate-500'}`}>{n} {n === 1 ? 'association' : 'associations'}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="w-[calc(22%-50px)] flex flex-col gap-4">
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step1')}</div>
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
-            {COUNTRIES.map(country => (
+            {paisesDaConf.length === 0 && <div className="text-xs text-slate-400 font-bold px-2 pt-2">No national associations in this confederation yet.</div>}
+            {paisesDaConf.map(country => (
               <button key={country.id} onClick={() => handleCountrySelect(country.id)} className={`w-full text-left p-3 rounded border-2 transition-all flex items-center justify-between group ${selectedCountryId === country.id ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-blue-400'}`}>
                 <span className={`text-lg font-black uppercase ${selectedCountryId === country.id ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>{country.name}</span>
                 <div className={`w-2 h-2 rounded-full ${selectedCountryId === country.id ? 'bg-white' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
@@ -170,7 +219,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             ))}
           </div>
         </div>
-        <div className="w-1/4 flex flex-col gap-4">
+        <div className="w-[22%] flex flex-col gap-4">
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step2')}</div>
           <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
@@ -193,22 +242,25 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
         <div className="flex-1 flex flex-col gap-4">
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step3')}</div>
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
-            <div className="grid grid-cols-2 gap-2 content-start">
-              {sortedTeams.map(team => (
-                <button key={team.id} onClick={() => onSelectTeam(team.id, selectedCountryId, selectedLeagueId)} className="bg-slate-50 dark:bg-slate-900/60 border-2 border-slate-200 dark:border-slate-800 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 py-3 px-4 rounded transition-all group text-left flex items-center justify-between shadow-sm">
-                   <div className="flex items-center gap-4">
-                      <TeamShield team={team} className="w-8 h-10" />
-                      <div>
-                        <div className="text-xl font-black text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase truncate max-w-[300px] leading-tight">{team.name}</div>
-                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase">Rep: {team.strength} OVR</div>
-                      </div>
-                   </div>
-                   <div className="text-right">
-                      <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 bg-white dark:bg-slate-950 px-2 py-1 rounded transition-colors uppercase tracking-widest border border-slate-200 dark:border-slate-800 shadow-sm">{t('sel_join')}</div>
-                   </div>
-                </button>
-              ))}
-            </div>
+            {/* Serie D do Brasil: os clubes divididos pelos 16 grupos de 6 (a 1.a fase da competicao). */}
+            {(activeCountry?.leagues.find(l => l.id === selectedLeagueId) as any)?.format === 'SERIE_D' ? (
+              <div className="space-y-4">
+                {Object.entries(gruposDaSerieD(((activeCountry?.leagues.find(l => l.id === selectedLeagueId) as any).teamIds as number[]).map(String))).map(([g, ids]) => {
+                  const doGrupo = sortedTeams.filter(t => ids.includes(t.id));
+                  if (!doGrupo.length) return null;
+                  return (
+                    <div key={g}>
+                      <div className="text-[11px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest px-1 pb-1 mb-2 border-b border-slate-200 dark:border-slate-800">Grupo {g}</div>
+                      <div className="grid grid-cols-2 gap-2 content-start">{doGrupo.map(botaoTime)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 content-start">
+                {sortedTeams.map(botaoTime)}
+              </div>
+            )}
           </div>
         </div>
       </div>
