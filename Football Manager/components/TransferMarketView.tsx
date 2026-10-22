@@ -196,7 +196,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
               <div key={p.id} onClick={() => setSelId(p.id)}
                 className={`grid ${COLS} gap-3 items-center px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${ativo ? 'border-blue-500 bg-blue-500/10' : 'border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-[#0e182c] hover:border-slate-400 dark:hover:border-slate-600'}`}>
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full overflow-hidden bg-slate-800 shrink-0 border border-slate-700"><PlayerFace playerId={p.id} camisa={l.clube?.primaryColor} className="w-full h-full" /></div>
+                  <div className="w-[50px] h-[50px] rounded-full overflow-hidden bg-slate-800 shrink-0 border border-slate-700"><PlayerFace playerId={p.id} camisa={l.clube?.primaryColor} className="w-full h-full" /></div>
                   <div className="min-w-0"><div className="font-black text-base text-slate-800 dark:text-slate-100 truncate">{p.name}</div>
                     <div className="flex gap-1 flex-wrap">
                       {shortlist.includes(p.id) && <span className="text-[9px] font-black bg-yellow-500 text-slate-900 px-1.5 rounded">★ LIST</span>}
