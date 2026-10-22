@@ -298,7 +298,15 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
     let horizontal = false;
     let dualDiagonal = false;
 
-    if (kitIdx === 1) { // Away
+    // Casa listrada (2 cores distintas): a fora e LISA, nao as listras invertidas. Casa de cor principal escura -> fora BRANCA com gola e numero na cor principal do clube;
+    // casa de cor principal clara -> fora na cor escura do clube, com gola e numero brancos.
+    const casaListrada = !!team.secondaryColor && team.secondaryColor !== 'transparent' && team.secondaryColor !== team.primaryColor;
+    if (kitIdx === 1 && casaListrada) { // Away
+        if (!isColorLight(team.primaryColor)) { c1 = 'white'; clc = team.primaryColor; nc = team.primaryColor; }
+        else { c1 = !isColorLight(team.secondaryColor) ? team.secondaryColor : '#1e293b'; clc = 'white'; nc = 'white'; }
+        c2 = undefined;
+        c3 = undefined;
+    } else if (kitIdx === 1) { // Away
         c1 = team.secondaryColor;
         c2 = team.primaryColor;
         c3 = undefined;
@@ -454,8 +462,8 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
                 c1 = '#1d4ed8'; c2 = undefined; c3 = undefined; clc = '#ef4444'; nc = '#ef4444'; noc = 'white';
             }
         } else if (isSaoPauloSP) {
-            if (kitIdx === 0) { // Home: Branca com as duas listas horizontais vermelha e preta (e nao o tricolor vertical do Fluminense).
-                c1 = 'white'; c2 = '#ef4444'; c3 = 'black'; spfcStripes = true; nc = 'black'; noc = 'white'; clc = 'black';
+            if (kitIdx === 0) { // Home: o desenho da casa do Gremio (vermelho com listras finas branca e preta), nas cores do Sao Paulo. Numero e gola brancos.
+                c1 = '#ef4444'; c2 = 'white'; c3 = 'black'; nc = 'white'; clc = 'white';
             } else if (kitIdx === 1) { // Away: Vermelha lisa, gola preta. Numero branco com linha preta.
                 c1 = '#ef4444'; c2 = undefined; c3 = undefined; nc = 'white'; noc = 'black'; clc = 'black';
             } else if (kitIdx === 2) { // Third: Igual a 2 só que preta. Numero branco
@@ -520,6 +528,7 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
 
 export const isColorLight = (hex: string) => {
     if (!hex || hex === 'transparent' || hex === 'none' || hex === 'white') return true;
+    if (!hex.startsWith('#') && /^[a-z]+$/i.test(hex)) return ['yellow', 'lime', 'cyan', 'pink', 'silver', 'gold', 'beige', 'ivory'].includes(hex.toLowerCase());   // cor com nome (Red, Black...): so estas sao claras
     const cleanHex = hex.startsWith('#') ? hex.slice(1) : hex;
     const r = parseInt(cleanHex.length === 3 ? cleanHex[0] + cleanHex[0] : cleanHex.slice(0, 2), 16);
     const g = parseInt(cleanHex.length === 3 ? cleanHex[1] + cleanHex[1] : cleanHex.slice(2, 4), 16);

@@ -45,12 +45,11 @@ for (const t of teams) {
     t.color = c1; t.color2 = c2;
     t.homeKit = kit('stripes', c1, c2, n1.cor, n1.contorno, gola([c1, c2], todas));
     // 2: o oposto. Casa clara (a cor principal e clara) -> fora com a cor MAIS ESCURA do clube (escurecida se for mediana); casa escura -> fora clara (a mais clara do clube, ou branco).
-    let fora;
-    if (claro(c1)) { fora = rl(menos) < 0.1 ? menos : escurece(menos, 0.5); if (!(rl(fora) < 0.1)) fora = escurece(fora, 0.6); }
-    else { fora = claro(mais) && contraste(mais, c1) > 3 ? mais : '#ffffff'; }
-    if (dist(fora, c1) < 80) fora = claro(c1) ? '#111111' : '#ffffff';
-    const n2 = numero([fora], escuraClube);
-    t.awayKit = kit('solid', fora, '', n2.cor, n2.contorno, gola([fora], [c1, c2, '#ffffff', '#111111'].filter(x => dist(x, fora) >= 60)));
+    // Casa listrada: a fora e LISA. Casa de cor principal escura -> BRANCA com gola e numero na cor principal; casa clara -> na cor escura do clube, gola e numero brancos.
+    let fora, n2, golaFora;
+    if (!claro(c1)) { fora = '#ffffff'; n2 = { cor: c1, contorno: '' }; golaFora = c1; }
+    else { fora = rl(menos) < 0.1 ? menos : escurece(menos, 0.5); if (!(rl(fora) < 0.1)) fora = escurece(fora, 0.6); if (dist(fora, c1) < 80) fora = '#111111'; n2 = { cor: '#ffffff', contorno: '' }; golaFora = '#ffffff'; }
+    t.awayKit = kit('solid', fora, '', n2.cor, n2.contorno, golaFora);
     // 3: uma terceira que se distingue da casa e da fora
     let terceira = [escurece(menos, 0.35), '#111111', c2, c1, '#ffffff'].find(x => dist(x, c1) >= 80 && dist(x, fora) >= 80) || '#444444';
     const n3 = numero([terceira], escuraClube);
