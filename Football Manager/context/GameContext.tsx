@@ -1579,6 +1579,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const data = JSON.parse(jsonString);
       if (data.teams && data.players && data.gameState) {
+        /*
+        SAVE ANTIGO (pais "brazil" em minusculas, sem `leagueId`, ids de clube 450001...): passa para o formato actual. Os clubes mudam para os ids da base ATUAL (pelo nome), ganham o pais "45"
+        e a liga `bra_serie_a`, e os jogadores, os jogos e o dono do jogo seguem os novos ids. Sem isto a liga do jogo ficava a parte, duplicada, na aba WORLD, e as copas nao achavam os clubes.
+        */
+        if (data.teams.every((t: any) => String(t.country).toLowerCase() === 'brazil')) {
+          const idsDaBase = new Map<string, string>(REAL_TEAMS_JSON.map((t: any) => [t.teamName, String(t.teamID)]));
+          const novoId = new Map<string, string>();
+          data.teams.forEach((t: any) => { const n = idsDaBase.get(t.name); if (n) novoId.set(t.id, n); });
+          const m = (id: string) => novoId.get(id) || id;
+          data.teams = data.teams.map((t: any) => ({ ...t, id: m(t.id), country: '45', leagueId: t.leagueId || 'bra_serie_a' }));
+          data.players = data.players.map((p: any) => ({ ...p, teamId: m(p.teamId) }));
+          data.fixtures = (data.fixtures || []).map((f: any) => ({ ...f, homeTeamId: m(f.homeTeamId), awayTeamId: m(f.awayTeamId) }));
+          data.gameState = { ...data.gameState, userTeamId: m(data.gameState.userTeamId) };
+        }
         // Restore logoUrls from REAL_TEAMS_JSON if missing or apply automated path
         const patchedTeams = data.teams.map((t: Team) => {
           const dbTeam = REAL_TEAMS_JSON.find((dt: any) => dt.teamID.toString() === t.id);

@@ -524,22 +524,31 @@ export const NOMES_FASES: Record<string, string> = { L: 'First phase', G: 'Group
 import type { WorldLeague } from './world';
 import { COUNTRIES } from './dataGenerator';
 
-/** A liga do clube: `leagueId` se for valido; senao (saves antigos) a liga que o tem na lista de clubes. */
-export const ligaIdDoClube = (t: Team): string => {
-  const c: any = (COUNTRIES as any[]).find(x => x.id === t.country);
-  if (t.leagueId && c && c.leagues.some((l: any) => l.id === t.leagueId)) return t.leagueId;
-  const l = c && c.leagues.find((x: any) => (x.teamIds || []).map(String).includes(String(t.id)));
-  return l ? l.id : t.leagueId;
+/**
+ * O pais e a liga de um clube: o que o proprio clube diz (`country` pelo id ou pelo NOME, `leagueId`) se bater com a base; senao (saves antigos, em que o pais vinha como "Brazil" e a liga
+ * vazia) a liga da base que tem o clube na sua lista. Sem isto a liga do utilizador aparecia a parte, duplicada, na aba WORLD.
+ */
+export const ligaDoClube = (t: Team): { countryId: string; countryName: string; leagueId: string } => {
+  const paises = COUNTRIES as any[];
+  const pais = String(t.country || '').toLowerCase();
+  const c = paises.find(x => x.id === t.country) || paises.find(x => x.name.toLowerCase() === pais);   // (saves antigos: "brazil" em minusculas)
+  if (c && t.leagueId && c.leagues.some((l: any) => l.id === t.leagueId)) return { countryId: c.id, countryName: c.name, leagueId: t.leagueId };
+  for (const p of paises) for (const l of p.leagues) if ((l.teamIds || []).map(String).includes(String(t.id))) return { countryId: p.id, countryName: p.name, leagueId: l.id };
+  // Sem liga no clube e fora da lista da base (save antigo): a 1.a divisao do pais, que era a unica que o jogo tinha.
+  if (c) { const l = c.leagues.find((x: any) => x.tier === 1) || c.leagues[0]; if (l) return { countryId: c.id, countryName: c.name, leagueId: l.id }; }
+  return { countryId: c ? c.id : t.country, countryName: c ? c.name : t.country, leagueId: t.leagueId };
 };
+export const ligaIdDoClube = (t: Team): string => ligaDoClube(t).leagueId;
 
 /** A liga do utilizador como WorldLeague (clubes e jogos vivos do jogo), para entrar no mapa de clubes e nos qualificados das copas. */
 export const ligaDoUtilizador = (userTeam: Team | undefined, teams: Team[], fixtures: import('../types').Fixture[]): WorldLeague | null => {
   if (!userTeam) return null;
-  const c: any = (COUNTRIES as any[]).find(x => x.id === userTeam.country);
-  const lid = ligaIdDoClube(userTeam);
+  const info = ligaDoClube(userTeam);
+  const c: any = (COUNTRIES as any[]).find(x => x.id === info.countryId);
+  const lid = info.leagueId;
   const lg = c && c.leagues.find((l: any) => l.id === lid);
   return {
-    countryId: userTeam.country, countryName: c ? c.name : userTeam.country, leagueId: lid, leagueName: lg ? lg.name : lid,
+    countryId: info.countryId, countryName: info.countryName, leagueId: lid, leagueName: lg ? lg.name : lid,
     tier: lg ? lg.tier : 1, relegated: lg ? (lg.relegated || 0) : 0, teams, fixtures: fixtures.filter(f => !f.isFriendly && (f.type === undefined || f.type === 'LEAGUE'))
   };
 };

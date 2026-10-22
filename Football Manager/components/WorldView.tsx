@@ -234,8 +234,20 @@ const WorldView: React.FC = () => {
   type Item = { sel: Selecao; titulo: string; sub: string; tier: number };
   const paises = (() => {
     const m = new Map<string, { id: string; nome: string; itens: Item[] }>();
-    const pais = (id: string, nome: string) => { let p = m.get(id); if (!p) { p = { id, nome, itens: [] }; m.set(id, p); } return p; };
-    ligas.forEach(l => pais(l.countryId, l.countryName).itens.push({ sel: { tipo: 'LIGA', id: l.leagueId }, titulo: l.leagueName, sub: `${l.teams.length} clubs`, tier: l.tier }));
+    // Um cartao por PAIS (agrupado pelo nome, para um jogo antigo com o pais escrito de outra forma nao abrir um cartao a parte), com o id certo da base (a bandeira usa-o).
+    const pais = (id: string, nome: string) => {
+      const real = (COUNTRIES as any[]).find(c => c.name === nome || c.id === id);
+      const chave = real ? real.id : id;
+      let p = m.get(chave);
+      if (!p) { p = { id: chave, nome: real ? real.name : nome, itens: [] }; m.set(chave, p); }
+      return p;
+    };
+    const jaTem = new Set<string>();
+    ligas.forEach(l => {
+      if (jaTem.has(l.leagueId)) return;   // nunca a mesma liga duas vezes
+      jaTem.add(l.leagueId);
+      pais(l.countryId, l.countryName).itens.push({ sel: { tipo: 'LIGA', id: l.leagueId }, titulo: l.leagueName, sub: `${l.teams.length} clubs`, tier: l.tier });
+    });
     comps.filter(c => c.id === 'SERIE_C' || c.id === 'SERIE_D').forEach(c => pais('45', 'Brazil').itens.push({ sel: { tipo: 'COPA', id: c.id }, titulo: c.name, sub: `${c.teamKeys.length} clubs${c.champion ? ' · finished' : ''}`, tier: c.id === 'SERIE_C' ? 3 : 4 }));
     const ordem = (COUNTRIES as any[]).map(c => c.id);
     return Array.from(m.values()).sort((x, y) => ordem.indexOf(x.id) - ordem.indexOf(y.id)).map(p => ({ ...p, itens: p.itens.sort((a, b) => a.tier - b.tier) }));
