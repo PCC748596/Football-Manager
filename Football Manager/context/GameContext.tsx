@@ -217,7 +217,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       graphicsQuality: 'HIGH',
       view: 'DASHBOARD',
       activities: [],
-      themeMode: 'AUTO',
+      themeMode: 'DARK',
       language: savedLang || 'EN',
       currency: 'USD',
       wageFrequency: 'WEEKLY',

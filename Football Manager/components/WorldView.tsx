@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { COUNTRIES } from '../textSim/dataGenerator';
 import { WorldLeague, buildTable } from '../textSim/world';
-import { Competition, CompMatch, NOMES_FASES, ligaDoUtilizador, mapaDeClubes, tabelaDoGrupo, teamKey, vencedorDoConfronto } from '../textSim/competitions';
+import { Competition, CompMatch, FaseVista, NOMES_FASES, fasesDeSerieCD, ligaDoUtilizador, mapaDeClubes, ordemDoGrupoVista, tabelaDoGrupo, teamKey, vencedorDoConfronto } from '../textSim/competitions';
 import { Fixture, Team, naLigaDoUtilizador } from '../types';
 import { TeamShield } from './TeamShield';
 
@@ -14,6 +14,8 @@ WORLD COMPETITIONS: as ligas do jogo (tabela e jogos de cada uma) e as copas (Li
 // Bandeiras (Assets/Bandeiras/<id do pais>.png) e logos das copas (Assets/Competicoes/<id>.png).
 const bandeira = (countryId: string) => `/Assets/Bandeiras/${countryId}.png`;
 const logoCopa = (id: string) => `/Assets/Competicoes/${id}.png`;
+// Nomes das abas das Series C e D (as fases do regulamento).
+const NOME_FASE_BR: Record<string, string> = { 'SERIE_C:G': 'Segunda fase', 'SERIE_C:F': 'Final', 'SERIE_D:R64': 'Segunda fase', 'SERIE_D:R32': 'Terceira fase', 'SERIE_D:R16': 'Oitavas de final', 'SERIE_D:QF': 'Quartas de final', 'SERIE_D:SF': 'Semi final', 'SERIE_D:PA': 'Playoffs de acesso', 'SERIE_D:F': 'Final' };
 const nomeGrupo = (c: Competition, g: string) => (c.id === 'SERIE_C' && g === 'L') ? 'First phase' : (c.id === 'SERIE_C' && /^G\d$/.test(g)) ? 'Group ' + g.slice(1) : 'Group ' + g;
 
 type Selecao = { tipo: 'LIGA'; id: string } | { tipo: 'COPA'; id: Competition['id'] };
@@ -44,7 +46,7 @@ const WorldView: React.FC = () => {
   const selecao: Selecao | null = sel || (ligas.length ? { tipo: 'LIGA', id: (meu && meu.leagueId) || ligas[0].leagueId } : null);
   const liga = selecao && selecao.tipo === 'LIGA' ? ligas.find(l => l.leagueId === selecao.id) || null : null;
   const copa = selecao && selecao.tipo === 'COPA' && comps ? comps.find(c => c.id === selecao.id) || null : null;
-  useEffect(() => { setRodada(null); setAba(copa ? (copa.groups ? 'GRUPOS' : 'MATA') : 'TABELA'); }, [selecao?.tipo, selecao?.id]);
+  useEffect(() => { setRodada(null); setAba(copa ? ((copa.id === 'SERIE_C' || copa.id === 'SERIE_D') ? 'P1' : copa.groups ? 'GRUPOS' : 'MATA') : 'TABELA'); }, [selecao?.tipo, selecao?.id]);
 
   if (!world || !comps) {
     return <div className="h-full flex items-center justify-center text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest text-sm animate-pulse">A gerar as competições do mundo...</div>;
@@ -146,20 +148,65 @@ const WorldView: React.FC = () => {
     return tabelaDoGrupo(c, g, mapa);
   };
 
+  // Series C / D: abas das fases seguintes, com a origem de cada vaga (classificacao do grupo: a do jogo se for o grupo do utilizador).
+  const ordemVista = (c: Competition) => (g: string) => {
+    if (meu && ((c.ligaExterna && g === 'L') || (c.grupoExterno && g === c.grupoExterno))) {
+      const t = buildTable(meu.teams, meu.fixtures);
+      return { ord: t.map(r => teamKey(meu.leagueId, r.team.id)), completo: meu.fixtures.length > 0 && meu.fixtures.every(f => f.played), iniciado: meu.fixtures.some(f => f.played) };
+    }
+    return ordemDoGrupoVista(c, g);
+  };
+  const slotVista = (s: { rotulo: string; key?: string; provisorio?: boolean }) => (
+    <span className={`flex items-center gap-2 min-w-0 ${s.provisorio ? 'opacity-60' : ''}`}>
+      {s.key ? <><Escudo k={s.key} /><span className={`text-sm font-bold truncate ${s.provisorio ? 'italic' : ''} text-slate-800 dark:text-slate-200`}>{nomeDe(s.key)}</span>{s.rotulo && <span className="text-[9px] text-slate-400 whitespace-nowrap">{s.rotulo}</span>}</>
+        : <span className="text-xs font-bold italic text-slate-400 truncate">{s.rotulo}</span>}
+    </span>
+  );
+  const painelFase = (f: FaseVista, compAtual: string) => (
+    <div className="space-y-1">
+      <div className="text-[11px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">{NOME_FASE_BR[compAtual + ':' + f.stage] || f.titulo}</div>
+      {f.grupos && (
+        <div className="grid grid-cols-2 gap-4">
+          {f.grupos.map(g => (
+            <div key={g.nome} className="rounded border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <div className="px-3 py-1 bg-slate-100 dark:bg-slate-950/70 text-[10px] font-black uppercase tracking-widest text-slate-500">{g.nome}</div>
+              <div className="p-2 space-y-1">{g.slots.map((s, i) => <div key={i} className="px-2 py-1">{slotVista(s)}</div>)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {f.confrontos.map(t => {
+        const gols = (k?: string) => k ? t.jogos.filter(m => m.played).reduce((sum, m) => sum + (m.homeKey === k ? m.homeScore || 0 : 0) + (m.awayKey === k ? m.awayScore || 0 : 0), 0) : 0;
+        const pens = t.jogos.length ? t.jogos[t.jogos.length - 1].pens : undefined;
+        return (
+          <div key={t.tie} className={`flex items-center gap-3 px-4 py-1.5 rounded border ${(t.a.key && souEu(t.a.key)) || (t.b.key && souEu(t.b.key)) ? 'border-blue-400 bg-blue-600/10' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40'}`}>
+            <div className="flex-1 min-w-0 flex justify-end">{slotVista(t.a)}</div>
+            <span className="w-28 text-center text-sm font-black text-slate-900 dark:text-white">
+              {t.jogos.some(m => m.played) ? `${gols(t.a.key)} - ${gols(t.b.key)}` : '—'}
+              <span className="block text-[9px] text-slate-400 font-bold">{t.jogos.length ? t.jogos.map(m => m.played ? `${m.homeScore}-${m.awayScore}` : fmtData(m.date)).join(' · ') : ''}{pens ? ` · pens ${pens[0]}-${pens[1]}` : ''}</span>
+            </span>
+            <div className="flex-1 min-w-0">{slotVista(t.b)}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
   const painelCopa = (c: Competition) => {
+    const fasesSerie = (c.id === 'SERIE_C' || c.id === 'SERIE_D') ? fasesDeSerieCD(c, ordemVista(c)) : null;
     const fases = Array.from(new Set(c.matches.filter(m => !m.group).map(m => m.stage)));
     return (
       <>
         <div className="flex gap-2 p-3 border-b border-slate-200 dark:border-slate-800 items-center">
-          {(c.groups ? ['GRUPOS', 'MATA', 'JOGOS'] : ['MATA', 'JOGOS']).map(a => (
-            <button key={a} onClick={() => setAba(a)} className={`px-4 py-1.5 rounded text-[11px] font-black uppercase tracking-widest ${aba === a ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>{a === 'GRUPOS' ? 'Groups' : a === 'MATA' ? 'Knockout' : 'All matches'}</button>
+          {(fasesSerie ? ['P1', ...fasesSerie.map(f => 'F:' + f.stage), 'JOGOS'] : c.groups ? ['GRUPOS', 'MATA', 'JOGOS'] : ['MATA', 'JOGOS']).map(a => (
+            <button key={a} onClick={() => setAba(a)} className={`px-4 py-1.5 rounded text-[11px] font-black uppercase tracking-widest ${aba === a ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>{fasesSerie ? (a === 'P1' ? 'Primeira fase' : a === 'JOGOS' ? 'Todos os jogos' : (NOME_FASE_BR[c.id + ':' + a.slice(2)] || a)) : (a === 'GRUPOS' ? 'Groups' : a === 'MATA' ? 'Knockout' : 'All matches')}</button>
           ))}
           {c.champion && <span className="ml-auto flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-amber-500">🏆 Champion <Escudo k={c.champion} /> {nomeDe(c.champion)}</span>}
         </div>
         <div className="flex-1 overflow-auto custom-scrollbar p-3">
-          {aba === 'GRUPOS' && c.groups && (
+          {(aba === 'GRUPOS' || aba === 'P1' || (aba === 'F:G' && !!c.groups?.G1)) && c.groups && (
             <div className="grid grid-cols-2 gap-4">
-              {Object.keys(c.groups).map(g => (
+              {(aba === 'F:G' ? ['G1', 'G2'] : (aba === 'P1' && c.id === 'SERIE_C') ? ['L'] : Object.keys(c.groups)).map(g => (
                 <div key={g} className="rounded border border-slate-200 dark:border-slate-800 overflow-hidden">
                   <div className="px-3 py-1 bg-slate-100 dark:bg-slate-950/70 text-[10px] font-black uppercase tracking-widest text-slate-500">{nomeGrupo(c, g)}</div>
                   <table className="w-full">
@@ -178,6 +225,7 @@ const WorldView: React.FC = () => {
               ))}
             </div>
           )}
+          {fasesSerie && aba.startsWith('F:') && !(aba === 'F:G' && c.groups?.G1) && (() => { const f = fasesSerie.find(x => x.stage === aba.slice(2)); return f ? painelFase(f, c.id) : null; })()}
           {aba === 'MATA' && (
             <div className="space-y-5">
               {fases.length === 0 && <div className="text-slate-500 text-sm p-4">The knockout rounds are drawn when the group stage ends.</div>}

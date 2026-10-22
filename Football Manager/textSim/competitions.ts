@@ -504,8 +504,11 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         q.sort((x, y) => x.pos - y.pos || y.p - x.p || y.sg - x.sg || y.gf - x.gf || hash(x.k) - hash(y.k));
         const top = q.map(x => x.k);
         c.teamKeys = top.concat(c.teamKeys.filter(k => top.indexOf(k) < 0));
-        const seedD = (k: string) => c.teamKeys.indexOf(k);
-        c.matches.push(...jogosDaFase(c, fase('R64'), parear(top, seedD), oc, somarDias(hoje, 1)));
+        // Cruzamentos FIXOS (para a aba da fase poder dizer de onde vem cada classificado): ver `CRUZAMENTOS_R64`.
+        const ordPorGrupo: Record<string, string[]> = {};
+        Object.keys(c.groups!).forEach(g => { ordPorGrupo[g] = (g === c.grupoExterno && opcoes.grupoExterno) ? opcoes.grupoExterno.ord : estatDoGrupo(c, g).ord; });
+        const paresR64 = cruzamentosR64(Object.keys(c.groups!)).map(([ga, pa, gb, pb]) => [ordPorGrupo[ga][pa - 1], ordPorGrupo[gb][pb - 1]] as [string, string]);
+        c.matches.push(...jogosDaFase(c, fase('R64'), paresR64, oc, somarDias(hoje, 1)));
         progressou = true;
       }
     } else {
@@ -515,7 +518,8 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         copia();
         const venc = vencedoresDe(a)!;
         // Copa do Brasil: os vencedores mais quem entra nesta fase, pareados por cabeca de serie; nas copas de grupos: o quadro fixo (1.o com 2.o...).
-        const par = (c.id === 'COPA_BR' || c.id === 'SERIE_D') ? parear(venc.concat((c.entradas && c.entradas[b]) || []), seed) : (() => { const p: [string, string][] = []; for (let k = 0; k < venc.length; k += 2) p.push([venc[k], venc[k + 1]]); return p; })();
+        const consecutivos = (ks: string[]) => { const p: [string, string][] = []; for (let k = 0; k < ks.length; k += 2) p.push(seed(ks[k]) <= seed(ks[k + 1]) ? [ks[k], ks[k + 1]] : [ks[k + 1], ks[k]]); return p; };
+        const par = c.id === 'SERIE_D' ? consecutivos(venc) : c.id === 'COPA_BR' ? parear(venc.concat((c.entradas && c.entradas[b]) || []), seed) : (() => { const p: [string, string][] = []; for (let k = 0; k < venc.length; k += 2) p.push([venc[k], venc[k + 1]]); return p; })();
         c.matches.push(...jogosDaFase(c, fase(b), par, oc, somarDias(hoje, 1)));
         // Serie D: os 4 que perdem nas quartas jogam o PLAYOFF DE ACESSO (2 confrontos); os 4 semifinalistas e os 2 vencedores do playoff sobem (6 clubes).
         if (c.id === 'SERIE_D' && b === 'SF') {
@@ -523,7 +527,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
             const js = c.matches.filter(m => m.stage === 'QF' && m.tie === t); const v = vencedorDoConfronto(js, teams, false);
             return js[0].homeKey === v ? js[0].awayKey : js[0].homeKey;
           });
-          c.matches.push(...jogosDaFase(c, fase('PA'), parear(perdedores, seed), oc, somarDias(hoje, 1)).map(m => ({ ...m, id: m.id.replace('SERIE_D-PA', 'SERIE_D-PA'), stage: 'PA' })));
+          c.matches.push(...jogosDaFase(c, fase('PA'), consecutivos(perdedores), oc, somarDias(hoje, 1)));
           c.promovidos = venc.slice();
         }
         progressou = true;
@@ -696,4 +700,80 @@ export const prepararCopas = (a: EntradaCopas): SaidaCopas | null => {
     (liga.players || []).filter(p => p.teamId === tid).forEach(p => players.push({ ...p, fitness: 90 }));
   }));
   return { comps: cs, mudouComps, fixtures, teams, players };
+};
+
+// ------------------------------------------------------------------ quadro das Series C e D (abas das fases seguintes)
+
+/** Cruzamentos da 2.a fase da Serie D: para cada par de grupos (A-B, C-D...): 1.o G x 4.o H, 2.o H x 3.o G, 1.o H x 4.o G, 2.o G x 3.o H. [grupoA, posicaoA, grupoB, posicaoB]; o 1.o da lista e o melhor. */
+export const cruzamentosR64 = (grupos: string[]): [string, number, string, number][] => {
+  const t: [string, number, string, number][] = [];
+  for (let i = 0; i + 1 < grupos.length; i += 2) { const G = grupos[i], H = grupos[i + 1]; t.push([G, 1, H, 4], [H, 2, G, 3], [H, 1, G, 4], [G, 2, H, 3]); }
+  return t;
+};
+
+export interface SlotVista { rotulo: string; key?: string; provisorio?: boolean }
+export interface ConfrontoVista { tie: string; a: SlotVista; b: SlotVista; jogos: CompMatch[] }
+export interface FaseVista { stage: string; titulo: string; confrontos: ConfrontoVista[]; grupos?: { nome: string; slots: SlotVista[] }[] }
+export type OrdemVista = (g: string) => { ord: string[]; completo: boolean; iniciado: boolean };
+
+const ordinal = (n: number) => (n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : n + 'th');
+
+/**
+ * As fases seguintes da Serie C e da Serie D para as abas: todas as vagas desde o inicio, cada uma com a ORIGEM ("1st Group A", "Winner of Phase 2 #3"), e o clube assim que se sabe
+ * (definitivo) ou, enquanto o grupo ainda anda, o que la esta agora (`provisorio`). `ordemVista(g)`: a classificacao do grupo g (a do jogo se for o grupo do utilizador).
+ */
+export const fasesDeSerieCD = (c: Competition, ordemVista: OrdemVista): FaseVista[] => {
+  const out: FaseVista[] = [];
+  const doGrupo = (g: string, pos: number): SlotVista => {
+    const o = ordemVista(g); const k = o.ord[pos - 1];
+    return { rotulo: `${ordinal(pos)} ${c.id === 'SERIE_C' && g === 'L' ? 'of the first phase' : 'Group ' + g.replace(/^G(\d)$/, '$1')}`, key: o.iniciado || o.completo ? k : undefined, provisorio: !o.completo };
+  };
+  const jogosDe = (stage: string, tie: string) => c.matches.filter(m => m.stage === stage && m.tie === tie).sort((x, y) => (x.leg || 0) - (y.leg || 0));
+  const vencedor = (stage: string, tie: string): string | null => { const js = jogosDe(stage, tie); return js.length ? vencedorDoConfronto(js.map(m => ({ ...m })), new Map(), false) : null; };
+  const perdedor = (stage: string, tie: string): string | null => { const js = jogosDe(stage, tie); const v = js.length ? vencedor(stage, tie) : null; return v ? (js[0].homeKey === v ? js[0].awayKey : js[0].homeKey) : null; };
+  const comJogos = (stage: string, tie: string, a: SlotVista, b: SlotVista): ConfrontoVista => {
+    const js = jogosDe(stage, tie);
+    if (js.length) return { tie, a: { rotulo: a.rotulo, key: js[0].homeKey }, b: { rotulo: b.rotulo, key: js[0].awayKey }, jogos: js };
+    return { tie, a, b, jogos: js };
+  };
+
+  if (c.id === 'SERIE_C') {
+    // 2.a fase: dois grupos de 4 com os 8 primeiros da 1.a fase
+    const l = ordemVista('L');
+    const slotL = (pos: number): SlotVista => ({ rotulo: `${ordinal(pos)} of the first phase`, key: (l.iniciado || l.completo) ? l.ord[pos - 1] : undefined, provisorio: !l.completo });
+    const definidos = (g: string) => (c.groups && c.groups[g]) ? c.groups[g].map(k => ({ rotulo: '', key: k } as SlotVista)) : null;
+    out.push({ stage: 'G', titulo: 'Second phase (groups)', confrontos: [], grupos: [
+      { nome: 'Group 1', slots: definidos('G1') || [1, 4, 5, 8].map(slotL) },
+      { nome: 'Group 2', slots: definidos('G2') || [2, 3, 6, 7].map(slotL) }
+    ] });
+    out.push({ stage: 'F', titulo: 'Final', confrontos: [comJogos('F', 'F-0', { ...doGrupo('G1', 1), rotulo: 'Winner Group 1' }, { ...doGrupo('G2', 1), rotulo: 'Winner Group 2' })] });
+    return out;
+  }
+
+  // SERIE D
+  const nomesGrupos = Object.keys(c.groups || {});
+  const r64 = cruzamentosR64(nomesGrupos).map(([ga, pa, gb, pb], i) => comJogos('R64', 'R64-' + i, doGrupo(ga, pa), doGrupo(gb, pb)));
+  out.push({ stage: 'R64', titulo: 'Phase 2 (round of 64)', confrontos: r64 });
+  const proxima = (stage: string, anterior: string, n: number, titulo: string, usar: (s: string, t: string) => string | null, rotulo: string) => {
+    const cs: ConfrontoVista[] = [];
+    for (let i = 0; i < n; i++) {
+      const slot = (k: number): SlotVista => ({ rotulo: `${rotulo} ${NOMES_FASES[anterior] || anterior} #${k + 1}`, key: usar(anterior, `${anterior}-${k}`) || undefined });
+      cs.push(comJogos(stage, `${stage}-${i}`, slot(2 * i), slot(2 * i + 1)));
+    }
+    out.push({ stage, titulo, confrontos: cs });
+  };
+  proxima('R32', 'R64', 16, 'Phase 3 (round of 32)', vencedor, 'Winner');
+  proxima('R16', 'R32', 8, 'Round of 16', vencedor, 'Winner');
+  proxima('QF', 'R16', 4, 'Quarter-finals', vencedor, 'Winner');
+  proxima('SF', 'QF', 2, 'Semi-finals (promoted)', vencedor, 'Winner');
+  proxima('PA', 'QF', 2, 'Promotion playoff (promoted)', perdedor, 'Loser');
+  proxima('F', 'SF', 1, 'Final', vencedor, 'Winner');
+  return out;
+};
+
+/** A classificacao actual de um grupo para as abas (com criterios da Serie C/D e confronto direto). */
+export const ordemDoGrupoVista = (c: Competition, g: string): { ord: string[]; completo: boolean; iniciado: boolean } => {
+  const todos = c.matches.filter(m => m.group === g);
+  if (!c.groups || !c.groups[g]) return { ord: [], completo: false, iniciado: false };
+  return { ord: ordemDoGrupo(c, g, g !== 'L'), completo: todos.length > 0 && todos.every(m => m.played), iniciado: todos.some(m => m.played) };
 };
