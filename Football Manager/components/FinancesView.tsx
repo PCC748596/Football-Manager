@@ -5,7 +5,7 @@ import { generatePlayer } from '../textSim/dataGenerator';
 import { Position, Player } from '../types';
 import { settleMatch, type CurrencyCode } from '../textSim/stadiumEconomy';
 
-const FinancesView: React.FC = () => {
+const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => {
   const { userTeam, players, hirePlayer, sellPlayer, gameState, isTransferWindowOpen, formatCurrency, formatWage, t } = useGame();
   const [marketPhase, setMarketPhase] = useState<'OVERVIEW' | 'MARKET'>('OVERVIEW');
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
@@ -122,7 +122,7 @@ const FinancesView: React.FC = () => {
              {t('fin_treasury')}
            </button>
            <button 
-             onClick={() => setMarketPhase('MARKET')}
+             onClick={() => (setView ? setView('TRANSFERS') : setMarketPhase('MARKET'))}   // o mercado de verdade e a aba Transfers
              className={`px-6 py-2 rounded font-black text-xs uppercase tracking-widest transition-all ${marketPhase === 'MARKET' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
            >
              {t('fin_market')}

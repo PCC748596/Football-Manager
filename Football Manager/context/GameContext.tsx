@@ -6,8 +6,11 @@ import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults }
 import { Competition, prepararCopas, ligaIdDoClube } from '../textSim/competitions';
 import { BaseState, garantirBase, processarBase, promoverJovem } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
-import { MensagemInbox, adicionar, chavesDe, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao } from '../textSim/inbox';
+import { MensagemInbox, adicionar, chavesDe, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia } from '../textSim/inbox';
 import { regiaoDoClube } from '../textSim/dataGenerator';
+import { MercadoState, Universo, Evento, mercadoVazio, prepararOrcamentos, proporCompra as mercadoPropor, responderComoVendedor, responderComoComprador, retirar as mercadoRetirar, concluir as mercadoConcluir,
+  contratarAgenteLivre as mercadoContratarLivre, listarParaVenda as mercadoListar, tickDoDia as mercadoTick, recalcularValoresDoMes, janelaAberta } from '../textSim/transferencias';
+import { recalcularValores } from '../textSim/valuation';
 import { Negociacao, Oferta, abrirNegociacao, assinar, chanceDeAceitar, propostaDoJogador, resolverNegociacoes } from '../textSim/negociacao';
 import { rotuloDaFase } from '../textSim/competitions';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
@@ -20,7 +23,7 @@ import { simulador3dEnviar } from '../3dMatch/Simulador3DView';
 const TRANSLATIONS: Record<string, any> = {
   EN: {
     // Nav
-    nav_home: "Home", nav_inbox: "Inbox", nav_squad: "Squad", nav_tactics: "Tactics", nav_training: "Training",
+    nav_home: "Home", nav_inbox: "Inbox", nav_transfers: "Transfers", nav_squad: "Squad", nav_tactics: "Tactics", nav_training: "Training",
     nav_fixtures: "Fixtures", nav_standings: "Standings", nav_finance: "Finance", nav_statistics: "Statistics", nav_settings: "Settings", nav_world: "World",
     nav_match_day: "Match Day", nav_sim_round: "Simulate Round", nav_save_game: "Save Game",
     // Start Menu
@@ -83,7 +86,7 @@ const TRANSLATIONS: Record<string, any> = {
   },
   PT: {
     // Nav
-    nav_home: "Início", nav_inbox: "Caixa de Entrada", nav_squad: "Elenco", nav_tactics: "Tática", nav_training: "Treino",
+    nav_home: "Início", nav_inbox: "Caixa de Entrada", nav_transfers: "Transferências", nav_squad: "Elenco", nav_tactics: "Tática", nav_training: "Treino",
     nav_fixtures: "Jogos", nav_standings: "Tabela", nav_finance: "Finanças", nav_statistics: "Estatísticas", nav_settings: "Config.", nav_world: "Mundo",
     nav_match_day: "Dia de Jogo", nav_sim_round: "Simular Rodada", nav_save_game: "Salvar Jogo",
     // Start Menu
@@ -175,6 +178,14 @@ interface GameContextType {
   negociacoes: Negociacao[];
   /** Faz a oferta de renovacao: aceitar a proposta do jogador assina na hora; mudar o salario ou os anos abre uma negociacao de 2-3 dias. */
   proporRenovacao: (playerId: string, oferta: Oferta) => 'ASSINADO' | 'EM_ANALISE' | 'BLOQUEADO';
+  /** O mercado de transferencias: estado (negociacoes, transacoes, historico) e as acoes do treinador. Cada acao devolve { ok, motivo }. */
+  mercado: MercadoState;
+  proporCompraMercado: (playerId: string, valor: number) => { ok: boolean; motivo?: string };
+  responderNegociacao: (negId: string, acao: 'ACEITAR' | 'RECUSAR' | 'CONTRA' | 'NOVA_OFERTA', valor?: number) => { ok: boolean; motivo?: string };
+  retirarProposta: (negId: string) => { ok: boolean; motivo?: string };
+  tentarConcluir: (negId: string) => { ok: boolean; motivo?: string };
+  contratarLivre: (playerId: string) => { ok: boolean; motivo?: string };
+  listarParaVenda: (playerId: string, listar: boolean) => { ok: boolean; motivo?: string };
   sellPlayer: (playerId: string) => void;
   swapShirtNumbers: (playerId1: string, playerId2: string) => void;
   scheduleActivity: (date: string, type: ActivityType, details: any) => void;
@@ -223,6 +234,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [inbox, setInbox] = useState<MensagemInbox[]>([]);
   // Negociacoes de renovacao em andamento (o jogador responde em 2 ou 3 dias; textSim/negociacao.ts). Vai no save.
   const [negociacoes, setNegociacoes] = useState<Negociacao[]>([]);
+  // O MERCADO DE TRANSFERENCIAS (textSim/transferencias.ts): negociacoes entre clubes, registro financeiro e historico. Vai no save.
+  const [mercado, setMercado] = useState<MercadoState>(() => mercadoVazio(''));
+  const [diaMercado, setDiaMercado] = useState('');
   const compsSaved = useRef<Competition[] | null>(null);
   const worldSaved = useRef<WorldResults | null>(null);   // resultados vindos de um save, para repor ao criar o mundo
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
@@ -392,6 +406,59 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       caixa: userTeam.cash, folhaSemanal: meus.reduce((a, p) => a + p.salary, 0), formatar: formatCurrency, janelaAberta: isTransferWindowOpen()
     }, chavesDe(inbox)));
   }, [gameState.currentDate, jogosDoUtilizadorSig, base?.mesProcessado, userTeam?.id]);
+
+  // O MERCADO — o motor escreve; a tela so mostra. Tudo passa por funcoes puras (textSim/transferencias.ts) que devolvem o universo novo; aqui so se guarda.
+  const aplicarUniverso = (u: Universo) => {
+    if (u.players !== players) setPlayers(u.players);
+    if (u.teams !== teams) setTeams(u.teams);
+    if (u.base !== base) setBase(u.base);
+    if (u.mercado !== mercado) setMercado(u.mercado);
+  };
+  const universoAtual = (): Universo => ({ players, base, teams, mercado });
+  const eventosParaInbox = (eventos: Evento[]) => {
+    if (!userTeam || !eventos.length) return;
+    // so o que envolve o clube do utilizador chega a caixa de entrada
+    empurrarInbox(eventos.filter(e => e.clubeId === userTeam.id || e.tipo === 'OFERTA_RECEBIDA' || e.tipo === 'CONTRAPROPOSTA' || e.tipo === 'ACEITA' || e.tipo === 'RECUSADA' || e.tipo === 'BLOQUEADA' || e.tipo === 'EXPIRADA' || e.tipo.startsWith('CONCLUIDA'))
+      .filter(e => (e.tipo === 'CONCLUIDA_COMPRA' ? e.clubeId === userTeam.id : e.tipo === 'CONCLUIDA_VENDA' ? e.clubeId === userTeam.id : true))
+      .map(e => avisoDeTransferencia(gameState.currentDate, gameState.language, e, formatCurrency(e.valor))));
+  };
+  const comResultado = (r: { u: Universo; ok: boolean; motivo?: string; eventos: Evento[] }) => { if (r.ok) { aplicarUniverso(r.u); eventosParaInbox(r.eventos); } return { ok: r.ok, motivo: r.motivo }; };
+  const proporCompraMercado = (playerId: string, valor: number) => userTeam ? comResultado(mercadoPropor(universoAtual(), userTeam.id, playerId, valor, gameState.currentDate, userTeam.id)) : { ok: false, motivo: 'sem clube' };
+  const responderNegociacao = (negId: string, acao: 'ACEITAR' | 'RECUSAR' | 'CONTRA' | 'NOVA_OFERTA', valor?: number) => {
+    if (!userTeam) return { ok: false, motivo: 'sem clube' };
+    const neg = mercado.negociacoes.find(n => n.id === negId);
+    if (!neg) return { ok: false, motivo: 'negociacao inexistente' };
+    const hoje = gameState.currentDate;
+    if (neg.vendedorId === userTeam.id) return comResultado(responderComoVendedor(universoAtual(), negId, acao === 'NOVA_OFERTA' ? 'CONTRA' : acao as any, valor, hoje, userTeam.id));
+    return comResultado(responderComoComprador(universoAtual(), negId, acao === 'CONTRA' ? 'NOVA_OFERTA' : acao as any, valor, hoje, userTeam.id));
+  };
+  const retirarProposta = (negId: string) => comResultado(mercadoRetirar(universoAtual(), negId, gameState.currentDate));
+  const tentarConcluir = (negId: string) => comResultado(mercadoConcluir(universoAtual(), negId, gameState.currentDate));
+  const contratarLivre = (playerId: string) => userTeam ? comResultado(mercadoContratarLivre(universoAtual(), userTeam.id, playerId, gameState.currentDate)) : { ok: false, motivo: 'sem clube' };
+  const listarParaVenda = (playerId: string, listar: boolean) => comResultado(mercadoListar(universoAtual(), playerId, listar));
+
+  // Orcamento de transferencias em todos os clubes (so preenche o que falta) e valores de mercado recalculados uma vez por mes (so a formula: textSim/valuation.ts).
+  useEffect(() => {
+    const t2 = prepararOrcamentos(teams);
+    if (t2 !== teams) setTeams(t2);
+  }, [teams.length, userTeam?.id]);
+  useEffect(() => {
+    if (!userTeam || !players.length) return;
+    const u = universoAtual();
+    const u2 = recalcularValoresDoMes(u, gameState.currentDate, recalcularValores);
+    if (u2 !== u) { setPlayers(u2.players); setBase(u2.base); setMercado(u2.mercado); }
+  }, [gameState.currentDate.slice(0, 7), userTeam?.id, players.length > 0, !!base]);
+
+  // O dia do mercado corre DEPOIS dos outros efeitos do dia (contratos, base): um render a seguir, com o estado ja atualizado.
+  useEffect(() => {
+    const id = setTimeout(() => setDiaMercado(gameState.currentDate), 0);
+    return () => clearTimeout(id);
+  }, [gameState.currentDate]);
+  useEffect(() => {
+    if (!userTeam || !diaMercado || diaMercado !== gameState.currentDate || !players.length) return;
+    const r = mercadoTick(universoAtual(), { donoId: userTeam.id, hoje: diaMercado });
+    if (r.u !== universoAtual() && (r.u.mercado !== mercado || r.u.players !== players || r.u.teams !== teams || r.u.base !== base)) { aplicarUniverso(r.u); eventosParaInbox(r.eventos); }
+  }, [diaMercado, userTeam?.id]);
 
   // CATEGORIAS DE BASE E CONTRATOS — corre no motor (a cada mudanca de data), nao na tela: a aba Sub-20 so mostra o resultado.
   //  . todo clube tem exatamente 20 jovens de 15 a 20 anos (clubes que entram depois, como os das copas, ganham a base aqui);
@@ -587,6 +654,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setBase(null);   // a base nasce no motor (efeito acima), com a data do jogo
     setInbox([]);    // as boas-vindas nascem no motor, com o clube escolhido
     setNegociacoes([]);
+    setMercado(mercadoVazio(''));
     setFixtures(initFixtures);
     setGameState(prev => ({
       ...prev,
@@ -1709,6 +1777,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       base,
       inbox,
       negociacoes,
+      mercado,
       saveDate: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(saveData, null, 2)], { type: 'application/json' });
@@ -1775,6 +1844,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setBase(data.base || null);   // save antigo, sem base: o motor gera as bases
         setInbox(data.inbox || []);
         setNegociacoes(data.negociacoes || []);
+        setMercado(data.mercado || mercadoVazio(''));
         setFixtures(fx);
         setGameState(data.gameState);
         return true;
@@ -1785,18 +1855,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   };
 
-  const isTransferWindowOpen = () => {
-    const d = new Date(gameState.currentDate + 'T12:00:00');
-    const month = d.getMonth();
-    return [0, 1, 6, 7].includes(month);
-  };
+  const isTransferWindowOpen = () => janelaAberta(gameState.currentDate, userTeam?.country);   // as janelas vem de CONFIG_MERCADO (textSim/transferencias.ts)
 
   const currentFixtures = fixtures.filter(f => f.week === gameState.currentWeek || f.date === gameState.currentDate);
 
   return (
     <GameContext.Provider value={{
       teams, players, fixtures, gameState, startGame, advanceDay, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
-      hirePlayer, sellPlayer, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, negociacoes, proporRenovacao, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
+      hirePlayer, sellPlayer, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, updateSettings, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
       t,

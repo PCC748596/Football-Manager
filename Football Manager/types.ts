@@ -149,6 +149,12 @@ export interface Player {
   potential?: number;
   /** A estimativa do olheiro (50-99, com margem de erro que encolhe com a idade): e dela que saem as estrelas. */
   potentialEstimate?: number;
+  /** A venda esta aberta a ofertas (mercado de transferencias). */
+  listedForSale?: boolean;
+  /** Data em que entrou na lista de venda (a IA dispensa quem fica listado demais). */
+  listadoEm?: string;
+  /** Data em que ficou agente livre (teamId 'MARKET'). */
+  livreDesde?: string;
   /** Ganhos fracionarios do desenvolvimento mensal (a parte que ainda nao completou 1 ponto de atributo). */
   devAcc?: { def: number; pas: number; drb: number; sht: number };
   teamId: string;
@@ -204,6 +210,8 @@ export interface Team {
   chemistry: number; 
   chemistryTrainingCounter: number; 
   cash: number;
+  /** Orcamento de transferencias: o limite que o clube pode gastar em contratacoes (o `cash` e o saldo disponivel). Ver textSim/transferencias.ts. */
+  transferBudget?: number;
   initialCapital?: number;
   initialTransfer?: number;
   sponsorAmount?: number;
@@ -862,7 +870,7 @@ export interface GameState {
   matchMode: MatchMode;
   simulationSpeed?: 1 | 2 | 3;
   graphicsQuality?: 'HIGH' | 'MEDIUM' | 'LOW';   // Game Settings > Graphics; sem valor vale LOW
-  view: 'DASHBOARD' | 'SQUAD' | 'LEAGUE' | 'MATCH' | 'FINANCES' | 'STATISTICS' | 'TACTICS' | 'FIXTURES' | 'TRAINING' | 'TRAINING_VIEW' | 'SETTINGS' | 'WORLD' | 'INBOX';
+  view: 'DASHBOARD' | 'SQUAD' | 'LEAGUE' | 'MATCH' | 'FINANCES' | 'STATISTICS' | 'TACTICS' | 'FIXTURES' | 'TRAINING' | 'TRAINING_VIEW' | 'SETTINGS' | 'WORLD' | 'INBOX' | 'TRANSFERS';
   activities: CalendarActivity[];
   themeMode: ThemeMode;
   language: Language;

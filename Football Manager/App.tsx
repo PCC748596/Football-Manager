@@ -15,6 +15,7 @@ import SettingsView from './components/SettingsView';
 import WorldView from './components/WorldView';
 import StatisticsView from './components/StatisticsView';
 import InboxView from './components/InboxView';
+import TransferMarketView from './components/TransferMarketView';
 import { COUNTRIES, generateLeagueData } from './textSim/dataGenerator';
 import { gruposDaSerieD } from './textSim/competitions';
 import { Team, Player, GameState } from './types';
@@ -368,11 +369,12 @@ const GameContainer: React.FC = () => {
             {view === 'TACTICS' && <TacticsView setView={setView} />}
             {view === 'TRAINING_VIEW' && <TrainingView />}
             {view === 'FIXTURES' && <FixturesView />}
-            {view === 'FINANCES' && <FinancesView />}
+            {view === 'FINANCES' && <FinancesView setView={setView} />}
             {view === 'STATISTICS' && <StatisticsView />}
             {view === 'SETTINGS' && <SettingsView />}
             {view === 'WORLD' && <WorldView />}
             {view === 'INBOX' && <InboxView setView={setView} />}
+            {view === 'TRANSFERS' && <TransferMarketView setView={setView} />}
         </Layout>
       )}
     </div>

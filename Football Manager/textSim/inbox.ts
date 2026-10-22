@@ -9,7 +9,7 @@ import type { Player } from '../types';
 import { EstadoContrato, estadoDoContrato } from './contracts';
 
 export type CategoriaInbox = 'WELCOME' | 'BOARD' | 'TRAINING' | 'MATCH' | 'SCOUTING' | 'FINANCE' | 'TRANSFER' | 'CONTRACT' | 'SQUAD';
-export type AbaDoJogo = 'DASHBOARD' | 'SQUAD' | 'LEAGUE' | 'FINANCES' | 'STATISTICS' | 'TACTICS' | 'FIXTURES' | 'TRAINING_VIEW' | 'WORLD';
+export type AbaDoJogo = 'DASHBOARD' | 'TRANSFERS' | 'SQUAD' | 'LEAGUE' | 'FINANCES' | 'STATISTICS' | 'TACTICS' | 'FIXTURES' | 'TRAINING_VIEW' | 'WORLD';
 
 export interface MensagemInbox {
   id: string;
@@ -244,3 +244,22 @@ export const avisoDeRespostaRenovacao = (hoje: string, lang: Idioma, p: Player, 
   corpo: aceitou
     ? L(lang, `${p.name} signed until ${p.contract ? dataLonga(p.contract.end, lang) : '-'} (${anos} year(s)) for ${salario} per week. His morale went up.`, `${p.name} assinou até ${p.contract ? dataLonga(p.contract.end, lang) : '-'} (${anos} ano(s)) por ${salario} por semana. A moral dele subiu.`)
     : L(lang, `${p.name} turned down ${salario} per week for ${anos} year(s) and is unhappy about it: his morale dropped. The current contract stays as it was; you can make a new offer.`, `${p.name} recusou ${salario} por semana por ${anos} ano(s) e ficou chateado: a moral dele caiu. O contrato atual continua como estava; você pode fazer uma nova proposta.`) });
+
+// ------------------------------------------------------------------ mercado de transferencias
+export interface EventoMercado { tipo: string; jogadorNome: string; clubeNome: string; valor: number; motivo?: string; }
+export const avisoDeTransferencia = (hoje: string, lang: Idioma, e: EventoMercado, valor: string): MensagemInbox => {
+  const j = e.jogadorNome, c = e.clubeNome;
+  const M = (assunto: string, corpo: string, alta = false): MensagemInbox => criar({ keys: [], date: hoje, categoria: 'TRANSFER', alta, ir: 'TRANSFERS', de: L(lang, 'Director of Football', 'Diretor de Futebol'), assunto, corpo });
+  switch (e.tipo) {
+    case 'OFERTA_RECEBIDA': return M(L(lang, `Offer for ${j}: ${c} bids ${valor}`, `Proposta por ${j}: ${c} oferece ${valor}`), L(lang, `${c} made an offer of ${valor} for ${j}. Open the Transfer Market to accept, refuse or make a counter-offer.`, `${c} fez uma proposta de ${valor} por ${j}. Abra o Mercado de Transferências para aceitar, recusar ou fazer uma contraproposta.`), true);
+    case 'CONTRAPROPOSTA': return M(L(lang, `Counter-offer for ${j}: ${c} asks ${valor}`, `Contraproposta por ${j}: ${c} pede ${valor}`), L(lang, `${c} answered your offer with a counter-offer of ${valor} for ${j}. You can accept it, refuse or offer again.`, `${c} respondeu à sua proposta com uma contraproposta de ${valor} por ${j}. Você pode aceitar, recusar ou propor de novo.`), true);
+    case 'ACEITA': return M(L(lang, `${c} accepted your offer for ${j}`, `${c} aceitou sua proposta por ${j}`), L(lang, `${c} accepted ${valor} for ${j}. The transfer completes as soon as the conditions allow.`, `${c} aceitou ${valor} por ${j}. A transferência será concluída assim que as condições permitirem.`));
+    case 'RECUSADA': return M(L(lang, `${c} turned down the deal for ${j}`, `${c} recusou o negócio por ${j}`), L(lang, `The offer of ${valor} for ${j} was refused${e.motivo ? ` (${e.motivo})` : ''}.`, `A proposta de ${valor} por ${j} foi recusada${e.motivo ? ` (${e.motivo})` : ''}.`));
+    case 'EXPIRADA': return M(L(lang, `Negotiation for ${j} expired`, `Negociação por ${j} expirou`), L(lang, `The negotiation with ${c} for ${j} is no longer available${e.motivo ? ` (${e.motivo})` : ''}.`, `A negociação com ${c} por ${j} deixou de estar disponível${e.motivo ? ` (${e.motivo})` : ''}.`));
+    case 'BLOQUEADA': return M(L(lang, `Deal for ${j} accepted but not completed yet`, `Negócio por ${j} aceito, mas ainda não concluído`), L(lang, `The deal for ${j} (${valor}) cannot be completed yet: ${e.motivo || 'conditions not met'}. It stays pending until the conditions are met or it expires.`, `O negócio por ${j} (${valor}) ainda não pode ser concluído: ${e.motivo || 'condições não atendidas'}. Fica pendente até as condições serem atendidas ou expirar.`), true);
+    case 'CONCLUIDA_COMPRA': return M(L(lang, `Transfer completed: ${j} joins the club`, `Transferência concluída: ${j} chegou ao clube`), L(lang, `${j} signed for ${valor}.`, `${j} foi contratado por ${valor}.`));
+    case 'CONCLUIDA_VENDA': return M(L(lang, `Transfer completed: ${j} was sold`, `Transferência concluída: ${j} foi vendido`), L(lang, `${j} was sold for ${valor}.`, `${j} foi vendido por ${valor}.`));
+    case 'AGENTE_LIVRE': return M(L(lang, `Free agent signed: ${j}`, `Agente livre contratado: ${j}`), L(lang, `${j} joined as a free agent, with no transfer fee.`, `${j} chegou como agente livre, sem taxa de transferência.`));
+    default: return M(`${j}`, `${c} ${valor}`);
+  }
+};

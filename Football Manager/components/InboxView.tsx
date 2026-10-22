@@ -37,6 +37,9 @@ const InboxView: React.FC<Props> = ({ setView }) => {
   // Sem selecao, abre a primeira da lista.
   useEffect(() => { if (!selId && lista.length) setSelId(lista[0].id); }, [lista.length]);
 
+  // Apaga uma mensagem (a lixeira ao lado da data): se era a aberta, abre a vizinha.
+  const apagar = (id: string) => { const i = lista.findIndex(m => m.id === id); deleteInbox([id]); if (selId === id) setSelId(lista[i + 1]?.id || lista[i - 1]?.id || null); };
+
   const rotuloCat = (c: CategoriaInbox) => (pt ? CATEGORIAS[c].pt : CATEGORIAS[c].en);
   const contagem = (c: CategoriaInbox) => inbox.filter(m => m.categoria === c && !m.lida).length;
 
@@ -72,8 +75,8 @@ const InboxView: React.FC<Props> = ({ setView }) => {
         <div className="bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-y-auto custom-scrollbar shadow-xl">
           {lista.length === 0 && <div className="p-8 text-center text-slate-400 text-sm font-bold uppercase tracking-widest">{pt ? 'Nenhuma mensagem' : 'No messages'}</div>}
           {lista.map(m => (
-            <button key={m.id} onClick={() => setSelId(m.id)}
-              className={`w-full text-left px-4 py-3 border-b border-slate-200 dark:border-slate-800/60 flex gap-3 items-start transition-colors ${selId === m.id ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
+            <div key={m.id} role="button" tabIndex={0} onClick={() => setSelId(m.id)} onKeyDown={e => { if (e.key === 'Enter') setSelId(m.id); }}
+              className={`group w-full text-left px-4 py-3 border-b border-slate-200 dark:border-slate-800/60 flex gap-3 items-start transition-colors cursor-pointer ${selId === m.id ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
               <div className="text-xl leading-none mt-0.5">{CATEGORIAS[m.categoria].icone}</div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -81,9 +84,19 @@ const InboxView: React.FC<Props> = ({ setView }) => {
                   <span className={`text-sm truncate ${m.lida ? 'font-semibold text-slate-500 dark:text-slate-400' : 'font-black text-slate-900 dark:text-white'}`}>{m.assunto}</span>
                   {m.alta && <span className="text-[10px] font-black uppercase bg-rose-500/15 text-rose-500 border border-rose-500/30 px-1.5 rounded shrink-0">!</span>}
                 </div>
-                <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-0.5"><span className="truncate">{m.de}</span><span className="shrink-0 ml-2">{dataCurta(m.date)}</span></div>
+                <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">
+                  <span className="truncate">{m.de}</span>
+                  <span className="shrink-0 ml-2 flex items-center gap-2">
+                    {dataCurta(m.date)}
+                    <button type="button" title={pt ? 'Excluir' : 'Delete'} aria-label={pt ? 'Excluir mensagem' : 'Delete message'}
+                      onClick={e => { e.stopPropagation(); apagar(m.id); }}
+                      className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-white hover:bg-rose-600 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                    </button>
+                  </span>
+                </div>
               </div>
-            </button>
+            </div>
           ))}
         </div>
 

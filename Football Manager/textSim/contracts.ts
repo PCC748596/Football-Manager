@@ -5,6 +5,7 @@ Funcoes puras: nao leem o relogio nem o estado do jogo, recebem a data de hoje. 
 renovacao ou uma nova assinatura cria outro, com a idade da data em que se assina.
 */
 import type { Contract, Player } from '../types';
+import { nomeAleatorio } from './nomes';
 
 export type EstadoContrato = 'REGULAR' | 'ATENCAO' | 'CRITICO' | 'VENCIDO';
 export type Rnd = () => number;
@@ -123,6 +124,7 @@ export const processarContratos = (jogadores: Player[], hoje: string, donoId: st
   const liberados: string[] = [];
   const out = jogadores.map(p => {
     let q = p;
+    if (/^Player \d+$/.test(q.name)) q = { ...q, name: nomeAleatorio(criarRng('nome|' + q.id)) };   // os jogadores tapa-buraco antigos ganham um nome de verdade
     if (!q.contract) q = { ...q, contract: contratoInicial(q.age, hoje, criarRng('contrato|' + q.id)) };
     if (q.birthDate) { const idade = idadeEm(q.birthDate, hoje); if (idade !== q.age) q = { ...q, age: idade }; }
     if (q.teamId !== 'MARKET' && q.contract && hoje >= q.contract.end) {

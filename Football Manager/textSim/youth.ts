@@ -12,6 +12,8 @@ Escala: atributos, overall e potencial dos jovens ficam entre 50 e 99. O potenci
 */
 import { Player, Position, PlayStyle, PLAYSTYLE_POSITIONS } from '../types';
 import { calcularSkill, pesosDoOverall } from './overall';
+import { valorDeMercado } from './valuation';
+import { nomeAleatorio } from './nomes';
 import { Rnd, criarRng, idadeEm, mesDe, novoContrato, somarAnos, somarMeses } from './contracts';
 
 export const TAMANHO_BASE = 20;
@@ -123,10 +125,6 @@ export const escolherPlayStyle = (pos: Position, a: Record<Attr, number>, atual?
   return melhor;
 };
 
-const PRIMEIROS = ['Gabriel', 'Lucas', 'Mateus', 'Pedro', 'João', 'Rafael', 'Guilherme', 'Felipe', 'Bruno', 'Thiago', 'Vinícius', 'Gustavo', 'Henrique', 'Leonardo', 'Daniel', 'Diego', 'Caio', 'Arthur', 'Davi', 'Samuel', 'Enzo', 'Nicolas', 'Miguel', 'Murilo', 'Kauã', 'Yuri', 'Ryan', 'Breno', 'Igor', 'Otávio', 'Renan', 'Joaquín', 'Santiago', 'Matías', 'Tomás', 'Benjamín', 'Emiliano', 'Facundo', 'Lautaro', 'Andrés'];
-const SOBRENOMES = ['Silva', 'Santos', 'Oliveira', 'Souza', 'Costa', 'Pereira', 'Rodrigues', 'Almeida', 'Nascimento', 'Lima', 'Araújo', 'Ribeiro', 'Carvalho', 'Gomes', 'Martins', 'Rocha', 'Barbosa', 'Moreira', 'Cardoso', 'Teixeira', 'Mendes', 'Freitas', 'Barros', 'Pinto', 'Moura', 'Cavalcanti', 'Dias', 'Castro', 'Campos', 'Monteiro', 'Ramos', 'Fernández', 'González', 'López', 'Díaz', 'Torres', 'Vargas', 'Herrera', 'Molina', 'Ortiz'];
-const nomeAleatorio = (rnd: Rnd) => `${PRIMEIROS[Math.floor(rnd() * PRIMEIROS.length)]} ${SOBRENOMES[Math.floor(rnd() * SOBRENOMES.length)]}`;
-
 const sortearPotencial = (rnd: Rnd) => limitar(Math.round(50 + 49 * limitar(0.36 + normal(rnd) * 0.21, 0, 1)));
 
 const subirAteOPotencial = (pos: Position, a: Record<Attr, number>, potencial: number) => {
@@ -148,15 +146,15 @@ export const gerarJovem = (teamId: string, posicao: Position, idade: number, hoj
   ATTRS.forEach(k => { a[k] = limitar(Math.round(alvo + o[k] + (rnd() - 0.5) * 6)); });
   subirAteOPotencial(posicao, a, potencial);
   const skill = calcularSkill(posicao, a.def, a.pas, a.drb, a.sht);
-  // Valor e salario: a mesma conta do `generatePlayer` (jovem: fator de idade 1.2).
-  const value = Math.round(150000 * Math.pow(1.1, Math.max(0, skill - 50)) * 1.2);
+  // O salario segue a conta do `generatePlayer` (jovem: fator de idade 1.2); o VALOR e o de mercado (textSim/valuation.ts), calculado abaixo.
+  const valorParaSalario = Math.round(150000 * Math.pow(1.1, Math.max(0, skill - 50)) * 1.2);
   const nascimento = somarAnos(hoje, -idade);
   const dias = Math.floor(rnd() * 358);
   const d = new Date(nascimento + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - dias);
-  return {
+  const jovem: Player = {
     id, name: nome, age: idade, position: posicao, skill,
     fitness: 80, morale: 60, goalsScored: 0, assists: 0, appearances: 0, weeklyGrowth: 0,
-    value, salary: Math.max(500, Math.round(value * 0.002)), contractExpiry: '',
+    value: 0, salary: Math.max(500, Math.round(valorParaSalario * 0.002)), contractExpiry: '',
     contract: novoContrato(idade, hoje, rnd),
     birthDate: d.toISOString().slice(0, 10),
     potential: potencial, potentialEstimate: estimar(potencial, idade, rnd),
@@ -165,6 +163,7 @@ export const gerarJovem = (teamId: string, posicao: Position, idade: number, hoj
     teamId, shirtNumber: camisa, def: a.def, pas: a.pas, drb: a.drb, sht: a.sht,
     trainingAccumulated: { def: 0, pas: 0, drb: 0, sht: 0, mor: 0 }, lastGrowth: { def: 0, pas: 0, drb: 0, sht: 0 }
   };
+  return { ...jovem, value: valorDeMercado(jovem, hoje) };
 };
 
 const camisaLivre = (doClube: Player[]): number => { const usados = new Set(doClube.map(p => p.shirtNumber)); for (let n = 1; n <= 99; n++) if (!usados.has(n)) return n; return 99; };

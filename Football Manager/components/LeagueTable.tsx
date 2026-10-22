@@ -59,13 +59,13 @@ const LeagueTable: React.FC = () => {
 
                 return (
                   <tr key={team.id} className={`group transition-all duration-300 ${isUser ? 'bg-blue-600/5 dark:bg-blue-600/10' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
-                    <td className="px-6 py-2">
+                    <td className="px-6 py-[5.5px]">
                       <span className={`text-base font-black transition-colors ${posColorClass}`}>
                         {index + 1}
                       </span>
                     </td>
 
-                    <td className="px-6 py-2">
+                    <td className="px-6 py-[5.5px]">
                       <div className="flex items-center gap-3">
                         <TeamShield team={team} className="w-8 h-10" />
                         <span className={`${isUser ? 'text-sm' : 'text-xs'} font-black uppercase tracking-tight ${isUser ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-white'} transition-colors`}>
@@ -74,21 +74,21 @@ const LeagueTable: React.FC = () => {
                       </div>
                     </td>
 
-                    <td className={`px-6 py-2 text-center font-black ${isUser ? 'text-base' : 'text-sm'} transition-colors bg-blue-600/5 dark:bg-blue-600/10 ${isUser ? 'text-blue-600 dark:text-blue-400' : 'text-slate-900 dark:text-white'}`}>
+                    <td className={`px-6  py-[5.5px] text-center font-black ${isUser ? 'text-base' : 'text-sm'} transition-colors bg-blue-600/5 dark:bg-blue-600/10 ${isUser ? 'text-blue-600 dark:text-blue-400' : 'text-slate-900 dark:text-white'}`}>
                       {team.points}
                     </td>
-                    <td className={`px-4 py-2 text-center ${isUser ? 'text-sm' : 'text-xs'} font-bold text-slate-900 dark:text-slate-200 transition-colors`}>{team.played}</td>
-                    <td className={`px-4 py-2 text-center ${isUser ? 'text-sm' : 'text-xs'} font-bold text-slate-900 dark:text-slate-300 transition-colors`}>{team.won}</td>
-                    <td className={`px-4 py-2 text-center ${isUser ? 'text-sm' : 'text-xs'} font-bold text-slate-900 dark:text-slate-300 transition-colors`}>{team.drawn}</td>
-                    <td className={`px-4 py-2 text-center ${isUser ? 'text-sm' : 'text-xs'} font-bold text-slate-900 dark:text-slate-300 transition-colors`}>{team.lost}</td>
-                    <td className={`px-4 py-2 text-center ${isUser ? 'text-sm' : 'text-xs'} font-bold text-slate-900 dark:text-slate-300 transition-colors`}>{team.goalsFor}</td>
-                    <td className={`px-4 py-2 text-center ${isUser ? 'text-sm' : 'text-xs'} font-bold text-slate-900 dark:text-slate-300 transition-colors`}>{team.goalsAgainst}</td>
+                    <td className={`px-4  py-[5.5px] text-center ${isUser ? 'text-sm' : 'text-xs'} font-bold text-slate-900 dark:text-slate-200 transition-colors`}>{team.played}</td>
+                    <td className={`px-4  py-[5.5px] text-center ${isUser ? 'text-sm' : 'text-xs'} font-bold text-slate-900 dark:text-slate-300 transition-colors`}>{team.won}</td>
+                    <td className={`px-4  py-[5.5px] text-center ${isUser ? 'text-sm' : 'text-xs'} font-bold text-slate-900 dark:text-slate-300 transition-colors`}>{team.drawn}</td>
+                    <td className={`px-4  py-[5.5px] text-center ${isUser ? 'text-sm' : 'text-xs'} font-bold text-slate-900 dark:text-slate-300 transition-colors`}>{team.lost}</td>
+                    <td className={`px-4  py-[5.5px] text-center ${isUser ? 'text-sm' : 'text-xs'} font-bold text-slate-900 dark:text-slate-300 transition-colors`}>{team.goalsFor}</td>
+                    <td className={`px-4  py-[5.5px] text-center ${isUser ? 'text-sm' : 'text-xs'} font-bold text-slate-900 dark:text-slate-300 transition-colors`}>{team.goalsAgainst}</td>
                     
-                    <td className={`px-4 py-2 text-center ${isUser ? 'text-sm' : 'text-xs'} font-black transition-colors ${gd > 0 ? 'text-emerald-500' : gd < 0 ? 'text-rose-500' : 'text-slate-300 dark:text-slate-600'}`}>
+                    <td className={`px-4  py-[5.5px] text-center ${isUser ? 'text-sm' : 'text-xs'} font-black transition-colors ${gd > 0 ? 'text-emerald-500' : gd < 0 ? 'text-rose-500' : 'text-slate-300 dark:text-slate-600'}`}>
                       {gd > 0 ? '+' : ''}{gd}
                     </td>
 
-                    <td className={`px-4 py-2 text-center ${isUser ? 'text-sm' : 'text-xs'} font-black transition-colors text-slate-500 dark:text-slate-400`}>
+                    <td className={`px-4  py-[5.5px] text-center ${isUser ? 'text-sm' : 'text-xs'} font-black transition-colors text-slate-500 dark:text-slate-400`}>
                       {team.played > 0 ? Math.round((team.points / (team.played * 3)) * 100) : 0}%
                     </td>
                   </tr>
