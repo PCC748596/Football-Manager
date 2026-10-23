@@ -778,7 +778,7 @@ const Officials = {
     Os ossos têm os mesmos nomes (`lLeg`, `rKnee`, `lArm`, `chest`…), por isso o
     `mover()` aqui em baixo não muda nada.
     */
-    criarCorpo: function (id, camisa, calcao, simples) {
+    criarCorpo: function (id, camisa, calcao, simples, arbitro) {
         const R = RefereeModel;
         /*
         GOLAS, BARRA DO SHORT E LISTAS DAS MEIAS PRETAS (pedido): num traje de cor o resto e preto — a gola (e os punhos), a barra do short (quando o
@@ -790,7 +790,7 @@ const Officials = {
             argolas: preto,
             calcao: { cores: [calcao || camisa], barra: (!simples && calcao && calcao !== preto) ? { cor: preto, altura: 0.12 } : null }
         } : null;
-        FootballPlayer.extra = true;   // corpo de metade dos triangulos (Qualidade.corpoExtras)
+        FootballPlayer.extra = arbitro ? 'arbitro' : true;   // arbitro e assistentes: o corpo dos jogadores (Qualidade.corpoArbitros); staff e reservas: Qualidade.corpoExtras
         let jogador;
         try { jogador = new FootballPlayer(id, camisa || R.corCamisa, calcao || R.corCalcao, 'TeamA', uniforme); } finally { FootballPlayer.extra = false; }
 
@@ -879,7 +879,7 @@ const Officials = {
     },
 
     criarOficial: function (scene, id, etiqueta) {
-        const feito = this.criarCorpo(id);
+        const feito = this.criarCorpo(id, undefined, undefined, undefined, true);
         scene.add(feito.corpo);
         return {
             model: feito.corpo,
@@ -982,7 +982,7 @@ const Officials = {
         const oficiais = [this.arbitro].concat(this.assistentes).concat(this.quarto ? [this.quarto] : []);
         oficiais.forEach((o, i) => {
             const velho = o.model;
-            const feito = this.criarCorpo(i, traje.camisa, traje.calcao);
+            const feito = this.criarCorpo(i, traje.camisa, traje.calcao, undefined, true);
             feito.corpo.position.copy(velho.position);
             feito.corpo.rotation.copy(velho.rotation);
             feito.corpo.visible = velho.visible;

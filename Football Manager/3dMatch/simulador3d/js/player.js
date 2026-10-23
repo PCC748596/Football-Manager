@@ -6750,8 +6750,8 @@ class FootballPlayer {
     }
 
     buildBody(corCamisa, corCalcao) {
-        // Os que nao sao jogadores em campo (arbitros, staff, reservas no banco: ver `FootballPlayer.extra`) levam o corpo `corpoExtras` (456 triangulos); os titulares o `corpo`.
-        const nivelCorpo = (typeof Qualidade !== 'undefined') ? (FootballPlayer.extra ? (Qualidade.cfg().corpoExtras || Qualidade.cfg().corpo) : Qualidade.cfg().corpo) : 0;
+        // Os que nao sao jogadores em campo (arbitros, staff, reservas no banco: ver `FootballPlayer.extra`) levam o corpo `corpoExtras` (400 triangulos); os titulares e os arbitros (`extra === 'arbitro'`) o `corpo`/`corpoArbitros` (456).
+        const nivelCorpo = (typeof Qualidade !== 'undefined') ? (FootballPlayer.extra === 'arbitro' ? (Qualidade.cfg().corpoArbitros || Qualidade.cfg().corpo) : FootballPlayer.extra ? (Qualidade.cfg().corpoExtras || Qualidade.cfg().corpo) : Qualidade.cfg().corpo) : 0;
         const { corpo, rig, backMat, shortFrente } = construirCorpo(corCamisa, corCalcao,
             this.aparencia, this.uniforme, nivelCorpo);
         this.backMat = backMat;
