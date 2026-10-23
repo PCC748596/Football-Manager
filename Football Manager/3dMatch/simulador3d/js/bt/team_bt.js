@@ -2751,6 +2751,12 @@ const PosicionamentoAI = {
             finalZ = puxado.z;
         }
 
+        // Lateral ofensivo (apoioDoLateral): marcação, inércia pós-passe e mola não o tiram do corredor nem o levam à área.
+        if (bb && bb.isAttacking && p._apoioXMin != null) {
+            molaX = Math.sign(molaX || p.baseTarget.x || 1) * Math.max(Math.abs(molaX), p._apoioXMin);
+            if (p._apoioTectoZ != null && finalZ * p.dirZ > p._apoioTectoZ) finalZ = p._apoioTectoZ * p.dirZ;
+        }
+
         dbgCamada('molaCoesao', molaX, finalZ);
         /*
         OS LIMITES SEM BOLA, E O REST DEFENSE.

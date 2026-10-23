@@ -588,12 +588,25 @@ function meiaDaAlaDoLateral(p, bb) {
 }
 
 /*
+O meia da ala ficou para trás da bola (a mais de `meiaAtrasDaBola` m)? Só então o lateral pode ultrapassá-lo. Sem meia do lado: livre.
+`bb` é o blackboard da equipa dele (o `meiaDaAlaDoLateral` precisa de `bb.own`).
+*/
+function meiaFicouParaTras(p, bb, bolaAvanco) {
+    if (typeof ApoioLateral === 'undefined' || !ApoioLateral.activo || !bb) return true;
+    const meia = meiaDaAlaDoLateral(p, bb);
+    if (!meia) return true;
+    return meia.model.position.z * p.dirZ < bolaAvanco - ApoioLateral.ofensivo.meiaAtrasDaBola;
+}
+
+/*
 APOIO DO LATERAL (ver ApoioLateral em config/tactics.js). Devolve o novo alvo {x, z} ou null (fica o que o estilo já calculou).
 Medido antes: o Offensive ficava 11-13 m ATRÁS do meia e à mesma largura dele (nem ultrapassagem nem troca).
 */
 function apoioDoLateral(p, bb, targetX, targetZ) {
     p._apoioModo = null;
     p._apoioLarg = false;
+    p._apoioXMin = null;     // |x| mínimo e tecto de avanço aplicados no tickFinal (team_bt.js)
+    p._apoioTectoZ = null;
     if (typeof ApoioLateral === 'undefined' || !ApoioLateral.activo || !bb || !bb.isAttacking) return null;
     if (p.pos !== 'LB' && p.pos !== 'RB') return null;
     const chave = p.playingStyle;
@@ -622,13 +635,25 @@ function apoioDoLateral(p, bb, targetX, targetZ) {
     const comoOfensivo = chave === 'offensive_fullback' ? !!p.styleAtivo : (p._apoioComoOfensivo && bolaAvanco > -5);
     if (comoOfensivo) {
         const O = ApoioLateral.ofensivo;
+        const xPasso = O.xFora;
+        const xTroca = Math.max(O.xMinCorredor, mx - O.entra);
+        const x = lado * Math.max(O.xMinCorredor, xPasso + (xTroca - xPasso) * t);
+        // Meia que acompanha o ataque: o lateral segue-o, sem passar dele nem entrar na área.
+        const meiaAtras = meiaFicouParaTras(p, bb, bolaAvanco);
+        p._apoioXMin = O.xMinCorredor;
+        if (!meiaAtras) {
+            const tectoSeguir = O.entradaArea - O.margemArea;
+            p._apoioTectoZ = tectoSeguir;
+            const zSegue = Math.min(mz + O.seguirAFrente, tectoSeguir, bolaAvanco + O.aFrenteDaBolaMax);
+            p._apoioModo = null;
+            p._apoioLarg = true;
+            return { x, z: zSegue * dz };
+        }
         const zPasso = Math.min(Math.max(targetZ * dz, mz + O.aFrente), O.tectoZ, bolaAvanco + O.aFrenteDaBolaMax);
         const zTroca = mz + O.zNaTroca;
-        const xPasso = O.xFora;
-        const xTroca = Math.max(O.xMinDentro, mx - O.entra);
         p._apoioModo = t < 0.5 ? 'ultra' : 'troca';
         p._apoioLarg = true;
-        return { x: lado * (xPasso + (xTroca - xPasso) * t), z: (zPasso + (zTroca - zPasso) * t) * dz };
+        return { x, z: (zPasso + (zTroca - zPasso) * t) * dz };
     }
     if (chave === 'defensive_fullback') {
         const D = ApoioLateral.defensivo;
@@ -688,6 +713,8 @@ function aplicarEstiloPosicional(p, bb, targetX, targetZ) {
     if (faseDefensivaEst) {
         p._apoioModo = null;
         p._apoioLarg = false;
+        p._apoioXMin = null;
+        p._apoioTectoZ = null;
         p._apoioRolado = false;   // a próxima posse volta a sortear o apoio do lateral
         // NÃO pelo `est`: o estiloAtivoDe devolve EstiloBase quando o estilo
         // está desligado, e é precisamente isso que a fase defensiva faz. Ver

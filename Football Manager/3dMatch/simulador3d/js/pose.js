@@ -237,6 +237,7 @@ da cor `corCamisa`, calcao de `corCalcao`.
 deixa de ser subdividido em X (so a subdivisao em Y mantem a textura direita no afunilamento) e as juntas esfericas levam menos segmentos; 2 = minimo (~1700):
 juntas ainda mais simples. O corpo dos jogadores continua em 0.
 NOTA: os numeros acima sao de antes; medido agora (T-pose): 0 = 6520, 1 = 888, 2 = 856, 3 = 952 triangulos.
+`leve` 5 = MINIMO (280 triangulos): sem o torax nu (fica dentro da camisa), cabelo so topo+costas, mao detalhada (palma, dedos, polegar), sem travas.
 `leve` 4 = METADE do 1 (456 triangulos, 51%): o do 1 sem as 12 travas das chuteiras (-384) e com a casca do torax em 2 subdivisoes de altura em vez de 8 (-48).
 */
 /*
@@ -902,14 +903,14 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
     const cintura = new THREE.Group(); cintura.position.y = 0.275;
     pelvis.add(cintura); rig.chest = cintura;
 
-    const chest = criarPeca(caixaTorax(u * 1.4, u * 1.45, u * 0.75, 0.75, leve ? 1 : 16), blockMat);
+    const chest = leve === 5 ? new THREE.Group() : criarPeca(caixaTorax(u * 1.4, u * 1.45, u * 0.75, 0.75, leve ? 1 : 16), blockMat);   // leve 5: so a casca da camisa
     chest.position.y = 1.025 - 0.275;
     /*
     A SOMBRA DO TRONCO vive aqui. Era a caixa da pélvis que a projectava e ela
     deixou de existir; sem esta linha o jogador passa a fazer sombra de pernas
     e cabeça com um buraco no meio.
     */
-    chest.add(criarPeca(caixaTorax(u * 1.45, u * 1.5, u * 0.8, 0.75, leve === 4 ? 2 : leve === 2 ? 4 : leve === 1 ? 8 : 16), chestMats, true));
+    chest.add(criarPeca(caixaTorax(u * 1.45, u * 1.5, u * 0.8, 0.75, leve === 5 ? 1 : leve === 4 ? 2 : leve === 2 ? 4 : leve === 1 ? 8 : 16), chestMats, true));
     /*
     SEM BAINHA. A camisa acaba no peito — pedido: *"ajusta a cor da camisa só
     no peito"*.
@@ -936,7 +937,8 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
     const hL = criarPeca(new THREE.BoxGeometry(u * 0.15, u * 0.6, u * 0.65), hairMat); hL.position.set(-u * 0.4, u * 0.2, -u * 0.1);
     const hR = criarPeca(new THREE.BoxGeometry(u * 0.15, u * 0.6, u * 0.65), hairMat); hR.position.set(u * 0.4, u * 0.2, -u * 0.1);
     const hF = criarPeca(new THREE.BoxGeometry(u * 0.88, u * 0.15, u * 0.2), hairMat); hF.position.set(0, u * 0.45, u * 0.38);
-    hairGrp.add(hT, hB, hL, hR, hF); head.add(hairGrp); neck.add(head);
+    if (leve === 5) hairGrp.add(hT, hB); else hairGrp.add(hT, hB, hL, hR, hF);   // leve 5: so o topo e as costas do cabelo (os outros ficam soltos, para a face personalizada nao falhar)
+    head.add(hairGrp); neck.add(head);
     if (ap.tipo === 'custom') aplicarFaceCustom(ap, head, boca, { hT, hB, hL, hR, hF }, u);   // face personalizada: estilo do cabelo, barba e oculos
     if (ap.tipo === 'custom' && ap.rosto && !leve && typeof Image !== 'undefined') {   // a cara em pixels so nos jogadores e arbitros (a torcida usa `leve`)
         const faceMat = new THREE.MeshStandardMaterial({ map: texturaDoRostoPixelado(ap.rosto), color: 0xdcdcdc, roughness: 0.8 });   // `color` < branco: a luz do jogo estoura a foto
@@ -1271,9 +1273,9 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
         const studGeo = new THREE.CylinderGeometry(u * 0.03, u * 0.02, u * 0.04, 8);
         const posTravas = [[-u * 0.12, u * 0.25], [u * 0.12, u * 0.25], [-u * 0.12, 0], [u * 0.12, 0], [-u * 0.12, -u * 0.3], [u * 0.12, -u * 0.3]];
         // `leve` 4 (metade dos triangulos): sem travas nas chuteiras — eram 12 cilindros, 384 triangulos, e nao se veem a distancia de jogo.
-        if (leve !== 4) posTravas.forEach(pos => { const t = criarPeca(studGeo, studMat); t.position.set(pos[0], -0.22, pos[1]); chuteira.add(t); });
+        if (leve !== 4 && leve !== 5) posTravas.forEach(pos => { const t = criarPeca(studGeo, studMat); t.position.set(pos[0], -0.22, pos[1]); chuteira.add(t); });
 
-        grp.rotation.z = x < 0 ? -Math.PI / 32 : Math.PI / 32; peG.rotation.y = x < 0 ? -Math.PI / 16 : Math.PI / 16; pelvis.add(grp); return { raiz: grp, joelho: joelho, pe: peG };
+        grp.rotation.z = x < 0 ? -Math.PI / 32 : Math.PI / 32; if (leve === 5) { joelho.rotation.y = x < 0 ? -Math.PI / 16 : Math.PI / 16; } else peG.rotation.y = x < 0 ? -Math.PI / 16 : Math.PI / 16;   /* leve 5: a chuteira fica reta no pe e a perna (da canela para baixo) e que leva a torcao */ pelvis.add(grp); return { raiz: grp, joelho: joelho, pe: peG };
     }
 
     // As mãos entram no rig: o IK precisa da ponta da cadeia, e o teste

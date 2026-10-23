@@ -2291,7 +2291,11 @@ function podeFazerOverlap(ctx) {
     const bcAvanco = bc.model.position.z * p.dirZ;
     
     if (meuAvanco > bcAvanco + 5) return false; // Já estou lá à frente
-    
+
+    // Lateral só ultrapassa se o meia da ala ficou para trás da bola; senão acompanha (apoioDoLateral).
+    if ((p.pos === 'LB' || p.pos === 'RB') && typeof meiaFicouParaTras === 'function' && typeof TeamAI !== 'undefined' &&
+        !meiaFicouParaTras(p, TeamAI.get(p.team), bcAvanco)) return false;
+
     // O lateral OFENSIVO do lado da jogada arranca mais vezes e de mais longe (JogadasCombinadas.overlap.chanceOfensivo / distOfensivo).
     const JO = (typeof JogadasCombinadas !== 'undefined') ? JogadasCombinadas.overlap : null;
     const ofensivo = !!(JO && JO.chanceOfensivo && p.playingStyle === 'offensive_fullback' && !p.playingStyleDesligado &&

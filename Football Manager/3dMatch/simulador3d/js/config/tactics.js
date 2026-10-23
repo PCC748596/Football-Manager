@@ -1149,7 +1149,8 @@ próximo desse lado). Mede-se pelo |x| dele: `central` ou menos = "joga por dent
 
     OFFENSIVE
       meia por dentro -> ULTRAPASSAGEM: o lateral sai por fora (x = `xFora`) e passa `aFrente` m à frente do meia, a dar a opção.
-      meia na ponta   -> TROCA: o lateral fecha para o miolo, ao lado do meia (x = |x do meia| - `entra`, mínimo `xMinDentro`).
+      meia na ponta   -> TROCA: o lateral fecha um pouco, ao lado do meia (x = |x do meia| - `entra`, mínimo `xMinCorredor`: nunca no miolo).
+      Meia que acompanha o ataque -> o lateral só o segue (ver `ofensivo`), sem ultrapassar nem passar de `entradaArea - margemArea`.
       Entre as duas medidas faz-se a mistura contínua (sem saltos). Sem bola o estilo desliga e o lateral volta ao posto (marcação primeiro).
     DEFENSIVE
       Fica sempre ATRÁS do meia (`atras` m), a apoiar até `maxAFrenteDoPosto` à frente do posto; meia na ponta -> fecha um pouco (`fecha`),
@@ -1159,7 +1160,14 @@ const ApoioLateral = {
     activo: true,
     bonusVel: 1.7,   // multiplica o ritmo de quem ultrapassa / troca (RepositionPace)
     central: 10, ponta: 17,
-    ofensivo: { xFora: 29, aFrente: 7, tectoZ: 45, entra: 14, xMinDentro: 7, zNaTroca: 1, aFrenteDaBolaMax: 20 },
+    /*
+    ofensivo: só ULTRAPASSA (passa à frente do meia, até `tectoZ`) quando o meia fica para trás, isto é, está a mais de
+    `meiaAtrasDaBola` m atrás da bola. Senão SEGUE a jogada: à altura do meia (`seguirAFrente` m à frente dele, no máximo) e nunca
+    a menos de `margemArea` m da entrada da grande área (`entradaArea`, em avanço). Em qualquer caso fica no corredor lateral:
+    |x| >= `xMinCorredor` (era `xMinDentro` 7, que o metia no miolo com o AM e os CMs).
+    */
+    ofensivo: { xFora: 29, aFrente: 7, tectoZ: 45, entra: 14, xMinCorredor: 22, zNaTroca: 1, aFrenteDaBolaMax: 20,
+        meiaAtrasDaBola: 6, seguirAFrente: 0, entradaArea: 30, margemArea: 5 },
     defensivo: { atras: 7, maxAFrenteDoPosto: 12, maxAtrasDoPosto: 3, fecha: 9, xAla: 24, chanceDeApoiar: 0.30 }
 };
 
