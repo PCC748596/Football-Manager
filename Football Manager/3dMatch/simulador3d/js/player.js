@@ -4148,6 +4148,8 @@ class FootballPlayer {
     `HeaderModel.retencaoNoMesmoSentido` da de chegada. Horizontal e vertical juntas: e a energia.
     */
     executeHeader() {
+        // Cabeceio sem salto e sem a inclinacao armada (bola que chegou sem aviso): o chicote a frente arranca no contacto.
+        if (!(this.jumpTimer > 0) && !(this.headLeanTimer > 0)) { this.headLeanDur = 0.40; this.headLeanTimer = 0.40 * 0.5; }
         const vIn = (typeof Match !== 'undefined' && Match.ballVel) ? Match.ballVel.clone() : null;
         this.executeHeaderNucleo();
         if (!vIn || typeof Match === 'undefined' || !Match.ballVel) return;
@@ -4417,8 +4419,7 @@ class FootballPlayer {
             }
 
             this.hasBall = false;
-            this.touchLock = 0.75;
-            this.headLeanTimer = 0;
+            this.touchLock = 0.75;   // (o headLeanTimer NAO se zera aqui: o chicote a frente continua depois do contacto)
             if (this.jumpTimer > 0) {
                 this.hasHeaderedInJump = true;
                 /*
@@ -4507,8 +4508,7 @@ class FootballPlayer {
             Match.ballVel.set(uxP * vP * Math.cos(angC), vP * Math.sin(angC), uzP * vP * Math.cos(angC));
 
             this.hasBall = false;
-            this.touchLock = 0.75;
-            this.headLeanTimer = 0;
+            this.touchLock = 0.75;   // (o headLeanTimer NAO se zera aqui: o chicote a frente continua depois do contacto)
             if (this.jumpTimer > 0) {
                 this.hasHeaderedInJump = true;
                 /*
@@ -5584,7 +5584,7 @@ class FootballPlayer {
                     dá: um salto inteiro para uma bola que já está ao alcance é
                     que ficava estranho.
                     */
-                    this.headLeanTimer = 0.30;
+                    this.headLeanTimer = this.headLeanDur = Math.max(0.40, S.duracao);   // o contacto cai a meio (a bola foi prevista para S.duracao / 2)
                     this.jumpCooldown = 0.4;
                     lookAtBola(this.model, _v1.set(prev.x, this.model.position.y, prev.z));
                 }
@@ -6172,15 +6172,26 @@ class FootballPlayer {
         const rig = this.rig;
         if (!rig) return;
 
-        // Sobe e desfaz com a mesma forma em sino das outras camadas: pico a
-        // meio da janela, não no início nem no fim.
-        const k = Math.max(0, Math.min(1, this.headLeanTimer / 0.30));
-        const intens = Math.sin(k * Math.PI);
+        /*
+        O GESTO: armar para trás (tronco e pescoço, ate 25% da janela), chicotear para a frente a acertar a bola (50%: o contacto), e desfazer. Só o tronco de cima
+        e a cabeça se mexem; pelve, pernas e pés ficam plantados (abaixo). `fase` 0..1; `curva` -1 = tudo para trás, +1 = chicote a frente.
+        */
+        const dur = this.headLeanDur || 0.40;
+        const fase = Math.max(0, Math.min(1, 1 - this.headLeanTimer / dur));
+        const sv = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+        let curva;
+        if (fase < 0.25) curva = -sv(fase / 0.25);
+        else if (fase < 0.5) curva = -1 + 2 * sv((fase - 0.25) / 0.25);
+        else curva = 1 - sv((fase - 0.5) / 0.5);
 
-        rig.chest.rotation.x = lerpTo(rig.chest.rotation.x, -0.20 * intens, 0.5);
-        if (rig.neck) rig.neck.rotation.x = lerpTo(rig.neck.rotation.x, 0.35 * intens, 0.5);
-        rig.lArm.rotation.z = lerpTo(rig.lArm.rotation.z, 0.15 * intens, 0.5);
-        rig.rArm.rotation.z = lerpTo(rig.rArm.rotation.z, -0.15 * intens, 0.5);
+        // Peito: para trás -0.22, para a frente +0.28. Pescoço no sentido oposto do peito (cabeça atrás na armada, a frente no golpe).
+        const peito = (curva < 0) ? 0.22 * curva : 0.28 * curva;
+        const pescoco = (curva < 0) ? -0.30 * curva : -0.32 * curva;
+        rig.chest.rotation.x = lerpTo(rig.chest.rotation.x, peito, 0.6);
+        if (rig.neck) rig.neck.rotation.x = lerpTo(rig.neck.rotation.x, pescoco, 0.6);
+        const bracos = 0.15 * Math.abs(curva);
+        rig.lArm.rotation.z = lerpTo(rig.lArm.rotation.z, bracos, 0.5);
+        rig.rArm.rotation.z = lerpTo(rig.rArm.rotation.z, -bracos, 0.5);
 
         // Mantém pelve, pernas e pés perfeitamente plantados
         rig.pelvis.rotation.x = lerpTo(rig.pelvis.rotation.x, 0, 0.5);
