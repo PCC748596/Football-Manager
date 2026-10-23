@@ -667,7 +667,7 @@ const ShotModel = {
         `adversarioAtrasFator` vezes mais, e nunca bloqueia. E um adversario que
         bloqueia tem de estar a frente e a menos de `bloqueioLateralMax` m do eixo.
         */
-        adversarioAtrasFator: 2.5,
+        adversarioAtrasFator: 6.0,   // 2.5 -> 6.0: quem esta ATRAS so aperta se estiver a menos de ~0.37 m (era 0.88 m): atras nao corta nada, e o erro com defesa nas costas era demais
         bloqueioLateralMax: 1.4,
         // Ângulo fechado (junto à linha de fundo) também.
         anguloMult: 1.30,
@@ -838,7 +838,7 @@ const BolaParadaAndada = {
     entre `velMin` e `velMax`. Quem esta a 10 m vai a passo (2.0 m/s); quem
     esta a 40 m vai a trote rapido (6.5 m/s) e chega em ~6 s, e nao em 13.
     */
-    tempoAlvo: 5.0,
+    tempoAlvo: 3.5,   // 5.0 -> 3.5: as faltas demoravam (mediana 7.7 s sem cartao, ate 10.9): quem vai ao lugar chega mais depressa
     velMin: 2.0,
     velMax: 6.5,
     // A esta distancia do lugar considera-se la.
@@ -856,7 +856,7 @@ const FreeKickModel = {
     // Segundos entre o fim do cartao e a cobranca (o juiz apita antes de a falta sair).
     apitoAposCartao: 1.5,
     // Segundos de espera, no maximo (contados sem o cartao), para a barreira ficar toda no lugar antes de a falta sair.
-    esperaBarreira: 6.0,
+    esperaBarreira: 4.0,   // 6.0 -> 4.0: o prazo esgotava-se sempre; com tempoAlvo menor a barreira chega a tempo
     /*
     DECISÃO DA COBRANÇA — ver decisaoDeFalta em utils.js. Três casos:
 

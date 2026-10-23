@@ -94,6 +94,8 @@ const Ponte = {
                 '#barra-topo-tc button.pisca{background:#facc15;color:#000;animation:pisca-tc 0.8s ease-in-out infinite}' +
                 '@keyframes pisca-tc{50%{opacity:.45}}' +
                 // O indicador de FPS fica no canto direito da barra.
+                '#barra-topo-tc #tc-evento{display:none;align-items:center;gap:8px;padding:4px 10px;border-radius:4px;background:#0f172a;border:1px solid #475569;font:700 12px system-ui,sans-serif}' +
+                '#barra-topo-tc #tc-evento b{font-size:15px;color:#fff}#barra-topo-tc #tc-evento span{letter-spacing:1px;color:#e2e8f0}' +
                 '#barra-topo-tc #tc-fps{margin-left:auto;font:900 13px/1 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.5px;padding:5px 9px;border-radius:4px;background:#0f172a;color:#22c55e;min-width:62px;text-align:center}' +
                 'body.tela-cheia #placar-linha{display:none !important}' +
                 // TODOS os menus do 3D saem em tela cheia: o botao Tactics abre o MATCH TACTICS do manager (ver abaixo).
@@ -117,7 +119,7 @@ const Ponte = {
                 '<button data-cam="lateraltv" data-r="3d">3D</button><button data-cam="topdown">2D</button><span class="sep"></span>' +
                 '<span>Velocidade</span>' + [0.5, 1, 1.5].map(v => '<button data-vel="' + v + '">' + v + 'x</button>').join('') +
                 '<button id="tc-pausa">Pausa</button><button id="tc-replay">Replay 10s</button><span class="sep"></span><button id="tc-tactics">Tactics</button>' +
-                '<span id="tc-fps" title="Quadros por segundo">FPS --</span>';
+                '<span id="tc-evento"></span><span id="tc-fps" title="Quadros por segundo">FPS --</span>';
             document.body.appendChild(barra);
             barra.addEventListener('click', (e) => {
                 const b = e.target.closest('button'); if (!b) return;

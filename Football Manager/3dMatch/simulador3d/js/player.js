@@ -3875,6 +3875,40 @@ class FootballPlayer {
             return;
         }
 
+        /*
+        RECHECAGEM NO INSTANTE DE SOLTAR (relato: *"o goleiro esta saindo jogando nos pes dos adversarios, lancamento de mao baixo"*). O alvo era escolhido
+        quando ele pegava a bola, e ele a segura por alguns segundos: ate soltar, um adversario fecha o companheiro ou a linha do rolamento. Agora, na hora
+        de soltar, se o alvo tem um adversario a menos de `folgaNaSoltura` m dele, ou algum a menos de `folgaNaLinha` m da recta goleiro -> alvo, procura outro
+        (o mesmo criterio da saida) e, se nenhum serve, chuta.
+        */
+        if (this.role === 'gk' && this.gkSaida === 'laterais' && targetPlayer && targetPlayer.model && typeof GoalkeeperDistribution !== 'undefined' &&
+            typeof acharLateralParaSaida === 'function') {
+            const G = GoalkeeperDistribution;
+            const meus = (this.team === 'TeamA') ? Match.players : Match.opponents;
+            const advs = (this.team === 'TeamA') ? Match.opponents : Match.players;
+            const bloqueado = (alvoP) => {
+                const a = this.model.position, b = alvoP.model.position;
+                const abx = b.x - a.x, abz = b.z - a.z, ab2 = abx * abx + abz * abz || 1;
+                for (const o of advs) {
+                    if (o.role === 'gk' || !o.model) continue;
+                    if (o.model.position.distanceTo(b) < (G.folgaNaSoltura || 6.0)) return true;
+                    const u = Math.max(0, Math.min(1, ((o.model.position.x - a.x) * abx + (o.model.position.z - a.z) * abz) / ab2));
+                    if (Math.hypot(o.model.position.x - (a.x + abx * u), o.model.position.z - (a.z + abz * u)) < (G.folgaNaLinha || 2.5)) return true;
+                }
+                return false;
+            };
+            if (bloqueado(targetPlayer)) {
+                let novo = null;
+                for (const m of meus) {
+                    if (m === this || m === targetPlayer || !m.model || !(m.pos === 'LB' || m.pos === 'RB' || m.pos === 'CB' || m.pos === 'DC')) continue;
+                    if (this.model.position.distanceTo(m.model.position) > G.distanciaMaxLateral) continue;
+                    if (!bloqueado(m) && (!novo || m.model.position.distanceTo(this.model.position) < novo.model.position.distanceTo(this.model.position))) novo = m;
+                }
+                targetPlayer = novo;
+                this.gkThrowTarget = novo;
+            }
+        }
+
         if (!targetPlayer || !targetPlayer.model) {
             this.puntBall();
             return;

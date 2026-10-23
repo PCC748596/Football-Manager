@@ -715,6 +715,9 @@ const GoalkeeperDistribution = {
     distanciaMaxLateral: 45.0,
     // Defesa com adversário a menos disto em cima não serve.
     folgaMinima: 4.0,
+    // Na hora de SOLTAR (releaseFromHands): o alvo com um adversario a menos de `folgaNaSoltura` m, ou um a menos de `folgaNaLinha` m da recta goleiro -> alvo, e trocado (ou chuta).
+    folgaNaSoltura: 6.0,
+    folgaNaLinha: 2.5,
 
     /*
     A saída curta aceita LATERAIS (LB/RB) e CENTRAIS (CB/DC), com preferência

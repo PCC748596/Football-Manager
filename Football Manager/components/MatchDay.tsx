@@ -32,6 +32,9 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   useEffect(() => { try { localStorage.setItem('activeMatchView', 'MATCH'); } catch (e) { /* sem armazenamento: fica o padrao */ } }, []);
   const [velocidade, setVelocidade] = useState(1);
   const [replayAtivo, setReplayAtivo] = useState(false);
+  // O indicador de evento do 3D (SHOTS, CORNERS...): sai na barra de cima, ao lado dos botoes, durante `duracao` s.
+  const [eventoHud, setEventoHud] = useState<{ nome: string; esq: number; dir: number } | null>(null);
+  const eventoTimer = useRef<any>(null);
   const [pronto3d, setPronto3d] = useState(() => simulador3dPronto());
   const userTeam = teams.find(t => t.id === gameState.userTeamId);
   const taticaJson = userTeam ? JSON.stringify(taticaParaMotor(userTeam.tactics)) : '';
@@ -162,6 +165,11 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
             <button onClick={() => simulador3dEnviar({ tipo: 'replay', segundos: 10 })}
               title="Repete os ultimos 10 segundos (clique de novo para parar)"
               className={`${replayAtivo ? 'animate-pulse bg-yellow-400 hover:bg-yellow-300 border-yellow-600 text-black' : 'bg-slate-700 hover:bg-slate-600 border-slate-900 text-white'} font-black px-3 py-1.5 rounded text-[10px] uppercase tracking-wider border-b-2 active:scale-95`}>Replay 10s</button>
+            {eventoHud && (
+              <span className="ml-3 flex items-center gap-2 bg-slate-950 border border-slate-600 rounded px-3 py-1 text-white font-black text-[10px] uppercase tracking-widest">
+                <span className="text-sm">{eventoHud.esq}</span>{eventoHud.nome}<span className="text-sm">{eventoHud.dir}</span>
+              </span>
+            )}
             <button onClick={() => simulador3dTelaCheia()} className="ml-auto bg-emerald-700 hover:bg-emerald-600 text-white font-black px-4 py-1.5 rounded text-[10px] uppercase tracking-widest border-b-2 border-emerald-900 active:scale-95">Tela cheia</button>
         </div>
         )}
@@ -277,6 +285,10 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         if (document.fullscreenElement) document.exitFullscreen?.();
                         if (gameState.isProcessing) pauseMatch();
                         setView?.('TACTICS');
+                      } else if (m.tipo === 'hud_evento') {
+                        setEventoHud({ nome: m.nome, esq: m.esq, dir: m.dir });
+                        clearTimeout(eventoTimer.current);
+                        eventoTimer.current = setTimeout(() => setEventoHud(null), (m.duracao || 7) * 1000);
                       } else if (m.tipo === 'replay_estado') {
                         setReplayAtivo(!!m.ativo);
                       } else if (m.tipo === 'saida_pedida' || m.tipo === 'alternar_pausa') {

@@ -1046,9 +1046,24 @@ function updateHudEvento() {
         document.getElementById('hud-evento-num-esq').textContent = atual[novo][esq === 'TeamA' ? 0 : 1];
         document.getElementById('hud-evento-num-dir').textContent = atual[novo][dir === 'TeamA' ? 0 : 1];
         document.getElementById('hud-evento-nome').textContent = H.eventos[novo].nome;
-        el.classList.remove('oculto');
         H._fim = agora + H.duracao;
+        /*
+        O INDICADOR VAI PARA A BARRA DE CIMA (pedido), onde estao os botoes: em tela cheia, na barra do 3D (#tc-evento, ver Ponte.barraTopo); embutido no manager,
+        na barra de camaras/velocidade dele (mensagem `hud_evento`). So na pagina do simulador aberta sozinha, sem barra, o cartao flutuante continua a sair.
+        */
+        const dados = { nome: H.eventos[novo].nome, esq: atual[novo][esq === 'TeamA' ? 0 : 1], dir: atual[novo][dir === 'TeamA' ? 0 : 1], duracao: H.duracao };
+        const barraTc = document.getElementById('barra-topo-tc');
+        const emBarra = document.body.classList.contains('tela-cheia') && barraTc && barraTc.style.display !== 'none';
+        if (emBarra) {
+            const pill = document.getElementById('tc-evento');
+            if (pill) { pill.innerHTML = '<b>' + dados.esq + '</b><span>' + dados.nome + '</span><b>' + dados.dir + '</b>'; pill.style.display = 'inline-flex'; }
+        } else if (document.body.classList.contains('embutido') && window.parent && window.parent !== window) {
+            window.parent.postMessage({ fonte: 'simulador3d', tipo: 'hud_evento', nome: dados.nome, esq: dados.esq, dir: dados.dir, duracao: dados.duracao }, '*');
+        } else {
+            el.classList.remove('oculto');
+        }
     }
+    if (agora >= H._fim) { const pill = document.getElementById('tc-evento'); if (pill) pill.style.display = 'none'; }
     if (!el.classList.contains('oculto') && (agora >= H._fim || antesDaSaida)) el.classList.add('oculto');
 }
 
