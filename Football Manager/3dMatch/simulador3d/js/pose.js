@@ -1251,7 +1251,10 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
         larga que ela (0.68 contra 0.45), que é o que o faz ler como pano.
         */
         // Faces do Box: +x, -x, +y, -y, +z (frente), -z. O numero vai na frente da perna ESQUERDA do jogador (x > 0).
-        const shortL = criarPeca(new THREE.BoxGeometry(u * 0.68, u * 1.10, u * 0.80),
+        const shortGeo = new THREE.BoxGeometry(u * 0.68, u * 1.10, u * 0.80);
+        // A BARRA DO CALCAO 3 cm mais estreita so do lado de DENTRO (o do centro, entre as pernas); o de fora fica (0.03 m / ESCALA_CORPO ~ 0.092): so os vertices de baixo mudam, os triangulos sao os mesmos.
+        { const dentro = x > 0 ? -1 : 1,   /* -1: o lado de dentro da perna esquerda (x > 0) e o de x negativo */ ps = shortGeo.attributes.position, f = (u * 0.34 - 0.092) / (u * 0.34); for (let i = 0; i < ps.count; i++) if (ps.getY(i) < 0 && ps.getX(i) * dentro > 0) ps.setX(i, ps.getX(i) * f); ps.needsUpdate = true; shortGeo.computeVertexNormals(); }
+        const shortL = criarPeca(shortGeo,
             x > 0 ? [shortMat, shortMat, shortMat, shortMat, shortFrenteMat, shortMat] : shortMat);
         shortL.position.set(x > 0 ? -0.08 : 0.08, 0.55, 0);
         coxa.add(shortL); grp.add(coxa);
@@ -1269,6 +1272,8 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
         // Guardada para o `assentarNoChao` (player.js) medir a SOLA: é a peça
         // mais baixa do corpo e é por ela que o jogador toca no relvado.
         peG.userData.chuteira = chuteira;
+        // A LINGUETA da chuteira: um retangulo da cor dela, a frente da canela, logo acima do pe (todos os modelos).
+        const lingueta = criarPeca(new THREE.BoxGeometry(u * 0.35 * 0.9, u * 0.2, u * 0.04), bootMat); lingueta.position.set(0, -u * 0.03, u * 0.24); peG.add(lingueta);   // 90% da largura da canela, a sair do topo da chuteira e a frente do meiao
 
         const studGeo = new THREE.CylinderGeometry(u * 0.03, u * 0.02, u * 0.04, 8);
         const posTravas = [[-u * 0.12, u * 0.25], [u * 0.12, u * 0.25], [-u * 0.12, 0], [u * 0.12, 0], [-u * 0.12, -u * 0.3], [u * 0.12, -u * 0.3]];

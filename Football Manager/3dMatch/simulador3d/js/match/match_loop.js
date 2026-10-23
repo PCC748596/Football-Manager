@@ -1185,8 +1185,22 @@ Object.assign(Match, {
             posAttr.setXYZ(1, 0, 0.05, targetGoalZ);
             posAttr.needsUpdate = true;
             this.goalLineVisual.visible = true;
+
+            // As 4 linhas aos angulos da baliza: x = poste menos `margemPoste`; y = canto de baixo (alturaRasteira) e de cima (alturaAlta).
+            if (this.cantosLineVisual) {
+                const MI = ShotModel.mira, xc = LARGURA_BALIZA / 2 - MI.margemPoste, ys = [MI.alturaRasteira, MI.alturaAlta];
+                const pc = this.cantosLineVisual.geometry.attributes.position;
+                let k = 0;
+                for (const sx of [-1, 1]) for (const y of ys) {
+                    pc.setXYZ(k++, this.ball.position.x, Math.max(0.05, this.ball.position.y), this.ball.position.z);
+                    pc.setXYZ(k++, sx * xc, y, targetGoalZ);
+                }
+                pc.needsUpdate = true;
+                this.cantosLineVisual.visible = true;
+            }
         } else {
             if (this.goalLineVisual) this.goalLineVisual.visible = false;
+            if (this.cantosLineVisual) this.cantosLineVisual.visible = false;
         }
 
         if (this.showOffsideLines) {

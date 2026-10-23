@@ -4450,11 +4450,14 @@ function miraDeRemate(o) {
     if (Math.abs(gkX) > MI.gkCentradoMax) lado = -Math.sign(gkX);
     else lado = (r < 0.5) ? -1 : 1;
 
+    // O DUELO (`o.diff`, em pontos): quem ganha o duelo tira mais ao guarda-redes — vai ao canto de cima, o mais dificil, e com mais ambicao.
+    const duelo = (typeof o.diff === 'number') ? Math.max(0, Math.min(1, o.diff / (MI.diffCanto || 14))) : 0;
+    const rAlto = r * (1 - duelo * (MI.chanceCantoAlto || 0));   // r pequeno = canto de baixo/meia; com duelo ganho r cai e o canto alto sai mais
     let y;
     if (tipo === 'rasteiro') y = MI.alturaRasteira;
     else if (tipo === 'chapeu') y = MI.alturaChapeu;
-    else if (tipo === 'colocado') y = (r < 0.5) ? MI.alturaRasteira + 0.25 : MI.alturaAlta;
-    else y = (r < 0.5) ? MI.alturaMeia : MI.alturaAlta;
+    else if (tipo === 'colocado') y = (rAlto < 0.5) ? MI.alturaAlta : MI.alturaRasteira + 0.25;
+    else y = (rAlto < 0.5) ? MI.alturaAlta : MI.alturaMeia;
 
     /*
     A AMBIÇÃO DA PONTARIA — ver ShotModel.mira.fraccaoCanto.
@@ -4467,7 +4470,8 @@ function miraDeRemate(o) {
     */
     const F = MI.fraccaoCanto && MI.fraccaoCanto[tipo];
     const rx = (o.rndX === undefined) ? Math.random() : o.rndX;
-    const frac = F ? (F.min + rx * (F.max - F.min)) : ((tipo === 'chapeu') ? 0.35 : 1.0);
+    let frac = F ? (F.min + rx * (F.max - F.min)) : ((tipo === 'chapeu') ? 0.35 : 1.0);
+    if (tipo !== 'chapeu') frac += (1 - frac) * duelo;   // duelo ganho por `diffCanto` ou mais: o canto todo
     return { x: lado * maxC * frac, y: y, lado: lado };
 }
 

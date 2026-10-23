@@ -10359,7 +10359,11 @@ class FootballPlayer {
             armM.rotation.z = THREE.MathUtils.lerp(so.mz, sgM * V.z, u);
             cotM.rotation.x = THREE.MathUtils.lerp(so.mc, V.cotovelo, u);
             // O do soco: do V para o IK da bola, peso a subir; no fim esta em cima dela.
-            if (typeof GkDive !== 'undefined' && GkDive.apontarBracos) GkDive.apontarBracos(rig, Math.max(0.15, u), [lado]);
+            // Sem IK (girava o braco e o levava a frente do rosto): do V para a frente, esticando, so no eixo do ombro; depois o resto do gesto volta-o para o lado do corpo (gkSocoRepouso).
+            arm.rotation.x = THREE.MathUtils.lerp(V.x, S.golpeX, u);
+            arm.rotation.y = THREE.MathUtils.lerp(sgP * V.y, 0, u);
+            arm.rotation.z = THREE.MathUtils.lerp(sgP * V.z, sgP * S.golpeZ, u);
+            cot.rotation.x = THREE.MathUtils.lerp(V.cotovelo, S.golpeCotovelo, u);
         }
     }
 

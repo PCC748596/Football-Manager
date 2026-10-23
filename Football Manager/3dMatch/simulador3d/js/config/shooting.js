@@ -538,7 +538,7 @@ const ShotModel = {
     havia a leitura mais básica do remate: bater onde ele não está.
     */
     mira: {
-        margemPoste: 0.45,   // 0.85 -> 0.45 (15 de Outubro de 2026): a bola passa mais perto do poste (pedido) — o goleiro tem mais bolas a sair a pique do alcance
+        margemPoste: ((typeof BallPhysics !== 'undefined') ? BallPhysics.raio : 0.11) + 0.02,   // raio da bola + 2 cm (pedido: 0.45 mandava remates demais para o meio da baliza); era 0.85 -> 0.45
 
         /*
         NÃO SE MIRA SEMPRE O CANTO — e mirava-se.
@@ -634,7 +634,13 @@ const ShotModel = {
         alturaChapeu: 2.15,
         // Abaixo desta descentragem do GK o canto é escolhido à sorte: com
         // ele ao meio, os dois lados valem o mesmo.
-        gkCentradoMax: 0.5
+        gkCentradoMax: 0.5,
+        /*
+        O DUELO DE DADOS escolhe o canto e a ambicao: `diff = (TEC + d10) - (GK + d10)`, como no penalti. Com `diff` > 0 o batedor tira do guarda-redes:
+        `diffCanto` e o diff que leva a pontaria ao canto todo (1.0) e `chanceCantoAlto` o peso do canto de CIMA (o mais dificil de defender) por unidade de diff/diffCanto.
+        */
+        diffCanto: 14,
+        chanceCantoAlto: 0.85
     },
 
     /*
@@ -746,7 +752,7 @@ const ShotModel = {
         Aviso medido: a 1.31 o lote de 40 jogos ja dava 36.9% no alvo (benchmark 33.7%), 2.11 golos e 6.54
         no alvo contra 8.8; o que falta nao e pontaria, e volume de remates tentados.
         */
-        escalaGlobal: 2.00   // 1.15 -> 1.30 (15 de Outubro de 2026): mais erro de execucao nas finalizacoes (pedido) — 60 jogos: golos 3.2 -> 2.59
+        escalaGlobal: 1.40   // 2.00 -> 1.40 (relato: muitos chutes fora da direcao da baliza; medido em 3 jogos de 25 min: 2.00 -> 25.7% no alvo, 1.50 -> 29.5%, 1.30 -> 32.4%; real ~33%). 1.15 -> 1.30 (15 de Outubro de 2026): mais erro de execucao nas finalizacoes (pedido) — 60 jogos: golos 3.2 -> 2.59
     }
 };
 

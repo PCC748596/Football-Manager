@@ -192,6 +192,16 @@ Object.assign(Match, {
         this.goalLineVisual.visible = false;
         this.scene.add(this.goalLineVisual);
 
+        // Os 4 angulos da baliza (2 de cima, 2 de baixo): 4 linhas da bola aos pontos que a mira usa (ShotModel.mira). Mesmo interruptor da linha do golo.
+        this.cantosLineVisual = new THREE.LineSegments(
+            new THREE.BufferGeometry(),
+            new THREE.LineBasicMaterial({ color: 0x00e5ff })
+        );
+        this.cantosLineVisual.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(24), 3));
+        this.cantosLineVisual.frustumCulled = false;
+        this.cantosLineVisual.visible = false;
+        this.scene.add(this.cantosLineVisual);
+
         // Anti Ping-Pong Aéreo: rastreia cabeceios sucessivos sem a bola assentar no chão/pé
         this.aerialHeaderCount = 0;
         this.aerialHeaderTimer = 0;

@@ -785,9 +785,12 @@ function executeShotGameplay(p) {
             frenteAFrente: !!p.frenteAFrente
         });
 
+        // O DUELO DE DADOS, como no penalti: (TEC + d10) - (GK + d10). Quem o ganha tira mais ao guarda-redes (canto mais perto do poste e de cima: ver miraDeRemate).
+        const diffDuelo = (p.skillFor('TEC') + Math.floor(Math.random() * 10) + 1) - ((gkDef ? gkDef.skillFor('GK') : 50) + Math.floor(Math.random() * 10) + 1);
         const mira = miraDeRemate({
             tipo: tipoRemate,
-            gkX: gkDef ? gkDef.model.position.x : 0
+            gkX: gkDef ? gkDef.model.position.x : 0,
+            diff: diffDuelo
         });
 
         const sigma = sigmaDeRemate({
