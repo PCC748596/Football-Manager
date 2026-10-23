@@ -1580,9 +1580,20 @@ class FootballPlayer {
             const ddx = Match.ball.position.x - this.model.position.x;
             const ddz = Match.ball.position.z - this.model.position.z;
             const dd = Math.hypot(ddx, ddz) || 1;
+            /*
+            O CORPO VIRA-SE PARA ONDE A BOLA VAI, e nao para onde ela esta (relato: *"na falta o jogador tocou a bola para um lado virado para o outro com
+            mais de 60 graus"*). A direccao era jogador -> bola, e o passe/cruzamento escolhia o alvo so no contacto, para onde calhasse. Agora o alvo
+            escolhe-se aqui, antes da corrida, e o contacto usa o mesmo (`_faltaPre`).
+            */
+            let dirX = ddx / dd, dirZ = ddz / dd;
+            const alvoDir = this.prepararAlvoDaFalta(decisao);
+            if (alvoDir) {
+                const ax = alvoDir.x - Match.ball.position.x, az = alvoDir.z - Match.ball.position.z, al = Math.hypot(ax, az);
+                if (al > 0.5) { dirX = ax / al; dirZ = az / al; }
+            }
             // A pose da marcha entra no clip por grupo de ossos (MisturaDePose), como no penalti.
             this.misturaPose = (typeof MisturaDePose !== 'undefined' && this.rig) ? MisturaDePose.capturar(this.rig, this.model) : null;
-            this.iniciarLancamentoBolaParada(ddx / dd, ddz / dd, () => {
+            this.iniciarLancamentoBolaParada(dirX, dirZ, () => {
                 Match.mudarEstado('PLAY', 'free_kick_taken');
                 Match.marcarRepositor(this, 'falta');
                 this.executarFalta(decisao);
@@ -1719,6 +1730,35 @@ class FootballPlayer {
             onContact: onContact
         });
         this.fsm.changeState('SET_PIECE_KICK');
+    }
+
+    /*
+    Escolhe, ANTES da corrida, o alvo da cobranca de passe ou de cruzamento e guarda-o em `_faltaPre` para o `executarFalta` o usar tal e qual. Devolve o ponto
+    {x, z} para onde a bola vai, ou null (remate, ou sem alvo: o corpo fica virado como sempre).
+    */
+    prepararAlvoDaFalta(decisao) {
+        this._faltaPre = null;
+        const plano = Match.rotinaPlano;
+        if (plano && plano.fase === 0 && plano.taker === this) {
+            const st = plano.passos && plano.passos[0];
+            return (st && st.alvo) ? { x: st.alvo.x, z: st.alvo.z } : null;
+        }
+        if (decisao === 'remate') return null;
+        const meus = (this.team === 'TeamA') ? Match.players : Match.opponents;
+        const advs = (this.team === 'TeamA') ? Match.opponents : Match.players;
+        if (decisao === 'cruzamento') {
+            const cruz = cruzamentoDeFalta(Match.ball.position, this.dirZ, meus.filter(p => p !== this && p.role !== 'gk'), Math.random);
+            if (cruz) { this._faltaPre = { cruz: cruz }; return { x: cruz.alvo.x, z: cruz.alvo.z }; }
+        }
+        const lf = (typeof melhorIntencaoDeLancamento === 'function') ? melhorIntencaoDeLancamento(this, meus, advs) : null;
+        if (lf) { this._faltaPre = { lf: lf }; return { x: lf.alvoX, z: lf.alvoZ }; }
+        const alvo = this.findPassTarget('frente') || this.findPassTarget() || this.findPassTargetRelaxed('frente');
+        if (alvo) {
+            this._faltaPre = { alvo: alvo };
+            const pt = alvoDePasse(alvo);
+            return { x: pt.x, z: pt.z };
+        }
+        return null;
     }
 
     executarFalta(decisao) {
@@ -1997,7 +2037,8 @@ class FootballPlayer {
             */
             const meus = (this.team === 'TeamA') ? Match.players : Match.opponents;
             const companheiros = meus.filter(p => p !== this && p.role !== 'gk');
-            const cruz = cruzamentoDeFalta(
+            const pre = this._faltaPre;
+            const cruz = (pre && pre.cruz) ? pre.cruz : cruzamentoDeFalta(
                 Match.ball.position, this.dirZ, companheiros, Math.random);
 
             if (!cruz) {
@@ -2035,8 +2076,10 @@ class FootballPlayer {
         {
             const meusF = (this.team === 'TeamA') ? Match.players : Match.opponents;
             const advsF = (this.team === 'TeamA') ? Match.opponents : Match.players;
-            const lf = (typeof melhorIntencaoDeLancamento === 'function') ? melhorIntencaoDeLancamento(this, meusF, advsF) : null;
+            const pre = this._faltaPre;
+            const lf = (pre && pre.lf) ? pre.lf : (pre && pre.alvo) ? null : (typeof melhorIntencaoDeLancamento === 'function') ? melhorIntencaoDeLancamento(this, meusF, advsF) : null;
             if (lf) {
+                this._faltaPre = null;
                 this.passTarget = lf.mate;
                 this.passTargetPos = new THREE.Vector3(lf.alvoX, 0, lf.alvoZ);
                 this.isThroughBall = true;
@@ -2050,8 +2093,10 @@ class FootballPlayer {
             }
         }
 
-        const alvo = this.findPassTarget('frente') || this.findPassTarget() ||
-            this.findPassTargetRelaxed('frente');
+        const preA = this._faltaPre;
+        this._faltaPre = null;
+        const alvo = (preA && preA.alvo) ? preA.alvo : (this.findPassTarget('frente') || this.findPassTarget() ||
+            this.findPassTargetRelaxed('frente'));
         if (alvo) {
             this.passTarget = alvo;
             const pt = alvoDePasse(alvo);

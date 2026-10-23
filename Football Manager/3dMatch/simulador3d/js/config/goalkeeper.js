@@ -871,7 +871,7 @@ const GkSaidaCruzamento = {
         // arranque) é o instante do golpe, perto do pico do salto (a subida dura 0.30 s).
         saltoMin: 0.45,
         contacto: 0.22, armaDistancia: 4.0,
-        armar: 0.13, golpe: 0.09, segura: 0.20,
+        armar: 0.13, golpe: 0.12, segura: 0.20,   // golpe 0.09 -> 0.12: o braco do soco vai a frente e o outro para tras (V) com tempo de se ver
         armaX: 0.75, armaZ: 0.55, armaCotovelo: -1.90, peitoArma: -0.25,
         golpeX: -2.50, golpeZ: 0.35, golpeCotovelo: -0.15, peitoGolpe: 0.30,
         /*
@@ -883,7 +883,7 @@ const GkSaidaCruzamento = {
         antebraco para a frente-fora a y 0 — medido: braco (-0.05, -0.07, -1.00), antebraco (-0.46, -0.02,
         0.89) no referencial do corpo). O esquerdo e o espelho: y e z com o sinal trocado.
         */
-        V: { x: 1.20, y: -1.40, z: -0.30, cotovelo: -2.60 },
+        V: { x: 1.50, y: -1.40, z: -0.30, cotovelo: -2.60 },   // x 1.20 -> 1.50: o braco do V (e o da mira, que inverte) vai um pouco mais para tras
         // Segundos para a pose em V se formar (o braco do soco, a partir do arranque do salto).
         vFormar: 0.12
     },
