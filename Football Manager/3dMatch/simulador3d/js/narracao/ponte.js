@@ -68,6 +68,7 @@ const Ponte = {
             else if (m.tipo === 'parar') this.parar();
             else if (m.tipo === 'velocidade') this.definirVelocidade(m.valor);
             else if (m.tipo === 'esc') this.esc();
+            else if (m.tipo === 'captura') { if (window.CapturaDeJogo) window.CapturaDeJogo.salvar(); }
             else if (m.tipo === 'qualidade') { if (window.Qualidade) window.Qualidade.definir(m.nivel); }
             else if (m.tipo === 'replay') { if (window.MatchReplay && window.MatchReplay.replayUltimos) window.MatchReplay.replayUltimos(m.segundos || 10); }
         } catch (e) {
