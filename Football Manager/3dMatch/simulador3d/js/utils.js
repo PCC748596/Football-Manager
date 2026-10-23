@@ -297,6 +297,46 @@ Não há fórmula fechada com arrasto quadrático — a de manual
 60 m. Resolve-se por bissecção sobre uma simulação do voo, que é barata
 (acontece uma vez por passe, não por frame).
 */
+/*
+ONDE A BOLA PARA — a distancia horizontal ate ao REPOUSO de um chute de velocidade `v` e elevacao `elev` a partir da altura `y0`, simulada com as MESMAS regras do
+`Match.update` (match_physics.js): arrasto quadratico, gravidade, ressalto (restituicao / atrito do ressalto, `vMinRessalto`) e rolamento com paragem a `vMinRolar`. Serve o
+chutao do goleiro depois do golo, que tem de parar no centro do campo (`velocidadeParaPararEm`).
+*/
+function distanciaAteAoRepouso(v, elev, y0, dt) {
+    const B = BallPhysics, r = B.raio;
+    dt = dt || (1 / 60);
+    let x = 0, y = Math.max(y0, r), vx = v * Math.cos(elev), vy = v * Math.sin(elev);
+    for (let i = 0; i < 60 * 40; i++) {
+        const s = Math.hypot(vx, vy);
+        if (s > 0.001) { const dv = Math.min(s, B.kArrasto * s * s * dt); vx -= vx / s * dv; vy -= vy / s * dv; }
+        if (y > r + 0.001) vy -= B.gravidade * dt;
+        x += vx * dt; y += vy * dt;
+        if (y <= r) {
+            y = r;
+            if (vy < 0) {
+                if (-vy > B.vMinRessalto) { vy *= -B.restituicao; vx *= B.atritoRessalto; } else vy = 0;
+            }
+            const vh = Math.abs(vx);
+            if (vh > 0.0001) {
+                vx -= Math.sign(vx) * Math.min(vh, B.atritoRolamento * B.gravidade * dt);
+                if (Math.abs(vx) < B.vMinRolar && vy === 0) vx = 0;
+            }
+            if (vx === 0 && vy === 0) return x;
+        }
+    }
+    return x;
+}
+
+// A velocidade de saida que faz um chute com elevacao `elev` PARAR a `dist` m (bissecao sobre `distanciaAteAoRepouso`).
+function velocidadeParaPararEm(dist, elev, y0, dt) {
+    let lo = 4, hi = 48;
+    for (let i = 0; i < 40; i++) {
+        const mid = (lo + hi) / 2;
+        if (distanciaAteAoRepouso(mid, elev, y0, dt) < dist) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+}
+
 function velocidadeParaAlcance(dist, elev) {
     const g = BallPhysics.gravidade;
     const k = BallPhysics.kArrasto;

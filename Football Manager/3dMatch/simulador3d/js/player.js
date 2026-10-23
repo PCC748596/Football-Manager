@@ -4012,6 +4012,29 @@ class FootballPlayer {
             return;
         }
 
+        /*
+        O CHUTAO DEPOIS DO GOLO PARA NO CENTRO DO CAMPO (pedido: *"depois do gol, faz o goleiro chutar a bola pra ela parar exatamente no centro do campo"*; *"prefiro pelo ar"*).
+        Chute PELO AR (`GkAposGolo.elevacao`), apontado ao centro, com a velocidade de saida que faz a bola, depois do voo, dos ressaltos e do rolamento, PARAR la
+        (`velocidadeParaPararEm` simula o motor: arrasto, gravidade, ressalto e rolamento).
+        */
+        if (Match.golGK && Match.golGK.gk === this && typeof velocidadeParaPararEm === 'function') {
+            const bx = Match.ball.position.x, bz = Match.ball.position.z;
+            const dist = Math.hypot(bx, bz);
+            const elevAr = THREE.MathUtils.degToRad((typeof GkAposGolo !== 'undefined' && GkAposGolo.elevacao) || 35);
+            const v0 = velocidadeParaPararEm(dist, elevAr, Match.ball.position.y, Match.delta);
+            const ux = dist > 0.01 ? -bx / dist : 0, uz = dist > 0.01 ? -bz / dist : -this.dirZ;
+            Match.ballVel.set(ux * v0 * Math.cos(elevAr), v0 * Math.sin(elevAr), uz * v0 * Math.cos(elevAr));
+            if (typeof EfeitosSonoros !== 'undefined') EfeitosSonoros.chute(Match.ball.position, 1.0);
+            this.hasBall = false;
+            this.touchLock = BallControl.touchLock;
+            Match.ballCarrier = null;
+            Match.intendedReceiver = null;
+            Match.passTargetPos = null;
+            Match.lastTouchedTeam = this.team;
+            Match.lastTouchedPlayer = this;
+            return;
+        }
+
         const gGrav = BallPhysics.gravidade;
         const elev = THREE.MathUtils.degToRad(25 + Math.random() * 25);
         const desvio = THREE.MathUtils.degToRad((Math.random() * 2 - 1) * 20);

@@ -2679,14 +2679,16 @@ O estágio 0 só acaba com isto feito ou ao fim de `prazoMax` s (rede de seguran
 */
 const GkAposGolo = {
     activo: true,
-    espera: 3.0,
+    espera: 1.5,   // 3.0 -> 1.5: o goleiro vai a bola mais cedo, para o chutao ao centro (que rola ~4 s) nao alongar a sequencia
     velocidade: 3.0,
     distApanhar: 1.5,
     segurar: 0.8,   // mínimo a segurar antes de poder chutar
-    esperaAposChute: 3.2,
+    esperaAposChute: 1.0,   // 3.2 -> 1.0: o fim da fase e quando a bola PARA (no centro), nao um tempo fixo
     // Depois de a segurar, caminha até ao meio da pequena área (Area.pequenaProfundidade / 2) e só aí chuta.
     chutaNoMeioDaPequena: true,
     chegouA: 0.35,
+    // O chutao depois do golo vai pelo AR, com esta elevacao (graus); a velocidade e calculada para a bola PARAR no centro (velocidadeParaPararEm, utils.js).
+    elevacao: 28,
     // O giro de frente para a rede para o campo, depois de a agarrar: velocidade angular maxima (rad/s). 1.6 = meia volta em ~2 s.
     giroMax: 1.6,
     prazoMax: 12.0

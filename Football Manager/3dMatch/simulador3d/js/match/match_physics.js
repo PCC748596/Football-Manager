@@ -532,7 +532,10 @@ Object.assign(Match, {
             if (g.chutou && gk.gkEstado !== 'chutando') g.fase = 'depois';
         } else if (g.fase === 'depois') {
             g.depois += dt;
-            if (g.depois >= C.esperaAposChute) { g.fase = 'fim'; return true; }
+            // A bola rola ate ao centro sem ninguem lhe tocar: os jogadores que ja caminham para a saida de bola nao a travam pelo caminho.
+            for (const q of this.players.concat(this.opponents)) { if (q && q !== gk) q.touchLock = Math.max(q.touchLock || 0, 0.3); }
+            // Espera a bola PARAR (no centro): a velocidade horizontal quase nula, com o `esperaAposChute` como minimo e o `prazoMax` como rede.
+            if (g.depois >= C.esperaAposChute && Math.hypot(this.ballVel.x, this.ballVel.z) < 0.05) { g.fase = 'fim'; return true; }
         }
         return false;
     },
