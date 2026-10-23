@@ -2406,5 +2406,13 @@ function aplicarPosePassada(rig, P, t, opts) {
     rig.chest.rotation.x = inclinacao + Math.sin(t * Math.PI * 2) * 0.04;
     // Mesma cintura a acompanhar a cabeça também a correr/andar — sem
     // isto ficava só parado a olhar de lado com o tronco reto.
-    rig.chest.rotation.y = lerpTo(rig.chest.rotation.y, cintura);
+    /*
+    TORÇÃO DO TRONCO: o ombro do braço que vai à frente avança com ele. O
+    braço esquerdo está em +X e a frente é +Z; rodar +Y leva o ombro +X para
+    trás, por isso o sinal é negativo. Proporcional ao balanço dos braços
+    (`P.torcao`, GaitModel), logo é nula parado e cresce com o andamento.
+    */
+    const balanco = ((P.lArm || 0) - (P.rArm || 0)) * 0.5;
+    const torcao = -balanco * (P.torcao || 0) * amp * (movingBackwards ? 0.4 : 1);
+    rig.chest.rotation.y = lerpTo(rig.chest.rotation.y, cintura + torcao);
 }

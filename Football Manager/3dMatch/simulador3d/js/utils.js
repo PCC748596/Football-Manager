@@ -196,6 +196,8 @@ function getGaitPose(t, vel) {
             descidaExtra = clipe.descidaExtra || 0;
         }
     }
+    // Ganho do giro do tronco: sempre do GaitModel (o clip extraído não o traz).
+    r.torcao = g.torcao || 0;
 
     // Dois ressaltos por ciclo, um por cada apoio. O termo constante
     // mantém a anca ligeiramente acima do zero, como no código anterior —

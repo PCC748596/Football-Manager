@@ -312,13 +312,14 @@ const LEGENDAS_GAIT = {
     braco: 'amplitude do braço (a andar quase não se mexe)',
     cotovelo: 'flexão do cotovelo (negativo estica)',
     tronco: 'inclinação para a frente: a prumo a andar, deitado a correr',
+    torcao: 'giro do tronco (rad por rad de balanço do braço): o ombro do braço que vai à frente avança. 0 = sem giro',
     ressalto: 'meia-amplitude da subida e descida da anca (m)'
 };
 
 const AMPLITUDE_GAIT = {
     vel: 10, passada: 5, ressalto: 0.12,
     anca: 1.6, joelhoBase: 0.6, joelhoOscila: 2.4, pe: 1.0,
-    braco: 1.6, cotovelo: 2.0, tronco: 0.8
+    braco: 1.6, cotovelo: 2.0, tronco: 0.8, torcao: 0.6
 };
 
 /*
@@ -980,8 +981,25 @@ const Editor = {
         const ciclosPorSeg = P.passada > 0 ? (this.velocidade / P.passada) : 0;
         this.faseCiclo = (this.faseCiclo + dt * ciclosPorSeg) % 1;
 
+        /*
+        O jogo entra na passada com a bacia e o tronco a prumo (os clips é que
+        os inclinam). Aqui o rig vem do último clip editado, e o
+        `aplicarPosePassada` não escreve a bacia nem o tronco de lado — o
+        boneco ficava torto com a inclinação do keyframe anterior.
+        */
+        const r = this.rig;
+        r.pelvis.position.set(0, 2.6, 0);
+        r.pelvis.rotation.set(0, 0, 0);
+        r.chest.rotation.z = 0;
+        for (const k of ['lLeg', 'rLeg', 'lKnee', 'rKnee']) { r[k].rotation.y = 0; r[k].rotation.z = 0; }
+        r.lLeg.rotation.z = 0; r.rLeg.rotation.z = 0;
+        r.lFoot.rotation.y = Math.PI / 16; r.rFoot.rotation.y = -Math.PI / 16;
+        r.lFoot.rotation.z = 0; r.rFoot.rotation.z = 0;
+        if (r.neck) r.neck.rotation.set(0, 0, 0);
+        this.corpo.rotation.set(0, this.corpo.rotation.y, 0);
+
         aplicarPosePassada(this.rig, P, this.faseCiclo);
-        this.corpo.position.y = P.ressalto;
+        this.corpo.position.y = ALTURA_BASE_Y + P.ressalto - (P.descida || 0);
     },
 
 

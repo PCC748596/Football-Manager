@@ -801,10 +801,10 @@ const QuaseGoloModel = {
     para fora — a fotografia. Só a subir e a dobrar (sem o y), as mãos ficavam
     abertas acima dos ombros, longe da cabeça.
     */
-    bracoX: -2.0,
-    bracoZ: 0.9,
-    bracoY: -1.2,
-    cotovelo: -2.0,
+    bracoX: -2.2,
+    bracoZ: 0.45,
+    bracoY: -0.6,
+    cotovelo: -2.2,
     cabeca: -0.40
 };
 if (typeof window !== 'undefined') window.QuaseGoloModel = QuaseGoloModel;

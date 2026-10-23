@@ -23,7 +23,7 @@ E a base de tudo no jogador — posicao, alvos, alcance da cabeca
 (`ALTURA_BASE_Y + ALTURA_TESTA`) — portanto o corpo desce inteiro e coerente.
 Mexer neste numero e mexer na altura de toda a gente, que e a ideia.
 */
-const LARGURA_BALIZA = 7.32; const ALTURA_BALIZA = 2.44; const ALTURA_BASE_Y = -0.03;
+const LARGURA_BALIZA = 7.32; const ALTURA_BALIZA = 2.44; const ALTURA_BASE_Y = -0.01;
 
 /*
 Rede da baliza — forma e comportamento.

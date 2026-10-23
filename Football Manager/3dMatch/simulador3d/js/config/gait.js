@@ -51,6 +51,7 @@ const GaitModel = {
         braco: 0.0,
         cotovelo: -0.30,      // os braços ficam ligeiramente para a frente de pé (idle)
         tronco: 0.0,
+        torcao: 0.0,
         ressalto: 0.0,
         /*
         A QUE ALTURA O CORPO ASSENTA NESTE ANDAMENTO.
@@ -77,6 +78,7 @@ const GaitModel = {
         braco: 0.16,          // a andar os braços quase não se mexem
         cotovelo: -0.22,      // e vão quase esticados
         tronco: 0.05,         // a prumo
+        torcao: 0.20,         // giro do tronco: rad por rad de balanço do braço (o ombro do braço que vai à frente avança)
         descida: 0.0,          // a andar flutua-se MENOS do que parado (medido)
         ressalto: 0.015       // meia-amplitude da subida/descida da anca (m)
     },
@@ -90,6 +92,7 @@ const GaitModel = {
         braco: 0.52,
         cotovelo: -0.95,
         tronco: 0.15,
+        torcao: 0.18,
         descida: 0.065,
         ressalto: 0.028
     },
@@ -132,6 +135,7 @@ const GaitModel = {
         braco: 1.00,
         cotovelo: -1.55,      // braços bem dobrados a bombear
         tronco: 0.30,         // inclinado para a frente
+        torcao: 0.15,
         /*
         OS PÉS ASSENTAM NA CORRIDA RÁPIDA. Relato: *"na corrida mais rápida os jogadores não estão
         apoiando os pés no chão, um pouco acima da grama"*. Medido (tools/scratch/altura_corpo_clip.js):
@@ -366,7 +370,7 @@ const AssentoNoChao = {
     travas, que podem ficar debaixo do relvado"*. O assento mede a caixa da chuteira (sem as travas,
     que sao filhas dela), portanto a sola esta em 0; `afundamento` desce-a mais isto, em metros.
     */
-    afundamento: 0.03,
+    afundamento: 0.01,
     /*
     CONSTANTE DE TEMPO (s) do filtro da altura do corpo ao andar (ver Player.assentarNoChao). 0 desliga e volta a trava total, sola
     sempre a -3 cm mas com o corpo a fazer um V a cada passo.

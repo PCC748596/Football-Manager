@@ -6527,7 +6527,7 @@ class FootballPlayer {
         enquanto a cintura mal rodava. Aqui a cabeca fica direita sobre o tronco e
         vai para onde o tronco (o giro da cintura, ver prepararGiroLateral) a leva.
         */
-        if (rig.neck && this.aberturaOrdem) {
+        if (rig.neck && (this.aberturaOrdem || this.lamento)) {
             // Na abertura (js/abertura.js) olham em frente, para a torcida, e nao para a bola.
             rig.neck.rotation.y = lerpTo(rig.neck.rotation.y, 0, 0.35);
             this.cinturaAlvoY = 0;
