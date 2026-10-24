@@ -70,7 +70,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView }) => {
 
   const navItemClass = (viewName: string) => {
     const isActive = currentView === viewName;
-    return `flex items-center gap-3 px-4 py-3 rounded transition-all cursor-pointer font-black uppercase text-[10px] tracking-[0.15em] border border-transparent shadow-sm ${
+    return `flex items-center gap-3 px-4 py-[9.5px] rounded transition-all cursor-pointer font-black uppercase text-[10px] tracking-[0.15em] border border-transparent shadow-sm ${
       isActive 
         ? 'bg-blue-600 text-white shadow-blue-500/30 ring-1 ring-blue-400' 
         : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-900'
@@ -102,7 +102,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView }) => {
           )}
         </div>
 
-        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 p-4 space-y-[3px] overflow-y-auto custom-scrollbar">
           <div onClick={() => handleNavClick('DASHBOARD')} className={navItemClass('DASHBOARD')}>
             <IconDashboard /> <span>{t('nav_home')}</span>
           </div>

@@ -1362,6 +1362,7 @@ function animate(time) {
     }
     // A captura dos ultimos 30 s (F9 salva): corre sempre que o jogo corre, nao durante uma repeticao.
     if (window.CapturaDeJogo && !window.isPaused && !(window.MatchReplay && window.MatchReplay.isReplaying)) window.CapturaDeJogo.registar(1 / 60);
+    if (window.PlacasLed && window.PlacasLed.tick) window.PlacasLed.tick();
     rendererCore.render(scene, cameraCore);
 
     auditarPerformance(time);

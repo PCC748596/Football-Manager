@@ -703,7 +703,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                     <td className="px-4 py-0.5 font-black text-slate-300 dark:text-slate-500 text-xs transition-colors">{i + 1}</td>
                     <td className="px-2 py-0.5">
                       <div className="flex items-center gap-2">
-                        <TeamShield team={t} className="w-6 h-[34px]" />
+                        <TeamShield team={t} className="w-6 h-[29.5px]" />
                         <span className="text-xs font-bold text-slate-900 dark:text-slate-400 uppercase truncate max-w-[120px] transition-colors">{t.name}</span>
                       </div>
                     </td>

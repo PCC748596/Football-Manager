@@ -442,10 +442,62 @@ Object.assign(Match, {
             ctxPP.fillStyle = 'rgba(15,15,18,0.85)';
             for (let i = 0; i < nCores; i++) ctxPP.fillRect(Math.round(i * 256 / nCores) - 1, 0, 2, 64);
 
-            const fazerMaterial = (comprimento) => {
-                const tex = new THREE.CanvasTexture(cvsPP);
+            /*
+            ARTE REAL DAS PLACAS (assets/placas_publicidade.js): 3 faixas de 12 painéis. Cada placa/arco usa a faixa seguinte, por rodízio, para os 36
+            patrocinadores aparecerem espalhados. A imagem carrega assíncrona: a faixa começa com os blocos de cor e troca quando chega.
+            */
+            /*
+            EFEITO DE PLACA DE LED (as de hoje: modulos de ecra encaixados): autoiluminada, com grelha de pixeis, e a publicidade ROTATIVA — a cada `periodo` s
+            todos os painéis deslizam um painel para o lado (a faixa anda `1/12` da textura). PlacasLed.tick(), chamado do ciclo de desenho, move o `offset`.
+            */
+            const PlacasLed = window.PlacasLed = window.PlacasLed || { texs: [], periodo: 9, transicao: 0.6, _t0: 0, _passo: 0, _ult: 0 };
+            PlacasLed.texs.length = 0;
+            PlacasLed.tick = function () {
+                const agora = performance.now() / 1000;
+                if (!this._t0) this._t0 = agora;
+                const dec = (agora - this._t0) / this.periodo, passo = Math.floor(dec);
+                const frac = Math.max(0, Math.min(1, (dec - passo) * this.periodo / this.transicao));
+                const ease = frac * frac * (3 - 2 * frac);
+                const off = (passo - 1 + ease) / 12;
+                for (const t of this.texs) t.offset.x = off;
+            };
+            const arte = (typeof PlacasArte !== 'undefined' && PlacasArte.faixas) ? PlacasArte : null;
+            const faixasArte = [];
+            let proximaFaixa = 0;
+            const cvsFaixa = () => {
+                if (!arte) return { cvs: cvsPP, n: nCores };
+                const k = (proximaFaixa++) % arte.faixas.length;
+                if (!faixasArte[k]) {
+                    const cv = document.createElement('canvas'); cv.width = 256 * 12; cv.height = 64;
+                    const cx = cv.getContext('2d'); cx.fillStyle = '#222'; cx.fillRect(0, 0, cv.width, cv.height);
+                    faixasArte[k] = { cvs: cv, n: 12, texs: [] };
+                    const img = new Image();
+                    img.onload = () => {
+                        cx.drawImage(img, 0, 0);
+                        // Grelha de pixeis de LED: um ponto a cada 4 px, com a junta mais escura, e a junta entre modulos de cada painel.
+                        const pm = document.createElement('canvas'); pm.width = 4; pm.height = 4;
+                        const pc = pm.getContext('2d'); pc.fillStyle = 'rgba(0,0,0,0.28)'; pc.fillRect(0, 3, 4, 1); pc.fillRect(3, 0, 1, 4);
+                        cx.fillStyle = cx.createPattern(pm, 'repeat'); cx.fillRect(0, 0, cv.width, cv.height);
+                        cx.fillStyle = 'rgba(0,0,0,0.55)';
+                        for (let i = 0; i < 12; i++) { cx.fillRect(i * 256, 0, 2, 64); cx.fillRect(i * 256 + 128, 0, 1, 64); }
+                        faixasArte[k].texs.forEach(t => { t.needsUpdate = true; });
+                    };
+                    img.src = arte.faixas[k];
+                }
+                return faixasArte[k];
+            };
+            const texDaFaixa = () => {
+                const fx = cvsFaixa();
+                const tex = new THREE.CanvasTexture(fx.cvs);
+                if (fx.texs) { fx.texs.push(tex); PlacasLed.texs.push(tex); }
                 tex.wrapS = THREE.RepeatWrapping;
                 tex.wrapT = THREE.ClampToEdgeWrapping;
+                tex.anisotropy = 4;
+                return { tex, n: fx.n };
+            };
+
+            const fazerMaterial = (comprimento) => {
+                const { tex, n: nC } = texDaFaixa();
                 /*
                 CADA BLOCO É UM PAINEL DE `larguraPainel` m (5), ao longo da linha. O número
                 de painéis é o inteiro mais perto de comprimento/larguraPainel, e a largura
@@ -453,7 +505,8 @@ Object.assign(Match, {
                 na ponta. A faixa tem `nCores` blocos, daí o /nCores.
                 */
                 const nPaineis = Math.max(1, Math.round(comprimento / PP.larguraPainel));
-                tex.repeat.set(nPaineis / nCores, 1);
+                tex.repeat.set(nPaineis / nC, 1);
+                if (arte) return new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
                 return new THREE.MeshStandardMaterial({
                     map: tex, roughness: 0.65, side: THREE.DoubleSide
                 });
@@ -519,17 +572,17 @@ Object.assign(Match, {
             const arco = (cx, cz, thetaStart) => {
                 const geo = new THREE.CylinderGeometry(
                     rc, rc, PP.altura, 24, 1, true, thetaStart, Math.PI / 2);
-                const tex = new THREE.CanvasTexture(cvsPP);
-                tex.wrapS = THREE.RepeatWrapping;
-                tex.wrapT = THREE.ClampToEdgeWrapping;
+                const { tex, n: nC } = texDaFaixa();
                 /*
                 O sector cobre um quarto do U do cilindro, portanto para o arco
                 (de comprimento R*PI/2) mostrar N repeticoes da faixa e preciso
                 pedir 4*N ao `repeat`.
                 */
                 const nPaineisArco = Math.max(1, Math.round((rc * Math.PI / 2) / PP.larguraPainel));
-                tex.repeat.set(4 * nPaineisArco / nCores, 1);
-                const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+                // Uma imagem so por curva (os paineis dela juntos): o sector do cilindro ja cobre u de 0 a 1, portanto 1 faixa = 1 painel inteiro.
+                // Negativo: vista de dentro do campo a curva saia espelhada. O deslize da rotacao e invertido em PlacasLed.tick (_espelho).
+                tex.repeat.set(-(arte ? 1 / nC : nPaineisArco / nC), 1); tex._espelho = true;
+                const m = new THREE.Mesh(geo, arte ? new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }) : new THREE.MeshStandardMaterial({
                     map: tex, roughness: 0.65, side: THREE.DoubleSide
                 }));
                 m.position.set(cx, PP.altura / 2, cz);

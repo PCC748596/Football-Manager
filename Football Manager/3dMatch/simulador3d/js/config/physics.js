@@ -938,7 +938,7 @@ não publicidade a sério.
 const PlacasPublicidade = {
     activo: true,
     recuo: 5.0,          // metros para fora das linhas
-    altura: 1.0,         // metros
+    altura: 1.25,        // metros (proporcao 4:1 da arte dos patrocinadores, paineis de 5 m)
     espessura: 0.08,
     corEstrutura: 0x2b2b30,
     /*
@@ -961,7 +961,7 @@ const PlacasPublicidade = {
     */
     raioCanto: 6.5,
     // Um painel por cada `larguraPainel` metros (pedido: 5 m cada, ao longo das linhas), em blocos de cor alternados.
-    larguraPainel: 5.0,
+    larguraPainel: 6.0,
     cores: ['#1f6fb2', '#e8e8ec', '#c8102e', '#f2c400', '#0f9d58']
 };
 if (typeof window !== 'undefined') window.PlacasPublicidade = PlacasPublicidade;
