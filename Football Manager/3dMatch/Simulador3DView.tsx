@@ -84,11 +84,11 @@ if (typeof window !== 'undefined') {
 
 const enviar = (m: any) => sessao.iframe?.contentWindow?.postMessage(m, '*');
 
-const garantirIframe = (chave: string) => {
+const garantirIframe = (chave: string, estadio?: string) => {
   if (sessao.iframe && sessao.chave === chave) return;
   if (sessao.iframe) { enviar({ para: 'simulador3d', tipo: 'parar' }); sessao.iframe.remove(); }
   const f = document.createElement('iframe');
-  f.src = urlSimulador() + '?embutido=1&q=' + qualidadeGrafica;
+  f.src = urlSimulador() + '?embutido=1&q=' + qualidadeGrafica + (estadio ? '&estadio=' + encodeURIComponent(estadio) : '');
   f.title = 'Simulador 3D';
   f.allow = 'autoplay; fullscreen';
   f.style.cssText = 'position:fixed;border:0;background:#000;z-index:5;visibility:hidden;left:0;top:0;width:0;height:0';
@@ -136,7 +136,7 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
   };
 
   useLayoutEffect(() => {
-    garantirIframe(chave);
+    garantirIframe(chave, casa.stadium);
     sessao.cb = (m) => { if (m.tipo === '__pronto') { arrancar(); aoPronto?.(); } else if (m.tipo === 'erro') { console.error('[3D erro]', m.mensagem); aoMensagem(m); } else if (m.tipo === 'perf') console.log('[3D desempenho]', m.fps + ' fps', 'Match.update ' + m.msJogo + ' ms', m.passosPorQuadro + ' passos/quadro'); else aoMensagem(m); };
     const f = sessao.iframe!;
     const pos = () => {

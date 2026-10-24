@@ -309,8 +309,10 @@ Object.assign(Match, {
             // Era x 58 / y 34. Ali em cima nao se recua nem se baixa com a bola na lateral +X (CameraCentroLado): a camara ja esta colada ao campo.
             const BAc = (typeof BancadaAneis !== 'undefined') ? BancadaAneis : null;
             const primeiraFilaX = (typeof CAMPO_LARG !== 'undefined' ? CAMPO_LARG / 2 : 34) + 12.0;
-            const baseX = BAc ? primeiraFilaX + BAc.degrausPorAnel * 1.2 - BAc.coberturaAvanco - 0.3 : 53.7;
-            const baseY = BAc ? BAc.degrausPorAnel * 0.5 + BAc.alturaParede + BAc.coberturaEspessura : 13.45;
+            // Estádio oval (config/estadios.js): a câmara sobe à 13.ª fila, não à ponta de uma cobertura que ali não existe.
+            const camTV = (typeof Estadios !== 'undefined' && Estadios.atual && Estadios.cameraTV) ? Estadios.cameraTV : null;
+            const baseX = camTV ? camTV.x : (BAc ? primeiraFilaX + BAc.degrausPorAnel * 1.2 - BAc.coberturaAvanco - 0.3 : 53.7);
+            const baseY = camTV ? camTV.y : (BAc ? BAc.degrausPorAnel * 0.5 + BAc.alturaParede + BAc.coberturaEspessura : 13.45);
             targetPos.set(lookTarget.x + (baseX - lookTarget.x) * zoom,
                 lookTarget.y + (baseY - lookTarget.y) * zoom,
                 lookTarget.z + (0 - lookTarget.z) * zoom);

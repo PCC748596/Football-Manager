@@ -57,6 +57,25 @@ const CidadeConfig = {
     // Árvores em canteiros na esplanada, em anel à volta da fachada.
     arvoresEsplanada: { recuo: 5.4, passo: 9 },
 
+    /*
+    RAMPAS DE ACESSO ao anel de cima (vazio no estádio padrão). Cada uma:
+    { lado: +1 | -1 (este/oeste), z: centro, largura, de: x onde nasce no chão,
+      ate: x da fachada, patio: comprimento do patamar plano, altura: m no topo, cor, corGuarda }.
+    */
+    rampas: [],
+
+    /*
+    RUAS LIVRES — vias que não seguem a grelha (vazio no estádio padrão): uma
+    polilinha `pts` [[x, z], ...] com largura `w`. Com `elevada` (m) é um
+    viaduto sobre pilares; sem ela, uma rua ao nível do chão. São só cenário:
+    não têm trânsito, mas nada se constrói em cima delas.
+    */
+    ruas: [],
+
+    // Só o estádio (vazio na cidade): a praça de betão que rodeia a fachada, `margem` m para lá dela.
+    soEstadio: false,
+    praca: { margem: 45 },
+
     larguraAvenida: 24,
     larguraRua: 12,
 

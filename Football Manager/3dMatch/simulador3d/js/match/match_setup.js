@@ -723,7 +723,11 @@ Object.assign(Match, {
         no pior caso — e nada em desenho, porque o que nao e preenchido fica
         com a matriz a zero e nao chega ao ecra.
         */
-        const maxSeats = 45000;
+        // O perfil do estádio (config/estadios.js): recuos, raio do canto e, se for oval, a elipse de uma rampa só (js/estadio_oval.js).
+        const BACIA = (typeof Estadios !== 'undefined') ? Estadios.bacia()
+            : { recuoLateral: 12.0, recuoFundo: 12.0, raioCanto: 6.5 };
+        const OVAL = BACIA.forma === 'oval' && typeof EstadioOval !== 'undefined';
+        const maxSeats = OVAL ? (BACIA.maxLugares || 90000) : 45000;
         const seatMesh = new THREE.InstancedMesh(seatGeo, seatMat, maxSeats);
         seatMesh.castShadow = false;
         seatMesh.receiveShadow = false;
@@ -825,6 +829,18 @@ Object.assign(Match, {
         const SEAT_VARIACAO = 0.10;
         const _seatCor = new THREE.Color();
 
+        /*
+        AS CORES DO ESTÁDIO OVAL (perfil `cadeiras`): faixas de filas [de, ate, cor]; a cor de fora das faixas é `base`. A variação de tom por cadeira é a de sempre.
+        */
+        function corDaCadeira(fila, coluna) {
+            const C = BACIA.cadeiras;
+            let hex = C.base;
+            for (const f of C.faixas) if (fila >= f[0] && fila <= f[1]) { hex = f[2]; break; }
+            _seatCor.set(hex);
+            const h = ((fila * 73856093) ^ (coluna * 19349663)) & 0x7fffffff;
+            return _seatCor.multiplyScalar(1 + ((h / 0x7fffffff) - 0.5) * 2 * SEAT_VARIACAO);
+        }
+
         function seatEhBranca(fila, coluna) {
             if (SEAT_FILAS_BRANCAS.indexOf(fila) !== -1) return true;
             if (SEAT_FILAS_DENTADAS.indexOf(fila) !== -1) {
@@ -837,6 +853,7 @@ Object.assign(Match, {
         }
 
         function getSeatColor(fila, coluna) {
+            if (BACIA.cadeiras) return corDaCadeira(fila, coluna);
             _seatCor.copy(seatEhBranca(fila, coluna) ? SEAT_BRANCO : SEAT_VERMELHO);
             // Hash inteiro barato: dá sempre o mesmo valor para a mesma cadeira.
             const h = ((fila * 73856093) ^ (coluna * 19349663)) & 0x7fffffff;
@@ -949,9 +966,11 @@ Object.assign(Match, {
         Sem essa última conta, subir o recuo lateral empurrava a esquina para
         fora também em Z e ela deixava de bater com a bancada de fundo.
         */
-        const RECUO_LATERAL = 12.0;
-        const RECUO_FUNDO = 12.0;
-        const RAIO_PRIMEIRA_FILA = 6.5;
+        // Os três vêm do perfil do estádio (BACIA, definida mais acima); sem perfil são os de sempre.
+        const RECUO_LATERAL = BACIA.recuoLateral;
+        const RECUO_FUNDO = BACIA.recuoFundo;
+        const RAIO_PRIMEIRA_FILA = BACIA.raioCanto;
+
 
         const BANCADA_X = CAMPO_LARG / 2 + RECUO_LATERAL;
         const BANCADA_Z = CAMPO_COMP / 2 + RECUO_FUNDO;
@@ -1052,7 +1071,7 @@ Object.assign(Match, {
         */
         // Iluminação sob as coberturas: painéis (posições) e luzes reais, preenchidos por anel.
         const sobCob = { paineis: [], luzes: [] };
-        for (let anel = 0; anel < N_ANEIS; anel++) {
+        for (let anel = 0; anel < (OVAL ? 0 : N_ANEIS); anel++) {
             const offProf = anel * PASSO_PROF;
             const offY = anel * PASSO_Y;
 
@@ -1439,7 +1458,7 @@ Object.assign(Match, {
         Guarda-se tudo em `window.holofotes` para o interruptor dia/noite
         (main.js) poder acender e apagar sem reconstruir nada.
         */
-        if (typeof Holofotes !== 'undefined' && Holofotes.activo && BA.cobertura) {
+        if (!OVAL && typeof Holofotes !== 'undefined' && Holofotes.activo && BA.cobertura) {
             const H = Holofotes;
             const tUlt = N_ANEIS - 1;
             const profBordo = tUlt * PASSO_PROF + rows * 1.2 - BA.coberturaAvanco;
@@ -1590,7 +1609,7 @@ Object.assign(Match, {
         acima), logo o degrau N está a `N * 1.2` para dentro e a
         `0.25 + N * 0.5` de altura. Ver TunelBancada (config/physics.js).
         */
-        if (typeof TunelBancada !== 'undefined' && TunelBancada.activo) {
+        if (!OVAL && typeof TunelBancada !== 'undefined' && TunelBancada.activo) {
             const TB = TunelBancada;
             const larguraTunel = (typeof CorredoresBancada !== 'undefined')
                 ? CorredoresBancada.largura : 2.55;
@@ -1795,13 +1814,22 @@ Object.assign(Match, {
         buracos nos cantos, porque estas quatro chamadas viviam fora do ciclo
         dos aneis.
         */
-        for (let t = 0; t < N_ANEIS; t++) {
+        for (let t = 0; t < (OVAL ? 0 : N_ANEIS); t++) {
             const oP = t * PASSO_PROF;
             const oY = t * PASSO_Y;
             buildCorner(-cornerX, cornerZ, Math.PI / 2, oP, oY);
             buildCorner(cornerX, cornerZ, 0, oP, oY);
             buildCorner(-cornerX, -cornerZ, Math.PI, oP, oY);
             buildCorner(cornerX, -cornerZ, 3 * Math.PI / 2, oP, oY);
+        }
+
+        // A bacia oval: degraus, cadeiras, muro, cobertura em anel e holofotes (js/estadio_oval.js).
+        if (OVAL) {
+            const medidas = EstadioOval.construir({
+                THREE, grupo: campoGrupo, a0: BANCADA_X, b0: BANCADA_Z, rows, TJ,
+                addStepBox, addSeatInstance, merge: mergeNonIndexedGeometries, cfg: BACIA.oval
+            });
+            if (typeof Estadios !== 'undefined') Estadios.medidasConstruidas = medidas;
         }
 
         /*
@@ -1836,7 +1864,7 @@ Object.assign(Match, {
         // Bancos de reservas e áreas técnicas, do lado das câmaras (bancos.js). Os vãos nas placas já foram abertos acima.
         if (typeof Bancos !== 'undefined') Bancos.build(campoGrupo, this.scene);
 
-        if (typeof Staff !== 'undefined' && typeof FuncionariosEstadio !== 'undefined' &&
+        if (!OVAL && typeof Staff !== 'undefined' && typeof FuncionariosEstadio !== 'undefined' &&
             FuncionariosEstadio.activo) {
             Staff.build(campoGrupo, {
                 bancadaX: BANCADA_X,
@@ -1869,7 +1897,9 @@ Object.assign(Match, {
         if (stepGeos.length > 0) {
             const mergedStepsGeo = mergeNonIndexedGeometries(stepGeos);
             mergedStepsGeo.computeVertexNormals();
-            const mergedStepsMesh = new THREE.Mesh(mergedStepsGeo, concreteMat);
+            // Na bacia oval o fundo dos degraus vê-se de fora, entre as colunas: concreto escuro, como o interior da fotografia.
+            const mergedStepsMesh = new THREE.Mesh(mergedStepsGeo,
+                OVAL && BACIA.oval.corDegrau ? new THREE.MeshStandardMaterial({ color: BACIA.oval.corDegrau, roughness: 0.95 }) : concreteMat);
             /*
             O BETAO DA BANCADA NAO RECEBE SOMBRA — e isso e deliberado.
 

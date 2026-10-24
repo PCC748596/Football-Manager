@@ -388,10 +388,26 @@ const Cidade = {
         const terra = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000).rotateX(-Math.PI / 2),
             new THREE.MeshLambertMaterial({ color: cor.terra }));
         terra.position.y = C.yTerra;
-        const asfalto = new THREE.Mesh(new THREE.PlaneGeometry(R * 2, R * 2).rotateX(-Math.PI / 2),
-            new THREE.MeshLambertMaterial({ color: cor.asfalto }));
-        asfalto.position.y = C.yAsfalto;
-        grupo.add(terra, asfalto);
+        // Só o estádio (soEstadio): sem a cidade, o chão é a relva e a esplanada é uma elipse de betão à volta da bacia.
+        const SO = !!C.soEstadio;
+        if (SO) {
+            const PL = C.praca, F0 = C.fachada.elipse;
+            const forma = new THREE.Shape();
+            forma.absellipse(0, 0, F0.a + F0.d + PL.margem, F0.b + F0.d + PL.margem, 0, Math.PI * 2, false, 0);
+            // O buraco é a bacia: dentro do muro o chão é o relvado, e não pode ficar tapado.
+            const buraco = new THREE.Path();
+            buraco.absellipse(0, 0, F0.a + F0.d - 1.0, F0.b + F0.d - 1.0, 0, Math.PI * 2, true, 0);
+            forma.holes.push(buraco);
+            const praca = new THREE.Mesh(new THREE.ShapeGeometry(forma, 128).rotateX(-Math.PI / 2),
+                new THREE.MeshLambertMaterial({ color: cor.esplanada }));
+            praca.position.y = C.alturaCalcada;
+            grupo.add(terra, praca);
+        } else {
+            const asfalto = new THREE.Mesh(new THREE.PlaneGeometry(R * 2, R * 2).rotateX(-Math.PI / 2),
+                new THREE.MeshLambertMaterial({ color: cor.asfalto }));
+            asfalto.position.y = C.yAsfalto;
+            grupo.add(terra, asfalto);
+        }
 
         // ---- vias -----------------------------------------------------------
         const vias = this.vias = C.vias.map(v => {
@@ -433,6 +449,23 @@ const Cidade = {
 
         // ---- reservas (passarelas, metrô, paradas) antes dos quarteirões ---
         const PP = C.passarela;
+        // Ruas livres (config `ruas`): reserva uma faixa ao longo de cada polilinha.
+        for (const r of (C.ruas || [])) {
+            const hw = r.w / 2 + 3;
+            for (let i = 0; i < r.pts.length - 1; i++) {
+                const [ax, az] = r.pts[i], [bx, bz] = r.pts[i + 1];
+                const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 6));
+                for (let k = 0; k <= n; k++) {
+                    const x = ax + (bx - ax) * k / n, z = az + (bz - az) * k / n;
+                    reservar(x - hw, x + hw, z - hw, z + hw);
+                }
+            }
+        }
+        // Rampas de acesso ao anel de cima (config `rampas`): nada se constrói debaixo delas.
+        for (const r of (C.rampas || [])) {
+            const x0 = Math.min(r.de, r.ate) * 1, x1 = Math.max(r.de, r.ate);
+            reservar(r.lado > 0 ? x0 : -x1, r.lado > 0 ? x1 : -x0, r.z - r.largura / 2 - 1, r.z + r.largura / 2 + 1);
+        }
         const passarelas = C.passarelas.map(p => {
             const v = vias.find(q => q.eixo !== p.ao && q.c === (p.ao === 'x' ? p.x : p.z) && (p.ao === 'x' ? p.z : p.x) > q.a && (p.ao === 'x' ? p.z : p.x) < q.b);
             return Object.assign({ via: v, hr: v ? v.w / 2 : 12 }, p);
@@ -497,7 +530,7 @@ const Cidade = {
         }
         const X = [...xs].sort((a, b) => a - b), Z = [...zs].sort((a, b) => a - b);
         const celulas = [];
-        for (let i = 0; i < X.length - 1; i++) for (let j = 0; j < Z.length - 1; j++) {
+        for (let i = 0; i < X.length - 1 && !SO; i++) for (let j = 0; j < Z.length - 1; j++) {
             const c = { x0: X[i], x1: X[i + 1], z0: Z[j], z1: Z[j + 1] };
             if (c.x1 - c.x0 < 14 || c.z1 - c.z0 < 14) continue;
             const mx = (c.x0 + c.x1) / 2, mz = (c.z0 + c.z1) / 2;
@@ -646,7 +679,7 @@ const Cidade = {
             [S.meiaX, E.meiaX, -E.meiaZ, E.meiaZ], [-E.meiaX, -S.meiaX, -E.meiaZ, E.meiaZ],
             [-S.meiaX, S.meiaX, S.meiaZ, E.meiaZ], [-S.meiaX, S.meiaX, -E.meiaZ, -S.meiaZ]
         ];
-        for (const [x0, x1, z0, z1] of placas) {
+        for (const [x0, x1, z0, z1] of (SO ? [] : placas)) {
             liso.caixa((x0 + x1) / 2, C.yAsfalto, (z0 + z1) / 2, x1 - x0, yCal - C.yAsfalto, z1 - z0, cor.esplanada);
         }
         const lotes = [
@@ -659,7 +692,7 @@ const Cidade = {
         const padrao = ['b', 'a', 'b', 'b', 'a', 'b'];
         const tamanho = { b: EP.profundidadeVaga, a: EP.corredor };
         const postesEstac = [];
-        for (const lt of lotes) {
+        for (const lt of (SO ? [] : lotes)) {
             inv.estacionamentos++;
             liso.plano((lt.x0 + lt.x1) / 2, yEst, (lt.z0 + lt.z1) / 2, lt.x1 - lt.x0, lt.z1 - lt.z0, cor.estacionamento);
             const L0 = lt.L === 'z' ? lt.z0 : lt.x0, L1 = lt.L === 'z' ? lt.z1 : lt.x1;
@@ -695,7 +728,7 @@ const Cidade = {
             }
         }
         // bilheteiras na esplanada
-        for (const [kx, kz] of [[86.5, 70], [86.5, -70], [-86.5, 70], [-86.5, -70], [40, 106], [-40, -106]]) {
+        for (const [kx, kz] of (SO ? [] : [[86.5, 70], [86.5, -70], [-86.5, 70], [-86.5, -70], [40, 106], [-40, -106]])) {
             reservar(kx - 2.5, kx + 2.5, kz - 2.2, kz + 2.2, false);
             liso.caixa(kx, yCal, kz, 3.2, 2.8, 2.6, 0xe9e5d8);
             liso.caixa(kx, yCal + 2.8, kz, 4, 0.2, 3.4, 0x2d5f9a);
@@ -970,10 +1003,96 @@ const Cidade = {
             inv.passarelas++;
         }
 
+        // ---- ruas livres ----------------------------------------------------
+        for (const r of (C.ruas || [])) {
+            const hy = r.elevada || 0;
+            for (let i = 0; i < r.pts.length - 1; i++) {
+                const [ax, az] = r.pts[i], [bx, bz] = r.pts[i + 1];
+                const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz), ry = Math.atan2(-dz, dx);
+                const cx = (ax + bx) / 2, cz = (az + bz) / 2, ux = dx / L, uz = dz / L, nx = -uz, nz = ux;
+                if (hy > 0) {
+                    liso.caixa(cx, hy - 1.2, cz, L + 0.6, 1.2, r.w, r.cor || 0x7c8087, ry);
+                    for (const f of [-1, 1]) {
+                        liso.caixa(cx + nx * f * (r.w / 2 - 0.2), hy, cz + nz * f * (r.w / 2 - 0.2), L + 0.6, 1.0, 0.4, 0xb9bcc0, ry);
+                    }
+                    // faixa de asfalto por cima do tabuleiro
+                    liso.caixa(cx, hy, cz, L + 0.6, 0.05, r.w - 1.2, cor.asfalto, ry);
+                    for (let t = 9; t < L; t += 18) {
+                        const px = ax + ux * t, pz = az + uz * t;
+                        for (const f of [-1, 1]) liso.caixa(px + nx * f * (r.w / 2 - 3), C.yAsfalto, pz + nz * f * (r.w / 2 - 3), 1.4, hy - 1.2 - C.yAsfalto, 1.4, 0x8b9097, ry);
+                    }
+                }
+                // linha central tracejada
+                for (let t = 2; t < L - 2; t += 8) {
+                    marc.plano(ax + ux * (t + 2), (hy > 0 ? hy + 0.07 : C.yAsfalto + 0.03), az + uz * (t + 2), 4, 0.25, cor.amarela, ry);
+                }
+            }
+            inv.ruasLivres = (inv.ruasLivres || 0) + 1;
+        }
+
+        // ---- rampas de acesso -----------------------------------------------
+        /*
+        Cada rampa sobe do chão (`de`, longe do estádio) até `altura` m no
+        pátio que encosta na fachada (`ate`). Corre ao longo de x, do lado
+        `lado` (+1 este, -1 oeste), centrada em `z`. O tabuleiro é uma laje
+        inclinada com guardas de betão nos dois lados, assente em pilares de
+        12 em 12 m; no topo há um pátio plano. O mesmo desenho serve para
+        qualquer estádio com rampa: só mudam os números do perfil.
+        */
+        for (const r of (C.rampas || [])) {
+            const B = liso.base, W = r.largura, hy = r.altura, esp = 0.45;
+            // Referencial local: x cresce do estádio para fora, em z o lado do estádio.
+            B.makeRotationY(r.lado > 0 ? 0 : Math.PI).setPosition(0, 0, 0);
+            const zc = r.lado > 0 ? r.z : -r.z;
+            const xa = Math.abs(r.ate), xd = Math.abs(r.de);
+            const patio = r.patio, xr = xa + patio;             // o declive começa depois do pátio
+            const comp = Math.hypot(xd - xr, hy), ang = Math.atan2(hy, xd - xr);
+            const xc = (xr + xd) / 2, yc = hy / 2;
+            // laje inclinada: sobe para o estádio, ou seja desce com x
+            liso.caixa(xc, yc - esp / 2, zc, comp, esp, W, r.cor, 0, false, -ang);
+            for (const f of [-1, 1]) {
+                liso.caixa(xc, yc + 0.55, zc + f * (W / 2 - 0.15), comp, 1.1, 0.3, r.corGuarda, 0, false, -ang);
+            }
+            // pátio plano
+            liso.caixa(xa + patio / 2, hy - esp, zc, patio, esp, W, r.cor);
+            for (const f of [-1, 1]) liso.caixa(xa + patio / 2, hy - esp, zc + f * (W / 2 - 0.15), patio, 1.1 + esp, 0.3, r.corGuarda);
+            // pilares: a altura da laje por baixo em cada x
+            for (let x = xr + 6; x < xd - 4; x += 12) {
+                const h = hy * (xd - x) / (xd - xr) - esp;
+                if (h < 0.8) continue;
+                for (const f of [-1, 1]) liso.caixa(x, C.yAsfalto, zc + f * (W / 2 - 1.2), 0.9, h - C.yAsfalto, 0.9, 0x8b9097);
+            }
+            for (const x of [xa + 1.5, xa + patio - 1.5]) for (const f of [-1, 1]) {
+                liso.caixa(x, C.yAsfalto, zc + f * (W / 2 - 1.2), 1.0, hy - esp - C.yAsfalto, 1.0, 0x8b9097);
+            }
+            B.identity();
+            inv.rampas = (inv.rampas || 0) + 1;
+        }
+
         // ---- contorno do estádio: fachada e árvores da esplanada -----------
         const FA = C.fachada;
         // Polilinha densa do contorno arredondado, a `off` metros da parede.
+        const ELI = FA.elipse || null;
+        // A normal para fora do contorno em (x, z): a da elipse, ou a do centro do canto mais próximo.
+        const normalFora = (x, z) => {
+            if (ELI) {
+                const nx = x / ((ELI.a + ELI.d) ** 2), nz = z / ((ELI.b + ELI.d) ** 2), l = Math.hypot(nx, nz) || 1;
+                return [nx / l, nz / l];
+            }
+            const cx = Math.abs(x) > FA.centroX ? Math.sign(x) * FA.centroX : x;
+            const cz = Math.abs(z) > FA.centroZ ? Math.sign(z) * FA.centroZ : z;
+            const dx = x - cx, dz = z - cz, l = Math.hypot(dx, dz) || 1;
+            return [dx / l, dz / l];
+        };
         const anel = (off) => {
+            if (ELI) {
+                const pts = [], n = 1440;
+                for (let i = 0; i < n; i++) {
+                    const p = EstadioOval.ponto(ELI.a, ELI.b, ELI.d + off, (i / n) * Math.PI * 2);
+                    pts.push([p.x, p.z]);
+                }
+                return pts;
+            }
             const pts = [], r = FA.raio + off, passo = 0.5;
             const cantos = [[1, 1, 0], [-1, 1, Math.PI / 2], [-1, -1, Math.PI], [1, -1, Math.PI * 1.5]];
             for (const [sx, sz, a0] of cantos) {
@@ -985,7 +1104,7 @@ const Cidade = {
             }
             return pts;
         };
-        if (FA.ativa) {
+        if (FA.ativa && !FA.semCasca) {
             const ring = anel(0);
             // densifica as rectas entre cantos (as arestas ligam o fim de um arco ao início do seguinte)
             const dens = [];
@@ -997,12 +1116,7 @@ const Cidade = {
             }
             const nP = dens.length;
             // normal para fora de cada ponto: do centro do canto mais próximo
-            const fora = dens.map(([x, z]) => {
-                const cx = Math.abs(x) > FA.centroX ? Math.sign(x) * FA.centroX : x;
-                const cz = Math.abs(z) > FA.centroZ ? Math.sign(z) * FA.centroZ : z;
-                const dx = x - cx, dz = z - cz, l = Math.hypot(dx, dz) || 1;
-                return [dx / l, dz / l];
-            });
+            const fora = dens.map(([x, z]) => normalFora(x, z));
             // perfil subdividido em bandas finas
             const lin = [];
             const pf = FA.perfil;
@@ -1055,12 +1169,7 @@ const Cidade = {
         número, fila de catracas e grades a guiar a fila para fora.
         */
         if (FA.ativa) {
-            const foraDe = (x, z) => {
-                const cx = Math.abs(x) > FA.centroX ? Math.sign(x) * FA.centroX : x;
-                const cz = Math.abs(z) > FA.centroZ ? Math.sign(z) * FA.centroZ : z;
-                const dx = x - cx, dz = z - cz, l = Math.hypot(dx, dz) || 1;
-                return [dx / l, dz / l];
-            };
+            const foraDe = normalFora;
             // Pontos do contorno a `off` m da parede, de `passo` em `passo` metros (por comprimento de arco).
             const percorrer = (off, passo, desfasar) => {
                 const ring = anel(off), out = [];
@@ -1085,7 +1194,7 @@ const Cidade = {
             const portoes = percorrer(OFF, perim / FA.portoes, perim / FA.portoes / 2).slice(0, FA.portoes);
             // colunas, menos na boca dos portões
             const colunasPos = [];
-            for (const c of percorrer(OFF + 0.2, FA.passoColunas, 2)) {
+            for (const c of (FA.semCasca ? [] : percorrer(OFF + 0.2, FA.passoColunas, 2))) {
                 if (portoes.some(g => Math.hypot(g.x - c.x, g.z - c.z) < 6.5)) continue;
                 liso.caixa(c.x, yCal, c.z, 0.7, FA.vao - yCal, 0.7, FA.corColuna);
                 colunasPos.push(c);
