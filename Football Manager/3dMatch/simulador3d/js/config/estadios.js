@@ -84,9 +84,9 @@ const Estadios = {
                 }
             },
             torcidaInicial: 22000,
-            // A ordem em que a torcida ocupa a bacia (mapa de setores do ingresso): Norte e Sul primeiro, depois Oeste, Leste inferior e Leste superior.
+            // A ordem em que a torcida ocupa a bacia: Norte e Sul inferior; Oeste e Leste inferior; Norte e Sul superior; Oeste superior (cadeiras cativas); Leste superior. `filaDivisao` separa inferior de superior.
             // Norte/Sul = os fundos; Oeste = lado -x (o do túnel); Leste = +x, dividido na fila `filaLesteSuperior`; `anguloLateral` = meia abertura das laterais.
-            setoresTorcida: { anguloLateral: 50, filaLesteSuperior: 28 },
+            setoresTorcida: { anguloLateral: 50, filaDivisao: 28 },
             cameraCinemaEscala: 1.6,
             nevoeiroEscala: 2.5,
             bancadaAneis: { aneis: 1, degrausPorAnel: 62, cobertura: false },

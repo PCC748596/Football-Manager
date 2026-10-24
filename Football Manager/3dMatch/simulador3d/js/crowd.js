@@ -1239,19 +1239,22 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         /*
         A ORDEM EM QUE O ESTÁDIO ENCHE (perfil `setoresTorcida`, config/estadios.js): com a casa vazia a torcida não se espalha
         por igual, ocupa primeiro os setores que o clube vende primeiro. No Maracanã: Norte e Sul (os fundos, juntos), depois o Oeste,
-        o Leste inferior e por fim o Leste superior. Cada grupo enche por inteiro antes do seguinte; dentro do grupo os lugares
+        o Leste inferior e por fim o Leste superior. (Ordem actual: ver `grupoDe`.) Cada grupo enche por inteiro antes do seguinte; dentro do grupo os lugares
         ocupados são sorteados (a ordem já baralhada acima), e o último grupo fica parcial.
         */
         const ST = (typeof Estadios !== 'undefined' && Estadios.atual && Estadios.atual.setoresTorcida) || null;
         if (ST && Estadios.medidas) {
             const a0 = Estadios.medidas.bancadaX, b0 = Estadios.medidas.bancadaZ;
+            // 0 Norte e Sul inferior; 1 Oeste e Leste inferior; 2 Norte e Sul superior; 3 Oeste superior (cadeiras cativas); 4 Leste superior.
             const grupoDe = (l) => {
-                const t = Math.abs(Math.atan2(l.z / b0, l.x / a0)) * 180 / Math.PI;   // 0 = lado +x
-                if (t <= ST.anguloLateral) return (l.fila < ST.filaLesteSuperior) ? 2 : 3;   // Leste (+x): inferior / superior
-                if (t >= 180 - ST.anguloLateral) return 1;                                     // Oeste (-x)
-                return 0;                                                                      // Norte e Sul
+                const t = Math.abs(Math.atan2(l.z / b0, l.x / a0)) * 180 / Math.PI;   // 0 = lado +x (Leste)
+                const sup = l.fila >= ST.filaDivisao;
+                const leste = t <= ST.anguloLateral, oeste = t >= 180 - ST.anguloLateral;
+                if (!leste && !oeste) return sup ? 2 : 0;
+                if (leste) return sup ? 4 : 1;
+                return sup ? 3 : 1;
             };
-            const baldes = [[], [], [], []];
+            const baldes = [[], [], [], [], []];
             for (const i of ordem) baldes[grupoDe(lugares[i])].push(lugares[i]);
             for (const balde of baldes) {
                 for (const l of balde) { if (lugaresEscolhidos.length >= nTotal) break; lugaresEscolhidos.push(l); }
