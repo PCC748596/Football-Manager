@@ -118,6 +118,118 @@ const EstadioOval = {
     },
 
     /*
+    A TORRE DE RAMPA (as quatro dos cantos do mapa de setores, E, F, B, C; fotografia da rampa compacta): um volume de
+    planta rectangular com os cantos arredondados (um obround), encostado ao estádio, com a rampa lá DENTRO a subir em
+    `voltas` voltas. Por fora lê-se uma grade de réguas horizontais (a rampa vê-se entre elas), por cima uma cobertura plana;
+    por dentro há um núcleo maciço, e no topo uma passagem curta liga a rampa às colunas do estádio.
+
+    Planta local: u ao longo da parede (tangente), v para fora do estádio; a origem é o centro do volume. A rampa nasce e acaba
+    a meio do lado virado ao estádio, de modo que a entrada e a passagem do topo ficam do mesmo lado.
+    */
+    torreRampa(THREE, a, b, dEnd, t, TR) {
+        const hx = TR.meiaComp, hz = TR.meiaLarg, R = TR.raio, W = TR.largura, esp = 0.5;
+        const H = TR.altura, voltas = TR.voltas;
+        // O obround: pontos em sentido anti-horário, a começar a meio do lado de baixo (v = -hz, virado ao estádio).
+        const obround = (ex, ez, rr, passo) => {
+            rr = Math.max(0.3, Math.min(rr, ex - 0.1, ez - 0.1));
+            const P = [];
+            const arco = (cx, cz, a0, a1) => {
+                const n = Math.max(3, Math.ceil(Math.abs(a1 - a0) * rr / passo));
+                for (let k = 1; k <= n; k++) { const q = a0 + (a1 - a0) * k / n; P.push([cx + rr * Math.cos(q), cz + rr * Math.sin(q)]); }
+            };
+            const reta = (x0, z0, x1, z1) => {
+                const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0) / passo));
+                for (let k = 1; k <= n; k++) P.push([x0 + (x1 - x0) * k / n, z0 + (z1 - z0) * k / n]);
+            };
+            P.push([0, -ez]);
+            reta(0, -ez, ex - rr, -ez);
+            arco(ex - rr, -(ez - rr), -Math.PI / 2, 0);
+            reta(ex, -(ez - rr), ex, ez - rr);
+            arco(ex - rr, ez - rr, 0, Math.PI / 2);
+            reta(ex - rr, ez, -(ex - rr), ez);
+            arco(-(ex - rr), ez - rr, Math.PI / 2, Math.PI);
+            reta(-ex, ez - rr, -ex, -(ez - rr));
+            arco(-(ex - rr), -(ez - rr), Math.PI, Math.PI * 1.5);
+            reta(-(ex - rr), -ez, 0, -ez);
+            P.pop();   // o último coincide com o primeiro
+            return P;
+        };
+        const c0 = this.ponto(a, b, dEnd + TR.afastamento, t * Math.PI / 180);
+        const tx = -c0.nz, tz = c0.nx;
+        const mundo = (u, y, v) => [c0.x + u * tx + v * c0.nx, y, c0.z + u * tz + v * c0.nz];
+        const quads = (P, Q, arr, fechar) => {
+            const n = P.length;
+            for (let i = 0; i < (fechar ? n : n - 1); i++) { const j = (i + 1) % n; arr.push(...P[i], ...Q[i], ...P[j], ...P[j], ...Q[i], ...Q[j]); }
+        };
+        const geo = (arr) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(arr), 3)); g.computeVertexNormals(); return g; };
+        const concreto = [], reguas = [], telhado = [], ledPos = [];
+
+        // A linha central da rampa: uma volta de obround, `voltas` vezes, a subir de 0.3 a H.
+        const parede = 0.5, ex = hx - W / 2 - parede, ez = hz - W / 2 - parede, rc = R - W / 2 - parede;
+        const volta = obround(ex, ez, rc, 1.2);
+        const todos = [];
+        for (let v = 0; v < voltas; v++) for (const p of volta) todos.push(p);
+        todos.push(volta[0]);
+        const N = todos.length, M = volta.length;
+        const L = [], R_ = [], Lb = [], Rb = [];
+        for (let i = 0; i < N; i++) {
+            const prev = todos[(i % M === 0 ? i + M - 1 : i - 1) % N] || todos[0], next = todos[Math.min(i + 1, N - 1)];
+            let dx = next[0] - prev[0], dz = next[1] - prev[1]; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+            const lx = -dz, lz = dx;                       // a esquerda do sentido de marcha = para dentro
+            const y = 0.3 + (H - 0.3) * i / (N - 1);
+            const pi = mundo(todos[i][0] + lx * W / 2, y, todos[i][1] + lz * W / 2), po = mundo(todos[i][0] - lx * W / 2, y, todos[i][1] - lz * W / 2);
+            L.push(pi); R_.push(po);
+            Lb.push([pi[0], y - 0.55, pi[2]]); Rb.push([po[0], y - 0.55, po[2]]);
+        }
+        quads(L, R_, concreto, false);       // piso
+        quads(Lb, Rb, concreto, false);      // face de baixo
+        quads(L, Lb, concreto, false);       // testa de dentro
+        quads(R_, Rb, concreto, false);      // testa de fora
+        const guarda = L.map(p => [p[0], p[1] + 1.1, p[2]]);
+        quads(L, guarda, concreto, false);   // guarda do vazio central
+
+        // O núcleo maciço: o obround interior da rampa, do chão ao topo.
+        const yTelhado = H + 3.4;
+        const nucleo = obround(Math.max(ex - W / 2 - 0.3, 1), Math.max(ez - W / 2 - 0.3, 1), Math.max(rc - W / 2, 0.6), 1.2);
+        quads(nucleo.map(p => mundo(p[0], 0, p[1])), nucleo.map(p => mundo(p[0], yTelhado, p[1])), concreto, true);
+
+        // A grade de réguas à volta: a cada 1.1 m de altura uma régua de 0.4 m; postes de 4 em 4 m.
+        const bordo = obround(hx, hz, R, 1.2);
+        const naEntrada = (p) => (p[1] < -hz + 0.5 && Math.abs(p[0]) < W / 2 + 0.8);   // o vão da entrada e da passagem do topo
+        for (let y = 0.7; y < yTelhado - 0.5; y += 1.1) {
+            const trechos = []; let atual = [];
+            for (const p of bordo) { if (naEntrada(p)) { if (atual.length) trechos.push(atual); atual = []; } else atual.push(p); }
+            if (atual.length) trechos.push(atual);
+            for (const tr of trechos) quads(tr.map(p => mundo(p[0], y, p[1])), tr.map(p => mundo(p[0], y + 0.4, p[1])), reguas, false);
+        }
+        const postes = [];
+        for (let i = 0; i < bordo.length; i += 3) {
+            const p = bordo[i]; if (naEntrada(p)) continue;
+            const q = mundo(p[0], 0, p[1]);
+            const g = new THREE.BoxGeometry(0.35, yTelhado, 0.35).toNonIndexed(); g.translate(q[0], yTelhado / 2, q[2]); postes.push(g);
+        }
+
+        // A cobertura plana (um pouco maior do que a planta) e a fita de LED no seu bordo.
+        const ct = obround(hx + 0.6, hz + 0.6, R + 0.6, 1.2);
+        const sup = ct.map(p => mundo(p[0], yTelhado + esp, p[1])), inf = ct.map(p => mundo(p[0], yTelhado, p[1]));
+        const centro = mundo(0, yTelhado + esp, 0), centroI = mundo(0, yTelhado, 0);
+        for (let i = 0; i < ct.length; i++) { const j = (i + 1) % ct.length; telhado.push(...sup[i], ...sup[j], ...centro, ...inf[j], ...inf[i], ...centroI); }
+        quads(inf, sup, telhado, true);
+        quads(ct.map(p => mundo(p[0], yTelhado + esp + 0.02, p[1])), ct.map(p => mundo(p[0] * 0.985, yTelhado + esp + 0.02, p[1] * 0.985)), ledPos, true);
+
+        // A passagem do topo até às colunas do estádio.
+        const larg = TR.afastamento - hz - 0.9;
+        const pass = [];
+        if (larg > 0.5) {
+            const g = new THREE.BoxGeometry(W, 0.6, larg + 0.4).toNonIndexed();
+            const q = mundo(0, 0, -(hz + larg / 2 - 0.2));
+            g.rotateY(Math.atan2(c0.nx, c0.nz));
+            g.translate(q[0], H - 0.3, q[2]); pass.push(g);
+        }
+        return { concreto: geo(concreto), reguas: geo(reguas), telhado: geo(telhado), led: geo(ledPos), postes, pass };
+    },
+
+    /*
     As alturas da bacia: o topo da última fila, o bordo de fora da cobertura e o
     muro traseiro, que sobe até à face de baixo da cobertura (senão fica uma
     faixa aberta entre o muro e o telhado, por onde se vê o escuro por trás
@@ -146,7 +258,14 @@ const EstadioOval = {
         let lugares = 0;
 
         // ---- degraus e cadeiras ------------------------------------------
-        const NS = cfg.setores, aisleW = cfg.larguraCorredor;
+        /*
+        AS PASSAGENS DA TORCIDA, como no mapa de setores do ingresso:
+          - a CINTURA: `cintura.filas` degraus sem cadeiras, a meio da rampa, a separar o anel de baixo do de cima (a faixa branca do mapa);
+          - corredores RADIAIS por anel: poucos e largos em baixo (`setoresInferior`), muitos e estreitos em cima (`setoresSuperior`);
+          - os corredores MAIORES, nas fronteiras entre os setores (Norte/Oeste/Sul/Leste, a `anguloLateral` graus do eixo).
+        */
+        const cin = cfg.cintura;
+        const fronteiras = [cfg.anguloLateral, 180 - cfg.anguloLateral, 180 + cfg.anguloLateral, 360 - cfg.anguloLateral];
         for (let r = 0; r < rows; r++) {
             const d = r * PROF;
             const c = this.amostrar(a0, b0, d, 1440);
@@ -161,6 +280,11 @@ const EstadioOval = {
                 if (cortaTunel && Math.sign(p.x) === TJ.lado && Math.abs(p.z) < TJ.largura / 2 + 0.1) continue;
                 addStepBox(PROF, ALT, (c.L / nd) * 1.05, p.x, y, p.z, -Math.atan2(p.nz, p.nx));
             }
+            if (r >= cin.fila && r < cin.fila + cin.filas) continue;   // a cintura: só degrau, sem cadeiras
+            const superior = r >= cin.fila + cin.filas;
+            const NS = superior ? cfg.setoresSuperior : cfg.setoresInferior;
+            const aisleW = superior ? cfg.corredorSuperior : cfg.corredorInferior;
+            const metrosPorGrau = c.L / 360, meiaMaior = (cfg.corredorMaior / 2) / metrosPorGrau;
             const nc = Math.floor(c.L / cfg.espacoCadeira);
             const cur2 = { i: 0 };
             let col = 0;
@@ -169,10 +293,19 @@ const EstadioOval = {
                 const setor = (p.t / (Math.PI * 2)) * NS;
                 // largura do corredor em fracção de setor, ao comprimento desta fila
                 if ((setor - Math.floor(setor)) < aisleW / (c.L / NS)) continue;
+                const graus = p.t * 180 / Math.PI;
+                if (fronteiras.some(b => Math.abs(graus - b) < meiaMaior)) continue;
                 if (cortaTunel && Math.sign(p.x) === TJ.lado && Math.abs(p.z) < TJ.largura / 2 + 0.3) continue;
                 addSeatInstance(p.x, y + 0.25 + 0.15, p.z, Math.atan2(-p.nx, -p.nz), r, col++);
                 lugares++;
             }
+        }
+
+        // A cintura desenhada: uma faixa clara por cima dos degraus sem cadeiras.
+        {
+            const dA = (cin.fila - 0.5) * PROF, dB = (cin.fila + cin.filas - 0.5) * PROF;
+            const mat = new THREE.MeshStandardMaterial({ color: cfg.corCintura, roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+            grupo.add(this.faixa(THREE, a0, b0, dA, standY(cin.fila) + 0.27, dB, standY(cin.fila + cin.filas - 1) + 0.27, mat, 720));
         }
 
         // ---- o chão: relva escura até à primeira fila (o relvado do campo acaba bem antes) ----
@@ -281,6 +414,23 @@ const EstadioOval = {
             im.castShadow = false; im.receiveShadow = false;
             grupo.add(im); ledMats.push(mat);
         };
+        // ---- as quatro torres de rampa nos cantos (E, F, B, C do mapa de setores) ----
+        if (cfg.torresRampa) {
+            const TR = cfg.torresRampa;
+            const matLedRampa = new THREE.MeshStandardMaterial({ color: LED.a, emissive: LED.a, emissiveIntensity: 0.1, roughness: 0.5, side: THREE.DoubleSide });
+            ledMats.push(matLedRampa);
+            const matC = new THREE.MeshStandardMaterial({ color: TR.corRampa, roughness: 0.9, side: THREE.DoubleSide });
+            const matR = new THREE.MeshStandardMaterial({ color: TR.corReguas, roughness: 0.85, side: THREE.DoubleSide });
+            const matT = new THREE.MeshStandardMaterial({ color: TR.corTelhado, roughness: 0.9, side: THREE.DoubleSide });
+            const adicionar = (g, m, sombra) => { const o = new THREE.Mesh(g, m); o.castShadow = !!sombra; o.receiveShadow = false; grupo.add(o); };
+            for (const ang of TR.angulos) {
+                const r = this.torreRampa(THREE, a0, b0, dEnd, ang, TR);
+                adicionar(r.concreto, matC, true); adicionar(r.reguas, matR, true); adicionar(r.telhado, matT, true); adicionar(r.led, matLedRampa, false);
+                if (r.postes.length) adicionar(ctx.merge(r.postes), matR, true);
+                if (r.pass.length) adicionar(ctx.merge(r.pass), matC, true);
+            }
+        }
+
         const nL = cfg.ledsBeiral, nS = cfg.ledsChao;
         caixasLed(nL, dOut + 0.15, yOut - cfg.cornija / 2, [0.25, 0.5, 1.1], LED.a, 0);
         caixasLed(nL, dOut + 0.15, yOut - cfg.cornija / 2, [0.25, 0.5, 1.1], LED.b, 1);

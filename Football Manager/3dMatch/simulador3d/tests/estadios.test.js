@@ -2,7 +2,7 @@
 O estádio oval do Maracanã (config/estadios.js + js/estadio_oval.js).
 
 Corre a construção da bacia com o `three` de node e mede o que o pedido diz:
-  - 77 000 lugares (a tolerância é de 3%);
+  - 78 838 lugares, a capacidade do Maracanã no manager (tolerância de 1%);
   - nenhum lugar dentro das linhas do campo, e o canto do campo longe da primeira fila;
   - sem rectas: a distância à elipse varia, e o raio de curvatura nunca é infinito
     (os pontos da fila seguem a elipse e não um rectângulo);
@@ -46,7 +46,7 @@ const construir = () => {
 };
 const A = construir();
 console.log('lugares:', A.seats.length, ' topo:', A.med.topoY.toFixed(1), 'm');
-ok(Math.abs(A.seats.length - 77000) / 77000 < 0.03, 'lugares fora dos 77 000 +-3%: ' + A.seats.length);
+ok(Math.abs(A.seats.length - 78838) / 78838 < 0.01, 'lugares fora dos 78 838 (a capacidade do manager) +-1%: ' + A.seats.length);
 
 // nenhum lugar dentro do campo; o canto do campo está dentro da primeira fila com folga
 const meiaX = CAMPO_LARG / 2, meiaZ = CAMPO_COMP / 2;

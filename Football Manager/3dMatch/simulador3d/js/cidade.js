@@ -1047,6 +1047,7 @@ const Cidade = {
         cobertura sobre colunas; a de `larguraB` volta dali para o estádio,
         continuando a subir, até à fachada, a `alturaTopo` (uns 5 m abaixo da cobertura).
         */
+        const portoesRampas = [];   // as entradas do piso branco das rampas principais (entram na lista dos portões da fachada)
         const rampaDupla = (r) => {
             const B = liso.base, esp = 0.6;
             B.makeRotationY(r.lado > 0 ? 0 : Math.PI).setPosition(0, 0, 0);
@@ -1061,8 +1062,11 @@ const Cidade = {
             const perna = (zp, W, x0, y0, x1, y1) => {
                 const len = Math.hypot(x1 - x0, y1 - y0), ang = Math.atan2(y1 - y0, x1 - x0);
                 const xc = (x0 + x1) / 2, yc = (y0 + y1) / 2;
-                liso.caixa(xc, yc - esp / 2, zp, len, esp, W, r.cor, 0, false, ang);
-                for (const f of [-1, 1]) liso.caixa(xc, yc + 0.55, zp + f * (W / 2 - 0.15), len, 1.1, 0.3, r.corGuarda, 0, false, ang);
+                // A laje inclinada roda sobre o centro dela: o centro tem de descer meia espessura AO LONGO DA NORMAL, senão o topo fica
+                // 0.3 m acima da recta que liga os dois extremos e a rampa não encontra o patamar ao mesmo nível.
+                const sn = Math.sin(ang), cs = Math.cos(ang);
+                liso.caixa(xc + sn * esp / 2, yc - cs * esp / 2 - esp / 2, zp, len, esp, W, r.cor, 0, false, ang);
+                for (const f of [-1, 1]) liso.caixa(xc - sn * 0.55, yc + cs * 0.55 - 0.55, zp + f * (W / 2 - 0.15), len, 1.1, 0.3, r.corGuarda, 0, false, ang);
                 // Iluminação: fita de LED na cor do clube ao longo de cada guarda e postes de 12 em 12 m, com a luz virada para a rampa.
                 for (const f of [-1, 1]) brilho.caixa(xc, yc + 1.2, zp + f * (W / 2 - 0.15), len, 0.1, 0.14, f > 0 ? fitaA : fitaB, 0, false, ang);
                 for (let x = x0 + 6; x < x1 - 2; x += 12) {
@@ -1084,8 +1088,8 @@ const Cidade = {
             perna(zA, r.larguraA, x0A, 0, xL, hM);                 // sobe para fora, do chão perto do estádio
             perna(zB, r.larguraB, xs + 6, hT, xL, hM);             // volta, a subir para o estádio
             // O patamar na fachada (fim da rampa B) e o de partida da A
-            liso.caixa(xs + 3, hT - esp, zB, 6, esp, r.larguraB, r.cor);
-            for (const f of [-1, 1]) liso.caixa(xs + 3, hT - esp, zB + f * (r.larguraB / 2 - 0.15), 6, 1.1 + esp, 0.3, r.corGuarda);
+            liso.caixa(xs + 3.3, hT - esp, zB, 6.6, esp, r.larguraB, r.cor);
+            for (const f of [-1, 1]) liso.caixa(xs + 3.3, hT - esp, zB + f * (r.larguraB / 2 - 0.15), 6.6, 1.1 + esp, 0.3, r.corGuarda);
             // O patamar do fundo: a barra do T, mais larga do que as duas rampas, com cobertura.
             const zIni = zB - r.larguraB / 2 - r.extra, zFim = zA + r.larguraA / 2 + r.extra, Wt = zFim - zIni, zm = (zIni + zFim) / 2;
             liso.caixa(xL + r.patamar / 2, hM - esp, zm, r.patamar, esp, Wt, r.cor);
@@ -1108,6 +1112,29 @@ const Cidade = {
             // e no patamar junto à fachada
             lamp.caixa(xs + 3, hT + 3.6, zB, 1.2, 0.15, 0.7, 0xfff0c8);
             liso.caixa(xs + 3, hT, zB + r.larguraB / 2 - 0.4, 0.16, 3.7, 0.16, 0x4a4f57);
+            // O PISO BRANCO por baixo das rampas, de cantos arredondados: do estádio até para lá do patamar do fundo, com folga dos lados.
+            {
+                const lado = r.lado > 0 ? 1 : -1, folga = 4, rr = 7;
+                const x0 = xs - 1, x1 = xL + r.patamar + folga, z0 = zIni - folga, z1 = zFim + folga;
+                const f = new THREE.Shape();
+                f.moveTo(x0 + rr, z0); f.lineTo(x1 - rr, z0); f.absarc(x1 - rr, z0 + rr, rr, -Math.PI / 2, 0, false);
+                f.lineTo(x1, z1 - rr); f.absarc(x1 - rr, z1 - rr, rr, 0, Math.PI / 2, false);
+                f.lineTo(x0 + rr, z1); f.absarc(x0 + rr, z1 - rr, rr, Math.PI / 2, Math.PI, false);
+                f.lineTo(x0, z0 + rr); f.absarc(x0 + rr, z0 + rr, rr, Math.PI, Math.PI * 1.5, false);
+                const g = new THREE.ShapeGeometry(f, 12).rotateX(Math.PI / 2);   // (x, y) -> (x, z): sem inverter o z
+                // x local -> x do mundo (e z, no lado oeste, espelhado): a mesma rotação da rampa.
+                if (lado < 0) g.scale(-1, 1, -1);
+                const piso = new THREE.Mesh(g, new THREE.MeshLambertMaterial({
+                    color: r.corPiso || 0xf2f2ee, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3
+                }));
+                piso.position.y = C.alturaCalcada + 0.02;
+                extras.push(piso);
+                // A ENTRADA NO LIMITE DO PISO BRANCO: uma só, de uma pilastra à outra das pontas da cobertura do patamar, virada para fora,
+                // a ~7.5 m da borda (a fila acaba nela). Sem entradas laterais.
+                const mundo = (xl, zl) => lado > 0 ? [xl, zl] : [-xl, -zl];
+                const [wx, wz] = mundo(x1 - 7.5, (zIni + 1.2 + zFim - 1.1) / 2);
+                portoesRampas.push({ x: wx, z: wz, n: [lado, 0], meia: (zFim - 1.1 - (zIni + 1.2)) / 2, s: 1e6 + portoesRampas.length * 100 });
+            }
             B.identity(); lamp.base.identity(); brilho.base.identity();
             inv.rampas = (inv.rampas || 0) + 1;
         };
@@ -1260,11 +1287,13 @@ const Cidade = {
                 }
                 return out;
             };
-            const OFF = FA.perfil[0][0];
+            // Só o estádio: os portões ficam no LIMITE da praça (a fila de entrada termina na borda do círculo branco); com a cidade, junto da fachada.
+            const OFF = (C.soEstadio && C.praca) ? (C.praca.margem - 7) : FA.perfil[0][0];
             const perim = anel(OFF).reduce((s2, a, i, r) => {
                 const b = r[(i + 1) % r.length]; return s2 + Math.hypot(b[0] - a[0], b[1] - a[1]);
             }, 0);
             const portoes = percorrer(OFF, perim / FA.portoes, perim / FA.portoes / 2).slice(0, FA.portoes);
+            for (const g of portoesRampas) portoes.push(g);   // mais as entradas das rampas principais
             // colunas, menos na boca dos portões
             const colunasPos = [];
             for (const c of (FA.semCasca ? [] : percorrer(OFF + 0.2, FA.passoColunas, 2))) {
@@ -1278,22 +1307,24 @@ const Cidade = {
                 const B = liso.base;
                 B.makeRotationY(ang).setPosition(g.x, 0, g.z);
                 lamp.base.copy(B);      // as luminárias também estão em coordenadas do portão
+                // `g.meia`: portão largo (o das rampas principais, de uma pilastra à outra); sem ele, o de 10 m de sempre.
+                const hw = g.meia || 4.6, nCat = g.meia ? Math.floor((hw - 1.2) / 1.3) : 3;
                 // pórtico: dois pilares e a viga com o número
-                for (const sx of [-4.6, 4.6]) {
+                for (const sx of [-hw, hw]) {
                     liso.caixa(sx, yCal, 0.4, 0.7, 5.0, 0.8, FA.corColuna);
                     lamp.caixa(sx, 5.0, 0.9, 0.5, 0.2, 0.3, 0xfff0c8);
                     pocas.push([g.x + Math.cos(ang) * sx + g.n[0] * 0.9, g.z - Math.sin(ang) * sx + g.n[1] * 0.9, 6]);
                 }
-                liso.caixa(0, 4.1, 0.4, 10.2, 1.0, 1.0, 0x2f6fb5);
+                liso.caixa(0, 4.1, 0.4, hw * 2 + 0.6, 1.0, 1.0, 0x2f6fb5);
                 // catracas e piso de acesso
-                liso.plano(0, yCal + 0.03, 3.4, 10, 6.2, 0x9aa7b8);
-                for (let k = -3; k <= 3; k++) {
+                liso.plano(0, yCal + 0.03, 3.4, hw * 2 + 0.4, 6.2, 0x9aa7b8);
+                for (let k = -nCat; k <= nCat; k++) {
                     liso.caixa(k * 1.3, yCal, 1.2, 0.18, 1.0, 1.0, 0x5d6673);
                     liso.caixa(k * 1.3, yCal + 0.85, 1.2, 0.9, 0.06, 0.06, 0xc8ccd2);
                 }
                 // grades a guiar a fila para fora, com os seus postes
                 grade.base.copy(B);
-                for (const sx of [-5.3, 5.3]) {
+                for (const sx of [-(hw + 0.7), hw + 0.7]) {
                     grade.painel(sx, 1.4, sx, 6.6, yCal, 1.2, 0xc8ccd2);
                     for (let z = 1.4; z <= 6.7; z += 1.3) liso.caixa(sx, yCal, z, 0.12, 1.3, 0.12, 0x4a4f57);
                 }
@@ -1302,7 +1333,7 @@ const Cidade = {
                 B.identity();
                 portoesDados.push({ x: g.x, z: g.z, n: g.n, ang, i: n });
                 reservar(g.x + g.n[0] * 4 - 7, g.x + g.n[0] * 4 + 7, g.z + g.n[1] * 4 - 7, g.z + g.n[1] * 4 + 7, false);
-                const rot = this._rotulo('PORTÃO ' + (n + 1), 8.6, 0.9, '#2f6fb5', '#ffffff', false);
+                const rot = this._rotulo('PORTÃO ' + (n + 1), Math.min(hw * 2 - 1.4, 30), 0.9, '#2f6fb5', '#ffffff', false);
                 if (rot) {
                     rot.position.set(g.x + g.n[0] * 0.95, 4.1 + 0.5, g.z + g.n[1] * 0.95);
                     rot.rotation.y = ang;
@@ -1315,7 +1346,7 @@ const Cidade = {
             const pil = colunasPos.map(c => ({ s: c.s, x: c.x, z: c.z, g: -1 }));
             portoes.forEach((g, n) => {
                 const ang = Math.atan2(g.n[0], g.n[1]), tx = Math.cos(ang), tz = -Math.sin(ang);
-                for (const sx of [-4.6, 4.6]) pil.push({ s: g.s + sx, x: g.x + tx * sx + g.n[0] * 0.4, z: g.z + tz * sx + g.n[1] * 0.4, g: n });
+                for (const sx of [-(g.meia || 4.6), g.meia || 4.6]) pil.push({ s: g.s + sx, x: g.x + tx * sx + g.n[0] * 0.4, z: g.z + tz * sx + g.n[1] * 0.4, g: n });
             });
             pil.sort((a, b) => a.s - b.s);
             for (let i = 0; i < pil.length; i++) {

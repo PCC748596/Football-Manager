@@ -52,15 +52,24 @@ const Estadios = {
             A primeira fila fica a 26 m das laterais e a 30 m dos fundos — o
             canto do campo (34, 52.5) cai a 72% do raio da elipse, ou seja 12 m
             para dentro dela. 62 degraus de 1.2 x 0.5 m dão 74 m de fundo e 31
-            m de altura (o Maracanã real tem ~32 m). Com cadeiras de 0.5 m
-            medem-se ~77 000 lugares (tests/estadios.test.js).
+            m de altura (o Maracanã real tem ~32 m). Com cadeiras de 0.46 m, a cintura e os corredores
+            medem-se 78 862 lugares (a capacidade do manager é 78 838) (tests/estadios.test.js).
             */
             bacia: {
                 forma: 'oval', recuoLateral: 26.0, recuoFundo: 30.0, raioCanto: 6.5,
                 maxLugares: 90000,
                 oval: {
-                    espacoCadeira: 0.5, setores: 40, larguraCorredor: 1.6,
-                    corBetao: 0xc9ccd0, corSubrampa: 0x3b4048, corDegrau: 0x535b66, corChaoSob: 0x30343a, ledsBeiral: 240, ledsChao: 110, spotsCor: 8, spotsTopo: 16, spotsAlcance: 75, spotsIntensidade: 2.2, distanciaRefLuz: 58,
+                    espacoCadeira: 0.46, setores: 40, larguraCorredor: 1.6,
+                    corBetao: 0xc9ccd0,
+                    // As passagens da torcida (mapa de setores): cintura sem cadeiras entre o anel de baixo e o de cima, corredores radiais por anel e maiores nas fronteiras dos setores.
+                    cintura: { fila: 26, filas: 2 }, corCintura: 0xe6e8ea,
+                    setoresInferior: 24, corredorInferior: 2.2, setoresSuperior: 56, corredorSuperior: 1.3,
+                    corredorMaior: 3.6, anguloLateral: 50,
+                    // As quatro torres de rampa nos cantos (E, F, B, C do mapa de setores): volume rectangular de cantos arredondados, com a rampa dentro, em 2 voltas.
+                    torresRampa: {
+                        angulos: [60, 120, 240, 300], afastamento: 17, meiaComp: 20, meiaLarg: 10, raio: 6, largura: 5, altura: 18, voltas: 2,
+                        corRampa: 0xcfd3d6, corReguas: 0xc9c4b8, corTelhado: 0xf4f4f2
+                    }, corSubrampa: 0x3b4048, corDegrau: 0x535b66, corChaoSob: 0x30343a, ledsBeiral: 240, ledsChao: 110, spotsCor: 8, spotsTopo: 16, spotsAlcance: 75, spotsIntensidade: 2.2, distanciaRefLuz: 58,
                     // A cobertura (da fotografia): cobre a arquibancada quase toda, do 8.º degrau ao topo, e sobe 9 m para o meio.
                     coberturaDesdeFila: 8, coberturaFolga: 4.5, coberturaSubida: 9.0, coberturaSaliencia: 5.0, coberturaEspessura: 0.6, cornija: 2.2,
                     corCobertura: 0xf4f6f8, corCoberturaBaixo: 0xc4cad1, corNervura: 0xb8bfc7, corPilar: 0xeceff1,
@@ -84,7 +93,7 @@ const Estadios = {
                 soEstadio: true, vias: [], passarelas: [], ruas: [],
                 metro: { bocas: [] }, transito: { carros: 0, taxis: 0, onibus: 0 },
                 gente: { ativa: false },
-                praca: { margem: 45 }
+                praca: { margem: 40 }
             },
             // A rampa de acesso ao anel de cima, pelo lado leste (foto da praça da Estátua do Bellini).
             // A rampa dupla da fotografia (imagem da rampa): sobe do chão perto do estádio até ao patamar do fundo (barra do T, 15 m) e volta, a subir, até 10 m abaixo da cobertura (5 m mais baixo do que estava).
