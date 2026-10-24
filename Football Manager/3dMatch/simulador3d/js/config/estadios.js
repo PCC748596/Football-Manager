@@ -61,6 +61,8 @@ const Estadios = {
                 oval: {
                     espacoCadeira: 0.46, setores: 40, larguraCorredor: 1.6,
                     corBetao: 0xc9ccd0,
+                    // O túnel dos jogadores: `maisFundo` m mais para dentro da arquibancada e pintado de `cor` (preto).
+                    tunel: { maisFundo: 8, cor: 0x0b0c0e },
                     // As passagens da torcida (mapa de setores): cintura sem cadeiras entre o anel de baixo e o de cima, corredores radiais por anel e maiores nas fronteiras dos setores.
                     cintura: { fila: 26, filas: 2 }, corCintura: 0xe6e8ea,
                     setoresInferior: 24, corredorInferior: 2.2, setoresSuperior: 56, corredorSuperior: 1.3,
@@ -69,7 +71,7 @@ const Estadios = {
                     torresRampa: {
                         angulos: [60, 120, 240, 300], afastamento: 17, meiaComp: 20, meiaLarg: 10, raio: 6, largura: 5, altura: 18, voltas: 2,
                         corRampa: 0xcfd3d6, corReguas: 0xc9c4b8, corTelhado: 0xf4f4f2
-                    }, corSubrampa: 0x3b4048, corDegrau: 0x535b66, corChaoSob: 0x30343a, ledsBeiral: 240, ledsChao: 110, spotsCor: 8, spotsTopo: 16, spotsAlcance: 75, spotsIntensidade: 2.2, distanciaRefLuz: 58,
+                    }, corSubrampa: 0x3b4048, corDegrau: 0x535b66, corChaoSob: 0x30343a, ledsBeiral: 240, ledsChao: 110, spotsCor: 8, spotsTopo: 12, spotsAlcance: 75, spotsIntensidade: 3.0, paineisSob: 90, luzesSob: 14, luzesSobAlcance: 60, luzesSobIntensidade: 1.0, distanciaRefLuz: 58,
                     // A cobertura (da fotografia): cobre a arquibancada quase toda, do 8.º degrau ao topo, e sobe 9 m para o meio.
                     coberturaDesdeFila: 8, coberturaFolga: 4.5, coberturaSubida: 9.0, coberturaSaliencia: 5.0, coberturaEspessura: 0.6, cornija: 2.2,
                     corCobertura: 0xf4f6f8, corCoberturaBaixo: 0xc4cad1, corNervura: 0xb8bfc7, corPilar: 0xeceff1,
@@ -92,7 +94,7 @@ const Estadios = {
             cidade: {
                 soEstadio: true, vias: [], passarelas: [], ruas: [],
                 metro: { bocas: [] }, transito: { carros: 0, taxis: 0, onibus: 0 },
-                gente: { ativa: false },
+                gente: { ativa: true, total: 1000, filasIniciais: 220 },
                 praca: { margem: 40 }
             },
             // A rampa de acesso ao anel de cima, pelo lado leste (foto da praça da Estátua do Bellini).
@@ -210,8 +212,8 @@ const Estadios = {
             return base;
         });
         this.medidas = { bancadaX: a0, bancadaZ: b0, profundidade: prof, topo };
-        // A câmara TV Centro: na 13.ª fila, 4 m acima das cadeiras (no estádio padrão fica na ponta da cobertura).
-        this.cameraTV = { x: a0 + 12 * 1.2, y: 0.25 + 12 * 0.5 + 4.0 };
+        // A câmara TV Centro: na 13.ª fila, 14 m acima das cadeiras (4 m + 10 m a pedido; no estádio padrão fica na ponta da cobertura).
+        this.cameraTV = { x: a0 + 12 * 1.2, y: 0.25 + 12 * 0.5 + 4.0 + 10.0 };
     },
 
     /*

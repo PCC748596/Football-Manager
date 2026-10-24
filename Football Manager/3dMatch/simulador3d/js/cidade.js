@@ -1047,6 +1047,7 @@ const Cidade = {
         cobertura sobre colunas; a de `larguraB` volta dali para o estádio,
         continuando a subir, até à fachada, a `alturaTopo` (uns 5 m abaixo da cobertura).
         */
+        const rampasDados = [];     // o caminho a pé de cada rampa principal, em coordenadas do mundo: [x, y, z] do chão ao topo
         const portoesRampas = [];   // as entradas do piso branco das rampas principais (entram na lista dos portões da fachada)
         const rampaDupla = (r) => {
             const B = liso.base, esp = 0.6;
@@ -1085,6 +1086,14 @@ const Cidade = {
                 }
             };
             const x0A = xs + r.inicioA;
+            // O percurso a pé (o meio de cada perna, ao nível do piso): sobe a A até ao patamar, atravessa-o e volta pela B até à fachada.
+            {
+                const W_ = (xl, y, zl) => r.lado > 0 ? [xl, y, zl] : [-xl, y, -zl];
+                const sobe = (zp, x0, y0, x1, y1) => { const o = []; const n = Math.max(2, Math.round(Math.abs(x1 - x0) / 7)); for (let i = 0; i <= n; i++) o.push(W_(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n + 0.02, zp)); return o; };
+                const A_ = sobe(zA, x0A, 0, xL, hM), B_ = sobe(zB, xL, hM, xs + 3, hT);
+                const mid = (zA + zB) / 2;
+                rampasDados.push([...A_, W_(xL + 2, hM + 0.02, mid), ...B_]);
+            }
             perna(zA, r.larguraA, x0A, 0, xL, hM);                 // sobe para fora, do chão perto do estádio
             perna(zB, r.larguraB, xs + 6, hT, xL, hM);             // volta, a subir para o estádio
             // O patamar na fachada (fim da rampa B) e o de partida da A
@@ -1490,7 +1499,7 @@ const Cidade = {
         this._trens = trens;
         this.dados = {
             vias, zebras, paradas, escadas: escadasEstacao, cruz, passarelas, corredores,
-            bocas: bocasDados, portoes: portoesDados, carrosParados, anel, pt, dentroDeOutra,
+            bocas: bocasDados, portoes: portoesDados, rampas: rampasDados, carrosParados, anel, pt, dentroDeOutra,
             metro: viaMetro ? { zc: viaMetro.c, yT: M.alturaTopo, ex: M.estacaoX } : null
         };
         this._atualizarVeiculos(0);
@@ -1882,7 +1891,7 @@ const Cidade = {
 
     update(dt) {
         if (!this.grupo) return;
-        const noite = (typeof Weather !== 'undefined') && Weather.periodo === 'noite';
+        const noite = (typeof Weather !== 'undefined') && Weather.periodo !== 'dia';
         this._aplicarPeriodo(noite);
         this._atualizarVeiculos(dt);
         this._atualizarTrens(dt);

@@ -1097,3 +1097,9 @@ body.embutido #t-formacao-A, body.embutido #t-formacao-B,
 body.embutido label:has(+ #t-formacao-A), body.embutido label:has(+ #t-formacao-B) {
     display: none !important;
 }
+
+/* Câmara cinema (tecla 9): sem minimapa nem cartões de jogador/evento — só o estádio. A classe é posta por Match.setCameraMode. */
+body.cam-cinema #minimapa,
+body.cam-cinema .hud-jogador {
+    display: none !important;
+}

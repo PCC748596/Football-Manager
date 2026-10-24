@@ -113,7 +113,9 @@ const CidadeGente = {
         this.nosChao = nosChao;
 
         // ---- anel da esplanada
-        const poli = D.anel(7.2), anel = [];
+        // Só o estádio: o anel de passeio fica a meio da praça (os portões estão no limite dela), e há um segundo anel junto da fachada.
+        const SO = !!C.soEstadio;
+        const poli = D.anel(SO ? C.praca.margem - 12 : 7.2), anel = [];
         let acum = 0, prox = 0;
         for (let i = 0; i < poli.length; i++) {
             const a = poli[i], b = poli[(i + 1) % poli.length];
@@ -127,6 +129,24 @@ const CidadeGente = {
         }
         for (let i = 0; i < anel.length; i++) ligar(anel[i], anel[(i + 1) % anel.length]);
         this.anel = anel;
+        if (SO) {
+            // segundo anel, junto das colunas, ligado ao de fora; e os dois são sítios onde a gente passeia
+            const poli2 = D.anel(8), anel2 = [];
+            let ac2 = 0, pr2 = 0;
+            for (let i = 0; i < poli2.length; i++) {
+                const a = poli2[i], b = poli2[(i + 1) % poli2.length];
+                const d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+                while (ac2 + d >= pr2) {
+                    const u = (pr2 - ac2) / (d || 1);
+                    anel2.push(no(a[0] + (b[0] - a[0]) * u, yG, a[1] + (b[1] - a[1]) * u));
+                    pr2 += 9;
+                }
+                ac2 += d;
+            }
+            for (let i = 0; i < anel2.length; i++) ligar(anel2[i], anel2[(i + 1) % anel2.length]);
+            for (const id of anel2) ligar(id, maisPerto(nos[id].x, nos[id].z, anel, 40));
+            nosChao.push(...anel, ...anel2);
+        }
 
         // ---- portões: o nó fica na ponta da fila
         for (const g of D.portoes) {
@@ -168,6 +188,17 @@ const CidadeGente = {
         }
         for (const a of anel) ligar(a, maisPerto(nos[a].x, nos[a].z, nosLote, 30));
         this.nosLote = nosLote;
+
+        // ---- rampas principais: o percurso sobe do chão ao topo (ligado à praça em baixo); lá em cima a gente entra no estádio
+        this.rampas = [];
+        for (const pts of (D.rampas || [])) {
+            const ids = pts.map(p => no(p[0], p[1], p[2]));
+            for (let i = 0; i + 1 < ids.length; i++) ligar(ids[i], ids[i + 1]);
+            const pe = ids[0];
+            ligar(pe, maisPerto(nos[pe].x, nos[pe].z, anel, 60));
+            ligar(pe, maisPerto(nos[pe].x, nos[pe].z, nosChao, 60));
+            this.rampas.push({ pe, topo: ids[ids.length - 1], ids });
+        }
 
         // ---- bocas de metrô
         for (const b of D.bocas) {
@@ -316,7 +347,16 @@ const CidadeGente = {
         const nDentro = Math.round(N * 0.1);
         for (let i = 0; i < nDentro; i++) {
             const a = pegar(); if (!a) break;
-            this._ocultar(a, i % 3 === 0 ? 'metro' : 'estadio', rnd() * 60);
+            this._ocultar(a, (i % 3 === 0 && this.bocas.length) ? 'metro' : 'estadio', rnd() * 60);
+        }
+        // Já com gente a subir e a descer as rampas principais no arranque (senão levava minutos a aparecer alguém): espalhados pelo percurso.
+        for (const r of this.rampas) {
+            for (let j = 0; j < (G.naRampa || 45); j++) {
+                const p = pegar(); if (!p) break;
+                const id = r.ids[Math.floor(rnd() * r.ids.length)], n = this.nos[id];
+                p.x = n.x + p.ox * 0.5; p.y = n.y; p.z = n.z + p.oz * 0.5; p.no = id;
+                this._irPara(p, rnd() < 0.5 ? r.topo : r.pe, p2 => (p2.no === r.topo ? this._ocultar(p2, 'rampa', 20 + rnd() * 60, r) : this._decidir(p2)));
+            }
         }
         let a;
         while ((a = pegar())) {
@@ -546,10 +586,10 @@ const CidadeGente = {
         if (a.rumoPortao && !a.semPortao && this.rnd() < 0.85) { a.rumoPortao = false; return this._irAoPortao(a); }
         a.rumoPortao = false;
         // (o destino `carro` fica de fora de propósito: o carro desaparecia do estacionamento)
-        const w = [0.16, 0.10, 0.12, 0.12, a.semPortao ? 0 : 0.50, 0];
+        const w = [0.16, 0.10, 0.12, 0.12, a.semPortao ? 0 : 0.50, 0, (this.rampas && this.rampas.length) ? 0.22 : 0];
         a.semPortao = false;
         let r = this.rnd() * w.reduce((x, y) => x + y, 0);
-        const fn = [this._passear, this._irAoMetro, this._irAPlataforma, this._irAParada, this._irAoPortao, this._irAoCarro];
+        const fn = [this._passear, this._irAoMetro, this._irAPlataforma, this._irAParada, this._irAoPortao, this._irAoCarro, this._irARampa];
         for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return fn[i].call(this, a); }
         return this._passear(a);
     },
@@ -561,7 +601,14 @@ const CidadeGente = {
         });
     },
 
+    // Sobe uma rampa principal até ao topo, entra no estádio, e mais tarde volta a sair por lá e desce.
+    _irARampa(a) {
+        const r = this.rampas[Math.floor(this.rnd() * this.rampas.length)];
+        this._irPara(a, r.topo, a2 => this._ocultar(a2, 'rampa', 25 + this.rnd() * 90, r));
+    },
+
     _irAoMetro(a) {
+        if (!this.bocas.length) return this._passear(a);   // sem metro (só o estádio)
         const b = this.bocas[Math.floor(this.rnd() * this.bocas.length)];
         this._irPara(a, b.noFrente, a2 => {
             this._seguir(a2, [[b.x, a2.y, b.z]], a3 => {
@@ -686,6 +733,11 @@ const CidadeGente = {
             a.no = g.noId; a.semPortao = true;
             const n = this.nos[g.noId];
             this._seguir(a, [[g.x + g.tx * lx + g.n[0] * 3.5, yG, g.z + g.tz * lx + g.n[1] * 3.5], [n.x, yG, n.z, g.noId]], null);
+        } else if (a.oc === 'rampa') {
+            const r = a.ref, n = this.nos[r.topo];
+            a.x = n.x; a.y = n.y; a.z = n.z; a.no = r.topo;
+            a.oc = null; a.ref = null;
+            return this._irPara(a, r.pe, null);     // desce até ao pé da rampa e daí decide
         } else if (a.oc === 'carro') {
             const c = a.ref;
             this.cid.mostrarCarroParado(c.i, true); c.reservado = false;

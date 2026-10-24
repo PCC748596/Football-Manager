@@ -134,6 +134,8 @@ Object.assign(Match, {
         }
 
         window.cameraMode = mode;
+        // Na câmara cinema não se vê o minimapa nem os cartões (ver `body.cam-cinema` em css/styles.css).
+        if (document.body) document.body.classList.toggle('cam-cinema', mode === 'cinema');
         document.querySelectorAll('.btn-cam').forEach(b => b.classList.remove('active'));
         const btn = document.getElementById('cam-' + mode);
         if (btn) btn.classList.add('active');

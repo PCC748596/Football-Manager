@@ -507,8 +507,9 @@ Object.assign(Match, {
                 const nPaineis = Math.max(1, Math.round(comprimento / PP.larguraPainel));
                 tex.repeat.set(nPaineis / nC, 1);
                 if (arte) return new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+                // O verso (virado para a arquibancada) não apanha a luz do sol e ficava preto: a própria textura também emite, por isso as duas faces se leem.
                 return new THREE.MeshStandardMaterial({
-                    map: tex, roughness: 0.65, side: THREE.DoubleSide
+                    map: tex, roughness: 0.65, side: THREE.DoubleSide, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.7
                 });
             };
 
@@ -520,7 +521,7 @@ Object.assign(Match, {
                 m.position.set(x, PP.altura / 2, z);
                 m.rotation.y = rodaY;
                 m.castShadow = true;
-                m.receiveShadow = true;
+                m.receiveShadow = false;   // a sombra da própria placa pintava o verso de preto
                 campoGrupo.add(m);
             };
 
@@ -998,6 +999,12 @@ Object.assign(Match, {
         // O TUNEL DOS JOGADORES (config/tunel.js): sabe onde fica a bancada, e corta-lhe os primeiros degraus no centro.
         const TJ = (typeof TunelJogadores !== 'undefined' && TunelJogadores.activo) ? TunelJogadores : null;
         if (TJ) TJ.definirGeometria(BANCADA_X);
+        // Estádio oval: o túnel entra mais para dentro da arquibancada e é preto POR DENTRO (faces de dentro das paredes e do tecto, chão e fundo); por fora fica cinzento, como a arquibancada.
+        if (TJ && OVAL && BACIA.oval.tunel) {
+            const TO = BACIA.oval.tunel;
+            TJ.xFundo = TJ.lado * (BANCADA_X - 0.6 + TJ.degrausCortados * 1.2 + TO.maisFundo);
+            TJ.cores = Object.assign({}, TJ.cores, { dentro: TO.cor, chao: 0x050607, fundo: 0x000000 });   // só por dentro é preto
+        }
 
         /*
         A ESQUINA DE UM ANEL. `offProf` e `offY` sao o recuo e a subida do anel

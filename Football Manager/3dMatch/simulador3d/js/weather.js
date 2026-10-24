@@ -3,7 +3,7 @@
 SISTEMA DE CONDIÇÕES CLIMÁTICAS E ILUMINAÇÃO (js/weather.js)
 =============================================================================
 Módulo centralizador de clima e iluminação do estádio:
-- Período: 'dia' | 'noite'
+- Período: 'dia' | 'crepusculo' | 'noite'
 - Condição: 'limpo' | 'nublado' | 'encoberto' | 'chuva' (Tempo Fechado com chuva)
 
 Gerencia:
@@ -15,7 +15,7 @@ Gerencia:
 */
 
 const Weather = {
-    periodo: 'dia',      // 'dia' | 'noite'
+    periodo: 'dia',      // 'dia' | 'crepusculo' | 'noite'
     condicao: 'limpo',   // 'limpo' | 'nublado' | 'encoberto' | 'chuva'
 
     scene: null,
@@ -371,9 +371,9 @@ const Weather = {
     },
 
     setPeriodo(p) {
-        if (p !== 'dia' && p !== 'noite') return;
+        if (p !== 'dia' && p !== 'crepusculo' && p !== 'noite') return;
         this.periodo = p;
-        window.jogoNoturno = (p === 'noite');
+        window.jogoNoturno = (p !== 'dia');   // o crepúsculo já tem as luzes acesas
         this.apply();
         this._atualizarUI();
     },
@@ -388,7 +388,7 @@ const Weather = {
     setTempo(periodo, condicao) {
         if (periodo) this.periodo = periodo;
         if (condicao) this.condicao = condicao;
-        window.jogoNoturno = (this.periodo === 'noite');
+        window.jogoNoturno = (this.periodo !== 'dia');
         this.apply();
         this._atualizarUI();
     },
@@ -1323,7 +1323,9 @@ const Weather = {
         if (selCondicao) selCondicao.value = this.condicao;
 
         const btnPeriodo = document.getElementById('btn-periodo');
-        if (btnPeriodo) btnPeriodo.innerText = (this.periodo === 'noite') ? 'Noite' : 'Dia';
+        // As luzes de cor do clube no estádio oval (js/estadio_oval.js): acendem à noite, também por aqui (o seletor Dia/Noite do jogo passa pelo Weather).
+        if (window.ledsEstadio) window.ledsEstadio.definir(this.periodo !== 'dia');
+        if (btnPeriodo) btnPeriodo.innerText = (this.periodo === 'noite') ? 'Noite' : (this.periodo === 'crepusculo' ? 'Crepúsculo' : 'Dia');
     }
 };
 
@@ -1332,8 +1334,34 @@ function definirPeriodo(noite) {
 }
 
 function togglePeriodo() {
-    Weather.setPeriodo(Weather.periodo === 'noite' ? 'dia' : 'noite');
+    // dia -> crepúsculo -> noite -> dia
+    Weather.setPeriodo(Weather.periodo === 'dia' ? 'crepusculo' : (Weather.periodo === 'crepusculo' ? 'noite' : 'dia'));
 }
+
+/*
+O CREPÚSCULO (final de tarde): derivado dos presets de DIA, condição a condição. O céu e o nevoeiro vão para um laranja
+avermelhado, o sol desce (luz rasante, alaranjada e mais fraca), o ambiente aquece e baixa, as nuvens ganham a cor do pôr do sol
+e os holofotes já estão acesos, mais fracos do que à noite. Quanto pior o tempo (`k`), menos o laranja manda: em chuva fica quase o
+céu do dia, só mais escuro e mais quente.
+*/
+(function () {
+    if (typeof THREE === 'undefined') return;
+    const mix = (a, b, k) => new THREE.Color(a).lerp(new THREE.Color(b), k).getHex();
+    const pior = { limpo: 0, nublado: 0.45, encoberto: 0.65, neve: 0.55, chuva: 0.7 };
+    const cre = {};
+    for (const c of Object.keys(Weather.presets.dia)) {
+        const d = Weather.presets.dia[c], k = pior[c] === undefined ? 0.5 : pior[c];
+        const ceu = mix(mix(0xe8946a, d.ceu, k), 0x000000, 0.12);
+        cre[c] = Object.assign({}, d, {
+            ceu, fogColor: ceu,
+            solColor: mix(0xff9a52, d.solColor, k), solIntensidade: d.solIntensidade * 0.62, solPos: [100, 24, 40],
+            ambienteColor: mix(0xffc4a0, d.ambienteColor, k), ambienteIntensidade: d.ambienteIntensidade * 0.7,
+            holofotes: true, holofotesIntensidade: Math.max(0.35, d.holofotesIntensidade || 0),
+            nuvensCor: mix(0xffa77a, d.nuvensCor, k)
+        });
+    }
+    Weather.presets.crepusculo = cre;
+})();
 
 if (typeof window !== 'undefined') {
     window.Weather = Weather;
