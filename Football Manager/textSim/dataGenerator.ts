@@ -504,7 +504,8 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
       sponsorAmount: t.sponsorAmount,
       fanBase: t.fanBase || 10000,
       avrAttendance: t.avrAttendance || 5000,
-      stadiumOccupancy: ECONOMIA_ESTADIO.ocupacaoInicial,   // no inicio do campeonato os estadios estao a 70%
+      // No inicio do campeonato os estadios estao a 70%; o Maracana (78 838 lugares) comeca com 22 000 torcedores.
+      stadiumOccupancy: (t.teamStadiumName === 'Maracanã' || t.teamStadiumName === 'Estádio do Maracanã') ? 22000 / 78838 : ECONOMIA_ESTADIO.ocupacaoInicial,
       played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0,
       primaryColor: getColorHex(t.color1 || t.color || '#333'),
       secondaryColor: getColorHex(t.color2 || '#fff'),

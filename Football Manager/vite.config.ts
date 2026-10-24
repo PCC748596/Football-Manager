@@ -42,6 +42,31 @@ function databaseSaverPlugin() {
   };
 }
 
+// O botao de gravar do manager (GameContext.saveGame) descarrega o save no browser E manda uma copia para aqui: fica na pasta `saves/` do projeto (um nivel acima desta), no disco local. So existe no servidor de desenvolvimento.
+function saveGameLocalPlugin() {
+  return {
+    name: 'save-game-local',
+    configureServer(server) {
+      server.middlewares.use('/api/save-game', (req, res) => {
+        if (req.method !== 'POST') { res.statusCode = 404; res.end(); return; }
+        const nome = String(req.headers['x-save-name'] || '');
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', () => {
+          try {
+            if (!/^[A-Za-z0-9_-]{1,80}\.json$/.test(nome)) throw new Error('nome invalido');
+            JSON.parse(body);   // so grava JSON valido
+            const pasta = path.resolve(__dirname, '../saves');
+            fs.mkdirSync(pasta, { recursive: true });
+            fs.writeFileSync(path.join(pasta, nome), body, 'utf8');
+            res.setHeader('Content-Type', 'application/json'); res.statusCode = 200; res.end(JSON.stringify({ success: true, ficheiro: path.join(pasta, nome) }));
+          } catch (e) { res.statusCode = 500; res.end(JSON.stringify({ error: e.message || String(e) })); }
+        });
+      });
+    }
+  };
+}
+
 // Serve o simulador 3D (3dMatch/simulador3d) em /simulador3d/ no dev e copia para dist/ no build.
 // A pagina corre dentro de um iframe do manager (ver 3dMatch/simulador3dCliente.ts).
 // O Editor de Faces (components/FaceEditor.tsx) grava a face de um jogador por aqui: atualiza data/faces.json e regenera data/faces.js (3D) e textSim/facesDatabase.ts (manager).
@@ -115,7 +140,7 @@ export default defineConfig(() => {
         port: 3000,
         host: '0.0.0.0',
       },
-      plugins: [react(), databaseSaverPlugin(), facesSaverPlugin(), simulador3dPlugin()],
+      plugins: [react(), databaseSaverPlugin(), facesSaverPlugin(), saveGameLocalPlugin(), simulador3dPlugin()],
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),

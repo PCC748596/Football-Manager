@@ -444,8 +444,10 @@ Object.assign(Match, {
             this._cineT = (this._cineT || 0) + dtC;
             const t = this._cineT;
             const ang = CC.anguloInicial + t * (2 * Math.PI / CC.voltaSegundos);
-            const raio = (CC.raio + CC.raioOscila * Math.sin(t * CC.ritmoRaio)) * zoom;
-            const alt = (CC.altura + CC.alturaOscila * Math.sin(t * CC.ritmoAltura + 1.0)) * Math.max(0.6, zoom);
+            // Um estádio maior (perfil em config/estadios.js) pede uma órbita maior.
+            const escCine = (typeof Estadios !== 'undefined' && Estadios.atual && Estadios.atual.cameraCinemaEscala) || 1;
+            const raio = (CC.raio + CC.raioOscila * Math.sin(t * CC.ritmoRaio)) * zoom * escCine;
+            const alt = (CC.altura + CC.alturaOscila * Math.sin(t * CC.ritmoAltura + 1.0)) * Math.max(0.6, zoom) * escCine;
             targetPos.set(Math.sin(ang) * raio, alt, Math.cos(ang) * raio);
             lookTarget.set(
                 CC.foco.x + CC.derivaFoco * Math.sin(t * 0.09),

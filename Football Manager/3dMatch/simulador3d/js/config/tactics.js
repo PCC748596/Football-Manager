@@ -2176,6 +2176,6 @@ const CameraCinema = {
     altura: 85, alturaOscila: 22, ritmoAltura: 0.045,
     foco: { x: 0, y: 14, z: 0 },
     derivaFoco: 12,
-    nevoeiro: 2.4
+    nevoeiro: 6.0
 };
 if (typeof window !== 'undefined') window.CameraCinema = CameraCinema;

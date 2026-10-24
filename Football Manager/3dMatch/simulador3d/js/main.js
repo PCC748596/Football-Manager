@@ -253,7 +253,7 @@ function definirPeriodo(noite) {
 
     const HF = window.holofotes;
     if (HF) {
-        for (const l of HF.luzes) l.intensity = P.holofotesAcesos ? H.intensidadeLuz : 0;
+        for (const l of HF.luzes) l.intensity = P.holofotesAcesos ? H.intensidadeLuz * ((l.userData && l.userData.fator) || 1) : 0;
         if (HF.matLampada) {
             HF.matLampada.color.setHex(P.holofotesAcesos
                 ? H.corLampadaAcesa : H.corLampadaApagada);
@@ -268,6 +268,9 @@ function definirPeriodo(noite) {
 
         }
     }
+
+    // As luzes de cor do clube no estádio oval (js/estadio_oval.js).
+    if (window.ledsEstadio) window.ledsEstadio.definir(!!P.holofotesAcesos);
 
     const btn = document.getElementById('btn-periodo');
     if (btn) btn.innerText = noite ? 'Noite' : 'Dia';

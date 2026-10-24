@@ -405,18 +405,19 @@ const Weather = {
         // 1. Cor do fundo (Céu)
         this.scene.background = new THREE.Color(pConfig.ceu);
 
-        // 2. Fog
+        // 2. Fog. Um estádio maior (perfil em config/estadios.js) afasta o nevoeiro (`nevoeiroEscala`), senão ele come a bacia inteira.
+        const kNev = (typeof Estadios !== 'undefined' && Estadios.atual && Estadios.atual.nevoeiroEscala) || 1;
         if (this.scene.fog) {
             if (this.scene.fog.isFog) {
                 this.scene.fog.color.setHex(pConfig.fogColor);
-                this.scene.fog.near = pConfig.fogNear;
-                this.scene.fog.far = pConfig.fogFar;
+                this.scene.fog.near = pConfig.fogNear * kNev;
+                this.scene.fog.far = pConfig.fogFar * kNev;
             } else if (this.scene.fog.isFogExp2) {
                 this.scene.fog.color.setHex(pConfig.fogColor);
-                this.scene.fog.density = 2 / pConfig.fogFar;
+                this.scene.fog.density = 2 / (pConfig.fogFar * kNev);
             }
         } else {
-            this.scene.fog = new THREE.Fog(pConfig.fogColor, pConfig.fogNear, pConfig.fogFar);
+            this.scene.fog = new THREE.Fog(pConfig.fogColor, pConfig.fogNear * kNev, pConfig.fogFar * kNev);
         }
 
         // 3. Luz solar/lunar

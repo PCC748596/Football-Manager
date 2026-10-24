@@ -69,20 +69,49 @@ const EstadioOval = {
     },
 
     /*
+    As luzes de cor do clube, desenhadas na cobertura: anéis concêntricos de `cA` e
+    `cB`, com um anel de traços a meio, como na fotografia de noite. `emissiva`
+    escurece o `cB` (é a luz, não a tinta). Textura: u = volta, v = de dentro (0)
+    para fora (1).
+    */
+    texturaDaCobertura(THREE, cA, cB, emissiva) {
+        if (typeof document === 'undefined') return null;
+        const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 256;
+        const g = cv.getContext('2d');
+        const hex = (n, k) => '#' + new THREE.Color(n).multiplyScalar(k || 1).getHexString();
+        g.fillStyle = emissiva ? '#000000' : '#ffffff'; g.fillRect(0, 0, 1024, 256);
+        const banda = (v0, v1, cor) => { g.fillStyle = cor; g.fillRect(0, v0 * 256, 1024, (v1 - v0) * 256); };
+        const kB = emissiva ? 0.35 : 0.45;
+        banda(0.00, 0.05, emissiva ? '#cfd8e6' : '#ffffff');       // o bordo de dentro, branco
+        banda(0.06, 0.38, hex(cB, kB));
+        banda(0.40, 0.47, hex(cA, 1));
+        banda(0.49, 0.88, hex(cB, kB));
+        banda(0.90, 1.00, hex(cA, 1));
+        // O anel de traços: pequenos intervalos escuros dentro do anel de `cA`.
+        g.fillStyle = emissiva ? '#000000' : hex(cB, 1);
+        for (let x = 0; x < 1024; x += 16) g.fillRect(x, 0.40 * 256, 6, 0.07 * 256);
+        const t = new THREE.CanvasTexture(cv);
+        t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping;
+        return t;
+    },
+
+    /*
     Uma faixa (superfície) entre duas curvas paralelas: a de dentro a `dIn` m
     da primeira fila e à altura `yIn`, a de fora a `dOut` e `yOut`. `dupla`: as
     duas faces. Indexada, uma malha só.
     */
     faixa(THREE, a, b, dIn, yIn, dOut, yOut, material, n) {
-        const pos = new Float32Array((n + 1) * 2 * 3), ind = [];
+        const pos = new Float32Array((n + 1) * 2 * 3), uv = new Float32Array((n + 1) * 2 * 2), ind = [];
         for (let i = 0; i <= n; i++) {
             const t = (i / n) * Math.PI * 2;
             const p = this.ponto(a, b, dIn, t), q = this.ponto(a, b, dOut, t);
             pos.set([p.x, yIn, p.z, q.x, yOut, q.z], i * 6);
+            uv.set([i / n, 0, i / n, 1], i * 4);
             if (i < n) { const k = i * 2; ind.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
         }
         const g = new THREE.BufferGeometry();
         g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
         g.setIndex(ind);
         g.computeVertexNormals();
         return new THREE.Mesh(g, material);
@@ -108,6 +137,8 @@ const EstadioOval = {
     */
     construir(ctx) {
         const { THREE, grupo, a0, b0, rows, TJ, addStepBox, addSeatInstance, cfg } = ctx;
+        const CAMPO_COMP_ = (typeof CAMPO_COMP !== 'undefined') ? CAMPO_COMP : 106;
+        const LED = ctx.leds || { a: 0xffffff, b: 0x9fb0c8, neutro: true };
         const PROF = 1.2, ALT = 0.5;
         const dEnd = rows * PROF;                       // fim do último degrau
         const standY = r => 0.25 + r * ALT;
@@ -182,7 +213,11 @@ const EstadioOval = {
         const espessura = cfg.coberturaEspessura;
         const matCima = new THREE.MeshStandardMaterial({ color: cfg.corCobertura, roughness: 0.85, side: THREE.DoubleSide });
         const matBaixo = new THREE.MeshStandardMaterial({ color: cfg.corCoberturaBaixo, roughness: 0.95, side: THREE.DoubleSide });
-        const cima = this.faixa(THREE, a0, b0, dIn, yIn + espessura, dOut, yOut + espessura, matCima, N);
+        // Por cima: branca de dia; de noite acendem-se os anéis da cor do clube (`ledsEstadio.definir`).
+        const matTopo = new THREE.MeshStandardMaterial({ color: cfg.corCobertura, roughness: 0.85, side: THREE.DoubleSide, emissive: 0xffffff, emissiveIntensity: 0 });
+        const texCor = this.texturaDaCobertura(THREE, LED.a, LED.b, false), texLuz = this.texturaDaCobertura(THREE, LED.a, LED.b, true);
+        if (texLuz) matTopo.emissiveMap = texLuz;
+        const cima = this.faixa(THREE, a0, b0, dIn, yIn + espessura, dOut, yOut + espessura, matTopo, N);
         const baixo = this.faixa(THREE, a0, b0, dIn, yIn, dOut, yOut, matBaixo, N);
         cima.castShadow = true; cima.receiveShadow = false; baixo.castShadow = false; baixo.receiveShadow = false;
         grupo.add(cima, baixo);
@@ -224,10 +259,110 @@ const EstadioOval = {
             const m = new THREE.Mesh(ctx.merge(nervGeos), new THREE.MeshStandardMaterial({ color: cfg.corNervura, roughness: 0.7 }));
             m.castShadow = false; m.receiveShadow = false; grupo.add(m);
         }
+        const matColunas = new THREE.MeshStandardMaterial({ color: cfg.corPilar, roughness: 0.8, emissive: LED.a, emissiveIntensity: 0 });
         if (colGeos.length) {
-            const m = new THREE.Mesh(ctx.merge(colGeos), new THREE.MeshStandardMaterial({ color: cfg.corPilar, roughness: 0.8 }));
+            const m = new THREE.Mesh(ctx.merge(colGeos), matColunas);
             m.castShadow = true; m.receiveShadow = false; grupo.add(m);
         }
+
+        // ---- as luzes de cor em volta: no beiral da cobertura e no chão, a iluminar as colunas ----
+        const ledMats = [];
+        const caixasLed = (n, d, y, dims, cor, deslocar) => {
+            const mat = new THREE.MeshStandardMaterial({ color: cor, emissive: cor, emissiveIntensity: 0.1, roughness: 0.5 });
+            const im = new THREE.InstancedMesh(new THREE.BoxGeometry(...dims), mat, n);
+            const dm = new THREE.Object3D();
+            for (let k = 0; k < n; k++) {
+                const t = ((k * 2 + deslocar) / (n * 2)) * Math.PI * 2;
+                const q = this.ponto(a0, b0, d, t);
+                dm.position.set(q.x, y, q.z);
+                dm.rotation.set(0, -Math.atan2(q.nz, q.nx), 0);
+                dm.updateMatrix(); im.setMatrixAt(k, dm.matrix);
+            }
+            im.castShadow = false; im.receiveShadow = false;
+            grupo.add(im); ledMats.push(mat);
+        };
+        const nL = cfg.ledsBeiral, nS = cfg.ledsChao;
+        caixasLed(nL, dOut + 0.15, yOut - cfg.cornija / 2, [0.25, 0.5, 1.1], LED.a, 0);
+        caixasLed(nL, dOut + 0.15, yOut - cfg.cornija / 2, [0.25, 0.5, 1.1], LED.b, 1);
+        caixasLed(nS, dEnd + 4.0, 0.3, [0.5, 0.5, 1.4], LED.a, 0);
+        caixasLed(nS, dEnd + 4.0, 0.3, [0.5, 0.5, 1.4], LED.b, 1);
+        /*
+        SPOTS DE COR, de verdade (SpotLight): os da cor do clube. Uma volta no chão a apontar
+        para cima, às colunas e ao beiral, e outra no beiral da cobertura a apontar para a praça.
+        Alternam `a` e `b`; se `b` for preto (Flamengo) não ilumina nada, e então usa-se um
+        branco quente. Só acendem à noite: apagadas ficam invisíveis, para não pesarem no desenho.
+        */
+        const brilho = (c) => { const k = new THREE.Color(c); return k.r + k.g + k.b; };
+        const corB = brilho(LED.b) < 0.3 ? 0xffd9a0 : LED.b;
+        const spots = [];
+        const nSp = cfg.spotsCor;
+        for (let k = 0; k < nSp * 2; k++) {
+            const cor = (k % 2) ? corB : LED.a;
+            const t = ((k + 0.5) / (nSp * 2)) * Math.PI * 2;
+            // chão
+            const p = this.ponto(a0, b0, dEnd + 3.5, t), alvo = this.ponto(a0, b0, dEnd + 0.9, t);
+            const sp = new THREE.SpotLight(cor, 0, cfg.spotsAlcance, 0.3, 0.6, 1.0);
+            sp.position.set(p.x, 0.4, p.z);
+            sp.target.position.set(alvo.x, yOut + 0.5, alvo.z);
+            sp.castShadow = false; sp.visible = false;
+            grupo.add(sp, sp.target); spots.push(sp);
+            // beiral
+            // Do beiral, a descer a coluna e a parede (e não para a praça): a parede e as colunas ficam banhadas de cima para baixo.
+            const r = this.ponto(a0, b0, dOut + 0.4, t + Math.PI / (nSp * 2)), alvo2 = this.ponto(a0, b0, dEnd + 0.9, t + Math.PI / (nSp * 2));
+            const sp2 = new THREE.SpotLight((k % 2) ? LED.a : corB, 0, cfg.spotsAlcance, 0.28, 0.6, 1.0);
+            sp2.position.set(r.x, yOut - 0.6, r.z);
+            sp2.target.position.set(alvo2.x, 1.0, alvo2.z);
+            sp2.castShadow = false; sp2.visible = false;
+            grupo.add(sp2, sp2.target); spots.push(sp2);
+        }
+        // Spots por cima, de fora, a varrer a cobertura (é por onde se vê o estádio de longe).
+        const nTopo = cfg.spotsTopo, dMeio = (dIn + dOut) / 2, yMeio = (yIn + yOut) / 2 + espessura;
+        for (let k = 0; k < nTopo; k++) {
+            const t = ((k + 0.5) / nTopo) * Math.PI * 2;
+            const p = this.ponto(a0, b0, dOut + 16, t), alvo = this.ponto(a0, b0, dMeio, t);
+            const sp = new THREE.SpotLight((k % 2) ? corB : LED.a, 0, cfg.spotsAlcance * 2, 0.55, 0.9, 1.0);
+            sp.position.set(p.x, yOut + 18, p.z);
+            sp.target.position.set(alvo.x, yMeio, alvo.z);
+            sp.castShadow = false; sp.visible = false;
+            grupo.add(sp, sp.target); spots.push(sp);
+        }
+        /*
+        O FEIXE DE CADA SPOT, visível: dois cones concêntricos, aditivos e transparentes, do spot até onde ele aponta
+        (uma SpotLight só ilumina as superfícies que apanha, não se vê no ar). É o que faz o "efeito de spot" ler-se de longe.
+        */
+        const feixes = new THREE.Group();
+        feixes.visible = false;
+        const eixoY = new THREE.Vector3(0, 1, 0), dirV = new THREE.Vector3();
+        for (const sp of spots) {
+            const P = sp.position, T = sp.target.position;
+            dirV.subVectors(P, T);
+            const L = dirV.length();
+            const rBase = L * Math.tan(sp.angle) * 0.28;
+            for (const [k, op] of [[1.0, 0.07], [0.55, 0.09]]) {
+                const g = new THREE.ConeGeometry(rBase * k, L, 20, 1, true);
+                const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({
+                    color: sp.color, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+                }));
+                m.position.set((P.x + T.x) / 2, (P.y + T.y) / 2, (P.z + T.z) / 2);
+                m.quaternion.setFromUnitVectors(eixoY, dirV.clone().normalize());
+                m.renderOrder = 5; m.frustumCulled = false;
+                feixes.add(m);
+            }
+        }
+        grupo.add(feixes);
+        window.ledsEstadio = {
+            spots, feixes,   // expostos para diagnóstico
+            // De noite as luzes do clube brilham a sério; de dia ficam acesas mas mais suaves, para se verem no jogo normal.
+            definir(acesas) {
+                matTopo.emissiveIntensity = acesas ? 0.5 : 0.3;
+                matTopo.map = acesas ? texCor : null; matTopo.needsUpdate = true;
+                matColunas.emissiveIntensity = acesas ? 0.25 : 0.15;
+                for (const m of ledMats) m.emissiveIntensity = acesas ? 0.9 : 0.6;
+                for (const sp of spots) { sp.visible = !!acesas; sp.intensity = acesas ? cfg.spotsIntensidade : 0; }
+                feixes.visible = !!acesas;
+            }
+        };
+        window.ledsEstadio.definir(!!window.jogoNoturno);
 
         // ---- holofotes no bordo de fora da cobertura ---------------------
         if (typeof Holofotes !== 'undefined' && Holofotes.activo) {
@@ -247,12 +382,32 @@ const EstadioOval = {
                     const o = (i - (H.lampadasPorFileira - 1) / 2) * H.espacoEntreLampadas;
                     pos.push([q.x + tang[0] * o, y, q.z + tang[1] * o]);
                 }
-                const luz = new THREE.SpotLight(H.corLuz, 0, H.alcanceLuz * 1.8, H.anguloLuz, H.penumbra, 1.0);
-                luz.position.set(q.x, y, q.z);
-                luz.target.position.set(q.x * 0.12, 0, q.z * 0.12);
+            }
+            /*
+            A ILUMINAÇÃO DO CAMPO é a do estádio padrão, igual: as mesmas 14 SpotLights, nas
+            mesmas posições em relação ao relvado e com os mesmos alvos, ângulo, penumbra,
+            alcance e intensidade (config Holofotes). As lâmpadas desenhadas na ponta da
+            cobertura são só o aparelho; quem ilumina é este conjunto, e por isso o campo
+            fica exatamente como no padrão (uma luz a 100 m do campo, e não a 58, daria outra imagem).
+            Referência (createField, match_setup.js): laterais a x = ±(BANCADA_X + 19) e 26 m de altura (dois aneis: 11 + 24 - 16 de profundidade, 13 + 13 de altura),
+            `fileiras` conjuntos espalhados ao longo de z; fundos a z = ±(BANCADA_Z + 19), em x -18, 0, 18.
+            */
+            const yLuzPadrao = 26.0, xLat = 46 + 19, zFundo = (CAMPO_COMP_ / 2 + 12) + 19, cantoZ = (CAMPO_COMP_ / 2 + 12) - 6.5, fundoJogo = CAMPO_COMP_ / 2;
+            const novaLuz = (x, z, alvo, angulo) => {
+                const luz = new THREE.SpotLight(H.corLuz, 0, H.alcanceLuz, angulo, H.penumbra, 1.0);
+                luz.position.set(x, yLuzPadrao, z);
+                luz.target.position.set(alvo[0], alvo[1], alvo[2]);
                 luz.castShadow = false;
                 grupo.add(luz, luz.target);
                 luzes.push(luz);
+            };
+            for (const sinal of [-1, 1]) for (let f = 0; f < H.fileiras; f++) {
+                const frac = (f + 0.5) / H.fileiras, z = (frac * 2 - 1) * cantoZ;
+                const ponta = (f === 0 || f === H.fileiras - 1);
+                novaLuz(sinal * xLat, z, ponta ? [0, 1.0, Math.sign(z) * fundoJogo] : [0, 0, z * 0.4], H.anguloLuz);
+            }
+            for (const sinalZ of [-1, 1]) for (const xo of [-18, 0, 18]) {
+                novaLuz(xo, sinalZ * zFundo, [xo * 0.3, 1.2, sinalZ * fundoJogo], 0.85);
             }
             const matEstrut = new THREE.MeshStandardMaterial({ color: H.corEstrutura, roughness: 0.8, metalness: 0.3 });
             const matLampada = new THREE.MeshStandardMaterial({

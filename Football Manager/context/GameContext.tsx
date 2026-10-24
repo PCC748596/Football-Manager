@@ -1780,11 +1780,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       mercado,
       saveDate: new Date().toISOString()
     };
-    const blob = new Blob([JSON.stringify(saveData, null, 2)], { type: 'application/json' });
+    const texto = JSON.stringify(saveData, null, 2);
+    const nomeSave = `FootManager_Week${gameState.currentWeek}.json`;
+    // Copia local: o servidor de desenvolvimento grava-a na pasta `saves/` do projeto (ver vite.config.ts). Sem servidor (build) fica so o descarregamento.
+    try {
+      const r = await fetch('/api/save-game', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-save-name': nomeSave }, body: texto });
+      if (r.ok) { const j = await r.json(); console.log('[save] gravado em', j.ficheiro); }
+      else console.warn('[save] a copia local falhou:', r.status);
+    } catch (e) { console.warn('[save] sem servidor local, so o descarregamento:', e); }
+    const blob = new Blob([texto], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `FootManager_Week${gameState.currentWeek}.json`;
+    link.download = nomeSave;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

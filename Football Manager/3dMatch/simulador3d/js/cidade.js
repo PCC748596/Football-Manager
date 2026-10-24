@@ -1039,7 +1039,80 @@ const Cidade = {
         12 em 12 m; no topo há um pátio plano. O mesmo desenho serve para
         qualquer estádio com rampa: só mudam os números do perfil.
         */
+        /*
+        A RAMPA DUPLA (`dupla: true`), a do Maracanã: duas rampas lado a lado
+        com um vão entre elas. A de `larguraA` nasce no chão perto do estádio
+        (a `inicioA` m da fachada) e sobe para fora até ao patamar, a `comprimento`
+        m, a `alturaMeio`; o patamar atravessa as duas (a barra do T) e tem uma
+        cobertura sobre colunas; a de `larguraB` volta dali para o estádio,
+        continuando a subir, até à fachada, a `alturaTopo` (uns 5 m abaixo da cobertura).
+        */
+        const rampaDupla = (r) => {
+            const B = liso.base, esp = 0.6;
+            B.makeRotationY(r.lado > 0 ? 0 : Math.PI).setPosition(0, 0, 0);
+            lamp.base.copy(B); brilho.base.copy(B);      // a iluminação segue a mesma rotação
+            // Cores do clube mandante nas fitas de LED; o preto não brilha, e então usa-se branco quente.
+            const LC = (typeof Estadios !== 'undefined' && Estadios.coresDoMandante) ? Estadios.coresDoMandante() : { a: 0xffffff, b: 0xffd9a0 };
+            const claro = (c) => { const k = new THREE.Color(c); return k.r + k.g + k.b > 0.3 ? c : 0xffd9a0; };
+            const fitaA = LC.a, fitaB = claro(LC.b);
+            const zc = r.lado > 0 ? r.z : -r.z;
+            const xs = Math.abs(r.ate), xL = xs + r.comprimento, hM = r.alturaMeio, hT = r.alturaTopo;
+            const zA = zc + (r.vao / 2 + r.larguraA / 2), zB = zc - (r.vao / 2 + r.larguraB / 2);
+            const perna = (zp, W, x0, y0, x1, y1) => {
+                const len = Math.hypot(x1 - x0, y1 - y0), ang = Math.atan2(y1 - y0, x1 - x0);
+                const xc = (x0 + x1) / 2, yc = (y0 + y1) / 2;
+                liso.caixa(xc, yc - esp / 2, zp, len, esp, W, r.cor, 0, false, ang);
+                for (const f of [-1, 1]) liso.caixa(xc, yc + 0.55, zp + f * (W / 2 - 0.15), len, 1.1, 0.3, r.corGuarda, 0, false, ang);
+                // Iluminação: fita de LED na cor do clube ao longo de cada guarda e postes de 12 em 12 m, com a luz virada para a rampa.
+                for (const f of [-1, 1]) brilho.caixa(xc, yc + 1.2, zp + f * (W / 2 - 0.15), len, 0.1, 0.14, f > 0 ? fitaA : fitaB, 0, false, ang);
+                for (let x = x0 + 6; x < x1 - 2; x += 12) {
+                    const yx = y0 + (y1 - y0) * (x - x0) / (x1 - x0);
+                    for (const f of [-1, 1]) {
+                        liso.caixa(x, yx, zp + f * (W / 2 - 0.15), 0.16, 4.4, 0.16, 0x4a4f57);
+                        lamp.caixa(x, yx + 4.2, zp + f * (W / 2 - 0.9), 0.7, 0.15, 1.5, 0xfff0c8);
+                        liso.caixa(x, yx + 4.35, zp + f * (W / 2 - 0.5), 0.25, 0.1, 0.9, 0x4a4f57);
+                    }
+                }
+                // pilares: a face de baixo da laje em cada x
+                for (let x = x0 + 8; x < x1 - 4; x += 14) {
+                    const h = y0 + (y1 - y0) * (x - x0) / (x1 - x0) - esp;
+                    if (h < 0.8) continue;
+                    for (const f of [-1, 1]) liso.caixa(x, C.alturaCalcada, zp + f * (W / 2 - 1.0), 1.2, h - C.alturaCalcada, 1.2, 0x8b9097);
+                }
+            };
+            const x0A = xs + r.inicioA;
+            perna(zA, r.larguraA, x0A, 0, xL, hM);                 // sobe para fora, do chão perto do estádio
+            perna(zB, r.larguraB, xs + 6, hT, xL, hM);             // volta, a subir para o estádio
+            // O patamar na fachada (fim da rampa B) e o de partida da A
+            liso.caixa(xs + 3, hT - esp, zB, 6, esp, r.larguraB, r.cor);
+            for (const f of [-1, 1]) liso.caixa(xs + 3, hT - esp, zB + f * (r.larguraB / 2 - 0.15), 6, 1.1 + esp, 0.3, r.corGuarda);
+            // O patamar do fundo: a barra do T, mais larga do que as duas rampas, com cobertura.
+            const zIni = zB - r.larguraB / 2 - r.extra, zFim = zA + r.larguraA / 2 + r.extra, Wt = zFim - zIni, zm = (zIni + zFim) / 2;
+            liso.caixa(xL + r.patamar / 2, hM - esp, zm, r.patamar, esp, Wt, r.cor);
+            for (const f of [-1, 1]) liso.caixa(xL + r.patamar / 2, hM - esp, zm + f * (Wt / 2 - 0.15), r.patamar, 1.1 + esp, 0.3, r.corGuarda);
+            liso.caixa(xL + r.patamar - 0.15, hM - esp, zm, 0.3, 1.1 + esp, Wt, r.corGuarda);
+            // pilares do patamar
+            for (let z = zIni + 2; z <= zFim - 1.9; z += 8) for (const x of [xL + 2, xL + r.patamar - 2]) {
+                liso.caixa(x, C.alturaCalcada, z, 1.2, hM - esp - C.alturaCalcada, 1.2, 0x8b9097);
+            }
+            // cobertura sobre colunas
+            const hC = hM + 4.6;
+            for (let z = zIni + 1.2; z <= zFim - 1.1; z += Wt / 6) for (const x of [xL + 1.5, xL + r.patamar - 1.5]) {
+                liso.caixa(x, hM, z, 0.5, hC - hM, 0.5, 0xd0d4d8);
+            }
+            liso.caixa(xL + r.patamar / 2, hC, zm, r.patamar + 1.5, 0.45, Wt + 1.5, 0xe4e6e8);
+            // Iluminação do patamar: luminárias por baixo da cobertura e fitas de cor no beiral dela.
+            for (let z = zIni + 3; z <= zFim - 2.9; z += 7) for (const x of [xL + 4, xL + r.patamar - 4]) lamp.caixa(x, hC - 0.2, z, 1.6, 0.12, 0.7, 0xfff0c8);
+            for (const f of [-1, 1]) brilho.caixa(xL + r.patamar / 2, hC + 0.1, zm + f * (Wt / 2 + 0.75), r.patamar + 1.5, 0.14, 0.1, f > 0 ? fitaA : fitaB);
+            brilho.caixa(xL + r.patamar + 0.75, hC + 0.1, zm, 0.1, 0.14, Wt + 1.5, fitaA);
+            // e no patamar junto à fachada
+            lamp.caixa(xs + 3, hT + 3.6, zB, 1.2, 0.15, 0.7, 0xfff0c8);
+            liso.caixa(xs + 3, hT, zB + r.larguraB / 2 - 0.4, 0.16, 3.7, 0.16, 0x4a4f57);
+            B.identity(); lamp.base.identity(); brilho.base.identity();
+            inv.rampas = (inv.rampas || 0) + 1;
+        };
         for (const r of (C.rampas || [])) {
+            if (r.dupla) { rampaDupla(r); continue; }
             const B = liso.base, W = r.largura, hy = r.altura, esp = 0.45;
             // Referencial local: x cresce do estádio para fora, em z o lado do estádio.
             B.makeRotationY(r.lado > 0 ? 0 : Math.PI).setPosition(0, 0, 0);

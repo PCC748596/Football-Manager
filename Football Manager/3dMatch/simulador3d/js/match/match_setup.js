@@ -887,7 +887,7 @@ Object.assign(Match, {
             no degrau (a origem desce `ADEPTO_DESCE`) e o corpo avanca `ADEPTO_AVANCA` m para o campo, para os pes ficarem a pender sobre a beira do degrau.
             O topo do degrau e `y - 0.15`.
             */
-            lugares.push({ x: x + Math.sin(rotY) * ADEPTO_AVANCA, y: y - 0.15 - ADEPTO_DESCE, z: z + Math.cos(rotY) * ADEPTO_AVANCA, rotY: rotY });
+            lugares.push({ x: x + Math.sin(rotY) * ADEPTO_AVANCA, y: y - 0.15 - ADEPTO_DESCE, z: z + Math.cos(rotY) * ADEPTO_AVANCA, rotY: rotY, fila: fila || 0 });
 
             const crowdAllowed = false && (typeof Config === 'undefined' || Config.enableCrowd !== false);
             if (crowdAllowed && Math.random() < 0.75 && spectatorIndex < maxSeats) {
@@ -1827,7 +1827,8 @@ Object.assign(Match, {
         if (OVAL) {
             const medidas = EstadioOval.construir({
                 THREE, grupo: campoGrupo, a0: BANCADA_X, b0: BANCADA_Z, rows, TJ,
-                addStepBox, addSeatInstance, merge: mergeNonIndexedGeometries, cfg: BACIA.oval
+                addStepBox, addSeatInstance, merge: mergeNonIndexedGeometries, cfg: BACIA.oval,
+                leds: (typeof Estadios !== 'undefined' && Estadios.coresDoMandante) ? Estadios.coresDoMandante() : null
             });
             if (typeof Estadios !== 'undefined') Estadios.medidasConstruidas = medidas;
         }

@@ -60,11 +60,11 @@ const Estadios = {
                 maxLugares: 90000,
                 oval: {
                     espacoCadeira: 0.5, setores: 40, larguraCorredor: 1.6,
-                    corBetao: 0xc9ccd0, corSubrampa: 0x3b4048, corDegrau: 0x535b66, corChaoSob: 0x30343a,
+                    corBetao: 0xc9ccd0, corSubrampa: 0x3b4048, corDegrau: 0x535b66, corChaoSob: 0x30343a, ledsBeiral: 240, ledsChao: 110, spotsCor: 8, spotsTopo: 16, spotsAlcance: 75, spotsIntensidade: 2.2, distanciaRefLuz: 58,
                     // A cobertura (da fotografia): cobre a arquibancada quase toda, do 8.º degrau ao topo, e sobe 9 m para o meio.
                     coberturaDesdeFila: 8, coberturaFolga: 4.5, coberturaSubida: 9.0, coberturaSaliencia: 5.0, coberturaEspessura: 0.6, cornija: 2.2,
                     corCobertura: 0xf4f6f8, corCoberturaBaixo: 0xc4cad1, corNervura: 0xb8bfc7, corPilar: 0xeceff1,
-                    nervuras: 160, colunas: 96, colunaRadial: 1.1, colunaTangencial: 1.8, torresHolofotes: 12
+                    nervuras: 160, colunas: 96, colunaRadial: 1.1, colunaTangencial: 1.8, torresHolofotes: 14
                 },
                 // Do fundo para o topo: amarelo no primeiro bloco, depois o azul escuro da fotografia, e a cintura de passagem.
                 cadeiras: {
@@ -72,6 +72,12 @@ const Estadios = {
                     faixas: [[0, 1, '#e8e4d4'], [2, 15, '#d9a62a'], [16, 17, '#e8e4d4'], [32, 33, '#e8e4d4'], [62, 63, '#e8e4d4']]
                 }
             },
+            torcidaInicial: 22000,
+            // A ordem em que a torcida ocupa a bacia (mapa de setores do ingresso): Norte e Sul primeiro, depois Oeste, Leste inferior e Leste superior.
+            // Norte/Sul = os fundos; Oeste = lado -x (o do túnel); Leste = +x, dividido na fila `filaLesteSuperior`; `anguloLateral` = meia abertura das laterais.
+            setoresTorcida: { anguloLateral: 50, filaLesteSuperior: 28 },
+            cameraCinemaEscala: 1.6,
+            nevoeiroEscala: 2.5,
             bancadaAneis: { aneis: 1, degrausPorAnel: 62, cobertura: false },
             // Só o estádio e a praça com as entradas: sem ruas, quarteirões, trânsito nem metrô.
             cidade: {
@@ -81,7 +87,12 @@ const Estadios = {
                 praca: { margem: 45 }
             },
             // A rampa de acesso ao anel de cima, pelo lado leste (foto da praça da Estátua do Bellini).
-            rampas: [{ lado: 1, z: -45, largura: 22, comprimento: 110, patio: 8, altura: 17, cor: 0xcfd3d6, corGuarda: 0xe4e6e8 }]
+            // A rampa dupla da fotografia (imagem da rampa): sobe do chão perto do estádio até ao patamar do fundo (barra do T, 15 m) e volta, a subir, até 10 m abaixo da cobertura (5 m mais baixo do que estava).
+            // Uma de cada lado (leste e oeste), espelhadas.
+            rampas: [1, -1].map(lado => ({
+                dupla: true, lado, z: 0, comprimento: 105, inicioA: 10, larguraA: 14, larguraB: 10, vao: 7, extra: 6,
+                patamar: 16, alturaMeio: 15, abaixoDaCobertura: 10, cor: 0xcfd3d6, corGuarda: 0xe4e6e8
+            }))
         }
     },
 
@@ -100,6 +111,22 @@ const Estadios = {
             if (this.perfis[k].estadios.indexOf(n) >= 0) return this.perfis[k];
         }
         return null;
+    },
+
+    /*
+    As cores das luzes de fora e da cobertura: as do clube MANDANTE (`?mandante=` no
+    URL; o manager passa o nome da equipa da casa). Flamengo: vermelho e preto;
+    Fluminense: verde e vermelho. Sem clube conhecido: branco neutro.
+    */
+    clubes: {
+        flamengo: { a: 0xe3162b, b: 0x050505 },
+        fluminense: { a: 0xe0102a, b: 0x0a9d44 }
+    },
+    coresDoMandante() {
+        let nome = '';
+        try { nome = (new URLSearchParams(window.location.search).get('mandante') || '').toLowerCase(); } catch (e) { /* sem URL */ }
+        for (const k of Object.keys(this.clubes)) if (nome.indexOf(k) >= 0) return this.clubes[k];
+        return { a: 0xffffff, b: 0x9fb0c8, neutro: true };
     },
 
     // A bacia em vigor: a do perfil, ou a de sempre.
@@ -161,9 +188,17 @@ const Estadios = {
             }
             return x;
         };
+        const altCob = EstadioOval.alturas(rows, b.oval);
         CidadeConfig.rampas = (perfil.rampas || []).map(r => {
             const ate = xFachada(r.z) + 0.5;
-            return Object.assign({ ate, de: ate + (r.comprimento || 110) }, r);
+            const base = Object.assign({ ate, de: ate + (r.comprimento || 110) }, r);
+            // A rampa dupla sobe até 10 m abaixo da cobertura; a largura total serve à reserva do chão.
+            if (r.dupla) {
+                base.alturaTopo = altCob.yOut - (r.abaixoDaCobertura || 5);
+                base.largura = r.larguraA + r.larguraB + r.vao + 2 * r.extra;
+                base.de = ate + r.comprimento + r.patamar;
+            }
+            return base;
         });
         this.medidas = { bancadaX: a0, bancadaZ: b0, profundidade: prof, topo };
         // A câmara TV Centro: na 13.ª fila, 4 m acima das cadeiras (no estádio padrão fica na ponta da cobertura).
