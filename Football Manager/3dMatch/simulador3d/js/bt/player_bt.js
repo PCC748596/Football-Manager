@@ -832,6 +832,28 @@ homem marcado nao e saida, e oferta — e ha um teste que o prende
 os 8 s em vez de largar cedo). A primeira versao desta reserva nao tinha o
 filtro da folga e reprovou-o, com razao.
 */
+/*
+LINHA DO GOLEIRO ATE AO RECEPTOR LIVRE DE ADVERSARIOS (relato: *"com o adversario em 4-3-3 o goleiro so entrega a bola, com as maos, nos pes dos adversarios"*).
+A folga era medida so em volta do RECEPTOR (4 m); com a linha de atacantes entre o goleiro e a defesa, o companheiro ate estava livre mas a bola, lenta, passava
+por cima deles. Agora nenhum adversario (fora o goleiro) pode estar a menos de `folgaNaLinha` m do segmento goleiro -> receptor, nem mais perto do goleiro do que
+o receptor e a menos de `folgaNaLinha` + 2 m do segmento.
+*/
+function linhaLivreDoGoleiro(p, alvo, adversarios) {
+    const G = GoalkeeperDistribution;
+    const folga = G.folgaNaLinha || 2.5;
+    const a = p.model.position, b = alvo.model.position;
+    const abx = b.x - a.x, abz = b.z - a.z, ab2 = abx * abx + abz * abz || 1;
+    for (const o of adversarios) {
+        if (!o || !o.model || o.role === 'gk') continue;
+        const ox = o.model.position.x, oz = o.model.position.z;
+        const u = Math.max(0, Math.min(1, ((ox - a.x) * abx + (oz - a.z) * abz) / ab2));
+        const d = Math.hypot(ox - (a.x + abx * u), oz - (a.z + abz * u));
+        if (d < folga) return false;
+        if (u > 0 && u < 1 && d < folga + 2) return false;
+    }
+    return true;
+}
+
 function alvoDaSaidaCurta(ctx) {
     const p = ctx.p;
     const G = GoalkeeperDistribution;
@@ -841,6 +863,7 @@ function alvoDaSaidaCurta(ctx) {
 
     const alvo = p.findPassTarget();
     if (!alvo || !alvo.model) return null;
+    if (typeof linhaLivreDoGoleiro === 'function' && !linhaLivreDoGoleiro(p, alvo, ctx.opponents)) return null;
 
     const nota = (typeof p._melhorNotaPasse === 'number') ? p._melhorNotaPasse : -Infinity;
     const minima = (typeof G.notaMinimaParaSair === 'number') ? G.notaMinimaParaSair : Infinity;
@@ -906,6 +929,7 @@ function acharLateralParaSaida(ctx) {
             if (d < folga) folga = d;
         }
         if (folga < G.folgaMinima) continue;
+        if (typeof linhaLivreDoGoleiro === 'function' && !linhaLivreDoGoleiro(p, mate, ctx.opponents)) continue;
 
         if (ehLateral && G.folgaPreferencialLateral !== undefined &&
             folga >= G.folgaPreferencialLateral && folga > melhorFolgaLateral) {

@@ -3893,7 +3893,7 @@ class FootballPlayer {
                     if (o.role === 'gk' || !o.model) continue;
                     if (o.model.position.distanceTo(b) < (G.folgaNaSoltura || 6.0)) return true;
                     const u = Math.max(0, Math.min(1, ((o.model.position.x - a.x) * abx + (o.model.position.z - a.z) * abz) / ab2));
-                    if (Math.hypot(o.model.position.x - (a.x + abx * u), o.model.position.z - (a.z + abz * u)) < (G.folgaNaLinha || 2.5)) return true;
+                    { const dl = Math.hypot(o.model.position.x - (a.x + abx * u), o.model.position.z - (a.z + abz * u)), fl = (G.folgaNaLinha || 2.5); if (dl < fl || (u > 0 && u < 1 && dl < fl + 2)) return true; }
                 }
                 return false;
             };
