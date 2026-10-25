@@ -533,7 +533,7 @@ class FootballPlayer {
         if (this.jumpTimer > 0) return;                    // o cabeceio escreve a cabeça
         const st = this.fsm ? this.fsm.currentState : null;
         if (st === 'SHOOT' || st === 'SET_PIECE_KICK' || st === 'LATERAL' ||
-            st === 'SLIDE_TACKLE' || st === 'COMEMORAR' || st === 'PEIXINHO' ||
+            st === 'SLIDE_TACKLE' || st === 'COMEMORAR' || st === 'PEIXINHO' || st === 'VOLEIO' ||
             st === 'CHEST_CONTROL' || st === 'BALL_CONTROL_RIGHT') return;
 
         const neck = this.rig.neck;
@@ -588,7 +588,7 @@ class FootballPlayer {
             (this.gkEstado === 'mergulho' || this.gkEstado === 'salto_alto' ||
              this.gkEstado === 'saida_pes' || this.gkEstado === 'apanhar')) return;   // `apanhar`: as pernas vao por IK (apanharPorIK), que ja poe as solas no relvado
         const st = this.fsm ? this.fsm.currentState : null;
-        if (st === 'SLIDE_TACKLE' || st === 'COMEMORAR' || st === 'PEIXINHO') return;
+        if (st === 'SLIDE_TACKLE' || st === 'COMEMORAR' || st === 'PEIXINHO' || st === 'VOLEIO') return;
         /*
         ACIMA DA `velMax` O ASSENTO NÃO DESLIGA — fica só num sentido.
 
@@ -5033,7 +5033,7 @@ class FootballPlayer {
         estar no pico com onde ELE vai estar, e usar a posição do frame
         anterior era pedir-lhe para saltar para onde já não está.
         */
-        if (this.role !== 'gk') { this.avaliarPeixinho(dt); this.avaliarSaltoDeCabeceio(dt); }
+        if (this.role !== 'gk') { if (!this.avaliarVoleio(dt)) this.avaliarPeixinho(dt); this.avaliarSaltoDeCabeceio(dt); }
 
         if (this.hasBall) {
             /*
@@ -5499,7 +5499,7 @@ class FootballPlayer {
         if (this.role === 'gk' || this.hasBall || this.peixinhoCooldown > 0 || this.jumpTimer > 0 || this.queda) return false;
         if (Match.state !== 'PLAY' || Match.kickoffActive || !Match.ball) return false;
         const s = this.fsm ? this.fsm.currentState : '';
-        if (s === 'PEIXINHO' || s === 'SHOOT' || s === 'PASS' || s === 'CROSS' || s === 'SET_PIECE_KICK' || s === 'SET_PIECE_WAIT' || s === 'TACKLE' ||
+        if (s === 'PEIXINHO' || s === 'VOLEIO' || s === 'SHOOT' || s === 'PASS' || s === 'CROSS' || s === 'SET_PIECE_KICK' || s === 'SET_PIECE_WAIT' || s === 'TACKLE' ||
             s === 'SLIDE_TACKLE' || s === 'CHEST_CONTROL' || s === 'BALL_CONTROL_RIGHT' || s === 'LATERAL' || s === 'COMEMORAR') return false;
         if (this.skillFor('TEC') <= K.tecMin || this.skillFor('tacticknow') <= K.leituraMin) return false;
         // A bola vem para a baliza que ele ataca, e nao e de ninguem (ou e do adversario).
@@ -5534,6 +5534,52 @@ class FootballPlayer {
         this.peixinho = { x0: this.model.position.x, z0: this.model.position.z, bx: prev.x, bz: prev.z, by: prev.y, dirx: dx / d, dirz: dz / d, d: d, tocou: false, vx: 0, vz: 0 };
         this.actionState = null;
         this.fsm.changeState('PEIXINHO');
+        return true;
+    }
+
+    /*
+    O VOLEIO (ver `Voleio`, config/player_behavior.js): avalia se vale a pena um voleio acrobatico a uma bola no ar a frente dele, perto da baliza. Chamado todos os frames pelo
+    `update` para os jogadores de campo sem bola. Devolve true se arrancou o estado VOLEIO.
+    */
+    avaliarVoleio(dt) {
+        const K = (typeof Voleio !== 'undefined') ? Voleio : null;
+        if (!K || !K.activo) return false;
+        if (this.voleioCooldown > 0) this.voleioCooldown -= dt;
+        if (this.role === 'gk' || this.hasBall || this.voleioCooldown > 0 || this.jumpTimer > 0 || this.queda) return false;
+        if (Match.state !== 'PLAY' || Match.kickoffActive || !Match.ball) return false;
+        const s = this.fsm ? this.fsm.currentState : '';
+        if (s === 'VOLEIO' || s === 'PEIXINHO' || s === 'SHOOT' || s === 'PASS' || s === 'CROSS' || s === 'SET_PIECE_KICK' || s === 'SET_PIECE_WAIT' || s === 'TACKLE' ||
+            s === 'SLIDE_TACKLE' || s === 'CHEST_CONTROL' || s === 'BALL_CONTROL_RIGHT' || s === 'LATERAL' || s === 'COMEMORAR') return false;
+        if (this.skillFor('TEC') <= K.tecMin) return false;
+        if (Match.ballCarrier) return false;
+        const v = Match.ballVel;
+        if (!v) return false;
+        if (Math.hypot(v.x, v.y, v.z) > K.velBolaMax) return false;
+        const prev = preverBolaEm(K.tContacto);
+        if (!prev || prev.y < K.alturaMin || prev.y > K.alturaMax) return false;
+        const px = this.model.position.x, pz = this.model.position.z;
+        const ex = prev.x - px, ez = prev.z - pz, d = Math.hypot(ex, ez);   // dele para a bola
+        if (d < K.alcanceMin || d > K.alcanceMax) return false;
+        // Perto da baliza que ataca, e com a baliza A FRENTE da bola: ele fica de frente para ela e bate-lhe de lado, a rolar no ar.
+        const gx = -prev.x, gz = this.targetGoalZ - prev.z, dg = Math.hypot(gx, gz);   // da bola para a baliza
+        if (dg > K.golMax || dg < K.golMin) return false;
+        const cosFrente = (ex * gx + ez * gz) / ((d * dg) || 1);      // a bola esta na direccao da baliza?
+        if (cosFrente < Math.cos(K.cone)) return false;
+        // So se for o primeiro a chegar.
+        const advs = (this.team === 'TeamA') ? Match.opponents : Match.players;
+        for (const o of advs) {
+            if (!o.model || o.role === 'gk') continue;
+            if (Math.hypot(o.model.position.x - prev.x, o.model.position.z - prev.z) < d - 0.3) return false;
+        }
+        this.voleioCooldown = K.cooldown;
+        if (Math.random() > K.chance) return false;
+        // `dirx/dirz`: para a baliza. `lado`: +1 se a bola esta a esquerda dele (as pernas rolam para la), -1 a direita.
+        const fx = gx / dg, fz = gz / dg;
+        const ladoCerto = (ex * fz + ez * -fx) >= 0 ? 1 : -1;
+        _v2.set(0, 0, 1).applyQuaternion(this.model.quaternion);
+        this.voleio = { x0: px, z0: pz, bx: prev.x, bz: prev.z, by: prev.y, dirx: fx, dirz: fz, lado: ladoCerto, yaw0: Math.atan2(_v2.x, _v2.z), tocou: false, vx: 0, vz: 0 };
+        this.actionState = null;
+        this.fsm.changeState('VOLEIO');
         return true;
     }
 
@@ -6339,7 +6385,7 @@ class FootballPlayer {
         if (s === 'BALL_CONTROL_RIGHT') {
             return;
         }
-        if (s !== 'TACKLE' && s !== 'SLIDE_TACKLE' && s !== 'COMEMORAR' && s !== 'PEIXINHO' && s !== 'SHOOT' && s !== 'SET_PIECE_KICK' && this.jumpTimer <= 0 && (this.role !== 'gk' || (this.gkEstado !== 'mergulho' && this.gkEstado !== 'salto_alto'))) {
+        if (s !== 'TACKLE' && s !== 'SLIDE_TACKLE' && s !== 'COMEMORAR' && s !== 'PEIXINHO' && s !== 'VOLEIO' && s !== 'SHOOT' && s !== 'SET_PIECE_KICK' && this.jumpTimer <= 0 && (this.role !== 'gk' || (this.gkEstado !== 'mergulho' && this.gkEstado !== 'salto_alto'))) {
             rig.pelvis.rotation.x = lerpTo(rig.pelvis.rotation.x, 0, 0.25);
             rig.pelvis.rotation.y = lerpTo(rig.pelvis.rotation.y, 0, 0.25);
             rig.pelvis.rotation.z = lerpTo(rig.pelvis.rotation.z, 0, 0.25);
@@ -6558,7 +6604,7 @@ class FootballPlayer {
             }
         }
 
-        if (this.fsm.currentState === 'TACKLE' || this.fsm.currentState === 'SLIDE_TACKLE' || this.fsm.currentState === 'COMEMORAR' || this.fsm.currentState === 'PEIXINHO') {
+        if (this.fsm.currentState === 'TACKLE' || this.fsm.currentState === 'SLIDE_TACKLE' || this.fsm.currentState === 'COMEMORAR' || this.fsm.currentState === 'PEIXINHO' || this.fsm.currentState === 'VOLEIO') {
             return;
         }
 

@@ -909,7 +909,7 @@ Object.assign(Match, {
         afasta-se e a protecção desliga-se sozinha.
         */
         // Em mergulho de peixinho o contacto e o do proprio estado (fsm.js, case 'PEIXINHO'), nao este.
-        if (best.fsm && best.fsm.currentState === 'PEIXINHO') return false;
+        if (best.fsm && (best.fsm.currentState === 'PEIXINHO' || best.fsm.currentState === 'VOLEIO')) return false;
         const RT = BallControl.rouboPorTras;
         const dono = this.ballCarrier || this.lastTouchedPlayer;
         if (RT && dono && dono.model && best !== dono && best.team !== dono.team) {

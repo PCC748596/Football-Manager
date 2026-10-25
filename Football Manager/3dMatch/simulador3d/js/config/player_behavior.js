@@ -1144,7 +1144,7 @@ const Peixinho = {
     alturaMin: 0.40, alturaMax: 0.60,
     alcanceMin: 2.0, alcanceMax: 4.0,
     cone: 0.60,               // rad (~26 graus) para cada lado da frente do jogador
-    golMax: 9.0,              // m: o contacto tem de ser a no maximo isto do CENTRO da baliza (pedido)
+    golMax: 7.0,              // m: o contacto tem de ser a no maximo isto do CENTRO da baliza (pedido)
     anguloGol: 1.05,          // rad (~60 graus): o mergulho tem de ir (no maximo) a este angulo da direccao do contacto ao centro da baliza
     golMiraMax: 3.2,          // m do centro: a mira dentro da baliza (as traves estao a 3.66)
     erroFora: 0.30, erroForaMin: 1.0, erroForaMax: 3.0,   // chance de ir fora e a que distancia da trave (m): perto, com perigo
@@ -1174,6 +1174,54 @@ const Peixinho = {
     }
 };
 if (typeof window !== 'undefined') window.Peixinho = Peixinho;
+
+/*
+=============================================================================
+VOLEIO — o voleio acrobatico (de frente para a baliza, o corpo rola de lado no ar)
+=============================================================================
+Pedido, com a sequencia de fotogramas (preparo, o voo, o contacto, a queda de lado, o rolo e o levantar): *"consegue fazer a animacao de voleio baseado nesses key frames?
+jogador com Tecnica acima de 75 vai poder fazer"*.
+
+O jogador fica de frente para a baliza, salta e ROLA o corpo de lado no ar (o corpo deita-se `roll` rad em torno do eixo da frente: a cabeca vai para um lado, as pernas para o outro) e
+bate na bola a frente com a perna de cima, esticada. A bola sai em direccao a baliza, rasteira e com forca. So se tenta com a bola no ar (`alturaMin`..`alturaMax` m no contacto,
+prevista `tContacto` s adiante) a `alcanceMin`..`alcanceMax` m do jogador, a frente dele (a baliza fica dentro do cone `cone`), perto da baliza (`golMax` m) e se ele for o primeiro a chegar.
+O corpo rola para o lado da bola (a bola a esquerda: pernas para a esquerda, bate com a esquerda). TEC acima de `tecMin`; sorteio por decisao (`chance`) e espera de `cooldown` s.
+As poses estao escritas para a perna DIREITA (rola para a direita do jogador); com a bola a esquerda trocam-se os lados. Estao em fsm.js (case 'VOLEIO'); o gatilho e o `avaliarVoleio` (player.js).
+Os tempos (s, desde o arranque): preparo (`tPreparo`), o voo ate ao contacto (`tContacto`), a queda (`tQueda`), no chao (`tChao`) e o levantar (`tLevantar`).
+=============================================================================
+*/
+const Voleio = {
+    activo: true,
+    tecMin: 75,
+    alturaMin: 0.8, alturaMax: 1.7,
+    alcanceMin: 1.0, alcanceMax: 3.5,
+    cone: 1.0,                // rad: a baliza tem de ficar neste cone a frente dele
+    golMax: 13.0, golMin: 7.0,   // m do centro da baliza: o voleio de 7 a 13 m (o peixinho vai ate 7)
+    golMiraMax: 3.0, erroFora: 0.30, erroForaMin: 0.5, erroForaMax: 2.5,
+    velBolaMax: 18.0,
+    chance: 0.6, cooldown: 12.0,
+    tPreparo: 0.16, tContacto: 0.42, tQueda: 0.28, tChao: 0.55, tLevantar: 0.75,
+    saidaVel: 26.0, saidaVy: 1.0,   // o remate de voleio: forte e baixo, para a baliza
+    distContactoMax: 1.5,     // m: do pe a bola, no contacto
+    roll: { preparo: 0.18, contacto: 1.30, queda: 1.60, chao: 1.60 },   // rad: o corpo deitado de lado (o sinal vem do lado da bola)
+    alturaLinha: 0.25,        // m da origem do corpo ao relvado, deitado de lado
+    pernaAlcance: -0.05,      // m: da origem do corpo ao pe da perna de cima, no contacto (para ajustar a altura do salto a bola)
+    ancoraLado: 0.98,         // m: a origem do corpo fica tanto para o lado contrario ao das pernas (o pe fica sob a bola)
+    ancoraFrente: 0.90,       // m: e tanto atras da bola (a perna chega a frente)
+    pose: {
+        preparo: { pelvisX: 0.0, peitoX: 0.10, pescocoX: -0.10, coxaE: 0.20, joelhoE: 0.50, peE: 0.0, coxaD: -1.00, joelhoD: 1.30, peD: 0.0,
+            bracoEx: -0.30, bracoEz: 0.50, cotoveloE: -0.40, bracoDx: -1.00, bracoDz: 0.50, cotoveloD: -0.50 },
+        voo: { pelvisX: 0.0, peitoX: 0.0, pescocoX: -0.20, coxaE: -0.20, joelhoE: 1.30, peE: 0.0, coxaD: -1.30, joelhoD: 1.00, peD: 0.0,
+            bracoEx: -0.30, bracoEz: 1.20, cotoveloE: -0.20, bracoDx: -0.30, bracoDz: 1.20, cotoveloD: -0.20 },
+        contacto: { pelvisX: 0.0, peitoX: -0.05, pescocoX: -0.30, coxaE: 0.20, joelhoE: 1.00, peE: 0.0, coxaD: -1.55, joelhoD: 0.20, peD: -0.50,
+            bracoEx: -0.50, bracoEz: 1.30, cotoveloE: -0.30, bracoDx: -1.00, bracoDz: 0.80, cotoveloD: -0.60 },
+        queda: { pelvisX: 0.0, peitoX: 0.0, pescocoX: -0.30, coxaE: -0.40, joelhoE: 0.90, peE: 0.0, coxaD: -0.90, joelhoD: 0.70, peD: 0.0,
+            bracoEx: -1.50, bracoEz: 0.50, cotoveloE: -0.40, bracoDx: -1.50, bracoDz: 0.50, cotoveloD: -0.40 },
+        chao: { pelvisX: 0.0, peitoX: 0.0, pescocoX: -0.20, coxaE: -0.60, joelhoE: 1.20, peE: 0.0, coxaD: -0.80, joelhoD: 1.30, peD: 0.0,
+            bracoEx: 0.20, bracoEz: 0.80, cotoveloE: -0.10, bracoDx: -0.60, bracoDz: 0.60, cotoveloD: -0.50 }
+    }
+};
+if (typeof window !== 'undefined') window.Voleio = Voleio;
 
 /*
 Salto para cabecear.

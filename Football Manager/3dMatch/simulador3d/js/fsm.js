@@ -964,7 +964,7 @@ movendo sem animação"*.
 function estadoSemPassada(estado) {
     return temGestoComClip(estado) ||
         estado === 'TACKLE' || estado === 'SLIDE_TACKLE' ||
-        estado === 'DRIBBLE' || estado === 'CHEST_CONTROL' || estado === 'PEIXINHO';
+        estado === 'DRIBBLE' || estado === 'CHEST_CONTROL' || estado === 'PEIXINHO' || estado === 'VOLEIO';
 }
 
 
@@ -1014,7 +1014,7 @@ class PlayerFSM {
     }
     changeState(newState) {
         if (this.currentState === newState) return;
-        if (this.currentState === 'SLIDE_TACKLE' || this.currentState === 'COMEMORAR' || this.currentState === 'PEIXINHO' || this.currentState === 'TACKLE' ||
+        if (this.currentState === 'SLIDE_TACKLE' || this.currentState === 'COMEMORAR' || this.currentState === 'PEIXINHO' || this.currentState === 'VOLEIO' || this.currentState === 'TACKLE' ||
             this.currentState === 'SHOOT' || this.currentState === 'SET_PIECE_KICK' ||
             this.currentState === 'PASS') {
             this.p.resetBonesToDefault();
@@ -2551,6 +2551,127 @@ class PlayerFSM {
                     if (t >= T5) {
                         p.peixinho = null;
                         p.resetBonesToDefault();
+                        p.model.quaternion.copy(_q1);
+                        p.model.position.y = ALTURA_BASE_Y;
+                        this.changeState('MOVE_TO_POS');
+                    }
+                }
+                break;
+
+            /* =============================================================
+               VOLEIO — o voleio acrobatico (ver `Voleio`, config/player_behavior.js; o gatilho e o `avaliarVoleio`, player.js).
+               Preparo, voo, contacto (a perna de cima esticada a frente), queda de lado, no chao e levanta-se. O corpo todo ROLA de lado (quaternio: yaw para a baliza + rotacao em z);
+               a altura do salto sai da altura da bola; a bola sai em direccao a baliza. As poses sao as da perna direita: com a bola a esquerda (`S.lado` = +1) trocam-se os lados.
+               ============================================================= */
+            case 'VOLEIO':
+                {
+                    const K = Voleio, S = p.voleio;
+                    if (!S) { this.changeState('MOVE_TO_POS'); break; }
+                    const t = this.timer;
+                    const sv = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+                    const T1 = K.tPreparo, T2 = K.tContacto, T3 = T2 + K.tQueda, T4 = T3 + K.tChao, T5 = T4 + K.tLevantar;
+                    const DE_PE = { pelvisX: 0, peitoX: 0, pescocoX: 0, coxaE: 0, joelhoE: 0, peE: 0, coxaD: 0, joelhoD: 0, peD: 0, bracoEx: 0, bracoEz: 0.1, cotoveloE: -0.1, bracoDx: 0, bracoDz: 0.1, cotoveloD: -0.1 };
+                    const PZ = K.pose;
+                    let P, roll, y;
+                    const yC = Math.max(0.15, Math.min(1.25, S.by - K.pernaAlcance));   // altura do salto no contacto: o pe chega a bola
+                    if (t < T1) { const u = sv(t / T1); P = this._poseMistura(DE_PE, PZ.preparo, u); roll = K.roll.preparo * u; y = -0.03 * u; }
+                    else if (t < T2) {
+                        const u = (t - T1) / (T2 - T1);
+                        P = this._poseMistura(PZ.voo, PZ.contacto, sv(u));
+                        roll = K.roll.preparo + (K.roll.contacto - K.roll.preparo) * sv(u);
+                        y = -0.03 + (yC + 0.03) * Math.sin(Math.PI / 2 * u);
+                    }
+                    else if (t < T3) {
+                        const u = (t - T2) / (T3 - T2);
+                        P = this._poseMistura(PZ.contacto, PZ.queda, sv(u));
+                        roll = K.roll.contacto + (K.roll.queda - K.roll.contacto) * sv(u);
+                        y = yC + (K.alturaLinha - yC) * (u * u);
+                    }
+                    else if (t < T4) {
+                        const u = (t - T3) / (T4 - T3);
+                        P = this._poseMistura(PZ.queda, PZ.chao, sv(u));
+                        roll = K.roll.chao; y = K.alturaLinha;
+                    }
+                    else if (t < T5) {
+                        const u = sv((t - T4) / K.tLevantar);
+                        P = this._poseMistura(PZ.chao, DE_PE, u);
+                        roll = K.roll.chao * (1 - u); y = K.alturaLinha * (1 - u);
+                    }
+                    else { P = DE_PE; roll = 0; y = 0; }
+                    // Com a bola a esquerda trocam-se os lados (as poses sao as da perna direita).
+                    if (S.lado > 0) {
+                        const Q = {};
+                        for (const c in P) Q[c] = P[c];
+                        const troca = (a, b) => { Q[a] = P[b]; Q[b] = P[a]; };
+                        troca('coxaE', 'coxaD'); troca('joelhoE', 'joelhoD'); troca('peE', 'peD');
+                        troca('bracoEx', 'bracoDx'); troca('bracoEz', 'bracoDz'); troca('cotoveloE', 'cotoveloD');
+                        P = Q;
+                    }
+                    this._escreverPoseComemorar(P);
+
+                    // O corpo todo: o yaw (de frente para a baliza; roda ate la durante o preparo) e a rolagem de lado. roll > 0 leva as pernas para a ESQUERDA do jogador.
+                    const yawAlvo = Math.atan2(S.dirx, S.dirz);
+                    const dif = Math.atan2(Math.sin(yawAlvo - S.yaw0), Math.cos(yawAlvo - S.yaw0));
+                    const yaw = S.yaw0 + dif * sv(t / T1);
+                    _q1.setFromAxisAngle(_vUp, yaw);
+                    const qRoll = p._volQ || (p._volQ = new THREE.Quaternion());
+                    qRoll.setFromAxisAngle(_v3.set(0, 0, 1), S.lado * roll);
+                    p.model.quaternion.copy(_q1).multiply(qRoll);
+
+                    // Para onde vai: ate a ancora (a origem do corpo atras da bola e do lado contrario ao das pernas) e dai desliza a travar.
+                    if (t <= T2) {
+                        const u = sv(t / T2);
+                        const esqx = S.dirz, esqz = -S.dirx;   // a esquerda do jogador, de frente para a baliza
+                        const alvoX = S.bx - S.dirx * K.ancoraFrente - esqx * S.lado * K.ancoraLado, alvoZ = S.bz - S.dirz * K.ancoraFrente - esqz * S.lado * K.ancoraLado;
+                        p.model.position.x = S.x0 + (alvoX - S.x0) * u;
+                        p.model.position.z = S.z0 + (alvoZ - S.z0) * u;
+                        S.vx = S.dirx * 1.8; S.vz = S.dirz * 1.8;
+                    } else if (t < T4) {
+                        const f = Math.exp(-3.0 * dt);
+                        S.vx *= f; S.vz *= f;
+                        p.model.position.x += S.vx * dt; p.model.position.z += S.vz * dt;
+                    }
+                    p.velocity.set(0, 0, 0);
+                    p.model.position.y = ALTURA_BASE_Y + y;
+
+                    // O CONTACTO: no fim do voo, se o pe esta ao alcance da bola. A bola sai para a baliza.
+                    if (!S.tocou && t >= T2 && Match.ball && rig) {
+                        S.tocou = true;
+                        const pe = (S.lado > 0) ? (rig.lFoot || rig.lKnee) : (rig.rFoot || rig.rKnee);
+                        if (pe) {
+                            p.model.updateMatrixWorld(true);
+                            pe.getWorldPosition(_v4);
+                            S.distContacto = _v4.distanceTo(Match.ball.position);
+                            if (S.distContacto < K.distContactoMax && Match.state === 'PLAY') {
+                                Match.ballCarrier = null; p.hasBall = false;
+                                Match.lastTouchedTeam = p.team; Match.lastTouchedPlayer = p;
+                                Match.ultimoRemate = { p: p, idade: 0 };
+                                Match.intendedReceiver = null;
+                                if (typeof registarToqueComPe === 'function') registarToqueComPe(p, true);
+                                if (typeof MatchStats !== 'undefined' && typeof xgDoRemate === 'function') {
+                                    const xgDeste = xgDoRemate(S.bx, S.bz, p.targetGoalZ, LARGURA_BALIZA, XGModel);
+                                    MatchStats[p.team].xg += xgDeste;
+                                    MatchStats.registarRemateNoAtaque(p.team);
+                                    if (MatchStats.registarRemateNaFicha) MatchStats.registarRemateNaFicha(p.team, xgDeste, false);
+                                    if (typeof Eventos !== 'undefined') Eventos.remate(p, xgDeste);
+                                }
+                                if (typeof EfeitosSonoros !== 'undefined' && EfeitosSonoros.chute) EfeitosSonoros.chute(Match.ball.position, 1);
+                                // A mira: dentro da baliza, ou (as vezes) fora mas perto da trave.
+                                const gz = p.targetGoalZ;
+                                let ax = (Math.random() * 2 - 1) * K.golMiraMax;
+                                if (Math.random() < K.erroFora) {
+                                    const lado = Math.random() < 0.5 ? -1 : 1;
+                                    ax = lado * (LARGURA_BALIZA / 2 + K.erroForaMin + Math.random() * (K.erroForaMax - K.erroForaMin));
+                                }
+                                const ddx = ax - Match.ball.position.x, ddz = gz - Match.ball.position.z, dd = Math.hypot(ddx, ddz) || 1;
+                                Match.ballVel.set(ddx / dd * K.saidaVel, K.saidaVy, ddz / dd * K.saidaVel);
+                            }
+                        }
+                    }
+                    if (t >= T5) {
+                        p.voleio = null;
+                        p.resetBonesToDefault();
+                        _q1.setFromAxisAngle(_vUp, yaw);
                         p.model.quaternion.copy(_q1);
                         p.model.position.y = ALTURA_BASE_Y;
                         this.changeState('MOVE_TO_POS');
