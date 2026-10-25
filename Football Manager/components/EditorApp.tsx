@@ -13,7 +13,6 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [countries, setCountries] = useState<any[]>([]);
   const [expandedContinent, setExpandedContinent] = useState<string | null>('South America');
   const [expandedCountry, setExpandedCountry] = useState<string | null>('brazil');
-  const [activeShirtTab, setActiveShirtTab] = useState<'homeKit' | 'awayKit' | 'thirdKit' | 'gkKit'>('homeKit');
   
   // Edit State
   const [editingTeam, setEditingTeam] = useState<any | null>(null);
@@ -211,31 +210,24 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         <input type="text" value={editingTeam.teamAbb} onChange={e => setEditingTeam({...editingTeam, teamAbb: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white" />
                       </div>
                       <div className="col-span-2 mt-4">
-                        <div className="flex gap-2 mb-2">
-                          {['homeKit', 'awayKit', 'thirdKit', 'gkKit'].map(tab => (
-                            <button 
-                              key={tab} 
-                              onClick={() => setActiveShirtTab(tab as any)}
-                              className={`px-3 py-1 text-xs font-bold rounded ${activeShirtTab === tab ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
-                            >
-                              {tab.replace('Kit', '').toUpperCase()} KIT
-                            </button>
-                          ))}
-                        </div>
-                        <div className="bg-slate-950 border border-slate-800 rounded p-4">
+                        {/* Os quatro uniformes lado a lado (em vez de abas): mais facil de comparar e corrigir. */}
+                        <div className="grid grid-cols-4 gap-3">
+                          {(['homeKit', 'awayKit', 'thirdKit', 'gkKit'] as const).map(tab => (
+                        <div key={tab} className="bg-slate-950 border border-slate-800 rounded p-3 min-w-0">
+                          <div className="mb-3 text-xs font-black text-emerald-400 uppercase tracking-widest">{tab.replace('Kit', '')} kit</div>
                           {(() => {
-                            const kit = editingTeam[activeShirtTab] || {
-                                pattern: activeShirtTab === 'homeKit' ? (editingTeam.shirtPattern || 'solid') : 'solid',
-                                color1: activeShirtTab === 'homeKit' ? (editingTeam.color1 || editingTeam.color || '#ffffff') : '#ffffff',
-                                color2: activeShirtTab === 'homeKit' ? (editingTeam.color2 || '') : '',
-                                color3: activeShirtTab === 'homeKit' ? (editingTeam.color3 || '') : ''
+                            const kit = editingTeam[tab] || {
+                                pattern: tab === 'homeKit' ? (editingTeam.shirtPattern || 'solid') : 'solid',
+                                color1: tab === 'homeKit' ? (editingTeam.color1 || editingTeam.color || '#ffffff') : '#ffffff',
+                                color2: tab === 'homeKit' ? (editingTeam.color2 || '') : '',
+                                color3: tab === 'homeKit' ? (editingTeam.color3 || '') : ''
                             };
 
                             const updateKit = (updates: any) => {
                                 const newKit = { ...kit, ...updates };
-                                const newTeam = { ...editingTeam, [activeShirtTab]: newKit };
+                                const newTeam = { ...editingTeam, [tab]: newKit };
                                 // also keep root backward compatible for homeKit
-                                if (activeShirtTab === 'homeKit') {
+                                if (tab === 'homeKit') {
                                     newTeam.shirtPattern = newKit.pattern;
                                     newTeam.color1 = newKit.color1;
                                     newTeam.color2 = newKit.color2;
@@ -246,7 +238,7 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             };
 
                             return (
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-3">
                                   <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Color 1 (Primary)</label>
                                     <input type="text" value={kit.color1} onChange={e => updateKit({ color1: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded p-2 text-white" />
@@ -294,7 +286,7 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                       <option value="triStripes">Tri-color Stripes</option>
                                     </select>
                                   </div>
-                                  <div className="col-span-2 flex justify-center mt-2">
+                                  <div className="flex justify-center mt-2">
                                     <div className="w-24 h-24 bg-slate-800 rounded flex items-center justify-center shadow-lg">
                                       <ShirtIcon 
                                           color={kit.color1 || '#ffffff'}
@@ -306,7 +298,7 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                           collarColor={kit.collarColor}
                                           sleeveColor={kit.sleeveColor}
                                           number={10}
-                                          longSleeves={activeShirtTab === 'gkKit'}
+                                          longSleeves={tab === 'gkKit'}
                                           className="w-16 h-16"
                                       />
                                     </div>
@@ -314,6 +306,8 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                 </div>
                             );
                           })()}
+                        </div>
+                          ))}
                         </div>
                       </div>
                       <div>

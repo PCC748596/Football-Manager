@@ -41,12 +41,12 @@ const ALIAS = { 'Bayern München': 'FC Bayern Munich', 'Köln': '1. FC Köln', '
     'Slavia Praha': 'SK Slavia Prague', 'Sparta Praha': 'AC Sparta Prague', 'Viktoria Plzeň': 'FC Viktoria Plzeň', 'Baník Ostrava': 'FC Baník Ostrava', 'Mladá Boleslav': 'FK Mladá Boleslav',
     'Shakhtar Donetsk': 'FC Shakhtar Donetsk', 'Dynamo Kyiv': 'FC Dynamo Kyiv', 'Zorya Luhansk': 'FC Zorya Luhansk', 'Dnipro-1': 'SC Dnipro-1', 'Kryvbas': 'FC Kryvbas Kryvyi Rih',
     'Galatasaray': 'Galatasaray S.K.', 'Fenerbahçe': 'Fenerbahçe S.K.', 'Beşiktaş': 'Beşiktaş J.K.', 'Trabzonspor': 'Trabzonspor', 'Başakşehir': 'İstanbul Başakşehir F.K.',
-    'Bodø/Glimt': 'FK Bodø/Glimt', 'Brann': 'SK Brann', 'Viking': 'Viking FK', 'Molde': 'Molde FK', 'Rosenborg': 'Rosenborg BK', 'Paris FC': 'Paris FC', 'Paris Saint-Germain': 'Paris Saint-Germain F.C.' };
+    'Bodø-Glimt': 'FK Bodø/Glimt', 'Brann': 'SK Brann', 'Viking': 'Viking FK', 'Molde': 'Molde FK', 'Rosenborg': 'Rosenborg BK', 'Paris FC': 'Paris FC', 'Paris Saint-Germain': 'Paris Saint-Germain F.C.' };
 const ESTADOS = { AC: 'Acre', AL: 'Alagoas', AM: 'Amazonas', AP: 'Amapá', BA: 'Bahia', CE: 'Ceará', DF: 'Distrito Federal', ES: 'Espírito Santo', GO: 'Goiás', MA: 'Maranhão', MG: 'Minas Gerais',
     MS: 'Mato Grosso do Sul', MT: 'Mato Grosso', PA: 'Pará', PB: 'Paraíba', PE: 'Pernambuco', PI: 'Piauí', PR: 'Paraná', RJ: 'Rio de Janeiro', RN: 'Rio Grande do Norte', RO: 'Rondônia',
     RR: 'Roraima', RS: 'Rio Grande do Sul', SC: 'Santa Catarina', SE: 'Sergipe', SP: 'São Paulo', TO: 'Tocantins' };
 const PARECE_ESCUDO = /(logo|escudo|crest|badge|emblem|bras[aã]o|s[ií]mbolo|shield|simbolo|insignia|club.*svg|^[^/]*\.svg$)/i;
-const NAO_E_ESCUDO = /(estadio|estadio|stadium|map|mapa|flag|bandeira|kit|camisa|uniforme|team photo|squad|plantel|elenco|jpg|jpeg)/i;
+const NAO_E_ESCUDO = /(collage|montage|colagem|estadio|estadio|stadium|map|mapa|flag|bandeira|kit|camisa|uniforme|team photo|squad|plantel|elenco|jpg|jpeg)/i;
 
 const sem = (x) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const GENERICAS = new Set(['club', 'clube', 'futebol', 'esporte', 'sport', 'sporting', 'deportivo', 'deportes', 'atletico', 'atletica', 'associacao', 'fc', 'cf', 'ec', 'sc', 'de', 'do', 'da', 'dos', 'del', 'la', 'el', 'los', 'las']);
@@ -75,6 +75,27 @@ async function procurar(lang, termo) {
     return pags.map(p => ({ titulo: p.title, ficheiro: p.pageimage, thumb: p.thumbnail && p.thumbnail.source })).filter(p => p.thumb && p.ficheiro);
 }
 
+// O escudo de um clube grande NAO sai por `pageimages` (so devolve imagens livres, e os escudos sao marcas): le-se o campo `logo` do infobox do artigo (wikitext) e pede-se a miniatura
+// do ficheiro (o ficheiro e local da Wikipedia, e `imageinfo` da a sua miniatura).
+// A Wikipedia limita os pedidos (429): espera e tenta de novo.
+async function getEspera(url) { let r; for (let i = 0; i < 6; i++) { r = await get(url); if (r.status !== 429) return r; await dorme(25000); } return r; }
+async function escudoPeloInfobox(lang, termo, base) {
+    const busca = await getEspera(`https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(termo)}&srlimit=5&format=json`);
+    let titulos = []; try { titulos = JSON.parse(busca.body.toString('utf8')).query.search.map(x => x.title); } catch (e) { return null; }
+    for (const titulo of titulos) {
+        if (!tituloBate(titulo, base)) continue;
+        const wt = await getEspera(`https://${lang}.wikipedia.org/w/api.php?action=query&prop=revisions&rvprop=content&rvslots=main&titles=${encodeURIComponent(titulo)}&format=json`);
+        let txt = ''; try { const pg = Object.values(JSON.parse(wt.body.toString('utf8')).query.pages)[0]; txt = pg.revisions[0].slots.main['*']; } catch (e) { continue; }
+        const m = txt.match(/\|\s*(?:logo|image|crest|club_crest)\s*=\s*(?:\[\[)?(?:File:|Image:|Ficheiro:|Archivo:)?([^|\n\]]+\.(?:svg|png))/i);
+        if (!m) continue;
+        const ficheiro = m[1].trim().replace(/ /g, '_');
+        if (NAO_E_ESCUDO.test(ficheiro)) continue;
+        const ii = await getEspera(`https://${lang}.wikipedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(ficheiro)}&prop=imageinfo&iiprop=url&iiurlwidth=160&format=json`);
+        try { const info = Object.values(JSON.parse(ii.body.toString('utf8')).query.pages)[0].imageinfo[0]; if (info && (info.thumburl || info.url)) return { titulo, ficheiro, thumb: info.thumburl || info.url }; } catch (e) { /* proximo */ }
+    }
+    return null;
+}
+
 (async () => {
     const faltam = teams.filter(t => (refazer || !fs.existsSync(arquivoDe(t.teamName))) && (!so || t.teamName.toLowerCase().includes(so)));
     console.log('Clubes sem escudo:', faltam.length);
@@ -91,14 +112,19 @@ async function procurar(lang, termo) {
         let achou = null;
         for (const termo of termos) {
             for (const p of await procurar(lang, termo)) {
-                if (PARECE_ESCUDO.test(p.ficheiro) && !NAO_E_ESCUDO.test(p.ficheiro) && tituloBate(p.titulo, ALIAS[base] || base) && !usados.has(p.ficheiro)) { achou = p; break; }
+                if ((PARECE_ESCUDO.test(p.ficheiro) || (Number(t.country) >= 66 && /\.(svg|png)$/i.test(p.ficheiro))) && !NAO_E_ESCUDO.test(p.ficheiro) && tituloBate(p.titulo, ALIAS[base] || base) && !usados.has(p.ficheiro)) { achou = p; break; }
             }
             await dorme(120);
             if (achou) break;
         }
         if (!achou && lang !== 'en') {   // reserva: Wikipedia em ingles
-            for (const p of await procurar('en', `${base} ${paisNome} football club`)) { if (PARECE_ESCUDO.test(p.ficheiro) && !NAO_E_ESCUDO.test(p.ficheiro) && tituloBate(p.titulo, ALIAS[base] || base) && !usados.has(p.ficheiro)) { achou = p; break; } }
+            for (const p of await procurar('en', `${base} ${paisNome} football club`)) { if ((PARECE_ESCUDO.test(p.ficheiro) || (Number(t.country) >= 66 && /\.(svg|png)$/i.test(p.ficheiro))) && !NAO_E_ESCUDO.test(p.ficheiro) && tituloBate(p.titulo, ALIAS[base] || base) && !usados.has(p.ficheiro)) { achou = p; break; } }
             await dorme(120);
+        }
+        if (!achou && Number(t.country) >= 66) {   // clubes europeus: pelo infobox do artigo
+            const nomeBusca = ALIAS[base] || base;
+            achou = await escudoPeloInfobox('en', `${nomeBusca} ${paisNome} football club`, nomeBusca) || await escudoPeloInfobox('en', `${nomeBusca} football club`, nomeBusca);
+            await dorme(500);
         }
         if (!achou) { semEscudo++; relatorio[t.teamName] = { escudo: null }; console.log('  sem escudo:', t.teamName); continue; }
         if (!dry) {

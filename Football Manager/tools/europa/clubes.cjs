@@ -120,7 +120,7 @@ const PAISES = [
   {
     sigla: 'NOR', id: '70', nome: 'Norway', completa: false, ligaId: 'nor_clubes', ligaNome: 'Eliteserien (clubes)',
     clubes: [
-      ['Bodø/Glimt', 'BOD', 'Bodø', 'Aspmyra', 'Y', 'K', 's', 1916],
+      ['Bodø-Glimt', 'BOD', 'Bodø', 'Aspmyra', 'Y', 'K', 's', 1916],
       ['Brann', 'BRA', 'Bergen', 'Brann Stadion', 'R', 'W', 's', 1908],
       ['Viking', 'VIK', 'Stavanger', 'SR-Bank Arena', 'B', 'W', 's', 1899],
       ['Molde', 'MOL', 'Molde', 'Aker Stadion', 'B', 'W', 's', 1911],

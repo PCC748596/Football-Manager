@@ -29090,7 +29090,7 @@ export const REAL_TEAMS_JSON: any[] = [
   },
   {
     "teamID": 700001,
-    "teamName": "Bodø/Glimt",
+    "teamName": "Bodø-Glimt",
     "teamAbb": "BOD",
     "color": "#facc15",
     "color2": "#111111",
@@ -260804,7 +260804,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002881,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Magnus Nguyen",
     "posPlayer": 1,
     "agePlayer": 29,
@@ -260820,7 +260820,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002882,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Anders Berge",
     "posPlayer": 1,
     "agePlayer": 18,
@@ -260836,7 +260836,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002883,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Svein Østigård Eriksen",
     "posPlayer": 1,
     "agePlayer": 19,
@@ -260852,7 +260852,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002884,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Mats Ajer",
     "posPlayer": 2,
     "agePlayer": 30,
@@ -260868,7 +260868,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002885,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Nikolai Larsen",
     "posPlayer": 2,
     "agePlayer": 19,
@@ -260884,7 +260884,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002886,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Sebastian Bobb",
     "posPlayer": 3,
     "agePlayer": 25,
@@ -260900,7 +260900,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002887,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Erling Andreassen",
     "posPlayer": 3,
     "agePlayer": 27,
@@ -260916,7 +260916,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002888,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Ole Strand",
     "posPlayer": 4,
     "agePlayer": 31,
@@ -260932,7 +260932,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002889,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Nico Richter Voigt",
     "posPlayer": 4,
     "agePlayer": 33,
@@ -260948,7 +260948,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002890,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Even Svendsen",
     "posPlayer": 4,
     "agePlayer": 22,
@@ -260964,7 +260964,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002891,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Sigurd Ali Fet",
     "posPlayer": 4,
     "agePlayer": 27,
@@ -260980,7 +260980,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002892,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Even Bobb",
     "posPlayer": 5,
     "agePlayer": 36,
@@ -260996,7 +260996,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002893,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Lars Pedersen",
     "posPlayer": 5,
     "agePlayer": 26,
@@ -261012,7 +261012,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002894,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Jørgen Andreassen",
     "posPlayer": 5,
     "agePlayer": 20,
@@ -261028,7 +261028,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002895,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Kristian Jørgensen",
     "posPlayer": 8,
     "agePlayer": 23,
@@ -261044,7 +261044,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002896,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Tobias Hansen",
     "posPlayer": 8,
     "agePlayer": 25,
@@ -261060,7 +261060,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002897,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Ruben Pedersen",
     "posPlayer": 8,
     "agePlayer": 29,
@@ -261076,7 +261076,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002898,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Ruben Bobb",
     "posPlayer": 8,
     "agePlayer": 31,
@@ -261092,7 +261092,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002899,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Leo Andreassen",
     "posPlayer": 6,
     "agePlayer": 26,
@@ -261108,7 +261108,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002900,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Caio Cavalcante Souza",
     "posPlayer": 7,
     "agePlayer": 26,
@@ -261124,7 +261124,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002901,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Lars Trond Ajer",
     "posPlayer": 10,
     "agePlayer": 30,
@@ -261140,7 +261140,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002902,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Sigurd Erling Ali",
     "posPlayer": 10,
     "agePlayer": 21,
@@ -261156,7 +261156,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002903,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Markus Eide",
     "posPlayer": 11,
     "agePlayer": 23,
@@ -261172,7 +261172,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002904,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Julian Bobb",
     "posPlayer": 11,
     "agePlayer": 18,
@@ -261188,7 +261188,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002905,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Waldemar Dietrich",
     "posPlayer": 12,
     "agePlayer": 28,
@@ -261204,7 +261204,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002906,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Jørgen Amundsen",
     "posPlayer": 12,
     "agePlayer": 21,
@@ -261220,7 +261220,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002907,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Morten Svendsen",
     "posPlayer": 9,
     "agePlayer": 28,
@@ -261236,7 +261236,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002908,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Erling Johannessen",
     "posPlayer": 9,
     "agePlayer": 29,
@@ -261252,7 +261252,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002909,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Håkon Nilsen",
     "posPlayer": 9,
     "agePlayer": 25,
@@ -261268,7 +261268,7 @@ export const REAL_PLAYERS_JSON: any[] = [
   },
   {
     "idPlayer": 7002910,
-    "team": "Bodø/Glimt",
+    "team": "Bodø-Glimt",
     "namePlayer": "Ricky Jude Fletcher",
     "posPlayer": 9,
     "agePlayer": 20,

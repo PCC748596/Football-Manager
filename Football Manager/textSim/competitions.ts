@@ -94,7 +94,7 @@ export const CLASSIFICACAO_INICIAL: Record<string, string[]> = {
   ger_bundesliga: ['Bayern München', 'Borussia Dortmund', 'RB Leipzig', 'Stuttgart'],
   ita_seriea: ['Inter', 'Napoli', 'Roma', 'Como'],
   fra_ligue1: ['Paris Saint-Germain', 'Lille', 'Lens'],
-  nor_clubes: ['Bodø/Glimt', 'Viking'], ned_clubes: ['PSV Eindhoven', 'Feyenoord'], por_clubes: ['Sporting CP', 'Porto'], tur_clubes: ['Galatasaray', 'Fenerbahçe'],
+  nor_clubes: ['Bodø-Glimt', 'Viking'], ned_clubes: ['PSV Eindhoven', 'Feyenoord'], por_clubes: ['Sporting CP', 'Porto'], tur_clubes: ['Galatasaray', 'Fenerbahçe'],
   aut_clubes: ['LASK'], aze_clubes: ['Sabah'], bel_clubes: ['Club Brugge'], svk_clubes: ['Slovan Bratislava'], gre_clubes: ['AEK Athens'], cze_clubes: ['Slavia Praha'], ukr_clubes: ['Shakhtar Donetsk']
 };
 

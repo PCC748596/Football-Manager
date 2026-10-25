@@ -199,8 +199,8 @@ export const ShirtIcon: React.FC<ShirtIconProps> = ({
   const listrada = hasStripes || hasTriStripes || horizontal || centerVerticalStripes || spfcStripes || criciumaStripes || /stripe/i.test(pattern || '');
   const numeroBranco = ['white', '#fff', '#ffffff'].includes(String(finalNumberColor).toLowerCase());
   const finalNumberOutline = numberOutlineColor || (listrada && numeroBranco ? '#000000' : 'transparent');
-  // Espessura do contorno: 1.5px no preto automatico das listradas de numero branco (0.5px + 1px), 0.5px nos contornos que o kit define.
-  const espessura = !numberOutlineColor && listrada && numeroBranco ? 1.5 : 0.5;
+  // Espessura do contorno do numero: 1.7px (o automatico das listradas de numero branco e os contornos que o kit define).
+  const espessura = 1.7;
 
   const comShort = !!shortColor;
   const shirtNode = (
