@@ -83,6 +83,10 @@ const Estadios = {
                     faixas: [[0, 1, '#e8e4d4'], [2, 15, '#d9a62a'], [16, 17, '#e8e4d4'], [32, 33, '#e8e4d4'], [62, 63, '#e8e4d4']]
                 }
             },
+            // O lado do túnel dos jogadores (TunelJogadores.lado): +1 = bancada Leste (+X), o das câmaras e dos bancos de reservas. O padrão é -1 (Oeste).
+            tunelLado: 1,
+            // So estes mandantes (parte do nome, em minusculas) usam este estadio.
+            mandantes: ['flamengo', 'fluminense'],
             torcidaInicial: 22000,
             // A ordem em que a torcida ocupa a bacia: Norte e Sul inferior; Oeste e Leste inferior; Norte e Sul superior; Oeste superior (cadeiras cativas); Leste superior. `filaDivisao` separa inferior de superior.
             // Norte/Sul = os fundos; Oeste = lado -x (o do túnel); Leste = +x, dividido na fila `filaLesteSuperior`; `anguloLateral` = meia abertura das laterais.
@@ -154,8 +158,9 @@ const Estadios = {
         if (!perfil) return;
         this.atual = perfil;
         // Toda a config da cidade é dado puro: guarda-se uma cópia inteira para o `repor`.
-        this._guardado = { aneis: Object.assign({}, window.BancadaAneis), cidade: JSON.parse(JSON.stringify(CidadeConfig)) };
+        this._guardado = { aneis: Object.assign({}, window.BancadaAneis), cidade: JSON.parse(JSON.stringify(CidadeConfig)), tunelLado: (typeof TunelJogadores !== 'undefined') ? TunelJogadores.lado : undefined };
         Object.assign(BancadaAneis, perfil.bancadaAneis || {});
+        if (perfil.tunelLado && typeof TunelJogadores !== 'undefined') TunelJogadores.lado = perfil.tunelLado;
         this.derivar(perfil);
         // O que o perfil escreve à mão na cidade vem depois das contas.
         for (const k of Object.keys(perfil.cidade || {})) {
@@ -169,6 +174,7 @@ const Estadios = {
         const g = this._guardado;
         if (!g) { this.atual = null; return; }
         Object.assign(BancadaAneis, g.aneis);
+        if (g.tunelLado !== undefined) TunelJogadores.lado = g.tunelLado;
         for (const k of Object.keys(CidadeConfig)) delete CidadeConfig[k];
         Object.assign(CidadeConfig, g.cidade);
         this._guardado = null;
@@ -258,7 +264,11 @@ Estadios._perfilPadrao = (typeof CidadeConfig !== 'undefined')
     if (typeof window === 'undefined') return;
     window.Estadios = Estadios;
     try {
-        const p = new URLSearchParams(window.location.search).get('estadio');
-        if (p) Estadios.aplicar(Estadios.escolher(p) || Estadios.paraEquipa(p));
+        const q = new URLSearchParams(window.location.search);
+        const p = q.get('estadio'), mandante = (q.get('mandante') || '').toLowerCase();
+        let perfil = p ? (Estadios.escolher(p) || Estadios.paraEquipa(p)) : null;
+        // Um perfil com `mandantes` so vale para esses clubes (o Maracana: Flamengo e Fluminense; outro clube com um estadio do mesmo nome, como o Brasiliense, fica com o padrao).
+        if (perfil && perfil.mandantes && !perfil.mandantes.some(m => mandante.indexOf(m) >= 0) && Estadios.escolher(p) !== perfil) perfil = null;
+        if (perfil) Estadios.aplicar(perfil);
     } catch (e) { console.error('Estadios.aplicar falhou:', e); }
 })();

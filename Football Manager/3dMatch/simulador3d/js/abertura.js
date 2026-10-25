@@ -78,6 +78,11 @@ const Abertura = {
         nova('lin', lins[0], lins[0].model, null, 0, 0, AM.zAssistente, [{ x: xFila, z: AM.zAssistente }]);
         nova('lin', lins[1], lins[1].model, null, 0, 0, -AM.zAssistente, [{ x: xFila, z: -AM.zAssistente }]);
 
+        // O 4.o ARBITRO (placa das substituicoes): sai do tunel junto com os times e vai para o posto dele. So quando o tunel esta do lado dele (+X);
+        // do lado oposto fica no posto desde o inicio (o caminho teria de atravessar o campo ou dar a volta ao estadio).
+        const Q = (typeof QuartoArbitro !== 'undefined') ? QuartoArbitro : null, quarto = Officials.quarto;
+        if (Q && quarto && Math.sign(Q.x) === T.lado) nova('qua', quarto, quarto.model, null, 0, AM.atrasoTimes, 0, [{ x: Q.x, z: Q.postoZ() }]);
+
         // OS DOIS TIMES: fila indiana dentro do tunel, desvio em z na faixa `xDesvio`, e entram no lugar a andar para a frente.
         // Cada time entra na fila (e fica no lado da linha) mais perto da PROPRIA metade do campo: a da sua baliza.
         const ladoDe = (team) => -Math.sign(Lados.dirDe(team) || 1);

@@ -121,6 +121,30 @@ const Staff = {
     },
 
     /*
+    O ANEL DO ESTADIO OVAL (a bacia do Maracana): pontos a cada `passo` metros ao longo da elipse de semieixos (a, b), por comprimento de arco, a comecar no meio da
+    lateral Este (+X) e a rodar no sentido dos z crescentes, como `_pontosDoAnel`.
+    */
+    _pontosDaElipse(a, b, passo) {
+        const N = 2880, pts = [], cum = [0];
+        for (let i = 0; i <= N; i++) {
+            const t = (i / N) * Math.PI * 2;
+            pts.push({ x: a * Math.cos(t), z: b * Math.sin(t) });
+            if (i > 0) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
+        }
+        const total = cum[N];
+        const n = Math.max(1, Math.round(total / passo)), passoReal = total / n;
+        const saida = [];
+        let j = 0;
+        for (let i = 0; i < n; i++) {
+            const alvo = i * passoReal;
+            while (j < N - 1 && cum[j + 1] < alvo) j++;
+            const f = (alvo - cum[j]) / Math.max(1e-9, cum[j + 1] - cum[j]);
+            saida.push({ x: pts[j].x + (pts[j + 1].x - pts[j].x) * f, z: pts[j].z + (pts[j + 1].z - pts[j].z) * f });
+        }
+        return saida;
+    },
+
+    /*
     OS GRUPOS ATRÁS DAS PLACAS. Cada lado leva `porLado` grupos, espalhados ao
     longo dele e nunca em cima da linha de meio-campo nem do eixo das balizas —
     os centros saem de uma divisão que deixa margem nas pontas, senão um grupo
@@ -397,9 +421,11 @@ const Staff = {
         if (!G || !G.activo || !grupo || !geo) return 0;
         const rnd = this._semear(777);
         const dRec = F.recuoDaBancada - G.recuo;   // a grade esta entre a primeira fila e o anel de funcionarios
-        const pts = this._pontosDoAnel(
-            geo.bancadaX - (F.recuoDaBancada - dRec + 0), geo.bancadaZ - (F.recuoDaBancada - dRec + 0),
-            Math.max(0.5, geo.raioPrimeiraFila - (F.recuoDaBancada - dRec + 0)), geo.cantoX, geo.cantoZ, G.passo);
+        const pts = geo.oval
+            ? this._pontosDaElipse(geo.oval.a0 - G.recuo, geo.oval.b0 - G.recuo, G.passo)
+            : this._pontosDoAnel(
+                geo.bancadaX - (F.recuoDaBancada - dRec + 0), geo.bancadaZ - (F.recuoDaBancada - dRec + 0),
+                Math.max(0.5, geo.raioPrimeiraFila - (F.recuoDaBancada - dRec + 0)), geo.cantoX, geo.cantoZ, G.passo);
         const livre = (p) => !(typeof TunelJogadores !== 'undefined' && TunelJogadores.bloqueia(p.x, p.z));
         const n = pts.length;
         const lista = [];
@@ -448,11 +474,13 @@ const Staff = {
         */
         const lugares = { dePe: [], sentado: [] };
 
-        const anel = this._pontosDoAnel(
-            geo.bancadaX - F.recuoDaBancada,
-            geo.bancadaZ - F.recuoDaBancada,
-            Math.max(0.5, geo.raioPrimeiraFila - F.recuoDaBancada),
-            geo.cantoX, geo.cantoZ, F.espacamento);
+        const anel = geo.oval
+            ? this._pontosDaElipse(geo.oval.a0 - F.recuoDaBancada, geo.oval.b0 - F.recuoDaBancada, F.espacamento)
+            : this._pontosDoAnel(
+                geo.bancadaX - F.recuoDaBancada,
+                geo.bancadaZ - F.recuoDaBancada,
+                Math.max(0.5, geo.raioPrimeiraFila - F.recuoDaBancada),
+                geo.cantoX, geo.cantoZ, F.espacamento);
         // Ninguem no caminho do tunel dos jogadores (TunelJogadores.bloqueia).
         const livreDoTunel = (p) => !(typeof TunelJogadores !== 'undefined' && TunelJogadores.bloqueia(p.x, p.z));
         // ATRAS DOS BANCOS DE RESERVAS os segurancas ficam 1 m mais para a frente (para o lado da bancada, que e para onde olham): senao ficavam em cima do vidro do banco.

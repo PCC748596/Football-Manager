@@ -7,6 +7,8 @@ import { MatchStatsModal } from './MatchStatsModal';
 import { calculateMatchRatings } from '../textSim/matchEngine';
 import Simulador3DView, { simulador3dArrancou, simulador3dPronto, simulador3dEnviar, simulador3dTelaCheia, simulador3dLembrarTelaCheia, simulador3dVelocidade } from '../3dMatch/Simulador3DView';
 import { taticaParaMotor, taticaDoMotor } from '../3dMatch/simulador3dCliente';
+import { COUNTRIES } from '../textSim/dataGenerator';
+import { ligaDoClube } from '../textSim/competitions';
 
 type VisualState = 'PRE_MATCH' | 'KICKOFF_SET' | 'PLAYING' | 'OFFSIDE' | 'GOAL';
 
@@ -15,7 +17,7 @@ interface MatchDayProps {
 }
 
 const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
-  const { gameState, fixtures, teams, players, playMatchDay, pauseMatch, resetMatchDay, advanceWeek, updateMatchVisualState, motor3dMensagem, updateTactics } = useGame();
+  const { gameState, fixtures, teams, players, playMatchDay, pauseMatch, resetMatchDay, advanceWeek, updateMatchVisualState, motor3dMensagem, updateTactics, comps } = useGame();
   
   const match = fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId));
   const homeTeam = teams.find(t => t.id === match?.homeTeamId);
@@ -60,6 +62,12 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   }
 
   const showStats = gameState.matchMinute >= 90 || activeTab === 'stats';
+  // O nome da competicao desta partida: vai para a placa fixa do centro da lateral oposta ao tunel (3D).
+  const nomeCompeticao = (() => {
+    if (match.isFriendly || match.type === 'FRIENDLY') return 'Friendly';
+    if (match.type === 'CUP') return (comps || []).find(c => c.matches.some(m => 'fix-cup-' + m.id === match.id))?.name || '';
+    try { const l = ligaDoClube(homeTeam); return (COUNTRIES as any[]).find(c => c.id === l.countryId)?.leagues.find((x: any) => x.id === l.leagueId)?.name || ''; } catch { return ''; }
+  })();
 
   // O motor 3D decide a partida; o relogio do manager segue o dele (ver GameContext.motor3dMensagem).
   const handleAction = () => {
@@ -272,7 +280,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 );
              })() : null}
              <div className={`absolute inset-0 w-full h-full ${showStats ? 'hidden' : ''}`}>
-                <Simulador3DView qualidade={gameState.graphicsQuality || 'HIGH'} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx}
+                <Simulador3DView competicao={nomeCompeticao} qualidade={gameState.graphicsQuality || 'HIGH'} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx}
                     iniciar={iniciou} pausado={iniciou && !gameState.isProcessing} aoPronto={() => setPronto3d(true)}
                     aoMensagem={(m) => {
                       // Tatica do painel do 3D -> manager (aba Tactics): so o que mudou de nivel.

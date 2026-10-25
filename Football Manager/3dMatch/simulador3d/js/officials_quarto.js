@@ -19,7 +19,13 @@ const QuartoArbitro = {
     parado:  { bracoX: -0.40, bracoZ: 0.32, cotovelo: -0.30 },   // bracos para baixo, so um pouco a frente (a placa nao bate no corpo)
     erguido: { bracoX: -3.0, bracoZ: 0.32, cotovelo: -0.10 },
     // A placa segura-se pela sua borda de baixo (a das maos): o centro fica meia altura (menos `folga`) ao longo do "cima" da placa, que roda com os bracos.
-    folga: 0.03, avanco: 0.03
+    folga: 0.03, avanco: 0.03,
+    // Onde fica em z: no meio entre os bancos (`z`); se o tunel dos jogadores esta deste lado, desvia-se do corredor dele (senao ficava na frente da saida).
+    postoZ: function () {
+        const T = (typeof TunelJogadores !== 'undefined') ? TunelJogadores : null;
+        if (T && T.activo && Math.sign(this.x) === T.lado) return T.largura / 2 + T.folgaStaff + 1.0;
+        return this.z;
+    }
 };
 if (typeof window !== 'undefined') window.QuartoArbitro = QuartoArbitro;
 
@@ -30,7 +36,7 @@ Object.assign(Officials, {
         const Q = QuartoArbitro;
         if (!Q.activo || this.quarto) return null;
         const o = this.criarOficial(scene, 3, 'Q');
-        o.model.position.set(Q.x, 0, Q.z);
+        o.model.position.set(Q.x, 0, Q.postoZ());
         o.model.rotation.y = -Math.PI / 2;           // de frente para o campo (-X)
         o.braco = 0;
         o.placa = this._criarPlaca(o);
@@ -106,7 +112,7 @@ Object.assign(Officials, {
         const dx = alvoX - o.model.position.x;
         const andando = Math.abs(dx) > 0.3 && (erguer || o.braco === 0);   // o `mover` chega a alvo em desaceleracao: 0.3 m conta como chegou
         const olhar = { x: 0, z: o.model.position.z };
-        if (andando) this.mover(o, alvoX, Q.z, Q.velPassos, dt, olhar);
+        if (andando) this.mover(o, alvoX, Q.postoZ(), Q.velPassos, dt, olhar);
         else this.mover(o, o.model.position.x, o.model.position.z, 0, dt, olhar);
         const alvoK = (erguer && Math.abs(dx) <= 0.3) ? 1 : 0;
         o.braco += Math.max(-1, Math.min(1, alvoK - o.braco)) * Math.min(1, dt / 0.7);

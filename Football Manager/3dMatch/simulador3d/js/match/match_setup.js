@@ -423,6 +423,7 @@ Object.assign(Match, {
             const cantoZ = zFundo - rc;
             const compLateral = 2 * cantoZ;
             const compFundo = 2 * cantoX;
+            window.PlacasMedidas = { cantoX: cantoX, cantoZ: cantoZ };   // os grupos de imprensa do estadio oval (Staff) seguem a extensao reta das placas
 
             // Uma faixa de blocos de cor, repetida ao longo do painel.
             const cvsPP = document.createElement('canvas');
@@ -533,6 +534,28 @@ Object.assign(Match, {
                 campoGrupo.add(m);
             };
 
+            // Uma placa fixa (sem a rotacao dos patrocinios) com um texto: a face virada para o campo mostra `texto` em letras de LED.
+            const addPlacaFixa = (comprimento, x, z, rodaY, texto) => {
+                const cv = document.createElement('canvas'); cv.width = 1024; cv.height = Math.max(64, Math.round(1024 * PP.altura / comprimento));
+                const c = cv.getContext('2d');
+                c.fillStyle = '#0b0d12'; c.fillRect(0, 0, cv.width, cv.height);
+                const t = String(texto).toUpperCase();
+                let tam = Math.round(cv.height * 0.5);
+                c.font = '900 ' + tam + 'px Arial, sans-serif';
+                while (c.measureText(t).width > cv.width * 0.92 && tam > 12) { tam -= 2; c.font = '900 ' + tam + 'px Arial, sans-serif'; }
+                c.textAlign = 'center'; c.textBaseline = 'middle';
+                c.shadowColor = '#7fb2ff'; c.shadowBlur = 14; c.fillStyle = '#ffffff';
+                c.fillText(t, cv.width / 2, cv.height / 2);
+                const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4;
+                const mat = new THREE.MeshBasicMaterial({ map: tex });
+                const nx = Math.sin(rodaY), nz = Math.cos(rodaY);
+                const frenteParaCampo = (nx * -x + nz * -z) > 0 ? 4 : 5;
+                const preto = new THREE.MeshBasicMaterial({ color: 0x050505 });
+                const m = new THREE.Mesh(new THREE.BoxGeometry(comprimento, PP.altura, PP.espessura), [0, 1, 2, 3, 4, 5].map(i => i === frenteParaCampo ? mat : preto));
+                m.position.set(x, PP.altura / 2, z); m.rotation.y = rodaY; m.castShadow = true; m.receiveShadow = false;
+                campoGrupo.add(m);
+            };
+
             // Laterais: correm em Z, portanto a caixa roda 90 graus em Y.
             /*
             A PLACA DO LADO DO TUNEL ABRE-SE no centro (`TunelJogadores`): duas placas mais curtas, com o vao da
@@ -549,6 +572,12 @@ Object.assign(Match, {
                     BancosDeReservas.activo && BancosDeReservas.lado === sinal) {
                     for (const v of Bancos.vaosDasPlacas()) vaos.push(v);
                 }
+                // A PLACA DO NOME DA COMPETICAO: no centro da lateral OPOSTA a do tunel, fixa (nao roda com a publicidade). O nome vem do manager (`?competicao=`).
+                let nomeComp = '';
+                try { nomeComp = (new URLSearchParams(window.location.search).get('competicao') || '').trim(); } catch (e) { /* sem URL */ }
+                const tunelAtivo = (typeof TunelJogadores !== 'undefined' && TunelJogadores.activo);
+                const meiaComp = (nomeComp && tunelAtivo && TunelJogadores.lado === -sinal) ? 2.5 : 0;
+                if (meiaComp) { vaos.push([-meiaComp, meiaComp]); addPlacaFixa(2 * meiaComp, sinal * xLateral, 0, Math.PI / 2, nomeComp); }
                 if (!vaos.length) { addPlaca(compLateral, null, sinal * xLateral, 0, Math.PI / 2); return; }
                 vaos.sort((p, q) => p[0] - q[0]);
                 let z0 = -compLateral / 2;
@@ -591,13 +620,17 @@ Object.assign(Match, {
                 // Uma imagem so por curva (os paineis dela juntos): o sector do cilindro ja cobre u de 0 a 1, portanto 1 faixa = 1 painel inteiro.
                 // Negativo: vista de dentro do campo a curva saia espelhada. O deslize da rotacao e invertido em PlacasLed.tick (_espelho).
                 tex.repeat.set(-(arte ? 1 / nC : nPaineisArco / nC), 1); tex._espelho = true;
-                const m = new THREE.Mesh(geo, arte ? new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }) : new THREE.MeshStandardMaterial({
-                    map: tex, roughness: 0.65, side: THREE.DoubleSide
+                // So a face de DENTRO (virada para o campo) leva a publicidade; por fora a curva e preta, como as placas retas.
+                const m = new THREE.Mesh(geo, arte ? new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide }) : new THREE.MeshStandardMaterial({
+                    map: tex, roughness: 0.65, side: THREE.BackSide
                 }));
                 m.position.set(cx, PP.altura / 2, cz);
                 m.castShadow = true;
                 m.receiveShadow = true;
                 campoGrupo.add(m);
+                const verso = new THREE.Mesh(new THREE.CylinderGeometry(rc + 0.02, rc + 0.02, PP.altura, 24, 1, true, thetaStart, Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x050505, side: THREE.FrontSide }));
+                verso.position.set(cx, PP.altura / 2, cz);
+                campoGrupo.add(verso);
             };
             if (rc > 0.01) {
                 arco(cantoX, cantoZ, 0);
@@ -1880,13 +1913,16 @@ Object.assign(Match, {
         // Bancos de reservas e áreas técnicas, do lado das câmaras (bancos.js). Os vãos nas placas já foram abertos acima.
         if (typeof Bancos !== 'undefined') Bancos.build(campoGrupo, this.scene);
 
-        if (!OVAL && typeof Staff !== 'undefined' && typeof FuncionariosEstadio !== 'undefined' &&
+        if (typeof Staff !== 'undefined' && typeof FuncionariosEstadio !== 'undefined' &&
             FuncionariosEstadio.activo) {
+            // No estadio oval o anel de segurancas e a grade seguem a elipse da primeira fila, e os grupos de imprensa as placas (retas), nao a bacia.
+            const pm = (OVAL && window.PlacasMedidas) ? window.PlacasMedidas : null;
             Staff.build(campoGrupo, {
+                oval: OVAL ? { a0: BANCADA_X, b0: BANCADA_Z } : null,
                 bancadaX: BANCADA_X,
                 bancadaZ: BANCADA_Z,
-                cantoX: cornerX,
-                cantoZ: cornerZ,
+                cantoX: pm ? pm.cantoX : cornerX,
+                cantoZ: pm ? pm.cantoZ : cornerZ,
                 raioPrimeiraFila: RAIO_PRIMEIRA_FILA,
                 placaX: MEIA_LARGURA_CAMPO + recuoPlacas,
                 placaZ: LINHA_FUNDO + recuoPlacas
