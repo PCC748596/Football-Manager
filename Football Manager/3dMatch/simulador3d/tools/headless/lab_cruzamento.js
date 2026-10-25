@@ -25,6 +25,8 @@ Sim.running = true;
 
 for (let i = 0; i < 120; i++) Match.update(dt);   // um instante de jogo antes
 
+const gk0 = Match.opponents.find(p => p.role === 'gk'); const og = gk0.grabBall.bind(gk0);
+gk0.grabBall = function (...a) { if (process.env.TRACE) console.log('grabBall; voleioEmVoo=' + Match.voleioEmVoo, new Error().stack.split(String.fromCharCode(10)).slice(2, 5).join(' | ')); return og(...a); };
 const lab = Match.triggerCruzamento(tipo, 'TeamA');
 if (!lab) { console.log('triggerCruzamento nao correu'); process.exit(1); }
 const fin = lab.finalizador, cruz = lab.cruzador;

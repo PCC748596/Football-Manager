@@ -2484,10 +2484,11 @@ class PlayerFSM {
                         hN = h0 + (hQ - h0) * sv(u / 0.7);
                     }
                     else if (t < T5) {
-                        const u = sv((t - T4) / K.tLevantar);
-                        P = this._poseMistura(PZ.queda, DE_PE, u);
-                        pitch = K.pitch.queda * (1 - u);
-                        hN = hQ + (hIni - hQ) * u;
+                        // O LEVANTAR EM TRES POSES (ver `Levantar`, config/player_behavior.js): de joelhos, um joelho no chao, quase de pe.
+                        const u0 = (t - T4) / K.tLevantar;
+                        P = (typeof Levantar !== 'undefined' && Levantar.activo) ? Levantar.pose(u0, PZ.queda) : this._poseMistura(PZ.queda, DE_PE, sv(u0));
+                        pitch = K.pitch.queda * ((typeof Levantar !== 'undefined' && Levantar.activo) ? Levantar.resto(u0) : (1 - sv(u0)));
+                        hN = (typeof Levantar !== 'undefined' && Levantar.activo) ? Levantar.alturaPescoco(u0, hQ) : hQ + (hIni - hQ) * sv(u0);
                     }
                     else { P = DE_PE; pitch = 0; hN = hIni; }
                     this._escreverPoseComemorar(P);
@@ -2573,7 +2574,7 @@ class PlayerFSM {
                     const T1 = K.tPreparo, T2 = K.tContacto, T3 = T2 + K.tQueda, T4 = T3 + K.tChao, T5 = T4 + K.tLevantar;
                     const DE_PE = { pelvisX: 0, peitoX: 0, pescocoX: 0, coxaE: 0, joelhoE: 0, peE: 0, coxaD: 0, joelhoD: 0, peD: 0, bracoEx: 0, bracoEz: 0.1, cotoveloE: -0.1, bracoDx: 0, bracoDz: 0.1, cotoveloD: -0.1 };
                     const PZ = K.pose;
-                    let P, roll, y;
+                    let P, roll, y, voleioLevanta = false;
                     const yC = Math.max(0.15, Math.min(1.25, S.by - K.pernaAlcance));   // altura do salto no contacto: o pe chega a bola
                     if (t < T1) { const u = sv(t / T1); P = this._poseMistura(DE_PE, PZ.preparo, u); roll = K.roll.preparo * u; y = -0.03 * u; }
                     else if (t < T2) {
@@ -2594,9 +2595,12 @@ class PlayerFSM {
                         roll = K.roll.chao; y = K.alturaLinha;
                     }
                     else if (t < T5) {
-                        const u = sv((t - T4) / K.tLevantar);
-                        P = this._poseMistura(PZ.chao, DE_PE, u);
-                        roll = K.roll.chao * (1 - u); y = K.alturaLinha * (1 - u);
+                        // O LEVANTAR EM TRES POSES (ver `Levantar`): o corpo endireita-se depressa e e a sequencia de poses que o poe de pe.
+                        const u0 = (t - T4) / K.tLevantar, uso = (typeof Levantar !== 'undefined' && Levantar.activo);
+                        P = uso ? Levantar.pose(u0, PZ.chao) : this._poseMistura(PZ.chao, DE_PE, sv(u0));
+                        roll = K.roll.chao * (uso ? Levantar.resto(u0) : (1 - sv(u0)));
+                        y = K.alturaLinha * (1 - sv(u0));
+                        voleioLevanta = uso;
                     }
                     else { P = DE_PE; roll = 0; y = 0; }
                     // Com a bola a esquerda trocam-se os lados (as poses sao as da perna direita).
@@ -2634,6 +2638,8 @@ class PlayerFSM {
                     }
                     p.velocity.set(0, 0, 0);
                     p.model.position.y = ALTURA_BASE_Y + y;
+                    // A levantar-se: o corpo assenta no relvado pela parte mais baixa (de joelhos, com a mao no chao...), e nao por uma altura calculada.
+                    if (voleioLevanta && !(typeof Sim !== 'undefined' && Sim.running) && typeof p.assentarCorpoInteiro === 'function') p.assentarCorpoInteiro();
 
                     // O CONTACTO: no fim do voo, se o pe esta ao alcance da bola. A bola sai para a baliza.
                     if (!S.tocou && t >= T2 && Match.ball && rig) {
@@ -2667,6 +2673,7 @@ class PlayerFSM {
                                 if (typeof p.labCanto === 'number') { ax = p.labCanto; p.labCanto = undefined; }   // laboratorio: ao canto, para o guarda-redes mergulhar
                                 const ddx = ax - Match.ball.position.x, ddz = gz - Match.ball.position.z, dd = Math.hypot(ddx, ddz) || 1;
                                 Match.ballVel.set(ddx / dd * K.saidaVel, K.saidaVy, ddz / dd * K.saidaVel);
+                                Match.voleioEmVoo = 4.0; Match.voleioRemateP = p;   // o goleiro nao encaixa este remate: espalma sempre (resolverDefesaGK)
                             }
                         }
                     }
@@ -3069,7 +3076,7 @@ class PlayerFSM {
                         c.entrou = true;
                         // PELO QUATERNIAO: o corpo e orientado por `lookAt`, e o Euler dele passa a (pi, y, pi) quando a frente aponta para tras (z negativo); escrever so o `rotation.y`
                         // dava a frente invertida: ele deslizava para um lado com o corpo virado para o outro (relato).
-                        if (c.tipo === 'joelhos' || c.tipo === 'punho') p.model.quaternion.setFromAxisAngle(_vUp, Math.atan2(c.dx, c.dz));
+                        if (c.tipo === 'joelhos' || c.tipo === 'punho' || c.tipo === 'soco') p.model.quaternion.setFromAxisAngle(_vUp, Math.atan2(c.dx, c.dz));
                     }
 
                     if (c.tipo === 'punho') {
@@ -3148,6 +3155,43 @@ class PlayerFSM {
                             p.resetBonesToDefault();
                             this.changeState('MOVE_TO_POS');
                         }
+                    } else if (c.tipo === 'soco') {
+                        // COMEMORACAO 3 — SOCO NO AR (ver ComemoracaoGol.soco): corre, pula, soco1/soco2/soco3, cai, vira-se 180 graus e espera os companheiros para o abraco.
+                        const J = CG.soco, PJ = J.pose;
+                        const suave = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+                        const tV0 = J.tPulo, tV1 = tV0 + J.tVirar, tE = tV1 + J.tEspera, tF = tE + J.tBaixar;
+                        let P, y = 0;
+                        if (t < J.tPulo) {
+                            const u = t / J.tPulo;
+                            // tres socos em sequencia ao longo do pulo: a corrida vai para o soco1, e dai para o 2 e o 3 (a descer).
+                            if (u < 0.30) P = this._poseMistura(PJ.corrida, PJ.soco1, suave(u / 0.30));
+                            else if (u < 0.62) P = this._poseMistura(PJ.soco1, PJ.soco2, suave((u - 0.30) / 0.32));
+                            else P = this._poseMistura(PJ.soco2, PJ.soco3, suave((u - 0.62) / 0.38));
+                            y = 4 * J.alturaPulo * u * (1 - u);
+                        } else if (t < tV1) {
+                            const u = suave((t - tV0) / J.tVirar);
+                            P = this._poseMistura(PJ.soco3, PJ.espera, u);
+                        } else if (t < tE) P = PJ.espera;
+                        else if (t < tF) P = this._poseMistura(PJ.espera, { pelvisX: 0, peitoX: 0, pescocoX: 0, coxaE: 0, joelhoE: 0, peE: 0, coxaD: 0, joelhoD: 0, peD: 0, bracoEx: 0, bracoEz: 0.1, cotoveloE: -0.1, bracoDx: 0, bracoDz: 0.1, cotoveloD: -0.1 }, suave((t - tE) / J.tBaixar));
+                        else P = null;
+                        if (P) this._escreverPoseComemorar(P);
+                        // A corrida continua (a velocidade cai a zero); depois fica parado.
+                        const v0 = J.corrida.velocidade * Math.max(0, 1 - t / J.tDesacelera);
+                        p.velocity.set(c.dx * v0, 0, c.dz * v0);
+                        // A viragem de 180 graus no eixo Y do mundo: de frente para onde vem a corrida (para os companheiros).
+                        const yaw0 = Math.atan2(c.dx, c.dz);
+                        const virado = suave((t - tV0) / J.tVirar);
+                        _q1.setFromAxisAngle(_vUp, yaw0 + Math.PI * virado);
+                        p.model.quaternion.copy(_q1);
+                        p.model.position.y = ALTURA_BASE_Y + y;
+                        if (y === 0 && !semDesenho && typeof p.assentarCorpoInteiro === 'function') p.assentarCorpoInteiro();
+                        if (t >= tF) {
+                            p.model.position.y = ALTURA_BASE_Y;
+                            c.fim = true;
+                            p.velocity.set(0, 0, 0);
+                            p.resetBonesToDefault();
+                            this.changeState('MOVE_TO_POS');
+                        }
                     } else {
                         // abraco: de pe, bracos no ar, saltinhos, virado para o autor
                         const A = CG.abraco;
@@ -3163,7 +3207,9 @@ class PlayerFSM {
                         rig.lLeg.rotation.x = 0; rig.rLeg.rotation.x = 0;
                         rig.lKnee.rotation.x = 0.1; rig.rKnee.rotation.x = 0.1;
                         p.model.position.y = ALTURA_BASE_Y + Math.abs(Math.sin(t * A.saltoRitmo)) * A.saltoAltura;
-                        if (t >= CG.apoio.festa) {
+                        // No soco no ar ficam ate o autor acabar (o abraco); nas outras, `festa` s.
+                        const autorAcabou = !(typeof Comemoracao !== 'undefined' && Comemoracao.autor && Comemoracao.autor.comemoracao && !Comemoracao.autor.comemoracao.fim);
+                        if (c.seguirAutor ? (autorAcabou && t >= 0.5) || t > 9.0 : t >= CG.apoio.festa) {
                             p.model.position.y = ALTURA_BASE_Y;
                             c.fim = true;
                             p.resetBonesToDefault();

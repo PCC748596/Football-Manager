@@ -609,10 +609,20 @@ const GkDive = {
             case 'levantar': {
                 const k = Math.min(1, d.t / D.tempoLevantar);
                 const s = k * k * (3 - 2 * k);
-                d.ang = d.angMax * (1 - s);
+                // O tombo do corpo desfaz-se depressa (`Levantar.rotacaoAte`); depois o que o poe de pe sao as poses de `poseLevantar` (de joelhos, um joelho no chao, quase de pe).
+                d.ang = d.angMax * ((typeof Levantar !== 'undefined' && Levantar.activo) ? Levantar.resto(k) : (1 - s));
+                // O ROLAMENTO PARA FICAR DE BARRIGA PARA BAIXO (defesa baixa, ver `cotovelosNoChao`) tambem se desfaz com o tombo: ficava de bruços ate ao ultimo frame e endireitava-se de um salto.
+                if (d._rolo && typeof d._roloAng === 'number') {
+                    if (d._roloAng0 === undefined) d._roloAng0 = d._roloAng;
+                    d._roloAng = d._roloAng0 * ((typeof Levantar !== 'undefined' && Levantar.activo) ? Levantar.resto(k) : (1 - s));
+                }
                 // Sobe a partir de onde ficou DEITADO, nao da constante.
                 const yBase = (typeof d.yDeitado === 'number') ? d.yDeitado : D.alturaDeitado;
-                corpo.position.y = yBase + (ALTURA_BASE_Y - yBase) * s;
+                if (typeof Levantar !== 'undefined' && Levantar.activo) {
+                    // A altura segue as poses (de joelhos o corpo esta ~0.7 m abaixo do de pe), e nao uma subida linear: com as pernas dobradas e o corpo a altura de pe, ficava a flutuar.
+                    const yPose = ALTURA_BASE_Y + (Levantar.alturaPescoco(k) - Levantar.alturas.dePe), w0 = Levantar.resto(k);
+                    corpo.position.y = yPose + (yBase - yPose) * w0;
+                } else corpo.position.y = yBase + (ALTURA_BASE_Y - yBase) * s;
                 /*
                 QUEM SE LEVANTA COM A BOLA nao apoia as maos no chao para
                 empurrar — levanta-se com ela agarrada ao peito. Por isso o
@@ -1892,6 +1902,22 @@ const GkDive = {
 
     poseLevantar(rig, s, comBola) {
         const D = GoalkeeperDive;
+        // O LEVANTAR EM TRES POSES (ver `Levantar`, config/player_behavior.js). Com a bola nas maos os bracos ficam com quem os escreve (o `poseAbracoBola`).
+        if (typeof Levantar !== 'undefined' && Levantar.activo) {
+            const P = Levantar.pose(s, null), w = 0.5;
+            const ap = (o, ax, v) => { if (o) o.rotation[ax] = lerpTo(o.rotation[ax], v, w); };
+            ap(rig.pelvis, 'x', P.pelvisX); ap(rig.chest, 'x', P.peitoX); ap(rig.neck, 'x', P.pescocoX);
+            ap(rig.lLeg, 'x', P.coxaE); ap(rig.rLeg, 'x', P.coxaD);
+            ap(rig.lKnee, 'x', P.joelhoE); ap(rig.rKnee, 'x', P.joelhoD);
+            ap(rig.lFoot, 'x', P.peE); ap(rig.rFoot, 'x', P.peD);
+            if (!comBola) {
+                ap(rig.lArm, 'x', P.bracoEx); ap(rig.rArm, 'x', P.bracoDx);
+                ap(rig.lArm, 'z', P.bracoEz); ap(rig.rArm, 'z', -P.bracoDz);
+                ap(rig.lElbow, 'x', P.cotoveloE); ap(rig.rElbow, 'x', P.cotoveloD);
+            }
+            ap(rig.chest, 'y', 0);
+            return;
+        }
         const G = D.poseGatas;
         const fracGatas = (typeof D.fracGatas === 'number') ? D.fracGatas : 0.55;
 

@@ -22,7 +22,7 @@ const ComemoracaoGol = {
     // Probabilidade de o golo ter comemoração em corrida. Os restantes seguem como sempre (volta ao meio-campo).
     chance: 0.85,
     // As comemorações a sortear, com pesos. Para juntar outra: um novo `tipo` no ComemoracaoGol.sorteio.
-    comemoracoes: [{ tipo: 'joelhos', peso: 0.6 }, { tipo: 'punho', peso: 0.4 }],
+    comemoracoes: [{ tipo: 'joelhos', peso: 0.6 }, { tipo: 'punho', peso: 0.4 }, { tipo: 'soco', peso: 0.4 }],
     // O estado do jogo não espera mais do que isto (s), aconteça o que acontecer.
     tempoMax: 12.0,
 
@@ -112,10 +112,42 @@ const ComemoracaoGol = {
         }
     },
 
+
+    /*
+    COMEMORACAO 3 — SOCO NO AR (referencia: tres fotogramas, o corpo no ar com o punho erguido, o segundo soco e o terceiro, a descer). O autor corre, PULA e dá o soco no ar em sequencia
+    (soco1, soco2, soco3) sem parar de avancar; ao cair vira-se 180 graus, de frente para a direccao de onde vem a corrida, e espera os dois companheiros que correm atras dele para
+    se abracarem. Poses (rig: ver o resto do ficheiro): soco1 = o braco direito sobe, o joelho direito sobe; soco2 = o direito fica no alto e o esquerdo vai a frente; soco3 = a descer,
+    o braco esquerdo esticado a frente e o direito dobrado.
+    */
+    soco: {
+        corrida: { min: 6.0, max: 12.0, margemLinha: 5.0, recuoDaBaliza: 0.6, velocidade: 7.5, prazo: 6.0 },
+        tPulo: 0.95,              // o pulo inteiro (sobe e desce) e os tres socos, s
+        alturaPulo: 0.42,         // m no pico
+        tDesacelera: 1.25,        // a velocidade da corrida cai a zero em tanto tempo (a partir do pulo)
+        distanciaParada: 4.2,     // m aproximados que ainda corre depois do pulo (onde os companheiros chegam)
+        limiteLateral: 31.0,      // |x| maximo onde pode parar (a linha lateral e 34)
+        tVirar: 0.50,             // a viragem de 180 graus
+        tEspera: 2.4,             // espera os companheiros (e o abraco), de frente para eles
+        tBaixar: 0.5,             // volta ao de pe
+        apoioMax: 2,              // os companheiros que correm atras dele
+        pose: {
+            corrida: { pelvisX: 0.0, peitoX: 0.12, pescocoX: 0.0, coxaE: -0.55, joelhoE: 0.45, peE: 0.0, coxaD: 0.40, joelhoD: 0.70, peD: 0.0,
+                bracoEx: 0.45, bracoEz: 0.20, cotoveloE: -0.60, bracoDx: -0.55, bracoDz: 0.20, cotoveloD: -0.70 },
+            soco1: { pelvisX: 0.0, peitoX: -0.05, pescocoX: -0.12, coxaE: 0.30, joelhoE: 0.90, peE: 0.0, coxaD: -1.50, joelhoD: 1.40, peD: 0.0,
+                bracoEx: -0.80, bracoEz: 0.30, cotoveloE: -1.30, bracoDx: -3.00, bracoDz: 0.25, cotoveloD: -0.10 },
+            soco2: { pelvisX: 0.0, peitoX: 0.0, pescocoX: -0.10, coxaE: -0.90, joelhoE: 1.20, peE: 0.0, coxaD: -0.20, joelhoD: 0.60, peD: 0.0,
+                bracoEx: -1.30, bracoEz: 0.20, cotoveloE: -0.30, bracoDx: -2.80, bracoDz: 0.20, cotoveloD: -0.10 },
+            soco3: { pelvisX: 0.0, peitoX: 0.10, pescocoX: 0.0, coxaE: 0.20, joelhoE: 0.30, peE: 0.0, coxaD: -0.70, joelhoD: 1.00, peD: 0.0,
+                bracoEx: -1.50, bracoEz: 0.25, cotoveloE: -0.10, bracoDx: -0.60, bracoDz: 0.30, cotoveloD: -1.50 },
+            espera: { pelvisX: 0.0, peitoX: 0.0, pescocoX: 0.0, coxaE: 0.0, joelhoE: 0.05, peE: 0.0, coxaD: 0.0, joelhoD: 0.05, peD: 0.0,
+                bracoEx: -0.10, bracoEz: 0.55, cotoveloE: -0.35, bracoDx: -0.10, bracoDz: 0.55, cotoveloD: -0.35 }
+        }
+    },
+
     // Quem corre até ao autor festeja com os braços no ar e saltinhos.
     abraco: {
         bracoZ: 2.55, bracoX: -0.15, cotovelo: -0.10,
-        saltoAltura: 0.16, saltoRitmo: 7.0
+        saltoAltura: 0.05, saltoRitmo: 7.0   // 0.05: antes 0.16, e ele aparecia no ar (20 cm acima do relvado); 0 = pes sempre no chao
     }
 };
 if (typeof window !== 'undefined') window.ComemoracaoGol = ComemoracaoGol;

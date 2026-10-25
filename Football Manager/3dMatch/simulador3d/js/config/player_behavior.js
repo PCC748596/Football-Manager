@@ -1227,6 +1227,60 @@ const Voleio = {
 if (typeof window !== 'undefined') window.Voleio = Voleio;
 
 /*
+=============================================================================
+O LEVANTAR EM TRES POSES — de joelhos, com um joelho no chao, quase de pe
+=============================================================================
+Pedido, com tres fotogramas: *"a animacao de levantar depois de cair esta so a girar no eixo longitudinal e levantar. O ideal seria uma sequencia: 1. de joelhos, com o braco apoiado
+no chao e o tronco ainda abaixado; 2. um joelho apoiado, um pe no chao, tronco ereto; 3. quase todo ereto"*.
+
+`Levantar.pose(u, de)` devolve a pose (no formato de `_escreverPoseComemorar`) para `u` de 0 (acabou de cair) a 1 (de pe), passando por: `apoio` (de joelhos, uma mao no chao, tronco baixo),
+`joelho` (um joelho no chao e o outro pe plantado a frente, tronco direito) e `quase` (de pe, ainda um pouco dobrado). `de` e a pose de onde parte (a do chao); sem ela o primeiro troco
+parte da propria `apoio`. A inclinacao do corpo (o tombo) desfaz-se logo no inicio (`rotacaoAte`): o que levanta o jogador sao as poses, nao a rotacao do corpo em torno do pivo.
+`alturaPescoco(u)` e a altura da cabeca ao relvado em cada ponto (m), para quem posiciona o corpo pelo pescoco. Usado no peixinho, no voleio e no mergulho do guarda-redes.
+=============================================================================
+*/
+const Levantar = {
+    activo: true,
+    rotacaoAte: 0.30,        // fraccao do levantar em que o corpo acaba de se endireitar (o tombo desfeito)
+    fim: { apoio: 0.30, joelho: 0.58, quase: 0.82 },   // onde acaba cada pose (fraccao do levantar); depois vai para de pe
+    // A perna da frente (o pe plantado) e a direita; o joelho no chao e o esquerdo.
+    poses: {
+        apoio: { pelvisX: 0.0, peitoX: 0.95, pescocoX: -0.55, coxaE: -0.20, joelhoE: 1.90, peE: 0.3, coxaD: -0.30, joelhoD: 1.85, peD: 0.3,
+            bracoEx: -1.25, bracoEz: 0.25, cotoveloE: -0.05, bracoDx: -0.30, bracoDz: 0.35, cotoveloD: -0.70 },
+        joelho: { pelvisX: 0.0, peitoX: 0.25, pescocoX: -0.20, coxaE: 0.10, joelhoE: 1.90, peE: 0.3, coxaD: -1.45, joelhoD: 1.50, peD: 0.0,
+            bracoEx: -0.40, bracoEz: 0.30, cotoveloE: -0.30, bracoDx: -0.85, bracoDz: 0.25, cotoveloD: -0.60 },
+        quase: { pelvisX: 0.0, peitoX: 0.10, pescocoX: -0.08, coxaE: 0.12, joelhoE: 0.45, peE: 0.0, coxaD: -0.40, joelhoD: 0.55, peD: 0.0,
+            bracoEx: 0.10, bracoEz: 0.20, cotoveloE: -0.25, bracoDx: -0.10, bracoDz: 0.20, cotoveloD: -0.25 },
+        dePe: { pelvisX: 0.0, peitoX: 0.0, pescocoX: 0.0, coxaE: 0.0, joelhoE: 0.0, peE: 0.0, coxaD: 0.0, joelhoD: 0.0, peD: 0.0,
+            bracoEx: 0.0, bracoEz: 0.1, cotoveloE: -0.1, bracoDx: 0.0, bracoDz: 0.1, cotoveloD: -0.1 }
+    },
+    // A cabeca (pescoco) ao relvado em cada pose, para o corpo ser posto a altura certa.
+    alturas: { apoio: 0.75, joelho: 1.12, quase: 1.36, dePe: 1.45 },
+    _sv(u) { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); },
+    _mix(a, b, k) { const r = {}; for (const c in a) r[c] = a[c] + ((b[c] !== undefined ? b[c] : a[c]) - a[c]) * k; return r; },
+    pose(u, de) {
+        const P = this.poses, F = this.fim;
+        u = Math.max(0, Math.min(1, u));
+        if (u < F.apoio) return this._mix(de || P.apoio, P.apoio, this._sv(u / F.apoio));
+        if (u < F.joelho) return this._mix(P.apoio, P.joelho, this._sv((u - F.apoio) / (F.joelho - F.apoio)));
+        if (u < F.quase) return this._mix(P.joelho, P.quase, this._sv((u - F.joelho) / (F.quase - F.joelho)));
+        return this._mix(P.quase, P.dePe, this._sv((u - F.quase) / (1 - F.quase)));
+    },
+    alturaPescoco(u, deAltura) {
+        const A = this.alturas, F = this.fim;
+        u = Math.max(0, Math.min(1, u));
+        const m = (a, b, k) => a + (b - a) * this._sv(k);
+        if (u < F.apoio) return m(typeof deAltura === 'number' ? deAltura : A.apoio, A.apoio, u / F.apoio);
+        if (u < F.joelho) return m(A.apoio, A.joelho, (u - F.apoio) / (F.joelho - F.apoio));
+        if (u < F.quase) return m(A.joelho, A.quase, (u - F.joelho) / (F.quase - F.joelho));
+        return m(A.quase, A.dePe, (u - F.quase) / (1 - F.quase));
+    },
+    // O quanto do tombo inicial ainda resta no instante u (1 = inteiro, 0 = desfeito).
+    resto(u) { return 1 - this._sv(u / this.rotacaoAte); }
+};
+if (typeof window !== 'undefined') window.Levantar = Levantar;
+
+/*
 Salto para cabecear.
 
 O salto tinha pontaria nenhuma: disparava assim que a bola estivesse entre

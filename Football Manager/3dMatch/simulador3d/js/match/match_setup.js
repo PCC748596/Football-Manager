@@ -2636,6 +2636,7 @@ Object.assign(Match, {
                 const x = sentidoA ? fData[i].x : -fData[i].x;
                 const z = sentidoA ? fData[i].z : -fData[i].z;
 
+                teamList[i]._baseTargetOrig = null;   // uma formacao nova manda: o posto guardado por um laboratorio deixa de valer
                 teamList[i].baseTarget.set(x * (CAMPO_LARG / 2) * compMult, ALTURA_BASE_Y, z * (CAMPO_COMP / 2));
                 teamList[i].role = fData[i].role;
                 teamList[i].idxFormacao = i;   // o indice do posto nas tabelas por zona (FormacoesZonasLib)
@@ -2743,6 +2744,12 @@ Object.assign(Match, {
         (this.faltaDirectaBarreira || []).forEach(p => { p.naBarreiraFalta = false; p.barreiraSlot = null; });
         this.faltaDirectaBarreira = null;
         [...this.players, ...this.opponents].forEach(p => { p.jostleAncora = null; });
+        // O que os laboratorios (cara a cara, peixinho, voleio) mudaram nos jogadores desfaz-se: o posto da formacao volta e acaba o 'parado a espera do gesto'.
+        [...this.players, ...this.opponents].forEach(p => {
+            if (p._baseTargetOrig) { p.baseTarget.copy(p._baseTargetOrig); p._baseTargetOrig = null; }
+            p.labGesto = null; p.labCruzador = false; p.labCanto = undefined;
+        });
+        this.semImpedimento = false;
         this.counterAttackTeam = null;
         this.counterAttackTimer = 0;
         this.goalSequenceStage = undefined;

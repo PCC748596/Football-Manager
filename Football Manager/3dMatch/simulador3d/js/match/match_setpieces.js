@@ -1719,7 +1719,7 @@ Object.assign(Match, {
         atacante.model.position.set(px, ALTURA_BASE_Y, pz);
         atacante.velocity.set(0, 0, 0);
         atacante.dynamicTarget = new THREE.Vector3(0, ALTURA_BASE_Y, fundoZ);
-        atacante.baseTarget.set(px, ALTURA_BASE_Y, pz);
+        if (!atacante._baseTargetOrig) atacante._baseTargetOrig = atacante.baseTarget.clone(); atacante.baseTarget.set(px, ALTURA_BASE_Y, pz);   // o posto da formacao volta no resetPlay (_baseTargetOrig)
         if (atacante.fsm) atacante.fsm.changeState('CARRY');
         atacante.touchLock = 0;
         atacante.hasBall = true;
@@ -1764,7 +1764,7 @@ Object.assign(Match, {
                 p.model.position.set(fx, ALTURA_BASE_Y, fz);
                 p.velocity.set(0, 0, 0);
                 p.dynamicTarget = new THREE.Vector3(fx, ALTURA_BASE_Y, fz);
-                p.baseTarget.set(fx, ALTURA_BASE_Y, fz);
+                if (!p._baseTargetOrig) p._baseTargetOrig = p.baseTarget.clone(); p.baseTarget.set(fx, ALTURA_BASE_Y, fz);
                 p.hasBall = false;
                 if (p.fsm) p.fsm.changeState('IDLE');
                 i++;
@@ -1814,13 +1814,17 @@ Object.assign(Match, {
 
         const dir = finalizador.dirZ, fundoZ = dir * (CAMPO_COMP / 2);
         const lado = Math.random() < 0.5 ? -1 : 1;                       // de que ponta vem o cruzamento
-        const T = { x: -lado * 1.2, y: K.alvoY, z: fundoZ - dir * K.alvoDist };
+        // A POSICAO SORTEIA-SE a cada clique: a distancia a baliza (o voleio de 7 a 13 m, o peixinho ate 7 m), o lado do contacto, a altura e de onde sai o cruzamento.
+        const sorteio = (a, b) => a + Math.random() * (b - a);
+        if (tipo === 'voleio') { K.alvoDist = sorteio(7.5, 12.5); K.alvoY = sorteio(0.9, 1.2); K.recuo = sorteio(2.0, 2.8); }
+        else { K.alvoDist = sorteio(3.0, 6.5); K.alvoY = sorteio(0.45, 0.55); K.recuo = sorteio(2.6, 3.4); }
+        const T = { x: sorteio(-1, 1) * (tipo === 'voleio' ? 5.0 : 3.0), y: K.alvoY, z: fundoZ - dir * K.alvoDist };
         // O avancado: antes do ponto de contacto, na linha dele para a baliza.
         const gx = 0 - T.x, gz = fundoZ - T.z, gl = Math.hypot(gx, gz) || 1;
         const fx = T.x - (gx / gl) * K.recuo, fz = T.z - (gz / gl) * K.recuo;
         const colocar = (p, x, z) => {
             p.model.position.set(x, ALTURA_BASE_Y, z); p.velocity.set(0, 0, 0);
-            p.dynamicTarget = new THREE.Vector3(x, ALTURA_BASE_Y, z); p.baseTarget.set(x, ALTURA_BASE_Y, z);
+            p.dynamicTarget = new THREE.Vector3(x, ALTURA_BASE_Y, z); if (!p._baseTargetOrig) p._baseTargetOrig = p.baseTarget.clone(); p.baseTarget.set(x, ALTURA_BASE_Y, z);
             p.hasBall = false; if (p.fsm) p.fsm.changeState('IDLE');
         };
         colocar(finalizador, fx, fz);
@@ -1832,7 +1836,7 @@ Object.assign(Match, {
 
         // O cruzador: na ponta, com a bola.
         // O cruzador (a bola) fica MAIS LONGE da linha de fundo do que o avancado: senao, no momento do passe, o avancado estaria a frente da bola e seria fora de jogo.
-        const cx = lado * 17, cz = fundoZ - dir * (Math.abs(fz - fundoZ) + 4);
+        const cx = lado * sorteio(13, 20), cz = fundoZ - dir * (Math.abs(fz - fundoZ) + sorteio(3.5, 6.5));
         colocar(cruzador, cx, cz);
         cruzador.model.lookAt(T.x, cruzador.model.position.y, T.z);
         this.ball.position.set(cx, BallPhysics.raio, cz); this.ballVel.set(0, 0, 0);

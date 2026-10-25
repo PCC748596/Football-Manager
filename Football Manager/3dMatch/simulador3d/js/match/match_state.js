@@ -83,6 +83,7 @@ const Match = {
     recuoParaGR: null,
     // Segundos que faltam para deixar de contar como "remate de penalti no ar" (a defesa nao encaixa).
     penaltiEmVoo: 0,
+    voleioEmVoo: 0,   // s: o remate de voleio esta no ar: o goleiro nao o encaixa, espalma sempre (resolverDefesaGK)
 
     /*
     Quem deu o passe anterior, e por quanto tempo ainda conta. É o um-dois:

@@ -182,6 +182,7 @@ Object.assign(Match, {
     update: function (dt) {
         // O remate do penalti no ar (4 s desde o contacto): ver resolverDefesaGK.
         if (this.penaltiEmVoo > 0) this.penaltiEmVoo -= dt;
+        if (this.voleioEmVoo > 0) this.voleioEmVoo -= dt;
         if (!this._pf_stats) this._pf_stats = { count: 0, time: 0 };
         // A idade do último remate (ver talvezLamentar, o quase golo).
         if (this.ultimoRemate) this.ultimoRemate.idade += dt;

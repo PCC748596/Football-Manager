@@ -10604,7 +10604,9 @@ class FootballPlayer {
         if (this.gkSoco && marcado) this.gkSoco.golpeado = true;
 
         if (!marcado) {
-            if (Math.random() < S.chanceSegurar) {
+            // O VOLEIO NUNCA SE ENCAIXA: com o remate de voleio no ar ele so o espalma (escapa-lhe, bate na mao e segue mais devagar).
+            const voleioNoAr = Match.voleioEmVoo > 0 && Match.voleioRemateP && Match.voleioRemateP.team !== this.team;
+            if (!voleioNoAr && Math.random() < S.chanceSegurar) {
                 this.grabBall();
                 return true;
             }
@@ -10799,6 +10801,8 @@ class FootballPlayer {
     }
 
     grabBall(manterPose) {
+        // O VOLEIO NUNCA SE ENCAIXA: enquanto a bola e a do remate de voleio (ninguem lhe tocou depois do rematador) nenhum caminho do goleiro a agarra; o rebote depois da espalmada ja pode.
+        if (Match.voleioEmVoo > 0 && Match.voleioRemateP && Match.lastTouchedPlayer === Match.voleioRemateP && Match.voleioRemateP.team !== this.team) return false;
         /*
         RECUO COM O PE DE UM COMPANHEIRO: as maos estao proibidas.
 

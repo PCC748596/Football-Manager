@@ -4264,6 +4264,11 @@ function resolverDefesaGK(o) {
         pAgarra = 0;
         semAgarrar = true;
     }
+    // O VOLEIO NUNCA SE ENCAIXA (pedido): com o remate de voleio no ar (`Match.voleioEmVoo`, marcado no contacto) a defesa e sempre uma espalmada, golo ou nao.
+    if (typeof Match !== 'undefined' && Match.voleioEmVoo > 0) {
+        pAgarra = 0;
+        semAgarrar = true;
+    }
 
     /*
     ROÇAR: só em bolas rápidas e esticadas. O `rocarPesoExt` reparte a culpa

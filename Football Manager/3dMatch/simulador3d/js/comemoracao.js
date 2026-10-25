@@ -48,13 +48,13 @@ const Comemoracao = {
         }
 
         const tipo = tipoForcado || this._sortear();
-        if (tipo === 'joelhos' || tipo === 'punho') return this._iniciarJoelhos(autor, zSinal, tipo);
+        if (tipo === 'joelhos' || tipo === 'punho' || tipo === 'soco') return this._iniciarJoelhos(autor, zSinal, tipo);
         return false;
     },
 
     _iniciarJoelhos(autor, zSinal, tipo) {
         tipo = tipo || 'joelhos';
-        const C = ComemoracaoGol, J = (tipo === 'punho' ? C.punho : C.joelhos), K = J.corrida;
+        const C = ComemoracaoGol, J = C[tipo] || C.joelhos, K = J.corrida;
         const P0 = autor.model.position;
         const sx = Math.sign(P0.x) || 1;
 
@@ -79,7 +79,7 @@ const Comemoracao = {
         dx /= l; dz /= l;
 
         // Onde vai parar: o deslize percorre ~ v0 * tDeslize / 2.6 (a velocidade cai com expoente 1.6).
-        const desliza = (tipo === 'punho') ? 0 : J.velocidadeDeslize * J.tDeslize / 2.6;
+        const desliza = (tipo === 'punho') ? 0 : (tipo === 'soco') ? J.distanciaParada : J.velocidadeDeslize * J.tDeslize / 2.6;
         const E = new THREE.Vector3(
             THREE.MathUtils.clamp(S.x + dx * desliza, -J.limiteLateral, J.limiteLateral), ALTURA_BASE_Y, S.z + dz * desliza);
 
@@ -97,11 +97,19 @@ const Comemoracao = {
             .map(o => ({ o, d: o.model.position.distanceTo(E) }))
             .filter(x => x.d <= A.raioMax)
             .sort((a, b) => a.d - b.d)
-            .slice(0, A.max);
+            .slice(0, tipo === 'soco' ? J.apoioMax : A.max);
         meus.forEach(({ o }, i) => {
             const ang = (i / Math.max(1, meus.length)) * Math.PI * 2 + Math.random() * 0.8;
-            const alvo = new THREE.Vector3(E.x + Math.cos(ang) * A.espalhar, ALTURA_BASE_Y, E.z + Math.sin(ang) * A.espalhar);
-            this._mandar(o, alvo, A.velocidade);
+            let alvo = new THREE.Vector3(E.x + Math.cos(ang) * A.espalhar, ALTURA_BASE_Y, E.z + Math.sin(ang) * A.espalhar);
+            // SOCO NO AR: os dois companheiros correm ATRAS dele (no sentido da corrida) e chegam de frente para ele, que se virou; um de cada lado.
+            if (tipo === 'soco') alvo = new THREE.Vector3(E.x - dx * (1.6 + i * 0.5) + (i % 2 ? 0.8 : -0.8) * dz, ALTURA_BASE_Y, E.z - dz * (1.6 + i * 0.5) - (i % 2 ? 0.8 : -0.8) * dx);
+            // SOCO NO AR: chegam quando ele acaba o pulo e se vira (a velocidade ajusta-se a distancia), e ficam ate ao fim dele (ver o ramo do abraco no fsm.js).
+            let vApoio = A.velocidade;
+            if (tipo === 'soco') {
+                const tChegar = P0.distanceTo(S) / K.velocidade + J.tPulo;
+                vApoio = THREE.MathUtils.clamp(o.model.position.distanceTo(alvo) / Math.max(0.5, tChegar), 3.5, A.velocidade);
+            }
+            this._mandar(o, alvo, vApoio);
             this.participantes.push({ p: o, papel: 'apoio', alvo, fase: 'corre', t: 0 });
         });
 
@@ -148,7 +156,7 @@ const Comemoracao = {
             if (par.papel === 'autor') {
                 if (par.fase === 'corre') {
                     const perto = p.model.position.distanceTo(pl.S) < 1.0;
-                    if (perto || par.t > (pl.tipo === 'punho' ? C.punho : C.joelhos).corrida.prazo) {
+                    if (perto || par.t > (C[pl.tipo] || C.joelhos).corrida.prazo) {
                         p.comemoracao = { tipo: pl.tipo, dx: pl.dx, dz: pl.dz };
                         p.fsm.changeState('COMEMORAR');
                         par.fase = 'festa'; par.t = 0;
@@ -160,7 +168,7 @@ const Comemoracao = {
                 if (par.fase === 'corre') {
                     const perto = p.model.position.distanceTo(par.alvo) < C.apoio.chegada;
                     if (perto || par.t > 9.0) {
-                        p.comemoracao = { tipo: 'abraco', mira: this.autor.model.position };
+                        p.comemoracao = { tipo: 'abraco', mira: this.autor.model.position, seguirAutor: !!(pl && pl.tipo === 'soco') };
                         p.fsm.changeState('COMEMORAR');
                         par.fase = 'festa'; par.t = 0;
                     }
