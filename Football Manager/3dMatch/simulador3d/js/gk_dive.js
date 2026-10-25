@@ -189,8 +189,9 @@ const GkDive = {
         const PP = GoalkeeperDive.deslizeLado && GoalkeeperDive.deslizeLado.pesPrimeiro;
         if (!PP || !PP.activo || typeof Match === 'undefined' || !Match.ball) return false;
         if (Match.ballVel.length() > PP.velMax) return false;
-        // Bola lenta (a solta que passa ao lado): pes primeiro mesmo sem adversario perto.
-        if (typeof PP.velLenta === 'number' && Match.ballVel.length() <= PP.velLenta) return true;
+        // BOLA SOLTA (ninguem a conduz): vai de CABECA PRIMEIRO, com as maos a bola, para a apanhar. Os pes primeiro so com um adversario A CONDUZIR a bola (la o gesto e o de um carrinho).
+        const dono = Match.ballCarrier;
+        if (!dono || dono.team === p.team || dono.role === 'gk') return false;
         const adv = (p.team === 'TeamA') ? Match.opponents : Match.players;
         for (const o of adv) {
             if (!o || !o.model || o.role === 'gk') continue;
@@ -1137,6 +1138,11 @@ const GkDive = {
 
         Match.lastTouchedPlayer = p;
         Match.lastTouchedTeam = p.team;
+
+        // O DESLIZE DE LADO A UMA BOLA SOLTA E LENTA AGARRA-SE (pedido: com as maos, como na foto de referencia): sem falha nem espalmada, so a agarra.
+        if (d.deslizeLado && !d.pesPrimeiro && Match.ballVel.length() <= 8.0 && !(Match.ballCarrier && Match.ballCarrier.team !== p.team)) {
+            decisao.falha = null; decisao.resultado = 'agarra'; decisao.semAgarrar = false;
+        }
 
         if (decisao.falha) { this.falhaDoGuardaRedes(p, decisao.falha); return; }
 

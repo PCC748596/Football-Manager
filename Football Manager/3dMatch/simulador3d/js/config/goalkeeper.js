@@ -1825,7 +1825,8 @@ const GoalkeeperDive = {
             anguloFrente: 0.15,
             pernas: { coxaBaixo: 0.00, joelhoBaixo: 0.12, coxaCima: 0.10, joelhoCima: 0.10, chest: 0.0 }
         },
-        anguloFrente: 0.75,
+        // 0.20: deitado sobre o flanco, com o peito virado para o campo e os bracos esticados para a bola (a foto de referencia: o deslize de lado a 90 graus). Era 0.75: caia meio de bruços.
+        anguloFrente: 0.20,
         pernas: { coxaBaixo: -0.10, joelhoBaixo: 0.95, coxaCima: 0.05, joelhoCima: 1.15, chest: 0.05 }
     },
 
