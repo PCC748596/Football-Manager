@@ -13,7 +13,7 @@ Escala: atributos, overall e potencial dos jovens ficam entre 50 e 99. O potenci
 import { Player, Position, PlayStyle, PLAYSTYLE_POSITIONS } from '../types';
 import { calcularSkill, pesosDoOverall } from './overall';
 import { valorDeMercado } from './valuation';
-import { nomeAleatorio } from './nomes';
+import { nomeDoClube } from './nomes';
 import { Rnd, criarRng, idadeEm, mesDe, novoContrato, somarAnos, somarMeses } from './contracts';
 
 export const TAMANHO_BASE = 20;
@@ -182,8 +182,8 @@ export const completarBase = (base: BaseState, teamId: string, hoje: string, pre
     const rnd = criarRng(`jovem|${teamId}|${proximoId}`);
     const pos = posicaoQueFalta(doClube, rnd, doClube.length === TAMANHO_BASE - 1 ? preferida : undefined);
     const idade = idadeQueFalta(doClube, rnd);
-    let nome = nomeAleatorio(rnd), t = 0;
-    while (doClube.some(p => p.name === nome) && t++ < 20) nome = nomeAleatorio(rnd);
+    let nome = nomeDoClube(rnd, teamId), t = 0;
+    while (doClube.some(p => p.name === nome) && t++ < 20) nome = nomeDoClube(rnd, teamId);
     const j = gerarJovem(teamId, pos, idade, hoje, rnd, id, nome, camisaLivre(doClube));
     novos.push(j); doClube = [...doClube, j]; proximoId++;
   }

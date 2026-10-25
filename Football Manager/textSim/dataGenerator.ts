@@ -2,7 +2,7 @@
 import { Team, Player, Fixture, Position, Tactics } from '../types';
 import { ECONOMIA_ESTADIO } from './stadiumEconomy';
 import { calcularSkill } from './overall';
-import { nomeAleatorio } from './nomes';
+import { nomeDoClube } from './nomes';
 import { criarRng } from './contracts';
 import { REAL_TEAMS_JSON, REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 
@@ -70,7 +70,7 @@ export const generatePlayer = (teamId: string, position: Position, idCounter: nu
 
   return {
     id: `p-${idCounter}`,
-    name: nomeAleatorio(criarRng(`nome|${idCounter}`)),
+    name: nomeDoClube(criarRng(`nome|${idCounter}`), teamId),
     age,
     position,
     skill: finalSkill,

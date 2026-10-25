@@ -95,10 +95,10 @@ const WorldView: React.FC = () => {
                   const eu = userTeam?.id === r.team.id && ehMeu;
                   return (
                     <tr key={r.team.id} className={`${eu ? 'bg-blue-600/10' : ''} ${rebaixado ? 'bg-red-500/5' : ''}`}>
-                      <td className={`px-3 py-1.5 text-center text-xs font-black border-b border-slate-100 dark:border-slate-800/30 ${i < 4 ? 'text-emerald-600 dark:text-emerald-400' : rebaixado ? 'text-red-500' : 'text-slate-500'}`}>{i + 1}</td>
-                      <td className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800/30"><div className="flex items-center gap-3"><TeamShield team={r.team} className="w-[30px] h-9" /><span className={`text-sm font-bold ${eu ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>{r.team.name}</span></div></td>
-                      {[r.played, r.won, r.drawn, r.lost, r.gf, r.ga, r.gd].map((v, k) => <td key={k} className="px-3 py-1.5 text-center text-xs text-slate-600 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800/30">{k === 6 && v > 0 ? '+' + v : v}</td>)}
-                      <td className="px-3 py-1.5 text-center text-sm font-black text-blue-600 dark:text-white border-b border-slate-100 dark:border-slate-800/30">{r.points}</td>
+                      <td className={`px-3 py-[3.5px] text-center text-xs font-black border-b border-slate-100 dark:border-slate-800/30 ${i < 4 ? 'text-emerald-600 dark:text-emerald-400' : rebaixado ? 'text-red-500' : 'text-slate-500'}`}>{i + 1}</td>
+                      <td className="px-3 py-[3.5px] border-b border-slate-100 dark:border-slate-800/30"><div className="flex items-center gap-3"><TeamShield team={r.team} className="w-[30px] h-9" /><span className={`text-sm font-bold ${eu ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>{r.team.name}</span></div></td>
+                      {[r.played, r.won, r.drawn, r.lost, r.gf, r.ga, r.gd].map((v, k) => <td key={k} className="px-3 py-[3.5px] text-center text-xs text-slate-600 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800/30">{k === 6 && v > 0 ? '+' + v : v}</td>)}
+                      <td className="px-3 py-[3.5px] text-center text-sm font-black text-blue-600 dark:text-white border-b border-slate-100 dark:border-slate-800/30">{r.points}</td>
                     </tr>
                   );
                 })}
@@ -335,7 +335,7 @@ const WorldView: React.FC = () => {
                   <img src={bandeira(p.id)} alt="" className="w-8 h-[22px] object-cover rounded-sm shadow flex-shrink-0" />
                   <span className="text-xs font-black uppercase leading-tight text-slate-800 dark:text-slate-100">{p.nome}{meuPais ? ' ★' : ''}</span>
                 </div>
-                <div className="p-1 space-y-1">
+                <div className="p-1 space-y-0">
                   {p.itens.map(it => {
                     const ativo = !!selecao && selecao.tipo === it.sel.tipo && selecao.id === it.sel.id;
                     return (
