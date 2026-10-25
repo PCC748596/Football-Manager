@@ -1145,6 +1145,7 @@ const Officials = {
         // So em jogo corrido: canto, lateral e pontape de baliza nao tem
         // fora-de-jogo, e a bola parada resolve-se noutro sitio.
         if (Match.state !== 'PLAY') return;
+        if (Match.semImpedimento) return;   // laboratorio (Match.triggerCruzamento)
 
         const dir = passador.dirZ;
         const colegas = (passador.team === 'TeamA') ? Match.players : Match.opponents;
@@ -1292,6 +1293,7 @@ const Officials = {
     abortar o toque nesse caso: a bola passa a ser da outra equipa.
     */
     verificarImpedimento: function (jogador) {
+        if (typeof Match !== 'undefined' && Match.semImpedimento) { this.limparImpedimento(); return false; }   // laboratorio (Match.triggerCruzamento)
         const marcas = this._impedidos;
         if (!marcas || !marcas.length || !jogador) return false;
 

@@ -57,6 +57,15 @@
                     title="Avançado a 25 m da baliza, a 45 graus, a correr para ela — o lado alterna a cada clique"
                     onclick="Match.triggerCaraACara()">Cara a cara</button>
             </div>
+            <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+                <!-- Laboratório do peixinho e do voleio: um jogador cruza da ponta e o avançado finaliza com o gesto. Ver Match.triggerCruzamento. -->
+                <button class="btn-action" style="flex: 1; margin-top: 0;"
+                    title="Um jogador cruza da ponta e o avançado finaliza de peixinho (a até 7 m da baliza)"
+                    onclick="Match.triggerCruzamento('peixinho')">Peixinho</button>
+                <button class="btn-action" style="flex: 1; margin-top: 0;"
+                    title="Um jogador cruza da ponta e o avançado finaliza de voleio (de 7 a 13 m da baliza)"
+                    onclick="Match.triggerCruzamento('voleio')">Voleio</button>
+            </div>
 
             <!-- Planteis reais (data/squads.js). A lista é preenchida no
                  arranque por preencherSelectoresDeEquipa() em js/main.js; sem

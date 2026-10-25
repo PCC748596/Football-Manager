@@ -338,7 +338,7 @@ const GoalkeeperPose = {
     },
 
     barreira: {
-        distMax: 7.0,        // remate de mais longe do que isto não entra aqui
+        distMax: 4.5,        // remate de mais longe do que isto não entra aqui (era 7: o peixinho a 5 m punha-o de pé com a perna esticada, e o pedido e que se atire)
         alturaMax: 0.95,     // e só para bola que cruza a linha abaixo disto
 
         altura: -0.62,       // o corpo desce quase ao chão (soma a ALTURA_BASE_Y)

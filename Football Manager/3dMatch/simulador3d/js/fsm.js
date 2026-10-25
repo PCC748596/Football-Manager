@@ -2543,6 +2543,7 @@ class PlayerFSM {
                                 const lado = Math.random() < 0.5 ? -1 : 1;
                                 ax = lado * (LARGURA_BALIZA / 2 + K.erroForaMin + Math.random() * (K.erroForaMax - K.erroForaMin));
                             }
+                            if (typeof p.labCanto === 'number') { ax = p.labCanto; p.labCanto = undefined; }   // laboratorio: ao canto, para o guarda-redes mergulhar
                             const ddx = ax - bolaNoContacto.x, ddz = gz - bolaNoContacto.z, dd = Math.hypot(ddx, ddz) || 1;
                             Match.ballVel.set(ddx / dd * K.saidaVel, K.saidaVy, ddz / dd * K.saidaVel);
                             Match.intendedReceiver = null;
@@ -2577,7 +2578,7 @@ class PlayerFSM {
                     if (t < T1) { const u = sv(t / T1); P = this._poseMistura(DE_PE, PZ.preparo, u); roll = K.roll.preparo * u; y = -0.03 * u; }
                     else if (t < T2) {
                         const u = (t - T1) / (T2 - T1);
-                        P = this._poseMistura(PZ.voo, PZ.contacto, sv(u));
+                        P = this._poseMistura(PZ.voo, PZ.contacto, sv((u - K.inicioChute) / (1 - K.inicioChute)));   // a mira a frente e a perna de chute a armar; perto da bola trocam
                         roll = K.roll.preparo + (K.roll.contacto - K.roll.preparo) * sv(u);
                         y = -0.03 + (yC + 0.03) * Math.sin(Math.PI / 2 * u);
                     }
@@ -2612,7 +2613,7 @@ class PlayerFSM {
                     // O corpo todo: o yaw (de frente para a baliza; roda ate la durante o preparo) e a rolagem de lado. roll > 0 leva as pernas para a ESQUERDA do jogador.
                     const yawAlvo = Math.atan2(S.dirx, S.dirz);
                     const dif = Math.atan2(Math.sin(yawAlvo - S.yaw0), Math.cos(yawAlvo - S.yaw0));
-                    const yaw = S.yaw0 + dif * sv(t / T1);
+                    const yaw = S.yaw0 + dif * sv(t / (T1 + 0.12));
                     _q1.setFromAxisAngle(_vUp, yaw);
                     const qRoll = p._volQ || (p._volQ = new THREE.Quaternion());
                     qRoll.setFromAxisAngle(_v3.set(0, 0, 1), S.lado * roll);
@@ -2622,7 +2623,7 @@ class PlayerFSM {
                     if (t <= T2) {
                         const u = sv(t / T2);
                         const esqx = S.dirz, esqz = -S.dirx;   // a esquerda do jogador, de frente para a baliza
-                        const alvoX = S.bx - S.dirx * K.ancoraFrente - esqx * S.lado * K.ancoraLado, alvoZ = S.bz - S.dirz * K.ancoraFrente - esqz * S.lado * K.ancoraLado;
+                        const alvoX = S.bx - S.dirx * K.ancoraFrente + esqx * S.lado * K.ancoraLado, alvoZ = S.bz - S.dirz * K.ancoraFrente + esqz * S.lado * K.ancoraLado;
                         p.model.position.x = S.x0 + (alvoX - S.x0) * u;
                         p.model.position.z = S.z0 + (alvoZ - S.z0) * u;
                         S.vx = S.dirx * 1.8; S.vz = S.dirz * 1.8;
@@ -2663,6 +2664,7 @@ class PlayerFSM {
                                     const lado = Math.random() < 0.5 ? -1 : 1;
                                     ax = lado * (LARGURA_BALIZA / 2 + K.erroForaMin + Math.random() * (K.erroForaMax - K.erroForaMin));
                                 }
+                                if (typeof p.labCanto === 'number') { ax = p.labCanto; p.labCanto = undefined; }   // laboratorio: ao canto, para o guarda-redes mergulhar
                                 const ddx = ax - Match.ball.position.x, ddz = gz - Match.ball.position.z, dd = Math.hypot(ddx, ddz) || 1;
                                 Match.ballVel.set(ddx / dd * K.saidaVel, K.saidaVy, ddz / dd * K.saidaVel);
                             }
@@ -3089,6 +3091,8 @@ class PlayerFSM {
                         // Trava a corrida e fica de pe (a corrida e a MOVE_TO_POS; aqui desliza-se ate parar).
                         p.velocity.multiplyScalar(Math.max(0, 1 - 7.0 * dt));
                         p.model.position.y = ALTURA_BASE_Y;
+                        // De joelhos dobrados o corpo baixa: sem assentar, ficava a flutuar uns 20 cm acima do relvado (o estado COMEMORAR escreve a propria altura).
+                        if (!semDesenho && typeof p.assentarCorpoInteiro === 'function') p.assentarCorpoInteiro();
                         if (t >= t4) {
                             c.fim = true;
                             if (rig.neck) rig.neck.rotation.y = 0;

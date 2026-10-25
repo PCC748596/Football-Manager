@@ -5019,7 +5019,10 @@ class FootballPlayer {
             if (gkVoltaAoMeio && this.gkEstado === 'idle' && Math.abs(this.model.position.x) < 0.4 &&
                 Math.abs(this.model.position.z - this.ownGoalZ) < 3.0) this.voltaAoMeioNoCanto = false;
         } else {
-            this.runBehaviorTree(dt);
+            // LABORATORIO (Match.triggerCruzamento): o finalizador marcado fica parado a espera do gesto (a arvore nao o manda receber a bola nem cabecear antes).
+            const labParado = (!!this.labGesto || !!this.labCruzador) && Date.now() <= this.labExpira;
+            if (labParado) { this.velocity.set(0, 0, 0); if (this.fsm.currentState !== 'IDLE') this.fsm.changeState('IDLE'); }
+            else this.runBehaviorTree(dt);
             this.fsm.update(dt);
             this.model.position.addScaledVector(this.velocity, dt);
         }
@@ -5501,6 +5504,20 @@ class FootballPlayer {
         const s = this.fsm ? this.fsm.currentState : '';
         if (s === 'PEIXINHO' || s === 'VOLEIO' || s === 'SHOOT' || s === 'PASS' || s === 'CROSS' || s === 'SET_PIECE_KICK' || s === 'SET_PIECE_WAIT' || s === 'TACKLE' ||
             s === 'SLIDE_TACKLE' || s === 'CHEST_CONTROL' || s === 'BALL_CONTROL_RIGHT' || s === 'LATERAL' || s === 'COMEMORAR') return false;
+        // LABORATORIO (Match.triggerCruzamento): dispara quando a bola vai estar no ponto marcado `labAlvo`, sem sorteio nem espera.
+        if (this.labGesto === 'peixinho') {
+            if (Date.now() > this.labExpira) this.labGesto = null;
+            else {
+                const T = this.labAlvo, prevL = preverBolaEm(K.tContacto);
+                if (!prevL || Math.hypot(prevL.x - T.x, prevL.y - T.y, prevL.z - T.z) > 2.0) return false;
+                const lx = prevL.x - this.model.position.x, lz = prevL.z - this.model.position.z, ld = Math.hypot(lx, lz) || 1;
+                this.labGesto = null;
+                this.peixinho = { x0: this.model.position.x, z0: this.model.position.z, bx: prevL.x, bz: prevL.z, by: prevL.y, dirx: lx / ld, dirz: lz / ld, d: ld, tocou: false, vx: 0, vz: 0 };
+                this.actionState = null;
+                this.fsm.changeState('PEIXINHO');
+                return true;
+            }
+        }
         if (this.skillFor('TEC') <= K.tecMin || this.skillFor('tacticknow') <= K.leituraMin) return false;
         // A bola vem para a baliza que ele ataca, e nao e de ninguem (ou e do adversario).
         const v = Match.ballVel;
@@ -5538,6 +5555,22 @@ class FootballPlayer {
     }
 
     /*
+    A POSTURA DO VOLEIO: o jogador roda no eixo Y do mundo (horario ou anti-horario, conforme o lado de onde vem a bola) e fica DE FRENTE PARA A BOLA que chega; so assim a perna
+    de chute, que balanca para a frente, a apanha. `dirx/dirz` e a direccao para onde ele olha: contra o sentido da bola (para onde ela vem). A bola sai depois para a baliza (ver fsm.js).
+    `lado` (+1/-1): o lado para onde as pernas rolam, o CONTRARIO ao da baliza (a cabeca vai para o lado do golo; a esquerda do jogador = (dirz, -dirx)).
+    */
+    posturaDoVoleio(prev) {
+        const v = Match.ballVel;
+        let fx = -v.x, fz = -v.z, n = Math.hypot(fx, fz);
+        if (n < 0.5) { fx = prev.x - this.model.position.x; fz = prev.z - this.model.position.z; n = Math.hypot(fx, fz) || 1; }
+        fx /= n; fz /= n;
+        const gx = -prev.x, gz = this.targetGoalZ - prev.z;
+        // A CABECA para o lado do golo e as pernas para o lado contrario (so assim a perna de chute balanca no ar): `lado` e o das pernas, o oposto ao do golo.
+        const lado = (gx * fz + gz * -fx) >= 0 ? -1 : 1;
+        return { dirx: fx, dirz: fz, lado: lado };
+    }
+
+    /*
     O VOLEIO (ver `Voleio`, config/player_behavior.js): avalia se vale a pena um voleio acrobatico a uma bola no ar a frente dele, perto da baliza. Chamado todos os frames pelo
     `update` para os jogadores de campo sem bola. Devolve true se arrancou o estado VOLEIO.
     */
@@ -5550,6 +5583,24 @@ class FootballPlayer {
         const s = this.fsm ? this.fsm.currentState : '';
         if (s === 'VOLEIO' || s === 'PEIXINHO' || s === 'SHOOT' || s === 'PASS' || s === 'CROSS' || s === 'SET_PIECE_KICK' || s === 'SET_PIECE_WAIT' || s === 'TACKLE' ||
             s === 'SLIDE_TACKLE' || s === 'CHEST_CONTROL' || s === 'BALL_CONTROL_RIGHT' || s === 'LATERAL' || s === 'COMEMORAR') return false;
+        // LABORATORIO (Match.triggerCruzamento): dispara quando a bola vai estar no ponto marcado `labAlvo`, sem sorteio nem espera.
+        if (this.labGesto === 'voleio') {
+            if (Date.now() > this.labExpira) this.labGesto = null;
+            else {
+                const T = this.labAlvo, prevL = preverBolaEm(K.tContacto);
+                if (!prevL || Math.hypot(prevL.x - T.x, prevL.y - T.y, prevL.z - T.z) > 2.0) return false;
+                const px0 = this.model.position.x, pz0 = this.model.position.z;
+                const ex0 = prevL.x - px0, ez0 = prevL.z - pz0;
+                const gx0 = -prevL.x, gz0 = this.targetGoalZ - prevL.z, dg0 = Math.hypot(gx0, gz0) || 1;
+                const pos0 = this.posturaDoVoleio(prevL), fx0 = pos0.dirx, fz0 = pos0.dirz;
+                _v2.set(0, 0, 1).applyQuaternion(this.model.quaternion);
+                this.labGesto = null;
+                this.voleio = { x0: px0, z0: pz0, bx: prevL.x, bz: prevL.z, by: prevL.y, dirx: fx0, dirz: fz0, lado: pos0.lado, yaw0: Math.atan2(_v2.x, _v2.z), tocou: false, vx: 0, vz: 0 };
+                this.actionState = null;
+                this.fsm.changeState('VOLEIO');
+                return true;
+            }
+        }
         if (this.skillFor('TEC') <= K.tecMin) return false;
         if (Match.ballCarrier) return false;
         const v = Match.ballVel;
@@ -5574,8 +5625,9 @@ class FootballPlayer {
         this.voleioCooldown = K.cooldown;
         if (Math.random() > K.chance) return false;
         // `dirx/dirz`: para a baliza. `lado`: +1 se a bola esta a esquerda dele (as pernas rolam para la), -1 a direita.
-        const fx = gx / dg, fz = gz / dg;
-        const ladoCerto = (ex * fz + ez * -fx) >= 0 ? 1 : -1;
+        const pos1 = this.posturaDoVoleio(prev), fx = pos1.dirx, fz = pos1.dirz;
+        // O lado: o da ONDE VEM a bola (bola que vem da esquerda -> as pernas rolam para a esquerda e bate com a esquerda, de frente para ela).
+        const ladoCerto = pos1.lado;
         _v2.set(0, 0, 1).applyQuaternion(this.model.quaternion);
         this.voleio = { x0: px, z0: pz, bx: prev.x, bz: prev.z, by: prev.y, dirx: fx, dirz: fz, lado: ladoCerto, yaw0: Math.atan2(_v2.x, _v2.z), tocou: false, vx: 0, vz: 0 };
         this.actionState = null;

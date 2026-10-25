@@ -1151,7 +1151,7 @@ const Peixinho = {
     velBolaMin: 2.0, velBolaMax: 16.0,
     chance: 0.7, cooldown: 8.0,
     tImpulso: 0.12, tContacto: 0.34, tApreensao: 0.22, tQueda: 0.50, tLevantar: 0.60,
-    saidaVy: 0.5, saidaVel: 11.0,   // o remate de peixinho: sempre para o golo (ver fsm.js), rasteiro e a esta velocidade
+    saidaVy: 0.5, saidaVel: 13.2,   // o remate de peixinho: sempre para o golo (ver fsm.js), rasteiro e a esta velocidade (era 11: +20%)
     cabecaAlcance: 1.55,      // m a frente da origem do corpo a que a cabeca fica no contacto (corpo deitado)
     pitch: { impulso: 0.55, voo: 0.95, contacto: 1.20, apreensao: 1.10, queda: 1.45 },   // rad: inclinacao do corpo para a frente
     alturaPescoco: { inicio: 1.45, queda: 0.38 },   // m do pescoco ao relvado, no arranque e no deslize
@@ -1193,7 +1193,7 @@ Os tempos (s, desde o arranque): preparo (`tPreparo`), o voo ate ao contacto (`t
 const Voleio = {
     activo: true,
     tecMin: 75,
-    alturaMin: 0.8, alturaMax: 1.7,
+    alturaMin: 0.5, alturaMax: 1.4,   // 30 cm mais baixo do que era (0.8 a 1.7)
     alcanceMin: 1.0, alcanceMax: 3.5,
     cone: 1.0,                // rad: a baliza tem de ficar neste cone a frente dele
     golMax: 13.0, golMin: 7.0,   // m do centro da baliza: o voleio de 7 a 13 m (o peixinho vai ate 7)
@@ -1203,17 +1203,20 @@ const Voleio = {
     tPreparo: 0.16, tContacto: 0.42, tQueda: 0.28, tChao: 0.55, tLevantar: 0.75,
     saidaVel: 26.0, saidaVy: 1.0,   // o remate de voleio: forte e baixo, para a baliza
     distContactoMax: 1.5,     // m: do pe a bola, no contacto
+    inicioChute: 0.55,        // fraccao do voo ate ao contacto a partir da qual a perna de chute avanca e a da mira recua (antes: a mira a frente e a de chute a armar)
     roll: { preparo: 0.18, contacto: 1.30, queda: 1.60, chao: 1.60 },   // rad: o corpo deitado de lado (o sinal vem do lado da bola)
     alturaLinha: 0.25,        // m da origem do corpo ao relvado, deitado de lado
-    pernaAlcance: -0.05,      // m: da origem do corpo ao pe da perna de cima, no contacto (para ajustar a altura do salto a bola)
-    ancoraLado: 0.98,         // m: a origem do corpo fica tanto para o lado contrario ao das pernas (o pe fica sob a bola)
-    ancoraFrente: 0.90,       // m: e tanto atras da bola (a perna chega a frente)
+    pernaAlcance: 0.35,       // m: da origem do corpo (os pes) ao pe da perna de cima, no contacto, em altura (medido): o salto sobe a bola menos isto
+    ancoraLado: 0.82,         // m (medido): o pe da perna de cima fica tanto para o lado da CABECA em relacao a origem do corpo (o corpo roda em torno dos pes)
+    ancoraFrente: 0.76,       // m (medido): e o pe fica tanto a frente da origem
     pose: {
-        preparo: { pelvisX: 0.0, peitoX: 0.10, pescocoX: -0.10, coxaE: 0.20, joelhoE: 0.50, peE: 0.0, coxaD: -1.00, joelhoD: 1.30, peD: 0.0,
-            bracoEx: -0.30, bracoEz: 0.50, cotoveloE: -0.40, bracoDx: -1.00, bracoDz: 0.50, cotoveloD: -0.50 },
-        voo: { pelvisX: 0.0, peitoX: 0.0, pescocoX: -0.20, coxaE: -0.20, joelhoE: 1.30, peE: 0.0, coxaD: -1.30, joelhoD: 1.00, peD: 0.0,
+        // A PERNA DA MIRA (a esquerda, nestas poses da perna de chute DIREITA) vai a frente, esticada para a bola; a de chute fica ATRAS, dobrada, a armar. No contacto trocam-se: a de chute
+        // vai para a frente (o mesmo gesto de um chute normal) e a da mira vai para tras. A troca so comeca perto da bola (`inicioChute`, fsm.js).
+        preparo: { pelvisX: 0.0, peitoX: 0.10, pescocoX: -0.10, coxaE: -0.70, joelhoE: 0.30, peE: 0.0, coxaD: 0.40, joelhoD: 1.20, peD: 0.0,
+            bracoEx: -0.30, bracoEz: 0.60, cotoveloE: -0.40, bracoDx: -0.60, bracoDz: 0.50, cotoveloD: -0.50 },
+        voo: { pelvisX: 0.0, peitoX: 0.0, pescocoX: -0.20, coxaE: -1.00, joelhoE: 0.20, peE: 0.0, coxaD: 0.60, joelhoD: 1.50, peD: 0.0,
             bracoEx: -0.30, bracoEz: 1.20, cotoveloE: -0.20, bracoDx: -0.30, bracoDz: 1.20, cotoveloD: -0.20 },
-        contacto: { pelvisX: 0.0, peitoX: -0.05, pescocoX: -0.30, coxaE: 0.20, joelhoE: 1.00, peE: 0.0, coxaD: -1.55, joelhoD: 0.20, peD: -0.50,
+        contacto: { pelvisX: 0.0, peitoX: -0.05, pescocoX: -0.30, coxaE: 0.50, joelhoE: 1.00, peE: 0.0, coxaD: -1.55, joelhoD: 0.20, peD: -0.50,
             bracoEx: -0.50, bracoEz: 1.30, cotoveloE: -0.30, bracoDx: -1.00, bracoDz: 0.80, cotoveloD: -0.60 },
         queda: { pelvisX: 0.0, peitoX: 0.0, pescocoX: -0.30, coxaE: -0.40, joelhoE: 0.90, peE: 0.0, coxaD: -0.90, joelhoD: 0.70, peD: 0.0,
             bracoEx: -1.50, bracoEz: 0.50, cotoveloE: -0.40, bracoDx: -1.50, bracoDz: 0.50, cotoveloD: -0.40 },

@@ -1782,6 +1782,119 @@ Object.assign(Match, {
         return { atacante: atacante, gk: gkDef, lado: lado, graus: grausDoEixo };
     },
 
+    /*
+    LABORATORIO DO PEIXINHO E DO VOLEIO (botoes "Peixinho" e "Voleio" do painel da esquerda).
+
+    Uma MONTAGEM, como o cara a cara: um jogador cruza da ponta e o avancado finaliza com o gesto pedido. O avancado fica parado no sitio, de frente para o ponto de contacto, e
+    os outros vao para o meio-campo de tras (so os dois guarda-redes ficam). O cruzamento sai do pe do cruzador com a velocidade que faz a bola passar pelo ponto de contacto `T`
+    ao fim de `tCruz` s (resolvida com a mesma fisica da bola: gravidade e arrasto, ver `preverBolaEm`). O avancado e marcado com `labGesto`: o `avaliarPeixinho` / `avaliarVoleio`
+    (player.js) disparam o gesto quando a bola vai estar em `T` daqui a `tContacto` s, sem sorteio nem espera.
+
+        peixinho   contacto a 5 m do centro da baliza, a bola a 0.5 m do relvado
+        voleio     contacto a 10 m do centro da baliza, a bola a 1.0 m do relvado
+    O cruzamento e TENSO e baixo (`tCruz` curto: 0.85 s o peixinho, 0.95 s o voleio): a bola nao sobe muito e chega ao ponto a descer pouco.
+
+    Sem animacao de cruzamento: o cruzador esta parado com a bola e solta-a (0.7 s depois da montagem) com o anuncio "CRUZAMENTO".
+    */
+    triggerCruzamento: function (tipo, forceTeam = null) {
+        const K = (tipo === 'voleio') ? { alvoDist: 10.0, alvoY: 1.0, recuo: 2.3, tCruz: 0.95 } : { alvoDist: 5.0, alvoY: 0.5, recuo: 3.0, tCruz: 0.85 };
+        const team = forceTeam || this.possessionTeam || 'TeamA';
+        const atacantes = (team === 'TeamA') ? this.players : this.opponents;
+        const defensores = (team === 'TeamA') ? this.opponents : this.players;
+        if (!atacantes.length || !defensores.length) return;
+        const semGk = atacantes.filter(p => p.role !== 'gk');
+        const finalizador = semGk.find(p => p.role === 'atk') || semGk[semGk.length - 1];
+        const cruzador = semGk.find(p => p !== finalizador && p.role === 'mid') || semGk.find(p => p !== finalizador);
+        const gkDef = defensores.find(p => p.role === 'gk') || defensores[0];
+        if (!finalizador || !cruzador || !gkDef) return;
+
+        this.mudarEstado('PLAY', 'lab_cruzamento');
+        this.setPieceTimer = 0; this.setPieceTaker = null;
+        this.kickoffActive = false; this.kickoffTimer = 0; this.kickoffPendingPassToDef = false;
+
+        const dir = finalizador.dirZ, fundoZ = dir * (CAMPO_COMP / 2);
+        const lado = Math.random() < 0.5 ? -1 : 1;                       // de que ponta vem o cruzamento
+        const T = { x: -lado * 1.2, y: K.alvoY, z: fundoZ - dir * K.alvoDist };
+        // O avancado: antes do ponto de contacto, na linha dele para a baliza.
+        const gx = 0 - T.x, gz = fundoZ - T.z, gl = Math.hypot(gx, gz) || 1;
+        const fx = T.x - (gx / gl) * K.recuo, fz = T.z - (gz / gl) * K.recuo;
+        const colocar = (p, x, z) => {
+            p.model.position.set(x, ALTURA_BASE_Y, z); p.velocity.set(0, 0, 0);
+            p.dynamicTarget = new THREE.Vector3(x, ALTURA_BASE_Y, z); p.baseTarget.set(x, ALTURA_BASE_Y, z);
+            p.hasBall = false; if (p.fsm) p.fsm.changeState('IDLE');
+        };
+        colocar(finalizador, fx, fz);
+        finalizador.model.lookAt(T.x, finalizador.model.position.y, T.z);
+        finalizador.peixinhoCooldown = 0; finalizador.voleioCooldown = 0; finalizador.jumpTimer = 0;
+        finalizador.labGesto = tipo; finalizador.labAlvo = T; finalizador.labExpira = Date.now() + 9000;
+        // O remate vai ao canto (junto ao poste, dentro da baliza) e para o lado contrario ao do guarda-redes: assim ele faz o mergulho todo (cai, levanta-se).
+        finalizador.labCanto = ((gkDef.model.position.x > 0.2) ? -1 : (Math.random() < 0.5 ? -1 : 1)) * (LARGURA_BALIZA / 2 - 0.5);
+
+        // O cruzador: na ponta, com a bola.
+        // O cruzador (a bola) fica MAIS LONGE da linha de fundo do que o avancado: senao, no momento do passe, o avancado estaria a frente da bola e seria fora de jogo.
+        const cx = lado * 17, cz = fundoZ - dir * (Math.abs(fz - fundoZ) + 4);
+        colocar(cruzador, cx, cz);
+        cruzador.model.lookAt(T.x, cruzador.model.position.y, T.z);
+        this.ball.position.set(cx, BallPhysics.raio, cz); this.ballVel.set(0, 0, 0);
+        this.ballCarrier = cruzador; cruzador.hasBall = true; cruzador.touchLock = 0;
+        this.intendedReceiver = null; this.passTargetPos = null;
+        this.possessionTeam = team; this.possessionTimer = 0;
+        this.lastTouchedTeam = team; this.lastTouchedPlayer = cruzador;
+        window.bolaChutada = false;
+
+        const gkZ = dir * (CAMPO_COMP / 2) - dir * 0.5;
+        gkDef.model.position.set(0, ALTURA_BASE_Y, gkZ); gkDef.velocity.set(0, 0, 0);
+        if (gkDef.fsm) gkDef.fsm.changeState('IDLE');
+
+        // Os outros para o meio-campo de tras, longe do lance.
+        let i = 0;
+        for (const lista of [atacantes, defensores]) {
+            const ladoFila = (lista === atacantes) ? -1 : 1;
+            for (const p of lista) {
+                if (p === finalizador || p === cruzador || p === gkDef || p.role === 'gk') continue;
+                colocar(p, ladoFila * (CAMPO_LARG / 2 - 3), -dir * (10 + (i % 10) * 3.5));
+                i++;
+            }
+        }
+
+        // O cruzamento: velocidade que passa por T ao fim de tCruz (gravidade e arrasto da bola).
+        const B = BallPhysics, tau = K.tCruz;
+        // A bola sai 1.2 m a frente do cruzador (na direccao do avancado), fora do corpo dele: senao a IA do cruzador ficava com ela e rematava.
+        const ux = T.x - cx, uz = T.z - cz, ul = Math.hypot(ux, uz) || 1;
+        const origem = { x: cx + ux / ul * 1.2, y: BallPhysics.raio + 0.15, z: cz + uz / ul * 1.2 };
+        // O cruzador (tal como o avancado) fica parado e sem tocar na bola enquanto durar o lance.
+        cruzador.labCruzador = true; cruzador.labExpira = Date.now() + 9000; cruzador.touchLock = 3;
+        const simular = (v) => {
+            let x = origem.x, y = origem.y, z = origem.z, vx = v.x, vy = v.y, vz = v.z;
+            const dt = 1 / 120, passos = Math.round(tau / dt);
+            for (let k = 0; k < passos; k++) {
+                const s = Math.hypot(vx, vy, vz);
+                if (s > 0.001) { const dv = B.kArrasto * s * s * dt; vx -= vx / s * dv; vy -= vy / s * dv; vz -= vz / s * dv; }
+                vy -= B.gravidade * dt;
+                x += vx * dt; y += vy * dt; z += vz * dt;
+            }
+            return { x: x, y: y, z: z };
+        };
+        const v = { x: (T.x - origem.x) / tau, y: (T.y - origem.y) / tau + 0.5 * B.gravidade * tau, z: (T.z - origem.z) / tau };
+        for (let it = 0; it < 8; it++) {
+            const p = simular(v);
+            v.x += (T.x - p.x) / tau; v.y += (T.y - p.y) / tau; v.z += (T.z - p.z) / tau;
+        }
+
+        if (typeof Officials !== 'undefined' && Officials.anunciar) Officials.anunciar(tipo === 'voleio' ? 'VOLEIO' : 'PEIXINHO');
+        // Laboratorio: sem impedimento (e sem as marcas de um passe anterior) durante o lance.
+        this.semImpedimento = true;
+        if (typeof Officials !== 'undefined' && Officials.limparImpedimento) Officials.limparImpedimento();
+        const jogo = this;
+        window.setTimeout(function () { jogo.semImpedimento = false; }, 9000);
+        // O cruzamento sai logo (sem espera: o cruzador e da IA e passava a bola ao avancado antes disso).
+        cruzador.hasBall = false; this.ballCarrier = null;
+        this.ball.position.set(origem.x, origem.y, origem.z);
+        this.ballVel.set(v.x, v.y, v.z);
+        if (cruzador.showActionBanner) cruzador.showActionBanner('CROSS');
+        return { finalizador: finalizador, cruzador: cruzador, alvo: T, velocidade: v };
+    },
+
     triggerThrowIn: function (forceTeam = null) {
         const ultimo = this.lastTouchedTeam ||
             (this.ballCarrier ? this.ballCarrier.team : null) || 'TeamA';
