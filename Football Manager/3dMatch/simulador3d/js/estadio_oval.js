@@ -103,14 +103,14 @@ const EstadioOval = {
     da primeira fila e à altura `yIn`, a de fora a `dOut` e `yOut`. `dupla`: as
     duas faces. Indexada, uma malha só.
     */
-    faixa(THREE, a, b, dIn, yIn, dOut, yOut, material, n) {
+    faixa(THREE, a, b, dIn, yIn, dOut, yOut, material, n, pular) {
         const pos = new Float32Array((n + 1) * 2 * 3), uv = new Float32Array((n + 1) * 2 * 2), ind = [];
         for (let i = 0; i <= n; i++) {
             const t = (i / n) * Math.PI * 2;
             const p = this.ponto(a, b, dIn, t), q = this.ponto(a, b, dOut, t);
             pos.set([p.x, yIn, p.z, q.x, yOut, q.z], i * 6);
             uv.set([i / n, 0, i / n, 1], i * 4);
-            if (i < n) { const k = i * 2; ind.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
+            if (i < n && !(pular && pular(((i + 0.5) / n) * Math.PI * 2))) { const k = i * 2; ind.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
         }
         const g = new THREE.BufferGeometry();
         g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -336,7 +336,10 @@ const EstadioOval = {
         const alt = this.alturas(rows, cfg);
         // O fundo da rampa lê-se do lado de fora como o interior escuro, entre as colunas.
         const matSubrampa = new THREE.MeshStandardMaterial({ color: cfg.corSubrampa, roughness: 0.95, side: THREE.DoubleSide });
-        const barriga = this.faixa(THREE, a0, b0, -0.6, 0.0, dEnd + 0.6, standY(rows - 1) - 0.25, matSubrampa, N);
+        // Sem a barriga à frente do túnel dos jogadores: a rampa inclinada por baixo dos degraus atravessava-o (a "parte diagonal cinzenta" lá dentro).
+        const tj = (TJ && cfg.tunel) ? (TJ.lado < 0 ? Math.PI : 0) : null;
+        const pularTunel = (tj === null) ? null : (t) => Math.abs(Math.atan2(Math.sin(t - tj), Math.cos(t - tj))) < 0.1;
+        const barriga = this.faixa(THREE, a0, b0, -0.6, 0.0, dEnd + 0.6, standY(rows - 1) - 0.25, matSubrampa, N, pularTunel);
         barriga.castShadow = true; barriga.receiveShadow = false;
         grupo.add(barriga);
         // O parapeito do topo, por dentro: fecha a rampa.

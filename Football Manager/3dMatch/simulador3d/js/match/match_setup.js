@@ -516,8 +516,16 @@ Object.assign(Match, {
             // O material é feito por peça: cada uma tem o seu comprimento, e portanto o seu nº de painéis.
             const addPlaca = (comprimento, _mat, x, z, rodaY) => {
                 const mat = fazerMaterial(comprimento);
+                /*
+                SÓ A FACE VIRADA PARA O CAMPO leva a publicidade; o verso (virado para a arquibancada), as pontas e o topo são pretos, como uma
+                placa de verdade. Faces de uma caixa: +x, -x, +y, -y, +z, -z; a normal local +z, rodada de `rodaY`, aponta para (sin, cos).
+                */
+                const nx = Math.sin(rodaY), nz = Math.cos(rodaY);
+                const frenteParaCampo = (nx * -x + nz * -z) > 0 ? 4 : 5;
+                const preto = new THREE.MeshBasicMaterial({ color: 0x050505 });
                 const m = new THREE.Mesh(
-                    new THREE.BoxGeometry(comprimento, PP.altura, PP.espessura), mat);
+                    new THREE.BoxGeometry(comprimento, PP.altura, PP.espessura),
+                    [0, 1, 2, 3, 4, 5].map(i => i === frenteParaCampo ? mat : preto));
                 m.position.set(x, PP.altura / 2, z);
                 m.rotation.y = rodaY;
                 m.castShadow = true;
