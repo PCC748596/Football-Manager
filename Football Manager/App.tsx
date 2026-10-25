@@ -24,6 +24,7 @@ import { TeamKit } from './components/TeamKit';
 import { PlayerFace } from './components/PlayerFace';
 import EditorApp from './components/EditorApp';
 import ManagerCreation from './components/ManagerCreation';
+import { ModeSelection, CareerOffers } from './components/CareerStart';
 
 // -- Sub-components --
 
@@ -294,7 +295,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
 
 const GameContainer: React.FC = () => {
   const { gameState, startGame, importGameData, t } = useGame();
-  const [appPhase, setAppPhase] = useState<'MENU' | 'CREATE_MANAGER' | 'SELECT_TEAM' | 'GAME' | 'SETTINGS' | 'EDITOR'>('MENU');
+  const [appPhase, setAppPhase] = useState<'MENU' | 'CREATE_MANAGER' | 'SELECT_MODE' | 'CAREER' | 'SELECT_TEAM' | 'GAME' | 'SETTINGS' | 'EDITOR'>('MENU');
   const [tempManagerName, setTempManagerName] = useState('');
   const [view, setView] = useState<GameState['view']>('DASHBOARD');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -322,7 +323,7 @@ const GameContainer: React.FC = () => {
 
   const handleManagerCreated = (name: string) => {
     setTempManagerName(name);
-    setAppPhase('SELECT_TEAM');
+    setAppPhase('SELECT_MODE');
   };
   const handleTeamSelected = (teamId: string, countryId: string, leagueId: string) => {
     startGame(teamId, tempManagerName, countryId, leagueId);
@@ -347,7 +348,9 @@ const GameContainer: React.FC = () => {
         </div>
       )}
       {appPhase === 'CREATE_MANAGER' && <ManagerCreation onNext={handleManagerCreated} onBack={() => setAppPhase('MENU')} />}
-      {appPhase === 'SELECT_TEAM' && <TeamSelection managerName={tempManagerName} onSelectTeam={handleTeamSelected} onBack={() => setAppPhase('CREATE_MANAGER')} />}
+      {appPhase === 'SELECT_MODE' && <ModeSelection managerName={tempManagerName} onPickClub={() => setAppPhase('SELECT_TEAM')} onCareer={() => setAppPhase('CAREER')} onBack={() => setAppPhase('CREATE_MANAGER')} />}
+      {appPhase === 'CAREER' && <CareerOffers managerName={tempManagerName} onSelectTeam={handleTeamSelected} onBack={() => setAppPhase('SELECT_MODE')} />}
+      {appPhase === 'SELECT_TEAM' && <TeamSelection managerName={tempManagerName} onSelectTeam={handleTeamSelected} onBack={() => setAppPhase('SELECT_MODE')} />}
       
       {appPhase === 'GAME' && gameState.userTeamId && (
         <Layout setView={setView} currentView={view}>
