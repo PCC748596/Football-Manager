@@ -244,8 +244,8 @@ function computeCongestion(bb) {
 // contra bloco compacto do lado da bola arrisca menos, sem o utilizador
 // mexer em nada (ver docs/tacticSystem.md secção 9).
 function computeAggression(bb) {
-    const base = (typeof MentalidadeModel !== 'undefined' && MentalidadeModel[Tatics.estilo])
-        ? MentalidadeModel[Tatics.estilo].agressao : 0.5;
+    const base = (typeof MentalidadeModel !== 'undefined' && MentalidadeModel[taticaDe(bb && bb.team, 'estilo')])
+        ? MentalidadeModel[taticaDe(bb && bb.team, 'estilo')].agressao : 0.5;
     const ladoBola = bb.ballX < -10 ? 'esq' : (bb.ballX > 10 ? 'dir' : 'centro');
     const congestaoLado = bb.congestion[ladoBola] / 100;
     // Congestão 0 não mexe; congestão 100 corta a agressividade a 40% da base.
@@ -442,7 +442,7 @@ function pickChaser(bb) {
         }
     }
     const M = (typeof MarkingModel !== 'undefined') ? MarkingModel : null;
-    const pressao = (typeof Tatics !== 'undefined' && Tatics.pressaoDefensiva) || 'balanced';
+    const pressao = (typeof Tatics !== 'undefined' && taticaDe(bb && bb.team, 'pressaoDefensiva')) || 'balanced';
     const raioAccionamento = (M && M.raioDeAccionamento &&
         M.raioDeAccionamento[pressao] !== undefined)
         ? M.raioDeAccionamento[pressao] : undefined;
@@ -495,7 +495,7 @@ function pickChaser(bb) {
         bolaSolta: bolaSolta,
         bolaZ: ballPos.z,
         dir: bb.dir,
-        pressaoAlta: (typeof Tatics !== 'undefined' && Tatics.pressaoDefensiva === 'high'),
+        pressaoAlta: (typeof Tatics !== 'undefined' && taticaDe(bb && bb.team, 'pressaoDefensiva') === 'high'),
         gkTemBola: (bb.oppCarrier && bb.oppCarrier.role === 'gk') ||
             (bb.carrier && bb.carrier.role === 'gk') ||
             // Bola na mão de um guarda-redes (de qualquer equipa): é intocável, ninguém a persegue.
@@ -814,10 +814,10 @@ jogo mexia na forma da equipa, ao lado da postura.
 */
 function computeCollectiveShape(bb) {
     let pushMultiplier = 1.0;
-    if (Tatics.estilo === 'muito_ofensiva') pushMultiplier = 1.30;
-    else if (Tatics.estilo === 'ataque') pushMultiplier = 1.15;
-    else if (Tatics.estilo === 'defesa') pushMultiplier = 0.85;
-    else if (Tatics.estilo === 'muito_defensiva') pushMultiplier = 0.70;
+    if (taticaDe(bb && bb.team, 'estilo') === 'muito_ofensiva') pushMultiplier = 1.30;
+    else if (taticaDe(bb && bb.team, 'estilo') === 'ataque') pushMultiplier = 1.15;
+    else if (taticaDe(bb && bb.team, 'estilo') === 'defesa') pushMultiplier = 0.85;
+    else if (taticaDe(bb && bb.team, 'estilo') === 'muito_defensiva') pushMultiplier = 0.70;
     bb.pushMultiplier = pushMultiplier;
 
     /*
@@ -890,8 +890,8 @@ function escolherProfundidade(bb) {
     const B = BlockShape;
     if (bb && !bb.isAttacking) return 'short';
 
-    const mental = (typeof MentalidadeModel !== 'undefined') ? MentalidadeModel[Tatics.estilo] : null;
-    const pedido = (mental && mental.profundidade) ? mental.profundidade : Tatics.lengthCompactness;
+    const mental = (typeof MentalidadeModel !== 'undefined') ? MentalidadeModel[taticaDe(bb && bb.team, 'estilo')] : null;
+    const pedido = (mental && mental.profundidade) ? mental.profundidade : taticaDe(bb && bb.team, 'lengthCompactness');
     return B.profundidade[pedido] !== undefined ? pedido : 'median';
 }
 
@@ -933,8 +933,8 @@ function pisoDaSaidaDeBola(p, meuGK, bb) {
 function computeBlock(bb) {
     const B = BlockShape;
     const modo = bb.isAttacking ? 'comBola' : 'semBola';
-    const compac = B.amplitude[Tatics.compactness] !== undefined
-        ? Tatics.compactness : 'median';
+    const compac = B.amplitude[taticaDe(bb && bb.team, 'compactness')] !== undefined
+        ? taticaDe(bb && bb.team, 'compactness') : 'median';
     const compacLength = escolherProfundidade(bb);
 
     /* --- profundidade --------------------------------------------------- */
@@ -955,7 +955,7 @@ function computeBlock(bb) {
     dependendo da fase do jogo, evitando que o time estique num único retângulo gigante.
     */
     let isOffensive = typeof Tatics !== 'undefined' && 
-        (Tatics.estilo === 'ataque' || Tatics.estilo === 'muito_ofensiva');
+        (taticaDe(bb && bb.team, 'estilo') === 'ataque' || taticaDe(bb && bb.team, 'estilo') === 'muito_ofensiva');
     let bZ = (typeof bb.bolaZSuave === 'number' ? bb.bolaZSuave : (bb.ballZ || 0)) * bb.dir;
     
     /*
@@ -1040,9 +1040,9 @@ function computeBlock(bb) {
     }
 
     const mentalBloco = (typeof MentalidadeModel !== 'undefined' &&
-        MentalidadeModel[Tatics.estilo] &&
-        typeof MentalidadeModel[Tatics.estilo].blocoZ === 'number')
-        ? MentalidadeModel[Tatics.estilo].blocoZ : 0;
+        MentalidadeModel[taticaDe(bb && bb.team, 'estilo')] &&
+        typeof MentalidadeModel[taticaDe(bb && bb.team, 'estilo')].blocoZ === 'number')
+        ? MentalidadeModel[taticaDe(bb && bb.team, 'estilo')].blocoZ : 0;
 
     const bolaZDir = bb.bolaZSuave * bb.dir;
     // `avancoDoRetangulo`: o rectângulo inteiro 3 m à frente do que o resto da conta dá (pedido). Os limites abaixo continuam a valer.
@@ -1107,7 +1107,7 @@ function computeBlock(bb) {
     if (!bb.isAttacking && typeof TeamShape !== 'undefined' &&
         typeof Tatics !== 'undefined' && TeamShape.linhaDefensiva) {
         
-        const capBase = TeamShape.linhaDefensiva[Tatics.linhaDefensiva]
+        const capBase = TeamShape.linhaDefensiva[taticaDe(bb && bb.team, 'linhaDefensiva')]
             ?? TeamShape.linhaDefensiva.medium;
         const pesoMental = (typeof MentalidadeModel !== 'undefined' &&
             typeof MentalidadeModel.pesoNaLinha === 'number')
@@ -1141,7 +1141,7 @@ function computeBlock(bb) {
 
         const M = (typeof MarkingModel !== 'undefined') ? MarkingModel : null;
         const distancia = (M && M.distanciaPorPressao)
-            ? (M.distanciaPorPressao[Tatics.pressaoDefensiva] ?? M.distanciaPorPressao.balanced)
+            ? (M.distanciaPorPressao[taticaDe(bb && bb.team, 'pressaoDefensiva')] ?? M.distanciaPorPressao.balanced)
             : 3.0;
 
         let lastLine = recuoDaUltimaLinha(z0, maisRecuadoDir, distancia, pisoDir, capLinha);
@@ -1445,7 +1445,7 @@ function calcularPontoDoSlot(slot, pos, role, fbStyle, bb, linhaActual, fecharPo
     if (nudge) {
         if (bb.isAttacking) {
             let fbSt = (pos === 'LB' || pos === 'RB') ? FullBackStyle[fbStyle] : null;
-            const isDefMental = (typeof Tatics !== 'undefined' && (Tatics.estilo === 'defesa' || Tatics.estilo === 'muito_defensiva'));
+            const isDefMental = (typeof Tatics !== 'undefined' && (taticaDe(bb && bb.team, 'estilo') === 'defesa' || taticaDe(bb && bb.team, 'estilo') === 'muito_defensiva'));
             let mult = fbSt ? fbSt.comBolaMult : 1;
             if (isDefMental) {
                 if (pos === 'LB' || pos === 'RB') mult = FullBackStyle.defensive.comBolaMult;
@@ -1841,7 +1841,7 @@ const TeamBT = sel('TeamRoot',
                 // um dos dois (ex: Ataque + Balanced) não basta pra pressionar
                 // no campo do adversário o jogo inteiro.
                 cond('pressionamosAlto', (bb) =>
-                    (Tatics.estilo === 'ataque' || Tatics.estilo === 'muito_ofensiva') && Tatics.pressaoDefensiva === 'high' && bb.ballZ * bb.dir > 0),
+                    (taticaDe(bb && bb.team, 'estilo') === 'ataque' || taticaDe(bb && bb.team, 'estilo') === 'muito_ofensiva') && taticaDe(bb && bb.team, 'pressaoDefensiva') === 'high' && bb.ballZ * bb.dir > 0),
                 setPosture(TeamPosture.HIGH_PRESS)
             ),
             setPosture(TeamPosture.MID_BLOCK)
@@ -1948,7 +1948,7 @@ function aplicarMarcacaoPosicional(p, bb, targetX, targetZ) {
     }
 
     const M = MarkingModel;
-    let distancia = M.distanciaPorPressao[Tatics.pressaoDefensiva]
+    let distancia = M.distanciaPorPressao[taticaDe(bb && bb.team, 'pressaoDefensiva')]
         ?? M.distanciaPorPressao.balanced;
 
     /*
@@ -1962,11 +1962,11 @@ function aplicarMarcacaoPosicional(p, bb, targetX, targetZ) {
     por cima da personalidade de um jogador.
     */
     if (typeof distanciaComEstilo === 'function') distancia = distanciaComEstilo(p, distancia);
-    let biasMax = M.biasMaxPara(targetZ * p.dirZ);
+    let biasMax = M.biasMaxPara(targetZ * p.dirZ, p.team);
 
     // No campo de ataque com pressão não-High, a marcação é feita a distância acompanhando a jogada
     const isAtkHalf = (targetZ * p.dirZ > 0);
-    if (typeof Tatics !== 'undefined' && Tatics.pressaoDefensiva !== 'high' && isAtkHalf) {
+    if (typeof Tatics !== 'undefined' && taticaDe(bb && bb.team, 'pressaoDefensiva') !== 'high' && isAtkHalf) {
         distancia = Math.max(distancia, 4.5);
         biasMax = Math.min(biasMax, 3.0);
     }

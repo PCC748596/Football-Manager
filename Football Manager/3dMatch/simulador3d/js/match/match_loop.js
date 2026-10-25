@@ -193,6 +193,7 @@ Object.assign(Match, {
         this.delta = dt;
         // As substituicoes pedidas pelo manager fazem-se numa parada (js/match/match_substituicoes.js).
         if (this.tickSubstituicoes) this.tickSubstituicoes(dt);
+        if (typeof TreinadorCPU !== 'undefined') TreinadorCPU.tick(dt);   // o treinador da CPU: tatica e substituicoes (js/treinador_cpu.js)
         // Enquanto a troca dura o jogo ESPERA: so os jogadores andam (os que ja iam para o lugar da parada) — ver js/match/match_substituicoes.js.
         if (this.subsEmCurso && this._paradaParaSubstituir()) {
             this.correrPausaDeJogo(dt);
@@ -1216,9 +1217,10 @@ Object.assign(Match, {
                 this.offsideLineB.position.z = Math.max(0, outfieldB[0].model.position.z, this.ball.position.z);
             }
             if (typeof TeamShape !== 'undefined') {
-                const cap = TeamShape.linhaDefensiva[Tatics.linhaDefensiva] ?? TeamShape.linhaDefensiva.medium;
-                this.defLineA.position.z = cap * 1;
-                this.defLineB.position.z = cap * -1;
+                const capA = TeamShape.linhaDefensiva[taticaDe('TeamA', 'linhaDefensiva')] ?? TeamShape.linhaDefensiva.medium;
+                const capB = TeamShape.linhaDefensiva[taticaDe('TeamB', 'linhaDefensiva')] ?? TeamShape.linhaDefensiva.medium;
+                this.defLineA.position.z = capA * 1;
+                this.defLineB.position.z = capB * -1;
             }
         }
 

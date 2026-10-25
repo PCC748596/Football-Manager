@@ -3529,7 +3529,7 @@ function actMarcar(ctx) {
     const hz = homem.model.position.z + (v ? v.z * 0.5 : 0);
 
     const ponto = pontoDeMarcacao(base.x, base.z, hx, hz,
-        p.ownGoalZ, dist, MarkingModel.biasMaxPara(base.z * p.dirZ), MarkingModel.anguloMax);
+        p.ownGoalZ, dist, MarkingModel.biasMaxPara(base.z * p.dirZ, p.team), MarkingModel.anguloMax);
 
     /*
     E A MARCAÇÃO TAMBÉM NÃO SOBE NA TRANSIÇÃO.
@@ -4719,7 +4719,7 @@ const PlayerBT = sel('PlayerRoot',
                     // No campo de ataque (carrierZ * dirZ > 0), a equipa marca à distância e não faz roubo de bola,
                     // a não ser que a pressão defensiva esteja configurada como High ('high').
                     const carrierZInAtk = carrier.model.position.z * ctx.p.dirZ;
-                    if (typeof Tatics !== 'undefined' && Tatics.pressaoDefensiva !== 'high' && carrierZInAtk > 0) {
+                    if (typeof Tatics !== 'undefined' && taticaDe(ctx.p.team, 'pressaoDefensiva') !== 'high' && carrierZInAtk > 0) {
                         return false;
                     }
                     

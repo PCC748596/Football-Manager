@@ -20,8 +20,8 @@ O QUE FAZ
   . `prepararPartida`   monta as duas equipas no motor (Match.trocarEquipas) e aplica a formacao e o estilo.
 
 LIMITES DA PRIMEIRA VERSAO (escritos para nao se descobrirem por acaso)
-  . A tatica do motor e GLOBAL (Tatics.estilo, linhaDefensiva, pressaoDefensiva valem para as duas equipas; so a formacao e o
-    estilo de jogo tem um valor por equipa). A do manager e por equipa. Aqui aplica-se a da equipa do UTILIZADOR.
+  . O painel do motor e GLOBAL (Tatics.estilo, linhaDefensiva, pressaoDefensiva): aqui aplica-se a da equipa do UTILIZADOR. A equipa da CPU joga com a
+    tatica PROPRIA do clube (`Tatics.porEquipa`, ver `taticaDe`) e e comandada pelo TreinadorCPU (js/treinador_cpu.js).
   . Sem substituicoes nem lesoes dentro do jogo.
 =============================================================================
 */
@@ -132,7 +132,12 @@ const AdaptadorManager = {
         // O BANCO (os substitutos da aba Tactics) só para o cenário: o motor ainda não faz substituições. Vai para os bancos de reservas 3D.
         const banco = (equipaMgr.bench || []).map(id => jogadoresPorId[id]).filter(Boolean).slice(0, 10)
             .map(mp => { const real = this._jogadorReal(mp.id); return { id: real ? real.id : this.idReal(mp.id), nome: mp.name, numero: mp.shirtNumber || 0 }; });
+        // As skills dos reservas, ja convertidas: o treinador da CPU (js/treinador_cpu.js) mete-os em campo sem precisar do manager.
+        const reservas = (equipaMgr.bench || []).map(id => jogadoresPorId[id]).filter(Boolean).slice(0, 10).map(mp => {
+            try { const sk = this.jogador(mp, mp.position, opcoes); return { id: sk.id, sk: sk }; } catch (e) { return null; }
+        }).filter(Boolean);
         return {
+            reservas: reservas,
             banco: banco,
             // O ESCUDO (HUD do portador, main.js): a imagem do clube ou, sem ela, as tres cores em barras verticais (a mesma do TeamShield do manager).
             escudo: { logo: equipaMgr.logoUrl || null, cores: equipaMgr.cores || null },
@@ -207,6 +212,13 @@ const AdaptadorManager = {
         const kF = this.formacaoDeSlots(fora.formacao.nome + '#fora', fora.formacao.slots);
         Tatics.formacaoA = kC; Tatics.formacaoB = kF;
         Tatics.formacaoFixaA = kC; Tatics.formacaoFixaB = kF;
+        // O TREINADOR DA CPU: a equipa que NAO e a do utilizador joga com a tatica propria do clube e e comandada pelo treinador dela (conhecimento tatico).
+        if (typeof TreinadorCPU !== 'undefined') {
+            TreinadorCPU.limpar();
+            const cpuEhCasa = (opcoes.taticaDe || 'casa') !== 'casa';
+            const cpu = cpuEhCasa ? casa : fora;
+            if (cpu && cpu.tatica) TreinadorCPU.registar(cpuEhCasa ? 'TeamA' : 'TeamB', { conhecimento: cpu.conhecimentoTatico, base: { estilo: cpu.tatica.estilo, pressaoDefensiva: cpu.tatica.pressaoDefensiva, linhaDefensiva: cpu.tatica.linhaDefensiva } });
+        }
         const t = ((opcoes.taticaDe || 'casa') === 'casa' ? casa : fora).equipa.tactics;
         if (t && this.ESTILO_DO_MANAGER[t.style]) Tatics.estilo = this.ESTILO_DO_MANAGER[t.style];
         // A CASA a esquerda do ecra, como no placar do manager: a camera lateral TV fica em +X, onde a esquerda e +Z; o TeamA ataca +Z

@@ -21,6 +21,9 @@ export const urlSimulador = (): string => {
 export interface LadoPayload {
   equipa: { id: string; name: string; city?: string; logoUrl?: string; cores?: string[]; lineup: string[]; bench: string[]; tactics: any; cobradores?: any };
   jogadoresPorId: Record<string, any>;
+  /** A tatica propria do clube (nomes do motor) e o conhecimento tatico do treinador: servem ao treinador da CPU no 3D (js/treinador_cpu.js). */
+  tatica?: any;
+  conhecimentoTatico?: number;
   formacao: { nome: string; slots: { id: number; x: number; y: number; label: string }[] };
 }
 
@@ -46,6 +49,8 @@ const ladoDe = (team: Team, players: Player[]): LadoPayload => {
   return {
     equipa: { id: team.id, name: team.name, city: (team as any).city, logoUrl: (team as any).logoUrl, cores: [team.primaryColor, team.secondaryColor, team.tertiaryColor], lineup: team.lineup, bench: (team as any).bench || [], tactics: team.tactics, cobradores: resolveSetPieceTakers(team, players) },
     jogadoresPorId: porId,
+    tatica: team.tactics ? taticaParaMotor(team.tactics) : undefined,
+    conhecimentoTatico: (team as any).managerTactics ?? 70,
     formacao: { nome: formacao, slots: FORMATIONS[formacao as keyof typeof FORMATIONS] }
   };
 };

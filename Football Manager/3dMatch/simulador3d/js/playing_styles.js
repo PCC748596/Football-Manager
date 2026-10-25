@@ -550,7 +550,7 @@ A PRESSÃO DO ESTILO — quanto ele aperta o homem, comparado com o botão
 =============================================================================
 `PlayingStyles.*.defensivo.pressao` multiplica a distância a que o jogador
 acompanha o seu homem: >1 marca mais apertado, <1 dá espaço. Compõe-se com o
-`Tatics.pressaoDefensiva` do painel em vez de o substituir — o botão continua a
+`taticaDe(p.team, 'pressaoDefensiva')` do painel em vez de o substituir — o botão continua a
 ser o controlo da equipa, e o estilo é a personalidade de um jogador dentro
 dele.
 
@@ -738,7 +738,7 @@ function aplicarEstiloPosicional(p, bb, targetX, targetZ) {
             if (avanco > 0) avanco = 0;
         }
         // Se a mentalidade tática for defensiva (defesa / muito_defensiva), laterais e médios de ala seguram a linha e não avançam pelo estilo
-        if (typeof Tatics !== 'undefined' && (Tatics.estilo === 'defesa' || Tatics.estilo === 'muito_defensiva')) {
+        if (typeof Tatics !== 'undefined' && (taticaDe(p.team, 'estilo') === 'defesa' || taticaDe(p.team, 'estilo') === 'muito_defensiva')) {
             if (['LB', 'RB', 'LM', 'RM'].includes(p.pos) && avanco > 0) {
                 avanco = 0;
             }

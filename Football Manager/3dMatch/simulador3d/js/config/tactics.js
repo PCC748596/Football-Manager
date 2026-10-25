@@ -1879,12 +1879,25 @@ const TeamPlayStyles = {
 /*
 O ESTILO DE UMA EQUIPA: o do painel, ou o proprio da B se `Tatics.teamPlayStyleB` o define.
 */
+/*
+A TATICA POR EQUIPA — `taticaDe(team, campo)`: o valor do campo (estilo, pressaoDefensiva, linhaDefensiva, compactness, lengthCompactness) PARA ESSA EQUIPA. `Tatics.porEquipa[team]` (um objecto
+com so os campos que a equipa tem proprios) manda; o que faltar vem do painel global (`Tatics[campo]`). E assim que a CPU joga com a sua propria tatica enquanto o painel (e o treinador humano)
+mexe na dele. Sem `team` (ou sem entrada) e o painel, como sempre. Ver TreinadorCPU (js/treinador_cpu.js).
+*/
+function taticaDe(team, campo) {
+    const o = (team && Tatics.porEquipa) ? Tatics.porEquipa[team] : null;
+    return (o && o[campo] !== undefined && o[campo] !== null) ? o[campo] : Tatics[campo];
+}
+if (typeof window !== 'undefined') window.taticaDe = taticaDe;
+
 function estiloDaEquipaDe(team) {
     const chave = (team === 'TeamB' && Tatics.teamPlayStyleB) ? Tatics.teamPlayStyleB : Tatics.teamPlayStyle;
     return TeamPlayStyles[chave] || TeamPlayStyles.positional;
 }
 
 const Tatics = {
+    // A tatica propria de cada equipa (a da CPU). `null` = a equipa segue o painel. Ver `taticaDe`.
+    porEquipa: { TeamA: null, TeamB: null },
     formacaoA: '442',
     formacaoB: '442',
     estilo: 'balanceado',

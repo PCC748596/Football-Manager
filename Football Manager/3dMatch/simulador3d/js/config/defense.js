@@ -520,11 +520,11 @@ const MarkingModel = {
     mesma convenção de stats.js/PlayerContext) — terços a ±CAMPO_COMP/6, tal
     como a contagem de posse por terço em stats.js.
     */
-    biasMaxPara(zoneAhead) {
+    biasMaxPara(zoneAhead, team) {
         const terco = CAMPO_COMP / 6;
         const setor = (zoneAhead < -terco) ? 'def' : (zoneAhead > terco) ? 'atk' : 'mid';
         const porPressao = this.biasMaxPorSetor[setor];
-        return porPressao[Tatics.pressaoDefensiva] ?? porPressao.balanced;
+        return porPressao[taticaDe(team, 'pressaoDefensiva')] ?? porPressao.balanced;
     },
 
     /*
