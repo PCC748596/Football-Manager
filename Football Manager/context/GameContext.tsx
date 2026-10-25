@@ -16,7 +16,7 @@ import { rotuloDaFase } from '../textSim/competitions';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino } from '../textSim/trainingService';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
-import { premiosPendentes, premioDaLiga, NOME_DA_COPA } from '../textSim/premiacao';
+import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
 import { REAL_TEAMS_JSON } from '../textSim/realDatabase';
 import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager } from '../3dMatch/simulador3dCliente';
@@ -380,9 +380,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setInbox(prev => adicionar(prev, pend.map(p => avisoDePremiacao(p.data, gameState.language, p.key, NOME_DA_COPA[p.copa] || p.copa, p.razao, formatCurrency(p.usd)))));
   }, [comps]);
 
-  // PREMIACAO DO CAMPEONATO (Brasileiro Serie A): paga pela posicao final quando todos os jogos da liga do utilizador acabam.
+  // COTA DE PARTICIPACAO das Series C e D (a 1.a fase e a liga do jogo): paga no primeiro jogo da liga.
   useEffect(() => {
-    if (!userTeam || (userTeam.leagueId !== 'bra_serie_a' && userTeam.leagueId !== 'bra_serie_b' && userTeam.leagueId !== 'eng_prem')) return;
+    if (!userTeam) return;
+    const primeiro = fixtures.filter(f => f.played && !f.isFriendly && (f.type === undefined || f.type === 'LEAGUE')).sort((a, b) => a.date.localeCompare(b.date))[0];
+    if (!primeiro) return;
+    const p = premioDeInicioDeLiga(userTeam.leagueId, primeiro.date, new Set<string>([...chavesDe(inbox), ...premiosPagos.current]));
+    if (!p) return;
+    premiosPagos.current.add(p.key);
+    setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + p.usd } : t));
+    setInbox(prev => adicionar(prev, [avisoDePremiacao(p.data, gameState.language, p.key, NOME_DA_COPA[p.copa as string], p.razao, formatCurrency(p.usd))]));
+  }, [fixtures]);
+
+  // PREMIACAO DO CAMPEONATO (textSim/premiacoes.json, `ligas`): paga pela posicao final quando todos os jogos da liga do utilizador acabam.
+  useEffect(() => {
+    if (!userTeam) return;
     const jogos = fixtures.filter(f => !f.isFriendly && (f.type === undefined || f.type === 'LEAGUE'));
     if (!jogos.length || !jogos.every(f => f.played)) return;
     const tab = buildTable(teams.filter(t => naLigaDoUtilizador(t, userTeam)), jogos);

@@ -1,0 +1,191 @@
+{
+  "_leia-me": [
+    "Premiacoes em dinheiro das competicoes. Edite os numeros e reinicie o jogo (ou recarregue a pagina); nao ha mais nada a mudar no codigo.",
+    "Valores em unidades inteiras da moeda indicada em cada bloco (BRL, USD, EUR, GBP); o jogo converte para dolares pelas taxas de Settings (Exchange rates).",
+    "So o clube do UTILIZADOR recebe (os outros clubes nao tem contabilidade).",
+    "COPAS (copas.<ID>): cota = paga no 1.o jogo de grupos; vitoria / empate = por jogo de grupos; entrada = paga no 1.o jogo da fase (chave = fase); fases = paga quando o clube acaba os jogos da fase;",
+    "vice / campeao = pagos no fim da final (substituem o valor da final). Fases: G(rupos) PO(playoff) R16 QF SF F; Copa do Brasil: P5; Serie C: G; Serie D: R64 R32 R16 QF PA SF F.",
+    "LIGAS (ligas.<ID da liga>): porPosicao = lista do 1.o ao ultimo; ou primeiro + ultimo (interpolacao linear entre os dois, para `clubes` clubes); cotaInicio = paga no 1.o jogo da liga.",
+    "Pagos uma vez, quando a liga acaba. Nas ligas europeias sem tabela publica os valores sao o MEIO das faixas do texto de origem (La Liga 100-120 mi / 40-45 mi; Bundesliga 83,4-90 / 30-35; Serie A 80-100 / 25-30; Ligue 1 35-45 / 7-10)."
+  ],
+  "copas": {
+    "LIB": {
+      "nome": "Copa Libertadores",
+      "moeda": "USD",
+      "cota": 1000000,
+      "vitoria": 340000,
+      "fases": {
+        "R16": 1250000,
+        "QF": 1700000,
+        "SF": 2300000
+      },
+      "vice": 7000000,
+      "campeao": 25000000
+    },
+    "SUL": {
+      "nome": "Copa Sul-Americana",
+      "moeda": "USD",
+      "cota": 300000,
+      "vitoria": 125000,
+      "fases": {
+        "R16": 600000,
+        "QF": 700000,
+        "SF": 800000
+      },
+      "vice": 2500000,
+      "campeao": 10000000
+    },
+    "COPA_BR": {
+      "nome": "Copa do Brasil",
+      "moeda": "BRL",
+      "fases": {
+        "P5": 2000000,
+        "R16": 3000000,
+        "QF": 4000000,
+        "SF": 9000000
+      },
+      "vice": 34000000,
+      "campeao": 78000000
+    },
+    "UCL": {
+      "nome": "UEFA Champions League",
+      "moeda": "EUR",
+      "cota": 18620000,
+      "vitoria": 2100000,
+      "empate": 700000,
+      "fases": {
+        "PO": 1000000,
+        "R16": 11000000,
+        "QF": 12500000,
+        "SF": 15000000
+      },
+      "vice": 18500000,
+      "campeao": 25000000,
+      "_nota": "Mata-mata, empate e vice/campeao: referencia UEFA 2024/25 (o texto de origem nao traz)."
+    },
+    "SERIE_C": {
+      "nome": "Campeonato Brasileiro Série C",
+      "moeda": "BRL",
+      "entrada": {
+        "G": 624000
+      },
+      "fases": {},
+      "vice": 0,
+      "campeao": 0
+    },
+    "SERIE_D": {
+      "nome": "Campeonato Brasileiro Série D",
+      "moeda": "BRL",
+      "entrada": {
+        "R64": 100000,
+        "R32": 180000,
+        "R16": 180000,
+        "QF": 180000,
+        "PA": 180000,
+        "SF": 180000,
+        "F": 300000
+      },
+      "fases": {},
+      "vice": 0,
+      "campeao": 0
+    }
+  },
+  "ligas": {
+    "bra_serie_a": {
+      "nome": "Campeonato Brasileiro Série A",
+      "moeda": "BRL",
+      "porPosicao": [
+        48100000,
+        45700000,
+        43400000,
+        40900000,
+        38500000,
+        36100000,
+        33700000,
+        31300000,
+        28800000,
+        26400000,
+        20700000,
+        19200000,
+        17800000,
+        17300000,
+        16800000,
+        16300000
+      ]
+    },
+    "bra_serie_b": {
+      "nome": "Campeonato Brasileiro Série B",
+      "moeda": "BRL",
+      "porPosicao": [
+        3500000,
+        1350000,
+        1350000,
+        1350000
+      ]
+    },
+    "bra_serie_c": {
+      "nome": "Campeonato Brasileiro Série C",
+      "moeda": "BRL",
+      "cotaInicio": 1200000
+    },
+    "bra_serie_d": {
+      "nome": "Campeonato Brasileiro Série D",
+      "moeda": "BRL",
+      "cotaInicio": 500000
+    },
+    "eng_prem": {
+      "nome": "Premier League",
+      "moeda": "GBP",
+      "porPosicao": [
+        75200000,
+        71440000,
+        67680000,
+        63920000,
+        60160000,
+        56400000,
+        52640000,
+        48880000,
+        45120000,
+        41360000,
+        37600000,
+        33840000,
+        30080000,
+        26320000,
+        22560000,
+        18800000,
+        15040000,
+        11280000,
+        7520000,
+        3760000
+      ]
+    },
+    "esp_laliga": {
+      "nome": "La Liga",
+      "moeda": "EUR",
+      "clubes": 20,
+      "primeiro": 110000000,
+      "ultimo": 42500000
+    },
+    "ger_bundesliga": {
+      "nome": "Bundesliga",
+      "moeda": "EUR",
+      "clubes": 18,
+      "primeiro": 86700000,
+      "ultimo": 32500000
+    },
+    "ita_seriea": {
+      "nome": "Serie A",
+      "moeda": "EUR",
+      "clubes": 20,
+      "primeiro": 90000000,
+      "ultimo": 27500000
+    },
+    "fra_ligue1": {
+      "nome": "Ligue 1",
+      "moeda": "EUR",
+      "clubes": 18,
+      "primeiro": 40000000,
+      "ultimo": 8500000
+    }
+  }
+}
