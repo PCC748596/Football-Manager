@@ -16,7 +16,7 @@ const bandeira = (countryId: string) => `/Assets/Bandeiras/${countryId}.png`;
 const logoCopa = (id: string) => `/Assets/Competicoes/${id}.png`;
 // Nomes das abas das Series C e D (as fases do regulamento).
 const NOME_FASE_BR: Record<string, string> = { 'SERIE_C:G': 'Segunda fase', 'SERIE_C:F': 'Final', 'SERIE_D:R64': 'Segunda fase', 'SERIE_D:R32': 'Terceira fase', 'SERIE_D:R16': 'Oitavas de final', 'SERIE_D:QF': 'Quartas de final', 'SERIE_D:SF': 'Semi final', 'SERIE_D:PA': 'Playoffs de acesso', 'SERIE_D:F': 'Final' };
-const nomeGrupo = (c: Competition, g: string) => (c.id === 'SERIE_C' && g === 'L') ? 'First phase' : (c.id === 'SERIE_C' && /^G\d$/.test(g)) ? 'Group ' + g.slice(1) : 'Group ' + g;
+const nomeGrupo = (c: Competition, g: string) => c.id === 'UCL' ? 'League phase' : (c.id === 'SERIE_C' && g === 'L') ? 'First phase' : (c.id === 'SERIE_C' && /^G\d$/.test(g)) ? 'Group ' + g.slice(1) : 'Group ' + g;
 
 type Selecao = { tipo: 'LIGA'; id: string } | { tipo: 'COPA'; id: Competition['id'] };
 
@@ -205,7 +205,7 @@ const WorldView: React.FC = () => {
         </div>
         <div className="flex-1 overflow-auto custom-scrollbar p-3">
           {(aba === 'GRUPOS' || aba === 'P1' || (aba === 'F:G' && !!c.groups?.G1)) && c.groups && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid ${c.id === 'UCL' ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
               {(aba === 'F:G' ? ['G1', 'G2'] : (aba === 'P1' && c.id === 'SERIE_C') ? ['L'] : Object.keys(c.groups)).map(g => (
                 <div key={g} className="rounded border border-slate-200 dark:border-slate-800 overflow-hidden">
                   <div className="px-3 py-1 bg-slate-100 dark:bg-slate-950/70 text-[10px] font-black uppercase tracking-widest text-slate-500">{nomeGrupo(c, g)}</div>
@@ -214,7 +214,7 @@ const WorldView: React.FC = () => {
                     <tbody>
                       {tabelaDaVista(c, g).map((r, i) => (
                         <tr key={r.key} className={souEu(r.key) ? 'bg-blue-600/10' : ''}>
-                          <td className="px-3 py-1 text-xs font-bold text-slate-800 dark:text-slate-200"><div className="flex items-center gap-2"><span className={`w-3 text-[10px] ${i < 2 ? 'text-emerald-500' : 'text-slate-400'}`}>{i + 1}</span><Escudo k={r.key} /><span className="truncate">{nomeDe(r.key)}</span></div></td>
+                          <td className="px-3 py-1 text-xs font-bold text-slate-800 dark:text-slate-200"><div className="flex items-center gap-2"><span className={`w-3 text-[10px] ${c.id === 'UCL' ? (i < 8 ? 'text-emerald-500' : i < 24 ? 'text-amber-500' : 'text-red-400') : (i < 2 ? 'text-emerald-500' : 'text-slate-400')}`}>{i + 1}</span><Escudo k={r.key} /><span className="truncate">{nomeDe(r.key)}</span></div></td>
                           {[r.played, r.won, r.drawn, r.lost, r.gf - r.ga].map((v, k) => <td key={k} className="px-2 py-1 text-center text-xs text-slate-600 dark:text-slate-300">{k === 4 && v > 0 ? '+' + v : v}</td>)}
                           <td className="px-2 py-1 text-center text-xs font-black text-blue-600 dark:text-white">{r.points}</td>
                         </tr>
@@ -300,7 +300,7 @@ const WorldView: React.FC = () => {
     const ordem = (COUNTRIES as any[]).map(c => c.id);
     return Array.from(m.values()).sort((x, y) => ordem.indexOf(x.id) - ordem.indexOf(y.id)).map(p => ({ ...p, itens: p.itens.sort((a, b) => a.tier - b.tier) }));
   })();
-  const copasSoltas = comps.filter(c => c.id === 'LIB' || c.id === 'SUL' || c.id === 'COPA_BR');
+  const copasSoltas = comps.filter(c => c.id === 'UCL' || c.id === 'LIB' || c.id === 'SUL' || c.id === 'COPA_BR');
 
   return (
     <div className="h-full flex flex-col animate-fade-in min-h-0">

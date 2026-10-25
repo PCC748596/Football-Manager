@@ -171,8 +171,8 @@ const Layout: React.FC<Props> = ({ children, setView, currentView }) => {
             </button>
             )}
 
-           <div className="bg-slate-100 dark:bg-slate-900/40 rounded-lg p-4 text-center border border-slate-200 dark:border-slate-800 shadow-inner">
-             <div className="text-[11px] text-slate-800 dark:text-white uppercase font-black tracking-tight italic mb-2">Match Week</div>
+           <div className="bg-slate-100 dark:bg-slate-900/40 rounded-lg px-4 py-0 text-center border border-slate-200 dark:border-slate-800 shadow-inner">
+             <div className="text-[11px] text-slate-800 dark:text-white uppercase font-black tracking-tight italic mb-[5px]">Match Week</div>
              <div className="text-4xl font-black text-blue-600 dark:text-blue-500 leading-none italic tracking-tighter">
                {gameState.currentWeek} 
                <span className="text-slate-400 dark:text-slate-800 text-sm ml-1 not-italic">/ {gameState.totalWeeks}</span>

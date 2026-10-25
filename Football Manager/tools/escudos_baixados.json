@@ -118,7 +118,8 @@
   "escudo": null
  },
  "San Martín (T)": {
-  "escudo": null
+  "artigo": "Club Social y Deportivo San Martín",
+  "ficheiro": "Logo_of_San_Martín_de_Burzaco_(2023).png"
  },
  "Colo-Colo": {
   "escudo": null
@@ -259,7 +260,8 @@
   "escudo": null
  },
  "Atlético Huila": {
-  "escudo": null
+  "artigo": "Atlético Huila",
+  "ficheiro": "Escudo_de_Atlético_Huila.svg"
  },
  "Unión Magdalena": {
   "escudo": null
@@ -575,7 +577,8 @@
   "escudo": null
  },
  "Universitario de Sucre": {
-  "escudo": null
+  "artigo": "Universitario de Sucre",
+  "ficheiro": "Escudo_Universitario_Sucre.png"
  },
  "Fancesa": {
   "escudo": null
@@ -1041,6 +1044,400 @@
   "escudo": null
  },
  "Capital-TO": {
+  "escudo": null
+ },
+ "Real Madrid": {
+  "escudo": null
+ },
+ "Barcelona": {
+  "escudo": null
+ },
+ "Atlético de Madrid": {
+  "escudo": null
+ },
+ "Villarreal": {
+  "escudo": null
+ },
+ "Real Betis": {
+  "escudo": null
+ },
+ "Athletic Club": {
+  "escudo": null
+ },
+ "Real Sociedad": {
+  "escudo": null
+ },
+ "Sevilla": {
+  "escudo": null
+ },
+ "Valencia": {
+  "escudo": null
+ },
+ "Girona": {
+  "escudo": null
+ },
+ "Celta Vigo": {
+  "escudo": null
+ },
+ "Osasuna": {
+  "escudo": null
+ },
+ "Getafe": {
+  "escudo": null
+ },
+ "Rayo Vallecano": {
+  "escudo": null
+ },
+ "Mallorca": {
+  "escudo": null
+ },
+ "Espanyol": {
+  "escudo": null
+ },
+ "Alavés": {
+  "escudo": null
+ },
+ "Elche": {
+  "escudo": null
+ },
+ "Levante": {
+  "escudo": null
+ },
+ "Real Oviedo": {
+  "escudo": null
+ },
+ "Bayern München": {
+  "escudo": null
+ },
+ "Bayer Leverkusen": {
+  "escudo": null
+ },
+ "Borussia Dortmund": {
+  "escudo": null
+ },
+ "RB Leipzig": {
+  "escudo": null
+ },
+ "Eintracht Frankfurt": {
+  "escudo": null
+ },
+ "Stuttgart": {
+  "escudo": null
+ },
+ "Freiburg": {
+  "escudo": null
+ },
+ "Borussia Mönchengladbach": {
+  "escudo": null
+ },
+ "Wolfsburg": {
+  "escudo": null
+ },
+ "Hoffenheim": {
+  "escudo": null
+ },
+ "Werder Bremen": {
+  "escudo": null
+ },
+ "Mainz 05": {
+  "escudo": null
+ },
+ "Union Berlin": {
+  "escudo": null
+ },
+ "Augsburg": {
+  "escudo": null
+ },
+ "St. Pauli": {
+  "escudo": null
+ },
+ "Köln": {
+  "escudo": null
+ },
+ "Hamburger SV": {
+  "escudo": null
+ },
+ "Heidenheim": {
+  "escudo": null
+ },
+ "Inter": {
+  "escudo": null
+ },
+ "Napoli": {
+  "escudo": null
+ },
+ "Juventus": {
+  "escudo": null
+ },
+ "Milan": {
+  "escudo": null
+ },
+ "Atalanta": {
+  "escudo": null
+ },
+ "Roma": {
+  "escudo": null
+ },
+ "Lazio": {
+  "escudo": null
+ },
+ "Fiorentina": {
+  "escudo": null
+ },
+ "Bologna": {
+  "escudo": null
+ },
+ "Como": {
+  "escudo": null
+ },
+ "Torino": {
+  "escudo": null
+ },
+ "Udinese": {
+  "escudo": null
+ },
+ "Genoa": {
+  "escudo": null
+ },
+ "Cagliari": {
+  "escudo": null
+ },
+ "Parma": {
+  "artigo": "Parma Calcio 1913",
+  "ficheiro": "Logo_Parma_Calcio_1913_(adozione_2016).svg"
+ },
+ "Lecce": {
+  "escudo": null
+ },
+ "Sassuolo": {
+  "escudo": null
+ },
+ "Hellas Verona": {
+  "escudo": null
+ },
+ "Pisa": {
+  "escudo": null
+ },
+ "Cremonese": {
+  "escudo": null
+ },
+ "Paris Saint-Germain": {
+  "escudo": null
+ },
+ "Marseille": {
+  "escudo": null
+ },
+ "Monaco": {
+  "escudo": null
+ },
+ "Lille": {
+  "escudo": null
+ },
+ "Lyon": {
+  "escudo": null
+ },
+ "Lens": {
+  "escudo": null
+ },
+ "Nice": {
+  "escudo": null
+ },
+ "Rennes": {
+  "escudo": null
+ },
+ "Strasbourg": {
+  "escudo": null
+ },
+ "Brest": {
+  "escudo": null
+ },
+ "Toulouse": {
+  "escudo": null
+ },
+ "Nantes": {
+  "escudo": null
+ },
+ "Auxerre": {
+  "escudo": null
+ },
+ "Angers": {
+  "escudo": null
+ },
+ "Le Havre": {
+  "escudo": null
+ },
+ "Lorient": {
+  "escudo": null
+ },
+ "Metz": {
+  "escudo": null
+ },
+ "Paris FC": {
+  "escudo": null
+ },
+ "Bodø/Glimt": {
+  "escudo": null
+ },
+ "Brann": {
+  "escudo": null
+ },
+ "Viking": {
+  "escudo": null
+ },
+ "Molde": {
+  "escudo": null
+ },
+ "Rosenborg": {
+  "escudo": null
+ },
+ "PSV Eindhoven": {
+  "escudo": null
+ },
+ "Feyenoord": {
+  "escudo": null
+ },
+ "Ajax": {
+  "escudo": null
+ },
+ "AZ Alkmaar": {
+  "escudo": null
+ },
+ "FC Twente": {
+  "escudo": null
+ },
+ "Sporting CP": {
+  "escudo": null
+ },
+ "Benfica": {
+  "escudo": null
+ },
+ "Porto": {
+  "escudo": null
+ },
+ "Braga": {
+  "escudo": null
+ },
+ "Vitória SC": {
+  "escudo": null
+ },
+ "Galatasaray": {
+  "escudo": null
+ },
+ "Fenerbahçe": {
+  "escudo": null
+ },
+ "Beşiktaş": {
+  "escudo": null
+ },
+ "Trabzonspor": {
+  "escudo": null
+ },
+ "Başakşehir": {
+  "escudo": null
+ },
+ "Red Bull Salzburg": {
+  "escudo": null
+ },
+ "Sturm Graz": {
+  "escudo": null
+ },
+ "LASK": {
+  "escudo": null
+ },
+ "Rapid Wien": {
+  "escudo": null
+ },
+ "Austria Wien": {
+  "escudo": null
+ },
+ "Qarabağ": {
+  "escudo": null
+ },
+ "Sabah": {
+  "escudo": null
+ },
+ "Neftçi": {
+  "escudo": null
+ },
+ "Zira": {
+  "escudo": null
+ },
+ "Sumqayıt": {
+  "escudo": null
+ },
+ "Club Brugge": {
+  "escudo": null
+ },
+ "Union Saint-Gilloise": {
+  "escudo": null
+ },
+ "Anderlecht": {
+  "escudo": null
+ },
+ "Genk": {
+  "escudo": null
+ },
+ "Gent": {
+  "escudo": null
+ },
+ "Slovan Bratislava": {
+  "escudo": null
+ },
+ "Spartak Trnava": {
+  "escudo": null
+ },
+ "Žilina": {
+  "escudo": null
+ },
+ "DAC Dunajská Streda": {
+  "escudo": null
+ },
+ "Ružomberok": {
+  "escudo": null
+ },
+ "Olympiacos": {
+  "escudo": null
+ },
+ "Panathinaikos": {
+  "escudo": null
+ },
+ "AEK Athens": {
+  "escudo": null
+ },
+ "PAOK": {
+  "escudo": null
+ },
+ "Aris": {
+  "escudo": null
+ },
+ "Slavia Praha": {
+  "escudo": null
+ },
+ "Sparta Praha": {
+  "escudo": null
+ },
+ "Viktoria Plzeň": {
+  "escudo": null
+ },
+ "Baník Ostrava": {
+  "escudo": null
+ },
+ "Mladá Boleslav": {
+  "escudo": null
+ },
+ "Shakhtar Donetsk": {
+  "escudo": null
+ },
+ "Dynamo Kyiv": {
+  "escudo": null
+ },
+ "Zorya Luhansk": {
+  "escudo": null
+ },
+ "Dnipro-1": {
+  "escudo": null
+ },
+ "Kryvbas": {
   "escudo": null
  }
 }

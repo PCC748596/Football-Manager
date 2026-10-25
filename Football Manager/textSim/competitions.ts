@@ -10,6 +10,9 @@ FORMATOS
 - Copa do Brasil (formato de 2026): 126 clubes, 9 fases. 1.a fase: 28 clubes (os mais fracos, pela forca), 14 jogos unicos; 2.a: 14 vencedores + 74 = 88, 44 jogos unicos; 3.a: 44 + os 4 campeoes
   de 2025 = 48, 24 jogos unicos; 4.a: 24, 12 jogos unicos; 5.a: 12 + os 20 da Serie A = 32, 16 confrontos de ida e volta; oitavas, quartas e meias em ida e volta; final em jogo unico.
   Nos jogos unicos o clube pior cabeca de serie joga em casa; em ida e volta o melhor decide em casa; os melhores jogam contra os piores em cada fase.
+- Champions League (formato 2025/26): 36 clubes numa unica FASE DE LIGA de 8 jornadas (cada clube joga 8 adversarios diferentes, 2 de cada um dos 4 potes por forca, um em casa e um fora,
+  de preferencia nunca contra o mesmo pais); os 8 primeiros vao direto as oitavas, do 9.o ao 24.o jogam um PLAYOFF (ida e volta; 9-16 fazem a volta em casa) pelas outras 8 vagas, do
+  25.o ao 36.o saem; oitavas, quartas e meias em ida e volta, final em jogo unico. As vagas por pais estao em `VAGAS_UCL` (os clubes da 1.a edicao: ver CLASSIFICACAO_INICIAL).
 - Empate no agregado (ou num jogo unico): penaltis, com ligeira vantagem para o mais forte.
 Os jogos sao simulados pelo modelo rapido (textSim/world.ts) e as fases seguintes sao sorteadas quando a anterior acaba.
 */
@@ -23,7 +26,7 @@ export interface CompMatch {
 }
 
 export interface Competition {
-  id: 'LIB' | 'SUL' | 'COPA_BR' | 'SERIE_C' | 'SERIE_D';
+  id: 'LIB' | 'SUL' | 'COPA_BR' | 'SERIE_C' | 'SERIE_D' | 'UCL';
   name: string;
   teamKeys: string[];
   groups?: Record<string, string[]>;
@@ -47,6 +50,12 @@ export const VAGAS: Record<'LIB' | 'SUL', Record<string, number>> = {
   LIB: { '45': 6, '52': 5, '56': 3, '55': 3, '60': 3, '57': 3, '58': 3, '59': 2, '53': 2, '61': 2 },
   SUL: { '45': 6, '52': 5, '56': 3, '55': 3, '60': 3, '57': 3, '58': 2, '59': 3, '53': 2, '61': 2 }
 };
+
+// Champions League: vagas por pais (id do pais; 36 clubes). Inglaterra, Espanha, Alemanha, Italia e Franca tem a liga completa; os outros paises so 5 clubes (liga oculta).
+export const VAGAS_UCL: Record<string, number> = { '65': 5, '66': 5, '67': 4, '68': 4, '69': 3, '70': 2, '80': 2, '81': 2, '82': 2, '83': 1, '84': 1, '85': 1, '86': 1, '87': 1, '88': 1, '89': 1 };
+const GRUPOS_UCL = ['2024-04-17', '2024-05-01', '2024-05-15', '2024-05-29', '2024-06-12', '2024-06-26', '2024-07-17', '2024-07-31'];
+const FASES_UCL = [{ nome: 'PO', datas: ['2024-08-28', '2024-09-04'] }, { nome: 'R16', datas: ['2024-10-02', '2024-10-09'] }, { nome: 'QF', datas: ['2024-10-30', '2024-11-06'] },
+  { nome: 'SF', datas: ['2024-11-20', '2024-11-27'] }, { nome: 'F', datas: ['2024-12-14'] }];
 
 // Datas (temporada 2024). Libertadores nas terças, Sul-Americana nas quartas e Copa do Brasil em outras semanas, para ninguém jogar duas vezes no mesmo dia.
 const GRUPOS_LIB = ['2024-04-09', '2024-04-23', '2024-05-07', '2024-05-21', '2024-06-04', '2024-06-18'];
@@ -78,7 +87,16 @@ A CLASSIFICACAO INICIAL (ano anterior) por liga: nomes dos clubes, do 1.o ao ult
 as outras ligas: sem esta lista usa-se a ordem em que os clubes estao na liga (que e a ordem aproximada de forca).
 */
 // (A do Brasil vem do pais: `classificacaoAnterior` em realDatabase, editavel no Editor; aqui so o que faltar la.)
-export const CLASSIFICACAO_INICIAL: Record<string, string[]> = {};
+export const CLASSIFICACAO_INICIAL: Record<string, string[]> = {
+  // Os clubes da Champions de cada liga, primeiro (nos paises de 5 clubes sao estes os que jogam; nas ligas completas so o 1.o ano usa esta ordem).
+  eng_prem: ['Arsenal', 'Man City', 'Liverpool', 'Aston Villa', 'Man Utd'],
+  esp_laliga: ['Real Madrid', 'Barcelona', 'Atlético de Madrid', 'Villarreal', 'Real Betis'],
+  ger_bundesliga: ['Bayern München', 'Borussia Dortmund', 'RB Leipzig', 'Stuttgart'],
+  ita_seriea: ['Inter', 'Napoli', 'Roma', 'Como'],
+  fra_ligue1: ['Paris Saint-Germain', 'Lille', 'Lens'],
+  nor_clubes: ['Bodø/Glimt', 'Viking'], ned_clubes: ['PSV Eindhoven', 'Feyenoord'], por_clubes: ['Sporting CP', 'Porto'], tur_clubes: ['Galatasaray', 'Fenerbahçe'],
+  aut_clubes: ['LASK'], aze_clubes: ['Sabah'], bel_clubes: ['Club Brugge'], svk_clubes: ['Slovan Bratislava'], gre_clubes: ['AEK Athens'], cze_clubes: ['Slavia Praha'], ukr_clubes: ['Shakhtar Donetsk']
+};
 
 const hash = (s: string) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h; };
 
@@ -99,8 +117,11 @@ export interface LigaParaCopas { leagueId: string; countryId: string; tier: numb
 
 /** Os clubes de cada torneio, pela classificacao do ano anterior. Devolve tambem a ordem de cabecas de serie da Copa do Brasil. */
 export const qualificados = (ligas: LigaParaCopas[]) => {
-  const lib: { key: string; team: Team; countryId: string }[] = [], sul: typeof lib = [];
+  const lib: { key: string; team: Team; countryId: string }[] = [], sul: typeof lib = [], ucl: typeof lib = [];
   for (const l of ligas) {
+    // Champions: as 1.as divisoes e as ligas ocultas de 5 clubes (`*_clubes`) dos paises europeus.
+    const nU = VAGAS_UCL[l.countryId] || 0;
+    if (nU && (l.tier === 1 || /_clubes$/.test(l.leagueId))) classificacaoAnoAnterior(l.leagueId, l.teams, l.teamIds, l.anterior).slice(0, nU).forEach(t => ucl.push({ key: teamKey(l.leagueId, t.id), team: t, countryId: l.countryId }));
     if (l.tier !== 1 && !(l.countryId === '45')) continue;
     const ordem = classificacaoAnoAnterior(l.leagueId, l.teams, l.teamIds, l.anterior);
     if (l.tier === 1) {
@@ -126,7 +147,7 @@ export const qualificados = (ligas: LigaParaCopas[]) => {
     const ordem: string[] = (((paisBR && paisBR.leagues.find((l: any) => l.id === id)) || {}).teamIds || []).map(String);   // a ordem da liga (por regiao na Serie D), nao a da base
     return (brasil.find(l => l.leagueId === id)?.teams || []).slice().sort((x, y) => ordem.indexOf(x.id) - ordem.indexOf(y.id)).map(t => ({ key: teamKey(id, t.id), team: t }));
   };
-  return { lib, sul, copa: { serieA, campeoes, outros }, serieC: daLiga('bra_serie_c'), serieD: daLiga('bra_serie_d') };
+  return { lib, sul, ucl, copa: { serieA, campeoes, outros }, serieC: daLiga('bra_serie_c'), serieD: daLiga('bra_serie_d') };
 };
 
 const embaralhar = <T,>(a: T[]): T[] => { const r = a.slice(); for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; } return r; };
@@ -218,6 +239,48 @@ export const criarLibertadores = (lib: { key: string; team: Team; countryId: str
 export const criarSulAmericana = (sul: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map()): Competition => {
   const grupos = sortearGrupos(sul);
   return { id: 'SUL', name: 'Copa Sul-Americana', teamKeys: sul.map(x => x.key), groups: grupos, matches: jogosDeGrupo('SUL', grupos, GRUPOS_SUL, oc) };
+};
+
+/**
+ * O SORTEIO DA FASE DE LIGA da Champions: 36 clubes em 4 potes de 9 (por forca). Cada clube joga 8 jogos: 2 contra cada pote (o seu incluido), um em casa e um fora. Constroi-se com
+ * ciclos: dentro do pote cada clube joga em casa com o seguinte e fora com o anterior; entre dois potes, o clube i do 1.o joga em casa com o (i+a) do 2.o e o (i+b) do 2.o joga em casa
+ * com ele. Tenta-se muitas vezes (embaralhando) ate nao haver duplas repetidas nem jogos entre clubes do mesmo pais; se nao der, fica a melhor tentativa.
+ */
+const sortearFaseDeLiga = (itens: { key: string; team: Team; countryId: string }[]): [string, string][] => {
+  const ordenados = itens.slice().sort((a, b) => b.team.strength - a.team.strength);
+  const n = Math.floor(ordenados.length / 4);
+  const potes = [0, 1, 2, 3].map(p => ordenados.slice(p * n, p * n + n));
+  let melhor: [string, string][] = [], piores = 1e9;
+  for (let t = 0; t < 3000; t++) {
+    const pt = potes.map(embaralhar);
+    const jogos: [typeof ordenados[0], typeof ordenados[0]][] = [];
+    for (const pote of pt) for (let i = 0; i < n; i++) jogos.push([pote[i], pote[(i + 1) % n]]);
+    for (let p = 0; p < 4; p++) for (let q = p + 1; q < 4; q++) {
+      const a = Math.floor(Math.random() * n), b = Math.floor(Math.random() * n);
+      for (let i = 0; i < n; i++) { jogos.push([pt[p][i], pt[q][(i + a) % n]]); jogos.push([pt[q][i], pt[p][(i + b) % n]]); }
+    }
+    const vistos = new Set<string>(); let repetidos = 0, mesmoPais = 0;
+    for (const [h, v] of jogos) { const k = [h.key, v.key].sort().join('~'); if (vistos.has(k)) repetidos++; vistos.add(k); if (h.countryId === v.countryId) mesmoPais++; }
+    const custo = repetidos * 100 + mesmoPais;
+    if (custo < piores) { piores = custo; melhor = jogos.map(([h, v]) => [h.key, v.key] as [string, string]); if (custo === 0) break; }
+  }
+  return melhor;
+};
+
+export const criarChampions = (ucl: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map()): Competition => {
+  const keys = ucl.map(x => x.key);
+  const jogos = sortearFaseDeLiga(ucl);
+  // Jornada de cada jogo: a 1.a em que os dois clubes estao livres (em geral as 8 bastam; senao uma qualquer, e o agendador desloca o dia).
+  const ocupado: Set<string>[] = Array.from({ length: GRUPOS_UCL.length }, () => new Set<string>());
+  const dia: number[] = jogos.map(() => -1);
+  embaralhar(jogos.map((_, i) => i)).forEach(i => {
+    const [h, v] = jogos[i];
+    let d = ocupado.findIndex(s => !s.has(h) && !s.has(v));
+    if (d < 0) d = Math.floor(Math.random() * ocupado.length);
+    ocupado[d].add(h); ocupado[d].add(v); dia[i] = d;
+  });
+  const matches = jogos.map(([h, v], i) => jogo(`UCL-L-${dia[i] + 1}-${i}`, 'G' + (dia[i] + 1), agendarJogo(oc, GRUPOS_UCL[dia[i]], [h, v], INICIO_DA_EPOCA), h, v, { group: 'L' }));
+  return { id: 'UCL', name: 'UEFA Champions League', teamKeys: keys, groups: { L: keys }, matches };
 };
 
 /** Rondas todos-contra-todos (metodo do circulo). `duplo`: ida e volta (a 2.a metade inverte os mandos). */
@@ -321,7 +384,7 @@ export const vencedorDoConfronto = (jogos: CompMatch[], teams: Map<string, Team>
   return ultimo.pens[0] > ultimo.pens[1] ? ultimo.homeKey : ultimo.awayKey;
 };
 
-const faseDoComp = (c: Competition) => (c.id === 'LIB' ? FASES_LIB : c.id === 'SUL' ? FASES_SUL : c.id === 'SERIE_C' ? FASES_C : c.id === 'SERIE_D' ? FASES_D : FASES_COPA);
+const faseDoComp = (c: Competition) => (c.id === 'UCL' ? FASES_UCL : c.id === 'LIB' ? FASES_LIB : c.id === 'SUL' ? FASES_SUL : c.id === 'SERIE_C' ? FASES_C : c.id === 'SERIE_D' ? FASES_D : FASES_COPA);
 
 /** Cria os jogos de uma fase a partir de pares [melhor, pior] (ida em casa do pior, volta em casa do melhor; jogo unico: em casa o 1.o). */
 const jogosDaFase = (c: Competition, fase: { nome: string; datas: string[] }, pares: [string, string][], oc: Ocupacao, minimoExtra: string = INICIO_DA_EPOCA): CompMatch[] => {
@@ -467,6 +530,25 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         c.matches.push(...jogosDaFase(c, fase('R16'), primeiros.map((p, i) => [p, seg[i]] as [string, string]), oc, somarDias(hoje, 1)));
         progressou = true;
       }
+    } else if (c.id === 'UCL' && !temFase('PO')) {
+      // Fim da fase de liga: do 9.o ao 24.o jogam o playoff (9 x 24, 10 x 23 ... 16 x 17; os melhores fazem a volta em casa).
+      if (c.matches.filter(m => m.group).every(m => m.played)) {
+        copia();
+        const ord = ordemDoGrupo(c, 'L');
+        c.teamKeys = ord.concat(c.teamKeys.filter(k => ord.indexOf(k) < 0));
+        const pares: [string, string][] = []; for (let i = 0; i < 8; i++) pares.push([ord[8 + i], ord[23 - i]]);
+        c.matches.push(...jogosDaFase(c, fase('PO'), pares, oc, somarDias(hoje, 1)));
+        progressou = true;
+      }
+    } else if (c.id === 'UCL' && !temFase('R16')) {
+      // Fim do playoff: os 8 primeiros da fase de liga recebem os 8 vencedores (o 1.o enfrenta o vencedor do pior confronto do playoff).
+      const venc = feitaFase('PO') ? vencedoresDe('PO') : null;
+      if (venc) {
+        copia();
+        const top8 = c.teamKeys.slice(0, 8);
+        c.matches.push(...jogosDaFase(c, fase('R16'), top8.map((k, i) => [k, venc[7 - i]] as [string, string]), oc, somarDias(hoje, 1)));
+        progressou = true;
+      }
     } else if (c.id === 'SERIE_C' && !temFase('G')) {
       // Fim da 1.a fase: os 8 primeiros vao a 2 grupos de 4 (1.o, 4.o, 5.o e 8.o num; 2.o, 3.o, 6.o e 7.o no outro).
       const ordL = c.ligaExterna ? (opcoes.ordemL || null) : (feitaFase('L') ? ordemDoGrupo(c, 'L') : null);
@@ -563,14 +645,14 @@ export const tabelaDoGrupo = (c: Competition, grupo: string, teams: Map<string, 
   return rows.sort((x, y) => y.points - x.points || y.won - x.won || (y.gf - y.ga) - (x.gf - x.ga) || y.gf - x.gf);
 };
 
-export const NOMES_FASES: Record<string, string> = { R64: 'Round of 64', PA: 'Promotion playoff', L: 'First phase', G: 'Group stage', D: 'Group stage', P1: 'Phase 1', P2: 'Phase 2', P3: 'Phase 3', P4: 'Phase 4', P5: 'Phase 5', R1: 'First round', R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-finals', SF: 'Semi-finals', F: 'Final', G1: 'Group MD1', G2: 'Group MD2', G3: 'Group MD3', G4: 'Group MD4', G5: 'Group MD5', G6: 'Group MD6' };
+export const NOMES_FASES: Record<string, string> = { R64: 'Round of 64', PA: 'Promotion playoff', L: 'First phase', G: 'Group stage', D: 'Group stage', P1: 'Phase 1', P2: 'Phase 2', P3: 'Phase 3', P4: 'Phase 4', P5: 'Phase 5', R1: 'First round', R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-finals', SF: 'Semi-finals', F: 'Final', G1: 'Group MD1', G2: 'Group MD2', G3: 'Group MD3', G4: 'Group MD4', G5: 'Group MD5', G6: 'Group MD6', G7: 'Group MD7', G8: 'Group MD8', PO: 'Knockout playoff' };
 
 /**
  * O RÓTULO CURTO DA FASE, para a coluna Type do calendario (components/FixturesView.tsx): LIBERT-G, LIBERT-16, LIBERT-8, LIBERT-4, LIBERT FINAL; o mesmo para a
  * Sul-Americana (SULA-...), a Copa do Brasil (COPA-1 ... COPA-5, COPA-16 ...), a Serie C (C-G, C FINAL) e a Serie D (D-G, D-64 ... D FINAL). O numero e quantos clubes
  * ficam na fase (16 = oitavas, 8 = quartas, 4 = meias); a final e `... FINAL`, e nao ha fase de 2 alem dela.
  */
-const PREFIXO_COMP: Record<Competition['id'], string> = { LIB: 'LIBERT', SUL: 'SULA', COPA_BR: 'COPA', SERIE_C: 'C', SERIE_D: 'D' };
+const PREFIXO_COMP: Record<Competition['id'], string> = { UCL: 'UCL', LIB: 'LIBERT', SUL: 'SULA', COPA_BR: 'COPA', SERIE_C: 'C', SERIE_D: 'D' };
 export const rotuloDaFase = (compId: Competition['id'], stage: string): string => {
   const p = PREFIXO_COMP[compId];
   if (stage === 'F') return p + ' FINAL';
@@ -635,6 +717,7 @@ export const criarCopas = (ligas: WorldLeague[], anterior?: Record<string, strin
   // Uma de cada vez, para a seguinte ja ver os dias que a anterior ocupou.
   const lib = criarLibertadores(q.lib, oc), sul = criarSulAmericana(q.sul, oc), copa = criarCopaDoBrasil(q.copa, oc);
   const out: Competition[] = [lib, sul, copa];
+  if (q.ucl.length >= 32) out.push(criarChampions(q.ucl, oc));
   if (q.serieC.length === 20) out.push(criarSerieC(q.serieC, oc, userLeagueId === 'bra_serie_c'));
   if (q.serieD.length >= 16) {
     // Com o utilizador na Serie D, o grupo dele e a liga do jogo.
@@ -691,6 +774,11 @@ export const prepararCopas = (a: EntradaCopas): SaidaCopas | null => {
   if (base && !base.some(c => c.id === 'SERIE_C') && todas.some(l => l.leagueId === 'bra_serie_c')) {
     const novas = criarCopas(todas, undefined, oc, uk, minha.leagueId).filter(c => !base!.some(b => b.id === c.id));
     if (novas.length) base = [...base, ...novas];
+  }
+  // Um save de antes da Champions League: cria so ela.
+  if (base && !base.some(c => c.id === 'UCL') && todas.some(l => l.leagueId === 'esp_laliga')) {
+    const nova = criarCopas(todas, undefined, oc, uk, minha.leagueId).filter(c => c.id === 'UCL');
+    if (nova.length) base = [...base, ...nova];
   }
   let cs = base || criarCopas(todas, undefined, oc, uk, minha.leagueId);
   const mapa = mapaDeClubes(todas);

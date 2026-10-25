@@ -21,7 +21,27 @@ const dbTxt = fs.readFileSync(path.join(raiz, 'textSim', 'realDatabase.ts'), 'ut
 const lista = (n) => eval(dbTxt.match(new RegExp('export const ' + n + '(?:: any\\[\\])? = (\\[[\\s\\S]*?\\n\\]);'))[1]);
 const teams = lista('REAL_TEAMS_JSON');
 const PAIS = { '45': ['pt', 'Brasil'], '52': ['es', 'Argentina'], '53': ['es', 'Bolivia'], '55': ['es', 'Chile'], '56': ['es', 'Colombia'], '57': ['es', 'Ecuador'], '58': ['es', 'Paraguay'],
-    '59': ['es', 'Perú'], '60': ['es', 'Uruguay'], '61': ['es', 'Venezuela'], '65': ['en', 'England'] };
+    '59': ['es', 'Perú'], '60': ['es', 'Uruguay'], '61': ['es', 'Venezuela'], '65': ['en', 'England'],
+    '66': ['en', 'Spain'], '67': ['en', 'Germany'], '68': ['en', 'Italy'], '69': ['en', 'France'], '70': ['en', 'Norway'], '80': ['en', 'Netherlands'], '81': ['en', 'Portugal'],
+    '82': ['en', 'Turkey'], '83': ['en', 'Austria'], '84': ['en', 'Azerbaijan'], '85': ['en', 'Belgium'], '86': ['en', 'Slovakia'], '87': ['en', 'Greece'], '88': ['en', 'Czech'], '89': ['en', 'Ukraine'] };
+// Nomes do jogo que a Wikipedia em ingles chama de outra forma: nome do jogo -> palavras a procurar (e que o titulo tem de conter).
+const ALIAS = { 'Bayern München': 'FC Bayern Munich', 'Köln': '1. FC Köln', 'Mainz 05': '1. FSV Mainz 05', 'Union Berlin': '1. FC Union Berlin', 'Stuttgart': 'VfB Stuttgart', 'Freiburg': 'SC Freiburg',
+    'Hoffenheim': 'TSG 1899 Hoffenheim', 'Wolfsburg': 'VfL Wolfsburg', 'Augsburg': 'FC Augsburg', 'Heidenheim': '1. FC Heidenheim', 'St. Pauli': 'FC St. Pauli', 'Werder Bremen': 'SV Werder Bremen',
+    'Atlético de Madrid': 'Atlético Madrid', 'Barcelona': 'FC Barcelona', 'Celta Vigo': 'RC Celta de Vigo', 'Osasuna': 'CA Osasuna', 'Alavés': 'Deportivo Alavés', 'Elche': 'Elche CF',
+    'Levante': 'Levante UD', 'Mallorca': 'RCD Mallorca', 'Espanyol': 'RCD Espanyol', 'Getafe': 'Getafe CF', 'Girona': 'Girona FC', 'Valencia': 'Valencia CF', 'Sevilla': 'Sevilla FC',
+    'Inter': 'Inter Milan', 'Milan': 'AC Milan', 'Roma': 'AS Roma', 'Napoli': 'SSC Napoli', 'Lazio': 'SS Lazio', 'Parma': 'Parma Calcio 1913', 'Hellas Verona': 'Hellas Verona FC',
+    'Marseille': 'Olympique de Marseille', 'Lyon': 'Olympique Lyonnais', 'Monaco': 'AS Monaco FC', 'Lille': 'Lille OSC', 'Lens': 'RC Lens', 'Nice': 'OGC Nice', 'Rennes': 'Stade Rennais FC',
+    'Strasbourg': 'RC Strasbourg Alsace', 'Brest': 'Stade Brestois 29', 'Toulouse': 'Toulouse FC', 'Nantes': 'FC Nantes', 'Auxerre': 'AJ Auxerre', 'Angers': 'Angers SCO', 'Le Havre': 'Le Havre AC',
+    'Lorient': 'FC Lorient', 'Metz': 'FC Metz', 'Sporting CP': 'Sporting CP', 'Benfica': 'S.L. Benfica', 'Porto': 'FC Porto', 'Braga': 'S.C. Braga', 'Vitória SC': 'Vitória S.C.',
+    'PSV Eindhoven': 'PSV Eindhoven', 'Ajax': 'AFC Ajax', 'AZ Alkmaar': 'AZ Alkmaar', 'FC Twente': 'FC Twente', 'Feyenoord': 'Feyenoord', 'Red Bull Salzburg': 'FC Red Bull Salzburg',
+    'Sturm Graz': 'SK Sturm Graz', 'Rapid Wien': 'SK Rapid Wien', 'Austria Wien': 'FK Austria Wien', 'LASK': 'LASK', 'Qarabağ': 'Qarabağ FK', 'Sabah': 'Sabah FC (Azerbaijan)', 'Neftçi': 'Neftçi PFK',
+    'Zira': 'Zira FK', 'Sumqayıt': 'Sumgayit FK', 'Club Brugge': 'Club Brugge KV', 'Union Saint-Gilloise': 'Royal Union Saint-Gilloise', 'Anderlecht': 'R.S.C. Anderlecht', 'Genk': 'K.R.C. Genk',
+    'Gent': 'K.A.A. Gent', 'Slovan Bratislava': 'ŠK Slovan Bratislava', 'Spartak Trnava': 'FC Spartak Trnava', 'Žilina': 'MŠK Žilina', 'DAC Dunajská Streda': 'FC DAC 1904 Dunajská Streda',
+    'Ružomberok': 'MFK Ružomberok', 'Olympiacos': 'Olympiacos F.C.', 'Panathinaikos': 'Panathinaikos F.C.', 'AEK Athens': 'AEK Athens F.C.', 'PAOK': 'PAOK FC', 'Aris': 'Aris Thessaloniki F.C.',
+    'Slavia Praha': 'SK Slavia Prague', 'Sparta Praha': 'AC Sparta Prague', 'Viktoria Plzeň': 'FC Viktoria Plzeň', 'Baník Ostrava': 'FC Baník Ostrava', 'Mladá Boleslav': 'FK Mladá Boleslav',
+    'Shakhtar Donetsk': 'FC Shakhtar Donetsk', 'Dynamo Kyiv': 'FC Dynamo Kyiv', 'Zorya Luhansk': 'FC Zorya Luhansk', 'Dnipro-1': 'SC Dnipro-1', 'Kryvbas': 'FC Kryvbas Kryvyi Rih',
+    'Galatasaray': 'Galatasaray S.K.', 'Fenerbahçe': 'Fenerbahçe S.K.', 'Beşiktaş': 'Beşiktaş J.K.', 'Trabzonspor': 'Trabzonspor', 'Başakşehir': 'İstanbul Başakşehir F.K.',
+    'Bodø/Glimt': 'FK Bodø/Glimt', 'Brann': 'SK Brann', 'Viking': 'Viking FK', 'Molde': 'Molde FK', 'Rosenborg': 'Rosenborg BK', 'Paris FC': 'Paris FC', 'Paris Saint-Germain': 'Paris Saint-Germain F.C.' };
 const ESTADOS = { AC: 'Acre', AL: 'Alagoas', AM: 'Amazonas', AP: 'Amapá', BA: 'Bahia', CE: 'Ceará', DF: 'Distrito Federal', ES: 'Espírito Santo', GO: 'Goiás', MA: 'Maranhão', MG: 'Minas Gerais',
     MS: 'Mato Grosso do Sul', MT: 'Mato Grosso', PA: 'Pará', PB: 'Paraíba', PE: 'Pernambuco', PI: 'Piauí', PR: 'Paraná', RJ: 'Rio de Janeiro', RN: 'Rio Grande do Norte', RO: 'Rondônia',
     RR: 'Roraima', RS: 'Rio Grande do Sul', SC: 'Santa Catarina', SE: 'Sergipe', SP: 'São Paulo', TO: 'Tocantins' };
@@ -67,17 +87,17 @@ async function procurar(lang, termo) {
         const base = m ? m[1] : t.teamName, uf = m ? m[2] : '';
         const termos = lang === 'pt'
             ? [`${base} clube de futebol ${ESTADOS[uf] || ''}`, `${base} ${ESTADOS[uf] || ''} futebol`]
-            : lang === 'es' ? [`${base} club de fútbol ${paisNome}`, `${base} ${paisNome} fútbol`] : [`${base} football club`];
+            : lang === 'es' ? [`${base} club de fútbol ${paisNome}`, `${base} ${paisNome} fútbol`] : [`${ALIAS[base] || base} ${paisNome} football club`, `${ALIAS[base] || base} football club`];
         let achou = null;
         for (const termo of termos) {
             for (const p of await procurar(lang, termo)) {
-                if (PARECE_ESCUDO.test(p.ficheiro) && !NAO_E_ESCUDO.test(p.ficheiro) && tituloBate(p.titulo, base) && !usados.has(p.ficheiro)) { achou = p; break; }
+                if (PARECE_ESCUDO.test(p.ficheiro) && !NAO_E_ESCUDO.test(p.ficheiro) && tituloBate(p.titulo, ALIAS[base] || base) && !usados.has(p.ficheiro)) { achou = p; break; }
             }
             await dorme(120);
             if (achou) break;
         }
         if (!achou && lang !== 'en') {   // reserva: Wikipedia em ingles
-            for (const p of await procurar('en', `${base} ${paisNome} football club`)) { if (PARECE_ESCUDO.test(p.ficheiro) && !NAO_E_ESCUDO.test(p.ficheiro) && tituloBate(p.titulo, base) && !usados.has(p.ficheiro)) { achou = p; break; } }
+            for (const p of await procurar('en', `${base} ${paisNome} football club`)) { if (PARECE_ESCUDO.test(p.ficheiro) && !NAO_E_ESCUDO.test(p.ficheiro) && tituloBate(p.titulo, ALIAS[base] || base) && !usados.has(p.ficheiro)) { achou = p; break; } }
             await dorme(120);
         }
         if (!achou) { semEscudo++; relatorio[t.teamName] = { escudo: null }; console.log('  sem escudo:', t.teamName); continue; }
