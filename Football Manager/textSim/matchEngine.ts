@@ -970,8 +970,8 @@ export const simulateMatch = (fixture: Fixture, allTeams: Team[], allPlayers: Pl
       const scoreDiff = homeScore - awayScore;
       const homeFit = calcAvgFitness(myHomeLineup, redCardedHome);
       const awayFit = calcAvgFitness(myAwayLineup, redCardedAway);
-      const newHomeIntent = decideTeamIntent(homeTactics, momentum, minute, scoreDiff, homeFit);
-      const newAwayIntent = decideTeamIntent(awayTactics, -momentum, minute, -scoreDiff, awayFit);
+      const newHomeIntent = decideTeamIntent(homeTactics, momentum, minute, scoreDiff, homeFit, homeTeam?.managerTactics);
+      const newAwayIntent = decideTeamIntent(awayTactics, -momentum, minute, -scoreDiff, awayFit, awayTeam?.managerTactics);
       let changed = false;
 
       // ATTACK deixou de ser excluído: era justamente a intenção devolvida por

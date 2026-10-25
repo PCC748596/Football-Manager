@@ -31,7 +31,7 @@ export interface Competition {
   teamKeys: string[];
   groups?: Record<string, string[]>;
   matches: CompMatch[];
-  /** Serie C: os 4 que sobem a Serie B (2 primeiros de cada grupo); Serie D: os 6 (4 semifinalistas + 2 vencedores do playoff de acesso). */
+  /** Serie C: os 4 que sobem a Serie B (2 primeiros de cada grupo); Serie D: os 4 semifinalistas. */
   promovidos?: string[];
   /** Serie C com o utilizador: a 1.a fase e a liga do jogo (nao tem jogos aqui); a ordem vem das fixtures. */
   ligaExterna?: boolean;
@@ -73,11 +73,11 @@ const FASES_COPA = [
 const C_L_INICIO = '2024-04-13', C_G_INICIO = '2024-08-24';
 const FASES_C = [{ nome: 'F', datas: ['2024-11-02', '2024-11-09'] }];
 // SERIE D (96 clubes, regulamento): 16 grupos de 6 (ida e volta, 10 rodadas, domingos); os 4 primeiros de cada grupo (64) vao ao mata-mata, SEMPRE em ida e volta e sem gol fora (saldo do
-// confronto e depois penaltis): 2.a fase (64), 3.a fase (32), oitavas, quartas, semifinal, playoff de acesso (os 4 que perdem nas quartas, 2 confrontos) e final. Sobem 6: os 4 semifinalistas e
-// os 2 vencedores do playoff. Os grupos seguem a ordem da liga (por regiao: Norte, Nordeste, Centro-Oeste, Sudeste, Sul). Desempate nos grupos: vitorias, saldo, golos, confronto direto.
+// confronto e depois penaltis): 2.a fase (64), 3.a fase (32), oitavas, quartas, semifinal e final. Sobem 4: os 4 semifinalistas (sem playoff de acesso).
+// Os grupos seguem a ordem da liga (por regiao: Norte, Nordeste, Centro-Oeste, Sudeste, Sul). Desempate nos grupos: vitorias, saldo, golos, confronto direto.
 const D_INICIO = '2024-04-07';
 const FASES_D = [{ nome: 'R64', datas: ['2024-06-16', '2024-06-23'] }, { nome: 'R32', datas: ['2024-07-07', '2024-07-14'] }, { nome: 'R16', datas: ['2024-07-28', '2024-08-04'] },
-  { nome: 'QF', datas: ['2024-08-18', '2024-08-25'] }, { nome: 'SF', datas: ['2024-09-15', '2024-09-22'] }, { nome: 'PA', datas: ['2024-09-15', '2024-09-22'] }, { nome: 'F', datas: ['2024-10-13', '2024-10-20'] }];
+  { nome: 'QF', datas: ['2024-08-18', '2024-08-25'] }, { nome: 'SF', datas: ['2024-09-15', '2024-09-22'] }, { nome: 'F', datas: ['2024-10-13', '2024-10-20'] }];
 
 // Quem entra em cada fase da Copa do Brasil alem dos vencedores da anterior (por nome do clube na base).
 const COPA_CAMPEOES = new Set(['Paysandu-PA', 'Ponte Preta-SP', 'Confiança-SE', 'Barra-SC']);   // campeoes de competicoes de 2025: entram na 3.a fase
@@ -603,24 +603,13 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         const consecutivos = (ks: string[]) => { const p: [string, string][] = []; for (let k = 0; k < ks.length; k += 2) p.push(seed(ks[k]) <= seed(ks[k + 1]) ? [ks[k], ks[k + 1]] : [ks[k + 1], ks[k]]); return p; };
         const par = c.id === 'SERIE_D' ? consecutivos(venc) : c.id === 'COPA_BR' ? parear(venc.concat((c.entradas && c.entradas[b]) || []), seed) : (() => { const p: [string, string][] = []; for (let k = 0; k < venc.length; k += 2) p.push([venc[k], venc[k + 1]]); return p; })();
         c.matches.push(...jogosDaFase(c, fase(b), par, oc, somarDias(hoje, 1)));
-        // Serie D: os 4 que perdem nas quartas jogam o PLAYOFF DE ACESSO (2 confrontos); os 4 semifinalistas e os 2 vencedores do playoff sobem (6 clubes).
+        // Serie D: sobem SO OS 4 SEMIFINALISTAS (sem playoff de acesso).
         if (c.id === 'SERIE_D' && b === 'SF') {
-          const perdedores = c.matches.filter(m => m.stage === 'QF').map(m => m.tie).filter((t, i, arr) => arr.indexOf(t) === i).map(t => {
-            const js = c.matches.filter(m => m.stage === 'QF' && m.tie === t); const v = vencedorDoConfronto(js, teams, false);
-            return js[0].homeKey === v ? js[0].awayKey : js[0].homeKey;
-          });
-          c.matches.push(...jogosDaFase(c, fase('PA'), consecutivos(perdedores), oc, somarDias(hoje, 1)));
           c.promovidos = venc.slice();
         }
         progressou = true;
         break;
       }
-    }
-    // Serie D: os 2 vencedores do playoff de acesso juntam-se aos 4 semifinalistas.
-    if (c.id === 'SERIE_D' && temFase('PA') && feitaFase('PA') && c.promovidos && c.promovidos.length === 4) {
-      copia();
-      const v = vencedoresDe('PA');
-      if (v) { c.promovidos = c.promovidos.concat(v); progressou = true; }
     }
     // 3. campeao
     if (!c.champion && feitaFase('F')) {

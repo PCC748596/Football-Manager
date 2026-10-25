@@ -200,6 +200,8 @@ export interface Team {
   id: string;
   name: string;
   managerName: string; 
+  /** Conhecimento tatico do treinador (0-100): quanto maior, mais cedo a CPU le o jogo e muda a equipa (ver textSim/treinadores.ts). */
+  managerTactics?: number;
   teamAbb: string;
   country: string;
   city: string; 

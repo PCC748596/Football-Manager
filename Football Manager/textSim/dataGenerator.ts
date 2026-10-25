@@ -4,6 +4,7 @@ import { ECONOMIA_ESTADIO } from './stadiumEconomy';
 import { calcularSkill } from './overall';
 import { nomeDoClube } from './nomes';
 import { criarRng } from './contracts';
+import { TREINADORES, sortearConhecimento } from './treinadores';
 import { REAL_TEAMS_JSON, REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 
 const DEFAULT_TACTICS: Tactics = {
@@ -476,7 +477,11 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
   const shuffledManagers = [...MANAGER_NAMES].sort(() => 0.5 - Math.random());
 
   selectedTeams.forEach((t: any, idx: number) => {
-    const manager = shuffledManagers[idx % shuffledManagers.length] || "Unknown Manager";
+    // O treinador da lista (textSim/treinadores.ts); sem entrada, um nome sorteado e o conhecimento tatico pelo perfil (semente do clube: o mesmo clube da sempre o mesmo).
+    const doClube = TREINADORES[t.teamName];
+    const rngTreinador = criarRng('treinador|' + t.teamID);
+    const manager = doClube ? doClube.nome : (shuffledManagers[idx % shuffledManagers.length] || "Unknown Manager");
+    const managerTactics = doClube ? doClube.tatico : sortearConhecimento(rngTreinador).tatico;
 
     // Ensure initialCapital is a number
     const seasonBudget = t.initialCapital ? Number(t.initialCapital) : 10000000;
@@ -488,6 +493,7 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
       id: t.teamID.toString(),
       name: t.teamName,
       managerName: manager,
+      managerTactics,
       teamAbb: t.teamAbb || t.teamName.substring(0, 3).toUpperCase(),
       country: countryId,
       leagueId,

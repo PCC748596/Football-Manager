@@ -21,8 +21,10 @@ export const decideTeamIntent = (
   momentum: number,       // -100 a +100
   matchMinute: number,
   scoreDiff: number,       // positivo = time está ganhando
-  avgFitness: number       // média do time (0-100)
+  avgFitness: number,      // média do time (0-100)
+  conhecimentoTatico: number = 70   // do treinador (0-100): quem sabe mais le o jogo mais cedo (o minuto efetivo desloca-se 0,3 min por ponto acima/abaixo de 70: Abel Ferreira, 94, reage ~7 min antes)
 ): TeamIntent => {
+  matchMinute = matchMinute + (conhecimentoTatico - 70) * 0.3;
   // Perdendo: ataca (por 2 ou mais, mais cedo)
   if (scoreDiff <= -2 && matchMinute > 45) return 'ATTACK';
   if (scoreDiff < 0 && matchMinute >= 60) return 'ATTACK';
