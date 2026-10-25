@@ -1774,7 +1774,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -1794,7 +1794,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -1841,7 +1841,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -1861,7 +1861,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -1894,7 +1894,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "awayKit": {
@@ -1904,7 +1904,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -1914,7 +1914,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -1924,7 +1924,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -1947,7 +1947,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "LightBlue"
     },
     "awayKit": {
@@ -1957,7 +1957,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -1967,7 +1967,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -1977,7 +1977,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -2024,7 +2024,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "#ef4444",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "thirdKit": {
@@ -2034,7 +2034,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "transparent",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -2148,7 +2148,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "transparent",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "black"
     },
     "awayKit": {
@@ -2215,7 +2215,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -2235,7 +2235,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -2282,7 +2282,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "Red",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -2349,7 +2349,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "white",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -2401,7 +2401,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "Black",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -2411,7 +2411,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "thirdKit": {
@@ -2421,7 +2421,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -2454,7 +2454,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "Black"
     },
     "awayKit": {
@@ -2464,7 +2464,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -2474,7 +2474,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -2484,7 +2484,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -2574,7 +2574,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "awayKit": {
@@ -2584,7 +2584,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -2594,7 +2594,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -2604,7 +2604,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -2627,7 +2627,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "White"
     },
     "awayKit": {
@@ -2637,7 +2637,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -2647,7 +2647,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -2657,7 +2657,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -2679,7 +2679,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "Green",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -2689,7 +2689,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "thirdKit": {
@@ -2699,7 +2699,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -2746,7 +2746,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -2766,7 +2766,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -2798,7 +2798,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -2818,7 +2818,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -2851,7 +2851,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Blue"
     },
     "awayKit": {
@@ -2861,7 +2861,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -2871,7 +2871,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -2881,7 +2881,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -2985,7 +2985,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -3005,7 +3005,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -3037,7 +3037,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -3057,7 +3057,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -3211,7 +3211,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "Blue"
     },
     "awayKit": {
@@ -3221,7 +3221,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -3231,7 +3231,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -3241,7 +3241,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -3331,7 +3331,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "White"
     },
     "awayKit": {
@@ -3341,7 +3341,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -3351,7 +3351,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -3361,7 +3361,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -3532,7 +3532,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "Red",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -3585,7 +3585,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "Black"
     },
     "awayKit": {
@@ -3595,7 +3595,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -3605,7 +3605,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -3615,7 +3615,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -3652,7 +3652,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -3672,7 +3672,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -3771,7 +3771,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -3791,7 +3791,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -3892,7 +3892,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "White"
     },
     "awayKit": {
@@ -3902,7 +3902,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -3912,7 +3912,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -3922,7 +3922,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -3944,7 +3944,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -3964,7 +3964,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -4064,7 +4064,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "White"
     },
     "awayKit": {
@@ -4074,7 +4074,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -4084,7 +4084,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -4094,7 +4094,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -4117,7 +4117,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "Red"
     },
     "awayKit": {
@@ -4127,7 +4127,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -4137,7 +4137,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -4147,7 +4147,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -4170,7 +4170,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "awayKit": {
@@ -4180,7 +4180,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -4190,7 +4190,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -4200,7 +4200,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -4223,7 +4223,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "awayKit": {
@@ -4233,7 +4233,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -4243,7 +4243,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -4253,7 +4253,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -4275,7 +4275,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -4295,7 +4295,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -4328,7 +4328,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "White"
     },
     "awayKit": {
@@ -4338,7 +4338,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -4348,7 +4348,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -4358,7 +4358,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -4381,7 +4381,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "Red"
     },
     "awayKit": {
@@ -4391,7 +4391,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -4401,7 +4401,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -4411,7 +4411,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -4433,7 +4433,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -4453,7 +4453,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -4485,7 +4485,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -4505,7 +4505,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -4605,7 +4605,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -4625,7 +4625,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -4657,7 +4657,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -4677,7 +4677,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -4724,7 +4724,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -4744,7 +4744,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -4846,7 +4846,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "awayKit": {
@@ -4856,7 +4856,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -4866,7 +4866,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -4876,7 +4876,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -4898,7 +4898,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "Yellow",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -4908,7 +4908,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "thirdKit": {
@@ -4918,7 +4918,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -4951,7 +4951,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "Navy"
     },
     "awayKit": {
@@ -4961,7 +4961,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -4971,7 +4971,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -4981,7 +4981,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -5070,7 +5070,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -5090,7 +5090,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "gkKit": {
@@ -5122,7 +5122,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -5142,7 +5142,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "black"
     },
     "gkKit": {
@@ -5175,7 +5175,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "LightBlue"
     },
     "awayKit": {
@@ -5185,7 +5185,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -5195,7 +5195,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -5205,7 +5205,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -5228,7 +5228,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "Black"
     },
     "awayKit": {
@@ -5238,7 +5238,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": "White"
     },
     "thirdKit": {
@@ -5248,7 +5248,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Black"
     },
     "gkKit": {
@@ -5258,7 +5258,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": "Green"
     }
   },
@@ -5315,7 +5315,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -5372,7 +5372,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -5429,7 +5429,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -5456,7 +5456,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -5486,7 +5486,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -5543,7 +5543,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -5570,7 +5570,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -5600,7 +5600,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -5657,7 +5657,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -5714,7 +5714,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -5771,7 +5771,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -5798,7 +5798,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -5828,7 +5828,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -5885,7 +5885,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -5942,7 +5942,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -5999,7 +5999,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -6026,7 +6026,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -6056,7 +6056,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -6083,7 +6083,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -6113,7 +6113,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -6170,7 +6170,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -6227,7 +6227,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -6284,7 +6284,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -6341,7 +6341,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -6398,7 +6398,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -6455,7 +6455,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -6512,7 +6512,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -6569,7 +6569,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -6626,7 +6626,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -6683,7 +6683,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -6740,7 +6740,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -6797,7 +6797,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -6854,7 +6854,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -6911,7 +6911,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -6968,7 +6968,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7025,7 +7025,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7082,7 +7082,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -7139,7 +7139,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7166,7 +7166,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -7196,7 +7196,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7253,7 +7253,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7310,7 +7310,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7337,7 +7337,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -7367,7 +7367,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -7394,7 +7394,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -7424,7 +7424,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7481,7 +7481,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7538,7 +7538,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7595,7 +7595,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7652,7 +7652,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7679,7 +7679,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -7709,7 +7709,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7736,7 +7736,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -7766,7 +7766,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7793,7 +7793,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -7823,7 +7823,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7850,7 +7850,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -7880,7 +7880,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7937,7 +7937,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -7994,7 +7994,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -8021,7 +8021,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -8051,7 +8051,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -8078,7 +8078,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -8108,7 +8108,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -8135,7 +8135,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -8165,7 +8165,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -8192,7 +8192,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -8222,7 +8222,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -8249,7 +8249,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -8279,7 +8279,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -8336,7 +8336,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -8363,7 +8363,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -8393,7 +8393,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -8420,7 +8420,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -8450,7 +8450,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -8477,7 +8477,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -8507,7 +8507,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -8534,7 +8534,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -8564,7 +8564,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -8621,7 +8621,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -8648,7 +8648,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -8678,7 +8678,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -8735,7 +8735,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -8762,7 +8762,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -8792,7 +8792,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -8819,7 +8819,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -8849,7 +8849,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -8876,7 +8876,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -8906,7 +8906,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -8963,7 +8963,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -8990,7 +8990,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -9020,7 +9020,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -9077,7 +9077,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -9104,7 +9104,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -9134,7 +9134,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -9191,7 +9191,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -9218,7 +9218,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -9248,7 +9248,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -9275,7 +9275,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -9305,7 +9305,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -9332,7 +9332,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -9362,7 +9362,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -9389,7 +9389,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -9419,7 +9419,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -9446,7 +9446,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -9476,7 +9476,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -9533,7 +9533,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -9560,7 +9560,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -9590,7 +9590,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -9617,7 +9617,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -9647,7 +9647,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -9674,7 +9674,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -9704,7 +9704,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -9761,7 +9761,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -9818,7 +9818,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -9845,7 +9845,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -9875,7 +9875,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -9902,7 +9902,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -9932,7 +9932,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -9959,7 +9959,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -9989,7 +9989,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -10016,7 +10016,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -10046,7 +10046,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -10103,7 +10103,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -10130,7 +10130,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -10160,7 +10160,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -10187,7 +10187,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -10217,7 +10217,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -10244,7 +10244,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -10274,7 +10274,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -10331,7 +10331,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -10388,7 +10388,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -10445,7 +10445,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -10472,7 +10472,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -10502,7 +10502,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -10529,7 +10529,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -10559,7 +10559,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -10586,7 +10586,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -10616,7 +10616,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -10643,7 +10643,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -10673,7 +10673,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -10730,7 +10730,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -10757,7 +10757,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -10787,7 +10787,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -10814,7 +10814,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -10844,7 +10844,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -10871,7 +10871,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -10901,7 +10901,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -10928,7 +10928,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -10958,7 +10958,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -10985,7 +10985,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -11015,7 +11015,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -11042,7 +11042,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -11072,7 +11072,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -11129,7 +11129,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -11186,7 +11186,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -11243,7 +11243,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -11300,7 +11300,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -11357,7 +11357,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -11414,7 +11414,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -11471,7 +11471,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -11528,7 +11528,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -11585,7 +11585,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -11642,7 +11642,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -11699,7 +11699,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -11756,7 +11756,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -11813,7 +11813,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -11840,7 +11840,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -11870,7 +11870,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -11927,7 +11927,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -11984,7 +11984,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -12041,7 +12041,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -12098,7 +12098,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -12155,7 +12155,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -12182,7 +12182,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -12212,7 +12212,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -12269,7 +12269,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -12296,7 +12296,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -12326,7 +12326,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -12383,7 +12383,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -12410,7 +12410,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -12440,7 +12440,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -12467,7 +12467,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -12497,7 +12497,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -12554,7 +12554,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -12581,7 +12581,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -12611,7 +12611,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -12668,7 +12668,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -12695,7 +12695,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -12725,7 +12725,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -12752,7 +12752,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -12782,7 +12782,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -12809,7 +12809,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -12839,7 +12839,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -12896,7 +12896,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -12923,7 +12923,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -12953,7 +12953,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -12980,7 +12980,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -13010,7 +13010,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -13037,7 +13037,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -13067,7 +13067,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -13094,7 +13094,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -13124,7 +13124,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -13151,7 +13151,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -13181,7 +13181,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -13208,7 +13208,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -13238,7 +13238,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -13295,7 +13295,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -13322,7 +13322,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -13352,7 +13352,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -13409,7 +13409,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -13466,7 +13466,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -13523,7 +13523,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -13580,7 +13580,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -13607,7 +13607,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -13637,7 +13637,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -13694,7 +13694,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -13721,7 +13721,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -13751,7 +13751,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -13808,7 +13808,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -13865,7 +13865,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -13892,7 +13892,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -13922,7 +13922,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -13979,7 +13979,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -14036,7 +14036,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -14093,7 +14093,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -14120,7 +14120,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -14150,7 +14150,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -14207,7 +14207,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -14264,7 +14264,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -14321,7 +14321,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -14378,7 +14378,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -14435,7 +14435,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -14462,7 +14462,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -14492,7 +14492,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -14549,7 +14549,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -14576,7 +14576,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -14606,7 +14606,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -14663,7 +14663,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -14690,7 +14690,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -14720,7 +14720,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -14747,7 +14747,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -14777,7 +14777,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -14804,7 +14804,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -14834,7 +14834,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -14891,7 +14891,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -14948,7 +14948,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -14975,7 +14975,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -15005,7 +15005,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15062,7 +15062,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15119,7 +15119,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15146,7 +15146,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -15176,7 +15176,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15233,7 +15233,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15260,7 +15260,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -15290,7 +15290,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15347,7 +15347,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15404,7 +15404,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15461,7 +15461,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15488,7 +15488,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -15518,7 +15518,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15545,7 +15545,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -15575,7 +15575,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15602,7 +15602,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -15632,7 +15632,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -15689,7 +15689,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15716,7 +15716,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -15746,7 +15746,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15803,7 +15803,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15830,7 +15830,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -15860,7 +15860,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -15887,7 +15887,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -15917,7 +15917,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -15944,7 +15944,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -15974,7 +15974,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -16001,7 +16001,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -16031,7 +16031,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -16058,7 +16058,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -16088,7 +16088,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -16115,7 +16115,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -16145,7 +16145,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -16202,7 +16202,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -16229,7 +16229,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -16259,7 +16259,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -16316,7 +16316,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -16343,7 +16343,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -16373,7 +16373,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -16430,7 +16430,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -16487,7 +16487,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -16514,7 +16514,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -16544,7 +16544,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -16601,7 +16601,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -16628,7 +16628,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -16658,7 +16658,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -16715,7 +16715,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -16772,7 +16772,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -16799,7 +16799,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -16829,7 +16829,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -16856,7 +16856,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -16886,7 +16886,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -16913,7 +16913,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -16943,7 +16943,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -16970,7 +16970,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -17000,7 +17000,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -17057,7 +17057,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -17114,7 +17114,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -17171,7 +17171,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -17198,7 +17198,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -17228,7 +17228,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -17255,7 +17255,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -17285,7 +17285,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -17342,7 +17342,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -17399,7 +17399,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -17456,7 +17456,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -17513,7 +17513,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -17570,7 +17570,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -17627,7 +17627,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -17684,7 +17684,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -17741,7 +17741,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -17798,7 +17798,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -17855,7 +17855,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -17912,7 +17912,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -17969,7 +17969,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -18026,7 +18026,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -18083,7 +18083,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -18140,7 +18140,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -18197,7 +18197,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -18254,7 +18254,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -18311,7 +18311,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -18368,7 +18368,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -18425,7 +18425,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -18482,7 +18482,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -18539,7 +18539,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -18596,7 +18596,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -18653,7 +18653,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -18710,7 +18710,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -18767,7 +18767,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -18824,7 +18824,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -18881,7 +18881,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -18938,7 +18938,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -18995,7 +18995,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -19052,7 +19052,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -19109,7 +19109,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -19166,7 +19166,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -19223,7 +19223,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -19280,7 +19280,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -19337,7 +19337,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -19394,7 +19394,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -19451,7 +19451,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -19508,7 +19508,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -19565,7 +19565,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -19622,7 +19622,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -19679,7 +19679,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -19736,7 +19736,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -19793,7 +19793,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -19850,7 +19850,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -19907,7 +19907,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -19964,7 +19964,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -20021,7 +20021,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -20078,7 +20078,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -20135,7 +20135,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -20192,7 +20192,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -20249,7 +20249,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -20306,7 +20306,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -20363,7 +20363,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -20420,7 +20420,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -20477,7 +20477,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -20534,7 +20534,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -20591,7 +20591,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -20648,7 +20648,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -20705,7 +20705,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -20762,7 +20762,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -20819,7 +20819,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -20876,7 +20876,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -20933,7 +20933,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -20990,7 +20990,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -21047,7 +21047,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -21104,7 +21104,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -21161,7 +21161,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -21218,7 +21218,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -21275,7 +21275,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -21332,7 +21332,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -21389,7 +21389,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -21446,7 +21446,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -21503,7 +21503,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -21560,7 +21560,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -21617,7 +21617,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -21674,7 +21674,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -21731,7 +21731,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -21788,7 +21788,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -21845,7 +21845,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -21902,7 +21902,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -21959,7 +21959,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22016,7 +22016,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -22073,7 +22073,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22130,7 +22130,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22187,7 +22187,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22244,7 +22244,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22301,7 +22301,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22358,7 +22358,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22415,7 +22415,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22472,7 +22472,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22529,7 +22529,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22586,7 +22586,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22643,7 +22643,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -22700,7 +22700,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22757,7 +22757,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22814,7 +22814,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22871,7 +22871,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -22928,7 +22928,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -22985,7 +22985,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -23042,7 +23042,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -23099,7 +23099,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -23156,7 +23156,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -23213,7 +23213,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -23270,7 +23270,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -23327,7 +23327,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -23384,7 +23384,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -23441,7 +23441,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -23498,7 +23498,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -23555,7 +23555,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -23612,7 +23612,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -23669,7 +23669,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -23726,7 +23726,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -23783,7 +23783,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -23840,7 +23840,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -23897,7 +23897,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -23954,7 +23954,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -24011,7 +24011,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -24068,7 +24068,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -24125,7 +24125,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -24162,7 +24162,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "thirdKit": {
@@ -24182,7 +24182,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -24239,7 +24239,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -24296,7 +24296,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -24353,7 +24353,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -24410,7 +24410,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -24467,7 +24467,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -24524,7 +24524,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -24581,7 +24581,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -24618,7 +24618,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "thirdKit": {
@@ -24638,7 +24638,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -24695,7 +24695,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -24752,7 +24752,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -24779,7 +24779,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -24809,7 +24809,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -24866,7 +24866,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -24923,7 +24923,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -24950,7 +24950,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -24980,7 +24980,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25037,7 +25037,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25094,7 +25094,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25151,7 +25151,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -25178,7 +25178,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -25208,7 +25208,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25235,7 +25235,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -25265,7 +25265,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25322,7 +25322,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25349,7 +25349,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -25379,7 +25379,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -25406,7 +25406,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -25436,7 +25436,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25463,7 +25463,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -25493,7 +25493,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25520,7 +25520,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -25550,7 +25550,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25577,7 +25577,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -25607,7 +25607,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25664,7 +25664,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25721,7 +25721,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25748,7 +25748,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -25778,7 +25778,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25835,7 +25835,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -25862,7 +25862,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -25892,7 +25892,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25919,7 +25919,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -25949,7 +25949,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -25976,7 +25976,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -26006,7 +26006,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -26033,7 +26033,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -26063,7 +26063,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26090,7 +26090,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -26120,7 +26120,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26177,7 +26177,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26204,7 +26204,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -26234,7 +26234,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -26261,7 +26261,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -26291,7 +26291,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26318,7 +26318,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -26348,7 +26348,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26375,7 +26375,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -26405,7 +26405,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26432,7 +26432,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -26462,7 +26462,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26489,7 +26489,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -26519,7 +26519,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26546,7 +26546,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -26576,7 +26576,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26603,7 +26603,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -26633,7 +26633,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26690,7 +26690,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26717,7 +26717,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -26747,7 +26747,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26774,7 +26774,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -26804,7 +26804,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26831,7 +26831,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -26861,7 +26861,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26918,7 +26918,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -26975,7 +26975,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -27002,7 +27002,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -27032,7 +27032,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -27089,7 +27089,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -27146,7 +27146,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -27203,7 +27203,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -27230,7 +27230,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -27260,7 +27260,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -27287,7 +27287,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -27317,7 +27317,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -27344,7 +27344,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -27374,7 +27374,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -27431,7 +27431,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -27458,7 +27458,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -27488,7 +27488,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -27515,7 +27515,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -27545,7 +27545,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -27602,7 +27602,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -27659,7 +27659,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -27716,7 +27716,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -27743,7 +27743,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -27773,7 +27773,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -27830,7 +27830,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -27887,7 +27887,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -27914,7 +27914,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -27944,7 +27944,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28001,7 +28001,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -28058,7 +28058,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28085,7 +28085,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -28115,7 +28115,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28142,7 +28142,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -28172,7 +28172,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28229,7 +28229,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28256,7 +28256,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -28286,7 +28286,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28313,7 +28313,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -28343,7 +28343,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28400,7 +28400,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28457,7 +28457,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28514,7 +28514,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28541,7 +28541,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -28571,7 +28571,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28598,7 +28598,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -28628,7 +28628,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28655,7 +28655,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -28685,7 +28685,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28712,7 +28712,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -28742,7 +28742,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28769,7 +28769,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -28799,7 +28799,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28856,7 +28856,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28883,7 +28883,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -28913,7 +28913,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28940,7 +28940,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -28970,7 +28970,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -28997,7 +28997,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -29027,7 +29027,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -29054,7 +29054,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -29084,7 +29084,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -29111,7 +29111,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -29141,7 +29141,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -29168,7 +29168,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -29198,7 +29198,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -29225,7 +29225,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -29255,7 +29255,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -29282,7 +29282,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -29312,7 +29312,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -29339,7 +29339,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -29369,7 +29369,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -29426,7 +29426,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -29453,7 +29453,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -29483,7 +29483,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -29540,7 +29540,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -29567,7 +29567,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -29597,7 +29597,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -29624,7 +29624,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -29654,7 +29654,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -29711,7 +29711,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -29738,7 +29738,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -29768,7 +29768,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -29825,7 +29825,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -29852,7 +29852,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -29882,7 +29882,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -29909,7 +29909,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -29939,7 +29939,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -29996,7 +29996,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -30053,7 +30053,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -30110,7 +30110,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -30167,7 +30167,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -30194,7 +30194,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -30224,7 +30224,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -30251,7 +30251,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -30281,7 +30281,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -30338,7 +30338,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -30365,7 +30365,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -30395,7 +30395,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -30452,7 +30452,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -30479,7 +30479,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -30509,7 +30509,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -30536,7 +30536,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -30566,7 +30566,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -30574,8 +30574,8 @@ export const REAL_TEAMS_JSON: any[] = [
     "teamID": 840002,
     "teamName": "Sabah",
     "teamAbb": "SAB",
-    "color": "#1d4ed8",
-    "color2": "#ffffff",
+    "color": "#f472b6",
+    "color2": "#111111",
     "color3": "",
     "teamCityName": "Baku",
     "teamStadiumName": "Bakcell Arena",
@@ -30588,18 +30588,18 @@ export const REAL_TEAMS_JSON: any[] = [
     "country": "84",
     "homeKit": {
       "pattern": "solid",
-      "color1": "#1d4ed8",
+      "color1": "#f472b6",
       "color2": "",
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
       "pattern": "solid",
       "color1": "#ffffff",
-      "color2": "#1d4ed8",
+      "color2": "",
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
@@ -30623,7 +30623,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -30680,7 +30680,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -30688,8 +30688,8 @@ export const REAL_TEAMS_JSON: any[] = [
     "teamID": 840004,
     "teamName": "Zira",
     "teamAbb": "ZIR",
-    "color": "#c8102e",
-    "color2": "#111111",
+    "color": "#2f5aa8",
+    "color2": "#ffffff",
     "color3": "",
     "teamCityName": "Baku",
     "teamStadiumName": "Zira Olimpiya",
@@ -30702,18 +30702,18 @@ export const REAL_TEAMS_JSON: any[] = [
     "country": "84",
     "homeKit": {
       "pattern": "solid",
-      "color1": "#c8102e",
+      "color1": "#2f5aa8",
       "color2": "",
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
       "pattern": "solid",
       "color1": "#ffffff",
-      "color2": "#c8102e",
+      "color2": "",
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
@@ -30737,7 +30737,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -30764,7 +30764,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -30794,7 +30794,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -30851,7 +30851,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -30878,7 +30878,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -30908,7 +30908,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -30935,7 +30935,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -30965,7 +30965,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -30992,7 +30992,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -31022,7 +31022,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -31049,7 +31049,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -31079,7 +31079,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -31106,7 +31106,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -31136,7 +31136,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -31163,7 +31163,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -31193,7 +31193,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -31220,7 +31220,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -31250,7 +31250,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -31277,7 +31277,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -31307,7 +31307,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -31334,7 +31334,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -31364,7 +31364,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -31421,7 +31421,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -31448,7 +31448,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -31478,7 +31478,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -31505,7 +31505,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -31535,7 +31535,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -31592,7 +31592,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -31619,7 +31619,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -31649,7 +31649,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -31676,7 +31676,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -31706,7 +31706,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -31733,7 +31733,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -31763,7 +31763,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -31820,7 +31820,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -31847,7 +31847,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -31877,7 +31877,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -31904,7 +31904,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -31934,7 +31934,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -31991,7 +31991,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -32018,7 +32018,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "black",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -32048,7 +32048,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     }
   },
@@ -32075,7 +32075,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -32105,7 +32105,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -32132,7 +32132,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -32162,7 +32162,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },
@@ -32189,7 +32189,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#ffffff",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -32219,7 +32219,7 @@ export const REAL_TEAMS_JSON: any[] = [
       "color3": "",
       "numberColor": "white",
       "numberOutlineColor": "",
-      "collarColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   }

@@ -1280,165 +1280,223 @@
   "escudo": null
  },
  "Brann": {
-  "escudo": null
+  "artigo": "SK Brann",
+  "ficheiro": "Brann_logo.svg"
  },
  "Viking": {
-  "escudo": null
+  "artigo": "Viking FK",
+  "ficheiro": "Viking_FK_logo_2020.svg"
  },
  "Molde": {
-  "escudo": null
+  "artigo": "Molde FK",
+  "ficheiro": "Molde_Fotball_Logo.svg"
  },
  "Rosenborg": {
-  "escudo": null
+  "artigo": "Rosenborg BK",
+  "ficheiro": "Rosenborg_logo_RGB.svg"
  },
  "PSV Eindhoven": {
-  "escudo": null
+  "artigo": "PSV Eindhoven",
+  "ficheiro": "PSV_Eindhoven.svg"
  },
  "Feyenoord": {
-  "escudo": null
+  "artigo": "Feyenoord",
+  "ficheiro": "Feyenoord_logo_since_2024.svg"
  },
  "Ajax": {
-  "escudo": null
+  "artigo": "AFC Ajax",
+  "ficheiro": "Logo_AFC_Ajax_(1928-1991,_2025-).png"
  },
  "AZ Alkmaar": {
-  "escudo": null
+  "artigo": "AZ Alkmaar",
+  "ficheiro": "AZ_Alkmaar.svg"
  },
  "FC Twente": {
-  "escudo": null
+  "artigo": "FC Twente",
+  "ficheiro": "FC_Twente.svg"
  },
  "Sporting CP": {
-  "escudo": null
+  "artigo": "List of Sporting CP seasons",
+  "ficheiro": "SportingCP_League_Performance.svg"
  },
  "Benfica": {
-  "escudo": null
+  "artigo": "S.L. Benfica",
+  "ficheiro": "SL_Benfica_logo.svg"
  },
  "Porto": {
-  "escudo": null
+  "artigo": "FC Porto",
+  "ficheiro": "FC_Porto.svg"
  },
  "Braga": {
-  "escudo": null
+  "artigo": "S.C. Braga",
+  "ficheiro": "S.C._Braga_logo.svg"
  },
  "Vitória SC": {
-  "escudo": null
+  "artigo": "Esporte Clube Vitória",
+  "ficheiro": "Esporte_Clube_Vitória_(2024).svg"
  },
  "Galatasaray": {
-  "escudo": null
+  "artigo": "Galatasaray S.K. (football)",
+  "ficheiro": "Galatasaray_S.K._Logo_2026_5-stars.svg"
  },
  "Fenerbahçe": {
-  "escudo": null
+  "artigo": "Fenerbahçe S.K. (football)",
+  "ficheiro": "Fenerbahçe.svg"
  },
  "Beşiktaş": {
-  "escudo": null
+  "artigo": "Beşiktaş J.K.",
+  "ficheiro": "BesiktasJK-Logo.svg"
  },
  "Trabzonspor": {
-  "escudo": null
+  "artigo": "Trabzonspor",
+  "ficheiro": "Trabzonspor_Amblem.svg"
  },
  "Başakşehir": {
-  "escudo": null
+  "artigo": "İstanbul Başakşehir F.K.",
+  "ficheiro": "İstanbul_Başakşehir_logo.svg"
  },
  "Red Bull Salzburg": {
-  "escudo": null
+  "artigo": "FC Red Bull Salzburg",
+  "ficheiro": "FC_Red_Bull_Salzburg_logo.svg"
  },
  "Sturm Graz": {
-  "escudo": null
+  "artigo": "SK Sturm Graz",
+  "ficheiro": "SK_Sturm_Graz_logo.svg"
  },
  "LASK": {
-  "escudo": null
+  "artigo": "LASK",
+  "ficheiro": "LASK-Logo_2023.svg"
  },
  "Rapid Wien": {
-  "escudo": null
+  "artigo": "SK Rapid Wien",
+  "ficheiro": "SK_Rapid_Wien_Logo.svg"
  },
  "Austria Wien": {
-  "escudo": null
+  "artigo": "FK Austria Wien",
+  "ficheiro": "FK_Austria_Wien_Logo.png"
  },
  "Qarabağ": {
-  "escudo": null
+  "artigo": "Qarabağ FK",
+  "ficheiro": "Qarabağ_FK_logo.svg"
  },
  "Sabah": {
-  "escudo": null
+  "artigo": "Sabah FK (Azerbaijan)",
+  "ficheiro": "Sabah_FK_(Azerbaijan)_logo.svg"
  },
  "Neftçi": {
-  "escudo": null
+  "artigo": "Neftçi PFK",
+  "ficheiro": "Neftçi_PFK_logo.svg"
  },
  "Zira": {
-  "escudo": null
+  "artigo": "Zira FK",
+  "ficheiro": "Zira_FK_logo.svg"
  },
  "Sumqayıt": {
-  "escudo": null
+  "artigo": "Sumgayit FK",
+  "ficheiro": "Sumgayit_FK_logo.svg"
  },
  "Club Brugge": {
-  "escudo": null
+  "artigo": "Club Brugge KV",
+  "ficheiro": "Club_Brugge_KV_logo.svg"
  },
  "Union Saint-Gilloise": {
-  "escudo": null
+  "artigo": "Royale Union Saint-Gilloise",
+  "ficheiro": "Royale_Union_Saint-Gilloise_logo.svg"
  },
  "Anderlecht": {
-  "escudo": null
+  "artigo": "RSC Anderlecht",
+  "ficheiro": "R.S.C._Anderlecht.svg"
  },
  "Genk": {
-  "escudo": null
+  "artigo": "KRC Genk Ladies",
+  "ficheiro": "KRC_Genk_Ladies_logo.svg"
  },
  "Gent": {
-  "escudo": null
+  "artigo": "KAA Gent",
+  "ficheiro": "KAA_Gent_logo.svg"
  },
  "Slovan Bratislava": {
-  "escudo": null
+  "artigo": "ŠK Slovan Bratislava",
+  "ficheiro": "SK_Slovan_Bratislava_logo.svg"
  },
  "Spartak Trnava": {
-  "escudo": null
+  "artigo": "FC Spartak Trnava",
+  "ficheiro": "Spartak_Trnava_logo.svg"
  },
  "Žilina": {
-  "escudo": null
+  "artigo": "MŠK Žilina",
+  "ficheiro": "MSK_Zilina_logo.svg"
  },
  "DAC Dunajská Streda": {
-  "escudo": null
+  "artigo": "FC DAC 1904 Dunajská Streda",
+  "ficheiro": "FC_DAC_1904_Dunajská_Streda_svg_logo.svg"
  },
  "Ružomberok": {
-  "escudo": null
+  "artigo": "MFK Ružomberok",
+  "ficheiro": "MFK_Ruzomberok_logo.svg"
  },
  "Olympiacos": {
-  "escudo": null
+  "artigo": "Olympiacos F.C.",
+  "ficheiro": "Olympiacos_FC_crest.svg"
  },
  "Panathinaikos": {
-  "escudo": null
+  "artigo": "Panathinaikos A.O.",
+  "ficheiro": "Panathinaikos_A.O._logo.svg"
  },
  "AEK Athens": {
-  "escudo": null
+  "artigo": "AEK Athens F.C.",
+  "ficheiro": "AEK_Athens_FC_logo.svg"
  },
  "PAOK": {
-  "escudo": null
+  "artigo": "PAOK FC",
+  "ficheiro": "PAOK_FC_logo.svg"
  },
  "Aris": {
-  "escudo": null
+  "artigo": "Aris Thessaloniki",
+  "ficheiro": "Aris_Salonique_(ancien_logo).svg"
  },
  "Slavia Praha": {
-  "escudo": null
+  "artigo": "SK Slavia Prague",
+  "ficheiro": "SK_Slavia_Praha_full_logo.svg"
  },
  "Sparta Praha": {
-  "escudo": null
+  "artigo": "AC Sparta Prague",
+  "ficheiro": "AC-Sparta-LOGO2021.svg"
  },
  "Viktoria Plzeň": {
-  "escudo": null
+  "artigo": "FC Viktoria Plzeň",
+  "ficheiro": "Viktoria_Plzen_logo.svg"
  },
  "Baník Ostrava": {
-  "escudo": null
+  "artigo": "FC Baník Ostrava",
+  "ficheiro": "FC_Banik_Ostrava_logo.svg"
  },
  "Mladá Boleslav": {
-  "escudo": null
+  "artigo": "FK Mladá Boleslav",
+  "ficheiro": "Mlada_Boleslav_logo.svg"
  },
  "Shakhtar Donetsk": {
-  "escudo": null
+  "artigo": "FC Shakhtar Donetsk",
+  "ficheiro": "FC_Shakhtar_Donetsk.svg"
  },
  "Dynamo Kyiv": {
-  "escudo": null
+  "artigo": "FC Dynamo Kyiv",
+  "ficheiro": "Futbolny_Klub_Dynamo_Kyiv_logo.svg"
  },
  "Zorya Luhansk": {
-  "escudo": null
+  "artigo": "FC Zorya Luhansk",
+  "ficheiro": "FC_Zorya_Luhansk_logo.svg"
  },
  "Dnipro-1": {
-  "escudo": null
+  "artigo": "SC Dnipro-1",
+  "ficheiro": "SC_Dnipro-1_(Ukraine)_white_background_CMYK.svg"
  },
  "Kryvbas": {
-  "escudo": null
+  "artigo": "FC Kryvbas Kryvyi Rih",
+  "ficheiro": "FC_Kryvbas_Kryvyi_Rih_(2020).png"
+ },
+ "Bodø-Glimt": {
+  "artigo": "FK Bodø/Glimt",
+  "ficheiro": "FK_Bodo_Glimt_logo.svg"
  }
 }

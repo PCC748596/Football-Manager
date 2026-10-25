@@ -204,7 +204,7 @@ export const ShirtIcon: React.FC<ShirtIconProps> = ({
 
   const comShort = !!shortColor;
   const shirtNode = (
-    <div className={`relative flex items-center justify-center ${comShort ? '' : className}`} style={{ width: `${64 * scale}px`, height: `${64 * scale}px` }}>
+    <div className={`relative flex items-center justify-center ${comShort ? '' : className}`} style={{ width: `${64 * scale}px`, height: `${64 * scale}px`, flexShrink: 0 }}>
       <svg viewBox="0 0 200 200" className={`w-full h-full filter drop-shadow-md transition-all ${outOfPosition ? 'opacity-40 grayscale-[0.3]' : ''}`}>
         <defs>
           <mask id={maskId}>
@@ -275,11 +275,11 @@ export const ShirtIcon: React.FC<ShirtIconProps> = ({
 
   if (!comShort) return shirtNode;
   // O short fica por baixo da camisa: duas pernas com a aba (barra da bainha) na cor do kit.
-  const w = 64 * scale * 0.62, h = 64 * scale * 0.5;
+  const w = 64 * scale * 0.62, h = 64 * scale * 0.48;
   return (
     <div className={`flex flex-col items-center ${className}`}>
       {shirtNode}
-      <svg viewBox="0 0 120 80" style={{ width: `${w}px`, height: `${h}px`, marginTop: `${-6 * scale}px` }} className={`filter drop-shadow-md transition-all ${outOfPosition ? 'opacity-40 grayscale-[0.3]' : ''}`}>
+      <svg viewBox="0 0 120 80" style={{ width: `${w}px`, height: `${h}px`, marginTop: `${-8 * scale + 3}px`, flexShrink: 0 }} className={`filter drop-shadow-md transition-all ${outOfPosition ? 'opacity-40 grayscale-[0.3]' : ''}`}>
         <path d="M14 2 H106 L116 74 H66 L60 28 L54 74 H4 Z" fill={shortColor} stroke="rgba(0,0,0,0.2)" strokeWidth="2" strokeLinejoin="round" />
         {shortTrimColor && (
           <>

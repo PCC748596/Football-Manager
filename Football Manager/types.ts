@@ -234,10 +234,10 @@ export interface Team {
   secondaryColor: string;
   tertiaryColor: string;
   shirtPattern?: string;
-  homeKit?: { pattern: string; color1: string; color2: string; color3: string; numberColor?: string; numberOutlineColor?: string; collarColor?: string; sleeveColor?: string; };
-  awayKit?: { pattern: string; color1: string; color2: string; color3: string; numberColor?: string; numberOutlineColor?: string; collarColor?: string; sleeveColor?: string; };
-  thirdKit?: { pattern: string; color1: string; color2: string; color3: string; numberColor?: string; numberOutlineColor?: string; collarColor?: string; sleeveColor?: string; };
-  gkKit?: { pattern: string; color1: string; color2: string; color3: string; numberColor?: string; numberOutlineColor?: string; collarColor?: string; sleeveColor?: string; };
+  homeKit?: { pattern: string; color1: string; color2: string; color3: string; numberColor?: string; numberOutlineColor?: string; collarColor?: string; sleeveColor?: string; shortColor?: string; shortTrimColor?: string; };
+  awayKit?: { pattern: string; color1: string; color2: string; color3: string; numberColor?: string; numberOutlineColor?: string; collarColor?: string; sleeveColor?: string; shortColor?: string; shortTrimColor?: string; };
+  thirdKit?: { pattern: string; color1: string; color2: string; color3: string; numberColor?: string; numberOutlineColor?: string; collarColor?: string; sleeveColor?: string; shortColor?: string; shortTrimColor?: string; };
+  gkKit?: { pattern: string; color1: string; color2: string; color3: string; numberColor?: string; numberOutlineColor?: string; collarColor?: string; sleeveColor?: string; shortColor?: string; shortTrimColor?: string; };
   leagueId: string;
   /** Serie D: o grupo (A-H) em que o clube joga no jogo; so os 12 do grupo do utilizador estao na liga dele. */
   groupId?: string;

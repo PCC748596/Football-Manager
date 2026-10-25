@@ -177,7 +177,7 @@ function gerarElenco(pais, rank, nClubes) {
 // ---------------------------------------------------------------- clubes e jogadores
 const novoPaises = [], novoClubes = [], novosJogadores = [], relatorio = [];
 let idJog = ID_JOGADOR_BASE;
-const kit = (pat, c1, c2, nCor) => ({ pattern: pat, color1: c1, color2: c2 || '', color3: '', numberColor: nCor, numberOutlineColor: '', collarColor: c2 || '', sleeveColor: '' });
+const kit = (pat, c1, c2, nCor) => ({ pattern: pat, color1: c1, color2: c2 || '', color3: '', numberColor: nCor, numberOutlineColor: '', collarColor: c2 || (claro(c1) ? '#111111' : '#ffffff'), sleeveColor: '' });
 const PADRAO = { s: 'solid', v: 'stripes', h: 'horizontal' };
 const claro = (hex) => { const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 150; };
 

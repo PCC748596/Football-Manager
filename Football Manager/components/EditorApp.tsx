@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { REAL_TEAMS_JSON, REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from '../textSim/realDatabase';
 import { ShirtIcon } from './ShirtIcon';
+import { kitShorts } from '../types';
 import { urlSimulador } from '../3dMatch/simulador3dCliente';
 import FaceEditor from './FaceEditor';
 
@@ -87,6 +88,11 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           };
           const assignedTeamIds = new Set(countries.flatMap(c => c.leagues.flatMap(l => l.teamIds || [])));
           const unassignedTeams = teams.filter(t => !assignedTeamIds.has(t.teamID));
+          // Os sem liga, agrupados por PAIS (o `country` do clube: id do pais ou, em dados antigos, o nome).
+          const nomeDoPais = (t: any) => { const c = countries.find(x => String(x.id) === String(t.country) || String(x.name).toLowerCase() === String(t.country || '').toLowerCase()); return c ? c.name : (t.country ? String(t.country) : 'No country'); };
+          const grupos = new Map<string, any[]>();
+          unassignedTeams.forEach(t => { const n = nomeDoPais(t); if (!grupos.has(n)) grupos.set(n, []); grupos.get(n)!.push(t); });
+          const unassignedPorPais: [string, any[]][] = Array.from(grupos.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 
           return (
           <>
@@ -169,7 +175,10 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   </button>
                   {expandedContinent === 'Unassigned' && (
                     <div className="p-2 border-t border-slate-800 bg-slate-900 flex flex-col gap-1">
-                      {unassignedTeams.map(t => (
+                      {unassignedPorPais.map(([pais, lista]) => (
+                        <div key={pais} className="flex flex-col gap-1">
+                        <div className="px-1 pt-2 text-[10px] font-black uppercase tracking-widest text-slate-500">{pais} <span className="text-slate-600">({lista.length})</span></div>
+                        {lista.map(t => (
                         <button 
                           key={t.teamID} 
                           onClick={() => setEditingTeam(t)}
@@ -180,6 +189,8 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                           </div>
                           <span className="truncate">{t.teamName}</span>
                         </button>
+                      ))}
+                        </div>
                       ))}
                     </div>
                   )}
@@ -238,41 +249,49 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             };
 
                             return (
-                                <div className="grid grid-cols-1 gap-3">
+                                <div className="grid grid-cols-1 gap-1">
                                   <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Color 1 (Primary)</label>
-                                    <input type="text" value={kit.color1} onChange={e => updateKit({ color1: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded p-2 text-white" />
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5">Color 1 (Primary)</label>
+                                    <input type="text" value={kit.color1} onChange={e => updateKit({ color1: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white" />
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Color 2 (Secondary)</label>
-                                    <input type="text" value={kit.color2} onChange={e => updateKit({ color2: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded p-2 text-white" />
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5">Color 2 (Secondary)</label>
+                                    <input type="text" value={kit.color2} onChange={e => updateKit({ color2: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white" />
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Color 3 (Tertiary)</label>
-                                    <input type="text" value={kit.color3 || ''} onChange={e => updateKit({ color3: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded p-2 text-white" />
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5">Color 3 (Tertiary)</label>
+                                    <input type="text" value={kit.color3 || ''} onChange={e => updateKit({ color3: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white" />
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Number Color</label>
-                                    <input type="text" value={kit.numberColor || ''} onChange={e => updateKit({ numberColor: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded p-2 text-white" />
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5">Number Color</label>
+                                    <input type="text" value={kit.numberColor || ''} onChange={e => updateKit({ numberColor: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white" />
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Number Outline</label>
-                                    <input type="text" value={kit.numberOutlineColor || ''} onChange={e => updateKit({ numberOutlineColor: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded p-2 text-white" />
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5">Number Outline</label>
+                                    <input type="text" value={kit.numberOutlineColor || ''} onChange={e => updateKit({ numberOutlineColor: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white" />
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Collar Color</label>
-                                    <input type="text" value={kit.collarColor || ''} onChange={e => updateKit({ collarColor: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded p-2 text-white" />
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5">Collar Color</label>
+                                    <input type="text" value={kit.collarColor || ''} onChange={e => updateKit({ collarColor: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white" />
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Sleeve Color</label>
-                                    <input type="text" value={kit.sleeveColor || ''} onChange={e => updateKit({ sleeveColor: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded p-2 text-white" />
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5">Sleeve Color</label>
+                                    <input type="text" value={kit.sleeveColor || ''} onChange={e => updateKit({ sleeveColor: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white" />
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Shirt Pattern</label>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5">Short Color</label>
+                                    <input type="text" placeholder="auto" value={kit.shortColor || ''} onChange={e => updateKit({ shortColor: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5">Short Trim</label>
+                                    <input type="text" placeholder="auto" value={kit.shortTrimColor || ''} onChange={e => updateKit({ shortTrimColor: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5">Shirt Pattern</label>
                                     <select 
                                       value={kit.pattern} 
                                       onChange={e => updateKit({ pattern: e.target.value })}
-                                      className="w-full bg-slate-900 border border-slate-800 rounded p-2 text-white"
+                                      className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white"
                                     >
                                       <option value="solid">Solid</option>
                                       <option value="stripes">Vertical Stripes</option>
@@ -287,7 +306,7 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                     </select>
                                   </div>
                                   <div className="flex justify-center mt-2">
-                                    <div className="w-24 h-24 bg-slate-800 rounded flex items-center justify-center shadow-lg">
+                                    <div className="w-28 h-36 bg-slate-800 rounded flex items-center justify-center shadow-lg">
                                       <ShirtIcon 
                                           color={kit.color1 || '#ffffff'}
                                           color2={kit.color2 || 'transparent'}
@@ -297,9 +316,13 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                           numberOutlineColor={kit.numberOutlineColor}
                                           collarColor={kit.collarColor}
                                           sleeveColor={kit.sleeveColor}
+                                          // O short: o do kit, ou (vazio = auto) o da camisa (a cor principal; nas camisas com desenho, a secundaria), como em kitShorts.
+                                          shortColor={kitShorts({ c1: kit.color1 || '#ffffff', c2: kit.color2 || undefined, shc: kit.shortColor || undefined, shtc: kit.shortTrimColor || undefined, clc: kit.collarColor || undefined, horizontal: kit.pattern === 'horizontal' } as any, tab !== 'gkKit').cor}
+                                          shortTrimColor={kitShorts({ c1: kit.color1 || '#ffffff', c2: kit.color2 || undefined, shc: kit.shortColor || undefined, shtc: kit.shortTrimColor || undefined, clc: kit.collarColor || undefined } as any, tab !== 'gkKit').aba}
                                           number={10}
                                           longSleeves={tab === 'gkKit'}
-                                          className="w-16 h-16"
+                                          scale={1.1}
+                                          className="drop-shadow-md"
                                       />
                                     </div>
                                   </div>
