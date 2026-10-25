@@ -25,6 +25,7 @@ CUSTO por partida (o mandante paga). Depende da capacidade e do tipo de jogo, na
 O dinheiro do jogo e guardado em dolares (o `formatCurrency` converte para a moeda de exibicao a 5 BRL por USD), por isso o custo em reais entra dividido por 5.
 =====================================================================
 */
+import { TAXAS } from './cambio';
 export type CurrencyCode = 'USD' | 'EUR' | 'BRL';
 export type MatchKind = 'NORMAL' | 'CLASSICO' | 'FINAL';
 
@@ -43,7 +44,7 @@ export const ECONOMIA_ESTADIO = {
   /** Preco medio do ingresso, na moeda de exibicao. */
   precoIngresso: { USD: 20, EUR: 20, BRL: 100 } as Record<CurrencyCode, number>,
   /** Quantos reais valem um dolar do jogo (o mesmo do formatCurrency). */
-  reaisPorDolar: 5,
+  get reaisPorDolar() { return TAXAS.BRL; },   // vem de textSim/cambio.ts (editavel em Settings)
   /** Custo base por jogo, em reais, pela capacidade (lugares): ate `ate` inclusive. */
   custoBaseBRL: [
     { ate: 10000, custo: 50000 },
@@ -76,7 +77,7 @@ export const stadiumMatchCostUSD = (capacity: number, owned: boolean, kind: Matc
 /** Preco do ingresso em dolares do jogo, a partir do preco na moeda de exibicao. */
 export const ticketPriceUSD = (currency: CurrencyCode): number => {
   const p = ECONOMIA_ESTADIO.precoIngresso[currency] ?? ECONOMIA_ESTADIO.precoIngresso.USD;
-  return currency === 'EUR' ? p / 0.92 : currency === 'BRL' ? p / ECONOMIA_ESTADIO.reaisPorDolar : p;
+  return currency === 'EUR' ? p / TAXAS.EUR : currency === 'BRL' ? p / ECONOMIA_ESTADIO.reaisPorDolar : p;
 };
 
 /** A ocupacao-base e a contagem de empates seguidos depois de um resultado (do ponto de vista do time). */

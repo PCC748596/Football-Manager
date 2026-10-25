@@ -194,12 +194,14 @@ const WorldView: React.FC = () => {
 
   const painelCopa = (c: Competition) => {
     const fasesSerie = (c.id === 'SERIE_C' || c.id === 'SERIE_D') ? fasesDeSerieCD(c, ordemVista(c)) : null;
-    const fases = Array.from(new Set(c.matches.filter(m => !m.group).map(m => m.stage)));
+    const fasesTodas = Array.from(new Set(c.matches.filter(m => !m.group).map(m => m.stage)));
+    // Champions: o playoff tem a sua aba (entre Groups e Knockout); o Knockout so mostra as fases seguintes.
+    const fases = c.id === 'UCL' ? (aba === 'PLAYOFF' ? ['PO'].filter(f => fasesTodas.includes(f)) : fasesTodas.filter(f => f !== 'PO')) : fasesTodas;
     return (
       <>
         <div className="flex gap-2 p-3 border-b border-slate-200 dark:border-slate-800 items-center">
-          {(fasesSerie ? ['P1', ...fasesSerie.map(f => 'F:' + f.stage), 'JOGOS'] : c.groups ? ['GRUPOS', 'MATA', 'JOGOS'] : ['MATA', 'JOGOS']).map(a => (
-            <button key={a} onClick={() => setAba(a)} className={`px-4 py-1.5 rounded text-[11px] font-black uppercase tracking-widest ${aba === a ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>{fasesSerie ? (a === 'P1' ? 'Primeira fase' : a === 'JOGOS' ? 'Todos os jogos' : (NOME_FASE_BR[c.id + ':' + a.slice(2)] || a)) : (a === 'GRUPOS' ? 'Groups' : a === 'MATA' ? 'Knockout' : 'All matches')}</button>
+          {(fasesSerie ? ['P1', ...fasesSerie.map(f => 'F:' + f.stage), 'JOGOS'] : c.groups ? ['GRUPOS', ...(c.id === 'UCL' ? ['PLAYOFF'] : []), 'MATA', 'JOGOS'] : ['MATA', 'JOGOS']).map(a => (
+            <button key={a} onClick={() => setAba(a)} className={`px-4 py-1.5 rounded text-[11px] font-black uppercase tracking-widest ${aba === a ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>{fasesSerie ? (a === 'P1' ? 'Primeira fase' : a === 'JOGOS' ? 'Todos os jogos' : (NOME_FASE_BR[c.id + ':' + a.slice(2)] || a)) : (a === 'GRUPOS' ? 'Groups' : a === 'PLAYOFF' ? 'Playoffs' : a === 'MATA' ? 'Knockout' : 'All matches')}</button>
           ))}
           {c.champion && <span className="ml-auto flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-amber-500">🏆 Champion <Escudo k={c.champion} /> {nomeDe(c.champion)}</span>}
         </div>
@@ -226,9 +228,9 @@ const WorldView: React.FC = () => {
             </div>
           )}
           {fasesSerie && aba.startsWith('F:') && !(aba === 'F:G' && c.groups?.G1) && (() => { const f = fasesSerie.find(x => x.stage === aba.slice(2)); return f ? painelFase(f, c.id) : null; })()}
-          {aba === 'MATA' && (
+          {(aba === 'MATA' || aba === 'PLAYOFF') && (
             <div className="space-y-5">
-              {fases.length === 0 && <div className="text-slate-500 text-sm p-4">The knockout rounds are drawn when the group stage ends.</div>}
+              {fases.length === 0 && <div className="text-slate-500 text-sm p-4">{aba === 'PLAYOFF' ? 'The playoffs (9th to 24th) are drawn when the league phase ends.' : 'The knockout rounds are drawn when the group stage ends.'}</div>}
               {fases.map(f => {
                 const ties = Array.from(new Set(c.matches.filter(m => m.stage === f).map(m => m.tie)));
                 return (

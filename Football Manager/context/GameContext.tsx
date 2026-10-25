@@ -2,11 +2,11 @@ import React, { createContext, useContext, useState, useRef, useEffect } from 'r
 import { Team, Player, Contract, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador } from '../types';
 import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/dataGenerator';
 import { gruposDaSerieD } from '../textSim/competitions';
-import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults } from '../textSim/world';
-import { Competition, prepararCopas, ligaIdDoClube } from '../textSim/competitions';
+import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, buildTable } from '../textSim/world';
+import { Competition, prepararCopas, ligaIdDoClube, teamKey } from '../textSim/competitions';
 import { BaseState, garantirBase, processarBase, promoverJovem } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
-import { MensagemInbox, adicionar, chavesDe, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia } from '../textSim/inbox';
+import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia } from '../textSim/inbox';
 import { regiaoDoClube } from '../textSim/dataGenerator';
 import { MercadoState, Universo, Evento, mercadoVazio, prepararOrcamentos, proporCompra as mercadoPropor, responderComoVendedor, responderComoComprador, retirar as mercadoRetirar, concluir as mercadoConcluir,
   contratarAgenteLivre as mercadoContratarLivre, listarParaVenda as mercadoListar, tickDoDia as mercadoTick, recalcularValoresDoMes, janelaAberta } from '../textSim/transferencias';
@@ -15,6 +15,8 @@ import { Negociacao, Oferta, abrirNegociacao, assinar, chanceDeAceitar, proposta
 import { rotuloDaFase } from '../textSim/competitions';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino } from '../textSim/trainingService';
+import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
+import { premiosPendentes, premioDaLiga, NOME_DA_COPA } from '../textSim/premiacao';
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
 import { REAL_TEAMS_JSON } from '../textSim/realDatabase';
 import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager } from '../3dMatch/simulador3dCliente';
@@ -204,6 +206,9 @@ interface GameContextType {
   setThemeMode: (mode: ThemeMode) => void;
   updateSettings: (settings: Partial<Pick<GameState, 'language' | 'currency' | 'wageFrequency' | 'themeMode' | 'matchDuration' | 'simulationSpeed' | 'graphicsQuality'>>) => void;
   isTransferWindowOpen: () => boolean;
+  /** As taxas de cambio (unidades por dolar) e como as mudar/restaurar (Settings). */
+  taxasDeCambio: Record<MoedaCambio, number>;
+  atualizarTaxas: (novas: Partial<Record<MoedaCambio, number>> | 'padrao') => void;
   formatCurrency: (value: number) => string;
   formatCurrencyShort: (value: number) => string;
   formatWage: (weeklyValue: number) => string;
@@ -360,6 +365,34 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (r.teams.length) setTeams(prev => [...prev, ...r.teams]);
     if (r.players.length) setPlayers(prev => [...prev, ...r.players]);
   }, [gameState.currentDate, cupSig, world, comps, userTeam?.id]);
+
+  // PREMIACAO DAS COPAS (textSim/premiacao.ts): o dinheiro vai para o caixa do clube do utilizador quando ganha cada fase; o e-mail do inbox leva a chave do pagamento (nao paga duas vezes).
+  const premiosPagos = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!comps || !userTeam) return;
+    const uk = teamKey(ligaIdDoClube(userTeam), userTeam.id);
+    const ja = new Set<string>([...chavesDe(inbox), ...premiosPagos.current]);
+    const pend = premiosPendentes(comps, uk, ja);
+    if (!pend.length) return;
+    pend.forEach(p => premiosPagos.current.add(p.key));
+    const total = pend.reduce((s, p) => s + p.usd, 0);
+    setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + total } : t));
+    setInbox(prev => adicionar(prev, pend.map(p => avisoDePremiacao(p.data, gameState.language, p.key, NOME_DA_COPA[p.copa] || p.copa, p.razao, formatCurrency(p.usd)))));
+  }, [comps]);
+
+  // PREMIACAO DO CAMPEONATO (Brasileiro Serie A): paga pela posicao final quando todos os jogos da liga do utilizador acabam.
+  useEffect(() => {
+    if (!userTeam || (userTeam.leagueId !== 'bra_serie_a' && userTeam.leagueId !== 'bra_serie_b' && userTeam.leagueId !== 'eng_prem')) return;
+    const jogos = fixtures.filter(f => !f.isFriendly && (f.type === undefined || f.type === 'LEAGUE'));
+    if (!jogos.length || !jogos.every(f => f.played)) return;
+    const tab = buildTable(teams.filter(t => naLigaDoUtilizador(t, userTeam)), jogos);
+    const pos = tab.findIndex(r => r.team.id === userTeam.id) + 1;
+    const p = pos > 0 ? premioDaLiga(userTeam.leagueId, pos, gameState.currentDate, new Set<string>([...chavesDe(inbox), ...premiosPagos.current])) : null;
+    if (!p) return;
+    premiosPagos.current.add(p.key);
+    setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + p.usd } : t));
+    setInbox(prev => adicionar(prev, [avisoDePremiacao(p.data, gameState.language, p.key, NOME_DA_COPA[p.copa as string], p.razao, formatCurrency(p.usd))]));
+  }, [fixtures]);
 
   // INBOX — o motor escreve; a tela so le. Cada razao gera uma mensagem so (as `keys` evitam repeticao ao recarregar ou reprocessar um dia).
   const empurrarInbox = (novas: MensagemInbox[]) => { if (novas.length) setInbox(prev => adicionar(prev, novas)); };
@@ -560,17 +593,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return dict[key] || key;
   };
 
+  // Mudar as taxas refaz o provider (o `formatCurrency` de todas as telas passa a usar as novas).
+  const [, setVersaoCambio] = useState(0);
+  const atualizarTaxas = (novas: Partial<Record<MoedaCambio, number>> | 'padrao') => { if (novas === 'padrao') restaurarTaxas(); else definirTaxas(novas); setVersaoCambio(v => v + 1); };
+
   const formatCurrency = (value: number) => {
     let amount = value;
-    if (gameState.currency === 'EUR') amount *= 0.92;
-    else if (gameState.currency === 'BRL') amount *= 5.0;
+    if (gameState.currency === 'EUR') amount *= TAXAS.EUR;
+    else if (gameState.currency === 'BRL') amount *= TAXAS.BRL;
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: gameState.currency, maximumFractionDigits: 0 }).format(amount);
   };
 
   const formatCurrencyShort = (value: number) => {
     let amount = value;
-    if (gameState.currency === 'EUR') amount *= 0.92;
-    else if (gameState.currency === 'BRL') amount *= 5.0;
+    if (gameState.currency === 'EUR') amount *= TAXAS.EUR;
+    else if (gameState.currency === 'BRL') amount *= TAXAS.BRL;
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
     if (amount >= 1000) return `${(amount / 1000).toFixed(1)}K`;
     return amount.toString();
@@ -1871,7 +1908,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <GameContext.Provider value={{
       teams, players, fixtures, gameState, startGame, advanceDay, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
       hirePlayer, sellPlayer, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
-      isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, updateSettings, formatCurrency, formatCurrencyShort, formatWage,
+      isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
       t,
       updateMatchVisualState,

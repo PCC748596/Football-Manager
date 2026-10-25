@@ -8,7 +8,7 @@ interface SettingsViewProps {
 }
 
 const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
-  const { gameState, updateSettings, t } = useGame();
+  const { gameState, updateSettings, t, taxasDeCambio, atualizarTaxas } = useGame();
 
   return (
     <div className="h-full flex flex-col gap-6 animate-fade-in max-w-6xl mx-auto w-full">
@@ -168,6 +168,23 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                           ))}
                       </div>
                   </div>
+              </div>
+
+              {/* Taxas de cambio (unidades de cada moeda por 1 dolar): alimentam a moeda de exibicao, as premiacoes e a economia do estadio. */}
+              <div className="space-y-2 pt-2">
+                  <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">Exchange rates (per 1 USD)</label>
+                  <div className="grid grid-cols-4 gap-4 items-end">
+                      {(['BRL', 'EUR', 'GBP'] as const).map(m => (
+                          <div key={m} className="space-y-1">
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{m}</span>
+                              <input type="number" step="0.01" min="0.01" value={taxasDeCambio[m]}
+                                  onChange={e => { const v = parseFloat(e.target.value); if (v > 0) atualizarTaxas({ [m]: v }); }}
+                                  className="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-sm border border-slate-200 dark:border-slate-700" />
+                          </div>
+                      ))}
+                      <button onClick={() => atualizarTaxas('padrao')} className="py-2 rounded-lg font-black text-xs uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">Reset</button>
+                  </div>
+                  <p className="text-[10px] text-slate-400">Game money is stored in US dollars. Changing a rate changes how values are shown and how prize money (BRL, GBP) is converted.</p>
               </div>
           </section>
 
