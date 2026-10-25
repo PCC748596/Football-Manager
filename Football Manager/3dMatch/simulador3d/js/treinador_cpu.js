@@ -8,7 +8,7 @@ tabela). Na partida do utilizador so mexe a equipa da CPU; nas simulacoes em lot
 COMO FUNCIONA
   . `registar(team, { conhecimento, base })` poe a equipa ('TeamA'/'TeamB') sob o comando de um treinador. `base` = a tatica propria dela ({ estilo, pressaoDefensiva, linhaDefensiva }, nos nomes do motor).
   . A cada `Match.update` o `tick` olha o placar, o minuto e os vermelhos; decide de `intervalo` em `intervalo` minutos de jogo e logo a seguir a um golo ou a um vermelho (com a demora de reaccao do
-    treinador). A decisao e uma INTENCAO (atacar, recuar, segurar a bola, normal) igual a do motor de texto (textSim/teamAI.ts) e vira tatica propria da equipa em `Tatics.porEquipa[team]`
+    treinador). A POSICAO NA TABELA (`tabela`: { posicao, total, posicaoAdv }) define o objetivo do clube e a postura de partida. A decisao e uma INTENCAO (atacar, recuar, segurar a bola, normal) igual a do motor de texto (textSim/teamAI.ts) e vira tatica propria da equipa em `Tatics.porEquipa[team]`
     (ver `taticaDe`, config/tactics.js).
   . O CONHECIMENTO manda em tres coisas: o minuto efetivo da leitura (cada ponto acima de 70 adianta 0,3 min: um 94 reage ~7 min antes, um 50 ~6 min depois), a demora de reaccao (`demoraS`) e o
     risco de NAO ler o jogo (abaixo de 60 ha a probabilidade (60 - k)/100 de ficar na tatica base).
@@ -26,8 +26,30 @@ const TreinadorCPU = {
 
     registar(team, dados) {
         const base = Object.assign({ estilo: 'balanceado', pressaoDefensiva: 'balanced', linhaDefensiva: 'medium' }, (dados && dados.base) || {});
-        this.equipas[team] = { conhecimento: (dados && typeof dados.conhecimento === 'number') ? dados.conhecimento : 70, base: base, ultimoMin: 0, reagirEm: null, golosVistos: 0, vermelhosVistos: 0, trocas: 0, intencao: 'BALANCED', pedidas: 0 };
-        if (typeof Tatics !== 'undefined' && Tatics.porEquipa) Tatics.porEquipa[team] = Object.assign({}, base);
+        const k = (dados && typeof dados.conhecimento === 'number') ? dados.conhecimento : 70;
+        const tabela = (dados && dados.tabela && dados.tabela.posicao && dados.tabela.total) ? dados.tabela : null;
+        this.equipas[team] = { conhecimento: k, base: base, tabela: tabela, objetivo: this.objetivoDe(tabela), ultimoMin: 0, reagirEm: null, golosVistos: 0, vermelhosVistos: 0, trocas: 0, intencao: 'BALANCED', pedidas: 0 };
+        // A POSICAO NA TABELA muda a postura de PARTIDA (so com leitura de jogo: conhecimento >= 60): contra um adversario muito melhor classificado o treinador fecha-se; contra um muito pior, ataca.
+        const T = this.equipas[team];
+        T.base = this.ajustarBasePorTabela(base, T);
+        if (typeof Tatics !== 'undefined' && Tatics.porEquipa) Tatics.porEquipa[team] = Object.assign({}, T.base);
+    },
+
+    // O objetivo do clube pela posicao: titulo (os 20% de cima), vaga (ate 40%), meio, rebaixamento (os 30% de baixo).
+    objetivoDe(tabela) {
+        if (!tabela) return 'MEIO';
+        const f = tabela.total > 1 ? (tabela.posicao - 1) / (tabela.total - 1) : 0.5;
+        return f <= 0.2 ? 'TITULO' : f <= 0.4 ? 'VAGA' : f >= 0.7 ? 'REBAIXAMENTO' : 'MEIO';
+    },
+
+    ajustarBasePorTabela(base, T) {
+        const t = Object.assign({}, base);
+        if (!T.tabela || !(T.tabela.posicaoAdv > 0) || T.conhecimento < 60) return t;
+        const d = T.tabela.posicaoAdv - T.tabela.posicao;          // > 0: o adversario esta pior classificado
+        const limiar = Math.max(4, Math.round(T.tabela.total * 0.3));
+        if (d >= limiar) { if (t.estilo === 'balanceado' || t.estilo === 'defesa') t.estilo = 'ataque'; t.pressaoDefensiva = 'high'; }
+        else if (d <= -limiar && T.objetivo !== 'TITULO') { if (t.estilo === 'balanceado' || t.estilo === 'ataque') t.estilo = 'defesa'; t.pressaoDefensiva = 'low'; t.linhaDefensiva = 'low'; }
+        return t;
     },
 
     limpar() {
@@ -59,6 +81,16 @@ const TreinadorCPU = {
             return 'RETREAT';
         }
         if (e.vermelhosDeles > e.vermelhosMeus) return dif > 0 ? 'POSSESS' : 'ATTACK';   // com mais um: ataca para decidir, ou gere
+        // O OBJETIVO (posicao na tabela): quem luta pelo titulo ou pela vaga precisa de ganhar e arrisca mais cedo; quem foge do rebaixamento aceita o empate contra um adversario melhor e protege o 1-0.
+        const T2 = T.tabela, melhorQueEu = T2 && T2.posicaoAdv > 0 && T2.posicaoAdv < T2.posicao;
+        if (T.objetivo === 'TITULO' || T.objetivo === 'VAGA') {
+            if (dif === 0 && m >= 70) return 'ATTACK';
+            if (dif < 0 && m >= 50) return 'ATTACK';
+        } else if (T.objetivo === 'REBAIXAMENTO') {
+            if (dif === 0 && m >= 75) return melhorQueEu ? 'RETREAT' : 'ATTACK';
+            if (dif === 1 && m >= 65) return 'RETREAT';
+            if (dif < 0 && m >= 55) return 'ATTACK';
+        }
         if (dif <= -2 && m > 45) return 'ATTACK';
         if (dif < 0 && m >= 60) return 'ATTACK';
         if (dif >= 2 && m >= 70) return 'POSSESS';
@@ -106,6 +138,32 @@ const TreinadorCPU = {
             }
             this.substituicoesPorCartoes(team, T, e, min);
         }
+        // A FORMACAO no intervalo (1.a leitura depois dos 45 minutos).
+        for (const team of ['TeamA', 'TeamB']) {
+            const T = this.equipas[team];
+            if (T && !T.formacaoFeita && min >= 46) { T.formacaoFeita = true; this.formacaoNoIntervalo(team, T, this._estado(team), min); }
+        }
+    },
+
+    /*
+    A FORMACAO NO INTERVALO. O treinador le o primeiro tempo e, se perde, ataca com mais gente na frente (433); se ganha e o objetivo e aguentar (rebaixamento) ou vence por 2+, fecha com um meio-campo
+    mais cheio (4231); caso contrario fica. Com conhecimento baixo (< 60) ha uma probabilidade (60 - k)/100 de nao mexer. So troca por formacoes da base do motor (433, 442, 4231), de forma que o
+    resultado (quem joga onde) segue a ordem da lista da equipa, como a mudanca de formacao pelo painel (`Match.assignFormations`).
+    */
+    formacaoNoIntervalo(team, T, e, min) {
+        if (typeof FormationsData === 'undefined' || typeof Tatics === 'undefined') return;
+        if (T.conhecimento < 60 && Math.random() < (60 - T.conhecimento) / 100) return;
+        const chaveAtual = team === 'TeamA' ? Tatics.formacaoA : Tatics.formacaoB;
+        const forma = (k) => { const f = FormationsData[k]; if (!f) return null; const c = { def: 0, mid: 0, atk: 0 }; f.forEach(x => { if (c[x.role] !== undefined) c[x.role]++; }); return c; };
+        const atual = forma(chaveAtual);
+        if (!atual || e.vermelhosMeus > 0) return;                    // com menos um nao se mexe na forma
+        let alvo = null;
+        if (e.dif < 0 && atual.atk < 3) alvo = '433';
+        else if ((e.dif >= 2 || (e.dif >= 1 && T.objetivo === 'REBAIXAMENTO')) && atual.mid < 5) alvo = '4231';
+        if (!alvo || alvo === chaveAtual || !FormationsData[alvo]) return;
+        if (team === 'TeamA') { Tatics.formacaoA = alvo; Tatics.formacaoFixaA = alvo; } else { Tatics.formacaoB = alvo; Tatics.formacaoFixaB = alvo; }
+        if (typeof Match.assignFormations === 'function') Match.assignFormations();
+        this._log.push({ min: Math.floor(min), team, formacao: chaveAtual + ' -> ' + alvo, dif: e.dif, k: T.conhecimento });
     },
 
     // ---------------------------------------------------------------------------------------------

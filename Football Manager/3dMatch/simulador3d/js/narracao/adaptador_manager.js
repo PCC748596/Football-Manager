@@ -217,7 +217,10 @@ const AdaptadorManager = {
             TreinadorCPU.limpar();
             const cpuEhCasa = (opcoes.taticaDe || 'casa') !== 'casa';
             const cpu = cpuEhCasa ? casa : fora;
-            if (cpu && cpu.tatica) TreinadorCPU.registar(cpuEhCasa ? 'TeamA' : 'TeamB', { conhecimento: cpu.conhecimentoTatico, base: { estilo: cpu.tatica.estilo, pressaoDefensiva: cpu.tatica.pressaoDefensiva, linhaDefensiva: cpu.tatica.linhaDefensiva } });
+            // A posicao na tabela do campeonato (o manager manda `tabela: { casa: {posicao,total}, fora: {posicao,total} }`).
+            const tb = opcoes.tabela || null;
+            const tabela = (tb && tb.casa && tb.fora) ? (cpuEhCasa ? { posicao: tb.casa.posicao, total: tb.casa.total, posicaoAdv: tb.fora.posicao } : { posicao: tb.fora.posicao, total: tb.fora.total, posicaoAdv: tb.casa.posicao }) : null;
+            if (cpu && cpu.tatica) TreinadorCPU.registar(cpuEhCasa ? 'TeamA' : 'TeamB', { conhecimento: cpu.conhecimentoTatico, tabela: tabela, base: { estilo: cpu.tatica.estilo, pressaoDefensiva: cpu.tatica.pressaoDefensiva, linhaDefensiva: cpu.tatica.linhaDefensiva } });
         }
         const t = ((opcoes.taticaDe || 'casa') === 'casa' ? casa : fora).equipa.tactics;
         if (t && this.ESTILO_DO_MANAGER[t.style]) Tatics.estilo = this.ESTILO_DO_MANAGER[t.style];

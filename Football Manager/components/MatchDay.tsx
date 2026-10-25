@@ -62,6 +62,15 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   }
 
   const showStats = gameState.matchMinute >= 90 || activeTab === 'stats';
+  // A posicao dos dois clubes na tabela da liga (pontos, saldo, golos): o treinador da CPU no 3D leva-a em conta (objetivo do clube). Sem jogos feitos, vale a ordem de OVR.
+  const tabelaDosDois = (() => {
+    const liga = teams.filter(t => t.leagueId === homeTeam.leagueId && (t.groupId || '') === (homeTeam.groupId || ''));
+    if (liga.length < 2) return undefined;
+    const semJogos = liga.every(t => !t.played);
+    const ord = [...liga].sort((a, b) => semJogos ? b.strength - a.strength : (b.points - a.points) || ((b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst)) || (b.goalsFor - a.goalsFor));
+    const pos = (id: string) => ord.findIndex(t => t.id === id) + 1;
+    return { casa: { posicao: pos(homeTeam.id), total: ord.length }, fora: { posicao: pos(awayTeam.id), total: ord.length } };
+  })();
   // O nome da competicao desta partida: vai para a placa fixa do centro da lateral oposta ao tunel (3D).
   const nomeCompeticao = (() => {
     if (match.isFriendly || match.type === 'FRIENDLY') return 'Friendly';
@@ -280,7 +289,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 );
              })() : null}
              <div className={`absolute inset-0 w-full h-full ${showStats ? 'hidden' : ''}`}>
-                <Simulador3DView competicao={nomeCompeticao} qualidade={gameState.graphicsQuality || 'HIGH'} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx}
+                <Simulador3DView competicao={nomeCompeticao} tabela={tabelaDosDois} qualidade={gameState.graphicsQuality || 'HIGH'} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx}
                     iniciar={iniciou} pausado={iniciou && !gameState.isProcessing} aoPronto={() => setPronto3d(true)}
                     aoMensagem={(m) => {
                       // Tatica do painel do 3D -> manager (aba Tactics): so o que mudou de nivel.
