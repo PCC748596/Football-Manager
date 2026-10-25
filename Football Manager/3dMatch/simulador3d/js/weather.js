@@ -245,7 +245,7 @@ const Weather = {
                 ambienteColor: 0x6c7b8a,
                 ambienteIntensidade: 0.30,
                 holofotes: true,
-                holofotesIntensidade: 0.5,
+                holofotesIntensidade: 0.55,
                 nuvensVisiveis: true,
                 nuvensOpacidade: 0.95,
                 nuvensCor: 0x3a424b,
@@ -341,7 +341,7 @@ const Weather = {
                 ambienteColor: 0x0d131d,
                 ambienteIntensidade: 0.12,
                 holofotes: true,
-                holofotesIntensidade: 0.7,
+                holofotesIntensidade: 0.75,
                 nuvensVisiveis: true,
                 nuvensOpacidade: 0.95,
                 nuvensCor: 0x0f141e,
@@ -1324,7 +1324,11 @@ const Weather = {
 
         const btnPeriodo = document.getElementById('btn-periodo');
         // As luzes de cor do clube no estádio oval (js/estadio_oval.js): acendem à noite, também por aqui (o seletor Dia/Noite do jogo passa pelo Weather).
-        if (window.ledsEstadio) window.ledsEstadio.definir(this.periodo !== 'dia');
+        if (window.ledsEstadio) {
+            // As luzes por baixo da cobertura (as dos torcedores) acendem também quando o tempo pede holofotes (chuva, céu encoberto), mesmo de dia.
+            const pc = this.presets[this.periodo] && this.presets[this.periodo][this.condicao];
+            window.ledsEstadio.definir(this.periodo !== 'dia', !!(pc && pc.holofotes));
+        }
         if (btnPeriodo) btnPeriodo.innerText = (this.periodo === 'noite') ? 'Noite' : (this.periodo === 'crepusculo' ? 'Crepúsculo' : 'Dia');
     }
 };

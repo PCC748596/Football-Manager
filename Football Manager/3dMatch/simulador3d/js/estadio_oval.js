@@ -556,18 +556,24 @@ const EstadioOval = {
         window.ledsEstadio = {
             spots, feixes,   // expostos para diagnóstico
             // De noite as luzes do clube brilham a sério; de dia ficam acesas mas mais suaves, para se verem no jogo normal.
-            definir(acesas) {
+            definir(acesas, tempoFechado) {
                 matTopo.emissiveIntensity = acesas ? 0.95 : 0.3;
                 matTopo.map = acesas ? texCor : null; matTopo.needsUpdate = true;
                 matColunas.emissiveIntensity = acesas ? 0.45 : 0.15;
                 for (const m of ledMats) m.emissiveIntensity = acesas ? 0.9 : 0.6;
                 for (const sp of spots) { sp.visible = !!acesas; sp.intensity = acesas ? cfg.spotsIntensidade : 0; }
                 feixes.visible = !!acesas;
-                matPainel.emissiveIntensity = acesas ? 1.6 : 0;
-                for (const sp of luzesSob) { sp.visible = !!acesas; sp.intensity = acesas ? cfg.luzesSobIntensidade : 0; }
+                // Por baixo da cobertura (os torcedores): também com tempo fechado (chuva), mesmo de dia.
+                const sob = !!(acesas || tempoFechado);
+                matPainel.emissiveIntensity = sob ? 1.6 : 0;
+                for (const sp of luzesSob) { sp.visible = sob; sp.intensity = sob ? cfg.luzesSobIntensidade : 0; }
             }
         };
-        window.ledsEstadio.definir(!!window.jogoNoturno);
+        {
+            const W = (typeof Weather !== 'undefined') ? Weather : null;
+            const pc = W && W.presets && W.presets[W.periodo] && W.presets[W.periodo][W.condicao];
+            window.ledsEstadio.definir(!!window.jogoNoturno, !!(pc && pc.holofotes));
+        }
 
         // ---- holofotes no bordo de fora da cobertura ---------------------
         if (typeof Holofotes !== 'undefined' && Holofotes.activo) {
