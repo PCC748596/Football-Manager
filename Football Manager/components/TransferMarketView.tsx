@@ -38,7 +38,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const [nome, setNome] = useState('');
   const [grupo, setGrupo] = useState<typeof GRUPOS[number]>('ANY');
   const [idadeMin, setIdadeMin] = useState(15), [idadeMax, setIdadeMax] = useState(42);
-  const [ovrMin, setOvrMin] = useState(0), [ovrMax, setOvrMax] = useState(99);
+  const [ovrMin, setOvrMin] = useState(50), [ovrMax, setOvrMax] = useState(99);
   const [valorMax, setValorMax] = useState<number>(Infinity);
   const [clubeId, setClubeId] = useState('');
   const [soLivres, setSoLivres] = useState(false), [soListados, setSoListados] = useState(false), [soContrato, setSoContrato] = useState(false), [soBase, setSoBase] = useState(false), [soShortlist, setSoShortlist] = useState(false);
@@ -46,8 +46,8 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const rascunho = { nome, grupo, idadeMin, idadeMax, ovrMin, ovrMax, valorMax, clubeId, soLivres, soListados, soContrato, soBase, soShortlist };
   const [filtros, setFiltros] = useState(rascunho);
   const aplicar = () => setFiltros(rascunho);
-  const limpar = () => { setNome(''); setGrupo('ANY'); setIdadeMin(15); setIdadeMax(42); setOvrMin(0); setOvrMax(99); setValorMax(Infinity); setClubeId(''); setSoLivres(false); setSoListados(false); setSoContrato(false); setSoBase(false); setSoShortlist(false);
-    setFiltros({ nome: '', grupo: 'ANY', idadeMin: 15, idadeMax: 42, ovrMin: 0, ovrMax: 99, valorMax: Infinity, clubeId: '', soLivres: false, soListados: false, soContrato: false, soBase: false, soShortlist: false }); };
+  const limpar = () => { setNome(''); setGrupo('ANY'); setIdadeMin(15); setIdadeMax(42); setOvrMin(50); setOvrMax(99); setValorMax(Infinity); setClubeId(''); setSoLivres(false); setSoListados(false); setSoContrato(false); setSoBase(false); setSoShortlist(false);
+    setFiltros({ nome: '', grupo: 'ANY', idadeMin: 15, idadeMax: 42, ovrMin: 50, ovrMax: 99, valorMax: Infinity, clubeId: '', soLivres: false, soListados: false, soContrato: false, soBase: false, soShortlist: false }); };
   // A lista de interesse (shortlist): guardada no navegador (so uma conveniencia de quem joga).
   const [shortlist, setShortlist] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem('fm_shortlist') || '[]'); } catch { return []; } });
   const alternarShortlist = (id: string) => setShortlist(l => { const n = l.includes(id) ? l.filter(x => x !== id) : [...l, id]; try { localStorage.setItem('fm_shortlist', JSON.stringify(n)); } catch { /* sem armazenamento */ } return n; });
@@ -151,12 +151,12 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
         <div><label className={rotulo}>Player name</label><input className={campo} value={nome} onChange={e => setNome(e.target.value)} placeholder="Search by name" /></div>
         <div><label className={rotulo}>Position</label>
           <div className="rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/70 overflow-hidden">
-            {GRUPOS.map(g => <button key={g} onClick={() => setGrupo(g)} className={`w-full text-left px-3 py-1.5 text-xs font-black uppercase tracking-wider ${grupo === g ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'}`}>{GRUPO_ROTULO[g]}</button>)}
+            {GRUPOS.map(g => <button key={g} onClick={() => { setGrupo(g); setFiltros({ ...rascunho, grupo: g }); }} className={`w-full text-left px-3 py-1.5 text-xs font-black uppercase tracking-wider ${grupo === g ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'}`}>{GRUPO_ROTULO[g]}</button>)}
           </div>
         </div>
         <div><label className={rotulo}>Age</label><div className="flex gap-2 items-center"><input type="number" className={campo} value={idadeMin} min={15} max={45} onChange={e => setIdadeMin(Number(e.target.value) || 15)} /><span className="text-slate-400">–</span><input type="number" className={campo} value={idadeMax} min={15} max={45} onChange={e => setIdadeMax(Number(e.target.value) || 45)} /></div></div>
-        <div><label className={rotulo}>Overall</label><div className="flex gap-2 items-center"><input type="number" className={campo} value={ovrMin} min={0} max={99} onChange={e => setOvrMin(Number(e.target.value) || 0)} /><span className="text-slate-400">–</span><input type="number" className={campo} value={ovrMax} min={0} max={99} onChange={e => setOvrMax(Number(e.target.value) || 99)} /></div></div>
-        <div><label className={rotulo}>Value (max)</label><div className="flex flex-wrap gap-1.5">{VALORES.map(([r, v]) => <button key={r} onClick={() => setValorMax(v)} className={chip(valorMax === v)}>{r}</button>)}</div></div>
+        <div><label className={rotulo}>Overall</label><div className="flex gap-2 items-center"><input type="number" className={campo} value={ovrMin} min={50} max={99} onChange={e => setOvrMin(Math.max(50, Number(e.target.value) || 50))} /><span className="text-slate-400">–</span><input type="number" className={campo} value={ovrMax} min={0} max={99} onChange={e => setOvrMax(Number(e.target.value) || 99)} /></div></div>
+        <div><label className={rotulo}>Value (max)</label><div className="flex flex-wrap gap-1.5">{VALORES.map(([r, v]) => <button key={r} onClick={() => { setValorMax(v); setFiltros({ ...rascunho, valorMax: v }); }} className={chip(valorMax === v)}>{r}</button>)}</div></div>
         <div><label className={rotulo}>Club</label>
           <select className={campo} value={clubeId} onChange={e => setClubeId(e.target.value)}>
             <option value="">All clubs</option>

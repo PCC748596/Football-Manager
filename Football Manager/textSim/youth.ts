@@ -125,6 +125,10 @@ export const escolherPlayStyle = (pos: Position, a: Record<Attr, number>, atual?
   return melhor;
 };
 
+// Teto de OVR por idade: ninguem na base passa de 75 (aos 20); proporcional para os mais novos.
+const OVR_MAX_IDADE: Record<number, number> = { 15: 58, 16: 63, 17: 67, 18: 70, 19: 73, 20: 75 };
+const ovrMaxDaIdade = (idade: number) => OVR_MAX_IDADE[Math.max(IDADE_MIN, Math.min(IDADE_MAX, idade))];
+
 const sortearPotencial = (rnd: Rnd) => limitar(Math.round(50 + 49 * limitar(0.36 + normal(rnd) * 0.21, 0, 1)));
 
 const subirAteOPotencial = (pos: Position, a: Record<Attr, number>, potencial: number) => {
@@ -141,10 +145,11 @@ const subirAteOPotencial = (pos: Position, a: Record<Attr, number>, potencial: n
 export const gerarJovem = (teamId: string, posicao: Position, idade: number, hoje: string, rnd: Rnd, id: string, nome: string, camisa: number): Player => {
   const potencial = sortearPotencial(rnd);
   const alvo = 50 + (potencial - 50) * limitar((FRACAO_FEITA[idade] ?? 0.6) + (rnd() - 0.5) * 0.12, 0.2, 0.95) + (rnd() - 0.5) * 3;
+  const tetoIdade = ovrMaxDaIdade(idade);
   const o = perfil(posicao);
   const a: Record<Attr, number> = { def: 0, pas: 0, drb: 0, sht: 0 };
-  ATTRS.forEach(k => { a[k] = limitar(Math.round(alvo + o[k] + (rnd() - 0.5) * 6)); });
-  subirAteOPotencial(posicao, a, potencial);
+  ATTRS.forEach(k => { a[k] = limitar(Math.round(Math.min(alvo, tetoIdade) + o[k] + (rnd() - 0.5) * 6)); });
+  subirAteOPotencial(posicao, a, Math.min(potencial, tetoIdade));
   const skill = calcularSkill(posicao, a.def, a.pas, a.drb, a.sht);
   // O salario segue a conta do `generatePlayer` (jovem: fator de idade 1.2); o VALOR e o de mercado (textSim/valuation.ts), calculado abaixo.
   const valorParaSalario = Math.round(150000 * Math.pow(1.1, Math.max(0, skill - 50)) * 1.2);
@@ -217,7 +222,7 @@ export const evolucaoMensal = (p: Player, mes: string): { jogador: Player; relat
     else if (acc[a] <= -1) { const g = Math.ceil(-acc[a]); novo[a] = Math.max(50, novo[a] - g); acc[a] += g; }
   });
   novo.def = limitar(novo.def); novo.pas = limitar(novo.pas); novo.drb = limitar(novo.drb); novo.sht = limitar(novo.sht);
-  subirAteOPotencial(p.position, novo, potencial);                   // nunca passa do potencial
+  subirAteOPotencial(p.position, novo, Math.min(potencial, ovrMaxDaIdade(idade)));                   // nunca passa do potencial
   const skill = calcularSkill(p.position, novo.def, novo.pas, novo.drb, novo.sht);
   const mudancas: MudancaAtributo[] = ATTRS.filter(a => novo[a] !== p[a]).map(a => ({ attr: a, de: p[a], para: novo[a] }));
   const estimativa = estimar(potencial, idade, rnd, p.potentialEstimate);
