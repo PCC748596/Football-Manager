@@ -1,0 +1,18 @@
+Officials: TeamB (CM) EXPULSO, ficam 10 em campo.
+jogos 4 golos 16 (4.00 por jogo) | estado do GK no golo: {"mergulho":13,"idle":3}
+{"min":7,"gk":"mergulho<-mergulho<-mergulho","reagiu":true,"vBola":2.1,"y":0.23,"x":3.6,"ult":"CF","vAntes":19.9,"zAntes":51.9}
+{"min":11,"gk":"mergulho<-mergulho<-idle","reagiu":true,"vBola":10.6,"y":1.1,"x":3.6,"ult":"CF","vAntes":15.6,"zAntes":47.9}
+{"min":23,"gk":"mergulho<-mergulho<-mergulho","reagiu":true,"vBola":15.6,"y":0.12,"x":3.1,"ult":"CF","vAntes":0,"zAntes":50.4}
+{"min":38,"gk":"idle<-idle<-idle","reagiu":true,"vBola":7.3,"y":0.16,"x":0.4,"ult":"CF","vAntes":9.4,"zAntes":50.5}
+{"min":71,"gk":"mergulho<-mergulho<-mergulho","reagiu":true,"vBola":4.4,"y":1.58,"x":2.6,"ult":"GK","vAntes":19.7,"zAntes":46.4}
+{"min":60,"gk":"mergulho<-mergulho<-idle","reagiu":true,"vBola":21.9,"y":0.25,"x":0.2,"ult":"CM","vAntes":0,"zAntes":43.3}
+{"min":66,"gk":"mergulho<-mergulho<-idle","reagiu":true,"vBola":11.5,"y":0.16,"x":1.4,"ult":"CB","vAntes":16.4,"zAntes":46}
+{"min":26,"gk":"mergulho<-maos<-maos","reagiu":true,"vBola":3.2,"y":2.22,"x":1.5,"ult":"CF","vAntes":0,"zAntes":43.6}
+{"min":37,"gk":"mergulho<-mergulho<-idle","reagiu":true,"vBola":16.5,"y":1.08,"x":0.1,"ult":"RM","vAntes":15.8,"zAntes":48.2}
+{"min":44,"gk":"idle<-apanhar<-idle","reagiu":true,"vBola":2,"y":1.99,"x":0.3,"ult":"CF","vAntes":0,"zAntes":46}
+{"min":52,"gk":"mergulho<-mergulho<-mergulho","reagiu":false,"vBola":9.4,"y":1.63,"x":0.5,"ult":"CF","vAntes":11.6,"zAntes":48.8}
+{"min":76,"gk":"mergulho<-mergulho<-mergulho","reagiu":true,"vBola":17.2,"y":0.12,"x":1.2,"ult":"CF","vAntes":0,"zAntes":50.7}
+{"min":22,"gk":"idle<-maos<-idle","reagiu":true,"vBola":16.3,"y":0.31,"x":3.4,"ult":"CF","vAntes":17.4,"zAntes":48.9}
+{"min":41,"gk":"mergulho<-mergulho<-mergulho","reagiu":true,"vBola":4.2,"y":1.96,"x":3.5,"ult":"CF","vAntes":17,"zAntes":46.5}
+{"min":84,"gk":"mergulho<-mergulho<-idle","reagiu":true,"vBola":11.1,"y":0.16,"x":1.7,"ult":"CF","vAntes":15.9,"zAntes":46.1}
+{"min":87,"gk":"mergulho<-mergulho<-mergulho","reagiu":true,"vBola":5.2,"y":1.86,"x":2.8,"ult":"LM","vAntes":20.3,"zAntes":45.4}

@@ -2907,7 +2907,8 @@ const Officials = {
         Nunca e vermelho DIRECTO: quem ja esta advertido e que sai, e sai pelo
         segundo amarelo.
         */
-        if (gravidade >= F.limiarAmarelo || travouAtaque) {
+        // `cartaoPorTravar` (0..1, omissao 1): a fraccao das faltas tacticas (travar um ataque) que levam cartao; o resto o arbitro deixa passar com uma advertencia verbal.
+        if (gravidade >= F.limiarAmarelo || (travouAtaque && (F.cartaoPorTravar === undefined || Math.random() < F.cartaoPorTravar))) {
             /*
             O SEGUNDO AMARELO NAO SAI DE UMA FALTA TACTICA LEVE.
 

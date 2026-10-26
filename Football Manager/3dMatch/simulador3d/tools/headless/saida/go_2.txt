@@ -1,0 +1,26 @@
+Officials: TeamB (CM) EXPULSO, ficam 10 em campo.
+Officials: TeamA (CB) EXPULSO, ficam 10 em campo.
+Officials: TeamB (CM) EXPULSO, ficam 9 em campo.
+Officials: TeamB (RM) EXPULSO, ficam 10 em campo.
+Officials: TeamA (CM) EXPULSO, ficam 10 em campo.
+Officials: TeamB (CB) EXPULSO, ficam 9 em campo.
+
+268 min de relogio | 3 golos (1.01/90) | 28 remates (9.39/90) | 146 defesas (48.98/90)
+
+golos com remate identificado: 0/3
+  distancia media do remate: - m
+  por tipo de remate: 
+  por posicao: 
+
+sem remate nos 4 s anteriores: 3
+velocidade da bola a entrar: 12.7 m/s
+|x| do ponto de entrada: 2.8 m (baliza tem 3.66 de meia-largura)
+altura do ponto de entrada: 1.1 m
+distancia do GK a bola no golo: 66.1 m
+estado do GK no golo: idle 3
+
+CONTADORES  remates 50 | noAlvo 15 | golos 3 | defesas 8 | bloqueios 9
+
+REMATES por distancia: 0-6m 0 | 6-12m 5 | 12-18m 12 | 18-25m 9 | 25m+ 2
+distancia media do remate: 17.3 m
+golos por remate: 11%

@@ -1,0 +1,547 @@
+{
+ "jogos": 30,
+ "erros": 0,
+ "golosPorJogo": 3.2,
+ "vitCasa": 0.36666666666666664,
+ "empates": 0.26666666666666666,
+ "tempoMedioDeJogo": 5293.787499993006,
+ "estatisticas": {
+  "afastamentos": {
+   "jogo": 13.1,
+   "casa": 6.9,
+   "fora": 6.2
+  },
+  "assistencias": {
+   "jogo": 0.3333333333333333,
+   "casa": 0.13333333333333333,
+   "fora": 0.2
+  },
+  "ataques.naArea": {
+   "jogo": 35.46666666666667,
+   "casa": 17.1,
+   "fora": 18.366666666666667
+  },
+  "ataques.perigosos": {
+   "jogo": 67.8,
+   "casa": 33.333333333333336,
+   "fora": 34.46666666666667
+  },
+  "ataques.totais": {
+   "jogo": 152.13333333333333,
+   "casa": 76.06666666666666,
+   "fora": 76.06666666666666
+  },
+  "bloqueiosFeitos": {
+   "jogo": 2,
+   "casa": 0.9333333333333333,
+   "fora": 1.0666666666666667
+  },
+  "cantos": {
+   "jogo": 12,
+   "casa": 5.533333333333333,
+   "fora": 6.466666666666667
+  },
+  "caraACara": {
+   "jogo": 2.2333333333333334,
+   "casa": 1.2333333333333334,
+   "fora": 1
+  },
+  "carrinhos.sucesso": {
+   "jogo": 2.8666666666666667,
+   "casa": 1.5666666666666667,
+   "fora": 1.3
+  },
+  "carrinhos.tentados": {
+   "jogo": 7.266666666666667,
+   "casa": 3.6333333333333333,
+   "fora": 3.6333333333333333
+  },
+  "cartoes.amarelos": {
+   "jogo": 6.333333333333333,
+   "casa": 3.466666666666667,
+   "fora": 2.8666666666666667
+  },
+  "cartoes.vermelhos": {
+   "jogo": 0.3,
+   "casa": 0.13333333333333333,
+   "fora": 0.16666666666666666
+  },
+  "cortes": {
+   "jogo": 57.93333333333333,
+   "casa": 28.933333333333334,
+   "fora": 29
+  },
+  "cruzamentos.certos": {
+   "jogo": 3.6,
+   "casa": 1.8,
+   "fora": 1.8
+  },
+  "cruzamentos.tentados": {
+   "jogo": 9.6,
+   "casa": 4.8,
+   "fora": 4.8
+  },
+  "cruzamentosCortadosGK": {
+   "jogo": 6.133333333333334,
+   "casa": 2.9,
+   "fora": 3.2333333333333334
+  },
+  "defesas": {
+   "jogo": 5.433333333333334,
+   "casa": 2.5,
+   "fora": 2.933333333333333
+  },
+  "desarmes.sucesso": {
+   "jogo": 11.566666666666666,
+   "casa": 6.233333333333333,
+   "fora": 5.333333333333333
+  },
+  "desarmes.tentados": {
+   "jogo": 40.233333333333334,
+   "casa": 20.7,
+   "fora": 19.533333333333335
+  },
+  "disputasFalhadas": {
+   "jogo": 9.9,
+   "casa": 5.2,
+   "fora": 4.7
+  },
+  "distanciaPercorrida": {
+   "jogo": 84782.5059637587,
+   "casa": 42757.90716648082,
+   "fora": 42024.598797277875
+  },
+  "dominios": {
+   "jogo": 201.86666666666667,
+   "casa": 94.83333333333333,
+   "fora": 107.03333333333333
+  },
+  "dribles.sucesso": {
+   "jogo": 35.43333333333333,
+   "casa": 18.1,
+   "fora": 17.333333333333332
+  },
+  "dribles.tentados": {
+   "jogo": 41.7,
+   "casa": 21.266666666666666,
+   "fora": 20.433333333333334
+  },
+  "duelos.ganhos": {
+   "jogo": 24.933333333333334,
+   "casa": 13.1,
+   "fora": 11.833333333333334
+  },
+  "duelos.perdidos": {
+   "jogo": 24.933333333333334,
+   "casa": 11.833333333333334,
+   "fora": 13.1
+  },
+  "duelosAereos.ganhos": {
+   "jogo": 10.5,
+   "casa": 5.3,
+   "fora": 5.2
+  },
+  "duelosAereos.perdidos": {
+   "jogo": 10.5,
+   "casa": 5.2,
+   "fora": 5.3
+  },
+  "entradasUltimoTerco": {
+   "jogo": 68.03333333333333,
+   "casa": 33.43333333333333,
+   "fora": 34.6
+  },
+  "errosQueGeraramRemate": {
+   "jogo": 6.866666666666666,
+   "casa": 3.6333333333333333,
+   "fora": 3.2333333333333334
+  },
+  "faltas.cometidas": {
+   "jogo": 17.433333333333334,
+   "casa": 8.866666666666667,
+   "fora": 8.566666666666666
+  },
+  "faltas.sofridas": {
+   "jogo": 17.433333333333334,
+   "casa": 8.566666666666666,
+   "fora": 8.866666666666667
+  },
+  "golosSofridos": {
+   "jogo": 3.2,
+   "casa": 1.5,
+   "fora": 1.7
+  },
+  "grandesChances": {
+   "jogo": 3.1333333333333333,
+   "casa": 1.5333333333333334,
+   "fora": 1.6
+  },
+  "grandesChancesConvertidas": {
+   "jogo": 0.8666666666666667,
+   "casa": 0.4,
+   "fora": 0.4666666666666667
+  },
+  "impedimentos": {
+   "jogo": 1.8,
+   "casa": 0.7333333333333333,
+   "fora": 1.0666666666666667
+  },
+  "lancamentos.certos": {
+   "jogo": 13.433333333333334,
+   "casa": 6.833333333333333,
+   "fora": 6.6
+  },
+  "lancamentos.tentados": {
+   "jogo": 26.1,
+   "casa": 13.033333333333333,
+   "fora": 13.066666666666666
+  },
+  "overlaps": {
+   "jogo": 6.533333333333333,
+   "casa": 3.7666666666666666,
+   "fora": 2.7666666666666666
+  },
+  "passes.certos": {
+   "jogo": 155.63333333333333,
+   "casa": 81.66666666666667,
+   "fora": 73.96666666666667
+  },
+  "passes.tentados": {
+   "jogo": 231.76666666666668,
+   "casa": 121.06666666666666,
+   "fora": 110.7
+  },
+  "passesNoTercoFinal": {
+   "jogo": 28.1,
+   "casa": 14.166666666666666,
+   "fora": 13.933333333333334
+  },
+  "passesParaFinalizacao": {
+   "jogo": 6.866666666666666,
+   "casa": 3.6,
+   "fora": 3.2666666666666666
+  },
+  "passesProgressivos": {
+   "jogo": 46.63333333333333,
+   "casa": 23.8,
+   "fora": 22.833333333333332
+  },
+  "passesQuebraLinhas": {
+   "jogo": 58,
+   "casa": 30.3,
+   "fora": 27.7
+  },
+  "passesSobPressao": {
+   "jogo": 52.86666666666667,
+   "casa": 27.1,
+   "fora": 25.766666666666666
+  },
+  "penaltis": {
+   "jogo": 0.36666666666666664,
+   "casa": 0.1,
+   "fora": 0.26666666666666666
+  },
+  "perdasDePosse": {
+   "jogo": 111.86666666666666,
+   "casa": 55.266666666666666,
+   "fora": 56.6
+  },
+  "perdasZonaPerigosa": {
+   "jogo": 14.5,
+   "casa": 7.666666666666667,
+   "fora": 6.833333333333333
+  },
+  "pontapesBaliza": {
+   "jogo": 8.1,
+   "casa": 3.8666666666666667,
+   "fora": 4.233333333333333
+  },
+  "posseSegundos": {
+   "jogo": 392.4455555556514,
+   "casa": 195.8600000000473,
+   "fora": 196.58555555560415
+  },
+  "pressoes": {
+   "jogo": 367.2,
+   "casa": 181.73333333333332,
+   "fora": 185.46666666666667
+  },
+  "primeiraTocada": {
+   "jogo": 103.2,
+   "casa": 78.43333333333334,
+   "fora": 24.766666666666666
+  },
+  "progressaoComBolaM": {
+   "jogo": 1439.2704656189499,
+   "casa": 718.2900462284263,
+   "fora": 720.9804193905237
+  },
+  "recuperacoes": {
+   "jogo": 112.33333333333333,
+   "casa": 56.833333333333336,
+   "fora": 55.5
+  },
+  "recuperacoesAtaque": {
+   "jogo": 14.5,
+   "casa": 6.833333333333333,
+   "fora": 7.666666666666667
+  },
+  "remateBloqueados": {
+   "jogo": 2,
+   "casa": 1.0666666666666667,
+   "fora": 0.9333333333333333
+  },
+  "remates.furados": {
+   "jogo": 0.8666666666666667,
+   "casa": 0.3333333333333333,
+   "fora": 0.5333333333333333
+  },
+  "remates.golos": {
+   "jogo": 3.2,
+   "casa": 1.7,
+   "fora": 1.5
+  },
+  "remates.noAlvo": {
+   "jogo": 8.166666666666666,
+   "casa": 4,
+   "fora": 4.166666666666667
+  },
+  "remates.tentados": {
+   "jogo": 24.4,
+   "casa": 12.5,
+   "fora": 11.9
+  },
+  "saidasDoGolo": {
+   "jogo": 2.4,
+   "casa": 1.3,
+   "fora": 1.1
+  },
+  "tabelinhas": {
+   "jogo": 34.06666666666667,
+   "casa": 18,
+   "fora": 16.066666666666666
+  },
+  "tercoSegundos.atk": {
+   "jogo": 94.92722222222058,
+   "casa": 46.97888888888869,
+   "fora": 47.948333333331895
+  },
+  "tercoSegundos.def": {
+   "jogo": 118.93833333332917,
+   "casa": 61.49333333333114,
+   "fora": 57.44499999999803
+  },
+  "tercoSegundos.mid": {
+   "jogo": 178.5799999999924,
+   "casa": 87.3877777777741,
+   "fora": 91.1922222222183
+  },
+  "toquesNaArea": {
+   "jogo": 25.766666666666666,
+   "casa": 12.333333333333334,
+   "fora": 13.433333333333334
+  },
+  "trocasChaser": {
+   "jogo": 431.9,
+   "casa": 217.76666666666668,
+   "fora": 214.13333333333333
+  },
+  "trocasMarcacao": {
+   "jogo": 973.1666666666666,
+   "casa": 487.3666666666667,
+   "fora": 485.8
+  },
+  "trocasSupportMid": {
+   "jogo": 67.03333333333333,
+   "casa": 33.63333333333333,
+   "fora": 33.4
+  },
+  "xg": {
+   "jogo": 2.977208475041702,
+   "casa": 1.4952096059519284,
+   "fora": 1.4819988690897739
+  }
+ },
+ "tabela": {
+  "Atlético-PR": {
+   "j": 4,
+   "v": 1,
+   "e": 2,
+   "d": 1,
+   "gf": 7,
+   "ga": 5,
+   "pts": 5
+  },
+  "Atlético-MG": {
+   "j": 4,
+   "v": 2,
+   "e": 1,
+   "d": 1,
+   "gf": 8,
+   "ga": 6,
+   "pts": 7
+  },
+  "Bahia-BA": {
+   "j": 2,
+   "v": 2,
+   "e": 0,
+   "d": 0,
+   "gf": 4,
+   "ga": 1,
+   "pts": 6
+  },
+  "Botafogo-RJ": {
+   "j": 4,
+   "v": 2,
+   "e": 1,
+   "d": 1,
+   "gf": 8,
+   "ga": 4,
+   "pts": 7
+  },
+  "Chapecoense-SC": {
+   "j": 2,
+   "v": 0,
+   "e": 1,
+   "d": 1,
+   "gf": 3,
+   "ga": 4,
+   "pts": 1
+  },
+  "Corinthians-SP": {
+   "j": 2,
+   "v": 0,
+   "e": 1,
+   "d": 1,
+   "gf": 1,
+   "ga": 3,
+   "pts": 1
+  },
+  "Coritiba-PR": {
+   "j": 4,
+   "v": 2,
+   "e": 0,
+   "d": 2,
+   "gf": 5,
+   "ga": 6,
+   "pts": 6
+  },
+  "Cruzeiro-MG": {
+   "j": 2,
+   "v": 1,
+   "e": 1,
+   "d": 0,
+   "gf": 2,
+   "ga": 0,
+   "pts": 4
+  },
+  "Flamengo-RJ": {
+   "j": 4,
+   "v": 1,
+   "e": 1,
+   "d": 2,
+   "gf": 5,
+   "ga": 8,
+   "pts": 4
+  },
+  "Fluminense-RJ": {
+   "j": 2,
+   "v": 0,
+   "e": 1,
+   "d": 1,
+   "gf": 2,
+   "ga": 5,
+   "pts": 1
+  },
+  "Grêmio-RS": {
+   "j": 4,
+   "v": 2,
+   "e": 0,
+   "d": 2,
+   "gf": 12,
+   "ga": 9,
+   "pts": 6
+  },
+  "Internacional-RS": {
+   "j": 0,
+   "v": 0,
+   "e": 0,
+   "d": 0,
+   "gf": 0,
+   "ga": 0,
+   "pts": 0
+  },
+  "Mirassol-SP": {
+   "j": 4,
+   "v": 1,
+   "e": 2,
+   "d": 1,
+   "gf": 7,
+   "ga": 8,
+   "pts": 5
+  },
+  "Palmeiras-SP": {
+   "j": 2,
+   "v": 0,
+   "e": 1,
+   "d": 1,
+   "gf": 3,
+   "ga": 5,
+   "pts": 1
+  },
+  "Bragantino-SP": {
+   "j": 4,
+   "v": 1,
+   "e": 3,
+   "d": 0,
+   "gf": 8,
+   "ga": 5,
+   "pts": 6
+  },
+  "Remo-PA": {
+   "j": 2,
+   "v": 2,
+   "e": 0,
+   "d": 0,
+   "gf": 4,
+   "ga": 2,
+   "pts": 6
+  },
+  "Santos-SP": {
+   "j": 6,
+   "v": 3,
+   "e": 0,
+   "d": 3,
+   "gf": 12,
+   "ga": 12,
+   "pts": 9
+  },
+  "São Paulo-SP": {
+   "j": 0,
+   "v": 0,
+   "e": 0,
+   "d": 0,
+   "gf": 0,
+   "ga": 0,
+   "pts": 0
+  },
+  "Vasco-RJ": {
+   "j": 4,
+   "v": 0,
+   "e": 1,
+   "d": 3,
+   "gf": 2,
+   "ga": 6,
+   "pts": 1
+  },
+  "Vitória-BA": {
+   "j": 4,
+   "v": 2,
+   "e": 0,
+   "d": 2,
+   "gf": 3,
+   "ga": 7,
+   "pts": 6
+  }
+ }
+}

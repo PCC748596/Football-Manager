@@ -1,0 +1,14 @@
+Officials: TeamB (CB) EXPULSO, ficam 10 em campo.
+Officials: TeamA (CB) EXPULSO, ficam 10 em campo.
+jogos 4 golos 11 (2.75 por jogo) | estado do GK no golo: {"mergulho":9,"maos":1,"idle":1}
+{"min":18,"gk":"mergulho<-mergulho<-mergulho","reagiu":true,"vBola":6.2,"y":0.12,"x":1.6,"ult":"GK","vAntes":3.8,"zAntes":51.4}
+{"min":32,"gk":"mergulho<-apanhar<-idle","reagiu":true,"vBola":19,"y":1.79,"x":1.5,"ult":"CF","vAntes":0,"zAntes":48.7}
+{"min":60,"gk":"maos<-maos<-maos","reagiu":true,"vBola":24.8,"y":0.11,"x":2.4,"ult":"CF","vAntes":11.4,"zAntes":51.3}
+{"min":66,"gk":"mergulho<-mergulho<-mergulho","reagiu":true,"vBola":10.9,"y":0.42,"x":2.8,"ult":"CF","vAntes":15.9,"zAntes":52.2}
+{"min":76,"gk":"mergulho<-mergulho<-idle","reagiu":true,"vBola":22.7,"y":0.42,"x":1.7,"ult":"CM","vAntes":13.4,"zAntes":50.3}
+{"min":26,"gk":"mergulho<-mergulho<-saida_pes","reagiu":true,"vBola":13,"y":0.87,"x":3.1,"ult":"RB","vAntes":24,"zAntes":50}
+{"min":64,"gk":"mergulho<-mergulho<-idle","reagiu":true,"vBola":3.8,"y":1.88,"x":1.9,"ult":"CM","vAntes":25,"zAntes":43.2}
+{"min":3,"gk":"mergulho<-maos<-maos","reagiu":true,"vBola":8.2,"y":0.38,"x":1.9,"ult":"CF","vAntes":11.8,"zAntes":49.8}
+{"min":51,"gk":"idle<-maos<-maos","reagiu":true,"vBola":10,"y":2.14,"x":1.4,"ult":"CF","vAntes":18.6,"zAntes":45}
+{"min":68,"gk":"mergulho<-mergulho<-mergulho","reagiu":true,"vBola":21.4,"y":1.06,"x":2.6,"ult":"CF","vAntes":22.7,"zAntes":44.7}
+{"min":58,"gk":"mergulho<-mergulho<-mergulho","reagiu":true,"vBola":11.6,"y":0.27,"x":2.9,"ult":"CF","vAntes":16.7,"zAntes":50.9}

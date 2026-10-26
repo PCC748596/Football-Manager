@@ -1,0 +1,22 @@
+Officials: TeamA (CM) EXPULSO, ficam 10 em campo.
+Officials: TeamA (RB) EXPULSO, ficam 10 em campo.
+
+267 min de relogio | 8 golos (2.70/90) | 39 remates (13.14/90) | 72 defesas (24.26/90)
+
+golos com remate identificado: 8/8
+  distancia media do remate: 10.6 m
+  por tipo de remate: rasteiro 3  colocado 2  chapeu 3
+  por posicao: CM 6  RM 2
+
+sem remate nos 4 s anteriores: 0
+velocidade da bola a entrar: 13.6 m/s
+|x| do ponto de entrada: 1.8 m (baliza tem 3.66 de meia-largura)
+altura do ponto de entrada: 1.2 m
+distancia do GK a bola no golo: 76.2 m
+estado do GK no golo: idle 6  mergulho 2
+
+CONTADORES  remates 61 | noAlvo 21 | golos 8 | defesas 11 | bloqueios 4
+
+REMATES por distancia: 0-6m 1 | 6-12m 11 | 12-18m 16 | 18-25m 10 | 25m+ 1
+distancia media do remate: 15.0 m
+golos por remate: 21%

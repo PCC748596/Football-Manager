@@ -58,7 +58,7 @@ if (process.env.LIGA_WORKER) {
     }
     if (process.env.LIGA_TRANSICAO) { const [av, re] = process.env.LIGA_TRANSICAO.split(',').map(Number); ZonasModel.transicao = { duracao: 3.0, avancoOfensivo: av, recuoDefensivo: re }; }   // o controlo: o bloco de antes das tabelas
     // LIGA_SET="Objecto.campo=valor;Outro.campo=valor": ajustes de configuracao para isolar causas (ex.: "FaltaRotinas.activo=false;ShootingModel.esperaBarreira=0").
-    if (process.env.LIGA_SET) for (const par of process.env.LIGA_SET.split(';')) { const [lhs, rhs] = par.split('='); const parts = lhs.trim().split('.'); let o = global[parts[0]] || (global.window && global.window[parts[0]]); for (let q = 1; q < parts.length - 1; q++) o = o[parts[q]]; if (o) o[parts[parts.length - 1]] = JSON.parse(rhs); else console.error('LIGA_SET: nao encontrei', lhs); }
+    if (process.env.LIGA_SET) for (const par of process.env.LIGA_SET.split(';')) { const [lhs, rhs] = par.split('='); const parts = lhs.trim().split('.'); let o = global[parts[0]] || (global.window && global.window[parts[0]]); if (!o) { try { o = (0, eval)(parts[0]); } catch (e) { o = null; } } for (let q = 1; q < parts.length - 1; q++) o = o[parts[q]]; if (o) o[parts[parts.length - 1]] = JSON.parse(rhs); else console.error('LIGA_SET: nao encontrei', lhs); }
     const FORCA_ORDEM = NOMES.slice().sort((x, y) => SquadsData.equipas.find(e => e.nome === y).forca - SquadsData.equipas.find(e => e.nome === x).forca);
     const KNOW = {};
     { const src = fs.readFileSync(path.join(RAIZ, '..', '..', 'textSim', 'treinadores.ts'), 'utf8'); const re = /'([^']+)': \{ nome: '[^']*', tatico: (\d+) \}/g; let m; while ((m = re.exec(src))) KNOW[m[1]] = Number(m[2]); }

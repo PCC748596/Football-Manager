@@ -1,0 +1,8 @@
+Officials: TeamA (LM) EXPULSO, ficam 10 em campo.
+jogos 4 golos 6 (1.50 por jogo) | estado do GK no golo: {"idle":2,"mergulho":4}
+{"min":78,"gk":"idle<-maos<-idle","reagiu":false,"vBola":23,"y":1.18,"x":0.7,"ult":"LB","vAntes":16.2,"zAntes":43.8}
+{"min":15,"gk":"mergulho<-mergulho<-mergulho","reagiu":true,"vBola":8.8,"y":1.3,"x":3.5,"ult":"GK","vAntes":24.2,"zAntes":46.5}
+{"min":22,"gk":"mergulho<-apanhar<-idle","reagiu":true,"vBola":22.4,"y":0.56,"x":1.8,"ult":"CF","vAntes":0,"zAntes":44.3}
+{"min":66,"gk":"mergulho<-mergulho<-idle","reagiu":true,"vBola":16.1,"y":1.15,"x":3.2,"ult":"CB","vAntes":17.6,"zAntes":45.3}
+{"min":22,"gk":"idle<-maos<-maos","reagiu":true,"vBola":3,"y":2.05,"x":0.6,"ult":"CM","vAntes":16.1,"zAntes":47.9}
+{"min":33,"gk":"mergulho<-idle<-salto_alto","reagiu":true,"vBola":12.8,"y":0.19,"x":2.3,"ult":"CF","vAntes":11.4,"zAntes":49.5}
