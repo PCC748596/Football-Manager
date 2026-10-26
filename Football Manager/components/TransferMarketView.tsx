@@ -3,7 +3,7 @@ import { useGame } from '../context/GameContext';
 import { Player, Team } from '../types';
 import { TeamShield } from './TeamShield';
 import { PlayerFace } from './PlayerFace';
-import { estrelasDePotencial } from '../textSim/youth';
+import { estrelasDoJogador, potencialVisivel } from '../textSim/youth';
 import { potencialParaValor, anosRestantes } from '../textSim/valuation';
 import { CONFIG_MERCADO, ESTADOS_ATIVOS, NegociacaoTransf, grupoDe, janelaAberta, diasParaFecharJanela } from '../textSim/transferencias';
 import { estadoDoContrato } from '../textSim/contracts';
@@ -25,7 +25,7 @@ const ESTADO_ROTULO: Record<string, string> = {
 const dataCurta = (iso?: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '-');
 
 const Estrelas: React.FC<{ n: number }> = ({ n }) => (
-  <span className="whitespace-nowrap text-sm tracking-tighter" title="Estimated potential">{Array.from({ length: 5 }, (_, i) => <span key={i} className={i < n ? 'text-yellow-400' : 'text-slate-300 dark:text-slate-700'}>★</span>)}</span>
+  <span className="whitespace-nowrap text-sm tracking-tighter" title="Estimated potential">{Array.from({ length: 5 }, (_, i) => <span key={i} className={i < n ? 'text-slate-400 dark:text-slate-300' : 'text-slate-200 dark:text-slate-700'}>★</span>)}</span>
 );
 
 const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }) => {
@@ -68,11 +68,11 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
     for (const p of players) {
       if (p.teamId === meuId) continue;
       const origem = p.teamId === 'MARKET' ? 'LIVRE' : 'ELENCO';
-      out.push({ p, origem, clube: origem === 'LIVRE' ? undefined : porId.get(p.teamId), estrelas: estrelasDePotencial(p.potentialEstimate ?? potencialParaValor(p)), meses: p.contract ? Math.round(anosRestantes(p, hoje) * 12) : 0 });
+      out.push({ p, origem, clube: origem === 'LIVRE' ? undefined : porId.get(p.teamId), estrelas: estrelasDoJogador(p), meses: p.contract ? Math.round(anosRestantes(p, hoje) * 12) : 0 });
     }
     if (base) for (const p of base.jogadores) {
       if (p.teamId === meuId || p.age < idadeBase) continue;
-      out.push({ p, origem: 'BASE', clube: porId.get(p.teamId), estrelas: estrelasDePotencial(p.potentialEstimate ?? potencialParaValor(p)), meses: p.contract ? Math.round(anosRestantes(p, hoje) * 12) : 0 });
+      out.push({ p, origem: 'BASE', clube: porId.get(p.teamId), estrelas: estrelasDoJogador(p), meses: p.contract ? Math.round(anosRestantes(p, hoje) * 12) : 0 });
     }
     return out;
   }, [players, base, porId, meuId, hoje.slice(0, 7)]);
@@ -94,7 +94,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
       if (F.soShortlist && !shortlist.includes(p.id)) return false;
       return true;
     });
-    const val = (l: Linha): number | string => ordem.k === 'name' ? l.p.name : ordem.k === 'age' ? l.p.age : ordem.k === 'ovr' ? l.p.skill : ordem.k === 'pot' ? (l.p.potentialEstimate ?? potencialParaValor(l.p)) : ordem.k === 'wage' ? l.p.salary : l.p.value;
+    const val = (l: Linha): number | string => ordem.k === 'name' ? l.p.name : ordem.k === 'age' ? l.p.age : ordem.k === 'ovr' ? l.p.skill : ordem.k === 'pot' ? potencialVisivel(l.p) : ordem.k === 'wage' ? l.p.salary : l.p.value;
     return f.sort((a, b) => {
       const x = val(a), y = val(b);
       const c = typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number);

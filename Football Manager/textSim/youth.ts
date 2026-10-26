@@ -44,7 +44,10 @@ export const MESES_DE_RELATORIO = 12;
 // -- potencial e estrelas --
 /** Faixas pedidas: 50-54 = 1, 55-64 = 2, 65-74 = 3, 75-84 = 4, 85-99 = 5. */
 export const estrelasDePotencial = (v: number): number => (v >= 85 ? 5 : v >= 75 ? 4 : v >= 65 ? 3 : v >= 55 ? 2 : 1);
-export const estrelasDoJogador = (p: Player): number => estrelasDePotencial(p.potentialEstimate ?? p.potential ?? 50);
+/** O potencial que se mostra: a estimativa do olheiro (ou o potencial, ou uma projecao pela idade), nunca abaixo do OVR atual. */
+export const potencialVisivel = (p: Player): number =>
+  Math.min(99, Math.max(p.skill, p.potentialEstimate ?? p.potential ?? p.skill + Math.round(Math.max(0, 25 - p.age) * 1.2)));
+export const estrelasDoJogador = (p: Player): number => estrelasDePotencial(potencialVisivel(p));
 
 const limitar = (v: number, min = 50, max = 99) => Math.max(min, Math.min(max, v));
 const normal = (rnd: Rnd) => { const u = Math.max(1e-9, rnd()), v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };

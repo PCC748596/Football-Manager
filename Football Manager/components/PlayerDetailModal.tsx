@@ -103,13 +103,14 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
   const [activePlayerId, setActivePlayerId] = React.useState(initialPlayer.id);
   const { teams, players, userTeam, listarParaVenda, listarParaEmprestimo, dispensarJogador } = useGame();
   const [aviso, setAviso] = React.useState<string | null>(null);
+  const [dispensando, setDispensando] = React.useState(false);   // modal de confirmacao da dispensa
 
   // ESC fecha o Overview (se o modal de renovacao estiver aberto, o ESC fecha primeiro esse: ele escuta na fase de captura e para o evento).
   React.useEffect(() => {
-    const aoTeclar = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const aoTeclar = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (dispensando) setDispensando(false); else onClose(); } };
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
-  }, [onClose]);
+  }, [onClose, dispensando]);
 
   React.useEffect(() => {
     setActivePlayerId(initialPlayer.id);
@@ -267,8 +268,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                       {player.listedForLoan ? 'Na lista de emprestimo (retirar)' : 'Colocar para emprestimo'}
                     </button>
                   </div>
-                  <button onClick={() => { if (window.confirm(`Dispensar ${player.name}? Ele vira agente livre e o contrato e rescindido.`)) { const r = dispensarJogador(player.id); if (r.ok) onClose(); else setAviso(r.motivo || 'Nao foi possivel'); } }}
-                    className="text-[10px] font-black uppercase py-2 rounded border border-rose-700 text-rose-400 hover:bg-rose-900/40">Dispensar</button>
+                  <button onClick={() => setDispensando(true)} className="text-[10px] font-black uppercase py-2 rounded border border-rose-700 text-rose-400 hover:bg-rose-900/40">Dispensar</button>
                   <div className="text-[9px] text-slate-500">Listar para venda reduz a moral em 8; para emprestimo, em 5.</div>
                   {aviso && <div className="text-[10px] text-amber-400 font-bold">{aviso}</div>}
                 </div>
@@ -384,6 +384,27 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
           ✕
         </button>
       </div>
+      {dispensando && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={e => { e.stopPropagation(); setDispensando(false); }}>
+          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+            <div className="text-[10px] font-black uppercase tracking-widest text-rose-400">Release player</div>
+            <div className="flex items-center gap-4">
+              <div className="text-5xl font-black italic text-blue-400">{player.skill}</div>
+              <div className="min-w-0">
+                <div className="text-lg font-black text-white truncate">{player.name}</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">{player.position} • {player.age} years</div>
+              </div>
+            </div>
+            <div className="text-xs text-slate-300 leading-relaxed">
+              The contract is terminated and {player.name} becomes a free agent. You receive no transfer fee. This cannot be undone.
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setDispensando(false)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-black py-2.5 rounded text-xs uppercase tracking-widest">Cancel</button>
+              <button onClick={() => { const r = dispensarJogador(player.id); setDispensando(false); if (r.ok) onClose(); else setAviso(r.motivo || 'Nao foi possivel'); }} className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-black py-2.5 rounded text-xs uppercase tracking-widest">Release</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

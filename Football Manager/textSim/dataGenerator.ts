@@ -29,6 +29,9 @@ export const COUNTRIES = REAL_COUNTRIES_JSON;
 
 const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
 
+/** Nivel minimo (OVR e atributos) de qualquer jogador do jogo. */
+export const NIVEL_MINIMO = 50;
+
 export const generatePlayer = (teamId: string, position: Position, idCounter: number, shirtNumber: number): Player => {
   const age = randomInt(17, 36);
 
@@ -46,7 +49,7 @@ export const generatePlayer = (teamId: string, position: Position, idCounter: nu
     skill = Math.min(99, skill + randomInt(2, 5));
   }
 
-  const finalSkill = Math.min(99, Math.max(1, skill));
+  const finalSkill = Math.min(99, Math.max(NIVEL_MINIMO, skill));
 
   // NOVO CÁLCULO DE VALOR DE MERCADO E SALÁRIO
   // Base Value: ~100k for very low skill, escalating to ~20M+ for 80+
@@ -546,7 +549,7 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
           name: p.namePlayer,
           age: p.agePlayer,
           position: mapPosString(p.posPlayer),
-          skill: p.ovrPlayer,
+          skill: Math.max(NIVEL_MINIMO, p.ovrPlayer),
           fitness: randomInt(45, 55), // Everyone starts at 45-55% in preseason
           morale: randomInt(40, 60), // Everyone starts at 4-6 morale in preseason
           goalsScored: 0,
@@ -557,10 +560,10 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
           contractExpiry: `W${expiryWeek} ${expiryYear}`,
           teamId: team.id,
           shirtNumber: index + 1, // Simple sequential numbers for now if shirt number not in DB
-          def: p.defPlayer,
-          pas: p.pasPlayer,
-          drb: p.drbplayer,
-          sht: p.shtPlayer,
+          def: Math.max(NIVEL_MINIMO, p.defPlayer),
+          pas: Math.max(NIVEL_MINIMO, p.pasPlayer),
+          drb: Math.max(NIVEL_MINIMO, p.drbplayer),
+          sht: Math.max(NIVEL_MINIMO, p.shtPlayer),
           trainingAccumulated: { def: 0, pas: 0, drb: 0, sht: 0, mor: 0 },
           lastGrowth: { def: 0, pas: 0, drb: 0, sht: 0 },
           weeklyGrowth: 0

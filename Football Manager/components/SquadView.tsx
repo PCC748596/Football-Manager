@@ -9,6 +9,7 @@ import { getKitDetails, getGKKitDetails } from '../types';
 import YouthView from './YouthView';
 import { ContractChip } from './ContractPanel';
 import { estadoDoContrato } from '../textSim/contracts';
+import { estrelasDoJogador, potencialVisivel } from '../textSim/youth';
 
 const MoraleArrow = ({ morale }: { morale: number }) => {
   if (morale >= 90) return <span className="text-amber-400 transform -rotate-90 inline-block font-bold drop-shadow-[0_0_2px_rgba(251,191,36,0.5)]">➤</span>; // Excelência
@@ -36,10 +37,9 @@ const getPosColor = (pos: Position) => {
 };
 
 // Helper to calculate star count based on OVR
-// Logic: <50=0, 50-59=1, 60-69=2, 70-79=3, 80-89=4, 90+=5
+// Logic: <60=1 (nunca fica sem estrela), 60-69=2, 70-79=3, 80-89=4, 90+=5
 const getStarCount = (skill: number) => {
-  if (skill < 50) return 0;
-  return Math.min(5, Math.floor((skill - 40) / 10));
+  return Math.max(1, Math.min(5, Math.floor((skill - 40) / 10)));
 };
 
 export const AttributeGrowthArrow = ({ val }: { val: number }) => {
@@ -77,7 +77,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
   const myPlayers = players.filter(p => p.teamId === userTeam.id);
 
   const VALOR_DA_COLUNA: Record<string, (p: Player) => number | string> = {
-    num: p => p.shirtNumber, pos: p => p.position, name: p => p.name, age: p => p.age, ovr: p => p.skill, fit: p => p.fitness, mor: p => p.morale,
+    num: p => p.shirtNumber, pos: p => p.position, name: p => p.name, age: p => p.age, ovr: p => p.skill, pot: p => potencialVisivel(p), fit: p => p.fitness, mor: p => p.morale,
     def: p => p.def, pas: p => p.pas, drb: p => p.drb, sht: p => p.sht, prog: p => p.weeklyGrowth, val: p => p.value,
     contract: p => (p.contract ? p.contract.end : '9999-99-99')   // o que vence primeiro vem primeiro
   };
@@ -151,6 +151,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                    <th className="px-2 py-2 border-b border-slate-200 dark:border-slate-800 w-16"></th> {/* Star Column */}
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('age')}>Age{seta('age')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('ovr')}>OVR{seta('ovr')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pot')}>Pot{seta('pot')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('fit')}>Fit{seta('fit')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('mor')}>Mor{seta('mor')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('def')}>Def{seta('def')}</th>
@@ -214,6 +215,9 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                        <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 px-1.5 py-0.5 rounded shadow-sm transition-colors">
                          {Math.round(p.skill)}
                        </span>
+                     </td>
+                     <td className="px-2 py-2 text-center whitespace-nowrap text-xs tracking-tighter" title="Estimated potential (scout estimate)">
+                       {Array.from({ length: 5 }, (_, i) => <span key={i} className={i < estrelasDoJogador(p) ? 'text-slate-400 dark:text-slate-300' : 'text-slate-200 dark:text-slate-700'}>★</span>)}
                      </td>
                      <td className="px-2 py-2 text-center text-xs text-slate-500 dark:text-slate-400 font-medium transition-colors">
                         <div className="flex flex-col items-center gap-1">

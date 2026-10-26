@@ -12,7 +12,7 @@ const mesEmTexto = (mes: string) => `${MESES[Number(mes.slice(5, 7)) - 1]} ${mes
 
 const Estrelas: React.FC<{ n: number }> = ({ n }) => (
   <span title="Estimated potential (scout estimate, not a guarantee)" className="whitespace-nowrap text-sm tracking-tighter">
-    {Array.from({ length: 5 }, (_, i) => <span key={i} className={i < n ? 'text-yellow-400' : 'text-slate-300 dark:text-slate-700'}>★</span>)}
+    {Array.from({ length: 5 }, (_, i) => <span key={i} className={i < n ? 'text-slate-400 dark:text-slate-300' : 'text-slate-200 dark:text-slate-700'}>★</span>)}
   </span>
 );
 
@@ -40,13 +40,37 @@ const Mudancas: React.FC<{ r?: RelatorioMes }> = ({ r }) => {
 };
 
 const YouthView: React.FC = () => {
-  const { base, userTeam, gameState, promoteYouth, formatCurrencyShort } = useGame();
+  const { base, userTeam, gameState, promoteYouth, formatCurrencyShort, players } = useGame();
   const [aba, setAba] = useState<'LISTA' | 'RELATORIO'>('LISTA');
   const [selId, setSelId] = useState<string | null>(null);
+  const [promovendo, setPromovendo] = useState<Player | null>(null);   // jogador no modal de confirmacao da promocao
+  const [erroPromo, setErroPromo] = useState<string | null>(null);
   const hoje = gameState.currentDate;
 
-  const jovens = useMemo(() => (base && userTeam ? base.jogadores.filter(p => p.teamId === userTeam.id) : []).slice()
-    .sort((a, b) => ORDEM.indexOf(a.position) - ORDEM.indexOf(b.position) || b.skill - a.skill), [base, userTeam?.id]);
+  // Ordenacao pelos cabecalhos (clique alterna crescente/decrescente). Padrao: por posicao e depois OVR.
+  type ColunaOrdem = 'POS' | 'NAME' | 'AGE' | 'OVR' | 'POT' | 'STYLE' | 'CONTRACT' | 'MONTH';
+  const [ordem, setOrdem] = useState<{ col: ColunaOrdem; asc: boolean } | null>(null);
+  const alternarOrdem = (col: ColunaOrdem) => setOrdem(o => (o && o.col === col ? { col, asc: !o.asc } : { col, asc: col === 'NAME' || col === 'POS' || col === 'STYLE' }));
+  const jovens = useMemo(() => {
+    const lista = (base && userTeam ? base.jogadores.filter(p => p.teamId === userTeam.id) : []).slice()
+      .sort((a, b) => ORDEM.indexOf(a.position) - ORDEM.indexOf(b.position) || b.skill - a.skill);
+    if (!ordem) return lista;
+    const delta = (p: Player) => base?.relatorios[p.id]?.slice(-1)[0]?.delta ?? -999;
+    const chave = (p: Player): number | string => {
+      switch (ordem.col) {
+        case 'POS': return ORDEM.indexOf(p.position);
+        case 'NAME': return p.name.toLowerCase();
+        case 'AGE': return p.age;
+        case 'OVR': return p.skill;
+        case 'POT': return estrelasDoJogador(p);
+        case 'STYLE': return p.playStyle && p.playStyle !== 'None' ? p.playStyle : '￿';
+        case 'CONTRACT': return p.contract?.end || '9999';
+        default: return delta(p);
+      }
+    };
+    const dir = ordem.asc ? 1 : -1;
+    return lista.sort((a, b) => { const x = chave(a), y = chave(b); return (x < y ? -1 : x > y ? 1 : 0) * dir || b.skill - a.skill; });
+  }, [base, userTeam?.id, ordem]);
   const sel = jovens.find(p => p.id === selId) || null;
   const ultimo = (p: Player): RelatorioMes | undefined => base?.relatorios[p.id]?.slice(-1)[0];
   const mesDoRelatorio = base?.mesProcessado || '';
@@ -55,12 +79,15 @@ const YouthView: React.FC = () => {
   if (!userTeam) return null;
   if (!base) return <div className="text-slate-400 text-sm font-bold uppercase tracking-widest p-8">Generating youth academies...</div>;
 
-  const promover = (p: Player) => {
-    if (window.confirm(`Promote ${p.name} (${p.position}, ${p.age}) to the first team? The academy spot will be refilled by a new youth player.`)) {
-      if (promoteYouth(p.id)) setSelId(null);
-    }
+  const promover = (p: Player) => { setErroPromo(null); setPromovendo(p); };
+  const confirmarPromocao = () => {
+    if (!promovendo) return;
+    if (promoteYouth(promovendo.id)) { setSelId(null); setPromovendo(null); }
+    else setErroPromo('The first team is full (max 33 players). Release or sell a player first.');
   };
+  const tamanhoElenco = players.filter(p => p.teamId === userTeam.id).length;
 
+  const seta = (col: ColunaOrdem) => (ordem && ordem.col === col ? (ordem.asc ? ' ▲' : ' ▼') : '');
   const cab = 'px-3 py-2 text-[11px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800';
 
   return (
@@ -80,7 +107,7 @@ const YouthView: React.FC = () => {
             <div className="overflow-y-auto custom-scrollbar flex-1">
               <table className="w-full text-left border-separate border-spacing-0">
                 <thead className="bg-slate-200/40 dark:bg-slate-950/60 sticky top-0 z-10">
-                  <tr><th className={cab}>Pos</th><th className={cab}>Name</th><th className={`${cab} text-center`}>Age</th><th className={`${cab} text-center`}>OVR</th><th className={cab}>Potential</th><th className={cab}>PlayStyle</th><th className={cab}>Contract</th><th className={`${cab} text-center`}>Last month</th></tr>
+                  <tr><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('POS')}>Pos{seta('POS')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('NAME')}>Name{seta('NAME')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300 text-center`} onClick={() => alternarOrdem('AGE')}>Age{seta('AGE')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300 text-center`} onClick={() => alternarOrdem('OVR')}>OVR{seta('OVR')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('POT')}>Potential{seta('POT')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('STYLE')}>PlayStyle{seta('STYLE')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('CONTRACT')}>Contract{seta('CONTRACT')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300 text-center`} onClick={() => alternarOrdem('MONTH')}>Last month{seta('MONTH')}</th><th className={cab}></th></tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30">
                   {jovens.map(p => {
@@ -95,6 +122,7 @@ const YouthView: React.FC = () => {
                         <td className="px-3 py-2"><EstiloDoJovem p={p} /></td>
                         <td className="px-3 py-2"><ContractChip player={p} hoje={hoje} /></td>
                         <td className="px-3 py-2 text-center text-sm">{r ? <Delta v={r.delta} /> : <span className="text-slate-400">-</span>}</td>
+                        <td className="px-3 py-2 text-right"><button onClick={e => { e.stopPropagation(); promover(p); }} className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-500 text-white font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">Promote</button></td>
                       </tr>
                     );
                   })}
@@ -175,6 +203,29 @@ const YouthView: React.FC = () => {
               </table>
             </div>
           )}
+        </div>
+      )}
+      {promovendo && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setPromovendo(null)}>
+          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+            <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Promote to first team</div>
+            <div className="flex items-center gap-4">
+              <div className="text-5xl font-black italic text-blue-400">{promovendo.skill}</div>
+              <div className="min-w-0">
+                <div className="text-lg font-black text-white truncate">{promovendo.name}</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">{promovendo.position} • {promovendo.age} years</div>
+                <div className="mt-1"><Estrelas n={estrelasDoJogador(promovendo)} /></div>
+              </div>
+            </div>
+            <div className="text-xs text-slate-300 leading-relaxed">
+              The player joins the first team squad ({tamanhoElenco}/33) and the academy spot is refilled by a new youth player.
+            </div>
+            {erroPromo && <div className="text-xs font-bold text-rose-400 bg-rose-900/20 border border-rose-800 rounded px-3 py-2">{erroPromo}</div>}
+            <div className="flex gap-3">
+              <button onClick={() => setPromovendo(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-black py-2.5 rounded text-xs uppercase tracking-widest">Cancel</button>
+              <button onClick={confirmarPromocao} disabled={tamanhoElenco >= 33} className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black py-2.5 rounded text-xs uppercase tracking-widest">Promote</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
