@@ -297,8 +297,8 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                       if (m.tipo === 'tatica_alterada' && userTeam) {
                         const mudou = taticaDoMotor(m, userTeam.tactics);
                         if (Object.keys(mudou).length) updateTactics(userTeam.id, mudou);
-                      } else if (m.tipo === 'abrir_tactics') {
-                        // Botao Tactics da tela cheia do 3D: sai da tela cheia, pausa o relogio e abre o MATCH TACTICS.
+                      } else if (m.tipo === 'abrir_tactics' || (m.tipo === 'expulsao' && m.lado === (match.homeTeamId === gameState.userTeamId ? 'A' : 'B'))) {
+                        // Botao Tactics da tela cheia do 3D, ou expulsao de um jogador do utilizador: sai da tela cheia, pausa o relogio e abre o MATCH TACTICS.
                         simulador3dLembrarTelaCheia();
                         if (document.fullscreenElement) document.exitFullscreen?.();
                         if (gameState.isProcessing) pauseMatch();

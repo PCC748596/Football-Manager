@@ -3106,6 +3106,10 @@ const PosicionamentoAI = {
                 }
             }
         }
+        // As camadas acima (mola, repulsão, ceder ao portador) furavam a faixa do Orquestrador / Anchor Man: reaplica-a no fim.
+        if (p.role !== 'gk' && !(bb && bb.chaser === p) && typeof aplicarFaixaDeJogo === 'function') {
+            finalZ = aplicarFaixaDeJogo(p, finalZ, bb);
+        }
         dbgCamada('cedeAoPortador', molaX, finalZ);
         // Regra do lateral do lado oposto da jogada: fica entre a linha da bola e a linha dos zagueiros
         const isLateral = (p.pos === 'LB' || p.pos === 'RB' || p.pos === 'LWB' || p.pos === 'RWB');

@@ -610,7 +610,7 @@ function apoioDoLateral(p, bb, targetX, targetZ) {
     if (typeof ApoioLateral === 'undefined' || !ApoioLateral.activo || !bb || !bb.isAttacking) return null;
     if (p.pos !== 'LB' && p.pos !== 'RB') return null;
     const chave = p.playingStyle;
-    if ((chave !== 'offensive_fullback' && chave !== 'defensive_fullback') || p.playingStyleDesligado) return null;
+    if ((chave !== 'offensive_fullback' && chave !== 'defensive_fullback' && chave !== 'fullback_finisher') || p.playingStyleDesligado) return null;
 
     const lado = Math.sign(p.baseTarget.x) || 1;
     const meuLado = Math.sign(bb.ballX) === lado || Math.abs(bb.ballX) < 6;
@@ -632,7 +632,10 @@ function apoioDoLateral(p, bb, targetX, targetZ) {
     const mz = meia.model.position.z * dz;
     const t = THREE.MathUtils.clamp((mx - ApoioLateral.central) / (ApoioLateral.ponta - ApoioLateral.central), 0, 1);
 
-    const comoOfensivo = chave === 'offensive_fullback' ? !!p.styleAtivo : (p._apoioComoOfensivo && bolaAvanco > -5);
+    // O Full-back Finisher sobe SEMPRE que a bola está do lado dele: ultrapassa o meia da ala pela ponta, livre,
+    // para receber o lançamento (o gatilho do estilo, só no último terço, não chegava: ficava para trás).
+    const comoOfensivo = chave === 'fullback_finisher' ? true
+        : chave === 'offensive_fullback' ? !!p.styleAtivo : (p._apoioComoOfensivo && bolaAvanco > -5);
     if (comoOfensivo) {
         const O = ApoioLateral.ofensivo;
         const xPasso = O.xFora;
@@ -1115,6 +1118,61 @@ function aplicarEstiloPosicional(p, bb, targetX, targetZ) {
 }
 
 /*
+A FAIXA DE JOGO DO ORQUESTRADOR E DO ANCHOR MAN (`faixaDeJogo` na config do estilo). Corre no
+`aplicarTectoDoEstilo` e DE NOVO no fim do alvo (team_bt.js, depois da mola de coesão), porque a mola puxa
+para a bola e furava o tecto. Devolve o z (mundo) cortado.
+*/
+function aplicarFaixaDeJogo(p, targetZ, bb) {
+    /*
+    A FAIXA DO ORQUESTRADOR: sempre entre a linha da propria area e a metade do campo adversario
+    (PlayingStyles.orchestrator.faixaDeJogo). Pela configuracao e nao pelo `estiloAtivoDe`: o gatilho dele
+    (`bolaAvanco < 10`) desliga-o quando a equipa sobe, que e justamente quando ele ia longe de mais.
+    */
+    if (p && (p.playingStyle === 'orchestrator' || p.playingStyle === 'anchor_man') && !p.playingStyleDesligado &&
+        !(typeof Config !== 'undefined' && Config.usePlayingStyles === false)) {
+        const FJ = PlayingStyles[p.playingStyle] && PlayingStyles[p.playingStyle].faixaDeJogo;
+        if (FJ) {
+            const zA = targetZ * p.dirZ;
+            /*
+            O CHÃO SOBE COM A DEFESA. O -36.5 (linha da própria área) é o limite absoluto, mas com a
+            equipa a construir os centrais estão bem à frente disso, e o Orquestrador (avanço -5 do
+            estilo) ia parar a 2 m ATRÁS deles — a "organizar" de um sítio onde não dá opção a ninguém.
+            Pedido: *"não precisa voltar tanto quando o time tem a bola; pode ficar mais no meio e um pouco
+            na defesa"*. Agora o chão é a linha média dos defesas MAIS `acimaDaDefesa` m: no máximo
+            à altura deles, nunca atrás.
+            */
+            let chao = FJ.min;
+            if (bb && bb.own && typeof FJ.acimaDaDefesa === 'number') {
+                let soma = 0, n = 0;
+                for (const o of bb.own) {
+                    if (!o || o.role !== 'def' || !o.model) continue;
+                    soma += o.model.position.z * o.dirZ; n++;
+                }
+                if (n) chao = Math.max(chao, soma / n + FJ.acimaDaDefesa);
+            }
+            /*
+            O TECTO TAMBÉM SOBE COM A DEFESA (`ateAcimaDaDefesa`): o Anchor Man fica entre os centrais e os
+            médios — pedido: *"não pode disparar para a frente; fica à frente dos CBs, entre os CBs e os CMs,
+            para os laterais terem liberdade"*. Tecto = linha média dos defesas + isto, e nunca acima de FJ.max.
+            */
+            let tecto = FJ.max;
+            if (bb && bb.own && typeof FJ.ateAcimaDaDefesa === 'number') {
+                let somaT = 0, nT = 0;
+                for (const o of bb.own) {
+                    if (!o || o.role !== 'def' || !o.model) continue;
+                    somaT += o.model.position.z * o.dirZ; nT++;
+                }
+                if (nT) tecto = Math.min(tecto, somaT / nT + FJ.ateAcimaDaDefesa);
+            }
+            if (chao > tecto) chao = tecto;
+            if (zA > tecto) targetZ = tecto * p.dirZ;
+            else if (zA < chao) targetZ = chao * p.dirZ;
+        }
+    }
+    return targetZ;
+}
+
+/*
 `travaNaEntradaArea` (Box-to-Box): "da entrada de uma área até a entrada da
 outra" — pedido explícito. Sem tecto, o amplitudeZ (1.5x) esticava o alvo para
 BEM DENTRO da área adversária, um meio-campo a jogar de ponta-de-lança.
@@ -1164,38 +1222,7 @@ function aplicarTectoDoEstilo(p, targetZ, bb) {
         }
     }
 
-    /*
-    A FAIXA DO ORQUESTRADOR: sempre entre a linha da propria area e a metade do campo adversario
-    (PlayingStyles.orchestrator.faixaDeJogo). Pela configuracao e nao pelo `estiloAtivoDe`: o gatilho dele
-    (`bolaAvanco < 10`) desliga-o quando a equipa sobe, que e justamente quando ele ia longe de mais.
-    */
-    if (p && p.playingStyle === 'orchestrator' && !p.playingStyleDesligado &&
-        !(typeof Config !== 'undefined' && Config.usePlayingStyles === false)) {
-        const FJ = PlayingStyles.orchestrator && PlayingStyles.orchestrator.faixaDeJogo;
-        if (FJ) {
-            const zA = targetZ * p.dirZ;
-            /*
-            O CHÃO SOBE COM A DEFESA. O -36.5 (linha da própria área) é o limite absoluto, mas com a
-            equipa a construir os centrais estão bem à frente disso, e o Orquestrador (avanço -5 do
-            estilo) ia parar a 2 m ATRÁS deles — a "organizar" de um sítio onde não dá opção a ninguém.
-            Pedido: *"não precisa voltar tanto quando o time tem a bola; pode ficar mais no meio e um pouco
-            na defesa"*. Agora o chão é a linha média dos defesas MAIS `acimaDaDefesa` m: no máximo
-            à altura deles, nunca atrás.
-            */
-            let chao = FJ.min;
-            if (bb && bb.own && typeof FJ.acimaDaDefesa === 'number') {
-                let soma = 0, n = 0;
-                for (const o of bb.own) {
-                    if (!o || o.role !== 'def' || !o.model) continue;
-                    soma += o.model.position.z * o.dirZ; n++;
-                }
-                if (n) chao = Math.max(chao, soma / n + FJ.acimaDaDefesa);
-            }
-            if (chao > FJ.max) chao = FJ.max;
-            if (zA > FJ.max) targetZ = FJ.max * p.dirZ;
-            else if (zA < chao) targetZ = chao * p.dirZ;
-        }
-    }
+    targetZ = aplicarFaixaDeJogo(p, targetZ, bb);
 
     const zAtaque = targetZ * p.dirZ;
 

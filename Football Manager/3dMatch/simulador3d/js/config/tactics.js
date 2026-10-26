@@ -1574,13 +1574,17 @@ limitado por `MarkingModel.distanciaMinimaEstilo`.
         `aplicarTectoDoEstilo` (playing_styles.js).
         */
         // `acimaDaDefesa`: o chão do alvo é a linha média dos defesas + isto (m): nunca atrás deles.
-        faixaDeJogo: { min: -36.5, max: 26.5, acimaDaDefesa: 4.0 }
+        // Pedido: entre os CBs e os CMs, no máximo 15 m depois da linha de meio-campo (0 = meio-campo).
+        faixaDeJogo: { min: -36.5, max: 15.0, acimaDaDefesa: 4.0 }
     },
     anchor_man: {
         nome: 'Anchor Man', posicoes: ['DM'],
         driblar: 0.3,
         avanco: -7, pressao: 1.25, lancar: 0.5, conduzir: 0.5, amplitudeZ: 0.6,
-        defensivo: { recuo: 7, pressao: 1.25 }
+        defensivo: { recuo: 7, pressao: 1.25 },
+        // Entre os CBs e os CMs, nunca dispara à frente: de 3 a 10 m à frente da linha dos defesas, e não passa
+        // do meio-campo. Dá liberdade aos laterais.
+        faixaDeJogo: { min: -36.5, max: 0.0, acimaDaDefesa: 3.0, ateAcimaDaDefesa: 10.0 }
     },
 
     /* --- Defesas --------------------------------------------------------- */

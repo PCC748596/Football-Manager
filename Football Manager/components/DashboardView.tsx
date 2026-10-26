@@ -3,6 +3,7 @@ import { useGame } from '../context/GameContext';
 import { Position, ActivityType, Team, Player, Tactics, getKitDetails, getGKKitDetails, kitShorts, naLigaDoUtilizador } from '../types';
 import ActivityModal from './ActivityModal';
 import { TeamShield } from './TeamShield';
+import { PlayerFace } from './PlayerFace';
 import { ShirtIcon } from './ShirtIcon';
 import FitnessBar from './FitnessBar';
 import { settleMatch, type CurrencyCode } from '../textSim/stadiumEconomy';
@@ -609,10 +610,10 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6 flex-1 min-h-0">
-            <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 flex flex-col transition-all shadow-md">
-              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 transition-colors">{t('dash_squad_snap')}</h3>
-              <div className="flex-1 flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
+            <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col transition-all shadow-md">
+              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 transition-colors">{t('dash_squad_snap')}</h3>
+              <div className="flex-1 flex flex-col gap-2">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors shadow-sm">
                     <div className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase transition-colors tracking-widest">{t('dash_avg_ovr')}</div>
@@ -624,7 +625,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                   </div>
                 </div>
 
-                <div className="flex-1 bg-white dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col overflow-hidden">
+                <div className="flex-1 min-h-0 bg-white dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-slate-800 p-3 flex flex-col overflow-hidden">
                     <div className="text-xs font-black text-slate-400 dark:text-slate-600 uppercase transition-colors tracking-widest mb-2">{t('dash_top_5')}</div>
                     {/* Header Row */}
                     <div className="flex justify-between items-center px-1 pb-1 mb-1 border-b border-slate-200 dark:border-slate-800/50 text-sm font-black uppercase text-slate-400 tracking-wider">
@@ -637,8 +638,9 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                     </div>
                     <div className="flex-1 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
                         {top5Players.map((p, idx) => (
-                            <div key={p.id} className="flex justify-between items-center py-1.5 px-1 hover:bg-slate-50 dark:hover:bg-slate-800/30 rounded transition-colors group">
+                            <div key={p.id} className="flex justify-between items-center py-0.5 px-1 hover:bg-slate-50 dark:hover:bg-slate-800/30 rounded transition-colors group">
                                 <span className="text-base font-bold text-slate-400 w-6 text-center">{idx + 1}</span>
+                                <PlayerFace playerId={p.id} camisa={userTeam ? getKitDetails(userTeam, 0).c1 : undefined} className="w-9 h-9 shrink-0 mr-2 rounded-md overflow-hidden bg-black/30 border border-white/20" />
                                 <div className="flex-1 flex flex-col min-w-0 pr-2">
                                     <span className="text-base font-bold text-slate-700 dark:text-slate-300 uppercase truncate">{p.name}</span>
                                 </div>
@@ -655,10 +657,10 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
               </div>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 flex flex-col transition-all shadow-md">
-              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 transition-colors">{t('dash_treasury')}</h3>
+            <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col transition-all shadow-md">
+              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 transition-colors">{t('dash_treasury')}</h3>
               
-              <div className="grid grid-cols-2 gap-4 flex-1">
+              <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
                  <div className="bg-white dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col justify-center text-center shadow-sm">
                     <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('dash_avail_balance')}</div>
                     <div className="text-xl font-black text-slate-800 dark:text-white truncate">{formatCurrency(userTeam.cash)}</div>

@@ -3196,6 +3196,8 @@ const Officials = {
 
         console.log('Officials: ' + p.team + ' (' + p.pos + ') EXPULSO, ficam ' +
             lista.length + ' em campo.');
+        // O manager decide se é a equipa dele: se for, pausa o jogo e abre o MATCH TACTICS (ver MatchDay.tsx).
+        if (typeof Ponte !== 'undefined' && Ponte.enviar) Ponte.enviar('expulsao', { lado: p.team === 'TeamA' ? 'A' : 'B', pos: p.pos });
     },
 
     /*
