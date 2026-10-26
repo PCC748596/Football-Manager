@@ -596,10 +596,10 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                 </div>
 
                 <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-[13px] px-4 shadow-sm min-h-0 flex flex-col">
-                    <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic mb-2">INSTRUÇÕES TÁTICAS</h3>
+                    <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic mb-2">TACTICAL INSTRUCTIONS</h3>
                     <div className="flex-1 flex flex-col justify-between pt-2">
                         <div className="space-y-2">
-                            <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">ESTILO DE JOGO</span><span className="text-[9px] font-black text-blue-400 uppercase">{userTeam.tactics.style}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">MENTALITY</span><span className="text-[9px] font-black text-blue-400 uppercase">{userTeam.tactics.style}</span></div>
                             <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
                                 {['Very Defensive', 'Defensive', 'Balanced', 'Offensive', 'Very Offensive'].map((s, i) => {
                                     const labels = ['U-DEF', 'DEF', 'BAL', 'OFF', 'U-OFF']; const isSelected = userTeam.tactics.style === s;
@@ -608,7 +608,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">AGRESSIVIDADE</span><span className="text-[9px] font-black text-rose-400 uppercase">{userTeam.tactics.aggression}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">AGGRESSION</span><span className="text-[9px] font-black text-rose-400 uppercase">{userTeam.tactics.aggression}</span></div>
                             <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
                                 {['Very Passive', 'Passive', 'Balanced', 'Aggressive', 'Very Aggressive'].map((a, i) => {
                                     const labels = ['U-PAS', 'PAS', 'BAL', 'AGG', 'U-AGG']; const isSelected = userTeam.tactics.aggression === a;
@@ -617,7 +617,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">SETOR DE JOGO</span><span className="text-[9px] font-black text-emerald-400 uppercase">{(userTeam.tactics.focusSectors || ['Center']).join(', ')}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">MATCH SECTOR</span><span className="text-[9px] font-black text-emerald-400 uppercase">{(userTeam.tactics.focusSectors || ['Center']).join(', ')}</span></div>
                             <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
                                 {['Left', 'Center', 'Right'].map((s, i) => {
                                     const labels = ['LEFT', 'CENTER', 'RIGHT']; const isSelected = (userTeam.tactics.focusSectors || ['Center']).includes(s as any);
@@ -637,16 +637,16 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                             </div>
                         </div>
                         {([
-                            { field: 'playStyle', label: 'ESTILO OFENSIVO', cor: 'bg-violet-300 text-violet-900', padrao: (t: Tactics) => (t.tempo >= 67 ? 'direct' : t.tempo <= 33 ? 'possession' : 'positional'),
-                              opcoes: [['positional', 'POS'], ['possession', 'POSSE'], ['direct', 'DIRETO'], ['counter_attack', 'CONTRA'], ['wing_play', 'ALAS']] },
-                            { field: 'widthCompactness', label: 'LARGURA DO BLOCO (WIDTH COMPACTNESS)', cor: 'bg-cyan-300 text-cyan-900', padrao: () => 'median',
-                              opcoes: [['large', 'LARGA 80%'], ['median', 'MÉDIA 70%'], ['short', 'CURTA 60%']] },
-                            { field: 'lengthCompactness', label: 'COMPRIMENTO DO BLOCO (LENGTH COMPACTNESS)', cor: 'bg-amber-300 text-amber-900', padrao: () => 'median',
-                              opcoes: [['large', '70M'], ['mediumLarge', '60M'], ['median', '50M'], ['mediumSmall', '40M'], ['short', '30M']] }
+                            { field: 'playStyle', label: 'OFFENSIVE STYLE', cor: 'bg-violet-300 text-violet-900', padrao: (t: Tactics) => (t.tempo >= 67 ? 'direct' : t.tempo <= 33 ? 'possession' : 'positional'),
+                              opcoes: [['positional', 'POSITIONAL'], ['possession', 'POSSESSION'], ['direct', 'DIRECT'], ['counter_attack', 'COUNTER'], ['wing_play', 'WING PLAY']] },
+                            { field: 'widthCompactness', label: 'WIDTH COMPACTNESS', cor: 'bg-cyan-300 text-cyan-900', padrao: () => 'median',
+                              opcoes: [['large', 'LARGE'], ['median', 'MEDIUM'], ['short', 'SMALL']] },
+                            { field: 'lengthCompactness', label: 'LENGTH COMPACTNESS', cor: 'bg-amber-300 text-amber-900', padrao: () => 'median',
+                              opcoes: [['large', 'LARGE'], ['mediumLarge', 'MED-LARGE'], ['median', 'MEDIUM'], ['mediumSmall', 'MED-SMALL'], ['short', 'SMALL']] }
                         ] as const).map(g => {
                             const atual = ((userTeam.tactics as any)[g.field] as string) || g.padrao(userTeam.tactics);
                             return (
-                                <div key={g.field} className="space-y-1">
+                                <div key={g.field} className={`space-y-1 ${g.field === 'playStyle' ? 'order-first' : ''}`}>
                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{g.label}</span>
                                     <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
                                         {g.opcoes.map(([valor, rotulo]) => (
@@ -657,8 +657,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                             );
                         })}
                         {([
-                            { field: 'pressure', label: 'PRESSÃO', cor: 'bg-rose-300 text-rose-900', valores: [10, 30, 50, 70, 90] },
-                            { field: 'defensiveLine', label: 'LINHA DEFENSIVA', cor: 'bg-emerald-300 text-emerald-900', valores: [30, 45, 60, 75, 90] }
+                            { field: 'pressure', label: 'PRESSURE', cor: 'bg-rose-300 text-rose-900', valores: [10, 30, 50, 70, 90] },
+                            { field: 'defensiveLine', label: 'DEFENSIVE LINE', cor: 'bg-emerald-300 text-emerald-900', valores: [30, 45, 60, 75, 90] }
                         ] as const).map(g => {
                             const atual = userTeam.tactics[g.field] as number;
                             const meio = (g.valores[1] - g.valores[0]) / 2;
