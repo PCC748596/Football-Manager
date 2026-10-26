@@ -1936,8 +1936,28 @@ function valorPorLinha(tabela, team) {
 }
 if (typeof window !== 'undefined') { window.pressaoValorDe = pressaoValorDe; window.valorPorPressao = valorPorPressao; window.linhaValorDe = linhaValorDe; window.valorPorLinha = valorPorLinha; }
 
+/*
+A AGRESSIVIDADE (manager: Very Passive .. Very Aggressive): quantas faltas a equipa comete. Multiplica a probabilidade de falta nos duelos perdidos (desarme, carrinho) e nos choques
+(js/officials.js). `fatorDeFaltas(team)`: o da equipa (a da CPU, em `porEquipa`) ou o do painel. 1 = como sempre.
+*/
+const AgressividadeModel = { muito_passiva: 0.5, passiva: 0.75, balanceada: 1.0, agressiva: 1.3, muito_agressiva: 1.65 };
+function fatorDeFaltas(team) {
+    const k = taticaDe(team, 'agressividade');
+    return AgressividadeModel[k] !== undefined ? AgressividadeModel[k] : 1.0;
+}
+if (typeof window !== 'undefined') { window.AgressividadeModel = AgressividadeModel; window.fatorDeFaltas = fatorDeFaltas; }
+
+// Os setores (Left / Center / Right) de uma equipa: os proprios da equipa (a da CPU) ou os do painel.
+function setoresDe(team) {
+    const o = (team && Tatics.porEquipa) ? Tatics.porEquipa[team] : null;
+    return (o && Array.isArray(o.setores)) ? o.setores : Tatics.setores;
+}
+if (typeof window !== 'undefined') window.setoresDe = setoresDe;
+
 function estiloDaEquipaDe(team) {
-    const chave = (team === 'TeamB' && Tatics.teamPlayStyleB) ? Tatics.teamPlayStyleB : Tatics.teamPlayStyle;
+    // O estilo ofensivo tambem e por equipa: a CPU joga o seu (`porEquipa[team].teamPlayStyle`), nao o do painel do utilizador.
+    const o = (team && Tatics.porEquipa) ? Tatics.porEquipa[team] : null;
+    const chave = (o && o.teamPlayStyle) ? o.teamPlayStyle : ((team === 'TeamB' && Tatics.teamPlayStyleB) ? Tatics.teamPlayStyleB : Tatics.teamPlayStyle);
     return TeamPlayStyles[chave] || TeamPlayStyles.positional;
 }
 
@@ -1958,6 +1978,7 @@ const Tatics = {
     linhaValor: 65,     // a mesma linha em 0-100 (ver linhaValorDe)
     compactness: 'median',
     lengthCompactness: 'median',
+    agressividade: 'balanceada',   // ver AgressividadeModel
     pressaoDefensiva: 'balanced',
     pressaoValor: 50,   // a mesma pressao em 0-100 (ver pressaoValorDe)
     setores: ['esq', 'dir'],

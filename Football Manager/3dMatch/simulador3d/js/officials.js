@@ -3225,6 +3225,8 @@ const Officials = {
         let prob = (tipo === 'carrinho' ? F.probCarrinhoFalhado : F.probDesarmeFalhado) * F.escala;
         // O MEDO DO ADVERTIDO, tambem fora do carrinho — ver cautelaDoAdvertido.
         prob *= this._cautelaDe(defensor);
+        // A AGRESSIVIDADE da equipa (Tactical Instructions): mais ou menos faltas.
+        if (typeof fatorDeFaltas === 'function') prob *= fatorDeFaltas(defensor.team);
         /*
         CAUTELA NA AREA, tambem no duelo perdido (ver CautelaNaArea em
         config/defense.js): o defensor que falha o desarme na propria area
@@ -3320,6 +3322,10 @@ const Officials = {
                     if (Area.contem(cx, cz, -quemEntra.dirZ)) {
                         probAqui *= CautelaNaArea.factorContacto;
                     }
+                }
+                if (typeof fatorDeFaltas === 'function') {
+                    const vA1 = a.velocity ? a.velocity.length() : 0, vB1 = b.velocity ? b.velocity.length() : 0;
+                    probAqui *= fatorDeFaltas(vA1 >= vB1 ? a.team : b.team);   // o infractor e quem vai mais depressa
                 }
                 if (Math.random() >= probAqui) continue;
 

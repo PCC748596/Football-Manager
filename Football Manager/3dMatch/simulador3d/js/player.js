@@ -3464,11 +3464,12 @@ class FootballPlayer {
             So sobe notas POSITIVAS. Multiplicar uma nota negativa por 1.2
             afundava-a — um bonus nunca pode castigar quem o recebe.
             */
-            if (score > 0 && typeof Tatics !== 'undefined' && Tatics.setores &&
+            const setoresMeus = (typeof setoresDe === 'function') ? setoresDe(this.team) : (typeof Tatics !== 'undefined' ? Tatics.setores : null);
+            if (score > 0 && typeof Tatics !== 'undefined' && setoresMeus &&
                 typeof PassModel !== 'undefined' && PassModel.bonusSectorActivo) {
                 const secDoAlvo = (typeof Tatics.sectorDeX === 'function')
                     ? Tatics.sectorDeX(optPos.x, dirZ) : null;
-                if (secDoAlvo && Tatics.setores.indexOf(secDoAlvo) >= 0) {
+                if (secDoAlvo && setoresMeus.indexOf(secDoAlvo) >= 0) {
                     score *= 1 + PassModel.bonusSectorActivo;
                 }
             }

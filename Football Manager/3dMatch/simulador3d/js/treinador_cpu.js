@@ -76,6 +76,10 @@ const TreinadorCPU = {
         const ordem = { low: 0, balanced: 1, high: 2 };
         const teto = amarelos >= 3 ? 'low' : amarelos >= 1 ? 'balanced' : 'high';
         if (ordem[t.pressaoDefensiva] > ordem[teto]) t.pressaoDefensiva = teto;
+        // E a agressividade tambem: com amarelos o treinador manda ter cuidado nos duelos.
+        const agr = { muito_passiva: 0, passiva: 1, balanceada: 2, agressiva: 3, muito_agressiva: 4 };
+        const tetoAgr = amarelos >= 3 ? 'passiva' : amarelos >= 1 ? 'balanceada' : null;
+        if (tetoAgr && agr[t.agressividade] > agr[tetoAgr]) t.agressividade = tetoAgr;
         return t;
     },
 
@@ -117,6 +121,42 @@ const TreinadorCPU = {
         return 'BALANCED';
     },
 
+    /*
+    LER O ADVERSARIO E CONTRAPOR. Quanto melhor o treinador (conhecimento tatico), mais ajustes do adversario ele percebe e melhor responde. `leitura` (0..1) = (k - 40) / 60; cada contra-medida
+    tem a sua dificuldade e so entra quando a leitura a alcanca (k 50: so a mais obvia; k 70: leitura 0.5, metade; k 95: todas). Le a tatica ACTUAL do adversario (o painel do utilizador, ou a da CPU
+    que ele enfrenta), por isso se ajusta quando o utilizador muda. A intencao do jogo (atacar / recuar / segurar) manda na pressao e na linha; aqui entram o estilo ofensivo e as compactacoes, e a
+    pressao e a linha so em jogo normal.
+    */
+    chaveEstiloOfensivo(team) {
+        const o = Tatics.porEquipa && Tatics.porEquipa[team];
+        return (o && o.teamPlayStyle) || ((team === 'TeamB' && Tatics.teamPlayStyleB) ? Tatics.teamPlayStyleB : Tatics.teamPlayStyle);
+    },
+    contrapor(tatica, T, team, intencao) {
+        const k = T.conhecimento;
+        const leitura = Math.max(0, Math.min(1, (k - 40) / 60));
+        if (leitura <= 0 || typeof taticaDe !== 'function') return tatica;
+        const adv = team === 'TeamA' ? 'TeamB' : 'TeamA';
+        const t = Object.assign({}, tatica);
+        const pres = taticaDe(adv, 'pressaoDefensiva'), linha = taticaDe(adv, 'linhaDefensiva'), mental = taticaDe(adv, 'estilo');
+        const ofens = this.chaveEstiloOfensivo(adv), larg = taticaDe(adv, 'compactness'), comp = taticaDe(adv, 'lengthCompactness');
+        const normal = (intencao === 'BALANCED');
+        const regras = [
+            // [dificuldade, texto, aplica]
+            [0.25, 'pressao alta: sai por cima dela (bola direta)', () => pres === 'high', () => { t.teamPlayStyle = 'direct'; }],
+            [0.25, 'linha alta: ataca as costas (contra-ataque)', () => linha === 'high', () => { t.teamPlayStyle = 'counter_attack'; }],
+            [0.40, 'posse de bola: pressiona mais alto', () => ofens === 'possession' && normal, () => { t.pressaoDefensiva = 'high'; }],
+            [0.40, 'jogo direto / contra-ataque: baixa a linha e fecha a profundidade', () => (ofens === 'direct' || ofens === 'counter_attack') && normal, () => { if (t.linhaDefensiva === 'high') t.linhaDefensiva = 'medium'; t.lengthCompactness = 'short'; }],
+            [0.50, 'jogo pelas alas: fecha a largura do bloco', () => ofens === 'wing_play', () => { t.compactness = 'short'; }],
+            [0.60, 'adversario muito ofensivo: segura-o e sai no contra-ataque', () => (mental === 'ataque' || mental === 'muito_ofensiva') && normal, () => { t.teamPlayStyle = 'counter_attack'; if (t.estilo === 'ataque' || t.estilo === 'muito_ofensiva') t.estilo = 'balanceado'; }],
+            [0.70, 'adversario fechado atras: abre o campo e circula', () => (mental === 'defesa' || mental === 'muito_defensiva' || pres === 'low') && normal, () => { t.teamPlayStyle = 'possession'; t.compactness = 'large'; if (t.linhaDefensiva === 'low') t.linhaDefensiva = 'medium'; }],
+            [0.85, 'bloco curto do adversario: espalha o jogo pelas alas', () => comp === 'short' || comp === 'mediumSmall' || larg === 'short', () => { t.teamPlayStyle = 'wing_play'; t.compactness = 'large'; }]
+        ];
+        const aplicadas = [];
+        for (const r of regras) if (leitura >= r[0] && r[2]()) { r[3](); aplicadas.push(r[1]); }
+        t._contras = aplicadas.length;
+        return t;
+    },
+
     // A tatica propria que corresponde a intencao (sobre a base da equipa).
     taticaDeIntencao(base, intencao) {
         const t = Object.assign({}, base);
@@ -153,11 +193,11 @@ const TreinadorCPU = {
             T.reagirEm = null;
             const intencao = this.decidirIntencao(T, e, min);
             // A tatica da intencao, com a pressao limitada pelos amarelos.
-            const tatica = this.limitarPorAmarelos(this.taticaDeIntencao(T.base, intencao), amarelos);
+            const tatica = this.limitarPorAmarelos(this.contrapor(this.taticaDeIntencao(T.base, intencao), T, team, intencao), amarelos);
             const atual = Tatics.porEquipa[team];
-            const mudou = intencao !== T.intencao || !atual || atual.pressaoDefensiva !== tatica.pressaoDefensiva || atual.estilo !== tatica.estilo || atual.linhaDefensiva !== tatica.linhaDefensiva;
+            const mudou = intencao !== T.intencao || !atual || atual.pressaoDefensiva !== tatica.pressaoDefensiva || atual.estilo !== tatica.estilo || atual.linhaDefensiva !== tatica.linhaDefensiva || atual.teamPlayStyle !== tatica.teamPlayStyle || atual.compactness !== tatica.compactness || atual.lengthCompactness !== tatica.lengthCompactness || atual.agressividade !== tatica.agressividade;
             if (mudou) {
-                this._log.push({ min: Math.floor(min), team, intencao, dif: e.dif, k: T.conhecimento, pressao: tatica.pressaoDefensiva, amarelos: amarelos });
+                this._log.push({ min: Math.floor(min), team, intencao, dif: e.dif, k: T.conhecimento, pressao: tatica.pressaoDefensiva, estiloOfensivo: tatica.teamPlayStyle, contras: tatica._contras || 0, amarelos: amarelos });
                 T.intencao = intencao;
                 Tatics.porEquipa[team] = tatica;
             }

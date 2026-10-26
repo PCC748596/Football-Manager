@@ -14,6 +14,7 @@ interface FieldPosition {
 
 
 import { ShirtIcon } from './ShirtIcon';
+import { setoresPadraoDaFormacao } from '../3dMatch/simulador3dCliente';
 
 const MoraleArrow = ({ morale }: { morale: number }) => {
   if (morale >= 90) return <span className="text-amber-400 transform -rotate-90 inline-block font-bold drop-shadow-sm text-[12px]">➤</span>; 
@@ -299,6 +300,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     }
     // Objetividade e Estilo Ofensivo sao a mesma coisa: o estilo escolhido manda, e o `tempo` (0-100, que a simulacao rapida usa) acompanha-o.
     const TEMPO_DO_ESTILO: Record<string, number> = { possession: 20, positional: 50, direct: 80, counter_attack: 70, wing_play: 55 };
+    // Nas formacoes 4-3-3, 4-3-3 ATA e 4-2-3-1 os setores por omissao sao Left e Right.
+    if (field === 'formation' && setoresPadraoDaFormacao(finalValue)) { updateTactics(userTeam.id, { formation: finalValue, focusSectors: setoresPadraoDaFormacao(finalValue) }); return; }
     updateTactics(userTeam.id, field === 'playStyle' ? { playStyle: finalValue, tempo: TEMPO_DO_ESTILO[finalValue] ?? 50 } : { [field]: finalValue });
   };
 

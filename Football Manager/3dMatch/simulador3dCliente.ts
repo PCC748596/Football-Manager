@@ -49,7 +49,7 @@ const ladoDe = (team: Team, players: Player[]): LadoPayload => {
   return {
     equipa: { id: team.id, name: team.name, city: (team as any).city, logoUrl: (team as any).logoUrl, cores: [team.primaryColor, team.secondaryColor, team.tertiaryColor], lineup: team.lineup, bench: (team as any).bench || [], tactics: team.tactics, cobradores: resolveSetPieceTakers(team, players) },
     jogadoresPorId: porId,
-    tatica: team.tactics ? taticaParaMotor(team.tactics) : undefined,
+    tatica: team.tactics ? taticaParaMotor({ ...team.tactics, focusSectors: setoresPadraoDaFormacao(team.tactics.formation) || team.tactics.focusSectors }) : undefined,
     conhecimentoTatico: (team as any).managerTactics ?? 70,
     formacao: { nome: formacao, slots: FORMATIONS[formacao as keyof typeof FORMATIONS] }
   };
@@ -224,9 +224,16 @@ const ESTILO_DO_MOTOR: Record<string, string> = Object.fromEntries(Object.entrie
 const SETOR_PARA_MOTOR: Record<string, string> = { Left: 'esq', Center: 'cen', Right: 'dir' };
 const SETOR_DO_MOTOR: Record<string, string> = { esq: 'Left', cen: 'Center', dir: 'Right' };
 
+/** Setores (Left / Center / Right) por omissao de cada formacao: as com tres na frente ou tres meias abertos jogam pelas alas. */
+export const setoresPadraoDaFormacao = (formacao: string): Tactics['focusSectors'] | undefined =>
+  ['4-3-3', '4-3-3 ATA', '4-2-3-1'].includes(formacao) ? ['Left', 'Right'] : undefined;
+
+const AGRESSIVIDADE_PARA_MOTOR: Record<string, string> = { 'Very Passive': 'muito_passiva', 'Passive': 'passiva', 'Balanced': 'balanceada', 'Aggressive': 'agressiva', 'Very Aggressive': 'muito_agressiva' };
+
 export const taticaParaMotor = (t: Tactics) => ({
   estilo: ESTILO_PARA_MOTOR[t.style] || 'balanceado',
   pressaoDefensiva: t.pressure < 34 ? 'low' : t.pressure < 67 ? 'balanced' : 'high',
+  agressividade: AGRESSIVIDADE_PARA_MOTOR[t.aggression] || 'balanceada',
   linhaValor: t.defensiveLine,
   pressaoValor: t.pressure, // a percentagem exata: o motor interpola a marcacao entre os niveis
   linhaDefensiva: t.defensiveLine < 53 ? 'low' : t.defensiveLine < 77 ? 'medium' : 'high',

@@ -191,6 +191,7 @@ const Ponte = {
             if (m.pressaoDefensiva) { Tatics.pressaoDefensiva = m.pressaoDefensiva; pOk('t-pressao-def', m.pressaoDefensiva); }
             if (typeof m.pressaoValor === 'number') Tatics.pressaoValor = m.pressaoValor;
             if (typeof m.linhaValor === 'number') Tatics.linhaValor = m.linhaValor;
+            if (m.agressividade) Tatics.agressividade = m.agressividade;
             if (Array.isArray(m.setores)) {
                 Tatics.setores.length = 0;
                 m.setores.forEach(x => Tatics.setores.push(x));

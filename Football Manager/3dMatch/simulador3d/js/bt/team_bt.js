@@ -1468,7 +1468,7 @@ function calcularPontoDoSlot(slot, pos, role, fbStyle, bb, linhaActual, fecharPo
     const fecho = bb.isAttacking ? fechoLinha.comBola : fechoLinha.semBola;
 
     const fechoSec = (typeof fechoDoSector === 'function' && typeof Tatics !== 'undefined')
-        ? fechoDoSector(Tatics.setores)
+        ? fechoDoSector(typeof setoresDe === 'function' ? setoresDe(bb.team) : Tatics.setores)
         : 1.0;
         
     let fechoAdicional = 1.0;
@@ -1688,8 +1688,9 @@ function calcularPontoDoSlot(slot, pos, role, fbStyle, bb, linhaActual, fecharPo
     const meuSector = (typeof Tatics !== 'undefined' && Tatics.sectorDeX)
         ? Tatics.sectorDeX(xTarget, bb.dir)
         : 'cen';
-    const sectorPedido = (typeof Tatics !== 'undefined' && Tatics.setores)
-        ? Tatics.setores.indexOf(meuSector) >= 0
+    const setoresDaEquipa = (typeof setoresDe === 'function') ? setoresDe(bb.team) : (typeof Tatics !== 'undefined' ? Tatics.setores : null);
+    const sectorPedido = setoresDaEquipa
+        ? setoresDaEquipa.indexOf(meuSector) >= 0
         : true;
 
     xTarget += deslocamentoDeCorredor({
