@@ -153,6 +153,8 @@ export interface Player {
   listedForSale?: boolean;
   /** Data em que entrou na lista de venda (a IA dispensa quem fica listado demais). */
   listadoEm?: string;
+  /** O jogador esta disponivel para emprestimo (so sinaliza ao mercado). */
+  listedForLoan?: boolean;
   /** Data em que ficou agente livre (teamId 'MARKET'). */
   livreDesde?: string;
   /** Ganhos fracionarios do desenvolvimento mensal (a parte que ainda nao completou 1 ponto de atributo). */

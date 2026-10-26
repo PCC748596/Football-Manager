@@ -652,7 +652,7 @@ const ShotModel = {
     de um remate é menos comum do que errar o lado.
     */
     erro: {
-        base: 1.10,             // metros de sigma, a 6 m e TEC 50
+        base: 1.60,             // metros de sigma, a 6 m e TEC 50 (1.10 -> 1.60 a 26/10/2026: calibracao de golos, o remate de perto entrava de mais; medido em lotes de 56 jogos)
         porMetro: 0.110,        // cresce com a distância à baliza
         distRef: 6.0,
         fracVertical: 0.70,
@@ -752,7 +752,7 @@ const ShotModel = {
         Aviso medido: a 1.31 o lote de 40 jogos ja dava 36.9% no alvo (benchmark 33.7%), 2.11 golos e 6.54
         no alvo contra 8.8; o que falta nao e pontaria, e volume de remates tentados.
         */
-        escalaGlobal: 1.40   // 2.00 -> 1.40 (relato: muitos chutes fora da direcao da baliza; medido em 3 jogos de 25 min: 2.00 -> 25.7% no alvo, 1.50 -> 29.5%, 1.30 -> 32.4%; real ~33%). 1.15 -> 1.30 (15 de Outubro de 2026): mais erro de execucao nas finalizacoes (pedido) — 60 jogos: golos 3.2 -> 2.59
+        escalaGlobal: 1.45   // 2.00 -> 1.40 (relato: muitos chutes fora da direcao da baliza; medido em 3 jogos de 25 min: 2.00 -> 25.7% no alvo, 1.50 -> 29.5%, 1.30 -> 32.4%; real ~33%). 1.15 -> 1.30 (15 de Outubro de 2026): mais erro de execucao nas finalizacoes (pedido) — 60 jogos: golos 3.2 -> 2.59
     }
 };
 

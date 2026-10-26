@@ -101,7 +101,8 @@ const RadarChart = ({ stats }: { stats: Record<string, number> }) => {
 
 const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) => {
   const [activePlayerId, setActivePlayerId] = React.useState(initialPlayer.id);
-  const { teams, players } = useGame();
+  const { teams, players, userTeam, listarParaVenda, listarParaEmprestimo, dispensarJogador } = useGame();
+  const [aviso, setAviso] = React.useState<string | null>(null);
 
   // ESC fecha o Overview (se o modal de renovacao estiver aberto, o ESC fecha primeiro esse: ele escuta na fase de captura e para o evento).
   React.useEffect(() => {
@@ -254,6 +255,24 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
             {/* Column 1: Info & Summary */}
             <div className="flex flex-col gap-3">
               <ContractPanel player={player} />
+              {userTeam && player.teamId === userTeam.id && (
+                <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <button onClick={() => { const r = listarParaVenda(player.id, !player.listedForSale); setAviso(r.ok ? (player.listedForSale ? 'Removido da lista de venda' : 'Listado para venda (moral -8)') : (r.motivo || 'Nao foi possivel')); }}
+                      className={`flex-1 text-[10px] font-black uppercase py-2 rounded border ${player.listedForSale ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'}`}>
+                      {player.listedForSale ? 'Na lista de venda (retirar)' : 'Colocar a venda'}
+                    </button>
+                    <button onClick={() => { const r = listarParaEmprestimo(player.id, !player.listedForLoan); setAviso(r.ok ? (player.listedForLoan ? 'Removido da lista de emprestimo' : 'Listado para emprestimo (moral -5)') : (r.motivo || 'Nao foi possivel')); }}
+                      className={`flex-1 text-[10px] font-black uppercase py-2 rounded border ${player.listedForLoan ? 'bg-sky-600 text-white border-sky-500' : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'}`}>
+                      {player.listedForLoan ? 'Na lista de emprestimo (retirar)' : 'Colocar para emprestimo'}
+                    </button>
+                  </div>
+                  <button onClick={() => { if (window.confirm(`Dispensar ${player.name}? Ele vira agente livre e o contrato e rescindido.`)) { const r = dispensarJogador(player.id); if (r.ok) onClose(); else setAviso(r.motivo || 'Nao foi possivel'); } }}
+                    className="text-[10px] font-black uppercase py-2 rounded border border-rose-700 text-rose-400 hover:bg-rose-900/40">Dispensar</button>
+                  <div className="text-[9px] text-slate-500">Listar para venda reduz a moral em 8; para emprestimo, em 5.</div>
+                  {aviso && <div className="text-[10px] text-amber-400 font-bold">{aviso}</div>}
+                </div>
+              )}
               {/* Bio Data */}
               <div className="grid grid-cols-2 gap-5 bg-slate-900/50 p-3 rounded-lg border border-slate-800">
                 <div>

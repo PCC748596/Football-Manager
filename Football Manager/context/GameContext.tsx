@@ -9,7 +9,7 @@ import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } f
 import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia } from '../textSim/inbox';
 import { regiaoDoClube } from '../textSim/dataGenerator';
 import { MercadoState, Universo, Evento, mercadoVazio, prepararOrcamentos, proporCompra as mercadoPropor, responderComoVendedor, responderComoComprador, retirar as mercadoRetirar, concluir as mercadoConcluir,
-  contratarAgenteLivre as mercadoContratarLivre, listarParaVenda as mercadoListar, tickDoDia as mercadoTick, recalcularValoresDoMes, janelaAberta } from '../textSim/transferencias';
+  contratarAgenteLivre as mercadoContratarLivre, listarParaVenda as mercadoListar, listarParaEmprestimo as mercadoListarEmprestimo, dispensarJogador as mercadoDispensar, tickDoDia as mercadoTick, recalcularValoresDoMes, janelaAberta } from '../textSim/transferencias';
 import { recalcularValores } from '../textSim/valuation';
 import { Negociacao, Oferta, abrirNegociacao, assinar, chanceDeAceitar, propostaDoJogador, resolverNegociacoes } from '../textSim/negociacao';
 import { rotuloDaFase } from '../textSim/competitions';
@@ -188,6 +188,8 @@ interface GameContextType {
   tentarConcluir: (negId: string) => { ok: boolean; motivo?: string };
   contratarLivre: (playerId: string) => { ok: boolean; motivo?: string };
   listarParaVenda: (playerId: string, listar: boolean) => { ok: boolean; motivo?: string };
+  listarParaEmprestimo: (playerId: string, listar: boolean) => { ok: boolean; motivo?: string };
+  dispensarJogador: (playerId: string) => { ok: boolean; motivo?: string };
   sellPlayer: (playerId: string) => void;
   swapShirtNumbers: (playerId1: string, playerId2: string) => void;
   scheduleActivity: (date: string, type: ActivityType, details: any) => void;
@@ -481,6 +483,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const tentarConcluir = (negId: string) => comResultado(mercadoConcluir(universoAtual(), negId, gameState.currentDate));
   const contratarLivre = (playerId: string) => userTeam ? comResultado(mercadoContratarLivre(universoAtual(), userTeam.id, playerId, gameState.currentDate)) : { ok: false, motivo: 'sem clube' };
   const listarParaVenda = (playerId: string, listar: boolean) => comResultado(mercadoListar(universoAtual(), playerId, listar));
+  const listarParaEmprestimo = (playerId: string, listar: boolean) => comResultado(mercadoListarEmprestimo(universoAtual(), playerId, listar));
+  const dispensarJogador = (playerId: string) => comResultado(mercadoDispensar(universoAtual(), playerId, gameState.currentDate));
 
   // Orcamento de transferencias em todos os clubes (so preenche o que falta) e valores de mercado recalculados uma vez por mes (so a formula: textSim/valuation.ts).
   useEffect(() => {
@@ -1684,6 +1688,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const hirePlayer = (player: Player) => {
     if (!userTeam || userTeam.cash < player.value) return;
+    if (players.filter(p => p.teamId === userTeam.id).length >= 33) return;   // maximo de 33 jogadores por time
 
     setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash - player.value } : t));
     const contratado: Player = { ...player, teamId: userTeam.id, shirtNumber: 25 + Math.floor(Math.random() * 50), contract: novoContrato(player.age, gameState.currentDate) };
@@ -1830,7 +1835,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       saveDate: new Date().toISOString()
     };
     const texto = JSON.stringify(saveData, null, 2);
-    const nomeSave = `FootManager_Week${gameState.currentWeek}.json`;
+    // Nome do save: NomeDoTime_Week<semana> (sem acentos nem espacos: o servidor so aceita A-Z, a-z, 0-9, _ e -).
+    const clubeSave = (userTeam?.name || 'FootManager').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9-]+/g, '') || 'FootManager';
+    const nomeSave = `${clubeSave}_Week${gameState.currentWeek}.json`;
     // Copia local: o servidor de desenvolvimento grava-a na pasta `saves/` do projeto (ver vite.config.ts). Sem servidor (build) fica so o descarregamento.
     try {
       const r = await fetch('/api/save-game', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-save-name': nomeSave }, body: texto });
@@ -1919,7 +1926,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <GameContext.Provider value={{
       teams, players, fixtures, gameState, startGame, advanceDay, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
-      hirePlayer, sellPlayer, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
+      hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
       t,

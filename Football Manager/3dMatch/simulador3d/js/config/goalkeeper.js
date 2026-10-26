@@ -2584,7 +2584,7 @@ const GkCatchModel = {
     rocarVMin: 15.0,
     rocarEscalaV: 14.0,   // m/s acima do mínimo para saturar
     rocarPesoExt: 0.6,    // quanto a extensão pesa (o resto é a velocidade)
-    rocarMax: 0.35,
+    rocarMax: 0.15,   // 0.35 -> 0.15 (26/10/2026): ate 35% dos remates fortes 'roçavam' e entravam; com 0.15 as defesas passaram de 5.0 a 6.3 por jogo (lote de 30 jogos)
     rocarPorGK: 0.60,     // reducao multiplicativa: GK 100 roca 60% menos
 
     // Desvio que um roçar dá à bola: quase nada, é isso que o define.

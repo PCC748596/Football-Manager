@@ -164,11 +164,11 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
           </select>
         </div>
         <div className="flex flex-col gap-1.5"><label className={rotulo}>Status</label>
-          <button onClick={() => setSoListados(v => !v)} className={botaoStatus(soListados)}>Transfer listed</button>
-          <button onClick={() => setSoLivres(v => !v)} className={botaoStatus(soLivres)}>Free agents</button>
-          <button onClick={() => setSoContrato(v => !v)} className={botaoStatus(soContrato)}>Contract ≤ 12 months</button>
-          <button onClick={() => setSoBase(v => !v)} className={botaoStatus(soBase)}>Sub-20 (18+)</button>
-          <button onClick={() => setSoShortlist(v => !v)} className={botaoStatus(soShortlist)}>Shortlist ({shortlist.length})</button>
+          <button onClick={() => { setSoListados(!soListados); setFiltros(f => ({ ...f, soListados: !soListados })); }} className={botaoStatus(soListados)}>Transfer listed</button>
+          <button onClick={() => { setSoLivres(!soLivres); setFiltros(f => ({ ...f, soLivres: !soLivres })); }} className={botaoStatus(soLivres)}>Free agents</button>
+          <button onClick={() => { setSoContrato(!soContrato); setFiltros(f => ({ ...f, soContrato: !soContrato })); }} className={botaoStatus(soContrato)}>Contract ≤ 12 months</button>
+          <button onClick={() => { setSoBase(!soBase); setFiltros(f => ({ ...f, soBase: !soBase })); }} className={botaoStatus(soBase)}>Sub-20 (18+)</button>
+          <button onClick={() => { setSoShortlist(!soShortlist); setFiltros(f => ({ ...f, soShortlist: !soShortlist })); }} className={botaoStatus(soShortlist)}>Shortlist ({shortlist.length})</button>
         </div>
         <div className="mt-auto flex flex-col gap-2">
           <button onClick={aplicar} className="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded text-xs uppercase tracking-widest shadow-lg">Apply filters</button>

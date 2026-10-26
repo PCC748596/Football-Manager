@@ -49,7 +49,7 @@ export const CONFIG_MERCADO = {
   ia: {
     clubesPorDia: 14, maxNegociacoesAtivasPorClube: 2, maxConclusoesPorDia: 10, maxPropostasNovasPorDia: 12,
     desejado: { GK: 3, DEF: 9, MID: 9, ATT: 6 } as Record<Grupo, number>,
-    margemUpgrade: 4, maxElenco: 32, probOfertaAoHumano: 0.12, bonusListado: 0.35,
+    margemUpgrade: 4, maxElenco: 33, probOfertaAoHumano: 0.12, bonusListado: 0.35,
     orcamentoMaxPorOferta: 0.75, apetite: [0.85, 1.05] as [number, number], toleranciaContra: 1.08,
     diasParaDispensar: 21, diasAgenteLivre: 240
   },
@@ -208,6 +208,7 @@ export const proporCompra = (u: Universo, compradorId: string, playerId: string,
   if (loc.origem === 'LIVRE') return falha('agente livre: contrate-o sem taxa');
   const p = loc.jogador, vendedorId = p.teamId;
   if (vendedorId === compradorId) return falha('o jogador ja e do clube');
+  if (elencoDe(u, compradorId).length >= cfg.ia.maxElenco) return falha(`elenco cheio (maximo de ${cfg.ia.maxElenco} jogadores)`);
   if (!clube(u, compradorId) || !clube(u, vendedorId)) return falha('clube desconhecido');
   if (loc.origem === 'BASE' && p.age < cfg.idadeMinimaBase) return falha(`so jogadores do Sub-20 com ${cfg.idadeMinimaBase} anos ou mais`);
   if (!(valor > 0) || !isFinite(valor)) return falha('valor invalido');
@@ -261,13 +262,41 @@ export const responderComoComprador = (u: Universo, negId: string, acao: 'ACEITA
   return { u: comNeg(u, n2), ok: true, eventos: [] };
 };
 
+/** Queda de moral de quem e posto na lista (venda pesa mais que emprestimo: o jogador sente que o clube nao conta com ele). */
+export const QUEDA_MORAL_LISTA = { VENDA: 8, EMPRESTIMO: 5 };
+const baixarMoral = (p: Player, queda: number): Player => ({ ...p, morale: Math.max(0, Math.min(100, (p.morale ?? 70) - queda)) });
+
+/** Poe ou tira o jogador da lista de emprestimo. Listar reduz a moral. */
+export const listarParaEmprestimo = (u: Universo, playerId: string, listar: boolean, cfg: ConfigMercado = CONFIG_MERCADO): Resultado => {
+  const loc = localizar(u, playerId);
+  if (!loc || loc.origem === 'LIVRE') return { u, ok: false, motivo: 'jogador nao pertence a um clube', eventos: [] };
+  if (loc.origem === 'BASE' && loc.jogador.age < cfg.idadeMinimaBase) return { u, ok: false, motivo: `Sub-20 so a partir dos ${cfg.idadeMinimaBase} anos`, eventos: [] };
+  if (!!loc.jogador.listedForLoan === listar) return { u, ok: true, eventos: [] };
+  const marca = (p: Player): Player => (p.id !== playerId ? p : (listar ? baixarMoral({ ...p, listedForLoan: true }, QUEDA_MORAL_LISTA.EMPRESTIMO) : { ...p, listedForLoan: false }));
+  return loc.origem === 'ELENCO'
+    ? { u: { ...u, players: u.players.map(marca) }, ok: true, eventos: [] }
+    : { u: { ...u, base: u.base ? { ...u.base, jogadores: u.base.jogadores.map(marca) } : u.base }, ok: true, eventos: [] };
+};
+
+/** Dispensa o jogador do elenco: vira agente livre (sem receita; o contrato e rescindido). */
+export const dispensarJogador = (u: Universo, playerId: string, hoje: string): Resultado => {
+  const p = u.players.find(x => x.id === playerId);
+  if (!p || p.teamId === 'MARKET') return { u, ok: false, motivo: 'jogador nao pertence a um clube', eventos: [] };
+  if (u.mercado.negociacoes.some(g => g.playerId === playerId && ESTADOS_ATIVOS.includes(g.estado))) return { u, ok: false, motivo: 'ha uma negociacao em curso por este jogador', eventos: [] };
+  const clube = p.teamId;
+  return { ok: true, eventos: [], u: { ...u,
+    players: u.players.map(x => (x.id === playerId ? { ...x, teamId: 'MARKET', listedForSale: false, listedForLoan: false, listadoEm: undefined, livreDesde: hoje } : x)),
+    teams: u.teams.map(x => (x.id === clube ? limparEscalacao(x, playerId) : x)),
+    mercado: { ...u.mercado, historico: [...u.mercado.historico, { id: `mov-disp-${u.mercado.proximoNum}-${p.id}`, data: hoje, jogadorId: p.id, jogadorNome: p.name, de: clube, para: 'MARKET', valor: 0, tipo: 'DISPENSA' as const }].slice(-CONFIG_MERCADO.maxTransacoes), proximoNum: u.mercado.proximoNum + 1 } } };
+};
+
 /** Poe ou tira o jogador da lista de venda (so sinaliza ao mercado: nao transfere nada). Vale para o elenco e para o Sub-20 (com a idade minima). */
 export const listarParaVenda = (u: Universo, playerId: string, listar: boolean, cfg: ConfigMercado = CONFIG_MERCADO): Resultado => {
   const loc = localizar(u, playerId);
   if (!loc || loc.origem === 'LIVRE') return { u, ok: false, motivo: 'jogador nao pertence a um clube', eventos: [] };
   if (loc.origem === 'BASE' && loc.jogador.age < cfg.idadeMinimaBase) return { u, ok: false, motivo: `Sub-20 so a partir dos ${cfg.idadeMinimaBase} anos`, eventos: [] };
   if (!!loc.jogador.listedForSale === listar) return { u, ok: true, eventos: [] };
-  const marca = (p: Player): Player => (p.id === playerId ? { ...p, listedForSale: listar } : p);
+  const marca = (p: Player): Player => (p.id !== playerId ? p : (listar ? baixarMoral({ ...p, listedForSale: true, listadoEm: p.listadoEm }, QUEDA_MORAL_LISTA.VENDA) : { ...p, listedForSale: false }));
   return loc.origem === 'ELENCO'
     ? { u: { ...u, players: u.players.map(marca) }, ok: true, eventos: [] }
     : { u: { ...u, base: u.base ? { ...u.base, jogadores: u.base.jogadores.map(marca) } : u.base }, ok: true, eventos: [] };
@@ -291,6 +320,7 @@ export const concluir = (u: Universo, negId: string, hoje: string, cfg: ConfigMe
   if (!loc || loc.origem === 'LIVRE' || loc.jogador.teamId !== neg.vendedorId) return falha('o jogador ja nao pertence ao vendedor');
   const p = loc.jogador;
   if (p.contract && hoje >= p.contract.end) return falha('contrato vencido');
+  if (elencoDe(u, neg.compradorId).length >= cfg.ia.maxElenco) return falha(`elenco cheio (maximo de ${cfg.ia.maxElenco} jogadores)`);
   const pais = clube(u, neg.compradorId)?.country;
   if (!janelaAberta(hoje, pais, cfg)) return falha('fora da janela de transferencias');
   const comprador = clube(u, neg.compradorId), vendedor = clube(u, neg.vendedorId);
@@ -354,6 +384,7 @@ export const contratarAgenteLivre = (u: Universo, compradorId: string, playerId:
   if (!p || p.teamId !== 'MARKET') return falha('o jogador nao e agente livre');
   const comprador = clube(u, compradorId);
   if (!comprador) return falha('clube desconhecido');
+  if (elencoDe(u, compradorId).length >= cfg.ia.maxElenco) return falha(`elenco cheio (maximo de ${cfg.ia.maxElenco} jogadores)`);
   if (!cfg.agentesLivresForaDaJanela && !janelaAberta(hoje, comprador.country, cfg)) return falha('fora da janela de transferencias');
   const elenco = elencoDe(u, compradorId);
   if (elenco.length >= cfg.maximoElenco) return falha('elenco cheio');

@@ -603,6 +603,8 @@ const RefereeModel = {
         */
         reincidencia: { activo: true, faltas: 4, janelaSegundos: 600 },   // 3 -> 4 faltas seguidas (15 de Outubro de 2026): com 3 saiam 6.9 amarelos por jogo (pedido: 4-5)
         limiarAmarelo: 0.68,   // 0.85 -> 0.68 (-20%, pedido de 15 de Outubro de 2026)
+        // A fraccao das faltas tacticas (travar um ataque) que levam cartao: 0.7 (26/10/2026: os amarelos estavam em 6.0-6.3 por jogo, o alvo e 5). O resto passa com advertencia verbal.
+        cartaoPorTravar: 0.7,
         /*
         SUBIR ESTE LIMIAR PARA CORTAR VERMELHOS FOI TENTADO E NAO SERVIU.
 
