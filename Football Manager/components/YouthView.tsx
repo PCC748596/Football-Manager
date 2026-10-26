@@ -40,11 +40,12 @@ const Mudancas: React.FC<{ r?: RelatorioMes }> = ({ r }) => {
 };
 
 const YouthView: React.FC = () => {
-  const { base, userTeam, gameState, promoteYouth, formatCurrencyShort, players } = useGame();
+  const { base, userTeam, gameState, promoteYouth, dispensarJovem, formatCurrencyShort, players } = useGame();
   const [aba, setAba] = useState<'LISTA' | 'RELATORIO'>('LISTA');
   const [selId, setSelId] = useState<string | null>(null);
   const [promovendo, setPromovendo] = useState<Player | null>(null);   // jogador no modal de confirmacao da promocao
   const [erroPromo, setErroPromo] = useState<string | null>(null);
+  const [modo, setModo] = useState<'PROMOVER' | 'DISPENSAR'>('PROMOVER');
   const hoje = gameState.currentDate;
 
   // Ordenacao pelos cabecalhos (clique alterna crescente/decrescente). Padrao: por posicao e depois OVR.
@@ -75,13 +76,16 @@ const YouthView: React.FC = () => {
   const ultimo = (p: Player): RelatorioMes | undefined => base?.relatorios[p.id]?.slice(-1)[0];
   const mesDoRelatorio = base?.mesProcessado || '';
   const temRelatorio = jovens.some(p => ultimo(p));
+  const movimentos = (base?.movimentos || []).filter(m => m.teamId === userTeam?.id).slice().reverse();
 
   if (!userTeam) return null;
   if (!base) return <div className="text-slate-400 text-sm font-bold uppercase tracking-widest p-8">Generating youth academies...</div>;
 
-  const promover = (p: Player) => { setErroPromo(null); setPromovendo(p); };
+  const promover = (p: Player) => { setErroPromo(null); setModo('PROMOVER'); setPromovendo(p); };
+  const dispensar = (p: Player) => { setErroPromo(null); setModo('DISPENSAR'); setPromovendo(p); };
   const confirmarPromocao = () => {
     if (!promovendo) return;
+    if (modo === 'DISPENSAR') { if (dispensarJovem(promovendo.id)) { setSelId(null); setPromovendo(null); } else setErroPromo('Could not release this player.'); return; }
     if (promoteYouth(promovendo.id)) { setSelId(null); setPromovendo(null); }
     else setErroPromo('The first team is full (max 33 players). Release or sell a player first.');
   };
@@ -122,7 +126,7 @@ const YouthView: React.FC = () => {
                         <td className="px-3 py-2"><EstiloDoJovem p={p} /></td>
                         <td className="px-3 py-2"><ContractChip player={p} hoje={hoje} /></td>
                         <td className="px-3 py-2 text-center text-sm">{r ? <Delta v={r.delta} /> : <span className="text-slate-400">-</span>}</td>
-                        <td className="px-3 py-2 text-right"><button onClick={e => { e.stopPropagation(); promover(p); }} className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-500 text-white font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">Promote</button></td>
+                        <td className="px-3 py-2 text-right"><button onClick={e => { e.stopPropagation(); promover(p); }} className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-500 text-white font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">Promote</button><button onClick={e => { e.stopPropagation(); dispensar(p); }} className="ml-1 whitespace-nowrap bg-transparent border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">Release</button></td>
                       </tr>
                     );
                   })}
@@ -169,6 +173,7 @@ const YouthView: React.FC = () => {
                   )}
                 </div>
                 <button onClick={() => promover(sel)} className="mt-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded text-xs uppercase tracking-widest shadow-lg transition-colors">Promote to first team</button>
+                <button onClick={() => dispensar(sel)} className="border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black py-2.5 rounded text-xs uppercase tracking-widest transition-colors">Release from academy</button>
               </>
             )}
           </div>
@@ -178,6 +183,19 @@ const YouthView: React.FC = () => {
           <div className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 border-b border-slate-200 dark:border-slate-800">
             {temRelatorio ? `Development report — ${mesEmTexto(mesDoRelatorio)}` : 'No monthly report yet: the first one is generated when the month changes.'}
           </div>
+          {movimentos.length > 0 && (
+            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-1">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Promotions and releases</div>
+              {movimentos.map(m => (
+                <div key={m.playerId + m.mes + m.tipo} className="flex items-center gap-3 text-xs">
+                  <span className="w-16 text-slate-400 font-bold">{mesEmTexto(m.mes)}</span>
+                  <span className={`w-20 font-black uppercase tracking-widest ${m.tipo === 'PROMOVIDO' ? 'text-emerald-500' : 'text-rose-500'}`}>{m.tipo === 'PROMOVIDO' ? 'Promoted' : 'Released'}</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-200">{m.nome}</span>
+                  <span className="text-slate-400">{m.posicao} • {m.idade} • OVR {m.ovr}</span>
+                </div>
+              ))}
+            </div>
+          )}
           {temRelatorio && (
             <div className="overflow-y-auto custom-scrollbar flex-1">
               <table className="w-full text-left border-separate border-spacing-0">
@@ -208,7 +226,7 @@ const YouthView: React.FC = () => {
       {promovendo && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setPromovendo(null)}>
           <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
-            <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Promote to first team</div>
+            <div className={`text-[10px] font-black uppercase tracking-widest ${modo === 'PROMOVER' ? 'text-emerald-400' : 'text-rose-400'}`}>{modo === 'PROMOVER' ? 'Promote to first team' : 'Release from academy'}</div>
             <div className="flex items-center gap-4">
               <div className="text-5xl font-black italic text-blue-400">{promovendo.skill}</div>
               <div className="min-w-0">
@@ -218,12 +236,14 @@ const YouthView: React.FC = () => {
               </div>
             </div>
             <div className="text-xs text-slate-300 leading-relaxed">
-              The player joins the first team squad ({tamanhoElenco}/33) and the academy spot is refilled by a new youth player.
+              {modo === 'PROMOVER'
+                ? <>The player joins the first team squad ({tamanhoElenco}/33) and the academy spot is refilled by a new youth player.</>
+                : <>{promovendo.name} leaves the club for good. The academy spot stays empty until the next monthly update, when a new youth player arrives. This cannot be undone.</>}
             </div>
             {erroPromo && <div className="text-xs font-bold text-rose-400 bg-rose-900/20 border border-rose-800 rounded px-3 py-2">{erroPromo}</div>}
             <div className="flex gap-3">
               <button onClick={() => setPromovendo(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-black py-2.5 rounded text-xs uppercase tracking-widest">Cancel</button>
-              <button onClick={confirmarPromocao} disabled={tamanhoElenco >= 33} className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black py-2.5 rounded text-xs uppercase tracking-widest">Promote</button>
+              <button onClick={confirmarPromocao} disabled={modo === 'PROMOVER' && tamanhoElenco >= 33} className={`flex-1 ${modo === 'PROMOVER' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'} disabled:opacity-40 disabled:cursor-not-allowed text-white font-black py-2.5 rounded text-xs uppercase tracking-widest`}>{modo === 'PROMOVER' ? 'Promote' : 'Release'}</button>
             </div>
           </div>
         </div>

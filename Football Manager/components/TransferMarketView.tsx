@@ -320,17 +320,39 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   );
 
   // ------------------------------------------------------------------ meu elenco a venda
+  type ChaveMeus = 'name' | 'age' | 'pos' | 'ovr' | 'pot' | 'value' | 'contract' | 'offers' | 'listed';
+  const [ordemMeus, setOrdemMeus] = useState<{ k: ChaveMeus; dir: 1 | -1 }>({ k: 'ovr', dir: -1 });
+  const alternarMeus = (k: ChaveMeus) => setOrdemMeus(o => (o.k === k ? { k, dir: (o.dir * -1) as 1 | -1 } : { k, dir: k === 'name' || k === 'pos' || k === 'contract' ? 1 : -1 }));
   const meus = useMemo(() => {
     const pros = players.filter(p => p.teamId === meuId).map(p => ({ p, origem: 'ELENCO' as const }));
     const jovens = (base?.jogadores || []).filter(p => p.teamId === meuId && p.age >= CONFIG_MERCADO.idadeMinimaBase).map(p => ({ p, origem: 'BASE' as const }));
-    return [...pros, ...jovens].sort((a, b) => b.p.skill - a.p.skill);
-  }, [players, base, meuId]);
+    const ofertasDe = (id: string) => mercado.negociacoes.filter(n => n.playerId === id && n.vendedorId === meuId && ESTADOS_ATIVOS.includes(n.estado)).length;
+    const chave = (p: Player): number | string => {
+      switch (ordemMeus.k) {
+        case 'name': return p.name.toLowerCase();
+        case 'age': return p.age;
+        case 'pos': return p.position;
+        case 'pot': return potencialVisivel(p);
+        case 'value': return p.value;
+        case 'contract': return p.contract?.end || '9999';
+        case 'offers': return ofertasDe(p.id);
+        case 'listed': return p.listedForSale ? 1 : 0;
+        default: return p.skill;
+      }
+    };
+    return [...pros, ...jovens].sort((a, b) => { const x = chave(a.p), y = chave(b.p); return (x < y ? -1 : x > y ? 1 : 0) * ordemMeus.dir || b.p.skill - a.p.skill; });
+  }, [players, base, meuId, ordemMeus, mercado.negociacoes]);
+  const cabMeus = (k: ChaveMeus | null, rotulo: string) => (
+    <th key={rotulo || 'acao'} className={`px-3 py-2 text-[11px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap select-none ${k ? 'cursor-pointer hover:text-blue-500' : ''}`} onClick={() => k && alternarMeus(k)}>
+      {rotulo}{k && ordemMeus.k === k && <span className="ml-1 text-blue-500">{ordemMeus.dir === 1 ? '▲' : '▼'}</span>}
+    </th>
+  );
   const meusAba = (
     <div className="flex-1 bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col shadow-xl min-h-0">
       <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 text-xs font-bold uppercase tracking-widest text-slate-500">List a player for sale to invite offers. Listing does not transfer anyone: you accept, refuse or counter each offer. Sub-20 players aged {CONFIG_MERCADO.idadeMinimaBase}+ can be listed too.</div>
       <div className="overflow-y-auto custom-scrollbar flex-1">
         <table className="w-full text-left border-separate border-spacing-0">
-          <thead className="bg-slate-200/40 dark:bg-slate-950/60 sticky top-0"><tr>{['Name', 'Age', 'Pos', 'OVR', 'Value', 'Contract', 'Offers', ''].map(h => <th key={h} className="px-3 py-2 text-[11px] font-black uppercase tracking-widest text-slate-400">{h}</th>)}</tr></thead>
+          <thead className="bg-slate-200/40 dark:bg-slate-950/60 sticky top-0"><tr>{cabMeus('name', 'Name')}{cabMeus('age', 'Age')}{cabMeus('pos', 'Pos')}{cabMeus('ovr', 'OVR')}{cabMeus('pot', 'Pot')}{cabMeus('value', 'Value')}{cabMeus('contract', 'Contract')}{cabMeus('offers', 'Offers')}{cabMeus('listed', 'For sale')}</tr></thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30">
             {meus.map(({ p, origem }) => {
               const ofertas = mercado.negociacoes.filter(n => n.playerId === p.id && n.vendedorId === meuId && ESTADOS_ATIVOS.includes(n.estado)).length;
@@ -340,6 +362,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
                   <td className="px-3 py-2 text-sm text-slate-500">{p.age}</td>
                   <td className="px-3 py-2 text-xs font-black text-slate-500">{p.position}</td>
                   <td className="px-3 py-2 text-sm font-black text-blue-500">{p.skill}</td>
+                  <td className="px-3 py-2"><Estrelas n={estrelasDoJogador(p)} /></td>
                   <td className="px-3 py-2 font-mono text-sm text-emerald-500 font-black">{formatCurrencyShort(p.value)}</td>
                   <td className="px-3 py-2 text-xs text-slate-500">{dataCurta(p.contract?.end)}</td>
                   <td className="px-3 py-2 text-sm font-black text-amber-500">{ofertas || ''}</td>

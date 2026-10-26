@@ -38,7 +38,20 @@ export interface BaseState {
   mesProcessado: string;                        // yyyy-mm do ultimo mes ja processado (garante uma vez por mes mesmo apos recarregar)
   proximoId: number;                            // contador dos ids `p-<n>` da base
   relatorios: Record<string, RelatorioMes[]>;   // por id de jogador, os ultimos meses (mais novo por ultimo)
+  /** Vagas abertas por dispensas (por clube): so sao repostas quando o proximo mes e processado. */
+  vagas?: Record<string, number>;
+  /** Jovens promovidos ou dispensados pelo treinador (os mais recentes por ultimo): aparecem no relatorio mensal. */
+  movimentos?: MovimentoBase[];
 }
+export interface MovimentoBase {
+  mes: string;                // yyyy-mm em que aconteceu
+  teamId: string; playerId: string; nome: string; idade: number; posicao: Position; ovr: number; estrelas: number;
+  tipo: 'PROMOVIDO' | 'DISPENSADO';
+}
+const MAX_MOVIMENTOS = 400;
+const comMovimento = (b: BaseState, j: Player, tipo: MovimentoBase['tipo'], hoje: string): BaseState => ({
+  ...b, movimentos: [...(b.movimentos || []), { mes: mesDe(hoje), teamId: j.teamId, playerId: j.id, nome: j.name, idade: j.age, posicao: j.position, ovr: j.skill, estrelas: estrelasDoJogador(j), tipo }].slice(-MAX_MOVIMENTOS)
+});
 export const MESES_DE_RELATORIO = 12;
 
 // -- potencial e estrelas --
@@ -203,7 +216,7 @@ export const garantirBase = (base: BaseState | null, teamIds: string[], hoje: st
   let b = base || baseVazia(hoje);
   const contagem = new Map<string, number>();
   b.jogadores.forEach(p => contagem.set(p.teamId, (contagem.get(p.teamId) || 0) + 1));
-  teamIds.forEach(id => { if ((contagem.get(id) || 0) < TAMANHO_BASE) b = completarBase(b, id, hoje); });
+  teamIds.forEach(id => { if ((contagem.get(id) || 0) + (b.vagas?.[id] || 0) < TAMANHO_BASE) b = completarBase(b, id, hoje); });
   return b;
 };
 
@@ -280,6 +293,12 @@ export const processarBase = (base: BaseState, hoje: string): ResultadoBase => {
       return jogador;
     });
     b = { ...b, jogadores, relatorios, mesProcessado: mes };
+    // As vagas abertas por dispensas so se enchem na virada do mes.
+    if (b.vagas && Object.keys(b.vagas).length) {
+      const abertas = Object.keys(b.vagas);
+      b = { ...b, vagas: {} };
+      abertas.forEach(tid => { b = completarBase(b, tid, hoje); });
+    }
   }
   return { base: b, saidas };
 };
@@ -291,5 +310,16 @@ export const promoverJovem = (base: BaseState, playerId: string, hoje: string): 
   const relatorios = { ...base.relatorios }; delete relatorios[playerId];
   let b: BaseState = { ...base, jogadores: base.jogadores.filter(p => p.id !== playerId), relatorios };
   b = completarBase(b, jogador.teamId, hoje, jogador.position);
+  b = comMovimento(b, jogador, 'PROMOVIDO', hoje);
+  return { base: b, jogador };
+};
+
+/** Dispensa: tira o jovem da base; a vaga so e reposta na virada do mes (ver `processarBase`). */
+export const dispensarJovem = (base: BaseState, playerId: string, hoje: string): { base: BaseState; jogador: Player } | null => {
+  const jogador = base.jogadores.find(p => p.id === playerId);
+  if (!jogador) return null;
+  const relatorios = { ...base.relatorios }; delete relatorios[playerId];
+  let b: BaseState = { ...base, jogadores: base.jogadores.filter(p => p.id !== playerId), relatorios, vagas: { ...(base.vagas || {}), [jogador.teamId]: ((base.vagas || {})[jogador.teamId] || 0) + 1 } };
+  b = comMovimento(b, jogador, 'DISPENSADO', hoje);
   return { base: b, jogador };
 };

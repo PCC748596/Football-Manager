@@ -3080,6 +3080,33 @@ const PosicionamentoAI = {
             // molaX ja estara com a forca aplicada
         }
         dbgCamada('repulsaoEFuga', molaX, finalZ);
+        /*
+        DAR LUGAR AO COMPANHEIRO COM A BOLA (ver CedeAoPortador, config/passing.js). A repulsao acima usa o POSTO dos colegas, nao onde eles estao: um jogador que corre com a bola
+        para a zona de outro que estava fora de posicao e volta ao seu posto dava dois homens no mesmo sitio, quase a bater-se. Quem nao tem a bola afasta o seu alvo do portador para
+        `distSuporte` m, do seu proprio lado (sem lado, o da ala): fica a oferecer-se (apoio, tabela) em vez de ocupar o espaco que o portador esta a usar.
+        */
+        {
+            const CA = (typeof CedeAoPortador !== 'undefined') ? CedeAoPortador : null;
+            const portador = (typeof Match !== 'undefined') ? Match.ballCarrier : null;
+            if (CA && CA.activo && p.role !== 'gk' && portador && portador !== p && portador.team === p.team && portador.role !== 'gk' && portador.model) {
+                const cx = portador.model.position.x, cz = portador.model.position.z;
+                let dx = molaX - cx, dz = finalZ - cz;
+                const d = Math.hypot(dx, dz);
+                if (d < CA.raio) {
+                    let ux, uz;
+                    if (d > 0.5) { ux = dx / d; uz = dz / d; }
+                    else { ux = (Math.sign(p.model.position.x - cx) || (Math.sign(molaX) || 1)); uz = 0; }
+                    // Prefere abrir pelo lado: a componente lateral nunca fica abaixo de `lateralMin` (apoio aberto, linha de passe limpa).
+                    const lat = Math.abs(ux);
+                    if (lat < CA.lateralMin) { const sx = Math.sign(ux) || (Math.sign(p.model.position.x - cx) || 1); const k = Math.sqrt(1 - CA.lateralMin * CA.lateralMin) / (Math.hypot(0, uz) || 1); ux = sx * CA.lateralMin; uz = uz * k; }
+                    const R = CA.distSuporte;
+                    const meiaLarg = (typeof CAMPO_LARG !== 'undefined' ? CAMPO_LARG : 68) / 2 - 2.0;
+                    molaX = Math.max(-meiaLarg, Math.min(meiaLarg, cx + ux * R));
+                    finalZ = cz + uz * R;
+                }
+            }
+        }
+        dbgCamada('cedeAoPortador', molaX, finalZ);
         // Regra do lateral do lado oposto da jogada: fica entre a linha da bola e a linha dos zagueiros
         const isLateral = (p.pos === 'LB' || p.pos === 'RB' || p.pos === 'LWB' || p.pos === 'RWB');
         if (isLateral) {

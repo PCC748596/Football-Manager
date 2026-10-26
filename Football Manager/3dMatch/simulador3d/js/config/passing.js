@@ -1272,7 +1272,15 @@ const FirstTouchModel = {
     ou passar de primeira, sem dominio, para aliviar"*): dentro da propria grande area, com um adversario a `distAdversario` m ou menos, joga-se de primeira sempre
     (sem sorteio nem minimo de tecnica). Quem decide o que fazer a seguir e a arvore (alivio / passe), com o `decisionTimer` ja esgotado.
     */
-    perigoNaArea: { activo: true, distAdversario: 6.5 }
+    perigoNaArea: { activo: true, distAdversario: 6.5 },
+
+    /*
+    CRUZAR SEM DOMINAR (pedido: *"quando os jogadores chegam nas pontas e podem cruzar estao diminuindo a bola primeiro para depois cruzar. Nao tem necessidade de dominar. Depois de
+    adiantar a bola e ganhar na corrida do zagueiro ou lateral, podem cruzar de primeira"*). Medido em 4 jogos: em 12 de 25 cruzamentos o cruzador entrava em BALL_CONTROL_RIGHT
+    (6 m/s -> ~1 m/s) logo antes de cruzar. Quem toca na bola que ele proprio adiantou, ja na zona de cruzamento (ala `CrossModel.alaX`, `zonaZ`), joga de primeira: sem gesto de dominio
+    e sem espera de cadencia — a arvore decide logo (cruzar, rematar, conduzir).
+    */
+    cruzarSemDominar: { activo: true }
 };
 
 /*
@@ -1984,3 +1992,23 @@ function distanciaEfectivaDoMarcador(distMarcador, marcadorAtras, recetorZAtk) {
     return distMarcador * M.factorMarcadorAtras;
 }
 if (typeof window !== 'undefined') window.distanciaEfectivaDoMarcador = distanciaEfectivaDoMarcador;
+
+
+/*
+=============================================================================
+CEDER LUGAR AO COMPANHEIRO COM A BOLA
+=============================================================================
+Pedido: *"as vezes um jogador corre com a bola para proximo da posicao de outro que estava fora de posicao e esta voltando para a sua original. Isso causa 2 jogadores indo para a
+mesma posicao [...] e nao fazem tabela: ficam quase se batendo"*. Medido (4 jogos): ~4 episodios por jogo com um companheiro a menos de 3.5 m do portador durante mais de 1 s,
+metade deles com o outro a voltar ao posto (MOVE_TO_POS).
+
+A camada `cedeAoPortador` (team_bt.js) afasta o ALVO de posicao de quem nao tem a bola do portador: se o alvo cai a menos de `raio` m dele, vai para `distSuporte` m, do lado onde o
+jogador ja estava, com pelo menos `lateralMin` de componente lateral (apoio aberto: da linha de passe para o apoio ou para a tabela).
+=============================================================================
+*/
+const CedeAoPortador = {
+    activo: true,
+    raio: 8.0,           // um alvo mais perto que isto do portador e afastado
+    distSuporte: 9.0,    // e fica a esta distancia (apoio a meia distancia: nao colado, nao longe de mais para a tabela)
+    lateralMin: 0.6,     // cosseno minimo com o eixo lateral (0.6 = ate ~53 graus do eixo X)
+};

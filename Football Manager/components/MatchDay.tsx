@@ -52,8 +52,9 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   useEffect(() => () => { pauseMatch(); }, []);
 
   useEffect(() => {
+    // Fim do jogo: vai direto para a HOME (sem a tela de estatisticas e notas; ela continua na aba Stats durante o jogo).
     if (gameState.matchMinute >= 90) {
-      setActiveTab('stats');
+      if (setView) setView('DASHBOARD'); else setActiveTab('stats');
     }
   }, [gameState.matchMinute]);
 

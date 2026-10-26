@@ -1072,6 +1072,8 @@ Object.assign(Match, {
         this.peitosSeguidos = 0;
         this.intendedReceiver = null;
         this.passTargetPos = null;
+        // Foi ele quem tocou por ultimo (adiantou a bola e foi busca-la)? Lido ANTES de a posse mudar: decide o `cruzarSemDominar` mais abaixo.
+        const bolaAdiantadaPorEle = (this.lastTouchedPlayer === best);
         this.lastTouchedTeam = best.team;
         this.lastTouchedPlayer = best;
         /*
@@ -1104,6 +1106,12 @@ Object.assign(Match, {
             const PA = FirstTouchModel.perigoNaArea;
             if (!best.jogarDePrimeira && PA && PA.activo && distAdv <= PA.distAdversario &&
                 typeof Area !== 'undefined' && Area.contem(best.model.position.x, best.model.position.z, -best.dirZ)) {
+                best.jogarDePrimeira = true;
+            }
+            // CRUZAR SEM DOMINAR (ver FirstTouchModel.cruzarSemDominar): quem adiantou a bola na ala e ganhou a corrida ao defesa chega a ela ja em posicao de cruzar e cruza de primeira.
+            const CSD = FirstTouchModel.cruzarSemDominar;
+            if (!best.jogarDePrimeira && CSD && CSD.activo && bolaAdiantadaPorEle && typeof CrossModel !== 'undefined' &&
+                Math.abs(best.model.position.x) >= CrossModel.alaX && best.model.position.z * best.dirZ >= CrossModel.zonaZ) {
                 best.jogarDePrimeira = true;
             }
             if (best.jogarDePrimeira) {

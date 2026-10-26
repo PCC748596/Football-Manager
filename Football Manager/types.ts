@@ -555,6 +555,13 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
         }
     }
 
+    // Vasco-AC (Rio Branco): o uniforme proprio do clube do Acre (listras verticais pretas e brancas), sem nada do Vasco-RJ (faixa diagonal, cruz de malta, numero vermelho).
+    if (team.name === 'Vasco-AC') {
+        if (kitIdx === 0) { c1 = '#060606'; c2 = '#f0f0ef'; c3 = undefined; nc = '#ffffff'; noc = '#060606'; clc = '#ffffff'; }
+        else if (kitIdx === 1) { c1 = '#ffffff'; c2 = undefined; c3 = undefined; nc = '#060606'; noc = undefined; clc = '#060606'; }
+        else { c1 = '#444444'; c2 = undefined; c3 = undefined; nc = '#ffffff'; noc = undefined; clc = '#ffffff'; }
+    }
+
     const cruzMalta = isVasco && diagonal;
     // O meião com desenho (faixas horizontais de cima para baixo; sem isto o meião é liso na cor da camisa).
     let meiao: KitDetails['meiao'];

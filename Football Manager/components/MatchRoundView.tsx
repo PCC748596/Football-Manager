@@ -62,7 +62,7 @@ const UI_TRANSLATIONS = {
 const TeamShield: React.FC<TeamShieldProps> = ({ team, className = "w-12 h-12" }) => {
   if (!team) return <div className={`${className} bg-slate-200 animate-pulse rounded-full`}></div>;
   const lowerName = team.name.toLowerCase();
-  const isVasco = lowerName.includes("vaso") || lowerName.includes("vasco");
+  const isVasco = (lowerName.includes("vaso") || lowerName.includes("vasco")) && !lowerName.includes("-ac");
   const isGremio = lowerName.includes("grêmio") || lowerName.includes("gremio");
   const isBotCor = lowerName.includes("botafogo") || lowerName.includes("corinthians");
   const isFor = lowerName.includes("fortaleza");
@@ -658,7 +658,7 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
 
                           const lowerName = team?.name.toLowerCase() || '';
                           const isGremioEvent = lowerName.includes("grêmio") || lowerName.includes("gremio");
-                          const isVascoEvent = lowerName.includes("vasco") || lowerName.includes("vaso");
+                          const isVascoEvent = (lowerName.includes("vasco") || lowerName.includes("vaso")) && !lowerName.includes("-ac");
                           const isBotCorEvent = lowerName.includes("botafogo") || lowerName.includes("corinthians");
                           const isForEvent = lowerName.includes("fortaleza");
                           

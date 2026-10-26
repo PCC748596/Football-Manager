@@ -125,7 +125,7 @@ const FixturesView: React.FC = () => {
                       <div className="flex justify-center relative group/result">
                         {fixture.played ? (
                           <>
-                            <div className={`px-4 py-1.5 rounded-[4px] font-mono font-black text-lg shadow-inner transition-colors cursor-help ${
+                            <div className={`px-4 py-1.5 whitespace-nowrap rounded-[4px] font-mono font-black text-lg shadow-inner transition-colors cursor-help ${
                               (isUserHome && fixture.homeScore! > fixture.awayScore!) || (!isUserHome && fixture.awayScore! > fixture.homeScore!)
                                 ? 'bg-emerald-5 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30'
                                 : (fixture.homeScore === fixture.awayScore ? 'bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700' : 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30')

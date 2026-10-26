@@ -4,7 +4,7 @@ import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/data
 import { gruposDaSerieD } from '../textSim/competitions';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, buildTable } from '../textSim/world';
 import { Competition, prepararCopas, ligaIdDoClube, teamKey } from '../textSim/competitions';
-import { BaseState, garantirBase, processarBase, promoverJovem } from '../textSim/youth';
+import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
 import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia } from '../textSim/inbox';
 import { regiaoDoClube } from '../textSim/dataGenerator';
@@ -176,6 +176,7 @@ interface GameContextType {
   markAllInboxRead: () => void;
   deleteInbox: (ids: string[]) => void;
   promoteYouth: (playerId: string) => boolean;
+  dispensarJovem: (playerId: string) => boolean;
   /** Negociacoes de renovacao em andamento. */
   negociacoes: Negociacao[];
   /** Faz a oferta de renovacao: aceitar a proposta do jogador assina na hora; mudar o salario ou os anos abre uma negociacao de 2-3 dias. */
@@ -565,6 +566,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [gameState.currentDate]);
 
   // Promover um jovem da base ao time principal: decisao manual do treinador. O jogador passa inteiro (id, atributos, potencial, contrato); a vaga e reposta.
+  const dispensarJovem = (playerId: string): boolean => {
+    if (!base || !userTeam) return false;
+    const alvo = base.jogadores.find(p => p.id === playerId);
+    if (!alvo || alvo.teamId !== userTeam.id) return false;
+    const r = dispensarJovemDaBase(base, playerId, gameState.currentDate);
+    if (!r) return false;
+    setBase(r.base);
+    return true;
+  };
+
   const promoteYouth = (playerId: string): boolean => {
     if (!base || !userTeam) return false;
     const r = promoverJovem(base, playerId, gameState.currentDate);
@@ -1930,7 +1941,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <GameContext.Provider value={{
       teams, players, fixtures, gameState, startGame, advanceDay, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
-      hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
+      hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
       t,

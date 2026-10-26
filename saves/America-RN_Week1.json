@@ -417,7 +417,7 @@
       "strength": 66,
       "chemistry": 12,
       "chemistryTrainingCounter": 0,
-      "cash": 900000,
+      "cash": 800000,
       "initialCapital": 900000,
       "initialTransfer": 630000,
       "sponsorAmount": 0,
@@ -471,10 +471,10 @@
         "p-272704",
         "p-272691",
         "p-272695",
-        "p-272705",
+        "p-9000065",
         "p-272710",
-        "p-272711",
-        "p-272712"
+        "",
+        "p-9000072"
       ],
       "synergyMap": {
         "p-272693-p-272701": 1499,
@@ -534,7 +534,16 @@
         "p-272694-p-272707": 1862
       },
       "groupId": "H",
-      "transferBudget": 630000
+      "transferBudget": 630000,
+      "setPieceTakers": {
+        "captain": "p-272697",
+        "cornerL": "p-272697",
+        "cornerR": "p-272689",
+        "freeKickLong": "p-272697",
+        "freeKickDirectL": "p-272698",
+        "freeKickDirectR": "p-272698",
+        "penalty": "p-272698"
+      }
     },
     {
       "id": "451067",
@@ -945,7 +954,7 @@
       "age": 21,
       "position": "GK",
       "skill": 70,
-      "fitness": 46,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -960,7 +969,7 @@
       "drb": 75,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 13.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -985,7 +994,7 @@
       "age": 22,
       "position": "GK",
       "skill": 67,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 51,
       "goalsScored": 0,
       "assists": 0,
@@ -1000,7 +1009,7 @@
       "drb": 66,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 9,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -1025,7 +1034,7 @@
       "age": 20,
       "position": "GK",
       "skill": 60,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 47,
       "goalsScored": 0,
       "assists": 0,
@@ -1040,7 +1049,7 @@
       "drb": 59,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 13.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -1065,7 +1074,7 @@
       "age": 24,
       "position": "RB",
       "skill": 68,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 53,
       "goalsScored": 0,
       "assists": 0,
@@ -1080,7 +1089,7 @@
       "drb": 67,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 9,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -1105,7 +1114,7 @@
       "age": 18,
       "position": "RB",
       "skill": 63,
-      "fitness": 51,
+      "fitness": 100,
       "morale": 60,
       "goalsScored": 0,
       "assists": 0,
@@ -1120,7 +1129,7 @@
       "drb": 57,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 13.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -1145,7 +1154,7 @@
       "age": 29,
       "position": "LB",
       "skill": 71,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 43,
       "goalsScored": 0,
       "assists": 0,
@@ -1160,7 +1169,7 @@
       "drb": 70,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 9,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -1185,7 +1194,7 @@
       "age": 21,
       "position": "LB",
       "skill": 68,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -1200,7 +1209,7 @@
       "drb": 68,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 13.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -1225,7 +1234,7 @@
       "age": 33,
       "position": "CB",
       "skill": 77,
-      "fitness": 46,
+      "fitness": 100,
       "morale": 56,
       "goalsScored": 0,
       "assists": 0,
@@ -1265,7 +1274,7 @@
       "age": 24,
       "position": "CB",
       "skill": 72,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 54,
       "goalsScored": 0,
       "assists": 0,
@@ -1280,7 +1289,7 @@
       "drb": 56,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 9,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -1305,7 +1314,7 @@
       "age": 24,
       "position": "CB",
       "skill": 67,
-      "fitness": 50,
+      "fitness": 100,
       "morale": 48,
       "goalsScored": 0,
       "assists": 0,
@@ -1320,7 +1329,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 9,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -1345,7 +1354,7 @@
       "age": 30,
       "position": "CB",
       "skill": 62,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 50,
       "goalsScored": 0,
       "assists": 0,
@@ -1360,7 +1369,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 4.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -1385,7 +1394,7 @@
       "age": 29,
       "position": "DM",
       "skill": 70,
-      "fitness": 50,
+      "fitness": 100,
       "morale": 49,
       "goalsScored": 0,
       "assists": 0,
@@ -1400,7 +1409,7 @@
       "drb": 61,
       "sht": 53,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 9,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -1425,7 +1434,7 @@
       "age": 18,
       "position": "DM",
       "skill": 63,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 44,
       "goalsScored": 0,
       "assists": 0,
@@ -1440,7 +1449,7 @@
       "drb": 57,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 13.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -1465,7 +1474,7 @@
       "age": 38,
       "position": "DM",
       "skill": 68,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 48,
       "goalsScored": 0,
       "assists": 0,
@@ -1505,7 +1514,7 @@
       "age": 28,
       "position": "CM",
       "skill": 70,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -1521,7 +1530,7 @@
       "sht": 56,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 9,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -1545,7 +1554,7 @@
       "age": 26,
       "position": "CM",
       "skill": 67,
-      "fitness": 46,
+      "fitness": 100,
       "morale": 53,
       "goalsScored": 0,
       "assists": 0,
@@ -1561,7 +1570,7 @@
       "sht": 56,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 9,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -1585,7 +1594,7 @@
       "age": 29,
       "position": "CM",
       "skill": 69,
-      "fitness": 46,
+      "fitness": 100,
       "morale": 48,
       "goalsScored": 0,
       "assists": 0,
@@ -1601,7 +1610,7 @@
       "sht": 60,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 9,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -1625,7 +1634,7 @@
       "age": 23,
       "position": "CM",
       "skill": 66,
-      "fitness": 46,
+      "fitness": 100,
       "morale": 59,
       "goalsScored": 0,
       "assists": 0,
@@ -1641,7 +1650,7 @@
       "sht": 57,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 9,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -1665,7 +1674,7 @@
       "age": 19,
       "position": "LM",
       "skill": 64,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 43,
       "goalsScored": 0,
       "assists": 0,
@@ -1681,7 +1690,7 @@
       "sht": 51,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 13.5,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -1705,7 +1714,7 @@
       "age": 27,
       "position": "RM",
       "skill": 69,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 42,
       "goalsScored": 0,
       "assists": 0,
@@ -1721,7 +1730,7 @@
       "sht": 53,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 9,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -1745,7 +1754,7 @@
       "age": 27,
       "position": "AM",
       "skill": 70,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 50,
       "goalsScored": 0,
       "assists": 0,
@@ -1761,7 +1770,7 @@
       "sht": 69,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 9,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -1785,7 +1794,7 @@
       "age": 31,
       "position": "AM",
       "skill": 68,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 55,
       "goalsScored": 0,
       "assists": 0,
@@ -1801,7 +1810,7 @@
       "sht": 63,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 4.5,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -1825,7 +1834,7 @@
       "age": 24,
       "position": "RW",
       "skill": 73,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 58,
       "goalsScored": 0,
       "assists": 0,
@@ -1842,7 +1851,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 9,
         "sht": 0,
         "mor": 0
       },
@@ -1865,7 +1874,7 @@
       "age": 34,
       "position": "RW",
       "skill": 68,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 59,
       "goalsScored": 0,
       "assists": 0,
@@ -1905,7 +1914,7 @@
       "age": 26,
       "position": "LW",
       "skill": 72,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 56,
       "goalsScored": 0,
       "assists": 0,
@@ -1922,7 +1931,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 9,
         "sht": 0,
         "mor": 0
       },
@@ -1945,7 +1954,7 @@
       "age": 20,
       "position": "LW",
       "skill": 62,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 45,
       "goalsScored": 0,
       "assists": 0,
@@ -1962,7 +1971,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 13.5,
         "sht": 0,
         "mor": 0
       },
@@ -1985,7 +1994,7 @@
       "age": 28,
       "position": "ST",
       "skill": 70,
-      "fitness": 52,
+      "fitness": 100,
       "morale": 44,
       "goalsScored": 0,
       "assists": 0,
@@ -2003,7 +2012,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 9,
         "mor": 0
       },
       "lastGrowth": {
@@ -2025,7 +2034,7 @@
       "age": 30,
       "position": "ST",
       "skill": 67,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 52,
       "goalsScored": 0,
       "assists": 0,
@@ -2043,7 +2052,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 4.5,
         "mor": 0
       },
       "lastGrowth": {
@@ -2065,7 +2074,7 @@
       "age": 28,
       "position": "ST",
       "skill": 64,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 49,
       "goalsScored": 0,
       "assists": 0,
@@ -2083,7 +2092,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 9,
         "mor": 0
       },
       "lastGrowth": {
@@ -2105,7 +2114,7 @@
       "age": 24,
       "position": "ST",
       "skill": 69,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 56,
       "goalsScored": 0,
       "assists": 0,
@@ -2123,7 +2132,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 9,
         "mor": 0
       },
       "lastGrowth": {
@@ -2145,7 +2154,7 @@
       "age": 33,
       "position": "GK",
       "skill": 70,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 49,
       "goalsScored": 0,
       "assists": 0,
@@ -2185,7 +2194,7 @@
       "age": 27,
       "position": "GK",
       "skill": 68,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 45,
       "goalsScored": 0,
       "assists": 0,
@@ -2200,7 +2209,7 @@
       "drb": 65,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -2225,7 +2234,7 @@
       "age": 32,
       "position": "GK",
       "skill": 69,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 45,
       "goalsScored": 0,
       "assists": 0,
@@ -2240,7 +2249,7 @@
       "drb": 69,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 7.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -2265,7 +2274,7 @@
       "age": 25,
       "position": "RB",
       "skill": 70,
-      "fitness": 46,
+      "fitness": 100,
       "morale": 57,
       "goalsScored": 0,
       "assists": 0,
@@ -2280,7 +2289,7 @@
       "drb": 62,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -2305,7 +2314,7 @@
       "age": 31,
       "position": "RB",
       "skill": 69,
-      "fitness": 50,
+      "fitness": 100,
       "morale": 46,
       "goalsScored": 0,
       "assists": 0,
@@ -2320,7 +2329,7 @@
       "drb": 62,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 7.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -2345,7 +2354,7 @@
       "age": 34,
       "position": "LB",
       "skill": 71,
-      "fitness": 52,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -2385,7 +2394,7 @@
       "age": 18,
       "position": "LB",
       "skill": 67,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 54,
       "goalsScored": 0,
       "assists": 0,
@@ -2400,7 +2409,7 @@
       "drb": 63,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 22.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -2425,7 +2434,7 @@
       "age": 27,
       "position": "CB",
       "skill": 70,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 45,
       "goalsScored": 0,
       "assists": 0,
@@ -2440,7 +2449,7 @@
       "drb": 60,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -2465,7 +2474,7 @@
       "age": 30,
       "position": "CB",
       "skill": 69,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 48,
       "goalsScored": 0,
       "assists": 0,
@@ -2480,7 +2489,7 @@
       "drb": 56,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 7.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -2505,7 +2514,7 @@
       "age": 30,
       "position": "CB",
       "skill": 63,
-      "fitness": 52,
+      "fitness": 100,
       "morale": 44,
       "goalsScored": 0,
       "assists": 0,
@@ -2520,7 +2529,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 7.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -2545,7 +2554,7 @@
       "age": 18,
       "position": "CB",
       "skill": 63,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 47,
       "goalsScored": 0,
       "assists": 0,
@@ -2560,7 +2569,7 @@
       "drb": 51,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 22.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -2585,7 +2594,7 @@
       "age": 30,
       "position": "DM",
       "skill": 71,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 55,
       "goalsScored": 0,
       "assists": 0,
@@ -2600,7 +2609,7 @@
       "drb": 59,
       "sht": 56,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 7.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -2625,7 +2634,7 @@
       "age": 19,
       "position": "DM",
       "skill": 68,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 59,
       "goalsScored": 0,
       "assists": 0,
@@ -2640,7 +2649,7 @@
       "drb": 58,
       "sht": 51,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 22.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -2665,7 +2674,7 @@
       "age": 20,
       "position": "DM",
       "skill": 64,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 57,
       "goalsScored": 0,
       "assists": 0,
@@ -2680,7 +2689,7 @@
       "drb": 51,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 22.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -2705,7 +2714,7 @@
       "age": 24,
       "position": "CM",
       "skill": 77,
-      "fitness": 51,
+      "fitness": 100,
       "morale": 45,
       "goalsScored": 0,
       "assists": 0,
@@ -2721,7 +2730,7 @@
       "sht": 65,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 15,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -2745,7 +2754,7 @@
       "age": 24,
       "position": "CM",
       "skill": 66,
-      "fitness": 45,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -2761,7 +2770,7 @@
       "sht": 56,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 15,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -2785,7 +2794,7 @@
       "age": 30,
       "position": "CM",
       "skill": 66,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 52,
       "goalsScored": 0,
       "assists": 0,
@@ -2801,7 +2810,7 @@
       "sht": 56,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 7.5,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -2825,7 +2834,7 @@
       "age": 22,
       "position": "CM",
       "skill": 61,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 51,
       "goalsScored": 0,
       "assists": 0,
@@ -2841,7 +2850,7 @@
       "sht": 50,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 15,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -2865,7 +2874,7 @@
       "age": 23,
       "position": "LM",
       "skill": 66,
-      "fitness": 52,
+      "fitness": 100,
       "morale": 53,
       "goalsScored": 0,
       "assists": 0,
@@ -2881,7 +2890,7 @@
       "sht": 54,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 15,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -2905,7 +2914,7 @@
       "age": 24,
       "position": "RM",
       "skill": 67,
-      "fitness": 45,
+      "fitness": 100,
       "morale": 54,
       "goalsScored": 0,
       "assists": 0,
@@ -2921,7 +2930,7 @@
       "sht": 55,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 15,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -2945,7 +2954,7 @@
       "age": 29,
       "position": "AM",
       "skill": 73,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 56,
       "goalsScored": 0,
       "assists": 0,
@@ -2961,7 +2970,7 @@
       "sht": 62,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 15,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -2985,7 +2994,7 @@
       "age": 27,
       "position": "AM",
       "skill": 65,
-      "fitness": 52,
+      "fitness": 100,
       "morale": 48,
       "goalsScored": 0,
       "assists": 0,
@@ -3001,7 +3010,7 @@
       "sht": 55,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 15,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -3025,7 +3034,7 @@
       "age": 28,
       "position": "RW",
       "skill": 70,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 49,
       "goalsScored": 0,
       "assists": 0,
@@ -3042,7 +3051,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 15,
         "sht": 0,
         "mor": 0
       },
@@ -3065,7 +3074,7 @@
       "age": 25,
       "position": "RW",
       "skill": 66,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 56,
       "goalsScored": 0,
       "assists": 0,
@@ -3082,7 +3091,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 15,
         "sht": 0,
         "mor": 0
       },
@@ -3105,7 +3114,7 @@
       "age": 19,
       "position": "LW",
       "skill": 75,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 41,
       "goalsScored": 0,
       "assists": 0,
@@ -3122,7 +3131,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 22.5,
         "sht": 0,
         "mor": 0
       },
@@ -3145,7 +3154,7 @@
       "age": 17,
       "position": "LW",
       "skill": 65,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 52,
       "goalsScored": 0,
       "assists": 0,
@@ -3162,7 +3171,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 22.5,
         "sht": 0,
         "mor": 0
       },
@@ -3185,7 +3194,7 @@
       "age": 22,
       "position": "ST",
       "skill": 70,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -3203,7 +3212,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 15,
         "mor": 0
       },
       "lastGrowth": {
@@ -3225,7 +3234,7 @@
       "age": 25,
       "position": "ST",
       "skill": 64,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 50,
       "goalsScored": 0,
       "assists": 0,
@@ -3243,7 +3252,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 15,
         "mor": 0
       },
       "lastGrowth": {
@@ -3265,7 +3274,7 @@
       "age": 17,
       "position": "ST",
       "skill": 64,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 56,
       "goalsScored": 0,
       "assists": 0,
@@ -3283,7 +3292,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 22.5,
         "mor": 0
       },
       "lastGrowth": {
@@ -3305,7 +3314,7 @@
       "age": 25,
       "position": "ST",
       "skill": 67,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 52,
       "goalsScored": 0,
       "assists": 0,
@@ -3323,7 +3332,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 15,
         "mor": 0
       },
       "lastGrowth": {
@@ -3345,7 +3354,7 @@
       "age": 27,
       "position": "ST",
       "skill": 74,
-      "fitness": 46,
+      "fitness": 100,
       "morale": 41,
       "goalsScored": 0,
       "assists": 0,
@@ -3363,7 +3372,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 15,
         "mor": 0
       },
       "lastGrowth": {
@@ -3385,7 +3394,7 @@
       "age": 36,
       "position": "ST",
       "skill": 69,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 47,
       "goalsScored": 0,
       "assists": 0,
@@ -3425,7 +3434,7 @@
       "age": 31,
       "position": "RB",
       "skill": 73,
-      "fitness": 50,
+      "fitness": 100,
       "morale": 45,
       "goalsScored": 0,
       "assists": 0,
@@ -3440,7 +3449,7 @@
       "drb": 73,
       "sht": 69,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 7.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -3465,7 +3474,7 @@
       "age": 35,
       "position": "CB",
       "skill": 70,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 59,
       "goalsScored": 0,
       "assists": 0,
@@ -3505,7 +3514,7 @@
       "age": 33,
       "position": "LB",
       "skill": 73,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 56,
       "goalsScored": 0,
       "assists": 0,
@@ -3545,7 +3554,7 @@
       "age": 27,
       "position": "ST",
       "skill": 67,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 43,
       "goalsScored": 0,
       "assists": 0,
@@ -3563,7 +3572,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 15,
         "mor": 0
       },
       "lastGrowth": {
@@ -3585,7 +3594,7 @@
       "age": 37,
       "position": "AM",
       "skill": 69,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 52,
       "goalsScored": 0,
       "assists": 0,
@@ -3625,7 +3634,7 @@
       "age": 29,
       "position": "AM",
       "skill": 67,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 46,
       "goalsScored": 0,
       "assists": 0,
@@ -3641,7 +3650,7 @@
       "sht": 64,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 15,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -3665,7 +3674,7 @@
       "age": 24,
       "position": "DM",
       "skill": 76,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 55,
       "goalsScored": 0,
       "assists": 0,
@@ -3680,7 +3689,7 @@
       "drb": 73,
       "sht": 70,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -3705,7 +3714,7 @@
       "age": 27,
       "position": "RW",
       "skill": 74,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 41,
       "goalsScored": 0,
       "assists": 0,
@@ -3722,7 +3731,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 15,
         "sht": 0,
         "mor": 0
       },
@@ -3745,7 +3754,7 @@
       "age": 35,
       "position": "RB",
       "skill": 69,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -3785,7 +3794,7 @@
       "age": 25,
       "position": "DM",
       "skill": 74,
-      "fitness": 52,
+      "fitness": 100,
       "morale": 51,
       "goalsScored": 0,
       "assists": 0,
@@ -3800,7 +3809,7 @@
       "drb": 70,
       "sht": 75,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -3825,7 +3834,7 @@
       "age": 34,
       "position": "DM",
       "skill": 70,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 46,
       "goalsScored": 0,
       "assists": 0,
@@ -3865,7 +3874,7 @@
       "age": 28,
       "position": "AM",
       "skill": 70,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 45,
       "goalsScored": 0,
       "assists": 0,
@@ -3881,7 +3890,7 @@
       "sht": 74,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 15,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -3905,7 +3914,7 @@
       "age": 29,
       "position": "ST",
       "skill": 68,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 48,
       "goalsScored": 0,
       "assists": 0,
@@ -3923,7 +3932,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 15,
         "mor": 0
       },
       "lastGrowth": {
@@ -3945,7 +3954,7 @@
       "age": 32,
       "position": "CB",
       "skill": 64,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 46,
       "goalsScored": 0,
       "assists": 0,
@@ -3960,7 +3969,7 @@
       "drb": 61,
       "sht": 61,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 7.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -3985,7 +3994,7 @@
       "age": 35,
       "position": "CB",
       "skill": 63,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 59,
       "goalsScored": 0,
       "assists": 0,
@@ -4025,7 +4034,7 @@
       "age": 29,
       "position": "DM",
       "skill": 73,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 43,
       "goalsScored": 0,
       "assists": 0,
@@ -4040,7 +4049,7 @@
       "drb": 73,
       "sht": 77,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -4065,7 +4074,7 @@
       "age": 31,
       "position": "DM",
       "skill": 67,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 54,
       "goalsScored": 0,
       "assists": 0,
@@ -4080,7 +4089,7 @@
       "drb": 67,
       "sht": 60,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 7.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -4105,7 +4114,7 @@
       "age": 25,
       "position": "RW",
       "skill": 72,
-      "fitness": 50,
+      "fitness": 100,
       "morale": 60,
       "goalsScored": 0,
       "assists": 0,
@@ -4122,7 +4131,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 15,
         "sht": 0,
         "mor": 0
       },
@@ -4145,7 +4154,7 @@
       "age": 24,
       "position": "CB",
       "skill": 68,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 55,
       "goalsScored": 0,
       "assists": 0,
@@ -4160,7 +4169,7 @@
       "drb": 71,
       "sht": 56,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -4185,7 +4194,7 @@
       "age": 35,
       "position": "GK",
       "skill": 68,
-      "fitness": 46,
+      "fitness": 100,
       "morale": 58,
       "goalsScored": 0,
       "assists": 0,
@@ -4225,7 +4234,7 @@
       "age": 30,
       "position": "GK",
       "skill": 69,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 46,
       "goalsScored": 0,
       "assists": 0,
@@ -4240,7 +4249,7 @@
       "drb": 85,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 7.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -4265,7 +4274,7 @@
       "age": 33,
       "position": "RB",
       "skill": 66,
-      "fitness": 52,
+      "fitness": 100,
       "morale": 58,
       "goalsScored": 0,
       "assists": 0,
@@ -4305,7 +4314,7 @@
       "age": 29,
       "position": "CB",
       "skill": 65,
-      "fitness": 45,
+      "fitness": 100,
       "morale": 45,
       "goalsScored": 0,
       "assists": 0,
@@ -4320,7 +4329,7 @@
       "drb": 65,
       "sht": 58,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -4345,7 +4354,7 @@
       "age": 24,
       "position": "CB",
       "skill": 60,
-      "fitness": 45,
+      "fitness": 100,
       "morale": 57,
       "goalsScored": 0,
       "assists": 0,
@@ -4360,7 +4369,7 @@
       "drb": 50,
       "sht": 51,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -4385,7 +4394,7 @@
       "age": 24,
       "position": "RW",
       "skill": 67,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 52,
       "goalsScored": 0,
       "assists": 0,
@@ -4402,7 +4411,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 15,
         "sht": 0,
         "mor": 0
       },
@@ -4425,7 +4434,7 @@
       "age": 25,
       "position": "ST",
       "skill": 69,
-      "fitness": 52,
+      "fitness": 100,
       "morale": 56,
       "goalsScored": 0,
       "assists": 0,
@@ -4443,7 +4452,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 15,
         "mor": 0
       },
       "lastGrowth": {
@@ -4465,7 +4474,7 @@
       "age": 23,
       "position": "LB",
       "skill": 67,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -4480,7 +4489,7 @@
       "drb": 74,
       "sht": 58,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -4505,7 +4514,7 @@
       "age": 26,
       "position": "GK",
       "skill": 66,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 49,
       "goalsScored": 0,
       "assists": 0,
@@ -4520,7 +4529,7 @@
       "drb": 60,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -4545,13 +4554,13 @@
       "age": 32,
       "position": "CB",
       "skill": 62,
-      "fitness": 54,
-      "morale": 52,
+      "fitness": 100,
+      "morale": 60,
       "goalsScored": 0,
       "assists": 0,
       "appearances": 0,
       "value": 420000,
-      "salary": 6176,
+      "salary": 7550,
       "contractExpiry": "W34 2027",
       "teamId": "451066",
       "shirtNumber": 4,
@@ -4574,9 +4583,9 @@
       },
       "weeklyGrowth": 0,
       "contract": {
-        "start": "2019-05-01",
-        "end": "2024-05-01",
-        "years": 5
+        "start": "2024-04-01",
+        "end": "2027-04-01",
+        "years": 3
       }
     },
     {
@@ -4585,13 +4594,13 @@
       "age": 36,
       "position": "CB",
       "skill": 74,
-      "fitness": 45,
-      "morale": 72,
+      "fitness": 100,
+      "morale": 80,
       "goalsScored": 0,
       "assists": 0,
       "appearances": 0,
       "value": 380000,
-      "salary": 12200,
+      "salary": 13530,
       "contractExpiry": "W37 2027",
       "teamId": "451066",
       "shirtNumber": 3,
@@ -4614,8 +4623,8 @@
       },
       "weeklyGrowth": 0,
       "contract": {
-        "start": "2024-04-01",
-        "end": "2025-04-01",
+        "start": "2024-04-03",
+        "end": "2025-04-03",
         "years": 1
       }
     },
@@ -4625,7 +4634,7 @@
       "age": 32,
       "position": "AM",
       "skill": 78,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 51,
       "goalsScored": 0,
       "assists": 0,
@@ -4665,7 +4674,7 @@
       "age": 35,
       "position": "RB",
       "skill": 76,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 64,
       "goalsScored": 0,
       "assists": 0,
@@ -4705,7 +4714,7 @@
       "age": 33,
       "position": "AM",
       "skill": 77,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 45,
       "goalsScored": 0,
       "assists": 0,
@@ -4745,7 +4754,7 @@
       "age": 29,
       "position": "RB",
       "skill": 78,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 48,
       "goalsScored": 0,
       "assists": 0,
@@ -4785,7 +4794,7 @@
       "age": 34,
       "position": "LB",
       "skill": 74,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 46,
       "goalsScored": 0,
       "assists": 0,
@@ -4825,13 +4834,13 @@
       "age": 38,
       "position": "ST",
       "skill": 70,
-      "fitness": 45,
-      "morale": 56,
+      "fitness": 100,
+      "morale": 80,
       "goalsScored": 0,
       "assists": 0,
       "appearances": 0,
       "value": 200000,
-      "salary": 8285,
+      "salary": 15280,
       "contractExpiry": "W2 2026",
       "teamId": "451066",
       "shirtNumber": 18,
@@ -4854,9 +4863,9 @@
       },
       "weeklyGrowth": 0,
       "contract": {
-        "start": "2022-06-01",
-        "end": "2024-06-01",
-        "years": 2
+        "start": "2024-04-10",
+        "end": "2025-04-10",
+        "years": 1
       }
     },
     {
@@ -4865,7 +4874,7 @@
       "age": 29,
       "position": "AM",
       "skill": 74,
-      "fitness": 46,
+      "fitness": 100,
       "morale": 63,
       "goalsScored": 0,
       "assists": 0,
@@ -4905,13 +4914,13 @@
       "age": 39,
       "position": "GK",
       "skill": 72,
-      "fitness": 50,
-      "morale": 43,
+      "fitness": 100,
+      "morale": 51,
       "goalsScored": 0,
       "assists": 0,
       "appearances": 0,
       "value": 160000,
-      "salary": 6212,
+      "salary": 7410,
       "contractExpiry": "W3 2027",
       "teamId": "451066",
       "shirtNumber": 17,
@@ -4934,9 +4943,9 @@
       },
       "weeklyGrowth": 0,
       "contract": {
-        "start": "2023-11-01",
-        "end": "2024-11-01",
-        "years": 1
+        "start": "2024-04-03",
+        "end": "2026-04-03",
+        "years": 2
       }
     },
     {
@@ -4945,7 +4954,7 @@
       "age": 26,
       "position": "DM",
       "skill": 81,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 55,
       "goalsScored": 0,
       "assists": 0,
@@ -4985,7 +4994,7 @@
       "age": 29,
       "position": "DM",
       "skill": 78,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 52,
       "goalsScored": 0,
       "assists": 0,
@@ -5025,7 +5034,7 @@
       "age": 25,
       "position": "RB",
       "skill": 77,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 43,
       "goalsScored": 0,
       "assists": 0,
@@ -5065,7 +5074,7 @@
       "age": 28,
       "position": "GK",
       "skill": 77,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 43,
       "goalsScored": 0,
       "assists": 0,
@@ -5105,7 +5114,7 @@
       "age": 27,
       "position": "GK",
       "skill": 78,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -5145,7 +5154,7 @@
       "age": 24,
       "position": "CB",
       "skill": 61,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 42,
       "goalsScored": 0,
       "assists": 0,
@@ -5185,7 +5194,7 @@
       "age": 22,
       "position": "GK",
       "skill": 76,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 57,
       "goalsScored": 0,
       "assists": 0,
@@ -5225,7 +5234,7 @@
       "age": 24,
       "position": "RB",
       "skill": 65,
-      "fitness": 46,
+      "fitness": 100,
       "morale": 43,
       "goalsScored": 0,
       "assists": 0,
@@ -5265,7 +5274,7 @@
       "age": 31,
       "position": "DM",
       "skill": 68,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 48,
       "goalsScored": 0,
       "assists": 0,
@@ -5305,7 +5314,7 @@
       "age": 23,
       "position": "ST",
       "skill": 72,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 42,
       "goalsScored": 0,
       "assists": 0,
@@ -5345,7 +5354,7 @@
       "age": 21,
       "position": "RW",
       "skill": 66,
-      "fitness": 52,
+      "fitness": 100,
       "morale": 50,
       "goalsScored": 0,
       "assists": 0,
@@ -5385,7 +5394,7 @@
       "age": 21,
       "position": "LB",
       "skill": 63,
-      "fitness": 50,
+      "fitness": 100,
       "morale": 57,
       "goalsScored": 0,
       "assists": 0,
@@ -5425,7 +5434,7 @@
       "age": 21,
       "position": "DM",
       "skill": 66,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 60,
       "goalsScored": 0,
       "assists": 0,
@@ -5465,8 +5474,8 @@
       "age": 21,
       "position": "RW",
       "skill": 53,
-      "fitness": 53,
-      "morale": 53,
+      "fitness": 100,
+      "morale": 45,
       "goalsScored": 0,
       "assists": 0,
       "appearances": 0,
@@ -5497,7 +5506,8 @@
         "start": "2022-05-01",
         "end": "2027-05-01",
         "years": 5
-      }
+      },
+      "listedForSale": true
     },
     {
       "id": "p-272711",
@@ -5505,7 +5515,7 @@
       "age": 22,
       "position": "ST",
       "skill": 50,
-      "fitness": 51,
+      "fitness": 100,
       "morale": 43,
       "goalsScored": 0,
       "assists": 0,
@@ -5513,7 +5523,7 @@
       "value": 270000,
       "salary": 1857,
       "contractExpiry": "W23 2026",
-      "teamId": "451066",
+      "teamId": "MARKET",
       "shirtNumber": 26,
       "def": 50,
       "pas": 50,
@@ -5523,7 +5533,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 18,
         "mor": 0
       },
       "lastGrowth": {
@@ -5539,7 +5549,8 @@
         "years": 6
       },
       "listedForSale": false,
-      "listedForLoan": false
+      "listedForLoan": false,
+      "livreDesde": "2024-04-01"
     },
     {
       "id": "p-272712",
@@ -5547,8 +5558,8 @@
       "age": 20,
       "position": "ST",
       "skill": 50,
-      "fitness": 53,
-      "morale": 47,
+      "fitness": 100,
+      "morale": 39,
       "goalsScored": 0,
       "assists": 0,
       "appearances": 0,
@@ -5579,7 +5590,8 @@
         "start": "2023-04-01",
         "end": "2029-04-01",
         "years": 6
-      }
+      },
+      "listedForSale": true
     },
     {
       "id": "p-272713",
@@ -5587,7 +5599,7 @@
       "age": 20,
       "position": "ST",
       "skill": 50,
-      "fitness": 45,
+      "fitness": 100,
       "morale": 54,
       "goalsScored": 0,
       "assists": 0,
@@ -5595,7 +5607,7 @@
       "value": 190000,
       "salary": 849,
       "contractExpiry": "W6 2028",
-      "teamId": "451066",
+      "teamId": "MARKET",
       "shirtNumber": 28,
       "def": 50,
       "pas": 50,
@@ -5605,7 +5617,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 27,
         "mor": 0
       },
       "lastGrowth": {
@@ -5619,7 +5631,10 @@
         "start": "2020-12-01",
         "end": "2024-12-01",
         "years": 4
-      }
+      },
+      "listedForSale": false,
+      "listedForLoan": false,
+      "livreDesde": "2024-04-01"
     },
     {
       "id": "p-272714",
@@ -5627,7 +5642,7 @@
       "age": 20,
       "position": "ST",
       "skill": 50,
-      "fitness": 51,
+      "fitness": 100,
       "morale": 55,
       "goalsScored": 0,
       "assists": 0,
@@ -5635,7 +5650,7 @@
       "value": 190000,
       "salary": 764,
       "contractExpiry": "W2 2025",
-      "teamId": "451066",
+      "teamId": "MARKET",
       "shirtNumber": 29,
       "def": 50,
       "pas": 50,
@@ -5645,7 +5660,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 27,
         "mor": 0
       },
       "lastGrowth": {
@@ -5659,7 +5674,10 @@
         "start": "2019-10-01",
         "end": "2024-10-01",
         "years": 5
-      }
+      },
+      "listedForSale": false,
+      "listedForLoan": false,
+      "livreDesde": "2024-04-01"
     },
     {
       "id": "p-272715",
@@ -5667,7 +5685,7 @@
       "age": 22,
       "position": "ST",
       "skill": 50,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 42,
       "goalsScored": 0,
       "assists": 0,
@@ -5675,7 +5693,7 @@
       "value": 130000,
       "salary": 500,
       "contractExpiry": "W13 2026",
-      "teamId": "451066",
+      "teamId": "MARKET",
       "shirtNumber": 30,
       "def": 50,
       "pas": 50,
@@ -5685,7 +5703,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 18,
         "mor": 0
       },
       "lastGrowth": {
@@ -5699,7 +5717,10 @@
         "start": "2023-03-01",
         "end": "2028-03-01",
         "years": 5
-      }
+      },
+      "listedForSale": false,
+      "listedForLoan": false,
+      "livreDesde": "2024-04-01"
     },
     {
       "id": "p-9001471",
@@ -5707,7 +5728,7 @@
       "age": 21,
       "position": "GK",
       "skill": 69,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 53,
       "goalsScored": 0,
       "assists": 0,
@@ -5722,7 +5743,7 @@
       "drb": 63,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 22.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -5747,7 +5768,7 @@
       "age": 20,
       "position": "GK",
       "skill": 64,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 44,
       "goalsScored": 0,
       "assists": 0,
@@ -5762,7 +5783,7 @@
       "drb": 65,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 22.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -5787,7 +5808,7 @@
       "age": 31,
       "position": "GK",
       "skill": 67,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -5802,7 +5823,7 @@
       "drb": 63,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 7.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -5827,7 +5848,7 @@
       "age": 22,
       "position": "RB",
       "skill": 69,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 42,
       "goalsScored": 0,
       "assists": 0,
@@ -5842,7 +5863,7 @@
       "drb": 65,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -5867,7 +5888,7 @@
       "age": 18,
       "position": "RB",
       "skill": 62,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 56,
       "goalsScored": 0,
       "assists": 0,
@@ -5882,7 +5903,7 @@
       "drb": 57,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 22.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -5907,7 +5928,7 @@
       "age": 25,
       "position": "LB",
       "skill": 66,
-      "fitness": 46,
+      "fitness": 100,
       "morale": 58,
       "goalsScored": 0,
       "assists": 0,
@@ -5922,7 +5943,7 @@
       "drb": 58,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -5947,7 +5968,7 @@
       "age": 28,
       "position": "LB",
       "skill": 65,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 49,
       "goalsScored": 0,
       "assists": 0,
@@ -5962,7 +5983,7 @@
       "drb": 58,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -5987,7 +6008,7 @@
       "age": 27,
       "position": "CB",
       "skill": 71,
-      "fitness": 46,
+      "fitness": 100,
       "morale": 53,
       "goalsScored": 0,
       "assists": 0,
@@ -6002,7 +6023,7 @@
       "drb": 60,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -6027,7 +6048,7 @@
       "age": 20,
       "position": "CB",
       "skill": 72,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 53,
       "goalsScored": 0,
       "assists": 0,
@@ -6042,7 +6063,7 @@
       "drb": 56,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 22.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -6067,7 +6088,7 @@
       "age": 19,
       "position": "CB",
       "skill": 67,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 60,
       "goalsScored": 0,
       "assists": 0,
@@ -6082,7 +6103,7 @@
       "drb": 53,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 22.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -6107,7 +6128,7 @@
       "age": 21,
       "position": "CB",
       "skill": 67,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 60,
       "goalsScored": 0,
       "assists": 0,
@@ -6122,7 +6143,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 22.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -6147,7 +6168,7 @@
       "age": 24,
       "position": "DM",
       "skill": 69,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 58,
       "goalsScored": 0,
       "assists": 0,
@@ -6162,7 +6183,7 @@
       "drb": 58,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 15,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -6187,7 +6208,7 @@
       "age": 18,
       "position": "DM",
       "skill": 56,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 50,
       "goalsScored": 0,
       "assists": 0,
@@ -6202,7 +6223,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 22.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -6227,7 +6248,7 @@
       "age": 19,
       "position": "DM",
       "skill": 67,
-      "fitness": 45,
+      "fitness": 100,
       "morale": 41,
       "goalsScored": 0,
       "assists": 0,
@@ -6242,7 +6263,7 @@
       "drb": 60,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 22.5,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -6267,7 +6288,7 @@
       "age": 29,
       "position": "CM",
       "skill": 71,
-      "fitness": 45,
+      "fitness": 100,
       "morale": 44,
       "goalsScored": 0,
       "assists": 0,
@@ -6283,7 +6304,7 @@
       "sht": 58,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 15,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -6307,7 +6328,7 @@
       "age": 33,
       "position": "CM",
       "skill": 69,
-      "fitness": 50,
+      "fitness": 100,
       "morale": 47,
       "goalsScored": 0,
       "assists": 0,
@@ -6347,7 +6368,7 @@
       "age": 33,
       "position": "CM",
       "skill": 65,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 47,
       "goalsScored": 0,
       "assists": 0,
@@ -6387,7 +6408,7 @@
       "age": 28,
       "position": "CM",
       "skill": 67,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 42,
       "goalsScored": 0,
       "assists": 0,
@@ -6403,7 +6424,7 @@
       "sht": 54,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 15,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -6427,7 +6448,7 @@
       "age": 31,
       "position": "LM",
       "skill": 70,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 57,
       "goalsScored": 0,
       "assists": 0,
@@ -6443,7 +6464,7 @@
       "sht": 58,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 7.5,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -6467,7 +6488,7 @@
       "age": 28,
       "position": "RM",
       "skill": 65,
-      "fitness": 52,
+      "fitness": 100,
       "morale": 54,
       "goalsScored": 0,
       "assists": 0,
@@ -6483,7 +6504,7 @@
       "sht": 53,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 15,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -6507,7 +6528,7 @@
       "age": 34,
       "position": "AM",
       "skill": 69,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 59,
       "goalsScored": 0,
       "assists": 0,
@@ -6547,7 +6568,7 @@
       "age": 17,
       "position": "AM",
       "skill": 62,
-      "fitness": 51,
+      "fitness": 100,
       "morale": 50,
       "goalsScored": 0,
       "assists": 0,
@@ -6563,7 +6584,7 @@
       "sht": 54,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 22.5,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -6587,7 +6608,7 @@
       "age": 26,
       "position": "RW",
       "skill": 73,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 59,
       "goalsScored": 0,
       "assists": 0,
@@ -6604,7 +6625,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 15,
         "sht": 0,
         "mor": 0
       },
@@ -6627,7 +6648,7 @@
       "age": 27,
       "position": "RW",
       "skill": 67,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 41,
       "goalsScored": 0,
       "assists": 0,
@@ -6644,7 +6665,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 15,
         "sht": 0,
         "mor": 0
       },
@@ -6667,7 +6688,7 @@
       "age": 28,
       "position": "LW",
       "skill": 73,
-      "fitness": 51,
+      "fitness": 100,
       "morale": 59,
       "goalsScored": 0,
       "assists": 0,
@@ -6684,7 +6705,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 15,
         "sht": 0,
         "mor": 0
       },
@@ -6707,7 +6728,7 @@
       "age": 29,
       "position": "LW",
       "skill": 65,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 54,
       "goalsScored": 0,
       "assists": 0,
@@ -6724,7 +6745,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 15,
         "sht": 0,
         "mor": 0
       },
@@ -6747,7 +6768,7 @@
       "age": 31,
       "position": "ST",
       "skill": 76,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 53,
       "goalsScored": 0,
       "assists": 0,
@@ -6765,7 +6786,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 7.5,
         "mor": 0
       },
       "lastGrowth": {
@@ -6787,7 +6808,7 @@
       "age": 26,
       "position": "ST",
       "skill": 66,
-      "fitness": 51,
+      "fitness": 100,
       "morale": 44,
       "goalsScored": 0,
       "assists": 0,
@@ -6805,7 +6826,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 15,
         "mor": 0
       },
       "lastGrowth": {
@@ -6827,7 +6848,7 @@
       "age": 29,
       "position": "ST",
       "skill": 66,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 55,
       "goalsScored": 0,
       "assists": 0,
@@ -6845,7 +6866,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 15,
         "mor": 0
       },
       "lastGrowth": {
@@ -6867,7 +6888,7 @@
       "age": 26,
       "position": "ST",
       "skill": 68,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -6885,7 +6906,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 15,
         "mor": 0
       },
       "lastGrowth": {
@@ -6907,7 +6928,7 @@
       "age": 21,
       "position": "GK",
       "skill": 69,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 56,
       "goalsScored": 0,
       "assists": 0,
@@ -6922,7 +6943,7 @@
       "drb": 68,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 18,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -6947,7 +6968,7 @@
       "age": 34,
       "position": "GK",
       "skill": 65,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 41,
       "goalsScored": 0,
       "assists": 0,
@@ -6987,7 +7008,7 @@
       "age": 19,
       "position": "GK",
       "skill": 65,
-      "fitness": 51,
+      "fitness": 100,
       "morale": 60,
       "goalsScored": 0,
       "assists": 0,
@@ -7002,7 +7023,7 @@
       "drb": 66,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 18,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -7027,7 +7048,7 @@
       "age": 31,
       "position": "RB",
       "skill": 72,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -7042,7 +7063,7 @@
       "drb": 70,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 6,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -7067,7 +7088,7 @@
       "age": 25,
       "position": "RB",
       "skill": 68,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 57,
       "goalsScored": 0,
       "assists": 0,
@@ -7082,7 +7103,7 @@
       "drb": 67,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 12,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -7107,7 +7128,7 @@
       "age": 27,
       "position": "LB",
       "skill": 77,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 55,
       "goalsScored": 0,
       "assists": 0,
@@ -7122,7 +7143,7 @@
       "drb": 78,
       "sht": 58,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 12,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -7147,7 +7168,7 @@
       "age": 31,
       "position": "LB",
       "skill": 67,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 58,
       "goalsScored": 0,
       "assists": 0,
@@ -7162,7 +7183,7 @@
       "drb": 64,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 6,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -7187,7 +7208,7 @@
       "age": 29,
       "position": "CB",
       "skill": 71,
-      "fitness": 52,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -7202,7 +7223,7 @@
       "drb": 55,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 12,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -7227,7 +7248,7 @@
       "age": 19,
       "position": "CB",
       "skill": 70,
-      "fitness": 50,
+      "fitness": 100,
       "morale": 57,
       "goalsScored": 0,
       "assists": 0,
@@ -7242,7 +7263,7 @@
       "drb": 53,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 18,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -7267,7 +7288,7 @@
       "age": 18,
       "position": "CB",
       "skill": 62,
-      "fitness": 52,
+      "fitness": 100,
       "morale": 58,
       "goalsScored": 0,
       "assists": 0,
@@ -7282,7 +7303,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 18,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -7307,7 +7328,7 @@
       "age": 30,
       "position": "CB",
       "skill": 60,
-      "fitness": 55,
+      "fitness": 100,
       "morale": 44,
       "goalsScored": 0,
       "assists": 0,
@@ -7322,7 +7343,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 6,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -7347,7 +7368,7 @@
       "age": 30,
       "position": "DM",
       "skill": 70,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 51,
       "goalsScored": 0,
       "assists": 0,
@@ -7362,7 +7383,7 @@
       "drb": 60,
       "sht": 51,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 6,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -7387,7 +7408,7 @@
       "age": 23,
       "position": "DM",
       "skill": 67,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 45,
       "goalsScored": 0,
       "assists": 0,
@@ -7402,7 +7423,7 @@
       "drb": 53,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 12,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -7427,7 +7448,7 @@
       "age": 20,
       "position": "DM",
       "skill": 65,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 48,
       "goalsScored": 0,
       "assists": 0,
@@ -7442,7 +7463,7 @@
       "drb": 55,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 18,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -7467,7 +7488,7 @@
       "age": 24,
       "position": "CM",
       "skill": 71,
-      "fitness": 51,
+      "fitness": 100,
       "morale": 56,
       "goalsScored": 0,
       "assists": 0,
@@ -7483,7 +7504,7 @@
       "sht": 60,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 12,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -7507,7 +7528,7 @@
       "age": 19,
       "position": "CM",
       "skill": 67,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 47,
       "goalsScored": 0,
       "assists": 0,
@@ -7523,7 +7544,7 @@
       "sht": 56,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 18,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -7547,7 +7568,7 @@
       "age": 30,
       "position": "CM",
       "skill": 65,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 54,
       "goalsScored": 0,
       "assists": 0,
@@ -7563,7 +7584,7 @@
       "sht": 55,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 6,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -7587,7 +7608,7 @@
       "age": 28,
       "position": "CM",
       "skill": 69,
-      "fitness": 52,
+      "fitness": 100,
       "morale": 55,
       "goalsScored": 0,
       "assists": 0,
@@ -7603,7 +7624,7 @@
       "sht": 55,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 12,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -7627,7 +7648,7 @@
       "age": 25,
       "position": "LM",
       "skill": 62,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 48,
       "goalsScored": 0,
       "assists": 0,
@@ -7643,7 +7664,7 @@
       "sht": 51,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 12,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -7667,7 +7688,7 @@
       "age": 32,
       "position": "RM",
       "skill": 64,
-      "fitness": 45,
+      "fitness": 100,
       "morale": 44,
       "goalsScored": 0,
       "assists": 0,
@@ -7683,7 +7704,7 @@
       "sht": 53,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 6,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -7707,7 +7728,7 @@
       "age": 27,
       "position": "AM",
       "skill": 70,
-      "fitness": 54,
+      "fitness": 100,
       "morale": 42,
       "goalsScored": 0,
       "assists": 0,
@@ -7723,7 +7744,7 @@
       "sht": 62,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 12,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -7747,7 +7768,7 @@
       "age": 20,
       "position": "AM",
       "skill": 66,
-      "fitness": 52,
+      "fitness": 100,
       "morale": 42,
       "goalsScored": 0,
       "assists": 0,
@@ -7763,7 +7784,7 @@
       "sht": 62,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 18,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -7787,7 +7808,7 @@
       "age": 24,
       "position": "RW",
       "skill": 74,
-      "fitness": 48,
+      "fitness": 100,
       "morale": 51,
       "goalsScored": 0,
       "assists": 0,
@@ -7804,7 +7825,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 12,
         "sht": 0,
         "mor": 0
       },
@@ -7827,7 +7848,7 @@
       "age": 26,
       "position": "RW",
       "skill": 66,
-      "fitness": 53,
+      "fitness": 100,
       "morale": 44,
       "goalsScored": 0,
       "assists": 0,
@@ -7844,7 +7865,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 12,
         "sht": 0,
         "mor": 0
       },
@@ -7867,7 +7888,7 @@
       "age": 24,
       "position": "LW",
       "skill": 71,
-      "fitness": 46,
+      "fitness": 100,
       "morale": 46,
       "goalsScored": 0,
       "assists": 0,
@@ -7884,7 +7905,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 12,
         "sht": 0,
         "mor": 0
       },
@@ -7907,7 +7928,7 @@
       "age": 25,
       "position": "LW",
       "skill": 66,
-      "fitness": 45,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -7924,7 +7945,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 12,
         "sht": 0,
         "mor": 0
       },
@@ -7947,7 +7968,7 @@
       "age": 22,
       "position": "ST",
       "skill": 68,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 44,
       "goalsScored": 0,
       "assists": 0,
@@ -7965,7 +7986,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 12,
         "mor": 0
       },
       "lastGrowth": {
@@ -7987,7 +8008,7 @@
       "age": 21,
       "position": "ST",
       "skill": 65,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 60,
       "goalsScored": 0,
       "assists": 0,
@@ -8005,7 +8026,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 18,
         "mor": 0
       },
       "lastGrowth": {
@@ -8027,7 +8048,7 @@
       "age": 19,
       "position": "ST",
       "skill": 67,
-      "fitness": 47,
+      "fitness": 100,
       "morale": 52,
       "goalsScored": 0,
       "assists": 0,
@@ -8045,7 +8066,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 18,
         "mor": 0
       },
       "lastGrowth": {
@@ -8067,7 +8088,7 @@
       "age": 21,
       "position": "ST",
       "skill": 67,
-      "fitness": 49,
+      "fitness": 100,
       "morale": 59,
       "goalsScored": 0,
       "assists": 0,
@@ -8085,7 +8106,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 18,
         "mor": 0
       },
       "lastGrowth": {
@@ -8107,7 +8128,7 @@
       "age": 32,
       "position": "GK",
       "skill": 58,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 52,
       "goalsScored": 0,
       "assists": 0,
@@ -8122,7 +8143,7 @@
       "drb": 53,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 12,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -8147,7 +8168,7 @@
       "age": 24,
       "position": "GK",
       "skill": 52,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 46,
       "goalsScored": 0,
       "assists": 0,
@@ -8162,7 +8183,7 @@
       "drb": 55,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 24,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -8187,7 +8208,7 @@
       "age": 18,
       "position": "GK",
       "skill": 50,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 42,
       "goalsScored": 0,
       "assists": 0,
@@ -8202,7 +8223,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 36,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -8227,7 +8248,7 @@
       "age": 27,
       "position": "RB",
       "skill": 53,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -8242,7 +8263,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 24,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -8267,7 +8288,7 @@
       "age": 31,
       "position": "RB",
       "skill": 52,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 60,
       "goalsScored": 0,
       "assists": 0,
@@ -8282,7 +8303,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 12,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -8307,7 +8328,7 @@
       "age": 32,
       "position": "LB",
       "skill": 58,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 55,
       "goalsScored": 0,
       "assists": 0,
@@ -8322,7 +8343,7 @@
       "drb": 53,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 12,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -8347,7 +8368,7 @@
       "age": 27,
       "position": "LB",
       "skill": 52,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 55,
       "goalsScored": 0,
       "assists": 0,
@@ -8362,7 +8383,7 @@
       "drb": 51,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 24,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -8387,7 +8408,7 @@
       "age": 21,
       "position": "CB",
       "skill": 54,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 52,
       "goalsScored": 0,
       "assists": 0,
@@ -8402,7 +8423,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 36,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -8427,7 +8448,7 @@
       "age": 25,
       "position": "CB",
       "skill": 56,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 49,
       "goalsScored": 0,
       "assists": 0,
@@ -8442,7 +8463,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 24,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -8467,7 +8488,7 @@
       "age": 19,
       "position": "CB",
       "skill": 50,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 56,
       "goalsScored": 0,
       "assists": 0,
@@ -8482,7 +8503,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 36,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -8507,7 +8528,7 @@
       "age": 28,
       "position": "CB",
       "skill": 51,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 48,
       "goalsScored": 0,
       "assists": 0,
@@ -8522,7 +8543,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 24,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -8547,7 +8568,7 @@
       "age": 19,
       "position": "DM",
       "skill": 59,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 59,
       "goalsScored": 0,
       "assists": 0,
@@ -8562,7 +8583,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 36,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -8587,7 +8608,7 @@
       "age": 17,
       "position": "DM",
       "skill": 50,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 53,
       "goalsScored": 0,
       "assists": 0,
@@ -8602,7 +8623,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 36,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -8627,7 +8648,7 @@
       "age": 25,
       "position": "DM",
       "skill": 52,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 59,
       "goalsScored": 0,
       "assists": 0,
@@ -8642,7 +8663,7 @@
       "drb": 50,
       "sht": 50,
       "trainingAccumulated": {
-        "def": 0,
+        "def": 24,
         "pas": 0,
         "drb": 0,
         "sht": 0,
@@ -8667,7 +8688,7 @@
       "age": 24,
       "position": "CM",
       "skill": 55,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 54,
       "goalsScored": 0,
       "assists": 0,
@@ -8683,7 +8704,7 @@
       "sht": 50,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 24,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -8707,7 +8728,7 @@
       "age": 19,
       "position": "CM",
       "skill": 50,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 59,
       "goalsScored": 0,
       "assists": 0,
@@ -8723,7 +8744,7 @@
       "sht": 50,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 36,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -8747,7 +8768,7 @@
       "age": 19,
       "position": "CM",
       "skill": 50,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 43,
       "goalsScored": 0,
       "assists": 0,
@@ -8763,7 +8784,7 @@
       "sht": 50,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 36,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -8787,7 +8808,7 @@
       "age": 29,
       "position": "CM",
       "skill": 50,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 53,
       "goalsScored": 0,
       "assists": 0,
@@ -8803,7 +8824,7 @@
       "sht": 50,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 24,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -8827,7 +8848,7 @@
       "age": 26,
       "position": "LM",
       "skill": 55,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 60,
       "goalsScored": 0,
       "assists": 0,
@@ -8843,7 +8864,7 @@
       "sht": 50,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 24,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -8867,7 +8888,7 @@
       "age": 21,
       "position": "RM",
       "skill": 51,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 51,
       "goalsScored": 0,
       "assists": 0,
@@ -8883,7 +8904,7 @@
       "sht": 50,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 36,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -8907,7 +8928,7 @@
       "age": 23,
       "position": "AM",
       "skill": 55,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 50,
       "goalsScored": 0,
       "assists": 0,
@@ -8923,7 +8944,7 @@
       "sht": 50,
       "trainingAccumulated": {
         "def": 0,
-        "pas": 0,
+        "pas": 24,
         "drb": 0,
         "sht": 0,
         "mor": 0
@@ -8947,7 +8968,7 @@
       "age": 33,
       "position": "AM",
       "skill": 53,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 60,
       "goalsScored": 0,
       "assists": 0,
@@ -8987,7 +9008,7 @@
       "age": 33,
       "position": "RW",
       "skill": 56,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 45,
       "goalsScored": 0,
       "assists": 0,
@@ -9027,7 +9048,7 @@
       "age": 30,
       "position": "RW",
       "skill": 53,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 44,
       "goalsScored": 0,
       "assists": 0,
@@ -9044,7 +9065,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 12,
         "sht": 0,
         "mor": 0
       },
@@ -9067,7 +9088,7 @@
       "age": 20,
       "position": "LW",
       "skill": 62,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -9084,7 +9105,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 36,
         "sht": 0,
         "mor": 0
       },
@@ -9107,7 +9128,7 @@
       "age": 25,
       "position": "LW",
       "skill": 53,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 40,
       "goalsScored": 0,
       "assists": 0,
@@ -9124,7 +9145,7 @@
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
-        "drb": 0,
+        "drb": 24,
         "sht": 0,
         "mor": 0
       },
@@ -9147,7 +9168,7 @@
       "age": 30,
       "position": "ST",
       "skill": 56,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 59,
       "goalsScored": 0,
       "assists": 0,
@@ -9165,7 +9186,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 12,
         "mor": 0
       },
       "lastGrowth": {
@@ -9187,7 +9208,7 @@
       "age": 29,
       "position": "ST",
       "skill": 55,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 43,
       "goalsScored": 0,
       "assists": 0,
@@ -9205,7 +9226,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 24,
         "mor": 0
       },
       "lastGrowth": {
@@ -9227,7 +9248,7 @@
       "age": 29,
       "position": "ST",
       "skill": 52,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 57,
       "goalsScored": 0,
       "assists": 0,
@@ -9245,7 +9266,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 24,
         "mor": 0
       },
       "lastGrowth": {
@@ -9267,7 +9288,7 @@
       "age": 30,
       "position": "ST",
       "skill": 52,
-      "fitness": 90,
+      "fitness": 100,
       "morale": 60,
       "goalsScored": 0,
       "assists": 0,
@@ -9285,7 +9306,7 @@
         "def": 0,
         "pas": 0,
         "drb": 0,
-        "sht": 0,
+        "sht": 12,
         "mor": 0
       },
       "lastGrowth": {
@@ -9307,7 +9328,7 @@
       "age": 20,
       "position": "ST",
       "skill": 75,
-      "fitness": 80,
+      "fitness": 100,
       "morale": 60,
       "goalsScored": 0,
       "assists": 0,
@@ -9337,6 +9358,254 @@
       "pas": 66,
       "drb": 74,
       "sht": 80,
+      "trainingAccumulated": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0,
+        "mor": 0
+      },
+      "lastGrowth": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0
+      }
+    },
+    {
+      "id": "p-9000061",
+      "name": "Guilherme Freitas",
+      "age": 17,
+      "position": "CB",
+      "skill": 63,
+      "fitness": 100,
+      "morale": 60,
+      "goalsScored": 0,
+      "assists": 0,
+      "appearances": 0,
+      "weeklyGrowth": 0,
+      "value": 2380000,
+      "salary": 1243,
+      "contractExpiry": "",
+      "contract": {
+        "start": "2024-04-01",
+        "end": "2030-04-01",
+        "years": 6
+      },
+      "birthDate": "2006-10-28",
+      "potential": 81,
+      "potentialEstimate": 88,
+      "devAcc": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0
+      },
+      "teamId": "451066",
+      "shirtNumber": 31,
+      "def": 65,
+      "pas": 57,
+      "drb": 55,
+      "sht": 57,
+      "trainingAccumulated": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0,
+        "mor": 0
+      },
+      "lastGrowth": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0
+      }
+    },
+    {
+      "id": "p-9000065",
+      "name": "Leonardo Monteiro",
+      "age": 20,
+      "position": "CM",
+      "skill": 68,
+      "fitness": 100,
+      "morale": 60,
+      "goalsScored": 0,
+      "assists": 0,
+      "appearances": 0,
+      "weeklyGrowth": 0,
+      "value": 2790000,
+      "salary": 2002,
+      "contractExpiry": "",
+      "contract": {
+        "start": "2024-04-01",
+        "end": "2028-04-01",
+        "years": 4
+      },
+      "birthDate": "2003-07-06",
+      "potential": 72,
+      "potentialEstimate": 69,
+      "playStyle": "Orchestrator",
+      "devAcc": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0
+      },
+      "teamId": "451066",
+      "shirtNumber": 26,
+      "def": 65,
+      "pas": 70,
+      "drb": 71,
+      "sht": 63,
+      "trainingAccumulated": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0,
+        "mor": 0
+      },
+      "lastGrowth": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0
+      }
+    },
+    {
+      "id": "p-9000145",
+      "name": "Vinícius Herrera",
+      "age": 17,
+      "position": "RB",
+      "skill": 67,
+      "fitness": 100,
+      "morale": 60,
+      "goalsScored": 0,
+      "assists": 0,
+      "appearances": 0,
+      "weeklyGrowth": 0,
+      "value": 2950000,
+      "salary": 1820,
+      "contractExpiry": "",
+      "contract": {
+        "start": "2024-04-01",
+        "end": "2030-04-01",
+        "years": 6
+      },
+      "birthDate": "2006-09-27",
+      "potential": 86,
+      "potentialEstimate": 85,
+      "devAcc": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0
+      },
+      "teamId": "451066",
+      "shirtNumber": 28,
+      "def": 71,
+      "pas": 59,
+      "drb": 58,
+      "sht": 56,
+      "trainingAccumulated": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0,
+        "mor": 0
+      },
+      "lastGrowth": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0
+      }
+    },
+    {
+      "id": "p-9000079",
+      "name": "Lautaro Dias",
+      "age": 18,
+      "position": "CM",
+      "skill": 65,
+      "fitness": 100,
+      "morale": 60,
+      "goalsScored": 0,
+      "assists": 0,
+      "appearances": 0,
+      "weeklyGrowth": 0,
+      "value": 2610000,
+      "salary": 1504,
+      "contractExpiry": "",
+      "contract": {
+        "start": "2024-04-01",
+        "end": "2029-04-01",
+        "years": 5
+      },
+      "birthDate": "2006-01-02",
+      "potential": 79,
+      "potentialEstimate": 79,
+      "playStyle": "Hole Player",
+      "devAcc": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0
+      },
+      "teamId": "451066",
+      "shirtNumber": 29,
+      "def": 61,
+      "pas": 65,
+      "drb": 68,
+      "sht": 64,
+      "trainingAccumulated": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0,
+        "mor": 0
+      },
+      "lastGrowth": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0
+      }
+    },
+    {
+      "id": "p-9000148",
+      "name": "Otávio Costa",
+      "age": 18,
+      "position": "CM",
+      "skill": 65,
+      "fitness": 100,
+      "morale": 60,
+      "goalsScored": 0,
+      "assists": 0,
+      "appearances": 0,
+      "weeklyGrowth": 0,
+      "value": 2650000,
+      "salary": 1504,
+      "contractExpiry": "",
+      "contract": {
+        "start": "2024-04-01",
+        "end": "2030-04-01",
+        "years": 6
+      },
+      "birthDate": "2005-12-18",
+      "potential": 80,
+      "potentialEstimate": 77,
+      "playStyle": "Hole Player",
+      "devAcc": {
+        "def": 0,
+        "pas": 0,
+        "drb": 0,
+        "sht": 0
+      },
+      "teamId": "451066",
+      "shirtNumber": 30,
+      "def": 60,
+      "pas": 66,
+      "drb": 68,
+      "sht": 64,
       "trainingAccumulated": {
         "def": 0,
         "pas": 0,
@@ -9825,7 +10094,7 @@
   "gameState": {
     "currentWeek": 1,
     "totalWeeks": 10,
-    "currentDate": "2024-04-01",
+    "currentDate": "2024-04-10",
     "userTeamId": "451066",
     "managerName": "paulo costa",
     "isProcessing": false,
@@ -9859,22 +10128,22 @@
         null
       ],
       [
-        null,
-        null,
-        null,
-        null
+        "tackling",
+        "marking",
+        "shooting",
+        "finishing"
       ],
       [
-        null,
-        null,
-        null,
-        null
+        "def_pos",
+        "aerial",
+        "shooting",
+        "finishing"
       ],
       [
-        null,
-        null,
-        null,
-        null
+        "passing",
+        "control",
+        "vision",
+        "playmaking"
       ],
       [
         null,
@@ -9904,22 +10173,22 @@
           null
         ],
         [
-          null,
-          null,
-          null,
-          null
+          "tackling",
+          "marking",
+          "shooting",
+          "finishing"
         ],
         [
-          null,
-          null,
-          null,
-          null
+          "def_pos",
+          "aerial",
+          "shooting",
+          "finishing"
         ],
         [
-          null,
-          null,
-          null,
-          null
+          "passing",
+          "control",
+          "vision",
+          "playmaking"
         ],
         [
           null,
@@ -10017,7 +10286,7 @@
         ]
       ]
     ],
-    "unlockedTrainingGroups": 1
+    "unlockedTrainingGroups": 2
   },
   "worldResults": {},
   "comps": [
@@ -10115,9 +10384,9 @@
           "date": "2024-04-09",
           "homeKey": "bra_serie_a|450148",
           "awayKey": "chi_serie_a|550002",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 3,
+          "played": true,
           "group": "A"
         },
         {
@@ -10126,9 +10395,9 @@
           "date": "2024-04-09",
           "homeKey": "uru_serie_a|600003",
           "awayKey": "bol_serie_a|530002",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 0,
+          "played": true,
           "group": "A"
         },
         {
@@ -10247,9 +10516,9 @@
           "date": "2024-04-09",
           "homeKey": "arg_serie_a|520003",
           "awayKey": "col_serie_a|560003",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 1,
+          "played": true,
           "group": "B"
         },
         {
@@ -10258,9 +10527,9 @@
           "date": "2024-04-09",
           "homeKey": "equ_serie_a|570003",
           "awayKey": "ven_serie_a|610002",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 0,
+          "played": true,
           "group": "B"
         },
         {
@@ -10379,9 +10648,9 @@
           "date": "2024-04-09",
           "homeKey": "arg_serie_a|520002",
           "awayKey": "bra_serie_a|450143",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 1,
+          "played": true,
           "group": "C"
         },
         {
@@ -10390,9 +10659,9 @@
           "date": "2024-04-09",
           "homeKey": "uru_serie_a|600002",
           "awayKey": "par_serie_a|580003",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "group": "C"
         },
         {
@@ -10511,9 +10780,9 @@
           "date": "2024-04-09",
           "homeKey": "arg_serie_a|520005",
           "awayKey": "col_serie_a|560001",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 3,
+          "awayScore": 1,
+          "played": true,
           "group": "D"
         },
         {
@@ -10522,9 +10791,9 @@
           "date": "2024-04-09",
           "homeKey": "par_serie_a|580001",
           "awayKey": "per_serie_a|590002",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 1,
+          "played": true,
           "group": "D"
         },
         {
@@ -10643,9 +10912,9 @@
           "date": "2024-04-09",
           "homeKey": "bra_serie_a|450171",
           "awayKey": "chi_serie_a|550003",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 0,
+          "played": true,
           "group": "E"
         },
         {
@@ -10654,9 +10923,9 @@
           "date": "2024-04-09",
           "homeKey": "equ_serie_a|570001",
           "awayKey": "ven_serie_a|610001",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 1,
+          "played": true,
           "group": "E"
         },
         {
@@ -10775,9 +11044,9 @@
           "date": "2024-04-09",
           "homeKey": "bra_serie_a|450150",
           "awayKey": "chi_serie_a|550001",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "group": "F"
         },
         {
@@ -10786,9 +11055,9 @@
           "date": "2024-04-09",
           "homeKey": "equ_serie_a|570002",
           "awayKey": "bol_serie_a|530001",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 0,
+          "played": true,
           "group": "F"
         },
         {
@@ -10907,9 +11176,9 @@
           "date": "2024-04-09",
           "homeKey": "arg_serie_a|520004",
           "awayKey": "col_serie_a|560002",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 1,
+          "played": true,
           "group": "G"
         },
         {
@@ -10918,9 +11187,9 @@
           "date": "2024-04-09",
           "homeKey": "uru_serie_a|600001",
           "awayKey": "bra_serie_a|450169",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "group": "G"
         },
         {
@@ -11039,9 +11308,9 @@
           "date": "2024-04-09",
           "homeKey": "arg_serie_a|520001",
           "awayKey": "bra_serie_a|450129",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 3,
+          "awayScore": 2,
+          "played": true,
           "group": "H"
         },
         {
@@ -11050,9 +11319,9 @@
           "date": "2024-04-09",
           "homeKey": "par_serie_a|580002",
           "awayKey": "per_serie_a|590001",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 4,
+          "awayScore": 0,
+          "played": true,
           "group": "H"
         },
         {
@@ -11261,9 +11530,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_serie_a|450123",
           "awayKey": "chi_serie_a|550006",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 2,
+          "played": true,
           "group": "A"
         },
         {
@@ -11272,9 +11541,9 @@
           "date": "2024-04-10",
           "homeKey": "uru_serie_a|600005",
           "awayKey": "bol_serie_a|530004",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 1,
+          "played": true,
           "group": "A"
         },
         {
@@ -11393,9 +11662,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_serie_a|450182",
           "awayKey": "arg_serie_a|520010",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "group": "B"
         },
         {
@@ -11404,9 +11673,9 @@
           "date": "2024-04-10",
           "homeKey": "equ_serie_a|570005",
           "awayKey": "par_serie_a|580005",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 3,
+          "awayScore": 2,
+          "played": true,
           "group": "B"
         },
         {
@@ -11525,9 +11794,9 @@
           "date": "2024-04-10",
           "homeKey": "arg_serie_a|520006",
           "awayKey": "chi_serie_a|550005",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 3,
+          "awayScore": 0,
+          "played": true,
           "group": "C"
         },
         {
@@ -11536,9 +11805,9 @@
           "date": "2024-04-10",
           "homeKey": "par_serie_a|580004",
           "awayKey": "per_serie_a|590005",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 1,
+          "played": true,
           "group": "C"
         },
         {
@@ -11657,9 +11926,9 @@
           "date": "2024-04-10",
           "homeKey": "chi_serie_a|550004",
           "awayKey": "arg_serie_a|520009",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 3,
+          "awayScore": 0,
+          "played": true,
           "group": "D"
         },
         {
@@ -11668,9 +11937,9 @@
           "date": "2024-04-10",
           "homeKey": "uru_serie_a|600004",
           "awayKey": "bol_serie_a|530003",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 2,
+          "played": true,
           "group": "D"
         },
         {
@@ -11789,9 +12058,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_serie_a|450184",
           "awayKey": "col_serie_a|560004",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 2,
+          "played": true,
           "group": "E"
         },
         {
@@ -11800,9 +12069,9 @@
           "date": "2024-04-10",
           "homeKey": "uru_serie_a|600006",
           "awayKey": "ven_serie_a|610003",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 0,
+          "played": true,
           "group": "E"
         },
         {
@@ -11921,9 +12190,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_serie_a|450131",
           "awayKey": "arg_serie_a|520008",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "group": "F"
         },
         {
@@ -11932,9 +12201,9 @@
           "date": "2024-04-10",
           "homeKey": "col_serie_a|560006",
           "awayKey": "ven_serie_a|610004",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 1,
+          "played": true,
           "group": "F"
         },
         {
@@ -12053,9 +12322,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_serie_a|450127",
           "awayKey": "col_serie_a|560005",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 2,
+          "played": true,
           "group": "G"
         },
         {
@@ -12064,9 +12333,9 @@
           "date": "2024-04-10",
           "homeKey": "equ_serie_a|570006",
           "awayKey": "per_serie_a|590004",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 5,
+          "awayScore": 1,
+          "played": true,
           "group": "G"
         },
         {
@@ -12185,9 +12454,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_serie_a|450156",
           "awayKey": "arg_serie_a|520007",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 2,
+          "played": true,
           "group": "H"
         },
         {
@@ -12196,9 +12465,9 @@
           "date": "2024-04-10",
           "homeKey": "equ_serie_a|570004",
           "awayKey": "per_serie_a|590003",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 1,
+          "played": true,
           "group": "H"
         },
         {
@@ -12451,9 +12720,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_clubes|451130",
           "awayKey": "bra_serie_d|451084",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "tie": "P1-0"
         },
         {
@@ -12462,9 +12731,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_clubes|451129",
           "awayKey": "bra_serie_d|451087",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 1,
+          "played": true,
           "tie": "P1-1"
         },
         {
@@ -12473,9 +12742,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_clubes|451128",
           "awayKey": "bra_serie_d|451095",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 4,
+          "played": true,
           "tie": "P1-2"
         },
         {
@@ -12484,9 +12753,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_clubes|451126",
           "awayKey": "bra_serie_d|451099",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 3,
+          "played": true,
           "tie": "P1-3"
         },
         {
@@ -12495,9 +12764,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_clubes|451125",
           "awayKey": "bra_serie_d|451103",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 3,
+          "awayScore": 0,
+          "played": true,
           "tie": "P1-4"
         },
         {
@@ -12506,9 +12775,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_clubes|451124",
           "awayKey": "bra_serie_d|451110",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 3,
+          "played": true,
           "tie": "P1-5"
         },
         {
@@ -12517,9 +12786,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_clubes|451123",
           "awayKey": "bra_serie_d|451112",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "tie": "P1-6"
         },
         {
@@ -12528,9 +12797,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_clubes|451122",
           "awayKey": "bra_serie_d|451114",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 2,
+          "played": true,
           "tie": "P1-7"
         },
         {
@@ -12539,9 +12808,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_clubes|451121",
           "awayKey": "bra_serie_b|451003",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 4,
+          "played": true,
           "tie": "P1-8"
         },
         {
@@ -12550,9 +12819,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_clubes|451120",
           "awayKey": "bra_serie_b|451005",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 2,
+          "played": true,
           "tie": "P1-9"
         },
         {
@@ -12561,9 +12830,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_clubes|451119",
           "awayKey": "bra_serie_c|451008",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "tie": "P1-10"
         },
         {
@@ -12572,9 +12841,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_clubes|451118",
           "awayKey": "bra_serie_c|451019",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 1,
+          "played": true,
           "tie": "P1-11"
         },
         {
@@ -12594,9 +12863,9 @@
           "date": "2024-04-10",
           "homeKey": "bra_clubes|451127",
           "awayKey": "bra_serie_c|451020",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 1,
+          "played": true,
           "tie": "P1-13"
         }
       ],
@@ -16755,9 +17024,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451021",
           "awayKey": "bra_serie_d|451026",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 3,
+          "awayScore": 1,
+          "played": true,
           "group": "A"
         },
         {
@@ -16766,9 +17035,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451022",
           "awayKey": "bra_serie_d|451025",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 3,
+          "awayScore": 1,
+          "played": true,
           "group": "A"
         },
         {
@@ -16777,9 +17046,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451023",
           "awayKey": "bra_serie_d|451024",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 3,
+          "played": true,
           "group": "A"
         },
         {
@@ -17085,9 +17354,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451027",
           "awayKey": "bra_serie_d|451032",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "group": "B"
         },
         {
@@ -17096,9 +17365,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451028",
           "awayKey": "bra_serie_d|451031",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 0,
+          "played": true,
           "group": "B"
         },
         {
@@ -17107,9 +17376,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451029",
           "awayKey": "bra_serie_d|451030",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 0,
+          "played": true,
           "group": "B"
         },
         {
@@ -17415,9 +17684,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451033",
           "awayKey": "bra_serie_d|451038",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 3,
+          "awayScore": 2,
+          "played": true,
           "group": "C"
         },
         {
@@ -17426,9 +17695,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451034",
           "awayKey": "bra_serie_d|451037",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "group": "C"
         },
         {
@@ -17437,9 +17706,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451035",
           "awayKey": "bra_serie_d|451036",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "group": "C"
         },
         {
@@ -17745,9 +18014,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451039",
           "awayKey": "bra_serie_d|451044",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 0,
+          "played": true,
           "group": "D"
         },
         {
@@ -17756,9 +18025,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451040",
           "awayKey": "bra_serie_d|451043",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 1,
+          "played": true,
           "group": "D"
         },
         {
@@ -17767,9 +18036,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451041",
           "awayKey": "bra_serie_d|451042",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "group": "D"
         },
         {
@@ -18075,9 +18344,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451045",
           "awayKey": "bra_serie_d|451050",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 1,
+          "played": true,
           "group": "E"
         },
         {
@@ -18086,9 +18355,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451046",
           "awayKey": "bra_serie_d|451049",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 0,
+          "played": true,
           "group": "E"
         },
         {
@@ -18097,9 +18366,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451047",
           "awayKey": "bra_serie_d|451048",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 1,
+          "played": true,
           "group": "E"
         },
         {
@@ -18405,9 +18674,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451051",
           "awayKey": "bra_serie_d|451056",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "group": "F"
         },
         {
@@ -18416,9 +18685,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451052",
           "awayKey": "bra_serie_d|451055",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 1,
+          "played": true,
           "group": "F"
         },
         {
@@ -18427,9 +18696,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451053",
           "awayKey": "bra_serie_d|451054",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 2,
+          "played": true,
           "group": "F"
         },
         {
@@ -18735,9 +19004,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451057",
           "awayKey": "bra_serie_d|451062",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 4,
+          "awayScore": 2,
+          "played": true,
           "group": "G"
         },
         {
@@ -18746,9 +19015,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451058",
           "awayKey": "bra_serie_d|451061",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "group": "G"
         },
         {
@@ -18757,9 +19026,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451059",
           "awayKey": "bra_serie_d|451060",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 2,
+          "played": true,
           "group": "G"
         },
         {
@@ -19065,9 +19334,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451069",
           "awayKey": "bra_serie_d|451074",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 0,
+          "played": true,
           "group": "I"
         },
         {
@@ -19076,9 +19345,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451070",
           "awayKey": "bra_serie_d|451073",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 1,
+          "played": true,
           "group": "I"
         },
         {
@@ -19087,9 +19356,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451071",
           "awayKey": "bra_serie_d|451072",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 1,
+          "played": true,
           "group": "I"
         },
         {
@@ -19395,9 +19664,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451075",
           "awayKey": "bra_serie_d|451080",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 5,
+          "awayScore": 1,
+          "played": true,
           "group": "J"
         },
         {
@@ -19406,9 +19675,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451076",
           "awayKey": "bra_serie_d|451079",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 1,
+          "played": true,
           "group": "J"
         },
         {
@@ -19417,9 +19686,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451077",
           "awayKey": "bra_serie_d|451078",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 3,
+          "played": true,
           "group": "J"
         },
         {
@@ -19725,9 +19994,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451081",
           "awayKey": "bra_serie_d|451086",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 2,
+          "played": true,
           "group": "K"
         },
         {
@@ -19736,9 +20005,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451082",
           "awayKey": "bra_serie_d|451085",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 3,
+          "played": true,
           "group": "K"
         },
         {
@@ -19747,9 +20016,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451083",
           "awayKey": "bra_serie_d|451084",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 1,
+          "played": true,
           "group": "K"
         },
         {
@@ -20055,9 +20324,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451087",
           "awayKey": "bra_serie_d|451092",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 1,
+          "played": true,
           "group": "L"
         },
         {
@@ -20066,9 +20335,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451088",
           "awayKey": "bra_serie_d|451091",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 3,
+          "awayScore": 1,
+          "played": true,
           "group": "L"
         },
         {
@@ -20077,9 +20346,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451089",
           "awayKey": "bra_serie_d|451090",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 1,
+          "played": true,
           "group": "L"
         },
         {
@@ -20385,9 +20654,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451093",
           "awayKey": "bra_serie_d|451098",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 2,
+          "played": true,
           "group": "M"
         },
         {
@@ -20396,9 +20665,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451094",
           "awayKey": "bra_serie_d|451097",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 3,
+          "awayScore": 0,
+          "played": true,
           "group": "M"
         },
         {
@@ -20407,9 +20676,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451095",
           "awayKey": "bra_serie_d|451096",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 3,
+          "played": true,
           "group": "M"
         },
         {
@@ -20715,9 +20984,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451099",
           "awayKey": "bra_serie_d|451104",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 1,
+          "played": true,
           "group": "N"
         },
         {
@@ -20726,9 +20995,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451100",
           "awayKey": "bra_serie_d|451103",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 4,
+          "played": true,
           "group": "N"
         },
         {
@@ -20737,9 +21006,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451101",
           "awayKey": "bra_serie_d|451102",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 1,
+          "played": true,
           "group": "N"
         },
         {
@@ -21045,9 +21314,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451105",
           "awayKey": "bra_serie_d|451110",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 1,
+          "played": true,
           "group": "O"
         },
         {
@@ -21056,9 +21325,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451106",
           "awayKey": "bra_serie_d|451109",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 1,
+          "awayScore": 0,
+          "played": true,
           "group": "O"
         },
         {
@@ -21067,9 +21336,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451107",
           "awayKey": "bra_serie_d|451108",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 2,
+          "played": true,
           "group": "O"
         },
         {
@@ -21375,9 +21644,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451111",
           "awayKey": "bra_serie_d|451116",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 0,
+          "awayScore": 1,
+          "played": true,
           "group": "P"
         },
         {
@@ -21386,9 +21655,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451112",
           "awayKey": "bra_serie_d|451115",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 2,
+          "awayScore": 0,
+          "played": true,
           "group": "P"
         },
         {
@@ -21397,9 +21666,9 @@
           "date": "2024-04-07",
           "homeKey": "bra_serie_d|451113",
           "awayKey": "bra_serie_d|451114",
-          "homeScore": null,
-          "awayScore": null,
-          "played": false,
+          "homeScore": 3,
+          "awayScore": 1,
+          "played": true,
           "group": "P"
         },
         {
@@ -24676,55 +24945,6 @@
         }
       },
       {
-        "id": "p-9000061",
-        "name": "Guilherme Freitas",
-        "age": 17,
-        "position": "CB",
-        "skill": 63,
-        "fitness": 80,
-        "morale": 60,
-        "goalsScored": 0,
-        "assists": 0,
-        "appearances": 0,
-        "weeklyGrowth": 0,
-        "value": 2380000,
-        "salary": 1243,
-        "contractExpiry": "",
-        "contract": {
-          "start": "2024-04-01",
-          "end": "2030-04-01",
-          "years": 6
-        },
-        "birthDate": "2006-10-28",
-        "potential": 81,
-        "potentialEstimate": 88,
-        "devAcc": {
-          "def": 0,
-          "pas": 0,
-          "drb": 0,
-          "sht": 0
-        },
-        "teamId": "451066",
-        "shirtNumber": 1,
-        "def": 65,
-        "pas": 57,
-        "drb": 55,
-        "sht": 57,
-        "trainingAccumulated": {
-          "def": 0,
-          "pas": 0,
-          "drb": 0,
-          "sht": 0,
-          "mor": 0
-        },
-        "lastGrowth": {
-          "def": 0,
-          "pas": 0,
-          "drb": 0,
-          "sht": 0
-        }
-      },
-      {
         "id": "p-9000062",
         "name": "Benjamín Moreira",
         "age": 18,
@@ -24775,55 +24995,6 @@
         }
       },
       {
-        "id": "p-9000063",
-        "name": "Lautaro Barros",
-        "age": 17,
-        "position": "RB",
-        "skill": 50,
-        "fitness": 80,
-        "morale": 60,
-        "goalsScored": 0,
-        "assists": 0,
-        "appearances": 0,
-        "weeklyGrowth": 0,
-        "value": 930000,
-        "salary": 500,
-        "contractExpiry": "",
-        "contract": {
-          "start": "2024-04-01",
-          "end": "2028-04-01",
-          "years": 4
-        },
-        "birthDate": "2006-06-02",
-        "potential": 50,
-        "potentialEstimate": 52,
-        "devAcc": {
-          "def": 0,
-          "pas": 0,
-          "drb": 0,
-          "sht": 0
-        },
-        "teamId": "451066",
-        "shirtNumber": 3,
-        "def": 50,
-        "pas": 50,
-        "drb": 50,
-        "sht": 50,
-        "trainingAccumulated": {
-          "def": 0,
-          "pas": 0,
-          "drb": 0,
-          "sht": 0,
-          "mor": 0
-        },
-        "lastGrowth": {
-          "def": 0,
-          "pas": 0,
-          "drb": 0,
-          "sht": 0
-        }
-      },
-      {
         "id": "p-9000064",
         "name": "Mateus Barros",
         "age": 19,
@@ -24859,56 +25030,6 @@
         "pas": 58,
         "drb": 59,
         "sht": 60,
-        "trainingAccumulated": {
-          "def": 0,
-          "pas": 0,
-          "drb": 0,
-          "sht": 0,
-          "mor": 0
-        },
-        "lastGrowth": {
-          "def": 0,
-          "pas": 0,
-          "drb": 0,
-          "sht": 0
-        }
-      },
-      {
-        "id": "p-9000065",
-        "name": "Leonardo Monteiro",
-        "age": 20,
-        "position": "CM",
-        "skill": 68,
-        "fitness": 80,
-        "morale": 60,
-        "goalsScored": 0,
-        "assists": 0,
-        "appearances": 0,
-        "weeklyGrowth": 0,
-        "value": 2790000,
-        "salary": 2002,
-        "contractExpiry": "",
-        "contract": {
-          "start": "2024-04-01",
-          "end": "2028-04-01",
-          "years": 4
-        },
-        "birthDate": "2003-07-06",
-        "potential": 72,
-        "potentialEstimate": 69,
-        "playStyle": "Orchestrator",
-        "devAcc": {
-          "def": 0,
-          "pas": 0,
-          "drb": 0,
-          "sht": 0
-        },
-        "teamId": "451066",
-        "shirtNumber": 5,
-        "def": 65,
-        "pas": 70,
-        "drb": 71,
-        "sht": 63,
         "trainingAccumulated": {
           "def": 0,
           "pas": 0,
@@ -25127,7 +25248,7 @@
         "position": "RW",
         "skill": 56,
         "fitness": 80,
-        "morale": 60,
+        "morale": 52,
         "goalsScored": 0,
         "assists": 0,
         "appearances": 0,
@@ -25168,7 +25289,8 @@
           "pas": 0,
           "drb": 0,
           "sht": 0
-        }
+        },
+        "listedForSale": true
       },
       {
         "id": "p-9000071",
@@ -25501,56 +25623,6 @@
         "pas": 54,
         "drb": 56,
         "sht": 52,
-        "trainingAccumulated": {
-          "def": 0,
-          "pas": 0,
-          "drb": 0,
-          "sht": 0,
-          "mor": 0
-        },
-        "lastGrowth": {
-          "def": 0,
-          "pas": 0,
-          "drb": 0,
-          "sht": 0
-        }
-      },
-      {
-        "id": "p-9000079",
-        "name": "Lautaro Dias",
-        "age": 18,
-        "position": "CM",
-        "skill": 65,
-        "fitness": 80,
-        "morale": 60,
-        "goalsScored": 0,
-        "assists": 0,
-        "appearances": 0,
-        "weeklyGrowth": 0,
-        "value": 2610000,
-        "salary": 1504,
-        "contractExpiry": "",
-        "contract": {
-          "start": "2024-04-01",
-          "end": "2029-04-01",
-          "years": 5
-        },
-        "birthDate": "2006-01-02",
-        "potential": 79,
-        "potentialEstimate": 79,
-        "playStyle": "Hole Player",
-        "devAcc": {
-          "def": 0,
-          "pas": 0,
-          "drb": 0,
-          "sht": 0
-        },
-        "teamId": "451066",
-        "shirtNumber": 19,
-        "def": 61,
-        "pas": 65,
-        "drb": 68,
-        "sht": 64,
         "trainingAccumulated": {
           "def": 0,
           "pas": 0,
@@ -28586,29 +28658,128 @@
         }
       },
       {
-        "id": "p-9000141",
-        "name": "Benjamín Oliveira",
-        "age": 20,
-        "position": "ST",
-        "skill": 50,
+        "id": "p-9000143",
+        "name": "Tomás Dias",
+        "age": 17,
+        "position": "CM",
+        "skill": 54,
         "fitness": 80,
         "morale": 60,
         "goalsScored": 0,
         "assists": 0,
         "appearances": 0,
         "weeklyGrowth": 0,
-        "value": 1080000,
-        "salary": 500,
+        "value": 1330000,
+        "salary": 527,
         "contractExpiry": "",
         "contract": {
           "start": "2024-04-01",
           "end": "2028-04-01",
           "years": 4
         },
-        "birthDate": "2003-09-14",
-        "potential": 50,
-        "potentialEstimate": 50,
-        "playStyle": "Dummy Runner",
+        "birthDate": "2007-03-15",
+        "potential": 63,
+        "potentialEstimate": 66,
+        "devAcc": {
+          "def": 0,
+          "pas": 0,
+          "drb": 0,
+          "sht": 0
+        },
+        "teamId": "451066",
+        "shirtNumber": 1,
+        "def": 51,
+        "pas": 54,
+        "drb": 55,
+        "sht": 54,
+        "trainingAccumulated": {
+          "def": 0,
+          "pas": 0,
+          "drb": 0,
+          "sht": 0,
+          "mor": 0
+        },
+        "lastGrowth": {
+          "def": 0,
+          "pas": 0,
+          "drb": 0,
+          "sht": 0
+        }
+      },
+      {
+        "id": "p-9000144",
+        "name": "Otávio Mendes",
+        "age": 20,
+        "position": "ST",
+        "skill": 59,
+        "fitness": 80,
+        "morale": 60,
+        "goalsScored": 0,
+        "assists": 0,
+        "appearances": 0,
+        "weeklyGrowth": 0,
+        "value": 1760000,
+        "salary": 849,
+        "contractExpiry": "",
+        "contract": {
+          "start": "2024-04-01",
+          "end": "2029-04-01",
+          "years": 5
+        },
+        "birthDate": "2003-07-09",
+        "potential": 62,
+        "potentialEstimate": 63,
+        "playStyle": "Goal Poacher",
+        "devAcc": {
+          "def": 0,
+          "pas": 0,
+          "drb": 0,
+          "sht": 0
+        },
+        "teamId": "451066",
+        "shirtNumber": 3,
+        "def": 54,
+        "pas": 53,
+        "drb": 57,
+        "sht": 63,
+        "trainingAccumulated": {
+          "def": 0,
+          "pas": 0,
+          "drb": 0,
+          "sht": 0,
+          "mor": 0
+        },
+        "lastGrowth": {
+          "def": 0,
+          "pas": 0,
+          "drb": 0,
+          "sht": 0
+        }
+      },
+      {
+        "id": "p-9000146",
+        "name": "Miguel Fernández",
+        "age": 20,
+        "position": "CB",
+        "skill": 56,
+        "fitness": 80,
+        "morale": 52,
+        "goalsScored": 0,
+        "assists": 0,
+        "appearances": 0,
+        "weeklyGrowth": 0,
+        "value": 1450000,
+        "salary": 638,
+        "contractExpiry": "",
+        "contract": {
+          "start": "2024-04-01",
+          "end": "2030-04-01",
+          "years": 6
+        },
+        "birthDate": "2003-04-24",
+        "potential": 56,
+        "potentialEstimate": 56,
+        "playStyle": "The Destroyer",
         "devAcc": {
           "def": 0,
           "pas": 0,
@@ -28617,7 +28788,7 @@
         },
         "teamId": "451066",
         "shirtNumber": 12,
-        "def": 50,
+        "def": 59,
         "pas": 50,
         "drb": 50,
         "sht": 50,
@@ -28633,228 +28804,287 @@
           "pas": 0,
           "drb": 0,
           "sht": 0
+        },
+        "listedForSale": true
+      },
+      {
+        "id": "p-9000147",
+        "name": "Diego Rocha",
+        "age": 17,
+        "position": "RB",
+        "skill": 62,
+        "fitness": 80,
+        "morale": 60,
+        "goalsScored": 0,
+        "assists": 0,
+        "appearances": 0,
+        "weeklyGrowth": 0,
+        "value": 2360000,
+        "salary": 1130,
+        "contractExpiry": "",
+        "contract": {
+          "start": "2024-04-01",
+          "end": "2030-04-01",
+          "years": 6
+        },
+        "birthDate": "2007-03-20",
+        "potential": 83,
+        "potentialEstimate": 82,
+        "devAcc": {
+          "def": 0,
+          "pas": 0,
+          "drb": 0,
+          "sht": 0
+        },
+        "teamId": "451066",
+        "shirtNumber": 5,
+        "def": 66,
+        "pas": 54,
+        "drb": 54,
+        "sht": 51,
+        "trainingAccumulated": {
+          "def": 0,
+          "pas": 0,
+          "drb": 0,
+          "sht": 0,
+          "mor": 0
+        },
+        "lastGrowth": {
+          "def": 0,
+          "pas": 0,
+          "drb": 0,
+          "sht": 0
         }
+      },
+      {
+        "id": "p-9000149",
+        "name": "Kauã González",
+        "age": 18,
+        "position": "CM",
+        "skill": 56,
+        "fitness": 80,
+        "morale": 52,
+        "goalsScored": 0,
+        "assists": 0,
+        "appearances": 0,
+        "weeklyGrowth": 0,
+        "value": 1500000,
+        "salary": 638,
+        "contractExpiry": "",
+        "contract": {
+          "start": "2024-04-01",
+          "end": "2030-04-01",
+          "years": 6
+        },
+        "birthDate": "2005-07-18",
+        "potential": 63,
+        "potentialEstimate": 65,
+        "playStyle": "Classic No. 10",
+        "devAcc": {
+          "def": 0,
+          "pas": 0,
+          "drb": 0,
+          "sht": 0
+        },
+        "teamId": "451066",
+        "shirtNumber": 19,
+        "def": 52,
+        "pas": 57,
+        "drb": 58,
+        "sht": 55,
+        "trainingAccumulated": {
+          "def": 0,
+          "pas": 0,
+          "drb": 0,
+          "sht": 0,
+          "mor": 0
+        },
+        "lastGrowth": {
+          "def": 0,
+          "pas": 0,
+          "drb": 0,
+          "sht": 0
+        },
+        "listedForSale": true
       }
     ],
     "mesProcessado": "2024-04",
-    "proximoId": 9000142,
-    "relatorios": {}
+    "proximoId": 9000150,
+    "relatorios": {},
+    "vagas": {
+      "451066": 3
+    },
+    "movimentos": [
+      {
+        "mes": "2024-04",
+        "teamId": "451066",
+        "playerId": "p-9000063",
+        "nome": "Lautaro Barros",
+        "idade": 17,
+        "posicao": "RB",
+        "ovr": 50,
+        "estrelas": 1,
+        "tipo": "DISPENSADO"
+      },
+      {
+        "mes": "2024-04",
+        "teamId": "451066",
+        "playerId": "p-9000141",
+        "nome": "Benjamín Oliveira",
+        "idade": 20,
+        "posicao": "ST",
+        "ovr": 50,
+        "estrelas": 1,
+        "tipo": "DISPENSADO"
+      },
+      {
+        "mes": "2024-04",
+        "teamId": "451066",
+        "playerId": "p-9000142",
+        "nome": "Gustavo Araújo",
+        "idade": 17,
+        "posicao": "CB",
+        "ovr": 54,
+        "estrelas": 1,
+        "tipo": "DISPENSADO"
+      },
+      {
+        "mes": "2024-04",
+        "teamId": "451066",
+        "playerId": "p-9000065",
+        "nome": "Leonardo Monteiro",
+        "idade": 20,
+        "posicao": "CM",
+        "ovr": 68,
+        "estrelas": 3,
+        "tipo": "PROMOVIDO"
+      },
+      {
+        "mes": "2024-04",
+        "teamId": "451066",
+        "playerId": "p-9000145",
+        "nome": "Vinícius Herrera",
+        "idade": 17,
+        "posicao": "RB",
+        "ovr": 67,
+        "estrelas": 5,
+        "tipo": "PROMOVIDO"
+      },
+      {
+        "mes": "2024-04",
+        "teamId": "451066",
+        "playerId": "p-9000079",
+        "nome": "Lautaro Dias",
+        "idade": 18,
+        "posicao": "CM",
+        "ovr": 65,
+        "estrelas": 4,
+        "tipo": "PROMOVIDO"
+      },
+      {
+        "mes": "2024-04",
+        "teamId": "451066",
+        "playerId": "p-9000148",
+        "nome": "Otávio Costa",
+        "idade": 18,
+        "posicao": "CM",
+        "ovr": 65,
+        "estrelas": 4,
+        "tipo": "PROMOVIDO"
+      }
+    ]
   },
-  "inbox": [
+  "inbox": [],
+  "negociacoes": [
     {
-      "keys": [],
-      "date": "2024-04-01",
-      "categoria": "CONTRACT",
-      "ir": "SQUAD",
-      "de": "Director of Football",
-      "assunto": "Contract renewed: Rodriguinho",
-      "corpo": "Rodriguinho signed a new contract until 01 Apr 2027 (3 years).",
-      "id": "msg-2024-04-01-a-5bo0",
-      "lida": false
-    },
-    {
-      "keys": [],
-      "date": "2024-04-01",
-      "categoria": "CONTRACT",
-      "ir": "SQUAD",
-      "de": "Director of Football",
-      "assunto": "Contract renewed: Gilvan",
-      "corpo": "Gilvan signed a new contract until 01 Apr 2025 (1 years).",
-      "id": "msg-2024-04-01-9-juwm",
-      "lida": false
-    },
-    {
-      "keys": [],
-      "date": "2024-04-01",
-      "categoria": "CONTRACT",
-      "ir": "SQUAD",
-      "de": "Director of Football",
-      "assunto": "Contract renewed: Gustavo Ramos",
-      "corpo": "Gustavo Ramos signed a new contract until 01 Apr 2028 (4 years).",
-      "id": "msg-2024-04-01-8-evet",
-      "lida": false
-    },
-    {
-      "keys": [],
-      "date": "2024-04-01",
-      "categoria": "CONTRACT",
-      "ir": "SQUAD",
-      "de": "Director of Football",
-      "assunto": "Contract renewed: Gilvan",
-      "corpo": "Gilvan signed a new contract until 01 Apr 2025 (1 years).",
-      "id": "msg-2024-04-01-7-9as4",
-      "lida": false
-    },
-    {
-      "keys": [],
-      "date": "2024-04-01",
-      "categoria": "CONTRACT",
-      "ir": "SQUAD",
-      "de": "Director of Football",
-      "assunto": "Contract renewed: Norberto",
-      "corpo": "Norberto signed a new contract until 01 Apr 2027 (3 years).",
-      "id": "msg-2024-04-01-6-k7z8",
-      "lida": false
-    },
-    {
-      "keys": [],
-      "date": "2024-04-01",
-      "categoria": "CONTRACT",
-      "ir": "SQUAD",
-      "de": "Director of Football",
-      "assunto": "Contract renewed: Felipe Carneiro",
-      "corpo": "Felipe Carneiro signed a new contract until 01 Apr 2029 (5 years).",
-      "id": "msg-2024-04-01-5-sah0",
-      "lida": false
-    },
-    {
-      "keys": [],
-      "date": "2024-04-01",
-      "categoria": "SQUAD",
-      "ir": "SQUAD",
-      "de": "Head of Scouting",
-      "assunto": "Promoted from the academy: Pedro Molina",
-      "corpo": "Pedro Molina (ST, OVR 75, 20) joined the first team. A new youngster will fill the academy spot.",
-      "id": "msg-2024-04-01-4-bjbl",
-      "lida": false
-    },
-    {
-      "keys": [
-        "contract|ATENCAO|p-272688",
-        "contract|ATENCAO|p-272690",
-        "contract|ATENCAO|p-272695",
-        "contract|ATENCAO|p-272696",
-        "contract|ATENCAO|p-272713"
-      ],
-      "date": "2024-04-01",
-      "categoria": "CONTRACT",
-      "alta": false,
-      "ir": "SQUAD",
-      "de": "Director of Football",
-      "assunto": "5 contract(s) end within 12 months",
-      "corpo": "• Gilvan (CB, OVR 74) — expires 01 Nov 2024\n• Norberto (RB, OVR 76) — expires 01 Feb 2025\n• Gustavo Ramos (AM, OVR 74) — expires 01 Dec 2024\n• Carlão (GK, OVR 72) — expires 01 Nov 2024\n• Italo (ST, OVR 38) — expires 01 Dec 2024\n\nNegotiate a renewal, or consider selling while he still has market value.",
-      "id": "msg-2024-04-01-k-hxmd",
-      "lida": false
-    },
-    {
-      "keys": [
-        "contract|CRITICO|p-272687",
-        "contract|CRITICO|p-272694",
-        "contract|CRITICO|p-272703",
-        "contract|CRITICO|p-272705",
-        "contract|CRITICO|p-272714"
-      ],
-      "date": "2024-04-01",
-      "categoria": "CONTRACT",
-      "alta": true,
-      "ir": "SQUAD",
-      "de": "Director of Football",
-      "assunto": "Critical: 5 contract(s) end within 6 months",
-      "corpo": "• Jean Pierre (CB, OVR 62) — expires 01 May 2024\n• Wallace Pernambucano (ST, OVR 70) — expires 01 Jun 2024\n• Felipe Carneiro (GK, OVR 76) — expires 01 Oct 2024\n• Rodriguinho (DM, OVR 68) — expires 01 Oct 2024\n• Neto Vaqueiro (ST, OVR 38) — expires 01 Oct 2024\n\nRenew now or sell: when the contract ends the player leaves for free.",
-      "id": "msg-2024-04-01-l-dn9e",
-      "lida": false
-    },
-    {
-      "keys": [
-        "welcome|board"
-      ],
-      "date": "2024-04-01",
-      "categoria": "BOARD",
-      "de": "Chairman",
-      "ir": "LEAGUE",
-      "assunto": "Welcome to América-RN, paulo costa",
-      "corpo": "On behalf of the board, welcome to América-RN. We play at Estádio Municipal de Natal in Natal, and this season we compete in the Série D.\n\nYour squad ranks 6th of 6 on overall strength (66). The board's expectation is to secure the club's place in the division and build for the future.\n\nYou have our full support. Good luck.",
-      "id": "msg-2024-04-01-d-fv60",
-      "lida": false
-    },
-    {
-      "keys": [
-        "welcome|football"
-      ],
-      "date": "2024-04-01",
-      "categoria": "SQUAD",
-      "de": "Director of Football",
-      "ir": "SQUAD",
-      "assunto": "Squad overview",
-      "corpo": "You have 29 professionals available. No contract expires within the next 12 months.\n\nThe Sub-20 academy has 20 youngsters aged 15 to 20. Promotions to the first team are always your decision; players who turn 21 leave the academy.",
-      "id": "msg-2024-04-01-e-p9jv",
-      "lida": false
-    },
-    {
-      "keys": [
-        "welcome|training"
-      ],
-      "date": "2024-04-01",
-      "categoria": "TRAINING",
-      "de": "Assistant Manager",
-      "ir": "TRAINING_VIEW",
-      "assunto": "Training plan",
-      "corpo": "The squad is in pre-season and fitness is still low. Set the weekly training schedule, balance workload and recovery, and avoid heavy sessions right before matches. I will report injuries and fitness problems here.",
-      "id": "msg-2024-04-01-f-jxka",
-      "lida": false
-    },
-    {
-      "keys": [
-        "welcome|finance"
-      ],
-      "date": "2024-04-01",
-      "categoria": "FINANCE",
-      "de": "Finance Director",
-      "ir": "FINANCES",
-      "assunto": "Club finances",
-      "corpo": "The club cash balance is $900,000. Wages are paid every week, so keep an eye on the payroll before signing players. I will send a monthly summary and warn you if the balance gets tight.",
-      "id": "msg-2024-04-01-g-977g",
-      "lida": false
-    },
-    {
-      "keys": [
-        "welcome|scout"
-      ],
-      "date": "2024-04-01",
-      "categoria": "SCOUTING",
-      "de": "Head of Scouting",
-      "ir": "SQUAD",
-      "assunto": "Scouting department",
-      "corpo": "Our scouts follow the Sub-20 academy every month. Potential is shown as a star estimate — it is an opinion, not a guarantee, and it becomes more reliable as the players get older. A monthly development report will arrive here.",
-      "id": "msg-2024-04-01-h-m63t",
-      "lida": false
-    },
-    {
-      "keys": [
-        "finance|2024-04"
-      ],
-      "date": "2024-04-01",
-      "categoria": "FINANCE",
-      "ir": "FINANCES",
-      "de": "Finance Director",
-      "assunto": "Monthly finance summary — 2024-04",
-      "corpo": "Cash balance: $900,000. Weekly payroll: $286,042 (3 weeks of wages covered).",
-      "id": "msg-2024-04-01-b-b7qb",
-      "lida": true
-    },
-    {
-      "keys": [
-        "finance-low|2024-04"
-      ],
-      "date": "2024-04-01",
-      "categoria": "FINANCE",
-      "alta": true,
-      "ir": "FINANCES",
-      "de": "Finance Director",
-      "assunto": "Warning: cash is running low",
-      "corpo": "Cash is $900,000 — less than 8 weeks of wages ($286,042 per week). Avoid new signings and consider selling players.",
-      "id": "msg-2024-04-01-c-teuf",
-      "lida": true
+      "id": "neg-p-272688-2024-04-10",
+      "playerId": "p-272688",
+      "nome": "Gilvan",
+      "oferta": {
+        "salario": 15010,
+        "anos": 2
+      },
+      "pedido": {
+        "salario": 15010,
+        "anos": 1
+      },
+      "inicio": "2024-04-10",
+      "decide": "2024-04-13"
     }
   ],
-  "negociacoes": [],
   "mercado": {
-    "negociacoes": [],
+    "negociacoes": [
+      {
+        "id": "neg-5",
+        "playerId": "p-271951",
+        "compradorId": "451066",
+        "vendedorId": "451065",
+        "origem": "ELENCO",
+        "estado": "RECUSADA",
+        "aguarda": null,
+        "valor": 390000,
+        "rodadas": 1,
+        "criada": "2024-04-01",
+        "atualizada": "2024-04-04",
+        "expira": "2024-04-08",
+        "respondeEm": null,
+        "historico": [
+          {
+            "n": 1,
+            "de": "COMPRADOR",
+            "valor": 390000,
+            "data": "2024-04-01"
+          }
+        ],
+        "motivo": "oferta muito baixa"
+      }
+    ],
     "transacoes": [],
-    "historico": [],
-    "proximoNum": 1,
-    "ultimoDia": "2024-04-01",
+    "historico": [
+      {
+        "id": "mov-disp-1-p-272711",
+        "data": "2024-04-01",
+        "jogadorId": "p-272711",
+        "jogadorNome": "Breno Araújo",
+        "de": "451066",
+        "para": "MARKET",
+        "valor": 0,
+        "tipo": "DISPENSA"
+      },
+      {
+        "id": "mov-disp-2-p-272715",
+        "data": "2024-04-01",
+        "jogadorId": "p-272715",
+        "jogadorNome": "José Luiz",
+        "de": "451066",
+        "para": "MARKET",
+        "valor": 0,
+        "tipo": "DISPENSA"
+      },
+      {
+        "id": "mov-disp-3-p-272714",
+        "data": "2024-04-01",
+        "jogadorId": "p-272714",
+        "jogadorNome": "Neto Vaqueiro",
+        "de": "451066",
+        "para": "MARKET",
+        "valor": 0,
+        "tipo": "DISPENSA"
+      },
+      {
+        "id": "mov-disp-4-p-272713",
+        "data": "2024-04-01",
+        "jogadorId": "p-272713",
+        "jogadorNome": "Italo",
+        "de": "451066",
+        "para": "MARKET",
+        "valor": 0,
+        "tipo": "DISPENSA"
+      }
+    ],
+    "proximoNum": 6,
+    "ultimoDia": "2024-04-10",
     "mesDosValores": "2024-04"
   },
-  "saveDate": "2026-10-26T14:33:06.350Z"
+  "saveDate": "2026-10-26T15:26:57.101Z"
 }
