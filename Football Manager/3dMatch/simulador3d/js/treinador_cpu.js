@@ -20,7 +20,8 @@ const TreinadorCPU = {
     activo: true,
     intervalo: 5.0,          // minutos de jogo entre leituras
     minutoAmarelo: 62,       // com conhecimento 70; mais cedo com mais conhecimento (-0,25 min por ponto), mais tarde com menos
-    maxTrocas: 5,
+    maxTrocas: 5,            // por jogo oficial
+    maxTrocasAmistoso: 11,   // num amistoso as trocas nao tem limite (so o banco)
     equipas: { TeamA: null, TeamB: null },   // team -> { conhecimento, base, ultimoMin, reagirEm, golosVistos, vermelhosVistos, trocas, intencao }
     _log: [],
 
@@ -28,7 +29,7 @@ const TreinadorCPU = {
         const base = Object.assign({ estilo: 'balanceado', pressaoDefensiva: 'balanced', linhaDefensiva: 'medium' }, (dados && dados.base) || {});
         const k = (dados && typeof dados.conhecimento === 'number') ? dados.conhecimento : 70;
         const tabela = (dados && dados.tabela && dados.tabela.posicao && dados.tabela.total) ? dados.tabela : null;
-        this.equipas[team] = { conhecimento: k, base: base, tabela: tabela, objetivo: this.objetivoDe(tabela), ultimoMin: 0, reagirEm: null, golosVistos: 0, vermelhosVistos: 0, trocas: 0, intencao: 'BALANCED', pedidas: 0 };
+        this.equipas[team] = { conhecimento: k, base: base, tabela: tabela, objetivo: this.objetivoDe(tabela), amistoso: !!(dados && dados.amistoso), maxTrocas: (dados && dados.amistoso) ? this.maxTrocasAmistoso : this.maxTrocas, amarelosVistos: 0, ultimoMin: 0, reagirEm: null, golosVistos: 0, vermelhosVistos: 0, trocas: 0, intencao: 'BALANCED', pedidas: 0 };
         // A POSICAO NA TABELA muda a postura de PARTIDA (so com leitura de jogo: conhecimento >= 60): contra um adversario muito melhor classificado o treinador fecha-se; contra um muito pior, ataca.
         const T = this.equipas[team];
         T.base = this.ajustarBasePorTabela(base, T);
@@ -47,7 +48,7 @@ const TreinadorCPU = {
         if (!T.tabela || !(T.tabela.posicaoAdv > 0) || T.conhecimento < 60) return t;
         const d = T.tabela.posicaoAdv - T.tabela.posicao;          // > 0: o adversario esta pior classificado
         const limiar = Math.max(4, Math.round(T.tabela.total * 0.3));
-        if (d >= limiar) { if (t.estilo === 'balanceado' || t.estilo === 'defesa') t.estilo = 'ataque'; t.pressaoDefensiva = 'high'; }
+        if (d >= limiar) { if (t.estilo === 'balanceado' || t.estilo === 'defesa') t.estilo = 'ataque'; t.pressaoDefensiva = 'balanced'; }
         else if (d <= -limiar && T.objetivo !== 'TITULO') { if (t.estilo === 'balanceado' || t.estilo === 'ataque') t.estilo = 'defesa'; t.pressaoDefensiva = 'low'; t.linhaDefensiva = 'low'; }
         return t;
     },
@@ -60,6 +61,23 @@ const TreinadorCPU = {
 
     // O minuto de jogo (1..), como o resto do motor o conta.
     minuto() { return Match.tempoDeJogo / 60 + 1; },
+
+    // Os jogadores de campo desta equipa com amarelo (os que pressionam e disputam bolas): defesas e medios pesam mais.
+    amarelosEmCampo(team) {
+        const lista = team === 'TeamA' ? Match.players : Match.opponents;
+        let n = 0;
+        for (const p of lista) if (p.temAmarelo && p.role !== 'gk') n += (p.role === 'def' || p.role === 'mid') ? 1 : 0.5;
+        return n;
+    },
+
+    // A PRESSAO NAO PODE SER ALTA COM AMARELOS: um jogador amarelado que pressiona arrisca a expulsao. Com amarelos o treinador baixa a pressao da equipa (e, mais tarde, troca-os: ver `substituicoesPorCartoes`).
+    limitarPorAmarelos(tatica, amarelos) {
+        const t = Object.assign({}, tatica);
+        const ordem = { low: 0, balanced: 1, high: 2 };
+        const teto = amarelos >= 3 ? 'low' : amarelos >= 1 ? 'balanced' : 'high';
+        if (ordem[t.pressaoDefensiva] > ordem[teto]) t.pressaoDefensiva = teto;
+        return t;
+    },
 
     _estado(team) {
         const meus = team === 'TeamA' ? Match.placarA : Match.placarB, deles = team === 'TeamA' ? Match.placarB : Match.placarA;
@@ -103,7 +121,7 @@ const TreinadorCPU = {
     taticaDeIntencao(base, intencao) {
         const t = Object.assign({}, base);
         switch (intencao) {
-            case 'ATTACK': t.estilo = (base.estilo === 'muito_ofensiva') ? 'muito_ofensiva' : 'ataque'; t.pressaoDefensiva = 'high'; t.linhaDefensiva = 'high'; break;
+            case 'ATTACK': t.estilo = (base.estilo === 'muito_ofensiva') ? 'muito_ofensiva' : 'ataque'; t.pressaoDefensiva = 'balanced'; t.linhaDefensiva = 'high'; break;   // a pressao ALTA subia faltas e cartoes (23 faltas e 8 amarelos por jogo): ataca com a linha alta mas pressiona de forma equilibrada
             case 'RETREAT': t.estilo = 'muito_defensiva'; t.pressaoDefensiva = 'low'; t.linhaDefensiva = 'low'; break;
             case 'POSSESS': t.estilo = 'balanceado'; t.pressaoDefensiva = 'low'; t.linhaDefensiva = 'medium'; break;
             default: break;
@@ -124,6 +142,9 @@ const TreinadorCPU = {
                 T.golosVistos = e.golos; T.vermelhosVistos = e.vermelhosMeus + e.vermelhosDeles;
                 T.reagirEm = Match.tempoDeJogo + Math.max(2, (100 - T.conhecimento) * 0.3);
             }
+            // Um amarelo novo (ou menos): o treinador reage.
+            const amarelos = this.amarelosEmCampo(team);
+            if (amarelos !== T.amarelosVistos) { T.amarelosVistos = amarelos; T.reagirEm = Match.tempoDeJogo + Math.max(2, (100 - T.conhecimento) * 0.3); }
             const proximo = T.ultimoMin + this.intervalo;
             const porTempo = min >= proximo;
             const porEvento = T.reagirEm !== null && Match.tempoDeJogo >= T.reagirEm;
@@ -131,10 +152,14 @@ const TreinadorCPU = {
             if (porTempo) T.ultimoMin = Math.floor(min / this.intervalo) * this.intervalo;
             T.reagirEm = null;
             const intencao = this.decidirIntencao(T, e, min);
-            if (intencao !== T.intencao) {
+            // A tatica da intencao, com a pressao limitada pelos amarelos.
+            const tatica = this.limitarPorAmarelos(this.taticaDeIntencao(T.base, intencao), amarelos);
+            const atual = Tatics.porEquipa[team];
+            const mudou = intencao !== T.intencao || !atual || atual.pressaoDefensiva !== tatica.pressaoDefensiva || atual.estilo !== tatica.estilo || atual.linhaDefensiva !== tatica.linhaDefensiva;
+            if (mudou) {
+                this._log.push({ min: Math.floor(min), team, intencao, dif: e.dif, k: T.conhecimento, pressao: tatica.pressaoDefensiva, amarelos: amarelos });
                 T.intencao = intencao;
-                Tatics.porEquipa[team] = this.taticaDeIntencao(T.base, intencao);
-                this._log.push({ min: Math.floor(min), team, intencao, dif: e.dif, k: T.conhecimento });
+                Tatics.porEquipa[team] = tatica;
             }
             this.substituicoesPorCartoes(team, T, e, min);
         }
@@ -156,7 +181,8 @@ const TreinadorCPU = {
         const chaveAtual = team === 'TeamA' ? Tatics.formacaoA : Tatics.formacaoB;
         const forma = (k) => { const f = FormationsData[k]; if (!f) return null; const c = { def: 0, mid: 0, atk: 0 }; f.forEach(x => { if (c[x.role] !== undefined) c[x.role]++; }); return c; };
         const atual = forma(chaveAtual);
-        if (!atual || e.vermelhosMeus > 0) return;                    // com menos um nao se mexe na forma
+        // Com menos um (de qualquer das equipas) nao se mexe na forma: o `assignFormations` refaz as DUAS e conta com onze de cada lado.
+        if (!atual || Match.players.length < 11 || Match.opponents.length < 11) return;
         let alvo = null;
         if (e.dif < 0 && atual.atk < 3) alvo = '433';
         else if ((e.dif >= 2 || (e.dif >= 1 && T.objetivo === 'REBAIXAMENTO')) && atual.mid < 5) alvo = '4231';
@@ -169,7 +195,7 @@ const TreinadorCPU = {
     // ---------------------------------------------------------------------------------------------
     // SUBSTITUICOES por cartoes.
     substituicoesPorCartoes(team, T, e, min) {
-        if (T.trocas + T.pedidas >= this.maxTrocas) return;
+        if (T.trocas + T.pedidas >= T.maxTrocas) return;
         const lado = team === 'TeamA' ? 'casa' : 'fora';
         if (Match.subsPendentes.some(r => !r.feita && r.lado === lado)) return;    // uma de cada vez
         const lista = team === 'TeamA' ? Match.players : Match.opponents;
