@@ -20,6 +20,12 @@ const CAMPOS_CANSAVEIS = {
     pass: true, intercept: true
 };
 
+// Slerp com o giro por frame limitado (rad): um osso que volta ao repouso a partir de uma pose longe dele nao pode dar o salto todo num frame.
+function slerpLimitado(q, alvo, peso, maxRad) {
+    const ang = 2 * Math.acos(Math.min(1, Math.abs(q.dot(alvo))));
+    q.slerp(alvo, (ang * peso > maxRad) ? maxRad / ang : peso);
+}
+
 class FootballPlayer {
     /*
     `uniforme` (opcional) e o equipamento do clube — ver Uniformes
@@ -9515,14 +9521,27 @@ class FootballPlayer {
                 justamente a inclinacao para a frente que o comentario pede.
                 */
                 const alvoXSalto = -0.5;
-                gkRig.lArm.rotation.z = lerpTo(gkRig.lArm.rotation.z, alvoZSalto, 0.3);
-                gkRig.rArm.rotation.z = lerpTo(gkRig.rArm.rotation.z, -alvoZSalto, 0.3);
-                gkRig.lArm.rotation.x = lerpTo(gkRig.lArm.rotation.x, alvoXSalto, 0.3);
-                gkRig.rArm.rotation.x = lerpTo(gkRig.rArm.rotation.x, alvoXSalto, 0.3);
+                /*
+                OS BRACOS NAO SE MEXEM POR COMPONENTE DE EULER ENQUANTO O IK MANDA (`t < 0.7`, mais abaixo). Isto lerpava `rotation.x` e `rotation.z` para uma pose fixa e logo a seguir o
+                IK escrevia o quaternion: com o braco numa solucao de Euler "do outro lado" (x = +1.2 e z grande e o mesmo que x = -2.0), mexer so no x desfazia a orientacao de um frame para
+                o outro — medido (tools/headless/gk_bracos_giro.js): saltos de 60 a 120 graus POR FRAME, a mao a 1.5 m atras do peito. E o que se via: os bracos rodavam para tras e davam a volta.
+                So se usa a pose procedural se o IK nao existir.
+                */
+                if (!(typeof GkDive !== 'undefined' && GkDive.apontarBracos)) {
+                    gkRig.lArm.rotation.z = lerpTo(gkRig.lArm.rotation.z, alvoZSalto, 0.3);
+                    gkRig.rArm.rotation.z = lerpTo(gkRig.rArm.rotation.z, -alvoZSalto, 0.3);
+                    gkRig.lArm.rotation.x = lerpTo(gkRig.lArm.rotation.x, alvoXSalto, 0.3);
+                    gkRig.rArm.rotation.x = lerpTo(gkRig.rArm.rotation.x, alvoXSalto, 0.3);
+                }
             } else if (t < 1.2) {
                 gkCorpo.position.y = lerpTo(gkCorpo.position.y, ALTURA_BASE_Y, 0.2);
-                gkRig.lArm.rotation.z = lerpTo(gkRig.lArm.rotation.z, 0.5, 0.15);
-                gkRig.rArm.rotation.z = lerpTo(gkRig.rArm.rotation.z, -0.5, 0.15);
+                // Depois do IK os bracos voltam ao repouso (z = +-0.5) por quaternion (slerp), nao por componente de Euler: ver o ramo acima.
+                if (t >= 0.7 || !(typeof GkDive !== 'undefined' && GkDive.apontarBracos)) {
+                    const qRep = this._qRepousoBraco || (this._qRepousoBraco = new THREE.Quaternion());
+                    const eRep = this._eRepousoBraco || (this._eRepousoBraco = new THREE.Euler());
+                    qRep.setFromEuler(eRep.set(0, 0, 0.5)); slerpLimitado(gkRig.lArm.quaternion, qRep, 0.15, 0.35);
+                    qRep.setFromEuler(eRep.set(0, 0, -0.5)); slerpLimitado(gkRig.rArm.quaternion, qRep, 0.15, 0.35);
+                }
             } else if (this.gkEstado === 'salto_alto') {
                 /*
                 Mesma guarda do ramo 'maos': a saída do gesto não pisa uma
@@ -9592,7 +9611,8 @@ class FootballPlayer {
             e só dentro da janela de contacto (`t < 0.7`), que é a mesma
             condição que o teste da defesa usa mais abaixo.
             */
-            if (t < 0.7 && typeof GkDive !== 'undefined' && GkDive.apontarBracos) {
+            // Depois do soco (`gkSocoRepouso`) os bracos voltam ao repouso (mais abaixo) e o IK NAO corre: os dois a puxar para sitios diferentes deixavam a mao 1.3 m ATRAS do peito, por cima da cabeca.
+            if (t < 0.7 && typeof GkDive !== 'undefined' && GkDive.apontarBracos && !(this.gkSocoRepouso && !this.gkSoco)) {
                 // No soco o IK e so do braco da MIRA; o do soco esta no V (ver animarSocoNoSalto).
                 GkDive.apontarBracos(gkRig, undefined,
                     (this.gkSoco && this.gkSoco.lado) ? [this.gkSoco.lado === 'r' ? 'l' : 'r'] : null);
@@ -9609,10 +9629,13 @@ class FootballPlayer {
             nem ficam no ar na pose generica do salto. So depois de o gesto acabar (`gkSocoRepouso`, posto no fim do golpe).
             */
             if (!this.gkSoco && this.gkSocoRepouso) {
+                // Por quaternion (slerp) e nao por componente de Euler: com o braco por cima da cabeca o Euler esta "do outro lado" e lerpar x, y e z por separado fazia-o rodar 90 graus num
+                // frame e dar a volta por tras (relato: *"os bracos rodaram para tras do corpo ate girarem para a frente"*).
+                const qR = this._qRepousoBraco || (this._qRepousoBraco = new THREE.Quaternion());
+                const eR = this._eRepousoBraco || (this._eRepousoBraco = new THREE.Euler());
                 for (const [br, co, sg] of [[gkRig.lArm, gkRig.lElbow, 1], [gkRig.rArm, gkRig.rElbow, -1]]) {
-                    br.rotation.x = lerpTo(br.rotation.x, 0, 0.25);
-                    br.rotation.y = lerpTo(br.rotation.y, 0, 0.25);
-                    br.rotation.z = lerpTo(br.rotation.z, sg * Math.PI / 12, 0.25);
+                    qR.setFromEuler(eR.set(0, 0, sg * Math.PI / 12));
+                    slerpLimitado(br.quaternion, qR, 0.25, 0.35);
                     co.rotation.x = lerpTo(co.rotation.x, -0.3, 0.25);
                 }
             }

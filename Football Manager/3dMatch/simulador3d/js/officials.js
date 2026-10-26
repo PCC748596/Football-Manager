@@ -619,7 +619,7 @@ const RefereeModel = {
 
         Volta a 0.95. O corte faz-se onde a expulsao nasce.
         */
-        limiarVermelho: 0.76,   // 0.95 -> 0.76 (-20%, pedido de 15 de Outubro de 2026)
+        limiarVermelho: 0.95,   // 0.76 -> 0.95: so os vermelhos baixam (pedido: *"reduz so os vermelhos"*; 30 jogos de 20 min deram 0.37 por 90 contra o alvo 0.20)
 
         /*
         O LIMIAR DO SEGUNDO AMARELO — mais baixo que o do primeiro, e nao o
@@ -681,7 +681,7 @@ const RefereeModel = {
         e "nenhum" de "cinco", e foi so isso que se usou para escolher — nao
         se persegue aqui nada mais fino.
         */
-        cautelaDoAdvertido: 0.70,   // 0.85 -> 0.75 (15 de Outubro de 2026): com 0.85 os vermelhos foram a 0.43 por jogo (alvo ~0.20)
+        cautelaDoAdvertido: 0.60,   // 0.85 -> 0.75 (15 de Outubro de 2026): com 0.85 os vermelhos foram a 0.43 por jogo (alvo ~0.20)
 
         /*
         Ate onde atras e que um ataque ainda conta como promissor, em metros a

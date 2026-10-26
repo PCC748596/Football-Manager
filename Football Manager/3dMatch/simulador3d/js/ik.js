@@ -223,6 +223,9 @@ const IK = {
         return erro < 5e-3 ? { rx, rz, k, erro } : (erro < 0.12 ? { rx, rz, k, erro } : null);   // quase la: serve (o erro e em unidades do corpo, 0.12 = 4 cm)
     },
 
+    // Giro maximo do ombro por frame (graus) no `resolverSuave`: 0 desliga. 60 fps -> 1800 graus/s e um ombro que se mexe depressa mas nao salta.
+    maxGrausPorFrame: 30,
+
     resolverSuave(raiz, meio, L1, L2, alvoMundo, planoMundo, peso) {
         const qAnt = this._qAnt || (this._qAnt = new THREE.Quaternion());
         const qNovo = this._qNovo || (this._qNovo = new THREE.Quaternion());
@@ -232,8 +235,19 @@ const IK = {
         const ok = this.resolver(raiz, meio, L1, L2, alvoMundo, planoMundo);
 
         qNovo.copy(raiz.quaternion);
-        raiz.quaternion.copy(qAnt).slerp(qNovo, peso);
-        meio.rotation.x = xAnt + (meio.rotation.x - xAnt) * peso;
+        /*
+        O BRACO NAO DA SALTOS: a solucao do IK pode mudar de um frame para o outro (o alvo atravessa o plano do peito, o pole vector vira) e o `slerp` por peso levava essa descontinuidade
+        directa ao osso — medido (tools/headless/gk_bracos_giro.js): picos de 90 a 120 graus POR FRAME na defesa alta. Limita-se o giro por frame (`maxGrausPorFrame`): o braco vai ao
+        sitio, mas a uma velocidade que um ombro tem.
+        */
+        let pesoEf = peso;
+        const maxRad = (this.maxGrausPorFrame || 0) * Math.PI / 180;
+        if (maxRad > 0) {
+            const ang = 2 * Math.acos(Math.min(1, Math.abs(qAnt.dot(qNovo))));
+            if (ang * peso > maxRad) pesoEf = maxRad / ang;
+        }
+        raiz.quaternion.copy(qAnt).slerp(qNovo, pesoEf);
+        meio.rotation.x = xAnt + (meio.rotation.x - xAnt) * pesoEf;
         return ok;
     }
 };
