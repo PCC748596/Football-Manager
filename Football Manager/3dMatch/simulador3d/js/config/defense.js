@@ -524,7 +524,7 @@ const MarkingModel = {
         const terco = CAMPO_COMP / 6;
         const setor = (zoneAhead < -terco) ? 'def' : (zoneAhead > terco) ? 'atk' : 'mid';
         const porPressao = this.biasMaxPorSetor[setor];
-        return porPressao[taticaDe(team, 'pressaoDefensiva')] ?? porPressao.balanced;
+        return (typeof valorPorPressao === 'function') ? valorPorPressao(porPressao, team) : (porPressao[taticaDe(team, 'pressaoDefensiva')] ?? porPressao.balanced);
     },
 
     /*

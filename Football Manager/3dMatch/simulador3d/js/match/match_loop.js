@@ -1217,8 +1217,8 @@ Object.assign(Match, {
                 this.offsideLineB.position.z = Math.max(0, outfieldB[0].model.position.z, this.ball.position.z);
             }
             if (typeof TeamShape !== 'undefined') {
-                const capA = TeamShape.linhaDefensiva[taticaDe('TeamA', 'linhaDefensiva')] ?? TeamShape.linhaDefensiva.medium;
-                const capB = TeamShape.linhaDefensiva[taticaDe('TeamB', 'linhaDefensiva')] ?? TeamShape.linhaDefensiva.medium;
+                const capA = valorPorLinha(TeamShape.linhaDefensiva, 'TeamA');
+                const capB = valorPorLinha(TeamShape.linhaDefensiva, 'TeamB');
                 this.defLineA.position.z = capA * 1;
                 this.defLineB.position.z = capB * -1;
             }

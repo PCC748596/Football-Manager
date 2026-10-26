@@ -297,7 +297,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     if (field === 'defensiveLine') {
         finalValue = Math.max(30, value);
     }
-    updateTactics(userTeam.id, { [field]: finalValue });
+    // Objetividade e Estilo Ofensivo sao a mesma coisa: o estilo escolhido manda, e o `tempo` (0-100, que a simulacao rapida usa) acompanha-o.
+    const TEMPO_DO_ESTILO: Record<string, number> = { possession: 20, positional: 50, direct: 80, counter_attack: 70, wing_play: 55 };
+    updateTactics(userTeam.id, field === 'playStyle' ? { playStyle: finalValue, tempo: TEMPO_DO_ESTILO[finalValue] ?? 50 } : { [field]: finalValue });
   };
 
   return (
@@ -634,37 +636,43 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                 })}
                             </div>
                         </div>
-                        {[
-                            { field: 'pressure', label: 'PRESSÃO', icon: '🎯', min: 0 },
-                            { field: 'defensiveLine', label: 'LINHA DEFENSIVA', icon: '🛡️', min: 30 },
-                            { field: 'tempo', label: 'OBJETIVIDADE', icon: '⚡', min: 0 }
-                        ].map(item => (
-                            <div key={item.field} className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-2"><span className="text-3xl opacity-60 transition-all group-hover:opacity-100">{item.icon}</span><span className="text-[9px] font-bold text-slate-300 uppercase tracking-wider">{item.label}</span></div>
-                                    <span className="text-[9px] font-black text-slate-400">{userTeam.tactics[item.field as keyof Tactics] as number}%</span>
-                                </div>
-                                <div 
-                                    className="relative h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden cursor-pointer group/bar"
-                                    onClick={(e) => {
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        const x = e.clientX - rect.left;
-                                        const isLeft = x < rect.width / 2;
-                                        const currentVal = userTeam.tactics[item.field as keyof Tactics] as number;
-                                        const roundedCurrent = Math.round(currentVal / 10) * 10;
-                                        let nextVal = isLeft ? roundedCurrent - 10 : roundedCurrent + 10;
-                                        nextVal = Math.max(item.min, Math.min(100, nextVal));
-                                        handleTacticChange(item.field as keyof Tactics, nextVal);
-                                    }}
-                                >
-                                    <div className="absolute top-0 bottom-0 left-0 bg-blue-400 rounded-full transition-all" style={{ width: `${userTeam.tactics[item.field as keyof Tactics]}%` }} />
-                                    <div className="absolute inset-0 flex">
-                                        <div className="flex-1 hover:bg-white/10 transition-colors" title="Decrease" />
-                                        <div className="flex-1 hover:bg-white/10 transition-colors" title="Increase" />
+                        {([
+                            { field: 'playStyle', label: 'ESTILO OFENSIVO', cor: 'bg-violet-300 text-violet-900', padrao: (t: Tactics) => (t.tempo >= 67 ? 'direct' : t.tempo <= 33 ? 'possession' : 'positional'),
+                              opcoes: [['positional', 'POS'], ['possession', 'POSSE'], ['direct', 'DIRETO'], ['counter_attack', 'CONTRA'], ['wing_play', 'ALAS']] },
+                            { field: 'widthCompactness', label: 'LARGURA DO BLOCO (WIDTH COMPACTNESS)', cor: 'bg-cyan-300 text-cyan-900', padrao: () => 'median',
+                              opcoes: [['large', 'LARGA 80%'], ['median', 'MÉDIA 70%'], ['short', 'CURTA 60%']] },
+                            { field: 'lengthCompactness', label: 'COMPRIMENTO DO BLOCO (LENGTH COMPACTNESS)', cor: 'bg-amber-300 text-amber-900', padrao: () => 'median',
+                              opcoes: [['large', '70M'], ['mediumLarge', '60M'], ['median', '50M'], ['mediumSmall', '40M'], ['short', '30M']] }
+                        ] as const).map(g => {
+                            const atual = ((userTeam.tactics as any)[g.field] as string) || g.padrao(userTeam.tactics);
+                            return (
+                                <div key={g.field} className="space-y-1">
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{g.label}</span>
+                                    <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
+                                        {g.opcoes.map(([valor, rotulo]) => (
+                                            <button key={valor} onClick={() => handleTacticChange(g.field as keyof Tactics, valor as any)} className={`flex-1 text-[8px] font-black py-1.5 rounded transition-all shadow-sm ${atual === valor ? g.cor : 'bg-white dark:bg-slate-700 text-slate-300 hover:text-slate-500'}`}>{rotulo}</button>
+                                        ))}
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
+                        {([
+                            { field: 'pressure', label: 'PRESSÃO', cor: 'bg-rose-300 text-rose-900', valores: [10, 30, 50, 70, 90] },
+                            { field: 'defensiveLine', label: 'LINHA DEFENSIVA', cor: 'bg-emerald-300 text-emerald-900', valores: [30, 45, 60, 75, 90] }
+                        ] as const).map(g => {
+                            const atual = userTeam.tactics[g.field] as number;
+                            const meio = (g.valores[1] - g.valores[0]) / 2;
+                            return (
+                                <div key={g.field} className="space-y-1">
+                                    <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{g.label}</span><span className="text-[9px] font-black text-slate-400">{atual}%</span></div>
+                                    <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
+                                        {g.valores.map(v => (
+                                            <button key={v} onClick={() => handleTacticChange(g.field as keyof Tactics, v)} className={`flex-1 text-[8px] font-black py-1.5 rounded transition-all shadow-sm ${atual >= v - meio && atual < v + meio ? g.cor : 'bg-white dark:bg-slate-700 text-slate-300 hover:text-slate-500'}`}>{v}%</button>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 

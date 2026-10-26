@@ -252,7 +252,7 @@ Object.assign(Match, {
                             } else {
                                 let z = p.baseTarget.z;
                                 if (p.role === 'def') {
-                                    const cap = TeamShape.linhaDefensiva[taticaDe(p.team, 'linhaDefensiva')] ?? TeamShape.linhaDefensiva.medium;
+                                    const cap = valorPorLinha(TeamShape.linhaDefensiva, p.team);
                                     z = cap * dir;
                                 }
                                 if (z * dir > -margem) z = -margem * dir;

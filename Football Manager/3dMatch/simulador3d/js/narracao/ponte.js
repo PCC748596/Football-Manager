@@ -119,7 +119,7 @@ const Ponte = {
                 '<span>Câmera</span>' + cams.map(c => '<button data-cam="' + c[0] + '">' + c[1] + '</button>').join('') +
                 '<button data-cam="lateraltv" data-r="3d">3D</button><button data-cam="topdown">2D</button><span class="sep"></span>' +
                 '<span>Velocidade</span>' + [0.5, 1, 1.5].map(v => '<button data-vel="' + v + '">' + v + 'x</button>').join('') +
-                '<button id="tc-pausa">Pausa</button><button id="tc-replay">Replay 10s</button><span class="sep"></span><button id="tc-tactics">Tactics</button>' +
+                '<button id="tc-pausa">Pausar</button><button id="tc-replay">Replay 10s</button><span class="sep"></span><button id="tc-tactics">Tactics</button>' +
                 '<span id="tc-evento"></span><span id="tc-fps" title="Quadros por segundo">FPS --</span>';
             document.body.appendChild(barra);
             barra.addEventListener('click', (e) => {
@@ -153,6 +153,9 @@ const Ponte = {
             barra.querySelectorAll('button[data-vel]').forEach(b => b.classList.toggle('on', Number(window.speedMultiplier) === Number(b.dataset.vel)));
             const fpsEl = barra.querySelector('#tc-fps');
             if (fpsEl && typeof window._fpsAtual === 'number') { const v = window._fpsAtual; fpsEl.textContent = 'FPS ' + v; fpsEl.style.color = v >= 50 ? '#22c55e' : v >= 30 ? '#facc15' : '#ef4444'; }
+            // O botao de pausa diz o que FAZ: PAUSAR a correr, CONTINUAR parado (o estado vem do manager, que manda no relogio).
+            const bp = barra.querySelector('#tc-pausa');
+            if (bp) { const t = this.estado === 'pausado' ? 'Continuar' : 'Pausar'; if (bp.textContent !== t) bp.textContent = t; bp.classList.toggle('on', this.estado === 'pausado'); }
             const rp = barra.querySelector('#tc-replay'); if (rp) rp.classList.toggle('pisca', !!(window.MatchReplay && window.MatchReplay.isReplaying));
         }, 250);
     },
@@ -182,9 +185,12 @@ const Ponte = {
         try {
             const pOk = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== null) el.value = v; };
             pOk('t-estilo', m.estilo); pOk('t-linha', m.linhaDefensiva); pOk('t-team-style', m.teamPlayStyle);
+            pOk('t-compactness', m.compactness); pOk('t-length-compactness', m.lengthCompactness);
             Tatics.update();
             // A mentalidade impoe pressao e profundidade ao passar por update(); o que o manager pediu manda sobre isso.
             if (m.pressaoDefensiva) { Tatics.pressaoDefensiva = m.pressaoDefensiva; pOk('t-pressao-def', m.pressaoDefensiva); }
+            if (typeof m.pressaoValor === 'number') Tatics.pressaoValor = m.pressaoValor;
+            if (typeof m.linhaValor === 'number') Tatics.linhaValor = m.linhaValor;
             if (Array.isArray(m.setores)) {
                 Tatics.setores.length = 0;
                 m.setores.forEach(x => Tatics.setores.push(x));
@@ -203,7 +209,7 @@ const Ponte = {
         const avisar = () => {
             if (this._aplicando) return;
             this.enviar('tatica_alterada', { estilo: Tatics.estilo, linhaDefensiva: Tatics.linhaDefensiva, pressaoDefensiva: Tatics.pressaoDefensiva,
-                teamPlayStyle: Tatics.teamPlayStyle, setores: Tatics.setores.slice() });
+                teamPlayStyle: Tatics.teamPlayStyle, compactness: Tatics.compactness, lengthCompactness: Tatics.lengthCompactness, setores: Tatics.setores.slice() });
         };
         const upd = Tatics.update.bind(Tatics);
         Tatics.update = function () { const r = upd.apply(this, arguments); avisar(); return r; };
@@ -515,6 +521,12 @@ const Ponte = {
 function global_Sim() { if (typeof window !== 'undefined') window.Sim = {}; else global.Sim = {}; }
 if (typeof window !== 'undefined') {
     window.Ponte = Ponte;
+    // Dentro do manager o painel do 3D nao existe: toda a tatica vive nas INSTRUCOES TATICAS do manager (camera, velocidade, pausa e replay estao na barra do manager).
+    if (window.parent && window.parent !== window) {
+        const css = document.createElement('style');
+        css.textContent = '#painel-comandos,#coluna-direita,#painel-direito,#painel-jogadores,#modal-skills{display:none !important}';
+        document.head.appendChild(css);
+    }
     window.addEventListener('message', (e) => Ponte.aoMensagem(e.data));
     // Avisa o manager quando o motor estiver pronto (a inicializacao do jogo e assincrona).
     const avisar = () => {

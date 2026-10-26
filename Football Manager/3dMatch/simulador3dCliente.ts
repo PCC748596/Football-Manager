@@ -227,8 +227,12 @@ const SETOR_DO_MOTOR: Record<string, string> = { esq: 'Left', cen: 'Center', dir
 export const taticaParaMotor = (t: Tactics) => ({
   estilo: ESTILO_PARA_MOTOR[t.style] || 'balanceado',
   pressaoDefensiva: t.pressure < 34 ? 'low' : t.pressure < 67 ? 'balanced' : 'high',
+  linhaValor: t.defensiveLine,
+  pressaoValor: t.pressure, // a percentagem exata: o motor interpola a marcacao entre os niveis
   linhaDefensiva: t.defensiveLine < 53 ? 'low' : t.defensiveLine < 77 ? 'medium' : 'high',
-  teamPlayStyle: t.tempo >= 67 ? 'direct' : t.tempo <= 33 ? 'possession' : 'positional',
+  teamPlayStyle: t.playStyle || (t.tempo >= 67 ? 'direct' : t.tempo <= 33 ? 'possession' : 'positional'),
+  compactness: t.widthCompactness || 'median',
+  lengthCompactness: t.lengthCompactness || 'median',
   setores: (t.focusSectors || []).map(x => SETOR_PARA_MOTOR[x]).filter(Boolean)
 });
 
@@ -239,7 +243,12 @@ export const taticaDoMotor = (m: any, atual: Tactics): Partial<Tactics> => {
   if (m.estilo && m.estilo !== a.estilo && ESTILO_DO_MOTOR[m.estilo]) r.style = ESTILO_DO_MOTOR[m.estilo] as Tactics['style'];
   if (m.pressaoDefensiva && m.pressaoDefensiva !== a.pressaoDefensiva) r.pressure = ({ low: 20, balanced: 50, high: 85 } as any)[m.pressaoDefensiva];
   if (m.linhaDefensiva && m.linhaDefensiva !== a.linhaDefensiva) r.defensiveLine = ({ low: 40, medium: 65, high: 90 } as any)[m.linhaDefensiva];
-  if (m.teamPlayStyle && m.teamPlayStyle !== a.teamPlayStyle) r.tempo = ({ possession: 20, positional: 50, direct: 80 } as any)[m.teamPlayStyle];
+  if (m.teamPlayStyle && m.teamPlayStyle !== a.teamPlayStyle) {
+    r.playStyle = m.teamPlayStyle;
+    if (({ possession: 20, positional: 50, direct: 80 } as any)[m.teamPlayStyle] !== undefined) r.tempo = ({ possession: 20, positional: 50, direct: 80 } as any)[m.teamPlayStyle];
+  }
+  if (m.compactness && m.compactness !== a.compactness) r.widthCompactness = m.compactness;
+  if (m.lengthCompactness && m.lengthCompactness !== a.lengthCompactness) r.lengthCompactness = m.lengthCompactness;
   if (Array.isArray(m.setores) && JSON.stringify([...m.setores].sort()) !== JSON.stringify([...a.setores].sort())) {
     r.focusSectors = m.setores.map((x: string) => SETOR_DO_MOTOR[x]).filter(Boolean) as Tactics['focusSectors'];
   }

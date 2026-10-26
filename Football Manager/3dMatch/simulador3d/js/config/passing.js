@@ -2012,3 +2012,30 @@ const CedeAoPortador = {
     distSuporte: 9.0,    // e fica a esta distancia (apoio a meia distancia: nao colado, nao longe de mais para a tabela)
     lateralMin: 0.6,     // cosseno minimo com o eixo lateral (0.6 = ate ~53 graus do eixo X)
 };
+
+/*
+=============================================================================
+SAIDA DA PROPRIA AREA SOB PRESSAO (pedido: *"se um jogador domina a bola dentro da sua area e tem mais de um adversario proximo ele deve:
+1. tocar para um jogador do time mais perto da lateral, 2. lancar para os atacantes, 3. chutar pra frente para as laterais"*)
+=============================================================================
+Em ordem de preferencia, a primeira que existir: (1) passe ao companheiro livre mais perto da linha lateral; (2) lancamento a um atacante com a linha
+livre; (3) chutao para a frente, para o lado da lateral com menos adversarios. Corre antes do alivio normal, para qualquer jogador de campo.
+=============================================================================
+*/
+const SaidaDaArea = {
+    activo: true,
+    raioAdversarios: 6.0,     // adversarios "proximos"
+    minAdversarios: 2,        // "mais de um"
+    // 1. Passe a um companheiro junto a lateral.
+    lateralXMin: 18.0,        // |x| minimo do companheiro para contar como "junto a lateral"
+    distMin: 6.0, distMax: 38.0,
+    folgaReceptor: 4.5,       // nenhum adversario a menos disto do receptor
+    folgaNaLinha: 2.2,        // nem do segmento portador -> receptor
+    // 2. Lancamento a um atacante.
+    avancoMinAtacante: 22.0,  // o atacante tem de estar pelo menos isto a frente do portador (em z)
+    folgaAtacante: 3.5,
+    distMaxLancamento: 60.0,
+    // 3. Chutao para a frente, para a lateral.
+    chutaoAlcance: 34.0, chutaoX: 26.0
+};
+if (typeof window !== 'undefined') window.SaidaDaArea = SaidaDaArea;

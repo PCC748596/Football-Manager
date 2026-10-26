@@ -196,6 +196,12 @@ export interface Tactics {
   defensiveLine: number; 
   tempo: number; 
   focusSectors: ('Left' | 'Center' | 'Right')[];
+  /** Largura do bloco (Width Compactness do motor 3D): Large 80%, Medium 70%, Small 60% do campo. */
+  widthCompactness?: 'large' | 'median' | 'short';
+  /** Comprimento do bloco com bola (Length Compactness): Large 70 m ... Small 30 m. */
+  lengthCompactness?: 'large' | 'mediumLarge' | 'median' | 'mediumSmall' | 'short';
+  /** Estilo ofensivo (com bola). Omitido: sai da objetividade (tempo). */
+  playStyle?: 'positional' | 'possession' | 'direct' | 'counter_attack' | 'wing_play';
 }
 
 export interface Team {

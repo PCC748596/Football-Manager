@@ -2019,6 +2019,92 @@ function findPassBack(ctx) {
     return ctx._backPass;
 }
 
+
+/*
+SAIDA DA PROPRIA AREA SOB PRESSAO (ver SaidaDaArea em config/passing.js). Devolve true se o portador esta na propria area com
+`minAdversarios` ou mais a menos de `raioAdversarios` m.
+*/
+function saidaDaAreaAplica(ctx) {
+    const S = (typeof SaidaDaArea !== 'undefined') ? SaidaDaArea : null;
+    const p = ctx.p;
+    if (!S || !S.activo || p.role === 'gk' || Match.state !== 'PLAY') return false;
+    if (typeof Area === 'undefined' || typeof Area.contem !== 'function') return false;
+    if (!Area.contem(p.model.position.x, p.model.position.z, -p.dirZ)) return false;
+    let n = 0;
+    for (const o of ctx.opponents) {
+        if (!o || !o.model || o.role === 'gk') continue;
+        if (p.model.position.distanceTo(o.model.position) < S.raioAdversarios) n++;
+    }
+    return n >= S.minAdversarios;
+}
+
+// Como a linha do goleiro, mas os adversarios colados ao portador (os que o pressionam, nos primeiros 3 m) nao contam: o passe sai por cima deles.
+function linhaLivreSaida(p, alvo, adversarios, folga) {
+    const a = p.model.position, b = alvo.model.position;
+    const abx = b.x - a.x, abz = b.z - a.z, ab2 = abx * abx + abz * abz || 1, len = Math.sqrt(ab2);
+    for (const o of adversarios) {
+        if (!o || !o.model || o.role === 'gk') continue;
+        const ox = o.model.position.x, oz = o.model.position.z;
+        const u = Math.max(0, Math.min(1, ((ox - a.x) * abx + (oz - a.z) * abz) / ab2));
+        if (u * len < 3.0) continue;
+        if (Math.hypot(ox - (a.x + abx * u), oz - (a.z + abz * u)) < folga) return false;
+    }
+    return true;
+}
+
+function folgaDoMate(mate, ctx) {
+    let f = Infinity;
+    for (const o of ctx.opponents) {
+        if (!o || !o.model || o.role === 'gk') continue;
+        f = Math.min(f, o.model.position.distanceTo(mate.model.position));
+    }
+    return f;
+}
+
+function actSaidaDaArea(ctx) {
+    const S = SaidaDaArea;
+    const p = ctx.p;
+    const dz = p.dirZ;
+
+    // 1. Toca para o companheiro livre mais perto da lateral.
+    let lat = null, latX = -Infinity;
+    for (const m of ctx.teammates) {
+        if (m === p || m.role === 'gk' || m.expulso || !m.model) continue;
+        const ax = Math.abs(m.model.position.x);
+        if (ax < S.lateralXMin) continue;
+        const d = p.model.position.distanceTo(m.model.position);
+        if (d < S.distMin || d > S.distMax) continue;
+        if (folgaDoMate(m, ctx) < S.folgaReceptor) continue;
+        if (!linhaLivreSaida(p, m, ctx.opponents, S.folgaNaLinha)) continue;
+        if (ax > latX) { latX = ax; lat = m; }
+    }
+    if (lat) { actPassParaAlvo(ctx, lat); return true; }
+
+    // 2. Lanca para um atacante com a linha livre.
+    let atk = null, atkNota = -Infinity;
+    for (const m of ctx.teammates) {
+        if (m === p || m.role !== 'atk' || m.expulso || !m.model) continue;
+        const avanco = (m.model.position.z - p.model.position.z) * dz;
+        if (avanco < S.avancoMinAtacante) continue;
+        if (p.model.position.distanceTo(m.model.position) > S.distMaxLancamento) continue;
+        const folga = folgaDoMate(m, ctx);
+        if (folga < S.folgaAtacante) continue;
+        if (folga > atkNota) { atkNota = folga; atk = m; }
+    }
+    if (atk) { actPassParaAlvo(ctx, atk); return true; }
+
+    // 3. Chutao para a frente, para o lado da lateral com menos adversarios.
+    let esq = 0, dir = 0;
+    for (const o of ctx.opponents) {
+        if (!o || !o.model || o.role === 'gk') continue;
+        if (Math.abs(o.model.position.z - p.model.position.z) > 40) continue;
+        if (o.model.position.x < 0) esq++; else dir++;
+    }
+    const lado = esq === dir ? (p.model.position.x >= 0 ? 1 : -1) : (dir < esq ? 1 : -1);
+    const lim = CAMPO_COMP / 2 - 6.0;
+    actClearance(ctx, { x: lado * S.chutaoX, z: Math.max(-lim, Math.min(lim, p.model.position.z + dz * S.chutaoAlcance)) });
+    return true;
+}
 /*
 Distancia de um jogador a PROPRIA linha de fundo, em metros.
 */
@@ -2027,7 +2113,7 @@ function distanciaAoProprioFundo(p) {
     return Math.abs(fundoProprio - p.model.position.z);
 }
 
-function actClearance(ctx) {
+function actClearance(ctx, alvoForcado) {
     const p = ctx.p;
     if (p.aguardarPassada()) return true;
     if (typeof MatchStats !== 'undefined') MatchStats[p.team].passes.tentados++;
@@ -2055,6 +2141,8 @@ function actClearance(ctx) {
             fundo: false
         };
     }
+
+    if (alvoForcado) alvo = { x: alvoForcado.x, z: alvoForcado.z, fundo: false };
 
     if (alvo.fundo && typeof MatchStats !== 'undefined' && MatchStats.registarAfastamento) {
         MatchStats.registarAfastamento(p.team);
@@ -4417,6 +4505,12 @@ const PlayerBT = sel('PlayerRoot',
             Dispara só no caso estreito: perto da própria baliza, sob pressão,
             e sendo defesa ou guarda-redes.
             */
+            // Dominou a bola na propria area com 2+ adversarios por perto: passe a lateral, lancamento ao ataque ou chutao para a ala (SaidaDaArea).
+            seq('SaidaDaArea',
+                cond('pressionadoNaPropriaArea', saidaDaAreaAplica),
+                act('sairDaArea', actSaidaDaArea)
+            ),
+
             seq('AlivioDePerigo',
                 cond('perigoImediato', (ctx) => {
                     const C = (typeof ClearanceModel !== 'undefined') ? ClearanceModel : null;

@@ -1894,6 +1894,48 @@ function taticaDe(team, campo) {
 }
 if (typeof window !== 'undefined') window.taticaDe = taticaDe;
 
+/*
+A PRESSAO EM PERCENTAGEM. O manager tem a pressao de 0 a 100 e o motor tinha tres niveis (low <34, balanced <67, high): 40% e 60% jogavam igual, e so
+passar de 33 ou de 66 mexia em alguma coisa. `pressaoValorDe(team)` devolve o numero (o que o manager mandou em `pressaoValor`, desde que ainda caia no nivel
+em uso: se o painel do 3D ou o treinador da CPU mudarem o nivel, vale o valor tipico do nivel) e `valorPorPressao(tabela, team)` interpola uma tabela
+{ low, balanced, high } entre os pontos 20 / 50 / 85. Os interruptores (so o `high` pressiona no campo adversario) continuam a ser por nivel.
+*/
+const PRESSAO_PONTOS = { low: 20, balanced: 50, high: 85 };
+function nivelDaPressao(v) { return v < 34 ? 'low' : v < 67 ? 'balanced' : 'high'; }
+function pressaoValorDe(team) {
+    const nivel = taticaDe(team, 'pressaoDefensiva');
+    const o = (team && Tatics.porEquipa) ? Tatics.porEquipa[team] : null;
+    const v = (o && typeof o.pressaoValor === 'number') ? o.pressaoValor : ((!o || o.pressaoDefensiva === undefined || o.pressaoDefensiva === null) ? Tatics.pressaoValor : undefined);
+    return (typeof v === 'number' && nivelDaPressao(v) === nivel) ? v : (PRESSAO_PONTOS[nivel] ?? 50);
+}
+function valorPorPressao(tabela, team) {
+    const v = Math.max(PRESSAO_PONTOS.low, Math.min(PRESSAO_PONTOS.high, pressaoValorDe(team)));
+    if (v <= PRESSAO_PONTOS.balanced) {
+        const t = (v - PRESSAO_PONTOS.low) / (PRESSAO_PONTOS.balanced - PRESSAO_PONTOS.low);
+        return tabela.low + (tabela.balanced - tabela.low) * t;
+    }
+    const t = (v - PRESSAO_PONTOS.balanced) / (PRESSAO_PONTOS.high - PRESSAO_PONTOS.balanced);
+    return tabela.balanced + (tabela.high - tabela.balanced) * t;
+}
+/*
+A LINHA DEFENSIVA EM PERCENTAGEM (manager 30-100; o motor tem low / medium / high). Mesma ideia da pressao: `linhaValorDe(team)` e o numero do manager
+(`linhaValor`, desde que caia no nivel em uso) e `valorPorLinha(tabela, team)` interpola { low, medium, high } entre 40 / 65 / 90, os valores tipicos de cada nivel.
+*/
+const LINHA_PONTOS = { low: 40, medium: 65, high: 90 };
+function nivelDaLinha(v) { return v < 53 ? 'low' : v < 77 ? 'medium' : 'high'; }
+function linhaValorDe(team) {
+    const nivel = taticaDe(team, 'linhaDefensiva');
+    const o = (team && Tatics.porEquipa) ? Tatics.porEquipa[team] : null;
+    const v = (o && typeof o.linhaValor === 'number') ? o.linhaValor : ((!o || o.linhaDefensiva === undefined || o.linhaDefensiva === null) ? Tatics.linhaValor : undefined);
+    return (typeof v === 'number' && nivelDaLinha(v) === nivel) ? v : (LINHA_PONTOS[nivel] ?? 65);
+}
+function valorPorLinha(tabela, team) {
+    const v = Math.max(LINHA_PONTOS.low, Math.min(LINHA_PONTOS.high, linhaValorDe(team)));
+    if (v <= LINHA_PONTOS.medium) return tabela.low + (tabela.medium - tabela.low) * (v - LINHA_PONTOS.low) / (LINHA_PONTOS.medium - LINHA_PONTOS.low);
+    return tabela.medium + (tabela.high - tabela.medium) * (v - LINHA_PONTOS.medium) / (LINHA_PONTOS.high - LINHA_PONTOS.medium);
+}
+if (typeof window !== 'undefined') { window.pressaoValorDe = pressaoValorDe; window.valorPorPressao = valorPorPressao; window.linhaValorDe = linhaValorDe; window.valorPorLinha = valorPorLinha; }
+
 function estiloDaEquipaDe(team) {
     const chave = (team === 'TeamB' && Tatics.teamPlayStyleB) ? Tatics.teamPlayStyleB : Tatics.teamPlayStyle;
     return TeamPlayStyles[chave] || TeamPlayStyles.positional;
@@ -1913,9 +1955,11 @@ const Tatics = {
     */
     teamPlayStyleB: null,
     linhaDefensiva: 'medium',
+    linhaValor: 65,     // a mesma linha em 0-100 (ver linhaValorDe)
     compactness: 'median',
     lengthCompactness: 'median',
     pressaoDefensiva: 'balanced',
+    pressaoValor: 50,   // a mesma pressao em 0-100 (ver pressaoValorDe)
     setores: ['esq', 'dir'],
 
     // Cada sector liga/desliga independentemente agora (antes era sempre

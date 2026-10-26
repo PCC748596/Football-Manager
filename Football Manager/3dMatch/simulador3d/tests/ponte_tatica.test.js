@@ -56,6 +56,13 @@ Match.togglePause();
 if (!enviadas.some(m => m.tipo === 'alternar_pausa')) erro('o Pause do 3D nao pediu ao manager');
 if (window.isPaused !== pausadoAntes) erro('o Pause do 3D mexeu no jogo sozinho');
 
+// as duas compactacoes e a pressao em percentagem
+Ponte.aoMensagem({ para: 'simulador3d', tipo: 'tatica', estilo: 'balanceado', compactness: 'short', lengthCompactness: 'large', teamPlayStyle: 'wing_play', pressaoDefensiva: 'balanced', pressaoValor: 60, linhaValor: 58 });
+if (Tatics.compactness !== 'short') erro('width compactness nao aplicada: ' + Tatics.compactness);
+if (Tatics.lengthCompactness !== 'large') erro('length compactness nao aplicada: ' + Tatics.lengthCompactness);
+if (Tatics.teamPlayStyle !== 'wing_play') erro('wing_play nao aplicado: ' + Tatics.teamPlayStyle);
+if (Tatics.linhaValor !== 58) erro('linha em percentagem nao aplicada: ' + Tatics.linhaValor);
+if (Tatics.pressaoValor !== 60) erro('pressao em percentagem nao aplicada: ' + Tatics.pressaoValor);
 if (falhas) { console.error(falhas + ' falha(s)'); process.exit(1); }
 console.log('OK ponte_tatica');
 process.exit(0);

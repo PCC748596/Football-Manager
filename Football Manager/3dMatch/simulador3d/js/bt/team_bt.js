@@ -443,9 +443,13 @@ function pickChaser(bb) {
     }
     const M = (typeof MarkingModel !== 'undefined') ? MarkingModel : null;
     const pressao = (typeof Tatics !== 'undefined' && taticaDe(bb && bb.team, 'pressaoDefensiva')) || 'balanced';
-    const raioAccionamento = (M && M.raioDeAccionamento &&
+    // Em percentagem: interpola low/balanced (5 -> 8 m) e, abaixo do nivel high, ate 30 m; no high e sem limite.
+    let raioAccionamento = (M && M.raioDeAccionamento &&
         M.raioDeAccionamento[pressao] !== undefined)
         ? M.raioDeAccionamento[pressao] : undefined;
+    if (raioAccionamento !== undefined && pressao !== 'high' && typeof valorPorPressao === 'function') {
+        raioAccionamento = valorPorPressao({ low: M.raioDeAccionamento.low, balanced: M.raioDeAccionamento.balanced, high: 30 }, bb && bb.team);
+    }
 
     /*
     PASSE EM CURSO: QUEM VAI A BOLA E QUEM A VAI RECEBER.
@@ -1107,8 +1111,9 @@ function computeBlock(bb) {
     if (!bb.isAttacking && typeof TeamShape !== 'undefined' &&
         typeof Tatics !== 'undefined' && TeamShape.linhaDefensiva) {
         
-        const capBase = TeamShape.linhaDefensiva[taticaDe(bb && bb.team, 'linhaDefensiva')]
-            ?? TeamShape.linhaDefensiva.medium;
+        const capBase = (typeof valorPorLinha === 'function')
+            ? valorPorLinha(TeamShape.linhaDefensiva, bb && bb.team)
+            : (TeamShape.linhaDefensiva[taticaDe(bb && bb.team, 'linhaDefensiva')] ?? TeamShape.linhaDefensiva.medium);
         const pesoMental = (typeof MentalidadeModel !== 'undefined' &&
             typeof MentalidadeModel.pesoNaLinha === 'number')
             ? MentalidadeModel.pesoNaLinha : 0;
@@ -1141,7 +1146,7 @@ function computeBlock(bb) {
 
         const M = (typeof MarkingModel !== 'undefined') ? MarkingModel : null;
         const distancia = (M && M.distanciaPorPressao)
-            ? (M.distanciaPorPressao[taticaDe(bb && bb.team, 'pressaoDefensiva')] ?? M.distanciaPorPressao.balanced)
+            ? (typeof valorPorPressao === 'function' ? valorPorPressao(M.distanciaPorPressao, bb && bb.team) : (M.distanciaPorPressao[taticaDe(bb && bb.team, 'pressaoDefensiva')] ?? M.distanciaPorPressao.balanced))
             : 3.0;
 
         let lastLine = recuoDaUltimaLinha(z0, maisRecuadoDir, distancia, pisoDir, capLinha);
@@ -1948,8 +1953,9 @@ function aplicarMarcacaoPosicional(p, bb, targetX, targetZ) {
     }
 
     const M = MarkingModel;
-    let distancia = M.distanciaPorPressao[taticaDe(bb && bb.team, 'pressaoDefensiva')]
-        ?? M.distanciaPorPressao.balanced;
+    let distancia = (typeof valorPorPressao === 'function')
+        ? valorPorPressao(M.distanciaPorPressao, bb && bb.team)
+        : (M.distanciaPorPressao[taticaDe(bb && bb.team, 'pressaoDefensiva')] ?? M.distanciaPorPressao.balanced);
 
     /*
     A METADE DEFENSIVA DO ESTILO aperta ou alivia esta distância — ver
