@@ -86,3 +86,10 @@ Object.keys(origens).sort((a, b) => origens[b] - origens[a]).forEach(k => consol
 
 console.log('  so as infiltracoes (actInfiltrar), por causa do fim:');
 Object.keys(causasInf).sort((a, b) => causasInf[b] - causasInf[a]).forEach(c => console.log(`    ${c.padEnd(10)} ${String(causasInf[c]).padStart(4)}  duracao media ${med(durInf[c])} s`));
+
+{
+    const todas = [].concat(...Object.values(durInf)).sort((a, b) => a - b);
+    const q = (f) => todas.length ? todas[Math.floor(todas.length * f)].toFixed(1) : '-';
+    console.log(`  infiltracoes (actInfiltrar): ${todas.length} | duracao p10 ${q(0.1)}  mediana ${q(0.5)}  p90 ${q(0.9)} s | >= 4 s: ${(100 * todas.filter(d => d >= 4).length / Math.max(1, todas.length)).toFixed(0)}%`);
+}
+process.exit(0);

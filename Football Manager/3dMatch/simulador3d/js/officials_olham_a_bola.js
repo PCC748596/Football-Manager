@@ -13,7 +13,7 @@ bola ficou a mais de `anguloMax` da frente de um oficial, a frente é trazida de
 de nenhum estado interno do officials.js, e `tests/oficiais_olham_a_bola.test.js` mede-o com o jogo a correr.
 
 Excepções (a frente é deles de propósito): a coreografia de abertura, e o árbitro enquanto faz um sinal para um
-jogador (cartão, marcação) — `arbitro.sinal`.
+jogador (marcação — `arbitro.sinal`) ou lhe mostra o cartão (`Officials.cartaoEmCurso`).
 =============================================================================
 */
 const OficiaisOlhamABola = {
@@ -46,7 +46,8 @@ const OficiaisOlhamABola = {
         if (typeof Abertura !== 'undefined' && Abertura.activa) return;
         const G = this.anguloMaxGraus, k = Math.PI / 180;
         const arb = Officials.arbitro;
-        if (arb && !arb.sinal) this._corrigir(arb, G.arbitro * k, dt);
+        // No CARTAO a frente e do jogador (ele corre para ele e mostra-lhe o cartao de frente): a guarda da bola desfazia-o (medido: 57 graus de desvio mediano ao mostrar).
+        if (arb && !arb.sinal && !Officials.cartaoEmCurso) this._corrigir(arb, G.arbitro * k, dt);
         for (const a of (Officials.assistentes || [])) {
             /*
             O ASSISTENTE A CAMINHO DO POSTO (so na caminhada para a saida de bola depois da abertura/intervalo: estado GOAL sem festa de golo) VAI DE

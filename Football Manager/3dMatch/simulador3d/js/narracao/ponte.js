@@ -127,7 +127,7 @@ const Ponte = {
                 if (b.dataset.cam && Match.setCameraMode) Match.setCameraMode(b.dataset.cam);
                 else if (b.dataset.vel) { this.definirVelocidade(Number(b.dataset.vel)); }
                 else if (b.id === 'tc-replay' && window.MatchReplay) window.MatchReplay.replayUltimos(10);
-                else if (b.id === 'tc-pausa') this.enviar('alternar_pausa', {});
+                else if (b.id === 'tc-pausa') { if (this.pularDisponivel()) this.esc(); else this.enviar('alternar_pausa', {}); }
                 else if (b.id === 'tc-tactics') {
                     // O botao Tactics abre o MATCH TACTICS do manager: o manager sai da tela cheia, pausa o jogo e muda de aba (ver MatchDay.tsx).
                     this.enviar('abrir_tactics', {});
@@ -155,9 +155,14 @@ const Ponte = {
             if (fpsEl && typeof window._fpsAtual === 'number') { const v = window._fpsAtual; fpsEl.textContent = 'FPS ' + v; fpsEl.style.color = v >= 50 ? '#22c55e' : v >= 30 ? '#facc15' : '#ef4444'; }
             // O botao de pausa diz o que FAZ: PAUSAR a correr, CONTINUAR parado (o estado vem do manager, que manda no relogio).
             const bp = barra.querySelector('#tc-pausa');
-            if (bp) { const t = this.estado === 'pausado' ? 'Continuar' : 'Pausar'; if (bp.textContent !== t) bp.textContent = t; bp.classList.toggle('on', this.estado === 'pausado'); }
+            if (bp) { const t = this.pularDisponivel() ? 'Pular' : this.estado === 'pausado' ? 'Continuar' : 'Pausar'; if (bp.textContent !== t) bp.textContent = t; bp.classList.toggle('on', this.estado === 'pausado'); }
             const rp = barra.querySelector('#tc-replay'); if (rp) rp.classList.toggle('pisca', !!(window.MatchReplay && window.MatchReplay.isReplaying));
         }, 250);
+    },
+
+    // Os times estao a ENTRAR em campo (a entrada pode ser saltada com ESC): o botao Pausar / Continuar do manager passa a PULAR. Quando ja estao alinhados a espera a saida o botao e o da SAIDA.
+    pularDisponivel() {
+        return typeof Abertura !== 'undefined' && !!Abertura.activa && Abertura.modo !== 'intervalo' && Abertura.fase === 'entrada';
     },
 
     // O ESC que o manager reencaminha (a tela cheia do manager fica com o foco, nao o iframe): faz o mesmo que a tecla no jogo — cancela a entrada em campo, ou fecha a repeticao.
@@ -522,6 +527,9 @@ const Ponte = {
 function global_Sim() { if (typeof window !== 'undefined') window.Sim = {}; else global.Sim = {}; }
 if (typeof window !== 'undefined') {
     window.Ponte = Ponte;
+    // Avisa o manager quando a entrada dos times comeca e acaba (o botao dele vira PULAR).
+    let _pularAntes = false;
+    setInterval(() => { const v = Ponte.pularDisponivel(); if (v !== _pularAntes) { _pularAntes = v; Ponte.enviar('abertura_estado', { pular: v }); } }, 150);
     // Dentro do manager o painel do 3D nao existe: toda a tatica vive nas INSTRUCOES TATICAS do manager (camera, velocidade, pausa e replay estao na barra do manager).
     if (window.parent && window.parent !== window) {
         const css = document.createElement('style');

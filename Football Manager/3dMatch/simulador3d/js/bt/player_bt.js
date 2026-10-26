@@ -2459,7 +2459,7 @@ function actOverlap(ctx) {
     p.overlapTimer = 1.0; 
     
     if (p.fsm.currentState !== 'RUN_INTO_SPACE') {
-        p.runTimer = 3.5;
+        p.runTimer = (typeof RunIntoSpaceModel !== 'undefined' && RunIntoSpaceModel.duracaoCorrida) || 6.0;
         p.fsm.changeState('RUN_INTO_SPACE');
     }
 }
@@ -3097,6 +3097,21 @@ function actInfiltrar(ctx) {
         no arranque deixa de o ser a meio. É a mesma revalidação por frame que
         o `actRunIntoSpace` já faz (ver `avancoLegalDeCorrida`, utils.js).
         */
+        /*
+        CHEGAR AO ALVO NAO ACABA A CORRIDA. Medido (tools/headless/infiltracao_duracao.js): as infiltracoes acabavam em ~1.7 s porque chegavam ao alvo (< 1.5 m) e a FSM as matava;
+        o pedido e correr 5 a 6 s. Com a equipa ainda na posse, ao chegar perto o alvo avanca `prolongarAoChegar` m; o corte da linha de fora-de-jogo (logo a seguir) continua a
+        mandar, e sem espaco legal a corrida acaba como antes.
+        */
+        const RP = (typeof RunIntoSpaceModel !== 'undefined') ? RunIntoSpaceModel : null;
+        if (RP && RP.prolongarAoChegar && Match.possessionTeam === p.team && p.runTimer > 0.5 &&
+            p.model.position.distanceTo(p.dynamicTarget) < 3.0) {
+            let novoAv = p.runAlvo.z * p.dirZ + RP.prolongarAoChegar;
+            // Ao prolongar fica AQUEM da linha (`folgaAoFicar`): chegar colado a ela e esperar pelo passe era impedimento (medido: 13 por 40 min contra 2-3 sem isto).
+            const linhaP = (typeof linhaLidaPor === 'function') ? linhaLidaPor(p, true) : null;
+            if (linhaP !== null && typeof RP.folgaAoFicar === 'number') novoAv = Math.min(novoAv, linhaP - RP.folgaAoFicar);
+            novoAv = Math.max(-47, Math.min(47, novoAv));
+            if (novoAv > p.runAlvo.z * p.dirZ) p.runAlvo.z = novoAv * p.dirZ;
+        }
         if (typeof avancoLegalDeCorrida === 'function') {
             const legal = avancoLegalDeCorrida(p.runAlvo.z * p.dirZ, linhaLidaPor(p, true));
             p.runAlvo.z = legal * p.dirZ;
@@ -3228,7 +3243,7 @@ function actInfiltrar(ctx) {
             }
         }
 
-        p.runTimer = 3.5; // corre durante uns segundos
+        p.runTimer = (typeof RunIntoSpaceModel !== 'undefined' && RunIntoSpaceModel.duracaoCorrida) || 6.0; // corre durante uns segundos
         p.runCarrier = Match.ballCarrier;
         // Guardado para ser REESCRITO em cada frame da corrida (ver o topo).
         p.runAlvo = { x: targetX, z: avancoFinal * p.dirZ };
@@ -3811,7 +3826,8 @@ function emZonaDeRemate(ctx) {
     o alcance a dizer 25.0, porque a tendência o esticava a 37. O tecto tem de
     ser o último a falar.
     */
-    const rangeBruto = p.shootingRange() * mult;
+    // FORA da grande area (a regra `dentroDaArea` ja retornou): o alcance leva o bonus de remate de longe.
+    const rangeBruto = p.shootingRange() * mult * (ShootingModel.bonusAlcanceForaDaArea || 1.0);
     const range = (typeof ShootingModel.alcanceMax === 'number')
         ? Math.min(rangeBruto, ShootingModel.alcanceMax) : rangeBruto;
     const maxOffset = ShootingModel.maxOffsetX * mult;
@@ -4283,6 +4299,25 @@ const PlayerBT = sel('PlayerRoot',
                 s === 'CHEST_CONTROL';
         }),
         act('deixarTerminar', () => { })
+    ),
+
+    /*
+    A INFILTRACAO SO PARA SE O ADVERSARIO FICAR COM A POSSE (pedido). Com a bola livre (sem portador do adversario) quem vai em corrida ao espaco continua ate ao fim do `runTimer`;
+    com o adversario a conduzir a bola a corrida acaba. Quem foi escolhido para ir a bola (chaser / intercetor) tambem a larga. Ver `RunIntoSpaceModel.persisteSemPosse` e o `perdemosABola` do RUN_INTO_SPACE (fsm.js).
+    */
+    seq('InfiltracaoSemPosse',
+        cond('infiltracaoPersiste', (ctx) => {
+            const R = (typeof RunIntoSpaceModel !== 'undefined') ? RunIntoSpaceModel : null;
+            const p = ctx.p;
+            if (!R || !R.persisteSemPosse || p.fsm.currentState !== 'RUN_INTO_SPACE' || !(p.runTimer > 0)) return false;
+            if (Match.possessionTeam === p.team || Match.ballCarrier === p) return false;
+            // O ADVERSARIO com a bola nos pes pára a corrida (a BT segue); com a bola livre continua.
+            if (Match.ballCarrier && Match.ballCarrier.team !== p.team) return false;
+            const bb = ctx.bb;
+            if (bb && (bb.chaser === p || bb.intercetor === p)) return false;
+            return true;
+        }),
+        act('continuarCorrida', () => { })
     ),
 
     /* --- Com bola -------------------------------------------------------- */

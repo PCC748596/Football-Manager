@@ -70,7 +70,14 @@ const ShootingModel = {
     Um remate de 30 m é um lance de excepção, não uma decisão de rotina. O tecto
     corta-os sem mexer no que o estilo faz dentro da faixa normal.
     */
-    alcanceMax: 25.0,
+    alcanceMax: 25.0,   // o teto dos remates de fora da area continua nos 25 m (pedido); o bonus de baixo so alarga quem ficava aquem dele
+
+    /*
+    BONUS DO REMATE DE FORA DA AREA (pedido: *"tem que ter mais chutes de longe: aumenta defesas do goleiro e reduz gols; estao chutando muito de perto"*). Medido em 3 jogos de 900 s: 62%
+    dos remates eram de dentro da area e dos de 22 a 28 m havia ZERO. Multiplica o alcance de quem esta FORA da grande area (a regra `dentroDaArea` ja trata de quem esta dentro).
+    O `alcanceMax` continua a ser o ultimo a falar.
+    */
+    bonusAlcanceForaDaArea: 1.45,
 
     /*
     COM O CAMINHO ABERTO E A BALIZA LONGE, PROGRIDE-SE.
@@ -198,7 +205,7 @@ const ShootingModel = {
     frente-a-frente, que olha para ele.
     =========================================================================
     */
-    xgMinimo: 0.055,
+    xgMinimo: 0.03,   // era 0.055: cortava os remates de longe, que sao de xG baixo
 
     frenteAFrente: {
         corredorMeiaLargura: 4.0,
@@ -1669,17 +1676,17 @@ const CrossModel = {
     pesoAlturaAlvo: 0.35,
 
     // +20% pedido explicitamente: cruzamentos pouco frequentes.
-    chanceBase: 0.54,     // com um alvo na área
+    chanceBase: 0.62,     // com um alvo na área (era 0.54)
     chancePorAlvo: 0.264, // por cada alvo além do primeiro
     // +100% pedido: cruzar DAS LATERAIS DA ÁREA. Os dois termos que dependem
     // de estar lá (largura junto à linha, e o peso da camada CRUZAMENTO do
     // SpatialGrid — ver pesoGrid abaixo) dobraram; a chanceBase não, senão
     // subia também o cruzamento de qualquer sítio.
-    bonusLargura: 0.72,   // acumulado junto à linha lateral
-    bonusFundo: 0.42,     // acumulado junto à linha de fundo
+    bonusLargura: 1.0,    // acumulado junto à linha lateral (era 0.72: pedido, mais cruzamentos ao lado da area)
+    bonusFundo: 0.58,     // acumulado junto à linha de fundo (era 0.42)
     // Quanto vale a célula da camada CRUZAMENTO (0-100) do SpatialGrid, que é
     // exactamente a faixa das laterais da área. 0.30 -> 0.60.
-    pesoGrid: 0.60,
+    pesoGrid: 0.85,       // (era 0.60)
     penalPressao: 0.30,   // sob pressão o cruzamento sai mal
     chanceMax: 0.97,
 

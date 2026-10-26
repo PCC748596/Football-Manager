@@ -166,7 +166,7 @@ const Intencoes = {
     // jogador a arrancar com o braco no ar e a parar logo. Ver tools/headless/infiltracao_duracao.js.
     // Quando quem corre e um lateral com o estilo offensive_fullback (overlap), a chance de o portador lhe lancar a bola e esta (a normal e `chance`).
     chanceLateralOfensivo: 0.9,
-    restanteSemPasse: 3.0,      // s que sobram a quem corria quando o passe vai para outro
+    restanteSemPasse: 5.0,      // s que sobram a quem corria quando o passe vai para outro
     velCorrida: 8.0, velBola: 14.0, velAdversario: 6.2,
     distMin: 12.0, distMax: 42.0,   // distancia do portador ao ponto de queda
     ganhoMin: 8.0,              // m a frente do portador (no sentido do ataque) que o ponto tem de ficar: um lancamento ganha terreno
@@ -1481,6 +1481,11 @@ const RunIntoSpaceModel = {
     margemDestino: 4.0,
     margemLinha: 2.0,
     duracao: 4.0,
+    // Quanto dura a corrida de quem se infiltra / faz overlap: pedido *"tem que correr uns 5 ou 6 s, nao 2"* (era 3.5, e a `restanteSemPasse` ainda a encurtava para 3).
+    duracaoCorrida: 6.0,
+    persisteSemPosse: true,   // a corrida so acaba se o ADVERSARIO tiver a bola nos pes; com a bola livre dura o `runTimer`
+    folgaAoFicar: 9.0,        // m AQUEM da linha de fora-de-jogo onde ele espera ao prolongar a corrida
+    prolongarAoChegar: 8.0,   // m que o alvo avanca quando ele chega perto e a equipa ainda tem a bola (a linha de fora-de-jogo continua a cortar)
     arrefecimento: 3.0,
 
     /*

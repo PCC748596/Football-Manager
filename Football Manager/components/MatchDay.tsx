@@ -38,6 +38,8 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const [eventoHud, setEventoHud] = useState<{ nome: string; esq: number; dir: number } | null>(null);
   const eventoTimer = useRef<any>(null);
   const [pronto3d, setPronto3d] = useState(() => simulador3dPronto());
+  // Os times estao a entrar em campo: o botao principal diz PULAR (ver Ponte.pularDisponivel).
+  const [podePular, setPodePular] = useState(false);
   const userTeam = teams.find(t => t.id === gameState.userTeamId);
   const taticaJson = userTeam ? JSON.stringify(taticaParaMotor(userTeam.tactics)) : '';
   // Tatica do manager -> painel do 3D: ao carregar e sempre que o utilizador a muda na aba Tactics.
@@ -80,7 +82,9 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   })();
 
   // O motor 3D decide a partida; o relogio do manager segue o dele (ver GameContext.motor3dMensagem).
-  const handleAction = () => {
+  const handleAction = (daSaidaPedida = false) => {
+    // Os times entram em campo: o botao e PULAR (o mesmo que o ESC do 3D). O pedido de saida que o ESC gera volta aqui e ai arranca a partida (daSaidaPedida).
+    if (podePular && !daSaidaPedida && gameState.matchMinute < 90) { simulador3dEnviar({ tipo: 'esc' }); return; }
     if (gameState.matchMinute >= 90) {
         advanceWeek();
         setView?.('DASHBOARD');
@@ -160,8 +164,8 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                             </>
                         )}
                         <button onClick={handleReset} className="bg-slate-700 hover:bg-slate-600 text-white font-black px-4 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4 border-slate-900">RESET</button>
-                        <button onClick={handleAction} className="bg-blue-600 hover:bg-blue-500 text-white font-black px-8 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4 border-blue-800">
-                          {gameState.matchMinute >= 90 ? 'CONCLUIR' : gameState.isProcessing ? 'PAUSAR' : (gameState.matchMinute === 0 || gameState.matchMinute === 45) && !iniciou ? 'SAÍDA' : 'CONTINUAR'}
+                        <button onClick={() => handleAction()} className="bg-blue-600 hover:bg-blue-500 text-white font-black px-8 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4 border-blue-800">
+                          {gameState.matchMinute >= 90 ? 'CONCLUIR' : podePular ? 'PULAR' : gameState.isProcessing ? 'PAUSAR' : (gameState.matchMinute === 0 || gameState.matchMinute === 45) && !iniciou ? 'SAÍDA' : 'CONTINUAR'}
                         </button>
                     </div>
                 </div>
@@ -303,6 +307,8 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         if (document.fullscreenElement) document.exitFullscreen?.();
                         if (gameState.isProcessing) pauseMatch();
                         setView?.('TACTICS');
+                      } else if (m.tipo === 'abertura_estado') {
+                        setPodePular(!!m.pular);
                       } else if (m.tipo === 'hud_evento') {
                         setEventoHud({ nome: m.nome, esq: m.esq, dir: m.dir });
                         clearTimeout(eventoTimer.current);
@@ -311,7 +317,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         setReplayAtivo(!!m.ativo);
                       } else if (m.tipo === 'saida_pedida' || m.tipo === 'alternar_pausa') {
                         // ESC / Pause do painel do 3D: quem manda no relogio e no botao e o manager.
-                        if (gameState.matchMinute < 90) handleAction();
+                        if (gameState.matchMinute < 90) handleAction(true);
                       } else motor3dMensagem(m);
                     }} />
              </div>

@@ -1727,7 +1727,9 @@ class PlayerFSM {
             case 'RUN_INTO_SPACE': {
                 p.runTimer = (p.runTimer || 0) - dt;
 
-                const perdemosABola = (Match.possessionTeam !== p.team);
+                // Com `persisteSemPosse` a corrida segue com a bola LIVRE; so para quando o ADVERSARIO tem a bola nos pes.
+                const adversarioComBola = !!(Match.ballCarrier && Match.ballCarrier.team !== p.team);
+                const perdemosABola = (Match.possessionTeam !== p.team) && !(RunIntoSpaceModel && RunIntoSpaceModel.persisteSemPosse && !adversarioComBola);
                 const houvePasse = false; // Removido para nao abortar durante dribles intermitentes
 
                 /*
@@ -1778,8 +1780,14 @@ class PlayerFSM {
                 const alvoAtras = p.dynamicTarget &&
                     ((p.dynamicTarget.z - p.model.position.z) * p.dirZ) < -1.0;
 
+                /*
+                CHEGAR AO ALVO NAO ACABA A CORRIDA. Medido: a maior parte das infiltracoes (~100 em 300) acabava aqui, ao chegar a linha de fora-de-jogo (o alvo e cortado nela), e o jogador
+                voltava logo ao posto. Pedido: *"se nao esta em impedimento ele tem que ir pro ataque"*, 5 a 6 s. Agora fica na linha (o `steerArrive` trava-o) enquanto ha tempo e o adversario
+                nao tem a bola; a linha mexe-se e o alvo avanca com ela (ver o prolongar no player_bt.js).
+                */
+                const fica = chegou && RunIntoSpaceModel && RunIntoSpaceModel.persisteSemPosse && p.runTimer > 0.5 && !adversarioComBola;
                 if (p.runTimer <= 0 || perdemosABola || houvePasse || passeParaOutro ||
-                    chegou || alvoAtras) {
+                    (chegou && !fica) || alvoAtras) {
                     p.runTimer = 0;
                     p.runCarrier = null;
                     p.overlapAlvo = null;   // o overlap acabou (ver `podeFazerOverlap`)
