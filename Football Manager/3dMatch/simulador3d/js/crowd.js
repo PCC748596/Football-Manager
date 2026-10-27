@@ -90,6 +90,8 @@ const CrowdModel = {
     // A fraccao de adeptos do visitante pedida (10%): o canto dele ajusta-se ao estadio para a dar (Crowd.build).
     fracVisitante: 0.10,
     // Passagem sem adeptos nas fronteiras do bloco visitante, com grade de cada lado e segurancas (um a cada `cadaFilas` filas).
+    // Gente que entra e sai dos tuneis de acesso: quantos (escalado pela qualidade), metros/s, espera maxima (s) escondidos entre viagens, duracao (s) do aparecer/sumir na fila.
+    caminhantes: { total: 200, velocidade: 1.1, esperaMax: 12, rampa: 0.5 },
     divisoria: { ativa: true, cadaFilas: 4, alturaGrade: 2.2, comprimentoGrade: 1.2, corGrade: 0x2b3036, afastaSeguranca: 0.5, colunaLivre: 0.85 },
     // O canto do visitante fica EM FRENTE das cameras (a bancada do outro lado do campo, -X) no canto da DIREITA do ecra (-Z), e nao atras delas (+X). `false` = o lado das cameras.
     visitanteEmFrente: true,
@@ -222,7 +224,8 @@ const CrowdModel = {
     APLAUSOS E CABECAS: `fracao` dos adeptos aplaude em rajadas (sentados ou de pe, conforme estejam), a intensidade global `repouso`/`entrada` (1.0 e a entrada dos times); `olhaParaTras` e a
     fracao que de vez em quando vira a cabeca para tras. Tudo sorteado por adepto no shader.
     */
-    aplauso: { fracao: 0.16, repouso: 0.6, entrada: 1.0 },
+    // `fracao`: a que aplaude na entrada dos times; `perigo`: a que aplaude (em continuo) numa claque quando o seu time tem um lance perigoso (ataque no terco ofensivo). No jogo normal ninguem aplaude.
+    aplauso: { fracao: 0.16, perigo: 0.50, repouso: 0.6, entrada: 1.0 },
     olhaParaTras: 0.12,
     amplitudeIdle: 0.35,
     ritmoIdle: 1.6,
@@ -264,7 +267,8 @@ const CrowdModel = {
     Não custa attribute nenhum (o orçamento está em 13 de 16) nem escrita por
     frame: é mais um uniform, comparado no shader.
     */
-    fraccaoSaltoSempre: 0.10,
+    // Os ultras so saltam nos golos (pedido): no jogo normal a torcida fica sentada e levanta-se com o ataque.
+    fraccaoSaltoSempre: 0.0,
 
     /*
     OS ULTRAS DA CLAQUE QUE SOFREU O GOLO.
@@ -726,9 +730,10 @@ const Crowd = {
         const M = CrowdModel, m = Math.max(1e-6, M.visitanteMescla);
         // 1 dentro do canto, descendo a 0 numa faixa de largura `m` para fora dele.
         const vT = (typeof this._visT === 'number') ? this._visT : M.visitanteT, vU = (typeof this._visU === 'number') ? this._visU : M.visitanteU;   // o canto ajustado para dar 10% (ver `build`)
-        const pT = Math.max(0, Math.min(1, (vT + m - t) / m));
+        // FRONTEIRA SECA (pedido: *"so pode ter torcedor adversario dentro da area deles"*): visitante so dentro do canto, sem mescla; a fronteira e o meio da antiga faixa (a grade da divisoria).
+        const pT = (t <= vT + m / 2) ? 1 : 0;
         if (M.visitanteEmFrente) u = 1 - u;   // o canto do visitante e o do lado OPOSTO as cameras (ver `visitanteEmFrente`)
-        const pU = Math.max(0, Math.min(1, (u - (vU - m)) / m));
+        const pU = (u >= vU - m / 2) ? 1 : 0;
         return (rnd() < pT * pU) ? 'B' : 'A';
     },
 
@@ -762,7 +767,9 @@ const Crowd = {
             uTempoTroca: { value: new THREE.Vector2(-99, -99) },
             uFesta: { value: new THREE.Vector2(0, 0) },
             uEspalhar: { value: CrowdModel.espalharLevantar },
-            uAplauso: { value: CrowdModel.aplauso.repouso }
+            uAplauso: { value: CrowdModel.aplauso.repouso },
+            uFracPalmas: { value: new THREE.Vector2(0, 0) },
+            uPalmasFirme: { value: 0 }
         };
     },
 
@@ -821,6 +828,8 @@ uniform vec2 uTempoTroca;
 uniform vec2 uFesta;
 uniform float uEspalhar;
 uniform float uAplauso;
+uniform vec2 uFracPalmas;
+uniform float uPalmasFirme;
 uniform float uDetalhe;
 
 // Pesos deste adepto neste instante. Usados pela posicao E pela normal, que
@@ -882,8 +891,8 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     // APLAUSOS: uma fracao dos adeptos aplaude em rajadas, sentada ou de pe (a pose das palmas), com os bracos a abrir e fechar; nao com a bancada em festa.
     // SHADER SIMPLIFICADO LONGE DA CAMARA: sem aplausos nem cabecas a virar (nem as poses das palmas): nao se distinguem de longe e custam por vertice.
     if (uDetalhe > 0.5) {
-    float quem = step(fract(aAdepto.x * 37.1), ${CrowdModel.aplauso.fracao.toFixed(3)});
-    float rajada = smoothstep(0.1, 0.5, sin(uTempo * 0.4 * aAdepto.z + aAdepto.y * 1.7));
+    float quem = step(fract(aAdepto.x * 37.1), aAdepto.w < 0.5 ? uFracPalmas.x : uFracPalmas.y);
+    float rajada = mix(smoothstep(0.1, 0.5, sin(uTempo * 0.4 * aAdepto.z + aAdepto.y * 1.7)), 1.0, uPalmasFirme);
     float palma = quem * rajada * uAplauso * (1.0 - w2);
     crowdPos = mix(crowdPos, mix(aPosPalmasS, aPosPalmasP, w1), palma);
     float bracos = step(0.27, abs(crowdPos.x));
@@ -1087,6 +1096,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         for (const g of (this._grupos || [])) for (const n in g) if (g[n] && g[n].isObject3D) tirar(g[n]);
         for (const m of (this._camisasAntigas || [])) tirar(m);
         this._tirarDivisorias();
+        this._tirarCaminhantes();
         this._camisasAntigas = [];
         this._grupos = []; this._fansPorGrupo = []; this._esferas = [];
         this.build(cena, lugares);
@@ -1181,6 +1191,105 @@ void crowdPesos(out float dePe, out float w1, out float w2,
             };
         }
         return { principal: p.corCamisa, cor1: p.corCamisa, cor2: p.corCalcao || p.corCamisa, calcao: p.corCalcao || '#ffffff', kits: this._kitsDaEquipa(p, lado2) };
+    },
+
+    /*
+    GENTE A ENTRAR E A SAIR DOS TUNEIS DE ACESSO (pedido: uns 200, variados). Cada um percorre o corredor de um tunel entre a porta (no fundo do vao) e uma fila do corredor: os que ENTRAM saem da porta,
+    descem a escada e somem (sentam-se) na fila escolhida; os que SAEM aparecem nessa fila, sobem e somem na porta. Depois de uma espera sem estar visivel, repetem. Os corpos sao os mesmos do pessoal do campo
+    (`Staff._geometrias`), de pe, com cores variadas por instancia. Os tuneis vem de `TuneisAcesso` (match_setup.js).
+    */
+    _criarCaminhantes(scene) {
+        this._tirarCaminhantes();
+        const T = (typeof globalThis !== 'undefined') ? globalThis.TuneisAcesso : null;
+        const CM = CrowdModel.caminhantes;
+        if (!CM || !T || !T.itens || !T.itens.length || typeof Staff === 'undefined' || typeof FuncionariosEstadio === 'undefined' || typeof THREE === 'undefined') return;
+        let geos;
+        try { geos = Staff._geometrias(CrowdModel.poses.dePe); } catch (err) { return; }
+        if (!geos || !Object.keys(geos).length) return;
+        const F = FuncionariosEstadio;
+        const fq = (typeof Qualidade !== 'undefined' && Qualidade.cfg && typeof Qualidade.cfg().adeptos === 'number') ? Qualidade.cfg().adeptos : 1;
+        const n = Math.round(CM.total * fq);
+        if (n < 1) return;
+        let semente = 424242; const rnd = () => { semente = (semente * 1103515245 + 12345) & 0x7fffffff; return semente / 0x7fffffff; };
+        const eq = CrowdModel.equipas;
+        const camisas = ['#d6201f', '#ffffff', '#1f5fd1', '#f5e61b', '#2e9b45', '#14161a', '#e8812b', '#8e44ad', eq.A.camisa, eq.B.camisa];
+        const calcas = ['#2b3a55', '#14161a', '#556070', '#7a5c3a', '#3b5d8f', '#a0a6ae'];
+        const cor = new THREE.Color();
+        const canais = Object.keys(geos);
+        const malhas = {};
+        for (const canal of canais) {
+            const im = new THREE.InstancedMesh(geos[canal], new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85 }), n);
+            im.frustumCulled = false; im.castShadow = false; im.receiveShadow = false;
+            im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+            malhas[canal] = im;
+            scene.add(im);
+        }
+        const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
+        const gente = [];
+        for (let i = 0; i < n; i++) {
+            const tu = pick(T.itens);
+            const entra = rnd() < 0.5;
+            const rhoPorta = T.f + T.nCorte - 0.5 - 0.35;
+            const rhoFila = 0.5 + rnd() * Math.max(0.5, T.f - 1.5);
+            const vel = CM.velocidade * (0.8 + 0.4 * rnd());
+            const dur = Math.abs(rhoPorta - rhoFila) * 1.2 / vel;
+            const g = { tu, entra, rhoPorta, rhoFila, dur, lado: (rnd() < 0.5 ? -1 : 1) * (0.3 + 0.35 * rnd()), esc: F.escalaMin + rnd() * (F.escalaMax - F.escalaMin), fase: rnd() * 6.28, prog: rnd(), espera: 0, andando: rnd() < 0.6 };
+            if (!g.andando) g.espera = rnd() * CM.esperaMax;
+            gente.push(g);
+            for (const canal of canais) {
+                if (canal === 'camisa') cor.set(pick(camisas));
+                else if (canal === 'calcao') cor.set(pick(calcas));
+                else if (canal === 'pele') cor.set(pick(CrowdModel.peles));
+                else if (canal === 'cabelo') cor.set(pick(CrowdModel.cabelos));
+                else cor.set('#1b1512');
+                malhas[canal].setColorAt(i, cor);
+            }
+        }
+        for (const canal of canais) if (malhas[canal].instanceColor) malhas[canal].instanceColor.needsUpdate = true;
+        this._caminhantes = { gente, malhas, canais, T, dummy: new THREE.Object3D(), esperaMax: CM.esperaMax, rampa: CM.rampa };
+        this._atualizarCaminhantes(0);
+    },
+
+    _tirarCaminhantes() {
+        const c = this._caminhantes;
+        if (c) for (const k of c.canais) { const m = c.malhas[k]; if (m.parent) m.parent.remove(m); if (m.material) m.material.dispose(); }
+        this._caminhantes = null;
+    },
+
+    _atualizarCaminhantes(dt) {
+        const c = this._caminhantes;
+        if (!c) return;
+        const T = c.T, d = c.dummy, t = this._tempo;
+        c.gente.forEach((g, i) => {
+            let visivel = false;
+            if (g.andando) {
+                g.prog += dt / g.dur;
+                if (g.prog >= 1) { g.andando = false; g.prog = 0; g.espera = 1 + Math.random() * c.esperaMax; }
+                else visivel = true;
+            } else {
+                g.espera -= dt;
+                if (g.espera <= 0) { g.andando = true; g.prog = 0; g.entra = Math.random() < 0.5; }
+            }
+            if (!visivel) { d.position.set(0, -50, 0); d.scale.set(0, 0, 0); d.rotation.set(0, 0, 0); }
+            else {
+                const tu = g.tu, prog = Math.min(1, g.prog);
+                const rho = g.entra ? g.rhoPorta + (g.rhoFila - g.rhoPorta) * prog : g.rhoFila + (g.rhoPorta - g.rhoFila) * prog;
+                const prof = tu.dProf + rho * 1.2;
+                const y = tu.dY + 0.5 + 0.5 * Math.min(rho, T.f) + 0.03 * Math.abs(Math.sin(t * 7 + g.fase));
+                // aparecer/sumir na fila do corredor (quem se senta ou se levanta): rampa de escala; na porta nao ha rampa (some no escuro)
+                const tt = g.dur * prog, restante = g.dur - tt;
+                const rampaFila = g.entra ? Math.min(1, restante / c.rampa) : Math.min(1, tt / c.rampa);
+                const esc = g.esc * Math.max(0.01, rampaFila);
+                const sentido = (g.entra ? -1 : 1) * tu.sinal;   // ao longo do eixo da fundura: a entrar anda para o campo
+                const balanco = 0.05 * Math.sin(t * 7 + g.fase);
+                if (tu.eixo === 'x') { d.position.set(tu.base + tu.sinal * prof, y, tu.c + g.lado); d.rotation.set(0, Math.atan2(sentido, 0), balanco); }
+                else { d.position.set(tu.c + g.lado, y, tu.base + tu.sinal * prof); d.rotation.set(0, Math.atan2(0, sentido), balanco); }
+                d.scale.set(esc, esc, esc);
+            }
+            d.updateMatrix();
+            for (const k of c.canais) c.malhas[k].setMatrixAt(i, d.matrix);
+        });
+        for (const k of c.canais) c.malhas[k].instanceMatrix.needsUpdate = true;
     },
 
     // Grade vazada e segurancas das divisorias da claque visitante (ver `build`). Os segurancas sao os MESMOS do campo (Staff: corpo de jogador, colete laranja).
@@ -1335,7 +1444,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
             const M = CrowdModel, alvo = (typeof M.fracVisitante === 'number') ? M.fracVisitante : 0.10, m = Math.max(1e-6, M.visitanteMescla);
             const n = lugaresEscolhidos.length;
             const tu = lugaresEscolhidos.map(l => [(l.z - zMin) / spanZ, M.visitanteEmFrente ? 1 - (l.x - xMin) / spanX : (l.x - xMin) / spanX]);   // u: 1 = o lado onde esta o canto do visitante
-            const parte = (vt, vu) => { let soma = 0; for (const [t, u] of tu) soma += Math.max(0, Math.min(1, (vt + m - t) / m)) * Math.max(0, Math.min(1, (u - (vu - m)) / m)); return soma / Math.max(1, n); };
+            const parte = (vt, vu) => { let soma = 0; for (const [t, u] of tu) soma += ((t <= vt + m / 2) ? 1 : 0) * ((u >= vu - m / 2) ? 1 : 0); return soma / Math.max(1, n); };
             const com = (e) => [M.visitanteT * e, 1 - (1 - M.visitanteU) * e];
             let lo = 0.1, hi = 3.0;
             for (let k = 0; k < 28; k++) { const e = (lo + hi) / 2; const [vt, vu] = com(e); if (parte(vt, vu) < alvo) lo = e; else hi = e; }
@@ -1406,7 +1515,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                     const l = lugaresEscolhidos[i];
                     const t = (l.z - zMin) / spanZ;
                     let u = (l.x - xMin) / spanX; if (M.visitanteEmFrente) u = 1 - u;
-                    const w = Math.max(0, Math.min(1, (vT + m - t) / m)) * Math.max(0, Math.min(1, (u - (vU - m)) / m));
+                    const w = ((t <= vT + m / 2) ? 1 : 0) * ((u >= vU - m / 2) ? 1 : 0);
                     if (w > 0 && rnd() < w * (1 - rel)) lugaresEscolhidos.splice(i, 1);
                 }
                 nTotal = lugaresEscolhidos.length;
@@ -1560,6 +1669,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
 
         this.setFraccao('A', CrowdModel.fraccaoRepouso, false);
         this.setFraccao('B', CrowdModel.fraccaoRepouso, false);
+        this._criarCaminhantes(scene);
         return this._meshes;
     },
 
@@ -1608,7 +1718,6 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         }
 
         // Aplausos: a toda a forca na entrada dos times; no resto do jogo o nivel de repouso.
-        if (this._uniforms.uAplauso) this._uniforms.uAplauso.value = abertura ? CrowdModel.aplauso.entrada : CrowdModel.aplauso.repouso;
 
         const r = CrowdTrigger.avaliar({
             abertura: abertura,
@@ -1633,6 +1742,17 @@ void crowdPesos(out float dePe, out float w1, out float w2,
 
         this.setFraccao('A', r.A, r.festa === 'A', salto('A'));
         this.setFraccao('B', r.B, r.festa === 'B', salto('B'));
+
+        // PALMAS: na entrada dos times a fracao de sempre; no jogo, so a claque cujo time tem um lance perigoso (esta no ataque) e `perigo` dela bate palmas.
+        const U = this._uniforms, AP = CrowdModel.aplauso;
+        if (U.uFracPalmas) {
+            const perigo = (f, claque) => (r.festa || r.semSalto || f < CrowdModel.fraccaoAtaque - 1e-6) ? 0 : AP.perigo;
+            const pA = abertura ? AP.fracao : perigo(r.A, 'A'), pB = abertura ? AP.fracao : perigo(r.B, 'B');
+            U.uFracPalmas.value.set(pA, pB);
+            U.uPalmasFirme.value = (!abertura && (pA > 0 || pB > 0)) ? 1 : 0;
+            U.uAplauso.value = (abertura || pA > 0 || pB > 0) ? AP.entrada : AP.repouso;
+        }
+        this._atualizarCaminhantes(dt);
     },
 
     setVisivel(on) {

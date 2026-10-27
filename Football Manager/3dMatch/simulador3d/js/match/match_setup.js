@@ -1731,7 +1731,10 @@ Object.assign(Match, {
                 color: TB.corMoldura, roughness: 0.85
             });
             // Acumuladores: as bocas por orientacao, e as barras todas juntas.
+            const costas0 = !!TB.nasCostas && BA.alturaParede > 0;
             const bocasPorLado = {};
+            // Os tuneis enterrados (aoMeio) para a gente que entra e sai (crowd.js, `_criarCaminhantes`).
+            if (typeof globalThis !== 'undefined') globalThis.TuneisAcesso = (TB.aoMeio && !costas0) ? { rows, f: filaTunelE, nCorte, itens: [] } : null;
             const geosMoldura = [];
 
             /*
@@ -1816,6 +1819,7 @@ Object.assign(Match, {
                 entre laterais e fundos, o que daria dois grupos; com a face
                 escura sao quatro.
                 */
+                if (globalThis.TuneisAcesso) globalThis.TuneisAcesso.itens.push({ eixo, sinal, base, c: coordCorredor, dProf: dProf || 0, dY: dY || 0 });
                 const chave = eixo + sinal;
                 if (!bocasPorLado[chave]) {
                     bocasPorLado[chave] = { dims, iEscura, pos: [] };
