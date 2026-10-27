@@ -426,17 +426,18 @@ const ALVOS = [
     { campo: 'xg', rotulo: 'xG total', alvo: 2.84, casas: 2 },
     { campo: 'xgPorRemate', rotulo: 'xG por remate', alvo: 0.109, casas: 3 },
     { campo: 'cantos', rotulo: 'escanteios', alvo: 9.92, casas: 2 },
-    { campo: 'faltas', rotulo: 'faltas', alvo: 27.63, casas: 2 },
+    { campo: 'faltas', rotulo: 'faltas', alvo: 18, casas: 2 },   // pedido: 18 esta bom (era 27.63, benchmark de 90 min de jogo real)
     { campo: 'amarelos', rotulo: 'amarelos', alvo: 5.22, casas: 2 },
     { campo: 'vermelhos', rotulo: 'vermelhos', alvo: 0.20, casas: 2 },
     { campo: 'impedimentos', rotulo: 'impedimentos', alvo: 3.20, casas: 2 },
     { campo: 'ataquesTotais', rotulo: 'ataques', alvo: 176.6, casas: 1 },
     { campo: 'ataquesPerigosos', rotulo: 'ataques perigosos', alvo: 77.8, casas: 1 },
-    { campo: 'passesPorTime', rotulo: 'passes tentados/time', alvo: 375, casas: 0 },
+    // 375 e de um jogo real de 90 min; o nosso jogo de 20 min de relogio representa os 90, entao o alvo e bem menor. Pedido: 140 (ideal para um time de posse).
+    { campo: 'passesPorTime', rotulo: 'passes tentados/time', alvo: 140, casas: 0 },
     { campo: 'pctPassesCertos', rotulo: '% passes certos', alvo: 80, casas: 1 },
     { campo: 'pctPosseCasa', rotulo: 'posse da casa (A) %', alvo: 51, casas: 1 },
     { campo: 'defesas', rotulo: 'defesas (GR)', alvo: 6.2, casas: 2 },
-    { campo: 'rematesBloqueados', rotulo: 'finalizações bloqueadas', alvo: 7.0, casas: 2 },
+    { campo: 'rematesBloqueados', rotulo: 'finalizações bloqueadas', alvo: 4.0, casas: 2 },   // pedido: 4 esta bom (era 7.0)
     { campo: 'penaltis', rotulo: 'penaltis', alvo: 0.28, casas: 2 },
     // Sem alvo, so informativo:
     // Pedido: no minimo 15 entradas na grande area por jogo (as duas equipas, por 90 min).
