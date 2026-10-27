@@ -377,15 +377,23 @@ function malhaVoxelDoRosto(url, u) {
     return malha;
 }
 
-function aplicarFaceCustom(ap, head, boca, partes, u) {
+/*
+OS ESTILOS DE CABELO — o cabelo e feito das 5 caixas de sempre (topo `hT`, costas `hB`, lados `hL`/`hR`, franja `hF`); cada estilo as encolhe, estica, esconde ou acrescenta caixas. Estilos:
+  curto (o de sempre), careca, raspado, degrade, longo, topete (os do Editor de Faces) e os novos: militar (flat top com lados rapados), partido (ao meio), afro (volume redondo), cacheado
+  (cachos: cubinhos sobre o topo). Os novos custam: careca -60 triangulos, militar 0, partido +36, afro ~0 (-60 +24...), cacheado +96. `leve` 5 (extras) nao os usa.
+*/
+function aplicarEstiloCabelo(estilo, ap, head, partes, u) {
     const { hT, hB, hL, hR, hF } = partes;
-    const estilo = ap.estilo || 'curto', barba = ap.rosto ? 'nenhuma' : (ap.barba || 'nenhuma');   // com a cara em pixels a barba ja vem nela
     const ajusta = (m, escalaY, topo, folgaX) => {   // encolhe/estica a peca mantendo o TOPO onde estava
         const h0 = m.geometry.parameters.height * u;
         m.scale.y = escalaY;
         m.position.y = topo - (h0 * escalaY) / 2;
         if (folgaX) m.position.x += folgaX;
     };
+    const mat = hT.material;
+    const novaCaixa = (w, h, d, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(u * w, u * h, u * d), mat); m.position.set(u * x, u * y, u * z); m.receiveShadow = true; head.add(m); return m; };
+    const esconde = () => { hT.visible = hB.visible = hL.visible = hR.visible = hF.visible = false; };
+    const corEspecial = (cor) => new THREE.MeshStandardMaterial({ color: cor, roughness: 0.9 });   // cabelo tingido: nao segue a cor do tipo
     if (estilo === 'careca') { hT.visible = hB.visible = hL.visible = hR.visible = hF.visible = false; }
     else if (estilo === 'raspado') {
         ajusta(hT, 0.48, u * 0.625); ajusta(hB, 0.4, u * 0.5); ajusta(hL, 0.45, u * 0.5); ajusta(hR, 0.45, u * 0.5); hF.visible = false;
@@ -399,7 +407,64 @@ function aplicarFaceCustom(ap, head, boca, partes, u) {
     } else if (estilo === 'topete') {
         ajusta(hT, 1.7, u * 0.8); ajusta(hL, 0.75, u * 0.5); ajusta(hR, 0.75, u * 0.5);
         hF.scale.y = 1.2; hF.position.y = u * 0.52;
+    } else if (estilo === 'militar') {
+        // Flat top: o topo alto e plano, lados e costas rapados, sem franja
+        ajusta(hT, 1.35, u * 0.66); ajusta(hL, 0.4, u * 0.5); ajusta(hR, 0.4, u * 0.5); ajusta(hB, 0.35, u * 0.5); hF.visible = false;
+    } else if (estilo === 'partido') {
+        // Partido ao meio: o topo e a franja viram duas metades, inclinadas para fora, com a risca no meio
+        hT.visible = hF.visible = false;
+        const e = novaCaixa(0.45, 0.25, 0.9, -0.225, 0.5, 0); e.rotation.z = 0.12;
+        const d = novaCaixa(0.45, 0.25, 0.9, 0.225, 0.5, 0); d.rotation.z = -0.12;
+        const fe = novaCaixa(0.43, 0.15, 0.2, -0.225, 0.43, 0.38); fe.rotation.z = 0.12;
+        const fd = novaCaixa(0.43, 0.15, 0.2, 0.225, 0.43, 0.38); fd.rotation.z = -0.12;
+        ajusta(hL, 1.15, u * 0.5); ajusta(hR, 1.15, u * 0.5);
+    } else if (estilo === 'afro') {
+        // Afro: uma bola de cabelo (miolo + tampa) a cobrir o topo, os lados e as costas
+        esconde();
+        novaCaixa(1.22, 0.9, 1.22, 0, 0.32, -0.05); novaCaixa(0.98, 0.22, 0.98, 0, 0.88, -0.03);
+    } else if (estilo === 'cacheado') {
+        // Cacheado: o cabelo de sempre, mais baixo, com cachos (cubinhos) por cima e nos lados; sem franja lisa
+        hF.visible = false; ajusta(hT, 0.8, u * 0.62);
+        [[-0.3, 0.74, -0.25], [0.3, 0.74, -0.25], [-0.3, 0.74, 0.25], [0.3, 0.74, 0.25], [0, 0.84, 0], [-0.47, 0.45, 0.1], [0.47, 0.45, 0.1], [0, 0.62, 0.47]]
+            .forEach(([x, y, z]) => novaCaixa(0.28, 0.28, 0.28, x, y, z));
+    } else if (estilo === 'moicano') {
+        // Moicano: so a crista ao longo do meio (azul), cabeca rapada dos lados e atras
+        hT.visible = hL.visible = hR.visible = hF.visible = hB.visible = false;
+        [[-0.38, 0.5], [-0.19, 0.62], [0, 0.7], [0.19, 0.62], [0.38, 0.5]].forEach(([z, h]) => { const c = novaCaixa(0.16, h, 0.2, 0, 0.5 + h / 2 - 0.12, z); c.material = corEspecial(0x1e90ff); });
+    } else if (estilo === 'dreads') {
+        // Dreads: o topo e as costas de sempre e oito madeixas grossas a cair pelas costas e pelos lados
+        hF.visible = false; ajusta(hT, 1.1, u * 0.64); ajusta(hB, 1.4, u * 0.5);
+        [[-0.36, -0.4], [-0.12, -0.42], [0.12, -0.42], [0.36, -0.4], [-0.46, -0.05], [0.46, -0.05], [-0.46, 0.2], [0.46, 0.2]].forEach(([x, z]) => novaCaixa(0.13, 0.85, 0.13, x, -0.15, z));
+    } else if (estilo === 'coque') {
+        // Coque samurai: lados e costas rapados, o cabelo do topo puxado para um coque
+        hF.visible = false; ajusta(hL, 0.45, u * 0.5); ajusta(hR, 0.45, u * 0.5); ajusta(hB, 0.55, u * 0.5); ajusta(hT, 0.9, u * 0.62);
+        novaCaixa(0.34, 0.34, 0.34, 0, 0.88, -0.15);
+    } else if (estilo === 'franja') {
+        // Franja: a franja desce sobre a testa e os lados caem em cortina
+        ajusta(hF, 2.8, u * 0.525); ajusta(hL, 1.2, u * 0.5); ajusta(hR, 1.2, u * 0.5);
+    } else if (estilo === 'mullet') {
+        // Mullet: curto na frente e nos lados, comprido atras
+        hF.visible = false; ajusta(hT, 0.8, u * 0.62); ajusta(hL, 0.6, u * 0.5); ajusta(hR, 0.6, u * 0.5); ajusta(hB, 2.3, u * 0.5);
+    } else if (estilo === 'trancas') {
+        // Trancas (braids): o couro cabeludo rente e seis trancas finas a cair pelas costas
+        hF.visible = false; ajusta(hT, 0.6, u * 0.6); ajusta(hL, 0.5, u * 0.5); ajusta(hR, 0.5, u * 0.5); ajusta(hB, 0.7, u * 0.5);
+        [-0.36, -0.22, -0.07, 0.07, 0.22, 0.36].forEach(x => novaCaixa(0.08, 0.95, 0.08, x, -0.2, -0.43));
+    } else if (estilo === 'platinado') {
+        // Platinado: descolorido (quase branco), topo alto e desalinhado
+        const pla = corEspecial(0xe9e4c8); [hT, hB, hL, hR, hF].forEach(m => { m.material = pla; });
+        ajusta(hT, 1.5, u * 0.74); ajusta(hL, 0.8, u * 0.5); ajusta(hR, 0.8, u * 0.5); hF.scale.y = 1.3; hF.position.y = u * 0.5;
+    } else if (estilo === 'picos') {
+        // Picos coloridos: uma camada reta de cabelo (a do jogador) cobre o couro cabeludo e os oito espetos verdes assentam em cima dela — sem ela os picos pareciam espetados numa cabeca careca
+        hF.visible = false; ajusta(hT, 1.0, u * 0.625); ajusta(hL, 0.7, u * 0.5); ajusta(hR, 0.7, u * 0.5); ajusta(hB, 0.7, u * 0.5);
+        [[-0.3, -0.25, 0.4], [0, -0.3, 0.52], [0.3, -0.25, 0.4], [-0.3, 0.1, 0.5], [0.3, 0.1, 0.5], [0, 0, 0.42], [-0.15, 0.35, 0.36], [0.15, 0.35, 0.36]]
+            .forEach(([x, z, h]) => { const c = novaCaixa(0.15, h, 0.15, x, 0.625 + h / 2 - 0.02, z); c.material = corEspecial(0x2f9e44); });
     }
+}
+
+function aplicarFaceCustom(ap, head, boca, partes, u) {
+    const { hT, hB, hL, hR, hF } = partes;
+    const estilo = ap.estilo || 'curto', barba = ap.rosto ? 'nenhuma' : (ap.barba || 'nenhuma');   // com a cara em pixels a barba ja vem nela
+    aplicarEstiloCabelo(estilo, ap, head, partes, u);
     const mat = (cor) => new THREE.MeshStandardMaterial({ color: cor, roughness: 0.85 });
     const caixa = (w, h, d, x, y, z, cor) => { const m = new THREE.Mesh(new THREE.BoxGeometry(u * w, u * h, u * d), mat(cor)); m.position.set(u * x, u * y, u * z); head.add(m); return m; };
     const pele = new THREE.Color(ap.pele), cabelo = new THREE.Color(ap.cabelo);
@@ -940,6 +1005,7 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
     if (leve === 5) hairGrp.add(hT, hB); else hairGrp.add(hT, hB, hL, hR, hF);   // leve 5: so o topo e as costas do cabelo (os outros ficam soltos, para a face personalizada nao falhar)
     head.add(hairGrp); neck.add(head);
     if (ap.tipo === 'custom') aplicarFaceCustom(ap, head, boca, { hT, hB, hL, hR, hF }, u);   // face personalizada: estilo do cabelo, barba e oculos
+    else if (ap.estilo && leve !== 5) aplicarEstiloCabelo(ap.estilo, ap, head, { hT, hB, hL, hR, hF }, u);   // os jogadores sem face personalizada: o estilo de cabelo sorteado pelo id (estiloDeCabeloDe, utils.js)
     if (ap.tipo === 'custom' && ap.rosto && !leve && typeof Image !== 'undefined') {   // a cara em pixels so nos jogadores e arbitros (a torcida usa `leve`)
         const faceMat = new THREE.MeshStandardMaterial({ map: texturaDoRostoPixelado(ap.rosto), color: 0xdcdcdc, roughness: 0.8 });   // `color` < branco: a luz do jogo estoura a foto
         dividirFrente(head.geometry); head.material = [blockMat, faceMat];   // as 5 faces de pele e a frente com a foto: 2 chamadas de desenho

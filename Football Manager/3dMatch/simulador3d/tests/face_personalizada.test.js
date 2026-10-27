@@ -16,9 +16,12 @@ const THREE = require('three');
 
 const raiz = path.join(__dirname, '..');
 const src = fs.readFileSync(path.join(raiz, 'js', 'pose.js'), 'utf8').split('\r\n').join('\n');
-const ini = src.indexOf('function aplicarFaceCustom(');
-assert.ok(ini >= 0, 'aplicarFaceCustom desapareceu do pose.js');
-const fim = src.indexOf('\n}\n', ini);
+// aplicarEstiloCabelo (os estilos) e aplicarFaceCustom (barba e oculos) vivem lado a lado no pose.js: extraem-se as duas.
+const ini = src.indexOf('function aplicarEstiloCabelo(');
+assert.ok(ini >= 0, 'aplicarEstiloCabelo desapareceu do pose.js');
+const iniFace = src.indexOf('function aplicarFaceCustom(');
+assert.ok(iniFace > ini, 'aplicarFaceCustom desapareceu do pose.js');
+const fim = src.indexOf(String.fromCharCode(10) + '}' + String.fromCharCode(10), iniFace);
 const aplicarFaceCustom = new Function('THREE', src.slice(ini, fim + 3) + '\nreturn aplicarFaceCustom;')(THREE);
 
 const NARIZ_FIM = -0.08;   // o y onde o nariz acaba (pose.js: `nariz` vai de 0.05 a -0.08)

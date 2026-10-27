@@ -5479,6 +5479,26 @@ function aparenciaDoJogador(id) {
     return { tipo: tipo.nome, cabelo: tipo.cabelo, pele: tipo.pele, chuteira: bota.nome, corChuteira: bota.cor };
 }
 
+/*
+O ESTILO DE CABELO DE UM JOGADOR sem face personalizada: sai do id (hash com o sal 3), como a pele e as chuteiras, por isso e sempre o mesmo. Os de pele escura levam mais afro e cacheado.
+Estilos (ver aplicarEstiloCabelo em pose.js): curto, careca, militar, topete, partido, afro, cacheado, franja, mullet, longo, platinado, coque, moicano, dreads, trancas, picos. Quando houver a foto do jogador, o sistema escolhe o mais parecido e grava em `estilo`
+(a face personalizada manda sobre o sorteio).
+*/
+const EstilosDeCabelo = {
+    claro:  [['curto', 22], ['careca', 5], ['militar', 10], ['topete', 11], ['partido', 11], ['afro', 1], ['cacheado', 11], ['franja', 6], ['mullet', 3], ['longo', 4], ['platinado', 4],
+             ['coque', 3], ['moicano', 2], ['dreads', 1], ['trancas', 1], ['picos', 2]],
+    escuro: [['curto', 14], ['careca', 7], ['militar', 9], ['topete', 4], ['partido', 6], ['afro', 16], ['cacheado', 18], ['franja', 3], ['mullet', 4], ['longo', 3], ['platinado', 1],
+             ['coque', 3], ['moicano', 2], ['dreads', 6], ['trancas', 6], ['picos', 2]]
+};
+function estiloDeCabeloDe(id, tipo) {
+    const n = (typeof id === 'number') ? (id >>> 0) : Number(id) >>> 0;
+    const lista = EstilosDeCabelo[tipo === 'negro' ? 'escuro' : 'claro'];
+    const total = lista.reduce((a, x) => a + x[1], 0);
+    let acc = hashAparencia(n, 3) % total;
+    for (const [nome, peso] of lista) { if (acc < peso) return nome; acc -= peso; }
+    return 'curto';
+}
+
 function offsetInquietacao(angulo, raio) {
     return { x: Math.cos(angulo) * raio, z: Math.sin(angulo) * raio };
 }
