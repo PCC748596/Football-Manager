@@ -30,7 +30,7 @@ const EfeitosSonoros = {
     Volumes por som. O apito é o mais alto de propósito — é uma decisão de
     arbitragem, tem de cortar o ruído do estádio; o chute vive por baixo dele.
     */
-    volumeApito: 0.55,
+    volumeApito: 0.4,
     volumeChute: 0.40,
 
     // Quantas cópias de cada som podem tocar ao mesmo tempo.

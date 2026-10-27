@@ -2197,6 +2197,8 @@ const ZonasModel = {
     em relacao a bola. `false` = esta camada nao corre quando o posto vem da tabela (a marcacao, o fora-de-jogo, o rest defense e a repulsao continuam). `true` volta a correr.
     */
     camadas: { molaCoesao: false, pendulo: false, tectoMeias: false, desvioMaxDoSlot: false },
+    // O alvo final nunca se afasta do posto da tabela mais do que isto (m), salvo quem tem tarefa de bola: o que o treinador desenha no Match Tactics e o que se ve em campo. 0 desliga.
+    desvioMaxFinal: 2.5,
     /*
     COMPORTAMENTO NAS TRANSICOES (pedido: mais dinamismo; medido: so mexer na leitura das tabelas nao muda o jogo). Nos primeiros `duracao` s:
       . T.Defensive (acabou de perder a bola): CONTRA-PRESSAO — os `pressores` meias/avancados mais perto do adversario com a bola vao a ele (ate `distPressao` m).

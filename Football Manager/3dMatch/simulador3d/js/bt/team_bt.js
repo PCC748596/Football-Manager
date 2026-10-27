@@ -3545,5 +3545,22 @@ const PosicionamentoAI = {
             const tecto = p.model.position.z * p.dirZ + (B_TR.folgaTransicao || 0);
             if (p.dynamicTarget.z * p.dirZ > tecto) p.dynamicTarget.z = tecto * p.dirZ;
         }
+
+        /*
+        A TABELA MANDA NO FIM (relato com capturas do editor e do campo: "tem alguma coisa sobrescrevendo as posicoes"). Medido (tools/headless/zonas_campo_vs_tabela.js), sem bola e com a bola no
+        terco defensivo, o alvo final ficava a 6-9 m do posto da tabela — marcacao, separacao lateral/meia, piso de largura das alas, alisamento e os pisos da saida de bola somam-se todos por
+        cima do posto. Com a tabela a mandar, o alvo nao se afasta do posto mais de `ZonasModel.desvioMaxFinal` m (quem tem tarefa de bola — chaser, intercetor, bloqueador — fica de fora).
+        */
+        const ZF = (typeof ZonasModel !== 'undefined') ? ZonasModel : null;
+        if (ZF && ZF.desvioMaxFinal > 0 && p._zonal && p.slotTarget && !p.hasBall &&
+            bb.chaser !== p && bb.intercetor !== p && bb.bloqueador !== p) {
+            const ddx = p.dynamicTarget.x - p.slotTarget.x, ddz = p.dynamicTarget.z - p.slotTarget.z;
+            const dd = Math.hypot(ddx, ddz);
+            if (dd > ZF.desvioMaxFinal) {
+                const f = ZF.desvioMaxFinal / dd;
+                p.dynamicTarget.x = p.slotTarget.x + ddx * f;
+                p.dynamicTarget.z = p.slotTarget.z + ddz * f;
+            }
+        }
     }
 };

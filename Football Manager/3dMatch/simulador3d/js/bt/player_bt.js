@@ -3653,7 +3653,15 @@ function actMarcar(ctx) {
         if (pontoZ * p.dirZ > tecto) pontoZ = tecto * p.dirZ;
     }
 
-    p.dynamicTarget.set(ponto.x, ALTURA_BASE_Y, pontoZ);
+    let pontoX = ponto.x;
+    // Com as tabelas por zona a mandar, a marcacao tambem fica a `ZonasModel.desvioMaxFinal` do posto da tabela (ver o fim do nivel 1 em team_bt.js): a marcacao ia buscar o homem a 7 m dele.
+    const ZF = (typeof ZonasModel !== 'undefined') ? ZonasModel : null;
+    if (ZF && ZF.desvioMaxFinal > 0 && p._zonal && p.slotTarget) {
+        const ddx = pontoX - p.slotTarget.x, ddz = pontoZ - p.slotTarget.z, dd = Math.hypot(ddx, ddz);
+        if (dd > ZF.desvioMaxFinal) { pontoX = p.slotTarget.x + ddx * ZF.desvioMaxFinal / dd; pontoZ = p.slotTarget.z + ddz * ZF.desvioMaxFinal / dd; }
+    }
+
+    p.dynamicTarget.set(pontoX, ALTURA_BASE_Y, pontoZ);
     p.speedMult = (5.8 + ((ctx.skillSpeed - 50) / 50) * 1.4) * 1.25 * 0.9;
     p.apoioAtivo = false;
     p.fsm.changeState('MARKING');
