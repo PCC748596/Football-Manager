@@ -6,7 +6,7 @@ import { TeamShield } from './TeamShield';
 import { PlayerFace } from './PlayerFace';
 import { ShirtIcon } from './ShirtIcon';
 import FitnessBar from './FitnessBar';
-import { settleMatch, type CurrencyCode } from '../textSim/stadiumEconomy';
+import { settleMatch, ECONOMIA_ESTADIO, competicaoDoJogo, type CurrencyCode } from '../textSim/stadiumEconomy';
 
 interface Props {
   onGoToRoundSimulation?: () => void;
@@ -85,7 +85,7 @@ const getWeatherForMatch = (dateStr: string, matchId: string, country: string) =
   // Winter: Jun, Jul, Aug (5, 6, 7)
   // Spring: Sep, Oct, Nov (8, 9, 10)
   
-  const isSouth = country === 'brazil';
+  const isSouth = country === 'brazil' || country === '45';   // 45 = o id do Brasil na base atual
   let season = 'summer';
   
   if (isSouth) {
@@ -135,7 +135,8 @@ const getWeatherForMatch = (dateStr: string, matchId: string, country: string) =
     else icon = '☀️';
   }
 
-  return { icon, temp };
+  const desc: Record<string, string> = { '☀️': 'Sunny', '🌤️': 'Mostly sunny', '⛈️': 'Storms', '⛅': 'Partly cloudy', '🍃': 'Windy', '🌥️': 'Cloudy', '☁️': 'Overcast', '🌧️': 'Rain', '🌦️': 'Showers', '🌨️': 'Snow' };
+  return { icon, temp, desc: desc[icon] || '' };
 };
 
 const OpponentTacticsModal: React.FC<{ team: Team, players: Player[], onClose: () => void }> = ({ team, players: teamPlayers, onClose }) => {
@@ -347,6 +348,18 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
     return relevant.sort((a, b) => a.date.localeCompare(b.date))[0];
   }, [fixtures, gameState.currentDate, userTeam.id]);
   
+  // O PUBLICO ESTIMADO do proximo jogo: o mesmo calculo da renda (ocupacao do mandante + bonus do jogo, x o multiplicador da competicao). Ver textSim/stadiumEconomy.ts.
+  const publicoEstimado = useMemo(() => {
+    if (!nextMatch) return null;
+    const h = teams.find(t => t.id === nextMatch.homeTeamId), a = teams.find(t => t.id === nextMatch.awayTeamId);
+    if (!h || !a) return null;
+    const jornadas = fixtures.filter(f => !f.isFriendly).reduce((m, f) => Math.max(m, f.week || 0), 0);
+    const decisivo = !!nextMatch.isDecisive || (!nextMatch.isFriendly && jornadas > 0 && (nextMatch.week || 0) > jornadas - ECONOMIA_ESTADIO.ultimasJornadasDecisivas);
+    const s = settleMatch(h, a, nextMatch, gameState.currency as CurrencyCode, decisivo);
+    const cap = h.stadiumCapacity || 20000;
+    return { publico: s.attendance, cap, pct: Math.round(100 * s.attendance / cap), comp: competicaoDoJogo(nextMatch as any) };
+  }, [nextMatch, teams, fixtures, gameState.currency]);
+
   // Logic to determine display teams (Home vs Away)
   let displayHomeTeam = userTeam;
   let displayAwayTeam = teams.find(t => t.id === (nextMatch ? (nextMatch.homeTeamId === userTeam.id ? nextMatch.awayTeamId : nextMatch.homeTeamId) : ''));
@@ -594,6 +607,24 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                         <div className="text-[11px] font-black text-slate-800 dark:text-white uppercase italic transition-colors group-hover:text-blue-500 truncate w-full">{displayAwayTeam?.name || 'Unknown'}</div>
                      </div>
                    </div>
+                   {nextMatch && (publicoEstimado || weather) && (
+                     <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                       {publicoEstimado && (
+                         <div className="text-center">
+                           <div className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Attendance (est.)</div>
+                           <div className="text-[12px] font-black text-slate-700 dark:text-slate-200 tabular-nums">{publicoEstimado.publico.toLocaleString()}</div>
+                           <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500">{publicoEstimado.pct}% of {publicoEstimado.cap.toLocaleString()}{publicoEstimado.comp !== 'LIGA' ? ` · ${({ COPA: 'Cup', CONTINENTAL: 'Continental', AMISTOSO: 'Friendly' } as any)[publicoEstimado.comp]} x${ECONOMIA_ESTADIO.multiplicadorCompeticao[publicoEstimado.comp]}` : ''}</div>
+                         </div>
+                       )}
+                       {weather && (
+                         <div className="text-center">
+                           <div className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Weather</div>
+                           <div className="text-[12px] font-black text-slate-700 dark:text-slate-200"><span className="text-base mr-1">{weather.icon}</span>{weather.temp}°C</div>
+                           <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500">{weather.desc}</div>
+                         </div>
+                       )}
+                     </div>
+                   )}
                  </div>
               </div>
             </div>

@@ -6,7 +6,7 @@ ECONOMIA DO ESTADIO — ocupacao, renda do jogo e custo por partida
 =====================================================================
 Tudo o que se balanceia vive em ECONOMIA_ESTADIO; as contas sao tres funcoes pequenas.
 
-OCUPACAO-BASE. No inicio do campeonato e 70% da capacidade, e acumula ao longo da temporada (minimo 20%, maximo 100%). Depois de cada jogo do time (em casa ou fora),
+OCUPACAO-BASE. No inicio do campeonato e 60% da capacidade, e acumula ao longo da temporada (minimo 20%, maximo 100%). Depois de cada jogo do time (em casa ou fora),
 em PONTOS PERCENTUAIS da ocupacao-base:
     vitoria              +5
     derrota              -5
@@ -15,7 +15,8 @@ em PONTOS PERCENTUAIS da ocupacao-base:
     3.o e seguintes      -5 por jogo
     (vitoria ou derrota zera a contagem de empates seguidos)
 BONUS DA PARTIDA (so naquele jogo; nao mexem na base): classico +10, jogo decisivo +10, final +20 (a final nao soma o decisivo).
-PUBLICO = capacidade x ocupacao final, nunca acima dos lugares.
+MULTIPLICADOR DA COMPETICAO (sobre o publico ja calculado): liga x1.0, copa nacional x1.2, competicao continental x1.4, amistoso x0.7.
+PUBLICO = capacidade x ocupacao final x multiplicador da competicao, nunca acima dos lugares.
 
 RENDA. Publico (capacidade x ocupacao) x preco medio do ingresso. A renda e do MANDANTE.
     Preco medio (na moeda do jogo): 20 USD, 20 EUR, 100 BRL.
@@ -28,9 +29,10 @@ O dinheiro do jogo e guardado em dolares (o `formatCurrency` converte para a moe
 import { TAXAS } from './cambio';
 export type CurrencyCode = 'USD' | 'EUR' | 'BRL';
 export type MatchKind = 'NORMAL' | 'CLASSICO' | 'FINAL';
+export type Competicao = 'LIGA' | 'COPA' | 'CONTINENTAL' | 'AMISTOSO';
 
 export const ECONOMIA_ESTADIO = {
-  ocupacaoInicial: 0.70,
+  ocupacaoInicial: 0.60,
   ocupacaoMinima: 0.20,
   ocupacaoMaxima: 1.00,
   vitoria: 0.05,
@@ -57,6 +59,8 @@ export const ECONOMIA_ESTADIO = {
   ],
   descontoEstadioProprio: 0.30,
   multiplicadorTipo: { NORMAL: 1.0, CLASSICO: 1.2, FINAL: 1.4 } as Record<MatchKind, number>,
+  /** Multiplica o PUBLICO do jogo pela competicao: copa x1.2 e continental x1.4 (pedido); amistoso x0.7. */
+  multiplicadorCompeticao: { LIGA: 1.0, COPA: 1.2, CONTINENTAL: 1.4, AMISTOSO: 0.7 } as Record<Competicao, number>,
   /** Estadios alugados (o resto e proprio, salvo `Team.stadiumOwned`). */
   estadiosAlugados: ['Maracanã', 'Estádio do Maracanã', 'Mineirão', 'Mané Garrincha', 'Arena Castelão', 'Castelão', 'Fonte Nova', 'Arena Fonte Nova', 'Arena Pantanal', 'Serra Dourada', 'Couto Pereira'],
 };
@@ -105,6 +109,16 @@ export const matchKind = (fixture: Fixture & { isFinal?: boolean }, home: Team, 
   return a.length > 0 && a === b ? 'CLASSICO' : 'NORMAL';
 };
 
+/** A competicao do jogo: amistoso; copa do Brasil (COPA); Libertadores, Sul-Americana e Champions (CONTINENTAL); tudo o resto (as ligas, as Series C e D) e LIGA. */
+export const competicaoDoJogo = (fixture: Pick<Fixture, 'id'> & { isFriendly?: boolean; type?: string }): Competicao => {
+  if (fixture.isFriendly) return 'AMISTOSO';
+  if (fixture.type === 'CUP' || String(fixture.id).startsWith('fix-cup-')) {
+    if (/^fix-cup-(LIB|SUL|UCL)-/.test(fixture.id)) return 'CONTINENTAL';
+    if (/^fix-cup-COPA_BR-/.test(fixture.id)) return 'COPA';
+  }
+  return 'LIGA';
+};
+
 export interface MatchSettlement {
   attendance: number; occupancy: number; revenueUSD: number; costUSD: number; kind: MatchKind;
 }
@@ -115,9 +129,10 @@ export const settleMatch = (home: Team, away: Team, fixture: Fixture, currency: 
   const kind = matchKind(fixture, home, away);
   const base = (home as any).stadiumOccupancy ?? ECONOMIA_ESTADIO.ocupacaoInicial;
   const occupancy = Math.min(ECONOMIA_ESTADIO.ocupacaoMaxima, base + matchBonus(kind, decisive));   // o bonus e so deste jogo: a base nao muda
-  const attendance = Math.min(capacity, Math.round(capacity * occupancy));
+  const competicao = competicaoDoJogo(fixture as any);
+  const attendance = Math.min(capacity, Math.round(capacity * occupancy * ECONOMIA_ESTADIO.multiplicadorCompeticao[competicao]));
   return {
-    attendance, occupancy, kind,
+    attendance, occupancy: attendance / capacity, kind,
     revenueUSD: attendance * ticketPriceUSD(currency),
     costUSD: stadiumMatchCostUSD(capacity, isStadiumOwned(home as any), kind),
   };

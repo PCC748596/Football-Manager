@@ -227,7 +227,7 @@ export interface Team {
   sponsorAmount?: number;
   fanBase?: number;
   avrAttendance?: number;
-  stadiumOccupancy?: number;   // 0..1: a ocupacao-BASE do estadio (comeca em 70%, minimo 20%; ver textSim/stadiumEconomy.ts)
+  stadiumOccupancy?: number;   // 0..1: a ocupacao-BASE do estadio (comeca em 60%, minimo 20%; ver textSim/stadiumEconomy.ts)
   drawStreak?: number;         // empates seguidos do time (zera com vitoria ou derrota)
   stadiumOwned?: boolean;      // estadio proprio (custo -30%); sem valor, decide a lista de estadios alugados
   homeGames?: number;          // jogos em casa liquidados (para o publico medio)

@@ -595,7 +595,9 @@ const Cidade = {
             if (w < 6 || dep < 6) return false;
             const uc = (u0 + u1) / 2, vc = (v0 + v1) / 2;
             const escala = Math.max(0.35, 1 - (r - 150) / 320);
-            const pisos = Math.max(4, Math.round((5 + Math.pow(rnd(), 1.6) * 17) * escala));
+            // Cidade pequena (Series C e D, `CidadeConfig.predios`): predios mais baixos.
+            const fPisos = (C.predios && C.predios.fatorPisos) || 1;
+            const pisos = Math.max(fPisos < 1 ? 3 : 4, Math.round((5 + Math.pow(rnd(), 1.6) * 17) * escala * fPisos));
             const parede = pick(C.paredesPredio);
             const [cx, cz] = W(uc, vc);
             const [dx, dz] = aX ? [w, dep] : [dep, w];
@@ -650,7 +652,8 @@ const Cidade = {
             const aX = (ix1 - ix0) >= (iz1 - iz0);
             const A = aX ? ix1 - ix0 : iz1 - iz0, B = aX ? iz1 - iz0 : ix1 - ix0;
             const linhas = B >= 30 ? 2 : 1, prof = B / linhas;
-            const pPredio = r < 215 ? 0.9 : (r < 265 ? 0.5 : 0.12);
+            // Cidade pequena (`CidadeConfig.predios.fatorProb`): menos predios, mais casas.
+            const pPredio = (r < 215 ? 0.9 : (r < 265 ? 0.5 : 0.12)) * ((C.predios && C.predios.fatorProb) || 1);
             for (let l = 0; l < linhas; l++) {
                 const sinal = linhas === 2 ? (l === 0 ? -1 : 1) : (rnd() < 0.5 ? -1 : 1);
                 const v0 = (aX ? iz0 : ix0) + l * prof, u0 = aX ? ix0 : iz0;

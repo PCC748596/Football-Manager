@@ -1186,9 +1186,16 @@ function animate(time) {
         if (_embutidoSemCidade) {
             const ve = ['cinema', 'grua', 'orbit'].indexOf(window.cameraMode) >= 0;
             // A cidade constroi-se JA (escondida) e nao na primeira vez que se muda para uma camera que a ve: carrega junto com o estadio (a construcao a meio do jogo era o soluco ao trocar para Orbita / Cinema).
-            if (!Cidade.grupo && typeof CidadeConfig !== 'undefined' && CidadeConfig.ativa && Match.scene) Cidade.construir(Match.scene);
+            // Uma tentativa so: se a construcao falhar nao se repete a cada quadro (reconstruir uma cidade de 12 mil instancias, ~200 ms, por quadro seria o jogo a travar).
+            if (!Cidade.grupo && !Cidade._tentouConstruir && typeof CidadeConfig !== 'undefined' && CidadeConfig.ativa && Match.scene) {
+                Cidade._tentouConstruir = true;
+                try { Cidade.construir(Match.scene); } catch (e) { console.error('Cidade.construir falhou:', e); }
+            }
             if (Cidade.grupo) Cidade.grupo.visible = ve;
-            if (ve) Cidade.update(delta);
+            // Se a cidade lançar um erro a actualizar nao pode levar o ciclo do jogo atras (o FPS ficava congelado): regista-se uma vez e a cidade deixa de se desenhar e de se actualizar.
+            if (ve && !Cidade._erroUpdate) {
+                try { Cidade.update(delta); } catch (e) { Cidade._erroUpdate = true; console.error('Cidade.update falhou (a cidade deixa de se desenhar):', e); if (Cidade.grupo) Cidade.grupo.visible = false; }
+            }
         } else {
             Cidade.update(delta);
         }

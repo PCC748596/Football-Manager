@@ -113,10 +113,12 @@ const Estadios = {
 
     /*
     O ESTADIO DE CADA CLUBE PELA SUA CAPACIDADE (pedido): sem perfil feito a mao (o Maracana), o manager manda a capacidade real do mandante (`?capacidade=`) e o estadio constroi-se para ela,
-    no padrao RETANGULAR: ate `LIMITE_RETO` lugares so as quatro arquibancadas rectas de um anel, sem cantos (os cantos ficam abertos); acima, o estadio normal, com as curvas a ligar as arquibancadas, em
-    dois aneis (tres nos maiores) e tantas filas quantas os lugares pedem. A conta dos lugares e a do createField (match_setup.js): `lugaresEstimados`.
+    no padrao RETANGULAR: ate `LIMITE_RETO` lugares so as quatro arquibancadas rectas de um anel, sem cantos (os cantos ficam abertos); acima, com as curvas a ligar as arquibancadas: um anel ate
+    `LIMITE_UM_ANEL` lugares (Series C e D), depois dois aneis (tres nos maiores), e tantas filas quantas os lugares pedem. A conta dos lugares e a do createField (match_setup.js): `lugaresEstimados`.
     */
-    LIMITE_RETO: 20000,
+    // Ate aqui (estadios minusculos) so arquibancadas rectas e cantos abertos; acima, as curvas ligam as arquibancadas. Com curvas um anel basta ate `LIMITE_UM_ANEL` lugares (sem cobertura); depois dois aneis (tres nos maiores).
+    LIMITE_RETO: 6000,
+    LIMITE_UM_ANEL: 21500,
 
     // Quantos lugares o createField constroi: por fila, as cadeiras das duas laterais (grelha de 0.85 m ate cornerZ) e dos dois fundos (ate cornerX), sem os corredores; mais, com curvas, as dos quatro arcos.
     lugaresEstimados(recuo, raioCanto, aneis, rows, cobertura) {
@@ -147,8 +149,18 @@ const Estadios = {
                 nome: 'Estadio de ' + cap + ' lugares', cidadeNome: '', estadios: [], capacidade: cap, lugaresEstimados: est,
                 bacia: { forma: 'reta', recuoLateral: 10.0, recuoFundo: 10.0, raioCanto: 0, semCurvas: true, maxLugares: Math.ceil(est * 1.1) },
                 bancadaAneis: { aneis: 1, degrausPorAnel: rows, cobertura: false },
-                // Sem curvas nos cantos a fachada em arco da cidade nao se encaixa: so esta sai; a cidade em volta fica como esta.
-                cidade: { fachada: { ativa: false } }
+                // Sem curvas nos cantos nao ha casca em arco a volta do estadio (`semCasca`: sem a casca nem as colunas). A fachada continua ATIVA porque os portoes da cidade (e por eles as pessoas que entram e saem)
+                // saem dela: com `ativa: false` nao havia portoes, a cidade lançava erro ao construir (`_irAoPortao`) e o jogo travava nas cameras Orbita, Grua e Cinema.
+                cidade: { fachada: { ativa: true, semCasca: true } }
+            };
+        } else if (cap <= this.LIMITE_UM_ANEL) {
+            // Um anel com curvas e sem cobertura: as curvas dao lugares nos cantos, por isso precisa de bem menos filas que o recto (15 000 lugares: 28 filas em vez de 37) e nao fica tao alto.
+            let rows = 6, est = 0;
+            while (rows < 60 && (est = this.lugaresEstimados(12, 6.5, 1, rows, false)) < cap) rows++;
+            perfil = {
+                nome: 'Estadio de ' + cap + ' lugares', cidadeNome: '', estadios: [], capacidade: cap, lugaresEstimados: est,
+                bacia: { recuoLateral: 12.0, recuoFundo: 12.0, raioCanto: 6.5, maxLugares: Math.ceil(est * 1.1) },
+                bancadaAneis: { aneis: 1, degrausPorAnel: rows, cobertura: false }
             };
         } else {
             let aneis = 2, rows = 10, est = 0;
@@ -161,6 +173,17 @@ const Estadios = {
             };
         }
         return perfil;
+    },
+
+    /*
+    A CIDADE PEQUENA (Series C e D, `?cidade=pequena` do manager): menos predios (30% da probabilidade e a meio das alturas, ficam as casas) e SEM o metro (viaduto, estacao, comboios e bocas). O resto da cidade — ruas, trânsito,
+    gente — fica como esta.
+    */
+    cidadePequena() {
+        const C = CidadeConfig;
+        C.predios = { fatorProb: 0.3, fatorPisos: 0.55 };
+        (C.vias || []).forEach(v => { if (v.metro) delete v.metro; });
+        if (C.metro) { C.metro.bocas = []; C.metro.trens = 0; }
     },
 
     atual: null,        // o perfil em vigor (null = padrão)
@@ -325,5 +348,6 @@ Estadios._perfilPadrao = (typeof CidadeConfig !== 'undefined')
         const cap = Number(q.get('capacidade'));
         if (!perfil && cap > 0) perfil = Estadios.paraCapacidade(cap);
         if (perfil) Estadios.aplicar(perfil);
+        if (q.get('cidade') === 'pequena') Estadios.cidadePequena();   // Series C e D: cidade de interior
     } catch (e) { console.error('Estadios.aplicar falhou:', e); }
 })();

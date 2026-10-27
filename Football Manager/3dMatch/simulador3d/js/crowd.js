@@ -87,6 +87,8 @@ const CrowdModel = {
     faixa curta (`visitanteMescla`, na mesma escala 0-1) onde a probabilidade cai linearmente, para não aparecer uma fronteira a direito. O resto do estádio é da casa. Os números
     foram afinados para dar ~10% dos adeptos (medido em `tests/crowd.test.js`).
     */
+    // A fraccao de adeptos do visitante pedida (10%): o canto dele ajusta-se ao estadio para a dar (Crowd.build).
+    fracVisitante: 0.10,
     visitanteT: 0.24,
     visitanteU: 0.68,
     visitanteMescla: 0.08,
@@ -719,8 +721,9 @@ const Crowd = {
     claqueEm(t, rnd, u = 0) {
         const M = CrowdModel, m = Math.max(1e-6, M.visitanteMescla);
         // 1 dentro do canto, descendo a 0 numa faixa de largura `m` para fora dele.
-        const pT = Math.max(0, Math.min(1, (M.visitanteT + m - t) / m));
-        const pU = Math.max(0, Math.min(1, (u - (M.visitanteU - m)) / m));
+        const vT = (typeof this._visT === 'number') ? this._visT : M.visitanteT, vU = (typeof this._visU === 'number') ? this._visU : M.visitanteU;   // o canto ajustado para dar 10% (ver `build`)
+        const pT = Math.max(0, Math.min(1, (vT + m - t) / m));
+        const pU = Math.max(0, Math.min(1, (u - (vU - m)) / m));
         return (rnd() < pT * pU) ? 'B' : 'A';
     },
 
@@ -1266,6 +1269,22 @@ void crowdPesos(out float dePe, out float w1, out float w2,
             }
         }
         lugaresEscolhidos.sort((a, b) => Math.atan2(a.z, a.x) - Math.atan2(b.z, b.x));
+
+        /*
+        90% DA CASA E 10% DO VISITANTE, QUALQUER QUE SEJA O ESTADIO (pedido): o canto do visitante (`visitanteT` x `visitanteU`) dava ~10% no estadio normal, mas a proporcao depende da forma e do
+        tamanho (os estadios rectos, sem cantos, e os de varios aneis davam 12-14%). Aqui o canto cresce ou encolhe (mesmo canto, mesma posicao: o lado das cameras e o fundo -Z) ate o numero esperado de
+        adeptos do visitante ser `CrowdModel.fracVisitante` (10%) dos que estao no estadio. Bisseccao sobre a escala do canto.
+        */
+        {
+            const M = CrowdModel, alvo = (typeof M.fracVisitante === 'number') ? M.fracVisitante : 0.10, m = Math.max(1e-6, M.visitanteMescla);
+            const n = lugaresEscolhidos.length;
+            const tu = lugaresEscolhidos.map(l => [(l.z - zMin) / spanZ, (l.x - xMin) / spanX]);
+            const parte = (vt, vu) => { let soma = 0; for (const [t, u] of tu) soma += Math.max(0, Math.min(1, (vt + m - t) / m)) * Math.max(0, Math.min(1, (u - (vu - m)) / m)); return soma / Math.max(1, n); };
+            const com = (e) => [M.visitanteT * e, 1 - (1 - M.visitanteU) * e];
+            let lo = 0.1, hi = 3.0;
+            for (let k = 0; k < 28; k++) { const e = (lo + hi) / 2; const [vt, vu] = com(e); if (parte(vt, vu) < alvo) lo = e; else hi = e; }
+            [this._visT, this._visU] = com((lo + hi) / 2);
+        }
 
         const variar = (hex) => {
             cor.set(hex);
