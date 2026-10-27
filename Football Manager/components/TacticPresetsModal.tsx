@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Tactics } from '../types';
 
 interface Preset { id: string; name: string; date: string; tactics: Tactics; }
@@ -18,7 +18,7 @@ interface Props {
 
 /*
 GRAVAR E CARREGAR TATICAS. Cada gravacao guarda a tatica TODA do time (formacao, estilo, pressao, linha, compactacao, setores e os ajustes de posicao com e sem bola), com um nome. Ficam neste
-navegador (localStorage), por isso valem para qualquer carreira. Carregar substitui a tatica atual.
+navegador (localStorage), por isso valem para qualquer carreira; para não as perder, exporte para um ficheiro .json e importe quando precisar. Carregar substitui a tatica atual.
 */
 const TacticPresetsModal: React.FC<Props> = ({ atual, onLoad, onClose }) => {
   const [lista, setLista] = useState<Preset[]>(ler);
@@ -32,6 +32,32 @@ const TacticPresetsModal: React.FC<Props> = ({ atual, onLoad, onClose }) => {
     const nova: Preset = { id: existente?.id || String(Date.now()), name: n, date: new Date().toLocaleString(), tactics: copia };
     const l = existente ? lista.map(p => p.id === existente.id ? nova : p) : [nova, ...lista];
     setLista(l); gravarLista(l); setNome('');
+  };
+  const entrada = useRef<HTMLInputElement>(null);
+  const [aviso, setAviso] = useState('');
+  const baixar = (nomeFicheiro: string, taticas: Preset[]) => {
+    const blob = new Blob([JSON.stringify({ formato: 'fm-taticas', versao: 1, taticas }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nomeFicheiro; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const seguro = (n: string) => n.replace(/[^\w\-]+/g, '_').slice(0, 40) || 'tatica';
+  // Importa um .json (varias taticas ou uma so): junta as que nao existem e substitui as do mesmo nome.
+  const importar = async (f: File) => {
+    try {
+      const j = JSON.parse(await f.text());
+      const brutas: any[] = Array.isArray(j) ? j : Array.isArray(j?.taticas) ? j.taticas : (j?.tactics ? [j] : []);
+      const validas = brutas.filter(x => x && typeof x.name === 'string' && x.tactics && typeof x.tactics.formation === 'string');
+      if (!validas.length) { setAviso('Ficheiro sem táticas válidas.'); return; }
+      let l = [...lista];
+      for (const v of validas) {
+        const ex = l.find(p => p.name.toLowerCase() === v.name.toLowerCase());
+        const nova: Preset = { id: ex?.id || String(Date.now()) + Math.random().toString(36).slice(2, 6), name: v.name, date: v.date || new Date().toLocaleString(), tactics: v.tactics };
+        l = ex ? l.map(p => p.id === ex.id ? nova : p) : [nova, ...l];
+      }
+      setLista(l); gravarLista(l); setAviso(`${validas.length} tática(s) importada(s).`);
+    } catch { setAviso('Não consegui ler o ficheiro.'); }
   };
   const apagar = (id: string) => { const l = lista.filter(p => p.id !== id); setLista(l); gravarLista(l); };
 
@@ -50,6 +76,13 @@ const TacticPresetsModal: React.FC<Props> = ({ atual, onLoad, onClose }) => {
         </div>
         <span className="text-[9px] text-slate-400 leading-tight -mt-2">Grava a tática atual: {atual.formation}, estilo {atual.style}{atual.zoneOverrides?.[atual.formation] ? ', com posições ajustadas' : ''}. Um nome já existente é substituído.</span>
 
+        <div className="flex gap-2 items-center">
+          <button onClick={() => baixar('taticas.json', lista)} disabled={!lista.length} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 disabled:opacity-30 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title="Guarda todas as táticas num ficheiro .json no computador">Exportar tudo (.json)</button>
+          <button onClick={() => entrada.current?.click()} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title="Carrega táticas de um ficheiro .json">Importar (.json)</button>
+          <input ref={entrada} type="file" accept=".json,application/json" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) importar(f); e.target.value = ''; }} />
+          {aviso && <span className="text-[10px] font-bold text-emerald-500">{aviso}</span>}
+        </div>
+
         <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar">
           {lista.length === 0 && <span className="text-[11px] text-slate-400 italic text-center py-6">Nenhuma tática gravada.</span>}
           {lista.map(p => (
@@ -59,6 +92,7 @@ const TacticPresetsModal: React.FC<Props> = ({ atual, onLoad, onClose }) => {
                 <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate">{p.tactics.formation} · {p.tactics.style}{p.tactics.zoneOverrides?.[p.tactics.formation] ? ' · posições' : ''} · {p.date}</div>
               </div>
               <button onClick={() => { onLoad(JSON.parse(JSON.stringify(p.tactics))); onClose(); }} className="px-3 py-1.5 rounded bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500">Carregar</button>
+              <button onClick={() => baixar(seguro(p.name) + '.json', [p])} title="Exportar esta tática (.json)" className="px-2 py-1.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[11px] font-black hover:bg-blue-600 hover:text-white">⬇</button>
               <button onClick={() => apagar(p.id)} title="Apagar" className="px-2 py-1.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[11px] font-black hover:bg-rose-600 hover:text-white">🗑</button>
             </div>
           ))}

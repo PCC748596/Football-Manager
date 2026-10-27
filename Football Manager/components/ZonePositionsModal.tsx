@@ -52,12 +52,30 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose 
   return (
     <div className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-6" onClick={onClose}>
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-6 flex gap-6 max-h-[94vh]" onClick={e => e.stopPropagation()}>
-        <div ref={campo} className="relative bg-emerald-700/90 border-2 border-white/50 rounded select-none touch-none shrink-0" style={{ height: 'min(78vh, 760px)', aspectRatio: '68 / 105' }}>
+        <div ref={campo} className="relative bg-emerald-700/90 border-2 border-white/50 rounded select-none touch-none shrink-0" style={{ height: 'min(78vh, 760px)', aspectRatio: '68 / 106' }}>
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute left-0 right-0 top-1/2 h-px bg-white/50" />
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[27%] aspect-square rounded-full border border-white/50" />
-            <div className="absolute left-1/2 -translate-x-1/2 top-0 w-[59%] h-[16%] border-b border-x border-white/50" />
-            <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-[59%] h-[16%] border-t border-x border-white/50" />
+            {/* O campo em metros (68 x 106, as medidas do motor): linhas, circulo central, areas, marcas de penalti e as meias-luas */}
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 68 106" preserveAspectRatio="none" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.2">
+              <g vectorEffect="non-scaling-stroke">
+                <line x1="0" y1="53" x2="68" y2="53" vectorEffect="non-scaling-stroke" />
+                <circle cx="34" cy="53" r="9.15" vectorEffect="non-scaling-stroke" />
+                <circle cx="34" cy="53" r="0.4" fill="rgba(255,255,255,0.7)" vectorEffect="non-scaling-stroke" />
+                {/* grande e pequena areas, marca de penalti e meia-lua: no topo (baliza adversaria) e em baixo (a nossa) */}
+                <rect x="13.84" y="0" width="40.32" height="16.5" vectorEffect="non-scaling-stroke" />
+                <rect x="24.84" y="0" width="18.32" height="5.5" vectorEffect="non-scaling-stroke" />
+                <circle cx="34" cy="11" r="0.4" fill="rgba(255,255,255,0.7)" vectorEffect="non-scaling-stroke" />
+                <path d="M 26.69 16.5 A 9.15 9.15 0 0 0 41.31 16.5" vectorEffect="non-scaling-stroke" />
+                <rect x="13.84" y="89.5" width="40.32" height="16.5" vectorEffect="non-scaling-stroke" />
+                <rect x="24.84" y="100.5" width="18.32" height="5.5" vectorEffect="non-scaling-stroke" />
+                <circle cx="34" cy="95" r="0.4" fill="rgba(255,255,255,0.7)" vectorEffect="non-scaling-stroke" />
+                <path d="M 26.69 89.5 A 9.15 9.15 0 0 1 41.31 89.5" vectorEffect="non-scaling-stroke" />
+                {/* os arcos dos cantos (raio 1 m) */}
+                <path d="M 1 0 A 1 1 0 0 1 0 1" vectorEffect="non-scaling-stroke" />
+                <path d="M 67 0 A 1 1 0 0 0 68 1" vectorEffect="non-scaling-stroke" />
+                <path d="M 0 105 A 1 1 0 0 1 1 106" vectorEffect="non-scaling-stroke" />
+                <path d="M 68 105 A 1 1 0 0 0 67 106" vectorEffect="non-scaling-stroke" />
+              </g>
+            </svg>
             {/* as linhas das zonas da bola */}
             {[-1, 1].map(sg => <div key={'h' + sg} className="absolute left-0 right-0 border-t border-dashed border-white/25" style={{ top: `${(1 - sg * ZONAS.terco / ZONAS.meiaAltura) * 50}%` }} />)}
             {[-1, 1].map(sg => <div key={'v' + sg} className="absolute top-0 bottom-0 border-l border-dashed border-white/25" style={{ left: `${50 - sg * ZONAS.corredorX / ZONAS.meiaLargura * 50}%` }} />)}

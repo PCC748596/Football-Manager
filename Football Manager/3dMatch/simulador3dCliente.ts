@@ -242,7 +242,8 @@ export const taticaParaMotor = (t: Tactics) => ({
   lengthCompactness: t.lengthCompactness || 'median',
   setores: (t.focusSectors || []).map(x => SETOR_PARA_MOTOR[x]).filter(Boolean),
   // Os ajustes de posicao por zona (com / sem bola) da formacao atual; null = as tabelas de sempre.
-  zonas: t.zoneOverrides?.[t.formation] || null
+  zonas: t.zoneOverrides?.[t.formation] || null,
+  zonasFormacao: t.formation
 });
 
 // O que o painel do 3D mudou, em campos do manager; so entram os campos cujo NIVEL mudou (o numero exato do manager e mantido).
