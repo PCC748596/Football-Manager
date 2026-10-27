@@ -611,7 +611,7 @@ const PassModel = {
     tornava todo o domínio garantido e as bolas altas (que chegam a 11-16)
     deixavam de ser difíceis. Os dois números andam juntos, sempre.
     */
-    vChegadaRasteira: 7.5,   // 6.5 -> 7.5: relato "os passes diretos estao fracos, chegam lentos ao recebedor" (8.25 era forte demais nos curtos; ver a tabela acima)
+    vChegadaRasteira: 8.25,  // 7.5 -> 8.25 (+10%, pedido: o passe direto chega com pouca velocidade ao recebedor). Antes 6.5 -> 7.5: relato "os passes diretos estao fracos, chegam lentos ao recebedor" (8.25 era forte demais nos curtos; ver a tabela acima)
 
     /*
     O REFORCO DO PASSE CURTO, que estava escrito a mao no utils.js.

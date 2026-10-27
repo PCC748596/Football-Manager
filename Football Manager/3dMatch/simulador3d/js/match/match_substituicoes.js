@@ -22,7 +22,7 @@ aparencia do id real), com o POSTO do que sai (slot, formacao, funcao), no lugar
 const Aquecimento = {
     activo: true,
     depurar: true,        // escreve na consola uma linha por segundo do aquecimento / volta
-    ciclos: 4,            // idas a linha de fundo
+    ciclos: 2,            // idas a linha de fundo (pedido: so 2 corridas; eram 4)
     parada: 4.0,          // s a olhar o jogo em cada ponta
     velocidade: 5.2,      // m/s: aquece a CORRER (trote), nao a andar
     xAquecer: 41.3,       // o TRILHO DE IDA, atras das placas (39) e dos reporters (40.4), entre eles e o banco (42.4): o aquecimento nao entra na area tecnica nem no relvado
@@ -92,6 +92,11 @@ Object.assign(Match, {
         const Q = (typeof Officials !== 'undefined') ? Officials : null;
         const emBatch = (typeof Sim !== 'undefined' && Sim.running);
         if (this._placaViva > 0) this._placaViva -= dt;
+        // A CAMERA DA SUBSTITUICAO acaba com ela: sem troca em curso nem placa no ar volta a vista que o utilizador tinha.
+        if (this._camAntesDaTroca && !this.subsEmCurso && !(this._placaViva > 0) && typeof this.setCameraMode === 'function') {
+            if (window.cameraMode === 'substituicao') this.setCameraMode(this._camAntesDaTroca);
+            this._camAntesDaTroca = null;
+        }
         if (Q && Q.tickQuarto) Q.tickQuarto(dt, !!this.subsEmCurso || this._placaViva > 0);
         if (!emBatch) this._tickPreparador(dt);
         if (!this.subsPendentes.length) return;
@@ -331,6 +336,11 @@ Object.assign(Match, {
         req.estado = 'placa';
         req.t = 0;
         this.subsEmCurso = req;
+        // A camera mostra a substituicao (vista lateral para a zona da troca, CameraSubstituicao em config/tactics.js) e volta ao normal no fim (tickSubstituicoes).
+        if (!(typeof Sim !== 'undefined' && Sim.running) && typeof this.setCameraMode === 'function' && window.cameraMode !== 'substituicao' && typeof window.cameraMode === 'string') {
+            this._camAntesDaTroca = window.cameraMode;
+            this.setCameraMode('substituicao');
+        }
         // Os outros substitutos do mesmo lado entram nesta MESMA parada: se ainda aquecem, vao a correr para o ponto de espera.
         for (const o of this.subsPendentes) {
             if (o.feita || o === req || o.lado !== req.lado || !['novo', 'aquecer', 'pronto'].includes(o.estado)) continue;

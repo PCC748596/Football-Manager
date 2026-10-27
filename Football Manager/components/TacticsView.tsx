@@ -418,7 +418,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                             numberOutlineColor={kitNoc}
                                             sleeveColor={kitSleeve}
                                             scale={1.2} 
-                                            outOfPosition={isOutOfPos} 
+                                            outOfPosition={false} 
                                             longSleeves={player?.position === Position.GK || pos.label === 'GK'} 
                                         />
                                         {player && status && (

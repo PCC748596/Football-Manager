@@ -53,11 +53,16 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   // Sair desta tela (taticas, etc.) pausa o relogio; o 3D pausa-se sozinho e retoma ao voltar (o iframe nao e recriado).
   useEffect(() => () => { pauseMatch(); }, []);
 
+  // O fim do jogo conclui-se UMA vez: sem este guarda o `advanceWeek` podia correr duas vezes (dois dias a passar).
+  const concluidoRef = useRef(false);
   useEffect(() => {
-    // Fim do jogo: vai direto para a HOME (sem a tela de estatisticas e notas; ela continua na aba Stats durante o jogo).
+    // Fim do jogo: conclui a partida (o mesmo do botao CONCLUIR: passa o dia) e vai para a HOME, sem a tela de estatisticas e notas (ela continua na aba Stats durante o jogo).
+    // Antes ia so para a HOME e o minuto ficava em 90: o RESUME MATCH ficava ativo e os dias nao passavam.
     if (gameState.matchMinute >= 90) {
-      if (setView) setView('DASHBOARD'); else setActiveTab('stats');
-    }
+      if (setView) {
+        if (!concluidoRef.current) { concluidoRef.current = true; advanceWeek(); setView('DASHBOARD'); }
+      } else setActiveTab('stats');
+    } else if (gameState.matchMinute === 0) concluidoRef.current = false;
   }, [gameState.matchMinute]);
 
   if (!match || !homeTeam || !awayTeam) {
@@ -317,7 +322,9 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         setReplayAtivo(!!m.ativo);
                       } else if (m.tipo === 'saida_pedida' || m.tipo === 'alternar_pausa') {
                         // ESC / Pause do painel do 3D: quem manda no relogio e no botao e o manager.
+                        // Com o jogo acabado, o CONTINUAR / saida do 3D conclui a partida e vai para a HOME (antes ficava preso).
                         if (gameState.matchMinute < 90) handleAction(true);
+                        else if (!concluidoRef.current) { concluidoRef.current = true; advanceWeek(); setView?.('DASHBOARD'); }
                       } else motor3dMensagem(m);
                     }} />
              </div>

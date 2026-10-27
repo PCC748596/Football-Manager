@@ -455,6 +455,12 @@ Object.assign(Match, {
                 CC.foco.x + CC.derivaFoco * Math.sin(t * 0.09),
                 CC.foco.y + CC.derivaFoco * 0.4 * Math.sin(t * 0.11 + 2.0),
                 CC.foco.z + CC.derivaFoco * Math.cos(t * 0.07));
+        } else if (window.cameraMode === 'substituicao') {
+            // A SUBSTITUICAO: a camera vai para o lado OPOSTO a zona da troca (a lateral +X, onde estao os bancos e o 4.o arbitro) e olha para ela de lado: vê-se o banco, a placa, quem sai e quem
+            // entra, e o campo logo a frente. Ver CameraSubstituicao (config/tactics.js). Passa pela mesma suavizacao das outras vistas (voa para la e volta).
+            const CS = (typeof CameraSubstituicao !== 'undefined') ? CameraSubstituicao : { x: -46, y: 17, foco: { x: 34.4, y: 1.2, z: 0 } };
+            targetPos.set(CS.x, CS.y, 0);
+            lookTarget.set(CS.foco.x, CS.foco.y, CS.foco.z);
         } else if (window.cameraMode === 'topdown') {
             const aspect = window.innerWidth / window.innerHeight;
             // Campo deitado: precisamos caber (CAMPO_COMP + margem) na horizontal e (CAMPO_LARG + margem) na vertical

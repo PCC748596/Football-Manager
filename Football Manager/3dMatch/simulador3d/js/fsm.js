@@ -2306,7 +2306,9 @@ class PlayerFSM {
                         let escapeSide = (cross >= 0) ? -1 : 1;
 
                         // Toque lateral (30-45°) para o lado oposto
-                        let angle = DribbleModel.angleSide * escapeSide;
+                        // Toque a um angulo sorteado entre 35 e 50 graus (DribbleModel.anguloMin/MaxGraus): bem mais aberto que uma conducao a sair de lado.
+                        const grausToque = (DribbleModel.anguloMinGraus || 35) + Math.random() * ((DribbleModel.anguloMaxGraus || 50) - (DribbleModel.anguloMinGraus || 35));
+                        let angle = (grausToque * Math.PI / 180) * escapeSide;
                         let cosA = Math.cos(angle), sinA = Math.sin(angle);
                         let pushDir = _v4.set(
                             forward.x * cosA - forward.z * sinA,
@@ -2351,6 +2353,8 @@ class PlayerFSM {
 
                     if (plano.sucesso) {
                         if (typeof MatchStats !== 'undefined') MatchStats[p.team].dribles.sucesso++;
+                        // O marcador foi BATIDO: fica para tras (ver DribbleModel.marcadorDur / marcadorFator, aplicado no Player.update).
+                        if (opp && DribbleModel.marcadorDur) opp.dribladoTimer = DribbleModel.marcadorDur;
                         p.speedMult = DribbleModel.sprintBoost;
                         window.bolaChutada = false;
 

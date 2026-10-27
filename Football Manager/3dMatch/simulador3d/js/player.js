@@ -5033,6 +5033,8 @@ class FootballPlayer {
             if (labParado) { this.velocity.set(0, 0, 0); if (this.fsm.currentState !== 'IDLE') this.fsm.changeState('IDLE'); }
             else this.runBehaviorTree(dt);
             this.fsm.update(dt);
+            // Batido num drible: o marcador fica para tras uns instantes (DribbleModel.marcadorDur / marcadorFator).
+            if (this.dribladoTimer > 0) { this.dribladoTimer -= dt; this.velocity.multiplyScalar((typeof DribbleModel !== 'undefined' && DribbleModel.marcadorFator) || 0.2); }
             this.model.position.addScaledVector(this.velocity, dt);
         }
 

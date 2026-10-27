@@ -2741,10 +2741,18 @@ const Officials = {
         const ap = arb.model.position;
 
         if (c.fase === 'ir') {
-            // Do lado de onde ele vem, a `distancia` do jogador.
-            let ux = ap.x - jp.x, uz = ap.z - jp.z;
-            const ul = Math.hypot(ux, uz) || 1; ux /= ul; uz /= ul;
-            const ax = jp.x + ux * C.distancia, az = jp.z + uz * C.distancia;
+            /*
+            DO LADO DE LA DO JOGADOR EM RELACAO A BOLA: o juiz fica a `distancia` do jogador, na linha bola -> jogador prolongada. Assim, de frente para o jogador, ele fica tambem de
+            frente para a bola, e nunca corre nem da o cartao de costas para o jogo (relato: *"ele esta correndo de costas para a bola; por isso a posicao de dar o cartao esta errada"*).
+            Antes era "do lado de onde ele vem", que muitas vezes e o lado da bola: ia para a frente do jogador e dava o cartao com a bola nas costas.
+            */
+            const bp = Match.ball.position;
+            let ux = jp.x - bp.x, uz = jp.z - bp.z;
+            let ul = Math.hypot(ux, uz);
+            if (ul < 1.5) { ux = ap.x - jp.x; uz = ap.z - jp.z; ul = Math.hypot(ux, uz) || 1; }   // com a bola colada ao jogador a direccao nao e fiavel: fica o lado de onde ele vem
+            ux /= ul; uz /= ul;
+            const limX = CAMPO_LARG / 2 - 0.5, limZ = CAMPO_COMP / 2 - 0.5;
+            const ax = Math.max(-limX, Math.min(limX, jp.x + ux * C.distancia)), az = Math.max(-limZ, Math.min(limZ, jp.z + uz * C.distancia));
             this.mover(arb, ax, az, R.velocidade, dt, jp);
             if (Math.hypot(ax - ap.x, az - ap.z) <= C.chegou || c.t >= C.tIrMax) {
                 c.fase = 'mostrar'; c.t = 0;

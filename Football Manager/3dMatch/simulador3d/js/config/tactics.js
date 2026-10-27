@@ -295,6 +295,13 @@ const CameraCentroLado = {
 };
 if (typeof window !== 'undefined') window.CameraCentroLado = CameraCentroLado;
 
+/*
+A CAMERA DA SUBSTITUICAO (modo 'substituicao', ver match_ui.js e match_substituicoes.js): fixa, no lado oposto ao dos bancos, a olhar para a zona da troca (o meio da lateral +X). Entra
+quando a troca comeca (a placa do 4.o arbitro) e sai quando acaba (a placa baixa), voltando a vista que o utilizador tinha.
+*/
+const CameraSubstituicao = { x: -46, y: 17, foco: { x: 34.4, y: 1.2, z: 0 } };
+if (typeof window !== 'undefined') window.CameraSubstituicao = CameraSubstituicao;
+
 const CameraZoom = {
     min: 0.04,              // piso do multiplicador; os 5 m vêm do de baixo
     max: 2.5,

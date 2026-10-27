@@ -644,7 +644,14 @@ jogador e pela proximidade do adversário.
 const DribbleModel = {
     // 3.2 -> 4.4 (a mesma do ultimo terco): fora dele quase nao havia dribles — medido, +55% em 3 x 45 min. Ver `ultimoTerco.triggerDist`.
     triggerDist: 4.4,     // distância para activar drible 1v1 (adversário à frente)
-    angleSide: 0.6,       // ângulo lateral do toque (~35°, entre 30 e 45)
+    angleSide: 0.6,       // (antigo) ângulo fixo; hoje o toque sorteia entre `anguloMinGraus` e `anguloMaxGraus`
+    /*
+    O DRIBLE BEM DEFINIDO (pedido: *"nao consigo diferenciar o drible de uma conducao para o lado: o jogador tem que dar um toque para o lado entre 35-50 graus e o marcador tem que ficar para
+    tras"*): o toque sai a um angulo sorteado entre os dois limites (graus, em relacao a frente dele, para o lado OPOSTO ao marcador) e, se o drible resulta, o marcador fica `marcadorFator` da
+    velocidade durante `marcadorDur` s: ele foi batido, e o portador passa por ele.
+    */
+    anguloMinGraus: 35, anguloMaxGraus: 50,
+    marcadorDur: 1.1, marcadorFator: 0.18,
 
     /*
     =====================================================================
@@ -825,7 +832,7 @@ const BallControl = {
     garantido a tudo o que e rasteiro e tirava a dificuldade as bolas altas,
     que chegam a 11-16 m/s. Os dois numeros andam juntos.
     */
-    easySpeed: 9.8,       // abaixo disto domina-se sempre (a regra antiga)
+    easySpeed: 10.8,      // abaixo disto domina-se sempre (a regra antiga). 9.8 -> 10.8 (+10%) com o `vChegadaRasteira` (7.5 -> 8.25): um passe curto chega agora a 9.9 e tem de continuar a dominar-se ao primeiro toque
     /*
     O limiar do DOMINIO DO PRIMEIRO TOQUE (resolveBallContact), separado do `easySpeed`. Subiu-se o
     `easySpeed` para 18 para os passes serem mais certos e isso estragou o guarda-redes: ele (e a
