@@ -4611,8 +4611,7 @@ class FootballPlayer {
 
     /*
     SOZINHO A JEITO DE FINALIZAR DE PRIMEIRA: perto da baliza que ataca (`PedidoDeBola.finalizaDist`)
-    e sem nenhum adversario a menos de `PedidoDeBola.finalizaLivre`. So nesse caso um jogador
-    parado continua a pedir a bola.
+    e sem nenhum adversario a menos de `PedidoDeBola.finalizaLivre`. (Ja nao dispensa o jogador de estar a correr para pedir a bola: ver `pedindoBola` no update.)
     */
     sozinhoParaFinalizar() {
         const PB = (typeof PedidoDeBola !== 'undefined') ? PedidoDeBola : null;
@@ -4658,11 +4657,19 @@ class FootballPlayer {
         if (this.overlapTimer > 0) this.overlapTimer = Math.max(0, this.overlapTimer - dt);
         if (this.pedindoBola > 0) {
             this.pedindoBola = Math.max(0, this.pedindoBola - dt);
-            // O pedido de bola e de quem SE MEXE: parado ja nao ha o que chamar —
-            // a menos que esteja sozinho a jeito de finalizar de primeira.
+            /*
+            PEDIR A BOLA E DE QUEM ESTA A INFILTRAR-SE: a CORRER (`velMin`) e para a frente (`avancoMin`, na direccao da baliza que ataca) e nao colado ao portador (`distMinPortador`).
+            Relato: *"tem jogador pedindo bola de braco levantado, parado do lado do companheiro que tem a bola. Isso nao existe; pedir bola e pra quem esta se infiltrando, tem que estar correndo"*.
+            A excepcao do jogador sozinho a jeito de finalizar parado saiu: parado nao se pede.
+            */
             const PB = (typeof PedidoDeBola !== 'undefined') ? PedidoDeBola : null;
-            const vPedido = this.velocity ? Math.hypot(this.velocity.x, this.velocity.z) : 0;
-            if (PB && vPedido < PB.velMin && !this.sozinhoParaFinalizar()) this.pedindoBola = 0;
+            if (PB) {
+                const vPedido = this.velocity ? Math.hypot(this.velocity.x, this.velocity.z) : 0;
+                const vFrente = this.velocity ? this.velocity.z * this.dirZ : 0;
+                const portador = (typeof Match !== 'undefined' && Match.ball && Match.possessionTeam === this.team) ? Match.ballCarrier : null;
+                const colado = !!(portador && portador !== this && portador.model && Math.hypot(portador.model.position.x - this.model.position.x, portador.model.position.z - this.model.position.z) < PB.distMinPortador);
+                if (vPedido < PB.velMin || vFrente < PB.avancoMin || colado) this.pedindoBola = 0;
+            }
         }
         // O quase golo (ver QuaseGoloModel): o relógio da camada das mãos na cabeça.
         if (this.lamento) {

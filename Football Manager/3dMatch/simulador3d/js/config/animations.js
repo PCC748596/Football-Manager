@@ -1654,31 +1654,32 @@ if (typeof window !== 'undefined') {
 
 const GoalkeeperThrowClip = {
     bracoLancamento: 'r', // Braço que lança a bola
+    // O punho de cada frame (`maoRx/Ry/Rz`, procurados em tools/scratch/gk_palma_busca.js por_cima): a palma sempre virada para cima / para a frente, a bola APOIADA nela e nao ao lado do antebraco (ver GoalkeeperUnderarmThrowClip).
     frames: [
         // 1  Pose de espera com a bola na mão direita
-        { chest: 0.05, coxaL: 0.05, joelhoL: 0.12, coxaR: 0.05, joelhoR: 0.12, bracoLx: -0.35, bracoLz: 0.35, bracoRx: -0.65, bracoRz: -0.15, cotoveloL: -0.45, cotoveloR: -1.35, altura: 0.00 },
+        { chest: 0.05, coxaL: 0.05, joelhoL: 0.12, coxaR: 0.05, joelhoR: 0.12, bracoLx: -0.35, bracoLz: 0.35, bracoRx: -0.65, bracoRz: -0.15, cotoveloL: -0.45, cotoveloR: -1.35, maoRx: 0, maoRy: -1.4, maoRz: -0.4, altura: 0.00 },
         // 2  Início do recuo do braço direito
-        { chest: -0.05, coxaL: -0.05, joelhoL: 0.15, coxaR: 0.15, joelhoR: 0.15, bracoLx: -0.45, bracoLz: 0.40, bracoRx: -0.90, bracoRz: -0.25, cotoveloL: -0.50, cotoveloR: -1.45, altura: 0.00 },
+        { chest: -0.05, coxaL: -0.05, joelhoL: 0.15, coxaR: 0.15, joelhoR: 0.15, bracoLx: -0.45, bracoLz: 0.40, bracoRx: -0.90, bracoRz: -0.25, cotoveloL: -0.50, cotoveloR: -1.45, maoRx: 0.5, maoRy: -1.4, maoRz: -0.4, altura: 0.00 },
         // 3  Armação máxima — braço direito bem atrás, tronco para trás
-        { chest: -0.15, coxaL: -0.10, joelhoL: 0.18, coxaR: 0.30, joelhoR: 0.20, bracoLx: -0.55, bracoLz: 0.45, bracoRx: -1.25, bracoRz: -0.40, cotoveloL: -0.55, cotoveloR: -1.30, altura: -0.02 },
+        { chest: -0.15, coxaL: -0.10, joelhoL: 0.18, coxaR: 0.30, joelhoR: 0.20, bracoLx: -0.55, bracoLz: 0.45, bracoRx: -1.25, bracoRz: -0.40, cotoveloL: -0.55, cotoveloR: -1.30, maoRx: 0.5, maoRy: -1.4, maoRz: -0.4, altura: -0.02 },
         // 4  Cintura descarrega, braço direito inicia aceleração para a frente
-        { chest: -0.10, coxaL: -0.15, joelhoL: 0.20, coxaR: 0.45, joelhoR: 0.28, bracoLx: -0.30, bracoLz: 0.35, bracoRx: -0.70, bracoRz: -0.30, cotoveloL: -0.60, cotoveloR: -1.10, altura: -0.02 },
+        { chest: -0.10, coxaL: -0.15, joelhoL: 0.20, coxaR: 0.45, joelhoR: 0.28, bracoLx: -0.30, bracoLz: 0.35, bracoRx: -0.70, bracoRz: -0.30, cotoveloL: -0.60, cotoveloR: -1.10, maoRx: 0.5, maoRy: -1.4, maoRz: -0.4, altura: -0.02 },
         // 5  Braço sobe por cima da cabeça, cotovelo a estender
-        { chest: 0.00, coxaL: -0.20, joelhoL: 0.22, coxaR: 0.55, joelhoR: 0.35, bracoLx: 0.10, bracoLz: 0.30, bracoRx: -0.20, bracoRz: -0.15, cotoveloL: -0.50, cotoveloR: -0.85, altura: 0.00 },
+        { chest: 0.00, coxaL: -0.20, joelhoL: 0.22, coxaR: 0.55, joelhoR: 0.35, bracoLx: 0.10, bracoLz: 0.30, bracoRx: -0.20, bracoRz: -0.15, cotoveloL: -0.50, cotoveloR: -0.85, maoRx: 0.2, maoRy: -1.4, maoRz: -0.4, altura: 0.00 },
         // 6  Aceleração balística — braço direito quase vertical
-        { chest: 0.10, coxaL: -0.25, joelhoL: 0.20, coxaR: 0.40, joelhoR: 0.30, bracoLx: 0.40, bracoLz: 0.25, bracoRx: 0.30, bracoRz: -0.05, cotoveloL: -0.40, cotoveloR: -0.55, altura: 0.00 },
+        { chest: 0.10, coxaL: -0.25, joelhoL: 0.20, coxaR: 0.40, joelhoR: 0.30, bracoLx: 0.40, bracoLz: 0.25, bracoRx: 0.30, bracoRz: -0.05, cotoveloL: -0.40, cotoveloR: -0.55, maoRx: 0, maoRy: -1.4, maoRz: 0, altura: 0.00 },
         // 7  Extensão máxima antes do contacto
-        { chest: 0.20, coxaL: -0.30, joelhoL: 0.15, coxaR: 0.20, joelhoR: 0.20, bracoLx: 0.65, bracoLz: 0.20, bracoRx: 0.85, bracoRz: 0.00, cotoveloL: -0.30, cotoveloR: -0.25, altura: 0.02 },
+        { chest: 0.20, coxaL: -0.30, joelhoL: 0.15, coxaR: 0.20, joelhoR: 0.20, bracoLx: 0.65, bracoLz: 0.20, bracoRx: 0.85, bracoRz: 0.00, cotoveloL: -0.30, cotoveloR: -0.25, maoRx: -0.5, maoRy: -1.4, maoRz: 0.4, altura: 0.02 },
         // 8  CONTACTO — bola sai da mão, braço esticado para a frente/cima
-        { chest: 0.25, coxaL: -0.35, joelhoL: 0.10, coxaR: 0.00, joelhoR: 0.12, bracoLx: 0.75, bracoLz: 0.15, bracoRx: 1.10, bracoRz: 0.05, cotoveloL: -0.25, cotoveloR: -0.10, altura: 0.03 },
+        { chest: 0.25, coxaL: -0.35, joelhoL: 0.10, coxaR: 0.00, joelhoR: 0.12, bracoLx: 0.75, bracoLz: 0.15, bracoRx: 1.10, bracoRz: 0.05, cotoveloL: -0.25, cotoveloR: -0.10, maoRx: -0.5, maoRy: -1.4, maoRz: 0.4, altura: 0.03 },
         // 9  Follow-through
-        { chest: 0.20, coxaL: -0.25, joelhoL: 0.10, coxaR: -0.10, joelhoR: 0.12, bracoLx: 0.50, bracoLz: 0.15, bracoRx: 0.60, bracoRz: 0.10, cotoveloL: -0.35, cotoveloR: -0.35, altura: 0.02 },
+        { chest: 0.20, coxaL: -0.25, joelhoL: 0.10, coxaR: -0.10, joelhoR: 0.12, bracoLx: 0.50, bracoLz: 0.15, bracoRx: 0.60, bracoRz: 0.10, cotoveloL: -0.35, cotoveloR: -0.35, maoRx: -0.25, maoRy: -0.8, maoRz: 0.2, altura: 0.02 },
         // 10 Follow-through continua, braço direito desce
-        { chest: 0.10, coxaL: -0.15, joelhoL: 0.12, coxaR: -0.05, joelhoR: 0.12, bracoLx: 0.25, bracoLz: 0.15, bracoRx: 0.20, bracoRz: 0.10, cotoveloL: -0.45, cotoveloR: -0.60, altura: 0.01 },
+        { chest: 0.10, coxaL: -0.15, joelhoL: 0.12, coxaR: -0.05, joelhoR: 0.12, bracoLx: 0.25, bracoLz: 0.15, bracoRx: 0.20, bracoRz: 0.10, cotoveloL: -0.45, cotoveloR: -0.60, maoRx: 0, maoRy: -0.3, maoRz: 0, altura: 0.01 },
         // 11 Desaceleração
-        { chest: 0.05, coxaL: -0.05, joelhoL: 0.12, coxaR: 0.00, joelhoR: 0.12, bracoLx: 0.00, bracoLz: 0.15, bracoRx: -0.20, bracoRz: 0.05, cotoveloL: -0.55, cotoveloR: -0.85, altura: 0.00 },
+        { chest: 0.05, coxaL: -0.05, joelhoL: 0.12, coxaR: 0.00, joelhoR: 0.12, bracoLx: 0.00, bracoLz: 0.15, bracoRx: -0.20, bracoRz: 0.05, cotoveloL: -0.55, cotoveloR: -0.85, maoRx: 0, maoRy: 0, maoRz: 0, altura: 0.00 },
         // 12 Recuperação para postura de jogo
-        { chest: 0.05, coxaL: 0.05, joelhoL: 0.12, coxaR: 0.05, joelhoR: 0.12, bracoLx: -0.20, bracoLz: 0.15, bracoRx: -0.25, bracoRz: -0.05, cotoveloL: -0.70, cotoveloR: -1.00, altura: 0.00 }
+        { chest: 0.05, coxaL: 0.05, joelhoL: 0.12, coxaR: 0.05, joelhoR: 0.12, bracoLx: -0.20, bracoLz: 0.15, bracoRx: -0.25, bracoRz: -0.05, cotoveloL: -0.70, cotoveloR: -1.00, maoRx: 0, maoRy: 0, maoRz: 0, altura: 0.00 }
     ]
 };
 
@@ -1731,6 +1732,10 @@ const GoalkeeperUnderarmThrowClip = {
     dois pés assentes no frame 7, a 2 cm um do outro).
     */
     /*
+    A BOLA APOIADA NA PALMA ATE AO CONTACTO (relato com as capturas 55325 e 956B: *"a bola esta no meio do braco; ela tem que estar apoiada na palma da mao antes do lancamento"*): os tres angulos do
+    punho (`maoRx`, `maoRy`, `maoRz`) de cada frame foram procurados (tools/scratch/gk_palma_busca.js) para a normal da palma apontar para CIMA — 0.89 a 0.97 de alinhamento do frame 1 ao 8, num
+    rolamento continuo (-1.1 a -2.0 rad, sem inverter de sentido entre frames). Antes a palma ficava de lado (normal em +x) e a bola, na face dela, ficava ao lado do antebraco (a 0.15 m dele).
+
     A PALMA DA MAO LANCADORA, `maoRy` (rolamento do punho): 0 e a palma para dentro, como pendurada
     ao lado do corpo; -1.35 vira-a para a FRENTE e ligeiramente para CIMA no contacto, que e como se
     rola uma bola — a bola esta APOIADA nela (ver `colarBolaAMao`). Relato com as capturas DA69 e
@@ -1749,25 +1754,25 @@ const GoalkeeperUnderarmThrowClip = {
     bracoLancamento: 'r',
     frames: [
         // 1  FASE 1 — preparação baixa e estável: agachado, bola nas duas mãos à altura dos joelhos
-        { pelvis: 0.35, chest: 0.25, coxaL: -0.80, joelhoL: 0.95, coxaR: -0.80, joelhoR: 0.95, bracoLx: -0.75, bracoLz: -0.12, bracoRx: -0.75, bracoRz: 0.12, cotoveloL: -0.35, cotoveloR: -0.35, maoRy: 0, altura: 0.02 },
+        { pelvis: 0.35, chest: 0.25, coxaL: -0.80, joelhoL: 0.95, coxaR: -0.80, joelhoR: 0.95, bracoLx: -0.75, bracoLz: -0.12, bracoRx: -0.75, bracoRz: 0.12, cotoveloL: -0.35, cotoveloR: -0.35, maoRx: -0.4, maoRy: -1.1, maoRz: 0.4, altura: 0.02 },
         // 2  (igual, as mãos juntas na bola)
-        { pelvis: 0.35, chest: 0.25, coxaL: -0.80, joelhoL: 0.95, coxaR: -0.80, joelhoR: 0.95, bracoLx: -0.75, bracoLz: -0.05, bracoRx: -0.75, bracoRz: 0.05, cotoveloL: -0.35, cotoveloR: -0.35, maoRy: 0, altura: 0.02 },
+        { pelvis: 0.35, chest: 0.25, coxaL: -0.80, joelhoL: 0.95, coxaR: -0.80, joelhoR: 0.95, bracoLx: -0.75, bracoLz: -0.05, bracoRx: -0.75, bracoRz: 0.05, cotoveloL: -0.35, cotoveloR: -0.35, maoRx: -0.5, maoRy: -1.2, maoRz: 0.4, altura: 0.02 },
         // 3  Começa o passo: perna esquerda sai, braço direito começa a ir atrás
-        { pelvis: 0.38, chest: 0.23, coxaL: -0.97, joelhoL: 0.98, coxaR: -0.43, joelhoR: 0.73, bracoLx: -1.08, bracoLz: 0.30, bracoRx: -0.33, bracoRz: -0.30, cotoveloL: -0.32, cotoveloR: -0.22, maoRy: 0, altura: 0.07 },
+        { pelvis: 0.38, chest: 0.23, coxaL: -0.97, joelhoL: 0.98, coxaR: -0.43, joelhoR: 0.73, bracoLx: -1.08, bracoLz: 0.30, bracoRx: -0.33, bracoRz: -0.30, cotoveloL: -0.32, cotoveloR: -0.22, maoRx: -0.5, maoRy: -1.6, maoRz: 0.4, altura: 0.07 },
         // 4  FASE 2 — passo à frente com a esquerda, braço de lançamento atrás, braço esquerdo à frente (equilíbrio)
-        { pelvis: 0.40, chest: 0.20, coxaL: -1.15, joelhoL: 1.00, coxaR: -0.05, joelhoR: 0.50, bracoLx: -1.35, bracoLz: 0.55, bracoRx: 0.35, bracoRz: -0.55, cotoveloL: -0.20, cotoveloR: 0.00, maoRy: -0.8, altura: 0.02 },
+        { pelvis: 0.40, chest: 0.20, coxaL: -1.15, joelhoL: 1.00, coxaR: -0.05, joelhoR: 0.50, bracoLx: -1.35, bracoLz: 0.55, bracoRx: 0.35, bracoRz: -0.55, cotoveloL: -0.20, cotoveloR: 0.00, maoRx: -0.5, maoRy: -1.9, maoRz: 0.4, altura: 0.02 },
         // 5  O corpo desce sobre a perna da frente, o braço começa a vir
-        { pelvis: 0.60, chest: 0.25, coxaL: -1.60, joelhoL: 1.40, coxaR: -0.05, joelhoR: 1.20, bracoLx: -1.20, bracoLz: 0.55, bracoRx: 0.20, bracoRz: -0.55, cotoveloL: -0.45, cotoveloR: 0.00, maoRy: -1.1, altura: -0.16 },
+        { pelvis: 0.60, chest: 0.25, coxaL: -1.60, joelhoL: 1.40, coxaR: -0.05, joelhoR: 1.20, bracoLx: -1.20, bracoLz: 0.55, bracoRx: 0.20, bracoRz: -0.55, cotoveloL: -0.45, cotoveloR: 0.00, maoRx: -0.5, maoRy: -2.0, maoRz: 0.4, altura: -0.16 },
         // 6  Quase em baixo, o braço passa pela vertical do ombro
-        { pelvis: 0.65, chest: 0.28, coxaL: -1.85, joelhoL: 1.23, coxaR: -0.20, joelhoR: 1.40, bracoLx: -0.45, bracoLz: 0.55, bracoRx: -0.40, bracoRz: -0.55, cotoveloL: -0.60, cotoveloR: 0.00, maoRy: -1.3, altura: -0.30 },
+        { pelvis: 0.65, chest: 0.28, coxaL: -1.85, joelhoL: 1.23, coxaR: -0.20, joelhoR: 1.40, bracoLx: -0.45, bracoLz: 0.55, bracoRx: -0.40, bracoRz: -0.55, cotoveloL: -0.60, cotoveloR: 0.00, maoRx: -0.5, maoRy: -2.0, maoRz: 0.4, altura: -0.30 },
         // 7  CONTACTO — FASE 3: estocada funda (joelho de trás rente à relva), mão perto do chão à frente do pé
-        { pelvis: 0.70, chest: 0.30, coxaL: -2.10, joelhoL: 1.05, coxaR: -0.35, joelhoR: 1.60, bracoLx: 0.25, bracoLz: 0.55, bracoRx: -0.80, bracoRz: -0.55, cotoveloL: 0.00, cotoveloR: 0.00, maoRy: -1.35, altura: -0.31 },
+        { pelvis: 0.70, chest: 0.30, coxaL: -2.10, joelhoL: 1.05, coxaR: -0.35, joelhoR: 1.60, bracoLx: 0.25, bracoLz: 0.55, bracoRx: -0.80, bracoRz: -0.55, cotoveloL: 0.00, cotoveloR: 0.00, maoRx: -0.5, maoRy: -2.0, maoRz: 0.4, altura: -0.31 },
         // 8  FASE 4 — follow-through: a mão continua para a frente e para cima
-        { pelvis: 0.65, chest: 0.28, coxaL: -2.00, joelhoL: 0.95, coxaR: -0.30, joelhoR: 1.50, bracoLx: 0.50, bracoLz: 0.55, bracoRx: -1.55, bracoRz: -0.45, cotoveloL: 0.00, cotoveloR: -0.10, maoRy: -1.35, altura: -0.28 },
+        { pelvis: 0.65, chest: 0.28, coxaL: -2.00, joelhoL: 0.95, coxaR: -0.30, joelhoR: 1.50, bracoLx: 0.50, bracoLz: 0.55, bracoRx: -1.55, bracoRz: -0.45, cotoveloL: 0.00, cotoveloR: -0.10, maoRx: 0, maoRy: -1.7, maoRz: 0, altura: -0.28 },
         // 9  Começa a levantar
-        { pelvis: 0.25, chest: 0.15, coxaL: -0.75, joelhoL: 0.70, coxaR: -0.05, joelhoR: 0.50, bracoLx: 0.25, bracoLz: 0.45, bracoRx: -1.30, bracoRz: -0.30, cotoveloL: -0.10, cotoveloR: -0.30, maoRy: -0.8, altura: 0.06 },
+        { pelvis: 0.25, chest: 0.15, coxaL: -0.75, joelhoL: 0.70, coxaR: -0.05, joelhoR: 0.50, bracoLx: 0.25, bracoLz: 0.45, bracoRx: -1.30, bracoRz: -0.30, cotoveloL: -0.10, cotoveloR: -0.30, maoRx: 0, maoRy: -0.8, maoRz: 0, altura: 0.06 },
         // 10 De pé, postura de jogo
-        { pelvis: 0.00, chest: 0.05, coxaL: 0.05, joelhoL: 0.12, coxaR: 0.05, joelhoR: 0.12, bracoLx: -0.20, bracoLz: 0.15, bracoRx: -0.25, bracoRz: -0.05, cotoveloL: -0.70, cotoveloR: -1.00, maoRy: 0, altura: 0.03 }
+        { pelvis: 0.00, chest: 0.05, coxaL: 0.05, joelhoL: 0.12, coxaR: 0.05, joelhoR: 0.12, bracoLx: -0.20, bracoLz: 0.15, bracoRx: -0.25, bracoRz: -0.05, cotoveloL: -0.70, cotoveloR: -1.00, maoRx: 0, maoRy: 0, maoRz: 0, altura: 0.03 }
     ]
 };
 
@@ -1887,7 +1892,10 @@ const PedidoDeBola = {
     pedido cai, excepto sozinho a jeito de finalizar de primeira: a menos de `finalizaDist` m da
     baliza que ataca e sem adversario a menos de `finalizaLivre` m.
     */
-    velMin: 1.0,
+    velMin: 2.5,
+    // A correr PARA A FRENTE (m/s na direccao da baliza que ataca) e a pelo menos `distMinPortador` m do portador: nada de pedir parado ao lado dele (relato).
+    avancoMin: 1.5,
+    distMinPortador: 7,
     finalizaDist: 22,
     finalizaLivre: 5,
     /*

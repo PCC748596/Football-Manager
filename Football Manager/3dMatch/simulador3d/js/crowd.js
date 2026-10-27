@@ -895,8 +895,11 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     float rajada = mix(smoothstep(0.1, 0.5, sin(uTempo * 0.4 * aAdepto.z + aAdepto.y * 1.7)), 1.0, uPalmasFirme);
     float palma = quem * rajada * uAplauso * (1.0 - w2);
     crowdPos = mix(crowdPos, mix(aPosPalmasS, aPosPalmasP, w1), palma);
-    float bracos = step(0.27, abs(crowdPos.x));
-    crowdPos.x -= sign(crowdPos.x) * bracos * 0.045 * sin(uTempo * 11.0 + aAdepto.y) * palma;
+    // BATER AS PALMAS: as maos (a frente do corpo, z > 0.26, acima das pernas) fecham ate as palmas se tocarem (a borda de dentro da mao, a |x| = 0.205, vai a 0) e abrem uns 28 cm; a
+    // mao anda inteira (translacao, nao escala) e o resto do braco acompanha pelo z.
+    float maoZ = smoothstep(0.26, 0.44, crowdPos.z) * step(0.65, crowdPos.y) * step(0.1, abs(crowdPos.x));
+    float fecho = 0.5 + 0.5 * sin(uTempo * 11.0 + aAdepto.y);
+    crowdPos.x -= sign(crowdPos.x) * 0.205 * maoZ * (0.3 + 0.7 * fecho) * palma;
     // ALGUNS OLHAM PARA TRAS: de vez em quando viram a cabeca (so o que esta acima do pescoco).
     float olha = step(fract(aAdepto.x * 91.7), ${CrowdModel.olhaParaTras.toFixed(3)});
     float virar = smoothstep(0.55, 0.85, sin(uTempo * 0.35 * aAdepto.z + aAdepto.y * 2.3)) * olha * (1.0 - w2) * (1.0 - palma);

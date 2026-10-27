@@ -14,13 +14,15 @@ interface Props {
   atual: Tactics;
   onLoad: (t: Tactics) => void;
   onClose: () => void;
+  /** 'save' poe o cursor no nome da tatica. */
+  foco?: 'save' | 'load';
 }
 
 /*
 GRAVAR E CARREGAR TATICAS. Cada gravacao guarda a tatica TODA do time (formacao, estilo, pressao, linha, compactacao, setores e os ajustes de posicao com e sem bola), com um nome. Ficam neste
 navegador (localStorage), por isso valem para qualquer carreira; para não as perder, exporte para um ficheiro .json e importe quando precisar. Carregar substitui a tatica atual.
 */
-const TacticPresetsModal: React.FC<Props> = ({ atual, onLoad, onClose }) => {
+const TacticPresetsModal: React.FC<Props> = ({ atual, onLoad, onClose, foco }) => {
   const [lista, setLista] = useState<Preset[]>(ler);
   const [nome, setNome] = useState('');
 
@@ -70,7 +72,7 @@ const TacticPresetsModal: React.FC<Props> = ({ atual, onLoad, onClose }) => {
         </div>
 
         <div className="flex gap-2">
-          <input value={nome} onChange={e => setNome(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') guardar(); }} maxLength={40} placeholder="Nome da tática (ex.: 4-3-3 pressão alta)"
+          <input autoFocus={foco === 'save'} value={nome} onChange={e => setNome(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') guardar(); }} maxLength={40} placeholder="Nome da tática (ex.: 4-3-3 pressão alta)"
             className="flex-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-3 py-2 text-[12px] font-bold text-slate-700 dark:text-white outline-none focus:border-blue-400" />
           <button onClick={guardar} disabled={!nome.trim()} className="px-4 py-2 rounded bg-blue-600 disabled:opacity-30 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500">Gravar</button>
         </div>

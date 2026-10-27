@@ -23,29 +23,47 @@ function correr(guarda, segundos) {
     const G = OficiaisOlhamABola.anguloMaxGraus;
     const lim = { arbitro: G.arbitro, assistente: G.assistente };
     const dt = 1 / 60;
-    let frames = 0, fora = 0, pior = 0;
+    let frames = 0, fora = 0, pior = 0, costasRumo = 0, andando = 0, ant = null;
     for (let i = 0; i < Math.round(segundos / dt); i++) {
         Match.update(dt);
         if (!Officials.arbitro) continue;
+        // O arbitro nunca corre de costas: a andar (> 0.8 m/s) e sem sinal/cartao, a frente fica a menos de 70 graus (+12) do rumo.
+        if (Officials.arbitro && Officials.arbitro.model) {
+            const pa = Officials.arbitro.model.position;
+            if (ant) {
+                const vx = (pa.x - ant.x) / dt, vz = (pa.z - ant.z) / dt, v = Math.hypot(vx, vz);
+                if (v > 0.8 && v < 12 && !Officials.arbitro.sinal && !Officials.cartaoEmCurso && !(typeof Abertura !== 'undefined' && Abertura.activa)) {
+                    andando++;
+                    const a = Math.atan2(vx, vz), d = Math.abs(Math.atan2(Math.sin(Officials.arbitro.model.rotation.y - a), Math.cos(Officials.arbitro.model.rotation.y - a))) * 180 / Math.PI;
+                    if (d > 82) costasRumo++;
+                }
+            }
+            ant = { x: pa.x, z: pa.z };
+        }
         const lista = [['arbitro', Officials.arbitro]].concat((Officials.assistentes || []).map(a => ['assistente', a]));
         for (const [tipo, o] of lista) {
             if (!o || !o.model) continue;
             if (tipo === 'arbitro' && o.sinal) continue;
+            // A andar (> 0.8 m/s) manda o RUMO: nunca de costas para onde vai, mesmo que a bola fique atras (ver `anguloMaxMovGraus`).
+            const q = (o._tAnt || (o._tAnt = { x: o.model.position.x, z: o.model.position.z })); const vel = Math.hypot(o.model.position.x - q.x, o.model.position.z - q.z) / dt; q.x = o.model.position.x; q.z = o.model.position.z;
+            if (vel > 0.6) continue;   // (e o frame de um reposicionamento: salto de dezenas de m/s)
             const ox = Match.ball.position.x - o.model.position.x, oz = Match.ball.position.z - o.model.position.z;
             if (Math.hypot(ox, oz) < 1.5) continue;
             const d = Math.abs(Math.atan2(Math.sin(o.model.rotation.y - Math.atan2(ox, oz)), Math.cos(o.model.rotation.y - Math.atan2(ox, oz)))) * 180 / Math.PI;
             frames++;
             pior = Math.max(pior, d);
-            if (d > lim[tipo] + 12) fora++;
+            if (d > lim[tipo] + 12) { fora++; if (guarda && process.env.DEPURAR) console.log("fora:", tipo, d.toFixed(0), "vel", vel.toFixed(2), Match.state, "t", (i * dt).toFixed(1), "sinal", !!o.sinal); }
         }
     }
-    return { frames, fora, pior };
+    return { frames, fora, pior, costasRumo, andando };
 }
 
 const com = correr(true, 240);
 const sem = correr(false, 240);
 console.log(`com guarda: ${com.fora}/${com.frames} frames fora do limite, pior ${com.pior.toFixed(0)} graus | sem guarda: ${sem.fora}/${sem.frames}, pior ${sem.pior.toFixed(0)} graus`);
 ok(com.frames > 1000, 'poucos frames medidos: ' + com.frames);
+ok(com.andando > 500, 'poucos frames do arbitro a andar: ' + com.andando);
+ok(com.costasRumo === 0, 'o arbitro correu de costas para o rumo em ' + com.costasRumo + ' de ' + com.andando + ' frames');
 ok(com.fora === 0, 'com o guarda ligado ha oficiais de costas para a bola: ' + com.fora + ' frames, pior ' + com.pior.toFixed(0) + ' graus');
 
 if (falhas) { console.error(falhas + ' falha(s)'); process.exit(1); }

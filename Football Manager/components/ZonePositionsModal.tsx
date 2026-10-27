@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Team, Player, FORMATIONS, ZoneOverrides } from '../types';
+import { Team, Player, FORMATIONS, ZoneOverrides, Tactics } from '../types';
+import TacticPresetsModal from './TacticPresetsModal';
 import { FaseZona, ZONAS, centroDaZona, espelharFase, espelharZona, zonaEspelhada, formacaoTemTabela, moverPosto, postosEfetivos, postosDeBase, repor, temAjustes } from '../textSim/formacoesZonas';
 
 interface Props {
@@ -7,6 +8,7 @@ interface Props {
   players: Player[];
   onChange: (over: ZoneOverrides | undefined) => void;
   onClose: () => void;
+  onLoadTactics: (t: Tactics) => void;
 }
 
 const NOME_DA_ZONA = ['Def. direita', 'Def. centro', 'Def. esquerda', 'Meio direita', 'Meio centro', 'Meio esquerda', 'Atq. direita', 'Atq. centro', 'Atq. esquerda'];
@@ -15,7 +17,8 @@ const NOME_DA_ZONA = ['Def. direita', 'Def. centro', 'Def. esquerda', 'Meio dire
 O EDITOR DAS POSICOES COM E SEM A BOLA (aba Match Tactics). O campo mostra os onze postos para a ZONA em que a bola esta (grelha 3x3) e a fase escolhida; arrasta-se cada um para onde se quer.
 Por baixo, o motor 3D interpola entre as quatro zonas mais proximas, por isso so as zonas ajustadas mudam, e as vizinhas acompanham. Ver textSim/formacoesZonas.ts.
 */
-const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose }) => {
+const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose, onLoadTactics }) => {
+  const [presets, setPresets] = useState<null | 'save' | 'load'>(null);
   const formacao = team.tactics.formation;
   const over = team.tactics.zoneOverrides?.[formacao];
   const [fase, setFase] = useState<FaseZona>('com');
@@ -107,6 +110,11 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose 
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl font-black leading-none">✕</button>
           </div>
 
+          <div className="flex gap-2">
+            <button onClick={() => setPresets('save')} className="flex-1 px-3 py-2 rounded bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-emerald-500" title="Grava a tática atual (formação, estilo e posições)">Save</button>
+            <button onClick={() => setPresets('load')} className="flex-1 px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[11px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title="Carrega uma tática gravada ou de um ficheiro .json">Load</button>
+          </div>
+
           <div>
             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fase</span>
             <div className="flex gap-2 mt-1"><Aba valor="com" rotulo="Com a bola" /><Aba valor="sem" rotulo="Sem a bola" /></div>
@@ -144,6 +152,7 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose 
           <span className="text-[9px] text-slate-400 leading-tight">Amarelo = posto ajustado. Os ajustes valem para esta formação e entram no jogo (também com a partida em curso).</span>
         </div>
       </div>
+      {presets && <div onClick={e => e.stopPropagation()}><TacticPresetsModal atual={team.tactics} foco={presets} onLoad={onLoadTactics} onClose={() => setPresets(null)} /></div>}
     </div>
   );
 };

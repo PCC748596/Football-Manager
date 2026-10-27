@@ -2395,6 +2395,9 @@ function amostrarClipLancamentoGR(norm, clip) {
         cotoveloR: mix('cotoveloR'),
         // Rolamento do punho (o eixo do antebraco): vira a palma. Opcional (0 se o clip nao o traz).
         maoRy: (a.maoRy || 0) + ((b.maoRy || 0) - (a.maoRy || 0)) * u,
+        // Flexao e desvio do punho (opcionais): ver a nota da bola apoiada na palma, GoalkeeperUnderarmThrowClip.
+        maoRx: (a.maoRx || 0) + ((b.maoRx || 0) - (a.maoRx || 0)) * u,
+        maoRz: (a.maoRz || 0) + ((b.maoRz || 0) - (a.maoRz || 0)) * u,
         altura: mix('altura')
     };
 }

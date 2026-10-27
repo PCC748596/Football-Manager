@@ -41,6 +41,23 @@ const AmbienteSonoro = {
     // Enquanto o grito toca, o fundo baixa para isto (fica la, mas atras).
     volumeFundoNoGrito: 0.35,
 
+    /*
+    AS PALMAS E O PERIGO DE GOL (faixas PROPRIAS, por cima do fundo, que NAO baixa nem para: o som normal da torcida continua sempre).
+      `Crowd_claps.wav`     em loop enquanto a torcida bate palmas (um lance perigoso do seu time, `Crowd.uniforms.uPalmasFirme`): entra e sai com uma rampa.
+      `Crowd_reacting.wav`  o "ohh" da bancada num perigo de gol: um remate perigoso (xG), um penalti, um cara a cara; no maximo um a cada `reacaoIntervalo` s.
+    */
+    ficheiroPalmas: 'assets/Crowd_claps.wav',
+    volumePalmas: 0.7,
+    palmasRampa: 1.2,           // s para entrar e para sair
+    ficheiroReacao: 'assets/Crowd_reacting.wav',
+    volumeReacao: 0.8,
+    reacaoIntervalo: 5.0,
+    reacaoXgMin: 0.07,
+    _palmas: null,
+    _reacao: null,
+    _palmasVol: 0,
+    _reacaoRelogio: -99,
+
     // Segundos para o volume subir e descer. A subida é mais rápida do que a
     // descida: uma bancada acende-se de repente e vai-se abaixo devagar.
     subida: 0.6,
@@ -67,6 +84,16 @@ const AmbienteSonoro = {
         this._grito.volume = this.volumeGrito;
         this._audio.loop = true;
         this._audio.preload = 'auto';
+        this._palmas = new Audio(this.ficheiroPalmas);
+        this._palmas.loop = true; this._palmas.preload = 'auto'; this._palmas.volume = 0;
+        this._reacao = new Audio(this.ficheiroReacao);
+        this._reacao.preload = 'auto'; this._reacao.volume = this.volumeReacao;
+        // O perigo de gol: os remates perigosos, os penaltis e os cara a cara (o registo de eventos e o EventBus).
+        if (typeof Eventos !== 'undefined' && Eventos.aoRegistar) Eventos.aoRegistar((ev) => {
+            if (!ev) return;
+            if ((ev.tipo === 'REMATE' && !ev.desfecho && (ev.xg || 0) >= this.reacaoXgMin) || ev.tipo === 'PENALTI') this.reagirAoPerigo();
+        });
+        if (typeof EventBus !== 'undefined') EventBus.on('CARA_A_CARA', () => this.reagirAoPerigo());
         // Desligado nasce MESMO a zero: o `update` só corrige no frame
         // seguinte, e esse frame chegava a sair com som.
         this._audio.volume = this._ligado ? this._actual : 0;
@@ -120,12 +147,39 @@ const AmbienteSonoro = {
         const k = 1 - Math.exp(-dt / Math.max(0.01, tau));
         this._actual += (this._alvo - this._actual) * k;
 
+        this._atualizarPalmas(dt);
+
         // Com o grito no ar, o fundo sai da frente.
         const aGritar = !!(this._grito && !this._grito.paused && !this._grito.ended);
         const tecto = aGritar ? this.volumeFundoNoGrito : 1;
         this._audio.volume = this._ligado
             ? Math.max(0, Math.min(tecto, this._actual))
             : 0;
+    },
+
+    // As palmas: em loop enquanto a bancada bate palmas num lance perigoso; rampa de entrada e de saida, e pausam-se quando chegam a zero.
+    _atualizarPalmas(dt) {
+        if (!this._palmas) return;
+        const U = (typeof Crowd !== 'undefined') ? Crowd._uniforms : null;
+        const aBater = !!(this._ligado && !this._pausado && U && U.uPalmasFirme && U.uPalmasFirme.value > 0.5);
+        const alvo = aBater ? this.volumePalmas : 0;
+        const passo = this.volumePalmas * dt / Math.max(0.05, this.palmasRampa);
+        this._palmasVol = this._palmasVol < alvo ? Math.min(alvo, this._palmasVol + passo) : Math.max(alvo, this._palmasVol - passo);
+        this._palmas.volume = Math.max(0, Math.min(1, this._palmasVol));
+        if (aBater && this._palmas.paused) { const pr = this._palmas.play(); if (pr && pr.catch) pr.catch(() => { }); }
+        else if (!aBater && this._palmasVol <= 0.001 && !this._palmas.paused) this._palmas.pause();
+    },
+
+    // O "ohh" do perigo de gol, por cima do som de fundo (que continua); dois perigos seguidos nao se montam um no outro.
+    reagirAoPerigo() {
+        if (!this._reacao || !this._ligado || this._pausado) return;
+        const t = (typeof Match !== 'undefined' && typeof Match.tempoDeJogo === 'number') ? Match.tempoDeJogo : 0;
+        if (t - this._reacaoRelogio < this.reacaoIntervalo && t >= this._reacaoRelogio) return;
+        this._reacaoRelogio = t;
+        this._reacao.volume = this.volumeReacao;
+        try { this._reacao.currentTime = 0; } catch (e) { /* ainda sem dados */ }
+        const pr = this._reacao.play();
+        if (pr && pr.catch) pr.catch(() => { });
     },
 
     /*
@@ -173,6 +227,8 @@ const AmbienteSonoro = {
             this._tocavaAntesDaPausa = !this._audio.paused;
             this._audio.pause();
             if (this._grito) this._grito.pause();
+            if (this._palmas) this._palmas.pause();
+            if (this._reacao) this._reacao.pause();
         } else if (this._ligado && this._tocavaAntesDaPausa) {
             this.tentarTocar();
         }
@@ -185,6 +241,8 @@ const AmbienteSonoro = {
         else {
             this._audio.volume = 0;
             if (this._grito) { this._grito.pause(); this._grito.volume = 0; }
+            if (this._palmas) { this._palmas.pause(); this._palmasVol = 0; }
+            if (this._reacao) this._reacao.pause();
         }
     },
 

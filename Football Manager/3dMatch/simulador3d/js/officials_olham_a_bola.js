@@ -22,12 +22,36 @@ const OficiaisOlhamABola = {
     anguloMaxGraus: { arbitro: 80, assistente: 90 },
     // Só se corrige com a bola a mais de isto (m): colado a ela a direcção não é fiável.
     distMin: 1.5,
+    /*
+    NUNCA CORRER DE COSTAS (relato, outra vez: *"o juiz está correndo de costas"*). A regra da bola sozinha fazia isso: com a bola atrás do rumo dele (a ir para o posto da saída de bola, a recuar num contra-ataque)
+    o juiz mantinha a frente a menos de `anguloMax` da bola e corria de costas para onde ia (medido: 19% dos frames a andar na caminhada para a saída de bola, pior caso 107 graus). Agora, a andar
+    (`velMin` m/s ou mais), a frente nunca passa de `anguloMaxMov` graus do RUMO — esta regra manda sobre a da bola.
+    */
+    anguloMaxMovGraus: { arbitro: 70, assistente: 100 },
+    velMin: 0.8,
+    // Com a frente livre (sinal / cartao) so a corrida a serio conta: a andar devagar de frente para o jogador e o gesto.
+    velMinLivre: 2.0,
 
     _wrapped: false,
 
     // Corrige um oficial. Devolve o desvio (rad) que havia antes de corrigir, para a medição.
-    _corrigir(o, maxRad, dt) {
+    _corrigir(o, maxRad, dt, maxMovRad, velMin) {
         if (!o || !o.model || !Match || !Match.ball) return 0;
+        // O rumo (da posicao de um frame para o seguinte); saltos (reposicionamento) nao contam.
+        let vx = 0, vz = 0, v = 0;
+        const g = o._gPos || (o._gPos = { x: o.model.position.x, z: o.model.position.z });
+        if (dt > 0) { vx = (o.model.position.x - g.x) / dt; vz = (o.model.position.z - g.z) / dt; v = Math.hypot(vx, vz); }
+        g.x = o.model.position.x; g.z = o.model.position.z;
+        const antes = this._corrigirBola(o, maxRad);
+        if (maxMovRad !== undefined && v >= (velMin || this.velMin) && v < 12) {
+            const mov = Math.atan2(vx, vz);
+            const d2 = Math.atan2(Math.sin(o.model.rotation.y - mov), Math.cos(o.model.rotation.y - mov));
+            if (Math.abs(d2) > maxMovRad) o.model.rotation.y = mov + Math.sign(d2) * maxMovRad;
+        }
+        return antes;
+    },
+
+    _corrigirBola(o, maxRad) {
         const ox = Match.ball.position.x - o.model.position.x;
         const oz = Match.ball.position.z - o.model.position.z;
         if (Math.hypot(ox, oz) < this.distMin) return 0;
@@ -47,7 +71,10 @@ const OficiaisOlhamABola = {
         const G = this.anguloMaxGraus, k = Math.PI / 180;
         const arb = Officials.arbitro;
         // No CARTAO a frente e do jogador (ele corre para ele e mostra-lhe o cartao de frente): a guarda da bola desfazia-o (medido: 57 graus de desvio mediano ao mostrar).
-        if (arb && !arb.sinal && !Officials.cartaoEmCurso) this._corrigir(arb, G.arbitro * k, dt);
+        if (arb) {
+            const livre = !!arb.sinal || !!Officials.cartaoEmCurso;
+            this._corrigir(arb, livre ? Math.PI : G.arbitro * k, dt, this.anguloMaxMovGraus.arbitro * k, livre ? this.velMinLivre : this.velMin);
+        }
         for (const a of (Officials.assistentes || [])) {
             /*
             O ASSISTENTE A CAMINHO DO POSTO (so na caminhada para a saida de bola depois da abertura/intervalo: estado GOAL sem festa de golo) VAI DE
@@ -59,8 +86,8 @@ const OficiaisOlhamABola = {
             Com a regra da bola ele corria de lado ou de costas para o rumo (relato do 2.o tempo: "correm para o lado certo mas virados de costas"). Quando chega perto
             da linha (`emTransito` falso) a regra volta.
             */
-            if (a.emTransito && typeof Match !== 'undefined' && Match.state === 'GOAL' && Match.semFestaDeGolo) continue;
-            this._corrigir(a, G.assistente * k, dt);
+            if (a.emTransito && typeof Match !== 'undefined' && Match.state === 'GOAL' && Match.semFestaDeGolo) { this._corrigir(a, Math.PI, dt, this.anguloMaxMovGraus.assistente * k); continue; }
+            this._corrigir(a, G.assistente * k, dt, this.anguloMaxMovGraus.assistente * k);
         }
     },
 

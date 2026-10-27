@@ -312,7 +312,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in" style={{ height: 'calc(100vh - 80px)' }}>
-        {showZonas && <ZonePositionsModal team={userTeam} players={players} onClose={() => setShowZonas(false)}
+        {showZonas && <ZonePositionsModal team={userTeam} players={players} onClose={() => setShowZonas(false)} onLoadTactics={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })}
             onChange={(over) => { const todos = { ...(userTeam.tactics.zoneOverrides || {}) }; if (over) todos[userTeam.tactics.formation] = over; else delete todos[userTeam.tactics.formation]; updateTactics(userTeam.id, { zoneOverrides: Object.keys(todos).length ? todos : undefined }); }} />}
         {showPresets && <TacticPresetsModal atual={userTeam.tactics} onClose={() => setShowPresets(false)} onLoad={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })} />}
         <div className="flex justify-between items-center shrink-0">
