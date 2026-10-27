@@ -1155,6 +1155,13 @@ const TunelBancada = {
     activo: true,
     // Era 10; desceu 3 filas a pedido.
     degrau: 7,
+    // A boca recua estas filas para dentro da bancada (sobe 0.5 m por fila): a face fica enfiada no degrau, nao uma caixa a vir para a frente.
+    filasParaTras: 3,
+    // A boca nas COSTAS da arquibancada: um vao na parede do fundo do anel, no fim do corredor (nao uma caixa sobre os degraus). Ignora `degrau` e `filasParaTras`.
+    nasCostas: false,
+    // A boca a MEIO/atras da arquibancada, ENTERRADA: os degraus do corredor (as filas que a caixa ocupa) sao cortados e a caixa fica no vao — so a face escura se ve, nada sobressai. Ignora `degrau`/`filasParaTras`.
+    aoMeio: true,
+    fracaoDaFila: 0.45,   // onde fica a face, em fracao das filas (0.5 = meio; maior = mais para tras); o limite e a caixa nao furar a parede do fundo
     altura: 2.2,          // metros, a boca
     profundidade: 3.0,    // quanto entra para dentro da bancada
     cor: 0x14161a,        // quase preto: e uma sombra, nao uma parede

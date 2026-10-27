@@ -1118,6 +1118,29 @@ Object.assign(Match, {
         muda. Ver BancadaAneis.
         */
         // Iluminação sob as coberturas: painéis (posições) e luzes reais, preenchidos por anel.
+        // OS TUNEIS DE ACESSO ENTERRADOS (`TunelBancada.aoMeio`): em cada corredor cortam-se os degraus que a caixa ocupa (da fila a seguir a face ate ao fundo da caixa); a caixa fica no vao.
+        const TBe = (!OVAL && typeof TunelBancada !== 'undefined' && TunelBancada.activo && TunelBancada.aoMeio && BA.alturaParede >= 0) ? TunelBancada : null;
+        // `nCorte` filas de altura: a entrada (escura) fica na parede que sobe no fim do vao, a fila `filaTunelE + nCorte`, e o vao tem o chao da fila `filaTunelE`.
+        const nCorte = TBe ? Math.ceil(TBe.altura / 0.5) : 0;
+        const fundoBocaE = nCorte * 1.2;
+        const filaTunelE = TBe ? Math.max(1, Math.min(Math.round(rows * (TBe.fracaoDaFila || 0.5)), rows - 1 - nCorte)) : -1;
+        const ultimaCortada = TBe ? filaTunelE + nCorte - 1 : -1;
+        const larguraCorte = (typeof CorredoresBancada !== 'undefined') ? CorredoresBancada.largura : 2.55;
+        const passoCorte = (typeof CorredoresBancada !== 'undefined') ? CorredoresBancada.espacamento : 18.7;
+        // Um degrau a todo o comprimento (`limite` = ate onde vai a recta), partido nos vaos dos tuneis quando a fila e uma das cortadas. 'z': lateral (corre em Z); 'x': fundo (corre em X).
+        const stepRun = (eixo, limite, px, py, pz, r) => {
+            const desenha = (c, len, y) => { if (len < 0.05) return; y = (y === undefined) ? py : y; if (eixo === 'z') addStepBox(1.2, 0.5, len, px, y, c, 0); else addStepBox(len, 0.5, 1.2, c, y, pz, 0); };
+            if (!TBe || r <= filaTunelE || r > ultimaCortada) { desenha(0, limite * 2); return; }
+            let ini = -limite;
+            const k = Math.floor(limite / passoCorte);
+            for (let i = -k; i <= k; i++) {
+                const a = i * passoCorte - larguraCorte / 2, b = i * passoCorte + larguraCorte / 2;
+                desenha((ini + a) / 2, a - ini);
+                desenha(i * passoCorte, larguraCorte, py - (r - filaTunelE) * 0.5);   // o chao do vao: a altura do degrau da fila do tunel
+                ini = b;
+            }
+            desenha((ini + limite) / 2, limite - ini);
+        };
         const sobCob = { paineis: [], luzes: [] };
         for (let anel = 0; anel < (OVAL ? 0 : N_ANEIS); anel++) {
             const offProf = anel * PASSO_PROF;
@@ -1137,7 +1160,7 @@ Object.assign(Match, {
                     addStepBox(1.2, 0.5, len, standX, standY, c, 0);
                     addStepBox(1.2, 0.5, len, standX, standY, -c, 0);
                 } else {
-                    addStepBox(1.2, 0.5, cornerZ * 2, standX, standY, 0, 0);
+                    stepRun('z', cornerZ, standX, standY, 0, r);
                 }
 
                 const seatYOffset = standY + 0.25 + 0.15;
@@ -1159,7 +1182,7 @@ Object.assign(Match, {
                     addStepBox(1.2, 0.5, len, standX, standY, c, 0);
                     addStepBox(1.2, 0.5, len, standX, standY, -c, 0);
                 } else {
-                    addStepBox(1.2, 0.5, cornerZ * 2, standX, standY, 0, 0);
+                    stepRun('z', cornerZ, standX, standY, 0, r);
                 }
 
                 const seatYOffset = standY + 0.25 + 0.15;
@@ -1175,7 +1198,7 @@ Object.assign(Match, {
             for (let r = 0; r < rows; r++) {
                 const standZ = BANCADA_Z + (offProf + r * 1.2);
                 const standY = offY + 0.25 + (r * 0.5);
-                addStepBox(cornerX * 2, 0.5, 1.2, 0, standY, standZ, 0);
+                stepRun('x', cornerX, 0, standY, standZ, r);
 
                 const seatYOffset = standY + 0.25 + 0.15;
                 /*
@@ -1197,7 +1220,7 @@ Object.assign(Match, {
             for (let r = 0; r < rows; r++) {
                 const standZ = -BANCADA_Z - (offProf + r * 1.2);
                 const standY = offY + 0.25 + (r * 0.5);
-                addStepBox(cornerX * 2, 0.5, 1.2, 0, standY, standZ, 0);
+                stepRun('x', cornerX, 0, standY, standZ, r);
 
                 const seatYOffset = standY + 0.25 + 0.15;
                 // Até onde a esquina começa — ver `cornerX`. E sem o buraco das duas
@@ -1307,9 +1330,14 @@ Object.assign(Match, {
             sempre mais escuro do que visto de cima — com uma cor so, a
             cobertura lia-se como uma laje a flutuar.
             */
-            if (BA.cobertura && BA.coberturaAvanco > 0) {
+            /*
+            SEM COBERTURA (estadios de um anel) so a arquibancada em FRENTE AS CAMERAS (+X) leva cobertura — e os holofotes na beira dela (ver `soFrente` nos holofotes).
+            */
+            const soFrente = !BA.cobertura;
+            if (BA.coberturaAvanco > 0) {
                 const yCob = yFim + BA.alturaParede + BA.coberturaEspessura / 2;
-                const avanco = BA.coberturaAvanco;
+                // sem cobertura geral: a aba cobre a arquibancada toda e sai 1.5 m alem da primeira fila, ate 26 m (pedido: *"mais pra frente"*)
+                const avanco = soFrente ? Math.min(profFim + 1.5, 26) : BA.coberturaAvanco;
                 const matCima = new THREE.MeshStandardMaterial({
                     color: BA.corCobertura, roughness: 0.85
                 });
@@ -1331,10 +1359,41 @@ Object.assign(Match, {
                     m.castShadow = true; m.receiveShadow = false;
                     campoGrupo.add(m);
                 };
-                addCobertura('x', -1, -BANCADA_X, cornerZ * 2);
+                if (!soFrente) addCobertura('x', -1, -BANCADA_X, cornerZ * 2);
                 addCobertura('x', 1, BANCADA_X, cornerZ * 2);
-                addCobertura('z', 1, BANCADA_Z, cornerX * 2);
-                addCobertura('z', -1, -BANCADA_Z, cornerX * 2);
+                if (!soFrente) addCobertura('z', 1, BANCADA_Z, cornerX * 2);
+                if (!soFrente) addCobertura('z', -1, -BANCADA_Z, cornerX * 2);
+
+                /*
+                AS COLUNAS que seguram a aba da frente (so sem cobertura geral): uma em cada corredor da arquibancada (sem lugares, nao tapa ninguem), a ~70% da fundura, do degrau ao tecto. Se
+                cairia na boca do tunel, recua ou avanca para fora das filas dele. Fundidas numa malha so.
+                */
+                if (soFrente) {
+                    const passoC = (typeof CorredoresBancada !== 'undefined') ? CorredoresBancada.espacamento : 18.7;
+                    const TBc = (typeof TunelBancada !== 'undefined' && TunelBancada.activo) ? TunelBancada : null;
+                    const filaT = !TBc ? -99 : (TBc.aoMeio ? filaTunelE : TBc.degrau + (TBc.filasParaTras || 0));
+                    const filaTFim = filaT + (TBc && TBc.aoMeio ? Math.ceil(TBc.altura / 0.5) : 3);   // ate onde a caixa do tunel sobe acima dos degraus
+                    let rc = Math.round(rows * 0.7);
+                    if (rc >= filaT - 1 && rc <= filaTFim) rc = (filaTFim + 1 < rows) ? filaTFim + 1 : Math.max(0, filaT - 2);
+                    rc = Math.max(0, Math.min(rows - 1, rc));
+                    const yBase = offY + 0.5 + rc * 0.5;
+                    const yTopo = yCob - BA.coberturaEspessura / 2;
+                    const xCol = BANCADA_X + offProf + rc * 1.2;
+                    const geosCol = [];
+                    const k = Math.floor((cornerZ - 1) / passoC);
+                    for (let i = -k; i <= k; i++) {
+                        const g = new THREE.BoxGeometry(0.5, yTopo - yBase, 0.5).toNonIndexed();
+                        g.translate(xCol, (yTopo + yBase) / 2, i * passoC);
+                        geosCol.push(g);
+                    }
+                    if (geosCol.length) {
+                        const gc = mergeNonIndexedGeometries(geosCol);
+                        gc.computeVertexNormals();
+                        const mc = new THREE.Mesh(gc, new THREE.MeshStandardMaterial({ color: BA.corParede, roughness: 0.8 }));
+                        mc.castShadow = true; mc.receiveShadow = false;
+                        campoGrupo.add(mc);
+                    }
+                }
 
                 /*
                 LUZES POR BAIXO DA COBERTURA, para iluminar os torcedores.
@@ -1347,7 +1406,7 @@ Object.assign(Match, {
                 const lados = [
                     ['x', -1, -BANCADA_X, cornerZ], ['x', 1, BANCADA_X, cornerZ],
                     ['z', 1, BANCADA_Z, cornerX], ['z', -1, -BANCADA_Z, cornerX]
-                ];
+                ].filter(l => !soFrente || (l[0] === 'x' && l[1] === 1));
                 for (const [eixo, sinal, base, meio] of lados) {
                     const ponto = (t, c) => {
                         const p = base + sinal * (profFim - t);
@@ -1377,7 +1436,7 @@ Object.assign(Match, {
                 const cantos = [
                     [-cornerX, cornerZ, Math.PI / 2], [cornerX, cornerZ, 0],
                     [-cornerX, -cornerZ, Math.PI], [cornerX, -cornerZ, 3 * Math.PI / 2]
-                ].filter(() => !BACIA.semCurvas);   // `semCurvas`: sem o arco da cobertura nos cantos
+                ].filter(() => !BACIA.semCurvas && !soFrente);   // `semCurvas`: sem o arco da cobertura nos cantos
                 for (const [ccx, ccz, a0] of cantos) {
                     for (const t of [avanco * 0.35, avanco * 0.75]) {
                         const rr = rFimC - t;
@@ -1506,10 +1565,11 @@ Object.assign(Match, {
         Guarda-se tudo em `window.holofotes` para o interruptor dia/noite
         (main.js) poder acender e apagar sem reconstruir nada.
         */
-        if (!OVAL && typeof Holofotes !== 'undefined' && Holofotes.activo && BA.cobertura) {
+        if (!OVAL && typeof Holofotes !== 'undefined' && Holofotes.activo && BA.coberturaAvanco > 0) {
+            const soFrenteH = !BA.cobertura;   // so a lateral das cameras (+X)
             const H = Holofotes;
             const tUlt = N_ANEIS - 1;
-            const profBordo = tUlt * PASSO_PROF + rows * 1.2 - BA.coberturaAvanco;
+            const profBordo = tUlt * PASSO_PROF + rows * 1.2 - (soFrenteH ? Math.min(rows * 1.2 + 1.5, 26) : BA.coberturaAvanco);
             const yLuz = tUlt * PASSO_Y + rows * 0.5 + BA.alturaParede;
 
             const matEstrut = new THREE.MeshStandardMaterial({
@@ -1530,7 +1590,7 @@ Object.assign(Match, {
             const luzes = [];
             const larguraConj = H.lampadasPorFileira * H.espacoEntreLampadas;
 
-            for (const sinal of [-1, 1]) {
+            for (const sinal of (soFrenteH ? [1] : [-1, 1])) {
                 const xConj = sinal * (BANCADA_X + profBordo);
                 for (let f = 0; f < H.fileiras; f++) {
                     // Espalhados ao longo do comprimento, simetricos sobre z=0.
@@ -1574,7 +1634,7 @@ Object.assign(Match, {
             HOLOFOTES DE FUNDO — direcionados exclusivamente para as balizas e grande área.
             3 conjuntos de holofotes no topo da cobertura das bancadas Norte e Sul (-18m, 0m, +18m).
             */
-            for (const sinalZ of [-1, 1]) {
+            for (const sinalZ of (soFrenteH ? [] : [-1, 1])) {
                 const zConj = sinalZ * (BANCADA_Z + profBordo);
                 const targetZ = sinalZ * LINHA_FUNDO;
 
@@ -1691,8 +1751,20 @@ Object.assign(Match, {
             que se lê como a entrada do túnel. O resto do volume fica dentro da
             massa dos degraus, escondido.
             */
-            const dentro = TB.degrau * 1.2 - 0.6 - (TB.folgaFrente || 0.30);
-            const yTunel = 0.25 + TB.degrau * 0.5 + TB.altura / 2;
+            /*
+            NAS COSTAS (`TB.nasCostas`): a boca e um vao na PAREDE do fundo do anel, no fim do corredor: a face escura encosta na parede (so `folgaFrente` a frente dela), de pe sobre o ultimo
+            degrau, e a caixa so atravessa a espessura da parede — nao sobra caixa nenhuma sobre as filas.
+            */
+            /*
+            A MEIO (`TB.aoMeio`): a face na fila do meio da arquibancada e a caixa enterrada nos degraus — fundura suficiente (altura / 0.5 m por fila x 1.2 m) para as filas de tras cobrirem o tecto.
+            Em arquibancadas rasas a fila recua para a caixa nao furar a parede do fundo.
+            */
+            const fundoBoca = fundoBocaE;
+            const filaTunel = TB.aoMeio ? filaTunelE : TB.degrau + (TB.filasParaTras || 0);
+            const costas = !!TB.nasCostas && BA.alturaParede > 0;
+            const dentro = costas ? rows * 1.2 - (TB.folgaFrente || 0.12) : (TB.aoMeio ? (filaTunel + nCorte) * 1.2 - 0.6 - (TB.folgaFrente || 0.12) : filaTunel * 1.2 - 0.6 - (TB.folgaFrente || 0.30));
+            const yTunel = costas ? rows * 0.5 + TB.altura / 2 + 0.02 : (TB.aoMeio ? 0.5 + filaTunel * 0.5 + TB.altura / 2 + 0.01 : 0.25 + filaTunel * 0.5 + TB.altura / 2);
+            const profTunel = costas ? (TB.folgaFrente || 0.12) + BA.espessuraParede - 0.1 : (TB.aoMeio ? 0.3 : TB.profundidade);
 
             /*
             `eixo` diz em que direcção a bancada cresce ('x' nas laterais, 'z'
@@ -1700,7 +1772,7 @@ Object.assign(Match, {
             a LARGURA no eixo do corredor e a PROFUNDIDADE no eixo da bancada.
             */
             const addTunel = (eixo, sinal, base, coordCorredor, dProf, dY) => {
-                const prof = TB.profundidade;
+                const prof = profTunel;
                 // `dProf`/`dY` deslocam a boca para o anel a que pertence.
                 const fora = base + sinal * (dentro + (dProf || 0));
                 const yTunelAnel = yTunel + (dY || 0);

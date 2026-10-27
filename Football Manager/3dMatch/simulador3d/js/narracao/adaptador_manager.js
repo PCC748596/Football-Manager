@@ -201,7 +201,7 @@ const AdaptadorManager = {
     prepararPartida(casa, fora, opcoes) {
         opcoes = opcoes || {};
         // A OCUPACAO do estadio neste jogo (0..1, do manager: ocupacao-base + bonus do jogo): a torcida desenhada e a capacidade x ocupacao x a fracao da qualidade grafica (crowd.js, `definirOcupacao`).
-        if (typeof opcoes.ocupacao === 'number' && typeof Crowd !== 'undefined' && Crowd.definirOcupacao) Crowd.definirOcupacao(opcoes.ocupacao);
+        if (typeof opcoes.ocupacao === 'number' && typeof Crowd !== 'undefined' && Crowd.definirOcupacao) Crowd.definirOcupacao(opcoes.ocupacao, opcoes.ocupacaoVisitante);
         this._opcoes = opcoes;   // as mesmas opcoes (escala das skills) valem para os substitutos (Match.executarSubstituicao)
         const eC = this.equipa(casa.equipa, casa.jogadoresPorId, casa.formacao.slots, opcoes);
         const eF = this.equipa(fora.equipa, fora.jogadoresPorId, fora.formacao.slots, opcoes);

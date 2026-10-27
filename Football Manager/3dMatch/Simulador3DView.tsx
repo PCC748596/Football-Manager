@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { Team, Player } from '../types';
 import { urlSimulador, montarPayload } from './simulador3dCliente';
-import { settleMatch } from '../textSim/stadiumEconomy';
+import { settleMatch, ECONOMIA_ESTADIO } from '../textSim/stadiumEconomy';
 
 interface Props {
   casa: Team;
@@ -39,6 +39,8 @@ const sessao: { iframe: HTMLIFrameElement | null; chave: string; pronto: boolean
   { iframe: null, chave: '', pronto: false, arrancou: false, cb: () => {}, ouvinte: false, preparadoCom: "" };
 
 export const simulador3dArrancou = (chave: string) => sessao.chave === chave && sessao.arrancou;
+// Quantos RESETs desta partida ja se fizeram (a chave do iframe leva `#N`): sair para o Tactics e voltar nao pode perder a conta, senao a chave muda e o 3D e recriado.
+export const simulador3dReinicios = (base: string) => (sessao.chave.startsWith(base + '#') ? Number(sessao.chave.slice(base.length + 1)) || 0 : 0);
 export const simulador3dPronto = () => sessao.pronto;
 // Velocidade do jogo (0.5x, 1x, 1.5x): guardada para a partida que ainda vai arrancar (o `iniciar` do motor usa-a) e enviada ao motor ja em curso.
 let velocidadeDoJogo = 1;
@@ -113,6 +115,9 @@ const ocupacaoDoJogo = (casa: Team, fora: Team): number => {
   try { return settleMatch(casa, fora, { id: '', week: 0, date: '', homeTeamId: casa.id, awayTeamId: fora.id, homeScore: 0, awayScore: 0 } as any, 'USD').occupancy; } catch { return 1; }
 };
 
+// A ocupacao do setor visitante: a base do clube visitante (60% no inicio, muda com os resultados dele).
+const ocupacaoVisitanteDoJogo = (fora: Team): number => (fora as any).stadiumOccupancy ?? ECONOMIA_ESTADIO.ocupacaoInicial;
+
 const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, chave, iniciar, pausado, kitCasa, kitFora, competicao, tabela, amistoso, qualidade, aoMensagem, aoPronto }) => {
   simulador3dQualidade(qualidade);   // antes de o iframe ser criado (useLayoutEffect) para entrar no URL
   const caixa = useRef<HTMLDivElement>(null);
@@ -126,7 +131,7 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
     const d = dados.current;
     if (iniciarRef.current) {
       sessao.arrancou = true;
-      enviar(montarPayload(d.casa, d.fora, d.players, d.userTeamId, { modo: 'visivel', velocidade: velocidadeDoJogo, fimEmMinutos: 90, ocupacao: ocupacaoDoJogo(d.casa, d.fora), tabela: d.tabela, amistoso: d.amistoso }, d.kits));
+      enviar(montarPayload(d.casa, d.fora, d.players, d.userTeamId, { modo: 'visivel', velocidade: velocidadeDoJogo, fimEmMinutos: 90, ocupacao: ocupacaoDoJogo(d.casa, d.fora), ocupacaoVisitante: ocupacaoVisitanteDoJogo(d.fora), tabela: d.tabela, amistoso: d.amistoso }, d.kits));
     } else {
       // A entrada dos times so comeca depois de os uniformes escolhidos (o modal de kits ainda aberto = kits indefinidos).
       if (d.kits.casa === undefined || d.kits.fora === undefined) return;
@@ -134,7 +139,7 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
       const chaveKits = JSON.stringify(d.kits);
       if (sessao.preparadoCom === chaveKits) return;
       sessao.preparadoCom = chaveKits;
-      enviar({ ...montarPayload(d.casa, d.fora, d.players, d.userTeamId, { ocupacao: ocupacaoDoJogo(d.casa, d.fora), tabela: d.tabela, amistoso: d.amistoso }, d.kits), tipo: 'preparar' });
+      enviar({ ...montarPayload(d.casa, d.fora, d.players, d.userTeamId, { ocupacao: ocupacaoDoJogo(d.casa, d.fora), ocupacaoVisitante: ocupacaoVisitanteDoJogo(d.fora), tabela: d.tabela, amistoso: d.amistoso }, d.kits), tipo: 'preparar' });
     }
   };
 

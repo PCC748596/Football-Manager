@@ -319,7 +319,7 @@ const RefereeModel = {
     corBota: '#0f1114',
 
     /*
-    OS TRAJES POSSIVEIS DO TRIO (ver Officials.sortearTraje). `prioridade`: tudo preto, tudo amarelo, tudo laranja — sorteia-se aqui primeiro.
+    OS TRAJES POSSIVEIS DO TRIO (ver Officials.sortearTraje). `prioridade`: tudo preto, tudo amarelo, tudo azul (laranja e vermelho saem: confundem com camisas de time) — sorteia-se aqui primeiro.
     `demais`: camisa de cor com calcao preto. `deltaMin`: a distancia minima (CIE76, Lab) entre a camisa do traje e qualquer camisa em campo.
     */
     trajes: {
@@ -327,14 +327,12 @@ const RefereeModel = {
         prioridade: [
             { nome: 'tudo preto',   camisa: '#14161a', calcao: '#14161a' },
             { nome: 'tudo amarelo', camisa: '#f5e61b', calcao: '#f5e61b' },
-            { nome: 'tudo laranja', camisa: '#ff7a00', calcao: '#ff7a00' }
+            { nome: 'tudo azul',    camisa: '#1f5fd1', calcao: '#1f5fd1' }
         ],
         demais: [
-            { nome: 'vermelha',        camisa: '#d6201f', calcao: '#14161a' },
             { nome: 'azul claro',      camisa: '#4fb8ff', calcao: '#14161a' },
             { nome: 'verde limao',     camisa: '#9be31a', calcao: '#14161a' },
             { nome: 'amarelo fosfor.', camisa: '#e8ff1f', calcao: '#14161a' },
-            { nome: 'laranja',         camisa: '#ff7a00', calcao: '#14161a' },
             { nome: 'preta',           camisa: '#14161a', calcao: '#14161a' },
             { nome: 'rosa',            camisa: '#ff6fb5', calcao: '#14161a' },
             { nome: 'lilas',           camisa: '#b58cf0', calcao: '#14161a' }
@@ -917,7 +915,7 @@ const Officials = {
     /*
     A ROUPA DO TRIO, SORTEADA PARA NAO SE CONFUNDIR COM A DOS JOGADORES (pedido: *"a roupa do trio de arbitragem nao pode confundir com a dos
     jogadores"*). Reune todas as cores de camisa em campo (as duas equipas e os dois guarda-redes, riscas e golas incluidas) e sorteia entre os
-    trajes de `RefereeModel.trajes` por prioridade: primeiro os de `prioridade` (tudo preto, tudo amarelo, tudo laranja), depois os de `demais`
+    trajes de `RefereeModel.trajes` por prioridade: primeiro os de `prioridade` (tudo preto, tudo amarelo, tudo azul), depois os de `demais`
     (camisa de cor com calcao preto). Um traje serve se a camisa dele estiver a `RefereeModel.trajes.deltaMin` (distancia CIE76 em Lab) ou mais de
     TODAS as camisas em campo. Se nenhum servir, fica o que mais se afasta delas. As tres peças (arbitro e os dois assistentes) vestem o mesmo.
     Chamado quando as equipas mudam (`Match.trocarEquipas`) e no arranque.

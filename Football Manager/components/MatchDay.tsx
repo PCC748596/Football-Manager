@@ -5,7 +5,7 @@ import { TeamShield } from './TeamShield';
 import { KitSelection } from './KitSelection';
 import { MatchStatsModal } from './MatchStatsModal';
 import { calculateMatchRatings } from '../textSim/matchEngine';
-import Simulador3DView, { simulador3dArrancou, simulador3dPronto, simulador3dEnviar, simulador3dTelaCheia, simulador3dLembrarTelaCheia, simulador3dVelocidade } from '../3dMatch/Simulador3DView';
+import Simulador3DView, { simulador3dArrancou, simulador3dReinicios, simulador3dPronto, simulador3dEnviar, simulador3dTelaCheia, simulador3dLembrarTelaCheia, simulador3dVelocidade } from '../3dMatch/Simulador3DView';
 import { taticaParaMotor, taticaDoMotor } from '../3dMatch/simulador3dCliente';
 import { COUNTRIES } from '../textSim/dataGenerator';
 import { ligaDoClube } from '../textSim/competitions';
@@ -29,7 +29,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const [activeTab, setActiveTab] = useState<'pitch3d' | 'stats'>('pitch3d');
   const chave3d = match ? match.date + "|" + match.homeTeamId + "|" + match.awayTeamId : "";
   const [camara, setCamara] = useState('lateraltv');
-  const [reinicios, setReinicios] = useState(0);
+  const [reinicios, setReinicios] = useState(() => simulador3dReinicios(chave3d));
   // Lembra que o jogo de hoje esta a ser visto no 3D: o Resume da aba Tactics (e o botao JOGAR PARTIDA) voltam para ca, e nao para a simulacao 2D.
   useEffect(() => { try { localStorage.setItem('activeMatchView', 'MATCH'); } catch (e) { /* sem armazenamento: fica o padrao */ } }, []);
   const [velocidade, setVelocidade] = useState(1);
@@ -49,7 +49,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   useEffect(() => {
     if (pronto3d && cobradoresJson && match) simulador3dEnviar({ tipo: 'cobradores', lado: match.homeTeamId === gameState.userTeamId ? 'A' : 'B', cobradores: JSON.parse(cobradoresJson) });
   }, [pronto3d, cobradoresJson]);
-  const [iniciou, setIniciou] = useState(() => simulador3dArrancou(chave3d));
+  const [iniciou, setIniciou] = useState(() => simulador3dArrancou(chave3d + '#' + simulador3dReinicios(chave3d)));
   // Sair desta tela (taticas, etc.) pausa o relogio; o 3D pausa-se sozinho e retoma ao voltar (o iframe nao e recriado).
   useEffect(() => () => { pauseMatch(); }, []);
 

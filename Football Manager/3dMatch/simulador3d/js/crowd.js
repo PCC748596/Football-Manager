@@ -89,6 +89,10 @@ const CrowdModel = {
     */
     // A fraccao de adeptos do visitante pedida (10%): o canto dele ajusta-se ao estadio para a dar (Crowd.build).
     fracVisitante: 0.10,
+    // Passagem sem adeptos nas fronteiras do bloco visitante, com grade de cada lado e segurancas (um a cada `cadaFilas` filas).
+    divisoria: { ativa: true, cadaFilas: 4, alturaGrade: 2.2, comprimentoGrade: 1.2, corGrade: 0x2b3036, afastaSeguranca: 0.5, colunaLivre: 0.85 },
+    // O canto do visitante fica EM FRENTE das cameras (a bancada do outro lado do campo, -X) no canto da DIREITA do ecra (-Z), e nao atras delas (+X). `false` = o lado das cameras.
+    visitanteEmFrente: true,
     visitanteT: 0.24,
     visitanteU: 0.68,
     visitanteMescla: 0.08,
@@ -723,6 +727,7 @@ const Crowd = {
         // 1 dentro do canto, descendo a 0 numa faixa de largura `m` para fora dele.
         const vT = (typeof this._visT === 'number') ? this._visT : M.visitanteT, vU = (typeof this._visU === 'number') ? this._visU : M.visitanteU;   // o canto ajustado para dar 10% (ver `build`)
         const pT = Math.max(0, Math.min(1, (vT + m - t) / m));
+        if (M.visitanteEmFrente) u = 1 - u;   // o canto do visitante e o do lado OPOSTO as cameras (ver `visitanteEmFrente`)
         const pU = Math.max(0, Math.min(1, (u - (vU - m)) / m));
         return (rnd() < pT * pU) ? 'B' : 'A';
     },
@@ -1063,10 +1068,13 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     RENDERIZAR SO ATE 1.2x O VIEWPORT (pedido): por frame, cada fatia da torcida (e as camisas dos kits dela) so se desenha se a sua esfera cair dentro do frustum da camara com
     `CrowdModel.viewportCull` (1.2) vezes a largura e a altura do ecra. Fora disso `visible = false`. Chamado do `animate` depois de a camara se actualizar.
     */
-    definirOcupacao(o) {
+    definirOcupacao(o, visitante) {
         const v = Math.max(0.05, Math.min(1, Number(o)));
         if (!isFinite(v)) return;
-        if (typeof this._ocupacao === 'number' && Math.abs(this._ocupacao - v) < 0.005) return;
+        // A ocupacao do SETOR VISITANTE (0..1, do manager: a base do clube visitante): comeca em 60% e muda com os resultados dele.
+        const ov = (typeof visitante === 'number' && isFinite(visitante)) ? Math.max(0.05, Math.min(1, visitante)) : null;
+        if (typeof this._ocupacao === 'number' && Math.abs(this._ocupacao - v) < 0.005 && (this._ocupacaoVisitante === ov || (ov !== null && Math.abs(this._ocupacaoVisitante - ov) < 0.005))) return;
+        this._ocupacaoVisitante = ov;
         this._ocupacao = v;
         if (this._lugares && this._cena) this.reconstruir();
     },
@@ -1078,6 +1086,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         const tirar = (m) => { if (m.parent) m.parent.remove(m); if (m.geometry) m.geometry.dispose(); (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => x && x.dispose && x.dispose()); };
         for (const g of (this._grupos || [])) for (const n in g) if (g[n] && g[n].isObject3D) tirar(g[n]);
         for (const m of (this._camisasAntigas || [])) tirar(m);
+        this._tirarDivisorias();
         this._camisasAntigas = [];
         this._grupos = []; this._fansPorGrupo = []; this._esferas = [];
         this.build(cena, lugares);
@@ -1174,6 +1183,53 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         return { principal: p.corCamisa, cor1: p.corCamisa, cor2: p.corCalcao || p.corCamisa, calcao: p.corCalcao || '#ffffff', kits: this._kitsDaEquipa(p, lado2) };
     },
 
+    // Grade vazada e segurancas das divisorias da claque visitante (ver `build`). Os segurancas sao os MESMOS do campo (Staff: corpo de jogador, colete laranja).
+    _criarDivisorias(scene, grades, seguros, DV) {
+        if (!grades.length) return;
+        this._divisorias = this._divisorias || [];
+        const dummy = new THREE.Object3D();
+        const juntar = (typeof mergeNonIndexedGeometries === 'function') ? mergeNonIndexedGeometries : null;
+        const comp = DV.comprimentoGrade, alt = DV.alturaGrade, e = 0.05, bar = 0.03;
+        // um modulo da grade: corrimao em cima, a meio e em baixo, e barras finas de pe (vazada)
+        const pecas = [];
+        const caixa = (w, h, d, x, y) => { const g = new THREE.BoxGeometry(w, h, d).toNonIndexed(); g.translate(x, y, 0); pecas.push(g); };
+        caixa(comp, e, e, 0, alt - e / 2); caixa(comp, e, e, 0, alt / 2); caixa(comp, e, e, 0, e / 2);
+        const nb = Math.max(2, Math.round(comp / 0.15));
+        for (let i = 0; i <= nb; i++) caixa(bar, alt, bar, -comp / 2 + (comp * i) / nb, alt / 2);
+        const geoGrade = juntar ? juntar(pecas) : pecas[0];
+        const mat = new THREE.MeshStandardMaterial({ color: DV.corGrade, roughness: 0.6, metalness: 0.3 });
+        const im = new THREE.InstancedMesh(geoGrade, mat, grades.length);
+        grades.forEach((it, i) => { dummy.position.set(...it.p); dummy.rotation.set(0, it.eixo === 'x' ? 0 : Math.PI / 2, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix); });
+        im.instanceMatrix.needsUpdate = true; im.frustumCulled = false; im.castShadow = false; im.receiveShadow = false;
+        scene.add(im); this._divisorias.push(im);
+
+        if (!seguros.length || typeof Staff === 'undefined') return;
+        const F = (typeof FuncionariosEstadio !== 'undefined') ? FuncionariosEstadio : null;
+        if (!F) return;
+        let geos;
+        try { geos = Staff._geometrias(CrowdModel.poses.dePe); } catch (err) { return; }
+        let semente = 777; const rnd = () => { semente = (semente * 1103515245 + 12345) & 0x7fffffff; return semente / 0x7fffffff; };
+        for (const canal of Object.keys(geos)) {
+            const g = new THREE.InstancedMesh(geos[canal], Staff._material(canal, F), seguros.length);
+            g.frustumCulled = false; g.castShadow = false; g.receiveShadow = false;
+            seguros.forEach((it, i) => {
+                // olham para a frente, como a torcida da fila (para o campo): a mesma rotacao do lugar
+                const rotY = it.rotY;
+                const esc = F.escalaMin + rnd() * (F.escalaMax - F.escalaMin);
+                dummy.position.set(...it.p); dummy.rotation.set(0, rotY, 0); dummy.scale.set(esc, esc, esc); dummy.updateMatrix();
+                g.setMatrixAt(i, dummy.matrix);
+                g.setColorAt(i, Staff._corDe(canal, F, rnd, 'anel'));
+            });
+            g.instanceMatrix.needsUpdate = true; if (g.instanceColor) g.instanceColor.needsUpdate = true;
+            scene.add(g); this._divisorias.push(g);
+        }
+    },
+
+    _tirarDivisorias() {
+        for (const m of (this._divisorias || [])) { if (m.parent) m.parent.remove(m); if (m.geometry) m.geometry.dispose(); if (m.material) m.material.dispose(); }
+        this._divisorias = [];
+    },
+
     /*
     Constrói a multidão nos `lugares` dados — `{ x, y, z, rotY }`, recolhidos
     de quem constrói as bancadas.
@@ -1207,7 +1263,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         const torcidaInicial = (typeof Estadios !== 'undefined' && Estadios.atual && Estadios.atual.torcidaInicial) || 0;
         const ocup = (typeof this._ocupacao === 'number') ? this._ocupacao : (torcidaInicial ? Math.min(1, torcidaInicial / lugares.length) : 1);
         const fracao = (typeof Qualidade !== 'undefined') ? Qualidade.cfg().adeptos : null;
-        const nTotal = (fracao !== null && fracao !== undefined)
+        let nTotal = (fracao !== null && fracao !== undefined)
             ? Math.min(Math.round(lugares.length * fracao * ocup), (crowdLimit < CrowdModel.total) ? crowdLimit : Infinity)
             : Math.min(crowdLimit, Math.round(lugares.length * ocup));
 
@@ -1278,12 +1334,83 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         {
             const M = CrowdModel, alvo = (typeof M.fracVisitante === 'number') ? M.fracVisitante : 0.10, m = Math.max(1e-6, M.visitanteMescla);
             const n = lugaresEscolhidos.length;
-            const tu = lugaresEscolhidos.map(l => [(l.z - zMin) / spanZ, (l.x - xMin) / spanX]);
+            const tu = lugaresEscolhidos.map(l => [(l.z - zMin) / spanZ, M.visitanteEmFrente ? 1 - (l.x - xMin) / spanX : (l.x - xMin) / spanX]);   // u: 1 = o lado onde esta o canto do visitante
             const parte = (vt, vu) => { let soma = 0; for (const [t, u] of tu) soma += Math.max(0, Math.min(1, (vt + m - t) / m)) * Math.max(0, Math.min(1, (u - (vu - m)) / m)); return soma / Math.max(1, n); };
             const com = (e) => [M.visitanteT * e, 1 - (1 - M.visitanteU) * e];
             let lo = 0.1, hi = 3.0;
             for (let k = 0; k < 28; k++) { const e = (lo + hi) / 2; const [vt, vu] = com(e); if (parte(vt, vu) < alvo) lo = e; else hi = e; }
             [this._visT, this._visU] = com((lo + hi) / 2);
+        }
+
+        /*
+        AS DUAS DIVISORIAS DA CLAQUE VISITANTE (pedido): uma passagem sem adeptos em cada fronteira do bloco — a do eixo Z (nas laterais) e a do eixo X (no fundo) —, com GRADE de cada lado e
+        SEGURANCAS (colete amarelo) dentro da passagem, do lado da casa, um a cada `CrowdModel.divisoria.cadaFilas` filas. A fronteira e o meio da faixa de mescla de `claqueEm`.
+        */
+        this._tirarDivisorias();
+        const DV = CrowdModel.divisoria;
+        if (DV && DV.ativa && THREE && this._visT !== undefined) {
+            const m = Math.max(1e-6, CrowdModel.visitanteMescla);
+            // A fronteira encosta num CORREDOR DO TUNEL (o mais perto da fronteira de `claqueEm`), e o canto do visitante passa a acabar ali.
+            const passo = (typeof CorredoresBancada !== 'undefined') ? CorredoresBancada.espacamento : 18.7;
+            const larg = (typeof CorredoresBancada !== 'undefined') ? CorredoresBancada.largura : 2.55;
+            const noCorredorMaisPerto = (v) => Math.round(v / passo) * passo;
+            const cZ = noCorredorMaisPerto(zMin + (this._visT + m / 2) * spanZ);
+            const cX = noCorredorMaisPerto(xMin + (1 - this._visU + m / 2) * spanX);
+            this._visT = (cZ - zMin) / spanZ - m / 2;
+            this._visU = 1 - ((cX - xMin) / spanX - m / 2);
+            const fZ = cZ + larg / 2, fX = cX + larg / 2;   // a grade: na borda do corredor virada a CASA (coordenadas maiores): o corredor do tunel fica do lado do visitante, que assim tem entrada e saida
+            const grades = [], seguros = [];
+            // eixo 'x' = divisoria a Z constante (a fila cresce em X); eixo 'z' = a X constante (a fila cresce em Z)
+            const linhas = [
+                { eixo: 'x', f: fZ, ok: (l) => l.x <= cX + 1.0 },
+                { eixo: 'z', f: fX, ok: (l) => l.z <= cZ + 1.0 }
+            ];
+            for (const ln of linhas) {
+                const coord = (l) => (ln.eixo === 'x' ? l.z : l.x);
+                const filas = new Map();
+                for (const l of lugares) {
+                    if (!ln.ok(l)) continue;
+                    const d = Math.abs(coord(l) - ln.f);
+                    if (d > larg + DV.colunaLivre) continue;
+                    const k = l.fila + '|' + l.y.toFixed(2) + '|' + (ln.eixo === 'x' ? Math.sign(l.x) : Math.sign(l.z));
+                    const a = filas.get(k);
+                    if (!a || d < a.d) filas.set(k, { l, d });
+                }
+                const lista = [...filas.values()].map(o => o.l).sort((a, b) => a.y - b.y);
+                lista.forEach((l, idx) => {
+                    const yPiso = l.y + 0.30;
+                    const pos = (delta) => (ln.eixo === 'x' ? [l.x, yPiso, ln.f + delta] : [ln.f + delta, yPiso, l.z]);
+                    grades.push({ p: pos(0), eixo: ln.eixo });
+                    if (idx % DV.cadaFilas === 0) seguros.push({ p: pos(DV.afastaSeguranca), eixo: ln.eixo, lado: 1, rotY: l.rotY });
+                });
+                // tira UMA fileira de torcedores: a coluna do lado da casa, encostada a grade (onde ficam os seguranças)
+                for (let i = lugaresEscolhidos.length - 1; i >= 0; i--) {
+                    const l = lugaresEscolhidos[i], d = coord(l) - ln.f;
+                    if (ln.ok(l) && d > -0.05 && d < DV.colunaLivre) lugaresEscolhidos.splice(i, 1);
+                }
+            }
+            nTotal = lugaresEscolhidos.length;
+            this._criarDivisorias(scene, grades, seguros, DV);
+        }
+
+        /*
+        O SETOR VISITANTE ENCHE SO ate `_ocupacaoVisitante` (a ocupacao-base do clube visitante, 60% no inicio, sobe e desce com os resultados dele), em relacao ao resto do estadio: cada lugar do canto
+        fica com a probabilidade `ov / ocupacao` (o peso do canto em `claqueEm` decide quanto do lugar e do visitante).
+        */
+        if (typeof this._ocupacaoVisitante === 'number' && this._visT !== undefined) {
+            const rel = Math.min(1, this._ocupacaoVisitante / Math.max(0.05, ocup));
+            if (rel < 1) {
+                const M = CrowdModel, m = Math.max(1e-6, M.visitanteMescla);
+                const vT = this._visT, vU = this._visU;
+                for (let i = lugaresEscolhidos.length - 1; i >= 0; i--) {
+                    const l = lugaresEscolhidos[i];
+                    const t = (l.z - zMin) / spanZ;
+                    let u = (l.x - xMin) / spanX; if (M.visitanteEmFrente) u = 1 - u;
+                    const w = Math.max(0, Math.min(1, (vT + m - t) / m)) * Math.max(0, Math.min(1, (u - (vU - m)) / m));
+                    if (w > 0 && rnd() < w * (1 - rel)) lugaresEscolhidos.splice(i, 1);
+                }
+                nTotal = lugaresEscolhidos.length;
+            }
         }
 
         const variar = (hex) => {

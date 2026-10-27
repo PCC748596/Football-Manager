@@ -124,11 +124,14 @@ let meshes;
     console.log(`\n${canais.length} InstancedMesh criados em ${ms} ms ` +
         `(${meshes.pele.count} instâncias cada)`);
 
-    if (meshes.pele.count !== CrowdModel.total) {
+    // a passagem das divisorias da claque visitante tira alguns adeptos (poucos %)
+    if (meshes.pele.count > CrowdModel.total || meshes.pele.count < CrowdModel.total * 0.95) {
         erro(`${meshes.pele.count} instâncias em vez de ${CrowdModel.total}`);
     }
-    if (cena.children.length !== canais.length) {
-        erro(`${cena.children.length} filhos na cena, esperados ${canais.length}`);
+    const extras = (Crowd._divisorias || []).length;   // grade + corpo, perna e cabeca dos segurancas
+    if (extras < 1 || extras > 4) erro(`${extras} malhas de divisoria`);
+    if (cena.children.length !== canais.length + extras) {
+        erro(`${cena.children.length} filhos na cena, esperados ${canais.length + extras}`);
     }
 
     const a = new THREE.Matrix4(), b = new THREE.Matrix4();
@@ -171,7 +174,8 @@ let meshes;
         const dB = Math.abs(cor.r - vermelho.r) + Math.abs(cor.g - vermelho.g) + Math.abs(cor.b - vermelho.b);
         if (dA <= dB) { casa++; continue; }
         visitante++;
-        const t = (pos.z - zMin) / (zMax - zMin), u = (pos.x - xMin) / (xMax - xMin);
+        // `u`: 1 = o lado onde esta o canto do visitante (com `visitanteEmFrente`, o lado OPOSTO as cameras: -X)
+        const t = (pos.z - zMin) / (zMax - zMin), u0 = (pos.x - xMin) / (xMax - xMin), u = CrowdModel.visitanteEmFrente ? 1 - u0 : u0;
         somaT += t; somaU += u;
         if (t > CrowdModel.visitanteT + CrowdModel.visitanteMescla + 0.02 || u < CrowdModel.visitanteU - CrowdModel.visitanteMescla - 0.02) foraDoCanto++;
     }
@@ -180,7 +184,7 @@ let meshes;
 torcida da casa: ${pctCasa.toFixed(1)}% | visitante: ${(100 - pctCasa).toFixed(1)}% | visitante: posicao media t=${(somaT / Math.max(1, visitante)).toFixed(2)} (0 = fundo -Z), u=${(somaU / Math.max(1, visitante)).toFixed(2)} (1 = lado das cameras)`);
     if (pctCasa < 86 || pctCasa > 94) erro(`a casa devia ter ~90% da torcida, tem ${pctCasa.toFixed(1)}%`);
     if (foraDoCanto > 0) erro(`${foraDoCanto} adepto(s) visitante(s) fora do canto: a torcida visitante tem de ficar toda junta`);
-    if (somaT / visitante > 0.3 || somaU / visitante < 0.6) erro('o visitante devia estar no canto do fundo -Z com o lado das cameras (+X)');
+    if (somaT / visitante > 0.3 || somaU / visitante < 0.6) erro('o visitante devia estar no canto do fundo -Z, no lado ' + (CrowdModel.visitanteEmFrente ? 'oposto as cameras (-X, em frente a elas)' : 'das cameras (+X)'));
 }
 
 /*

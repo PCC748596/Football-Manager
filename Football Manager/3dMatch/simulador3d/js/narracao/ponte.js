@@ -304,7 +304,7 @@ const Ponte = {
     },
 
     _preparar(m) {
-        AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala, ocupacao: m.ocupacao });
+        AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala, ocupacao: m.ocupacao, ocupacaoVisitante: m.ocupacaoVisitante });
         this._preparada = this._chave(m);
         this._medir();
         this._ligarPainel();
@@ -354,7 +354,7 @@ const Ponte = {
         // A partida no motor: elencos, escalacao, formacoes e tatica.
         // Se o `preparar` ja montou esta partida (e a entrada dos times esta a correr), nao se refaz nada: so se solta a espera.
         const jaPreparada = (this.modo === 'visivel' && this._preparada === this._chave(m));
-        if (!jaPreparada) AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala, ocupacao: m.ocupacao });
+        if (!jaPreparada) AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala, ocupacao: m.ocupacao, ocupacaoVisitante: m.ocupacaoVisitante });
         this._preparada = null;
         if (Match.ball) Match.ball.visible = true;   // o `esconderTimes` do arranque
         if (typeof Abertura !== 'undefined') Abertura.aguardarSaida = false;

@@ -289,33 +289,29 @@ const ClubDetailsCard: React.FC<{ team: Team, t: any, title: string, isOpponent?
                })()}
             </div>
 
-            <div className="grid grid-cols-2 gap-y-2 gap-x-2 mt-1">
+            <div className="grid grid-cols-2 gap-y-3 gap-x-2 mt-2">
                <div>
-                  <div className="text-[7px] text-slate-400 uppercase font-black opacity-60">Founded</div>
-                  <div className="text-[10px] text-slate-800 dark:text-white font-black">{team.foundedYear}</div>
+                  <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">Founded</div>
+                  <div className="text-[14px] text-slate-800 dark:text-white font-black">{team.foundedYear}</div>
                </div>
                <div>
-                  <div className="text-[7px] text-slate-400 uppercase font-black opacity-60">Avg OVR</div>
-                  <div className="text-[10px] text-slate-800 dark:text-white font-black italic">{team.strength}</div>
+                  <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">Avg OVR</div>
+                  <div className="text-[14px] text-slate-800 dark:text-white font-black italic">{team.strength}</div>
                </div>
                <div className="col-span-2">
-                  <div className="text-[7px] text-slate-400 uppercase font-black opacity-60">Stadium</div>
-                  <div className="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase truncate">
+                  <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">Stadium</div>
+                  <div className="text-[12px] font-black text-slate-600 dark:text-slate-300 uppercase truncate">
                     {team.stadium}
                   </div>
                </div>
+               {!isOpponent && (   // a capacidade so aparece no My Club (no Opponent saiu, pedido)
+               <div className="col-span-2">
+                  <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">Capacity</div>
+                  <div className="text-[14px] text-slate-800 dark:text-white font-black tabular-nums">{(team.stadiumCapacity || 0).toLocaleString()}</div>
+               </div>
+               )}
             </div>
             
-            {isOpponent && (
-                <div className="mt-auto pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <button 
-                        onClick={() => team && (window as any)._setViewOpponent && (window as any)._setViewOpponent(team)}
-                        className="w-full py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[8px] font-black uppercase rounded shadow-md transition-all active:scale-95"
-                    >
-                        Detailed Scouting
-                    </button>
-                </div>
-            )}
         </>
     );
 };
@@ -608,19 +604,19 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                      </div>
                    </div>
                    {nextMatch && (publicoEstimado || weather) && (
-                     <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                     <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
                        {publicoEstimado && (
                          <div className="text-center">
-                           <div className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Attendance (est.)</div>
-                           <div className="text-[12px] font-black text-slate-700 dark:text-slate-200 tabular-nums">{publicoEstimado.publico.toLocaleString()}</div>
-                           <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500">{publicoEstimado.pct}% of {publicoEstimado.cap.toLocaleString()}{publicoEstimado.comp !== 'LIGA' ? ` · ${({ COPA: 'Cup', CONTINENTAL: 'Continental', AMISTOSO: 'Friendly' } as any)[publicoEstimado.comp]} x${ECONOMIA_ESTADIO.multiplicadorCompeticao[publicoEstimado.comp]}` : ''}</div>
+                           <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Attendance (est.)</div>
+                           <div className="text-[17px] font-black text-slate-700 dark:text-slate-200 tabular-nums">{publicoEstimado.publico.toLocaleString()}</div>
+                           <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500">{publicoEstimado.pct}% of {publicoEstimado.cap.toLocaleString()}{publicoEstimado.comp !== 'LIGA' ? ` · ${({ COPA: 'Cup', CONTINENTAL: 'Continental', AMISTOSO: 'Friendly' } as any)[publicoEstimado.comp]} x${ECONOMIA_ESTADIO.multiplicadorCompeticao[publicoEstimado.comp]}` : ''}</div>
                          </div>
                        )}
                        {weather && (
                          <div className="text-center">
-                           <div className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Weather</div>
-                           <div className="text-[12px] font-black text-slate-700 dark:text-slate-200"><span className="text-base mr-1">{weather.icon}</span>{weather.temp}°C</div>
-                           <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500">{weather.desc}</div>
+                           <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Weather</div>
+                           <div className="text-[17px] font-black text-slate-700 dark:text-slate-200"><span className="text-2xl mr-1 align-middle">{weather.icon}</span>{weather.temp}°C</div>
+                           <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500">{weather.desc}</div>
                          </div>
                        )}
                      </div>
