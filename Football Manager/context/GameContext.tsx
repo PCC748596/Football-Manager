@@ -240,6 +240,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [base, setBase] = useState<BaseState | null>(null);
   // A caixa de entrada (Inbox): e-mails de boas-vindas e avisos de todos os setores (textSim/inbox.ts). Vai no save.
   const [inbox, setInbox] = useState<MensagemInbox[]>([]);
+  // Sobe a cada save carregado (tela inicial OU LOAD GAME): os efeitos que dependem so de ids e datas (tabela, orcamentos, valores, base, contratos, avisos do dia, mercado) voltam a correr,
+  // senao carregar um save por cima de um jogo aberto deixava-os com o estado do jogo anterior.
+  const [loadId, setLoadId] = useState(0);
+  /*
+  AS CHAVES DE E-MAIL JA EMITIDAS (vao no save). O inbox so guardava as mensagens: apagar uma (ou a limpeza das lidas mais antigas) tirava a chave dela e o motor, que so cria o que ainda nao existe,
+  voltava a cria-la — nao lida — a cada carregamento (as boas-vindas, os avisos de contrato...). Agora uma chave emitida nunca volta a gerar mensagem.
+  */
+  const [inboxVistas, setInboxVistas] = useState<string[]>([]);
+  const vistasRef = useRef<Set<string>>(new Set());
   // Negociacoes de renovacao em andamento (o jogador responde em 2 ou 3 dias; textSim/negociacao.ts). Vai no save.
   const [negociacoes, setNegociacoes] = useState<Negociacao[]>([]);
   // O MERCADO DE TRANSFERENCIAS (textSim/transferencias.ts): negociacoes entre clubes, registro financeiro e historico. Vai no save.
@@ -337,7 +346,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return changed ? newTeams : prevTeams;
     });
-  }, [fixtures]);
+  }, [fixtures, loadId]);
 
   const userTeam = teams.find(t => t.id === gameState.userTeamId);
 
@@ -374,7 +383,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!comps || !userTeam) return;
     const uk = teamKey(ligaIdDoClube(userTeam), userTeam.id);
-    const ja = new Set<string>([...chavesDe(inbox), ...premiosPagos.current]);
+    const ja = new Set<string>([...chavesDe(inbox), ...vistasRef.current, ...premiosPagos.current]);
     const pend = premiosPendentes(comps, uk, ja);
     if (!pend.length) return;
     pend.forEach(p => premiosPagos.current.add(p.key));
@@ -388,7 +397,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!userTeam) return;
     const primeiro = fixtures.filter(f => f.played && !f.isFriendly && (f.type === undefined || f.type === 'LEAGUE')).sort((a, b) => a.date.localeCompare(b.date))[0];
     if (!primeiro) return;
-    const p = premioDeInicioDeLiga(userTeam.leagueId, primeiro.date, new Set<string>([...chavesDe(inbox), ...premiosPagos.current]));
+    const p = premioDeInicioDeLiga(userTeam.leagueId, primeiro.date, new Set<string>([...chavesDe(inbox), ...vistasRef.current, ...premiosPagos.current]));
     if (!p) return;
     premiosPagos.current.add(p.key);
     setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + p.usd } : t));
@@ -402,7 +411,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!jogos.length || !jogos.every(f => f.played)) return;
     const tab = buildTable(teams.filter(t => naLigaDoUtilizador(t, userTeam)), jogos);
     const pos = tab.findIndex(r => r.team.id === userTeam.id) + 1;
-    const p = pos > 0 ? premioDaLiga(userTeam.leagueId, pos, gameState.currentDate, new Set<string>([...chavesDe(inbox), ...premiosPagos.current])) : null;
+    const p = pos > 0 ? premioDaLiga(userTeam.leagueId, pos, gameState.currentDate, new Set<string>([...chavesDe(inbox), ...vistasRef.current, ...premiosPagos.current])) : null;
     if (!p) return;
     premiosPagos.current.add(p.key);
     setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + p.usd } : t));
@@ -410,7 +419,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [fixtures]);
 
   // INBOX — o motor escreve; a tela so le. Cada razao gera uma mensagem so (as `keys` evitam repeticao ao recarregar ou reprocessar um dia).
-  const empurrarInbox = (novas: MensagemInbox[]) => { if (novas.length) setInbox(prev => adicionar(prev, novas)); };
+  const empurrarInbox = (novas: MensagemInbox[]) => {
+    // Mensagens cujas razoes todas ja foram emitidas (mesmo que a mensagem tenha sido apagada) nao voltam.
+    const frescas = novas.filter(m => !(m.keys.length && m.keys.every(k => vistasRef.current.has(k))));
+    if (!frescas.length) return;
+    frescas.forEach(m => m.keys.forEach(k => vistasRef.current.add(k)));
+    setInboxVistas(Array.from(vistasRef.current));
+    setInbox(prev => adicionar(prev, frescas));
+  };
   const markInboxRead = (ids: string[]) => setInbox(prev => (prev.some(m => !m.lida && ids.includes(m.id)) ? prev.map(m => (ids.includes(m.id) ? { ...m, lida: true } : m)) : prev));
   const markAllInboxRead = () => setInbox(prev => (prev.some(m => !m.lida) ? prev.map(m => ({ ...m, lida: true })) : prev));
   const deleteInbox = (ids: string[]) => setInbox(prev => prev.filter(m => !ids.includes(m.id)));
@@ -418,7 +434,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // E-mails de boas-vindas ao clube (uma vez por clube do utilizador).
   useEffect(() => {
     if (!userTeam || !teams.length) return;
-    if (inbox.some(m => m.keys.includes('welcome|board'))) return;
+    if (inbox.some(m => m.keys.includes('welcome|board')) || vistasRef.current.has('welcome|board')) return;
     const liga = ligaIdDoClube(userTeam);
     const doCampeonato = teams.filter(t => { try { return ligaIdDoClube(t) === liga; } catch { return false; } }).sort((a, b) => b.strength - a.strength);
     const nomeLiga = (COUNTRIES as any[]).flatMap(c => c.leagues).find((l: any) => l.id === liga)?.name || liga;
@@ -429,7 +445,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       caixa: formatCurrency(userTeam.cash), tamanhoDoElenco: meus.length,
       contratosEmAtencao: meus.filter(p => ['ATENCAO', 'CRITICO'].includes(estadoDoContrato(p.contract, gameState.currentDate))).length
     }));
-  }, [userTeam?.id, teams.length, players.length > 0]);
+  }, [userTeam?.id, teams.length, players.length > 0, loadId]);
 
   // Avisos automaticos de cada dia: contratos, jogos importantes, lesoes e fisico, olheiros (base), financas e janela de transferencias.
   const jogosDoUtilizadorSig = fixtures.reduce((n, f) => n + ((f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId) && f.played ? 1 : 0), 0);
@@ -452,8 +468,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     empurrarInbox(avisosDoDia({
       hoje, lang: gameState.language, elenco: meus, jogos, jovens, mesDoRelatorio: base?.mesProcessado || '',
       caixa: userTeam.cash, folhaSemanal: meus.reduce((a, p) => a + p.salary, 0), formatar: formatCurrency, janelaAberta: isTransferWindowOpen()
-    }, chavesDe(inbox)));
-  }, [gameState.currentDate, jogosDoUtilizadorSig, base?.mesProcessado, userTeam?.id]);
+    }, new Set<string>([...chavesDe(inbox), ...vistasRef.current])));
+  }, [gameState.currentDate, jogosDoUtilizadorSig, base?.mesProcessado, userTeam?.id, loadId]);
 
   // O MERCADO — o motor escreve; a tela so mostra. Tudo passa por funcoes puras (textSim/transferencias.ts) que devolvem o universo novo; aqui so se guarda.
   const aplicarUniverso = (u: Universo) => {
@@ -491,13 +507,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const t2 = prepararOrcamentos(teams);
     if (t2 !== teams) setTeams(t2);
-  }, [teams.length, userTeam?.id]);
+  }, [teams.length, userTeam?.id, loadId]);
   useEffect(() => {
     if (!userTeam || !players.length) return;
     const u = universoAtual();
     const u2 = recalcularValoresDoMes(u, gameState.currentDate, recalcularValores);
     if (u2 !== u) { setPlayers(u2.players); setBase(u2.base); setMercado(u2.mercado); }
-  }, [gameState.currentDate.slice(0, 7), userTeam?.id, players.length > 0, !!base]);
+  }, [gameState.currentDate.slice(0, 7), userTeam?.id, players.length > 0, !!base, loadId]);
 
   // O dia do mercado corre DEPOIS dos outros efeitos do dia (contratos, base): um render a seguir, com o estado ja atualizado.
   useEffect(() => {
@@ -508,7 +524,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!userTeam || !diaMercado || diaMercado !== gameState.currentDate || !players.length) return;
     const r = mercadoTick(universoAtual(), { donoId: userTeam.id, hoje: diaMercado });
     if (r.u !== universoAtual() && (r.u.mercado !== mercado || r.u.players !== players || r.u.teams !== teams || r.u.base !== base)) { aplicarUniverso(r.u); eventosParaInbox(r.eventos); }
-  }, [diaMercado, userTeam?.id]);
+  }, [diaMercado, userTeam?.id, loadId]);
 
   // CATEGORIAS DE BASE E CONTRATOS — corre no motor (a cada mudanca de data), nao na tela: a aba Sub-20 so mostra o resultado.
   //  . todo clube tem exatamente 20 jovens de 15 a 20 anos (clubes que entram depois, como os das copas, ganham a base aqui);
@@ -521,7 +537,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (r.base !== base) setBase(r.base);
     const doUtilizador = r.saidas.filter(j => j.teamId === gameState.userTeamId).map(j => ({ ...j, teamId: 'MARKET' }));
     if (doUtilizador.length) { setPlayers(prev => [...prev, ...doUtilizador.filter(j => !prev.some(p => p.id === j.id))]); empurrarInbox(avisoDeSaidaDaBase(hoje, gameState.language, doUtilizador)); }
-  }, [gameState.currentDate, teams.length, gameState.userTeamId]);
+  }, [gameState.currentDate, teams.length, gameState.userTeamId, loadId]);
 
   // Contratos dos profissionais: quem ainda nao tem contrato recebe um coerente com as faixas; a idade acompanha o nascimento (quem veio da base);
   // no dia do vencimento o jogador do utilizador fica livre (MARKET, fora da escalacao) e os da CPU renovam (contrato novo a partir de hoje, sem alterar o passado).
@@ -533,7 +549,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPlayers(prev => processarContratos(prev, hoje, dono).jogadores);
     if (expirados.size) setTeams(prev => prev.map(t => t.id === dono
       ? { ...t, lineup: t.lineup.map(id => (expirados.has(id) ? '' : id)), bench: (t.bench || []).map(id => (expirados.has(id) ? '' : id)) } : t));
-  }, [gameState.currentDate, players.length, gameState.userTeamId]);
+  }, [gameState.currentDate, players.length, gameState.userTeamId, loadId]);
 
   // RENOVAR: o jogador pede um salario e uma duracao (`propostaDoJogador`). Aceitar a proposta dele assina na hora (moral em alta); mudar o salario ou os anos abre uma
   // negociacao: ele analisa 2 ou 3 dias e depois aceita (contrato e salario novos, moral em alta) ou recusa (contrato como estava, moral em baixa).
@@ -717,6 +733,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTeams(copas ? [...initTeams, ...copas.teams] : initTeams);
     setPlayers(copas ? [...initPlayers, ...copas.players] : initPlayers);
     setBase(null);   // a base nasce no motor (efeito acima), com a data do jogo
+    vistasRef.current = new Set<string>(); setInboxVistas([]);
     setInbox([]);    // as boas-vindas nascem no motor, com o clube escolhido
     setNegociacoes([]);
     setMercado(mercadoVazio(''));
@@ -1842,6 +1859,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       comps,
       base,
       inbox,
+      inboxVistas: Array.from(vistasRef.current),
       negociacoes,
       mercado,
       saveDate: new Date().toISOString()
@@ -1849,7 +1867,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const texto = JSON.stringify(saveData, null, 2);
     // Nome do save: NomeDoTime_Week<semana> (sem acentos nem espacos: o servidor so aceita A-Z, a-z, 0-9, _ e -).
     const clubeSave = (userTeam?.name || 'FootManager').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9-]+/g, '') || 'FootManager';
-    const nomeSave = `${clubeSave}_Week${gameState.currentWeek}.json`;
+    // Gravar outra vez na MESMA semana nao repete o nome (o browser descarregava "Nome (1).json" e o servidor sobrescrevia o primeiro: carregava-se o save antigo e o que se fez depois nao aparecia).
+    // O primeiro da semana e `Nome_WeekN`; os seguintes `Nome_WeekN_2`, `_3`... (o contador vive no localStorage, por clube e semana).
+    const baseNome = `${clubeSave}_Week${gameState.currentWeek}`;
+    let vez = 1;
+    try { vez = (Number(localStorage.getItem('fm_save_' + baseNome)) || 0) + 1; localStorage.setItem('fm_save_' + baseNome, String(vez)); } catch { /* sem localStorage: fica o nome simples */ }
+    const nomeSave = `${baseNome}${vez > 1 ? '_' + vez : ''}.json`;
     // Copia local: o servidor de desenvolvimento grava-a na pasta `saves/` do projeto (ver vite.config.ts). Sem servidor (build) fica so o descarregamento.
     try {
       const r = await fetch('/api/save-game', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-save-name': nomeSave }, body: texto });
@@ -1921,11 +1944,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setTeams(tm);
         setPlayers(pl);
         setBase(data.base || null);   // save antigo, sem base: o motor gera as bases
+        // As chaves ja emitidas: as do save (inboxVistas) mais as das mensagens que ainda la estao (saves antigos).
+        vistasRef.current = new Set<string>([...(data.inboxVistas || []), ...(data.inbox || []).flatMap((m: any) => (m.keys || []) as string[])] as string[]);
+        setInboxVistas(Array.from(vistasRef.current));
         setInbox(data.inbox || []);
         setNegociacoes(data.negociacoes || []);
         setMercado(data.mercado || mercadoVazio(''));
         setFixtures(fx);
         setGameState(data.gameState);
+        setLoadId(n => n + 1);
         return true;
       }
     } catch (e) {
