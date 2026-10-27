@@ -1595,7 +1595,7 @@ limitado por `MarkingModel.distanciaMinimaEstilo`.
         defensivo: { recuo: 7, pressao: 1.25 },
         // Entre os CBs e os CMs, nunca dispara à frente: de 3 a 10 m à frente da linha dos defesas, e não passa
         // do meio-campo. Dá liberdade aos laterais.
-        faixaDeJogo: { min: -36.5, max: 0.0, acimaDaDefesa: 3.0, ateAcimaDaDefesa: 10.0 }
+        faixaDeJogo: { min: -36.5, max: 0.0, acimaDaDefesa: 3.0, ateAcimaDaDefesa: 10.0, abaixoDosMedios: 1.5 }
     },
 
     /* --- Defesas --------------------------------------------------------- */

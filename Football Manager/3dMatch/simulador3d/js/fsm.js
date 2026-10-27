@@ -1014,6 +1014,12 @@ class PlayerFSM {
     }
     changeState(newState) {
         if (this.currentState === newState) return;
+        // O ANCHOR MAN NAO CORRE PARA O ESPACO (infiltracao, tabelinha, overlap): a funcao dele e ajudar a defesa, segurando o meio. Pedem-lhe a corrida e ele fica no posto (a faixa de jogo manda no alvo).
+        if (newState === 'RUN_INTO_SPACE' && this.p && this.p.playingStyle === 'anchor_man' && !this.p.playingStyleDesligado &&
+            !(typeof Config !== 'undefined' && Config.usePlayingStyles === false)) {
+            if (this.currentState === 'MOVE_TO_POS') return;
+            newState = 'MOVE_TO_POS';
+        }
         if (this.currentState === 'SLIDE_TACKLE' || this.currentState === 'COMEMORAR' || this.currentState === 'PEIXINHO' || this.currentState === 'VOLEIO' || this.currentState === 'TACKLE' ||
             this.currentState === 'SHOOT' || this.currentState === 'SET_PIECE_KICK' ||
             this.currentState === 'PASS') {
@@ -1703,6 +1709,10 @@ class PlayerFSM {
             case 'SUPPORT_PASS':
             // SUP_TO_INVERT: o apoio que recua para permitir a inversao de jogo (js/inversao_sinalizada.js).
             case 'SUP_TO_INVERT':
+                // O apoio do ANCHOR MAN tambem respeita a faixa dele (entre a defesa e os medios): oferecer-se ao portador nao o leva a frente dos medios.
+                if (p.playingStyle === 'anchor_man' && typeof aplicarFaixaDeJogo === 'function' && typeof TeamAI !== 'undefined') {
+                    p.dynamicTarget.z = aplicarFaixaDeJogo(p, p.dynamicTarget.z, TeamAI.get(p.team));
+                }
                 p.velocity = p.steerArrive(p.dynamicTarget, p.speedMult);
                 break;
 

@@ -1164,6 +1164,18 @@ function aplicarFaixaDeJogo(p, targetZ, bb) {
                 }
                 if (nT) tecto = Math.min(tecto, somaT / nT + FJ.ateAcimaDaDefesa);
             }
+            /*
+            O ANCHOR MAN NAO PASSA OS MEDIOS (`abaixoDosMedios`): o tecto nunca fica a frente da linha media dos medios centrais (sem as alas e sem ele) menos esta folga — o proposito dele e ajudar a defesa,
+            nao atacar (medido: passava os medios 23% do tempo, ate 23 m).
+            */
+            if (bb && bb.own && typeof FJ.abaixoDosMedios === 'number') {
+                let somaM = 0, nM = 0;
+                for (const o of bb.own) {
+                    if (!o || o === p || o.role !== 'mid' || !o.model || ['LM', 'RM', 'LW', 'RW'].indexOf(o.pos) >= 0) continue;
+                    somaM += o.model.position.z * o.dirZ; nM++;
+                }
+                if (nM) tecto = Math.min(tecto, somaM / nM - FJ.abaixoDosMedios);
+            }
             if (chao > tecto) chao = tecto;
             if (zA > tecto) targetZ = tecto * p.dirZ;
             else if (zA < chao) targetZ = chao * p.dirZ;
