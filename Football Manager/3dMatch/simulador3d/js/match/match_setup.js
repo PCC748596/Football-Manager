@@ -769,7 +769,7 @@ Object.assign(Match, {
         const BACIA = (typeof Estadios !== 'undefined') ? Estadios.bacia()
             : { recuoLateral: 12.0, recuoFundo: 12.0, raioCanto: 6.5 };
         const OVAL = BACIA.forma === 'oval' && typeof EstadioOval !== 'undefined';
-        const maxSeats = OVAL ? (BACIA.maxLugares || 90000) : 45000;
+        const maxSeats = OVAL ? (BACIA.maxLugares || 90000) : (BACIA.maxLugares || 45000);
         const seatMesh = new THREE.InstancedMesh(seatGeo, seatMat, maxSeats);
         seatMesh.castShadow = false;
         seatMesh.receiveShadow = false;
@@ -1255,7 +1255,7 @@ Object.assign(Match, {
                 const segLen = (Rc * (Math.PI / 2) / nSeg) * 1.06;
                 for (const [ccx, ccz, a0] of [
                     [-cornerX, cornerZ, Math.PI / 2], [cornerX, cornerZ, 0],
-                    [-cornerX, -cornerZ, Math.PI], [cornerX, -cornerZ, 3 * Math.PI / 2]]) {
+                    [-cornerX, -cornerZ, Math.PI], [cornerX, -cornerZ, 3 * Math.PI / 2]].filter(() => !BACIA.semCurvas)) {   // `semCurvas`: sem os arcos dos cantos
                     for (let j = 0; j <= nSeg; j++) {
                         const a = a0 + (j / nSeg) * (Math.PI / 2);
                         const x = ccx + Rc * Math.cos(a), z = ccz + Rc * Math.sin(a);
@@ -1377,7 +1377,7 @@ Object.assign(Match, {
                 const cantos = [
                     [-cornerX, cornerZ, Math.PI / 2], [cornerX, cornerZ, 0],
                     [-cornerX, -cornerZ, Math.PI], [cornerX, -cornerZ, 3 * Math.PI / 2]
-                ];
+                ].filter(() => !BACIA.semCurvas);   // `semCurvas`: sem o arco da cobertura nos cantos
                 for (const [ccx, ccz, a0] of cantos) {
                     for (const t of [avanco * 0.35, avanco * 0.75]) {
                         const rr = rFimC - t;
@@ -1451,7 +1451,7 @@ Object.assign(Match, {
                 [cornerX, cornerZ, 0],
                 [-cornerX, -cornerZ, Math.PI],
                 [cornerX, -cornerZ, 3 * Math.PI / 2]
-            ];
+            ].filter(() => !BACIA.semCurvas);   // `semCurvas`: sem o anel de parede e de cobertura em curva nos cantos
             const avArco = BA.coberturaAvanco;
             // 1.2 cm mais baixa do que a recta: onde as duas se sobrepoem (a emenda, e os segmentos entre si pelo 1.06) as faces de
             // baixo ficavam no mesmo plano — cor escura de uma e clara da outra a piscar por baixo da cobertura.
@@ -1862,7 +1862,8 @@ Object.assign(Match, {
         buracos nos cantos, porque estas quatro chamadas viviam fora do ciclo
         dos aneis.
         */
-        for (let t = 0; t < (OVAL ? 0 : N_ANEIS); t++) {
+        // `semCurvas` (perfil do estadio): so as quatro arquibancadas rectas, os cantos ficam abertos (os estadios pequenos das Series C e D).
+        for (let t = 0; t < ((OVAL || BACIA.semCurvas) ? 0 : N_ANEIS); t++) {
             const oP = t * PASSO_PROF;
             const oY = t * PASSO_Y;
             buildCorner(-cornerX, cornerZ, Math.PI / 2, oP, oY);

@@ -1179,14 +1179,14 @@ function animate(time) {
 
     if (typeof Weather !== 'undefined') Weather.update(delta);
     /*
-    A CIDADE SO QUANDO APARECE. Embutido no manager (?embutido=1) as cameras normais (TV, lateral, centro) nao a mostram (o estadio tapa-a)
-    e ela pesa (500 torcedores a andar, transito). So se constroi (uma vez) e so se desenha e actualiza nas cameras que a veem
-    (cinema, grua, orbita), ou sempre com ?cidade=1.
+    A CIDADE: constroi-se logo no arranque (uma vez, escondida), junto com o estadio. Embutido no manager (?embutido=1) as cameras normais (TV, lateral, centro) nao a mostram (o estadio tapa-a)
+    e ela pesa (500 torcedores a andar, transito), por isso so se DESENHA e actualiza nas cameras que a veem (cinema, grua, orbita), ou sempre com ?cidade=1.
     */
     if (typeof Cidade !== 'undefined') {
         if (_embutidoSemCidade) {
             const ve = ['cinema', 'grua', 'orbit'].indexOf(window.cameraMode) >= 0;
-            if (ve && !Cidade.grupo && typeof CidadeConfig !== 'undefined' && CidadeConfig.ativa && Match.scene) Cidade.construir(Match.scene);
+            // A cidade constroi-se JA (escondida) e nao na primeira vez que se muda para uma camera que a ve: carrega junto com o estadio (a construcao a meio do jogo era o soluco ao trocar para Orbita / Cinema).
+            if (!Cidade.grupo && typeof CidadeConfig !== 'undefined' && CidadeConfig.ativa && Match.scene) Cidade.construir(Match.scene);
             if (Cidade.grupo) Cidade.grupo.visible = ve;
             if (ve) Cidade.update(delta);
         } else {

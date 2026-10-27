@@ -111,6 +111,58 @@ const Estadios = {
         }
     },
 
+    /*
+    O ESTADIO DE CADA CLUBE PELA SUA CAPACIDADE (pedido): sem perfil feito a mao (o Maracana), o manager manda a capacidade real do mandante (`?capacidade=`) e o estadio constroi-se para ela,
+    no padrao RETANGULAR: ate `LIMITE_RETO` lugares so as quatro arquibancadas rectas de um anel, sem cantos (os cantos ficam abertos); acima, o estadio normal, com as curvas a ligar as arquibancadas, em
+    dois aneis (tres nos maiores) e tantas filas quantas os lugares pedem. A conta dos lugares e a do createField (match_setup.js): `lugaresEstimados`.
+    */
+    LIMITE_RETO: 20000,
+
+    // Quantos lugares o createField constroi: por fila, as cadeiras das duas laterais (grelha de 0.85 m ate cornerZ) e dos dois fundos (ate cornerX), sem os corredores; mais, com curvas, as dos quatro arcos.
+    lugaresEstimados(recuo, raioCanto, aneis, rows, cobertura) {
+        const CB = (typeof CorredoresBancada !== 'undefined') ? CorredoresBancada : { largura: 2.7, espacamento: 18.7 };
+        const BA = BancadaAneis;
+        const noCorredor = (c) => Math.abs(c - Math.round(c / CB.espacamento) * CB.espacamento) < CB.largura / 2;
+        const cadeiras = (limite) => { let n = 0; const m = Math.floor(limite / 0.85); for (let i = -m; i <= m; i++) if (!noCorredor(i * 0.85)) n++; return n; };
+        const cornerX = CAMPO_LARG / 2 + recuo - raioCanto, cornerZ = CAMPO_COMP / 2 + recuo - raioCanto;
+        const reto = 2 * cadeiras(cornerZ) + 2 * cadeiras(cornerX);
+        const passo = (cobertura && BA.coberturaAvanco > 0) ? rows * 1.2 - BA.coberturaAvanco + (BA.recuoSobreCobertura || 3.0) : rows * 1.2 + BA.espessuraParede;
+        let tot = 0;
+        for (let t = 0; t < aneis; t++) {
+            for (let r = 0; r < rows; r++) {
+                tot += reto;
+                if (raioCanto > 0) tot += 4 * (Math.floor((raioCanto + t * passo + r * 1.2) * (Math.PI / 2) / 0.85) + 1);
+            }
+        }
+        return tot;
+    },
+
+    paraCapacidade(capacidade) {
+        const cap = Math.max(1000, Math.round(Number(capacidade) || 0));
+        let perfil;
+        if (cap <= this.LIMITE_RETO) {
+            let rows = 6, est = 0;
+            while (rows < 60 && (est = this.lugaresEstimados(10, 0, 1, rows, false)) < cap) rows++;
+            perfil = {
+                nome: 'Estadio de ' + cap + ' lugares', cidadeNome: '', estadios: [], capacidade: cap, lugaresEstimados: est,
+                bacia: { forma: 'reta', recuoLateral: 10.0, recuoFundo: 10.0, raioCanto: 0, semCurvas: true, maxLugares: Math.ceil(est * 1.1) },
+                bancadaAneis: { aneis: 1, degrausPorAnel: rows, cobertura: false },
+                // Sem curvas nos cantos a fachada em arco da cidade nao se encaixa: so esta sai; a cidade em volta fica como esta.
+                cidade: { fachada: { ativa: false } }
+            };
+        } else {
+            let aneis = 2, rows = 10, est = 0;
+            while (rows < 45 && (est = this.lugaresEstimados(12, 6.5, aneis, rows, true)) < cap) rows++;
+            if (est < cap) { aneis = 3; rows = 10; while (rows < 50 && (est = this.lugaresEstimados(12, 6.5, aneis, rows, true)) < cap) rows++; }
+            perfil = {
+                nome: 'Estadio de ' + cap + ' lugares', cidadeNome: '', estadios: [], capacidade: cap, lugaresEstimados: est,
+                bacia: { recuoLateral: 12.0, recuoFundo: 12.0, raioCanto: 6.5, maxLugares: Math.ceil(est * 1.1) },
+                bancadaAneis: { aneis, degrausPorAnel: rows }
+            };
+        }
+        return perfil;
+    },
+
     atual: null,        // o perfil em vigor (null = padrão)
 
     escolher(nome) {
@@ -269,6 +321,9 @@ Estadios._perfilPadrao = (typeof CidadeConfig !== 'undefined')
         let perfil = p ? (Estadios.escolher(p) || Estadios.paraEquipa(p)) : null;
         // Um perfil com `mandantes` so vale para esses clubes (o Maracana: Flamengo e Fluminense; outro clube com um estadio do mesmo nome, como o Brasiliense, fica com o padrao).
         if (perfil && perfil.mandantes && !perfil.mandantes.some(m => mandante.indexOf(m) >= 0) && Estadios.escolher(p) !== perfil) perfil = null;
+        // Sem perfil feito a mao: o estadio sai da capacidade real do mandante (`?capacidade=`).
+        const cap = Number(q.get('capacidade'));
+        if (!perfil && cap > 0) perfil = Estadios.paraCapacidade(cap);
         if (perfil) Estadios.aplicar(perfil);
     } catch (e) { console.error('Estadios.aplicar falhou:', e); }
 })();
