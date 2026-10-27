@@ -82,7 +82,7 @@ test('a barba comeca abaixo do nariz, em todos os tipos (nunca o bigode acima do
 });
 
 test('labios por cima da barba cheia e do bigode (a linha da boca fica escondida); rala e nenhuma mantem a linha', () => {
-    for (const [barba, escondida] of [['nenhuma', false], ['rala', false], ['cavanhaque', false], ['cheia', true], ['bigode', true]]) {
+    for (const [barba, escondida] of [['nenhuma', false], ['rala', false], ['cavanhaque', false], ['cheia', true], ['bigode', true], ['cheia_bigode', true]]) {
         const c = cabeca();
         aplicarFaceCustom(ap({ barba }), c.head, c.boca, c.partes, 1);
         assert.strictEqual(c.boca.visible === false, escondida, barba);

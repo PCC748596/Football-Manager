@@ -112,6 +112,15 @@ canvas {
     overflow: visible;
 }
 
+/* O painel da direita (debug) minimizado desce 35 px (pedido: 20 + 15): em tela cheia ficava rente a barra de cima. */
+#painel-direito.minimizado {
+    margin-top: 35px;
+}
+/* E ligado (maximizado) desce 30 px (pedido). */
+#painel-direito:not(.minimizado) {
+    margin-top: 30px;
+}
+
 #painel-comandos.minimizado #painel-conteudo,
 #painel-direito.minimizado #painel-direito-conteudo,
 #painel-jogadores.minimizado #painel-jogadores-conteudo {

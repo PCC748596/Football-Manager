@@ -5499,6 +5499,19 @@ function estiloDeCabeloDe(id, tipo) {
     return 'curto';
 }
 
+/*
+A BARBA DE UM JOGADOR sem face personalizada: sai do id (sal 4). Cerca de 3 em 10 levam alguma: barba por fazer (rala) 9%, cheia 6%, bigode 4%, cheia com bigode 4%, cavanhaque 4%; o resto, nada.
+Os de pele escura levam um pouco mais de barba cheia. Ver aplicarBarba (pose.js).
+*/
+function estiloDeBarbaDe(id, tipo) {
+    const n = (typeof id === 'number') ? (id >>> 0) : Number(id) >>> 0;
+    const lista = [['nenhuma', 73], ['rala', 9], ['cheia', tipo === 'negro' ? 8 : 6], ['bigode', 4], ['cheia_bigode', 4], ['cavanhaque', 4]];
+    const total = lista.reduce((a, x) => a + x[1], 0);
+    let acc = hashAparencia(n, 4) % total;
+    for (const [nome, peso] of lista) { if (acc < peso) return nome; acc -= peso; }
+    return 'nenhuma';
+}
+
 function offsetInquietacao(angulo, raio) {
     return { x: Math.cos(angulo) * raio, z: Math.sin(angulo) * raio };
 }

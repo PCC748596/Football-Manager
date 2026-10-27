@@ -13,6 +13,14 @@ for (const e of estilos) {
     const n = tris(corpo); if (e === 'curto') base = n;
     console.log(e.padEnd(9), String(n).padStart(4), 'triangulos', e === 'curto' ? '' : '(' + (n - base >= 0 ? '+' : '') + (n - base) + ')');
 }
+const barbas = ['nenhuma', 'rala', 'bigode', 'cavanhaque', 'cheia', 'cheia_bigode']; let b0 = null;
+for (const b of barbas) {
+    const ap = { tipo: 'castanhoClaro', cabelo: 0x3a2a1a, pele: 0xe8c9a8, chuteira: 'preta', corChuteira: 0x1c1c1c, estilo: 'curto', barba: b };
+    const { corpo } = construirCorpo(0xcc2222, 0x111111, ap, null, 4); const n = tris(corpo); if (b === 'nenhuma') b0 = n;
+    console.log(('barba ' + b).padEnd(20), String(n).padStart(4), 'triangulos', b === 'nenhuma' ? '' : '(+' + (n - b0) + ')');
+}
+const contB = {}; for (let id = 1; id <= 4000; id++) { const e = estiloDeBarbaDe(id, 'loiro'); contB[e] = (contB[e] || 0) + 1; }
+console.log('sorteio de barba (pele clara):', Object.entries(contB).map(([k, v]) => k + ' ' + (100 * v / 4000).toFixed(0) + '%').join(', '));
 const cont = { claro: {}, escuro: {} };
 for (let id = 1; id <= 4000; id++) { for (const [k, tipo] of [['claro', 'loiro'], ['escuro', 'negro']]) { const e = estiloDeCabeloDe(id, tipo); cont[k][e] = (cont[k][e] || 0) + 1; } }
 const pc = (o) => Object.entries(o).map(([k, v]) => k + ' ' + (100 * v / 4000).toFixed(0) + '%').join(', ');

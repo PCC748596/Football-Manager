@@ -81,6 +81,14 @@ const Ponte = {
     tudo isto) nao se ve; a barra e feita aqui, ao ligar, e fala com o motor pelas mesmas chamadas dos botoes do painel. O placar e lido dos
     spans que o 3D ja actualiza (#placar-*).
     */
+    // O botao Debug da barra: liga / desliga o painel da direita; ao ligar, ele aparece MAXIMIZADO.
+    definirDebug(ligado) {
+        document.body.classList.toggle('debug-off', !ligado);
+        if (ligado) { const p = document.getElementById('painel-direito'); if (p) p.classList.remove('minimizado'); }
+        const b = document.getElementById('tc-debug');
+        if (b) { b.textContent = ligado ? 'Debug ON' : 'Debug OFF'; b.classList.toggle('on', !!ligado); }
+    },
+
     barraTopo(ligada) {
         let barra = document.getElementById('barra-topo-tc');
         if (!ligada) { if (barra) barra.style.display = 'none'; clearInterval(this._tBarra); return; }
@@ -97,11 +105,13 @@ const Ponte = {
                 // O indicador de FPS fica no canto direito da barra.
                 '#barra-topo-tc #tc-evento{display:none;align-items:center;gap:8px;padding:4px 10px;border-radius:4px;background:#0f172a;border:1px solid #475569;font:700 12px system-ui,sans-serif}' +
                 '#barra-topo-tc #tc-evento b{font-size:15px;color:#fff}#barra-topo-tc #tc-evento span{letter-spacing:1px;color:#e2e8f0}' +
-                '#barra-topo-tc #tc-fps{margin-left:auto;font:900 13px/1 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.5px;padding:5px 9px;border-radius:4px;background:#0f172a;color:#22c55e;min-width:62px;text-align:center}' +
+                'body.debug-off #coluna-direita{display:none !important}' +
+                '#barra-topo-tc #tc-debug{margin-left:auto}' +
+                '#barra-topo-tc #tc-fps{margin-left:0;font:900 13px/1 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.5px;padding:5px 9px;border-radius:4px;background:#0f172a;color:#22c55e;min-width:62px;text-align:center}' +
                 'body.tela-cheia #placar-linha{display:none !important}' +
                 // TODOS os menus do 3D saem em tela cheia: o botao Tactics abre o MATCH TACTICS do manager (ver abaixo).
-                'body.tela-cheia #painel-comandos,body.tela-cheia #coluna-direita,body.tela-cheia #painel-direito,body.tela-cheia #painel-jogadores,' +
-                'body.tela-cheia #modal-skills{display:none !important}' +
+                'body.tela-cheia #painel-comandos,body.tela-cheia #painel-jogadores,' +
+                'body.tela-cheia #modal-skills{display:none !important}' +   // o painel da DIREITA (debug) fica visivel em tela cheia (pedido)
                 // O placar de TV: nomes curtos nas cores dos clubes, golos num miolo escuro com "vs", e o tempo numa aba por baixo.
                 '#tc-placar-tv{display:flex;flex-direction:column;align-items:center;font-family:system-ui,sans-serif}' +
                 '#tc-placar-tv .tv-linha{display:flex;height:24px;border-radius:5px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.55);font-weight:900}' +
@@ -117,16 +127,19 @@ const Ponte = {
             barra.innerHTML = '<div id="tc-placar-tv"><div class="tv-linha"><span class="tv-eq" id="tv-eq-e">---</span><span class="tv-gol" id="tv-gol-e">0</span>' +
                 '<span class="tv-vs">vs</span><span class="tv-gol" id="tv-gol-d">0</span><span class="tv-eq" id="tv-eq-d">---</span></div><div class="tv-tempo" id="tv-tempo">00:00</div></div><span class="sep"></span>' +
                 '<span>Câmera</span>' + cams.map(c => '<button data-cam="' + c[0] + '">' + c[1] + '</button>').join('') +
-                '<button data-cam="lateraltv" data-r="3d">3D</button><button data-cam="topdown">2D</button><span class="sep"></span>' +
+                '<button data-cam="lateraltv" data-r="3d">3D</button><button data-cam="topdown">2D</button><button id="tc-minimapa" title="Minimapa">Minimapa ON</button><button id="tc-nomes" title="Nomes dos jogadores">Names OFF</button><span class="sep"></span>' +
                 '<span>Velocidade</span>' + [0.5, 1, 1.5].map(v => '<button data-vel="' + v + '">' + v + 'x</button>').join('') +
                 '<button id="tc-pausa">Pausar</button><button id="tc-replay">Replay 10s</button><span class="sep"></span><button id="tc-tactics">Tactics</button>' +
-                '<span id="tc-evento"></span><span id="tc-fps" title="Quadros por segundo">FPS --</span>';
+                '<span id="tc-evento"></span><button id="tc-debug" title="Painel de debug da direita">Debug ON</button><span id="tc-fps" title="Quadros por segundo">FPS --</span>';
             document.body.appendChild(barra);
             barra.addEventListener('click', (e) => {
                 const b = e.target.closest('button'); if (!b) return;
                 if (b.dataset.cam && Match.setCameraMode) Match.setCameraMode(b.dataset.cam);
                 else if (b.dataset.vel) { this.definirVelocidade(Number(b.dataset.vel)); }
                 else if (b.id === 'tc-replay' && window.MatchReplay) window.MatchReplay.replayUltimos(10);
+                else if (b.id === 'tc-minimapa') { if (typeof toggleMinimapa === 'function') toggleMinimapa(); }
+                else if (b.id === 'tc-nomes') { if (typeof togglePlayerNames === 'function') togglePlayerNames(); }
+                else if (b.id === 'tc-debug') this.definirDebug(document.body.classList.contains('debug-off'));
                 else if (b.id === 'tc-pausa') { if (this.pularDisponivel()) this.esc(); else this.enviar('alternar_pausa', {}); }
                 else if (b.id === 'tc-tactics') {
                     // O botao Tactics abre o MATCH TACTICS do manager: o manager sai da tela cheia, pausa o jogo e muda de aba (ver MatchDay.tsx).
@@ -135,6 +148,7 @@ const Ponte = {
             });
         }
         barra.style.display = 'flex';
+        this.definirDebug(true);   // entra em tela cheia com o painel de debug LIGADO e maximizado
         clearInterval(this._tBarra);
         const g = (id) => { const e = document.getElementById(id); return e ? e.textContent : ''; };
         this._tBarra = setInterval(() => {
@@ -154,6 +168,10 @@ const Ponte = {
             const fpsEl = barra.querySelector('#tc-fps');
             if (fpsEl && typeof window._fpsAtual === 'number') { const v = window._fpsAtual; fpsEl.textContent = 'FPS ' + v; fpsEl.style.color = v >= 50 ? '#22c55e' : v >= 30 ? '#facc15' : '#ef4444'; }
             // O botao de pausa diz o que FAZ: PAUSAR a correr, CONTINUAR parado (o estado vem do manager, que manda no relogio).
+            const bm = barra.querySelector('#tc-minimapa');   // o botao do minimapa mostra o estado real dele
+            if (bm && typeof Minimap !== 'undefined') { const t = 'Minimapa ' + (Minimap.visivel ? 'ON' : 'OFF'); if (bm.textContent !== t) bm.textContent = t; bm.classList.toggle('on', !!Minimap.visivel); }
+            const bn = barra.querySelector('#tc-nomes');   // o botao dos nomes mostra o estado real
+            if (bn) { const t = 'Names ' + (window.showPlayerNames ? 'ON' : 'OFF'); if (bn.textContent !== t) bn.textContent = t; bn.classList.toggle('on', !!window.showPlayerNames); }
             const bp = barra.querySelector('#tc-pausa');
             if (bp) { const t = this.pularDisponivel() ? 'Pular' : this.estado === 'pausado' ? 'Continuar' : 'Pausar'; if (bp.textContent !== t) bp.textContent = t; bp.classList.toggle('on', this.estado === 'pausado'); }
             const rp = barra.querySelector('#tc-replay'); if (rp) rp.classList.toggle('pisca', !!(window.MatchReplay && window.MatchReplay.isReplaying));
@@ -533,7 +551,7 @@ if (typeof window !== 'undefined') {
     // Dentro do manager o painel do 3D nao existe: toda a tatica vive nas INSTRUCOES TATICAS do manager (camera, velocidade, pausa e replay estao na barra do manager).
     if (window.parent && window.parent !== window) {
         const css = document.createElement('style');
-        css.textContent = '#painel-comandos,#coluna-direita,#painel-direito,#painel-jogadores,#modal-skills{display:none !important}';
+        css.textContent = '#painel-comandos,#painel-jogadores,#modal-skills{display:none !important} body:not(.tela-cheia) #coluna-direita,body:not(.tela-cheia) #painel-direito{display:none !important}';   // so o painel da direita (debug) volta em tela cheia
         document.head.appendChild(css);
     }
     window.addEventListener('message', (e) => Ponte.aoMensagem(e.data));

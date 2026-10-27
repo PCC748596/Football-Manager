@@ -578,6 +578,8 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
         // Preto com a aba branca no alto.
         meiao = { cores: ['#f2f2f2', '#000000'], pesos: [1.3, 8.7] };
     }
+    // Uniforme 3 GERADO (sem gola definida a mao para o clube): a gola e o numero levam a MESMA cor, a que contrasta com a camisa (branca na escura, escura na clara). Os kits feitos a mao mantem-se.
+    if (kitIdx === 2 && !clc) { clc = isColorLight(c1) ? '#111827' : 'white'; if (!nc) nc = clc; }
     return { c1, c2, c3, sc, nc, clc, noc, diagonal, horizontal, multipleDiagonals, dualDiagonal, centerVerticalStripes, gradient, spfcStripes, criciumaStripes, cruzMalta, meiao, shc: shcK, shtc: shtcK };
 };
 
@@ -592,7 +594,7 @@ export const isColorLight = (hex: string) => {
     return lumen > 0.6; 
 };
 
-export const getGKKitDetails = (team: Team, fieldKitIdx: 0 | 1 | 2 = 0, gkKitIdx: 0 | 1 = 0, opponentTeam?: Team): KitDetails => {
+const getGKKitDetailsBase = (team: Team, fieldKitIdx: 0 | 1 | 2 = 0, gkKitIdx: 0 | 1 = 0, opponentTeam?: Team): KitDetails => {
     // Fluminense-RJ com o uniforme 3 (o de linha é o terceiro): goleiro todo amarelo (camisa e short; o short sai da cor da camisa lisa).
     if (team.name === 'Fluminense-RJ' && fieldKitIdx === 2) {
         return { c1: '#facc15', c2: undefined, c3: undefined, nc: 'black', noc: undefined as string | undefined, clc: '#facc15', shc: '#facc15', diagonal: false };
@@ -647,6 +649,9 @@ export const getGKKitDetails = (team: Team, fieldKitIdx: 0 | 1 | 2 = 0, gkKitIdx
     }
     
     // Club Specific GK kits (preserving previous logic but matching luminosity if possible)
+    if (team.name === 'América-RN') {
+        return { c1: '#14532d', c2: undefined, c3: undefined, nc: 'white', noc: undefined as string | undefined, clc: 'white', diagonal: false };   // verde escuro
+    }
     if (team.name === 'Juventude-RS') {
         const darkerGreen = '#004c27';
         return { c1: '#eab308', c2: undefined, c3: undefined, nc: darkerGreen, noc: undefined as string | undefined, clc: darkerGreen, diagonal: false };
@@ -690,7 +695,8 @@ export const getGKKitDetails = (team: Team, fieldKitIdx: 0 | 1 | 2 = 0, gkKitIdx
     }
     
     const available = pool.filter(c => !teamColors.includes(c));
-    const chosen = available[gkKitIdx % available.length] || pool[gkKitIdx % pool.length];
+    const gkI = Number(gkKitIdx) || 0;   // (um argumento errado, como uma equipa no lugar do indice, deixava o goleiro sem cor nenhuma: NaN)
+    const chosen = available[gkI % available.length] || pool[gkI % pool.length];
     
     // Choose detail color based on GK luminosity
     const gkIsLight = isColorLight(chosen);
@@ -705,6 +711,23 @@ export const getGKKitDetails = (team: Team, fieldKitIdx: 0 | 1 | 2 = 0, gkKitIdx
         clc: detailColor,
         diagonal: false
     };
+};
+
+/*
+O UNIFORME DO GOLEIRO, COM GARANTIAS: a gola e o numero TEM de se ver sobre a camisa. Alguns kits feitos a mao traziam a gola da cor da camisa (Atletico-PR, Botafogo, Cuiaba, Fortaleza, Gremio, o amarelo do
+Fluminense com o 3): sem gola visivel o short (cuja aba vem da gola) tambem perdia o remate. Aqui a gola igual a camisa passa para a cor do numero (ou, se esta tambem for igual, preto/branco pelo contraste), e
+o numero igual a camisa passa para o contraste. As cores que ja contrastam nao mudam.
+*/
+const mesmaCor = (a?: string, b?: string): boolean => {
+  const n = (c?: string) => { const x = String(c || '').toLowerCase().replace('#', ''); return x === 'white' ? 'ffffff' : x === 'black' ? '000000' : x; };
+  return !!a && !!b && n(a) === n(b);
+};
+export const getGKKitDetails = (team: Team, fieldKitIdx: 0 | 1 | 2 = 0, gkKitIdx: 0 | 1 = 0, opponentTeam?: Team): KitDetails => {
+  const d = { ...getGKKitDetailsBase(team, fieldKitIdx, gkKitIdx, opponentTeam) };
+  const contraste = isColorLight(d.c1) ? 'black' : 'white';
+  if (!d.nc || mesmaCor(d.nc, d.c1)) d.nc = contraste;
+  if (!d.clc || mesmaCor(d.clc, d.c1)) d.clc = !mesmaCor(d.nc, d.c1) ? d.nc : contraste;
+  return d;
 };
 
 export const POSITION_MAP: Record<Position, { lvl: number, sector: number, lane: number }> = {

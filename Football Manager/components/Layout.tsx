@@ -92,12 +92,11 @@ const Layout: React.FC<Props> = ({ children, setView, currentView }) => {
             <span className="text-blue-500">FOOT</span>MANAGER
           </div>
           {userTeam && (
-            <div className="mt-4 flex items-center gap-3 bg-slate-50 dark:bg-slate-900/40 p-3 rounded border border-slate-200 dark:border-slate-800 transition-colors">
-              <TeamShield team={userTeam} className="w-12 h-14" />
-              <div className="min-w-0">
-                <div className="text-[13px] font-black text-slate-800 dark:text-white uppercase truncate">{userTeam.name}</div>
-                <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest">{userTeam.strength} OVR</div>
-              </div>
+            // O mesmo padrao do cartao do clube da escolha de carreira (CareerStart): texto a esquerda e o escudo GRANDE a direita, cortado pela borda do cartao.
+            <div className="mt-4 relative overflow-hidden h-[72px] flex flex-col justify-center pl-3 pr-[70px] bg-slate-50 dark:bg-slate-900/40 rounded border border-slate-200 dark:border-slate-800 transition-colors">
+              <div className="absolute top-1/2 -translate-y-1/2 -right-[22px] w-[96px] h-[116px]"><TeamShield team={userTeam} className="w-full h-full" /></div>
+              <div className="text-[13px] font-black text-slate-800 dark:text-white uppercase truncate">{userTeam.name}</div>
+              <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest">{userTeam.strength} OVR</div>
             </div>
           )}
         </div>

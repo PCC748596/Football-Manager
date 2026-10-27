@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useRef, useEffect } from 'r
 import { Team, Player, Contract, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador } from '../types';
 import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/dataGenerator';
 import { gruposDaSerieD } from '../textSim/competitions';
+import { espacarCalendario, comDatasDeCopa } from '../textSim/calendario';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, buildTable } from '../textSim/world';
 import { Competition, prepararCopas, ligaIdDoClube, teamKey } from '../textSim/competitions';
 import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
@@ -365,6 +366,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (r.players.length) setPlayers(prev => [...prev, ...r.players]);
     }
   };
+  // O ESPACO ENTRE OS JOGOS (textSim/calendario.ts): nenhum clube joga com menos de 2 dias livres entre dois jogos. Corre sempre que o calendario muda (novo jogo, copas que entram) e depois de
+  // carregar um save (`loadId`): adianta ou atrasa o jogo mais flexivel (copa, amistoso) e leva a data nova tambem a competicao.
+  useEffect(() => {
+    if (!fixtures.length || !gameState.userTeamId) return;
+    const r = espacarCalendario(fixtures, gameState.currentDate);
+    if (!r.mudancas.length) return;
+    setFixtures(r.fixtures);
+    setComps(prev => comDatasDeCopa(prev, r.mudancas));
+  }, [fixtures, loadId, gameState.currentDate, gameState.userTeamId]);
   const cupSig = fixtures.reduce((n, f) => n + (f.type === 'CUP' && f.played ? 1 : 0), 0);   // muda quando um jogo de copa do utilizador acaba
   useEffect(() => {
     if (!world) return;

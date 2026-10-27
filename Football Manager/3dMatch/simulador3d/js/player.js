@@ -71,6 +71,8 @@ class FootballPlayer {
             : escolherAparencia(this.id, 11, team === 'TeamA' ? 0 : 1);
         // O estilo de cabelo (ver estiloDeCabeloDe, utils.js): so nos que nao trazem um da face personalizada.
         if (!this.aparencia.estilo && typeof estiloDeCabeloDe === 'function') this.aparencia = Object.assign({}, this.aparencia, { estilo: estiloDeCabeloDe(this._idMeiao, this.aparencia.tipo) });
+        // A barba (ver estiloDeBarbaDe, utils.js): so nos que nao trazem uma da face personalizada.
+        if (!this.aparencia.barba && typeof estiloDeBarbaDe === 'function') this.aparencia = Object.assign({}, this.aparencia, { barba: estiloDeBarbaDe(this._idMeiao, this.aparencia.tipo) });
         /*
         O PE BOM: 'd' destro, 'e' canhoto. E o que decide em que frame do
         ciclo sai o toque de conducao (ver `noFrameDoPe`).

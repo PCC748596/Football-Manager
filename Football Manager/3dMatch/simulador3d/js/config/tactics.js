@@ -299,6 +299,10 @@ if (typeof window !== 'undefined') window.CameraCentroLado = CameraCentroLado;
 A CAMERA DA SUBSTITUICAO (modo 'substituicao', ver match_ui.js e match_substituicoes.js): fixa, no lado oposto ao dos bancos, a olhar para a zona da troca (o meio da lateral +X). Entra
 quando a troca comeca (a placa do 4.o arbitro) e sai quando acaba (a placa baixa), voltando a vista que o utilizador tinha.
 */
+// A bracadeira de capitao (match_substituicoes.js: Match.tickBracadeiras): `cores` sao as candidatas (ganha a de maior contraste com a manga), `u` a escala do corpo (a mesma das pecas do braco).
+const Bracadeira = { activa: true, intervalo: 1.0, u: 1.0, cores: [0xffd400, 0xffffff, 0x000000, 0x39ff14, 0xff6a00, 0xff00ff] };
+if (typeof window !== 'undefined') window.Bracadeira = Bracadeira;
+
 const CameraSubstituicao = { x: -46, y: 17, foco: { x: 34.4, y: 1.2, z: 0 } };
 if (typeof window !== 'undefined') window.CameraSubstituicao = CameraSubstituicao;
 

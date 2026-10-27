@@ -44,6 +44,53 @@ Object.assign(Match, {
     subsEmCurso: null,
     _placaViva: 0,
 
+    /*
+    A BRACADEIRA DE CAPITAO (pedido): na manga DIREITA da camisa do capitao de cada time, uma faixa na cor de MAIOR CONTRASTE com a manga, com a letra C (preta sobre faixa clara, branca sobre
+    escura), no lado de fora e na frente do braco. O capitao e o designado em `Match.cobradores[lado].captain` (a aba Tactics); sem designado (ou se ele sai, e expulso) nao ha faixa — troca de
+    capitao ou substituicao passam a valer na proxima leitura (de `Bracadeira.intervalo` em `Bracadeira.intervalo` s).
+    */
+    _bracadeiraDe: function (p, ligada) {
+        const rig = p && p.rig; if (!rig || !rig.rArm) return;
+        if (!ligada) { if (p._bracadeira) { p._bracadeira.parent && p._bracadeira.parent.remove(p._bracadeira); p._bracadeira = null; } return; }
+        if (p._bracadeira) return;
+        const up = rig.rArm.children[0]; if (!up) return;   // o braco de cima (a manga e filha dele)
+        const u = Bracadeira.u;
+        // A cor da manga (para o contraste): a da peca `manga` do braco de cima.
+        const manga = up.children[0];
+        const corManga = (manga && manga.material && manga.material.color) ? manga.material.color : new THREE.Color(0xffffff);
+        const lum = (c) => { const f = (v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)); return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+        const contraste = (a, b) => { const x = lum(a) + 0.05, y = lum(b) + 0.05; return x > y ? x / y : y / x; };
+        let melhor = Bracadeira.cores[0], nota = -1;
+        for (const hex of Bracadeira.cores) { const c = new THREE.Color(hex); const n = contraste(c, corManga); if (n > nota) { nota = n; melhor = hex; } }
+        const corFaixa = new THREE.Color(melhor), corC = lum(corFaixa) > 0.35 ? '#000000' : '#ffffff';
+        const grupo = new THREE.Group(); grupo.name = 'bracadeira';
+        const faixa = new THREE.Mesh(new THREE.BoxGeometry(u * 0.44, u * 0.2, u * 0.44), new THREE.MeshStandardMaterial({ color: corFaixa, roughness: 0.7 }));
+        grupo.add(faixa);
+        const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+        const g = cv.getContext('2d'); g.fillStyle = '#' + corFaixa.getHexString(); g.fillRect(0, 0, 64, 64);
+        g.fillStyle = corC; g.font = 'bold 54px system-ui,Arial,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('C', 32, 36);
+        const tex = new THREE.CanvasTexture(cv);
+        const matC = new THREE.MeshBasicMaterial({ map: tex });
+        const lado = new THREE.Mesh(new THREE.PlaneGeometry(u * 0.17, u * 0.17), matC);   // o lado de fora do braco direito (-x)
+        lado.position.set(-(u * 0.22 + 0.002), 0, 0); lado.rotation.y = -Math.PI / 2; grupo.add(lado);
+        const frente = new THREE.Mesh(new THREE.PlaneGeometry(u * 0.17, u * 0.17), matC);   // e a frente
+        frente.position.set(0, 0, u * 0.22 + 0.002); grupo.add(frente);
+        grupo.position.y = 0.18;   // no braco de cima, abaixo do ombro, por cima da manga
+        up.add(grupo); p._bracadeira = grupo;
+    },
+    tickBracadeiras: function (dt) {
+        if (typeof Bracadeira === 'undefined' || !Bracadeira.activa || typeof document === 'undefined') return;
+        if (typeof Sim !== 'undefined' && Sim.running && !this.forcarBracadeira) return;   // simulacao em lote: sem desenho
+        this._tBracadeira = (this._tBracadeira || 0) - dt;
+        if (this._tBracadeira > 0) return;
+        this._tBracadeira = Bracadeira.intervalo;
+        for (const [time, lista] of [['TeamA', this.players], ['TeamB', this.opponents]]) {
+            if (!lista) continue;
+            const cap = (typeof cobradorDesignado === 'function') ? cobradorDesignado(time, 'captain', lista) : null;
+            for (const p of lista) { if (p && p.rig && p.role !== undefined) this._bracadeiraDe(p, p === cap); }
+        }
+    },
+
     // A fila de pedidos. `req` = { lado: 'casa'|'fora', sai: id do manager, entra: id do manager, jogador: o Player do manager que entra }.
     pedirSubstituicao: function (req) {
         if (!req || !req.jogador) return false;
@@ -89,6 +136,7 @@ Object.assign(Match, {
     // ---------------------------------------------------------------------------------------------
     // O que corre todos os frames (chamado do `update`): o aquecimento de cada pedido, a troca em curso e a placa do 4.o arbitro.
     tickSubstituicoes: function (dt) {
+        this.tickBracadeiras(dt);
         const Q = (typeof Officials !== 'undefined') ? Officials : null;
         const emBatch = (typeof Sim !== 'undefined' && Sim.running);
         if (this._placaViva > 0) this._placaViva -= dt;
