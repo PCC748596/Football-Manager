@@ -56,7 +56,8 @@ const FormacoesZonasLib = {
 
     // As 11 posições (normalizadas) da formação para a bola em (xAtk, zAtk) e a fase; null se a formação não existe.
     posicoes: function (T, chave, xAtk, zAtk, comBola) {
-        const F = T && T.formacoes ? T.formacoes[this.chaveDaFormacao(chave)] : null;
+        // A chave exacta primeiro ('mgr:4-4-2' / 'mgr:4-4-2#fora': tabela PROPRIA da equipa, com os ajustes do treinador; ver AdaptadorManager.registarZonas), depois a da formacao.
+        const F = T && T.formacoes ? (T.formacoes[chave] || T.formacoes[this.chaveDaFormacao(chave)]) : null;
         if (!F) return null;
         const tab = comBola ? F.com : F.sem;
         const ps = this.pesos(T, xAtk, zAtk);

@@ -64,6 +64,28 @@ const AdaptadorManager = {
         return chave;
     },
 
+    /*
+    AS POSICOES POR ZONA do treinador (aba Match Tactics, `Tactics.zoneOverrides[formacao]`): `over` = { com|sem: { zona: { posto: [x, z] } } }. A equipa passa a ter uma tabela PROPRIA em
+    `FormacoesZonas.formacoes[chave]` (copia da base com os ajustes por cima); sem ajustes, a chave sai e vale a da formacao. `_v` invalida a cache de posicoes (team_bt.js).
+    */
+    registarZonas(chave, nome, over) {
+        if (typeof FormacoesZonas === 'undefined' || !FormacoesZonas.formacoes) return;
+        const F = FormacoesZonas.formacoes[nome];
+        delete FormacoesZonas.formacoes[chave];
+        if (F && over && (over.com || over.sem)) {
+            const c = JSON.parse(JSON.stringify(F));
+            for (const fase of ['com', 'sem']) {
+                const o = over[fase]; if (!o) continue;
+                for (const z of Object.keys(o)) for (const s of Object.keys(o[z])) {
+                    const p = c[fase][z] && c[fase][z][s];
+                    if (p) { p.x = o[z][s][0]; p.z = o[z][s][1]; }
+                }
+            }
+            FormacoesZonas.formacoes[chave] = c;
+        }
+        FormacoesZonas._v = (FormacoesZonas._v || 0) + 1;
+    },
+
     // 0..100 para a escala do motor (o motor roda perto dos 70-90; um jogador de 60 do manager fica abaixo disso).
     _escala(v, escala) { return Math.max(1, Math.min(100, Math.round(v * (escala || 1)))); },
 
@@ -210,6 +232,11 @@ const AdaptadorManager = {
         SquadsData.equipas.push(eC, eF);
         const kC = this.formacaoDeSlots(casa.formacao.nome, casa.formacao.slots);
         const kF = this.formacaoDeSlots(fora.formacao.nome + '#fora', fora.formacao.slots);
+        const zonasDe = (l) => (l.equipa.tactics && l.equipa.tactics.zoneOverrides && l.equipa.tactics.zoneOverrides[l.formacao.nome]) || null;
+        this.registarZonas(kC, casa.formacao.nome, zonasDe(casa));
+        this.registarZonas(kF, fora.formacao.nome, zonasDe(fora));
+        // O lado do utilizador: os ajustes que ele mudar com o jogo em curso (mensagem `tatica`) vao para a tabela dele.
+        this._ladoUtilizador = ((opcoes.taticaDe || 'casa') === 'casa') ? { chave: kC, nome: casa.formacao.nome } : { chave: kF, nome: fora.formacao.nome };
         Tatics.formacaoA = kC; Tatics.formacaoB = kF;
         Tatics.formacaoFixaA = kC; Tatics.formacaoFixaB = kF;
         // O TREINADOR DA CPU: a equipa que NAO e a do utilizador joga com a tatica propria do clube e e comandada pelo treinador dela (conhecimento tatico).

@@ -202,7 +202,11 @@ export interface Tactics {
   lengthCompactness?: 'large' | 'mediumLarge' | 'median' | 'mediumSmall' | 'short';
   /** Estilo ofensivo (com bola). Omitido: sai da objetividade (tempo). */
   playStyle?: 'positional' | 'possession' | 'direct' | 'counter_attack' | 'wing_play';
+  /** Posicoes ajustadas pelo treinador, por formacao: com e sem a bola, por zona da bola (0..8) e por posto (indice do slot): { x, z } normalizados (ver textSim/formacoesZonas.ts). Sem valor: as tabelas de sempre. */
+  zoneOverrides?: Record<string, ZoneOverrides>;
 }
+
+export type ZoneOverrides = { com?: Record<string, Record<string, [number, number]>>; sem?: Record<string, Record<string, [number, number]>> };
 
 export interface Team {
   id: string;

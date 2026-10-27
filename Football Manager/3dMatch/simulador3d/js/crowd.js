@@ -91,7 +91,7 @@ const CrowdModel = {
     fracVisitante: 0.10,
     // Passagem sem adeptos nas fronteiras do bloco visitante, com grade de cada lado e segurancas (um a cada `cadaFilas` filas).
     // Gente que entra e sai dos tuneis de acesso: quantos (escalado pela qualidade), metros/s, espera maxima (s) escondidos entre viagens, duracao (s) do aparecer/sumir na fila.
-    caminhantes: { total: 200, velocidade: 1.1, esperaMax: 12, rampa: 0.5 },
+    caminhantes: { total: 0, velocidade: 1.1, esperaMax: 12, rampa: 0.5 },
     divisoria: { ativa: true, cadaFilas: 4, alturaGrade: 2.2, comprimentoGrade: 1.2, corGrade: 0x2b3036, afastaSeguranca: 0.5, colunaLivre: 0.85 },
     // O canto do visitante fica EM FRENTE das cameras (a bancada do outro lado do campo, -X) no canto da DIREITA do ecra (-Z), e nao atras delas (+X). `false` = o lado das cameras.
     visitanteEmFrente: true,

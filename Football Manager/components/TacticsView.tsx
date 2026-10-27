@@ -15,6 +15,9 @@ interface FieldPosition {
 
 import { ShirtIcon } from './ShirtIcon';
 import { setoresPadraoDaFormacao } from '../3dMatch/simulador3dCliente';
+import ZonePositionsModal from './ZonePositionsModal';
+import TacticPresetsModal from './TacticPresetsModal';
+import { formacaoTemTabela, temAjustes } from '../textSim/formacoesZonas';
 
 const MoraleArrow = ({ morale }: { morale: number }) => {
   if (morale >= 90) return <span className="text-amber-400 transform -rotate-90 inline-block font-bold drop-shadow-sm text-[12px]">➤</span>; 
@@ -71,6 +74,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   const [showMatchKit, setShowMatchKit] = useState(false);
   const [poolSortBy, setPoolSortBy] = useState<'skill' | 'position'>('skill');
   const [selectedKitIdx, setSelectedKitIdx] = useState<0 | 1 | 2 | 3>(0);
+  const [showZonas, setShowZonas] = useState(false);
+  const [showPresets, setShowPresets] = useState(false);
 
   useEffect(() => {
     if (userTeam) {
@@ -307,6 +312,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in" style={{ height: 'calc(100vh - 80px)' }}>
+        {showZonas && <ZonePositionsModal team={userTeam} players={players} onClose={() => setShowZonas(false)}
+            onChange={(over) => { const todos = { ...(userTeam.tactics.zoneOverrides || {}) }; if (over) todos[userTeam.tactics.formation] = over; else delete todos[userTeam.tactics.formation]; updateTactics(userTeam.id, { zoneOverrides: Object.keys(todos).length ? todos : undefined }); }} />}
+        {showPresets && <TacticPresetsModal atual={userTeam.tactics} onClose={() => setShowPresets(false)} onLoad={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })} />}
         <div className="flex justify-between items-center shrink-0">
             <h2 className="text-4xl font-black italic tracking-tighter uppercase">
                 <span className="text-slate-300 dark:text-slate-600">MATCH</span> <span className="text-blue-400">TACTICS</span>
@@ -314,6 +322,10 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             <div className="flex items-center gap-3">
                  {isMatchOngoing && setView && (
                     <button onClick={() => setView(localStorage.getItem('activeMatchView') === 'MATCH' ? 'MATCH' : 'TRAINING')} className="bg-emerald-600 text-white text-[10px] font-black uppercase px-4 py-2 rounded">Resume</button>
+                 )}
+                 <button onClick={() => setShowPresets(true)} className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[10px] font-black uppercase px-4 py-2 rounded hover:bg-slate-300 dark:hover:bg-slate-600 tracking-wider">Gravar / Carregar</button>
+                 {formacaoTemTabela(userTeam.tactics.formation) && (
+                    <button onClick={() => setShowZonas(true)} className="bg-blue-600 text-white text-[10px] font-black uppercase px-4 py-2 rounded hover:bg-blue-500 tracking-wider">Posições{temAjustes(userTeam.tactics.zoneOverrides?.[userTeam.tactics.formation]) ? ' ●' : ''}</button>
                  )}
                  <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded p-1 border border-slate-200 dark:border-slate-700">
                     <span className="text-[9px] font-black text-slate-400 px-2 uppercase tracking-widest">FORMATION</span>

@@ -215,6 +215,8 @@ const Ponte = {
             if (typeof m.pressaoValor === 'number') Tatics.pressaoValor = m.pressaoValor;
             if (typeof m.linhaValor === 'number') Tatics.linhaValor = m.linhaValor;
             if (m.agressividade) Tatics.agressividade = m.agressividade;
+            // As posicoes por zona (com / sem bola) que o treinador ajustou no Match Tactics.
+            if (m.zonas !== undefined && AdaptadorManager._ladoUtilizador) AdaptadorManager.registarZonas(AdaptadorManager._ladoUtilizador.chave, AdaptadorManager._ladoUtilizador.nome, m.zonas);
             if (Array.isArray(m.setores)) {
                 Tatics.setores.length = 0;
                 m.setores.forEach(x => Tatics.setores.push(x));

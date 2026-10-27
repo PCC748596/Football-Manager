@@ -1383,7 +1383,7 @@ function posicaoPorZona(p, bb) {
         bz += (bb.isAttacking ? Tr.avancoOfensivo : -Tr.recuoDefensivo) * (1 - bb.possessionTime / Tr.duracao);
     }
     let cache = bb._zonasCache;
-    const k = chave + '|' + (bb.isAttacking ? 1 : 0) + '|' + bx.toFixed(2) + '|' + bz.toFixed(2);
+    const k = chave + '|' + (FormacoesZonas._v || 0) + '|' + (bb.isAttacking ? 1 : 0) + '|' + bx.toFixed(2) + '|' + bz.toFixed(2);
     if (!cache || cache.k !== k) {
         const lista = FormacoesZonasLib.posicoes(FormacoesZonas, chave, bx, bz, !!bb.isAttacking);
         cache = bb._zonasCache = { k: k, lista: lista };

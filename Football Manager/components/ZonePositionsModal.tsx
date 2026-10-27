@@ -1,0 +1,133 @@
+import React, { useMemo, useRef, useState } from 'react';
+import { Team, Player, FORMATIONS, ZoneOverrides } from '../types';
+import { FaseZona, ZONAS, centroDaZona, espelharFase, espelharZona, zonaEspelhada, formacaoTemTabela, moverPosto, postosEfetivos, postosDeBase, repor, temAjustes } from '../textSim/formacoesZonas';
+
+interface Props {
+  team: Team;
+  players: Player[];
+  onChange: (over: ZoneOverrides | undefined) => void;
+  onClose: () => void;
+}
+
+const NOME_DA_ZONA = ['Def. direita', 'Def. centro', 'Def. esquerda', 'Meio direita', 'Meio centro', 'Meio esquerda', 'Atq. direita', 'Atq. centro', 'Atq. esquerda'];
+
+/*
+O EDITOR DAS POSICOES COM E SEM A BOLA (aba Match Tactics). O campo mostra os onze postos para a ZONA em que a bola esta (grelha 3x3) e a fase escolhida; arrasta-se cada um para onde se quer.
+Por baixo, o motor 3D interpola entre as quatro zonas mais proximas, por isso so as zonas ajustadas mudam, e as vizinhas acompanham. Ver textSim/formacoesZonas.ts.
+*/
+const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose }) => {
+  const formacao = team.tactics.formation;
+  const over = team.tactics.zoneOverrides?.[formacao];
+  const [fase, setFase] = useState<FaseZona>('com');
+  const [zona, setZona] = useState(4);
+  const [arrasto, setArrasto] = useState<{ slot: number; x: number; z: number } | null>(null);
+  const campo = useRef<HTMLDivElement>(null);
+
+  const postos = useMemo(() => postosEfetivos(formacao, over, fase, zona), [formacao, over, fase, zona]);
+  const base = useMemo(() => postosDeBase(formacao, fase, zona), [formacao, fase, zona]);
+  const slots = FORMATIONS[formacao];
+  const rotulos = useMemo(() => slots.map(s => s.label), [slots]);
+  const bola = centroDaZona(zona);
+  const ajustadoNa = (f: FaseZona, z: number) => !!over?.[f]?.[String(z)] && Object.keys(over![f]![String(z)]).length > 0;
+
+  if (!formacaoTemTabela(formacao)) return null;
+
+  const pct = (x: number, z: number) => ({ left: `${50 - x * 50}%`, top: `${(1 - z) * 50}%` });
+  const paraCampo = (clientX: number, clientY: number) => {
+    const r = campo.current!.getBoundingClientRect();
+    const left = (clientX - r.left) / r.width, top = (clientY - r.top) / r.height;
+    const c = (v: number) => Math.max(-0.95, Math.min(0.95, v));
+    return { x: c((0.5 - left) * 2), z: c(1 - top * 2) };
+  };
+
+  const jogadorDoSlot = (i: number) => players.find(p => p.id === team.lineup[i]);
+  const commit = (slot: number, x: number, z: number) => {
+    onChange(moverPosto(formacao, over, fase, zona, slot, x, z));
+  };
+
+  const Aba = ({ valor, rotulo }: { valor: FaseZona; rotulo: string }) => (
+    <button onClick={() => setFase(valor)} className={`flex-1 px-4 py-2 rounded text-[11px] font-black uppercase tracking-widest transition-all ${fase === valor ? 'bg-blue-600 text-white shadow' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700'}`}>{rotulo}</button>
+  );
+
+  return (
+    <div className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-6" onClick={onClose}>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-6 flex gap-6 max-h-[94vh]" onClick={e => e.stopPropagation()}>
+        <div ref={campo} className="relative bg-emerald-700/90 border-2 border-white/50 rounded select-none touch-none shrink-0" style={{ height: 'min(78vh, 760px)', aspectRatio: '68 / 105' }}>
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute left-0 right-0 top-1/2 h-px bg-white/50" />
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[27%] aspect-square rounded-full border border-white/50" />
+            <div className="absolute left-1/2 -translate-x-1/2 top-0 w-[59%] h-[16%] border-b border-x border-white/50" />
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-[59%] h-[16%] border-t border-x border-white/50" />
+            {/* as linhas das zonas da bola */}
+            {[-1, 1].map(sg => <div key={'h' + sg} className="absolute left-0 right-0 border-t border-dashed border-white/25" style={{ top: `${(1 - sg * ZONAS.terco / ZONAS.meiaAltura) * 50}%` }} />)}
+            {[-1, 1].map(sg => <div key={'v' + sg} className="absolute top-0 bottom-0 border-l border-dashed border-white/25" style={{ left: `${50 - sg * ZONAS.corredorX / ZONAS.meiaLargura * 50}%` }} />)}
+          </div>
+          <div className="absolute -translate-x-1/2 -translate-y-1/2 text-xl pointer-events-none opacity-90" style={pct(bola.x, bola.z)} title="A bola">⚽</div>
+          {postos.map((p, i) => {
+            const pos = arrasto && arrasto.slot === i ? { x: arrasto.x, z: arrasto.z } : p;
+            const mudou = Math.abs(base[i].x - p.x) > 0.0006 || Math.abs(base[i].z - p.z) > 0.0006;
+            const jog = jogadorDoSlot(i);
+            return (
+              <div key={i} className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-grab active:cursor-grabbing"
+                style={pct(pos.x, pos.z)}
+                onPointerDown={e => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); setArrasto({ slot: i, ...paraCampo(e.clientX, e.clientY) }); }}
+                onPointerMove={e => { if (arrasto && arrasto.slot === i) setArrasto({ slot: i, ...paraCampo(e.clientX, e.clientY) }); }}
+                onPointerUp={e => { if (arrasto && arrasto.slot === i) { commit(i, arrasto.x, arrasto.z); setArrasto(null); } }}>
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-black text-white shadow-lg border-2 ${mudou ? 'bg-amber-500 border-amber-200' : 'bg-blue-600 border-white'}`}>{jog?.shirtNumber ?? slots[i].label}</div>
+                <span className="mt-0.5 px-1.5 rounded bg-black/60 text-[9px] font-bold text-white whitespace-nowrap">{slots[i].label}{jog ? ' ' + jog.name.split(' ').pop() : ''}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-col gap-4 w-[300px] overflow-y-auto">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-700 dark:text-white">Posições</h3>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{formacao} · arraste os jogadores</span>
+            </div>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl font-black leading-none">✕</button>
+          </div>
+
+          <div>
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fase</span>
+            <div className="flex gap-2 mt-1"><Aba valor="com" rotulo="Com a bola" /><Aba valor="sem" rotulo="Sem a bola" /></div>
+          </div>
+
+          <div>
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Onde está a bola</span>
+            <div className="grid grid-cols-3 gap-1 mt-1">
+              {[2, 1, 0].map(lin => [2, 1, 0].map(col => {
+                const z = lin * 3 + col;
+                return (
+                  <button key={z} onClick={() => setZona(z)} title={NOME_DA_ZONA[z]}
+                    className={`h-14 rounded text-[9px] font-black uppercase leading-tight p-1 border transition-all ${zona === z ? 'bg-blue-600 text-white border-blue-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-blue-400'}`}>
+                    {NOME_DA_ZONA[z]}
+                    {(ajustadoNa('com', z) || ajustadoNa('sem', z)) && <span className="block text-amber-400">{ajustadoNa('com', z) ? '●' : '○'}{ajustadoNa('sem', z) ? '●' : '○'}</span>}
+                  </button>
+                );
+              }))}
+            </div>
+            <span className="text-[9px] text-slate-400 leading-tight block mt-1">Topo = ataque. ●● = ajustes com / sem bola. O 3D interpola entre zonas vizinhas.</span>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Espelhar</span>
+            <button onClick={() => onChange(espelharZona(formacao, rotulos, over, fase, zona, zona))} className="px-3 py-2 rounded bg-indigo-600/90 text-[10px] font-black uppercase tracking-widest text-white hover:bg-indigo-500" title="Troca esquerda e direita nesta zona: o lateral esquerdo vai para onde estava o direito, e assim por diante">Virar esta zona (esq ⇄ dir)</button>
+            {zonaEspelhada(zona) !== zona && <button onClick={() => onChange(espelharZona(formacao, rotulos, over, fase, zona, zonaEspelhada(zona)))} className="px-3 py-2 rounded bg-indigo-600/90 text-[10px] font-black uppercase tracking-widest text-white hover:bg-indigo-500" title="Copia estas posições, espelhadas, para a zona do outro lado do campo">Copiar espelhado → {NOME_DA_ZONA[zonaEspelhada(zona)]}</button>}
+            <button onClick={() => onChange(espelharFase(formacao, rotulos, over, fase, zona))} className="px-3 py-2 rounded bg-indigo-600/90 text-[10px] font-black uppercase tracking-widest text-white hover:bg-indigo-500" title="Para cada linha, copia esta coluna, espelhada, para a coluna oposta">Espelhar {fase === 'com' ? 'com a bola' : 'sem a bola'} (todas as linhas)</button>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <button onClick={() => onChange(repor(over, fase, zona))} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700">Repor esta zona</button>
+            <button onClick={() => onChange(repor(over, fase))} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700">Repor {fase === 'com' ? 'com a bola' : 'sem a bola'} (todas as zonas)</button>
+            <button disabled={!temAjustes(over)} onClick={() => onChange(undefined)} className="px-3 py-2 rounded bg-rose-600/80 disabled:opacity-30 text-[10px] font-black uppercase tracking-widest text-white hover:bg-rose-600">Repor a formação toda</button>
+          </div>
+          <span className="text-[9px] text-slate-400 leading-tight">Amarelo = posto ajustado. Os ajustes valem para esta formação e entram no jogo (também com a partida em curso).</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ZonePositionsModal;
