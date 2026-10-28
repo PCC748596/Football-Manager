@@ -213,6 +213,11 @@ export default defineConfig(() => {
         port: 3000,
         host: '0.0.0.0',
       },
+      // O build servido (npm run preview) tambem na rede de casa: sem isto o Vite so escuta no proprio PC.
+      preview: {
+        port: 4173,
+        host: '0.0.0.0',
+      },
       plugins: [react(), databaseSaverPlugin(), facesSaverPlugin(), saveGameLocalPlugin(), simulador3dPlugin(), pwaOfflinePlugin()],
       // Caminhos relativos no build: o jogo instalado (PWA) abre de qualquer pasta / sub-caminho.
       base: './',
