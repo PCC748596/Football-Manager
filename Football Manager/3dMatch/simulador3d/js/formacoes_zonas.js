@@ -59,12 +59,16 @@ const FormacoesZonasLib = {
         // A chave exacta primeiro ('mgr:4-4-2' / 'mgr:4-4-2#fora': tabela PROPRIA da equipa, com os ajustes do treinador; ver AdaptadorManager.registarZonas), depois a da formacao.
         const F = T && T.formacoes ? (T.formacoes[chave] || T.formacoes[this.chaveDaFormacao(chave)]) : null;
         if (!F) return null;
-        const tab = comBola ? F.com : F.sem;
+        // `comBola` pode ser um numero 0..1 (a parte da tabela COM bola): na transicao as duas fases misturam-se em vez de uma saltar para a outra.
+        const wc = comBola === true ? 1 : (comBola === false || !comBola ? 0 : Math.max(0, Math.min(1, comBola)));
         const ps = this.pesos(T, xAtk, zAtk);
         const n = F.slots.length, res = [];
         for (let i = 0; i < n; i++) {
             let x = 0, z = 0;
-            for (const p of ps) { x += tab[p.zona][i].x * p.w; z += tab[p.zona][i].z * p.w; }
+            for (const p of ps) {
+                const c = F.com[p.zona][i], s = F.sem[p.zona][i];
+                x += (c.x * wc + s.x * (1 - wc)) * p.w; z += (c.z * wc + s.z * (1 - wc)) * p.w;
+            }
             res.push({ x, z });
         }
         return res;

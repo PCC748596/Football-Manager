@@ -85,6 +85,8 @@ const RefereeModel = {
     cantoFora: { folgaX: 2.0, folgaZ: 3.0 },
     raioMin: 9.0,            // mais perto do que isto, afasta-se
     raioMax: 13.0,           // mais longe do que isto, aproxima-se
+    seguraMargem: 1.5,       // m: ja parado a girar, so volta a andar se a bola passar de raioMax + isto
+    giroParado: 4.0,         // rad/s: o giro do corpo para a bola quando esta parado
     distMinDura: 9.0,        // o alvo nunca fica mais perto da bola do que isto
     margemFuga: 3.0,         // abaixo de distMinDura + isto, foge sem amortecer nem recuar
     antecipacao: 0.6,        // s: a coroa e posta a volta da bola prevista (ver o update)
@@ -2638,8 +2640,26 @@ const Officials = {
         movimento acima de 135 graus, medido). Com ela, o limite
         `anguloMaxDaBola` mantem-no de lado.
         */
-        this.mover(this.arbitro, S.alvoSuave.x, S.alvoSuave.z, R.velocidade, dt,
-            Match.ball.position);
+        /*
+        DENTRO DA FAIXA ELE NAO ANDA, SO GIRA (relato: "o juiz as vezes fica se tremendo"). Com a bola entre o piso e `raioMax` ele ja esta bem colocado, e os micro-ajustes do alvo
+        (a bola a mexer, a antecipacao) faziam-no dar passinhos para os dois lados. Fica parado a girar o corpo para a bola, com a velocidade de giro limitada; a histerese
+        (`seguraMargem`) evita que entre e saia da zona a cada frame. Fora dela, a coroa manda como sempre.
+        */
+        const distLim = R.raioMax + (S._parado ? (R.seguraMargem || 1.5) : 0);
+        const parar = !emFuga && dBola <= distLim && dBola >= R.distMinDura + (R.margemFuga || 0);
+        S._parado = parar;
+        if (parar) {
+            const rotAntes = S.model.rotation.y;
+            this.mover(this.arbitro, S.model.position.x, S.model.position.z, R.velocidade, dt, Match.ball.position);
+            S.alvoSuave = { x: S.model.position.x, z: S.model.position.z };
+            const alvoRot = Math.atan2(Match.ball.position.x - S.model.position.x, Match.ball.position.z - S.model.position.z);
+            const dif = Math.atan2(Math.sin(alvoRot - rotAntes), Math.cos(alvoRot - rotAntes));
+            const passo = (R.giroParado || 4.0) * dt;
+            S.model.rotation.y = rotAntes + Math.max(-passo, Math.min(passo, dif));
+        } else {
+            this.mover(this.arbitro, S.alvoSuave.x, S.alvoSuave.z, R.velocidade, dt,
+                Match.ball.position);
+        }
 
         // Depois do mover: e ele que escreve a pose dos bracos, e o gesto
         // tem de ficar por cima dela (ver tickSinal).

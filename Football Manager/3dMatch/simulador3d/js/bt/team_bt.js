@@ -1383,9 +1383,18 @@ function posicaoPorZona(p, bb) {
         bz += (bb.isAttacking ? Tr.avancoOfensivo : -Tr.recuoDefensivo) * (1 - bb.possessionTime / Tr.duracao);
     }
     let cache = bb._zonasCache;
-    const k = chave + '|' + (FormacoesZonas._v || 0) + '|' + (bb.isAttacking ? 1 : 0) + '|' + bx.toFixed(2) + '|' + bz.toFixed(2);
+    /*
+    A MISTURA COM/SEM NA TRANSICAO: ao mudar a posse, a parte da tabela COM bola sobe (ou desce) de 0 a 1 em `misturaFases` s (suavizada), em vez de o posto saltar de uma tabela para a outra.
+    Fora da transicao (ou com `misturaFases: 0`) vale a fase pura.
+    */
+    let wCom = bb.isAttacking ? 1 : 0;
+    if (Z.misturaFases > 0 && typeof bb.possessionTime === 'number' && bb.possessionTime < Z.misturaFases && typeof Match !== 'undefined' && Match.state === 'PLAY') {
+        const t = bb.possessionTime / Z.misturaFases, s = t * t * (3 - 2 * t);
+        wCom = bb.isAttacking ? s : 1 - s;
+    }
+    const k = chave + '|' + (FormacoesZonas._v || 0) + '|' + wCom.toFixed(2) + '|' + bx.toFixed(2) + '|' + bz.toFixed(2);
     if (!cache || cache.k !== k) {
-        const lista = FormacoesZonasLib.posicoes(FormacoesZonas, chave, bx, bz, !!bb.isAttacking);
+        const lista = FormacoesZonasLib.posicoes(FormacoesZonas, chave, bx, bz, wCom);
         cache = bb._zonasCache = { k: k, lista: lista };
     }
     if (!cache.lista || !cache.lista[p.idxFormacao]) return null;

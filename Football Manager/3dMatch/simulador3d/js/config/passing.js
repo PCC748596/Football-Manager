@@ -210,7 +210,7 @@ const PassModel = {
     tecnica e nao com forca, fica abaixo.
     =====================================================================
     */
-    velMaxSaida: 28.0,
+    velMaxSaida: 24.0,   // 28 -> 24: um passe nunca sai mais forte que um remate (os remates saem no tecto de 25.5 m/s)
     carryChance: 0.10,
     carryChanceShort: 0.05,
     carryChanceLong: 0.20,

@@ -2190,6 +2190,8 @@ const ZonasModel = {
     ataque a abrir — e mais atras (`recuoDefensivo` m) quando acaba de a perder — as linhas recuam depressa. O efeito desvanece-se linearmente em `duracao` s.
     `transicao: null` desliga. Pedido: mais dinamismo nas transicoes.
     */
+    // Ao mudar a posse, as tabelas COM e SEM bola misturam-se ao longo destes segundos (suavizado) em vez de o posto saltar de uma para a outra. 0 desliga.
+    misturaFases: 2.0,
     transicao: { duracao: 3.0, avancoOfensivo: 14.0, recuoDefensivo: 8.0 },
     /*
     AS CAMADAS DO `tickFinal` QUE A TABELA JA FAZ (medido na liga de 380 jogos): com bola o alvo final afastava-se 11-12 m do posto da tabela; as maiores parcelas eram a mola de

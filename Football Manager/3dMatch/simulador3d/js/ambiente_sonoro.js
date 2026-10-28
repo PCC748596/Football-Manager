@@ -47,6 +47,7 @@ const AmbienteSonoro = {
       `Crowd_reacting.wav`  o "ohh" da bancada num perigo de gol: um remate perigoso (xG), um penalti, um cara a cara; no maximo um a cada `reacaoIntervalo` s.
     */
     ficheiroPalmas: 'assets/Crowd_claps.wav',
+    palmasSom: false,           // desligado por enquanto (pedido): o som das palmas nao toca. `true` volta.
     volumePalmas: 0.3,
     palmasRampa: 1.2,           // s para entrar e para sair
     ficheiroReacao: 'assets/Crowd_reacting.wav',
@@ -163,7 +164,7 @@ const AmbienteSonoro = {
         const U = (typeof Crowd !== 'undefined') ? Crowd._uniforms : null;
         // Bate palmas sempre que alguma claque tem fracao de palmas (na entrada dos times e nos lances perigosos), nao so no lance perigoso (`uPalmasFirme`).
         const fp = U && U.uFracPalmas ? U.uFracPalmas.value : null;
-        const aBater = !!(this._ligado && !this._pausado && fp && ((fp.x || 0) > 0.01 || (fp.y || 0) > 0.01));
+        const aBater = !!(this.palmasSom && this._ligado && !this._pausado && fp && ((fp.x || 0) > 0.01 || (fp.y || 0) > 0.01));
         const alvo = aBater ? this.volumePalmas : 0;
         const passo = this.volumePalmas * dt / Math.max(0.05, this.palmasRampa);
         this._palmasVol = this._palmasVol < alvo ? Math.min(alvo, this._palmasVol + passo) : Math.max(alvo, this._palmasVol - passo);
