@@ -8,7 +8,7 @@ As amostras ficam em 18 caixas: 9 zonas (3x3, pela posição da BOLA no referenc
 posição inicial da tabela; as caixas com poucas amostras ficam com a posição base da formação (FormationsData) — é só o ponto de partida: o editor corrige.
 
 Zonas: colunas pelo x da bola (esquerda < -11.33 m <= centro <= 11.33 m < direita, o `CORREDOR_LIMITE` do jogo), linhas pelo z (o terço defensivo, o do meio e o
-ofensivo: -17.7 e 17.7 m). Índice = linha * 3 + coluna.
+ofensivo: -18.25 e 18.25 m). Índice = linha * 3 + coluna.
 
 Uso:  node tools/gerar_formacoes_zonas.js [minutos por formação, omissão 12]
 Cada formação corre num processo à parte (o Match.init só se faz uma vez).
@@ -59,7 +59,7 @@ if (process.argv[2] === '--filho') {
             const dz = p0.dirZ;
             const bx = Match.ball.position.x * dz, bz = Match.ball.position.z * dz;
             const col = bx < -11.33 ? 0 : (bx > 11.33 ? 2 : 1);
-            const lin = bz < -17.7 ? 0 : (bz > 17.7 ? 2 : 1);
+            const lin = bz < -18.25 ? 0 : (bz > 18.25 ? 2 : 1);
             const zona = lin * 3 + col;
             const fase = (Match.possessionTeam === p0.team) ? 0 : 1;
             const c = caixas[fase * 9 + zona];
@@ -79,7 +79,7 @@ if (process.argv[2] === '--filho') {
 const minutos = Number(process.argv[2] || 12);
 const mgr = formacoesDoManager();
 const nomes = ['433', '442', '4231'].concat(Object.keys(mgr));
-const saida = { versao: 1, colunas: 3, linhas: 3, corredorX: 11.33, terco: 17.7, meiaLargura: MEIA_LARG, meiaAltura: MEIA_COMP, formacoes: {} };
+const saida = { versao: 1, colunas: 3, linhas: 3, corredorX: 11.33, terco: 18.25, meiaLargura: MEIA_LARG, meiaAltura: MEIA_COMP, formacoes: {} };
 
 for (const nome of nomes) {
     process.stderr.write('A medir ' + nome + ' (' + minutos + ' min)... ');

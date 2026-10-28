@@ -3378,6 +3378,11 @@ function actHoldPosition(ctx) {
         if (Match.counterAttackTeam === p.team) {
             p.speedMult *= velContraAtaque(RepositionPace.bonusContraAtaque, p.team);
         }
+        // Com as tabelas por zona o posto salta com a bola (passes de 25 m): quem fica a mais de `sprintDe` m dele corre a sprint em vez de trotar (ver ZonasModel).
+        const ZP = (typeof ZonasModel !== 'undefined') ? ZonasModel : null;
+        if (ZP && ZP.sprintDe > 0 && p._zonal && dist > ZP.sprintDe) {
+            p.speedMult = Math.max(p.speedMult, ZP.sprintVel * (0.9 + 0.2 * ((ctx.skillSpeed || 50) / 100)));
+        }
 
         /*
         SAIR A JOGAR TAMBÉM É PRESSA. Com a bola nas mãos do guarda-redes a

@@ -2866,6 +2866,34 @@ class FootballPlayer {
     */
     runBehaviorTree(dt = 1 / 60) {
         PlayerAI.tick(this, dt);
+        this.prenderAoPostoDaTabela();
+    }
+
+    /*
+    A COLEIRA DO POSTO DA TABELA (Match Tactics). A arvore individual reescreve o `dynamicTarget` depois do nivel 1 — a infiltracao, o apoio ao portador, o desmarque e a marcacao mandavam o
+    jogador para onde queriam, e com a bola o AM, os pontas e o ST acabavam a 10-20 m do posto desenhado (medido, tools/headless: 70-80% do tempo com a bola a mais de 7 m do posto).
+    Aqui o alvo nao sai de `ZonasModel.raioMaxLivre` m do posto da tabela (`slotTarget`). Ficam de fora quem tem tarefa de bola: portador, perseguidor, intercetor, bloqueador e destinatario do passe.
+    */
+    prenderAoPostoDaTabela() {
+        const Z = (typeof ZonasModel !== 'undefined') ? ZonasModel : null;
+        if (!Z || !(Z.raioMaxLivre > 0) || !this._zonal || !this.slotTarget || this.role === 'gk' || this.hasBall) return;
+        if (typeof Match === 'undefined' || Match.state !== 'PLAY') return;
+        if (Match.chaserA === this || Match.chaserB === this || Match.intendedReceiver === this || Match.ballCarrier === this) return;
+        const bb = (typeof TeamAI !== 'undefined') ? TeamAI.get(this.team) : null;
+        if (bb && (bb.chaser === this || bb.intercetor === this || bb.bloqueador === this || bb.blocker === this)) return;
+        const s = this.fsm && this.fsm.currentState;
+        if (s === 'INTERCEPT' || s === 'TACKLE' || s === 'SLIDE_TACKLE' || s === 'CHEST_CONTROL' || s === 'RECEIVE' || s === 'BLOCKING') return;
+        const dx = this.dynamicTarget.x - this.slotTarget.x, dz = this.dynamicTarget.z - this.slotTarget.z;
+        const d = Math.hypot(dx, dz);
+        if (d > Z.raioMaxLivre) {
+            this.dynamicTarget.x = this.slotTarget.x + dx * Z.raioMaxLivre / d;
+            this.dynamicTarget.z = this.slotTarget.z + dz * Z.raioMaxLivre / d;
+        }
+        // O posto da tabela pode cair alem da linha de fora-de-jogo (o `slotTarget` e anterior ao corte do tickFinal) e a coleira de cima nao o corta: com a equipa a atacar o alvo nunca passa da linha que ele le.
+        if (bb && bb.isAttacking && typeof bb.offsideLimitDir === 'number') {
+            const lim = bb.offsideLimitDir - 0.5 + (this.offsideBias || 0);
+            if (this.dynamicTarget.z * this.dirZ > lim) this.dynamicTarget.z = lim * this.dirZ;
+        }
     }
 
     findPassTarget(filterOrDir) {
@@ -5806,6 +5834,8 @@ class FootballPlayer {
     }
 
     steerArrive(target, maxSpeed, brakingDist = 2.0) {
+        // A coleira do posto da tabela tambem aqui: a FSM ainda mexe no `dynamicTarget` (prolongar a corrida) depois da arvore.
+        if (target === this.dynamicTarget) this.prenderAoPostoDaTabela();
         /*
         O CANSACO ENTRA AQUI, e num sitio so: o `speedMult` que chega como
         `maxSpeed` e escrito em vinte folhas da arvore, e descontar em cada

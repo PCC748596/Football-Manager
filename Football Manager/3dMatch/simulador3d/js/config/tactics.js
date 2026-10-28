@@ -2199,6 +2199,10 @@ const ZonasModel = {
     camadas: { molaCoesao: false, pendulo: false, tectoMeias: false, desvioMaxDoSlot: false },
     // O alvo final nunca se afasta do posto da tabela mais do que isto (m), salvo quem tem tarefa de bola: o que o treinador desenha no Match Tactics e o que se ve em campo. 0 desliga.
     desvioMaxFinal: 2.5,
+    // E a coleira da arvore individual (infiltracao, apoio, desmarque, marcacao): o alvo nao passa deste raio (m) do posto da tabela. Fora dela: portador, perseguidor, intercetor, bloqueador, destinatario. 0 desliga.
+    raioMaxLivre: 7.0,
+    // Quem fica a mais de `sprintDe` m do alvo corre a `sprintVel` m/s (antes trotava a 5 m/s ate aos 25 m e o posto, que salta com a bola, fugia). 0 desliga.
+    sprintDe: 9.0, sprintVel: 7.6,
     /*
     COMPORTAMENTO NAS TRANSICOES (pedido: mais dinamismo; medido: so mexer na leitura das tabelas nao muda o jogo). Nos primeiros `duracao` s:
       . T.Defensive (acabou de perder a bola): CONTRA-PRESSAO — os `pressores` meias/avancados mais perto do adversario com a bola vao a ele (ate `distPressao` m).

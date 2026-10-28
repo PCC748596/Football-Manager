@@ -1999,8 +1999,22 @@ Object.assign(Match, {
             const v = ((p.baseTarget.z * p.dirZ) - zMin) / span;
             const avanco = ate - (ate - S.de) * v;
 
-            const x = bolaFK.x + dirFK.x * avanco + p.baseTarget.x * 0.6;
-            const z = bolaFK.z + dirFK.z * avanco;
+            let x = bolaFK.x + dirFK.x * avanco + p.baseTarget.x * 0.6;
+            let z = bolaFK.z + dirFK.z * avanco;
+            /*
+            COM AS TABELAS POR ZONA (Match Tactics), quem defende o livre fica no posto SEM bola da tabela para a bola onde ela esta — e nao na faixa pela ordem em profundidade, que
+            punha o meia criativo e os pontas onde calhava (relato com capturas: "todos estao a mais de 7 m do posto"). A Lei 13 continua a mandar: nunca a menos de `de` m da bola.
+            */
+            if (typeof posicaoPorZona === 'function') {
+                if (!this._bbLivre || this._bbLivre.k !== p.team) this._bbLivre = { k: p.team, bb: { team: p.team, dir: p.dirZ, ballX: bolaFK.x, ballZ: bolaFK.z, isAttacking: false, possessionTime: 99 } };
+                const bbL = this._bbLivre.bb; bbL.ballX = bolaFK.x; bbL.ballZ = bolaFK.z; bbL.dir = p.dirZ; bbL._zonasCache = null;
+                const zt = posicaoPorZona(p, bbL);
+                if (zt) {
+                    x = zt.x; z = zt.z;
+                    const dxb = x - bolaFK.x, dzb = z - bolaFK.z, db = Math.hypot(dxb, dzb);
+                    if (db < S.de) { const f = (db > 0.001 ? S.de / db : 1); x = bolaFK.x + (db > 0.001 ? dxb * f : S.de); z = bolaFK.z + (db > 0.001 ? dzb * f : 0); }
+                }
+            }
             p.hasBall = false;
             p.velocity.set(0, 0, 0);
             p.model.position.set(

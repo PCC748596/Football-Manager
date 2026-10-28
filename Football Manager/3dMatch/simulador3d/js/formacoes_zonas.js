@@ -24,13 +24,13 @@ const FormacoesZonasLib = {
     // Centros das 3 colunas (x, em metros, referencial de ataque) e das 3 linhas (z), a partir das fronteiras da tabela.
     centros: function (T) {
         const L = (T && T.meiaLargura) || 34, H = (T && T.meiaAltura) || 53;
-        const cx = (T && T.corredorX) || 11.33, tz = (T && T.terco) || 17.7;
+        const cx = (T && T.corredorX) || 11.33, tz = (T && T.terco) || 18.25;
         return { x: [-(cx + L) / 2, 0, (cx + L) / 2], z: [-(tz + H) / 2, 0, (tz + H) / 2] };
     },
 
     // A zona (0..8) onde a bola está (metros, referencial de ataque).
     zonaDaBola: function (T, xAtk, zAtk) {
-        const cx = (T && T.corredorX) || 11.33, tz = (T && T.terco) || 17.7;
+        const cx = (T && T.corredorX) || 11.33, tz = (T && T.terco) || 18.25;
         const col = xAtk < -cx ? 0 : (xAtk > cx ? 2 : 1);
         const lin = zAtk < -tz ? 0 : (zAtk > tz ? 2 : 1);
         return lin * 3 + col;

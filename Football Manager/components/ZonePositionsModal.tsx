@@ -23,12 +23,17 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose,
   const over = team.tactics.zoneOverrides?.[formacao];
   const [fase, setFase] = useState<FaseZona>('com');
   const [zona, setZona] = useState(4);
+  // PLAYING AGAINST: o sistema do adversario (circulos vermelhos a 30%) para comparar. Ele ataca para o lado oposto, por isso a zona da bola e a fase espelham-se.
+  const [contra, setContra] = useState(false);
+  const [formContra, setFormContra] = useState<string>(() => Object.keys(FORMATIONS).find(f => f !== team.tactics.formation && formacaoTemTabela(f)) || team.tactics.formation);
   const [arrasto, setArrasto] = useState<{ slot: number; x: number; z: number } | null>(null);
   const campo = useRef<HTMLDivElement>(null);
 
   const postos = useMemo(() => postosEfetivos(formacao, over, fase, zona), [formacao, over, fase, zona]);
   const base = useMemo(() => postosDeBase(formacao, fase, zona), [formacao, fase, zona]);
   const slots = FORMATIONS[formacao];
+  const faseContra: FaseZona = fase === 'com' ? 'sem' : 'com';
+  const postosContra = useMemo(() => (contra && formacaoTemTabela(formContra)) ? postosDeBase(formContra, faseContra, 8 - zona) : [], [contra, formContra, faseContra, zona]);
   const rotulos = useMemo(() => slots.map(s => s.label), [slots]);
   const bola = centroDaZona(zona);
   const ajustadoNa = (f: FaseZona, z: number) => !!over?.[f]?.[String(z)] && Object.keys(over![f]![String(z)]).length > 0;
@@ -84,6 +89,11 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose,
             {[-1, 1].map(sg => <div key={'v' + sg} className="absolute top-0 bottom-0 border-l border-dashed border-white/25" style={{ left: `${50 - sg * ZONAS.corredorX / ZONAS.meiaLargura * 50}%` }} />)}
           </div>
           <div className="absolute -translate-x-1/2 -translate-y-1/2 text-xl pointer-events-none opacity-90" style={pct(bola.x, bola.z)} title="A bola">⚽</div>
+          {postosContra.map((p, i) => (
+            <div key={'c' + i} className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-30" style={pct(-p.x, -p.z)}>
+              <div className="w-9 h-9 rounded-full bg-red-600 border-2 border-red-300 flex items-center justify-center text-[9px] font-black text-white">{FORMATIONS[formContra][i]?.label}</div>
+            </div>
+          ))}
           {postos.map((p, i) => {
             const pos = arrasto && arrasto.slot === i ? { x: arrasto.x, z: arrasto.z } : p;
             const mudou = Math.abs(base[i].x - p.x) > 0.0006 || Math.abs(base[i].z - p.z) > 0.0006;
@@ -110,9 +120,13 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose,
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl font-black leading-none">✕</button>
           </div>
 
-          <div className="flex gap-2">
-            <button onClick={() => setPresets('save')} className="flex-1 px-3 py-2 rounded bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-emerald-500" title="Grava a tática atual (formação, estilo e posições)">Save</button>
-            <button onClick={() => setPresets('load')} className="flex-1 px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[11px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title="Carrega uma tática gravada ou de um ficheiro .json">Load</button>
+          <div className="flex flex-col gap-2">
+            <button onClick={() => setContra(c => !c)} className={`px-3 py-2 rounded text-[10px] font-black uppercase tracking-widest ${contra ? 'bg-red-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`} title="Mostra, em circulos vermelhos, onde o sistema adversario fica com a bola nesta zona">Playing Against</button>
+            {contra && (
+              <select value={formContra} onChange={e => setFormContra(e.target.value)} className="px-2 py-2 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-bold text-slate-700 dark:text-white">
+                {Object.keys(FORMATIONS).filter(formacaoTemTabela).map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
+            )}
           </div>
 
           <div>
@@ -149,7 +163,12 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose,
             <button onClick={() => onChange(repor(over, fase))} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700">Repor {fase === 'com' ? 'com a bola' : 'sem a bola'} (todas as zonas)</button>
             <button disabled={!temAjustes(over)} onClick={() => onChange(undefined)} className="px-3 py-2 rounded bg-rose-600/80 disabled:opacity-30 text-[10px] font-black uppercase tracking-widest text-white hover:bg-rose-600">Repor a formação toda</button>
           </div>
-          <span className="text-[9px] text-slate-400 leading-tight">Amarelo = posto ajustado. Os ajustes valem para esta formação e entram no jogo (também com a partida em curso).</span>
+          <span className="text-[9px] text-slate-400 leading-tight">Amarelo = posto ajustado. Vermelho = sistema adversario (Playing Against), na fase oposta e na zona espelhada. Os ajustes valem para esta formação e entram no jogo (também com a partida em curso).</span>
+
+          <div className="flex gap-2">
+            <button onClick={() => setPresets('save')} className="flex-1 px-3 py-2 rounded bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-emerald-500" title="Grava a tática atual (formação, estilo e posições)">Save</button>
+            <button onClick={() => setPresets('load')} className="flex-1 px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[11px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title="Carrega uma tática gravada ou de um ficheiro .json">Load</button>
+          </div>
         </div>
       </div>
       {presets && <div onClick={e => e.stopPropagation()}><TacticPresetsModal atual={team.tactics} foco={presets} onLoad={onLoadTactics} onClose={() => setPresets(null)} /></div>}
