@@ -11236,6 +11236,12 @@ class FootballPlayer {
         if (planoTM) Match.ballVel.copy(planoTM.vel);
 
         this.touchLock = BallControl.touchLock;
+        /*
+        A BOLA SAI DO PE: `hasBall` tem de cair com o `ballCarrier`. Num tiro de meta ele ja era falso (a bola esta parada no chao), mas no RECUO COM O PE (chutarRecuoDeUrgencia) o guarda-redes
+        ja tinha dominado a bola, e com `hasBall` a true o ciclo de posse a segurava ao pe e zerava a velocidade que acabava de receber: o remate nao saia e ele repetia o gesto, varias vezes.
+        */
+        this.hasBall = false;
+        this.carryTouchGrace = 0;
         Match.ballCarrier = null;
         Match.intendedReceiver = planoTM ? planoTM.alvo : null;
         Match.passTargetPos = planoTM ? new THREE.Vector3(planoTM.aim.x, ALTURA_BASE_Y, planoTM.aim.z) : null;
