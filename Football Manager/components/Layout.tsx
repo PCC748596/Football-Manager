@@ -23,9 +23,11 @@ interface Props {
   children: React.ReactNode;
   setView: (view: any) => void;
   currentView: string;
+  /** Volta ao menu inicial (botao MAIN MENU da barra da esquerda). */
+  onMainMenu?: () => void;
 }
 
-const Layout: React.FC<Props> = ({ children, setView, currentView }) => {
+const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu }) => {
   const { gameState, userTeam, saveGame, importGameData, fixtures, pauseMatch, advanceDay, t, inbox, mercado } = useGame();
   const naoLidas = inbox.filter(m => !m.lida).length;
   // Negociacoes de transferencia que esperam resposta do treinador (oferta recebida ou contraproposta).
@@ -196,6 +198,14 @@ const Layout: React.FC<Props> = ({ children, setView, currentView }) => {
            >
              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 5 17 10"></polyline><line x1="12" y1="5" x2="12" y2="15"></line></svg>
              LOAD GAME
+           </button>
+
+           <button
+             onClick={() => { if (window.confirm('Return to the main menu? Progress since your last save will be lost.')) onMainMenu?.(); }}
+             className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 text-white font-black py-2.5 rounded border border-slate-700 dark:border-slate-700 hover:border-blue-400 transition-all flex items-center justify-center gap-2 text-[10px] tracking-widest uppercase group"
+           >
+             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+             MAIN MENU
            </button>
         </div>
       </aside>

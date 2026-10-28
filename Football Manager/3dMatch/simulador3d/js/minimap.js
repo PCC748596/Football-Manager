@@ -149,9 +149,9 @@ const Minimap = {
         const em2D = (typeof window !== 'undefined' && window.cameraMode === 'topdown');
         if (this._em2D !== em2D) {
             this._em2D = em2D;
-            if (this._canvas) this._canvas.style.display = (this.visivel && !em2D) ? 'block' : 'none';
+            if (this._canvas) this._canvas.style.display = (this.visivel && !em2D && !this.suprimido) ? 'block' : 'none';
         }
-        if (!this.visivel || em2D) return;
+        if (!this.visivel || em2D || this.suprimido) return;
         if (typeof Match === 'undefined' || !Match.ball) return;
 
         const ctx = this._ctx;
@@ -202,6 +202,16 @@ const Minimap = {
 
     setVisivel: function (on) {
         this.visivel = on;
-        if (this._canvas) this._canvas.style.display = on ? 'block' : 'none';
+        if (this._canvas) this._canvas.style.display = (on && !this.suprimido && !this._em2D) ? 'block' : 'none';
+    },
+
+    /*
+    O CARTAO DE EVENTO (remates, faltas, impedimentos...) ocupa o sitio do minimapa: enquanto ele esta no ecra o minimapa esconde-se (`suprimido`) e depois volta, se o jogador o tinha ligado
+    (`visivel` e so do botao, nao e tocado aqui).
+    */
+    suprimido: false,
+    suprimir: function (on) {
+        this.suprimido = !!on;
+        if (this._canvas) this._canvas.style.display = (this.visivel && !this.suprimido && !this._em2D) ? 'block' : 'none';
     }
 };

@@ -9,6 +9,8 @@ interface Props {
   onChange: (over: ZoneOverrides | undefined) => void;
   onClose: () => void;
   onLoadTactics: (t: Tactics) => void;
+  /** O proximo adversario do utilizador: o Playing Against mostra a formacao e os ajustes dele. */
+  adversario?: Team;
 }
 
 const NOME_DA_ZONA = ['Def. direita', 'Def. centro', 'Def. esquerda', 'Meio direita', 'Meio centro', 'Meio esquerda', 'Atq. direita', 'Atq. centro', 'Atq. esquerda'];
@@ -17,7 +19,7 @@ const NOME_DA_ZONA = ['Def. direita', 'Def. centro', 'Def. esquerda', 'Meio dire
 O EDITOR DAS POSICOES COM E SEM A BOLA (aba Match Tactics). O campo mostra os onze postos para a ZONA em que a bola esta (grelha 3x3) e a fase escolhida; arrasta-se cada um para onde se quer.
 Por baixo, o motor 3D interpola entre as quatro zonas mais proximas, por isso so as zonas ajustadas mudam, e as vizinhas acompanham. Ver textSim/formacoesZonas.ts.
 */
-const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose, onLoadTactics }) => {
+const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose, onLoadTactics, adversario }) => {
   const [presets, setPresets] = useState<null | 'save' | 'load'>(null);
   const formacao = team.tactics.formation;
   const over = team.tactics.zoneOverrides?.[formacao];
@@ -25,7 +27,7 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose,
   const [zona, setZona] = useState(4);
   // PLAYING AGAINST: o sistema do adversario (circulos vermelhos a 30%) para comparar. Ele ataca para o lado oposto, por isso a zona da bola e a fase espelham-se.
   const [contra, setContra] = useState(false);
-  const [formContra, setFormContra] = useState<string>(() => Object.keys(FORMATIONS).find(f => f !== team.tactics.formation && formacaoTemTabela(f)) || team.tactics.formation);
+  const [formContra, setFormContra] = useState<string>(() => adversario && formacaoTemTabela(adversario.tactics.formation) ? 'ADV' : Object.keys(FORMATIONS).find(f => f !== team.tactics.formation && formacaoTemTabela(f)) || team.tactics.formation);
   const [arrasto, setArrasto] = useState<{ slot: number; x: number; z: number } | null>(null);
   const campo = useRef<HTMLDivElement>(null);
 
@@ -33,7 +35,10 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose,
   const base = useMemo(() => postosDeBase(formacao, fase, zona), [formacao, fase, zona]);
   const slots = FORMATIONS[formacao];
   const faseContra: FaseZona = fase === 'com' ? 'sem' : 'com';
-  const postosContra = useMemo(() => (contra && formacaoTemTabela(formContra)) ? postosDeBase(formContra, faseContra, 8 - zona) : [], [contra, formContra, faseContra, zona]);
+  // 'ADV' = o esquema do proximo adversario (a formacao e os ajustes de posicao dele); senao uma formacao da lista, na tabela base.
+  const contraForm = formContra === 'ADV' && adversario ? adversario.tactics.formation : formContra;
+  const contraOver = formContra === 'ADV' && adversario ? adversario.tactics.zoneOverrides?.[contraForm] : undefined;
+  const postosContra = useMemo(() => (contra && formacaoTemTabela(contraForm)) ? postosEfetivos(contraForm, contraOver, faseContra, 8 - zona) : [], [contra, contraForm, contraOver, faseContra, zona]);
   const rotulos = useMemo(() => slots.map(s => s.label), [slots]);
   const bola = centroDaZona(zona);
   const ajustadoNa = (f: FaseZona, z: number) => !!over?.[f]?.[String(z)] && Object.keys(over![f]![String(z)]).length > 0;
@@ -91,7 +96,7 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose,
           <div className="absolute -translate-x-1/2 -translate-y-1/2 text-xl pointer-events-none opacity-90" style={pct(bola.x, bola.z)} title="A bola">⚽</div>
           {postosContra.map((p, i) => (
             <div key={'c' + i} className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-30" style={pct(-p.x, -p.z)}>
-              <div className="w-9 h-9 rounded-full bg-red-600 border-2 border-red-300 flex items-center justify-center text-[9px] font-black text-white">{FORMATIONS[formContra][i]?.label}</div>
+              <div className="w-9 h-9 rounded-full bg-red-600 border-2 border-red-300 flex items-center justify-center text-[9px] font-black text-white">{FORMATIONS[contraForm][i]?.label}</div>
             </div>
           ))}
           {postos.map((p, i) => {
@@ -124,6 +129,7 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose,
             <button onClick={() => setContra(c => !c)} className={`px-3 py-2 rounded text-[10px] font-black uppercase tracking-widest ${contra ? 'bg-red-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`} title="Mostra, em circulos vermelhos, onde o sistema adversario fica com a bola nesta zona">Playing Against</button>
             {contra && (
               <select value={formContra} onChange={e => setFormContra(e.target.value)} className="px-2 py-2 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-bold text-slate-700 dark:text-white">
+                {adversario && formacaoTemTabela(adversario.tactics.formation) && <option value="ADV">{adversario.name} ({adversario.tactics.formation})</option>}
                 {Object.keys(FORMATIONS).filter(formacaoTemTabela).map(f => <option key={f} value={f}>{f}</option>)}
               </select>
             )}

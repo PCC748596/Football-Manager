@@ -391,15 +391,15 @@ mantem o escudo normal.
 .mc-forma i.E { background: #eab308; }
 .mc-forma i.D { background: #ef4444; }
 
-/* O cartao de EVENTO: no topo, centrado, 50 px abaixo; 40% maior como os outros. */
+/* O cartao de EVENTO: em baixo, centrado, onde esta o minimapa; 40% maior como os outros. */
 #hud-evento {
-    top: 50px;
-    bottom: auto;
+    top: auto;
+    bottom: 16px;          /* no sitio do minimapa (que se esconde enquanto o cartao esta no ecra) */
     left: 50%;
     gap: 14px;
     padding: 8px 16px;
     transform: translateX(-50%) scale(1.4);
-    transform-origin: center top;
+    transform-origin: center bottom;
 }
 
 /* O MESMO ESCUDO dos cartoes dos jogadores (grande, entra pelo lado e o que passa do cartao e cortado): esquerdo a entrar pela esquerda, direito pela direita. */

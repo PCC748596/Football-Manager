@@ -59,6 +59,7 @@ tr.sel td { background:#1c2a4a; }
   <label class="sel"><input type="checkbox" id="chkEspelho" checked> espelhar (esq. ↔ dir.)</label>
   <label class="sel"><input type="checkbox" id="chkFantasma" checked> fantasma da outra fase</label>
   <label class="sel"><input type="checkbox" id="chkPrevia"> pré-visualizar (interpolação)</label>
+  <label class="sel"><input type="checkbox" id="chkContra"> Playing Against <select id="selContra" title="O sistema do adversário (círculos vermelhos a 30%): fase oposta, zona espelhada"></select></label>
   <span style="flex:1"></span>
   <button id="btnExportar" class="pri">Exportar .js</button>
   <label class="sel"><input type="file" id="fileImportar" accept=".js,.json"></label>
@@ -153,6 +154,20 @@ function desenharCampo() {
       el('circle', { cx: sx(p.x), cy: sy(p.z), r: 2.1, fill: 'none', stroke: '#ffffff', 'stroke-width': .25, 'stroke-dasharray': '.8 .8', opacity: .45 }, svg);
     });
   }
+  // PLAYING AGAINST: o sistema contrario em circulos vermelhos a 30%. Ele ataca para o lado oposto: a fase e a oposta, a zona da bola e a espelhada (8 - zona) e as coordenadas invertidas.
+  if ($('chkContra').checked && T.formacoes[$('selContra').value]) {
+    const FC = T.formacoes[$('selContra').value];
+    const lista = st.previa
+      ? FormacoesZonasLib.posicoes(T, $('selContra').value, -bx, -bz, st.fase !== 'com')
+      : (st.fase === 'com' ? FC.sem : FC.com)[8 - st.zona];
+    lista.forEach((p, i) => {
+      const g = el('g', { transform: 'translate(' + sx(-p.x) + ',' + sy(-p.z) + ')', opacity: .3 }, svg);
+      el('circle', { r: 2.6, fill: '#dc2626', stroke: '#fca5a5', 'stroke-width': .35 }, g);
+      const t = el('text', { y: 1, 'text-anchor': 'middle', fill: '#fff', 'font-size': 2.4, 'font-weight': 700 }, g);
+      t.textContent = FC.slots[i].pos; t.style.pointerEvents = 'none';
+      g.style.pointerEvents = 'none';
+    });
+  }
   posicoes.forEach((p, i) => {
     const g = el('g', { transform: 'translate(' + sx(p.x) + ',' + sy(p.z) + ')' }, svg);
     const cor = slots[i].role === 'gk' ? '#f1c40f' : (st.fase === 'com' ? '#3b82f6' : '#ef4444');
@@ -236,6 +251,10 @@ function render(leve) {
 const sel = $('selFormacao');
 chavesDoJogo().forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = k; sel.appendChild(o); });
 sel.addEventListener('change', () => { st.formacao = sel.value; render(); });
+const selC = $('selContra');
+chavesDoJogo().forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = k; selC.appendChild(o); });
+$('chkContra').addEventListener('change', () => render(true));
+selC.addEventListener('change', () => render(true));
 $('tabCom').addEventListener('click', () => { st.fase = 'com'; render(); });
 $('tabSem').addEventListener('click', () => { st.fase = 'sem'; render(); });
 $('chkFantasma').addEventListener('change', () => render(true));

@@ -67,7 +67,7 @@ interface TacticsViewProps {
 }
 
 const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
-  const { userTeam, players, updateTactics, updateSetPieceTakers, gameState, fixtures } = useGame();
+  const { userTeam, players, updateTactics, updateSetPieceTakers, gameState, fixtures, teams } = useGame();
   const [localLineup, setLocalLineup] = useState<string[]>([]);
   const [localBench, setLocalBench] = useState<string[]>([]);
   const [isOverBench, setIsOverBench] = useState(false);
@@ -106,6 +106,13 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   const myPlayers = players.filter(p => p.teamId === userTeam.id);
   const selectedIds = new Set([...localLineup, ...localBench]);
   const availablePlayers = myPlayers.filter(p => !selectedIds.has(p.id)).sort((a,b) => b.skill - a.skill);
+
+  // O proximo adversario (para o Playing Against do editor de posicoes).
+  const proximoAdversario = useMemo(() => {
+    const f = fixtures.filter(x => !x.played && x.date >= gameState.currentDate && (x.homeTeamId === userTeam.id || x.awayTeamId === userTeam.id)).sort((a, b) => a.date.localeCompare(b.date))[0];
+    if (!f) return undefined;
+    return teams.find(t => t.id === (f.homeTeamId === userTeam.id ? f.awayTeamId : f.homeTeamId));
+  }, [fixtures, teams, gameState.currentDate, userTeam.id]);
 
   const currentMatch = useMemo(() => fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === userTeam.id || f.awayTeamId === userTeam.id)), [fixtures, gameState.currentDate, userTeam.id]);
 
@@ -312,7 +319,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in" style={{ height: 'calc(100vh - 80px)' }}>
-        {showZonas && <ZonePositionsModal team={userTeam} players={players} onClose={() => setShowZonas(false)} onLoadTactics={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })}
+        {showZonas && <ZonePositionsModal team={userTeam} adversario={proximoAdversario} players={players} onClose={() => setShowZonas(false)} onLoadTactics={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })}
             onChange={(over) => { const todos = { ...(userTeam.tactics.zoneOverrides || {}) }; if (over) todos[userTeam.tactics.formation] = over; else delete todos[userTeam.tactics.formation]; updateTactics(userTeam.id, { zoneOverrides: Object.keys(todos).length ? todos : undefined }); }} />}
         {showPresets && <TacticPresetsModal atual={userTeam.tactics} onClose={() => setShowPresets(false)} onLoad={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })} />}
         <div className="flex justify-between items-center shrink-0">

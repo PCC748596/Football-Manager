@@ -353,7 +353,7 @@ const GameContainer: React.FC = () => {
       {appPhase === 'SELECT_TEAM' && <TeamSelection managerName={tempManagerName} onSelectTeam={handleTeamSelected} onBack={() => setAppPhase('SELECT_MODE')} />}
       
       {appPhase === 'GAME' && gameState.userTeamId && (
-        <Layout setView={setView} currentView={view}>
+        <Layout setView={setView} currentView={view} onMainMenu={() => setAppPhase('MENU')}>
             {view === 'TRAINING' && <MatchRoundView setView={setView} />}
             {view === 'MATCH' && <MatchDay setView={setView} />}
             {view === 'DASHBOARD' && (
