@@ -119,6 +119,7 @@ Object.assign(Match, {
         if (this.state === 'INTERVALO' && this.intervaloComSaida) {
             if (typeof Officials !== 'undefined') Officials.update(dt);
             if (typeof Bancos !== 'undefined') Bancos.update(dt);
+            if (typeof Staff !== 'undefined' && Staff.update) Staff.update(dt);   // a cabeca da imprensa segue a bola
         }
         if (this.state !== 'INTERVALO') return;
         // Com saida de campo o tempo so conta depois de o campo estar vazio; e com o manager a mandar (Ponte.aoIntervaloPronto) o jogo espera
@@ -199,6 +200,7 @@ Object.assign(Match, {
             this.correrPausaDeJogo(dt);
             if (typeof Officials !== 'undefined') Officials.update(dt);
             if (typeof Bancos !== 'undefined') Bancos.update(dt);
+            if (typeof Staff !== 'undefined' && Staff.update) Staff.update(dt);   // a cabeca da imprensa segue a bola
             this.somDoEstadio(dt);
             return;
         }
@@ -220,6 +222,7 @@ Object.assign(Match, {
             this.opponents.forEach(p => p.update(dt));
             if (typeof Officials !== 'undefined') Officials.update(dt);
             if (typeof Bancos !== 'undefined') Bancos.update(dt);
+            if (typeof Staff !== 'undefined' && Staff.update) Staff.update(dt);   // a cabeca da imprensa segue a bola
             // A torcida acompanha a entrada (CrowdModel.fraccaoEntrada). Sem isto o frame saia daqui e ela ficava parada.
             if (typeof Crowd !== 'undefined' && !(typeof Config !== 'undefined' && Config.enableCrowd === false)) Crowd.update(dt);
             this.somDoEstadio(dt);

@@ -36,6 +36,8 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const [replayAtivo, setReplayAtivo] = useState(false);
   // O indicador de evento do 3D (SHOTS, CORNERS...): sai na barra de cima, ao lado dos botoes, durante `duracao` s.
   const [eventoHud, setEventoHud] = useState<{ nome: string; esq: number; dir: number } | null>(null);
+  // O relogio do 3D em segundos (mensagem `relogio`): o TEMPO mostra-se em MM:SS.
+  const [relogio3d, setRelogio3d] = useState<number | null>(null);
   const eventoTimer = useRef<any>(null);
   const [pronto3d, setPronto3d] = useState(() => simulador3dPronto());
   // Os times estao a entrar em campo: o botao principal diz PULAR (ver Ponte.pularDisponivel).
@@ -50,6 +52,19 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
     if (pronto3d && cobradoresJson && match) simulador3dEnviar({ tipo: 'cobradores', lado: match.homeTeamId === gameState.userTeamId ? 'A' : 'B', cobradores: JSON.parse(cobradoresJson) });
   }, [pronto3d, cobradoresJson]);
   const [iniciou, setIniciou] = useState(() => simulador3dArrancou(chave3d + '#' + simulador3dReinicios(chave3d)));
+  /*
+  RETOMAR UM JOGO GRAVADO A MEIO: o save tem o minuto, o placar e os eventos, mas o 3D desta sessao ainda nao correu. Lido uma vez, ao abrir a tela: o 3D comeca no minuto do save (sem a
+  entrada dos times), com o placar e os expulsos (os vermelhos dos eventos). Ver Ponte._retomar no simulador.
+  */
+  const retomarRef = useRef<{ minuto: number; placar: { casa: number; fora: number }; expulsos: string[]; saida: 'casa' | 'fora'; instantaneo?: any } | null>(
+    (!iniciou && match && !match.played && gameState.matchMinute > 0 && gameState.matchMinute < 90) ? {
+      minuto: gameState.matchMinute,
+      placar: { casa: match.homeScore || 0, fora: match.awayScore || 0 },
+      expulsos: (match.events || []).filter((e: any) => e.type === 'CARD' && (String(e.description || '').includes('🟥') || /RED|VERMELH/i.test(String(e.description || ''))) && e.playerId).map((e: any) => String(e.playerId)),
+      saida: (gameState.matchMinute % 2 === 0) ? 'casa' : 'fora',
+      // O instantaneo do 3D gravado com o save (posicoes, bola, posse, estatisticas): continua exactamente dali, sem saida de bola.
+      instantaneo: (window as any).__instantaneo3d || undefined
+    } : null);
   // Sair desta tela (taticas, etc.) pausa o relogio; o 3D pausa-se sozinho e retoma ao voltar (o iframe nao e recriado).
   useEffect(() => () => { pauseMatch(); }, []);
 
@@ -58,18 +73,25 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   useEffect(() => {
     // Fim do jogo: conclui a partida (o mesmo do botao CONCLUIR: passa o dia) e vai para a HOME, sem a tela de estatisticas e notas (ela continua na aba Stats durante o jogo).
     // Antes ia so para a HOME e o minuto ficava em 90: o RESUME MATCH ficava ativo e os dias nao passavam.
+    /*
+    COM O 3D AO VIVO NAO SE CONCLUI SOZINHO (pedido: *"ao terminar o jogo continuar na tela do 3D com as estatisticas e so sair para a home depois de selecionar continuar"*). O relogio do
+    manager chega aos 90 com o 3D ainda no acrescimo, e concluir aqui tirava o jogo do 3D antes do apito final — sem o resultado dele o manager ficava preso. Agora o 3D acaba o jogo, mostra as
+    estatisticas, as notas e a tabela, e o treinador sai com CONTINUAR (o botao do manager ou o do 3D: handleAction / `saida_pedida`, que so concluem depois do `fim` do 3D).
+    */
     if (gameState.matchMinute >= 90) {
+      if (iniciou) return;
       if (setView) {
         if (!concluidoRef.current) { concluidoRef.current = true; advanceWeek(); setView('DASHBOARD'); }
       } else setActiveTab('stats');
     } else if (gameState.matchMinute === 0) concluidoRef.current = false;
-  }, [gameState.matchMinute]);
+  }, [gameState.matchMinute, iniciou]);
 
   if (!match || !homeTeam || !awayTeam) {
     return <div className="text-white p-10 text-center font-black uppercase italic">Sem partida hoje.</div>;
   }
 
-  const showStats = gameState.matchMinute >= 90 || activeTab === 'stats';
+  // Com o 3D o fim do jogo fica no 3D (as estatisticas dele): a aba de estatisticas do manager so abre se o treinador a escolher.
+  const showStats = (gameState.matchMinute >= 90 && !iniciou) || activeTab === 'stats';
   // A posicao dos dois clubes na tabela da liga (pontos, saldo, golos): o treinador da CPU no 3D leva-a em conta (objetivo do clube). Sem jogos feitos, vale a ordem de OVR.
   const tabelaDosDois = (() => {
     const liga = teams.filter(t => t.leagueId === homeTeam.leagueId && (t.groupId || '') === (homeTeam.groupId || ''));
@@ -91,12 +113,20 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
     // Os times entram em campo: o botao e PULAR (o mesmo que o ESC do 3D). O pedido de saida que o ESC gera volta aqui e ai arranca a partida (daSaidaPedida).
     if (podePular && !daSaidaPedida && gameState.matchMinute < 90) { simulador3dEnviar({ tipo: 'esc' }); return; }
     if (gameState.matchMinute >= 90) {
+        /*
+        SO SE CONCLUI DEPOIS DO 3D ACABAR. Com o 3D ao vivo o relogio do manager chega aos 90 enquanto o jogo do 3D ainda esta no ACRESCIMO; concluir ai (advanceWeek) tirava o
+        jogo do 3D aos 90, sem as telas de estatisticas/notas/tabela e sem o resultado dele — e o manager ficava preso. O 3D avisa o fim com a mensagem `fim` (motor3dMinuto = 999).
+        */
+        const m3d = (window as any).motor3dMinuto;
+        if (typeof m3d === 'number' && m3d !== 999) { console.warn('[FIM] pedido aos 90 com o 3D ainda a jogar (acrescimo): ignorado', { motor3dMinuto: m3d }); return; }
+        if (concluidoRef.current) return;
+        concluidoRef.current = true;
         advanceWeek();
         setView?.('DASHBOARD');
     } else if (gameState.isProcessing) {
         pauseMatch();
     } else {
-        if (!iniciou) { (window as any).motor3dMinuto = 0; setIniciou(true); }
+        if (!iniciou) { (window as any).motor3dMinuto = retomarRef.current ? retomarRef.current.minuto : 0; setIniciou(true); }
         playMatchDay('VISUAL');
     }
   };
@@ -141,7 +171,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 
                 <div className="flex items-center gap-8">
                     <div className="text-right">
-                        <div className="text-2xl font-black text-blue-500 italic leading-none">{gameState.matchMinute}'</div>
+                        <div className="text-2xl font-black text-blue-500 italic leading-none tabular-nums">{(() => { const s = (iniciou && relogio3d !== null) ? relogio3d : gameState.matchMinute * 60; return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); })()}</div>
                         <div className="text-[8px] text-slate-500 font-black uppercase tracking-widest mt-1">TEMPO</div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -299,7 +329,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 );
              })() : null}
              <div className={`absolute inset-0 w-full h-full ${showStats ? 'hidden' : ''}`}>
-                <Simulador3DView competicao={nomeCompeticao} tabela={tabelaDosDois} amistoso={!!(match.isFriendly || match.type === 'FRIENDLY')} qualidade={gameState.graphicsQuality || 'HIGH'} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx}
+                <Simulador3DView retomar={retomarRef.current} competicao={nomeCompeticao} tabela={tabelaDosDois} amistoso={!!(match.isFriendly || match.type === 'FRIENDLY')} qualidade={gameState.graphicsQuality || 'HIGH'} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx}
                     iniciar={iniciou} pausado={iniciou && !gameState.isProcessing} aoPronto={() => setPronto3d(true)}
                     aoMensagem={(m) => {
                       // Tatica do painel do 3D -> manager (aba Tactics): so o que mudou de nivel.
@@ -314,6 +344,8 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         setView?.('TACTICS');
                       } else if (m.tipo === 'abertura_estado') {
                         setPodePular(!!m.pular);
+                      } else if (m.tipo === 'relogio') {
+                        setRelogio3d(typeof m.segundos === 'number' ? m.segundos : null);
                       } else if (m.tipo === 'hud_evento') {
                         setEventoHud({ nome: m.nome, esq: m.esq, dir: m.dir });
                         clearTimeout(eventoTimer.current);
@@ -324,7 +356,12 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         // ESC / Pause do painel do 3D: quem manda no relogio e no botao e o manager.
                         // Com o jogo acabado, o CONTINUAR / saida do 3D conclui a partida e vai para a HOME (antes ficava preso).
                         if (gameState.matchMinute < 90) handleAction(true);
-                        else if (!concluidoRef.current) { concluidoRef.current = true; advanceWeek(); setView?.('DASHBOARD'); }
+                        else if (!concluidoRef.current) {
+                          // So depois do `fim` do 3D (ver handleAction): no acrescimo o pedido e ignorado.
+                          const m3d = (window as any).motor3dMinuto;
+                          if (typeof m3d === 'number' && m3d !== 999) { console.warn('[FIM] saida pedida no acrescimo: ignorada', { motor3dMinuto: m3d }); return; }
+                          concluidoRef.current = true; advanceWeek(); setView?.('DASHBOARD');
+                        }
                       } else motor3dMensagem(m);
                     }} />
              </div>

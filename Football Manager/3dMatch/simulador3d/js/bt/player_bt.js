@@ -2965,7 +2965,13 @@ function actReceivePass(ctx) {
                 const dx = p.model.position.x - bola.x, dz = p.model.position.z - bola.z;
                 const aoLongo = dx * ux + dz * uz;         // > 0: ele está à frente da bola
                 const lateral = Math.abs(dx * uz - dz * ux);
-                if (aoLongo > (R0.distIniciaMovimento || 2.5) &&
+                /*
+                SO ESPERA SE A BOLA LA CHEGA. Relato: *"tem jogador que fica tremendo a uns 4 metros da bola e nao vai em cima dela; fica esperando a bola chegar, mas a bola para antes"*.
+                A bola a rolar para a `v^2 / 2a` m (atrito de rolamento): se isso nao chega aos pes dele (com folga de `folgaChegada` m), ele vai ao encontro dela em vez de esperar.
+                */
+                const atritoR = BallPhysics.atritoRolamento * BallPhysics.gravidade;
+                const chegaAosPes = (vel * vel) / (2 * atritoR) >= aoLongo + (R0.folgaChegada || 0.5);
+                if (chegaAosPes && aoLongo > (R0.distIniciaMovimento || 2.5) &&
                     lateral <= R0.desvioDirecto) {
                     p.velocity.set(0, 0, 0);
                     p.fsm.changeState('IDLE');

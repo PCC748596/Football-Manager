@@ -249,9 +249,10 @@ const Staff = {
             if (d === 'cabeca') {
                 const h = hexDe(o.material);
                 if (h === 0x2f3640) return 'rosto';
-                if (h !== null && pele !== null && (h === pele || o.material.color.getHexString() === 'c9ad91')) return 'pele';
-                if (h !== null && pele === null && (h === 0xe8c9a8 || h === 0xc9ad91)) return 'pele';
-                return h === null ? 'pele' : 'cabelo';
+                // A pele da CABECA num canal seu (`peleCabeca`): a cabeca da imprensa roda a seguir o jogo (Staff.update) e as maos nao.
+                if (h !== null && pele !== null && (h === pele || o.material.color.getHexString() === 'c9ad91')) return 'peleCabeca';
+                if (h !== null && pele === null && (h === 0xe8c9a8 || h === 0xc9ad91)) return 'peleCabeca';
+                return h === null ? 'peleCabeca' : 'cabelo';
             }
             return 'camisa';
         };
@@ -263,6 +264,7 @@ const Staff = {
         });
         const saida = {};
         let minY = Infinity, topoPernas = -Infinity;
+        const pescoco = new THREE.Vector3(); rig.neck.getWorldPosition(pescoco);
         for (const o of (porCanal.calcao || [])) { if (dono(o) === 'perna') topoPernas = Math.max(topoPernas, new THREE.Box3().setFromObject(o).max.y); }
         for (const canal in porCanal) {
             const lista = porCanal[canal];
@@ -292,6 +294,8 @@ const Staff = {
         // A altura do assento e o topo das PERNAS (o canal `calcao` tambem leva as mangas, que chegam aos ombros).
         this._assentoCorpo = this._assentoCorpo || {};
         this._assentoCorpo[chave] = isFinite(topoPernas) ? topoPernas - minY : 0.5;
+        this._pescocoCorpo = this._pescocoCorpo || {};
+        this._pescocoCorpo[chave] = new THREE.Vector3(pescoco.x, pescoco.y - (isFinite(minY) ? minY : 0), pescoco.z);
         this._cacheCorpo[chave] = saida;
         return saida;
     },
@@ -355,6 +359,36 @@ const Staff = {
     razão de um alta-visibilidade existir é ser exactamente a mesma cor em
     todos, e variá-lo ±10% desfazia isso.
     */
+    /*
+    A CABECA DA IMPRENSA SEGUE A BOLA (pedido: *"os reporters em volta do campo tb tem que acompanhar o jogo virando a cabeca"*). So a cabeca roda, em torno do pescoco, ate `maxGraus`
+    para cada lado da frente do corpo, e suavizada (`suavizacao` por segundo). Corre todos os frames (match_loop), so com a imprensa construida.
+    */
+    update(dt) {
+        const L = this._cabecasImprensa;
+        if (!L || !L.length || typeof Match === 'undefined' || !Match.ball) return;
+        const C = this.cabecaImprensa || { maxGraus: 75, suavizacao: 5.0 };
+        const max = C.maxGraus * Math.PI / 180, k = Math.min(1, C.suavizacao * (dt || 1 / 60));
+        const b = Match.ball.position;
+        const M = this._mCab || (this._mCab = { a: new THREE.Matrix4(), r: new THREE.Matrix4(), t: new THREE.Matrix4(), s: new THREE.Matrix4() });
+        const tocadas = new Set();
+        for (const h of L) {
+            let rel = Math.atan2(b.x - h.x, b.z - h.z) - h.rotY;
+            while (rel > Math.PI) rel -= 2 * Math.PI;
+            while (rel < -Math.PI) rel += 2 * Math.PI;
+            rel = Math.max(-max, Math.min(max, rel));
+            h.yaw += (rel - h.yaw) * k;
+            // corpo: T(x, 0, z) R(rotY) S(escala); cabeca: T(pescoco) R(yaw) T(-pescoco)
+            M.a.makeTranslation(h.x, 0, h.z);
+            M.r.makeRotationY(h.rotY); M.a.multiply(M.r);
+            M.s.makeScale(h.escala, h.escala, h.escala); M.a.multiply(M.s);
+            M.t.makeTranslation(h.pesc.x, h.pesc.y, h.pesc.z); M.a.multiply(M.t);
+            M.r.makeRotationY(h.yaw); M.a.multiply(M.r);
+            M.t.makeTranslation(-h.pesc.x, -h.pesc.y, -h.pesc.z); M.a.multiply(M.t);
+            for (const m of h.ms) { m.setMatrixAt(h.i, M.a); tocadas.add(m); }
+        }
+        tocadas.forEach(m => { m.instanceMatrix.needsUpdate = true; });
+    },
+
     _corDe(canal, F, rnd, tipo) {
         const c = new THREE.Color();
         const imprensa = (tipo === 'imprensa');
@@ -462,6 +496,7 @@ const Staff = {
     },
 
     build(grupo, geo) {
+        this._cabecasImprensa = [];   // refeitas a cada construcao (ver update)
         const F = (typeof FuncionariosEstadio !== 'undefined') ? FuncionariosEstadio : null;
         if (!F || !F.activo || !grupo || !geo) return 0;
         if (typeof Crowd === 'undefined' || typeof CrowdModel === 'undefined') return 0;
@@ -586,9 +621,23 @@ const Staff = {
                 dummy.scale.set(escala, escala, escala);
                 dummy.updateMatrix();
 
+                let corPele = null;
                 for (const canal of canais) {
                     malhas[canal].setMatrixAt(i, dummy.matrix);
-                    malhas[canal].setColorAt(i, this._corDe(canal, F, rnd, p.tipo));
+                    // A pele da cabeca e a das maos sao a mesma cor (a mesma pessoa).
+                    let cor;
+                    if (canal === 'pele' || canal === 'peleCabeca') cor = corPele || (corPele = this._corDe('pele', F, rnd, p.tipo));
+                    else cor = this._corDe(canal, F, rnd, p.tipo);
+                    malhas[canal].setColorAt(i, cor);
+                }
+                // A IMPRENSA ACOMPANHA O JOGO: a cabeca (cabelo, rosto e pele da cabeca) roda para a bola em Staff.update.
+                if (p.tipo === 'imprensa') {
+                    const ms = ['cabelo', 'rosto', 'peleCabeca'].map(c => malhas[c]).filter(Boolean);
+                    const pesc = this._pescocoCorpo && this._pescocoCorpo[nomePose === 'sentado' ? 's' : 'p'];
+                    if (ms.length && pesc) {
+                        ms.forEach(m => m.instanceMatrix.setUsage(THREE.DynamicDrawUsage));
+                        (this._cabecasImprensa = this._cabecasImprensa || []).push({ ms, i, x: p.x, z: p.z, rotY, escala, pesc, yaw: 0 });
+                    }
                 }
             });
 

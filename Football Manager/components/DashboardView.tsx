@@ -667,7 +667,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                         {top5Players.map((p, idx) => (
                             <div key={p.id} className="flex justify-between items-center py-0.5 px-1 hover:bg-slate-50 dark:hover:bg-slate-800/30 rounded transition-colors group">
                                 <span className="text-base font-bold text-slate-400 w-6 text-center">{idx + 1}</span>
-                                <PlayerFace playerId={p.id} camisa={userTeam ? getKitDetails(userTeam, 0).c1 : undefined} className="w-9 h-9 shrink-0 mr-2 rounded-md overflow-hidden bg-black/30 border border-white/20" />
+                                <PlayerFace playerId={p.id} camisa={userTeam ? getKitDetails(userTeam, 0).c1 : undefined} className="w-[54px] h-[54px] shrink-0 mr-2 rounded-md overflow-hidden bg-black/30 border border-white/20" />
                                 <div className="flex-1 flex flex-col min-w-0 pr-2">
                                     <span className="text-base font-bold text-slate-700 dark:text-slate-300 uppercase truncate">{p.name}</span>
                                 </div>

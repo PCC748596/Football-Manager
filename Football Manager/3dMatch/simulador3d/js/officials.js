@@ -83,11 +83,11 @@ const RefereeModel = {
     */
     // Escanteio: o juiz fica fora da grande area, do lado oposto ao canto (ver pontoDoArbitro): metros para la da linha lateral da area e a frente da linha dela.
     cantoFora: { folgaX: 2.0, folgaZ: 3.0 },
-    raioMin: 9.0,            // mais perto do que isto, afasta-se
-    raioMax: 13.0,           // mais longe do que isto, aproxima-se
+    raioMin: 14.0,           // mais perto do que isto, afasta-se (+5 m, pedido: o juiz mais longe das jogadas)
+    raioMax: 18.0,           // mais longe do que isto, aproxima-se
     seguraMargem: 1.5,       // m: ja parado a girar, so volta a andar se a bola passar de raioMax + isto
     giroParado: 4.0,         // rad/s: o giro do corpo para a bola quando esta parado
-    distMinDura: 9.0,        // o alvo nunca fica mais perto da bola do que isto
+    distMinDura: 14.0,       // o alvo nunca fica mais perto da bola do que isto
     margemFuga: 3.0,         // abaixo de distMinDura + isto, foge sem amortecer nem recuar
     antecipacao: 0.6,        // s: a coroa e posta a volta da bola prevista (ver o update)
     antecipacaoVelMax: 8.0,  // m/s: uma bola mais rapida do que isto antecipa-se menos tempo

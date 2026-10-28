@@ -2898,6 +2898,8 @@ class FootballPlayer {
         if (!Z || !(Z.raioMaxLivre > 0) || !this._zonal || !this.slotTarget || this.role === 'gk' || this.hasBall) return;
         if (typeof Match === 'undefined' || Match.state !== 'PLAY') return;
         if (Match.chaserA === this || Match.chaserB === this || Match.intendedReceiver === this || Match.ballCarrier === this) return;
+        // Bola SOLTA perto (ninguem com ela): quem esta ao lado vai a ela. Sem isto a coleira puxava-o de volta para o posto e ele ficava a tremer a 4 m de uma bola parada.
+        if (!Match.ballCarrier && Match.ball && this.model.position.distanceTo(Match.ball.position) < (Z.raioBolaSolta || 8)) return;
         const bb = (typeof TeamAI !== 'undefined') ? TeamAI.get(this.team) : null;
         if (bb && (bb.chaser === this || bb.intercetor === this || bb.bloqueador === this || bb.blocker === this)) return;
         const s = this.fsm && this.fsm.currentState;
@@ -6023,7 +6025,9 @@ class FootballPlayer {
                         }
                     }
                 }
-            } else if (this.chegouAoPosto && Match.ball) {
+            } else if ((this.chegouAoPosto || d < 2.5) && Match.ball) {
+                // PERTO DO ALVO (a menos de 2.5 m, ainda sem 'chegou'): a direccao para o alvo vira de lado a cada passo do alvo — o corpo tremia, a virar de um lado para o outro
+                // (medido: ~190 segundos-jogador por 10 min com 4+ inversoes de giro por segundo, quase todos em MOVE_TO_POS e MARKING). Olha para a bola, como quem ja chegou.
                 // Já no sítio: acompanha a bola. O limiar tem histerese (ver
                 // OlharModel) — era um 0.5 m seco, e o alvo atravessava-o para
                 // trás e para a frente uma vez e meia por segundo.

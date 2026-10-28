@@ -63,6 +63,7 @@ const Ponte = {
                 Match.cobradores = Match.cobradores || { A: null, B: null };
                 Match.cobradores[m.lado === 'B' ? 'B' : 'A'] = o;
             }
+            else if (m.tipo === 'instantaneo') this.enviar('instantaneo', { id: m.id, dados: this.instantaneo() });
             else if (m.tipo === 'pausar') this.pausar();
             else if (m.tipo === 'continuar') this.continuar();
             else if (m.tipo === 'parar') this.parar();
@@ -173,7 +174,9 @@ const Ponte = {
             const bn = barra.querySelector('#tc-nomes');   // o botao dos nomes mostra o estado real
             if (bn) { const t = 'Names ' + (window.showPlayerNames ? 'ON' : 'OFF'); if (bn.textContent !== t) bn.textContent = t; bn.classList.toggle('on', !!window.showPlayerNames); }
             const bp = barra.querySelector('#tc-pausa');
-            if (bp) { const t = this.pularDisponivel() ? 'Pular' : this.estado === 'pausado' ? 'Continuar' : 'Pausar'; if (bp.textContent !== t) bp.textContent = t; bp.classList.toggle('on', this.estado === 'pausado'); }
+            if (bp) { // Com o jogo acabado (estado 'terminado', as estatisticas no ecra) o botao e CONTINUAR: o clique (alternar_pausa) conclui a partida no manager e vai para a home.
+            const parado = this.estado === 'pausado' || this.estado === 'terminado';
+            const t = this.pularDisponivel() ? 'Pular' : parado ? 'Continuar' : 'Pausar'; if (bp.textContent !== t) bp.textContent = t; bp.classList.toggle('on', parado); }
             const rp = barra.querySelector('#tc-replay'); if (rp) rp.classList.toggle('pisca', !!(window.MatchReplay && window.MatchReplay.isReplaying));
         }, 250);
     },
@@ -381,10 +384,130 @@ const Ponte = {
         this.estado = 'a_correr';
         this.enviar('iniciada', { minuto: 1 });
         Eventos.registar('INICIO', {});
+        // RETOMAR um jogo gravado a meio (ver `_retomar`): sem entrada dos times, no minuto e com o placar do save.
+        if (m.retomar && typeof m.retomar.minuto === 'number' && m.retomar.minuto > 0) {
+            this._retomar(m.retomar);
+            if (this.modo === 'oculto') this._arrancarCiclo(); else this._arrancarVigia();
+            return;
+        }
         // No modo visivel as equipas entram pelo tunel (js/abertura.js) antes da saida de bola, como no jogo normal; o relogio so corre depois.
         if (this.modo === 'visivel' && !jaPreparada && typeof Abertura !== 'undefined') { Abertura.jaCorreu = false; Abertura.activa = false; Abertura.iniciar(); }
         if (this.modo === 'oculto') this._arrancarCiclo();
         else this._arrancarVigia();
+    },
+
+    /*
+    RETOMAR UM JOGO GRAVADO A MEIO (pedido: carregar um save do meio da partida 3D e voltar ao tempo certo). `r` = { minuto, placar: { casa, fora }, expulsos: [ids do manager],
+    saida: 'casa' | 'fora' }. O motor nao guarda o estado do 3D no save (posicoes, posse, estatisticas finas), por isso o jogo recomeca NO MINUTO gravado, com o placar e os expulsos,
+    com os times nos postos e uma saida de bola; a partir dos 45' ja no 2.o tempo (lados trocados, sem intervalo). As estatisticas do 3D recomecam a zero a partir dai.
+    */
+    /*
+    O INSTANTANEO DO JOGO para o save (pedido: carregar o save e continuar EXACTAMENTE de onde parou, sem nova saida de bola): o relogio e os acrescimos, o placar, os lados, a bola
+    (posicao e velocidade), quem a tem, a posse, cada jogador (posicao, orientacao, energia, expulso) e as estatisticas. So dados simples (viaja por mensagem e vai para o JSON do save).
+    */
+    instantaneo() {
+        if (this.estado !== 'a_correr' && this.estado !== 'pausado') return null;
+        const todos = [...Match.players, ...Match.opponents];
+        const v = new THREE.Vector3();
+        return {
+            tempo: Match.tempoDeJogo, placarA: Match.placarA, placarB: Match.placarB,
+            primeiroTempoAcabou: !!Match.primeiroTempoAcabou, acr1Calculado: !!Match.acr1Calculado, acrescimo1: Match.acrescimo1 || 0,
+            segundoTempoIniciado: !!Match.segundoTempoIniciado, trocados: !!Lados.trocados, faltasNoIntervalo: Match.faltasNoIntervalo || 0,
+            substituicoes: Match.substituicoes || 0, substituicoesNoIntervalo: Match.substituicoesNoIntervalo || 0,
+            bola: { p: [Match.ball.position.x, Match.ball.position.y, Match.ball.position.z], v: [Match.ballVel.x, Match.ballVel.y, Match.ballVel.z] },
+            portador: Match.ballCarrier ? { team: Match.ballCarrier.team, id: Match.ballCarrier.id } : null,
+            posse: Match.possessionTeam || null,
+            jogadores: todos.filter(p => p && p.model).map(p => {
+                v.set(0, 0, 1).applyQuaternion(p.model.quaternion);
+                return { team: p.team, id: p.id, x: p.model.position.x, z: p.model.position.z, rot: Math.atan2(v.x, v.z), energia: p.energia, expulso: !!p.expulso };
+            }),
+            stats: (typeof MatchStats !== 'undefined') ? JSON.parse(JSON.stringify({ TeamA: MatchStats.TeamA, TeamB: MatchStats.TeamB })) : null
+        };
+    },
+
+    // Repoe o instantaneo (ver `instantaneo`) por cima do jogo ja montado no minuto certo: jogadores, bola, posse e estatisticas, e o jogo segue SEM nova saida.
+    _reporInstantaneo(s) {
+        Match.tempoDeJogo = s.tempo || Match.tempoDeJogo;
+        Match.placarA = s.placarA || 0; Match.placarB = s.placarB || 0;
+        Match.primeiroTempoAcabou = !!s.primeiroTempoAcabou; Match.acr1Calculado = !!s.acr1Calculado; Match.acrescimo1 = s.acrescimo1 || 0;
+        Match.segundoTempoIniciado = !!s.segundoTempoIniciado; Match.faltasNoIntervalo = s.faltasNoIntervalo || 0;
+        Match.substituicoes = s.substituicoes || 0; Match.substituicoesNoIntervalo = s.substituicoesNoIntervalo || 0;
+        if (Lados.trocados !== !!s.trocados) {
+            Lados.trocados = !!s.trocados;
+            [...Match.players, ...Match.opponents].forEach(p => { p.dirZ = Lados.dirDe(p.team); p.targetGoalZ = (CAMPO_COMP / 2) * p.dirZ; p.ownGoalZ = -(CAMPO_COMP / 2) * p.dirZ; });
+            ['TeamA', 'TeamB'].forEach(t => { const bb = TeamAI.blackboards && TeamAI.blackboards[t]; if (!bb) return; bb.dir = Lados.dirDe(t); bb.ownGoalZ = ownGoalZCenter(t); bb.atkGoalZ = -bb.ownGoalZ; });
+        }
+        const todos = [...Match.players, ...Match.opponents];
+        for (const j of (s.jogadores || [])) {
+            const p = todos.find(x => x && x.team === j.team && x.id === j.id);
+            if (!p || !p.model) continue;
+            if (j.expulso && !p.expulso && typeof Officials !== 'undefined' && Officials.expulsar) { try { Officials.expulsar(p); } catch (e) { /* */ } continue; }
+            p.model.position.x = j.x; p.model.position.z = j.z;
+            p.model.rotation.set(0, j.rot || 0, 0);
+            if (p.velocity) p.velocity.set(0, 0, 0);
+            if (p.dynamicTarget) p.dynamicTarget.set(j.x, p.dynamicTarget.y, j.z);
+            if (typeof j.energia === 'number') p.energia = j.energia;
+            p.hasBall = false;
+        }
+        if (s.bola) {
+            Match.ball.position.set(s.bola.p[0], s.bola.p[1], s.bola.p[2]);
+            Match.ballVel.set(s.bola.v[0], s.bola.v[1], s.bola.v[2]);
+        }
+        Match.ballCarrier = null;
+        if (s.portador) {
+            const c = todos.find(x => x && x.team === s.portador.team && x.id === s.portador.id && !x.expulso);
+            if (c) { c.hasBall = true; Match.ballCarrier = c; Match.lastTouchedTeam = c.team; Match.lastTouchedPlayer = c; }
+        }
+        if (s.posse) Match.possessionTeam = s.posse;
+        if (s.stats && typeof MatchStats !== 'undefined') {
+            for (const t of ['TeamA', 'TeamB']) if (s.stats[t] && MatchStats[t]) Object.assign(MatchStats[t], s.stats[t]);
+        }
+        if (Match.state !== 'PLAY') Match.mudarEstado('PLAY', 'retomar');
+        if (typeof Match.updatePlacar === 'function') Match.updatePlacar();
+    },
+
+    _retomar(r) {
+        // Sem a entrada pelo tunel: quem estava escondido a espera aparece no posto.
+        if (typeof Abertura !== 'undefined') { Abertura.activa = false; Abertura.aguardarSaida = false; Abertura.jaCorreu = true; }
+        Match.segurarSaida = false;
+        [...Match.players, ...Match.opponents].forEach(p => { if (p && p.model) p.model.visible = true; });
+        Match.tempoDeJogo = Math.max(0, r.minuto) * 60;
+        Match.placarA = (r.placar && r.placar.casa) || 0;
+        Match.placarB = (r.placar && r.placar.fora) || 0;
+        if (typeof Match.updatePlacar === 'function') Match.updatePlacar();
+        if (r.minuto >= 45) {
+            // O 2.o tempo, ja a correr: os lados trocam (como no iniciarSegundoTempo), sem intervalo nem tunel.
+            Match.primeiroTempoAcabou = true; Match.acr1Calculado = true; Match.segundoTempoIniciado = true;
+            Lados.trocados = !Lados.trocados;
+            [...Match.players, ...Match.opponents].forEach(p => {
+                p.dirZ = Lados.dirDe(p.team);
+                p.targetGoalZ = (CAMPO_COMP / 2) * p.dirZ;
+                p.ownGoalZ = -(CAMPO_COMP / 2) * p.dirZ;
+            });
+            ['TeamA', 'TeamB'].forEach(t => {
+                const bb = TeamAI.blackboards && TeamAI.blackboards[t];
+                if (!bb) return;
+                bb.dir = Lados.dirDe(t); bb.ownGoalZ = ownGoalZCenter(t); bb.atkGoalZ = -bb.ownGoalZ;
+            });
+        }
+        // Os expulsos do save saem de campo outra vez.
+        if (Array.isArray(r.expulsos) && typeof Officials !== 'undefined' && Officials.expulsar) {
+            for (const idMgr of r.expulsos) {
+                const id = AdaptadorManager.idReal(idMgr);
+                const p = [...Match.players, ...Match.opponents].find(x => x && x.id === id && !x.expulso);
+                if (p) { try { Officials.expulsar(p); } catch (e) { /* sem cerimonia */ } }
+            }
+        }
+        if (typeof Match.assignFormations === 'function') Match.assignFormations();
+        if (r.instantaneo) {
+            // O save trouxe o instantaneo do 3D: continua EXACTAMENTE de onde parou (sem saida de bola).
+            this._reporInstantaneo(r.instantaneo);
+        } else {
+            const saida = (r.saida === 'fora') ? 'TeamB' : 'TeamA';
+            if (typeof Match.resetPlay === 'function') Match.resetPlay(saida);
+        }
+        this._ultimoEstado = -1;
+        this._estadoPeriodico();
     },
 
     /*
@@ -476,6 +599,9 @@ const Ponte = {
         this._timer = setInterval(() => {
             if (this.estado !== 'a_correr') return;
             this._estadoPeriodico();
+            // O RELOGIO EM MM:SS no manager: os segundos de jogo, quando mudam (o `estado` so vai uma vez por minuto).
+            const seg = Math.floor(Match.tempoDeJogo || 0);
+            if (seg !== this._ultimoSegundo) { this._ultimoSegundo = seg; this.enviar('relogio', { segundos: seg }); }
             if (this._acabou()) this._terminar();
         }, 500);
     },

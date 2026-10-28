@@ -18,7 +18,9 @@ interface Props {
   tabela?: { casa: { posicao: number; total: number }; fora: { posicao: number; total: number } };   // a posicao dos dois na tabela do campeonato (o treinador da CPU, 3D)         // nome da competicao: a placa fixa do 3D
   qualidade?: 'HIGH' | 'MEDIUM' | 'LOW';   // Game Settings > Graphics
   aoMensagem: (m: any) => void; // eventos do motor (evento, estado, fim, erro)
-  aoPronto?: () => void;        // o motor carregou (para enviar a tatica)
+  aoPronto?: () => void;
+  /** Retomar um jogo gravado a meio: o 3D comeca neste minuto, com este placar e estes expulsos (ver Ponte._retomar). */
+  retomar?: { minuto: number; placar: { casa: number; fora: number }; expulsos: string[]; saida?: 'casa' | 'fora'; instantaneo?: any } | null;        // o motor carregou (para enviar a tatica)
 }
 
 /*
@@ -47,6 +49,21 @@ let velocidadeDoJogo = 1;
 export const simulador3dVelocidade = (v: number) => { velocidadeDoJogo = v; sessao.iframe?.contentWindow?.postMessage({ para: 'simulador3d', tipo: 'velocidade', valor: v }, '*'); };
 // Mensagem solta para o motor (camara, zoom, tatica...).
 export const simulador3dEnviar = (m: any) => sessao.iframe?.contentWindow?.postMessage({ para: 'simulador3d', ...m }, '*');
+
+/*
+O INSTANTANEO DO JOGO 3D para o save (Ponte.instantaneo): pede-o ao iframe e espera a resposta (ate `ms`). null sem 3D a correr ou sem resposta.
+*/
+export const simulador3dInstantaneo = (ms = 1500): Promise<any | null> => new Promise(resolve => {
+  if (!sessao.iframe || !sessao.arrancou) { resolve(null); return; }
+  const id = Math.random().toString(36).slice(2);
+  const ouvir = (e: MessageEvent) => {
+    if (!sessao.iframe || e.source !== sessao.iframe.contentWindow || !e.data || e.data.fonte !== 'simulador3d' || e.data.tipo !== 'instantaneo' || e.data.id !== id) return;
+    window.removeEventListener('message', ouvir); clearTimeout(t); resolve(e.data.dados || null);
+  };
+  const t = setTimeout(() => { window.removeEventListener('message', ouvir); resolve(null); }, ms);
+  window.addEventListener('message', ouvir);
+  simulador3dEnviar({ tipo: 'instantaneo', id });
+});
 // Tela cheia no proprio iframe; ao sair/entrar avisa o motor, que mostra os botoes de camara dele so em tela cheia.
 export const simulador3dTelaCheia = () => {
   const f = sessao.iframe;
@@ -118,11 +135,11 @@ const ocupacaoDoJogo = (casa: Team, fora: Team): number => {
 // A ocupacao do setor visitante: a base do clube visitante (60% no inicio, muda com os resultados dele).
 const ocupacaoVisitanteDoJogo = (fora: Team): number => (fora as any).stadiumOccupancy ?? ECONOMIA_ESTADIO.ocupacaoInicial;
 
-const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, chave, iniciar, pausado, kitCasa, kitFora, competicao, tabela, amistoso, qualidade, aoMensagem, aoPronto }) => {
+const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, chave, iniciar, pausado, kitCasa, kitFora, competicao, tabela, amistoso, qualidade, aoMensagem, aoPronto, retomar }) => {
   simulador3dQualidade(qualidade);   // antes de o iframe ser criado (useLayoutEffect) para entrar no URL
   const caixa = useRef<HTMLDivElement>(null);
   const dados = useRef<any>({});
-  dados.current = { casa, fora, players, userTeamId, kits: { casa: kitCasa, fora: kitFora }, tabela, amistoso };
+  dados.current = { casa, fora, players, userTeamId, kits: { casa: kitCasa, fora: kitFora }, tabela, amistoso, retomar };
   const iniciarRef = useRef(iniciar);
   iniciarRef.current = iniciar;
 
@@ -131,7 +148,7 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
     const d = dados.current;
     if (iniciarRef.current) {
       sessao.arrancou = true;
-      enviar(montarPayload(d.casa, d.fora, d.players, d.userTeamId, { modo: 'visivel', velocidade: velocidadeDoJogo, fimEmMinutos: 90, ocupacao: ocupacaoDoJogo(d.casa, d.fora), ocupacaoVisitante: ocupacaoVisitanteDoJogo(d.fora), tabela: d.tabela, amistoso: d.amistoso }, d.kits));
+      enviar({ ...montarPayload(d.casa, d.fora, d.players, d.userTeamId, { modo: 'visivel', velocidade: velocidadeDoJogo, fimEmMinutos: 90, ocupacao: ocupacaoDoJogo(d.casa, d.fora), ocupacaoVisitante: ocupacaoVisitanteDoJogo(d.fora), tabela: d.tabela, amistoso: d.amistoso }, d.kits), ...(d.retomar ? { retomar: d.retomar } : {}) });
     } else {
       // A entrada dos times so comeca depois de os uniformes escolhidos (o modal de kits ainda aberto = kits indefinidos).
       if (d.kits.casa === undefined || d.kits.fora === undefined) return;

@@ -21,7 +21,7 @@ import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } fr
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
 import { REAL_TEAMS_JSON } from '../textSim/realDatabase';
 import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager } from '../3dMatch/simulador3dCliente';
-import { simulador3dEnviar } from '../3dMatch/Simulador3DView';
+import { simulador3dEnviar, simulador3dInstantaneo } from '../3dMatch/Simulador3DView';
 
 const TRANSLATIONS: Record<string, any> = {
   EN: {
@@ -1198,6 +1198,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const hoje = gameState.currentDate;
     if (gameState.matchMinute >= maxDurationRef.current) return;
     fixtures.filter(f => f.date === hoje && !f.played).forEach(f => { delete motor3dRes.current[f.id]; });
+    console.warn('[RESET do dia de jogo] motor3dMinuto apagado');
     (window as any).motor3dMinuto = undefined;
     setFixtures(prev => prev.map(f => (f.date === hoje && !f.played)
       ? { ...f, homeScore: 0, awayScore: 0, events: [], possessionTimeline: [], ballZoneTimeline: [] } : f));
@@ -1308,6 +1309,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (matchTimerRef.current) clearTimeout(matchTimerRef.current);
       setGameState(prev => ({ ...prev, isProcessing: false, matchMode: 'NONE', matchMinute: Math.max(prev.matchMinute, maxHTDurationRef.current) }));
     } else if (m.tipo === 'fim') {
+      console.warn('[FIM 3D] o motor terminou', { minuto3D: w.motor3dMinuto, placar: m.resultado && m.resultado.placar });
       motor3dRes.current[uf.id] = aplicarResultado(uf, m.resultado, casa, fora, players);
       w.motor3dMinuto = 999;
     }
@@ -1351,6 +1353,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       if (min >= maxDurationRef.current) {
+        // DIAGNOSTICO (relato: o jogo sai do 3D aos 90 sem acrescimos e trava): quem encerrou a partida e com que estado do 3D.
+        if (mode === 'VISUAL') {
+          const ufD = todays.find(f => f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId);
+          console.warn('[FIM manager]', { minuto: min, maxDuracao: maxDurationRef.current, motor3dMinuto: (window as any).motor3dMinuto, temResultado3D: !!(ufD && motor3dRes.current[ufD.id]) });
+        }
         if (mode === 'VISUAL') (window as any).motor3dMinuto = undefined;
         setGameState(currentGS => ({ ...currentGS, isProcessing: false, matchMinute: maxDurationRef.current, matchMode: 'NONE' }));
         setFixtures(prevFixtures => {
@@ -1860,6 +1867,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const saveGame = async () => {
+    // A partida 3D a meio: o instantaneo do motor (posicoes, bola, posse, estatisticas) vai no save, para o load continuar exactamente dali (ver Ponte.instantaneo).
+    let motor3d: any = null;
+    if (gameState.matchMinute > 0 && gameState.matchMinute < 90 && typeof (window as any).motor3dMinuto === 'number') {
+      try { motor3d = await simulador3dInstantaneo(); } catch { motor3d = null; }
+    }
     const saveData = {
       teams,
       players,
@@ -1872,6 +1884,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       inboxVistas: Array.from(vistasRef.current),
       negociacoes,
       mercado,
+      motor3d,
       saveDate: new Date().toISOString()
     };
     const texto = JSON.stringify(saveData, null, 2);
@@ -1904,6 +1917,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const data = JSON.parse(jsonString);
       if (data.teams && data.players && data.gameState) {
+        // O instantaneo da partida 3D gravada a meio (saveGame): o MatchDay leva-o ao 3D para continuar exactamente dali.
+        (window as any).__instantaneo3d = data.motor3d || null;
         // Saves antigos: ninguem fica abaixo do nivel minimo (50).
         data.players = data.players.map((p: any) => (p.skill < 50 || p.def < 50 || p.pas < 50 || p.drb < 50 || p.sht < 50
           ? { ...p, skill: Math.max(50, p.skill), def: Math.max(50, p.def), pas: Math.max(50, p.pas), drb: Math.max(50, p.drb), sht: Math.max(50, p.sht) } : p));

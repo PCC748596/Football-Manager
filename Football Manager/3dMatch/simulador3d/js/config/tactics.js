@@ -2204,6 +2204,7 @@ const ZonasModel = {
     desvioMaxFinal: 2.5,
     // E a coleira da arvore individual (infiltracao, apoio, desmarque, marcacao): o alvo nao passa deste raio (m) do posto da tabela. Fora dela: portador, perseguidor, intercetor, bloqueador, destinatario. 0 desliga.
     raioMaxLivre: 7.0,
+    raioBolaSolta: 8.0,      // com a bola solta a menos disto, a coleira nao se aplica (o jogador vai a ela)
     // Quem fica a mais de `sprintDe` m do alvo corre a `sprintVel` m/s (antes trotava a 5 m/s ate aos 25 m e o posto, que salta com a bola, fugia). 0 desliga.
     sprintDe: 9.0, sprintVel: 7.6,
     /*
