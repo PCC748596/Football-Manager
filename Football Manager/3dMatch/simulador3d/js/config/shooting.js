@@ -781,6 +781,14 @@ fora de proposito.
 */
 const BlockModel = {
     /*
+    A BOLA BLOQUEADA VOLTA PARA TRAS (pedido: *"se um chute for bloqueado a bola tem que voltar na direcao contraria ao chute (180 graus), de acordo com a forca do chute"*). Antes seguia na direcao
+    do remate (+-32 graus) e caia junto do rematador e do bloqueador, o que dava 3 ou 4 remates seguidos. Agora a base e a direcao OPOSTA ao remate, com um desvio pequeno (`sigma`, `max`), e a
+    velocidade sai da forca do remate (`fraccaoMin`..`fraccaoMax` dela: um remate forte devolve a bola mais longe). `activo: false` volta ao ricochete de antes.
+    */
+    // Ou o bloqueador sai com a bola DOMINADA (`dominaChance`: a bola fica-lhe aos pes e ele passa a ter a posse), em vez de ela voltar para tras.
+    dominaChance: 0.35,
+    devolucao: { activo: true, sigma: 0.30, max: 0.60, fraccaoMin: 0.25, fraccaoMax: 0.50 },
+    /*
     Desvio gaussiano em radianos. 0.55 rad = 32 graus de sigma: a maioria dos
     cortes devolve a bola quase no sentido em que ela vinha (e por isso ela
     segue para a linha de fundo, que e onde o remate apontava), e a cauda leva

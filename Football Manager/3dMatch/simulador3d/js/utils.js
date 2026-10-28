@@ -4191,14 +4191,18 @@ function desvioDeBloqueio(o) {
     const dirX = o.dirX || 0;
     const dirZ = (o.dirZ === undefined) ? 1 : o.dirZ;
     const norma = Math.hypot(dirX, dirZ) || 1;
-    const base = Math.atan2(dirX / norma, dirZ / norma);
+    const D = (M.devolucao && M.devolucao.activo) ? M.devolucao : null;
+    // Com a devolucao a base e a direccao OPOSTA ao remate (180 graus).
+    const base = Math.atan2(dirX / norma, dirZ / norma) + (D ? Math.PI : 0);
 
-    let desvio = M.anguloSigma * amostraGaussiana(rnd);
-    desvio = Math.max(-M.anguloMax, Math.min(M.anguloMax, desvio));
+    let desvio = (D ? D.sigma : M.anguloSigma) * amostraGaussiana(rnd);
+    const tecto = D ? D.max : M.anguloMax;
+    desvio = Math.max(-tecto, Math.min(tecto, desvio));
     const ang = base + desvio;
 
     const potencia = Math.max(0, o.potencia || 0);
-    const fraccao = M.fraccaoVelMin + rnd() * (M.fraccaoVelMax - M.fraccaoVelMin);
+    const fMin = D ? D.fraccaoMin : M.fraccaoVelMin, fMax = D ? D.fraccaoMax : M.fraccaoVelMax;
+    const fraccao = fMin + rnd() * (fMax - fMin);
     const v = Math.max(M.velocidadeMin, potencia * fraccao);
 
     const elev = M.elevacaoMax * rnd();

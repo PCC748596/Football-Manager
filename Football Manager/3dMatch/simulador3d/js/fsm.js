@@ -857,7 +857,18 @@ function executeShotGameplay(p) {
     // ângulo de alcance máximo em vez de rasteiro ao chão.
     const eR = (elevR === null) ? ShotModel.elevacaoRecurso : elevR;
     const vhR = pow * Math.cos(eR);
-    if (desvioBloqueio) {
+    if (desvioBloqueio && bloqueador && Math.random() < (BlockModel.dominaChance || 0)) {
+        // O bloqueador domina a bola cortada e sai com ela: fica-lhe aos pes, parada, e a posse e dele (o rematador nao tem a bola de volta para rematar outra vez).
+        const bp = bloqueador.model.position;
+        const fx = Math.sin(bloqueador.model.rotation.y), fz = Math.cos(bloqueador.model.rotation.y);
+        Match.ball.position.set(bp.x + fx * 0.45, BallPhysics.raio, bp.z + fz * 0.45);
+        Match.ballVel.set(0, 0, 0);
+        bloqueador.touchLock = 0;
+        bloqueador.hasBall = true;
+        Match.ballCarrier = bloqueador;
+        Match.possessionTeam = bloqueador.team;
+        bloqueador.carryTouchGrace = 0;
+    } else if (desvioBloqueio) {
         Match.ballVel.set(desvioBloqueio.x, desvioBloqueio.y, desvioBloqueio.z);
     } else {
         Match.ballVel.set(
@@ -874,7 +885,7 @@ function executeShotGameplay(p) {
     // A bola saiu do pé: a autorização de primeira morre com ela.
     p.jogarDePrimeira = false;
     p.hasBall = false; p.touchLock = BallControl.touchLock;
-    Match.ballCarrier = null;
+    if (!(bloqueado && bloqueador && bloqueador.hasBall && Match.ballCarrier === bloqueador)) Match.ballCarrier = null;
     /*
     O TOQUE É DE QUEM BLOQUEIA. Corria sempre com `p`, o rematador, mesmo no
     ramo do bloqueio — e por isso uma bola cortada que saísse pela linha de

@@ -45,19 +45,20 @@ test('o desvio do bloqueio perde velocidade e roda a direccao', () => {
         const v = Math.hypot(d.x, d.z);
         assert.ok(v > 0.5, 'a bola desviada nao pode ficar parada');
         assert.ok(v < 22, 'o desvio nunca acelera a bola');
-        const ang = Math.abs(Math.atan2(d.x, d.z));
+        // Com a devolucao (BlockModel.devolucao) a bola volta para tras: o desvio mede-se em relacao a direccao OPOSTA ao remate.
+        const ang = M.devolucao && M.devolucao.activo ? Math.abs(Math.atan2(d.x, -d.z)) : Math.abs(Math.atan2(d.x, d.z));
         if (ang > maxAng) maxAng = ang;
         if (d.z < 0) paraTras++;
         n++;
     }
-    assert.ok(maxAng <= M.anguloMax + 1e-6,
+    assert.ok(maxAng <= ((M.devolucao && M.devolucao.activo) ? M.devolucao.max : M.anguloMax) + 1e-6,
         `desvio maximo ${(maxAng * 180 / Math.PI).toFixed(0)} graus acima do tecto`);
     /*
     A cauda larga e o ponto todo: e ela que manda a bola a linha de fundo. Sem
     desvios de mais de 60 graus o bloqueio nunca da canto.
     */
     const largos = 100 * paraTras / n;
-    assert.ok(M.anguloMax > Math.PI / 3,
+    assert.ok(M.devolucao && M.devolucao.activo ? paraTras / n > 0.95 : M.anguloMax > Math.PI / 3,
         'sem angulos acima de 60 graus o bloqueio nao pode sair pela linha');
     void largos;
 });

@@ -154,6 +154,9 @@ const AmbienteSonoro = {
         this._actual += (this._alvo - this._actual) * k;
 
         this._atualizarPalmas(dt);
+        // BOLA NA TRAVE (poste ou travessao) tambem e perigo de gol: toca logo apos a batida na madeira (`Match.ultimoRemate.bateuNaTrave`, posto no colidirComBaliza), uma vez por remate.
+        const rm = (typeof Match !== 'undefined') ? Match.ultimoRemate : null;
+        if (rm && rm.bateuNaTrave && !rm._somTrave) { rm._somTrave = true; this._perigoPendente = false; this.reagirAoPerigo(); }
         // A bola saiu de campo com um remate perigoso por resolver: o "ohh" toca agora.
         if (this._perigoPendente && (estado === 'CORNER_KICK' || estado === 'GOAL_KICK' || estado === 'THROW_IN')) { this._perigoPendente = false; this.reagirAoPerigo(); }
         else if (this._perigoPendente && (estado === 'GOAL' || estado === 'FREE_KICK' || estado === 'PENALTY' || estado === 'INTERVALO' || estado === 'FIM_DE_JOGO')) this._perigoPendente = false;
