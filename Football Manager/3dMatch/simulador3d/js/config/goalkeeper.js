@@ -1120,7 +1120,7 @@ const GoalKickPlan = {
     */
     chanceCurtoEstilo: 0.85,    // nos estilos de `curtoEm`
     chanceCurtoOutros: 0.15,    // nos restantes
-    curto: { distMin: 9.0, distMax: 26.0, livreMin: 5.0, velBase: 6.0, velPorM: 0.8, velMin: 10.0, velMax: 22.0, erroGraus: 4.0 },
+    curto: { distMin: 9.0, distMax: 26.0, livreMin: 5.0, velBase: 7.2, velPorM: 0.96, velMin: 12.0, velMax: 26.4, erroGraus: 4.0 },   // +20% (pedido: a bola chegava devagar ao recebedor): 6.0 / 0.8 / 10 / 22 -> 7.2 / 0.96 / 12 / 26.4
     // `alvoNoRetangulo`: a bola longa vai a um PONTO sorteado dentro do rectângulo dos médios e avançados dele
     // (encolhido `encolheRetangulo` de cada lado), e não ao pé de um homem; o receptor é o mais perto desse ponto.
     longo: { distMin: 26.0, distMax: 60.0, livreMin: 4.5, elevGraus: 30.0, erroGraus: 6.0, erroAlcance: 0.06, bonusAvancado: 3.0,

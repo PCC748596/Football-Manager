@@ -163,6 +163,29 @@ trata de nunca chegar a haver a inversão, que é a metade barata do problema.
                      o jogador ficava colado ao chão a jogada inteira
 =============================================================================
 */
+/*
+A ADIANTADA DE BOLA LONGA DA ALA. Um ponta ou um lateral que recebe livre pela ponta, com o campo todo pela frente, adianta a bola longa e corre atras dela. O comprimento depende da distancia a linha
+de fundo adversaria (`d`): 40 m -> 25 m, 35 -> 20, 30 -> 15, 25 -> 10, ou seja `d - fundoFinal` (a bola fica a `fundoFinal` m da linha de fundo), com tecto em `maxAvanco`. Entre `dMin` e `dMax`.
+Ao chegar a bola: cruza DE PRIMEIRA se ha um companheiro bem colocado na area (folga ao marcador >= `folgaMin`); senao gira pelo lado da linha lateral (`giroSeg` s sem conduzir para a frente) e procura o passe.
+*/
+const AdiantadaModel = {
+    activo: true,
+    posicoes: ['LW', 'RW', 'LM', 'RM', 'LB', 'RB', 'LWB', 'RWB'],
+    alaX: 17.0,            // m do eixo: so pela ponta
+    velMin: 3.0,           // m/s para a frente ao receber / conduzir
+    dMin: 25.0, dMax: 45.0,
+    fundoFinal: 15.0, maxAvanco: 25.0,
+    larguraLivre: 7.0,     // corredor livre de adversarios, a cada lado, ate `comprimento + folgaFrente` m
+    folgaFrente: 8.0,
+    raioPerto: 6.0,        // nenhum adversario mais perto do que isto
+    chance: 0.6,           // sorteio por avaliacao
+    intervaloAvaliacao: 2.0, intervaloAposAdiantar: 10.0,
+    folgaMin: 3.0,         // folga do alvo do cruzamento ao marcador mais perto
+    dentroMetros: 3.0,     // a segunda opcao: adiantar a bola assim para dentro da area, a 45 graus
+    dentroLivre: 3.5,      // nenhum adversario a menos disto do ponto de destino
+    giroSeg: 1.2
+};
+
 const EsperaPeloSlotModel = {
     distanciaMax: 8.0,
     velocidadeMin: 0.5

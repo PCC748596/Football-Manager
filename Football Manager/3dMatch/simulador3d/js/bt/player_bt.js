@@ -505,6 +505,7 @@ Quem responde true a isto conduz, e conduz mesmo que haja passe (ver o
 */
 function alaLivreParaOFundo(ctx) {
     const p = ctx.p;
+    if (p.giroLateral > 0) return false;   // acabou de chegar a adiantada e nao cruzou: gira e procura o passe (ver AdiantadaModel)
     const C = CrossModel;
     const K = C.corredor;
     if (!K || p.role === 'gk') return false;
@@ -530,6 +531,107 @@ function alaLivreParaOFundo(ctx) {
         if (Math.abs(lateral) <= K.largura) return false;
     }
     return true;
+}
+
+/*
+A ADIANTADA DE BOLA LONGA (ver AdiantadaModel, player_behavior.js).
+*/
+function valeAdiantar(ctx) {
+    const A = (typeof AdiantadaModel !== 'undefined') ? AdiantadaModel : null;
+    const p = ctx.p;
+    if (!A || !A.activo || p.role === 'gk' || !p.hasBall || Match.state !== 'PLAY' || !(p.targetGoalZ !== undefined)) return false;
+    if (p.giroLateral > 0 || p.adiantadaTimer > 0) return false;
+    const agora = Match.tempoDeJogo || 0;
+    if ((p._adiantadaCd || 0) > agora && (p._adiantadaCd - agora) < 100) return false;
+    if (A.posicoes.indexOf(p.pos) < 0) return false;
+    const pos = p.model.position;
+    if (Math.abs(pos.x) < A.alaX) return false;
+    if (p.velocity.z * p.dirZ < A.velMin) return false;
+    const d = (p.targetGoalZ - pos.z) * p.dirZ;
+    if (d < A.dMin || d > A.dMax) return false;
+    const L = Math.min(A.maxAvanco, d - A.fundoFinal);
+    for (const o of ctx.opponents) {
+        if (o.role === 'gk' || !o.model) continue;
+        const aoLongo = (o.model.position.z - pos.z) * p.dirZ;
+        if (Math.hypot(o.model.position.x - pos.x, o.model.position.z - pos.z) < A.raioPerto) return false;
+        if (aoLongo > -3 && aoLongo < L + A.folgaFrente && Math.abs(o.model.position.x - pos.x) < A.larguraLivre) return false;
+    }
+    p._adiantadaCd = agora + A.intervaloAvaliacao;
+    if (Math.random() >= A.chance) return false;
+    ctx._adiantadaL = L;
+    return true;
+}
+
+function actAdiantar(ctx) {
+    const p = ctx.p, A = AdiantadaModel;
+    const L = ctx._adiantadaL;
+    const atrito = BallPhysics.atritoRolamento * BallPhysics.gravidade;
+    const v0 = Math.sqrt(2 * atrito * L);          // a bola para a L m do pe
+    const tChegada = v0 / atrito;
+    p.hasBall = false;
+    p.touchLock = 0.3;
+    p.carryTouchGrace = tChegada + 1.0;
+    Match.ballCarrier = null;
+    Match.intendedReceiver = p;
+    Match.ballVel.set(0, 0, p.dirZ * v0);
+    Match.lastTouchedTeam = p.team;
+    Match.lastTouchedPlayer = p;
+    window.bolaChutada = false;
+    p.adiantadaTimer = tChegada + 2.5;
+    // Corre a velocidade a que chega a bola quando ela PARA (a bola larga a 12 m/s e abranda; a sprint apanhava-a aos 10 m): L = v0^2 / 2a e t = v0 / a -> v = L / t.
+    p.adiantadaVel = (L / tChegada) * 1.08;
+    p.adiantadaPonto = { x: p.model.position.x, z: p.model.position.z + p.dirZ * L };
+    p._adiantadaCd = (Match.tempoDeJogo || 0) + A.intervaloAposAdiantar;
+    if (typeof MatchStats !== 'undefined' && MatchStats[p.team]) MatchStats[p.team].adiantadas = (MatchStats[p.team].adiantadas || 0) + 1;
+}
+
+// Ao chegar a bola adiantada: cruza de primeira se ha alvo bem colocado na area; senao gira pelo lado da linha (giroLateral) e a arvore procura o passe.
+function adiantadaChegou(ctx) {
+    const p = ctx.p, A = AdiantadaModel;
+    if (!A || !p.hasBall || !(p.adiantadaTimer > 0)) return false;
+    p.adiantadaTimer = 0;
+    const c = findCross(ctx);
+    if (c) {
+        let folga = 99;
+        for (const o of ctx.opponents) if (o.role !== 'gk' && o.model) folga = Math.min(folga, o.model.position.distanceTo(c.alvo.model.position));
+        if (folga >= A.folgaMin) { ctx.cross = c; return true; }
+    }
+    // 2. Sem cruzamento: adianta a bola um pouco (`dentroMetros`) para dentro da area, a 45 graus, se o sitio esta livre; depois segue com as escolhas normais.
+    const pos = p.model.position, lado = Math.sign(pos.x) || 1;
+    const dx = -lado * Math.SQRT1_2, dz = p.dirZ * Math.SQRT1_2;
+    const dx0 = pos.x + dx * A.dentroMetros, dz0 = pos.z + dz * A.dentroMetros;
+    let livre = Math.abs(dx0) < CAMPO_LARG / 2 - 1 && Math.abs(dz0) < CAMPO_COMP / 2 - 2;
+    for (const o of ctx.opponents) { if (livre && o.model && Math.hypot(o.model.position.x - dx0, o.model.position.z - dz0) < A.dentroLivre) livre = false; }
+    if (livre) { p._empurrarDentro = { x: dx, z: dz }; return false; }
+    // 3. Segura a bola girando pelo lado da lateral e reorganiza o jogo.
+    p.giroLateral = A.giroSeg;
+    p._giroX = lado;
+    return false;
+}
+
+function actEmpurrarDentro(ctx) {
+    const p = ctx.p, A = AdiantadaModel, d = p._empurrarDentro;
+    p._empurrarDentro = null;
+    const atrito = BallPhysics.atritoRolamento * BallPhysics.gravidade;
+    const excesso = Math.sqrt(2 * atrito * A.dentroMetros);
+    const curSpeed = p.velocity.length();
+    p.hasBall = false;
+    p.touchLock = 0.3;
+    p.carryTouchGrace = Math.min(3.0, 2 * excesso / atrito + 0.5);
+    Match.ballCarrier = null;
+    Match.intendedReceiver = p;
+    Match.ballVel.set(d.x, 0, d.z).multiplyScalar(curSpeed + excesso);
+    Match.lastTouchedTeam = p.team;
+    Match.lastTouchedPlayer = p;
+    window.bolaChutada = false;
+}
+
+function actGiroLateral(ctx) {
+    const p = ctx.p;
+    // Gira pelo lado da linha lateral: recua um passo ao longo dela, de costas para o adversario, a proteger a bola.
+    p.dynamicTarget.set(p.model.position.x, ALTURA_BASE_Y, p.model.position.z - p.dirZ * 3.0);
+    p.speedMult = 3.2;
+    p.apoioAtivo = false;
 }
 
 function findCross(ctx) {
@@ -4333,6 +4435,20 @@ const PlayerBT = sel('PlayerRoot',
         act('continuarCorrida', () => { })
     ),
 
+    // A ADIANTADA DE BOLA LONGA em curso (AdiantadaModel): corre atras dela, a sprint, enquanto ninguem a tem.
+    seq('PerseguirAdiantada',
+        cond('adiantadaLivre', (ctx) => ctx.p.adiantadaTimer > 0 && !ctx.p.hasBall && !Match.ballCarrier && Match.state === 'PLAY'),
+        act('correrAtrasDaBola', (ctx) => {
+            const p = ctx.p;
+            const bp = Match.ball.position, bv = Match.ballVel;
+            const ponto = p.adiantadaPonto || { x: bp.x, z: bp.z };
+            p.dynamicTarget.set(ponto.x, ALTURA_BASE_Y, ponto.z);
+            p.speedMult = p.adiantadaVel || (6.5 * 1.3);
+            p.apoioAtivo = false;
+            if (p.fsm.currentState !== 'MOVE_TO_POS') p.fsm.changeState('MOVE_TO_POS');
+        })
+    ),
+
     /* --- Com bola -------------------------------------------------------- */
     seq('ComBola',
         cond('tenhoABola', temBola),
@@ -4444,6 +4560,12 @@ const PlayerBT = sel('PlayerRoot',
                     executarPasseSaidaParaDefesas(ctx.p, ctx.kickoffDefTarget);
                 })
             ),
+
+            // ADIANTADA: a bola adiantada chegou -> cruza de primeira, ou gira pelo lado e procura o passe.
+            seq('CruzarDePrimeira', cond('adiantadaChegou', adiantadaChegou), act('cruzarDePrimeira', actCross)),
+            seq('AdiantarParaDentro', cond('empurrarDentro', (ctx) => ctx.p.hasBall && !!ctx.p._empurrarDentro), act('empurrarDentro', actEmpurrarDentro)),
+            seq('GiroLateral', cond('aGirar', (ctx) => ctx.p.hasBall && ctx.p.giroLateral > 0.7), act('girarPelaLinha', actGiroLateral)),
+            seq('Adiantar', cond('valeAdiantar', valeAdiantar), act('adiantarBolaLonga', actAdiantar)),
 
             cond('CalculaDebug', (ctx) => {
                 let carryPts = 0;

@@ -10,6 +10,7 @@ import YouthView from './YouthView';
 import { ContractChip } from './ContractPanel';
 import { estadoDoContrato } from '../textSim/contracts';
 import { estrelasDoJogador, potencialVisivel } from '../textSim/youth';
+import { atributos3d } from '../textSim/atributos3d';
 
 const MoraleArrow = ({ morale }: { morale: number }) => {
   if (morale >= 90) return <span className="text-amber-400 transform -rotate-90 inline-block font-bold drop-shadow-[0_0_2px_rgba(251,191,36,0.5)]">➤</span>; // Excelência
@@ -78,7 +79,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
 
   const VALOR_DA_COLUNA: Record<string, (p: Player) => number | string> = {
     num: p => p.shirtNumber, pos: p => p.position, name: p => p.name, age: p => p.age, ovr: p => p.skill, pot: p => potencialVisivel(p), fit: p => p.fitness, mor: p => p.morale,
-    def: p => p.def, pas: p => p.pas, drb: p => p.drb, sht: p => p.sht, prog: p => p.weeklyGrowth, val: p => p.value,
+    def: p => atributos3d(p).tec, pas: p => atributos3d(p).tac, drb: p => atributos3d(p).men, sht: p => atributos3d(p).fis, prog: p => p.weeklyGrowth, val: p => p.value,
     contract: p => (p.contract ? p.contract.end : '9999-99-99')   // o que vence primeiro vem primeiro
   };
   const comparar = (a: Player, b: Player) => {
@@ -154,10 +155,10 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pot')}>Pot{seta('pot')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('fit')}>Fit{seta('fit')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('mor')}>Mor{seta('mor')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('def')}>Def{seta('def')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pas')}>Pas{seta('pas')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('drb')}>Drb{seta('drb')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('sht')}>Sht{seta('sht')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('def')} title="Technique: ball control, dribbling, finishing, passing, crossing... (3D engine attributes)">TEC{seta('def')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pas')} title="Tactical: tackling, marking, positioning, vision, tactical awareness">TAC{seta('pas')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('drb')} title="Mental: aggression, reactions, composure, consistency">MEN{seta('drb')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('sht')} title="Physical: pace, acceleration, agility, jumping, strength, stamina, balance">FIS{seta('sht')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('prog')}>Prog{seta('prog')}</th>
                    <th className="px-3 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('contract')}>Contract{seta('contract')}</th>
                    <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('val')}>Val{seta('val')}</th>
@@ -230,26 +231,26 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                      </td>
                       <td className="px-2 py-2 text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         <div className="flex items-center justify-center gap-1">
-                          <span>{p.def}</span>
-                          <AttributeGrowthArrow val={p.lastGrowth?.def || 0} />
+                          <span>{atributos3d(p).tec}</span>
+                          <AttributeGrowthArrow val={(p.lastGrowth?.drb || 0) + (p.lastGrowth?.sht || 0) + (p.lastGrowth?.pas || 0)} />
                         </div>
                       </td>
                       <td className="px-2 py-2 text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         <div className="flex items-center justify-center gap-1">
-                          <span>{p.pas}</span>
-                          <AttributeGrowthArrow val={p.lastGrowth?.pas || 0} />
+                          <span>{atributos3d(p).tac}</span>
+                          <AttributeGrowthArrow val={(p.lastGrowth?.def || 0)} />
                         </div>
                       </td>
                       <td className="px-2 py-2 text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         <div className="flex items-center justify-center gap-1">
-                          <span>{p.drb}</span>
-                          <AttributeGrowthArrow val={p.lastGrowth?.drb || 0} />
+                          <span>{atributos3d(p).men}</span>
+                          <AttributeGrowthArrow val={0} />
                         </div>
                       </td>
                       <td className="px-2 py-2 text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         <div className="flex items-center justify-center gap-1">
-                          <span>{p.sht}</span>
-                          <AttributeGrowthArrow val={p.lastGrowth?.sht || 0} />
+                          <span>{atributos3d(p).fis}</span>
+                          <AttributeGrowthArrow val={0} />
                         </div>
                       </td>
                      <td className="px-2 py-2 text-center text-xs font-bold transition-colors">

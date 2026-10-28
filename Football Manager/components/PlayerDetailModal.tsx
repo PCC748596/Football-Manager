@@ -7,6 +7,7 @@ import { AttributeGrowthArrow } from './SquadView';
 import { PlayerFace } from './PlayerFace';
 import { ContractPanel } from './ContractPanel';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
+import { atributos3d } from '../textSim/atributos3d';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
 import { PLAYSTYLE_AJUSTES } from '../textSim/playStylesAjustes';
 import { PLAYSTYLE_POSITIONS, PLAYSTYLE_DESCRICAO, PlayStyle } from '../types';
@@ -157,6 +158,8 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
       radarData
     };
   }, [player, team]);
+
+  const attr3d = atributos3d(player);
 
   const getColorClass = (val: number) => {
     if (val >= 80) return 'text-emerald-500';
@@ -342,6 +345,34 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                   <span className="text-sm font-bold text-white">Physical</span>
                   <span className={`text-base font-black ${getColorClass(detailedStats.physical)}`}>{detailedStats.physical}</span>
                 </div>
+              </div>
+
+              {/* Os atributos do 3D (textSim/atributos3d.ts): as quatro medias e, para quem existe na base do 3D, todos os campos */}
+              <div className="flex flex-col gap-2 mt-3">
+                <div className="text-sm font-bold text-white">3D Match Attributes</div>
+                {(['TEC', 'TAC', 'MEN', 'FIS'] as const).map(g => {
+                  const media = g === 'TEC' ? attr3d.tec : g === 'TAC' ? attr3d.tac : g === 'MEN' ? attr3d.men : attr3d.fis;
+                  const nomeG = g === 'TEC' ? 'Technique' : g === 'TAC' ? 'Tactical' : g === 'MEN' ? 'Mental' : 'Physical';
+                  return (
+                    <div key={g} className="bg-slate-900/30 px-2 py-1 rounded border border-slate-800/50">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-black text-white uppercase tracking-widest">{g} <span className="text-slate-500 font-bold normal-case tracking-normal">{nomeG}</span></span>
+                        <span className={`text-base font-black ${getColorClass(media)}`}>{media}</span>
+                      </div>
+                      {attr3d.detalhe && (
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1">
+                          {attr3d.detalhe[g].map(x => (
+                            <div key={x.campo} className="flex justify-between text-[11px]">
+                              <span className="text-slate-400">{x.nome}</span>
+                              <span className={`font-black ${getColorClass(x.valor)}`}>{x.valor}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {!attr3d.real && <div className="text-[9px] text-slate-500">Generated player: group averages derived from OVR / DEF / PAS / DRB / SHT.</div>}
               </div>
             </div>
 

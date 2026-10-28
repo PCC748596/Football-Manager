@@ -5031,6 +5031,9 @@ class FootballPlayer {
         graça, cada recuperação zerava o timer e reactivava o "Dominar"
         (~3s) no meio da corrida — domina/adianta, domina/adianta.
         */
+        // A adiantada de bola longa (AdiantadaModel): os dois temporizadores correm sempre.
+        if (this.adiantadaTimer > 0) this.adiantadaTimer = Math.max(0, this.adiantadaTimer - dt);
+        if (this.giroLateral > 0) this.giroLateral = Math.max(0, this.giroLateral - dt);
         const graceActiva = this.carryTouchGrace > 0;
         const outroTemBola = !!(Match.ballCarrier && Match.ballCarrier !== this);
         this.carryTouchGrace = graceDeConducao(this.hasBall, this.carryTouchGrace, outroTemBola, dt);

@@ -56,6 +56,7 @@ const AmbienteSonoro = {
     reacaoXgMin: 0.07,
     _palmas: null,
     _reacao: null,
+    _perigoPendente: false,
     _palmasVol: 0,
     _reacaoRelogio: -99,
 
@@ -89,12 +90,16 @@ const AmbienteSonoro = {
         this._palmas.loop = true; this._palmas.preload = 'auto'; this._palmas.volume = 0;
         this._reacao = new Audio(this.ficheiroReacao);
         this._reacao.preload = 'auto'; this._reacao.volume = this.volumeReacao;
-        // O perigo de gol: os remates perigosos, os penaltis e os cara a cara (o registo de eventos e o EventBus).
+        /*
+        O PERIGO DE GOL toca DEPOIS do lance, nunca no momento do remate (pedido): so apos a DEFESA do guarda-redes ou quando a bola SAI de campo (canto, tiro de meta, lateral).
+        O remate perigoso (xG) fica "pendente" e o desfecho decide: 'defesa' toca; 'golo' e 'bloqueado' limpam (o golo tem a festa propria); a saida de campo e lida no `update`.
+        */
         if (typeof Eventos !== 'undefined' && Eventos.aoRegistar) Eventos.aoRegistar((ev) => {
-            if (!ev) return;
-            if ((ev.tipo === 'REMATE' && !ev.desfecho && (ev.xg || 0) >= this.reacaoXgMin) || ev.tipo === 'PENALTI') this.reagirAoPerigo();
+            if (!ev || ev.tipo !== 'REMATE') return;
+            if (!ev.desfecho) { this._perigoPendente = (ev.xg || 0) >= this.reacaoXgMin; return; }
+            if (ev.desfecho === 'defesa' && this._perigoPendente) this.reagirAoPerigo();
+            this._perigoPendente = false;
         });
-        if (typeof EventBus !== 'undefined') EventBus.on('CARA_A_CARA', () => this.reagirAoPerigo());
         // Desligado nasce MESMO a zero: o `update` só corrige no frame
         // seguinte, e esse frame chegava a sair com som.
         this._audio.volume = this._ligado ? this._actual : 0;
@@ -149,6 +154,9 @@ const AmbienteSonoro = {
         this._actual += (this._alvo - this._actual) * k;
 
         this._atualizarPalmas(dt);
+        // A bola saiu de campo com um remate perigoso por resolver: o "ohh" toca agora.
+        if (this._perigoPendente && (estado === 'CORNER_KICK' || estado === 'GOAL_KICK' || estado === 'THROW_IN')) { this._perigoPendente = false; this.reagirAoPerigo(); }
+        else if (this._perigoPendente && (estado === 'GOAL' || estado === 'FREE_KICK' || estado === 'PENALTY' || estado === 'INTERVALO' || estado === 'FIM_DE_JOGO')) this._perigoPendente = false;
 
         // Com o grito no ar, o fundo sai da frente.
         const aGritar = !!(this._grito && !this._grito.paused && !this._grito.ended);
