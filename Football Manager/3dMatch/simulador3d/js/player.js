@@ -2968,6 +2968,8 @@ class FootballPlayer {
 
         let opponents = (this.team === 'TeamA') ? Match.opponents : Match.players;
         let ratedCandidates = [];
+        // O RECUO SEGURO (RecuoSobPressao): o meia de frente para a propria defesa com um adversario nas costas.
+        const pressaoNasCostas = (typeof portadorPressionadoPelasCostas === 'function') ? portadorPressionadoPelasCostas(this, opponents) : false;
 
         /*
         Camada tática coletiva (docs/tacticSystem.md) — Mentalidade já entrava via
@@ -3351,6 +3353,9 @@ class FootballPlayer {
                     InversaoSinalizada.favorece(this, opt, optPos, dirZ)) inversao = true;
                 if (inversao) score += IV.bonus * Math.max(fiab, IV.fiabMin);
             }
+            // O RECUO SEGURO: o defesa livre atras recebe o bonus e nao paga as penalidades de recuar nem de virar o corpo (como a inversao).
+            const recuoSeguro = pressaoNasCostas && recuoSeguroPara(this, opt, opponents);
+            if (recuoSeguro) score += RecuoSobPressao.bonus * Math.max(fiab, RecuoSobPressao.fiabMin);
             
             /*
             O BALANCO POR CORREDOR (BalancoCorredores): o destino num corredor onde a equipa ja passou do alvo do
@@ -3383,7 +3388,7 @@ class FootballPlayer {
             } else {
                 if (isOrchestrator) {
                     score += Math.abs(progression) * 0.8;
-                } else if (!isDefender && !inDefensiveZone && !inversao) {
+                } else if (!isDefender && !inDefensiveZone && !inversao && !recuoSeguro) {
                     score -= Math.abs(progression) * 1.5 / circulacao;
                 }
             }
@@ -3411,7 +3416,7 @@ class FootballPlayer {
             
             if (angleDiff < Math.PI / 3) {
                 score += 80; // Alvo está no campo de visão natural (frente)
-            } else if (angleDiff > Math.PI * 0.6 && !inversao) {
+            } else if (angleDiff > Math.PI * 0.6 && !inversao && !recuoSeguro) {
                 score -= 80; // Penaliza passes de costas que exigem girar o corpo
             }
 
@@ -3429,7 +3434,7 @@ class FootballPlayer {
             } else {
                 if (progression <= 2.0 && relX > 5.0) {
                     score *= 1.25; // Lado
-                } else if (progression < -2.0 && !inversao) {
+                } else if (progression < -2.0 && !inversao && !recuoSeguro) {
                     if (!livreAFrente && inDefensiveZone) {
                         score *= 1.20; // Trás sob pressão na defesa
                     } else if (!inDefensiveZone) {
@@ -6023,6 +6028,25 @@ class FootballPlayer {
                 // OlharModel) — era um 0.5 m seco, e o alvo atravessava-o para
                 // trás e para a frente uma vez e meia por segundo.
                 lookTarget = Match.ball.position;
+            }
+        }
+        // CORRER DE COSTAS PARA A BOLA so a 80% da velocidade maxima ou mais (CostasParaABola, config/gait.js): abaixo disso recua de frente para a bola.
+        const CB = (typeof CostasParaABola !== 'undefined' && CostasParaABola.activo) ? CostasParaABola : null;
+        if (CB && Match.ball && this.role !== 'gk' && !this.hasBall && d > 0.2 && this.fsm) {
+            const bx = Match.ball.position.x - this.model.position.x, bz = Match.ball.position.z - this.model.position.z;
+            const db = Math.hypot(bx, bz);
+            if (db > 0.5) {
+                const cosMov = (desired.x * bx + desired.z * bz) / ((Math.hypot(desired.x, desired.z) || 1) * db);
+                if (cosMov <= Math.cos(CB.anguloGraus * Math.PI / 180)) {
+                    const skV = this.skillFor ? this.skillFor('speed') : 80;
+                    const velMax = CB.velMaxRef * (0.9 + 0.2 * skV / 100);
+                    const v = this.velocity.length();
+                    // histerese: entra a correr de costas a `fracao`, e so volta a recuar de frente abaixo de `fracao - folga`
+                    this._correDeCostas = this._correDeCostas ? (v >= (CB.fracao - CB.folga) * velMax) : (v >= CB.fracao * velMax);
+                    lookTarget = this._correDeCostas ? target : Match.ball.position;
+                } else {
+                    this._correDeCostas = false;
+                }
             }
         }
         this.virarPara(lookTarget);

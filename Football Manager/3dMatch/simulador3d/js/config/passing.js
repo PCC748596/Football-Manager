@@ -60,6 +60,34 @@ soma `bonus` × fiabilidade (com piso `fiabMin`: a bola vai por uma zona menos p
 mais fácil do que a distância diz) e ignora as três penalizações de recuar.
 =============================================================================
 */
+/*
+=============================================================================
+O RECUO SEGURO — o meio-campista de costas para o ataque, com um adversario nas costas
+=============================================================================
+Pedido: *"se um jogador de meio campo domina uma bola de frente para sua defesa e tem um jogador atras dele pressionando, os jogadores de defesa tem que receber um bonus para receber o passe.
+E muito mais seguro recuar a bola para a defesa e se posicionar novamente para receber a bola"*.
+
+A conjuncao (ver `portadorPressionadoPelasCostas` e `recuoSeguroPara`, utils.js):
+  . quem tem a bola e um MEIA (`papeis`), virado para a propria defesa (a frente do corpo a menos de `anguloFrenteGraus` da direccao da propria baliza);
+  . um adversario a `raioPressao` m ou menos, do lado das COSTAS dele (a mais de `anguloCostasGraus` da frente do corpo) e do lado da baliza adversaria;
+  . o alvo e um DEFESA (nao o guarda-redes), a recuar entre `recuoMin` e `recuoMax` m, a `distMax` m no maximo e com o marcador a `livreMin` m ou mais.
+Entao: no `findPassTarget` o alvo soma `bonus` x fiabilidade (piso `fiabMin`) e nao paga as penalidades de recuar nem de virar o corpo (como na inversao de jogo); na escolha do
+`PassTypes.escolher` soma `bonusNota`. Depois do passe quem passou sai a oferecer-se outra vez pela janela `aposPasse` (desmarque a seguir ao passe), que ja existia.
+=============================================================================
+*/
+const RecuoSobPressao = {
+    activo: true,
+    papeis: ['mid'],
+    anguloFrenteGraus: 70,     // de frente para a propria defesa: a frente do corpo a menos disto da direccao da propria baliza
+    raioPressao: 4.5,          // m: o adversario que o aperta por tras
+    anguloCostasGraus: 110,    // ... a mais disto da frente do corpo (esta mesmo nas costas)
+    recuoMin: 2.0, recuoMax: 28.0, distMax: 30.0,
+    livreMin: 4.0,             // o defesa a receber, sem marcador a menos disto
+    bonus: 420, fiabMin: 0.8,  // no findPassTarget (mesma escala da inversao de jogo)
+    bonusNota: 1.2             // na nota do PassTypes.escolher (escala 0..~2)
+};
+if (typeof window !== 'undefined') window.RecuoSobPressao = RecuoSobPressao;
+
 const InversaoDeJogo = {
     activo: true,
     congestaoMin: 40,     // congestão (0-100; 25 por adversário na banda, ±22 m da bola) da banda da bola

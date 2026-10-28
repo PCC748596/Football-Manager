@@ -5392,6 +5392,48 @@ excepcao.
 
 Devolve 'd' (destro) ou 'e' (canhoto). Pura: sem Match, sem THREE.
 */
+/*
+O RECUO SEGURO (RecuoSobPressao, config/passing.js). `portadorPressionadoPelasCostas`: o meia de frente para a propria defesa com um adversario nas costas, perto. `recuoSeguroPara`: o alvo certo
+(defesa livre, atras, ao alcance). Puras: so geometria.
+*/
+function frenteDoCorpo(p) {
+    // A frente do modelo (+Z local) lida da quaternion: o `rotation.y` do Euler salta perto de +-180 graus (o corpo virado para tras) e nao serve.
+    const v = frenteDoCorpo._v || (frenteDoCorpo._v = new THREE.Vector3());
+    v.set(0, 0, 1).applyQuaternion(p.model.quaternion);
+    return { x: v.x, z: v.z };
+}
+
+function portadorPressionadoPelasCostas(p, adversarios) {
+    const R = (typeof RecuoSobPressao !== 'undefined' && RecuoSobPressao.activo) ? RecuoSobPressao : null;
+    if (!R || !p || !p.model || R.papeis.indexOf(p.role) < 0) return false;
+    // A frente do corpo (o modelo olha para +Z local) e a direccao da propria baliza: (0, -dirZ).
+    const fr = frenteDoCorpo(p), fx = fr.x, fz = fr.z;
+    if (fz * (-p.dirZ) < Math.cos(R.anguloFrenteGraus * Math.PI / 180)) return false;
+    const cosCostas = Math.cos(R.anguloCostasGraus * Math.PI / 180);
+    for (const o of adversarios) {
+        if (!o || o.role === 'gk' || !o.model) continue;
+        const dx = o.model.position.x - p.model.position.x, dz = o.model.position.z - p.model.position.z;
+        const d = Math.hypot(dx, dz);
+        if (d > R.raioPressao || d < 0.01) continue;
+        if ((dz * p.dirZ) <= 0) continue;                          // do lado da baliza adversaria
+        if ((fx * dx + fz * dz) / d <= cosCostas) return true;    // nas costas
+    }
+    return false;
+}
+
+function recuoSeguroPara(p, mate, adversarios) {
+    const R = (typeof RecuoSobPressao !== 'undefined' && RecuoSobPressao.activo) ? RecuoSobPressao : null;
+    if (!R || !mate || !mate.model || mate.role !== 'def') return false;
+    const recuo = (p.model.position.z - mate.model.position.z) * p.dirZ;
+    if (recuo < R.recuoMin || recuo > R.recuoMax) return false;
+    if (Math.hypot(mate.model.position.x - p.model.position.x, mate.model.position.z - p.model.position.z) > R.distMax) return false;
+    for (const o of adversarios) {
+        if (!o || o.role === 'gk' || !o.model) continue;
+        if (Math.hypot(o.model.position.x - mate.model.position.x, o.model.position.z - mate.model.position.z) < R.livreMin) return false;
+    }
+    return true;
+}
+
 function pePreferido(id, pos, cfg) {
     const F = cfg || (typeof FootModel !== 'undefined' ? FootModel : null);
     if (!F) return 'd';

@@ -516,6 +516,8 @@ const PassTypes = {
         const pesos = this.pesosPorPressao(pressao);
 
         let melhor = null, melhorNota = -Infinity;
+        // O RECUO SEGURO (RecuoSobPressao, config/passing.js): calcula-se uma vez, fora do laco.
+        const pressaoNasCostas = (typeof portadorPressionadoPelasCostas === 'function') ? portadorPressionadoPelasCostas(carrier, opponents) : false;
 
         for (const mate of teammates) {
             if (mate === carrier || mate.role === 'gk') continue;
@@ -599,6 +601,8 @@ const PassTypes = {
             let nota = this.notaCandidato(progressoNorm, espacoNorm, distNorm,
                 linhaNorm, pesos);
             if (mate === sugerido) nota += E.bonusSugerido;
+            // O defesa livre, atras, a quem recuar e o mais seguro com um adversario nas costas: soma o bonus (o progresso negativo do recuo deixava-o perder).
+            if (pressaoNasCostas && typeof recuoSeguroPara === 'function' && recuoSeguroPara(carrier, mate, opponents)) nota += RecuoSobPressao.bonusNota;
 
             if (nota > melhorNota) {
                 melhorNota = nota;

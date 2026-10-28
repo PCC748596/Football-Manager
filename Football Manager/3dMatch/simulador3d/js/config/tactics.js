@@ -303,7 +303,8 @@ quando a troca comeca (a placa do 4.o arbitro) e sai quando acaba (a placa baixa
 const Bracadeira = { activa: true, intervalo: 1.0, u: 1.0, cores: [0xffd400, 0xffffff, 0x000000, 0x39ff14, 0xff6a00, 0xff00ff] };
 if (typeof window !== 'undefined') window.Bracadeira = Bracadeira;
 
-const CameraSubstituicao = { x: -46, y: 17, foco: { x: 34.4, y: 1.2, z: 0 } };
+// Mais perto da lateral da troca (era x -46, y 17): a camera avanca para o campo e desce, e a zona da troca (o foco, na lateral +X) enche mais o ecra.
+const CameraSubstituicao = { x: -22, y: 10, foco: { x: 34.4, y: 1.2, z: 0 } };
 if (typeof window !== 'undefined') window.CameraSubstituicao = CameraSubstituicao;
 
 const CameraZoom = {

@@ -89,6 +89,37 @@ defensor prefere o canto, que e o que se ve — concede-se o canto de bom grado,
 porque o que esta em jogo do outro lado e um golo.
 =============================================================================
 */
+/*
+=============================================================================
+O ZAGUEIRO DE COSTAS PARA O ATAQUE, COM UM MARCADOR NAS COSTAS — nao gira 180 graus
+=============================================================================
+Relato: *"os zagueiros ainda estao girando 180 graus, perigosamente, com um marcador atras deles"*. Medido (24 cenarios, zagueiro virado para a propria baliza, marcador a ~2.8 m nas costas): o
+passe saia a rodar o corpo ate 119 graus, a 25-62 graus por frame — o giro que o pedido manda evitar.
+
+Agora, com a bola, virado para a propria defesa (a frente do corpo a menos de `anguloFrenteGraus` da direccao da propria baliza) e com um adversario a `raioMarcador` m ou menos, nas costas
+(a mais de `anguloCostasGraus` da frente do corpo), o defesa escolhe, por esta ordem:
+  1. RECUAR PARA O GUARDA-REDES, se ele esta livre (nenhum adversario a `gkLivreRaio` m) e a linha esta limpa. O guarda-redes ja sabe o que fazer com um recuo com o pe: sai a jogar pelos
+     laterais ou, muito pressionado, chuta de primeira para a frente (GkRecuoModel / chutarRecuoDeUrgencia); e quem passou oferece-se outra vez pela janela `PullAwayModel.aposPasse`.
+  2. CHUTAO PARA A LATERAL, para aliviar a pressao, se o guarda-redes nao serve e esta na propria metade.
+  3. Se a tecnica dele chega (DRIBBLING >= `driblagemMin`, dos atributos do 3D; sem eles, a TEC do motor >= `tecMinSemAtributos`), gira como sempre — nos passos de 30 graus que ja existem
+     (PassModel / GiroDeCostasModel), sem nada a mudar.
+  Sem nenhuma das tres, cai no fluxo normal (o giro por passos).
+=============================================================================
+*/
+const DefesaDeCostas = {
+    activo: true,
+    anguloFrenteGraus: 70,
+    raioMarcador: 6.0,
+    anguloCostasGraus: 120,
+    driblagemMin: 80,
+    tecMinSemAtributos: 90,
+    gkLivreRaio: 6.0,
+    gkDistMax: 40.0,
+    gkMargemLinha: 1.4,
+    ateMeioCampo: 6.0         // so na propria metade (avanco em m ate ao meio-campo mais isto)
+};
+if (typeof window !== 'undefined') window.DefesaDeCostas = DefesaDeCostas;
+
 const ClearanceModel = {
     /*
     Calibracao, medida em 248 min de relogio cada:

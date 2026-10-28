@@ -2215,6 +2215,68 @@ function distanciaAoProprioFundo(p) {
     return Math.abs(fundoProprio - p.model.position.z);
 }
 
+/*
+O ZAGUEIRO DE COSTAS E PRESSIONADO (DefesaDeCostas, config/defense.js). Devolve a opcao ('gk' | 'lateral') ou null (segue o fluxo normal). Pura de estado: so geometria e o Match.
+*/
+function opcaoDefesaDeCostas(ctx) {
+    const D = (typeof DefesaDeCostas !== 'undefined' && DefesaDeCostas.activo) ? DefesaDeCostas : null;
+    const p = ctx.p;
+    if (!D || p.role !== 'def' || !p.hasBall || Match.state !== 'PLAY') return null;
+    if (p.model.position.z * p.dirZ > D.ateMeioCampo) return null;
+    // De frente para a propria baliza.
+    const fr = frenteDoCorpo(p), fx = fr.x, fz = fr.z;
+    if (fz * (-p.dirZ) < Math.cos(D.anguloFrenteGraus * Math.PI / 180)) return null;
+    // Um adversario nas costas, perto.
+    const cosCostas = Math.cos(D.anguloCostasGraus * Math.PI / 180);
+    let marcador = null;
+    for (const o of ctx.opponents) {
+        if (!o || o.role === 'gk' || !o.model) continue;
+        const dx = o.model.position.x - p.model.position.x, dz = o.model.position.z - p.model.position.z;
+        const d = Math.hypot(dx, dz);
+        if (d > D.raioMarcador || d < 0.01) continue;
+        if ((fx * dx + fz * dz) / d <= cosCostas) { marcador = o; break; }
+    }
+    if (!marcador) return null;
+    // Quem tem tecnica de drible gira como sempre.
+    const atr = p.skills && p.skills.atr;
+    const drible = (atr && typeof atr.dribbling === 'number') ? atr.dribbling : null;
+    if (drible !== null ? drible >= D.driblagemMin : (p.skillFor ? p.skillFor('TEC') : 0) >= D.tecMinSemAtributos) return null;
+
+    // 1. Recuar para o guarda-redes, se estiver livre e a linha limpa.
+    const gk = (p.team === 'TeamA') ? Match.players[0] : Match.opponents[0];
+    if (gk && gk !== p && gk.model && !gk.expulso) {
+        const dGK = Math.hypot(gk.model.position.x - p.model.position.x, gk.model.position.z - p.model.position.z);
+        let livre = dGK <= D.gkDistMax;
+        for (const o of ctx.opponents) {
+            if (!livre) break;
+            if (!o || o.role === 'gk' || !o.model) continue;
+            if (Math.hypot(o.model.position.x - gk.model.position.x, o.model.position.z - gk.model.position.z) < D.gkLivreRaio) livre = false;
+        }
+        if (livre && typeof corredorLivre === 'function') {
+            const advs = ctx.opponents.filter(o => o && o.role !== 'gk' && o.model);
+            livre = corredorLivre(p.model.position.x, p.model.position.z, gk.model.position.x, gk.model.position.z, advs, D.gkMargemLinha, true);
+        }
+        if (livre) { ctx._defCostasGK = gk; return 'gk'; }
+    }
+    // 2. Chutao pela lateral.
+    return 'lateral';
+}
+
+function actDefesaDeCostas(ctx, opcao) {
+    const p = ctx.p;
+    if (p.aguardarPassada()) return true;
+    if (opcao === 'gk' && ctx._defCostasGK) {
+        p.carryRecuo = false;
+        p.passTipo = 'direct';
+        p.passAimPoint = null;
+        p.initiatePass(ctx._defCostasGK);
+        return;
+    }
+    // Chutao pela lateral: o ponto fora do campo do lado mais perto, algo a frente.
+    const lado = (p.model.position.x >= 0) ? 1 : -1;
+    actClearance(ctx, { x: lado * (CAMPO_LARG / 2 + 2.0), z: p.model.position.z + p.dirZ * 12.0 });
+}
+
 function actClearance(ctx, alvoForcado) {
     const p = ctx.p;
     if (p.aguardarPassada()) return true;
@@ -4679,6 +4741,12 @@ const PlayerBT = sel('PlayerRoot',
             seq('SaidaDaArea',
                 cond('pressionadoNaPropriaArea', saidaDaAreaAplica),
                 act('sairDaArea', actSaidaDaArea)
+            ),
+
+            // O zagueiro de costas para o ataque com um marcador nas costas nao gira 180 graus (DefesaDeCostas): recua ao guarda-redes ou chuta pela lateral.
+            seq('DefesaDeCostas',
+                cond('zagueiroDeCostasPressionado', (ctx) => { ctx._defCostas = opcaoDefesaDeCostas(ctx); return !!ctx._defCostas; }),
+                act('defenderDeCostas', (ctx) => actDefesaDeCostas(ctx, ctx._defCostas))
             ),
 
             seq('AlivioDePerigo',

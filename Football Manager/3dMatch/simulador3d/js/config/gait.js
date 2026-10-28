@@ -11,6 +11,16 @@ const TurnModel = {
     comBola: 9.0
 };
 
+/*
+CORRER DE COSTAS PARA A BOLA so a partir de 80% da velocidade maxima. Pedido: *"tem muitos jogadores correndo de costas para a bola depois de um passe. Um jogador corre de costas para a bola
+somente se a velocidade for de 80% da maxima ou mais; senao ele pode retornar pra posicao andando para tras, de frente pra bola, olhando a jogada"*.
+Quando o movimento se afasta da bola (a mais de `anguloGraus` da direccao dela) e a velocidade esta abaixo de `fracao` da maxima, o corpo fica virado para a BOLA e o passo e para tras
+(o `animateBones` ja desenha a passada ao contrario). Acima da fracao vira-se para onde corre, como sempre. Histerese de `folga`, para nao alternar a cada frame.
+A velocidade maxima do jogador e `velMaxRef` x (0.9 + 0.2 x speed/100), a do sprint do motor (6.5 x 1.3 = 8.45).
+*/
+const CostasParaABola = { activo: true, fracao: 0.80, folga: 0.10, anguloGraus: 120, velMaxRef: 8.0 };
+if (typeof window !== 'undefined') window.CostasParaABola = CostasParaABola;
+
 const LateralGait = {
     anguloMin: 35 * Math.PI / 180,   // desvio entre a frente do corpo e o movimento
     velViragem: 3.6,                 // m/s acima dos quais o corpo roda para o movimento
