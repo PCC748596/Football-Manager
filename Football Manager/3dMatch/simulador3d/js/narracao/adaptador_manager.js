@@ -93,6 +93,12 @@ const AdaptadorManager = {
     Um jogador do manager. `rotulo` e o do slot onde joga (pode nao ser a posicao natural). `opcoes.escala` afina a escala das
     skills derivadas (1 = sem alteracao).
     */
+    // O estilo derivado dos 31 atributos (o mesmo criterio de skill_map.js, notasDeEstilo) para quem nao traz estilo nos dados; null sem atributos.
+    _estiloDos31(mp, posMotor) {
+        if (!mp.atributos || typeof estiloDeAtributos !== 'function' || typeof registoDe31 !== 'function') return null;
+        try { return estiloDeAtributos(registoDe31(mp.atributos, mp.extrasGK), posMotor) || null; } catch (e) { return null; }
+    },
+
     jogador(mp, rotulo, opcoes) {
         opcoes = opcoes || {};
         const posSlot = this.POS_DO_ROTULO[rotulo] || 'CM';
@@ -101,7 +107,15 @@ const AdaptadorManager = {
         const skill = mp.skill || 60;
         const forma = (typeof mp.fitness === 'number') ? Math.max(0, Math.min(100, mp.fitness)) : 90;
         let base;
-        if (real) {
+        /*
+        COM OS 31 ATRIBUTOS (`mp.atributos`, do manager: textSim/atributos3d.ts): as dez skills do motor saem deles — mesmos pesos (SkillMap) e mesma calibragem (skillsDe31, skill_map.js) — e os 31
+        ficam no jogador (`atr`) para as decisoes do jogo lerem o atributo certo (passe curto, passe longo, cruzamento...). Sem eles, valem os dados do 3D e a derivacao antiga.
+        */
+        const por31 = (mp.atributos && typeof skillsDe31 === 'function') ? skillsDe31(mp.atributos, mp.extrasGK) : null;
+        if (por31) {
+            base = { gk: por31.gk, tec: por31.tec, marking: por31.marking, intercept: por31.intercept, pass: por31.pass,
+                speed: por31.speed, strength: por31.strength, tacticknow: por31.tacticknow, stamina: por31.stamina, fitness: por31.fitness };
+        } else if (real) {
             // As skills reais do motor (data/squads.js), do mesmo ficheiro de origem que o manager.
             base = { gk: real.gk, tec: real.tec, marking: real.marking, intercept: real.intercept, pass: real.pass,
                 speed: real.speed, strength: real.strength, tacticknow: real.tacticknow, stamina: real.stamina, fitness: real.fitness };
@@ -135,7 +149,8 @@ const AdaptadorManager = {
             id: real ? real.id : (this.idReal(mp.id) || Math.floor(Math.random() * 1e9)),
             nome: mp.name || (real && real.nome) || 'Jogador',
             pos: posSlot, role: this.ROLE_DA_POS[posSlot], numero: mp.shirtNumber || (real && real.numero) || 0,
-            estilo: (real && real.estilo) || null, estiloOrigem: real ? real.estiloOrigem : null, pb: pb
+            estilo: (real && real.estilo) || this._estiloDos31(mp, posNatural), estiloOrigem: real ? real.estiloOrigem : (por31 ? 'atributos' : null), pb: pb,
+            atr: por31 ? mp.atributos : null
         }, base);
     },
 

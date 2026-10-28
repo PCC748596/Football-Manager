@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { atributos3d } from '../textSim/atributos3d';
 import { useGame } from '../context/GameContext';
 import { Player, Position } from '../types';
 import { estrelasDoJogador, MudancaAtributo, RelatorioMes, TAMANHO_BASE, IDADE_ESTILO } from '../textSim/youth';
@@ -6,7 +7,7 @@ import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { ContractChip, ContractPanel } from './ContractPanel';
 
 const ORDEM: Position[] = [Position.GK, Position.LB, Position.CB, Position.RB, Position.DM, Position.LM, Position.CM, Position.RM, Position.AM, Position.LW, Position.RW, Position.SS, Position.ST];
-const NOME_ATTR: Record<MudancaAtributo['attr'], string> = { def: 'DEF', pas: 'PAS', drb: 'DRB', sht: 'SHT' };
+const NOME_ATTR: Record<MudancaAtributo['attr'], string> = { def: 'TAC', pas: 'TEC', drb: 'TEC', sht: 'TEC' };
 const MESES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const mesEmTexto = (mes: string) => `${MESES[Number(mes.slice(5, 7)) - 1]} ${mes.slice(0, 4)}`;
 
@@ -150,13 +151,17 @@ const YouthView: React.FC = () => {
                   <div className="text-right"><div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Overall</div><div className="text-5xl font-black italic text-blue-500">{sel.skill}</div></div>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
-                  {(['def', 'pas', 'drb', 'sht'] as const).map(k => (
+                  {(['tec', 'tac', 'men', 'fis'] as const).map(k => {
+                    const a3 = atributos3d(sel);
+                    const cr = sel.lastGrowth ? (k === 'tec' ? (sel.lastGrowth.drb || 0) + (sel.lastGrowth.sht || 0) + (sel.lastGrowth.pas || 0) : k === 'tac' ? (sel.lastGrowth.def || 0) : 0) : 0;
+                    return (
                     <div key={k} className="bg-slate-200/50 dark:bg-slate-950/50 rounded-lg p-2 text-center border border-slate-200 dark:border-slate-800">
-                      <div className="text-[10px] font-black uppercase text-slate-400">{NOME_ATTR[k]}</div>
-                      <div className="text-xl font-black text-slate-800 dark:text-white">{sel[k]}</div>
-                      {sel.lastGrowth && sel.lastGrowth[k] !== 0 && <div className={`text-[11px] font-black ${sel.lastGrowth[k] > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{sel.lastGrowth[k] > 0 ? '▲' : '▼'} {Math.abs(sel.lastGrowth[k])}</div>}
+                      <div className="text-[10px] font-black uppercase text-slate-400">{k.toUpperCase()}</div>
+                      <div className="text-xl font-black text-slate-800 dark:text-white">{a3[k]}</div>
+                      {cr !== 0 && <div className={`text-[11px] font-black ${cr > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{cr > 0 ? '▲' : '▼'} {Math.abs(cr)}</div>}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <ContractPanel player={sel} />
                 <div>

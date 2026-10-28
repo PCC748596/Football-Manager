@@ -427,11 +427,56 @@ function skillDeAtributos(registo, pesos) {
     return Math.max(1, Math.min(100, Math.round(soma / total)));
 }
 
+/*
+=============================================================================
+AS SKILLS DO MOTOR A PARTIR DOS 31 ATRIBUTOS DO MANAGER (textSim/atributos3d.ts, 50 a 99)
+=============================================================================
+O manager passa a mandar os 31 atributos de cada jogador (`atributos`) e o motor tira daqui as suas dez skills — com os MESMOS pesos (SkillMap) e a MESMA calibragem para a escala do motor
+(SkillCalib.alvo, z-score, e o fator de forca). Falta so a populacao de referencia: `Escala31` e a media e o desvio de cada skill medidos nos titulares dos plantéis reais com os atributos ja no
+intervalo 50..99 (tools: ver o relatorio da sessao; reproduz as skills antigas dos mesmos jogadores com diferenca media de 0 a 4 pontos).
+
+Os cinco campos de baliza que o SkillMap do goleiro le (diving, handling, reflexes, posGK, onos) nao existem nos 31: o manager manda-os em `extrasGK` (os originais quando o jogador vem do 3D,
+derivados dos 31 nos gerados) e, sem eles, derivam-se aqui.
+=============================================================================
+*/
+const Escala31 = {
+    gk: { media: 62.19, desvio: 6.68 }, tec: { media: 66.2, desvio: 5.36 }, marking: { media: 63.31, desvio: 8.01 }, intercept: { media: 67.01, desvio: 6.32 },
+    pass: { media: 68.18, desvio: 5.43 }, speed: { media: 70.06, desvio: 4.93 }, strength: { media: 63.81, desvio: 7.35 }, tacticknow: { media: 68.12, desvio: 5.68 },
+    stamina: { media: 69.3, desvio: 6.75 }, fitness: { media: 67.88, desvio: 5.8 }
+};
+
+function registoDe31(atributos, extrasGK) {
+    const a = atributos || {};
+    const r = Object.assign({}, a);
+    const x = extrasGK || {};
+    const med = (...v) => { const n = v.filter(t => typeof t === 'number'); return n.length ? n.reduce((s, t) => s + t, 0) / n.length : 60; };
+    r.reflexes = typeof x.reflexes === 'number' ? x.reflexes : med(a.reactions, a.agility);
+    r.diving = typeof x.diving === 'number' ? x.diving : med(a.agility, a.jumping);
+    r.handling = typeof x.handling === 'number' ? x.handling : med(a.composure, a.consistency, a.ballControl);
+    r.posGK = typeof x.posGK === 'number' ? x.posGK : med(a.tacticalAwa, a.posDefense);
+    r.onos = typeof x.onos === 'number' ? x.onos : med(a.reactions, a.composure);
+    return r;
+}
+
+// As dez skills do motor, ja na escala do motor, a partir dos 31 atributos. `forca` e o fator de forca (SkillCalib.fatorForca por omissao).
+function skillsDe31(atributos, extrasGK, forca) {
+    const reg = registoDe31(atributos, extrasGK);
+    const f = (typeof forca === 'number') ? forca : SkillCalib.fatorForca;
+    const o = {};
+    for (const k in SkillMap) {
+        const bruto = skillDeAtributos(reg, SkillMap[k]);
+        let v = calibrarSkill(bruto, Escala31[k], SkillCalib.alvo[k]);
+        if (typeof v === 'number' && f) v = Math.max(1, Math.min(100, Math.round(v * f)));
+        o[k] = v;
+    }
+    return o;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         SkillMap, SkillCalib, PosicaoPorIndice, PbPorPos, EstiloJsonParaMotor,
         skillDeAtributos, calibrarSkill, escolherOnzeDaFormacao,
         EstiloDerivado, EstiloDerivadoGrupos, estiloDeAtributos,
-        regrasDeEstilo, notasDeEstilo
+        regrasDeEstilo, notasDeEstilo, Escala31, registoDe31, skillsDe31
     };
 }

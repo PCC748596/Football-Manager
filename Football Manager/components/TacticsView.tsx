@@ -16,6 +16,7 @@ interface FieldPosition {
 import { ShirtIcon } from './ShirtIcon';
 import { setoresPadraoDaFormacao } from '../3dMatch/simulador3dCliente';
 import ZonePositionsModal from './ZonePositionsModal';
+import { campo3d } from '../textSim/atributos3d';
 import TacticPresetsModal from './TacticPresetsModal';
 import { formacaoTemTabela, temAjustes } from '../textSim/formacoesZonas';
 
@@ -54,12 +55,12 @@ const getInjuryColorClass = (injury: any) => {
 // As funcoes da bola parada: o texto no topo do espaco e o atributo que se mostra por baixo da camisa (o manager so tem chute `sht` e passe `pas`: o cruzamento sai do passe).
 const SET_PIECE_ROLES: { role: SetPieceRole; label: string; attr: { rotulo: string; valor: (p: Player) => number } }[] = [
   { role: 'captain', label: 'Captain', attr: { rotulo: 'OVR', valor: p => p.skill } },
-  { role: 'cornerL', label: 'Corner taker (left)', attr: { rotulo: 'CRO', valor: p => p.pas } },
-  { role: 'cornerR', label: 'Corner taker (right)', attr: { rotulo: 'CRO', valor: p => p.pas } },
-  { role: 'freeKickLong', label: 'Long free-kick taker', attr: { rotulo: 'CRO', valor: p => p.pas } },
-  { role: 'freeKickDirectL', label: 'Direct free-kick taker (left)', attr: { rotulo: 'SHT', valor: p => p.sht } },
-  { role: 'freeKickDirectR', label: 'Direct free-kick taker (right)', attr: { rotulo: 'SHT', valor: p => p.sht } },
-  { role: 'penalty', label: 'Penalty taker', attr: { rotulo: 'PEN', valor: p => p.sht } }
+  { role: 'cornerL', label: 'Corner taker (left)', attr: { rotulo: 'COR', valor: p => campo3d(p, ['cornerKicks', 'crossing']) } },
+  { role: 'cornerR', label: 'Corner taker (right)', attr: { rotulo: 'COR', valor: p => campo3d(p, ['cornerKicks', 'crossing']) } },
+  { role: 'freeKickLong', label: 'Long free-kick taker', attr: { rotulo: 'LP', valor: p => campo3d(p, ['longPassing', 'freekicks']) } },
+  { role: 'freeKickDirectL', label: 'Direct free-kick taker (left)', attr: { rotulo: 'FK', valor: p => campo3d(p, ['freekicks', 'shotPower']) } },
+  { role: 'freeKickDirectR', label: 'Direct free-kick taker (right)', attr: { rotulo: 'FK', valor: p => campo3d(p, ['freekicks', 'shotPower']) } },
+  { role: 'penalty', label: 'Penalty taker', attr: { rotulo: 'PEN', valor: p => campo3d(p, ['penalties', 'composure']) } }
 ];
 
 interface TacticsViewProps {
@@ -148,7 +149,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
       .filter((p): p is Player => !!p && !getPlayerMatchStatus(p.id).red);
     
     if (starters.length === 0) return 0;
-    const currentPositions = FORMATIONS[userTeam.tactics.formation] || FORMATIONS['4-4-2'];
+  const currentPositions = FORMATIONS[userTeam.tactics.formation] || FORMATIONS['4-4-2'];
     let score = 10;
     starters.forEach((p, idx) => {
       const assignedPosLabel = currentPositions[idx]?.label;
@@ -194,6 +195,33 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     return Math.max(0, Math.min(100, Math.round(score)));
   }, [localLineup, players, userTeam.tactics.formation, userTeam.synergyMap]);
 
+  // O banco tem sempre 10 (antes do jogo): vagas vazias (jogador vendido ou contrato expirado) e bancos curtos enchem-se com os melhores do plantel que nao estao no onze nem no banco.
+  // Le SEMPRE do time (userTeam), nunca do estado local — que nasce vazio e apagava a escalacao ao correr no primeiro render.
+  React.useEffect(() => {
+    if (isMatchOngoing || !userTeam || !userTeam.lineup || userTeam.lineup.filter(Boolean).length < 11) return;
+    const banco = userTeam.bench || [];
+    const validos = banco.filter(id => id && players.some(p => p.id === id && p.teamId === userTeam.id));
+    if (validos.length >= 10 && validos.length === banco.length) return;
+    const usados = new Set([...userTeam.lineup.filter(Boolean), ...validos]);
+    const livres = players.filter(p => p.teamId === userTeam.id && !usados.has(p.id) && !p.injury).sort((a, b) => b.skill - a.skill);
+    // A composicao do banco: 1 GK, 3 defesas, 3 meias, 3 atacantes — os melhores de cada grupo (as vagas vazias enchem-se por grupo; o que sobrar, com os melhores do plantel).
+    const grupo = (pos: Position) => pos === Position.GK ? 'GK' : [Position.LB, Position.CB, Position.RB].includes(pos) ? 'DEF' : [Position.LW, Position.RW, Position.SS, Position.ST].includes(pos) ? 'ATA' : 'MEIO';
+    const quota: Record<string, number> = { GK: 1, DEF: 3, MEIO: 3, ATA: 3 };
+    const novo = [...validos];
+    const contagem: Record<string, number> = { GK: 0, DEF: 0, MEIO: 0, ATA: 0 };
+    for (const id of validos) { const pl = players.find(p => p.id === id); if (pl) contagem[grupo(pl.position)]++; }
+    for (const g of ['GK', 'DEF', 'MEIO', 'ATA']) {
+      while (contagem[g] < quota[g] && novo.length < 10) {
+        const melhor = livres.find(p => grupo(p.position) === g);
+        if (!melhor) break;
+        novo.push(melhor.id); livres.splice(livres.indexOf(melhor), 1); contagem[g]++;
+      }
+    }
+    while (novo.length < 10 && livres.length) novo.push(livres.shift()!.id);
+    if (novo.length === banco.length && novo.every((id, i) => id === banco[i])) return;
+    updateTactics(userTeam.id, {}, userTeam.lineup, novo);
+  }, [userTeam?.bench, userTeam?.lineup, players, isMatchOngoing, userTeam?.id]);
+
   const handleDropToLineup = (playerId: string, index: number) => {
     let newLineup = [...localLineup];
     let newBench = [...localBench];
@@ -231,6 +259,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
         newBench = newBench.filter(id => id !== playerId);
       }
     } else {
+      // Com o jogo em curso o plantel (squad pool) ja nao troca com o campo: so o banco entra (substituicao).
+      if (isMatchOngoing) return;
       newLineup[index] = playerId;
     }
     
@@ -246,6 +276,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     const existingLineupIndex = newLineup.indexOf(playerId);
     const existingBenchIndex = newBench.indexOf(playerId);
     if (existingBenchIndex !== -1) return; 
+    // Com o jogo em curso o banco fecha: nem o plantel entra nele, nem quem esta em campo volta para ele.
+    if (isMatchOngoing) return;
     if (existingLineupIndex !== -1) {
        if (newBench.length < 10) {
           newLineup[existingLineupIndex] = '';
@@ -267,6 +299,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     const sB = newBench.indexOf(sourceId);
     const tB = newBench.indexOf(targetId);
     if (tB === -1) return;
+    // Em jogo o plantel nao troca com o banco: so se reordena o banco ou se faz a substituicao (titular <-> banco).
+    if (isMatchOngoing && sB === -1) return;
     if (sL !== -1) {
       newLineup[sL] = targetId;
       newBench[tB] = sourceId;
@@ -282,6 +316,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   };
 
   const removeFromSquad = (playerId: string) => {
+    if (isMatchOngoing) return;
     const newLineup = localLineup.map(id => id === playerId ? '' : id);
     const newBench = localBench.filter(id => id !== playerId);
     setLocalLineup(newLineup);

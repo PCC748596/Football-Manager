@@ -3,32 +3,37 @@ OS ATRIBUTOS DO 3D NO MANAGER (Squad Management e Overview). O motor 3D joga com
 DEF/PAS/DRB/SHT, que vem de outra tabela (realDatabase.ts). Aqui os atributos do 3D sao lidos pelo id (`p-<id>`) e agrupados em quatro medias:
   TEC  tecnica (controlo, drible, finalizacao, passe, cruzamento...)      TAC  tatica (desarme, marcacao, posicionamento, visao, leitura de jogo)
   MEN  mental (agressividade, reacao, calma, regularidade)                FIS  fisico (aceleracao, velocidade, agilidade, salto, forca, resistencia, equilibrio)
-Para o guarda-redes os grupos usam os campos de baliza. Quem nao existe na base do 3D (jogadores gerados) leva as medias derivadas de DEF/PAS/DRB/SHT, OVR, forma e moral
-(`real: false`, sem lista detalhada).
+Os 31 atributos valem SEMPRE de 50 a 99 (textSim/geradorAtributos.ts): os do 3D abaixo de 50 sao mostrados no minimo 50 (leitura: os dados originais nao sao alterados). O goleiro usa os mesmos 31
+atributos. Quem nao existe na base do 3D (jogadores gerados) leva atributos GERADOS por `gerarAtributos` (posicao, Playing Style, nivel = OVR e idade), com semente fixa pelo id (nada fica no save):
+TEC, TAC e MEN seguem a QUALIDADE do jogador; o FIS e parecido num craque e num jogador fraco e muda com a IDADE. SO estes atributos aparecem ao treinador: o DEF/PAS/DRB/SHT antigos ficam por baixo
+(treino, valor de mercado) e nao sao mostrados.
 */
 import dados from './atributos3d.json';
 import type { Player } from '../types';
 import { REAL_PLAYERS_JSON } from './realDatabase';
+import { PLAYSTYLE_DA_BASE } from './playStylesDatabase';
 import { NIVEL_MINIMO } from './dataGenerator';
+import { GRUPOS, gerarAtributos, limitarAtributo, curvaFisica, calcularGrupos } from './geradorAtributos';
 
 /*
 O TREINO MEXE NOS ATRIBUTOS DO 3D: o treino sobe/desce DEF/PAS/DRB/SHT e esse ganho (o valor de hoje menos o do inicio, da realDatabase com o piso NIVEL_MINIMO) soma-se aos campos do grupo:
 TEC recebe 0.4 DRB + 0.3 SHT + 0.3 PAS e TAC recebe DEF. MEN e FIS ficam como estao.
 */
-const BASE: Map<string, { def: number; pas: number; drb: number; sht: number }> = new Map();
+const BASE: Map<string, { def: number; pas: number; drb: number; sht: number; idade: number; attrs3d?: Record<string, number> }> = new Map();
 let baseFeita = false;
 const baseDe = (id: string) => {
   if (!baseFeita) {
     baseFeita = true;
     for (const r of REAL_PLAYERS_JSON as any[]) {
       if (!r.idPlayer) continue;
-      BASE.set(String(r.idPlayer), { def: Math.max(NIVEL_MINIMO, r.defPlayer), pas: Math.max(NIVEL_MINIMO, r.pasPlayer), drb: Math.max(NIVEL_MINIMO, r.drbplayer), sht: Math.max(NIVEL_MINIMO, r.shtPlayer) });
+      BASE.set(String(r.idPlayer), { def: Math.max(NIVEL_MINIMO, r.defPlayer), pas: Math.max(NIVEL_MINIMO, r.pasPlayer), drb: Math.max(NIVEL_MINIMO, r.drbplayer), sht: Math.max(NIVEL_MINIMO, r.shtPlayer), idade: r.agePlayer || 0, attrs3d: r.attrs3d });
     }
   }
   return BASE.get(id);
 };
 
 export type GrupoAtributo = 'TEC' | 'TAC' | 'MEN' | 'FIS';
+const ORDEM_GRUPOS: GrupoAtributo[] = ['TEC', 'TAC', 'MEN', 'FIS'];
 
 const D: { campos: string[]; jogadores: Record<string, number[]> } = dados as any;
 const IDX: Record<string, number> = {};
@@ -42,19 +47,6 @@ export const NOME_DO_CAMPO: Record<string, string> = {
   acceleration: 'Acceleration', speed: 'Speed', agility: 'Agility', jumping: 'Jumping', strength: 'Strength', stamina: 'Stamina', balance: 'Balance', diving: 'Diving', handling: 'Handling', reflexes: 'Reflexes', kicking: 'Kicking'
 };
 
-const GRUPOS_CAMPO: Record<GrupoAtributo, string[]> = {
-  TEC: ['ballControl', 'dribbling', 'finishing', 'shotPower', 'longShots', 'volleys', 'crossing', 'passing', 'longPassing', 'headAccurancy', 'freekicks', 'cornerKicks', 'penalties'],
-  TAC: ['tackleStanding', 'tackleSliding', 'manMarking', 'posOffense', 'posDefense', 'vision', 'tacticalAwa'],
-  MEN: ['aggression', 'reactions', 'composure', 'consistency'],
-  FIS: ['acceleration', 'speed', 'agility', 'jumping', 'strength', 'stamina', 'balance']
-};
-const GRUPOS_GK: Record<GrupoAtributo, string[]> = {
-  TEC: ['handling', 'kicking', 'passing', 'ballControl'],
-  TAC: ['posGK', 'onos', 'posDefense', 'tacticalAwa', 'vision'],
-  MEN: ['aggression', 'reactions', 'composure', 'consistency'],
-  FIS: ['diving', 'reflexes', 'agility', 'jumping', 'strength', 'balance']
-};
-
 export interface Atributos3D {
   tec: number; tac: number; men: number; fis: number;
   /** Os campos do 3D (so quando o jogador existe na base do 3D). */
@@ -62,43 +54,63 @@ export interface Atributos3D {
   real: boolean;
 }
 
-const media = (v: number[]) => Math.round(v.reduce((a, b) => a + b, 0) / Math.max(1, v.length));
+/** A media de alguns campos do 3D de um jogador (ex.: ['cornerKicks', 'crossing']). */
+export const campo3d = (p: Player, campos: string[]): number => {
+  const a = atributos3d(p);
+  const todos = [...a.detalhe!.TEC, ...a.detalhe!.TAC, ...a.detalhe!.MEN, ...a.detalhe!.FIS];
+  const v = campos.map(c => todos.find(x => x.campo === c)?.valor).filter((x): x is number => typeof x === 'number');
+  return v.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length) : 0;
+};
+
 const cache = new Map<string, Atributos3D>();
 
 export const atributos3d = (p: Player): Atributos3D => {
   const id = String(p.id).replace(/^p-/, '');
   const linha = D.jogadores[id];
-  const gk = String(p.position) === 'GK';
-  // Os derivados dependem dos atributos que o treino mexe: chave inclui-os.
-  const chave = `${p.id}|${p.def}|${p.pas}|${p.drb}|${p.sht}|${Math.round(p.skill)}|${Math.round(p.fitness)}|${Math.round(p.morale)}`;
+  // Os derivados dependem dos atributos que o treino mexe, da idade e do OVR: a chave inclui-os.
+  const chave = `${p.id}|${p.age}|${p.position}|${(p as any).playStyle || ''}|${p.def}|${p.pas}|${p.drb}|${p.sht}|${Math.round(p.skill)}`;
   const c = cache.get(chave);
   if (c) return c;
-  let r: Atributos3D;
-  if (linha) {
-    const g = gk ? GRUPOS_GK : GRUPOS_CAMPO;
-    const detalhe = {} as Atributos3D['detalhe'] & object;
-    const m: Record<string, number> = {};
-    const b = baseDe(id);
-    const dTec = b ? 0.4 * (p.drb - b.drb) + 0.3 * (p.sht - b.sht) + 0.3 * (p.pas - b.pas) : 0;
-    const dTac = b ? p.def - b.def : 0;
-    const delta: Record<GrupoAtributo, number> = { TEC: Math.round(dTec), TAC: Math.round(dTac), MEN: 0, FIS: 0 };
-    (['TEC', 'TAC', 'MEN', 'FIS'] as GrupoAtributo[]).forEach(k => {
-      const lista = g[k].map(campo => ({ campo, nome: NOME_DO_CAMPO[campo] || campo, valor: Math.max(1, Math.min(99, linha[IDX[campo]] + delta[k])) }));
-      (detalhe as any)[k] = lista;
-      m[k] = media(lista.map(x => x.valor));
+  const b0 = baseDe(id);
+  // Atributos gravados no editor (REAL_PLAYERS_JSON.attrs3d) mandam sobre o 3D original e sobre a geracao.
+  const guardados = b0 && b0.attrs3d ? b0.attrs3d : null;
+  const b = (linha || guardados) ? b0 : undefined;
+  // O jogador do 3D: os campos do 3D + o ganho do treino (TEC/TAC) + o desvio de idade no fisico; o gerado: os atributos gerados (posicao, estilo, nivel e idade).
+  const gerado = (guardados || linha) ? null : gerarAtributos(p.position, (p as any).playStyle || (PLAYSTYLE_DA_BASE as any)[String(p.id)], p.skill, String(p.id), { idade: p.age }).atributos;
+  const dTec = b ? 0.4 * (p.drb - b.drb) + 0.3 * (p.sht - b.sht) + 0.3 * (p.pas - b.pas) : 0;
+  const dTac = b ? p.def - b.def : 0;
+  const dFis = b && b.idade ? curvaFisica(p.age) - curvaFisica(b.idade) : 0;
+  const delta: Record<GrupoAtributo, number> = { TEC: Math.round(dTec), TAC: Math.round(dTac), MEN: 0, FIS: Math.round(dFis) };
+  const detalhe = {} as Record<GrupoAtributo, { campo: string; nome: string; valor: number }[]>;
+  const valores: Record<string, number> = {};
+  for (const k of ORDEM_GRUPOS) {
+    detalhe[k] = GRUPOS[k].map(campo => {
+      const valor = gerado ? gerado[campo] : limitarAtributo((guardados ? guardados[campo] : linha![IDX[campo]]) + delta[k]);
+      valores[campo] = valor;
+      return { campo, nome: NOME_DO_CAMPO[campo] || campo, valor };
     });
-    r = { tec: m.TEC, tac: m.TAC, men: m.MEN, fis: m.FIS, detalhe, real: true };
-  } else {
-    const alaOuLateral = ['LW', 'RW', 'LM', 'RM', 'LB', 'RB'].includes(String(p.position));
-    r = {
-      tec: media([p.drb, p.drb, p.sht, p.pas]),
-      tac: media([p.def, p.def, p.pas]),
-      men: media([p.skill, p.morale * 0.5 + 50]),
-      fis: media([p.skill + (alaOuLateral ? 3 : 0), 40 + p.fitness * 0.6]),
-      real: false
-    };
   }
+  const g = calcularGrupos(valores);
+  const r: Atributos3D = { tec: g.TEC, tac: g.TAC, men: g.MEN, fis: g.FIS, detalhe, real: !!(linha || guardados) };
   if (cache.size > 5000) cache.clear();
   cache.set(chave, r);
   return r;
+};
+
+/*
+O QUE O MOTOR 3D RECEBE de cada jogador: os 31 atributos (os mesmos que o treinador ve, ja entre 50 e 99 e com o treino e a idade) e os cinco campos de baliza que o SkillMap do goleiro le
+(diving, handling, reflexes, posGK, onos): os originais do 3D quando o jogador vem de la, senao `null` e o motor deriva-os dos 31 (skill_map.js, registoDe31).
+*/
+export const atributosParaMotor = (p: Player): { atributos: Record<string, number>; extrasGK: Record<string, number> | null } => {
+  const a = atributos3d(p);
+  const atributos: Record<string, number> = {};
+  for (const g of ['TEC', 'TAC', 'MEN', 'FIS'] as GrupoAtributo[]) for (const x of a.detalhe![g]) atributos[x.campo] = x.valor;
+  const id = String(p.id).replace(/^p-/, '');
+  const linha = D.jogadores[id];
+  let extrasGK: Record<string, number> | null = null;
+  if (linha && String(p.position) === 'GK') {
+    extrasGK = {};
+    for (const k of ['diving', 'handling', 'reflexes', 'posGK', 'onos']) extrasGK[k] = linha[IDX[k]];
+  }
+  return { atributos, extrasGK };
 };

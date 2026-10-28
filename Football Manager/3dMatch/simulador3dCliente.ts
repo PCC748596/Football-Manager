@@ -4,6 +4,7 @@ O motor 3D decide a partida e gera a narracao. Dois usos:
   . jogarOculto  corre a partida do utilizador sem desenhar (modo "2D simulador": so a narracao) e devolve o resultado inteiro;
   . montarPayload  monta a mensagem `iniciar` (usada tambem pelo Simulador3DView, que mostra o 3D num iframe).
 */
+import { atributosParaMotor } from '../textSim/atributos3d';
 import { Team, Player, Fixture, MatchEvent, Tactics, FORMATIONS, getKitDetails, getGKKitDetails, resolveSetPieceTakers, kitShorts, ehVerde, KitDetails } from '../types';
 
 const CAMINHO_SIMULADOR = '/simulador3d/index.html';
@@ -43,7 +44,7 @@ const ladoDe = (team: Team, players: Player[]): LadoPayload => {
   const ids = [...team.lineup.filter(Boolean), ...(((team as any).bench || []) as string[]).filter(Boolean)];
   for (const id of ids) {
     const p = players.find(x => x.id === id);
-    if (p) porId[id] = p;
+    if (p) { const m = atributosParaMotor(p); porId[id] = { ...p, atributos: m.atributos, extrasGK: m.extrasGK }; }
   }
   const formacao = team.tactics?.formation || '4-4-2';
   return {

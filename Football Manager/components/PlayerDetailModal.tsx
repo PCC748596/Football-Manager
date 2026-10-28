@@ -136,16 +136,20 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
     const phy = Math.round((player.fitness + (isDef ? def : 60)) / 2); // Approximation for Physical
     const spd = Math.round((drb + (isMid ? pas : sht)) / 2); // Approximation for Pace/Speed
 
-    // 8-Point Radar Chart Data
-    const radarData = {
-      Defending: def,
-      Physical: phy,
-      Speed: spd,
-      Vision: pas,
-      Attacking: sht,
-      Technical: drb,
-      Aerial: isDef ? def - 5 : (isGk ? 80 : 50 + Math.random() * 20),
-      Mental: player.morale,
+    // O radar usa SO os atributos do 3D (textSim/atributos3d.ts): as quatro medias e quatro habilidades tiradas dos campos.
+    const a3 = atributos3d(player);
+    const mediaDe = (campos: string[]) => {
+      const todos = [...a3.detalhe!.TEC, ...a3.detalhe!.TAC, ...a3.detalhe!.MEN, ...a3.detalhe!.FIS];
+      const v = campos.map(c => todos.find(x => x.campo === c)?.valor).filter((x): x is number => typeof x === 'number');
+      return v.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length) : 0;
+    };
+    const radarData = isGk ? {
+      Technique: a3.tec, Tactical: a3.tac, Mental: a3.men, Physical: a3.fis,
+      Distribution: mediaDe(['passing', 'longPassing']), Reflexes: mediaDe(['reactions', 'agility']), Positioning: mediaDe(['tacticalAwa', 'posDefense']), Aerial: mediaDe(['jumping', 'strength'])
+    } : {
+      Technique: a3.tec, Tactical: a3.tac, Mental: a3.men, Physical: a3.fis,
+      Attacking: mediaDe(['finishing', 'shotPower', 'longShots', 'volleys']), Defending: mediaDe(['tackleStanding', 'tackleSliding', 'manMarking', 'posDefense']),
+      Passing: mediaDe(['passing', 'longPassing', 'vision']), Pace: mediaDe(['speed', 'acceleration'])
     };
 
     return {
@@ -304,49 +308,6 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                 </div>
               </div>
 
-              {/* Summary Bars */}
-              <div className="flex flex-col gap-0.5">
-                <div className="flex justify-between items-center bg-slate-900/30 px-2 py-1 rounded border border-slate-800/50">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-white">Pace (DRB/PAS)</span>
-                    <AttributeGrowthArrow val={player.lastGrowth?.def || 0} />
-                  </div>
-                  <span className={`text-base font-black ${getColorClass(detailedStats.pace)}`}>{detailedStats.pace}</span>
-                </div>
-                <div className="flex justify-between items-center bg-slate-900/30 px-2 py-1 rounded border border-slate-800/50">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-white">Shooting</span>
-                    <AttributeGrowthArrow val={player.lastGrowth?.sht || 0} />
-                  </div>
-                  <span className={`text-base font-black ${getColorClass(detailedStats.shooting)}`}>{detailedStats.shooting}</span>
-                </div>
-                <div className="flex justify-between items-center bg-slate-900/30 px-2 py-1 rounded border border-slate-800/50">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-white">Passing</span>
-                    <AttributeGrowthArrow val={player.lastGrowth?.pas || 0} />
-                  </div>
-                  <span className={`text-base font-black ${getColorClass(detailedStats.passing)}`}>{detailedStats.passing}</span>
-                </div>
-                <div className="flex justify-between items-center bg-slate-900/30 px-2 py-1 rounded border border-slate-800/50">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-white">Dribbling</span>
-                    <AttributeGrowthArrow val={player.lastGrowth?.drb || 0} />
-                  </div>
-                  <span className={`text-base font-black ${getColorClass(detailedStats.dribbling)}`}>{detailedStats.dribbling}</span>
-                </div>
-                <div className="flex justify-between items-center bg-slate-900/30 px-2 py-1 rounded border border-slate-800/50">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-white">Defending</span>
-                    <AttributeGrowthArrow val={player.lastGrowth?.def || 0} />
-                  </div>
-                  <span className={`text-base font-black ${getColorClass(detailedStats.defending)}`}>{detailedStats.defending}</span>
-                </div>
-                <div className="flex justify-between items-center bg-slate-900/30 px-2 py-1 rounded border border-slate-800/50">
-                  <span className="text-sm font-bold text-white">Physical</span>
-                  <span className={`text-base font-black ${getColorClass(detailedStats.physical)}`}>{detailedStats.physical}</span>
-                </div>
-              </div>
-
               {/* Os atributos do 3D (textSim/atributos3d.ts): as quatro medias e, para quem existe na base do 3D, todos os campos */}
               <div className="flex flex-col gap-2 mt-3">
                 <div className="text-sm font-bold text-white">3D Match Attributes</div>
@@ -372,7 +333,6 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                     </div>
                   );
                 })}
-                {!attr3d.real && <div className="text-[9px] text-slate-500">Generated player: group averages derived from OVR / DEF / PAS / DRB / SHT.</div>}
               </div>
             </div>
 

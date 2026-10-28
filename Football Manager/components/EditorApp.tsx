@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import AtributosEditor, { atributoEditorBloqueado } from './AtributosEditor';
 import { REAL_TEAMS_JSON, REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from '../textSim/realDatabase';
 import { ShirtIcon } from './ShirtIcon';
 import { kitShorts } from '../types';
@@ -442,11 +443,13 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Value (VAL)</label>
                         <input type="number" value={editingPlayer.valPlayer || 0} onChange={e => setEditingPlayer({...editingPlayer, valPlayer: parseInt(e.target.value) || 0})} className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white" />
                       </div>
+                      <AtributosEditor player={editingPlayer} onChange={setEditingPlayer} />
                     </div>
-                    <button onClick={() => {
+                    <button disabled={atributoEditorBloqueado(editingPlayer) || !!(window as any).__atributosInvalidos} onClick={() => {
+                        if (atributoEditorBloqueado(editingPlayer) || (window as any).__atributosInvalidos) return;
                         setPlayers(players.map(p => p.idPlayer === editingPlayer.idPlayer ? editingPlayer : p));
                         setEditingPlayer(null);
-                    }} className="mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded transition-colors">
+                    }} className="mt-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold py-2 px-4 rounded transition-colors">
                       Apply Changes
                     </button>
                  </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { atributos3d } from '../textSim/atributos3d';
 import { useGame } from '../context/GameContext';
 import { Player, Team } from '../types';
 import { TeamShield } from './TeamShield';
@@ -136,12 +137,12 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
     </div>
   );
   const Donut: React.FC<{ p: Player }> = ({ p }) => {
-    const cores = ['#ef4444', '#22c55e', '#3b82f6', '#f59e0b'], vals = [p.def, p.pas, p.drb, p.sht], soma = vals.reduce((a, b) => a + b, 0) || 1;
+    const cores = ['#ef4444', '#22c55e', '#3b82f6', '#f59e0b'], vals = [atributos3d(p).tec, atributos3d(p).tac, atributos3d(p).men, atributos3d(p).fis], soma = vals.reduce((a, b) => a + b, 0) || 1;
     let acc = 0;
     const fatias = vals.map((v, i) => { const ini = acc; acc += (v / soma) * 100; return `${cores[i]} ${ini}% ${acc}%`; }).join(', ');
     return <div className="w-24 h-24 rounded-full shrink-0 relative" style={{ background: `conic-gradient(${fatias})` }}><div className="absolute inset-[26%] rounded-full bg-[#0c1426]" /></div>;
   };
-  const NOME_ATTR: Record<string, string> = { def: 'Defending', pas: 'Passing', drb: 'Dribbling', sht: 'Shooting' };
+  const NOME_ATTR: Record<string, string> = { tec: 'Technique', tac: 'Tactical', men: 'Mental', fis: 'Physical' };
 
   const mercadoAba = (
     <div className="flex-1 grid grid-cols-1 xl:grid-cols-[250px_1fr_300px] gap-5 min-h-0">
@@ -225,7 +226,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
         <div className="text-[12px] font-black uppercase tracking-widest text-slate-500">Player overview</div>
         {!sel ? <div className="m-auto text-slate-400 text-sm font-bold uppercase tracking-widest text-center">Select a player</div> : (() => {
           const p = sel.p, neg = negDe(p.id);
-          const top = (['def', 'pas', 'drb', 'sht'] as const).slice().sort((a, b) => p[b] - p[a]).slice(0, 3);
+          const a3 = atributos3d(p); const top = (['tec', 'tac', 'men', 'fis'] as const).slice().sort((a, b) => a3[b] - a3[a]).slice(0, 3);
           return (
             <>
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-[#0e182c] p-3">
@@ -243,7 +244,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-[#0e182c] p-3 flex items-center gap-3">
                 <Donut p={p} />
                 <div className="flex-1 rounded border border-slate-700/60 p-2"><div className="text-[10px] font-black uppercase text-slate-400 mb-1">Key attributes</div>
-                  {top.map(k => <div key={k} className="flex justify-between text-sm font-bold text-slate-200"><span>{NOME_ATTR[k]}</span><span className="text-blue-400">{p[k]}</span></div>)}
+                  {top.map(k => <div key={k} className="flex justify-between text-sm font-bold text-slate-200"><span>{NOME_ATTR[k]}</span><span className="text-blue-400">{a3[k]}</span></div>)}
                 </div>
               </div>
               {p.playStyle && p.playStyle !== 'None' && <div className="text-xs font-bold text-slate-500">PlayStyle: <span className="text-slate-300">{p.playStyle}</span></div>}

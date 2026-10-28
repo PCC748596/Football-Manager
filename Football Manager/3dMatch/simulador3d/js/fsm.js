@@ -89,7 +89,10 @@ function executePassGameplay(p) {
     A rotacao e aplicada a DIRECCAO e nao ao ponto: rodar o ponto mudava
     tambem a distancia, e a distancia ja tem o seu proprio erro logo abaixo.
     */
-    const passSkill = p.skillFor ? p.skillFor('PASS') : 50;
+    // O atributo da ACAO: o cruzamento le `crossing`, o passe longo `longPassing` e a visao, o curto `passing` e o controlo de bola (ver Player.skillRefinada).
+    const passSkill = p.skillRefinada
+        ? p.skillRefinada('PASS', p.isCross ? ['crossing', 'passing'] : (distToTarget > 25 ? ['longPassing', 'vision'] : ['passing', 'ballControl']))
+        : (p.skillFor ? p.skillFor('PASS') : 50);
     const tecSkill = p.skillFor ? p.skillFor('TEC') : 50;
 
     /*

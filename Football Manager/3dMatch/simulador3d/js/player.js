@@ -410,6 +410,25 @@ class FootballPlayer {
     `stamina` e a `fitness` (sao a causa, nao o efeito — descontar nelas era
     uma bola de neve) e o `tacticknow`, que e leitura de jogo e nao pernas.
     */
+    /*
+    A SKILL REFINADA PELOS 31 ATRIBUTOS: as decisoes e os erros do jogo leem o atributo da ACAO e nao so a skill media. `campos` sao os atributos da acao (ex.: ['longPassing', 'vision'] num passe
+    longo); a skill sobe ou desce `fator` do desvio entre a media deles e a media dos atributos de que a skill e feita (SkillMap). Sem os 31 (jogador de dados antigos) devolve a skill de sempre.
+    */
+    skillRefinada(chave, campos, fator) {
+        const base = this.skillFor(chave);
+        const atr = this.skills && this.skills.atr;
+        if (!atr || typeof skillDeAtributos !== 'function' || typeof SkillMap === 'undefined') return base;
+        const k = String(chave).toLowerCase();
+        const pesos = SkillMap[k];
+        if (!pesos) return base;
+        const baseAtr = skillDeAtributos(atr, pesos);
+        let soma = 0, n = 0;
+        for (const c of campos) { if (typeof atr[c] === 'number') { soma += atr[c]; n++; } }
+        if (baseAtr === null || !n) return base;
+        const f = (typeof fator === 'number') ? fator : 0.6;
+        return Math.max(1, Math.min(100, base + (soma / n - baseAtr) * f));
+    }
+
     skillFor(campo) {
         const chave = String(campo).toLowerCase();
         let base = null;

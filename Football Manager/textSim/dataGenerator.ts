@@ -261,7 +261,7 @@ const assignSquadShirtNumbers = (squad: Player[]) => {
   });
 };
 
-const mapPosString = (posStr: string | number): Position => {
+export const mapPosString = (posStr: string | number): Position => {
   const s = String(posStr);
   switch (s) {
     case '1': return Position.GK;

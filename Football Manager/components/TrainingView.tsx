@@ -410,7 +410,7 @@ const TrainingView: React.FC = () => {
                                    key={idx} 
                                    className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded leading-none transition-colors ${isDisabled ? 'bg-rose-100/50 dark:bg-rose-900/20 text-rose-500/50' : impact.value > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'}`}
                                  >
-                                   {impact.value > 0 ? '+' : ''}{impact.value} {impact.label}
+                                   {impact.value > 0 ? '+' : ''}{impact.value} {({ DEF: 'TAC', PAS: 'TEC', DRB: 'TEC', SHT: 'TEC' } as Record<string, string>)[impact.label] || impact.label}
                                  </span>
                                ))}
                              </div>
@@ -455,9 +455,8 @@ const TrainingView: React.FC = () => {
                                   {/* COL 2: TRAINING CATEGORIES */}
                                   <div className="col-span-2 flex justify-center gap-2.5">
                                       {[
-                                          { label: 'DEF', val: p.lastGrowth?.def },
-                                          { label: 'PAS', val: p.lastGrowth?.pas },
-                                          { label: 'SHT', val: p.lastGrowth?.sht }
+                                          { label: 'TEC', val: (p.lastGrowth?.drb || 0) + (p.lastGrowth?.sht || 0) + (p.lastGrowth?.pas || 0) },
+                                          { label: 'TAC', val: p.lastGrowth?.def || 0 }
                                       ].map(stat => (
                                           <div key={stat.label} className="flex flex-col items-center min-w-[20px]">
                                               <div className="text-[7px] font-black text-slate-400 uppercase mb-0.5 leading-none">{stat.label}</div>
