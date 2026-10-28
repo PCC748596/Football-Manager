@@ -944,6 +944,29 @@ Object.assign(Match, {
             Officials.verificarImpedimento(best)) return false;
 
         /*
+        CORTAR UM PASSE EM ANDAMENTO NAO E AUTOMATICO (PassInterceptModel, config/passing.js). Medido: 1 em cada 5 passes CURTOS era cortado, quase todos na primeira metade do
+        caminho e com a bola em cima da linha — o adversario que chegasse a 0.9 m de uma bola abaixo dos ~11 m/s dominava-a sempre. Agora o adversario de quem passou so fica com ela
+        com a hipotese do modelo (a leitura dele, a velocidade da bola); se falha, a bola desvia-se um pouco e segue, e ele fica um instante sem lhe poder tocar.
+        */
+        const PI = (typeof PassInterceptModel !== 'undefined' && PassInterceptModel.activo) ? PassInterceptModel : null;
+        if (PI && typeof MatchStats !== 'undefined' && MatchStats._pendingPassTeam && best.team !== MatchStats._pendingPassTeam &&
+            best !== this.intendedReceiver && best.role !== 'gk' && !this.ballCarrier) {
+            const vBola = Math.hypot(this.ballVel.x, this.ballVel.z);
+            if (vBola >= PI.velMin) {
+                const leitura = best.skillFor ? best.skillFor('INTERCEPT') : 80;
+                const p = THREE.MathUtils.clamp(PI.base + (leitura - 80) * PI.porSkill - Math.max(0, vBola - PI.velRef) * PI.porVel, PI.min, PI.max);
+                if (Math.random() >= p) {
+                    const ang = (Math.random() - 0.5) * 2 * PI.desvioGraus * Math.PI / 180;
+                    const c = Math.cos(ang), s = Math.sin(ang), vx = this.ballVel.x, vz = this.ballVel.z;
+                    this.ballVel.x = (vx * c - vz * s) * PI.perdaVel;
+                    this.ballVel.z = (vx * s + vz * c) * PI.perdaVel;
+                    best.touchLock = Math.max(best.touchLock || 0, PI.bloqueio);
+                    return false;
+                }
+            }
+        }
+
+        /*
         Anti Ping-Pong Aéreo / Domínio no Peito:
         1. Se a bola estiver na faixa do peito (ou se atingiu o limite de cabeceios seguidos),
            força o domínio no peito com os pés no chão.

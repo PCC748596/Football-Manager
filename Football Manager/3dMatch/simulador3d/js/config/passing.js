@@ -88,6 +88,14 @@ const RecuoSobPressao = {
 };
 if (typeof window !== 'undefined') window.RecuoSobPressao = RecuoSobPressao;
 
+/*
+CORTAR UM PASSE EM ANDAMENTO (ver resolveBallContact, match_physics.js): a hipotese de o adversario que chega a bola de um passe ficar com ela. `base` com a leitura (INTERCEPT) de 80 e a
+bola a `velRef` m/s; sobe `porSkill` por ponto de leitura e desce `porVel` por m/s acima de `velRef`; entre `min` e `max`. Falhando, a bola roda ate `desvioGraus`, perde (1 - `perdaVel`) da
+velocidade e ele fica `bloqueio` s sem lhe tocar. Bolas abaixo de `velMin` m/s (quase paradas) sao de quem chega, como sempre.
+*/
+const PassInterceptModel = { activo: true, base: 0.55, porSkill: 0.006, velRef: 8.0, porVel: 0.03, min: 0.15, max: 0.85, velMin: 3.0, desvioGraus: 12, perdaVel: 0.85, bloqueio: 0.4 };
+if (typeof window !== 'undefined') window.PassInterceptModel = PassInterceptModel;
+
 const InversaoDeJogo = {
     activo: true,
     congestaoMin: 40,     // congestão (0-100; 25 por adversário na banda, ±22 m da bola) da banda da bola
