@@ -3296,7 +3296,7 @@ class PlayerFSM {
                         esquerda e `criarPerna(-0.4)` a direita (pose.js): com
                         a direita a bater, o apoio está em x positivo local.
                         */
-                        const apoioR = (ShotClip.pernaChute !== 'r');   // canhoto apoia no direito
+                        const apoioR = (typeof pernaChutaNaDireita === 'function') ? !pernaChutaNaDireita(ShotClip) : (ShotClip.pernaChute !== 'r');   // canhoto apoia no direito
                         _v2.set(_v1.z, 0, -_v1.x).multiplyScalar(apoioR ? -1 : 1);
                         /*
                         E MIRA ONDE A BOLA VAI ESTAR, não onde está.

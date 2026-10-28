@@ -235,8 +235,8 @@ postos da esquerda ela sobe, porque um lateral esquerdo canhoto e a regra e
 nao a excepcao.
 */
 const FootModel = {
-    fraccaoCanhotos: 0.22,
-    fraccaoCanhotosNaEsquerda: 0.70,
+    fraccaoCanhotos: 0.135,
+    fraccaoCanhotosNaEsquerda: 0.55,
     postosDaEsquerda: ['LB', 'LM', 'LW']
 };
 

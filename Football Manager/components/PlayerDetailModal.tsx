@@ -7,7 +7,9 @@ import { AttributeGrowthArrow } from './SquadView';
 import { PlayerFace } from './PlayerFace';
 import { ContractPanel } from './ContractPanel';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
-import { atributos3d } from '../textSim/atributos3d';
+import { atributos3d, campo3d, paisDoJogador } from '../textSim/atributos3d';
+import { peBomDe } from '../textSim/peBom';
+import { potencialVisivel, estrelasDoJogador } from '../textSim/youth';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
 import { PLAYSTYLE_AJUSTES } from '../textSim/playStylesAjustes';
 import { PLAYSTYLE_POSITIONS, PLAYSTYLE_DESCRICAO, PlayStyle } from '../types';
@@ -139,13 +141,13 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
     // O radar usa SO os atributos do 3D (textSim/atributos3d.ts): as quatro medias e quatro habilidades tiradas dos campos.
     const a3 = atributos3d(player);
     const mediaDe = (campos: string[]) => {
-      const todos = [...a3.detalhe!.TEC, ...a3.detalhe!.TAC, ...a3.detalhe!.MEN, ...a3.detalhe!.FIS];
+      const todos = [...a3.detalhe!.TEC, ...a3.detalhe!.TAC, ...a3.detalhe!.MEN, ...a3.detalhe!.FIS, ...(a3.detalhe!.GK || [])];
       const v = campos.map(c => todos.find(x => x.campo === c)?.valor).filter((x): x is number => typeof x === 'number');
       return v.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length) : 0;
     };
     const radarData = isGk ? {
       Technique: a3.tec, Tactical: a3.tac, Mental: a3.men, Physical: a3.fis,
-      Distribution: mediaDe(['passing', 'longPassing']), Reflexes: mediaDe(['reactions', 'agility']), Positioning: mediaDe(['tacticalAwa', 'posDefense']), Aerial: mediaDe(['jumping', 'strength'])
+      Diving: mediaDe(['diving']), Handling: mediaDe(['handling']), Reflexes: mediaDe(['reflexes']), Positioning: mediaDe(['posGK'])
     } : {
       Technique: a3.tec, Tactical: a3.tac, Mental: a3.men, Physical: a3.fis,
       Attacking: mediaDe(['finishing', 'shotPower', 'longShots', 'volleys']), Defending: mediaDe(['tackleStanding', 'tackleSliding', 'manMarking', 'posDefense']),
@@ -186,6 +188,20 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
     return [{ icon: ICONE_DO_ESTILO[daBase] || '🪄', name: daBase, descricao: PLAYSTYLE_DESCRICAO[daBase as PlayStyle] || '' }];
   }, [player, team]);
 
+  // O resumo (as seis medidas do cartao): tiradas SO dos atributos do 3D. O goleiro mostra os seus (Diving, Handling, Kicking, Reflexes, Speed, Positioning).
+  const resumo = player.position === Position.GK ? [
+    { rotulo: 'Diving', valor: campo3d(player, ['diving']) }, { rotulo: 'Handling', valor: campo3d(player, ['handling']) }, { rotulo: 'Kicking', valor: campo3d(player, ['kicking']) },
+    { rotulo: 'Reflexes', valor: campo3d(player, ['reflexes']) }, { rotulo: 'Speed', valor: campo3d(player, ['speed', 'acceleration']) }, { rotulo: 'Positioning', valor: campo3d(player, ['posGK']) }
+  ] : [
+    { rotulo: 'Pace', valor: campo3d(player, ['speed', 'acceleration']) },
+    { rotulo: 'Shooting', valor: campo3d(player, ['finishing', 'shotPower', 'longShots', 'volleys', 'penalties']) },
+    { rotulo: 'Passing', valor: campo3d(player, ['passing', 'longPassing', 'vision', 'crossing']) },
+    { rotulo: 'Dribbling', valor: campo3d(player, ['dribbling', 'ballControl', 'agility', 'balance']) },
+    { rotulo: 'Defending', valor: campo3d(player, ['tackleStanding', 'tackleSliding', 'manMarking', 'posDefense']) },
+    { rotulo: 'Physical', valor: campo3d(player, ['strength', 'stamina', 'jumping', 'aggression']) }
+  ];
+  const corDaBarra = (v: number) => (v >= 80 ? '#10b981' : v >= 70 ? '#60a5fa' : v >= 60 ? '#eab308' : '#f43f5e');
+
   const stars = (count: number) => {
     return (
       <div className="flex gap-0.5">
@@ -208,60 +224,109 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4"></div>
         </div>
 
-        {/* LEFT PANEL: Player List Context */}
-        <div className="w-64 bg-slate-900/50 border-r border-slate-800 hidden md:flex flex-col">
-          <div className="p-4 border-b border-slate-800">
-            <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Team Squad</span>
+        {/* LEFT PANEL: o plantel em tabela (Pos, Name, Age, OVR, Form) */}
+        <div className="w-[380px] bg-slate-900/60 border-r border-slate-800 hidden md:flex flex-col">
+          <div className="px-4 py-3 border-b border-slate-800 flex items-center gap-3">
+            <span className="text-xs font-black text-white uppercase tracking-widest">Squad</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{team?.name}</span>
           </div>
-          <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
+          <div className="grid grid-cols-[34px_38px_1fr_34px_40px_40px] gap-1 px-3 py-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800">
+            <span>Pos</span><span></span><span>Name</span><span className="text-center">Age</span><span className="text-center">OVR</span><span className="text-center">Form</span>
+          </div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
             {teamPlayers.map(p => (
               <button
                 key={p.id}
                 onClick={() => setActivePlayerId(p.id)}
-                className={`text-left p-2 rounded flex justify-between items-center transition-colors ${p.id === player.id ? 'bg-slate-800 border border-slate-700' : 'hover:bg-slate-800/50 border border-transparent'}`}
+                className={`grid grid-cols-[34px_38px_1fr_34px_40px_40px] gap-1 items-center px-3 py-1.5 text-left border-b border-slate-800/60 transition-colors ${p.id === player.id ? 'bg-slate-700/60 ring-1 ring-inset ring-blue-500/60' : 'hover:bg-slate-800/60'}`}
               >
-                <div className="flex flex-col">
-                  <span className={`text-xs font-bold ${p.id === player.id ? 'text-white' : 'text-slate-400'}`}>{p.name}</span>
-                  <span className="text-[10px] text-slate-500">{p.position}</span>
-                </div>
-                <span className={`text-xs font-black ${getColorClass(p.skill)}`}>{p.skill}</span>
+                <span className="text-[10px] font-black text-slate-400">{p.position}</span>
+                <span className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 overflow-hidden block"><PlayerFace playerId={p.id} camisa={team?.primaryColor} className="w-full h-full" /></span>
+                <span className={`text-xs font-bold truncate ${p.id === player.id ? 'text-white' : 'text-slate-300'}`}>{p.name}</span>
+                <span className="text-[11px] text-slate-400 text-center">{p.age}</span>
+                <span className={`text-xs font-black text-center ${getColorClass(p.skill)}`}>{Math.round(p.skill)}</span>
+                <span className={`text-[11px] font-black text-center ${p.fitness >= 80 ? 'text-emerald-400' : p.fitness >= 60 ? 'text-amber-400' : 'text-rose-400'}`}>{p.fitness >= 80 ? '▲' : p.fitness >= 60 ? '▶' : '▼'}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* RIGHT PANEL: Main Content */}
+        {/* RIGHT PANEL: o cartao do jogador */}
         <div className="flex-1 flex flex-col relative z-10 min-h-0 min-w-0 overflow-y-auto custom-scrollbar">
-          {/* Header */}
-          <div className="p-8 pb-4 flex justify-between items-start">
-            <div className="flex gap-6">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 border-2 border-slate-600 flex items-center justify-center shadow-lg overflow-hidden">
-                  <PlayerFace playerId={player.id} camisa={team?.primaryColor} className="w-full h-full" />
-                </div>
-                <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-slate-900 rounded-full border-2 border-slate-700 flex items-center justify-center">
-                  <TeamShield team={team} className="w-6 h-8" />
+          {/* HERO: OVR e posicao, nome, dados, rosto */}
+          <div className="p-6 pb-3 flex items-stretch gap-6">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-3">
+                <span className={`text-6xl font-black italic leading-none ${getColorClass(player.skill)}`}>{Math.round(player.skill)}</span>
+                <span className="text-sm font-black text-slate-300 uppercase tracking-widest">{player.position}{playStyles[0] ? ` · ${playStyles[0].name}` : ''}</span>
+              </div>
+              <div className="mt-2 flex items-center gap-3">
+                <img src={`/Assets/Bandeiras/${paisDoJogador(player, (team as any)?.country) || 'x'}.png`} alt="" title="Nationality" className="w-10 h-7 object-cover rounded-sm border border-slate-700" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-none">{player.name.split(' ').slice(0, -1).join(' ') || team?.name}</div>
+                  <h2 className="text-3xl font-black text-white uppercase tracking-tight leading-tight truncate">{player.name.split(' ').slice(-1)[0]}</h2>
                 </div>
               </div>
-              <div>
-                <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Overview</div>
-                <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter leading-none">{player.name}</h2>
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="bg-slate-800 text-white px-2 py-0.5 rounded text-xs font-black uppercase border border-slate-700">{player.position}</span>
-                  <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">{team?.name}</span>
-                  <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider border-l border-slate-700 pl-3">Age: {player.age}</span>
-                </div>
+              <div className="mt-3 grid grid-cols-4 gap-2 max-w-xl">
+                <div className="bg-slate-900/60 border border-slate-800 rounded px-3 py-1.5"><div className="text-[9px] font-bold text-slate-500 uppercase">Age</div><div className="text-sm font-black text-white">{player.age}</div></div>
+                <div className="bg-slate-900/60 border border-slate-800 rounded px-3 py-1.5"><div className="text-[9px] font-bold text-slate-500 uppercase">Height / Weight</div><div className="text-sm font-black text-white">{attr3d.altura ? `${attr3d.altura} cm / ${attr3d.peso || '-'} kg` : '-'}</div></div>
+                <div className="bg-slate-900/60 border border-slate-800 rounded px-3 py-1.5"><div className="text-[9px] font-bold text-slate-500 uppercase">Potential</div><div>{stars(estrelasDoJogador(player))}</div></div>
+                <div className="bg-slate-900/60 border border-slate-800 rounded px-3 py-1.5"><div className="text-[9px] font-bold text-slate-500 uppercase">Preferred foot</div><div className="text-sm font-black text-white">{peBomDe(player) === 'e' ? 'Left' : 'Right'}</div></div>
               </div>
             </div>
-            <div className="text-right pr-14">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Overall</div>
-              <div className={`text-6xl font-black italic ${getColorClass(player.skill)} drop-shadow-lg`}>{player.skill}</div>
+            <div className="w-40 h-40 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 overflow-hidden shrink-0 mr-10">
+              <PlayerFace playerId={player.id} camisa={team?.primaryColor} className="w-full h-full" />
             </div>
           </div>
 
-          <div className="p-8 pt-2 grid grid-cols-2 gap-8 items-start">
-            {/* Column 1: Info & Summary */}
-            <div className="flex flex-col gap-3">
+          <div className="px-6 pb-6 grid grid-cols-2 gap-5 items-start">
+            {/* SUMMARY: as seis medidas de resumo, tiradas dos atributos do 3D */}
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+              <div className="text-sm font-bold text-white mb-2">Summary</div>
+              <div className="flex flex-col gap-1">
+                {resumo.map(r => (
+                  <div key={r.rotulo} className="flex items-center gap-3 px-2 py-1 rounded bg-slate-950/40">
+                    <span className="text-xs font-bold text-slate-300 w-24">{r.rotulo}</span>
+                    <div className="flex-1 h-1.5 bg-slate-800 rounded overflow-hidden"><div className="h-full rounded" style={{ width: `${Math.max(0, (r.valor - 50) / 49 * 100)}%`, background: corDaBarra(r.valor) }} /></div>
+                    <span className={`text-base font-black w-8 text-right ${getColorClass(r.valor)}`}>{r.valor}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 text-sm font-bold text-white mb-2">PlayStyle</div>
+              <div className="flex gap-4 items-start">
+                {playStyles.map((style, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div title={(style as any).descricao || style.name} className="w-11 h-11 bg-slate-800 rounded rotate-45 border border-slate-600 flex items-center justify-center shadow-lg shrink-0">
+                      <span className="-rotate-45 text-xl">{style.icon}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-black text-slate-200 uppercase tracking-widest">{style.name}</div>
+                      {(style as any).descricao && <div className="text-[10px] leading-snug text-slate-500">{(style as any).descricao}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* DEVELOPMENT: OVR actual contra o potencial estimado */}
+            <div className="flex flex-col gap-5">
+              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                <div className="text-sm font-bold text-white mb-2">Player Development</div>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+                  <span className="text-slate-500">Weekly growth</span><span className={`font-black text-right ${player.weeklyGrowth > 0 ? 'text-emerald-400' : 'text-slate-300'}`}>{player.weeklyGrowth > 0 ? '+' : ''}{player.weeklyGrowth}</span>
+                  <span className="text-slate-500">Fitness</span><span className="font-black text-right text-slate-200">{Math.round(player.fitness)}%</span>
+                  <span className="text-slate-500">Morale</span><span className="font-black text-right text-slate-200">{Math.round(player.morale)}</span>
+                </div>
+                <div className="mt-3 flex items-center gap-3">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase">Progress</span>
+                  <span className="text-sm font-black text-white">{Math.round(player.skill)}</span>
+                  <div className="flex-1 h-2 bg-slate-800 rounded overflow-hidden relative">
+                    <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, Math.max(0, (player.skill / Math.max(player.skill, potencialVisivel(player))) * 100))}%` }} />
+                  </div>
+                  <span className="text-sm font-black text-slate-300">{Math.max(Math.round(player.skill), potencialVisivel(player))}</span>
+                </div>
+                <div className="text-[9px] text-slate-500 mt-1">The right-hand number is the scout's potential estimate.</div>
+              </div>
               <ContractPanel player={player} />
               {userTeam && player.teamId === userTeam.id && (
                 <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 flex flex-col gap-2">
@@ -280,91 +345,40 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                   {aviso && <div className="text-[10px] text-amber-400 font-bold">{aviso}</div>}
                 </div>
               )}
-              {/* Bio Data */}
-              <div className="grid grid-cols-2 gap-5 bg-slate-900/50 p-3 rounded-lg border border-slate-800">
-                <div>
-                  <div className="text-[10px] text-slate-500 font-bold uppercase">Skill Moves</div>
-                  {stars(3)}
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 font-bold uppercase">Weak Foot</div>
-                  {stars(3)}
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 font-bold uppercase">Work Rate (Att)</div>
-                  <span className="text-xs font-bold text-white">High</span>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 font-bold uppercase">Work Rate (Def)</div>
-                  <span className="text-xs font-bold text-white">Medium</span>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 font-bold uppercase">Preferred Foot</div>
-                  <span className="text-xs font-bold text-white">Right</span>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 font-bold uppercase">Weight/Height</div>
-                  <span className="text-xs font-bold text-white">75kg / 180cm</span>
-                </div>
-              </div>
+            </div>
 
-              {/* Os atributos do 3D (textSim/atributos3d.ts): as quatro medias e, para quem existe na base do 3D, todos os campos */}
-              <div className="flex flex-col gap-2 mt-3">
-                <div className="text-sm font-bold text-white">3D Match Attributes</div>
-                {(['TEC', 'TAC', 'MEN', 'FIS'] as const).map(g => {
-                  const media = g === 'TEC' ? attr3d.tec : g === 'TAC' ? attr3d.tac : g === 'MEN' ? attr3d.men : attr3d.fis;
-                  const nomeG = g === 'TEC' ? 'Technique' : g === 'TAC' ? 'Tactical' : g === 'MEN' ? 'Mental' : 'Physical';
+            {/* 3D MATCH ATTRIBUTES: todos os atributos, por grupo (o goleiro leva tambem os de baliza) */}
+            <div className="col-span-2 bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+              <div className="text-sm font-bold text-white mb-3">3D Match Attributes</div>
+              <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                {(['TEC', 'TAC', 'MEN', 'FIS', ...(attr3d.detalhe && attr3d.detalhe.GK ? ['GK'] : [])] as const).map((g: any) => {
+                  const lista = (attr3d.detalhe as any)[g] as { campo: string; nome: string; valor: number }[];
+                  const media = g === 'TEC' ? attr3d.tec : g === 'TAC' ? attr3d.tac : g === 'MEN' ? attr3d.men : g === 'FIS' ? attr3d.fis : (attr3d.gk || 0);
+                  const nomeG = g === 'TEC' ? 'Technique' : g === 'TAC' ? 'Tactical' : g === 'MEN' ? 'Mental' : g === 'FIS' ? 'Physical' : 'Goalkeeping';
                   return (
-                    <div key={g} className="bg-slate-900/30 px-2 py-1 rounded border border-slate-800/50">
-                      <div className="flex justify-between items-center">
+                    <div key={g} className="bg-slate-950/40 px-3 py-2 rounded border border-slate-800/60">
+                      <div className="flex justify-between items-center border-b border-slate-800 pb-1 mb-1">
                         <span className="text-xs font-black text-white uppercase tracking-widest">{g} <span className="text-slate-500 font-bold normal-case tracking-normal">{nomeG}</span></span>
-                        <span className={`text-base font-black ${getColorClass(media)}`}>{media}</span>
+                        <span className={`text-lg font-black ${getColorClass(media)}`}>{media}</span>
                       </div>
-                      {attr3d.detalhe && (
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1">
-                          {attr3d.detalhe[g].map(x => (
-                            <div key={x.campo} className="flex justify-between text-[11px]">
-                              <span className="text-slate-400">{x.nome}</span>
-                              <span className={`font-black ${getColorClass(x.valor)}`}>{x.valor}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <div className="flex flex-col gap-0.5">
+                        {lista.map(x => (
+                          <div key={x.campo} className="flex justify-between text-[11px]">
+                            <span className="text-slate-400">{x.nome}</span>
+                            <span className={`font-black ${getColorClass(x.valor)}`}>{x.valor}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* Column 2: Radial Chart & Playstyles */}
-            <div className="flex flex-col gap-6">
-              {/* PlayStyles */}
-              <div>
-                <div className="text-sm font-bold text-white mb-2">PlayStyles</div>
-                <div className="flex gap-4">
-                  {playStyles.map((style, i) => (
-                    <div key={i} className="flex flex-col items-center gap-3">
-                      <div title={(style as any).descricao || style.name} className="w-12 h-12 bg-slate-800 rounded rotate-45 border border-slate-600 flex items-center justify-center shadow-lg group relative cursor-help">
-                        <span className="-rotate-45 text-2xl">{style.icon}</span>
-                      </div>
-                      <div className="text-[9px] font-bold text-slate-300 uppercase tracking-widest text-center mt-1">
-                        {style.name}
-                      </div>
-                      {(style as any).descricao && (
-                        <div className="text-[9px] leading-snug text-slate-500 text-center max-w-[200px]">{(style as any).descricao}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Radial Graph */}
-              <div className="flex-1 flex items-center justify-center relative">
-                <RadarChart stats={detailedStats.radarData} />
-              </div>
+            <div className="col-span-2 flex items-center justify-center">
+              <RadarChart stats={detailedStats.radarData} />
             </div>
           </div>
-
         </div>
 
         {/* Close Button (fixo no modal: o painel da direita rola) */}

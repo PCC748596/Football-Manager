@@ -461,6 +461,7 @@ Object.assign(Match, {
         const uni = (P.role === 'gk') ? P.uniforme : ((typeof uniformeDe === 'function' && info) ? uniformeDe(info.nome) : P.uniforme);
         const N = new FootballPlayer(P.id, P.corCamisa, P.corCalcao, P.team, uni, sk.id);
         N.skills = sk;
+        if (sk && sk.pe) N.pe = sk.pe;
         N.playingStyleFixo = sk.estilo || null;
         // O POSTO do que sai.
         N.role = P.role;

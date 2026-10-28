@@ -1557,10 +1557,18 @@ tudo o que toca, e o ciclo de passada reescrevia as pernas no mesmo frame.
 
 Só mexe no esqueleto; a altura do corpo é do jogo e fica no player.js.
 */
+/*
+O PE BOM DO JOGADOR NO REMATE E NO PASSE: o clip e escrito para a perna `ShotClip.pernaChute`; um canhoto (`window.__peEsquerdo`, posto pelo Player.update para o jogador que esta a ser animado) usa a perna
+OPOSTA — a mesma pose espelhada: bate com a esquerda, apoia na direita, e o corpo inclina para o lado certo.
+*/
+function pernaChutaNaDireita(clip) {
+    return ((clip || ShotClip).pernaChute === 'r') !== (typeof window !== 'undefined' && window.__peEsquerdo === true);
+}
+
 function aplicarPoseRemate(rig, K) {
     if (!rig) return;
 
-    const chuteR = (ShotClip.pernaChute === 'r');
+    const chuteR = pernaChutaNaDireita(ShotClip);
     const pernaC = chuteR ? rig.rLeg : rig.lLeg;
     const joelhoC = chuteR ? rig.rKnee : rig.lKnee;
     const pernaA = chuteR ? rig.lLeg : rig.rLeg;

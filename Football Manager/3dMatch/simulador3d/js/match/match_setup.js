@@ -2438,6 +2438,7 @@ Object.assign(Match, {
             let p = new FootballPlayer(i, corCamisa, corCalcao, 'TeamA',
                 (i === 0) ? uniGKcomLuvas(this.uniformeGKA) : uniA, skillsA && skillsA[i] ? skillsA[i].id : null);
             p.skills = skillsA ? skillsA[i] : null;
+            if (p.skills && p.skills.pe) p.pe = p.skills.pe;   // o pe bom que o manager mostra (textSim/peBom.ts)
             // O estilo que o jogador traz nos dados manda sobre o estilo por
             // omissão da posição — ver aplicarPlayingStyle.
             p.playingStyleFixo = (p.skills && p.skills.estilo) ? p.skills.estilo : null;
@@ -2451,6 +2452,7 @@ Object.assign(Match, {
             let p = new FootballPlayer(i + 20, corCamisa, corCalcao, 'TeamB',
                 (i === 0) ? uniGKcomLuvas(this.uniformeGKB) : uniB, skillsB && skillsB[i] ? skillsB[i].id : null);
             p.skills = skillsB ? skillsB[i] : null;
+            if (p.skills && p.skills.pe) p.pe = p.skills.pe;
             p.playingStyleFixo = (p.skills && p.skills.estilo) ? p.skills.estilo : null;
             this.opponents.push(p);
             this.scene.add(p.model);

@@ -10,10 +10,10 @@ TEC, TAC e MEN seguem a QUALIDADE do jogador; o FIS e parecido num craque e num 
 */
 import dados from './atributos3d.json';
 import type { Player } from '../types';
-import { REAL_PLAYERS_JSON } from './realDatabase';
+import { REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 import { PLAYSTYLE_DA_BASE } from './playStylesDatabase';
 import { NIVEL_MINIMO } from './dataGenerator';
-import { GRUPOS, gerarAtributos, limitarAtributo, curvaFisica, calcularGrupos } from './geradorAtributos';
+import { GRUPOS, ATRIBUTOS_GK, gerarAtributos, limitarAtributo, curvaFisica, calcularGrupos } from './geradorAtributos';
 
 /*
 O TREINO MEXE NOS ATRIBUTOS DO 3D: o treino sobe/desce DEF/PAS/DRB/SHT e esse ganho (o valor de hoje menos o do inicio, da realDatabase com o piso NIVEL_MINIMO) soma-se aos campos do grupo:
@@ -49,15 +49,19 @@ export const NOME_DO_CAMPO: Record<string, string> = {
 
 export interface Atributos3D {
   tec: number; tac: number; men: number; fis: number;
-  /** Os campos do 3D (so quando o jogador existe na base do 3D). */
-  detalhe?: Record<GrupoAtributo, { campo: string; nome: string; valor: number }[]>;
+  /** A media dos atributos de baliza (so o goleiro). */
+  gk?: number;
+  /** Altura (cm) e peso (kg) do jogador, quando os dados do 3D os trazem. */
+  altura?: number; peso?: number;
+  /** Os campos do 3D (todos os jogadores) + `GK` (os atributos de baliza, so no goleiro). */
+  detalhe?: Record<GrupoAtributo, { campo: string; nome: string; valor: number }[]> & { GK?: { campo: string; nome: string; valor: number }[] };
   real: boolean;
 }
 
 /** A media de alguns campos do 3D de um jogador (ex.: ['cornerKicks', 'crossing']). */
 export const campo3d = (p: Player, campos: string[]): number => {
   const a = atributos3d(p);
-  const todos = [...a.detalhe!.TEC, ...a.detalhe!.TAC, ...a.detalhe!.MEN, ...a.detalhe!.FIS];
+  const todos = [...a.detalhe!.TEC, ...a.detalhe!.TAC, ...a.detalhe!.MEN, ...a.detalhe!.FIS, ...(a.detalhe!.GK || [])];
   const v = campos.map(c => todos.find(x => x.campo === c)?.valor).filter((x): x is number => typeof x === 'number');
   return v.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length) : 0;
 };
@@ -90,8 +94,19 @@ export const atributos3d = (p: Player): Atributos3D => {
       return { campo, nome: NOME_DO_CAMPO[campo] || campo, valor };
     });
   }
+  // O goleiro leva tambem os atributos de baliza (50 a 99).
+  let gkMedia: number | undefined;
+  if (String(p.position) === 'GK') {
+    const lista = ATRIBUTOS_GK.map(campo => {
+      const valor = gerado ? (gerado[campo] ?? 50) : limitarAtributo(guardados && typeof guardados[campo] === 'number' ? guardados[campo] : (linha ? linha[IDX[campo]] : 50));
+      valores[campo] = valor;
+      return { campo, nome: NOME_DO_CAMPO[campo] || campo, valor };
+    });
+    (detalhe as any).GK = lista;
+    gkMedia = Math.round(lista.reduce((s, x) => s + x.valor, 0) / lista.length);
+  }
   const g = calcularGrupos(valores);
-  const r: Atributos3D = { tec: g.TEC, tac: g.TAC, men: g.MEN, fis: g.FIS, detalhe, real: !!(linha || guardados) };
+  const r: Atributos3D = { tec: g.TEC, tac: g.TAC, men: g.MEN, fis: g.FIS, gk: gkMedia, altura: linha ? linha[IDX['height']] || undefined : undefined, peso: linha ? linha[IDX['weight']] || undefined : undefined, detalhe, real: !!(linha || guardados) };
   if (cache.size > 5000) cache.clear();
   cache.set(chave, r);
   return r;
@@ -105,12 +120,25 @@ export const atributosParaMotor = (p: Player): { atributos: Record<string, numbe
   const a = atributos3d(p);
   const atributos: Record<string, number> = {};
   for (const g of ['TEC', 'TAC', 'MEN', 'FIS'] as GrupoAtributo[]) for (const x of a.detalhe![g]) atributos[x.campo] = x.valor;
+  // Goleiro: os atributos de baliza (50 a 99) vao para o motor como `extrasGK`.
+  let extrasGK: Record<string, number> | null = null;
+  if (a.detalhe!.GK) { extrasGK = {}; for (const x of a.detalhe!.GK) extrasGK[x.campo] = x.valor; }
+  return { atributos, extrasGK };
+};
+
+/*
+A NACIONALIDADE (a bandeira do Overview): o codigo dos dados do 3D (`nationality`), onde o Brasil e 54 — o manager usa o id 45 para o Brasil e o mesmo id do 3D para os outros paises sul-americanos —;
+sem dados do 3D (jogador gerado ou europeu), o pais do clube. Devolve o id do pais (o nome do ficheiro em /Assets/Bandeiras) ou null.
+*/
+const PAIS_DO_3D: Record<string, string> = { '54': '45' };
+export const paisDoJogador = (p: Player, paisDoClube?: string | number): string | null => {
   const id = String(p.id).replace(/^p-/, '');
   const linha = D.jogadores[id];
-  let extrasGK: Record<string, number> | null = null;
-  if (linha && String(p.position) === 'GK') {
-    extrasGK = {};
-    for (const k of ['diving', 'handling', 'reflexes', 'posGK', 'onos']) extrasGK[k] = linha[IDX[k]];
-  }
-  return { atributos, extrasGK };
+  const cod = linha ? String(linha[IDX['nationality']] || '') : '';
+  if (cod && cod !== '0') return PAIS_DO_3D[cod] || cod;
+  if (paisDoClube === undefined || paisDoClube === null || paisDoClube === '') return null;
+  const c = String(paisDoClube);
+  const porId = (REAL_COUNTRIES_JSON as any[]).find(x => String(x.id) === c);
+  const porNome = (REAL_COUNTRIES_JSON as any[]).find(x => String(x.name).toLowerCase() === c.toLowerCase());
+  return String((porId || porNome)?.id ?? '') || null;
 };

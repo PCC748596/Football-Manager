@@ -150,7 +150,8 @@ const AdaptadorManager = {
             nome: mp.name || (real && real.nome) || 'Jogador',
             pos: posSlot, role: this.ROLE_DA_POS[posSlot], numero: mp.shirtNumber || (real && real.numero) || 0,
             estilo: (real && real.estilo) || this._estiloDos31(mp, posNatural), estiloOrigem: real ? real.estiloOrigem : (por31 ? 'atributos' : null), pb: pb,
-            atr: por31 ? mp.atributos : null
+            atr: por31 ? mp.atributos : null,
+            pe: (mp.peBom === 'e' || mp.peBom === 'd') ? mp.peBom : undefined   // o pe bom do manager manda sobre o sorteio do motor (pePreferido)
         }, base);
     },
 

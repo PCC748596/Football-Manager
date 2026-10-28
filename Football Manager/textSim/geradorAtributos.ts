@@ -25,6 +25,8 @@ export const GRUPOS: Record<GrupoAtributo, string[]> = {
   FIS: ['acceleration', 'speed', 'agility', 'jumping', 'strength', 'stamina', 'balance']
 };
 export const TODOS_OS_ATRIBUTOS: string[] = [...GRUPOS.TEC, ...GRUPOS.TAC, ...GRUPOS.MEN, ...GRUPOS.FIS];
+/** Os atributos de BALIZA (so o goleiro os mostra, tambem de 50 a 99): fora dos 31 de campo. */
+export const ATRIBUTOS_GK: string[] = ['diving', 'handling', 'reflexes', 'posGK', 'onos', 'kicking'];
 export type Atributos = Record<string, number>;
 
 // Nome legivel -> chave (para escrever os perfis como no enunciado).
@@ -33,6 +35,7 @@ const K: Record<string, string> = {
   'Long Passing': 'longPassing', 'Heading': 'headAccurancy', 'Free Kicks': 'freekicks', 'Corners': 'cornerKicks', 'Penalties': 'penalties',
   'Standing Tackle': 'tackleStanding', 'Sliding Tackle': 'tackleSliding', 'Marking': 'manMarking', 'Attacking Positioning': 'posOffense', 'Defensive Positioning': 'posDefense', 'Vision': 'vision', 'Tactical Awareness': 'tacticalAwa',
   'Aggression': 'aggression', 'Reactions': 'reactions', 'Composure': 'composure', 'Consistency': 'consistency',
+  'Diving': 'diving', 'Handling': 'handling', 'Reflexes': 'reflexes', 'GK Positioning': 'posGK', 'One on Ones': 'onos', 'Kicking': 'kicking',
   'Acceleration': 'acceleration', 'Speed': 'speed', 'Agility': 'agility', 'Jumping': 'jumping', 'Strength': 'strength', 'Stamina': 'stamina', 'Balance': 'balance'
 };
 const ks = (...nomes: string[]) => nomes.map(n => { if (!K[n]) throw new Error('atributo desconhecido: ' + n); return K[n]; });
@@ -41,7 +44,8 @@ const ks = (...nomes: string[]) => nomes.map(n => { if (!K[n]) throw new Error('
 export type PosicaoPerfil = 'GK' | 'CB' | 'FB' | 'DM' | 'CM' | 'AM' | 'WM' | 'W' | 'SS' | 'CF';
 interface Perfil { P1: string[]; P2: string[]; P3: string[]; P4: string[]; }
 export const PERFIS: Record<PosicaoPerfil, Perfil> = {
-  GK: { P1: ks('Reactions', 'Tactical Awareness', 'Composure', 'Consistency'), P2: ks('Jumping', 'Strength', 'Passing', 'Long Passing'), P3: ks('Speed', 'Acceleration', 'Agility', 'Balance'), P4: ks('Finishing', 'Dribbling', 'Crossing', 'Corners', 'Penalties') },
+  // Goleiro: com os atributos de baliza autorizados (ATRIBUTOS_GK) o perfil usa-os como P1/P2.
+  GK: { P1: ks('Reflexes', 'Handling', 'GK Positioning', 'Diving', 'Reactions'), P2: ks('One on Ones', 'Kicking', 'Jumping', 'Composure', 'Tactical Awareness'), P3: ks('Passing', 'Long Passing', 'Strength', 'Consistency', 'Agility'), P4: ks('Speed', 'Acceleration', 'Balance', 'Finishing', 'Dribbling', 'Crossing', 'Corners', 'Penalties') },
   CB: { P1: ks('Marking', 'Defensive Positioning', 'Tactical Awareness', 'Standing Tackle', 'Heading'), P2: ks('Sliding Tackle', 'Strength', 'Jumping', 'Reactions', 'Composure'), P3: ks('Passing', 'Long Passing', 'Consistency', 'Aggression', 'Balance'), P4: ks('Corners', 'Crossing', 'Dribbling', 'Acceleration', 'Finishing') },
   FB: { P1: ks('Stamina', 'Speed', 'Acceleration', 'Defensive Positioning'), P2: ks('Standing Tackle', 'Marking', 'Crossing', 'Tactical Awareness'), P3: ks('Dribbling', 'Passing', 'Agility', 'Balance', 'Sliding Tackle'), P4: ks('Heading', 'Finishing', 'Penalties') },
   DM: { P1: ks('Defensive Positioning', 'Tactical Awareness', 'Standing Tackle', 'Marking'), P2: ks('Passing', 'Long Passing', 'Vision', 'Stamina', 'Composure'), P3: ks('Aggression', 'Sliding Tackle', 'Ball Control', 'Strength', 'Consistency'), P4: ks('Corners', 'Crossing', 'Volleys') },
@@ -113,10 +117,10 @@ export const limitarAtributo = (v: number): number => {
   return Math.max(ATTR_MIN, Math.min(ATTR_MAX, n));
 };
 /** Valida os 31 atributos: inteiros entre 50 e 99 e nenhum em falta. Nao altera nada. */
-export const validarAtributos = (a: Record<string, any> | null | undefined): { ok: boolean; erros: string[] } => {
+export const validarAtributos = (a: Record<string, any> | null | undefined, goleiro = false): { ok: boolean; erros: string[] } => {
   const erros: string[] = [];
   if (!a) return { ok: false, erros: ['sem atributos'] };
-  for (const k of TODOS_OS_ATRIBUTOS) {
+  for (const k of (goleiro ? [...TODOS_OS_ATRIBUTOS, ...ATRIBUTOS_GK] : TODOS_OS_ATRIBUTOS)) {
     const v = a[k];
     if (v === undefined || v === null || v === '') erros.push(`${k}: vazio`);
     else if (typeof v !== 'number' || !Number.isFinite(v)) erros.push(`${k}: nao numerico`);
@@ -127,9 +131,9 @@ export const validarAtributos = (a: Record<string, any> | null | undefined): { o
   return { ok: erros.length === 0, erros };
 };
 /** O salvamento: devolve uma copia com todos os atributos limitados a 50..99 (e os em falta no minimo). */
-export const normalizarAtributos = (a: Record<string, any>): Atributos => {
+export const normalizarAtributos = (a: Record<string, any>, goleiro = false): Atributos => {
   const r: Atributos = {};
-  for (const k of TODOS_OS_ATRIBUTOS) r[k] = limitarAtributo(Number(a?.[k]));
+  for (const k of (goleiro ? [...TODOS_OS_ATRIBUTOS, ...ATRIBUTOS_GK] : TODOS_OS_ATRIBUTOS)) r[k] = limitarAtributo(Number(a?.[k]));
   return r;
 };
 /** TEC, TAC, MEN e FIS: medias aritmeticas dos seus atributos, arredondadas so no fim. */
@@ -176,11 +180,13 @@ export const gerarAtributos = (posicao: Position | string, estilo: PlayStyle | s
   const a: Record<string, number> = {};
 
   // pontos fortes e limitacoes individuais (fora do perfil rigido): poucos atributos sobem ou descem, para nao haver jogadores "completos" nem planos
-  const candidatos = TODOS_OS_ATRIBUTOS.slice();
+  const gk = perfilDaPosicao(posicao) === 'GK';
+  const lista = gk ? [...TODOS_OS_ATRIBUTOS, ...ATRIBUTOS_GK] : TODOS_OS_ATRIBUTOS;
+  const candidatos = lista.slice();
   const sorteia = (n: number) => { const o: string[] = []; for (let i = 0; i < n; i++) { const j = Math.floor(r() * candidatos.length); o.push(candidatos[j]); } return o; };
   const fortes = new Set(sorteia(P.destaques)), fracos = new Set(sorteia(P.limitacoes));
 
-  for (const k of TODOS_OS_ATRIBUTOS) {
+  for (const k of lista) {
     const pr = prioridade(perfil, k);
     const peso = PESOS[pr];
     const fisico = GRUPOS.FIS.includes(k);
@@ -194,18 +200,18 @@ export const gerarAtributos = (posicao: Position | string, estilo: PlayStyle | s
     a[k] = v;   // sem arredondar nem limitar ainda
   }
   // aproxima o overall posicional do nivel-alvo (desloca os atributos NAO fisicos juntos), sem eliminar a especializacao
-  const naoFis = TODOS_OS_ATRIBUTOS.filter(k => !GRUPOS.FIS.includes(k));
+  const naoFis = lista.filter(k => !GRUPOS.FIS.includes(k));
   const lim = (v: number) => Math.max(ATTR_MIN, Math.min(ATTR_MAX, v));
   let ajustado: Record<string, number> = {};
   for (let it = 0; it < 8; it++) {
-    for (const k of TODOS_OS_ATRIBUTOS) ajustado[k] = lim(a[k]);
+    for (const k of lista) ajustado[k] = lim(a[k]);
     const ov = calcularOverallPosicional(posicao, ajustado);
     const dif = nivel - ov;
     if (Math.abs(dif) <= P.tolerancia) break;
     for (const k of naoFis) a[k] += dif;
   }
   const finais: Atributos = {};
-  for (const k of TODOS_OS_ATRIBUTOS) finais[k] = limitarAtributo(ajustado[k]);
+  for (const k of lista) finais[k] = limitarAtributo(ajustado[k]);
   const ovr = calcularOverallPosicional(posicao, finais);
   return { atributos: finais, grupos: calcularGrupos(finais), overallPosicional: Math.round(ovr * 10) / 10, nivelPedido: nivel, diferenca: Math.round((ovr - nivel) * 10) / 10, estilo: est };
 };

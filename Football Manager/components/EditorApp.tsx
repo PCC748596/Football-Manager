@@ -29,6 +29,14 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setCountries(JSON.parse(JSON.stringify(REAL_COUNTRIES_JSON)));
   }, []);
 
+  const ovrPorTime = React.useMemo(() => {
+    const soma = new Map<string, { s: number; n: number }>();
+    for (const p of players) { const a = soma.get(p.team) || { s: 0, n: 0 }; a.s += p.ovrPlayer || 0; a.n++; soma.set(p.team, a); }
+    const m = new Map<string, number>();
+    soma.forEach((v, k) => m.set(k, Math.round(v.s / v.n)));
+    return m;
+  }, [players]);
+
   const handleSaveToDisk = async () => {
     try {
       const response = await fetch('/api/save-database', {
@@ -87,6 +95,16 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             const teamIds = new Set(c.leagues.flatMap(l => l.teamIds || []));
             return teams.filter(t => teamIds.has(t.teamID));
           };
+          // O OVR do clube: a media do OVR dos jogadores dele (o mesmo numero do `Team.strength`).
+          const ovrDoTime = (t: any): number | null => {
+            const v = ovrPorTime.get(t.teamName);
+            return v === undefined ? null : v;
+          };
+          // As ligas do pais pela divisao (tier): A, B, C, D... cada uma com os seus clubes (os que nao estao em nenhuma ficam fora; vao para a lista dos sem liga).
+          const letraDaLiga = (l: any) => String.fromCharCode(64 + Math.max(1, Math.min(26, Number(l.tier) || 1)));
+          const ligasDoPais = (c: any) => (c.leagues || []).slice().sort((x: any, y: any) => (Number(x.tier) || 1) - (Number(y.tier) || 1)).map((liga: any) => ({
+            liga, times: teams.filter(t => (liga.teamIds || []).includes(t.teamID))
+          }));
           const assignedTeamIds = new Set(countries.flatMap(c => c.leagues.flatMap(l => l.teamIds || [])));
           const unassignedTeams = teams.filter(t => !assignedTeamIds.has(t.teamID));
           // Os sem liga, agrupados por PAIS (o `country` do clube: id do pais ou, em dados antigos, o nome).
@@ -120,17 +138,25 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                           </button>
                           {expandedCountry === c.id && (
                             <div className="p-1 border-t border-slate-800 bg-slate-900 flex flex-col gap-1">
-                              {getTeamsForCountry(c.id).map(t => (
-                                <button 
-                                  key={t.teamID} 
+                              {ligasDoPais(c).map(({ liga, times }) => (
+                                <div key={liga.id} className="flex flex-col gap-1">
+                                  <div className="px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500 bg-slate-950 border border-slate-800 rounded flex justify-between">
+                                    <span>{letraDaLiga(liga)} · {liga.name}</span><span>{times.length}</span>
+                                  </div>
+                                  {times.map(t => (
+                                <button
+                                  key={t.teamID}
                                   onClick={() => setEditingTeam(t)}
                                   className={`w-full text-left p-2 text-xs border border-slate-800 rounded hover:bg-slate-800 flex items-center gap-2 ${editingTeam?.teamID === t.teamID ? 'bg-slate-800 text-blue-400' : ''}`}
                                 >
                                   <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center overflow-hidden bg-slate-950 rounded">
                                      <img src={t.teamBadgeLocation || `/Assets/Escudos/${t.teamName}.png`} alt={t.teamName} className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                                   </div>
-                                  <span className="truncate">{t.teamName}</span>
+                                  <span className="truncate flex-1">{t.teamName}</span>
+                                  <span className="font-black text-emerald-400">[{ovrDoTime(t) ?? '-'}]</span>
                                 </button>
+                                  ))}
+                                </div>
                               ))}
                               <button onClick={() => {
                                  const newTeamId = Date.now();

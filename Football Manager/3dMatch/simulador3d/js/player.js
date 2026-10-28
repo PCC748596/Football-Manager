@@ -4674,6 +4674,8 @@ class FootballPlayer {
     }
 
     update(dt) {
+        // O pe bom de quem esta a ser animado: o remate e o passe (pose.js, aplicarPoseRemate) usam a perna dele.
+        if (typeof window !== 'undefined') window.__peEsquerdo = (this.pe === 'e');
         // Quem esta a ser substituido anda a pe para a lateral, conduzido pelo Match (js/match/match_substituicoes.js): o jogo nao lhe mexe.
         if (this.subSaindo) return;
         if (this.chuteEspera > 0) this.chuteEspera -= dt;
@@ -5236,7 +5238,7 @@ class FootballPlayer {
                     const cont = this.actionState.contactTime || 0.6;
                     const u = THREE.MathUtils.clamp(
                         (this.actionState.t / Math.max(0.001, this.actionState.duration)) / Math.max(0.001, cont), 0, 1);
-                    const chuteR = (ShotClip.pernaChute === 'r');
+                    const chuteR = (typeof pernaChutaNaDireita === 'function') ? pernaChutaNaDireita(ShotClip) : (ShotClip.pernaChute === 'r');
                     avancoPe = 0.6 + (PlantarBola.avanco - 0.6) * u;
                     ladoPe = (chuteR ? -1 : 1) * PlantarBola.lateral * u;
                 }
