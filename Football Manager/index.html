@@ -4,32 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0f172a" />
-    <link rel="icon" href="favicon.ico" sizes="any" />
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
-    <link rel="apple-touch-icon" href="icon-192.png" />
-    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>FootManager Classic</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              manager: {
-                bg: '#0f172a', 
-                panel: '#1e293b', 
-                accent: '#3b82f6', 
-                success: '#10b981', 
-                danger: '#ef4444', 
-                text: '#f1f5f9', 
-                muted: '#94a3b8', 
-              }
-            }
-          }
-        }
-      }
-    </script>
+    <!-- O Tailwind vem do build (index.css + tailwind.config.cjs): sem CDN, o jogo abre sem internet. -->
     <style>
       ::-webkit-scrollbar {
         width: 6px;
@@ -120,5 +100,11 @@
   <body>
     <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
-</body>
+    <script>
+      // PWA: o service worker guarda o jogo para abrir SEM INTERNET (ver vite.config.ts, pwaOfflinePlugin). So no build (no dev nao existe sw.js).
+      if ('serviceWorker' in navigator && location.port !== '3000') {
+        window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(e => console.warn('[PWA] sem service worker:', e)));
+      }
+    </script>
+  </body>
 </html>

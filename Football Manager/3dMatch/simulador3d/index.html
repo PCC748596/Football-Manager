@@ -522,7 +522,7 @@
 
     <div id="alerta-golo">GOOL!</div>
     <div id="alerta-jogo"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="js/vendor/three.r128.min.js"></script>
 
     <!-- Malha da bola, convertida de assets/Ball.obj por tools/obj2js.js.
          Carregada como ficheiro JS normal, e não por um loader de OBJ, porque o
@@ -667,6 +667,13 @@
     <script src="js/main.js"></script>
     <script src="js/touch_controls.js"></script>
 
+    <script>
+      // PWA: o simulador pode abrir noutra origem (localhost <-> 127.0.0.1, ver simulador3dCliente.ts), e um service worker so serve a sua origem: regista-se tambem aqui,
+      // o mesmo sw.js da raiz do build (guarda o manager, o simulador e os Assets). So no build: no dev (porta 3000) nao ha sw.js.
+      if ('serviceWorker' in navigator && location.port !== '3000') {
+        window.addEventListener('load', () => navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(e => console.warn('[PWA] sem service worker:', e)));
+      }
+    </script>
 </body>
 
 </html>
