@@ -1833,8 +1833,8 @@ Agora, antes de cada jogo:
   3. A TACTICA: azarao joga fechado (Defensive), favorito joga a atacar (Offensive), equilibrado fica Balanced.
   4. O BANCO: cobre todas as zonas (1 goleiro, 3 defesas, 3 meios, 2 atacantes) com os mais fortes e descansados e completa com os melhores restantes.
 */
-export const manageCPUTeam = (team: Team, opponent: Team, allPlayers: Player[]) => {
-    let teamPlayers = allPlayers.filter(p => p.teamId === team.id && !p.injury);
+export const manageCPUTeam = (team: Team, opponent: Team, allPlayers: Player[], suspenso?: (p: Player) => boolean) => {
+    let teamPlayers = allPlayers.filter(p => p.teamId === team.id && !p.injury && !(suspenso && suspenso(p)));
     if (teamPlayers.length === 0) return;
     // Sem nenhum goleiro apto, entra o melhor goleiro lesionado (melhor que um jogador de linha no gol).
     if (!teamPlayers.some(p => p.position === Position.GK)) {

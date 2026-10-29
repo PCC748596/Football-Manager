@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import { Tactics, Position, Player, Team, SetPieceRole, getEffectiveSkill, resolveSetPieceTakers, FORMATIONS, POSITION_ORDER, getKitDetails, getGKKitDetails, KitDetails } from '../types';
 import { TeamKit } from './TeamKit';
 import FitnessBar from './FitnessBar';
 import { getMatchEndMinute } from '../textSim/matchEngine';
+import { chaveCompeticao, estaSuspenso, AMARELOS_PARA_SUSPENSAO } from '../textSim/suspensoes';
 
 interface FieldPosition {
   id: number;
@@ -18,7 +19,7 @@ import { setoresPadraoDaFormacao } from '../3dMatch/simulador3dCliente';
 import ZonePositionsModal from './ZonePositionsModal';
 import { campo3d } from '../textSim/atributos3d';
 import TacticPresetsModal from './TacticPresetsModal';
-import { formacaoTemTabela, temAjustes } from '../textSim/formacoesZonas';
+import { FaseZona, ZONAS, postosEfetivos, espelharFase, espelharZona, zonaEspelhada, repor, moverPosto, formacaoTemTabela, temAjustes } from '../textSim/formacoesZonas';
 
 const MoraleArrow = ({ morale }: { morale: number }) => {
   if (morale >= 90) return <span className="text-amber-400 transform -rotate-90 inline-block font-bold drop-shadow-sm text-[12px]">➤</span>; 
@@ -63,20 +64,32 @@ const SET_PIECE_ROLES: { role: SetPieceRole; label: string; attr: { rotulo: stri
   { role: 'penalty', label: 'Penalty taker', attr: { rotulo: 'PEN', valor: p => campo3d(p, ['penalties', 'composure']) } }
 ];
 
+const NOME_DA_ZONA = ['Def. direita', 'Def. centro', 'Def. esquerda', 'Meio direita', 'Meio centro', 'Meio esquerda', 'Atq. direita', 'Atq. centro', 'Atq. esquerda'];
+
 interface TacticsViewProps {
   setView?: (view: any) => void;
 }
 
 const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
-  const { userTeam, players, updateTactics, updateSetPieceTakers, gameState, fixtures, teams } = useGame();
+  const { userTeam, players, updateTactics, updateSetPieceTakers, gameState, fixtures, teams, comps } = useGame();
   const [localLineup, setLocalLineup] = useState<string[]>([]);
   const [localBench, setLocalBench] = useState<string[]>([]);
   const [isOverBench, setIsOverBench] = useState(false);
-  const [showMatchKit, setShowMatchKit] = useState(false);
+  // Os jogadores aparecem sempre com o uniforme escolhido (o botao Posicao/Uniforme saiu).
+  const showMatchKit = true;
   const [poolSortBy, setPoolSortBy] = useState<'skill' | 'position'>('skill');
   const [selectedKitIdx, setSelectedKitIdx] = useState<0 | 1 | 2 | 3>(0);
   const [showZonas, setShowZonas] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
+  const [presetFoco, setPresetFoco] = useState<null | 'save' | 'load'>(null);
+  // Editor das posicoes no proprio campo: fase (com/sem a bola) e zona da bola (0-8; null = a formacao base).
+  const [aba, setAba] = useState<'geral' | FaseZona>('geral');
+  const fase: FaseZona = aba === 'sem' ? 'sem' : 'com';
+  const [zona, setZona] = useState<number | null>(null);
+  const [contra, setContra] = useState(false);
+  const [arrasto, setArrasto] = useState<{ slot: number; x: number; z: number } | null>(null);
+  const campoRef = useRef<HTMLDivElement>(null);
+  const [formContra, setFormContra] = useState<string>('ADV');
 
   useEffect(() => {
     if (userTeam) {
@@ -140,6 +153,29 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
       red: redIds.includes(playerId) || pEvents.some(e => e.description.includes('🟥')),
       injury: players.find(p => p.id === playerId)?.injury || pEvents.find(e => e.type === 'INJURY')
     };
+  };
+
+  // Indisponivel para a reserva: expulso (suspenso) ou lesionado — o motor tambem nao escala lesionados. O amarelo so avisa.
+  // A competicao do proximo jogo (o de hoje, ou o primeiro por jogar): e nela que contam os amarelos e as suspensoes.
+  const jogoDaVez = currentMatch || fixtures.filter(x => !x.played && x.date >= gameState.currentDate && (x.homeTeamId === userTeam.id || x.awayTeamId === userTeam.id)).sort((a, b) => a.date.localeCompare(b.date))[0];
+  const chaveJogo = chaveCompeticao(jogoDaVez, comps);
+  const suspensoNoJogo = (playerId: string) => estaSuspenso(players.find(p => p.id === playerId), chaveJogo);
+  const indisponivelParaReserva = (playerId: string) => {
+    const st = getPlayerMatchStatus(playerId);
+    return !!st.red || !!st.injury || suspensoNoJogo(playerId);
+  };
+  const AvisosDoCard = ({ playerId }: { playerId: string }) => {
+    const st = getPlayerMatchStatus(playerId);
+    const susp = suspensoNoJogo(playerId);
+    const acum = (chaveJogo && players.find(p => p.id === playerId)?.amarelos?.[chaveJogo]) || 0;
+    if (!st.yellow && !st.red && !st.injury && !susp && !acum) return null;
+    return (
+      <div className="flex flex-col items-center gap-[1px] mt-[2px]">
+        {(st.yellow || acum > 0) && !st.red && !susp && <span className="flex items-center gap-1 text-[8px] font-black text-yellow-400 uppercase leading-none"><span className="inline-block w-[6px] h-[9px] bg-yellow-400 border border-yellow-600 rounded-[1px]" />Amarelo{acum > 0 ? ` ${acum}/${AMARELOS_PARA_SUSPENSAO}` : ''}</span>}
+        {(st.red || susp) && <span className="flex items-center gap-1 text-[8px] font-black text-red-500 uppercase leading-none"><span className="inline-block w-[6px] h-[9px] bg-red-600 border border-red-800 rounded-[1px]" />Suspenso</span>}
+        {st.injury && <span className={`text-[8px] font-black uppercase leading-none ${getInjuryColorClass(st.injury)}`}>✚ Lesão</span>}
+      </div>
+    );
   };
 
   const teamChemistry = useMemo(() => {
@@ -233,6 +269,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
 
     // RULE: Red carded players cannot be moved
     if (playerToMoveIsRed) return;
+    // Suspenso no proximo jogo (cartoes): nao entra na escalacao.
+    if (suspensoNoJogo(playerId)) return;
 
     if (existingLineupIndex !== -1) {
       if (targetIsRed) {
@@ -276,6 +314,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     const existingLineupIndex = newLineup.indexOf(playerId);
     const existingBenchIndex = newBench.indexOf(playerId);
     if (existingBenchIndex !== -1) return; 
+    if (indisponivelParaReserva(playerId)) return;
     // Com o jogo em curso o banco fecha: nem o plantel entra nele, nem quem esta em campo volta para ele.
     if (isMatchOngoing) return;
     if (existingLineupIndex !== -1) {
@@ -299,6 +338,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     const sB = newBench.indexOf(sourceId);
     const tB = newBench.indexOf(targetId);
     if (tB === -1) return;
+    if (sB === -1 && indisponivelParaReserva(sourceId)) return;
     // Em jogo o plantel nao troca com o banco: so se reordena o banco ou se faz a substituicao (titular <-> banco).
     if (isMatchOngoing && sB === -1) return;
     if (sL !== -1) {
@@ -352,10 +392,52 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     updateTactics(userTeam.id, field === 'playStyle' ? { playStyle: finalValue, tempo: TEMPO_DO_ESTILO[finalValue] ?? 50 } : { [field]: finalValue });
   };
 
+  // O editor das posicoes (antes o modal): ajustes por formacao, fase e zona da bola. O campo desenha a area de jogo dentro de `inset-10` (2.5rem de cada lado).
+  const formacaoAtual = userTeam.tactics.formation;
+  const overAtual = userTeam.tactics.zoneOverrides?.[formacaoAtual];
+  const temTabela = formacaoTemTabela(formacaoAtual);
+  const postos = (temTabela && aba !== 'geral' && zona !== null) ? postosEfetivos(formacaoAtual, overAtual, fase, zona) : null;
+  // A cor do adversario: a da paleta que mais se afasta da camisa do time (distancia RGB), para contrastar sempre.
+  const corContra = (() => {
+    const rgb = (h: string) => { const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(h || ''); return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [226, 232, 240]; };
+    const meu = rgb((showMatchKit ? (getKitDetails(userTeam, selectedKitIdx === 3 ? 0 : selectedKitIdx) as any).c1 : '') || '');
+    const paleta = ['#dc2626', '#facc15', '#2563eb', '#16a34a', '#111827', '#f8fafc', '#a855f7', '#f97316'];
+    let melhor = paleta[0], dMax = -1;
+    for (const c of paleta) { const q = rgb(c); const d = (q[0] - meu[0]) ** 2 + (q[1] - meu[1]) ** 2 + (q[2] - meu[2]) ** 2; if (d > dMax) { dMax = d; melhor = c; } }
+    return melhor;
+  })();
+  const corTextoContra = (() => { const m = /^#(..)(..)(..)/.exec(corContra)!; return (parseInt(m[1], 16) * 299 + parseInt(m[2], 16) * 587 + parseInt(m[3], 16) * 114) / 1000 > 140 ? '#111827' : '#ffffff'; })();
+  const faseContra: FaseZona = fase === 'com' ? 'sem' : 'com';
+  const contraForm = formContra === 'ADV' ? (proximoAdversario ? proximoAdversario.tactics.formation : formacaoAtual) : formContra;
+  const contraOver = formContra === 'ADV' && proximoAdversario ? proximoAdversario.tactics.zoneOverrides?.[contraForm] : undefined;
+  const postosContra = (contra && aba !== 'geral' && zona !== null && formacaoTemTabela(contraForm)) ? postosEfetivos(contraForm, contraOver, faseContra, 8 - zona) : [];
+  const emCampo = (x: number, z: number, invertido = false) => {
+    const fx = (50 - (invertido ? -x : x) * 50) / 100, fz = (1 - (invertido ? -z : z)) * 0.5;
+    return { left: `${fx * 100}%`, top: `${fz * 100}%` };
+  };
+  const rotulosFormacao = FORMATIONS[formacaoAtual].map(s => s.label);
+  const aplicarOver = (o: any) => {
+    const todos = { ...(userTeam.tactics.zoneOverrides || {}) };
+    if (o) todos[formacaoAtual] = o; else delete todos[formacaoAtual];
+    updateTactics(userTeam.id, { zoneOverrides: Object.keys(todos).length ? todos : undefined });
+  };
+  const zonaEfetiva = zona ?? 4;
+  // Arrastar um posto no campo (abas COM/SEM BOLA): da posicao do ponteiro para x,z normalizados (a area de jogo fica dentro de `inset-10`, 40 px de cada lado).
+  const paraCampo = (clientX: number, clientY: number) => {
+    const r = campoRef.current!.getBoundingClientRect();
+    const left = (clientX - r.left) / r.width, top = (clientY - r.top) / r.height;
+    const c = (v: number) => Math.max(-0.95, Math.min(0.95, v));
+    return { x: c((0.5 - left) * 2), z: c(1 - top * 2) };
+  };
+  const btnAcao = 'text-white bg-indigo-600/90 hover:bg-indigo-500';
+  const btnQuadrado = 'p-1 rounded-lg text-[10px] font-black uppercase tracking-wider leading-tight text-center flex items-center justify-center min-h-[40px] transition-colors';
+  const btnRepor = 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700';
+
   return (
     <div className="flex flex-col gap-4 animate-fade-in" style={{ height: 'calc(100vh - 80px)' }}>
         {showZonas && <ZonePositionsModal team={userTeam} adversario={proximoAdversario} players={players} onClose={() => setShowZonas(false)} onLoadTactics={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })}
             onChange={(over) => { const todos = { ...(userTeam.tactics.zoneOverrides || {}) }; if (over) todos[userTeam.tactics.formation] = over; else delete todos[userTeam.tactics.formation]; updateTactics(userTeam.id, { zoneOverrides: Object.keys(todos).length ? todos : undefined }); }} />}
+        {presetFoco && <TacticPresetsModal atual={userTeam.tactics} foco={presetFoco} onClose={() => setPresetFoco(null)} onLoad={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })} />}
         {showPresets && <TacticPresetsModal atual={userTeam.tactics} onClose={() => setShowPresets(false)} onLoad={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })} />}
         <div className="flex justify-between items-center shrink-0">
             <h2 className="text-4xl font-black italic tracking-tighter uppercase">
@@ -364,10 +446,6 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             <div className="flex items-center gap-3">
                  {isMatchOngoing && setView && (
                     <button onClick={() => setView(localStorage.getItem('activeMatchView') === 'MATCH' ? 'MATCH' : 'TRAINING')} className="bg-emerald-600 text-white text-[10px] font-black uppercase px-4 py-2 rounded">Resume</button>
-                 )}
-                 <button onClick={() => setShowPresets(true)} className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[10px] font-black uppercase px-4 py-2 rounded hover:bg-slate-300 dark:hover:bg-slate-600 tracking-wider">Gravar / Carregar</button>
-                 {formacaoTemTabela(userTeam.tactics.formation) && (
-                    <button onClick={() => setShowZonas(true)} className="bg-blue-600 text-white text-[10px] font-black uppercase px-4 py-2 rounded hover:bg-blue-500 tracking-wider">Posições{temAjustes(userTeam.tactics.zoneOverrides?.[userTeam.tactics.formation]) ? ' ●' : ''}</button>
                  )}
                  <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded p-1 border border-slate-200 dark:border-slate-700">
                     <span className="text-[9px] font-black text-slate-400 px-2 uppercase tracking-widest">FORMATION</span>
@@ -382,17 +460,13 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             </div>
         </div>
 
-        <div className="flex-1 grid grid-cols-[7.5fr_1.5fr_3fr] gap-4 min-h-0">
-            <div className="flex flex-col gap-4 min-h-0 min-w-0">
-                <div className="flex-1 relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ minHeight: '350px' }}>
-                    <div className="absolute top-6 left-6 z-20">
-                        <button 
-                            onClick={() => setShowMatchKit(!showMatchKit)}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all shadow-sm ${showMatchKit ? 'bg-blue-600 text-white border-blue-500' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-400'}`}
-                        >
-                            <span className="text-sm">👕</span>
-                            <span className="text-[9px] font-black uppercase tracking-widest">{showMatchKit ? 'Uniforme' : 'Posição'}</span>
-                        </button>
+        <div className="flex-1 grid grid-cols-[5.6fr_2fr_1.5fr_3fr] gap-4 min-h-0">
+            <div className="flex flex-col gap-4 min-h-0 min-w-0" style={{ width: 'calc(100% + 102px)' }}>
+                <div className="flex-1 relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ minHeight: '350px', containerType: 'size' }}>
+                    <div className="absolute top-6 left-6 z-20 flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
+                        {([['geral', 'GERAL'], ['com', 'COM BOLA'], ['sem', 'SEM BOLA']] as const).map(([v, r]) => (
+                            <button key={v} onClick={() => { setAba(v); if (v !== 'geral' && zona === null) setZona(4); }} className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${aba === v ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>{r}</button>
+                        ))}
                     </div>
 
                     <div className="absolute top-6 right-6 z-10 flex flex-col items-end">
@@ -403,12 +477,53 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         </div>
                     </div>
 
-                    <div className="absolute inset-10 border border-slate-200 dark:border-slate-800 rounded opacity-60 pointer-events-none">
-                        <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-200 dark:bg-slate-800"></div>
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border border-slate-200 dark:border-slate-800 rounded-full"></div>
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 border-b border-x border-slate-200 dark:border-slate-800"></div>
-                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-24 border-t border-x border-slate-200 dark:border-slate-800"></div>
-                    </div>
+                    {/* O CAMPO PROPORCIONAL: uma caixa 68:106 centrada na area (a margem de 2.5rem em cima e em baixo); linhas, zonas e jogadores vivem dentro dela, em percentagem. */}
+                    <div ref={campoRef} className="absolute" style={{ top: '2.5rem', bottom: '2.5rem', left: '50%', transform: 'translateX(-50%)', width: 'calc((100cqh - 5rem) * 68 / 106 + 140px)' }}>
+                    {/* O campo em metros (68 x 106, as medidas do motor), esticado na area de jogo: linhas, circulo central, areas, marcas de penalti, meias-luas e cantos. */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none text-slate-500 dark:text-slate-300" viewBox="0 0 68 106" preserveAspectRatio="none" fill="none" stroke="currentColor" strokeWidth="1.6" strokeOpacity="0.85">
+                        <rect x="0" y="0" width="68" height="106" vectorEffect="non-scaling-stroke" />
+                        <line x1="0" y1="53" x2="68" y2="53" vectorEffect="non-scaling-stroke" />
+                        <ellipse cx="34" cy="53" rx="9.15" ry="9.15" vectorEffect="non-scaling-stroke" />
+                        <circle cx="34" cy="53" r="0.5" fill="currentColor" vectorEffect="non-scaling-stroke" />
+                        <rect x="13.84" y="0" width="40.32" height="16.5" vectorEffect="non-scaling-stroke" />
+                        <rect x="24.84" y="0" width="18.32" height="5.5" vectorEffect="non-scaling-stroke" />
+                        <circle cx="34" cy="11" r="0.5" fill="currentColor" vectorEffect="non-scaling-stroke" />
+                        <path d="M 26.69 16.5 A 9.15 9.15 0 0 0 41.31 16.5" vectorEffect="non-scaling-stroke" />
+                        <rect x="13.84" y="89.5" width="40.32" height="16.5" vectorEffect="non-scaling-stroke" />
+                        <rect x="24.84" y="100.5" width="18.32" height="5.5" vectorEffect="non-scaling-stroke" />
+                        <circle cx="34" cy="95" r="0.5" fill="currentColor" vectorEffect="non-scaling-stroke" />
+                        <path d="M 26.69 89.5 A 9.15 9.15 0 0 1 41.31 89.5" vectorEffect="non-scaling-stroke" />
+                        <path d="M 1 0 A 1 1 0 0 1 0 1" vectorEffect="non-scaling-stroke" />
+                        <path d="M 67 0 A 1 1 0 0 0 68 1" vectorEffect="non-scaling-stroke" />
+                        <path d="M 0 105 A 1 1 0 0 1 1 106" vectorEffect="non-scaling-stroke" />
+                        <path d="M 68 105 A 1 1 0 0 0 67 106" vectorEffect="non-scaling-stroke" />
+                    </svg>
+
+                    {/* As nove zonas da bola: clicar escolhe a zona (hachurada) e as camisas vao para os postos dela; clicar outra vez desmarca. */}
+                    {aba !== 'geral' && formacaoTemTabela(userTeam.tactics.formation) && (() => {
+                        const c = ZONAS.corredorX / ZONAS.meiaLargura, t = ZONAS.terco / ZONAS.meiaAltura;
+                        const xs = [0, (1 - c) / 2, (1 + c) / 2, 1], ys = [0, (1 - t) / 2, (1 + t) / 2, 1];
+                        return (
+                            <div className="absolute inset-0 z-[5]">
+                                {[1, 2].map(k => <div key={'v' + k} className="absolute top-0 bottom-0 pointer-events-none" style={{ left: `${xs[k] * 100}%`, borderLeft: '1px dashed rgba(226,232,240,0.35)' }} />)}
+                                {[1, 2].map(k => <div key={'h' + k} className="absolute left-0 right-0 pointer-events-none" style={{ top: `${ys[k] * 100}%`, borderTop: '1px dashed rgba(226,232,240,0.35)' }} />)}
+                                {[0, 1, 2].map(r => [0, 1, 2].map(v => {
+                                    const z = (2 - r) * 3 + (2 - v);
+                                    const sel = zona === z;
+                                    return (
+                                        <div key={z} onClick={() => setZona(sel ? null : z)} title={NOME_DA_ZONA[z]}
+                                            className={`absolute cursor-pointer transition-colors ${sel ? 'border border-blue-400/70' : 'hover:bg-blue-400/10'}`}
+                                            style={{ left: `${xs[v] * 100}%`, width: `${(xs[v + 1] - xs[v]) * 100}%`, top: `${ys[r] * 100}%`, height: `${(ys[r + 1] - ys[r]) * 100}%`,
+                                                backgroundImage: sel ? 'repeating-linear-gradient(45deg, rgba(96,165,250,0.35) 0, rgba(96,165,250,0.35) 2px, transparent 2px, transparent 9px)' : undefined }} />
+                                    );
+                                }))}
+                            </div>
+                        );
+                    })()}
+
+                    {postosContra.map((p, i) => (
+                        <div key={'c' + i} className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-60 z-[6] flex items-center justify-center rounded-md border font-black leading-none shadow-sm" style={{ ...emCampo(p.x, p.z, true), width: 45, height: 30, fontSize: 10, background: corContra, borderColor: 'rgba(255,255,255,0.5)', color: corTextoContra }}>{FORMATIONS[contraForm][i]?.label}</div>
+                    ))}
 
                     {currentPositions.map((pos, idx) => {
                         const pId = localLineup[idx];
@@ -448,8 +563,25 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         const status = player ? getPlayerMatchStatus(player.id) : null;
                         const isRed = !!status?.red;
 
+                        // COM BOLA / SEM BOLA: so o posto — um retangulo 30x20 com o numero e a posicao, no uniforme, e o nome por baixo.
+                        if (aba !== 'geral') {
+                            return (
+                                <div key={idx} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropToLineup(e.dataTransfer.getData("playerId"), idx)} className={`absolute flex flex-col items-center z-10 ${arrasto?.slot === idx ? '' : 'transition-all duration-500'}`} style={{ ...(arrasto?.slot === idx ? emCampo(arrasto.x, arrasto.z) : postos && postos[idx] ? emCampo(postos[idx].x, postos[idx].z) : { left: `${pos.x}%`, top: `${pos.y}%` }), transform: `translate(-50%, ${pos.label === 'GK' ? 5 : -15}px)`, opacity: isRed ? 0.2 : 1 }}>
+                                    <div
+                                        onPointerDown={e => { if (!postos) return; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); setArrasto({ slot: idx, ...paraCampo(e.clientX, e.clientY) }); }}
+                                        onPointerMove={e => { if (arrasto && arrasto.slot === idx) setArrasto({ slot: idx, ...paraCampo(e.clientX, e.clientY) }); }}
+                                        onPointerUp={() => { if (arrasto && arrasto.slot === idx) { aplicarOver(moverPosto(formacaoAtual, overAtual, fase, zonaEfetiva, idx, arrasto.x, arrasto.z)); setArrasto(null); } }}
+                                        className="flex items-center justify-center rounded-md border whitespace-nowrap font-black leading-none shadow-sm cursor-grab active:cursor-grabbing touch-none select-none"
+                                        style={{ width: 45, height: 30, fontSize: 10, background: color, borderColor: kitNoc || kitCollarColor || 'rgba(255,255,255,0.4)', color: kitNumberColor || '#fff', textShadow: kitNoc ? `0 0 1px ${kitNoc}` : undefined }}>
+                                        {player?.shirtNumber ?? '-'}{' | '}{pos.label}
+                                    </div>
+                                    <span className="mt-0.5 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap">{player ? player.name.split(' ').pop() : '---'}</span>
+                                </div>
+                            );
+                        }
+
                         return (
-                            <div key={idx} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropToLineup(e.dataTransfer.getData("playerId"), idx)} className="absolute flex flex-col items-center justify-center w-24 h-24 transition-all duration-500" style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)', opacity: isRed ? 0.2 : 1 }}>
+                            <div key={idx} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropToLineup(e.dataTransfer.getData("playerId"), idx)} className="absolute flex flex-col items-center justify-center w-24 h-24 transition-all duration-500 z-10" style={{ ...(postos && postos[idx] ? emCampo(postos[idx].x, postos[idx].z) : { left: `${pos.x}%`, top: `${pos.y}%` }), transform: `translate(-50%, calc(-50% + ${pos.label === 'GK' ? 20 : 0}px)) scale(0.8)`, opacity: isRed ? 0.2 : 1 }}>
                                 <div className="relative">
                                     <div className="absolute top-1/2 -translate-y-1/2 -left-8 bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded-sm shadow-sm z-10">
                                         <span className="text-[14px] font-black text-slate-500 dark:text-slate-400 uppercase leading-none block">{pos.label}</span>
@@ -503,10 +635,11 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                             </div>
                         );
                     })}
+                    </div>
                 </div>
 
-                <div onDragOver={(e) => { e.preventDefault(); setIsOverBench(true); }} onDragLeave={() => setIsOverBench(false)} onDrop={(e) => handleDropToBench(e.dataTransfer.getData("playerId"))} className={`bg-white dark:bg-slate-900/50 rounded-xl p-5 flex flex-col gap-3 h-[216px] shadow-sm border transition-all ${isOverBench ? 'border-blue-400 bg-blue-50/50' : 'border-slate-200 dark:border-slate-800'}`}>
-                    <div className="flex justify-between items-center mb-1">
+                <div onDragOver={(e) => { e.preventDefault(); setIsOverBench(true); }} onDragLeave={() => setIsOverBench(false)} onDrop={(e) => handleDropToBench(e.dataTransfer.getData("playerId"))} className={`bg-white dark:bg-slate-900/50 rounded-xl p-5 flex flex-col gap-0 h-[201px] shadow-sm border transition-all ${isOverBench ? 'border-blue-400 bg-blue-50/50' : 'border-slate-200 dark:border-slate-800'}`}>
+                    <div className="flex justify-between items-center mb-0">
                         <div className="flex items-center gap-4">
                             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">SUBSTITUTOS</span>
                             {isMatchOngoing && currentMatch && (
@@ -518,7 +651,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         </div>
                         <span className="text-xl font-black text-slate-200 italic leading-none">{localBench.length} <span className="text-xs">/ 10</span></span>
                     </div>
-                    <div className="flex gap-2.5 overflow-x-auto custom-scrollbar pb-2" onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
+                    <div className="flex gap-[2px] overflow-x-auto custom-scrollbar pb-2" onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
                         {sorted_bench.map(id => {
                             const p = players.find(x => x.id === id); if (!p) return null;
                              let benchColor: string; let benchColor2: string | undefined; let benchColor3: string | undefined; let bnc: string | undefined; let bclc: string | undefined; let bnoc: string | undefined; let bsc: string | undefined;
@@ -548,9 +681,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                              } else benchColor = getPosColor(p.position);
                             const status = getPlayerMatchStatus(p.id);
                             return (
-                                <div key={p.id} draggable onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.stopPropagation(); handleBenchSwap(e.dataTransfer.getData("playerId"), p.id); }} onClick={() => removeFromSquad(p.id)} className="flex-shrink-0 w-[85px] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-lg p-1 flex flex-col items-center justify-between hover:border-blue-300 cursor-pointer group shadow-sm transition-all">
+                                <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.stopPropagation(); handleBenchSwap(e.dataTransfer.getData("playerId"), p.id); }} onClick={() => removeFromSquad(p.id)} title={indisponivelParaReserva(p.id) ? "Indisponível: lesionado ou suspenso" : undefined} className={`${indisponivelParaReserva(p.id) ? "opacity-40 grayscale " : ""}flex-shrink-0 w-[85px] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-lg p-1 flex flex-col items-center justify-start hover:border-blue-300 cursor-pointer group shadow-sm transition-all`}>
                                     <div className="flex justify-between w-full items-start mb-1">
-                                        <span className="text-[13px] font-black text-blue-400 leading-none">{p.skill}</span>
+                                        <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span></span>
                                         <MoraleArrow morale={p.morale} />
                                     </div>
                                     <div className="relative mt-[2px]">
@@ -584,14 +717,14 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                         <div className="w-14 mx-auto mb-1">
                                             <FitnessBar fitness={p.fitness} className="h-1.5" />
                                         </div>
-                                        <div className="flex flex-col items-center leading-[1.1] mt-0">
+                                        <div className="flex flex-col items-center justify-start leading-[1.1] mt-0 min-h-[26px]">
                                             {p.name.split(' ').map((part, index) => (
                                                 <span key={index} className="text-[9px] font-black text-slate-400 uppercase truncate max-w-full">
                                                     {part}
                                                 </span>
                                             ))}
                                         </div>
-                                        <span className="text-[10px] text-black dark:text-slate-400 font-bold uppercase leading-none">{p.position}</span>
+<AvisosDoCard playerId={p.id} />
                                     </div>
                                 </div>
                             );
@@ -599,6 +732,31 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         {localBench.length === 0 && <div className="flex-1 flex items-center justify-center text-[10px] text-slate-300 font-black uppercase italic tracking-widest border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-lg">Bench Empty</div>}
                     </div>
                 </div>
+            </div>
+
+            {/* O EDITOR DAS POSICOES (antes o modal): espelhar, repor, Playing Against e Save/Load. A fase esta nas abas do campo e a zona da bola escolhe-se no proprio campo. */}
+            <div style={{ marginLeft: 102 }} className="flex flex-col gap-3 min-h-0 min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-sm overflow-y-auto custom-scrollbar">
+                <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">POSIÇÕES · {zona === null ? 'escolha uma zona no campo' : NOME_DA_ZONA[zona]}</h3>
+                {temTabela ? (<>
+                    {contra && (
+                        <select value={formContra} onChange={e => setFormContra(e.target.value)} className="px-2 py-2 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-700 dark:text-white">
+                            {proximoAdversario && formacaoTemTabela(proximoAdversario.tactics.formation) && <option value="ADV">{proximoAdversario.name} ({proximoAdversario.tactics.formation})</option>}
+                            {Object.keys(FORMATIONS).filter(formacaoTemTabela).map(f => <option key={f} value={f}>{f}</option>)}
+                        </select>
+                    )}
+                    {/* Botoes grandes e quase quadrados: duas colunas que dividem a altura toda da coluna. */}
+                    <div className="flex-1 grid grid-cols-1 auto-rows-fr gap-2 min-h-0">
+                        <button onClick={() => setContra(c => !c)} className={`${btnQuadrado} ${contra ? 'bg-red-600 text-white' : btnRepor}`} title="Mostra, em retangulos de outra cor, onde o sistema adversario fica com a bola na zona escolhida">Playing<br />Against</button>
+                        <button onClick={() => aplicarOver(espelharZona(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva, zonaEfetiva))} className={`${btnQuadrado} ${btnAcao}`} title="Troca esquerda e direita nesta zona">Virar zona<br />(esq ⇄ dir)</button>
+                        {zonaEspelhada(zonaEfetiva) !== zonaEfetiva && <button onClick={() => aplicarOver(espelharZona(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva, zonaEspelhada(zonaEfetiva)))} className={`${btnQuadrado} ${btnAcao}`} title="Copia estas posicoes, espelhadas, para a zona do outro lado">Copiar<br />espelhado<br />→ {NOME_DA_ZONA[zonaEspelhada(zonaEfetiva)]}</button>}
+                        <button onClick={() => aplicarOver(espelharFase(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva))} className={`${btnQuadrado} ${btnAcao}`}>Espelhar<br />{fase === 'com' ? 'com bola' : 'sem bola'}<br />(todas as linhas)</button>
+                        <button onClick={() => aplicarOver(repor(overAtual, fase, zonaEfetiva))} className={`${btnQuadrado} ${btnRepor}`}>Repor<br />esta zona</button>
+                        <button onClick={() => aplicarOver(repor(overAtual, fase))} className={`${btnQuadrado} ${btnRepor}`}>Repor<br />{fase === 'com' ? 'com bola' : 'sem bola'}<br />(todas as zonas)</button>
+                        <button disabled={!temAjustes(overAtual)} onClick={() => aplicarOver(undefined)} className={`${btnQuadrado} bg-rose-600/80 disabled:opacity-30 text-white hover:bg-rose-600`}>Repor a<br />formação<br />toda</button>
+                        <button onClick={() => setPresetFoco('save')} className={`${btnQuadrado} bg-emerald-600 text-white hover:bg-emerald-500`} title="Grava a tatica atual (formacao, estilo e posicoes)">Save</button>
+                        <button onClick={() => setPresetFoco('load')} className={`${btnQuadrado} bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600`} title="Carrega uma tatica gravada ou de um ficheiro .json">Load</button>
+                    </div>
+                </>) : <span className="text-[9px] text-slate-400">Esta formação não tem tabela de posições por zona.</span>}
             </div>
 
             {/* OS COBRADORES E O CAPITAO: arrastar a camisa do jogador (campo, banco ou squad pool) para a funcao. Fica entre o campo e as instrucoes. */}
@@ -613,7 +771,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         <div key={r.role}
                              onDragOver={(e) => { e.preventDefault(); }}
                              onDrop={(e) => { e.preventDefault(); const id = e.dataTransfer.getData("playerId"); if (id) assignSetPiece(r.role, id); }}
-                             className="flex flex-col items-center gap-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 py-1.5 px-1 hover:border-blue-400 transition-colors">
+                             className="flex-1 flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 py-1.5 px-1 hover:border-blue-400 transition-colors">
                             <span className="text-[9px] font-black uppercase tracking-wider text-blue-400 text-center leading-tight">{r.label}</span>
                             {pl ? (
                                 <div draggable onDragStart={(e) => e.dataTransfer.setData("playerId", pl.id)} className="relative flex flex-col items-center cursor-grab active:cursor-grabbing">
@@ -733,7 +891,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col shadow-sm overflow-hidden h-[216px]">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col shadow-sm overflow-hidden h-[236px]">
                     <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900">
                         <div className="flex items-center gap-3">
                             <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">SQUAD POOL</h3>
@@ -745,7 +903,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         <span className="text-[9px] font-bold text-slate-300 uppercase">{availablePlayers.length} TOTAL</span>
                     </div>
                     <div className="overflow-x-auto custom-scrollbar bg-slate-50/30 dark:bg-slate-950/30 p-4" onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
-                        <div className="flex flex-row gap-2.5 min-w-0">
+                        <div className="flex flex-row gap-[2px] min-w-0">
                             {[...availablePlayers].sort((a, b) => {
                                 if (poolSortBy === 'skill') return b.skill - a.skill;
                                 const posA = POSITION_ORDER[a.position] || 99;
@@ -766,9 +924,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                 const status = getPlayerMatchStatus(p.id);
 
                                 return (
-                                    <div key={p.id} draggable onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} className="flex-shrink-0 w-[85px] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1 flex flex-col items-center justify-between hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group">
+                                    <div key={p.id} draggable onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} className="flex-shrink-0 w-[85px] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1 flex flex-col items-center justify-start hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group">
                                         <div className="flex justify-between w-full items-start mb-1">
-                                            <span className="text-[13px] font-black text-blue-400 leading-none">{p.skill}</span>
+                                            <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span></span>
                                             <MoraleArrow morale={p.morale} />
                                         </div>
                                         <div className="relative mt-[2px]">
@@ -805,13 +963,14 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                             <div className="w-14 mx-auto mb-1">
                                                 <FitnessBar fitness={p.fitness} className="h-1.5" />
                                             </div>
-                                            <div className="flex flex-col items-center leading-[1.1] mt-0">
+                                            <div className="flex flex-col items-center justify-start leading-[1.1] mt-0 min-h-[26px]">
                                                 {p.name.split(' ').map((part, index) => (
                                                     <span key={index} className="text-[9px] font-black text-slate-400 uppercase truncate max-w-full">
                                                         {part}
                                                     </span>
                                                 ))}
                                             </div>
+<AvisosDoCard playerId={p.id} />
                                         </div>
                                     </div>
                                 );
@@ -820,11 +979,6 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                     </div>
                 </div>
             </div>
-        </div>
-        <div className="text-center shrink-0 py-2">
-            <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wide opacity-80">
-                As posições do MATCH TACTICS são as posições do esquema tactico selecionado no FORMATION. As posições do banco de reservas e no Squad Pool são as posições do jogador.
-            </p>
         </div>
     </div>
   );

@@ -186,6 +186,10 @@ export interface Player {
     daysOut: number;
     severity: 'LIGHT' | 'MEDIUM' | 'SEVERE';
   };
+  /** Cartoes amarelos acumulados por competicao ('LEAGUE' ou o id da copa): ver textSim/suspensoes.ts. */
+  amarelos?: Record<string, number>;
+  /** Jogos de suspensao por cumprir, por competicao. */
+  suspenso?: Record<string, number>;
 }
 
 export interface Tactics {

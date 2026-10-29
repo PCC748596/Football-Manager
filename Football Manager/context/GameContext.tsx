@@ -14,6 +14,7 @@ import { MercadoState, Universo, Evento, mercadoVazio, prepararOrcamentos, propo
 import { recalcularValores } from '../textSim/valuation';
 import { Negociacao, Oferta, abrirNegociacao, assinar, chanceDeAceitar, propostaDoJogador, resolverNegociacoes } from '../textSim/negociacao';
 import { rotuloDaFase } from '../textSim/competitions';
+import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino } from '../textSim/trainingService';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
@@ -938,6 +939,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
 
+        // Cartoes: 3 amarelos (ou um vermelho) suspendem do proximo jogo da competicao; quem estava suspenso cumpre este jogo.
+        if (aplicarSuspensoes(f, chaveCompeticao(f, comps), newPlayers)) updated = true;
+
         f.events.forEach(e => {
           if (official && e.type === 'GOAL' && e.playerId) {
             const p = newPlayers.find(pl => pl.id === e.playerId);
@@ -1497,8 +1501,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       todays.forEach(f => {
         const homeT = teams.find(t => t.id === f.homeTeamId);
         const awayT = teams.find(t => t.id === f.awayTeamId);
-        if (homeT && homeT.id !== gameState.userTeamId && awayT) manageCPUTeam(homeT, awayT, players);
-        if (awayT && awayT.id !== gameState.userTeamId && homeT) manageCPUTeam(awayT, homeT, players);
+        const chaveJogo = chaveCompeticao(f, comps);
+        const susp = (p: Player) => estaSuspenso(p, chaveJogo);
+        if (homeT && homeT.id !== gameState.userTeamId && awayT) manageCPUTeam(homeT, awayT, players, susp);
+        if (awayT && awayT.id !== gameState.userTeamId && homeT) manageCPUTeam(awayT, homeT, players, susp);
       });
       results = todays.map(f => motor3dRes.current[f.id] ? motor3dRes.current[f.id] : simulateMatch(f, teams, players, gameState.matchMinute + 1, gameState.userTeamId, gameState.language));
       matchResultsCache.current = results;
@@ -1615,6 +1621,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateSetPieceTakers = (teamId: string, takers: Team['setPieceTakers']) => {
     setTeams(prev => prev.map(t => t.id === teamId ? { ...t, setPieceTakers: takers } : t));
   };
+
+  // No dia do jogo do utilizador: suspensos (cartoes) e lesionados saem da escalacao e do banco antes de o jogo abrir.
+  useEffect(() => {
+    const t = teams.find(x => x.id === gameState.userTeamId);
+    const jogo = fixtures.find(f => f.date === gameState.currentDate && !f.played && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId));
+    if (!t || !jogo || gameState.matchMinute > 0 || !t.lineup?.length) return;
+    const r = corrigirEscalacao(t.lineup, t.bench || [], players.filter(p => p.teamId === t.id), chaveCompeticao(jogo, comps));
+    if (r.mudou) updateTactics(t.id, {}, r.lineup, r.bench);
+  }, [gameState.currentDate, gameState.userTeamId, fixtures, players, teams]);
 
   const updateTactics = (teamId: string, tactics: any, lineup?: string[], bench?: string[]) => {
     setTeams(prev => prev.map(t => {
