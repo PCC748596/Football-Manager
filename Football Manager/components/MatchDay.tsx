@@ -118,7 +118,8 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
         jogo do 3D aos 90, sem as telas de estatisticas/notas/tabela e sem o resultado dele — e o manager ficava preso. O 3D avisa o fim com a mensagem `fim` (motor3dMinuto = 999).
         */
         const m3d = (window as any).motor3dMinuto;
-        if (typeof m3d === 'number' && m3d !== 999) { console.warn('[FIM] pedido aos 90 com o 3D ainda a jogar (acrescimo): ignorado', { motor3dMinuto: m3d }); return; }
+        // No acrescimo o 3D ainda joga: o botao alterna a PAUSA (nao conclui o jogo).
+        if (typeof m3d === 'number' && m3d !== 999) { if (gameState.isProcessing) pauseMatch(); else playMatchDay('VISUAL'); return; }
         if (concluidoRef.current) return;
         concluidoRef.current = true;
         advanceWeek();
@@ -359,7 +360,11 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         else if (!concluidoRef.current) {
                           // So depois do `fim` do 3D (ver handleAction): no acrescimo o pedido e ignorado.
                           const m3d = (window as any).motor3dMinuto;
-                          if (typeof m3d === 'number' && m3d !== 999) { console.warn('[FIM] saida pedida no acrescimo: ignorada', { motor3dMinuto: m3d }); return; }
+                          if (typeof m3d === 'number' && m3d !== 999) {
+                            // No acrescimo: o Pause do 3D alterna a pausa; o ESC continua ignorado (so se sai depois do `fim`).
+                            if (m.tipo === 'alternar_pausa') { if (gameState.isProcessing) pauseMatch(); else playMatchDay('VISUAL'); }
+                            return;
+                          }
                           concluidoRef.current = true; advanceWeek(); setView?.('DASHBOARD');
                         }
                       } else motor3dMensagem(m);

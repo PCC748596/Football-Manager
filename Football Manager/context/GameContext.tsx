@@ -1329,7 +1329,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const playMatchDayCore = (modo: MatchMode) => {
     if (gameState.isProcessing) return;
-    if (gameState.matchMinute >= maxDurationRef.current) return;
+    // No acrescimo (relogio do manager nos 90, 3D ainda a jogar) retomar depois de pausar tem de ser possivel.
+    const m3dEmCurso = typeof (window as any).motor3dMinuto === 'number' && (window as any).motor3dMinuto !== 999;
+    if (gameState.matchMinute >= maxDurationRef.current && !(modo === 'VISUAL' && m3dEmCurso)) return;
 
     // Determine mode based on current view
     const mode: MatchMode = modo;

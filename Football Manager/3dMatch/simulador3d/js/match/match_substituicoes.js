@@ -310,6 +310,7 @@ Object.assign(Match, {
     (`assentarNoChao`) como nos jogadores de campo (relato: *"o jogador aquecendo esta meio no ar"*).
     */
     _andar: function (o, x, z, vel, dt, olhar) {
+        this._endireitarEuler(o);
         const p = o.model.position, x0 = p.x, z0 = p.z;
         const d = Math.hypot(x - x0, z - z0);
         Officials.mover(o, x, z, vel, dt, olhar);
@@ -351,7 +352,20 @@ Object.assign(Match, {
         for (let k = 0; k < 3; k++) { if (o.assentarNoChao) o.assentarNoChao(); }   // varias passagens: a correccao e suavizada e o corpo parte de cima
     },
 
+    /*
+    O CORPO DOS JOGADORES e orientado por `lookAt`: o Euler dele passa a (pi, y, pi) quando a frente aponta para tras (z negativo), e ler ou escrever so o `rotation.y` num
+    modelo assim inverte a frente (relato: quem sai corre para o lado certo virado para o outro, e depois volta ao banco de costas). Antes de o conduzir a pe, le-se o rumo
+    da FRENTE pelo quaternião e o Euler volta a (0, yaw, 0): a partir dai o `rotation.y` e fiavel (o `Officials.mover` e esta classe so usam esse).
+    */
+    _endireitarEuler: function (o) {
+        const e = o.model.rotation;
+        if (Math.abs(e.x) < 1e-3 && Math.abs(e.z) < 1e-3) return;
+        const f = new THREE.Vector3(0, 0, 1).applyQuaternion(o.model.quaternion);
+        e.set(0, Math.atan2(f.x, f.z), 0);
+    },
+
     _virarPara: function (o, x, z, k) {
+        this._endireitarEuler(o);
         const alvo = Math.atan2(x - o.model.position.x, z - o.model.position.z);
         const dif = Math.atan2(Math.sin(alvo - o.model.rotation.y), Math.cos(alvo - o.model.rotation.y));
         o.model.rotation.y += dif * Math.min(1, k);

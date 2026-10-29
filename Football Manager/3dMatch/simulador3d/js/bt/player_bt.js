@@ -3022,8 +3022,15 @@ function actReceivePass(ctx) {
                     ? tempoRasteiroDaBola(dBola, Math.hypot(Match.ballVel.x, Match.ballVel.z))
                     : null;
 
-                // `null` = a bola morre antes do ponto; aí ele tem todo o tempo.
-                if (tBola === null || tJog <= tBola + R.folgaTempo) {
+                /*
+                `null` = a bola morre antes do ponto; aí ele tem todo o tempo.
+
+                MAS COM A BOLA JA PARADA (< 0.4 m/s) o ponto do passe deixou de existir: ela nunca la chega. Sem este corte o destinatario ficava a tremer a ~1.5 m da bola: a 4 m
+                do ponto ia para la, a menos de `distEspaco` do ponto voltava a ir a bola, e cruzava essa fronteira a cada 0.2 s durante 3-4 s ate alguem lhe pegar (medido, semente 1,
+                t = 224 s: o `dynamicTarget` alternava entre a bola e o ponto 4 m adiante). Parada, a bola e o destino.
+                */
+                const bolaParada = Math.hypot(Match.ballVel.x, Match.ballVel.z) < 0.4;
+                if (!bolaParada && (tBola === null || tJog <= tBola + R.folgaTempo)) {
                     alvoDoEspaco = { x: ax, z: az };
                 }
             }

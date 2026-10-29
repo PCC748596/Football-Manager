@@ -1022,6 +1022,16 @@ function podeDribleNaConducao(p) {
 }
 if (typeof window !== 'undefined') window.podeDribleNaConducao = podeDribleNaConducao;
 
+/*
+NA PONTA, NA LINHA-LIMITE DA CONDUCAO, SEM SAIDA: em vez de ficar parado contra a linha de fundo, o portador gira pelo lado da linha lateral e devolve a um colega
+livre atras (o mesmo gesto da PONTA_CERCADA, mas sem exigir marcador nem estilo). Sem colega livre cai no corte lateral da condução.
+*/
+function naLinhaLimiteDaPonta(p) {
+    if (p.carryRecuo || !p.model || typeof CarryModel === 'undefined') return false;
+    if (Math.abs(p.model.position.x) < 15) return false;
+    return p.model.position.z * p.dirZ >= (CAMPO_COMP / 2 - CarryModel.margemLinhaFundo) - 0.6;
+}
+
 class PlayerFSM {
     constructor(player) {
         this.p = player; this.currentState = 'IDLE'; this.timer = 0;
@@ -1891,14 +1901,14 @@ class PlayerFSM {
                     _q1.setFromRotationMatrix(_m1);
                     const giroHold = (typeof TurnModel !== 'undefined') ? TurnModel.comBola : 5.5;
                     p.model.quaternion.slerp(_q1, Math.min(1.0, giroHold * dt));
-                } else if (typeof p.emPontaCercada === 'function' && p.emPontaCercada() &&
+                } else if (typeof p.emPontaCercada === 'function' && (p.emPontaCercada() || naLinhaLimiteDaPonta(p)) &&
                     (() => {
                         /*
                         PONTA CERCADA (Posicional / Possession): em vez de conduzir para a linha de
                         fundo marcado, devolve a um colega livre ATRAS e reinicia a jogada. Ver
                         PONTA_CERCADA (tactics.js).
                         */
-                        const PCz = p.emPontaCercada();
+                        const PCz = p.emPontaCercada() || { ganhoAtrasMin: 2.0 };
                         const recuoPC = PassTypes.melhorRecuo(p);
                         if (!recuoPC || (recuoPC.model.position.z - p.model.position.z) * p.dirZ > -PCz.ganhoAtrasMin) return false;
                         p.carryRecuo = false;
@@ -2082,6 +2092,19 @@ class PlayerFSM {
                             if (nota > melhorNota) { melhorNota = nota; alvoX = tx; alvoZ = tz; }
                         }
 
+                        /*
+                        NA LINHA-LIMITE DA CONDUCAO NAO SE FICA PARADO. Junto a linha de fundo (`avancoMax`) o alvo a frente e cortado a `avancoMax` e fica
+                        quase em cima do jogador: o melhor alvo do leque era "ficar onde esta", ele chegava (v = 0) e, sem marcador por perto para o drible
+                        nem colega livre, ninguem lhe tirava a bola — o portador ficava parado na linha de fundo para sempre (relato). Quando o alvo escolhido
+                        cai a menos de 1 m de onde ele ja esta, e ele esta na linha-limite, conduz ao longo da linha para o meio, ate a zona de remate.
+                        */
+                        if (!p.carryRecuo && pz * sentido >= avancoMax - 0.6 && Math.hypot(alvoX - px, alvoZ - pz) < 1.0) {
+                            const passoLateral = Math.min(Math.abs(px), 8.0);
+                            if (passoLateral > 0.5) {
+                                alvoX = px - Math.sign(px) * passoLateral;
+                                alvoZ = pz;
+                            }
+                        }
                         p.dynamicTarget.set(alvoX, ALTURA_BASE_Y, alvoZ);
                     }
 

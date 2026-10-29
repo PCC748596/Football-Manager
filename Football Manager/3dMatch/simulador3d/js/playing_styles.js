@@ -1293,21 +1293,40 @@ posto antes disto o alvo nao sobrevivia. Devolve {x, z} (mundo); nao recua ningu
 */
 function ocuparAreaComBolaNaAla(p, bb, x, z) {
     const ee = (typeof estiloDaEquipa === 'function') ? estiloDaEquipa(p.team) : null;
-    const AA = ee ? ee.areaComBolaNaAla : null;
-    if (!AA || !bb || !bb.isAttacking || typeof Match === 'undefined' || !Match.ball ||
+    /*
+    Vale para TODOS os estilos (o Wing Play so pode afinar os limiares de
+    gatilho). Os tres pontos de finalizacao sao geometria do campo:
+      1o poste  na direcao da trave mais proxima da bola, na linha da pequena area;
+      centro    x = 0, entre a marca do penalti (11 m) e a pequena area (5.5 m);
+      2o poste  na direcao da trave mais longe da bola, na linha da pequena area.
+    */
+    const AA = Object.assign({ larguraBola: 16.0, zBola: 12.0 }, ee ? ee.areaComBolaNaAla : null);
+    if (!bb || !bb.isAttacking || typeof Match === 'undefined' || !Match.ball ||
         p === Match.ballCarrier || p.role === 'gk') return { x: x, z: z };
     const bola = Match.ball.position;
     const lado = Math.sign(bola.x) || 1;
     if (!(Math.abs(bola.x) >= AA.larguraBola && bola.z * p.dirZ >= AA.zBola)) return { x: x, z: z };
     const baseX = p.baseTarget ? p.baseTarget.x : x;
     const oposto = Math.sign(baseX) === -lado;
-    const candidato = ['CF', 'SS', 'AM'].indexOf(p.pos) >= 0 ||
-        (p.pos === 'CM' && ((p.id || 0) % 2 === 0)) ||
+    const estilo = p.playingStyleDesligado ? null : p.playingStyle;
+    // CM: so o Hole Player entra na area (box-to-box, destroyer, orquestrador e os demais ficam fora).
+    const cmNaArea = p.pos === 'CM' && estilo === 'hole_player';
+    // AM box-to-box: so vai ate a entrada da grande area, nao a ocupa.
+    if (p.pos === 'AM' && estilo === 'box_to_box') {
+        const zEntrada = LINHA_FUNDO - 16.5;
+        const zE = ((zEntrada - z * p.dirZ) > 0) ? zEntrada * p.dirZ : z;   // nunca recua
+        return { x: x, z: zE };
+    }
+    const candidato = ['CF', 'SS', 'AM'].indexOf(p.pos) >= 0 || cmNaArea ||
         (['LW', 'RW', 'LM', 'RM'].indexOf(p.pos) >= 0 && oposto);
     if (!candidato) return { x: x, z: z };
     const k = oposto ? 0 : (1 + ((p.id || 0) % 2));
-    const xs = [-lado * AA.xSegundoPoste, lado * AA.xPrimeiroPoste * 0.3, lado * AA.xPrimeiroPoste];
-    let zA = AA.zArea;
+    const meiaBaliza = LARGURA_BALIZA / 2;
+    const zPequena = LINHA_FUNDO - 5.5;                  // linha da pequena area
+    const zCentro = LINHA_FUNDO - (11.0 + 5.5) / 2;      // entre a marca e a pequena area
+    const xs = [-lado * meiaBaliza, 0, lado * meiaBaliza];
+    const zs = [zPequena, zCentro, zPequena];
+    let zA = zs[k];
     if (typeof bb.offsideLimitDir === 'number') zA = Math.min(zA, bb.offsideLimitDir - 0.5 + (p.offsideBias || 0));
     const novoZ = ((zA - z * p.dirZ) > 0) ? zA * p.dirZ : z;   // nunca recua
     return { x: xs[k], z: novoZ };
