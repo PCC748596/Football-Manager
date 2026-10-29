@@ -28,6 +28,10 @@
       
       /* Toque (tablet): sem zoom por duplo-toque nem realce cinza nos botoes; alvos de toque ficam a cargo dos componentes. */
       html { touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+      /* Tablet (paisagem): o Tailwind e todo em rem, entao encolher a fonte da raiz reduz textos, espacamentos e alturas juntos e as telas cabem sem rolar tanto. */
+      @media (max-width: 1279px) { html { font-size: 14px; } }
+      @media (max-width: 1100px) { html { font-size: 13px; } }
+      @media (max-height: 800px) and (max-width: 1279px) { html { font-size: 12.5px; } }
       body, html {
         margin: 0;
         padding: 0;

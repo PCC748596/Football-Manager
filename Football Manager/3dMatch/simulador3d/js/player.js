@@ -5210,8 +5210,16 @@ class FootballPlayer {
                 Match.ballVel.set(0, 0, 0);
             } else if (this.fsm.currentState === 'BALL_CONTROL_RIGHT') {
                 // Durante o domínio orientado pela direita, a bola acompanha o pé direito
+                // (relato: "estica o pe mas o pe nao pega na bola"): era um ponto fixo a frente do corpo e o pe do clip passava a ~0.4 m dele. Agora a bola vai para o pe REAL (o osso), com o recuo limitado para nao ser arrastada para tras do corpo.
                 let footOffset = _p_v1.set(0.2, 0, 0.45).applyQuaternion(this.model.quaternion);
                 _p_v2.copy(this.model.position).add(footOffset);
+                if (this.rig && this.rig.rFoot) {
+                    this.model.updateMatrixWorld(true);
+                    this.rig.rFoot.getWorldPosition(_p_v3.set(0, 0, 0));
+                    const fx = _p_v3.x - this.model.position.x, fz = _p_v3.z - this.model.position.z;
+                    const fr = fx * Math.sin(this.model.rotation.y) + fz * Math.cos(this.model.rotation.y);   // quanto o pe esta a frente do corpo
+                    if (fr > 0.15) { _p_v2.x = _p_v3.x; _p_v2.z = _p_v3.z; }
+                }
                 Match.ball.position.lerp(_p_v2, 0.5);
                 Match.ball.position.y = BallPhysics.raio; Match.ballVel.set(0, 0, 0);
             } else {

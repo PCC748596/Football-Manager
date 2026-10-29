@@ -5,7 +5,7 @@ import { TeamShield } from './TeamShield';
 import { KitSelection } from './KitSelection';
 import { MatchStatsModal } from './MatchStatsModal';
 import { calculateMatchRatings } from '../textSim/matchEngine';
-import Simulador3DView, { simulador3dArrancou, simulador3dReinicios, simulador3dPronto, simulador3dEnviar, simulador3dTelaCheia, simulador3dLembrarTelaCheia, simulador3dVelocidade } from '../3dMatch/Simulador3DView';
+import Simulador3DView, { simulador3dArrancou, simulador3dReinicios, simulador3dPronto, simulador3dEnviar, simulador3dTelaCheia, simulador3dSairDaTelaCheia, simulador3dLembrarTelaCheia, simulador3dVelocidade } from '../3dMatch/Simulador3DView';
 import { taticaParaMotor, taticaDoMotor } from '../3dMatch/simulador3dCliente';
 import { COUNTRIES } from '../textSim/dataGenerator';
 import { ligaDoClube } from '../textSim/competitions';
@@ -339,7 +339,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                       } else if (m.tipo === 'abrir_tactics' || (m.tipo === 'expulsao' && m.lado === (match.homeTeamId === gameState.userTeamId ? 'A' : 'B'))) {
                         // Botao Tactics da tela cheia do 3D, ou expulsao de um jogador do utilizador: sai da tela cheia, pausa o relogio e abre o MATCH TACTICS.
                         simulador3dLembrarTelaCheia();
-                        if (document.fullscreenElement) document.exitFullscreen?.();
+                        simulador3dSairDaTelaCheia();
                         if (gameState.isProcessing) pauseMatch();
                         setView?.('TACTICS');
                       } else if (m.tipo === 'abertura_estado') {

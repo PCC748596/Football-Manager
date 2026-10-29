@@ -35,7 +35,7 @@ function correr(guarda, segundos) {
                 if (v > 0.8 && v < 12 && !Officials.arbitro.sinal && !Officials.cartaoEmCurso && !(typeof Abertura !== 'undefined' && Abertura.activa)) {
                     andando++;
                     const a = Math.atan2(vx, vz), d = Math.abs(Math.atan2(Math.sin(Officials.arbitro.model.rotation.y - a), Math.cos(Officials.arbitro.model.rotation.y - a))) * 180 / Math.PI;
-                    if (d > 82) costasRumo++;
+                    if (d > 120) costasRumo++;   // a bola manda: ao afastar-se dela corre de lado (ate ~100 graus do rumo), nunca de costas para ela; "de costas para o rumo" = acima de 120
                 }
             }
             ant = { x: pa.x, z: pa.z };

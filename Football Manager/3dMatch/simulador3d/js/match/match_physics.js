@@ -1360,6 +1360,8 @@ Object.assign(Match, {
             */
             if (best.role !== 'gk' && best.jumpTimer <= 0 &&
                 !best.jogarDePrimeira &&
+                // Conduzindo: adiantou a bola e foi busca-la (foi ele quem tocou por ultimo). Nao e uma recepcao: sem gesto de dominio, ele segue a correr.
+                !bolaAdiantadaPorEle &&
                 best.fsm.currentState !== 'SET_PIECE_TAKER' &&
                 best.fsm.currentState !== 'LATERAL' &&
                 best.fsm.currentState !== 'CHEST_CONTROL') {

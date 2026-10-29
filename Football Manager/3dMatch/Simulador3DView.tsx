@@ -65,21 +65,45 @@ export const simulador3dInstantaneo = (ms = 1500): Promise<any | null> => new Pr
   simulador3dEnviar({ tipo: 'instantaneo', id });
 });
 // Tela cheia no proprio iframe; ao sair/entrar avisa o motor, que mostra os botoes de camara dele so em tela cheia.
-export const simulador3dTelaCheia = () => {
+/*
+TABLET: o Safari do iPad (e alguns navegadores Android) so tem a API com prefixo (`webkitRequestFullscreen`) ou nao a deixa pedir num iframe, e o botao nao fazia nada. Tenta a API (com prefixo);
+se nao existir ou for recusada, usa a TELA CHEIA SIMULADA: o iframe passa a cobrir a janela inteira (position fixed, 100% x 100%, por cima de tudo). No PWA instalado (display standalone) a janela ja e a tela toda.
+*/
+let telaCheiaSimulada = false;
+const emTelaCheia = () => telaCheiaSimulada || (!!(document.fullscreenElement || (document as any).webkitFullscreenElement) && (document.fullscreenElement || (document as any).webkitFullscreenElement) === sessao.iframe);
+const avisarTelaCheia = () => simulador3dEnviar({ tipo: 'tela_cheia', ligada: emTelaCheia() });
+const ajustarSimulada = (ligar: boolean) => {
   const f = sessao.iframe;
   if (!f) return;
-  if (document.fullscreenElement) { document.exitFullscreen(); return; }
-  f.requestFullscreen?.().catch(() => {});
+  telaCheiaSimulada = ligar;
+  if (ligar) { f.style.left = '0px'; f.style.top = '0px'; f.style.width = '100vw'; f.style.height = '100dvh'; f.style.zIndex = '9999'; }
+  else f.style.zIndex = '5';   // a posicao normal volta no proximo `pos()` (300 ms)
+  avisarTelaCheia();
+};
+export const simulador3dSairDaTelaCheia = () => {
+  if (telaCheiaSimulada) { ajustarSimulada(false); return; }
+  const d: any = document;
+  if (d.fullscreenElement) d.exitFullscreen?.(); else if (d.webkitFullscreenElement) d.webkitExitFullscreen?.();
+};
+export const simulador3dTelaCheia = () => {
+  const f: any = sessao.iframe;
+  if (!f) return;
+  const d: any = document;
+  if (telaCheiaSimulada || d.fullscreenElement || d.webkitFullscreenElement) { simulador3dSairDaTelaCheia(); return; }
+  const pedir = f.requestFullscreen ? f.requestFullscreen() : f.webkitRequestFullscreen ? f.webkitRequestFullscreen() : null;
+  if (pedir && typeof pedir.catch === 'function') pedir.catch(() => ajustarSimulada(true));
+  else if (!pedir) ajustarSimulada(true);
 };
 // Tela cheia -> Tactics -> volta em tela cheia; tela normal -> Tactics -> volta em tela normal: lembra-se do estado ao sair para o Tactics e repoe-no ao voltar.
 let voltarEmTelaCheia = false;
 // (Sem tela cheia por omissao.) `chaveComTelaCheia` so marca a partida quando se volta do Tactics em tela cheia (ver `voltarEmTelaCheia`).
 let chaveComTelaCheia = '';
-export const simulador3dLembrarTelaCheia = () => { voltarEmTelaCheia = !!document.fullscreenElement && document.fullscreenElement === sessao.iframe; };
+export const simulador3dLembrarTelaCheia = () => { voltarEmTelaCheia = emTelaCheia(); ajustarSimulada(false); };
 if (typeof document !== 'undefined') {
   document.addEventListener('fullscreenchange', () => {
-    simulador3dEnviar({ tipo: 'tela_cheia', ligada: !!document.fullscreenElement && document.fullscreenElement === sessao.iframe });
+    avisarTelaCheia();
   });
+  document.addEventListener('webkitfullscreenchange', () => avisarTelaCheia());
 }
 
 /*
@@ -166,13 +190,14 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
     sessao.cb = (m) => { if (m.tipo === '__pronto') { arrancar(); aoPronto?.(); } else if (m.tipo === 'erro') { console.error('[3D erro]', m.mensagem); aoMensagem(m); } else if (m.tipo === 'perf') console.log('[3D desempenho]', m.fps + ' fps', 'Match.update ' + m.msJogo + ' ms', m.passosPorQuadro + ' passos/quadro'); else aoMensagem(m); };
     const f = sessao.iframe!;
     const pos = () => {
+      if (telaCheiaSimulada) return;
       const r = caixa.current?.getBoundingClientRect();
       if (!r) return;
       f.style.left = r.left + 'px'; f.style.top = r.top + 'px'; f.style.width = r.width + 'px'; f.style.height = r.height + 'px';
     };
     pos();
     f.style.visibility = 'visible';
-    if (voltarEmTelaCheia) { voltarEmTelaCheia = false; chaveComTelaCheia = chave; f.requestFullscreen?.().catch(() => {}); }
+    if (voltarEmTelaCheia) { voltarEmTelaCheia = false; chaveComTelaCheia = chave; simulador3dTelaCheia(); }
     const ro = new ResizeObserver(pos);
     if (caixa.current) ro.observe(caixa.current);
     window.addEventListener('resize', pos);

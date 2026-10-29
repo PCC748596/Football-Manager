@@ -42,13 +42,14 @@ const OficiaisOlhamABola = {
         const g = o._gPos || (o._gPos = { x: o.model.position.x, z: o.model.position.z });
         if (dt > 0) { vx = (o.model.position.x - g.x) / dt; vz = (o.model.position.z - g.z) / dt; v = Math.hypot(vx, vz); }
         g.x = o.model.position.x; g.z = o.model.position.z;
-        const antes = this._corrigirBola(o, maxRad);
+        // O rumo corrige-se PRIMEIRO e a bola DEPOIS: a bola tem a ultima palavra. Com o rumo por cima (como estava), ao afastar-se da bola (a fuga, o recuo) o juiz virava-se para onde ia e
+        // ficava de costas para ela (relato com prints: "em todos olhando para o lado contrario da bola"). Agora, afastando-se, corre de lado/de ombro para o rumo mas nunca de costas para a bola.
         if (maxMovRad !== undefined && v >= (velMin || this.velMin) && v < 12) {
             const mov = Math.atan2(vx, vz);
             const d2 = Math.atan2(Math.sin(o.model.rotation.y - mov), Math.cos(o.model.rotation.y - mov));
             if (Math.abs(d2) > maxMovRad) o.model.rotation.y = mov + Math.sign(d2) * maxMovRad;
         }
-        return antes;
+        return this._corrigirBola(o, maxRad);
     },
 
     _corrigirBola(o, maxRad) {

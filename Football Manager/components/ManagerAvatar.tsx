@@ -50,7 +50,7 @@ export const ManagerAvatar: React.FC<Props> = ({ look, rodar = 0, className = ''
   useEffect(() => { if (pronto.current) enviar({ tipo: 'look', look }); }, [look]);
   useEffect(() => { if (rodar && pronto.current) enviar({ tipo: 'rodar' }); }, [rodar]);
 
-  return <iframe ref={ref} src="/simulador3d/managerPreview.html" title="Treinador" className={className} style={{ border: 0, background: 'transparent' }} />;
+  return <iframe ref={ref} src={new URL('simulador3d/managerPreview.html', document.baseURI).href} title="Treinador" className={className} style={{ border: 0, background: 'transparent' }} />;
 };
 
 export default ManagerAvatar;
