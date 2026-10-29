@@ -72,7 +72,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
 
   const navItemClass = (viewName: string) => {
     const isActive = currentView === viewName;
-    return `flex items-center gap-3 px-4 py-[9.5px] rounded transition-all cursor-pointer font-black uppercase text-[10px] tracking-[0.15em] border border-transparent shadow-sm ${
+    return `flex items-center justify-center xl:justify-start gap-3 px-2 xl:px-4 py-[9.5px] min-h-[44px] xl:min-h-0 rounded transition-all cursor-pointer font-black uppercase text-[10px] tracking-[0.15em] border border-transparent shadow-sm ${
       isActive 
         ? 'bg-blue-600 text-white shadow-blue-500/30 ring-1 ring-blue-400' 
         : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-900'
@@ -88,91 +88,92 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
 
   return (
     <div className="flex h-full w-full bg-slate-50 dark:bg-manager-bg text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-300">
-      <aside className="w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-900 flex flex-col shadow-2xl z-50 transition-colors duration-300">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-900">
-          <div className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tighter flex items-center gap-2">
-            <span className="text-blue-500">FOOT</span>MANAGER
+      <aside className="w-[72px] xl:w-64 shrink-0 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-900 flex flex-col shadow-2xl z-50 transition-colors duration-300">
+        <div className="p-2 xl:p-6 border-b border-slate-200 dark:border-slate-900">
+          <div className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tighter flex items-center justify-center xl:justify-start gap-2">
+            <span className="text-blue-500">FOOT</span><span className="hidden xl:inline">MANAGER</span>
           </div>
           {userTeam && (
             // O mesmo padrao do cartao do clube da escolha de carreira (CareerStart): texto a esquerda e o escudo GRANDE a direita, cortado pela borda do cartao.
-            <div className="mt-4 relative overflow-hidden h-[72px] flex flex-col justify-center pl-3 pr-[70px] bg-slate-50 dark:bg-slate-900/40 rounded border border-slate-200 dark:border-slate-800 transition-colors">
+            <div className="mt-4 relative overflow-hidden h-[72px] hidden xl:flex flex-col justify-center pl-3 pr-[70px] bg-slate-50 dark:bg-slate-900/40 rounded border border-slate-200 dark:border-slate-800 transition-colors">
               <div className="absolute top-1/2 -translate-y-1/2 -right-[22px] w-[96px] h-[116px]"><TeamShield team={userTeam} className="w-full h-full" /></div>
               <div className="text-[13px] font-black text-slate-800 dark:text-white uppercase truncate">{userTeam.name}</div>
               <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest">{userTeam.strength} OVR</div>
             </div>
           )}
+          {userTeam && <div className="xl:hidden mt-2 mx-auto w-9 h-11"><TeamShield team={userTeam} className="w-full h-full" /></div>}
         </div>
 
-        <nav className="flex-1 p-4 space-y-[3px] overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 p-2 xl:p-4 space-y-[3px] overflow-y-auto custom-scrollbar">
           <div onClick={() => handleNavClick('DASHBOARD')} className={navItemClass('DASHBOARD')}>
-            <IconDashboard /> <span>{t('nav_home')}</span>
+            <IconDashboard /> <span className="hidden xl:inline">{t('nav_home')}</span>
           </div>
           
           {isMatchDay && (
             <>
               {(gameState.matchMinute === 0 || activeMatchView === 'TRAINING') && (
                 <div onClick={() => { localStorage.setItem('activeMatchView', 'TRAINING'); handleNavClick('TRAINING'); }} className={navItemClass('TRAINING')}>
-                  <IconBall /> <span>{gameState.matchMinute > 0 ? 'RESUME SIM' : t('nav_sim_round')}</span>
+                  <IconBall /> <span className="hidden xl:inline">{gameState.matchMinute > 0 ? 'RESUME SIM' : t('nav_sim_round')}</span>
                 </div>
               )}
               {(gameState.matchMinute === 0 || activeMatchView === 'MATCH') && (
                 <div onClick={() => { localStorage.setItem('activeMatchView', 'MATCH'); handleNavClick('MATCH'); }} className={navItemClass('MATCH')}>
-                  <IconField /> <span>{gameState.matchMinute > 0 ? 'RESUME MATCH' : t('nav_match_day')}</span>
+                  <IconField /> <span className="hidden xl:inline">{gameState.matchMinute > 0 ? 'RESUME MATCH' : t('nav_match_day')}</span>
                 </div>
               )}
             </>
           )}
 
           <div onClick={() => handleNavClick('INBOX')} className={navItemClass('INBOX')}>
-            <IconMail /> <span className="flex-1">{t('nav_inbox')}</span>
+            <IconMail /> <span className="hidden xl:inline flex-1">{t('nav_inbox')}</span>
             {naoLidas > 0 && <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-rose-500 text-white text-[11px] font-black flex items-center justify-center">{naoLidas > 99 ? '99+' : naoLidas}</span>}
           </div>
 
           <div onClick={() => handleNavClick('SQUAD')} className={navItemClass('SQUAD')}>
-            <IconUsers /> <span>{t('nav_squad')}</span>
+            <IconUsers /> <span className="hidden xl:inline">{t('nav_squad')}</span>
           </div>
           <div onClick={() => handleNavClick('TRANSFERS')} className={navItemClass('TRANSFERS')}>
-            <IconTransfer /> <span className="flex-1">{t('nav_transfers')}</span>
+            <IconTransfer /> <span className="hidden xl:inline flex-1">{t('nav_transfers')}</span>
             {respostasPendentes > 0 && <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-amber-500 text-white text-[11px] font-black flex items-center justify-center">{respostasPendentes}</span>}
           </div>
           <div onClick={() => handleNavClick('TACTICS')} className={navItemClass('TACTICS')}>
-            <IconTactics /> <span>{t('nav_tactics')}</span>
+            <IconTactics /> <span className="hidden xl:inline">{t('nav_tactics')}</span>
           </div>
           <div onClick={() => handleNavClick('TRAINING_VIEW')} className={navItemClass('TRAINING_VIEW')}>
-            <IconTraining /> <span>{t('nav_training')}</span>
+            <IconTraining /> <span className="hidden xl:inline">{t('nav_training')}</span>
           </div>
           <div onClick={() => handleNavClick('FIXTURES')} className={navItemClass('FIXTURES')}>
-            <IconCalendar /> <span>{t('nav_fixtures')}</span>
+            <IconCalendar /> <span className="hidden xl:inline">{t('nav_fixtures')}</span>
           </div>
           <div onClick={() => handleNavClick('LEAGUE')} className={navItemClass('LEAGUE')}>
-            <IconTrophy /> <span>{t('nav_standings')}</span>
+            <IconTrophy /> <span className="hidden xl:inline">{t('nav_standings')}</span>
           </div>
           <div onClick={() => handleNavClick('FINANCES')} className={navItemClass('FINANCES')}>
-            <IconFinance /> <span>{t('nav_finance')}</span>
+            <IconFinance /> <span className="hidden xl:inline">{t('nav_finance')}</span>
           </div>
           <div onClick={() => handleNavClick('STATISTICS')} className={navItemClass('STATISTICS')}>
-            <IconStatistics /> <span>{t('nav_statistics')}</span>
+            <IconStatistics /> <span className="hidden xl:inline">{t('nav_statistics')}</span>
           </div>
           <div onClick={() => handleNavClick('SETTINGS')} className={navItemClass('SETTINGS')}>
-            <IconSettings /> <span>{t('nav_settings')}</span>
+            <IconSettings /> <span className="hidden xl:inline">{t('nav_settings')}</span>
           </div>
           <div onClick={() => handleNavClick('WORLD')} className={navItemClass('WORLD')}>
-            <IconWorld /> <span>{t('nav_world')}</span>
+            <IconWorld /> <span className="hidden xl:inline">{t('nav_world')}</span>
           </div>
         </nav>
 
-        <div className="p-6 border-t border-slate-200 dark:border-slate-900 flex flex-col gap-4 transition-colors">
+        <div className="p-2 xl:p-6 border-t border-slate-200 dark:border-slate-900 flex flex-col gap-2 xl:gap-4 transition-colors">
             {/* No Dashboard em dia de jogo o botao JOGAR PARTIDA sai do painel da esquerda: o Dashboard tem o seu proprio botao do jogo do dia. */}
             {!(isMatchDay && currentView === 'DASHBOARD') && (
             <button 
               onClick={handleContinue}
-              className={`w-full font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 text-sm tracking-widest uppercase active:scale-95 border-b-4 ${isMatchDay ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 border-emerald-800' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20 border-blue-800'}`}
+              className={`w-full min-h-[44px] font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 text-sm tracking-widest uppercase active:scale-95 border-b-4 ${isMatchDay ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 border-emerald-800' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20 border-blue-800'}`}
             >
-              {isSimulating ? 'SIMULANDO...' : (isMatchDay ? 'JOGAR PARTIDA' : 'CONTINUAR')}
+              <span className="xl:hidden">▶</span><span className="hidden xl:inline">{isSimulating ? 'SIMULANDO...' : (isMatchDay ? 'JOGAR PARTIDA' : 'CONTINUAR')}</span>
             </button>
             )}
 
-           <div className="bg-slate-100 dark:bg-slate-900/40 rounded-lg px-4 py-0 text-center border border-slate-200 dark:border-slate-800 shadow-inner">
+           <div className="hidden xl:block bg-slate-100 dark:bg-slate-900/40 rounded-lg px-4 py-0 text-center border border-slate-200 dark:border-slate-800 shadow-inner">
              <div className="text-[11px] text-slate-800 dark:text-white uppercase font-black tracking-tight italic mb-[5px]">Match Week</div>
              <div className="text-4xl font-black text-blue-600 dark:text-blue-500 leading-none italic tracking-tighter">
                {gameState.currentWeek} 
@@ -185,33 +186,33 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
            
            <button 
              onClick={saveGame}
-             className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 text-white font-black py-2.5 rounded border border-slate-700 dark:border-slate-700 hover:border-blue-400 transition-all flex items-center justify-center gap-2 text-[10px] tracking-widest uppercase group"
+             className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 text-white font-black min-h-[44px] xl:min-h-0 py-2.5 rounded border border-slate-700 dark:border-slate-700 hover:border-blue-400 transition-all flex items-center justify-center gap-2 text-[10px] tracking-widest uppercase group"
            >
              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="group-hover:animate-pulse"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-             {t('nav_save_game')}
+             <span className="hidden xl:inline">{t('nav_save_game')}</span>
            </button>
 
            <input ref={loadInputRef} type="file" accept=".json,application/json" className="hidden" onChange={carregarJogo} />
            <button
              onClick={() => loadInputRef.current?.click()}
-             className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 text-white font-black py-2.5 rounded border border-slate-700 dark:border-slate-700 hover:border-blue-400 transition-all flex items-center justify-center gap-2 text-[10px] tracking-widest uppercase group"
+             className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 text-white font-black min-h-[44px] xl:min-h-0 py-2.5 rounded border border-slate-700 dark:border-slate-700 hover:border-blue-400 transition-all flex items-center justify-center gap-2 text-[10px] tracking-widest uppercase group"
            >
              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 5 17 10"></polyline><line x1="12" y1="5" x2="12" y2="15"></line></svg>
-             LOAD GAME
+             <span className="hidden xl:inline">LOAD GAME</span>
            </button>
 
            <button
              onClick={() => { if (window.confirm('Return to the main menu? Progress since your last save will be lost.')) onMainMenu?.(); }}
-             className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 text-white font-black py-2.5 rounded border border-slate-700 dark:border-slate-700 hover:border-blue-400 transition-all flex items-center justify-center gap-2 text-[10px] tracking-widest uppercase group"
+             className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 text-white font-black min-h-[44px] xl:min-h-0 py-2.5 rounded border border-slate-700 dark:border-slate-700 hover:border-blue-400 transition-all flex items-center justify-center gap-2 text-[10px] tracking-widest uppercase group"
            >
              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-             MAIN MENU
+             <span className="hidden xl:inline">MAIN MENU</span>
            </button>
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900/30 transition-colors duration-300">
-        <div className={`flex-1 overflow-y-auto custom-scrollbar p-10 ${currentView === 'MATCH' ? 'pt-0' : ''}`}>
+        <div className={`flex-1 overflow-y-auto custom-scrollbar p-5 xl:p-10 ${currentView === 'MATCH' ? 'pt-0' : ''}`}>
           {children}
         </div>
       </main>

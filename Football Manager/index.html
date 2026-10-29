@@ -26,6 +26,8 @@
         background: #3b82f6; 
       }
       
+      /* Toque (tablet): sem zoom por duplo-toque nem realce cinza nos botoes; alvos de toque ficam a cargo dos componentes. */
+      html { touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
       body, html {
         margin: 0;
         padding: 0;

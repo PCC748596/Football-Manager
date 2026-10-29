@@ -125,6 +125,15 @@ export const diasParaFecharJanela = (hoje: string, paisId?: string, cfg: ConfigM
   return null;
 };
 
+/** A proxima abertura da janela (data ISO e dias que faltam); null se ja esta aberta. */
+export const proximaAberturaJanela = (hoje: string, paisId?: string, cfg: ConfigMercado = CONFIG_MERCADO): { data: string; dias: number } | null => {
+  if (janelaAberta(hoje, paisId, cfg)) return null;
+  const lista = (paisId && cfg.janelas.porPais[paisId]) || cfg.janelas.padrao;
+  const ano = +hoje.slice(0, 4);
+  const datas = [ano, ano + 1].flatMap(a => lista.map(j => `${a}-${j.de}`)).filter(d => d > hoje).sort();
+  return datas.length ? { data: datas[0], dias: diasEntre(hoje, datas[0]) } : null;
+};
+
 /** Personalidade de cada clube: fixa (semente = id). `rigidez` multiplica o preco que pede; `apetite` o quanto paga de bom grado. */
 export const perfilDoClube = (teamId: string, cfg: ConfigMercado = CONFIG_MERCADO) => {
   const r = criarRng('perfil|' + teamId);

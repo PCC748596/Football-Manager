@@ -150,8 +150,8 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
   );
 
   return (
-    <div className="w-full h-full flex flex-col p-8 bg-white dark:bg-manager-bg transition-colors duration-300">
-      <div className="flex justify-between items-center mb-8 bg-slate-50 dark:bg-slate-800/50 p-6 rounded border border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-sm">
+    <div className="w-full h-full flex flex-col p-4 xl:p-8 bg-white dark:bg-manager-bg transition-colors duration-300">
+      <div className="flex justify-between items-center mb-4 xl:mb-8 bg-slate-50 dark:bg-slate-800/50 p-4 xl:p-6 rounded border border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-sm">
         <div className="flex items-center gap-6">
           <button onClick={onBack} className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white flex items-center gap-2 font-bold uppercase text-sm transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
@@ -164,8 +164,8 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
           </div>
         </div>
       </div>
-      <div className="flex-1 flex gap-6 min-h-0 overflow-hidden">
-        <div className="w-[12%] flex flex-col gap-4">
+      <div className="flex-1 flex gap-3 xl:gap-6 min-h-0 overflow-hidden">
+        <div className="w-[12%] min-w-[104px] flex flex-col gap-4">
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">Confederations</div>
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
             {CONFEDERACOES.map(f => {
@@ -179,7 +179,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             })}
           </div>
         </div>
-        <div className="w-[calc(18%-50px)] flex flex-col gap-4">
+        <div className="w-[calc(18%-50px)] min-w-[120px] flex flex-col gap-4">
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step1')}</div>
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
             {paisesDaConf.length === 0 && <div className="text-xs text-slate-400 font-bold px-2 pt-2">No national associations in this confederation yet.</div>}
@@ -191,7 +191,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             ))}
           </div>
         </div>
-        <div className="w-[17%] flex flex-col gap-4">
+        <div className="w-[17%] min-w-[120px] flex flex-col gap-4">
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step2')}</div>
           <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
@@ -211,7 +211,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             </div>
           </div>
         </div>
-        <div className="flex-1 flex flex-col gap-4">
+        <div className="flex-1 min-w-0 flex flex-col gap-4">
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step3')}</div>
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
             {/* Serie D do Brasil: os clubes divididos pelos 16 grupos de 6 (a 1.a fase da competicao). */}
@@ -235,7 +235,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             )}
           </div>
         </div>
-        <div className="w-[24%] flex flex-col gap-4 min-h-0">
+        <div className="w-[30%] xl:w-[24%] min-w-[260px] flex flex-col gap-4 min-h-0">
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">Club Overview</div>
           {clubeSel ? (() => {
             const c1 = clubeSel.homeKit?.color1 || '#1e293b', c2 = clubeSel.homeKit?.color2 || c1;

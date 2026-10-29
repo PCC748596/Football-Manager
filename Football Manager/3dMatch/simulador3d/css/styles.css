@@ -267,7 +267,7 @@ canvas {
 
 .hud-jogador {
     position: absolute;
-    bottom: 20px;
+    bottom: 55px;   /* era 20px: subido 35px (pedido) */
     z-index: 10;
     display: flex;
     align-items: center;
@@ -964,7 +964,7 @@ arrastar a câmara mesmo por cima dele).
     }
 
     #hud-jogador-esq, #hud-jogador-dir {
-        bottom: 72px;
+        bottom: 107px;   /* era 72px: +35px */
         padding: 5px 8px;
         gap: 6px;
     }

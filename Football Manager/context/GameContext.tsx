@@ -10,7 +10,7 @@ import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } f
 import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia } from '../textSim/inbox';
 import { regiaoDoClube } from '../textSim/dataGenerator';
 import { MercadoState, Universo, Evento, mercadoVazio, prepararOrcamentos, proporCompra as mercadoPropor, responderComoVendedor, responderComoComprador, retirar as mercadoRetirar, concluir as mercadoConcluir,
-  contratarAgenteLivre as mercadoContratarLivre, listarParaVenda as mercadoListar, listarParaEmprestimo as mercadoListarEmprestimo, dispensarJogador as mercadoDispensar, tickDoDia as mercadoTick, recalcularValoresDoMes, janelaAberta } from '../textSim/transferencias';
+  contratarAgenteLivre as mercadoContratarLivre, listarParaVenda as mercadoListar, listarParaEmprestimo as mercadoListarEmprestimo, dispensarJogador as mercadoDispensar, tickDoDia as mercadoTick, recalcularValoresDoMes, janelaAberta, proximaAberturaJanela } from '../textSim/transferencias';
 import { recalcularValores } from '../textSim/valuation';
 import { Negociacao, Oferta, abrirNegociacao, assinar, chanceDeAceitar, propostaDoJogador, resolverNegociacoes } from '../textSim/negociacao';
 import { rotuloDaFase } from '../textSim/competitions';
@@ -477,7 +477,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .map(x => ({ nome: x.p.name, posicao: x.p.position, delta: x.r!.delta, estrelas: x.r!.estrelas, ovr: x.p.skill, mudou: x.r!.mudancas.length > 0 }));
     empurrarInbox(avisosDoDia({
       hoje, lang: gameState.language, elenco: meus, jogos, jovens, mesDoRelatorio: base?.mesProcessado || '',
-      caixa: userTeam.cash, folhaSemanal: meus.reduce((a, p) => a + p.salary, 0), formatar: formatCurrency, janelaAberta: isTransferWindowOpen()
+      caixa: userTeam.cash, folhaSemanal: meus.reduce((a, p) => a + p.salary, 0), formatar: formatCurrency, janelaAberta: isTransferWindowOpen(), proximaAbertura: proximaAberturaJanela(hoje, userTeam.country)
     }, new Set<string>([...chavesDe(inbox), ...vistasRef.current])));
   }, [gameState.currentDate, jogosDoUtilizadorSig, base?.mesProcessado, userTeam?.id, loadId]);
 

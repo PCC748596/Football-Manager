@@ -6,7 +6,7 @@ import { TeamShield } from './TeamShield';
 import { PlayerFace } from './PlayerFace';
 import { estrelasDoJogador, potencialVisivel } from '../textSim/youth';
 import { potencialParaValor, anosRestantes } from '../textSim/valuation';
-import { CONFIG_MERCADO, ESTADOS_ATIVOS, NegociacaoTransf, grupoDe, janelaAberta, diasParaFecharJanela } from '../textSim/transferencias';
+import { CONFIG_MERCADO, ESTADOS_ATIVOS, NegociacaoTransf, grupoDe, janelaAberta, diasParaFecharJanela, proximaAberturaJanela } from '../textSim/transferencias';
 import { estadoDoContrato } from '../textSim/contracts';
 
 type Aba = 'MARKET' | 'NEGOTIATIONS' | 'MY_PLAYERS' | 'FINANCES';
@@ -110,6 +110,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const sel = linhas.find(l => l.p.id === selId) || null;
   const janela = janelaAberta(hoje, userTeam.country);
   const fecha = diasParaFecharJanela(hoje, userTeam.country);
+  const abre = proximaAberturaJanela(hoje, userTeam.country)?.dias ?? null;
   const negociacoesMinhas = mercado.negociacoes.filter(n => n.compradorId === meuId || n.vendedorId === meuId);
   const precisaResposta = (n: NegociacaoTransf) => (n.vendedorId === meuId && n.estado === 'RECEBIDA') || (n.compradorId === meuId && n.estado === 'CONTRAPROPOSTA');
   const pendentes = negociacoesMinhas.filter(precisaResposta).length;
@@ -451,7 +452,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
       <div>
         <button onClick={() => setView('DASHBOARD')} className="text-slate-500 hover:text-white text-xs font-black uppercase tracking-widest mb-1">‹ Back to menu</button>
         <h2 className="text-5xl font-black uppercase tracking-tight italic leading-none"><span className="text-slate-900 dark:text-white">TRANSFER</span> <span className="text-blue-500">MARKET</span></h2>
-        <p className="text-slate-400 dark:text-slate-500 font-bold text-[11px] uppercase tracking-widest mt-2 opacity-70">Player search and transactions • window {janela ? <span className="text-emerald-500">open{fecha !== null ? ` (${fecha} days left)` : ''}</span> : <span className="text-rose-400">closed</span>}</p>
+        <p className="text-slate-400 dark:text-slate-500 font-bold text-[11px] uppercase tracking-widest mt-2 opacity-70">Player search and transactions • window {janela ? <span className="text-emerald-500">open{fecha !== null ? ` (${fecha} days left)` : ''}</span> : <span className="text-rose-400">closed{abre !== null ? ` (opens in ${abre} days)` : ''}</span>}</p>
       </div>
       <div className="flex flex-wrap gap-2 items-center">
         {([['MARKET', 'Market'], ['NEGOTIATIONS', `Negotiations${pendentes ? ` (${pendentes})` : ''}`], ['MY_PLAYERS', 'My players / for sale'], ['FINANCES', 'Transfer finances']] as const).map(([id, r]) => (

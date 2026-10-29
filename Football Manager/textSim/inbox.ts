@@ -116,7 +116,10 @@ export interface EntradaAvisos {
   mesDoRelatorio: string;          // yyyy-mm
   caixa: number; folhaSemanal: number; formatar: (n: number) => string;
   janelaAberta: boolean;
+  proximaAbertura?: { data: string; dias: number } | null;   // proxima abertura da janela (null se ja aberta)
 }
+
+export const DIAS_AVISO_JANELA = 30;
 
 const diasEntre = (a: string, b: string) => Math.round((Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10)) - Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))) / 86400000);
 
@@ -126,6 +129,15 @@ export const chavesDe = (inbox: MensagemInbox[]): Set<string> => new Set(inbox.f
 export const avisosDoDia = (e: EntradaAvisos, vistas: Set<string> = new Set()): MensagemInbox[] => {
   const { hoje, lang: l } = e;
   const out: MensagemInbox[] = [];
+
+  // JANELA DE TRANSFERENCIAS: aviso quando faltam DIAS_AVISO_JANELA dias (ou menos) para abrir; uma razao por abertura.
+  const ab = e.proximaAbertura;
+  if (ab && ab.dias > 0 && ab.dias <= DIAS_AVISO_JANELA && !vistas.has(`window|open|${ab.data}`)) {
+    out.push(criar({ keys: [`window|open|${ab.data}`], date: hoje, categoria: 'TRANSFER', ir: 'TRANSFERS', de: L(l, 'Director of Football', 'Diretor de Futebol'),
+      assunto: L(l, `Transfer window opens in ${ab.dias} day(s)`, `Janela de transferências abre em ${ab.dias} dia(s)`),
+      corpo: L(l, `The transfer window opens on ${dataLonga(ab.data, l)}. Review the squad, contracts and budget, and shortlist your targets.`,
+        `A janela de transferências abre em ${dataLonga(ab.data, l)}. Revise o elenco, os contratos e o orçamento, e defina seus alvos.`) }));
+  }
 
   // CONTRATOS: um aviso por estado, agrupando os jogadores que entraram nele (uma razao por jogador e estado).
   (['ATENCAO', 'CRITICO'] as EstadoContrato[]).forEach(estado => {
