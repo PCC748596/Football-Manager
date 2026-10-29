@@ -254,6 +254,32 @@ A CARA EM PIXELS (Editor de Faces: `rosto`, um PNG de 20 x 25 pixels gerado da f
 triangulo a mais (a cabeca continua a ser uma caixa) e uma textura de ~1 KB por jogador, em cache por imagem. Os olhos, o nariz e a boca desenhados escondem-se (ja vem na foto). So jogadores e
 arbitros (construirCorpo com `leve` = 0): a torcida usa as faces simples.
 */
+/*
+OS OLHOS DA CARA EM PIXELS: o branco com a pupila escura no meio. A foto reduzida a 20 x 25 deixa so 2 pixels escuros por olho, sem o branco, e em pele escura isso le-se como dois
+tracos (relato). Aqui acha-se a pupila (os pixels escuros da faixa dos olhos, a mesma regra do relevo em `profundidadesDoRosto`) e pintam-se de branco os vizinhos da esquerda e da
+direita que nao sao escuros. Altera `px` (RGBA) no sitio. Serve a textura e o relevo, para ficarem iguais.
+*/
+function pintarOlhosDoRosto(px, W, H) {
+    const lum = (x, y) => { const i = (y * W + x) * 4; return 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]; };
+    const amostra = [];
+    for (let y = Math.round(H * 0.2); y <= Math.round(H * 0.5); y++) for (let x = Math.round(W * 0.15); x <= Math.round(W * 0.85); x++) amostra.push(lum(x, y));
+    amostra.sort((a, b) => a - b);
+    const pele = amostra[Math.floor(amostra.length * 0.7)];
+    const escuro = (x, y) => lum(x, y) < pele * 0.62;
+    const cx = (W - 1) / 2, pupilas = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const fy = y / (H - 1), lado = Math.abs(x - cx) / cx;
+        if (fy > 0.3 && fy < 0.46 && lado > 0.12 && lado < 0.8 && escuro(x, y)) pupilas.push([x, y]);
+    }
+    const ehPupila = (x, y) => pupilas.some(p => p[0] === x && p[1] === y);
+    for (const [x, y] of pupilas) {
+        for (const dx of [-1, 1]) {
+            const nx = x + dx;
+            if (nx < 0 || nx >= W || ehPupila(nx, y) || escuro(nx, y)) continue;
+            const i = (y * W + nx) * 4; px[i] = 233; px[i + 1] = 228; px[i + 2] = 220; px[i + 3] = 255;
+        }
+    }
+}
 function texturaDoRostoPixelado(url) {
     const cache = texturaDoRostoPixelado._cache || (texturaDoRostoPixelado._cache = {});
     if (cache[url]) return cache[url];
@@ -261,7 +287,17 @@ function texturaDoRostoPixelado(url) {
     const tex = new THREE.Texture(img);
     tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
     tex.userData = { filhas: [] };   // as sub-texturas (o nariz) que usam a mesma imagem
-    img.onload = () => { tex.needsUpdate = true; tex.userData.filhas.forEach(t => { t.needsUpdate = true; }); };
+    img.onload = () => {
+        // A cara com os olhos pintados (o branco com a pupila no meio): vai para uma canvas e a textura passa a usa-la.
+        try {
+            const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+            const cx = c.getContext('2d'); cx.drawImage(img, 0, 0);
+            const dados = cx.getImageData(0, 0, c.width, c.height);
+            pintarOlhosDoRosto(dados.data, c.width, c.height); cx.putImageData(dados, 0, 0);
+            tex.image = c;
+        } catch (e) { /* sem canvas: fica a foto como veio */ }
+        tex.needsUpdate = true; tex.userData.filhas.forEach(t => { t.needsUpdate = true; });
+    };
     img.src = url;
     cache[url] = tex;
     return tex;
@@ -328,6 +364,7 @@ function profundidadesDoRosto(px, W, H) {
 }
 function geometriaVoxelDoRosto(px, W, H, u) {
     const d = profundidadesDoRosto(px, W, H);
+    pintarOlhosDoRosto(px, W, H);   // depois do relevo (que usa o escuro das pupilas) e antes das cores
     const cw = 0.8 * u / W, ch = 1.0 * u / H, z0 = 0.425 * u + 0.003 * u;
     const pos = [], cor = [];
     const quad = (a, b, c, e, rgb) => { for (const p of [a, b, c, a, c, e]) { pos.push(p[0], p[1], p[2]); cor.push(rgb[0], rgb[1], rgb[2]); } };
@@ -1024,12 +1061,32 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
     const head = criarPeca(new THREE.BoxGeometry(u * 0.8, u * 1.0, u * 0.85), blockMat, true); head.position.y = 0.575;
 
     const faceGrp = new THREE.Group(); const faceZ = u * 0.426;
-    const eyeMat = new THREE.MeshBasicMaterial({ color: corTinta });
+    /*
+    PELE ESCURA, ROSTO NATURAL (jogadores e arbitros; a torcida - `leve` - fica como estava). A tinta clara de cima dava contraste mas parecia uma mascara (relato:
+    olhos, boca e nariz claros). Agora: os olhos sao o branco do olho com a pupila escura por cima, o nariz e uma sombra mais escura que a pele e a boca e o labio,
+    um tom mais claro e avermelhado que a pele.
+    */
+    const peleEscura = lumPele < 0.42 && !leve;
+    const eyeMat = new THREE.MeshBasicMaterial({ color: !leve ? 0x14100e : corTinta });   // jogadores e arbitros, de qualquer pele: pupila preta no meio do branco do olho
     rig.olhoEsq = new THREE.Mesh(new THREE.PlaneGeometry(u * 0.08, u * 0.14), eyeMat); rig.olhoEsq.position.set(-u * 0.16, u * 0.15, faceZ);
     rig.olhoDir = new THREE.Mesh(new THREE.PlaneGeometry(u * 0.08, u * 0.14), eyeMat); rig.olhoDir.position.set(u * 0.16, u * 0.15, faceZ);
-    const nariz = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, u * 0.05, faceZ), new THREE.Vector3(0, -u * 0.08, faceZ), new THREE.Vector3(u * 0.06, -u * 0.08, faceZ)]), lineMat);
-    const boca = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-u * 0.12, -u * 0.22, faceZ), new THREE.Vector3(u * 0.12, -u * 0.22, faceZ)]), lineMat);
-    faceGrp.add(rig.olhoEsq, rig.olhoDir, nariz, boca); head.add(faceGrp);
+    const narizMat = peleEscura ? new THREE.LineBasicMaterial({ color: new THREE.Color(corPele).lerp(new THREE.Color(0x000000), 0.6).getHex() }) : lineMat;
+    const bocaMat = peleEscura ? new THREE.LineBasicMaterial({ color: new THREE.Color(corPele).lerp(new THREE.Color(0xb07a6c), 0.4).getHex() }) : lineMat;
+    const nariz = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, u * 0.05, faceZ), new THREE.Vector3(0, -u * 0.08, faceZ), new THREE.Vector3(u * 0.06, -u * 0.08, faceZ)]), narizMat);
+    const boca = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-u * 0.12, -u * 0.22, faceZ), new THREE.Vector3(u * 0.12, -u * 0.22, faceZ)]), bocaMat);
+    faceGrp.add(rig.olhoEsq, rig.olhoDir, nariz, boca);
+    if (!leve) {
+        // O branco do olho (em TODAS as peles; a torcida - `leve` - fica como estava), um pouco maior que a pupila e logo por tras dela (o nariz e a boca ficam nos seus tons).
+        const brancoMat = new THREE.MeshBasicMaterial({ color: 0xe9e4dc });
+        for (const lado of [-1, 1]) {
+            const b = new THREE.Mesh(new THREE.PlaneGeometry(u * 0.15, u * 0.11), brancoMat);
+            b.position.set(lado * u * 0.16, u * 0.15, faceZ);   // na face da cabeca (u * 0.425) ou logo a frente: atras dela o branco ficava escondido pela caixa
+            faceGrp.add(b);
+        }
+        rig.olhoEsq.position.z = rig.olhoDir.position.z = faceZ + u * 0.0015;   // a pupila a frente do branco
+        rig.olhoEsq.geometry = rig.olhoDir.geometry = new THREE.PlaneGeometry(u * 0.06, u * 0.09);   // a pupila: preta, no meio do branco do olho
+    }
+    head.add(faceGrp);
 
     const hairGrp = new THREE.Group();
     const hT = criarPeca(new THREE.BoxGeometry(u * 0.88, u * 0.25, u * 0.9), hairMat); hT.position.set(0, u * 0.5, 0);

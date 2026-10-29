@@ -36,7 +36,10 @@ export const PlayerFace: React.FC<Props> = ({ playerId, camisa = '#475569', face
   // A tinta da cara, como no 3D: cinza escuro em pele clara, clara em pele escura (luminosidade < 0.42).
   const r = ((ap.pele >> 16) & 255) / 255, g = ((ap.pele >> 8) & 255) / 255, b = (ap.pele & 255) / 255;
   const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  const tinta = lum < 0.42 ? '#d9c4b8' : '#2f3640';
+  const peleEscura = lum < 0.42;
+  // Pele escura: olhos com o branco e a pupila, nariz em sombra e labio mais claro (como no 3D); pele clara: tinta cinza escura.
+  const tinta = peleEscura ? '#14100e' : '#2f3640';
+  const tintaNariz = peleEscura ? misturar(hex(ap.pele), '#000000', 0.6) : tinta;
   const sombra = 'rgba(0,0,0,0.18)';
   const estilo = ap.estilo || 'curto', barba = ap.rosto ? 'nenhuma' : (ap.barba || 'nenhuma'), largura = ap.largura || 1;   // com a cara em pixels a barba ja vem nela
   const labios = misturar(pele, '#b0524f', 0.45);
@@ -102,12 +105,15 @@ export const PlayerFace: React.FC<Props> = ({ playerId, camisa = '#475569', face
         {barba === 'bigode' && <rect x="-0.18" y="0.11" width="0.36" height="0.07" fill={cabelo} />}
         {/* Olhos, nariz e boca (desenhados so quando nao ha a cara em pixels) */}
         {!ap.rosto && (<>
-          <rect x="-0.2" y="-0.22" width="0.08" height="0.14" fill={tinta} />
-          <rect x="0.12" y="-0.22" width="0.08" height="0.14" fill={tinta} />
-          <polyline points="0,-0.05 0,0.08 0.06,0.08" fill="none" stroke={tinta} strokeWidth="0.025" />
+          {/* Olhos de qualquer pele: o branco com a pupila preta no meio */}
+          <rect x="-0.25" y="-0.21" width="0.18" height="0.11" fill="#e9e4dc" />
+          <rect x="0.07" y="-0.21" width="0.18" height="0.11" fill="#e9e4dc" />
+          <rect x="-0.19" y="-0.2" width="0.07" height="0.09" fill="#14100e" />
+          <rect x="0.12" y="-0.2" width="0.07" height="0.09" fill="#14100e" />
+          <polyline points="0,-0.05 0,0.08 0.06,0.08" fill="none" stroke={tintaNariz} strokeWidth="0.025" />
           {barba === 'cheia' || barba === 'bigode'
             ? <rect x="-0.12" y="0.2" width="0.24" height="0.05" fill={labios} />
-            : <line x1="-0.12" y1="0.22" x2="0.12" y2="0.22" stroke={tinta} strokeWidth="0.03" />}
+            : <line x1="-0.12" y1="0.22" x2="0.12" y2="0.22" stroke={peleEscura ? misturar(hex(ap.pele), '#b07a6c', 0.4) : tinta} strokeWidth={peleEscura ? 0.04 : 0.03} />}
         </>)}
         {/* Oculos */}
         {ap.oculos && !ap.rosto && (<>
