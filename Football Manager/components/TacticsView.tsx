@@ -430,7 +430,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     return { x: c((0.5 - left) * 2), z: c(1 - top * 2) };
   };
   const btnAcao = 'text-white bg-indigo-600/90 hover:bg-indigo-500';
-  const btnQuadrado = 'p-1 rounded-lg text-[10px] font-black uppercase tracking-wider leading-tight text-center flex items-center justify-center min-h-[40px] transition-colors';
+  const btnQuadrado = 'h-[46px] shrink-0 p-1 rounded-lg text-[10px] font-black uppercase tracking-wider leading-tight text-center flex items-center justify-center transition-colors';
   const btnRepor = 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700';
 
   return (
@@ -460,14 +460,37 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             </div>
         </div>
 
-        <div className="flex-1 grid grid-cols-[5.6fr_2fr_1.5fr_3fr] gap-4 min-h-0">
-            <div className="flex flex-col gap-4 min-h-0 min-w-0" style={{ width: 'calc(100% + 102px)' }}>
+        <div className="flex-1 grid grid-cols-[5.6fr_3.7fr_3fr] gap-4 min-h-0">
+            <div className="flex flex-col gap-4 min-h-0 min-w-0" style={{ width: 'calc(100% + 109px)' }}>
                 <div className="flex-1 relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ minHeight: '350px', containerType: 'size' }}>
                     <div className="absolute top-6 left-6 z-20 flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
                         {([['geral', 'GERAL'], ['com', 'COM BOLA'], ['sem', 'SEM BOLA']] as const).map(([v, r]) => (
                             <button key={v} onClick={() => { setAba(v); if (v !== 'geral' && zona === null) setZona(4); }} className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${aba === v ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>{r}</button>
                         ))}
                     </div>
+
+                    {/* OS BOTOES DAS POSICOES: dentro do campo, so nas abas COM BOLA / SEM BOLA. */}
+                    {aba !== 'geral' && temTabela && (
+                        <div className="absolute top-24 right-3 z-20 flex flex-col gap-1.5 w-[132px]">
+                            {contra && (
+                                <select value={formContra} onChange={e => setFormContra(e.target.value)} className="px-1 py-1.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[9px] font-bold text-slate-700 dark:text-white">
+                                    {proximoAdversario && formacaoTemTabela(proximoAdversario.tactics.formation) && <option value="ADV">{proximoAdversario.name} ({proximoAdversario.tactics.formation})</option>}
+                                    {Object.keys(FORMATIONS).filter(formacaoTemTabela).map(f => <option key={f} value={f}>{f}</option>)}
+                                </select>
+                            )}
+                            <button onClick={() => setContra(c => !c)} className={`${btnQuadrado} ${contra ? 'bg-red-600 text-white' : btnRepor}`} title="Mostra, em retangulos de outra cor, onde o sistema adversario fica com a bola na zona escolhida">Playing Against</button>
+                            <button onClick={() => aplicarOver(espelharZona(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva, zonaEfetiva))} className={`${btnQuadrado} ${btnAcao}`} title="Troca esquerda e direita nesta zona">Virar zona (esq ⇄ dir)</button>
+                            {zonaEspelhada(zonaEfetiva) !== zonaEfetiva && <button onClick={() => aplicarOver(espelharZona(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva, zonaEspelhada(zonaEfetiva)))} className={`${btnQuadrado} ${btnAcao}`} title="Copia estas posicoes, espelhadas, para a zona do outro lado">Copiar espelhado → {NOME_DA_ZONA[zonaEspelhada(zonaEfetiva)]}</button>}
+                            <button onClick={() => aplicarOver(espelharFase(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva))} className={`${btnQuadrado} ${btnAcao}`}>Espelhar {fase === 'com' ? 'com bola' : 'sem bola'} (linhas)</button>
+                            <button onClick={() => aplicarOver(repor(overAtual, fase, zonaEfetiva))} className={`${btnQuadrado} ${btnRepor}`}>Repor esta zona</button>
+                            <button onClick={() => aplicarOver(repor(overAtual, fase))} className={`${btnQuadrado} ${btnRepor}`}>Repor {fase === 'com' ? 'com bola' : 'sem bola'} (zonas)</button>
+                            <button disabled={!temAjustes(overAtual)} onClick={() => aplicarOver(undefined)} className={`${btnQuadrado} bg-rose-600/80 disabled:opacity-30 text-white hover:bg-rose-600`}>Repor a formação toda</button>
+                            <>
+                                <button onClick={() => setPresetFoco('save')} className={`${btnQuadrado} bg-emerald-600 text-white hover:bg-emerald-500`} title="Grava a tatica atual (formacao, estilo e posicoes)">Save</button>
+                                <button onClick={() => setPresetFoco('load')} className={`${btnQuadrado} bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600`} title="Carrega uma tatica gravada ou de um ficheiro .json">Load</button>
+                            </>
+                        </div>
+                    )}
 
                     <div className="absolute top-6 right-6 z-10 flex flex-col items-end">
                         <span className="text-[10px] font-black text-blue-300 uppercase tracking-widest leading-none mb-1">ENTROSAMENTO</span>
@@ -734,30 +757,94 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                 </div>
             </div>
 
-            {/* O EDITOR DAS POSICOES (antes o modal): espelhar, repor, Playing Against e Save/Load. A fase esta nas abas do campo e a zona da bola escolhe-se no proprio campo. */}
-            <div style={{ marginLeft: 102 }} className="flex flex-col gap-3 min-h-0 min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-sm overflow-y-auto custom-scrollbar">
-                <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">POSIÇÕES · {zona === null ? 'escolha uma zona no campo' : NOME_DA_ZONA[zona]}</h3>
-                {temTabela ? (<>
-                    {contra && (
-                        <select value={formContra} onChange={e => setFormContra(e.target.value)} className="px-2 py-2 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-700 dark:text-white">
-                            {proximoAdversario && formacaoTemTabela(proximoAdversario.tactics.formation) && <option value="ADV">{proximoAdversario.name} ({proximoAdversario.tactics.formation})</option>}
-                            {Object.keys(FORMATIONS).filter(formacaoTemTabela).map(f => <option key={f} value={f}>{f}</option>)}
-                        </select>
-                    )}
-                    {/* Botoes grandes e quase quadrados: duas colunas que dividem a altura toda da coluna. */}
-                    <div className="flex-1 grid grid-cols-1 auto-rows-fr gap-2 min-h-0">
-                        <button onClick={() => setContra(c => !c)} className={`${btnQuadrado} ${contra ? 'bg-red-600 text-white' : btnRepor}`} title="Mostra, em retangulos de outra cor, onde o sistema adversario fica com a bola na zona escolhida">Playing<br />Against</button>
-                        <button onClick={() => aplicarOver(espelharZona(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva, zonaEfetiva))} className={`${btnQuadrado} ${btnAcao}`} title="Troca esquerda e direita nesta zona">Virar zona<br />(esq ⇄ dir)</button>
-                        {zonaEspelhada(zonaEfetiva) !== zonaEfetiva && <button onClick={() => aplicarOver(espelharZona(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva, zonaEspelhada(zonaEfetiva)))} className={`${btnQuadrado} ${btnAcao}`} title="Copia estas posicoes, espelhadas, para a zona do outro lado">Copiar<br />espelhado<br />→ {NOME_DA_ZONA[zonaEspelhada(zonaEfetiva)]}</button>}
-                        <button onClick={() => aplicarOver(espelharFase(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva))} className={`${btnQuadrado} ${btnAcao}`}>Espelhar<br />{fase === 'com' ? 'com bola' : 'sem bola'}<br />(todas as linhas)</button>
-                        <button onClick={() => aplicarOver(repor(overAtual, fase, zonaEfetiva))} className={`${btnQuadrado} ${btnRepor}`}>Repor<br />esta zona</button>
-                        <button onClick={() => aplicarOver(repor(overAtual, fase))} className={`${btnQuadrado} ${btnRepor}`}>Repor<br />{fase === 'com' ? 'com bola' : 'sem bola'}<br />(todas as zonas)</button>
-                        <button disabled={!temAjustes(overAtual)} onClick={() => aplicarOver(undefined)} className={`${btnQuadrado} bg-rose-600/80 disabled:opacity-30 text-white hover:bg-rose-600`}>Repor a<br />formação<br />toda</button>
-                        <button onClick={() => setPresetFoco('save')} className={`${btnQuadrado} bg-emerald-600 text-white hover:bg-emerald-500`} title="Grava a tatica atual (formacao, estilo e posicoes)">Save</button>
-                        <button onClick={() => setPresetFoco('load')} className={`${btnQuadrado} bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600`} title="Carrega uma tatica gravada ou de um ficheiro .json">Load</button>
+            {/* SQUAD POOL e COBRADORES: duas colunas do mesmo tamanho, no espaco que o campo deixa (o campo avanca 109 px sobre ele). */}
+            <div className="grid grid-cols-2 gap-4 min-h-0 min-w-0" style={{ marginLeft: 109 }}>
+            {/* O SQUAD POOL: o que sobrou do plantel, ao lado do campo (antes ficava sob as instrucoes). */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col shadow-sm overflow-hidden min-h-0 min-w-0">
+                    <div className="px-3 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">SQUAD POOL</h3>
+                            <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded gap-0.5">
+                                <button onClick={() => setPoolSortBy('skill')} className={`text-[8px] font-black px-1.5 py-0.5 rounded transition-all ${poolSortBy === 'skill' ? 'bg-blue-400 text-white' : 'text-slate-400 hover:text-slate-200'}`}>OVRL</button>
+                                <button onClick={() => setPoolSortBy('position')} className={`text-[8px] font-black px-1.5 py-0.5 rounded transition-all ${poolSortBy === 'position' ? 'bg-amber-400 text-white' : 'text-slate-400 hover:text-slate-200'}`}>POS</button>
+                            </div>
+                        </div>
+                        <span className="text-[9px] font-bold text-slate-300 uppercase">{availablePlayers.length} TOTAL</span>
                     </div>
-                </>) : <span className="text-[9px] text-slate-400">Esta formação não tem tabela de posições por zona.</span>}
-            </div>
+                    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-slate-50/30 dark:bg-slate-950/30 p-2">
+                        <div className="flex flex-wrap content-start gap-[2px] min-w-0">
+                            {[...availablePlayers].sort((a, b) => {
+                                if (poolSortBy === 'skill') return b.skill - a.skill;
+                                const posA = POSITION_ORDER[a.position] || 99;
+                                const posB = POSITION_ORDER[b.position] || 99;
+                                if (posA !== posB) return posA - posB;
+                                return b.skill - a.skill;
+                            }).map(p => {
+                                let d: KitDetails;
+                                if (showMatchKit) {
+                                    if (p.position === Position.GK) {
+                                        d = getGKKitDetails(userTeam, selectedKitIdx);
+                                    } else { 
+                                        d = getKitDetailsWrapper(userTeam, selectedKitIdx);
+                                    }
+                                } else {
+                                    d = { c1: getPosColor(p.position) };
+                                }
+                                const status = getPlayerMatchStatus(p.id);
+
+                                return (
+                                    <div key={p.id} draggable onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} className="flex-shrink-0 w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1.5 flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group">
+                                        <div className="relative mt-[2px]">
+                                            <ShirtIcon 
+                                                color={d.c1} 
+                                                color2={d.c2} 
+                                                color3={d.c3} 
+                                                diagonal={d.diagonal}
+                                                dualDiagonal={(d as any).dualDiagonal}
+                                                centerVerticalStripes={(d as any).centerVerticalStripes}
+                                                gradient={d.gradient}
+                                                spfcStripes={(d as any).spfcStripes}
+                                                criciumaStripes={(d as any).criciumaStripes}
+                                                horizontal={(d as any).horizontal}
+                                                multipleDiagonals={(d as any).multipleDiagonals}
+                                                diagonalWidth={d.diagonalWidth}
+                                                number={p.shirtNumber} 
+                                                numberColor={d.nc}
+                                                collarColor={d.clc}
+                                                numberOutlineColor={d.noc}
+                                                sleeveColor={d.sc}
+                                                scale={0.7} 
+                                                longSleeves={p.position === Position.GK} 
+                                            />
+                                            {status && (status.yellow || status.injury || status.red) && (
+                                                <div className="absolute -top-1 -right-2 flex flex-col gap-0.5 items-center">
+                                                    {status.yellow && <div className="w-2 h-2.5 bg-yellow-400 border border-yellow-600 rounded-[1px]" />}
+                                                    {status.red && <div className="w-2 h-2.5 bg-red-600 border border-red-800 rounded-[1px]" />}
+                                                    {status.injury && <div className={`text-[14px] ${getInjuryColorClass(status.injury)} font-black drop-shadow-sm leading-none cursor-help`} title={typeof status.injury === 'object' ? `${status.injury.type} (${status.injury.daysOut} dias)` : 'Contundido na partida'}>✚</div>}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                        <div className="flex justify-between w-full items-start mb-0">
+                                            <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span></span>
+                                            <MoraleArrow morale={p.morale} />
+                                        </div>
+                                            <FitnessBar fitness={p.fitness} className="h-1.5" />
+                                            <div className="flex flex-col items-start justify-start leading-[1.1]">
+                                                {p.name.split(' ').map((part, index) => (
+                                                    <span key={index} className="text-[9px] font-black text-slate-400 uppercase truncate max-w-full">
+                                                        {part}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                            <AvisosDoCard playerId={p.id} />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
 
             {/* OS COBRADORES E O CAPITAO: arrastar a camisa do jogador (campo, banco ou squad pool) para a funcao. Fica entre o campo e as instrucoes. */}
             <div className="flex flex-col gap-2 min-h-0 min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-sm overflow-y-auto custom-scrollbar">
@@ -791,6 +878,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                 })}
             </div>
 
+            </div>
+
             <div className="flex flex-col gap-4 min-h-0 min-w-0">
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm pb-6">
                     <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic mb-4">UNIFORME</h3>
@@ -818,7 +907,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                             <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
                                 {['Very Defensive', 'Defensive', 'Balanced', 'Offensive', 'Very Offensive'].map((s, i) => {
                                     const labels = ['U-DEF', 'DEF', 'BAL', 'OFF', 'U-OFF']; const isSelected = userTeam.tactics.style === s;
-                                    return <button key={s} onClick={() => handleTacticChange('style', s)} className={`flex-1 text-[8px] font-black py-1.5 rounded transition-all shadow-sm ${isSelected ? 'bg-blue-300 text-blue-900' : 'bg-white dark:bg-slate-700 text-slate-300 hover:text-slate-500'}`}>{labels[i]}</button>
+                                    return <button key={s} onClick={() => handleTacticChange('style', s)} className={`flex-1 text-[10px] font-black py-3 rounded transition-all shadow-sm ${isSelected ? 'bg-blue-300 text-blue-900' : 'bg-white dark:bg-slate-700 text-slate-300 hover:text-slate-500'}`}>{labels[i]}</button>
                                 })}
                             </div>
                         </div>
@@ -827,7 +916,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                             <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
                                 {['Very Passive', 'Passive', 'Balanced', 'Aggressive', 'Very Aggressive'].map((a, i) => {
                                     const labels = ['U-PAS', 'PAS', 'BAL', 'AGG', 'U-AGG']; const isSelected = userTeam.tactics.aggression === a;
-                                    return <button key={a} onClick={() => handleTacticChange('aggression', a)} className={`flex-1 text-[8px] font-black py-1.5 rounded transition-all shadow-sm ${isSelected ? 'bg-rose-300 text-rose-900' : 'bg-white dark:bg-slate-700 text-slate-300 hover:text-slate-500'}`}>{labels[i]}</button>
+                                    return <button key={a} onClick={() => handleTacticChange('aggression', a)} className={`flex-1 text-[10px] font-black py-3 rounded transition-all shadow-sm ${isSelected ? 'bg-rose-300 text-rose-900' : 'bg-white dark:bg-slate-700 text-slate-300 hover:text-slate-500'}`}>{labels[i]}</button>
                                 })}
                             </div>
                         </div>
@@ -847,7 +936,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                             else next = current;
                                         }
                                         handleTacticChange('focusSectors', next as any); 
-                                    }} className={`flex-1 text-[9px] font-black py-1.5 rounded transition-all shadow-sm ${isSelected ? 'bg-emerald-400 text-emerald-900' : 'bg-white dark:bg-slate-700 text-slate-300 hover:text-slate-500'}`}>{labels[i]}</button>
+                                    }} className={`flex-1 text-[11px] font-black py-3 rounded transition-all shadow-sm ${isSelected ? 'bg-emerald-400 text-emerald-900' : 'bg-white dark:bg-slate-700 text-slate-300 hover:text-slate-500'}`}>{labels[i]}</button>
                                 })}
                             </div>
                         </div>
@@ -865,7 +954,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{g.label}</span>
                                     <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
                                         {g.opcoes.map(([valor, rotulo]) => (
-                                            <button key={valor} onClick={() => handleTacticChange(g.field as keyof Tactics, valor as any)} className={`flex-1 text-[8px] font-black py-1.5 rounded transition-all shadow-sm ${atual === valor ? g.cor : 'bg-white dark:bg-slate-700 text-slate-300 hover:text-slate-500'}`}>{rotulo}</button>
+                                            <button key={valor} onClick={() => handleTacticChange(g.field as keyof Tactics, valor as any)} className={`flex-1 text-[10px] font-black py-3 rounded transition-all shadow-sm ${atual === valor ? g.cor : 'bg-white dark:bg-slate-700 text-slate-300 hover:text-slate-500'}`}>{rotulo}</button>
                                         ))}
                                     </div>
                                 </div>
@@ -882,100 +971,12 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                     <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{g.label}</span><span className="text-[9px] font-black text-slate-400">{atual}%</span></div>
                                     <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
                                         {g.valores.map(v => (
-                                            <button key={v} onClick={() => handleTacticChange(g.field as keyof Tactics, v)} className={`flex-1 text-[8px] font-black py-1.5 rounded transition-all shadow-sm ${atual >= v - meio && atual < v + meio ? g.cor : 'bg-white dark:bg-slate-700 text-slate-300 hover:text-slate-500'}`}>{v}%</button>
+                                            <button key={v} onClick={() => handleTacticChange(g.field as keyof Tactics, v)} className={`flex-1 text-[10px] font-black py-3 rounded transition-all shadow-sm ${atual >= v - meio && atual < v + meio ? g.cor : 'bg-white dark:bg-slate-700 text-slate-300 hover:text-slate-500'}`}>{v}%</button>
                                         ))}
                                     </div>
                                 </div>
                             );
                         })}
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col shadow-sm overflow-hidden h-[236px]">
-                    <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900">
-                        <div className="flex items-center gap-3">
-                            <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">SQUAD POOL</h3>
-                            <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded gap-0.5">
-                                <button onClick={() => setPoolSortBy('skill')} className={`text-[8px] font-black px-1.5 py-0.5 rounded transition-all ${poolSortBy === 'skill' ? 'bg-blue-400 text-white' : 'text-slate-400 hover:text-slate-200'}`}>OVRL</button>
-                                <button onClick={() => setPoolSortBy('position')} className={`text-[8px] font-black px-1.5 py-0.5 rounded transition-all ${poolSortBy === 'position' ? 'bg-amber-400 text-white' : 'text-slate-400 hover:text-slate-200'}`}>POS</button>
-                            </div>
-                        </div>
-                        <span className="text-[9px] font-bold text-slate-300 uppercase">{availablePlayers.length} TOTAL</span>
-                    </div>
-                    <div className="overflow-x-auto custom-scrollbar bg-slate-50/30 dark:bg-slate-950/30 p-4" onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
-                        <div className="flex flex-row gap-[2px] min-w-0">
-                            {[...availablePlayers].sort((a, b) => {
-                                if (poolSortBy === 'skill') return b.skill - a.skill;
-                                const posA = POSITION_ORDER[a.position] || 99;
-                                const posB = POSITION_ORDER[b.position] || 99;
-                                if (posA !== posB) return posA - posB;
-                                return b.skill - a.skill;
-                            }).map(p => {
-                                let d: KitDetails;
-                                if (showMatchKit) {
-                                    if (p.position === Position.GK) {
-                                        d = getGKKitDetails(userTeam, selectedKitIdx);
-                                    } else { 
-                                        d = getKitDetailsWrapper(userTeam, selectedKitIdx);
-                                    }
-                                } else {
-                                    d = { c1: getPosColor(p.position) };
-                                }
-                                const status = getPlayerMatchStatus(p.id);
-
-                                return (
-                                    <div key={p.id} draggable onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} className="flex-shrink-0 w-[85px] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1 flex flex-col items-center justify-start hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group">
-                                        <div className="flex justify-between w-full items-start mb-1">
-                                            <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span></span>
-                                            <MoraleArrow morale={p.morale} />
-                                        </div>
-                                        <div className="relative mt-[2px]">
-                                            <ShirtIcon 
-                                                color={d.c1} 
-                                                color2={d.c2} 
-                                                color3={d.c3} 
-                                                diagonal={d.diagonal}
-                                                dualDiagonal={(d as any).dualDiagonal}
-                                                centerVerticalStripes={(d as any).centerVerticalStripes}
-                                                gradient={d.gradient}
-                                                spfcStripes={(d as any).spfcStripes}
-                                                criciumaStripes={(d as any).criciumaStripes}
-                                                horizontal={(d as any).horizontal}
-                                                multipleDiagonals={(d as any).multipleDiagonals}
-                                                diagonalWidth={d.diagonalWidth}
-                                                number={p.shirtNumber} 
-                                                numberColor={d.nc}
-                                                collarColor={d.clc}
-                                                numberOutlineColor={d.noc}
-                                                sleeveColor={d.sc}
-                                                scale={0.7} 
-                                                longSleeves={p.position === Position.GK} 
-                                            />
-                                            {status && (status.yellow || status.injury || status.red) && (
-                                                <div className="absolute -top-1 -right-2 flex flex-col gap-0.5 items-center">
-                                                    {status.yellow && <div className="w-2 h-2.5 bg-yellow-400 border border-yellow-600 rounded-[1px]" />}
-                                                    {status.red && <div className="w-2 h-2.5 bg-red-600 border border-red-800 rounded-[1px]" />}
-                                                    {status.injury && <div className={`text-[14px] ${getInjuryColorClass(status.injury)} font-black drop-shadow-sm leading-none cursor-help`} title={typeof status.injury === 'object' ? `${status.injury.type} (${status.injury.daysOut} dias)` : 'Contundido na partida'}>✚</div>}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="text-center w-full mt-[2px] border-t border-slate-100 dark:border-slate-700 pt-[2px]">
-                                            <div className="w-14 mx-auto mb-1">
-                                                <FitnessBar fitness={p.fitness} className="h-1.5" />
-                                            </div>
-                                            <div className="flex flex-col items-center justify-start leading-[1.1] mt-0 min-h-[26px]">
-                                                {p.name.split(' ').map((part, index) => (
-                                                    <span key={index} className="text-[9px] font-black text-slate-400 uppercase truncate max-w-full">
-                                                        {part}
-                                                    </span>
-                                                ))}
-                                            </div>
-<AvisosDoCard playerId={p.id} />
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
                     </div>
                 </div>
             </div>
