@@ -102,18 +102,18 @@ export const CareerOffers: React.FC<{ managerName: string; onSelectTeam: (teamId
             ))}
           </div>
         </div>
-        <div className="flex-1 grid grid-cols-5 gap-3 min-h-0 content-start overflow-y-auto custom-scrollbar">
+        <div className="flex-1 min-w-0 grid grid-cols-1 xl:grid-cols-5 gap-2 xl:gap-3 min-h-0 content-start overflow-y-auto custom-scrollbar">
           {ofertas.map(o => (
-            <button key={o.team.id} onClick={() => setSelId(o.team.id)} className={`flex flex-col items-center text-center gap-3 p-4 rounded border-2 transition-all hover:border-blue-500 ${sel?.team.id === o.team.id ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500' : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'}`}>
-              <div className={`text-[11px] font-black uppercase tracking-widest ${o.nivel.cor}`}>{o.nivel.rotulo}</div>
-              <TeamShield team={o.team} className="w-[70px] h-[88px]" />
-              <div className="text-base font-black uppercase text-slate-800 dark:text-white leading-tight">{o.team.name}</div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{o.leagueName}<br />{o.team.strength} OVR</div>
+            <button key={o.team.id} onClick={() => setSelId(o.team.id)} className={`flex flex-row xl:flex-col items-center text-left xl:text-center gap-4 xl:gap-3 p-2 xl:p-4 rounded border-2 transition-all hover:border-blue-500 ${sel?.team.id === o.team.id ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500' : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'}`}>
+              <div className={`w-24 xl:w-auto shrink-0 text-[11px] font-black uppercase tracking-widest ${o.nivel.cor}`}>{o.nivel.rotulo}</div>
+              <TeamShield team={o.team} className="shrink-0 w-[40px] h-[50px] xl:w-[70px] xl:h-[88px]" />
+              <div className="flex-1 min-w-0 text-base font-black uppercase text-slate-800 dark:text-white leading-tight">{o.team.name}</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right xl:text-center shrink-0">{o.leagueName}<br />{o.team.strength} OVR</div>
             </button>
           ))}
-          {!ofertas.length && <div className="col-span-5 text-xs text-slate-400 font-bold uppercase tracking-widest p-4">No offers for this country.</div>}
+          {!ofertas.length && <div className="col-span-full text-xs text-slate-400 font-bold uppercase tracking-widest p-4">No offers for this country.</div>}
         </div>
-        <div className="w-[24%] flex flex-col gap-2 min-h-0">
+        <div className="w-[32%] xl:w-[24%] min-w-[270px] flex flex-col gap-2 min-h-0">
           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Club Overview</div>
           {sel ? (() => {
             const c = sel.team, c1 = c.homeKit?.color1 || '#1e293b', c2 = c.homeKit?.color2 || c1;
