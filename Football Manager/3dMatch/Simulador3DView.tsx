@@ -37,8 +37,8 @@ export const simulador3dQualidade = (q?: 'HIGH' | 'MEDIUM' | 'LOW') => {
   sessao.iframe?.contentWindow?.postMessage({ para: 'simulador3d', tipo: 'qualidade', nivel: nova }, '*');
 };
 
-const sessao: { iframe: HTMLIFrameElement | null; chave: string; pronto: boolean; arrancou: boolean; preparadoCom: string; cb: (m: any) => void; ouvinte: boolean } =
-  { iframe: null, chave: '', pronto: false, arrancou: false, cb: () => {}, ouvinte: false, preparadoCom: "" };
+const sessao: { iframe: HTMLIFrameElement | null; chave: string; pronto: boolean; arrancou: boolean; preparadoCom: string; cb: (m: any) => void; ouvinte: boolean; terminou: boolean } =
+  { iframe: null, chave: '', pronto: false, arrancou: false, cb: () => {}, ouvinte: false, preparadoCom: "", terminou: false };
 
 export const simulador3dArrancou = (chave: string) => sessao.chave === chave && sessao.arrancou;
 // Quantos RESETs desta partida ja se fizeram (a chave do iframe leva `#N`): sair para o Tactics e voltar nao pode perder a conta, senao a chave muda e o 3D e recriado.
@@ -139,12 +139,13 @@ const garantirIframe = (chave: string, estadio?: string, mandante?: string, comp
   f.allow = 'autoplay; fullscreen';
   f.style.cssText = 'position:fixed;border:0;background:#000;z-index:5;visibility:hidden;left:0;top:0;width:0;height:0';
   document.body.appendChild(f);
-  Object.assign(sessao, { iframe: f, chave, pronto: false, arrancou: false, preparadoCom: "" });
+  Object.assign(sessao, { iframe: f, chave, pronto: false, arrancou: false, preparadoCom: "", terminou: false });
   if (!sessao.ouvinte) {
     sessao.ouvinte = true;
     window.addEventListener('message', (e: MessageEvent) => {
       if (!sessao.iframe || e.source !== sessao.iframe.contentWindow || !e.data || e.data.fonte !== 'simulador3d') return;
       if (e.data.tipo === 'esc_travar') { definirEscTravado(!!e.data.ligar); return; }
+      if (e.data.tipo === 'fim') sessao.terminou = true;
       if (e.data.tipo === 'pronto') { sessao.pronto = true; sessao.cb({ tipo: '__pronto' }); }
       else sessao.cb(e.data);
     });
@@ -206,8 +207,18 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
     return () => {
       clearInterval(t); ro.disconnect(); window.removeEventListener('resize', pos);
       f.style.visibility = 'hidden';
-      if (sessao.arrancou) enviar({ para: 'simulador3d', tipo: 'pausar' }); // sair da tela pausa o jogo
       sessao.cb = () => {};
+      /*
+      Jogo ACABADO e a sair da tela (HOME): o iframe e destruido. O `pausar` nao faz nada num jogo terminado, e o animate() do
+      3D continua a desenhar o WebGL a 60 fps escondido (visibility:hidden nao o trava) por cima do resto do manager — era o jogo a travar na HOME.
+      */
+      if (sessao.terminou) {
+        enviar({ para: 'simulador3d', tipo: 'parar' });
+        f.remove();
+        Object.assign(sessao, { iframe: null, chave: '', pronto: false, arrancou: false, preparadoCom: "", terminou: false });
+        return;
+      }
+      if (sessao.arrancou) enviar({ para: 'simulador3d', tipo: 'pausar' }); // sair da tela pausa o jogo
     };
   }, [chave]);
 
