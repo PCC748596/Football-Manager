@@ -26,7 +26,7 @@ interface Props {
 }
 
 /*
-O TREINADOR — o corpo REAL do jogo (`construirCorpo`, 3dMatch/simulador3d/js/pose.js) desenhado em 3D numa pagina propria (managerPreview.html),
+O TREINADOR — o corpo REAL do jogo (`construirCorpo`, 3dMatch/simulador3d/js/pose.js) desenhado em 3D numa pagina propria (managerpreview.html),
 vestido como o treinador do banco (fato, camisa branca, gravata). O aspeto vai por postMessage; da para arrastar para rodar.
 */
 export const ManagerAvatar: React.FC<Props> = ({ look, rodar = 0, className = '' }) => {
@@ -50,7 +50,7 @@ export const ManagerAvatar: React.FC<Props> = ({ look, rodar = 0, className = ''
   useEffect(() => { if (pronto.current) enviar({ tipo: 'look', look }); }, [look]);
   useEffect(() => { if (rodar && pronto.current) enviar({ tipo: 'rodar' }); }, [rodar]);
 
-  return <iframe ref={ref} src={new URL('simulador3d/managerPreview.html', document.baseURI).href} title="Treinador" className={className} style={{ border: 0, background: 'transparent' }} />;
+  return <iframe ref={ref} src={new URL('simulador3d/managerpreview.html', document.baseURI).href} title="Treinador" className={className} style={{ border: 0, background: 'transparent' }} />;
 };
 
 export default ManagerAvatar;

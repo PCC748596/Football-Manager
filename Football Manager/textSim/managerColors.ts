@@ -1,5 +1,5 @@
 /*
-BANCO DE CORES DO TREINADOR — ternos, gravatas, camisas, calcas e combinacoes (components/ManagerCreation.tsx -> 3dMatch/simulador3d/managerPreview.html).
+BANCO DE CORES DO TREINADOR — ternos, gravatas, camisas, calcas e combinacoes (components/ManagerCreation.tsx -> 3dMatch/simulador3d/managerpreview.html).
 Fica fora do `realDatabase.ts` de proposito: o plugin `database-saver` (vite.config.ts) reescreve esse ficheiro por inteiro com so paises, equipas e
 jogadores, e apagaria qualquer export novo.
 */

@@ -10,3 +10,10 @@
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache"
+
+# O Netlify (pretty URLs) redireciona `x.html` para `/x` em minusculas e sem extensao, que nao existe: o iframe do treinador ficava em "pagina indisponivel". O 200 forcado serve o proprio arquivo, sem redirecionar.
+[[redirects]]
+  from = "/simulador3d/managerpreview.html"
+  to = "/simulador3d/managerpreview.html"
+  status = 200
+  force = true
