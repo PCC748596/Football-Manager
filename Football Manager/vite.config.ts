@@ -191,11 +191,13 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
   // Da cache primeiro (sem internet funciona); o que nao estiver la vai a rede e fica guardado. A query (?oculto=1&...) nao conta para a cache.
+  // Uma resposta que veio de um redirecionamento (ex.: o Netlify) nao pode ser servida a uma navegacao/iframe: o Chrome mostra "a pagina pode estar temporariamente indisponivel" (era o managerPreview.html no tablet). Reconstroi-se limpa.
+  const limpa = async (r) => (r && r.redirected ? new Response(await r.blob(), { status: r.status, statusText: r.statusText, headers: r.headers }) : r);
   e.respondWith(caches.open(CACHE).then(async (c) => {
     const hit = await c.match(req, { ignoreSearch: true });
-    if (hit) return hit;
-    try { const r = await fetch(req); if (r && r.ok) c.put(req, r.clone()); return r; }
-    catch (err) { return (await c.match('./index.html')) || Response.error(); }
+    if (hit) return limpa(hit);
+    try { const r = await fetch(req); if (r && r.ok) c.put(req, r.clone()); return limpa(r); }
+    catch (err) { return (await limpa(await c.match('./index.html'))) || Response.error(); }
   }));
 });
 `;
