@@ -4,6 +4,7 @@ import { useGame } from '../context/GameContext';
 import { generatePlayer } from '../textSim/dataGenerator';
 import { Position, Player } from '../types';
 import { settleMatch, type CurrencyCode } from '../textSim/stadiumEconomy';
+import { ContractChip } from './ContractPanel';
 
 const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => {
   const { userTeam, players, hirePlayer, sellPlayer, gameState, isTransferWindowOpen, formatCurrency, formatWage, t } = useGame();
@@ -72,9 +73,9 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
     if (sortConfig !== null) {
       sortablePlayers.sort((a, b) => {
         // @ts-ignore
-        let aValue = a[sortConfig.key];
+        let aValue = sortConfig.key === 'contract' ? ((a as any).contract ? (a as any).contract.end : '9999-99-99') : a[sortConfig.key];   // o que vence primeiro vem primeiro
         // @ts-ignore
-        let bValue = b[sortConfig.key];
+        let bValue = sortConfig.key === 'contract' ? ((b as any).contract ? (b as any).contract.end : '9999-99-99') : b[sortConfig.key];
         
         if (aValue < bValue) {
           return sortConfig.direction === 'asc' ? -1 : 1;
@@ -174,6 +175,9 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                       <th className="px-4 py-3 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('salary')}>
                         Wage {getSortIcon('salary')}
                       </th>
+                      <th className="px-4 py-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('contract')}>
+                        Contract {getSortIcon('contract')}
+                      </th>
                       <th className="px-6 py-3 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('value')}>
                         Market Value {getSortIcon('value')}
                       </th>
@@ -185,6 +189,7 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                         <td className="px-6 py-2 font-bold text-sm text-slate-700 dark:text-slate-200">{p.name}</td>
                         <td className="px-4 py-2 text-center text-xs font-black text-blue-600 dark:text-blue-400">{p.skill}</td>
                         <td className="px-4 py-2 text-right text-rose-500 text-sm font-mono">{formatWage(p.salary)}</td>
+                        <td className="px-4 py-2 text-center"><ContractChip player={p} hoje={gameState.currentDate} /></td>
                         <td className="px-6 py-2 text-right font-black text-sm text-slate-900 dark:text-white">
                            <div className="flex flex-col items-end">
                               {formatCurrency(p.value)}

@@ -161,7 +161,6 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('drb')} title="Mental: aggression, reactions, composure, consistency">MEN{seta('drb')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('sht')} title="Physical: pace, acceleration, agility, jumping, strength, stamina, balance">FIS{seta('sht')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('prog')}>Prog{seta('prog')}</th>
-                   <th className="px-3 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('contract')}>Contract{seta('contract')}</th>
                    <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('val')}>Val{seta('val')}</th>
                  </tr>
                </thead>
@@ -259,7 +258,6 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                            {p.weeklyGrowth > 0 ? '+' : ''}{p.weeklyGrowth}
                         </span>
                      </td>
-                     <td className="px-3 py-2 text-center"><ContractChip player={p} hoje={hoje} /></td>
                      <td className="px-4 py-2 text-right text-emerald-600 dark:text-emerald-400 text-[11px] font-black tracking-tight font-mono transition-colors">
                        {formatCurrencyShort(p.value)}
                      </td>
