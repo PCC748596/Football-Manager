@@ -1474,6 +1474,13 @@ function procurarTabelinha(p) {
         x: p.model.position.x,
         z: p.model.position.z + dirParaGolo * T.avancoDaDevolucao
     };
+    // Full-back Finisher: arranca para o centro da área, para finalizar a
+    // devolução de primeira. Os outros arrancam em linha recta.
+    const estP = (typeof estiloAtivoDe === 'function') ? estiloAtivoDe(p) : null;
+    if (estP && estP.cortaParaDentro && (p.pos === 'LB' || p.pos === 'RB')) {
+        alvoArranque.x *= 0.35;
+        alvoArranque.z = golZ - dirParaGolo * 12.0;
+    }
     if (!corredorLivre(p.model.position.x, p.model.position.z,
         alvoArranque.x, alvoArranque.z, advs, T.espacoAFrente * 0.5, true)) return null;
 
@@ -1484,7 +1491,9 @@ function procurarTabelinha(p) {
         if (d < T.distParceiroMin || d > T.distParceiroMax) continue;
         if (!corredorLivre(Match.ball.position.x, Match.ball.position.z,
             mate.model.position.x, mate.model.position.z, advs, 1.4, true)) continue;
-        if (d < melhorDist) { melhorDist = d; melhor = mate; }
+        // Quem busca a tabela (estilo.tabela > 1) conta como mais perto.
+        const peso = d / Math.max(0.1, (typeof estiloAtivoDe === 'function') ? estiloAtivoDe(mate).tabela || 1 : 1);
+        if (peso < melhorDist) { melhorDist = peso; melhor = mate; }
     }
     if (!melhor) return null;
     return { mate: melhor, alvo: alvoArranque };

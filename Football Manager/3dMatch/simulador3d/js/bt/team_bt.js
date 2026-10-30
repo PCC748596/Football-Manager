@@ -350,7 +350,9 @@ function deveMandarChaser(o) {
         o.bolaZ * o.dir < o.tercoDeEmergencia) return true;
 
     // Sem pressão alta, a perseguição activa é só no próprio campo de defesa.
-    if (!o.pressaoAlta && o.bolaZ * o.dir > 0) return false;
+    // Histerese de 3 m na linha do meio-campo para quem já vai à bola (ver `jaVaiABola`).
+    const folgaMeio = o.jaVaiABola ? 3.0 : 0;
+    if (!o.pressaoAlta && o.bolaZ * o.dir > folgaMeio) return false;
 
     /*
     E SÓ SE VALER A PENA SAIR. Isto não existia: mandava-se um caçador em todos
@@ -363,7 +365,14 @@ function deveMandarChaser(o) {
     sempre: quem não sabe a distância não pode decidir com ela.
     */
     if (typeof o.distAoPortador === 'number' && typeof o.raioAccionamento === 'number') {
-        return o.distAoPortador <= o.raioAccionamento;
+        /*
+        HISTERESE: na dúvida, vai-se à bola. Quem já é chaser só deixa de o ser
+        quando o portador se afasta bem além do raio. Com o limiar seco, um
+        portador a ~raio metros fazia `podeIr` oscilar a cada frame e o jogador
+        virava-se entre a bola e o posto sem nunca decidir.
+        */
+        const raio = o.jaVaiABola ? o.raioAccionamento * 1.35 + 2.0 : o.raioAccionamento;
+        return o.distAoPortador <= raio;
     }
     return true;
 }
@@ -497,6 +506,7 @@ function pickChaser(bb) {
         tercoDeEmergencia: M ? M.tercoDeEmergencia : undefined,
         isAttacking: bb.isAttacking,
         bolaSolta: bolaSolta,
+        jaVaiABola: !!bb.chaser,
         bolaZ: ballPos.z,
         dir: bb.dir,
         pressaoAlta: (typeof Tatics !== 'undefined' && taticaDe(bb && bb.team, 'pressaoDefensiva') === 'high'),
@@ -601,6 +611,7 @@ dentro da janela, e não é nem o chaser, nem o destinatário do passe, nem
 alguém que esteja a marcar um homem.
 */
 function pickIntercetor(bb) {
+    const prevIntercetor = bb.intercetor;
     bb.intercetor = null;
 
     if (typeof Match === 'undefined') return;
@@ -644,7 +655,11 @@ function pickIntercetor(bb) {
         if (!emDisputaAereaNaArea && typeof estouAMarcar === 'function' && estouAMarcar(p)) continue;
 
         if (!bola || !bola.interceptable || !bola.interceptionPoint) continue;
-        if (bola.timeToIntercept > janela) continue;
+        // Histerese: quem já intercepta aguenta uma janela 40% maior. O tempo de
+        // chegada oscila com a velocidade da bola e, no limite, a eleição virava
+        // a cada frame entre INTERCEPT e o posto.
+        const eraEle = p === prevIntercetor;
+        if (bola.timeToIntercept > (eraEle ? janela * 1.4 : janela)) continue;
 
         const ipt = bola.interceptionPoint;
         const px = p.model.position.x;
@@ -669,7 +684,7 @@ function pickIntercetor(bb) {
                 }
             }
         }
-        if (temColegaNoCaminho) continue;
+        if (temColegaNoCaminho && !eraEle) continue;
 
         candidatos.push({ p: p, t: bola.timeToIntercept });
     }
@@ -688,7 +703,16 @@ function pickIntercetor(bb) {
         if (t < tQuemJaVai) tQuemJaVai = t;
     }
 
-    bb.intercetor = escolherIntercetor(candidatos, tQuemJaVai, margem);
+    const escolhido = escolherIntercetor(candidatos, tQuemJaVai, margem);
+    const prevCand = prevIntercetor ? candidatos.find(c => c.p === prevIntercetor) : null;
+    // O intercetor anterior fica, sem margem contra o chaser, a menos que outro
+    // seja claramente mais rápido que ele.
+    if (prevCand && escolhido !== prevIntercetor && prevCand.t < tQuemJaVai) {
+        const melhorT = escolhido ? candidatos.find(c => c.p === escolhido).t : Infinity;
+        bb.intercetor = (melhorT + margem < prevCand.t) ? escolhido : prevIntercetor;
+        return;
+    }
+    bb.intercetor = escolhido;
 }
 
 /*

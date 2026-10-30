@@ -621,8 +621,9 @@ const Weather = {
                 cloudCluster.add(inst);
             });
 
-            // Alturas das nuvens no céu (entre 45m e 85m)
-            const alturaY = 45 + Math.random() * 40;
+            // Alturas das nuvens no céu (entre 120m e 170m). Estavam entre 45 e 85 m
+            // e tapavam o jogo na câmara 2D (vista de cima).
+            const alturaY = 120 + Math.random() * 50;
             cloudCluster.position.set(
                 (Math.random() - 0.5) * 360,
                 alturaY,

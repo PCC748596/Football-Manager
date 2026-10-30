@@ -525,7 +525,9 @@ Object.assign(Match, {
             this.setPieceTimer += dt;
             if (this.penaltiPendente) {
                 this.penaltiAtraso -= dt;
-                if (this.algumCaidoDaFalta(true) || this.algumACaminhoDoLugar(true)) {
+                // Teto de 25 s: sem ele uma marca presa (queda, lugar) prendia o penalti para sempre.
+                this.esperaBolaParada = (this.esperaBolaParada || 0) + dt;
+                if ((this.algumCaidoDaFalta(true) || this.algumACaminhoDoLugar(true)) && this.esperaBolaParada <= 25.0) {
                     this.penaltiAtraso = Math.max(this.penaltiAtraso, ESPERA_APOS_REPOSICAO / 2);
                     this.setPieceTimer -= dt;
                 }

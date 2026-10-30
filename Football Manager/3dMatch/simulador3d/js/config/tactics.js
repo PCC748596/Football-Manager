@@ -1424,7 +1424,7 @@ const PlayingStyleTuning = {
 const EstiloBase = {
     avanco: 0, largura: 0, avancoComBola: 0, amplitudeZ: 1.0,
     passe: 1.0, remate: 1.0, cruzar: 1.0, lancar: 1.0, conduzir: 1.0,
-    pressao: 1.0, cadencia: 1.0,
+    pressao: 1.0, cadencia: 1.0, tabela: 1.0,
     ombroDefesa: false, dentroArea: false, seguraBola: false,
     atraiDefesa: false, cortaParaDentro: false, colaNaLinha: false,
     juntaSeAoAtaque: false
@@ -1629,11 +1629,15 @@ limitado por `MarkingModel.distanciaMinimaEstilo`.
         // livre + equipa a atacar — sem isso ficava preso na linha, apesar
         // do estilo. `avanco` é base, sempre activo, contraparte do -2 do
         // defensive_fullback.
-        avanco: 4, avancoComBola: 12, cruzar: 1.25, colaNaLinha: true
+        // Busca tabelas e infiltra-se pela lateral para receber e cruzar, só com
+        // a bola do seu lado. `cruzar` 1.4: tenta mais cruzamentos que os outros.
+        avanco: 4, avancoComBola: 12, cruzar: 1.4, tabela: 1.5, colaNaLinha: true
     },
     fullback_finisher: {
         nome: 'Full-back Finisher', posicoes: ['LB', 'RB'],
-        avanco: 4, avancoComBola: 12, largura: -5, remate: 1.2, cruzar: 0.8,
+        // Tabela e entra pelo centro da área para finalizar de primeira, só com a
+        // bola do seu lado. `remate` 1.3: chuta mais que o offensive.
+        avanco: 4, avancoComBola: 12, largura: -5, remate: 1.3, cruzar: 0.8, tabela: 1.5,
         cortaParaDentro: true
     },
     defensive_fullback: {

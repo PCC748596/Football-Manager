@@ -190,6 +190,7 @@ const Match = {
         pô-la logo a seguir, no proprio batedor (ver `marcarRepositor`).
         */
         if (novo !== 'PLAY') this.libertarRepositor();
+        this.esperaBolaParada = 0;
 
         if (novo === 'PLAY') {
             this.setPieceTaker = null;
