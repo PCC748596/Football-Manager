@@ -1725,7 +1725,7 @@ document.addEventListener("DOMContentLoaded", () => {
         cameraCore = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.3, 800);   // near 0.3 (era 0.1): 3x mais precisao de profundidade, menos z-fighting
         window.cameraCore = cameraCore;
 
-        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 850);
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         if (('ontouchstart' in window) || (navigator.maxTouchPoints > 0)) document.body.classList.add('toque');   // os cartoes do HUD ficam mais pequenos (css/styles.css)
         rendererCore = new THREE.WebGLRenderer({ antialias: !isTouchDevice, powerPreference: "high-performance" });
         // Max pixel ratio of 1.0 on tablets to save fill rate

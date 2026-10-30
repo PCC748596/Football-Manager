@@ -51,7 +51,8 @@ const Qualidade = {
     */
     ehTouch: function () {
         if (typeof window === 'undefined') return false;
-        return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 850);
+        // So toque a serio: a largura da janela NAO conta (o 3D dentro do manager, no PC, e um iframe estreito e ficava sem sombras e com pixel ratio 1).
+        return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     },
     pixelRatioEfetivo: function () {
         const c = this.cfg(), dpr = window.devicePixelRatio || 1;
