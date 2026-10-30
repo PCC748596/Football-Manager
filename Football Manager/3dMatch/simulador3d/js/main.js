@@ -1249,6 +1249,7 @@ function animate(time) {
     */
     const emRepeticao = !!(window.MatchReplay && window.MatchReplay.isReplaying);
 
+    const _tL0 = performance.now();
     if (!window.isPaused && !emRepeticao) {
         // GAME_SPEED é o ritmo base da partida (config.js); o speedMultiplier
         // continua a ser só o controlo 0.5x/1.0x/1.3x do painel.
@@ -1306,6 +1307,8 @@ function animate(time) {
             window._perfPassos = (window._perfPassos || 0) + guarda;
         }
     }
+    window._pfLogica = performance.now() - _tL0;   // so o Match.update (para o painel de performance)
+    window._pfFimLogica = performance.now();
 
     /*
     A CÂMARA DEPOIS DO MUNDO, e não antes.
@@ -1380,6 +1383,7 @@ function animate(time) {
     if (window.CapturaDeJogo && !window.isPaused && !(window.MatchReplay && window.MatchReplay.isReplaying)) window.CapturaDeJogo.registar(1 / 60);
     if (window.PlacasLed && window.PlacasLed.tick) window.PlacasLed.tick();
     const _tR0 = performance.now();
+    window._pfPrep = _tR0 - (window._pfFimLogica || _tR0);   // camera, torcida, repeticao, captura: tudo entre a logica e o render
     rendererCore.render(scene, cameraCore);
     painelDePerformance(time, performance.now() - _tR0);
 
@@ -1444,6 +1448,14 @@ function painelDePerformance(time, msRender) {
     if (window._perfUlt) A.push(time - window._perfUlt);
     window._perfUlt = time;
     window._perfRender += msRender; window._perfFr++;
+    // O PIOR QUADRO do segundo, com a decomposicao: logica + preparacao + render() sao o JS; o resto do quadro e espera (GPU, compositor, coleta de lixo fora destes blocos).
+    const progsAgora = rendererCore.info.programs ? rendererCore.info.programs.length : 0;
+    const ult = A.length ? A[A.length - 1] : 0;
+    if (ult > 50) window._perfLentos = (window._perfLentos || 0) + 1;
+    if (ult > (window._perfPiorQ ? window._perfPiorQ.ms : 0)) {
+        window._perfPiorQ = { ms: ult, logica: window._pfLogica || 0, prep: window._pfPrep || 0, render: msRender, progsNovos: progsAgora - (window._perfProgsAnt || progsAgora), tex: rendererCore.info.memory.textures, geom: rendererCore.info.memory.geometries };
+    }
+    window._perfProgsAnt = progsAgora;
     if (time - window._perfT < 1000) return;
     const n = A.length || 1, soma = A.reduce((a, b) => a + b, 0);
     const ord = A.slice().sort((a, b) => a - b);
@@ -1458,9 +1470,10 @@ function painelDePerformance(time, msRender) {
         'geom ' + r.memory.geometries + '   tex ' + r.memory.textures + '   luzes visiveis ' + luzes,
         'pixelRatio ' + dpr.toFixed(2) + '  canvas ' + cv.width + 'x' + cv.height + '  escala ' + (typeof Qualidade !== 'undefined' ? Qualidade.escala : '-'),
         'sombras ' + (rendererCore.shadowMap.enabled ? 'ON' : 'off') + '  q ' + (typeof Qualidade !== 'undefined' ? Qualidade.nivel : '-'),
+        (function () { const q = window._perfPiorQ; return q ? ('PIOR ' + q.ms.toFixed(0) + ' ms = logica ' + q.logica.toFixed(0) + ' + prep ' + q.prep.toFixed(0) + ' + render() ' + q.render.toFixed(0) + ' + espera ' + Math.max(0, q.ms - q.logica - q.prep - q.render).toFixed(0) + '   programas novos ' + q.progsNovos + '   quadros >50ms: ' + (window._perfLentos || 0)) : '-'; })(),
         'torcida: fatias desenhadas ' + ((typeof Crowd !== 'undefined' && Crowd._cullVisiveis !== undefined) ? Crowd._cullVisiveis : '-') + ' / ' + ((typeof Crowd !== 'undefined' && Crowd._grupos) ? Crowd._grupos.length : '-') + '  (de ' + ((typeof CrowdModel !== 'undefined') ? CrowdModel.tamanhoDaFatia : '-') + ' adeptos)'
     ].join(String.fromCharCode(10));
-    window._perfAmostras = []; window._perfT = time; window._perfRender = 0; window._perfFr = 0; window._perfPassos = 0;
+    window._perfAmostras = []; window._perfT = time; window._perfRender = 0; window._perfFr = 0; window._perfPassos = 0; window._perfPiorQ = null; window._perfLentos = 0;
 }
 
 function auditarPerformance(time) {

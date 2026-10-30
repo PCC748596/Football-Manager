@@ -1112,3 +1112,13 @@ body.cam-cinema #minimapa,
 body.cam-cinema .hud-jogador {
     display: none !important;
 }
+
+/*
+OS CARTOES DO HUD NO IPAD / TABLET (pedido): 60% mais pequenos. Nos ecras de toque (`pointer: coarse`) os cartoes dos jogadores (portador e marcador) e o de evento
+(remates, faltas...) passam da escala 1.4 de sempre para 0.56 (1.4 x 0.4), presos ao mesmo canto de antes. Fica no FIM do ficheiro para ganhar as regras acima.
+*/
+@media (pointer: coarse) {
+    #hud-jogador-esq { transform: scale(0.56); }
+    #hud-jogador-dir { transform: scale(0.56); }
+    #hud-evento { transform: translateX(-50%) scale(0.56); }
+}

@@ -51,6 +51,29 @@ const EfeitosSonoros = {
 
     _sons: {},
     _iniciado: false,
+    _ctx: null,
+
+    /*
+    WEB AUDIO EM VEZ DE <audio>. Tocar um `HTMLAudioElement` (`currentTime = 0; play()`) no Safari do iPad bloqueia a thread principal por dezenas de milissegundos — medido no painel
+    de performance: no passe e no chute o pior quadro saltava de 25 para 168 ms, sem torcida. Aqui a amostra e decodificada UMA vez para um `AudioBuffer` e cada disparo cria um
+    `AudioBufferSourceNode` (barato, e toca fora da thread principal). Os elementos `Audio` ficam como reserva: enquanto o buffer nao carregou, ou o contexto de audio nao esta
+    ativo (o iOS so o liberta depois de um toque do utilizador), toca-se pelo caminho de sempre.
+    */
+    _iniciarWebAudio() {
+        if (this._ctx || typeof window === 'undefined') return;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        try { this._ctx = new AC(); } catch (e) { this._ctx = null; return; }
+        const destravar = () => { if (this._ctx && this._ctx.state !== 'running') { try { this._ctx.resume(); } catch (e) { /* ignora */ } } };
+        ['pointerdown', 'touchstart', 'touchend', 'keydown', 'click'].forEach(ev => window.addEventListener(ev, destravar, { passive: true }));
+    },
+    _carregarBuffer(nome, url) {
+        if (!this._ctx || typeof fetch === 'undefined') return;
+        fetch(url).then(r => r.arrayBuffer()).then(ab => {
+            // A forma com callbacks funciona em todas as versoes do Safari (a de promessas nem sempre).
+            this._ctx.decodeAudioData(ab, (buf) => { if (this._sons[nome]) this._sons[nome].buffer = buf; }, () => { /* fica o <audio> */ });
+        }).catch(() => { /* fica o <audio> */ });
+    },
 
     /*
     `caminhos` permite ao chamador trocar os ficheiros sem mexer aqui; a
@@ -61,8 +84,11 @@ const EfeitosSonoros = {
         this._iniciado = true;
 
         const c = caminhos || {};
+        this._iniciarWebAudio();
         this._criar('apito', c.apito || 'assets/apito.mpeg', this.volumeApito);
         this._criar('chute', c.chute || 'assets/chute.mpeg', this.volumeChute);
+        this._carregarBuffer('apito', c.apito || 'assets/apito.mpeg');
+        this._carregarBuffer('chute', c.chute || 'assets/chute.mpeg');
     },
 
     _criar(nome, url, volume) {
@@ -74,7 +100,7 @@ const EfeitosSonoros = {
             a.volume = volume;
             vozes.push(a);
         }
-        this._sons[nome] = { vozes: vozes, volume: volume, proxima: 0, ultimo: -Infinity };
+        this._sons[nome] = { vozes: vozes, volume: volume, proxima: 0, ultimo: -Infinity, buffer: null, ativos: new Set() };
     },
 
     /*
@@ -83,6 +109,8 @@ const EfeitosSonoros = {
     */
     pararTudo() {
         for (const nome of Object.keys(this._sons)) {
+            for (const src of this._sons[nome].ativos) { try { src.stop(); } catch (e) { /* ja acabou */ } }
+            this._sons[nome].ativos.clear();
             for (const a of this._sons[nome].vozes) {
                 try { a.pause(); a.currentTime = 0; } catch (e) { /* sem dados */ }
             }
@@ -111,6 +139,26 @@ const EfeitosSonoros = {
         if (agora - som.ultimo < janela) return;
         som.ultimo = agora;
 
+        const g = (typeof ganho === 'number') ? Math.max(0, Math.min(1, ganho)) : 1;
+        // Caminho rapido: AudioBuffer ja carregado e contexto ativo.
+        if (this._ctx && som.buffer) {
+            if (this._ctx.state === 'running') {
+                try {
+                    const src = this._ctx.createBufferSource();
+                    src.buffer = som.buffer;
+                    const ganhoNo = this._ctx.createGain();
+                    ganhoNo.gain.value = som.volume * g;
+                    src.connect(ganhoNo); ganhoNo.connect(this._ctx.destination);
+                    som.ativos.add(src);
+                    src.onended = () => { som.ativos.delete(src); };
+                    src.start(0);
+                    return;
+                } catch (e) { /* cai no <audio> */ }
+            } else {
+                try { this._ctx.resume(); } catch (e) { /* ignora */ }
+            }
+        }
+
         // Voz livre; se nenhuma estiver, a próxima da roda (a mais antiga).
         let voz = null;
         for (const a of som.vozes) {
@@ -121,7 +169,6 @@ const EfeitosSonoros = {
             som.proxima = (som.proxima + 1) % som.vozes.length;
         }
 
-        const g = (typeof ganho === 'number') ? Math.max(0, Math.min(1, ganho)) : 1;
         voz.volume = som.volume * g;
         try {
             voz.currentTime = 0;
