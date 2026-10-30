@@ -66,7 +66,7 @@ const StartMenu: React.FC<{ onNewGame: () => void, onContinue: () => void, onSet
         </div>
 
         <div className="text-center text-slate-400 text-xs font-mono tracking-widest uppercase mt-8 bg-black/40 px-3 py-1.5 rounded backdrop-blur-sm border border-white/5">
-          v 0.0474 • BUILD 2025.01.BETA • FILE SYSTEM ENABLED
+          v 0.0475 • BUILD 2025.01.BETA • FILE SYSTEM ENABLED
         </div>
       </div>
     </div>
