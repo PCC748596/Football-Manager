@@ -1069,7 +1069,7 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
     um tom mais claro e avermelhado que a pele.
     */
     const peleEscura = lumPele < 0.42 && !leve;
-    const eyeMat = new THREE.MeshBasicMaterial({ color: !leve ? 0x14100e : corTinta });   // jogadores e arbitros, de qualquer pele: pupila preta no meio do branco do olho
+    const eyeMat = new THREE.MeshBasicMaterial({ color: !leve ? 0x14100e : corTinta, polygonOffset: !leve, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });   // a pupila ganha ao branco e a cara no z-buffer (a distancia de jogo 1.5 mm de folga empatava)   // jogadores e arbitros, de qualquer pele: pupila preta no meio do branco do olho
     rig.olhoEsq = new THREE.Mesh(new THREE.PlaneGeometry(u * 0.08, u * 0.14), eyeMat); rig.olhoEsq.position.set(-u * 0.16, u * 0.15, faceZ);
     rig.olhoDir = new THREE.Mesh(new THREE.PlaneGeometry(u * 0.08, u * 0.14), eyeMat); rig.olhoDir.position.set(u * 0.16, u * 0.15, faceZ);
     const narizMat = peleEscura ? new THREE.LineBasicMaterial({ color: new THREE.Color(corPele).lerp(new THREE.Color(0x000000), 0.6).getHex() }) : lineMat;
@@ -1079,13 +1079,13 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
     faceGrp.add(rig.olhoEsq, rig.olhoDir, nariz, boca);
     if (!leve) {
         // O branco do olho (em TODAS as peles; a torcida - `leve` - fica como estava), um pouco maior que a pupila e logo por tras dela (o nariz e a boca ficam nos seus tons).
-        const brancoMat = new THREE.MeshBasicMaterial({ color: 0xe9e4dc });
+        const brancoMat = new THREE.MeshBasicMaterial({ color: 0xe9e4dc, polygonOffset: true, polygonOffsetFactor: -1.5, polygonOffsetUnits: -1.5 });
         for (const lado of [-1, 1]) {
             const b = new THREE.Mesh(new THREE.PlaneGeometry(u * 0.15, u * 0.11), brancoMat);
-            b.position.set(lado * u * 0.16, u * 0.15, faceZ);   // na face da cabeca (u * 0.425) ou logo a frente: atras dela o branco ficava escondido pela caixa
+            b.position.set(lado * u * 0.16, u * 0.15, faceZ + u * 0.001);   // na face da cabeca (u * 0.425) ou logo a frente: atras dela o branco ficava escondido pela caixa
             faceGrp.add(b);
         }
-        rig.olhoEsq.position.z = rig.olhoDir.position.z = faceZ + u * 0.0015;   // a pupila a frente do branco
+        rig.olhoEsq.position.z = rig.olhoDir.position.z = faceZ + u * 0.004;   // a pupila a frente do branco
         rig.olhoEsq.geometry = rig.olhoDir.geometry = new THREE.PlaneGeometry(u * 0.06, u * 0.09);   // a pupila: preta, no meio do branco do olho
     }
     head.add(faceGrp);

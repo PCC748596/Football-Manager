@@ -9,7 +9,7 @@ import { potencialParaValor, anosRestantes } from '../textSim/valuation';
 import { CONFIG_MERCADO, ESTADOS_ATIVOS, NegociacaoTransf, grupoDe, janelaAberta, diasParaFecharJanela, proximaAberturaJanela } from '../textSim/transferencias';
 import { estadoDoContrato } from '../textSim/contracts';
 
-type Aba = 'MARKET' | 'NEGOTIATIONS' | 'MY_PLAYERS' | 'FINANCES';
+type Aba = 'MARKET' | 'SHORTLIST' | 'NEGOTIATIONS' | 'MY_PLAYERS' | 'FINANCES';
 interface Linha { p: Player; origem: 'ELENCO' | 'BASE' | 'LIVRE'; clube?: Team; estrelas: number; meses: number; }
 const POR_PAGINA = 40;
 const GRUPOS = ['ANY', 'GK', 'DEF', 'MID', 'ATT'] as const;
@@ -92,7 +92,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
       if (F.soListados && !p.listedForSale) return false;
       if (F.soBase && l.origem !== 'BASE') return false;
       if (F.soContrato && !(l.origem !== 'LIVRE' && l.meses <= 12)) return false;
-      if (F.soShortlist && !shortlist.includes(p.id)) return false;
+      if ((F.soShortlist || aba === 'SHORTLIST') && !shortlist.includes(p.id)) return false;   // a aba SHORTLIST e o mercado so com os jogadores da lista de interesse
       return true;
     });
     const val = (l: Linha): number | string => ordem.k === 'name' ? l.p.name : ordem.k === 'age' ? l.p.age : ordem.k === 'ovr' ? l.p.skill : ordem.k === 'pot' ? potencialVisivel(l.p) : ordem.k === 'wage' ? l.p.salary : l.p.value;
@@ -101,7 +101,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
       const c = typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number);
       return (c * ordem.dir) || (b.p.skill - a.p.skill);
     });
-  }, [linhas, filtros, ordem, shortlist]);
+  }, [linhas, filtros, ordem, shortlist, aba]);
   useEffect(() => { setPagina(0); }, [filtros, ordem]);
 
   if (!userTeam) return null;
@@ -170,7 +170,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
           <button onClick={() => { setSoLivres(!soLivres); setFiltros(f => ({ ...f, soLivres: !soLivres })); }} className={botaoStatus(soLivres)}>Free agents</button>
           <button onClick={() => { setSoContrato(!soContrato); setFiltros(f => ({ ...f, soContrato: !soContrato })); }} className={botaoStatus(soContrato)}>Contract ≤ 12 months</button>
           <button onClick={() => { setSoBase(!soBase); setFiltros(f => ({ ...f, soBase: !soBase })); }} className={botaoStatus(soBase)}>Sub-20 (18+)</button>
-          <button onClick={() => { setSoShortlist(!soShortlist); setFiltros(f => ({ ...f, soShortlist: !soShortlist })); }} className={botaoStatus(soShortlist)}>Shortlist ({shortlist.length})</button>
+          {aba !== 'SHORTLIST' && <button onClick={() => { setSoShortlist(!soShortlist); setFiltros(f => ({ ...f, soShortlist: !soShortlist })); }} className={botaoStatus(soShortlist)}>Shortlist ({shortlist.length})</button>}
         </div>
         <div className="mt-auto flex flex-col gap-2">
           <button onClick={aplicar} className="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded text-xs uppercase tracking-widest shadow-lg">Apply filters</button>
@@ -455,12 +455,12 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
         <p className="text-slate-400 dark:text-slate-500 font-bold text-[11px] uppercase tracking-widest mt-2 opacity-70">Player search and transactions • window {janela ? <span className="text-emerald-500">open{fecha !== null ? ` (${fecha} days left)` : ''}</span> : <span className="text-rose-400">closed{abre !== null ? ` (opens in ${abre} days)` : ''}</span>}</p>
       </div>
       <div className="flex flex-wrap gap-2 items-center">
-        {([['MARKET', 'Market'], ['NEGOTIATIONS', `Negotiations${pendentes ? ` (${pendentes})` : ''}`], ['MY_PLAYERS', 'My players / for sale'], ['FINANCES', 'Transfer finances']] as const).map(([id, r]) => (
+        {([['MARKET', 'Market'], ['SHORTLIST', `Shortlist (${shortlist.length})`], ['NEGOTIATIONS', `Negotiations${pendentes ? ` (${pendentes})` : ''}`], ['MY_PLAYERS', 'My players / for sale'], ['FINANCES', 'Transfer finances']] as const).map(([id, r]) => (
           <button key={id} onClick={() => setAba(id)} className={`px-5 py-2 rounded text-xs font-black uppercase tracking-widest transition-colors ${aba === id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-800 dark:hover:text-white'}`}>{r}</button>
         ))}
         {aviso && <div className={`ml-auto px-4 py-2 rounded text-xs font-black uppercase tracking-wider cursor-pointer ${aviso.tipo === 'ok' ? 'bg-emerald-600/15 text-emerald-400 border border-emerald-600/40' : 'bg-rose-600/15 text-rose-400 border border-rose-600/40'}`} onClick={() => setAviso(null)}>{aviso.texto} ✕</div>}
       </div>
-      {aba === 'MARKET' && mercadoAba}
+      {(aba === 'MARKET' || aba === 'SHORTLIST') && mercadoAba}
       {aba === 'NEGOTIATIONS' && negociacoesAba}
       {aba === 'MY_PLAYERS' && meusAba}
       {aba === 'FINANCES' && financasAba}
