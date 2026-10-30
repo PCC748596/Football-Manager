@@ -239,8 +239,7 @@ const TrainingView: React.FC = () => {
                      <div key={dIdx} className="flex flex-col gap-1.5 h-full relative">
                         <div className={`text-center py-1.5 rounded-t transition-colors relative z-10 ${day.isToday ? 'bg-blue-600/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-500' : (isMatchDay ? 'text-blue-500' : 'text-slate-400 dark:text-slate-600')}`}>
                           <div className="text-[8px] font-black leading-none uppercase">{day.dayName}</div>
-                          <div className="text-xs font-black mt-0.5">{day.dayNum}</div>
-                          {day.isToday && <SetasAGirar className="w-3.5 h-3.5 mx-auto mt-0.5" />}
+                          <div className="text-xs font-black mt-0.5 flex items-center justify-center gap-1">{day.dayNum}{day.isToday && <SetasAGirar className="w-3.5 h-3.5" />}</div>
                         </div>
                        
                        {isMatchDay && matchForDay ? (
@@ -302,8 +301,8 @@ const TrainingView: React.FC = () => {
                                    {act && !isBlocked && (
                                      <div 
                                        onClick={(e) => { e.stopPropagation(); handleSlotUpdate(dIdx, slotIdx, ''); }}
-                                       className="absolute top-0 right-0 w-3 h-3 bg-black/80 text-white flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 hover:bg-red-600 z-10 transition-all"
-                                     >×</div>
+                                       title="Remove" className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-700 text-slate-200 flex items-center justify-center text-[10px] font-black leading-none hover:bg-rose-600 z-10 transition-all"
+                                     >✕</div>
                                    )}
                                 </div>
                               );
@@ -482,7 +481,7 @@ const TrainingView: React.FC = () => {
                                   </div>
 
                                   {/* COL 4: WEEKLY GROWTH */}
-                                  <div className="col-span-3 flex flex-col items-center">
+                                  <div className="col-span-2 flex flex-col items-center">
                                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5">GROWTH</span>
                                       <div className={`text-[20px] font-black leading-none ${p.weeklyGrowth > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
                                           {p.weeklyGrowth > 0 ? `+${p.weeklyGrowth}` : p.weeklyGrowth}
@@ -490,7 +489,7 @@ const TrainingView: React.FC = () => {
                                   </div>
 
                                   {/* COL 5: GROUPS */}
-                                  <div className="col-span-2 flex justify-end">
+                                  <div className="col-span-3 flex justify-end">
                                       <div className="flex gap-0.5 shadow-sm border border-slate-200 dark:border-slate-700/50 rounded overflow-hidden">
                                           {[0, 1, 2].map(grp => {
                                               const isLocked = grp >= (gameState.unlockedTrainingGroups || 1);
@@ -500,7 +499,7 @@ const TrainingView: React.FC = () => {
                                                       key={grp}
                                                       disabled={isLocked}
                                                       onClick={() => updatePlayerTrainingGroup(p.id, grp)}
-                                                      className={`px-3.5 py-3 text-[12px] font-black transition-colors ${isSelected ? 'bg-blue-500 text-white' : isLocked ? 'bg-slate-100 dark:bg-slate-900/50 text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'bg-white dark:bg-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                                                      className={`px-3 py-3 text-[12px] font-black transition-colors ${isSelected ? 'bg-blue-500 text-white' : isLocked ? 'bg-slate-100 dark:bg-slate-900/50 text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'bg-white dark:bg-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                                                   >
                                                       G{grp + 1}
                                                   </button>

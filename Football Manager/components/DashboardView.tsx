@@ -523,9 +523,8 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
             >
               {/* Left Column: 1/3 Width - Day & Week */}
               <div className={`w-[35%] flex flex-col justify-center items-center h-full border-r ${day.isToday ? 'border-blue-500' : 'border-slate-100 dark:border-slate-700/50'} bg-black/5 dark:bg-black/20`}>
-                <span className={`text-lg font-black leading-none mb-0.5 ${day.isToday ? 'text-white' : 'text-slate-800 dark:text-slate-300'}`}>{day.dayNum}</span>
+                <span className={`text-lg font-black leading-none mb-0.5 inline-flex items-center gap-1 ${day.isToday ? 'text-white' : 'text-slate-800 dark:text-slate-300'}`}>{day.dayNum}{day.isToday && <SetasAGirar className="w-4 h-4 text-white" />}</span>
                 <span className={`text-[9px] font-black uppercase leading-none ${day.isToday ? 'text-blue-200' : 'text-slate-400'}`}>{day.dayName}</span>
-                {day.isToday && <SetasAGirar className="w-4 h-4 mt-1 text-white" />}
                 {day.isTransferWindow && (
                     <div className="mt-1" title="Transfer Market Open">
                         <span className="text-[10px]">⇄</span>
