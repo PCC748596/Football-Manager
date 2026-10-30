@@ -35,7 +35,8 @@ const Aquecimento = {
     velEntra: 5.0,        // quem entra segue a trote para o posto
     velSai: 5.0, velVolta: 3.0,   // quem sai TROTA ate a lateral (de frente para o movimento); depois anda de volta ao banco
     preparador: { funcao: 'massagista', x: 41.0, xFim: 42.4, zLado: 5.9, palmas: 0.5, duracaoPalma: 0.25, velocidade: 2.6, bracoX: -1.05, cotovelo: -1.35, abre: 0.30, junta: -0.40 },
-    placaSobra: 1.6       // s de placa levantada depois da troca
+    placaSobra: 1.6,      // s de placa levantada depois da troca
+    intervaloEntreSaidas: 3.0   // s entre um titular comecar a sair e o seguinte (do MESMO lado): saem e entram em paralelo, escalonados, e nao um de cada vez
 };
 if (typeof window !== 'undefined') window.Aquecimento = Aquecimento;
 
@@ -140,6 +141,7 @@ Object.assign(Match, {
         const Q = (typeof Officials !== 'undefined') ? Officials : null;
         const emBatch = (typeof Sim !== 'undefined' && Sim.running);
         if (this._placaViva > 0) this._placaViva -= dt;
+        this._tDesdeUltimaTroca = (this._tDesdeUltimaTroca || 0) + dt;   // desde que o ultimo titular comecou a sair (ver `Aquecimento.intervaloEntreSaidas`)
         // A CAMERA DA SUBSTITUICAO acaba com ela: sem troca em curso nem placa no ar volta a vista que o utilizador tinha.
         if (this._camAntesDaTroca && !this.subsEmCurso && !(this._placaViva > 0) && typeof this.setCameraMode === 'function') {
             if (window.cameraMode === 'substituicao') this.setCameraMode(this._camAntesDaTroca);
@@ -160,7 +162,12 @@ Object.assign(Match, {
             if (req.estado === 'pronto' && req.B) this._esperarEmIdle(req, dt);
             if (req.estado === 'pronto' && this.subsEmCurso === req && !this._elegivel(P)) { this.subsEmCurso = null; req.junto = false; }
             if (this.subsEmCurso === req && req.estado !== 'pronto' && (req._esperaJunto = (req._esperaJunto || 0) + dt) > 40) { this.subsEmCurso = null; req.junto = false; req._esperaJunto = 0; }
-            if (req.estado === 'pronto' && (!this.subsEmCurso || this.subsEmCurso === req) && this._paradaParaSubstituir() && this._elegivel(P)) {
+            /*
+            VARIAS SAIDAS AO MESMO TEMPO, ESCALONADAS: com uma troca a decorrer (alguem ja a sair), o pedido seguinte do MESMO lado comeca a sair `intervaloEntreSaidas` (3 s) depois do
+            anterior, em vez de esperar que ele acabe. O jogo continua parado enquanto houver alguma a decorrer.
+            */
+            const emParalelo = !!this.subsEmCurso && this.subsEmCurso !== req && this.subsEmCurso.lado === req.lado && (this.subsEmCurso.estado === 'placa' || this.subsEmCurso.estado === 'sai') && this._tDesdeUltimaTroca >= Aquecimento.intervaloEntreSaidas;
+            if (req.estado === 'pronto' && (!this.subsEmCurso || this.subsEmCurso === req || emParalelo) && this._paradaParaSubstituir() && this._elegivel(P)) {
                 // Nos lotes (sem desenho) a troca e instantanea.
                 if (emBatch) { this.executarSubstituicao(req, P, lista); req.feita = true; }
                 else this._comecarTroca(req, P, lista);
@@ -397,7 +404,9 @@ Object.assign(Match, {
     _comecarTroca: function (req, P, lista) {
         req.estado = 'placa';
         req.t = 0;
-        this.subsEmCurso = req;
+        this._tDesdeUltimaTroca = 0;
+        const aDecorrer = this.subsEmCurso && !this.subsEmCurso.feita && (this.subsEmCurso.estado === 'placa' || this.subsEmCurso.estado === 'sai');
+        if (!aDecorrer) this.subsEmCurso = req;   // ja ha uma troca a decorrer: esta junta-se a ela, e o jogo continua parado
         // A camera mostra a substituicao (vista lateral para a zona da troca, CameraSubstituicao em config/tactics.js) e volta ao normal no fim (tickSubstituicoes).
         if (!(typeof Sim !== 'undefined' && Sim.running) && typeof this.setCameraMode === 'function' && window.cameraMode !== 'substituicao' && typeof window.cameraMode === 'string') {
             this._camAntesDaTroca = window.cameraMode;
@@ -437,9 +446,10 @@ Object.assign(Match, {
             this.executarSubstituicao(req, P, lista, { x: A.saida.x - 0.6, z: A.saida.z, entrada: true });
             req.estado = 'voltar'; req.passo = 0; req.t = 0;
             req.sai = P;
+            const aSair = this.subsPendentes.find(o => !o.feita && o !== req && (o.estado === 'placa' || o.estado === 'sai'));   // outra troca ja em andamento: o jogo continua parado por ela
             const prox = this.subsPendentes.find(o => !o.feita && o !== req && o.lado === req.lado && o.junto);
-            this.subsEmCurso = prox || null;
-            this._placaViva = prox ? 0 : A.placaSobra;
+            this.subsEmCurso = aSair || prox || null;
+            this._placaViva = (aSair || prox) ? 0 : A.placaSobra;
             if (req.B) req.B.model.visible = false;
         }
     },
@@ -483,6 +493,7 @@ Object.assign(Match, {
         N.idxFormacao = P.idxFormacao;
         N.baseTarget.copy(P.baseTarget);
         N.dirZ = P.dirZ; N.targetGoalZ = P.targetGoalZ; N.ownGoalZ = P.ownGoalZ;
+        N.playingStyleDesligado = P.playingStyleDesligado;   // o ON/OFF dos Playing Styles do time vale tambem para quem entra
         if (P.role === 'gk') { N.gkStyleBase = P.gkStyleBase; N.playingStyle = P.playingStyle; }
         const numero = this._numeroDoEntrante(req, P, lista);
         N.updateShirt(numero, P.pos);

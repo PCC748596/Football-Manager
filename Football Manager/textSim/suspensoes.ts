@@ -40,11 +40,13 @@ export const aplicarSuspensoes = (f: Fixture, chave: string | null, jogadores: P
     const vermelho = e.description.includes('🟥') || e.description.includes('RED');
     if (vermelho) {
       p.suspenso = { ...p.suspenso, [chave]: (p.suspenso?.[chave] || 0) + 1 };
+      p.suspMotivo = { ...p.suspMotivo, [chave]: 'RED CARD' };
     } else {
       const n = (p.amarelos?.[chave] || 0) + 1;
       if (n >= AMARELOS_PARA_SUSPENSAO) {
         p.amarelos = { ...p.amarelos, [chave]: 0 };
         p.suspenso = { ...p.suspenso, [chave]: (p.suspenso?.[chave] || 0) + 1 };
+        p.suspMotivo = { ...p.suspMotivo, [chave]: 'YELLOW CARDS' };
       } else p.amarelos = { ...p.amarelos, [chave]: n };
     }
     mudou = true;

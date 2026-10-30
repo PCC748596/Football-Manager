@@ -4656,7 +4656,7 @@ function sigmaDeRemate(o) {
     if (typeof o.angulo === 'number' && Math.abs(o.angulo) > E.anguloFechado) s *= E.anguloMult;
 
     s *= E.escalaGlobal;
-    return { lateral: s, vertical: s * E.fracVertical };
+    return { lateral: s * (E.fatorLateral || 1), vertical: s * E.fracVertical };
 }
 
 /*

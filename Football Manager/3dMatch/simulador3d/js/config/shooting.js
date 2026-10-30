@@ -662,7 +662,14 @@ const ShotModel = {
         base: 1.60,             // metros de sigma, a 6 m e TEC 50 (1.10 -> 1.60 a 26/10/2026: calibracao de golos, o remate de perto entrava de mais; medido em lotes de 56 jogos)
         porMetro: 0.110,        // cresce com a distância à baliza
         distRef: 6.0,
-        fracVertical: 0.70,
+        /*
+        CHUTES ALTOS DEMAIS (relato: "os jogadores sempre chutam bolas altas"). Medido: a 21 m o sigma VERTICAL era 4.3 m (o lateral 6.2 m, `fracVertical` 0.70 depois de varias subidas do
+        `escalaGlobal`) e o alvo, com o chao a 0.08 m, so tem para onde errar para CIMA: 41% dos remates de forca eram apontados acima do travessao (2.44 m) e 32% de todos os remates
+        sairiam por cima. Agora o erro vertical e 0.35 do lateral (era 0.70) e o lateral sobe `fatorLateral` 1.30 para a mesma percentagem NO ALVO (conta feita com a mira e o sigma reais:
+        no alvo 38.6% -> 37%; por cima 32% -> 20%; pelos lados 30% -> 43%). Os remates passam a falhar mais para o lado e menos para as bancadas.
+        */
+        fracVertical: 0.35,
+        fatorLateral: 1.30,
         // TEC divide o sigma: 0.65 a TEC 100, 1.45 a TEC 0.
         tecMin: 0.65,
         tecMax: 1.45,

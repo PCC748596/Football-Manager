@@ -190,6 +190,8 @@ export interface Player {
   amarelos?: Record<string, number>;
   /** Jogos de suspensao por cumprir, por competicao. */
   suspenso?: Record<string, number>;
+  /** Porque esta suspenso, por competicao: 'RED CARD' ou 'YELLOW CARDS' (3 amarelos). */
+  suspMotivo?: Record<string, string>;
 }
 
 export interface Tactics {
@@ -208,6 +210,8 @@ export interface Tactics {
   playStyle?: 'positional' | 'possession' | 'direct' | 'counter_attack' | 'wing_play';
   /** Posicoes ajustadas pelo treinador, por formacao: com e sem a bola, por zona da bola (0..8) e por posto (indice do slot): { x, z } normalizados (ver textSim/formacoesZonas.ts). Sem valor: as tabelas de sempre. */
   zoneOverrides?: Record<string, ZoneOverrides>;
+  /** Playing Styles dos jogadores (os estilos individuais, como Box-to-Box ou Hole Player) ligados no 3D; omitido = ligados. Botao ON/OFF da aba GENERAL do Match Tactics. */
+  playingStylesOn?: boolean;
 }
 
 export type ZoneOverrides = { com?: Record<string, Record<string, [number, number]>>; sem?: Record<string, Record<string, [number, number]>> };

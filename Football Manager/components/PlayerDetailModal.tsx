@@ -185,7 +185,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
       || PLAYSTYLE_DA_BASE[player.id]
       || (Object.keys(PLAYSTYLE_POSITIONS) as PlayStyle[]).find(s => s !== 'None' && PLAYSTYLE_POSITIONS[s].includes(player.position))
       || 'Creative Playmaker';
-    return [{ icon: ICONE_DO_ESTILO[daBase] || '🪄', name: daBase, descricao: PLAYSTYLE_DESCRICAO[daBase as PlayStyle] || '' }];
+    return [{ icon: ICONE_DO_ESTILO[daBase] || '💡', name: daBase, descricao: PLAYSTYLE_DESCRICAO[daBase as PlayStyle] || '' }];
   }, [player, team]);
 
   // O resumo (as seis medidas do cartao): tiradas SO dos atributos do 3D. O goleiro mostra os seus (Diving, Handling, Kicking, Reflexes, Speed, Positioning).

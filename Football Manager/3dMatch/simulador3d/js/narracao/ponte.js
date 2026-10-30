@@ -206,6 +206,12 @@ const Ponte = {
     nomes do motor; vai para os selects do painel e passa por `Tatics.update` (assim o painel mostra o que o manager mandou). Motor ->
     manager (`tatica_alterada`): quando o utilizador mexe no painel do 3D, as mesmas chaves voltam. `_aplicando` evita o eco.
     */
+    // Repoe o ON/OFF dos Playing Styles nos jogadores do treinador (depois de a partida ser montada: o `tatica` pode ter chegado antes de os jogadores existirem).
+    _reaplicarPlayingStyles() {
+        if (typeof this._playingStylesLigados !== 'boolean' || typeof Match === 'undefined' || typeof AdaptadorManager === 'undefined') return;
+        const casa = ((AdaptadorManager._opcoes || {}).taticaDe || 'casa') === 'casa';
+        for (const p of ((casa ? Match.players : Match.opponents) || [])) p.playingStyleDesligado = !this._playingStylesLigados;
+    },
     aplicarTatica(m) {
         if (typeof Tatics === 'undefined') return;
         this._aplicando = true;
@@ -221,6 +227,12 @@ const Ponte = {
             if (m.agressividade) Tatics.agressividade = m.agressividade;
             // As posicoes por zona (com / sem bola) que o treinador ajustou no Match Tactics.
             if (m.zonas !== undefined && AdaptadorManager._ladoUtilizador && (!m.zonasFormacao || m.zonasFormacao === AdaptadorManager._ladoUtilizador.nome)) AdaptadorManager.registarZonas(AdaptadorManager._ladoUtilizador.chave, AdaptadorManager._ladoUtilizador.nome, m.zonas);
+            // PLAYING STYLES do time do treinador: ON/OFF no Match Tactics (aba GENERAL). Desligados, os jogadores jogam sem o estilo individual (`playingStyleDesligado`, ver estiloAtivoDe).
+            if (typeof m.playingStylesLigados === 'boolean') {
+                const casa = ((AdaptadorManager._opcoes || {}).taticaDe || 'casa') === 'casa';
+                for (const p of (casa ? Match.players : Match.opponents)) p.playingStyleDesligado = !m.playingStylesLigados;
+                this._playingStylesLigados = m.playingStylesLigados;
+            }
             if (Array.isArray(m.setores)) {
                 Tatics.setores.length = 0;
                 m.setores.forEach(x => Tatics.setores.push(x));
@@ -310,7 +322,7 @@ const Ponte = {
     },
 
     _preparar(m) {
-        AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala, ocupacao: m.ocupacao, ocupacaoVisitante: m.ocupacaoVisitante });
+        AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala, ocupacao: m.ocupacao, ocupacaoVisitante: m.ocupacaoVisitante }); this._reaplicarPlayingStyles();
         this._preparada = this._chave(m);
         this._medir();
         this._ligarPainel();
@@ -360,7 +372,7 @@ const Ponte = {
         // A partida no motor: elencos, escalacao, formacoes e tatica.
         // Se o `preparar` ja montou esta partida (e a entrada dos times esta a correr), nao se refaz nada: so se solta a espera.
         const jaPreparada = (this.modo === 'visivel' && this._preparada === this._chave(m));
-        if (!jaPreparada) AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala, ocupacao: m.ocupacao, ocupacaoVisitante: m.ocupacaoVisitante });
+        if (!jaPreparada) AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala, ocupacao: m.ocupacao, ocupacaoVisitante: m.ocupacaoVisitante }); this._reaplicarPlayingStyles();
         this._preparada = null;
         if (Match.ball) Match.ball.visible = true;   // o `esconderTimes` do arranque
         if (typeof Abertura !== 'undefined') Abertura.aguardarSaida = false;
