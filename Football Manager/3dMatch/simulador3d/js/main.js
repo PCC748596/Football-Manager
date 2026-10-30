@@ -1213,14 +1213,14 @@ function animate(time) {
         let titleEl = document.getElementById('app-title');
         if (titleEl) titleEl.innerText = 'SOCCER SIM | FPS: ' + fps;
         
-        if (fps < 30 && window.Config && window.Config.enableCrowd && !window.crowdDisabledByFps) {
+        if (fps < 20 && window.Config && window.Config.enableCrowd && !window.crowdDisabledByFps) {   // a torcida so se desliga abaixo de 20 fps
             window.consecutiveLowFps = (window.consecutiveLowFps || 0) + 1;
-            if (window.consecutiveLowFps >= 10) { // 10 segundos consecutivos abaixo de 30 FPS (a torcida sumia por quedas curtas)
+            if (window.consecutiveLowFps >= 10) { // 10 segundos consecutivos abaixo de 20 FPS (a torcida sumia por quedas curtas)
                 window.crowdDisabledByFps = true;
                 if (typeof Crowd !== 'undefined') Crowd.setVisivel(false);
                 let uiToggle = document.getElementById('toggle-fans');
                 if (uiToggle) uiToggle.checked = false; // atualiza a interface
-                console.warn("Performance Mode: Crowd automatically disabled due to low FPS (< 40).");
+                console.warn("Performance Mode: Crowd automatically disabled due to low FPS (< 20).");
                 titleEl.innerText = 'SOCCER SIM | FPS: ' + fps + ' (Crowd Disabled)';
             }
         } else {
@@ -1287,7 +1287,9 @@ function animate(time) {
             frame partia ou não.
             */
             const PASSO_MAX = (1 / 60) * GAME_SPEED * 1.5;
-            const corte = partirPasso(delta * window.speedMultiplier * GAME_SPEED, PASSO_MAX);
+            // No maximo 2 passos por frame: medido num iPad a 19 fps eram 3 (passos/frame 3.00), o que acrescentava logica a um frame ja lento. Abaixo de ~20 fps o jogo
+            // anda mais devagar em vez de entrar em espiral (ver `guarda` abaixo).
+            const corte = partirPasso(Math.min(delta * window.speedMultiplier * GAME_SPEED, PASSO_MAX * 2), PASSO_MAX);
             for (let i = 0; i < corte.n; i++) Match.update(corte.passo);
             const guarda = corte.n;
             /*

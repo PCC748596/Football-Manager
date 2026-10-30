@@ -81,12 +81,26 @@ const Qualidade = {
         const alvo = fpsAlvo || 60, r = window.rendererCore;
         if (!r || !(fps > 0)) return;
         let mudou = false;
-        if (fps < alvo - 8) {
+        /*
+        SO DESCE SE ISSO AJUDA. Medido num iPad: a escala foi ao minimo (0.6, canvas 645x327) e o FPS ficou nos 19 — a carga nao era de pixeis (era geometria: 2.7 M de triangulos com
+        a torcida), e a imagem ficou desfocada sem ganho nenhum. Depois de cada descida guarda-se o FPS de antes; se na leitura seguinte o ganho for < 10% desfaz-se o passo e
+        deixa-se de descer (`_semGanho`) ate a escala poder voltar a subir por si.
+        */
+        if (this._fpsAntes !== undefined) {
+            const antes = this._fpsAntes; this._fpsAntes = undefined;
+            if (fps < antes * 1.1) {
+                this.escala = Math.min(1, +(this.escala + 0.1).toFixed(2)); this._semGanho = true; this._baixos = 0; mudou = true;
+            }
+        } else if (fps < alvo - 8) {
             this._altos = 0;
-            if (++this._baixos >= 5 && this.escala > this.escalaMin + 1e-6) { this.escala = Math.max(this.escalaMin, +(this.escala - 0.1).toFixed(2)); this._baixos = 0; mudou = true; }
+            if (++this._baixos >= 5 && !this._semGanho && this.escala > this.escalaMin + 1e-6) {
+                this._fpsAntes = fps;
+                this.escala = Math.max(this.escalaMin, +(this.escala - 0.1).toFixed(2)); this._baixos = 0; mudou = true;
+            }
         } else if (fps >= alvo - 2) {
             this._baixos = 0;
             if (++this._altos >= 4 && this.escala < 1 - 1e-6) { this.escala = Math.min(1, +(this.escala + 0.05).toFixed(2)); this._altos = 0; mudou = true; }
+            if (this.escala >= 1 - 1e-6) this._semGanho = false;
         } else { this._baixos = 0; this._altos = 0; }
         if (mudou) {
             r.setPixelRatio(this.pixelRatioEfetivo());
