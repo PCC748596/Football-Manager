@@ -23,7 +23,7 @@ const Qualidade = {
         LOW:    { sombras: false, mapa: 512,  pixelRatio: 1.5, adeptos: 0.25, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: false }
     },
     // RESOLUCAO DINAMICA: a escala (0.85..1) que multiplica o pixel ratio do nivel. Desce se o FPS cai e sobe quando recupera (ver `ajustarPelaFps`, chamado uma vez por segundo).
-    escala: 1, _baixos: 0, _altos: 0, escalaMin: 1,
+    escala: 1, _baixos: 0, _altos: 0, escalaMin: 0.6,
     nivel: 'HIGH',   // sem `?q=` (a pagina do simulador aberta sozinha) fica como sempre foi; o manager manda sempre o nivel, e o dele e LOW
 
     _doUrl: function () {
@@ -33,11 +33,25 @@ const Qualidade = {
 
     cfg: function () { return this.niveis[this.nivel] || this.niveis.LOW; },
 
+    /*
+    TABLET/TELEMOVEL: pixel ratio 1 e resolucao dinamica que pode descer. O `pixelRatio: 1.5` dos niveis fazia um iPad (devicePixelRatio 2) desenhar 2.25x os pixeis — 8.7 MP por
+    frame com sombreamento por luz — e o tecto de 1.0 para dispositivos touch (main.js) deixou de valer quando o `Qualidade` passou a mandar no pixel ratio (relato: no iPad o FPS
+    nao passa de 25 mesmo sem torcida). Aqui o tecto volta, e o `escalaMin` deixa de ser 1 (com 1 a resolucao dinamica nunca descia).
+    */
+    ehTouch: function () {
+        if (typeof window === 'undefined') return false;
+        return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 850);
+    },
+    pixelRatioEfetivo: function () {
+        const c = this.cfg(), dpr = window.devicePixelRatio || 1;
+        return Math.min(dpr, this.ehTouch() ? Math.min(1.0, c.pixelRatio) : c.pixelRatio) * this.escala;
+    },
+
     // Depois de o renderer e a luz existirem (e a meio do jogo): sombras, mapa e pixel ratio.
     aplicar: function () {
         const c = this.cfg(), r = window.rendererCore, luz = window.dirLightCore;
         if (!r) return;
-        r.setPixelRatio(Math.min(window.devicePixelRatio || 1, c.pixelRatio) * this.escala);
+        r.setPixelRatio(this.pixelRatioEfetivo());
         r.setSize(window.innerWidth, window.innerHeight);
         const mudouSombra = r.shadowMap.enabled !== c.sombras;
         r.shadowMap.enabled = c.sombras;
@@ -75,8 +89,7 @@ const Qualidade = {
             if (++this._altos >= 4 && this.escala < 1 - 1e-6) { this.escala = Math.min(1, +(this.escala + 0.05).toFixed(2)); this._altos = 0; mudou = true; }
         } else { this._baixos = 0; this._altos = 0; }
         if (mudou) {
-            const c = this.cfg();
-            r.setPixelRatio(Math.min(window.devicePixelRatio || 1, c.pixelRatio) * this.escala);
+            r.setPixelRatio(this.pixelRatioEfetivo());
             r.setSize(window.innerWidth, window.innerHeight);
         }
     },

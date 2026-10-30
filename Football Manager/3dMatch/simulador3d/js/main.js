@@ -241,6 +241,19 @@ O que muda, e porque cada coisa:
 `window.jogoNoturno` guarda o estado para quem precisar de o ler.
 =============================================================================
 */
+/*
+LUZES APAGADAS NAO CONTAM. Uma SpotLight com `intensity = 0` mas `visible = true` continua no programa de sombreamento de TODOS os materiais: o shader faz o calculo da luz por
+fragmento mesmo a zero. De dia eram 46 SpotLights (holofotes e luzes sob a cobertura) a custar a cada pixel — medido na cena, 46 visiveis com intensidade 0 — e e uma das razoes do
+iPad nao passar dos 25 fps. Agora `visible` acompanha a intensidade; trocar dia/noite muda o numero de luzes e o Three recompila os materiais uma vez (um soluco, so ao trocar).
+*/
+function sincronizarLuzesDoEstadio() {
+    const HF = window.holofotes;
+    if (!HF) return;
+    for (const l of (HF.luzes || [])) l.visible = l.intensity > 0;
+    for (const l of (HF.luzesSob || [])) l.visible = l.intensity > 0;
+}
+if (typeof window !== 'undefined') window.sincronizarLuzesDoEstadio = sincronizarLuzesDoEstadio;
+
 function definirPeriodo(noite) {
     const H = (typeof Holofotes !== 'undefined') ? Holofotes : null;
     if (!H) return;
@@ -261,6 +274,7 @@ function definirPeriodo(noite) {
             HF.matLampada.emissiveIntensity = P.holofotesAcesos ? 1.0 : 0;
         }
         if (HF.luzesSob) for (const l of HF.luzesSob) l.intensity = P.holofotesAcesos ? 0.9 : 0;
+        sincronizarLuzesDoEstadio();
         if (HF.matLuzSob) {
             HF.matLuzSob.color.setHex(P.holofotesAcesos ? 0xfff1d0 : 0x555555);
             HF.matLuzSob.emissive.setHex(P.holofotesAcesos ? 0xfff1d0 : 0x000000);
@@ -1363,7 +1377,9 @@ function animate(time) {
     // A captura dos ultimos 30 s (F9 salva): corre sempre que o jogo corre, nao durante uma repeticao.
     if (window.CapturaDeJogo && !window.isPaused && !(window.MatchReplay && window.MatchReplay.isReplaying)) window.CapturaDeJogo.registar(1 / 60);
     if (window.PlacasLed && window.PlacasLed.tick) window.PlacasLed.tick();
+    const _tR0 = performance.now();
     rendererCore.render(scene, cameraCore);
+    painelDePerformance(time, performance.now() - _tR0);
 
     auditarPerformance(time);
 }
@@ -1402,6 +1418,47 @@ ligar uma bandeira antes de jogar. `window.auditarPerf = false` cala.
 =============================================================================
 */
 const PERF_INTERVALO = 30;
+
+/*
+PAINEL DE PERFORMANCE NO ECRA (`?perf=1` no URL do manager ou do simulador, ou `localStorage.fm_perf = '1'`): o iPad nao tem consola a mao, e e la que o problema aparece. Uma vez por
+segundo mostra: fps, o tempo do frame (media, o pior e o percentil 95 — as "pequenas travadas" sao o pior), o tempo que o JS gasta a SUBMETER o desenho (`render`, o custo das
+chamadas de desenho) e a simulacao, as chamadas/triangulos/programas/geometrias/texturas do Three, as luzes visiveis, os passos de logica por frame, o pixel ratio e o tamanho do canvas.
+`render` alto com fps baixo = limitado por chamadas de desenho (muitas malhas); `render` baixo com fps baixo = limitado pela GPU (pixeis, luzes, sombras).
+*/
+function painelDePerformance(time, msRender) {
+    if (window._perfPainelOn === undefined) {
+        let on = /[?&]perf=1/.test(location.search);
+        try { on = on || localStorage.getItem('fm_perf') === '1'; } catch (e) { /* sem armazenamento */ }
+        window._perfPainelOn = on;
+        if (on) {
+            const el = document.createElement('pre');
+            el.style.cssText = 'position:fixed;left:6px;top:6px;z-index:99999;margin:0;padding:6px 8px;background:rgba(0,0,0,0.72);color:#7CFC9A;font:11px/1.35 ui-monospace,Menlo,monospace;pointer-events:none;border-radius:6px;white-space:pre';
+            document.body.appendChild(el);
+            window._perfEl = el; window._perfAmostras = []; window._perfT = time; window._perfRender = 0; window._perfFr = 0;
+        }
+    }
+    if (!window._perfPainelOn) return;
+    const A = window._perfAmostras;
+    if (window._perfUlt) A.push(time - window._perfUlt);
+    window._perfUlt = time;
+    window._perfRender += msRender; window._perfFr++;
+    if (time - window._perfT < 1000) return;
+    const n = A.length || 1, soma = A.reduce((a, b) => a + b, 0);
+    const ord = A.slice().sort((a, b) => a - b);
+    const p95 = ord.length ? ord[Math.floor(ord.length * 0.95)] : 0, pior = ord.length ? ord[ord.length - 1] : 0;
+    const r = rendererCore.info;
+    let luzes = 0; scene.traverse(o => { if (o.isLight && o.visible) luzes++; });
+    const dpr = rendererCore.getPixelRatio(), cv = rendererCore.domElement;
+    window._perfEl.textContent = [
+        'FPS ' + (1000 * n / soma).toFixed(0) + '   frame ' + (soma / n).toFixed(1) + ' ms  p95 ' + p95.toFixed(0) + '  pior ' + pior.toFixed(0),
+        'render() JS ' + (window._perfRender / Math.max(1, window._perfFr)).toFixed(1) + ' ms   passos/frame ' + ((window._perfPassos || 0) / Math.max(1, window._perfFr)).toFixed(2),
+        'calls ' + r.render.calls + '   tris ' + r.render.triangles + '   programas ' + (r.programs ? r.programs.length : '-'),
+        'geom ' + r.memory.geometries + '   tex ' + r.memory.textures + '   luzes visiveis ' + luzes,
+        'pixelRatio ' + dpr.toFixed(2) + '  canvas ' + cv.width + 'x' + cv.height + '  escala ' + (typeof Qualidade !== 'undefined' ? Qualidade.escala : '-'),
+        'sombras ' + (rendererCore.shadowMap.enabled ? 'ON' : 'off') + '  q ' + (typeof Qualidade !== 'undefined' ? Qualidade.nivel : '-')
+    ].join(String.fromCharCode(10));
+    window._perfAmostras = []; window._perfT = time; window._perfRender = 0; window._perfFr = 0; window._perfPassos = 0;
+}
 
 function auditarPerformance(time) {
     if (window.auditarPerf === false) return;
@@ -1636,7 +1693,7 @@ document.addEventListener("DOMContentLoaded", () => {
         rendererCore = new THREE.WebGLRenderer({ antialias: !isTouchDevice, powerPreference: "high-performance" });
         // Max pixel ratio of 1.0 on tablets to save fill rate
         // Embutido no manager (?embutido=1): pixel ratio 1 (o iframe divide a GPU com a pagina do manager).
-        rendererCore.setPixelRatio((typeof Qualidade !== 'undefined') ? Math.min(window.devicePixelRatio || 1, Qualidade.cfg().pixelRatio) : ((isTouchDevice || /[?&]embutido/.test(location.search)) ? 1 : Math.min(window.devicePixelRatio || 1, 1.5)));   // Qualidade (config/qualidade.js)
+        rendererCore.setPixelRatio((typeof Qualidade !== 'undefined') ? Qualidade.pixelRatioEfetivo() : ((isTouchDevice || /[?&]embutido/.test(location.search)) ? 1 : Math.min(window.devicePixelRatio || 1, 1.5)));   // Qualidade (config/qualidade.js)
         rendererCore.setSize(window.innerWidth, window.innerHeight);
         rendererCore.shadowMap.enabled = (typeof Qualidade === 'undefined') ? true : Qualidade.cfg().sombras;
         rendererCore.shadowMap.type = THREE.PCFShadowMap; // Better performance
@@ -1701,6 +1758,7 @@ document.addEventListener("DOMContentLoaded", () => {
         preencherSelectoresDeEquipa();
         ligarActualizacaoDoElenco();
         Match.init(scene);
+        sincronizarLuzesDoEstadio();   // de dia as luzes dos holofotes ficam fora do desenho (intensidade 0 nao as tira do shader)
         if (typeof Weather !== 'undefined') Weather.init(scene, cameraCore);
         // A cidade à volta do estádio (js/cidade.js). O nevoeiro do Weather esbate o fim dela.
         // ?oculto=1 (a partida dentro do iframe do manager, sem desenhar): a cidade nao se constroi.

@@ -134,7 +134,7 @@ const garantirIframe = (chave: string, estadio?: string, mandante?: string, comp
   if (sessao.iframe && sessao.chave === chave) return;
   if (sessao.iframe) { enviar({ para: 'simulador3d', tipo: 'parar' }); sessao.iframe.remove(); }
   const f = document.createElement('iframe');
-  f.src = urlSimulador() + '?embutido=1&q=' + qualidadeGrafica + (estadio ? '&estadio=' + encodeURIComponent(estadio) : '') + (mandante ? '&mandante=' + encodeURIComponent(mandante) : '') + (competicao ? '&competicao=' + encodeURIComponent(competicao) : '') + (capacidade ? '&capacidade=' + Math.round(capacidade) : '') + (cidadePequena ? '&cidade=pequena' : '');
+  f.src = urlSimulador() + '?embutido=1&q=' + qualidadeGrafica + (estadio ? '&estadio=' + encodeURIComponent(estadio) : '') + (mandante ? '&mandante=' + encodeURIComponent(mandante) : '') + (competicao ? '&competicao=' + encodeURIComponent(competicao) : '') + (capacidade ? '&capacidade=' + Math.round(capacidade) : '') + (cidadePequena ? '&cidade=pequena' : '') + (/[?&]perf=1/.test(location.search) ? '&perf=1' : '');   // ?perf=1 no URL do manager liga o painel de performance do 3D
   f.title = 'Simulador 3D';
   f.allow = 'autoplay; fullscreen';
   f.style.cssText = 'position:fixed;border:0;background:#000;z-index:5;visibility:hidden;left:0;top:0;width:0;height:0';
