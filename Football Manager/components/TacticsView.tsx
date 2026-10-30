@@ -19,6 +19,7 @@ import { setoresPadraoDaFormacao } from '../3dMatch/simulador3dCliente';
 import ZonePositionsModal from './ZonePositionsModal';
 import { campo3d } from '../textSim/atributos3d';
 import TacticPresetsModal from './TacticPresetsModal';
+import { slotsVazios } from '../textSim/escalacao';
 import { FaseZona, ZONAS, postosEfetivos, espelharFase, espelharZona, zonaEspelhada, repor, moverPosto, formacaoTemTabela, temAjustes } from '../textSim/formacoesZonas';
 
 const MoraleArrow = ({ morale }: { morale: number }) => {
@@ -64,7 +65,7 @@ const SET_PIECE_ROLES: { role: SetPieceRole; label: string; attr: { rotulo: stri
   { role: 'penalty', label: 'Penalty taker', attr: { rotulo: 'PEN', valor: p => campo3d(p, ['penalties', 'composure']) } }
 ];
 
-const NOME_DA_ZONA = ['Def. direita', 'Def. centro', 'Def. esquerda', 'Meio direita', 'Meio centro', 'Meio esquerda', 'Atq. direita', 'Atq. centro', 'Atq. esquerda'];
+const NOME_DA_ZONA = ['Def. right', 'Def. centre', 'Def. left', 'Mid right', 'Mid centre', 'Mid left', 'Att. right', 'Att. centre', 'Att. left'];
 
 interface TacticsViewProps {
   setView?: (view: any) => void;
@@ -82,6 +83,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   const [showZonas, setShowZonas] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
   const [presetFoco, setPresetFoco] = useState<null | 'save' | 'load'>(null);
+  // TOQUE (iPad, onde o arrastar nativo falha): toca-se num jogador (banco, pool ou campo) para o SELECIONAR e depois no destino (um titular, um suplente ou o banco).
+  const [selecionado, setSelecionado] = useState<string | null>(null);
   // Editor das posicoes no proprio campo: fase (com/sem a bola) e zona da bola (0-8; null = a formacao base).
   const [aba, setAba] = useState<'geral' | FaseZona>('geral');
   const fase: FaseZona = aba === 'sem' ? 'sem' : 'com';
@@ -174,9 +177,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     if (!st.yellow && !st.red && !st.injury && !susp && !acum) return null;
     return (
       <div className="flex flex-col items-center gap-[1px] mt-[2px]">
-        {(st.yellow || acum > 0) && !st.red && !susp && <span className="flex items-center gap-1 text-[8px] font-black text-yellow-400 uppercase leading-none"><span className="inline-block w-[6px] h-[9px] bg-yellow-400 border border-yellow-600 rounded-[1px]" />Amarelo{acum > 0 ? ` ${acum}/${AMARELOS_PARA_SUSPENSAO}` : ''}</span>}
-        {(st.red || susp) && <span className="flex items-center gap-1 text-[8px] font-black text-red-500 uppercase leading-none"><span className="inline-block w-[6px] h-[9px] bg-red-600 border border-red-800 rounded-[1px]" />Suspenso</span>}
-        {st.injury && <span className={`text-[8px] font-black uppercase leading-none ${getInjuryColorClass(st.injury)}`}>✚ Lesão</span>}
+        {(st.yellow || acum > 0) && !st.red && !susp && <span className="flex items-center gap-1 text-[8px] font-black text-yellow-400 uppercase leading-none"><span className="inline-block w-[6px] h-[9px] bg-yellow-400 border border-yellow-600 rounded-[1px]" />Yellow{acum > 0 ? ` ${acum}/${AMARELOS_PARA_SUSPENSAO}` : ''}</span>}
+        {(st.red || susp) && <span className="flex items-center gap-1 text-[8px] font-black text-red-500 uppercase leading-none"><span className="inline-block w-[6px] h-[9px] bg-red-600 border border-red-800 rounded-[1px]" />Suspended</span>}
+        {st.injury && <span className={`text-[8px] font-black uppercase leading-none ${getInjuryColorClass(st.injury)}`}>✚ Injured</span>}
       </div>
     );
   };
@@ -398,6 +401,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
 
   // O editor das posicoes (antes o modal): ajustes por formacao, fase e zona da bola. O campo desenha a area de jogo dentro de `inset-10` (2.5rem de cada lado).
   const formacaoAtual = userTeam.tactics.formation;
+  const vaziosDoOnze = slotsVazios(userTeam, players);   // slots sem jogador: o jogo fica fechado ate completar o onze
   const overAtual = userTeam.tactics.zoneOverrides?.[formacaoAtual];
   const temTabela = formacaoTemTabela(formacaoAtual);
   const postos = (temTabela && aba !== 'geral' && zona !== null) ? postosEfetivos(formacaoAtual, overAtual, fase, zona) : null;
@@ -425,6 +429,18 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     if (o) todos[formacaoAtual] = o; else delete todos[formacaoAtual];
     updateTactics(userTeam.id, { zoneOverrides: Object.keys(todos).length ? todos : undefined });
   };
+  // Toque num cartao: seleciona/deseleciona; com um selecionado, toque noutro faz a troca (as MESMAS regras do arrastar: ver handleDropToLineup / handleBenchSwap).
+  const tocarNoCampo = (idx: number) => {
+    const noSlot = localLineup[idx];
+    if (selecionado && selecionado !== noSlot) { handleDropToLineup(selecionado, idx); setSelecionado(null); }
+    else if (noSlot) setSelecionado(selecionado === noSlot ? null : noSlot);
+  };
+  const tocarNoBanco = (id: string) => {
+    if (selecionado && selecionado !== id) { handleBenchSwap(selecionado, id); setSelecionado(null); }
+    else setSelecionado(selecionado === id ? null : id);
+  };
+  const tocarNoPool = (id: string) => setSelecionado(selecionado === id ? null : id);
+  const tocarNoPainelDoBanco = () => { if (selecionado) { handleDropToBench(selecionado); setSelecionado(null); } };
   const zonaEfetiva = zona ?? 4;
   // Arrastar um posto no campo (abas COM/SEM BOLA): da posicao do ponteiro para x,z normalizados (a area de jogo fica dentro de `inset-10`, 40 px de cada lado).
   const paraCampo = (clientX: number, clientY: number) => {
@@ -443,6 +459,11 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             onChange={(over) => { const todos = { ...(userTeam.tactics.zoneOverrides || {}) }; if (over) todos[userTeam.tactics.formation] = over; else delete todos[userTeam.tactics.formation]; updateTactics(userTeam.id, { zoneOverrides: Object.keys(todos).length ? todos : undefined }); }} />}
         {presetFoco && <TacticPresetsModal atual={userTeam.tactics} foco={presetFoco} onClose={() => setPresetFoco(null)} onLoad={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })} />}
         {showPresets && <TacticPresetsModal atual={userTeam.tactics} onClose={() => setShowPresets(false)} onLoad={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })} />}
+        {vaziosDoOnze.length > 0 && (
+            <div className="shrink-0 bg-rose-600/20 border border-rose-500 text-rose-300 rounded-lg px-4 py-2 text-[12px] font-black uppercase tracking-wider">
+                Incomplete line-up: {vaziosDoOnze.length} player(s) missing ({vaziosDoOnze.map(i => currentPositions[i]?.label).filter(Boolean).join(', ')}). Match Day and round simulation stay locked until the starting XI is complete.
+            </div>
+        )}
         <div className="flex justify-between items-center shrink-0">
             <h2 className="text-4xl font-black italic tracking-tighter uppercase">
                 <span className="text-slate-300 dark:text-slate-600">MATCH</span> <span className="text-blue-400">TACTICS</span>
@@ -468,7 +489,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             <div className="flex flex-col gap-4 min-h-0 min-w-0" style={{ width: 'calc(100% + 109px)' }}>
                 <div className="flex-1 relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ minHeight: '350px', containerType: 'size' }}>
                     <div className="absolute top-6 left-6 z-20 flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
-                        {([['geral', 'GERAL'], ['com', 'COM BOLA'], ['sem', 'SEM BOLA']] as const).map(([v, r]) => (
+                        {([['geral', 'GENERAL'], ['com', 'WITH BALL'], ['sem', 'WITHOUT BALL']] as const).map(([v, r]) => (
                             <button key={v} onClick={() => { setAba(v); if (v !== 'geral' && zona === null) setZona(4); }} className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${aba === v ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>{r}</button>
                         ))}
                     </div>
@@ -482,22 +503,22 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                     {Object.keys(FORMATIONS).filter(formacaoTemTabela).map(f => <option key={f} value={f}>{f}</option>)}
                                 </select>
                             )}
-                            <button onClick={() => setContra(c => !c)} className={`${btnQuadrado} ${contra ? 'bg-red-600 text-white' : btnRepor}`} title="Mostra, em retangulos de outra cor, onde o sistema adversario fica com a bola na zona escolhida">Playing Against</button>
-                            <button onClick={() => aplicarOver(espelharZona(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva, zonaEfetiva))} className={`${btnQuadrado} ${btnAcao}`} title="Troca esquerda e direita nesta zona">Virar zona (esq ⇄ dir)</button>
-                            {zonaEspelhada(zonaEfetiva) !== zonaEfetiva && <button onClick={() => aplicarOver(espelharZona(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva, zonaEspelhada(zonaEfetiva)))} className={`${btnQuadrado} ${btnAcao}`} title="Copia estas posicoes, espelhadas, para a zona do outro lado">Copiar espelhado → {NOME_DA_ZONA[zonaEspelhada(zonaEfetiva)]}</button>}
-                            <button onClick={() => aplicarOver(espelharFase(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva))} className={`${btnQuadrado} ${btnAcao}`}>Espelhar {fase === 'com' ? 'com bola' : 'sem bola'} (linhas)</button>
-                            <button onClick={() => aplicarOver(repor(overAtual, fase, zonaEfetiva))} className={`${btnQuadrado} ${btnRepor}`}>Repor esta zona</button>
-                            <button onClick={() => aplicarOver(repor(overAtual, fase))} className={`${btnQuadrado} ${btnRepor}`}>Repor {fase === 'com' ? 'com bola' : 'sem bola'} (zonas)</button>
-                            <button disabled={!temAjustes(overAtual)} onClick={() => aplicarOver(undefined)} className={`${btnQuadrado} bg-rose-600/80 disabled:opacity-30 text-white hover:bg-rose-600`}>Repor a formação toda</button>
+                            <button onClick={() => setContra(c => !c)} className={`${btnQuadrado} ${contra ? 'bg-red-600 text-white' : btnRepor}`} title="Shows, in another colour, where the opposing system sits with the ball in the chosen zone">Playing Against</button>
+                            <button onClick={() => aplicarOver(espelharZona(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva, zonaEfetiva))} className={`${btnQuadrado} ${btnAcao}`} title="Swaps left and right in this zone">Flip zone (L ⇄ R)</button>
+                            {zonaEspelhada(zonaEfetiva) !== zonaEfetiva && <button onClick={() => aplicarOver(espelharZona(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva, zonaEspelhada(zonaEfetiva)))} className={`${btnQuadrado} ${btnAcao}`} title="Copies these positions, mirrored, to the zone on the other side">Copy mirrored → {NOME_DA_ZONA[zonaEspelhada(zonaEfetiva)]}</button>}
+                            <button onClick={() => aplicarOver(espelharFase(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva))} className={`${btnQuadrado} ${btnAcao}`}>Mirror {fase === 'com' ? 'with ball' : 'without ball'} (rows)</button>
+                            <button onClick={() => aplicarOver(repor(overAtual, fase, zonaEfetiva))} className={`${btnQuadrado} ${btnRepor}`}>Reset this zone</button>
+                            <button onClick={() => aplicarOver(repor(overAtual, fase))} className={`${btnQuadrado} ${btnRepor}`}>Reset {fase === 'com' ? 'with ball' : 'without ball'} (zones)</button>
+                            <button disabled={!temAjustes(overAtual)} onClick={() => aplicarOver(undefined)} className={`${btnQuadrado} bg-rose-600/80 disabled:opacity-30 text-white hover:bg-rose-600`}>Reset whole formation</button>
                             <>
-                                <button onClick={() => setPresetFoco('save')} className={`${btnQuadrado} bg-emerald-600 text-white hover:bg-emerald-500`} title="Grava a tatica atual (formacao, estilo e posicoes)">Save</button>
-                                <button onClick={() => setPresetFoco('load')} className={`${btnQuadrado} bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600`} title="Carrega uma tatica gravada ou de um ficheiro .json">Load</button>
+                                <button onClick={() => setPresetFoco('save')} className={`${btnQuadrado} bg-emerald-600 text-white hover:bg-emerald-500`} title="Saves the current tactic (formation, style and positions)">Save</button>
+                                <button onClick={() => setPresetFoco('load')} className={`${btnQuadrado} bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600`} title="Loads a saved tactic or one from a .json file">Load</button>
                             </>
                         </div>
                     )}
 
                     <div className="absolute top-6 right-6 z-10 flex flex-col items-end">
-                        <span className="text-[10px] font-black text-blue-300 uppercase tracking-widest leading-none mb-1">ENTROSAMENTO</span>
+                        <span className="text-[10px] font-black text-blue-300 uppercase tracking-widest leading-none mb-1">CHEMISTRY</span>
                         <div className="flex items-baseline">
                             <span className="text-5xl font-black text-slate-300 dark:text-white/20 italic leading-none tracking-tighter">{teamChemistry}</span>
                             <span className="text-2xl font-black text-blue-300/50 italic">%</span>
@@ -593,13 +614,13 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         // COM BOLA / SEM BOLA: so o posto — um retangulo 30x20 com o numero e a posicao, no uniforme, e o nome por baixo.
                         if (aba !== 'geral') {
                             return (
-                                <div key={idx} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropToLineup(e.dataTransfer.getData("playerId"), idx)} className={`absolute flex flex-col items-center z-10 ${arrasto?.slot === idx ? '' : 'transition-all duration-500'}`} style={{ ...(arrasto?.slot === idx ? emCampo(arrasto.x, arrasto.z) : postos && postos[idx] ? emCampo(postos[idx].x, postos[idx].z) : { left: `${pos.x}%`, top: `${pos.y}%` }), transform: `translate(-50%, ${pos.label === 'GK' ? 5 : -15}px)`, opacity: isRed ? 0.2 : 1 }}>
+                                <div key={idx} onDragOver={(e) => e.preventDefault()} onClick={() => { if (!postos) tocarNoCampo(idx); }} onDrop={(e) => handleDropToLineup(e.dataTransfer.getData("playerId"), idx)} className={`absolute flex flex-col items-center z-10 ${arrasto?.slot === idx ? '' : 'transition-all duration-500'}`} style={{ ...(arrasto?.slot === idx ? emCampo(arrasto.x, arrasto.z) : postos && postos[idx] ? emCampo(postos[idx].x, postos[idx].z) : { left: `${pos.x}%`, top: `${pos.y}%` }), transform: `translate(-50%, ${pos.label === 'GK' ? 5 : -15}px)`, opacity: isRed ? 0.2 : 1 }}>
                                     <div
                                         onPointerDown={e => { if (!postos) return; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); setArrasto({ slot: idx, ...paraCampo(e.clientX, e.clientY) }); }}
                                         onPointerMove={e => { if (arrasto && arrasto.slot === idx) setArrasto({ slot: idx, ...paraCampo(e.clientX, e.clientY) }); }}
                                         onPointerUp={() => { if (arrasto && arrasto.slot === idx) { aplicarOver(moverPosto(formacaoAtual, overAtual, fase, zonaEfetiva, idx, arrasto.x, arrasto.z)); setArrasto(null); } }}
                                         className="flex items-center justify-center rounded-md border whitespace-nowrap font-black leading-none shadow-sm cursor-grab active:cursor-grabbing touch-none select-none"
-                                        style={{ width: 45, height: 30, fontSize: 10, background: color, borderColor: kitNoc || kitCollarColor || 'rgba(255,255,255,0.4)', color: kitNumberColor || '#fff', textShadow: kitNoc ? `0 0 1px ${kitNoc}` : undefined }}>
+                                        style={{ filter: player ? undefined : 'brightness(0.3)', width: 45, height: 30, fontSize: 10, background: color, borderColor: kitNoc || kitCollarColor || 'rgba(255,255,255,0.4)', color: kitNumberColor || '#fff', textShadow: kitNoc ? `0 0 1px ${kitNoc}` : undefined }}>
                                         {player?.shirtNumber ?? '-'}{' | '}{pos.label}
                                     </div>
                                     <span className="mt-0.5 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap">{player ? player.name.split(' ').pop() : '---'}</span>
@@ -608,12 +629,12 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         }
 
                         return (
-                            <div key={idx} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropToLineup(e.dataTransfer.getData("playerId"), idx)} className="absolute flex flex-col items-center justify-center w-24 h-24 transition-all duration-500 z-10" style={{ ...(postos && postos[idx] ? emCampo(postos[idx].x, postos[idx].z) : { left: `${pos.x}%`, top: `${pos.y}%` }), transform: `translate(-50%, calc(-50% + ${pos.label === 'GK' ? 20 : 0}px)) scale(0.8)`, opacity: isRed ? 0.2 : 1 }}>
+                            <div key={idx} onDragOver={(e) => e.preventDefault()} onClick={() => tocarNoCampo(idx)} onDrop={(e) => handleDropToLineup(e.dataTransfer.getData("playerId"), idx)} className={`absolute flex flex-col items-center justify-center w-24 h-24 transition-all duration-500 z-10 ${player && selecionado === player.id ? 'ring-4 ring-blue-400 rounded-xl bg-blue-400/20' : ''}`} style={{ ...(postos && postos[idx] ? emCampo(postos[idx].x, postos[idx].z) : { left: `${pos.x}%`, top: `${pos.y}%` }), transform: `translate(-50%, calc(-50% + ${pos.label === 'GK' ? 20 : 0}px)) scale(0.8)`, opacity: isRed ? 0.2 : 1 }}>
                                 <div className="relative">
                                     <div className="absolute top-1/2 -translate-y-1/2 -left-8 bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded-sm shadow-sm z-10">
                                         <span className="text-[14px] font-black text-slate-500 dark:text-slate-400 uppercase leading-none block">{pos.label}</span>
                                     </div>
-                                    <div draggable={!!player} onDragStart={(e) => e.dataTransfer.setData("playerId", player?.id || "")} className={`relative flex flex-col items-center group mt-[13px] ${player ? 'cursor-grab active:cursor-grabbing' : ''}`}>
+                                    <div draggable={!!player} onDragStart={(e) => e.dataTransfer.setData("playerId", player?.id || "")} style={player ? undefined : { filter: 'brightness(0.28) saturate(0.5)' }} className={`relative flex flex-col items-center group mt-[13px] ${player ? 'cursor-grab active:cursor-grabbing' : 'animate-pulse'}`}>
                                         <ShirtIcon 
                                             color={color} 
                                             color2={color2} 
@@ -665,13 +686,13 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                     </div>
                 </div>
 
-                <div onDragOver={(e) => { e.preventDefault(); setIsOverBench(true); }} onDragLeave={() => setIsOverBench(false)} onDrop={(e) => handleDropToBench(e.dataTransfer.getData("playerId"))} className={`bg-white dark:bg-slate-900/50 rounded-xl p-5 flex flex-col gap-0 h-[201px] shadow-sm border transition-all ${isOverBench ? 'border-blue-400 bg-blue-50/50' : 'border-slate-200 dark:border-slate-800'}`}>
+                <div onDragOver={(e) => { e.preventDefault(); setIsOverBench(true); }} onDragLeave={() => setIsOverBench(false)} onClick={tocarNoPainelDoBanco} onDrop={(e) => handleDropToBench(e.dataTransfer.getData("playerId"))} className={`bg-white dark:bg-slate-900/50 rounded-xl p-5 flex flex-col gap-0 h-[201px] shadow-sm border transition-all ${isOverBench ? 'border-blue-400 bg-blue-50/50' : 'border-slate-200 dark:border-slate-800'}`}>
                     <div className="flex justify-between items-center mb-0">
                         <div className="flex items-center gap-4">
-                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">SUBSTITUTOS</span>
+                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">SUBSTITUTES</span>
                             {isMatchOngoing && currentMatch && (
                                 <div className="bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded flex items-center gap-2 shadow-sm">
-                                    <span className="text-[9px] font-black text-amber-500/70 uppercase">SUBS RESTANTES</span>
+                                    <span className="text-[9px] font-black text-amber-500/70 uppercase">SUBS LEFT</span>
                                     <span className="text-[11px] font-black text-amber-400">{subsRemaining} / {maxSubs}</span>
                                 </div>
                             )}
@@ -708,12 +729,13 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                              } else benchColor = getPosColor(p.position);
                             const status = getPlayerMatchStatus(p.id);
                             return (
-                                <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.stopPropagation(); handleBenchSwap(e.dataTransfer.getData("playerId"), p.id); }} onClick={() => removeFromSquad(p.id)} title={indisponivelParaReserva(p.id) ? "Indisponível: lesionado ou suspenso" : undefined} className={`${indisponivelParaReserva(p.id) ? "opacity-40 grayscale " : ""}flex-shrink-0 w-[85px] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-lg p-1 flex flex-col items-center justify-start hover:border-blue-300 cursor-pointer group shadow-sm transition-all`}>
+                                <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.stopPropagation(); handleBenchSwap(e.dataTransfer.getData("playerId"), p.id); }} onClick={(e) => { e.stopPropagation(); tocarNoBanco(p.id); }} title={indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${indisponivelParaReserva(p.id) ? "opacity-40 grayscale " : ""}${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-[85px] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-lg p-1 flex flex-col items-center justify-start hover:border-blue-300 cursor-pointer group shadow-sm transition-all`}>
+                                    {!jogoIniciado && <button onClick={(e) => { e.stopPropagation(); removeFromSquad(p.id); }} title="Remove from bench" className="absolute top-1/2 -translate-y-1/2 right-1 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>}
                                     <div className="flex justify-between w-full items-start mb-1">
                                         <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span></span>
                                         <MoraleArrow morale={p.morale} />
                                     </div>
-                                    <div className="relative mt-[2px]">
+                                    <div className="relative mt-[2px] -translate-x-2">
                                         <ShirtIcon 
                                             color={benchColor} 
                                             color2={benchColor2} 
@@ -797,7 +819,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                 const status = getPlayerMatchStatus(p.id);
 
                                 return (
-                                    <div key={p.id} draggable onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} className="flex-shrink-0 w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1.5 flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group">
+                                    <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onClick={(e) => { e.stopPropagation(); tocarNoPool(p.id); }} title={indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${indisponivelParaReserva(p.id) ? "opacity-40 grayscale " : ""}${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}flex-shrink-0 w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1.5 flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
                                         <div className="relative mt-[2px]">
                                             <ShirtIcon 
                                                 color={d.c1} 
@@ -872,7 +894,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                         numberOutlineColor={d.noc} sleeveColor={d.sc} scale={0.8} longSleeves={pl.position === Position.GK} />
                                     <span className="text-[9px] font-black text-slate-500 dark:text-slate-300 uppercase truncate max-w-full leading-tight">{pl.name.split(' ').pop()}</span>
                                     <span className="text-[10px] font-black text-amber-500 leading-none">{r.attr.rotulo} {r.attr.valor(pl)}</span>
-                                    <button onClick={() => assignSetPiece(r.role, undefined)} title="Remove" className="absolute -top-1 -right-3 text-[10px] font-black text-slate-400 hover:text-rose-500">✕</button>
+                                    <button onClick={() => assignSetPiece(r.role, undefined)} title="Remove" className="absolute top-1/2 -translate-y-1/2 -right-5 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>
                                 </div>
                             ) : (
                                 <div className="h-[62px] flex items-center justify-center text-[9px] font-bold text-slate-400 uppercase italic text-center px-2">drag a player here</div>
@@ -886,7 +908,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
 
             <div className="flex flex-col gap-4 min-h-0 min-w-0">
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm pb-6">
-                    <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic mb-4">UNIFORME</h3>
+                    <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic mb-4">KIT</h3>
                     <div className="flex justify-around items-center">
                         {[0, 1, 2, 3].map((idx) => (
                             <div 

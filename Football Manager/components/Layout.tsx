@@ -169,7 +169,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
               onClick={handleContinue}
               className={`w-full min-h-[44px] font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 text-sm tracking-widest uppercase active:scale-95 border-b-4 ${isMatchDay ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 border-emerald-800' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20 border-blue-800'}`}
             >
-              <span className="xl:hidden">▶</span><span className="hidden xl:inline">{isSimulating ? 'SIMULANDO...' : (isMatchDay ? 'JOGAR PARTIDA' : 'CONTINUAR')}</span>
+              <span className="xl:hidden">▶</span><span className="hidden xl:inline">{isSimulating ? 'SIMULATING...' : (isMatchDay ? 'PLAY MATCH' : 'CONTINUE')}</span>
             </button>
             )}
 

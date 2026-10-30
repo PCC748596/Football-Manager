@@ -39,8 +39,41 @@ export interface ResultadoMotor {
   relato: { minuto: number; texto: string; importante?: boolean }[];
 }
 
+/*
+ESCALACAO SEM BURACOS. Um slot vazio (um titular arrastado para o banco sem ninguem no lugar, uma expulsao, um jogador vendido) fazia o motor 3D falhar com "escalacao: jogador nao encontrado no slot N"
+e o jogo ficava preso no campo. Antes de montar o payload cada slot sem jogador do time e preenchido: primeiro com alguem do banco da MESMA posicao, depois com o melhor do banco, depois com o melhor
+do plantel livre (sem lesao), nunca repetindo ninguem. O goleiro so entra no slot GK e o slot GK so leva goleiro, quando houver.
+*/
+const completarEscalacao = (team: Team, players: Player[]): { lineup: string[]; bench: string[] } => {
+  const doTime = players.filter(p => p.teamId === team.id);
+  const existe = (id: string) => !!id && doTime.some(p => p.id === id);
+  const formacao = (team.tactics?.formation || '4-4-2') as keyof typeof FORMATIONS;
+  const slots = FORMATIONS[formacao] || FORMATIONS['4-4-2'];
+  const lineup = slots.map((_, i) => (existe(team.lineup[i]) ? team.lineup[i] : ''));
+  let bench = (((team as any).bench || []) as string[]).filter(existe).filter(id => !lineup.includes(id));
+  if (lineup.every(Boolean)) return { lineup, bench };
+  const usado = () => new Set([...lineup, ...bench]);
+  const livres = doTime.filter(p => !p.injury).sort((a, b) => b.skill - a.skill);
+  const ehGK = (p: Player) => p.position === 'GK';
+  lineup.forEach((id, i) => {
+    if (id) return;
+    const gkSlot = slots[i].label === 'GK';
+    const doBanco = bench.map(b => doTime.find(p => p.id === b)!).filter(Boolean);
+    const cand = doBanco.find(p => (p.position as string) === slots[i].label && ehGK(p) === gkSlot)
+      || doBanco.filter(p => ehGK(p) === gkSlot).sort((a, b) => b.skill - a.skill)[0]
+      || livres.find(p => !usado().has(p.id) && ehGK(p) === gkSlot)
+      || doBanco.sort((a, b) => b.skill - a.skill)[0]
+      || livres.find(p => !usado().has(p.id));
+    if (!cand) return;
+    lineup[i] = cand.id; bench = bench.filter(b => b !== cand.id);
+  });
+  return { lineup, bench };
+};
+
 const ladoDe = (team: Team, players: Player[]): LadoPayload => {
   const porId: Record<string, any> = {};
+  const completa = completarEscalacao(team, players);
+  team = { ...team, lineup: completa.lineup, bench: completa.bench } as Team;
   // O onze e os substitutos (o banco 3D mostra os 10 da aba Tactics).
   const ids = [...team.lineup.filter(Boolean), ...(((team as any).bench || []) as string[]).filter(Boolean)];
   for (const id of ids) {

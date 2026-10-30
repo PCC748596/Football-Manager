@@ -54,20 +54,20 @@ const TacticPresetsModal: React.FC<Props> = ({ atual, onLoad, onClose, foco }) =
       const j = JSON.parse(await f.text());
       const brutas: any[] = Array.isArray(j) ? j : Array.isArray(j?.taticas) ? j.taticas : (j?.tactics ? [j] : []);
       const validas = brutas.filter(x => x && typeof x.name === 'string' && x.tactics && typeof x.tactics.formation === 'string');
-      if (!validas.length) { setAviso('Ficheiro sem táticas válidas.'); return; }
+      if (!validas.length) { setAviso('File has no valid tactics.'); return; }
       let l = [...lista];
       for (const v of validas) {
         const ex = l.find(p => p.name.toLowerCase() === v.name.toLowerCase());
         const nova: Preset = { id: ex?.id || String(Date.now()) + Math.random().toString(36).slice(2, 6), name: v.name, date: v.date || new Date().toLocaleString(), tactics: v.tactics };
         l = ex ? l.map(p => p.id === ex.id ? nova : p) : [nova, ...l];
       }
-      setLista(l); gravarLista(l); setAviso(`${validas.length} tática(s) importada(s).`);
-    } catch { setAviso('Não consegui ler o ficheiro.'); }
+      setLista(l); gravarLista(l); setAviso(`${validas.length} tactic(s) imported.`);
+    } catch { setAviso('Could not read the file.'); }
   };
   // Grava a tatica atual POR CIMA de uma ja gravada (mesmo nome e id), sem precisar de escrever o nome outra vez.
   const substituir = (p: Preset) => {
     const l = lista.map(x => x.id === p.id ? { ...x, date: new Date().toLocaleString(), tactics: JSON.parse(JSON.stringify(atual)) as Tactics } : x);
-    setLista(l); gravarLista(l); setAviso(`"${p.name}" substituída.`); setNome(''); setPendente(null);
+    setLista(l); gravarLista(l); setAviso(`"${p.name}" replaced.`); setNome(''); setPendente(null);
   };
   const apagar = (id: string) => { const l = lista.filter(p => p.id !== id); setLista(l); gravarLista(l); };
 
@@ -75,35 +75,35 @@ const TacticPresetsModal: React.FC<Props> = ({ atual, onLoad, onClose, foco }) =
     <div className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-6" onClick={onClose}>
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-6 w-[610px] max-w-[95vw] max-h-[86vh] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center">
-          <h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-700 dark:text-white">Gravar / Carregar tática</h3>
+          <h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-700 dark:text-white">Save / Load tactic</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl font-black leading-none">✕</button>
         </div>
 
         <div className="flex gap-2">
-          <input autoFocus={foco === 'save'} value={nome} onChange={e => setNome(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') guardar(); }} maxLength={40} placeholder="Nome da tática (ex.: 4-3-3 pressão alta)"
+          <input autoFocus={foco === 'save'} value={nome} onChange={e => setNome(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') guardar(); }} maxLength={40} placeholder="Tactic name (e.g. 4-3-3 high press)"
             className="flex-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-3 py-2 text-[12px] font-bold text-slate-700 dark:text-white outline-none focus:border-blue-400" />
-          <button onClick={guardar} disabled={!nome.trim()} className="px-4 py-2 rounded bg-blue-600 disabled:opacity-30 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500">Gravar</button>
+          <button onClick={guardar} disabled={!nome.trim()} className="px-4 py-2 rounded bg-blue-600 disabled:opacity-30 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500">Save</button>
         </div>
-        <span className="text-[9px] text-slate-400 leading-tight -mt-2">Grava a tática atual: {atual.formation}, estilo {atual.style}{atual.zoneOverrides?.[atual.formation] ? ', com posições ajustadas' : ''}. Um nome já existente é substituído.</span>
+        <span className="text-[9px] text-slate-400 leading-tight -mt-2">Saves the current tactic: {atual.formation}, style {atual.style}{atual.zoneOverrides?.[atual.formation] ? ', with adjusted positions' : ''}. An existing name is replaced.</span>
 
         <div className="flex gap-2 items-center">
-          <button onClick={() => baixar('taticas.json', lista)} disabled={!lista.length} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 disabled:opacity-30 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title="Guarda todas as táticas num ficheiro .json no computador">Exportar tudo (.json)</button>
-          <button onClick={() => entrada.current?.click()} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title="Carrega táticas de um ficheiro .json">Importar (.json)</button>
+          <button onClick={() => baixar('taticas.json', lista)} disabled={!lista.length} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 disabled:opacity-30 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title="Saves all tactics to a .json file on this device">Export all (.json)</button>
+          <button onClick={() => entrada.current?.click()} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title="Loads tactics from a .json file">Import (.json)</button>
           <input ref={entrada} type="file" accept=".json,application/json" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) importar(f); e.target.value = ''; }} />
           {aviso && <span className="text-[10px] font-bold text-emerald-500">{aviso}</span>}
         </div>
 
         <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar">
-          {lista.length === 0 && <span className="text-[11px] text-slate-400 italic text-center py-6">Nenhuma tática gravada.</span>}
+          {lista.length === 0 && <span className="text-[11px] text-slate-400 italic text-center py-6">No saved tactics.</span>}
           {lista.map(p => (
             <div key={p.id} className="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
               <div className="flex-1 min-w-0">
                 <div className="text-[12px] font-black text-slate-700 dark:text-white truncate">{p.name}</div>
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate">{p.tactics.formation} · {p.tactics.style}{p.tactics.zoneOverrides?.[p.tactics.formation] ? ' · posições' : ''} · {p.date}</div>
+                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate">{p.tactics.formation} · {p.tactics.style}{p.tactics.zoneOverrides?.[p.tactics.formation] ? ' · positions' : ''} · {p.date}</div>
               </div>
-              <button onClick={() => setPendente(p)} title="Grava a tática atual por cima desta" className="px-3 py-1.5 rounded bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500">Gravar aqui</button>
-              <button onClick={() => { onLoad(JSON.parse(JSON.stringify(p.tactics))); onClose(); }} className="px-3 py-1.5 rounded bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500">Carregar</button>
-              <button onClick={() => baixar(seguro(p.name) + '.json', [p])} title="Exportar esta tática (.json)" className="px-2 py-1.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[11px] font-black hover:bg-blue-600 hover:text-white">⬇</button>
+              <button onClick={() => setPendente(p)} title="Overwrites this one with the current tactic" className="px-3 py-1.5 rounded bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500">Save here</button>
+              <button onClick={() => { onLoad(JSON.parse(JSON.stringify(p.tactics))); onClose(); }} className="px-3 py-1.5 rounded bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500">Load</button>
+              <button onClick={() => baixar(seguro(p.name) + '.json', [p])} title="Export this tactic (.json)" className="px-2 py-1.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[11px] font-black hover:bg-blue-600 hover:text-white">⬇</button>
               <button onClick={() => apagar(p.id)} title="Apagar" className="px-2 py-1.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[11px] font-black hover:bg-rose-600 hover:text-white">🗑</button>
             </div>
           ))}
@@ -112,11 +112,11 @@ const TacticPresetsModal: React.FC<Props> = ({ atual, onLoad, onClose, foco }) =
       {pendente && (
         <div className="fixed inset-0 z-[310] bg-black/60 flex items-center justify-center p-6" onClick={e => { e.stopPropagation(); setPendente(null); }}>
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-6 w-[420px] max-w-[95vw] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-700 dark:text-white">Substituir tática?</h3>
-            <p className="text-[12px] text-slate-500 dark:text-slate-300 leading-snug">A tática <b className="text-slate-700 dark:text-white">{pendente.name}</b> será gravada por cima com a tática atual ({atual.formation}, estilo {atual.style}). O que estava gravado nela será perdido.</p>
+            <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-700 dark:text-white">Replace tactic?</h3>
+            <p className="text-[12px] text-slate-500 dark:text-slate-300 leading-snug">The tactic <b className="text-slate-700 dark:text-white">{pendente.name}</b> will be overwritten with the current tactic ({atual.formation}, style {atual.style}). What was saved in it will be lost.</p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setPendente(null)} className="px-4 py-2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600">Cancelar</button>
-              <button autoFocus onClick={() => substituir(pendente)} className="px-4 py-2 rounded bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500">Substituir</button>
+              <button onClick={() => setPendente(null)} className="px-4 py-2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600">Cancel</button>
+              <button autoFocus onClick={() => substituir(pendente)} className="px-4 py-2 rounded bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500">Replace</button>
             </div>
           </div>
         </div>

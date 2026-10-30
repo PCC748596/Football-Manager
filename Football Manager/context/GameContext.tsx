@@ -14,6 +14,7 @@ import { MercadoState, Universo, Evento, mercadoVazio, prepararOrcamentos, propo
 import { recalcularValores } from '../textSim/valuation';
 import { Negociacao, Oferta, abrirNegociacao, assinar, chanceDeAceitar, propostaDoJogador, resolverNegociacoes } from '../textSim/negociacao';
 import { rotuloDaFase } from '../textSim/competitions';
+import { slotsVazios } from '../textSim/escalacao';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino } from '../textSim/trainingService';
@@ -160,6 +161,12 @@ interface GameContextType {
   gameState: GameState;
   startGame: (teamId: string, managerName: string, countryId: string, leagueId?: string) => void;
   advanceDay: () => void;
+  /** NEXT GAME: passa os dias (5 s por dia) ate ao proximo jogo do utilizador; para num e-mail de resposta de negociacao. */
+  proximoJogo: { date: string; adversario: string; dias: number } | null;
+  autoAvancoAtivo: boolean;
+  autoAvancoMotivo: string;
+  iniciarProximoJogo: () => void;
+  pararProximoJogo: (motivo?: string) => void;
   advanceWeek: () => void;
   playMatchDay: (modo?: any) => void; // 'VISUAL' = 3D ao vivo (MatchDay); qualquer outra coisa = narrado (MatchRoundView)
   pauseMatch: () => void;
@@ -852,6 +859,37 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  /*
+  NEXT GAME: passa os dias ate ao proximo jogo do utilizador, 5 segundos por dia (o primeiro dia sai logo). Para: no dia do jogo, quando chega um e-mail de RESPOSTA de negociacao
+  (transferencia ou renovacao — as mensagens CONTRACT/TRANSFER sem chave de aviso automatico) ou quando o treinador carrega em STOP. O estado vive aqui, e nao no botao, para o
+  avanco continuar se o treinador mudar de aba.
+  */
+  const [autoAvanco, setAutoAvanco] = useState<null | { alvo: string; inicio: string; inboxIds: string[] }>(null);
+  const [autoAvancoMotivo, setAutoAvancoMotivo] = useState('');
+  const proximoJogo = (() => {
+    if (!gameState.userTeamId) return null;
+    const j = fixtures.filter(f => !f.played && f.date > gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId)).sort((a, b) => a.date.localeCompare(b.date))[0];
+    if (!j) return null;
+    const adv = teams.find(t => t.id === (j.homeTeamId === gameState.userTeamId ? j.awayTeamId : j.homeTeamId));
+    const dias = Math.round((new Date(j.date + 'T12:00:00').getTime() - new Date(gameState.currentDate + 'T12:00:00').getTime()) / 86400000);
+    return { date: j.date, adversario: adv?.name || '', dias };
+  })();
+  const iniciarProximoJogo = () => {
+    if (!proximoJogo) return;
+    setAutoAvancoMotivo('');
+    setAutoAvanco({ alvo: proximoJogo.date, inicio: gameState.currentDate, inboxIds: inbox.map(m => m.id) });
+  };
+  const pararProximoJogo = (motivo?: string) => { setAutoAvanco(null); setAutoAvancoMotivo(motivo ?? ''); };
+  useEffect(() => {
+    if (!autoAvanco) return;
+    const resposta = inbox.find(m => !autoAvanco.inboxIds.includes(m.id) && (m.categoria === 'TRANSFER' || m.categoria === 'CONTRACT') && m.keys.length === 0);
+    if (resposta) { pararProximoJogo('Negotiation reply: ' + resposta.assunto); return; }
+    if (gameState.currentDate >= autoAvanco.alvo) { pararProximoJogo('Match day'); return; }
+    if (gameState.isProcessing) { pararProximoJogo(''); return; }
+    const t = setTimeout(() => advanceDay(), gameState.currentDate === autoAvanco.inicio ? 0 : 5000);
+    return () => clearTimeout(t);
+  }, [autoAvanco, gameState.currentDate, inbox]);
+
   const advanceWeek = () => {
     motor3dRes.current = {};
     if (matchTimerRef.current) clearInterval(matchTimerRef.current);
@@ -1318,8 +1356,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // O modo vem do chamador: gameState.view nunca chega a 'MATCH' (a tela e estado local do App), por isso nao serve para decidir.
+  // Escalacao incompleta com jogo hoje: nem o 3D nem o jogo rapido nem a simulacao da rodada comecam (o App tambem leva o treinador ao MATCH TACTICS).
+  const escalacaoBloqueiaJogo = () => {
+    const ut = teams.find(x => x.id === gameState.userTeamId);
+    if (!ut) return false;
+    const temJogo = fixtures.some(f => f.date === gameState.currentDate && !f.played && (f.homeTeamId === ut.id || f.awayTeamId === ut.id));
+    return temJogo && slotsVazios(ut, players).length > 0;
+  };
+
   const playMatchDay = (modo?: any) => {
     if (gameState.isProcessing || motor3dProgresso !== null) return;
+    if (escalacaoBloqueiaJogo()) return;
     if (modo !== 'VISUAL') {
       prepararMotor3D().then(() => playMatchDayCore('SIMULATION'));
     } else {
@@ -1491,6 +1538,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const finishMatchDayInstant = async () => {
+    if (escalacaoBloqueiaJogo()) return;
     pauseMatch();
     if (motor3dProgresso !== null) return;
     await prepararMotor3D();
@@ -2002,7 +2050,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <GameContext.Provider value={{
-      teams, players, fixtures, gameState, startGame, advanceDay, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
+      teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
       hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,

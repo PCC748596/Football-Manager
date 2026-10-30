@@ -1,4 +1,5 @@
 
+import NextGameButton from './NextGameButton';
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { Position, Player } from '../types';
@@ -320,13 +321,16 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                  })()}
                </div>
              ) : (
-               <button 
+               <div className="flex items-center gap-2 flex-wrap">
+<button 
                  onClick={advanceDay}
                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-6 py-2.5 rounded text-[10px] uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center gap-2 h-full"
                >
                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m13 17 5-5-5-5M6 17l5-5-5-5"/></svg>
                  {t('dash_advance')}
                </button>
+<NextGameButton />
+</div>
              )}
          </div>
       </div>

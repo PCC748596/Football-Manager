@@ -87,7 +87,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   }, [gameState.matchMinute, iniciou]);
 
   if (!match || !homeTeam || !awayTeam) {
-    return <div className="text-white p-10 text-center font-black uppercase italic">Sem partida hoje.</div>;
+    return <div className="text-white p-10 text-center font-black uppercase italic">No match today.</div>;
   }
 
   // Com o 3D o fim do jogo fica no 3D (as estatisticas dele): a aba de estatisticas do manager so abre se o treinador a escolher.
@@ -195,13 +195,13 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                                   onClick={() => setActiveTab('stats')} 
                                   className={`${activeTab === 'stats' ? 'bg-blue-650 hover:bg-blue-600 border-blue-850' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-4 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4`}
                                 >
-                                  ESTATÍSTICAS
+                                  STATISTICS
                                 </button>
                             </>
                         )}
                         <button onClick={handleReset} className="bg-slate-700 hover:bg-slate-600 text-white font-black px-4 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4 border-slate-900">RESET</button>
                         <button onClick={() => handleAction()} className="bg-blue-600 hover:bg-blue-500 text-white font-black px-8 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4 border-blue-800">
-                          {gameState.matchMinute >= 90 ? 'CONCLUIR' : podePular ? 'PULAR' : gameState.isProcessing ? 'PAUSAR' : (gameState.matchMinute === 0 || gameState.matchMinute === 45) && !iniciou ? 'SAÍDA' : 'CONTINUAR'}
+                          {gameState.matchMinute >= 90 ? 'FINISH' : podePular ? 'SKIP' : gameState.isProcessing ? 'PAUSE' : (gameState.matchMinute === 0 || gameState.matchMinute === 45) && !iniciou ? 'KICK-OFF' : 'CONTINUE'}
                         </button>
                     </div>
                 </div>
@@ -210,25 +210,25 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
         
         {!showStats && (
         <div className="bg-slate-900 border-b border-slate-800 px-6 py-2 flex items-center gap-2 flex-wrap">
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mr-1">Câmera</span>
-            {[['orbit', 'Órbita'], ['center', 'TV Centro'], ['sideline', 'Lateral Móvel'], ['lateraltv', 'Lateral TV'], ['grua', 'Grua'], ['cinema', 'Cinema']].map(([modo, nome]) => (
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mr-1">Camera</span>
+            {[['orbit', 'Orbit'], ['center', 'TV Centre'], ['sideline', 'Moving Sideline'], ['lateraltv', 'TV Sideline'], ['grua', 'Crane'], ['cinema', 'Cinema']].map(([modo, nome]) => (
               <button key={modo} onClick={() => { setCamara(modo); simulador3dEnviar({ tipo: 'camera', modo }); }}
                 className={`${camara === modo ? 'bg-sky-600 border-sky-800' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-3 py-1.5 rounded text-[10px] uppercase tracking-wider border-b-2 active:scale-95`}>{nome}</button>
             ))}
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-3 mr-1">Velocidade</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-3 mr-1">Speed</span>
             {[0.5, 1, 1.5].map(v => (
               <button key={v} onClick={() => { setVelocidade(v); simulador3dVelocidade(v); }}
                 className={`${velocidade === v ? 'bg-sky-600 border-sky-800' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-3 py-1.5 rounded text-[10px] tracking-wider border-b-2 active:scale-95`}>{v}x</button>
             ))}
             <button onClick={() => simulador3dEnviar({ tipo: 'replay', segundos: 10 })}
-              title="Repete os ultimos 10 segundos (clique de novo para parar)"
+              title="Replays the last 10 seconds (click again to stop)"
               className={`${replayAtivo ? 'animate-pulse bg-yellow-400 hover:bg-yellow-300 border-yellow-600 text-black' : 'bg-slate-700 hover:bg-slate-600 border-slate-900 text-white'} font-black px-3 py-1.5 rounded text-[10px] uppercase tracking-wider border-b-2 active:scale-95`}>Replay 10s</button>
             {eventoHud && (
               <span className="ml-3 flex items-center gap-2 bg-slate-950 border border-slate-600 rounded px-3 py-1 text-white font-black text-[10px] uppercase tracking-widest">
                 <span className="text-sm">{eventoHud.esq}</span>{eventoHud.nome}<span className="text-sm">{eventoHud.dir}</span>
               </span>
             )}
-            <button onClick={() => simulador3dTelaCheia()} className="ml-auto bg-emerald-700 hover:bg-emerald-600 text-white font-black px-4 py-1.5 rounded text-[10px] uppercase tracking-widest border-b-2 border-emerald-900 active:scale-95">Tela cheia</button>
+            <button onClick={() => simulador3dTelaCheia()} className="ml-auto bg-emerald-700 hover:bg-emerald-600 text-white font-black px-4 py-1.5 rounded text-[10px] uppercase tracking-widest border-b-2 border-emerald-900 active:scale-95">Fullscreen</button>
         </div>
         )}
         <div className="flex-1 bg-slate-900 flex items-center justify-center overflow-hidden relative">
@@ -262,7 +262,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 return (
                     <div className="bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-800 p-6 w-full max-w-5xl h-full flex flex-col overflow-hidden shadow-2xl animate-fade-in text-white">
                          <h2 className="text-sm font-black uppercase mb-4 text-center tracking-widest text-slate-400">
-                              {gameState.matchMinute >= 90 ? "ESTATÍSTICAS FINAIS" : "ESTATÍSTICAS DA PARTIDA"}
+                              {gameState.matchMinute >= 90 ? "STATISTICS FINAIS" : "MATCH STATISTICS"}
                          </h2>
                          <div className="flex-1 grid grid-cols-1 md:grid-cols-[1fr_1.2fr_1fr] gap-6 overflow-hidden min-h-0">
                              {/* HOME TEAM RATINGS */}

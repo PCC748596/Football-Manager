@@ -1,4 +1,5 @@
 
+import NextGameButton from './NextGameButton';
 import React, { useState, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { Position, Player } from '../types';
@@ -171,13 +172,16 @@ const TrainingView: React.FC = () => {
             Schedule your team's weekly development
           </p>
         </div>
-        <button 
+        <div className="flex items-center gap-2 flex-wrap">
+<button 
            onClick={advanceDay}
            className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-6 py-2.5 rounded text-[10px] uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center gap-2"
         >
            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m13 17 5-5-5-5M6 17l5-5-5-5"/></svg>
            {t('dash_advance')}
         </button>
+<NextGameButton />
+</div>
       </div>
 
       <div className="flex-1 grid grid-cols-12 gap-6 min-h-0">
@@ -423,33 +427,33 @@ const TrainingView: React.FC = () => {
 
                {/* SQUAD GROWTH & ASSIGNMENT */}
                <div className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-lg flex flex-col transition-colors">
-                  <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/50 flex justify-between items-center">
-                      <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest italic">Squad Assignments</h3>
+                  <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/50 flex justify-between items-center">
+                      <h3 className="text-[12px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest italic">Squad Assignments</h3>
                       <div className="flex gap-2">
                           <button 
                             onClick={() => setSquadSortBy('growth')}
-                            className={`text-[8px] font-black uppercase tracking-widest transition-colors ${squadSortBy === 'growth' ? 'text-blue-500' : 'text-slate-400 hover:text-slate-600'}`}
+                            className={`text-[11px] px-2 py-1 font-black uppercase tracking-widest transition-colors ${squadSortBy === 'growth' ? 'text-blue-500' : 'text-slate-400 hover:text-slate-600'}`}
                           >
                             Growth
                           </button>
                           <span className="text-slate-200 dark:text-slate-800">|</span>
                           <button 
                             onClick={() => setSquadSortBy('fitness')}
-                            className={`text-[8px] font-black uppercase tracking-widest transition-colors ${squadSortBy === 'fitness' ? 'text-emerald-500' : 'text-slate-400 hover:text-slate-600'}`}
+                            className={`text-[11px] px-2 py-1 font-black uppercase tracking-widest transition-colors ${squadSortBy === 'fitness' ? 'text-emerald-500' : 'text-slate-400 hover:text-slate-600'}`}
                           >
                             Fit
                           </button>
                       </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
                       {squadPlayers.map((p, idx) => {
                           return (
-                          <div key={p.id} className="flex flex-col p-2.5 rounded bg-white dark:bg-slate-800/30 border border-slate-100 dark:border-slate-700/50 hover:border-blue-500/30 transition-all group">
+                          <div key={p.id} className="flex flex-col px-3 py-4 rounded bg-white dark:bg-slate-800/30 border border-slate-100 dark:border-slate-700/50 hover:border-blue-500/30 transition-all group">
                               <div className="grid grid-cols-12 items-center gap-3">
                                   {/* COL 1: PLAYER INFO */}
                                   <div className="col-span-3 flex flex-col min-w-0">
-                                      <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase truncate leading-tight">{p.name}</span>
-                                      <span className="text-[9px] text-slate-400 font-bold uppercase truncate">{p.position} • Age {p.age}</span>
+                                      <span className="text-[15px] font-black text-slate-700 dark:text-slate-200 uppercase truncate leading-tight">{p.name}</span>
+                                      <span className="text-[12px] text-slate-400 font-bold uppercase truncate">{p.position} • Age {p.age}</span>
                                   </div>
 
                                   {/* COL 2: TRAINING CATEGORIES */}
@@ -458,8 +462,8 @@ const TrainingView: React.FC = () => {
                                           { label: 'TEC', val: (p.lastGrowth?.drb || 0) + (p.lastGrowth?.sht || 0) + (p.lastGrowth?.pas || 0) },
                                           { label: 'TAC', val: p.lastGrowth?.def || 0 }
                                       ].map(stat => (
-                                          <div key={stat.label} className="flex flex-col items-center min-w-[20px]">
-                                              <div className="text-[7px] font-black text-slate-400 uppercase mb-0.5 leading-none">{stat.label}</div>
+                                          <div key={stat.label} className="flex flex-col items-center min-w-[28px]">
+                                              <div className="text-[10px] font-black text-slate-400 uppercase mb-1 leading-none">{stat.label}</div>
                                               <AttributeGrowthArrow val={stat.val || 0} />
                                           </div>
                                       ))}
@@ -468,18 +472,18 @@ const TrainingView: React.FC = () => {
                                   {/* COL 3: CANSAÇO */}
                                   <div className="col-span-2 flex flex-col items-center gap-1">
                                       <div className="flex items-center gap-1.5">
-                                          <span className="text-[7px] font-black text-slate-400 uppercase leading-none">CAN:</span>
-                                          <span className={`text-[10px] font-black leading-none ${p.fitness < 70 ? 'text-rose-500' : (p.fitness < 90 ? 'text-amber-500' : 'text-emerald-500')}`}>
+                                          <span className="text-[10px] font-black text-slate-400 uppercase leading-none">CAN:</span>
+                                          <span className={`text-[14px] font-black leading-none ${p.fitness < 70 ? 'text-rose-500' : (p.fitness < 90 ? 'text-amber-500' : 'text-emerald-500')}`}>
                                               {Math.round(100 - p.fitness)}%
                                           </span>
                                       </div>
-                                      <FitnessBar fitness={p.fitness} className="w-full h-1 max-w-[45px]" />
+                                      <FitnessBar fitness={p.fitness} className="w-full h-2 max-w-[80px]" />
                                   </div>
 
                                   {/* COL 4: WEEKLY GROWTH */}
                                   <div className="col-span-3 flex flex-col items-center">
-                                      <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">GROWTH</span>
-                                      <div className={`text-[13px] font-black leading-none ${p.weeklyGrowth > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5">GROWTH</span>
+                                      <div className={`text-[20px] font-black leading-none ${p.weeklyGrowth > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
                                           {p.weeklyGrowth > 0 ? `+${p.weeklyGrowth}` : p.weeklyGrowth}
                                       </div>
                                   </div>
@@ -495,7 +499,7 @@ const TrainingView: React.FC = () => {
                                                       key={grp}
                                                       disabled={isLocked}
                                                       onClick={() => updatePlayerTrainingGroup(p.id, grp)}
-                                                      className={`px-2 py-1 text-[8px] font-black transition-colors ${isSelected ? 'bg-blue-500 text-white' : isLocked ? 'bg-slate-100 dark:bg-slate-900/50 text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'bg-white dark:bg-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                                                      className={`px-3.5 py-3 text-[12px] font-black transition-colors ${isSelected ? 'bg-blue-500 text-white' : isLocked ? 'bg-slate-100 dark:bg-slate-900/50 text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'bg-white dark:bg-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                                                   >
                                                       G{grp + 1}
                                                   </button>

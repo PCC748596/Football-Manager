@@ -104,6 +104,13 @@ const AmbienteSonoro = {
         // seguinte, e esse frame chegava a sair com som.
         this._audio.volume = this._ligado ? this._actual : 0;
 
+        // O grito e a reaccao: por Web Audio (ver EfeitosSonoros.registarBuffer); os <audio> ficam como reserva e sao destravados num toque (iOS).
+        if (typeof EfeitosSonoros !== 'undefined' && EfeitosSonoros.registarBuffer) {
+            EfeitosSonoros.registarBuffer('grito', this.ficheiroGrito);
+            EfeitosSonoros.registarBuffer('reacao', this.ficheiroReacao);
+        }
+        this._ligarDestrave();
+
         this.tentarTocar();
 
         /*
@@ -113,6 +120,27 @@ const AmbienteSonoro = {
         const arrancar = () => this.tentarTocar();
         window.addEventListener('pointerdown', arrancar, { once: true });
         window.addEventListener('keydown', arrancar, { once: true });
+    },
+
+    /*
+    DESTRAVAR OS <audio> NO IOS. Um elemento so toca por codigo depois de ter sido iniciado por um toque: no primeiro toque/clique toca-se cada um mudo e para-se logo. O ambiente (`_audio`)
+    ja o faz por `tentarTocar`; o grito, a reaccao e as palmas nao, e por isso nao saiam.
+    */
+    _ligarDestrave() {
+        if (typeof window === 'undefined') return;
+        const destravar = () => {
+            for (const el of [this._grito, this._reacao, this._palmas]) {
+                if (!el || el.__destravado) continue;
+                const vol = el.volume;
+                try {
+                    el.muted = true;
+                    const p = el.play();
+                    const fim = () => { try { el.pause(); el.currentTime = 0; } catch (e) { /* ignora */ } el.muted = false; el.volume = vol; el.__destravado = true; };
+                    if (p && p.then) p.then(fim).catch(() => { el.muted = false; el.volume = vol; }); else fim();
+                } catch (e) { el.muted = false; }
+            }
+        };
+        ['touchend', 'pointerup', 'click', 'keydown'].forEach(ev => window.addEventListener(ev, destravar, { passive: true }));
     },
 
     tentarTocar() {
@@ -190,6 +218,7 @@ const AmbienteSonoro = {
         const t = (typeof Match !== 'undefined' && typeof Match.tempoDeJogo === 'number') ? Match.tempoDeJogo : 0;
         if (t - this._reacaoRelogio < this.reacaoIntervalo && t >= this._reacaoRelogio) return;
         this._reacaoRelogio = t;
+        if (typeof EfeitosSonoros !== 'undefined' && EfeitosSonoros.tocarBuffer && EfeitosSonoros.tocarBuffer('reacao', this.volumeReacao)) return;
         this._reacao.volume = this.volumeReacao;
         try { this._reacao.currentTime = 0; } catch (e) { /* ainda sem dados */ }
         const pr = this._reacao.play();
@@ -216,6 +245,7 @@ const AmbienteSonoro = {
     */
     gritarGolo() {
         if (!this._grito || !this._ligado) return;
+        if (typeof EfeitosSonoros !== 'undefined' && EfeitosSonoros.tocarBuffer && EfeitosSonoros.tocarBuffer('grito', this.volumeGrito)) return;
         this._grito.volume = this.volumeGrito;
         try { this._grito.currentTime = 0; } catch (e) { /* ainda sem dados */ }
         const pr = this._grito.play();

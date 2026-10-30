@@ -69,7 +69,7 @@ export const corrigirEscalacao = (lineup: string[], bench: string[], plantel: Pl
     const orig = por.get(id)!;
     const cand = nb.find(b => por.get(b)?.position === orig.position) || nb[0]
       || livre.find(p => !usados().has(p.id) && p.position === orig.position)?.id || livre.find(p => !usados().has(p.id))?.id;
-    if (!cand) { nl[i] = ''; return; }
+    if (!cand) return;   // sem ninguem para o lugar: fica o que la estava (um buraco na escalacao falha o 3D)
     nl[i] = cand; nb = nb.filter(b => b !== cand);
   });
   for (const p of livre) { if (nb.length >= bench.length) break; if (!usados().has(p.id)) nb.push(p.id); }

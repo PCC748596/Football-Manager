@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { GameProvider, useGame } from './context/GameContext';
+import { slotsVazios } from './textSim/escalacao';
 import Layout from './components/Layout';
 import SquadView from './components/SquadView';
 import LeagueTable from './components/LeagueTable';
@@ -294,10 +295,15 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
 };
 
 const GameContainer: React.FC = () => {
-  const { gameState, startGame, importGameData, t } = useGame();
+  const { gameState, startGame, importGameData, t, userTeam, players, fixtures } = useGame();
   const [appPhase, setAppPhase] = useState<'MENU' | 'CREATE_MANAGER' | 'SELECT_MODE' | 'CAREER' | 'SELECT_TEAM' | 'GAME' | 'SETTINGS' | 'EDITOR'>('MENU');
   const [tempManagerName, setTempManagerName] = useState('');
   const [view, setView] = useState<GameState['view']>('DASHBOARD');
+  // ESCALACAO INCOMPLETA: com jogo hoje e um slot vazio, o Match Day (3D) e a simulacao da rodada ficam fechados e o treinador vai para o MATCH TACTICS.
+  const jogoDoUtilizadorHoje = !!userTeam && fixtures.some(f => f.date === gameState.currentDate && !f.played && (f.homeTeamId === userTeam.id || f.awayTeamId === userTeam.id));
+  const escalacaoIncompleta = jogoDoUtilizadorHoje && slotsVazios(userTeam, players).length > 0;
+  const jogoBloqueado = escalacaoIncompleta && (view === 'MATCH' || view === 'TRAINING');
+  useEffect(() => { if (jogoBloqueado) setView('TACTICS'); }, [jogoBloqueado]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleNewGame = () => setAppPhase('CREATE_MANAGER');
@@ -354,8 +360,8 @@ const GameContainer: React.FC = () => {
 
       {appPhase === 'GAME' && gameState.userTeamId && (
         <Layout setView={setView} currentView={view} onMainMenu={() => setAppPhase('MENU')}>
-          {view === 'TRAINING' && <MatchRoundView setView={setView} />}
-          {view === 'MATCH' && <MatchDay setView={setView} />}
+          {view === 'TRAINING' && !jogoBloqueado && <MatchRoundView setView={setView} />}
+          {view === 'MATCH' && !jogoBloqueado && <MatchDay setView={setView} />}
           {view === 'DASHBOARD' && (
             <DashboardView
               onGoToRoundSimulation={() => setView('TRAINING')}

@@ -67,6 +67,32 @@ const EfeitosSonoros = {
         const destravar = () => { if (this._ctx && this._ctx.state !== 'running') { try { this._ctx.resume(); } catch (e) { /* ignora */ } } };
         ['pointerdown', 'touchstart', 'touchend', 'keydown', 'click'].forEach(ev => window.addEventListener(ev, destravar, { passive: true }));
     },
+    /*
+    SONS EXTRA POR WEB AUDIO (o grito de golo e a reacao da torcida, do AmbienteSonoro): so o buffer, sem elementos <audio>. No iPad um <audio> so toca por codigo depois de ele proprio ter sido
+    iniciado por um toque do utilizador — o grito nunca o tinha sido e saia mudo. O contexto de Web Audio, esse, fica liberto com qualquer toque (ver `_iniciarWebAudio`).
+    */
+    registarBuffer(nome, url) {
+        if (!this._ctx) this._iniciarWebAudio();
+        if (!this._ctx) return;
+        this._sons[nome] = this._sons[nome] || { vozes: [], volume: 1, proxima: 0, ultimo: -Infinity, buffer: null, ativos: new Set() };
+        this._carregarBuffer(nome, url);
+    },
+    /** Toca um buffer registado; devolve false se nao deu (sem contexto, buffer por carregar, contexto suspenso) — o chamador cai no caminho de sempre. */
+    tocarBuffer(nome, volume) {
+        const som = this._sons[nome];
+        if (!this._ctx || !som || !som.buffer) return false;
+        if (this._ctx.state !== 'running') { try { this._ctx.resume(); } catch (e) { /* ignora */ } return false; }
+        try {
+            const src = this._ctx.createBufferSource(); src.buffer = som.buffer;
+            const g = this._ctx.createGain(); g.gain.value = volume;
+            src.connect(g); g.connect(this._ctx.destination);
+            for (const a of som.ativos) { try { a.stop(); } catch (e) { /* ja acabou */ } }   // um golo seguido de outro: recomeca
+            som.ativos.clear(); som.ativos.add(src);
+            src.onended = () => { som.ativos.delete(src); };
+            src.start(0);
+            return true;
+        } catch (e) { return false; }
+    },
     _carregarBuffer(nome, url) {
         if (!this._ctx || typeof fetch === 'undefined') return;
         fetch(url).then(r => r.arrayBuffer()).then(ab => {

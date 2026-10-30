@@ -124,14 +124,14 @@ const Ponte = {
                 '';
             document.head.appendChild(css);
             barra = document.createElement('div'); barra.id = 'barra-topo-tc';
-            const cams = [['orbit', 'Órbita'], ['center', 'TV Centro'], ['sideline', 'Lateral Móvel'], ['lateraltv', 'Lateral TV'], ['grua', 'Grua'], ['cinema', 'Cinema']];
-            barra.innerHTML = '<button id="tc-sair" title="Sair da tela cheia" style="background:#b91c1c">✕ Sair</button><span class="sep"></span><div id="tc-placar-tv"><div class="tv-linha"><span class="tv-eq" id="tv-eq-e">---</span><span class="tv-gol" id="tv-gol-e">0</span>' +
+            const cams = [['orbit', 'Orbit'], ['center', 'TV Centre'], ['sideline', 'Moving Sideline'], ['lateraltv', 'TV Sideline'], ['grua', 'Crane'], ['cinema', 'Cinema']];
+            barra.innerHTML = '<button id="tc-sair" title="Exit fullscreen" style="background:#b91c1c">✕ Exit</button><span class="sep"></span><div id="tc-placar-tv"><div class="tv-linha"><span class="tv-eq" id="tv-eq-e">---</span><span class="tv-gol" id="tv-gol-e">0</span>' +
                 '<span class="tv-vs">vs</span><span class="tv-gol" id="tv-gol-d">0</span><span class="tv-eq" id="tv-eq-d">---</span></div><div class="tv-tempo" id="tv-tempo">00:00</div></div><span class="sep"></span>' +
-                '<span>Câmera</span>' + cams.map(c => '<button data-cam="' + c[0] + '">' + c[1] + '</button>').join('') +
-                '<button data-cam="lateraltv" data-r="3d">3D</button><button data-cam="topdown">2D</button><button id="tc-minimapa" title="Minimapa">Minimapa ON</button><button id="tc-nomes" title="Nomes dos jogadores">Names OFF</button><span class="sep"></span>' +
-                '<span>Velocidade</span>' + [0.5, 1, 1.5].map(v => '<button data-vel="' + v + '">' + v + 'x</button>').join('') +
-                '<button id="tc-pausa">Pausar</button><button id="tc-replay">Replay 10s</button><span class="sep"></span><button id="tc-tactics">Tactics</button>' +
-                '<span id="tc-evento"></span><button id="tc-debug" title="Painel de debug da direita">Debug ON</button><span id="tc-fps" title="Quadros por segundo">FPS --</span>';
+                '<span>Camera</span>' + cams.map(c => '<button data-cam="' + c[0] + '">' + c[1] + '</button>').join('') +
+                '<button data-cam="lateraltv" data-r="3d">3D</button><button data-cam="topdown">2D</button><button id="tc-minimapa" title="Minimap">Minimap ON</button><button id="tc-nomes" title="Player names">Names OFF</button><span class="sep"></span>' +
+                '<span>Speed</span>' + [0.5, 1, 1.5].map(v => '<button data-vel="' + v + '">' + v + 'x</button>').join('') +
+                '<button id="tc-pausa">Pause</button><button id="tc-replay">Replay 10s</button><span class="sep"></span><button id="tc-tactics">Tactics</button>' +
+                '<span id="tc-evento"></span><button id="tc-debug" title="Right-hand debug panel">Debug ON</button><span id="tc-fps" title="Frames per second">FPS --</span>';
             document.body.appendChild(barra);
             barra.addEventListener('click', (e) => {
                 const b = e.target.closest('button'); if (!b) return;
@@ -171,13 +171,13 @@ const Ponte = {
             if (fpsEl && typeof window._fpsAtual === 'number') { const v = window._fpsAtual; fpsEl.textContent = 'FPS ' + v; fpsEl.style.color = v >= 50 ? '#22c55e' : v >= 30 ? '#facc15' : '#ef4444'; }
             // O botao de pausa diz o que FAZ: PAUSAR a correr, CONTINUAR parado (o estado vem do manager, que manda no relogio).
             const bm = barra.querySelector('#tc-minimapa');   // o botao do minimapa mostra o estado real dele
-            if (bm && typeof Minimap !== 'undefined') { const t = 'Minimapa ' + (Minimap.visivel ? 'ON' : 'OFF'); if (bm.textContent !== t) bm.textContent = t; bm.classList.toggle('on', !!Minimap.visivel); }
+            if (bm && typeof Minimap !== 'undefined') { const t = 'Minimap ' + (Minimap.visivel ? 'ON' : 'OFF'); if (bm.textContent !== t) bm.textContent = t; bm.classList.toggle('on', !!Minimap.visivel); }
             const bn = barra.querySelector('#tc-nomes');   // o botao dos nomes mostra o estado real
             if (bn) { const t = 'Names ' + (window.showPlayerNames ? 'ON' : 'OFF'); if (bn.textContent !== t) bn.textContent = t; bn.classList.toggle('on', !!window.showPlayerNames); }
             const bp = barra.querySelector('#tc-pausa');
             if (bp) { // Com o jogo acabado (estado 'terminado', as estatisticas no ecra) o botao e CONTINUAR: o clique (alternar_pausa) conclui a partida no manager e vai para a home.
             const parado = this.estado === 'pausado' || this.estado === 'terminado';
-            const t = this.pularDisponivel() ? 'Pular' : parado ? 'Continuar' : 'Pausar'; if (bp.textContent !== t) bp.textContent = t; bp.classList.toggle('on', parado); }
+            const t = this.pularDisponivel() ? 'Skip' : parado ? 'Continue' : 'Pause'; if (bp.textContent !== t) bp.textContent = t; bp.classList.toggle('on', parado); }
             const rp = barra.querySelector('#tc-replay'); if (rp) rp.classList.toggle('pisca', !!(window.MatchReplay && window.MatchReplay.isReplaying));
         }, 250);
     },
