@@ -1,4 +1,5 @@
 
+import { SetasAGirar } from './NextGameButton';
 import React from 'react';
 import { useGame } from '../context/GameContext';
 import { ThemeMode, Team } from '../types';
@@ -43,6 +44,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
     e.target.value = '';
   };
   const [isSimulating, setIsSimulating] = React.useState(false);
+  const [confirmarMenu, setConfirmarMenu] = React.useState(false);   // modal proprio do MAIN MENU (no lugar do window.confirm)
 
   const isMatchDay = fixtures.some(f => f.date === gameState.currentDate && (f.homeTeamId === userTeam?.id || f.awayTeamId === userTeam?.id));
   const activeMatchView = typeof window !== 'undefined' ? localStorage.getItem('activeMatchView') : null;
@@ -180,7 +182,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
                <span className="text-slate-400 dark:text-slate-800 text-sm ml-1 not-italic">/ {gameState.totalWeeks}</span>
              </div>
              <div className="mt-3 text-[9px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest border-t border-slate-200 dark:border-slate-800 pt-2 transition-colors">
-               {new Date(gameState.currentDate + 'T12:00:00').toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+               <span className="inline-flex items-center justify-center gap-1.5">{new Date(gameState.currentDate + 'T12:00:00').toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}<SetasAGirar className="w-3 h-3 text-blue-500" /></span>
              </div>
            </div>
            
@@ -202,7 +204,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
            </button>
 
            <button
-             onClick={() => { if (window.confirm('Return to the main menu? Progress since your last save will be lost.')) onMainMenu?.(); }}
+             onClick={() => setConfirmarMenu(true)}
              className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 text-white font-black min-h-[44px] xl:min-h-0 py-2.5 rounded border border-slate-700 dark:border-slate-700 hover:border-blue-400 transition-all flex items-center justify-center gap-2 text-[10px] tracking-widest uppercase group"
            >
              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -210,6 +212,19 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
            </button>
         </div>
       </aside>
+
+      {confirmarMenu && (
+        <div className="fixed inset-0 z-[330] bg-black/60 flex items-center justify-center p-6" onClick={() => setConfirmarMenu(false)}>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-6 w-[440px] max-w-[95vw] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-700 dark:text-white">Return to main menu?</h3>
+            <p className="text-[12px] text-slate-500 dark:text-slate-300 leading-snug">Progress since your last save will be lost.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmarMenu(false)} className="px-4 py-2 min-h-[44px] rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600">Cancel</button>
+              <button autoFocus onClick={() => { setConfirmarMenu(false); onMainMenu?.(); }} className="px-4 py-2 min-h-[44px] rounded bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-rose-500">Main menu</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900/30 transition-colors duration-300">
         <div className={`flex-1 overflow-y-auto custom-scrollbar p-5 xl:p-10 ${currentView === 'MATCH' ? 'pt-0' : ''}`}>

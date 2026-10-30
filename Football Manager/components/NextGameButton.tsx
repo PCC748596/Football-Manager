@@ -5,6 +5,17 @@ import { useGame } from '../context/GameContext';
 NEXT GAME: o botao ao lado do Advance Day. Passa os dias ate ao proximo jogo do utilizador, 5 segundos por dia (o motor vive no GameContext: `iniciarProximoJogo`). Para no dia do jogo,
 quando chega um e-mail de resposta de negociacao, ou no STOP. Se nao ha NENHUM treino marcado nos dias ate ao jogo, pede confirmacao antes.
 */
+/** Setas a girar: mostra-se dentro do DIA que esta a passar enquanto o NEXT GAME avanca. */
+export const SetasAGirar: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const { autoAvancoAtivo } = useGame();
+  if (!autoAvancoAtivo) return null;
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`animate-spin ${className}`} aria-label="Advancing days">
+      <path d="M21 12a9 9 0 0 0-15-6.7L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7" /><path d="M16 16h5v5" />
+    </svg>
+  );
+};
+
 const NextGameButton: React.FC = () => {
   const { gameState, proximoJogo, autoAvancoAtivo, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo } = useGame();
   const [confirmar, setConfirmar] = useState(false);

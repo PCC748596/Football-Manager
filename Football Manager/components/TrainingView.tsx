@@ -1,5 +1,5 @@
 
-import NextGameButton from './NextGameButton';
+import NextGameButton, { SetasAGirar } from './NextGameButton';
 import React, { useState, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { Position, Player } from '../types';
@@ -240,6 +240,7 @@ const TrainingView: React.FC = () => {
                         <div className={`text-center py-1.5 rounded-t transition-colors relative z-10 ${day.isToday ? 'bg-blue-600/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-500' : (isMatchDay ? 'text-blue-500' : 'text-slate-400 dark:text-slate-600')}`}>
                           <div className="text-[8px] font-black leading-none uppercase">{day.dayName}</div>
                           <div className="text-xs font-black mt-0.5">{day.dayNum}</div>
+                          {day.isToday && <SetasAGirar className="w-3.5 h-3.5 mx-auto mt-0.5" />}
                         </div>
                        
                        {isMatchDay && matchForDay ? (
