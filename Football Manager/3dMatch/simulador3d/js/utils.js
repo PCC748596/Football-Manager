@@ -1,3 +1,24 @@
+/*
+MATH.HYPOT SEM ALOCACAO. O `Math.hypot` nativo devolve um numero em caixa (HeapNumber) a cada chamada e o V8 nao o inlina: medido num jogo (heap profile com os objectos ja
+libertados), eram ~210 KB de lixo POR QUADRO so de `hypot` (cerca de 13 000 chamadas por quadro, a maioria em `preverBolaEm`, a previsao da bola). Isso e ~12 MB/s de lixo, e cada
+coleta do coletor de lixo e uma pequena travada — num tablet, muito mais notada. Esta versao e uma funcao JS normal, que o V8 inlina e deixa os numeros nos registos (sem
+alocar). Para 2 e 3 argumentos finitos faz sqrt(a*a + b*b [+ c*c]); em tudo o resto (0, 4+ argumentos, NaN, Infinity, overflow) cai no nativo, com o mesmo resultado de sempre.
+*/
+(function () {
+    if (typeof Math === 'undefined' || Math.hypot.__rapido) return;
+    const nativo = Math.hypot;
+    function hypotRapido(a, b, c, d) {
+        if (d === undefined && b !== undefined) {
+            const s = (c === undefined) ? a * a + b * b : a * a + b * b + c * c;
+            if (s < 1e150 && s > 1e-150) return Math.sqrt(s);
+            if (s === 0) return 0;
+        }
+        return nativo.apply(Math, arguments);
+    }
+    hypotRapido.__rapido = true;
+    Math.hypot = hypotRapido;
+})();
+
 function mergeNonIndexedGeometries(geos) {
     let totalVertices = 0;
     geos.forEach(g => {
