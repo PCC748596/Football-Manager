@@ -137,6 +137,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   const isMatchOngoing = gameState.matchMinute > 0
     && gameState.matchMinute < matchEndMinute
     && !currentMatch?.played;
+  // O jogo ja COMECOU (relogio andou, ou o 3D arrancou): o plantel (squad pool) fecha — ninguem do pool entra no banco nem no campo. As SUBSTITUICOES (banco <-> campo) continuam
+  // abertas ate ao fim, enquanto houver trocas (`subsRemaining`).
+  const jogoIniciado = !!currentMatch && !currentMatch.played && (gameState.matchMinute > 0 || gameState.isProcessing || typeof (window as any).motor3dMinuto === 'number');
   const isHome = currentMatch?.homeTeamId === userTeam.id;
   const subsUsed = isHome ? (currentMatch?.subsUsedHome || 0) : (currentMatch?.subsUsedAway || 0);
   const maxSubs = currentMatch?.id.startsWith('fix-friendly-') ? 7 : 5;
@@ -297,8 +300,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
         newBench = newBench.filter(id => id !== playerId);
       }
     } else {
-      // Com o jogo em curso o plantel (squad pool) ja nao troca com o campo: so o banco entra (substituicao).
-      if (isMatchOngoing) return;
+      // Com o jogo iniciado o plantel (squad pool) ja nao troca com o campo: so o banco entra (substituicao).
+      if (jogoIniciado) return;
       newLineup[index] = playerId;
     }
     
@@ -315,8 +318,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     const existingBenchIndex = newBench.indexOf(playerId);
     if (existingBenchIndex !== -1) return; 
     if (indisponivelParaReserva(playerId)) return;
-    // Com o jogo em curso o banco fecha: nem o plantel entra nele, nem quem esta em campo volta para ele.
-    if (isMatchOngoing) return;
+    // Com o jogo iniciado o banco fecha: nem o plantel entra nele, nem quem esta em campo volta para ele (uma substituicao feita e feita).
+    if (jogoIniciado) return;
     if (existingLineupIndex !== -1) {
        if (newBench.length < 10) {
           newLineup[existingLineupIndex] = '';
@@ -339,8 +342,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     const tB = newBench.indexOf(targetId);
     if (tB === -1) return;
     if (sB === -1 && indisponivelParaReserva(sourceId)) return;
-    // Em jogo o plantel nao troca com o banco: so se reordena o banco ou se faz a substituicao (titular <-> banco).
-    if (isMatchOngoing && sB === -1) return;
+    // Com o jogo iniciado o plantel nao troca com o banco: so se reordena o banco ou se faz a SUBSTITUICAO (titular <-> banco, arrastando o titular para o card do suplente).
+    if (jogoIniciado && sB === -1 && sL === -1) return;
+    if (isMatchOngoing && sL !== -1 && subsRemaining <= 0) return;
     if (sL !== -1) {
       newLineup[sL] = targetId;
       newBench[tB] = sourceId;
