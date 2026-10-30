@@ -485,8 +485,9 @@ const Editor = {
         this.scene.add(grelha);
 
         // O boneco a editar e o fantasma com o clip como está no ficheiro.
-        // ?modelo=424: o corpo minimo (construirCorpo `leve` 5, 424 triangulos) em vez do de jogo; o botao `btn-modelo` alterna e recarrega.
-        const LEVE = new URLSearchParams(location.search).get('modelo') === '424' ? 5 : 0;
+        // ?modelo=304 (ou o antigo 424): o corpo minimo da torcida (construirCorpo `leve` 5, 304 triangulos; sem dedos, polegar nem lingueta) em vez do de jogo; o botao `btn-modelo` alterna e recarrega.
+        const _m = new URLSearchParams(location.search).get('modelo');
+        const LEVE = (_m === '304' || _m === '424') ? 5 : 4;   // sem `?modelo`: o corpo do jogo (`leve` 4, 480 triangulos); o de 6548 foi retirado do editor
         const feito = construirCorpo('#3498db', '#34495e', undefined, undefined, LEVE);
         this.corpo = feito.corpo;
         this.rig = feito.rig;
@@ -595,11 +596,12 @@ const Editor = {
             e.target.classList.toggle('activo', this.loop);
         });
         const btnModelo = document.getElementById('btn-modelo');
-        const modelo225 = new URLSearchParams(location.search).get('modelo') === '424';
-        btnModelo.textContent = 'modelo: ' + (modelo225 ? '424 tri' : 'jogo');
+        const _mq = new URLSearchParams(location.search).get('modelo');
+        const modelo225 = (_mq === '304' || _mq === '424');
+        btnModelo.textContent = 'modelo: ' + (modelo225 ? '304 tri (torcida)' : 'jogo (480 tri)');
         btnModelo.addEventListener('click', () => {
             const q = new URLSearchParams(location.search);
-            if (modelo225) q.delete('modelo'); else q.set('modelo', '424');
+            if (modelo225) q.delete('modelo'); else q.set('modelo', '304');
             location.search = q.toString();
         });
         document.getElementById('btn-fantasma').addEventListener('click', (e) => {

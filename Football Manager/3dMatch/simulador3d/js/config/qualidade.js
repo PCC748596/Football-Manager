@@ -7,9 +7,9 @@ O manager passa o nivel no URL do iframe (`?q=LOW`) e, a meio do jogo, na mensag
     sombras      o mapa de sombras do sol (o jogo todo desenha-se duas vezes com ele ligado)
     mapa         resolucao do mapa de sombras
     pixelRatio   quantos pixeis por pixel do ecra (1.5 = 2.25x o trabalho de 1)
-    corpo        o modelo dos jogadores em campo: 4 = 456 triangulos (ver `leve` 4 em pose.js), 1 = leve sem esferas nas juntas (888): so vale ao criar o corpo, ou seja na partida seguinte
+    corpo        o modelo dos jogadores em campo: 4 = 456 triangulos (ver `leve` 4 em pose.js), (os de 912 e 976 triangulos foram retirados): so vale ao criar o corpo, ou seja na partida seguinte
     corpoArbitros o modelo do arbitro e dos assistentes: 4 (456)
-    corpoExtras  o modelo dos restantes (staff, treinadores, reservas no banco, adeptos): 5 = o minimo (400, ver `leve` 5 em pose.js); 1 = o de 888
+    corpoExtras  o modelo dos restantes (staff, treinadores, reservas no banco, adeptos): 5 = o minimo (304, ver `leve` 5 em pose.js)
     adeptos      a FRACAO dos lugares do estadio que a torcida ocupa (1, 0.5, 0.25), seja qual for o estadio: lida ao construir o estadio, vale na proxima partida
 
 O que muda a meio do jogo: sombras, resolucao do mapa e pixel ratio. A torcida so muda quando a partida e montada de novo.

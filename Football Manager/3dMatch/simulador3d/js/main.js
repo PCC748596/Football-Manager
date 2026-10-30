@@ -1457,7 +1457,8 @@ function painelDePerformance(time, msRender) {
         'calls ' + r.render.calls + '   tris ' + r.render.triangles + '   programas ' + (r.programs ? r.programs.length : '-'),
         'geom ' + r.memory.geometries + '   tex ' + r.memory.textures + '   luzes visiveis ' + luzes,
         'pixelRatio ' + dpr.toFixed(2) + '  canvas ' + cv.width + 'x' + cv.height + '  escala ' + (typeof Qualidade !== 'undefined' ? Qualidade.escala : '-'),
-        'sombras ' + (rendererCore.shadowMap.enabled ? 'ON' : 'off') + '  q ' + (typeof Qualidade !== 'undefined' ? Qualidade.nivel : '-')
+        'sombras ' + (rendererCore.shadowMap.enabled ? 'ON' : 'off') + '  q ' + (typeof Qualidade !== 'undefined' ? Qualidade.nivel : '-'),
+        'torcida: fatias desenhadas ' + ((typeof Crowd !== 'undefined' && Crowd._cullVisiveis !== undefined) ? Crowd._cullVisiveis : '-') + ' / ' + ((typeof Crowd !== 'undefined' && Crowd._grupos) ? Crowd._grupos.length : '-') + '  (de ' + ((typeof CrowdModel !== 'undefined') ? CrowdModel.tamanhoDaFatia : '-') + ' adeptos)'
     ].join(String.fromCharCode(10));
     window._perfAmostras = []; window._perfT = time; window._perfRender = 0; window._perfFr = 0; window._perfPassos = 0;
 }

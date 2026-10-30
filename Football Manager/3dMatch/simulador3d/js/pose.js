@@ -233,11 +233,11 @@ if (typeof window !== 'undefined') window.pintarPadraoDeEquipamento = pintarPadr
 da cor `corCamisa`, calcao de `corCalcao`.
 */
 /*
-`leve` (0, 1 ou 2) gasta menos triangulos no MESMO corpo, para comparar no editor (animEditor): 0 = o de sempre (6544 triangulos); 1 = metade (~3500): o torax
+`leve` 1 e 3 foram RETIRADOS (viram o 4). `leve` (0, 1 ou 2) gasta menos triangulos no MESMO corpo, para comparar no editor (animEditor): 0 = o de sempre (6544 triangulos); 1 = metade (~3500): o torax
 deixa de ser subdividido em X (so a subdivisao em Y mantem a textura direita no afunilamento) e as juntas esfericas levam menos segmentos; 2 = minimo (~1700):
 juntas ainda mais simples. O corpo dos jogadores continua em 0.
 NOTA: os numeros acima sao de antes; medido agora (T-pose): 0 = 6520, 1 = 888, 2 = 856, 3 = 952 triangulos.
-`leve` 5 = MINIMO (280 triangulos): sem o torax nu (fica dentro da camisa), cabelo so topo+costas, mao detalhada (palma, dedos, polegar), sem travas.
+`leve` 5 = MINIMO (280 triangulos, era 424): sem o torax nu (fica dentro da camisa), cabelo so topo+costas, mao so com a palma (sem dedos nem polegar), sem lingueta nas chuteiras, sem travas.
 `leve` 4 = METADE do 1 (456 triangulos, 51%): o do 1 sem as 12 travas das chuteiras (-384) e com a casca do torax em 2 subdivisoes de altura em vez de 8 (-48).
 */
 /*
@@ -568,6 +568,8 @@ function aplicarFaceCustom(ap, head, boca, partes, u) {
 
 function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
     leve = leve || 0;
+    // Os corpos de 912 (`leve` 1) e de 976 (`leve` 3) triangulos foram retirados: quem os pedir recebe o `leve` 4 (480, o do jogo). O de 6548 (`leve` 0) fica so para o avatar do treinador e as paginas de face.
+    if (leve === 1 || leve === 3) leve = 4;
     // Pele e juntas seguem o tom do jogador; as juntas ficam um pouco mais
     // escuras que a pele, para o contorno das articulações não desaparecer.
     const ap = aparencia || escolherAparencia(0, 11, 0);
@@ -1285,8 +1287,8 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
             palmaG.add(dedosG);
             handG.userData.dedosG = dedosG;
             handG.userData.ladoPalma = (x > 0 ? -1 : 1);   // a face da palma (a mesma da placa da luva)
-            const n = Math.max(1, MD.dedos);
-            const fatia = MD.palmaLarg / n;
+            const n = (leve === 5) ? 0 : Math.max(1, MD.dedos);   // leve 5 (torcida, staff, reservas): a mao e so a palma, sem dedos nem polegar (-5 caixas por mao)
+            const fatia = MD.palmaLarg / Math.max(1, n);
             const dedoLarg = Math.max(0.02, fatia - MD.folgaEntreDedos);
             const afunil = (typeof MD.dedoAfunil === 'number') ? MD.dedoAfunil : 1;
             const decaim = (typeof MD.dedoDecaimento === 'number') ? MD.dedoDecaimento : 0;
@@ -1348,11 +1350,13 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
             polegarG.position.set(u * ladoPolegar * MD.palmaLarg / 2, -MD.palmaComp * 0.45, 0);
             polegarG.rotation.z = ladoPolegar * MD.aberturaPolegar;
             palmaG.add(polegarG);
-            const polegar = criarPeca(caixaAfunilada(
-                u * MD.polegarLarg, u * MD.polegarComp, u * MD.polegarEsp,
-                (typeof MD.dedoAfunil === 'number') ? MD.dedoAfunil : 1), maoMat);
-            polegar.position.y = -MD.polegarComp / 2;
-            polegarG.add(polegar);
+            if (leve !== 5) {
+                const polegar = criarPeca(caixaAfunilada(
+                    u * MD.polegarLarg, u * MD.polegarComp, u * MD.polegarEsp,
+                    (typeof MD.dedoAfunil === 'number') ? MD.dedoAfunil : 1), maoMat);
+                polegar.position.y = -MD.polegarComp / 2;
+                polegarG.add(polegar);
+            }
         }
         grp.rotation.z = x < 0 ? -Math.PI / 16 : Math.PI / 16; chest.add(grp); return { raiz: grp, cotovelo: elb, mao: handG };
     }
@@ -1436,7 +1440,7 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
         // mais baixa do corpo e é por ela que o jogador toca no relvado.
         peG.userData.chuteira = chuteira;
         // A LINGUETA da chuteira: um retangulo da cor dela, a frente da canela, logo acima do pe (todos os modelos).
-        const lingueta = criarPeca(new THREE.BoxGeometry(u * 0.35 * 0.9, u * 0.2, u * 0.04), bootMat); lingueta.position.set(0, -u * 0.03, u * 0.24); peG.add(lingueta);   // 90% da largura da canela, a sair do topo da chuteira e a frente do meiao
+        if (leve !== 5) { const lingueta = criarPeca(new THREE.BoxGeometry(u * 0.35 * 0.9, u * 0.2, u * 0.04), bootMat); lingueta.position.set(0, -u * 0.03, u * 0.24); peG.add(lingueta); }   // 90% da largura da canela, a sair do topo da chuteira e a frente do meiao
 
         const studGeo = new THREE.CylinderGeometry(u * 0.03, u * 0.02, u * 0.04, 8);
         const posTravas = [[-u * 0.12, u * 0.25], [u * 0.12, u * 0.25], [-u * 0.12, 0], [u * 0.12, 0], [-u * 0.12, -u * 0.3], [u * 0.12, -u * 0.3]];

@@ -49,15 +49,15 @@ label { margin-right:14px; cursor:pointer; }
     chao.rotation.x = -Math.PI / 2; scene.add(chao);
     const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
 
-    const NOMES = ['SEM ESFERAS nas juntas (usado no jogo)', 'METADE (sem travas, torax simples)', 'MINIMO (424 ou menos)'];
+    const NOMES = ['JOGO (sem travas, torax simples)', 'MINIMO (torcida, 304)'];
     const corpos = [], info = document.getElementById('info');
-    [1, 4, 5].forEach((leve, i) => {
+    [4, 5].forEach((leve, i) => {
         const f = construirCorpo('#c0392b', '#ffffff', undefined, undefined, leve);
         // T-pose: bracos na horizontal, pernas e cotovelos esticados.
         f.rig.lArm.rotation.set(0, 0, Math.PI / 2); f.rig.rArm.rotation.set(0, 0, -Math.PI / 2);
         f.rig.lElbow.rotation.x = 0; f.rig.rElbow.rotation.x = 0;
         f.rig.lLeg.rotation.set(0, 0, 0); f.rig.rLeg.rotation.set(0, 0, 0); f.rig.lKnee.rotation.x = 0; f.rig.rKnee.rotation.x = 0;
-        f.corpo.position.set((i - 1) * 2.6, 0, 0);
+        f.corpo.position.set((i - 0.5) * 2.6, 0, 0);
         scene.add(f.corpo);
         let tri = 0, malhas = 0;
         f.corpo.traverse(o => { if (o.isMesh) { malhas++; tri += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; } });

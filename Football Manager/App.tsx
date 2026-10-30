@@ -32,43 +32,43 @@ const StartMenu: React.FC<{ onNewGame: () => void, onContinue: () => void, onSet
   const { t } = useGame();
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 bg-black transition-colors duration-300 overflow-hidden relative">
-       {/* Background: Just solid black or very dark slate as requested (removed football field image) */}
-       <div className="absolute inset-0 bg-slate-950 z-0"></div>
-       
-       <div className="w-full max-w-sm space-y-12 flex flex-col items-center relative z-10">
-          <div className="animate-fade-in flex flex-col items-start w-fit">
-            <h1 className="text-7xl font-black text-white mb-0 tracking-tighter italic leading-none drop-shadow-2xl">
-              FOOTMANAGER
-            </h1>
-            <p className="text-blue-500 text-[10px] tracking-[0.5em] font-black uppercase mt-1 drop-shadow-md">Ultimate Manager 2025</p>
-          </div>
+      {/* Background: Just solid black or very dark slate as requested (removed football field image) */}
+      <div className="absolute inset-0 bg-slate-950 z-0"></div>
 
-          <div className="grid grid-cols-1 gap-3 w-full max-w-[320px]">
-            <button 
-              onClick={onNewGame}
-              className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xl py-4 px-8 rounded shadow-xl transition-all hover:scale-[1.02] active:scale-95 border-b-4 border-blue-800"
-            >
-              {t('start_new')}
-            </button>
-            <button 
-              onClick={onContinue}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xl py-4 px-8 rounded transition-all border-b-4 border-emerald-800 hover:scale-[1.02] active:scale-95 shadow-lg"
-            >
-              {t('start_continue')}
-            </button>
-            <button onClick={onEditor} className="bg-slate-900/80 backdrop-blur-sm text-slate-600 hover:text-white font-bold text-lg py-3 px-8 rounded border border-slate-800 hover:bg-slate-800 transition-all">{t('start_editor')}</button>
-            <button 
-              onClick={onSettings}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-lg py-3 px-8 rounded transition-all border-b-4 border-slate-900 shadow-sm"
-            >
-              {t('start_settings')}
-            </button>
-          </div>
+      <div className="w-full max-w-sm space-y-12 flex flex-col items-center relative z-10">
+        <div className="animate-fade-in flex flex-col items-start w-fit">
+          <h1 className="text-7xl font-black text-white mb-0 tracking-tighter italic leading-none drop-shadow-2xl">
+            FOOTMANAGER
+          </h1>
+          <p className="text-blue-500 text-[10px] tracking-[0.5em] font-black uppercase mt-1 drop-shadow-md">Ultimate Manager 2025</p>
+        </div>
 
-          <div className="text-center text-slate-400 text-xs font-mono tracking-widest uppercase mt-8 bg-black/40 px-3 py-1.5 rounded backdrop-blur-sm border border-white/5">
-            v 0.0471 • BUILD 2025.01.BETA • FILE SYSTEM ENABLED
-          </div>
-       </div>
+        <div className="grid grid-cols-1 gap-3 w-full max-w-[320px]">
+          <button
+            onClick={onNewGame}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xl py-4 px-8 rounded shadow-xl transition-all hover:scale-[1.02] active:scale-95 border-b-4 border-blue-800"
+          >
+            {t('start_new')}
+          </button>
+          <button
+            onClick={onContinue}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xl py-4 px-8 rounded transition-all border-b-4 border-emerald-800 hover:scale-[1.02] active:scale-95 shadow-lg"
+          >
+            {t('start_continue')}
+          </button>
+          <button onClick={onEditor} className="bg-slate-900/80 backdrop-blur-sm text-slate-600 hover:text-white font-bold text-lg py-3 px-8 rounded border border-slate-800 hover:bg-slate-800 transition-all">{t('start_editor')}</button>
+          <button
+            onClick={onSettings}
+            className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-lg py-3 px-8 rounded transition-all border-b-4 border-slate-900 shadow-sm"
+          >
+            {t('start_settings')}
+          </button>
+        </div>
+
+        <div className="text-center text-slate-400 text-xs font-mono tracking-widest uppercase mt-8 bg-black/40 px-3 py-1.5 rounded backdrop-blur-sm border border-white/5">
+          v 0.0473 • BUILD 2025.01.BETA • FILE SYSTEM ENABLED
+        </div>
+      </div>
     </div>
   );
 };
@@ -98,7 +98,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
   const [previewTeams, setPreviewTeams] = useState<Team[]>([]);
   const [previewPlayers, setPreviewPlayers] = useState<Player[]>([]);
   const [clubeSelId, setClubeSelId] = useState<string>('');
-  
+
   useEffect(() => {
     setClubeSelId('');
     if (selectedCountryId && selectedLeagueId) {
@@ -138,15 +138,15 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
   const elencoSel = previewPlayers.filter(p => p.teamId === clubeSelId).sort((a, b) => b.skill - a.skill);
   const sortedTeams = [...previewTeams].sort((a, b) => a.name.localeCompare(b.name));
   const botaoTime = (team: Team) => (
-                <button key={team.id} onClick={() => setClubeSelId(team.id)} className={`${clubeSelId === team.id ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500' : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'} border-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 ${selectedCountryId === '52' ? 'py-1 px-3' : 'py-3 px-4'} rounded transition-all group text-left flex items-center justify-between shadow-sm min-w-0 overflow-hidden`}>
-                   <div className="flex items-center gap-4 min-w-0 w-full">
-                      <TeamShield team={team} className={`shrink-0 ${selectedCountryId === '52' ? 'w-[22px] h-[28px]' : 'w-[46px] h-[58px]'}`} />
-                      <div className="min-w-0">
-                        <div className={`${team.name.length > 20 ? 'text-xs' : team.name.length > 15 ? 'text-sm' : team.name.length > 11 ? 'text-base' : 'text-lg'} font-black text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase truncate leading-tight`}>{team.name}</div>
-                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase">Rep: {team.strength} OVR</div>
-                      </div>
-                   </div>
-                </button>
+    <button key={team.id} onClick={() => setClubeSelId(team.id)} className={`${clubeSelId === team.id ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500' : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'} border-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 ${selectedCountryId === '52' ? 'py-1 px-3' : 'py-3 px-4'} rounded transition-all group text-left flex items-center justify-between shadow-sm min-w-0 overflow-hidden`}>
+      <div className="flex items-center gap-4 min-w-0 w-full">
+        <TeamShield team={team} className={`shrink-0 ${selectedCountryId === '52' ? 'w-[22px] h-[28px]' : 'w-[46px] h-[58px]'}`} />
+        <div className="min-w-0">
+          <div className={`${team.name.length > 20 ? 'text-xs' : team.name.length > 15 ? 'text-sm' : team.name.length > 11 ? 'text-base' : 'text-lg'} font-black text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase truncate leading-tight`}>{team.name}</div>
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase">Rep: {team.strength} OVR</div>
+        </div>
+      </div>
+    </button>
   );
 
   return (
@@ -154,13 +154,13 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
       <div className="flex justify-between items-center mb-4 xl:mb-8 bg-slate-50 dark:bg-slate-800/50 p-4 xl:p-6 rounded border border-slate-200 dark:border-slate-700 transition-colors duration-300 shadow-sm">
         <div className="flex items-center gap-6">
           <button onClick={onBack} className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white flex items-center gap-2 font-bold uppercase text-sm transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
             {t('sel_back')}
           </button>
           <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-700"></div>
           <div>
-             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase transition-colors">{t('sel_title')}</h1>
-             <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest">Manager: {managerName}</p>
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase transition-colors">{t('sel_title')}</h1>
+            <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest">Manager: {managerName}</p>
           </div>
         </div>
       </div>
@@ -241,48 +241,48 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             const c1 = clubeSel.homeKit?.color1 || '#1e293b', c2 = clubeSel.homeKit?.color2 || c1;
             const painel = 'bg-black/45 backdrop-blur-sm border border-white/15 rounded';
             return (
-            <div className="flex-1 relative overflow-hidden rounded border-2 border-slate-200 dark:border-slate-800 min-h-0" style={{ background: `linear-gradient(165deg, ${c1} 0%, ${c1} 18%, ${c2} 62%, #020617 100%)` }}>
-              <div className="absolute inset-0 flex flex-col gap-2 p-1.5 min-h-0">
-                <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-3 min-h-0">
-                  <div className={`relative overflow-hidden h-[84px] flex flex-col justify-center text-left pl-3 pr-[88px] ${painel}`}>
-                    <div className="absolute top-1/2 -translate-y-1/2 -right-[26px] w-[120px] h-[144px]"><TeamShield team={clubeSel} className="w-full h-full" /></div>
-                    <div className="text-2xl font-black text-white uppercase leading-tight truncate">{clubeSel.name}</div>
-                    <div className="text-[10px] font-bold text-blue-300 uppercase tracking-widest">{activeCountry?.leagues.find(l => l.id === selectedLeagueId)?.name}</div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-center">
-                    {[['OVR', clubeSel.strength], ['Founded', clubeSel.foundedYear || '-'], ['Fan base', (clubeSel.fanBase || 0).toLocaleString()], ['Budget', '$' + Math.round((clubeSel.cash || 0) / 1000).toLocaleString() + 'k']].map(([k, v]) => (
-                      <div key={String(k)} className={`${painel} p-2`}>
-                        <div className="text-[9px] font-black text-white/60 uppercase tracking-widest">{k}</div>
-                        <div className="text-lg font-black text-white">{v}</div>
+              <div className="flex-1 relative overflow-hidden rounded border-2 border-slate-200 dark:border-slate-800 min-h-0" style={{ background: `linear-gradient(165deg, ${c1} 0%, ${c1} 18%, ${c2} 62%, #020617 100%)` }}>
+                <div className="absolute inset-0 flex flex-col gap-2 p-1.5 min-h-0">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-3 min-h-0">
+                    <div className={`relative overflow-hidden h-[84px] flex flex-col justify-center text-left pl-3 pr-[88px] ${painel}`}>
+                      <div className="absolute top-1/2 -translate-y-1/2 -right-[26px] w-[120px] h-[144px]"><TeamShield team={clubeSel} className="w-full h-full" /></div>
+                      <div className="text-2xl font-black text-white uppercase leading-tight truncate">{clubeSel.name}</div>
+                      <div className="text-[10px] font-bold text-blue-300 uppercase tracking-widest">{activeCountry?.leagues.find(l => l.id === selectedLeagueId)?.name}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-center">
+                      {[['OVR', clubeSel.strength], ['Founded', clubeSel.foundedYear || '-'], ['Fan base', (clubeSel.fanBase || 0).toLocaleString()], ['Budget', '$' + Math.round((clubeSel.cash || 0) / 1000).toLocaleString() + 'k']].map(([k, v]) => (
+                        <div key={String(k)} className={`${painel} p-2`}>
+                          <div className="text-[9px] font-black text-white/60 uppercase tracking-widest">{k}</div>
+                          <div className="text-lg font-black text-white">{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className={`${painel} p-3 text-sm space-y-1`}>
+                      <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">City</span><span className="font-bold text-white">{clubeSel.city || '-'}</span></div>
+                      <div className="flex justify-between gap-2"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Stadium</span><span className="font-bold text-white text-right">{clubeSel.stadium || '-'}</span></div>
+                      {clubeSel.stadiumCapacity ? <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Capacity</span><span className="font-bold text-white">{clubeSel.stadiumCapacity.toLocaleString()}</span></div> : null}
+                    </div>
+                    <div className={`${painel} px-0 py-1`}>
+                      <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-0 px-2">Kits</div>
+                      <div className="flex flex-wrap justify-center gap-x-0 gap-y-2">
+                        {([0, 1, 2] as const).map(k => <TeamKit key={k} team={clubeSel} kitIndex={k} className="w-[95px] h-[122px]" showLabel number={10} />)}
+                        <TeamKit team={clubeSel} gk className="w-[95px] h-[122px]" showLabel number={1} />
                       </div>
-                    ))}
-                  </div>
-                  <div className={`${painel} p-3 text-sm space-y-1`}>
-                    <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">City</span><span className="font-bold text-white">{clubeSel.city || '-'}</span></div>
-                    <div className="flex justify-between gap-2"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Stadium</span><span className="font-bold text-white text-right">{clubeSel.stadium || '-'}</span></div>
-                    {clubeSel.stadiumCapacity ? <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Capacity</span><span className="font-bold text-white">{clubeSel.stadiumCapacity.toLocaleString()}</span></div> : null}
-                  </div>
-                  <div className={`${painel} px-0 py-1`}>
-                    <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-0 px-2">Kits</div>
-                    <div className="flex flex-wrap justify-center gap-x-0 gap-y-2">
-                      {([0, 1, 2] as const).map(k => <TeamKit key={k} team={clubeSel} kitIndex={k} className="w-[95px] h-[122px]" showLabel number={10} />)}
-                      <TeamKit team={clubeSel} gk className="w-[95px] h-[122px]" showLabel number={1} />
+                    </div>
+                    <div className={`${painel} p-3`}>
+                      <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-2">Key players ({elencoSel.length})</div>
+                      {elencoSel.slice(0, 6).map(p => (
+                        <div key={p.id} className="flex items-center justify-between text-sm py-0.5 gap-2">
+                          <PlayerFace playerId={p.id} camisa={clubeSel.homeKit?.color1 || clubeSel.primaryColor} className="w-[49px] h-[49px] shrink-0 rounded-lg overflow-hidden bg-black/30 border border-white/20" />
+                          <span className="font-bold text-white truncate flex-1 min-w-0">{p.name}</span>
+                          <span className="text-white/60 font-bold text-xs shrink-0 ml-2">{p.position} · {p.age}y · <span className="text-blue-300">{p.skill}</span></span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div className={`${painel} p-3`}>
-                    <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-2">Key players ({elencoSel.length})</div>
-                    {elencoSel.slice(0, 6).map(p => (
-                      <div key={p.id} className="flex items-center justify-between text-sm py-0.5 gap-2">
-                        <PlayerFace playerId={p.id} camisa={clubeSel.homeKit?.color1 || clubeSel.primaryColor} className="w-[49px] h-[49px] shrink-0 rounded-lg overflow-hidden bg-black/30 border border-white/20" />
-                        <span className="font-bold text-white truncate flex-1 min-w-0">{p.name}</span>
-                        <span className="text-white/60 font-bold text-xs shrink-0 ml-2">{p.position} · {p.age}y · <span className="text-blue-300">{p.skill}</span></span>
-                      </div>
-                    ))}
-                  </div>
+                  <button onClick={() => onSelectTeam(clubeSel.id, selectedCountryId, selectedLeagueId)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-sm transition-all shadow-lg text-xl uppercase tracking-widest">{t('sel_join')}</button>
                 </div>
-                <button onClick={() => onSelectTeam(clubeSel.id, selectedCountryId, selectedLeagueId)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-sm transition-all shadow-lg text-xl uppercase tracking-widest">{t('sel_join')}</button>
               </div>
-            </div>
             );
           })() : (
             <div className="flex-1 flex items-center justify-center text-center text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest px-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded">Select a club to see its overview</div>
@@ -301,7 +301,7 @@ const GameContainer: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleNewGame = () => setAppPhase('CREATE_MANAGER');
-  
+
   const handleContinue = () => {
     fileInputRef.current?.click();
   };
@@ -332,52 +332,52 @@ const GameContainer: React.FC = () => {
 
   return (
     <div className="game-container shadow-2xl overflow-hidden relative transition-colors duration-300">
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleFileChange} 
-        accept=".json" 
-        className="hidden" 
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept=".json"
+        className="hidden"
       />
-      
+
       {appPhase === 'MENU' && <StartMenu onNewGame={handleNewGame} onContinue={handleContinue} onSettings={() => setAppPhase('SETTINGS')} onEditor={() => setAppPhase('EDITOR')} />}
       {appPhase === 'EDITOR' && <EditorApp onClose={() => setAppPhase('MENU')} />}
       {appPhase === 'SETTINGS' && (
         <div className="w-full h-full flex flex-col p-8 bg-slate-50 dark:bg-manager-bg transition-colors duration-300 overflow-y-auto custom-scrollbar">
-           <SettingsView onBack={() => setAppPhase('MENU')} />
+          <SettingsView onBack={() => setAppPhase('MENU')} />
         </div>
       )}
       {appPhase === 'CREATE_MANAGER' && <ManagerCreation onNext={handleManagerCreated} onBack={() => setAppPhase('MENU')} />}
       {appPhase === 'SELECT_MODE' && <ModeSelection managerName={tempManagerName} onPickClub={() => setAppPhase('SELECT_TEAM')} onCareer={() => setAppPhase('CAREER')} onBack={() => setAppPhase('CREATE_MANAGER')} />}
       {appPhase === 'CAREER' && <CareerOffers managerName={tempManagerName} onSelectTeam={handleTeamSelected} onBack={() => setAppPhase('SELECT_MODE')} />}
       {appPhase === 'SELECT_TEAM' && <TeamSelection managerName={tempManagerName} onSelectTeam={handleTeamSelected} onBack={() => setAppPhase('SELECT_MODE')} />}
-      
+
       {appPhase === 'GAME' && gameState.userTeamId && (
         <Layout setView={setView} currentView={view} onMainMenu={() => setAppPhase('MENU')}>
-            {view === 'TRAINING' && <MatchRoundView setView={setView} />}
-            {view === 'MATCH' && <MatchDay setView={setView} />}
-            {view === 'DASHBOARD' && (
-              <DashboardView 
-                onGoToRoundSimulation={() => setView('TRAINING')} 
-                onGoToMatchDay={() => setView('MATCH')} 
-              />
-            )}
-            {view === 'SQUAD' && (
-              <SquadView 
-                onGoToRoundSimulation={() => setView('TRAINING')} 
-                onGoToMatchDay={() => setView('MATCH')} 
-              />
-            )}
-            {view === 'LEAGUE' && <LeagueTable />}
-            {view === 'TACTICS' && <TacticsView setView={setView} />}
-            {view === 'TRAINING_VIEW' && <TrainingView />}
-            {view === 'FIXTURES' && <FixturesView />}
-            {view === 'FINANCES' && <FinancesView setView={setView} />}
-            {view === 'STATISTICS' && <StatisticsView />}
-            {view === 'SETTINGS' && <SettingsView />}
-            {view === 'WORLD' && <WorldView />}
-            {view === 'INBOX' && <InboxView setView={setView} />}
-            {view === 'TRANSFERS' && <TransferMarketView setView={setView} />}
+          {view === 'TRAINING' && <MatchRoundView setView={setView} />}
+          {view === 'MATCH' && <MatchDay setView={setView} />}
+          {view === 'DASHBOARD' && (
+            <DashboardView
+              onGoToRoundSimulation={() => setView('TRAINING')}
+              onGoToMatchDay={() => setView('MATCH')}
+            />
+          )}
+          {view === 'SQUAD' && (
+            <SquadView
+              onGoToRoundSimulation={() => setView('TRAINING')}
+              onGoToMatchDay={() => setView('MATCH')}
+            />
+          )}
+          {view === 'LEAGUE' && <LeagueTable />}
+          {view === 'TACTICS' && <TacticsView setView={setView} />}
+          {view === 'TRAINING_VIEW' && <TrainingView />}
+          {view === 'FIXTURES' && <FixturesView />}
+          {view === 'FINANCES' && <FinancesView setView={setView} />}
+          {view === 'STATISTICS' && <StatisticsView />}
+          {view === 'SETTINGS' && <SettingsView />}
+          {view === 'WORLD' && <WorldView />}
+          {view === 'INBOX' && <InboxView setView={setView} />}
+          {view === 'TRANSFERS' && <TransferMarketView setView={setView} />}
         </Layout>
       )}
     </div>
