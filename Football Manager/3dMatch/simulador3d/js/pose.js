@@ -1068,8 +1068,11 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
     olhos, boca e nariz claros). Agora: os olhos sao o branco do olho com a pupila escura por cima, o nariz e uma sombra mais escura que a pele e a boca e o labio,
     um tom mais claro e avermelhado que a pele.
     */
-    const peleEscura = lumPele < 0.42 && !leve;
-    const eyeMat = new THREE.MeshBasicMaterial({ color: !leve ? 0x14100e : corTinta, polygonOffset: !leve, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });   // a pupila ganha ao branco e a cara no z-buffer (a distancia de jogo 1.5 mm de folga empatava)   // jogadores e arbitros, de qualquer pele: pupila preta no meio do branco do olho
+    // Olhos com o branco e a pupila: jogadores e arbitros (`leve` 0 ou 4). So o minimo da torcida, staff e reservas (`leve` 5) fica com a cara simples. (O `!leve` de antes so valia o corpo
+    // de 6548 triangulos, que nao e o do jogo: os jogadores usam o `leve` 4 e nunca viam os olhos novos.)
+    const olhosNaturais = leve !== 5;
+    const peleEscura = lumPele < 0.42 && olhosNaturais;
+    const eyeMat = new THREE.MeshBasicMaterial({ color: olhosNaturais ? 0x14100e : corTinta, polygonOffset: olhosNaturais, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });   // a pupila ganha ao branco e a cara no z-buffer (a distancia de jogo 1.5 mm de folga empatava)   // jogadores e arbitros, de qualquer pele: pupila preta no meio do branco do olho
     rig.olhoEsq = new THREE.Mesh(new THREE.PlaneGeometry(u * 0.08, u * 0.14), eyeMat); rig.olhoEsq.position.set(-u * 0.16, u * 0.15, faceZ);
     rig.olhoDir = new THREE.Mesh(new THREE.PlaneGeometry(u * 0.08, u * 0.14), eyeMat); rig.olhoDir.position.set(u * 0.16, u * 0.15, faceZ);
     const narizMat = peleEscura ? new THREE.LineBasicMaterial({ color: new THREE.Color(corPele).lerp(new THREE.Color(0x000000), 0.6).getHex() }) : lineMat;
@@ -1077,7 +1080,7 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
     const nariz = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, u * 0.05, faceZ), new THREE.Vector3(0, -u * 0.08, faceZ), new THREE.Vector3(u * 0.06, -u * 0.08, faceZ)]), narizMat);
     const boca = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-u * 0.12, -u * 0.22, faceZ), new THREE.Vector3(u * 0.12, -u * 0.22, faceZ)]), bocaMat);
     faceGrp.add(rig.olhoEsq, rig.olhoDir, nariz, boca);
-    if (!leve) {
+    if (olhosNaturais) {
         // O branco do olho (em TODAS as peles; a torcida - `leve` - fica como estava), um pouco maior que a pupila e logo por tras dela (o nariz e a boca ficam nos seus tons).
         const brancoMat = new THREE.MeshBasicMaterial({ color: 0xe9e4dc, polygonOffset: true, polygonOffsetFactor: -1.5, polygonOffsetUnits: -1.5 });
         for (const lado of [-1, 1]) {
