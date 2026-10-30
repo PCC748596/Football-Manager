@@ -1114,14 +1114,14 @@ body.cam-cinema .hud-jogador {
 }
 
 /*
-OS CARTOES DO HUD NO IPAD / TABLET (pedido): 50% mais pequenos que os de computador (escala 1.4 -> 0.7): os dos jogadores (portador e marcador) e o de evento (remates, faltas...), presos ao
+OS CARTOES DO HUD NO IPAD / TABLET (pedido): 40% mais pequenos que os de computador (escala 1.4 -> 0.84): os dos jogadores (portador e marcador) e o de evento (remates, faltas...), presos ao
 mesmo canto de antes. Vale quando o JS marca o `body.toque` (main.js: ontouchstart ou maxTouchPoints > 0 — o iPad com teclado/trackpad diz `pointer: fine` e a media query so nao chegava) e,
 por reserva, nos ecras `pointer: coarse`. Fica no FIM do ficheiro para ganhar as regras acima.
 */
-body.toque #hud-jogador-esq, body.toque #hud-jogador-dir { transform: scale(0.7); }
-body.toque #hud-evento { transform: translateX(-50%) scale(0.7); }
+body.toque #hud-jogador-esq, body.toque #hud-jogador-dir { transform: scale(0.84); }
+body.toque #hud-evento { transform: translateX(-50%) scale(0.84); }
 @media (pointer: coarse) {
-    #hud-jogador-esq { transform: scale(0.7); }
-    #hud-jogador-dir { transform: scale(0.7); }
-    #hud-evento { transform: translateX(-50%) scale(0.7); }
+    #hud-jogador-esq { transform: scale(0.84); }
+    #hud-jogador-dir { transform: scale(0.84); }
+    #hud-evento { transform: translateX(-50%) scale(0.84); }
 }
