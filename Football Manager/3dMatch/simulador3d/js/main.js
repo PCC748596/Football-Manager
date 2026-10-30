@@ -1462,6 +1462,24 @@ function painelDePerformance(time, msRender) {
     const p95 = ord.length ? ord[Math.floor(ord.length * 0.95)] : 0, pior = ord.length ? ord[ord.length - 1] : 0;
     const r = rendererCore.info;
     let luzes = 0; scene.traverse(o => { if (o.isLight && o.visible) luzes++; });
+    // ONDE ESTAO OS TRIANGULOS: por filho directo da cena (so malhas visiveis e dentro do frustum), os 5 maiores — mais os que projectam sombra (que o Three desenha duas vezes).
+    const _tri = (o) => { const g = o.geometry; if (!g) return 0; const t = (g.index ? g.index.count : (g.attributes.position ? g.attributes.position.count : 0)) / 3; return t * (o.isInstancedMesh ? o.count : 1); };
+    const _fr = window.cameraFrustum, _grupos = [];
+    let _triSombra = 0, _nSombra = 0;
+    scene.children.forEach((c, i) => {
+        if (!c.visible) return;
+        let tri = 0, m = 0, inst = 0;
+        c.traverse(o => {
+            if (!(o.isMesh || o.isLine || o.isPoints) || !o.visible) return;
+            for (let p = o.parent; p && p !== scene; p = p.parent) if (!p.visible) return;
+            if (_fr && o.frustumCulled && o.geometry && (o.geometry.boundingSphere || (o.geometry.computeBoundingSphere(), o.geometry.boundingSphere)) && !_fr.intersectsObject(o)) return;
+            const t = _tri(o); tri += t; m++; if (o.isInstancedMesh) inst++;
+            if (o.castShadow) { _triSombra += t; _nSombra++; }
+        });
+        if (tri > 0) _grupos.push({ i, tipo: c.type, filhos: c.children.length, m, inst, tri });
+    });
+    _grupos.sort((a, b) => b.tri - a.tri);
+    const _txtGrupos = _grupos.slice(0, 5).map(g => '#' + g.i + ' ' + (g.tri / 1000).toFixed(0) + 'k tri/' + g.m + ' malhas/' + g.inst + ' inst/' + g.filhos + ' filhos').join('  |  ');
     const dpr = rendererCore.getPixelRatio(), cv = rendererCore.domElement;
     window._perfEl.textContent = [
         'FPS ' + (1000 * n / soma).toFixed(0) + '   frame ' + (soma / n).toFixed(1) + ' ms  p95 ' + p95.toFixed(0) + '  pior ' + pior.toFixed(0),
@@ -1471,6 +1489,8 @@ function painelDePerformance(time, msRender) {
         'pixelRatio ' + dpr.toFixed(2) + '  canvas ' + cv.width + 'x' + cv.height + '  escala ' + (typeof Qualidade !== 'undefined' ? Qualidade.escala : '-'),
         'sombras ' + (rendererCore.shadowMap.enabled ? 'ON' : 'off') + '  q ' + (typeof Qualidade !== 'undefined' ? Qualidade.nivel : '-'),
         (function () { const q = window._perfPiorQ; return q ? ('PIOR ' + q.ms.toFixed(0) + ' ms = logica ' + q.logica.toFixed(0) + ' + prep ' + q.prep.toFixed(0) + ' + render() ' + q.render.toFixed(0) + ' + espera ' + Math.max(0, q.ms - q.logica - q.prep - q.render).toFixed(0) + '   programas novos ' + q.progsNovos + '   quadros >50ms: ' + (window._perfLentos || 0)) : '-'; })(),
+        'maiores: ' + _txtGrupos,
+        'projectam sombra: ' + _nSombra + ' malhas, ' + (_triSombra / 1000).toFixed(0) + 'k tri' + (rendererCore.shadowMap.enabled ? ' (desenhadas 2x)' : ' (sombras off)'),
         'torcida: fatias desenhadas ' + ((typeof Crowd !== 'undefined' && Crowd._cullVisiveis !== undefined) ? Crowd._cullVisiveis : '-') + ' / ' + ((typeof Crowd !== 'undefined' && Crowd._grupos) ? Crowd._grupos.length : '-') + '  (de ' + ((typeof CrowdModel !== 'undefined') ? CrowdModel.tamanhoDaFatia : '-') + ' adeptos)'
     ].join(String.fromCharCode(10));
     window._perfAmostras = []; window._perfT = time; window._perfRender = 0; window._perfFr = 0; window._perfPassos = 0; window._perfPiorQ = null; window._perfLentos = 0;

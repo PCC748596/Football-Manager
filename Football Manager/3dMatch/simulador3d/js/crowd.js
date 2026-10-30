@@ -65,6 +65,9 @@ const CrowdModel = {
     modeloJogador: true,
     // Fatias da torcida (adeptos por malha) e o alcance do corte em multiplos do viewport: so se desenha ate 1.2x o ecra.
     tamanhoDaFatia: 600,
+    // Em tablet/telemovel as fatias sao mais pequenas: o corte tira o que esta fora do ecra POR FATIA, e com 9 fatias de 600 desenhavam-se 4 a 5 (medido num iPad: ~2 M de triangulos, 25 fps).
+    // Fatias de 200 (a esfera de cada uma e mais justa) cortam bem mais da torcida fora do ecra, ao custo de mais malhas por fatia.
+    tamanhoDaFatiaTablet: 200,
     detalheAte: 60,        // metros: mais longe que isto a fatia usa o shader simplificado (sem aplausos nem cabecas a virar)
     viewportCull: 0.9,     // so se desenha o que cai nos 90% centrais do ecra (pedido; era 1.2x)
     total: 10000,
@@ -1539,7 +1542,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
 
         // 4 InstancedMesh (um por canal de cor) para o total de adeptos
         // Fatias de ~1500 adeptos (por angulo, em volta do estadio): permitem NAO desenhar o que esta fora do ecra (ver `cullar`). Uma fatia so (`nTotal`) desenhava a torcida toda sempre.
-        const TAMANHO_CHUNK = Math.max(1, CrowdModel.tamanhoDaFatia || nTotal);
+        const TAMANHO_CHUNK = Math.max(1, ((crowdLimit < CrowdModel.total) ? CrowdModel.tamanhoDaFatiaTablet : CrowdModel.tamanhoDaFatia) || nTotal);
         this._esferas = [];
         const numChunks = Math.ceil(nTotal / TAMANHO_CHUNK);
         this._grupos = [];

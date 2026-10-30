@@ -31,7 +31,18 @@ const Qualidade = {
         return m ? m[1].toUpperCase() : null;
     },
 
-    cfg: function () { return this.niveis[this.nivel] || this.niveis.LOW; },
+    /*
+    SOMBRAS DESLIGADAS NO TABLET, por omissao. Medido num iPad (painel de performance): com as sombras ligadas 19-25 fps, com elas desligadas 41-50 fps e sem travadas, com os
+    mesmos ~2 M de triangulos — o mapa de sombras faz o jogo desenhar tudo o que projecta sombra uma segunda vez. O botao de sombras do 3D continua a ligar/desligar (e `Qualidade.definir`
+    volta a pedir o nivel, que no tablet continua sem sombras).
+    */
+    cfg: function () {
+        const base = this.niveis[this.nivel] || this.niveis.LOW;
+        if (!base.sombras || !this.ehTouch()) return base;
+        const c = this._cfgTouch || (this._cfgTouch = {});
+        if (c.__de !== base) { Object.assign(c, base, { sombras: false }); c.__de = base; }
+        return c;
+    },
 
     /*
     TABLET/TELEMOVEL: pixel ratio 1 e resolucao dinamica que pode descer. O `pixelRatio: 1.5` dos niveis fazia um iPad (devicePixelRatio 2) desenhar 2.25x os pixeis — 8.7 MP por
