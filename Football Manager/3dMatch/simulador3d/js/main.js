@@ -1706,6 +1706,7 @@ document.addEventListener("DOMContentLoaded", () => {
         window.cameraCore = cameraCore;
 
         const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 850);
+        if (('ontouchstart' in window) || (navigator.maxTouchPoints > 0)) document.body.classList.add('toque');   // os cartoes do HUD ficam mais pequenos (css/styles.css)
         rendererCore = new THREE.WebGLRenderer({ antialias: !isTouchDevice, powerPreference: "high-performance" });
         // Max pixel ratio of 1.0 on tablets to save fill rate
         // Embutido no manager (?embutido=1): pixel ratio 1 (o iframe divide a GPU com a pagina do manager).

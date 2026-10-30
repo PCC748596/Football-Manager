@@ -343,6 +343,9 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         simulador3dSairDaTelaCheia();
                         if (gameState.isProcessing) pauseMatch();
                         setView?.('TACTICS');
+                      } else if (m.tipo === 'sair_tela_cheia') {
+                        // O botao Sair da barra da tela cheia do 3D (tablet: sem ESC).
+                        simulador3dSairDaTelaCheia();
                       } else if (m.tipo === 'abertura_estado') {
                         setPodePular(!!m.pular);
                       } else if (m.tipo === 'relogio') {

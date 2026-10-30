@@ -2432,7 +2432,7 @@ const StaminaModel = {
 
     vRef: 6.5,                  // m/s: a corrida contra a qual o custo se mede
     expoente: 2.0,              // custo ~ (v/vRef)^expoente
-    custoPorSegundo: 0.00042,    // fraccao de deposito por segundo de JOGO a vRef, com stamina 50
+    custoPorSegundo: 0.00031,    // fraccao de deposito por segundo de JOGO a vRef, com stamina 50 (era 0.00042: -25%, pedido: a stamina caia depressa demais)
     sensibilidadeStamina: 0.5,  // stamina 100 gasta metade; stamina 0, metade a mais
 
     limiarDescanso: 2.0,        // m/s abaixo do qual recupera

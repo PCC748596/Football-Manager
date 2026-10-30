@@ -1949,6 +1949,11 @@ const Officials = {
     piruetas quando o deslocamento é ruído).
     */
     mover: function (o, alvoX, alvoZ, velMax, dt, olharPara) {
+        /*
+        O corpo e orientado por `lookAt` em alguns sitios, e o Euler dele passa a (pi, y, pi) quando a frente aponta para tras: ler/escrever so o `rotation.y` num modelo assim inverte a
+        frente (corre para um lado virado para o outro). Repoe-se o Euler a (0, yaw, 0) pela frente REAL antes de o conduzir.
+        */
+        { const e = o.model.rotation; if (Math.abs(e.x) > 1e-3 || Math.abs(e.z) > 1e-3) { const fw = new THREE.Vector3(0, 0, 1).applyQuaternion(o.model.quaternion); e.set(0, Math.atan2(fw.x, fw.z), 0); } }
         const dx = alvoX - o.model.position.x;
         const dz = alvoZ - o.model.position.z;
         const d = Math.hypot(dx, dz);

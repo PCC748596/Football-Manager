@@ -125,7 +125,7 @@ const Ponte = {
             document.head.appendChild(css);
             barra = document.createElement('div'); barra.id = 'barra-topo-tc';
             const cams = [['orbit', 'Órbita'], ['center', 'TV Centro'], ['sideline', 'Lateral Móvel'], ['lateraltv', 'Lateral TV'], ['grua', 'Grua'], ['cinema', 'Cinema']];
-            barra.innerHTML = '<div id="tc-placar-tv"><div class="tv-linha"><span class="tv-eq" id="tv-eq-e">---</span><span class="tv-gol" id="tv-gol-e">0</span>' +
+            barra.innerHTML = '<button id="tc-sair" title="Sair da tela cheia" style="background:#b91c1c">✕ Sair</button><span class="sep"></span><div id="tc-placar-tv"><div class="tv-linha"><span class="tv-eq" id="tv-eq-e">---</span><span class="tv-gol" id="tv-gol-e">0</span>' +
                 '<span class="tv-vs">vs</span><span class="tv-gol" id="tv-gol-d">0</span><span class="tv-eq" id="tv-eq-d">---</span></div><div class="tv-tempo" id="tv-tempo">00:00</div></div><span class="sep"></span>' +
                 '<span>Câmera</span>' + cams.map(c => '<button data-cam="' + c[0] + '">' + c[1] + '</button>').join('') +
                 '<button data-cam="lateraltv" data-r="3d">3D</button><button data-cam="topdown">2D</button><button id="tc-minimapa" title="Minimapa">Minimapa ON</button><button id="tc-nomes" title="Nomes dos jogadores">Names OFF</button><span class="sep"></span>' +
@@ -142,6 +142,7 @@ const Ponte = {
                 else if (b.id === 'tc-nomes') { if (typeof togglePlayerNames === 'function') togglePlayerNames(); }
                 else if (b.id === 'tc-debug') this.definirDebug(document.body.classList.contains('debug-off'));
                 else if (b.id === 'tc-pausa') { if (this.pularDisponivel()) this.esc(); else this.enviar('alternar_pausa', {}); }
+                else if (b.id === 'tc-sair') this.enviar('sair_tela_cheia', {});   // no tablet nao ha ESC: o manager sai da tela cheia (ver MatchDay.tsx)
                 else if (b.id === 'tc-tactics') {
                     // O botao Tactics abre o MATCH TACTICS do manager: o manager sai da tela cheia, pausa o jogo e muda de aba (ver MatchDay.tsx).
                     this.enviar('abrir_tactics', {});
