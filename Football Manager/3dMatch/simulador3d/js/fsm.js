@@ -560,7 +560,31 @@ function executePassGameplay(p) {
     }
 
     // `forcaPasse` é a componente HORIZONTAL; o y já foi posto acima.
-    Match.ballVel.set(dirX * forcaPasse, Match.ballVel.y, dirZ * forcaPasse);
+    let passeDirX = dirX, passeDirZ = dirZ;
+
+    /*
+    A CURVA NOS PASSES LONGOS PELO ALTO (lancamentos e passes lobados a `distMin` m ou mais): o rumo
+    sai rodado e a bola fecha para o alvo, com o MESMO efeito lateral da falta (`Match.freeKickCurve`,
+    match_physics.js). O lado e sorteado; o giro cresce com o passe longo (atributo) e com a distancia.
+    Cruzamentos e a entrega do guarda-redes ficam de fora. Desliga com `PassCurva.activa = false`.
+    */
+    const PC = (typeof PassCurva !== 'undefined') ? PassCurva : { activa: true, distMin: 18, grausMin: 8, grausMax: 20, distRef: 50 };
+    Match.freeKickCurve = null;
+    if (PC.activa && !ehCruzamento && !p.isGkThrow && Match.ballVel.y > 0.5 && distToTarget >= PC.distMin
+        && typeof curvaDaFaltaDirecta === 'function') {
+        const kS = Math.max(0, Math.min(1, passSkill / 100));
+        const kD = Math.max(0, Math.min(1, distToTarget / PC.distRef));
+        const graus = (PC.grausMin + (PC.grausMax - PC.grausMin) * (0.5 * kS + 0.5 * kD)) * (0.8 + Math.random() * 0.4);
+        const vTot = Math.hypot(forcaPasse, Match.ballVel.y);
+        const elevP = Math.atan2(Match.ballVel.y, forcaPasse);
+        const lado = (Math.random() < 0.5) ? 1 : -1;
+        const cv = curvaDaFaltaDirecta(distToTarget, vTot, elevP, 0, lado, graus, dirX, dirZ);
+        const c0 = Math.cos(cv.giroInicial), s0 = Math.sin(cv.giroInicial);
+        passeDirX = dirX * c0 + dirZ * s0;
+        passeDirZ = -dirX * s0 + dirZ * c0;
+        Match.freeKickCurve = { active: true, omega: cv.omega };
+    }
+    Match.ballVel.set(passeDirX * forcaPasse, Match.ballVel.y, passeDirZ * forcaPasse);
 
     /*
     SOM DO CHUTE. Aqui e não no `initiatePass`: este é o instante do CONTACTO

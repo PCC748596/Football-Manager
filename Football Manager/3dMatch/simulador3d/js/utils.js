@@ -6074,6 +6074,45 @@ function tiroTensoDaFaltaDirecta(distGol, distBarreira, alvoY, v, cfg) {
 }
 
 /*
+A CURVA LATERAL DA FALTA DIRECTA (efeito, alem da folha seca vertical).
+
+A bola sai com o rumo desviado `giroGraus/2` para o lado do batedor-da-barreira (por cima/ao lado
+da barreira) e a taxa `omega` (rad/s) roda-lhe a velocidade horizontal ate ao fim do voo, de modo
+que a corda do arco aponta ao alvo. `lado` e o sinal do x da bola; a curva fecha SEMPRE para o
+canto oposto (o canto aberto, longe da barreira).
+
+O tempo de voo sai da MESMA integracao do updateBall (arrasto + gravidade efectiva), por isso a
+curva acaba na linha e nao a meio do voo. Pura: so BallPhysics.
+
+Devolve `{ omega, giroInicial, tVoo }`; o chamador roda o rumo por `giroInicial` e liga
+`Match.freeKickCurve = { active: true, omega }`.
+*/
+function curvaDaFaltaDirecta(distGol, v, elev, extraGrav, lado, giroGraus, rumoX, rumoZ) {
+    const g = BallPhysics.gravidade + (extraGrav || 0);
+    const k = BallPhysics.kArrasto;
+    let x = 0, y = BallPhysics.raio, t = 0;
+    let vx = v * Math.cos(elev), vy = v * Math.sin(elev);
+    const dt = 1 / 120;
+    for (let i = 0; i < 900; i++) {
+        const s = Math.hypot(vx, vy);
+        if (s > 0.001) { const dv = k * s * s * dt; vx -= vx / s * dv; vy -= vy / s * dv; }
+        vy -= g * dt;
+        x += vx * dt; y += vy * dt; t += dt;
+        if (x >= distGol || y < 0) break;
+    }
+    const tVoo = Math.max(0.2, t);
+
+    // Sentido: a bola termina inclinada para o canto OPOSTO ao lado de onde se bate.
+    const oposto = -(lado >= 0 ? 1 : -1);
+    const rod = (ux, uz, a) => ({ x: ux * Math.cos(a) + uz * Math.sin(a), z: -ux * Math.sin(a) + uz * Math.cos(a) });
+    const teste = rod(rumoX, rumoZ, 0.1);
+    const sinal = ((teste.x - rumoX) * oposto > 0) ? 1 : -1;
+
+    const giro = Math.abs(giroGraus) * Math.PI / 180;
+    return { omega: sinal * giro / tVoo, giroInicial: -sinal * giro / 2, tVoo: tVoo };
+}
+
+/*
 ONDE OS COMPANHEIROS DE QUEM BATE SE POEM.
 
 Duas regras, e sao as do pedido: NUNCA em fora-de-jogo, e nunca a tapar a
@@ -6266,7 +6305,7 @@ if (typeof window !== 'undefined') {
         esperarPeloSlot, eixoDeConducao, distanciaMinimaNoLateral,
         pontoDaFaltaDirecta, lugaresDaBarreira, alturaDaBolaEm,
         bandaDaFaltaDirecta, desfechoDaFaltaDirecta, alvoDaFaltaDirecta,
-        tiroDaFaltaDirecta, tiroTensoDaFaltaDirecta, lugaresDoApoioNaFaltaDirecta,
+        tiroDaFaltaDirecta, tiroTensoDaFaltaDirecta, curvaDaFaltaDirecta, lugaresDoApoioNaFaltaDirecta,
         passaEntreAdversarios,
         maosProibidasNoRecuo, registarToqueComPe, limparRecuoParaGR, avaliarRecuoParaGR,
         distanciaEntreSegmentos,

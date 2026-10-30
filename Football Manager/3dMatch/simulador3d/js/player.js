@@ -1920,7 +1920,24 @@ class FootballPlayer {
             const dz = golZ - bz;
             const distH = Math.hypot(dx, dz) || 1;
             const vh = v * Math.cos(elev);
-            Match.ballVel.set((dx / distH) * vh, v * Math.sin(elev), (dz / distH) * vh);
+            let rumoX = dx / distH, rumoZ = dz / distH;
+
+            /*
+            O EFEITO LATERAL: so na cobranca tensa (que ja tem a folha seca). O rumo inicial sai
+            rodado para o lado da barreira e a fisica fecha a bola para o canto aberto
+            (`Match.freeKickCurve`, match_physics.js). O giro sobe com a TEC do batedor.
+            */
+            Match.freeKickCurve = null;
+            if (DF.curvaActiva && !vaiABarreira && !alvo.porBaixo) {
+                const kT = THREE.MathUtils.clamp((tec - DF.curvaTecMin) / Math.max(1, DF.curvaTecMax - DF.curvaTecMin), 0, 1);
+                const graus = (DF.curvaGrausMin + (DF.curvaGrausMax - DF.curvaGrausMin) * kT) * (0.8 + Math.random() * 0.4);
+                const cv = curvaDaFaltaDirecta(distGol, v, elev, tenso ? tenso.extraGrav : 0, ladoTiro, graus, rumoX, rumoZ);
+                const c0 = Math.cos(cv.giroInicial), s0 = Math.sin(cv.giroInicial);
+                const nx = rumoX * c0 + rumoZ * s0, nz = -rumoX * s0 + rumoZ * c0;
+                rumoX = nx; rumoZ = nz;
+                Match.freeKickCurve = { active: true, omega: cv.omega };
+            }
+            Match.ballVel.set(rumoX * vh, v * Math.sin(elev), rumoZ * vh);
 
             /*
             A BARREIRA NÃO INTERCEPTA A BOLA POR ACIDENTE. O

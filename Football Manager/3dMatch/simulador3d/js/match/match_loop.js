@@ -704,6 +704,7 @@ Object.assign(Match, {
                     em 13 acabados em pontape de baliza.
                     */
                     this.freeKickDip = null;
+                    this.freeKickCurve = null;
                     const bx = this.ball.position.x, bz = this.ball.position.z;
                     const by = Math.max(BallPhysics.raio, this.ball.position.y);
                     const golZ = plano.golZ;
@@ -857,6 +858,7 @@ Object.assign(Match, {
                     em 20, com as outras 15 a morrerem em jogo.
                     */
                     this.freeKickDip = null;
+                    this.freeKickCurve = null;
                     const gkD = (plano.equipa === 'TeamA')
                         ? this.opponents.find(p => p.role === 'gk')
                         : this.players.find(p => p.role === 'gk');

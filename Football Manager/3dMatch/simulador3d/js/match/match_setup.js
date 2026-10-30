@@ -2820,6 +2820,7 @@ Object.assign(Match, {
         // reset e o salto da barreira disparava no lance seguinte.
         this.faltaDirectaPlano = null;
         this.freeKickDip = null;
+        this.freeKickCurve = null;
         (this.faltaDirectaBarreira || []).forEach(p => { p.naBarreiraFalta = false; p.barreiraSlot = null; });
         this.faltaDirectaBarreira = null;
         [...this.players, ...this.opponents].forEach(p => { p.jostleAncora = null; });

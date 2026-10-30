@@ -2269,6 +2269,18 @@ const DirectFreeKickModel = {
     dipMax: 24.0,            // m/s² de queda extra, no máximo
 
     /*
+    A CURVA LATERAL (efeito). Alem da queda da folha seca, a bola vira para o canto aberto: sai
+    ao lado/por cima da barreira e fecha para o outro poste. `curvaGraus*` e o giro total do rumo
+    ao longo do voo, e sobe com a TEC do batedor (de TEC 40 a TEC 95). Ver `curvaDaFaltaDirecta`
+    (utils.js) e `Match.freeKickCurve` na fisica.
+    */
+    curvaActiva: true,
+    curvaGrausMin: 16.0,
+    curvaGrausMax: 38.0,
+    curvaTecMin: 40,
+    curvaTecMax: 95,
+
+    /*
     O GUARDA-REDES REAGE TARDE, E O ATRASO SAI DA TÉCNICA DELE.
 
     No penálti o `gkDelayReacao` é zero: ele sabe que a bola vem e parte com
@@ -2513,3 +2525,9 @@ const DirectFreeKickModel = {
     recuoLinhaDefensiva: 18.5,
     larguraLinhaDefensiva: 28.0
 };
+
+/*
+A CURVA DOS PASSES LONGOS PELO ALTO (lancamentos e lobados). Ver o fim de executePassGameplay (fsm.js).
+distMin e a distancia minima do passe; grausMin/Max o giro total do rumo ao longo do voo (sobe com o atributo e a distancia).
+*/
+const PassCurva = { activa: true, distMin: 18, grausMin: 8, grausMax: 20, distRef: 50 };

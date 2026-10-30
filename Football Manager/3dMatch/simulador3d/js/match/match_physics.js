@@ -48,6 +48,22 @@ Object.assign(Match, {
             }
         }
 
+        /*
+        A CURVA LATERAL DA FALTA (`freeKickCurve`): roda a velocidade horizontal a `omega` rad/s
+        enquanto a bola esta no ar (efeito). Acaba no chao, na posse, no embate e no `resetPlay`.
+        */
+        if (this.freeKickCurve && this.freeKickCurve.active) {
+            if (this.ballCarrier) {
+                this.freeKickCurve = null;
+            } else if (this.ball.position.y > r + 0.001) {
+                const a = this.freeKickCurve.omega * dt;
+                const c = Math.cos(a), sn = Math.sin(a);
+                const vx0 = this.ballVel.x, vz0 = this.ballVel.z;
+                this.ballVel.x = vx0 * c + vz0 * sn;
+                this.ballVel.z = -vx0 * sn + vz0 * c;
+            }
+        }
+
         if (this.ball.position.y > r + 0.001) this.ballVel.y -= gBola * dt;
 
         if (!this.prevBallPos) this.prevBallPos = new THREE.Vector3();
@@ -77,6 +93,7 @@ Object.assign(Match, {
 
             // A curva da falta acaba aqui: no chão já não há folha seca.
             this.freeKickDip = null;
+            this.freeKickCurve = null;
 
             // Bola tocou no chão: reseta a contagem de cabeceios aéreos sucessivos
             this.aerialHeaderCount = 0;
