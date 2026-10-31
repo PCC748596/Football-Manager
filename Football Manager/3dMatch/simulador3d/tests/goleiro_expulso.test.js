@@ -105,6 +105,50 @@ for (const motivo of ['naBarreiraFalta', 'setPieceTaker']) {
     Match.setPieceTaker = null; preso.naBarreiraFalta = false;
 }
 
+// As mensagens do 3D para o manager (a partir daqui).
+const enviadas = [];
+Ponte.enviar = (tipo, dados) => enviadas.push({ tipo, dados });
+
+console.log('7 — a troca automatica (time do utilizador, passada a espera) e reportada ao manager com ids reais');
+gk = novoJogo(true);
+Match.ladoDoUtilizador = 'fora';
+enviadas.length = 0;
+expulsarEParar(gk);
+const saiAuto = TreinadorCPU.saidaParaGoleiro('TeamB');
+correrAte(() => !Match.goleiroPendente && Match.opponents[0].role === 'gk', 150);
+const sf7 = enviadas.find(m => m.tipo === 'substituicao_feita');
+verifica(sf7 && sf7.dados.lado === 'fora' && sf7.dados.entra === 777001 && sf7.dados.sai === saiAuto.skills.id, `substituicao_feita { sai ${sf7 && sf7.dados.sai}, entra ${sf7 && sf7.dados.entra} }`, 'substituicao_feita em falta ou errada: ' + JSON.stringify(sf7 && sf7.dados));
+
+console.log('8 — o manager arrasta o reserva para o lugar do goleiro EXPULSO: o 3D tira um de linha (em vez de cancelar) e reporta-o com `corrige`');
+gk = novoJogo(true);
+Match.ladoDoUtilizador = 'fora';
+enviadas.length = 0;
+expulsarEParar(gk);
+const res8 = TreinadorCPU.reservasDe('TeamB').find(r => r.sk.role === 'gk');
+const esperado8 = TreinadorCPU.saidaParaGoleiro('TeamB');
+Match.pedirSubstituicao({ lado: 'fora', sai: 'p-' + gk.skills.id, entra: 'p-' + res8.id, jogador: { position: 'GK' }, _sk: res8.sk });
+correrAte(() => !Match.goleiroPendente && Match.opponents[0].role === 'gk', 150);
+const sf8 = enviadas.find(m => m.tipo === 'substituicao_feita');
+verifica(Match.opponents[0].skills.id === res8.id, 'entrou o goleiro pedido', 'o goleiro pedido nao entrou');
+verifica(sf8 && sf8.dados.sai === esperado8.skills.id && sf8.dados.entra === res8.id && sf8.dados.corrige === gk.skills.id, 'substituicao_feita com o de linha que saiu e corrige = o expulso', 'substituicao_feita: ' + JSON.stringify(sf8 && sf8.dados));
+console.log('8b — arrastar outra vez o mesmo reserva (ja em campo) nao cria uma segunda copia');
+verifica(Match.pedirSubstituicao({ lado: 'fora', sai: 'p-' + Match.opponents[3].skills.id, entra: 'p-' + res8.id, jogador: { position: 'GK' }, _sk: res8.sk }) === false, 'pedido recusado', 'o pedido foi aceite (dois goleiros iguais)');
+
+console.log('9 — o goleiro expulso nunca e oferecido como reserva (banco vazio: cai para o plantel)');
+gk = novoJogo(false);
+Match.equipaInfoB.reservas = []; Match.equipaInfoB.plantel = [gk.skills];
+Officials.expulsar(gk);
+verifica(!TreinadorCPU.reservasDe('TeamB').some(r => r.id === gk.skills.id), 'o expulso nao esta nos reservas', 'o expulso foi oferecido como o proprio reserva');
+verifica((Match.goleirosExpulsos || []).includes(gk), 'Match.goleirosExpulsos lembra-o', 'Match.goleirosExpulsos sem ele');
+
+console.log('10 — os dois goleiros expulsos antes de o primeiro estar resolvido: os dois times ficam com goleiro');
+gk = novoJogo(false);
+const gkA = Match.players.find(p => p.role === 'gk');
+Officials.expulsar(gk); Officials.expulsar(gkA);
+Match.setupSetPiece('FREE_KICK', 'TeamA');
+correrAte(() => !Match.goleiroPendente && Match.players[0].role === 'gk' && Match.opponents[0].role === 'gk', 60);
+verifica(Match.players.some(p => p.role === 'gk') && Match.opponents.some(p => p.role === 'gk'), 'casa e fora com goleiro', `casa ${Match.players.some(p => p.role === 'gk')} fora ${Match.opponents.some(p => p.role === 'gk')}`);
+
 if (falhas) { console.log(`\n${falhas} falha(s)`); process.exit(1); }
 console.log('\ntudo certo');
 process.exit(0);   // o harness deixa temporizadores abertos: sem isto o node nao termina

@@ -110,6 +110,8 @@ const DisputaPenaltis = {
     _fimDaCobranca() {
         const c = this.abortarCobranca();
         if (!c) return;
+        // O goleiro (e o batedor) sem coreografia ficavam congelados no ar no fim do mergulho durante a espera da app: passado `pausa.levantar` s ficam de pe onde estao.
+        this._levantar = { t: 0, jogadores: [c.batedor, c.goleiro].filter(Boolean) };
         Match.mudarEstado('DISPUTA', 'fim_da_cobranca');
         Match.ballVel.set(0, 0, 0);
         if (c.aoFim) c.aoFim(c.resultado);
@@ -170,6 +172,7 @@ const DisputaPenaltis = {
 
     // Um movimento: `obj` (jogador, oficial ou o registo do tecnico) vai pelos pontos `wps`, a `vel` m/s, e ao chegar olha para `olhar`.
     _parte(tipo, obj, model, wps, vel, olhar) {
+        if (tipo === 'jog') this._reporCorpo(obj);
         const s = { tipo, obj, model, wps, i: 0, vel, olhar: olhar || null, chegou: false, yaw: 0, yawAlvo: undefined };
         const f = new THREE.Vector3(0, 0, 1).applyQuaternion(model.quaternion);
         s.yaw = Math.atan2(f.x, f.z);
@@ -180,10 +183,27 @@ const DisputaPenaltis = {
     },
     _parteDe(obj) { return this.partes.find(x => x.obj === obj) || null; },
 
+    /*
+    O CORPO DE PE ANTES DE ANDAR (relato com fotos: "o goleiro esta flutuando" na disputa). O goleiro que mergulhou numa cobranca ficava com `gkEstado = 'mergulho'` e a altura do
+    mergulho no `model.position.y`: o `assentarNoChao` (no fim do `animateBones`, chamado pelo `passoDoJogador`) nao assenta um goleiro em mergulho, e ele caminhava e esperava as
+    cobrancas seguintes 20 a 75 cm acima do relvado (medido no harness: sola media 0.19 m em PREPARO, ate 0.76). Quem entra em coreografia volta a ficar de pe: estado de goleiro
+    parado, sem salto nem queda, ossos na pose base e o corpo a altura base; o assento faz o resto. So mexe em quem esta fora disso (nao reinicia a passada de quem ja anda bem).
+    */
+    _reporCorpo(p) {
+        if (!p || !p.model) return;
+        const base = (typeof ALTURA_BASE_Y === 'number') ? ALTURA_BASE_Y : 0;
+        const noAr = (p.gkEstado && p.gkEstado !== 'idle') || p.jumpTimer > 0 || p.peitoHopTimer > 0 || !!p.queda || Math.abs(p.model.position.y - base) > 0.12;
+        if (!noAr) return;
+        if (p.gkEstado !== undefined) { p.gkEstado = 'idle'; p.dive = null; p.gkReagiu = false; p.gkDelayReacao = 0; }
+        p.jumpTimer = 0; p.peitoHopTimer = 0; p.queda = null;
+        if (typeof p.resetBonesToDefault === 'function') p.resetBonesToDefault();
+        p.model.position.y = base;
+    },
+
     iniciar() {
         const DM = DisputaModel;
         this.activa = true; this.fase = 'REUNIAO'; this.t = 0; this.partes = []; this.pens = [0, 0]; this.atual = null; this.sub = null; this._soltou = false;
-        this._nCobrancas = 0; this._ultimaCobranca = null; this._ultimaReuniao = null;
+        this._nCobrancas = 0; this._ultimaCobranca = null; this._ultimaReuniao = null; this._levantar = null;
         this.sinalZ = Math.random() < 0.5 ? 1 : -1;
         this.primeiro = Math.random() < 0.5 ? 'casa' : 'fora';
         this.ladoBanco = Math.sign((typeof BancosDeReservas !== 'undefined' && BancosDeReservas.treinador && BancosDeReservas.treinador.x) || 1) || 1;
@@ -279,6 +299,13 @@ const DisputaPenaltis = {
         if (!this.activa) return;
         const DM = DisputaModel;
         this.t += dt;
+        if (this._levantar && !this._cobranca) {
+            this._levantar.t += dt;
+            if (this._levantar.t > (DM.pausa.levantar || 0.8)) {
+                for (const p of this._levantar.jogadores) if (!p.disputaOrdem) this._parte('jog', p, p.model, [{ x: p.model.position.x, z: p.model.position.z }], DM.velocidade.jogador, DM.posMarca(this.sinalZ));
+                this._levantar = null;
+            }
+        }
         if (this._cobranca) {
             this.fase = 'COBRANCA';
             this.atualizarCobranca(dt);
@@ -371,7 +398,7 @@ const DisputaPenaltis = {
     _libertar() {
         this.abortarCobranca();
         for (const s of this.partes) if (s.tipo === 'jog') { s.obj.disputaOrdem = null; s.model.visible = true; }
-        this.partes = []; this.activa = false; this.fase = null; this.bolaComJuiz = false;
+        this.partes = []; this.activa = false; this.fase = null; this.bolaComJuiz = false; this._levantar = null;
         Match.disputa = null;
     },
 

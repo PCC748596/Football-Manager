@@ -139,7 +139,7 @@ Match.verificarFimDeTempo();
 for (let i = 0; i < 60 * 90 && !msgs.some(m => m.tipo === 'disputa_reuniao'); i++) Match.update(dt);
 const gkCasa = Match.players.find(p => p.role === 'gk');
 const gkFora = Match.opponents.find(p => p.role === 'gk');
-DisputaPenaltis.receberOrdens(Match.players.map(p => p.id), Match.opponents.map(p => p.id), { lado: 'casa', jogadorId: gkCasa.id });
+DisputaPenaltis.receberOrdens(Match.players.map(p => DisputaPenaltis.idApp(p)), Match.opponents.map(p => DisputaPenaltis.idApp(p)), { lado: 'casa', jogadorId: DisputaPenaltis.idApp(gkCasa) });   // ids reais (o contrato com a app: skills.id)
 for (let i = 0; i < 60 * 60 && !DisputaPenaltis._cobranca; i++) Match.update(dt);
 verifica(!!DisputaPenaltis._cobranca && gkCasa.role !== 'gk', 'a cobranca do goleiro esta a meio (sem o papel gk)', 'a cobranca nao arrancou');
 DisputaPenaltis._abortar();

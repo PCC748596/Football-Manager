@@ -30,7 +30,7 @@ const DisputaModel = {
     // a fila e os postos (cada `dt` ja vem multiplicado pela velocidade do jogo do manager, `speedMultiplier`, como no jogo normal).
     velocidade: { jogador: 3.2, tecnico: 2.2, juiz: 3.0, goleiro: 3.5, bandeirinha: 3.5 },
     prazo: { reuniao: 45, preparo: 30, app: 30, ordem: 300, cobranca: 7 },   // `app`: a resposta automatica da app entre cobrancas; `ordem`: a decisao HUMANA da ordem dos batedores (o modal do manager)
-    pausa: { entrega: 1.0, ajeitar: 0.8, aposContato: 1.2, fim: 4.0 },
+    pausa: { entrega: 1.0, ajeitar: 0.8, aposContato: 1.2, fim: 4.0, levantar: 0.8 },   // `levantar`: s depois do fim da cobranca ate o goleiro (e o batedor) ficarem de pe onde estao
 
     // O tecnico, ao lado do banco: `zBanco` e o z do centro do banco do time; fica a `zDoMeio` do meio-campo, no mesmo lado do eixo.
     posTecnico(ladoBanco, zBanco) {
