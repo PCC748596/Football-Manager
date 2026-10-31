@@ -3462,6 +3462,13 @@ function actInfiltrar(ctx) {
         folga — senao andava a trocar de buraco a cada meio segundo.
         */
         const ES = (typeof RunIntoSpaceModel !== 'undefined') ? RunIntoSpaceModel.espaco : null;
+        // O portador mexe-se: se o alvo ficou em cima dele (ou no caminho dele), reavalia JA e, sem outro espaco, a corrida acaba.
+        const portadorCorr = Match.ballCarrier;
+        const alvoSobrePortador = () => !!(portadorCorr && portadorCorr !== p && portadorCorr.team === p.team && portadorCorr.model &&
+            typeof alvoSobreOPortador === 'function' &&
+            alvoSobreOPortador(p.model.position.x, p.model.position.z, p.runAlvo.x, p.runAlvo.z, portadorCorr.model.position.x, portadorCorr.model.position.z, ES));
+        const colado = alvoSobrePortador();
+        if (colado) p.runReavalia = 0;
         if (ES && p.runEspaco && typeof espacoEntreAdversarios === 'function') {
             p.runReavalia = (p.runReavalia || 0) - (Match.delta || 1 / 60);
             if (p.runReavalia <= 0) {
@@ -3481,6 +3488,8 @@ function actInfiltrar(ctx) {
                 }
             }
         }
+        // Sem outro espaco livre e com o alvo ainda sobre o portador: acaba a corrida (o posicionamento normal pega nele), em vez de ir para cima de quem tem a bola.
+        if (colado && alvoSobrePortador()) { p.runTimer = 0; return; }
 
         p.dynamicTarget.set(p.runAlvo.x, ALTURA_BASE_Y, p.runAlvo.z);
         p.speedMult = p.sprintSpeed || (6.5 * 1.3);

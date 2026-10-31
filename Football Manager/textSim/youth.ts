@@ -38,8 +38,10 @@ export interface BaseState {
   mesProcessado: string;                        // yyyy-mm do ultimo mes ja processado (garante uma vez por mes mesmo apos recarregar)
   proximoId: number;                            // contador dos ids `p-<n>` da base
   relatorios: Record<string, RelatorioMes[]>;   // por id de jogador, os ultimos meses (mais novo por ultimo)
-  /** Vagas abertas por dispensas (por clube): so sao repostas quando o proximo mes e processado. */
+  /** Vagas abertas por dispensas e promocoes (por clube): so sao repostas na proxima janela (1/1 ou 1/6). */
   vagas?: Record<string, number>;
+  /** A ultima janela de atualizacao ja aplicada (yyyy-01-01 ou yyyy-06-01): a relacao Sub-20 so muda (saidas dos 21 anos e entradas) em 1/1 e 1/6. */
+  janelaProcessada?: string;
   /** Jovens promovidos ou dispensados pelo treinador (os mais recentes por ultimo): aparecem no relatorio mensal. */
   movimentos?: MovimentoBase[];
 }
@@ -83,6 +85,9 @@ const MODELO_IDADES: Record<number, number> = { 15: 3, 16: 3, 17: 4, 18: 4, 19: 
 const posicaoQueFalta = (doClube: Player[], rnd: Rnd, preferida?: Position): Position => {
   const n: Partial<Record<Position, number>> = {};
   doClube.forEach(p => { n[p.position] = (n[p.position] || 0) + 1; });
+  // Todo clube tem pelo menos 1 jogador de CADA posicao: quem ainda nao tem nenhum numa posicao vem primeiro.
+  const semNinguem = POSICOES.filter(pos => !(n[pos] || 0));
+  if (semNinguem.length) return (preferida && semNinguem.includes(preferida)) ? preferida : semNinguem[Math.floor(rnd() * semNinguem.length)];
   let melhor = -99, cand: Position[] = [];
   POSICOES.forEach(pos => { const falta = (MODELO[pos] || 0) - (n[pos] || 0); if (falta > melhor) { melhor = falta; cand = [pos]; } else if (falta === melhor) cand.push(pos); });
   if (preferida && cand.includes(preferida)) return preferida;
@@ -254,6 +259,21 @@ export const evolucaoMensal = (p: Player, mes: string): { jogador: Player; relat
 
 const proximoMes = (mes: string): string => somarMeses(mes + '-01', 1).slice(0, 7);
 
+/** A janela de atualizacao em vigor: 1/6 do ano (de junho a dezembro) ou 1/1 (de janeiro a maio). */
+export const janelaDe = (hoje: string): string => {
+  const ano = hoje.slice(0, 4), mes = Number(hoje.slice(5, 7));
+  return mes >= 6 ? `${ano}-06-01` : `${ano}-01-01`;
+};
+
+/** O treinador so pode dispensar um jovem se o clube ficar com pelo menos 1 jogador dessa posicao no Sub-20. */
+export const podeDispensar = (base: BaseState, playerId: string): { ok: boolean; motivo?: string } => {
+  const j = base.jogadores.find(p => p.id === playerId);
+  if (!j) return { ok: false, motivo: 'Player not found.' };
+  const mesmaPosicao = base.jogadores.filter(p => p.teamId === j.teamId && p.position === j.position).length;
+  if (mesmaPosicao <= 1) return { ok: false, motivo: `The club needs at least 1 ${j.position} in the Sub-20, so this player cannot be released.` };
+  return { ok: true };
+};
+
 export interface ResultadoBase { base: BaseState; saidas: Player[]; }
 
 /**
@@ -274,13 +294,19 @@ export const processarBase = (base: BaseState, hoje: string): ResultadoBase => {
     if (idade >= IDADE_ESTILO && (!q.playStyle || q.playStyle === 'None')) q.playStyle = escolherPlayStyle(q.position, { def: q.def, pas: q.pas, drb: q.drb, sht: q.sht });
     return q;
   });
-  if (mudouIdade) {
-    const ficam = comIdade.filter(p => p.age < IDADE_SAIDA);
-    const vao = comIdade.filter(p => p.age >= IDADE_SAIDA);
+  // A idade acompanha o nascimento todos os dias, mas a RELACAO muda so nas janelas de 1/1 e 1/6 (saidas dos 21 anos e entrada dos novos).
+  if (mudouIdade) b = { ...b, jogadores: comIdade };
+  const janela = janelaDe(hoje);
+  if (!b.janelaProcessada) {
+    b = { ...b, janelaProcessada: janela };   // base nova ou save antigo: comeca na janela em vigor, sem mexer na relacao
+  } else if (b.janelaProcessada < janela) {
+    const ficam = b.jogadores.filter(p => p.age < IDADE_SAIDA);
+    const vao = b.jogadores.filter(p => p.age >= IDADE_SAIDA);
     saidas.push(...vao);
     const relatorios = { ...b.relatorios }; vao.forEach(p => { delete relatorios[p.id]; });
-    b = { ...b, jogadores: ficam, relatorios };
-    new Set(vao.map(p => p.teamId)).forEach(tid => { b = completarBase(b, tid, hoje); });
+    const clubes = new Set<string>([...Object.keys(b.vagas || {}), ...vao.map(p => p.teamId)]);
+    b = { ...b, jogadores: ficam, relatorios, vagas: {}, janelaProcessada: janela };
+    clubes.forEach(tid => { b = completarBase(b, tid, hoje); });
   }
   // 2. meses ainda por processar (um a um, pelo calendario)
   let guarda = 240;
@@ -293,12 +319,6 @@ export const processarBase = (base: BaseState, hoje: string): ResultadoBase => {
       return jogador;
     });
     b = { ...b, jogadores, relatorios, mesProcessado: mes };
-    // As vagas abertas por dispensas so se enchem na virada do mes.
-    if (b.vagas && Object.keys(b.vagas).length) {
-      const abertas = Object.keys(b.vagas);
-      b = { ...b, vagas: {} };
-      abertas.forEach(tid => { b = completarBase(b, tid, hoje); });
-    }
   }
   return { base: b, saidas };
 };
@@ -309,15 +329,16 @@ export const promoverJovem = (base: BaseState, playerId: string, hoje: string): 
   if (!jogador) return null;
   const relatorios = { ...base.relatorios }; delete relatorios[playerId];
   let b: BaseState = { ...base, jogadores: base.jogadores.filter(p => p.id !== playerId), relatorios };
-  b = completarBase(b, jogador.teamId, hoje, jogador.position);
+  // A vaga so e reposta na proxima janela (1/1 ou 1/6), como as dispensas.
+  b = { ...b, vagas: { ...(b.vagas || {}), [jogador.teamId]: ((b.vagas || {})[jogador.teamId] || 0) + 1 } };
   b = comMovimento(b, jogador, 'PROMOVIDO', hoje);
   return { base: b, jogador };
 };
 
-/** Dispensa: tira o jovem da base; a vaga so e reposta na virada do mes (ver `processarBase`). */
+/** Dispensa: tira o jovem da base; a vaga so e reposta na proxima janela, 1/1 ou 1/6 (ver processarBase). Devolve null se ele for o unico da posicao. */
 export const dispensarJovem = (base: BaseState, playerId: string, hoje: string): { base: BaseState; jogador: Player } | null => {
   const jogador = base.jogadores.find(p => p.id === playerId);
-  if (!jogador) return null;
+  if (!jogador || !podeDispensar(base, playerId).ok) return null;   // o ultimo jogador de uma posicao nao pode ser dispensado
   const relatorios = { ...base.relatorios }; delete relatorios[playerId];
   let b: BaseState = { ...base, jogadores: base.jogadores.filter(p => p.id !== playerId), relatorios, vagas: { ...(base.vagas || {}), [jogador.teamId]: ((base.vagas || {})[jogador.teamId] || 0) + 1 } };
   b = comMovimento(b, jogador, 'DISPENSADO', hoje);

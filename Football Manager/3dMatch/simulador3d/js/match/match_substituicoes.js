@@ -149,7 +149,7 @@ Object.assign(Match, {
         }
         if (Q && Q.tickQuarto) Q.tickQuarto(dt, !!this.subsEmCurso || this._placaViva > 0);
         if (!emBatch) this._tickPreparador(dt);
-        if (!this.subsPendentes.length) return;
+        if (!this.subsPendentes.length) { this.subsEmCurso = null; return; }
 
         for (const req of this.subsPendentes) {
             if (req.feita) continue;
@@ -176,6 +176,9 @@ Object.assign(Match, {
             if (req.estado === 'voltar') this._tickVoltar(req, dt);
         }
         this.subsPendentes = this.subsPendentes.filter(r => !r.feita);
+        // REDE DE SEGURANCA: a troca em curso tem de ser um pedido ainda vivo. Um pedido ja feito (ou removido da lista) deixava o `subsEmCurso` preso: o jogo parado,
+        // a bandeira e a placa no ar e a camera no auxiliar para sempre.
+        if (this.subsEmCurso && (this.subsEmCurso.feita || this.subsPendentes.indexOf(this.subsEmCurso) < 0)) this.subsEmCurso = null;
     },
 
     /*
@@ -447,7 +450,8 @@ Object.assign(Match, {
             req.estado = 'voltar'; req.passo = 0; req.t = 0;
             req.sai = P;
             const aSair = this.subsPendentes.find(o => !o.feita && o !== req && (o.estado === 'placa' || o.estado === 'sai'));   // outra troca ja em andamento: o jogo continua parado por ela
-            const prox = this.subsPendentes.find(o => !o.feita && o !== req && o.lado === req.lado && o.junto);
+            // O proximo so pode ser quem AINDA nao trocou: um pedido em 'voltar' ja saiu do jogo e nunca mais poe o `subsEmCurso` a null (o jogo ficava parado com a placa no ar).
+            const prox = this.subsPendentes.find(o => !o.feita && o !== req && o.lado === req.lado && o.junto && o.estado !== 'voltar');
             this.subsEmCurso = aSair || prox || null;
             this._placaViva = (aSair || prox) ? 0 : A.placaSobra;
             if (req.B) req.B.model.visible = false;

@@ -279,7 +279,9 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
               <span className="text-slate-900 dark:text-white">SQUAD</span> <span className="text-blue-500">MANAGEMENT</span>
             </h2>
             <p className="text-slate-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2 opacity-60 transition-colors">
-              Drag n drop shirt numbers to swap between players • Click on rows for details
+              {aba === 'U20'
+                ? 'Sub-20 list updates only on Jan 1 and Jun 1 • Every club keeps at least 1 player per position • The only player in a position cannot be released'
+                : 'Drag n drop shirt numbers to swap between players • Click on rows for details'}
             </p>
          </div>
          <div className="flex gap-4 items-center">

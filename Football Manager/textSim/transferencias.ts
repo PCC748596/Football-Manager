@@ -346,9 +346,9 @@ export const concluir = (u: Universo, negId: string, hoje: string, cfg: ConfigMe
   let players = u.players, base = u.base;
   if (loc.origem === 'ELENCO') players = players.map(x => (x.id === p.id ? novo : x));
   else {
-    // do Sub-20: sai da base (que repoe a vaga: sempre 20) e entra no elenco profissional do comprador
+    // do Sub-20: sai da base (a vaga so e reposta na proxima janela, 1/1 ou 1/6) e entra no elenco profissional do comprador
     const relatorios = { ...base!.relatorios }; delete relatorios[p.id];
-    base = completarBase({ ...base!, jogadores: base!.jogadores.filter(x => x.id !== p.id), relatorios }, neg.vendedorId, hoje, p.position);
+    base = { ...base!, jogadores: base!.jogadores.filter(x => x.id !== p.id), relatorios, vagas: { ...(base!.vagas || {}), [neg.vendedorId]: ((base!.vagas || {})[neg.vendedorId] || 0) + 1 } };
     players = [...players, novo];
   }
   const partePassaParaOrcamento = Math.round(valor * cfg.parteDaReceitaNoOrcamento);

@@ -3542,6 +3542,22 @@ Cada ponto pontua:
 Devolve { x, avanco, score, folga } ou null se nenhum ponto tiver `folgaMin`.
 =============================================================================
 */
+/*
+UMA CORRIDA AO ESPACO NAO VAI PARA CIMA DE QUEM TEM A BOLA. Pedido: *"nao faz sentido correr pra cima de quem ja tem a bola e ainda esta com um marcador na frente; ele tem
+que correr no espaco vazio"*. O ponto (ax, az) e rejeitado se cai a menos de `distMinPortador` m do portador, ou se o trajecto do corredor (px, pz) ate la passa a menos de
+`raioPortadorCaminho` m dele (passar por ele, ou ao lado, e ir para cima dele). Pura.
+*/
+function alvoSobreOPortador(px, pz, ax, az, cx, cz, E) {
+    const dMin = (E && typeof E.distMinPortador === 'number') ? E.distMinPortador : 8.0;
+    const rCam = (E && typeof E.raioPortadorCaminho === 'number') ? E.raioPortadorCaminho : 3.0;
+    if (Math.hypot(ax - cx, az - cz) < dMin) return true;
+    const sx = ax - px, sz = az - pz;
+    const len2 = sx * sx + sz * sz;
+    if (len2 < 1e-6) return false;
+    const t = Math.max(0, Math.min(1, ((cx - px) * sx + (cz - pz) * sz) / len2));
+    return Math.hypot(cx - (px + sx * t), cz - (pz + sz * t)) < rCam;
+}
+
 function pontuarEspacoDeCorrida(o, x, avanco, E) {
     const dirZ = o.dirZ;
     const z = avanco * dirZ;
@@ -3552,6 +3568,8 @@ function pontuarEspacoDeCorrida(o, x, avanco, E) {
         if (d < folga) folga = d;
     }
     if (!isFinite(folga)) folga = E.folgaMax;
+    // Sobre o portador (ou no caminho dele): nao e espaco vazio, e o ponto nao serve (folga 0 = abaixo de `folgaMin`).
+    if (o.portador && alvoSobreOPortador(o.px, o.pz, x, z, o.portador.x, o.portador.z, E)) folga = 0;
     const folgaC = Math.min(folga, E.folgaMax);
 
     // A linha de passe do portador ao ponto.

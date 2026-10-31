@@ -63,9 +63,10 @@ const validaBase = (b: ReturnType<typeof garantirBase>, hoje: string, ids: strin
   const todosIds = new Set<string>();
   for (const id of ids) {
     const j = b.jogadores.filter(p => p.teamId === id);
-    assert.equal(j.length, TAMANHO_BASE, `${id} tem ${j.length}`);
+    // A relacao so muda em 1/1 e 1/6: entre as janelas, os jogadores + as vagas abertas = 20, e quem fez 21 anos espera a proxima janela.
+    assert.equal(j.length + ((b as any).vagas?.[id] || 0), TAMANHO_BASE, `${id} tem ${j.length}`);
     j.forEach(p => {
-      assert.ok(p.age >= 15 && p.age <= 20, `idade ${p.age}`);
+      assert.ok(p.age >= 15 && p.age <= 21, `idade ${p.age}`);
       assert.equal(idadeEm(p.birthDate!, hoje), p.age, 'idade = nascimento');
       assert.ok(!todosIds.has(p.id), 'id unico ' + p.id); todosIds.add(p.id);
       ATTRS.forEach(a => assert.ok(p[a] >= 50 && p[a] <= 99, `${a}=${p[a]}`));
@@ -77,9 +78,10 @@ const validaBase = (b: ReturnType<typeof garantirBase>, hoje: string, ids: strin
     });
     const pos = new Set(j.map(p => p.position));
     assert.ok(pos.has(Position.GK) && pos.has(Position.CB) && pos.has(Position.LB) && pos.has(Position.RB) && pos.has(Position.CM) && pos.has(Position.ST), 'todas as linhas');
-    assert.equal(new Set(j.map(p => p.shirtNumber)).size, TAMANHO_BASE, 'camisas distintas');
+    assert.equal(new Set(j.map(p => p.shirtNumber)).size, j.length, 'camisas distintas');
   }
-  assert.equal(b.jogadores.length, ids.length * TAMANHO_BASE, 'ninguem sobrando nem repetido');
+  const vagasTotal = ids.reduce((s, id) => s + (((b as any).vagas || {})[id] || 0), 0);
+  assert.equal(b.jogadores.length + vagasTotal, ids.length * TAMANHO_BASE, 'ninguem sobrando nem repetido');
 };
 
 test('cada clube nasce com 20 jovens de 15 a 20 anos, atributos 50-99, potencial >= overall', () => {
@@ -188,18 +190,21 @@ test('21 anos: saem sem promocao automatica e a vaga e reposta uma vez (3 tempor
   console.log('saidas por idade em 3 anos (5 clubes):', saiu);
 });
 
-test('promocao: preserva o jogador, repoe a vaga e mantem 20', () => {
+test('promocao: preserva o jogador e a vaga so e reposta na janela (1/1 ou 1/6)', () => {
   let b = garantirBase(null, ['A', 'B'], '2024-04-01');
   b = processarBase(b, '2024-08-15').base;
   const alvo = b.jogadores.find(p => p.teamId === 'A' && p.position === Position.ST)!;
   const copia = JSON.stringify(alvo);
   const r = promoverJovem(b, alvo.id, '2024-08-15')!;
   assert.equal(JSON.stringify(r.jogador), copia, 'o jogador sai igual (id, atributos, potencial, contrato)');
-  assert.equal(r.base.jogadores.filter(p => p.teamId === 'A').length, 20);
+  assert.equal(r.base.jogadores.filter(p => p.teamId === 'A').length, 19, 'a vaga fica aberta ate a proxima janela');
+  assert.equal(r.base.vagas!['A'], 1);
   assert.equal(r.base.jogadores.filter(p => p.teamId === 'B').length, 20);
   assert.ok(!r.base.jogadores.some(p => p.id === alvo.id), 'nao ficou na base');
-  assert.ok(r.base.jogadores.filter(p => p.teamId === 'A').some(p => p.position === Position.ST), 'a reposicao manteve a posicao');
-  assert.equal(new Set(r.base.jogadores.map(p => p.id)).size, 40);
+  assert.equal(new Set(r.base.jogadores.map(p => p.id)).size, 39);
+  const naJanela = processarBase(r.base, '2025-01-02').base;   // 1/1: a vaga e reposta
+  assert.equal(naJanela.jogadores.filter(p => p.teamId === 'A').length, 20);
+  assert.ok(naJanela.jogadores.filter(p => p.teamId === 'A').some(p => p.position === Position.ST), 'a reposicao ocupa a posicao que falta');
   assert.equal(promoverJovem(r.base, alvo.id, '2024-08-15'), null, 'nao promove duas vezes');
   const b2 = processarBase(b, '2025-02-01').base;   // nada e promovido sozinho
   assert.equal(b2.jogadores.filter(p => p.teamId === 'A').length, 20);
@@ -319,4 +324,26 @@ test('PlayStyle: coerente com os atributos (goleiro, centroavante, lateral)', ()
   assert.equal(escolherPlayStyle(Position.RB, { def: 55, pas: 65, drb: 85, sht: 60 }), 'Offensive Full-back');
   // histerese: o estilo atual fica se o novo ganha por pouco
   assert.equal(escolherPlayStyle(Position.ST, { def: 50, pas: 55, drb: 85, sht: 85 }, 'Fox in the Box'), 'Fox in the Box');
+});
+
+// ------------------------------------------------------------------ relacao Sub-20: janelas de 1/1 e 1/6 e uma posicao nunca fica vazia
+import { podeDispensar, dispensarJovem, janelaDe } from '../textSim/youth';
+
+test('Sub-20: a janela de atualizacao e 1/1 ou 1/6', () => {
+  assert.equal(janelaDe('2025-01-01'), '2025-01-01');
+  assert.equal(janelaDe('2025-05-31'), '2025-01-01');
+  assert.equal(janelaDe('2025-06-01'), '2025-06-01');
+  assert.equal(janelaDe('2025-12-31'), '2025-06-01');
+});
+
+test('Sub-20: todo clube tem as 11 posicoes e o unico de uma posicao nao pode ser dispensado', () => {
+  const b = garantirBase(null, ['A', 'B'], '2024-04-01');
+  const posicoes = [Position.GK, Position.CB, Position.LB, Position.RB, Position.DM, Position.CM, Position.AM, Position.LW, Position.RW, Position.ST, Position.SS];
+  ['A', 'B'].forEach(t => posicoes.forEach(pos => assert.ok(b.jogadores.some(p => p.teamId === t && p.position === pos), `${t} sem ${pos}`)));
+  const unico = b.jogadores.find(p => p.teamId === 'A' && p.position === Position.AM)!;   // o modelo tem 1 AM por clube
+  assert.equal(podeDispensar(b, unico.id).ok, false);
+  assert.equal(dispensarJovem(b, unico.id, '2024-04-01'), null, 'dispensar o unico da posicao e recusado');
+  const varios = b.jogadores.find(p => p.teamId === 'A' && p.position === Position.CB)!;   // 3 CB
+  assert.equal(podeDispensar(b, varios.id).ok, true);
+  assert.ok(dispensarJovem(b, varios.id, '2024-04-01'));
 });

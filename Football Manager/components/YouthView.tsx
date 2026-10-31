@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { atributos3d } from '../textSim/atributos3d';
 import { useGame } from '../context/GameContext';
 import { Player, Position } from '../types';
-import { estrelasDoJogador, MudancaAtributo, RelatorioMes, TAMANHO_BASE, IDADE_ESTILO } from '../textSim/youth';
+import { estrelasDoJogador, MudancaAtributo, RelatorioMes, TAMANHO_BASE, IDADE_ESTILO, podeDispensar } from '../textSim/youth';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { ContractChip, ContractPanel } from './ContractPanel';
 
@@ -127,7 +127,7 @@ const YouthView: React.FC = () => {
                         <td className="px-3 py-2"><EstiloDoJovem p={p} /></td>
                         <td className="px-3 py-2"><ContractChip player={p} hoje={hoje} /></td>
                         <td className="px-3 py-2 text-center text-sm">{r ? <Delta v={r.delta} /> : <span className="text-slate-400">-</span>}</td>
-                        <td className="px-3 py-2 text-right"><button onClick={e => { e.stopPropagation(); promover(p); }} className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-500 text-white font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">Promote</button><button onClick={e => { e.stopPropagation(); dispensar(p); }} className="ml-1 whitespace-nowrap bg-transparent border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">Release</button></td>
+                        <td className="px-3 py-2 text-right"><button onClick={e => { e.stopPropagation(); promover(p); }} className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-500 text-white font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">Promote</button><button disabled={!podeDispensar(base, p.id).ok} title={podeDispensar(base, p.id).motivo} onClick={e => { e.stopPropagation(); dispensar(p); }} className="ml-1 disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap bg-transparent border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">Release</button></td>
                       </tr>
                     );
                   })}
@@ -178,7 +178,7 @@ const YouthView: React.FC = () => {
                   )}
                 </div>
                 <button onClick={() => promover(sel)} className="mt-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded text-xs uppercase tracking-widest shadow-lg transition-colors">Promote to first team</button>
-                <button onClick={() => dispensar(sel)} className="border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black py-2.5 rounded text-xs uppercase tracking-widest transition-colors">Release from academy</button>
+                <button disabled={!podeDispensar(base, sel.id).ok} title={podeDispensar(base, sel.id).motivo} onClick={() => dispensar(sel)} className="disabled:opacity-30 disabled:cursor-not-allowed border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black py-2.5 rounded text-xs uppercase tracking-widest transition-colors">Release from academy</button>
               </>
             )}
           </div>
@@ -242,13 +242,13 @@ const YouthView: React.FC = () => {
             </div>
             <div className="text-xs text-slate-300 leading-relaxed">
               {modo === 'PROMOVER'
-                ? <>The player joins the first team squad ({tamanhoElenco}/33) and the academy spot is refilled by a new youth player.</>
-                : <>{promovendo.name} leaves the club for good. The academy spot stays empty until the next monthly update, when a new youth player arrives. This cannot be undone.</>}
+                ? <>The player joins the first team squad ({tamanhoElenco}/33) and the academy spot is refilled by a new youth player on the next update (Jan 1 or Jun 1).</>
+                : <>{promovendo.name} leaves the club for good. The academy spot stays empty until the next update (Jan 1 or Jun 1), when a new youth player arrives. This cannot be undone.</>}
             </div>
             {erroPromo && <div className="text-xs font-bold text-rose-400 bg-rose-900/20 border border-rose-800 rounded px-3 py-2">{erroPromo}</div>}
             <div className="flex gap-3">
               <button onClick={() => setPromovendo(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-black py-2.5 rounded text-xs uppercase tracking-widest">Cancel</button>
-              <button onClick={confirmarPromocao} disabled={modo === 'PROMOVER' && tamanhoElenco >= 33} className={`flex-1 ${modo === 'PROMOVER' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'} disabled:opacity-40 disabled:cursor-not-allowed text-white font-black py-2.5 rounded text-xs uppercase tracking-widest`}>{modo === 'PROMOVER' ? 'Promote' : 'Release'}</button>
+              <button onClick={confirmarPromocao} disabled={(modo === 'PROMOVER' && tamanhoElenco >= 33) || (modo === 'DISPENSAR' && !podeDispensar(base, promovendo.id).ok)} className={`flex-1 ${modo === 'PROMOVER' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'} disabled:opacity-40 disabled:cursor-not-allowed text-white font-black py-2.5 rounded text-xs uppercase tracking-widest`}>{modo === 'PROMOVER' ? 'Promote' : 'Release'}</button>
             </div>
           </div>
         </div>
