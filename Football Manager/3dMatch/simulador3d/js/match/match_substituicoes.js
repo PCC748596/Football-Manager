@@ -646,7 +646,8 @@ Object.assign(Match, {
         if (req._reportar && typeof Ponte !== 'undefined' && Ponte.enviar) {
             const real = (q) => (q && q.skills && q.skills.id !== undefined) ? q.skills.id : null;
             const corrige = (req.corrige !== undefined && typeof AdaptadorManager !== 'undefined') ? AdaptadorManager.idReal(req.corrige) : null;
-            Ponte.enviar('substituicao_feita', { lado: req.lado, sai: real(P), entra: real(N), corrige: corrige });
+            // `expulso`: o goleiro expulso cujo posto o entrante herdou (o manager poe o reserva no posto dele e o expulso, vermelho, no de quem saiu).
+            Ponte.enviar('substituicao_feita', { lado: req.lado, sai: real(P), entra: real(N), expulso: G ? real(G) : null, corrige: corrige });
         }
         if (!(opcoes && opcoes.entrada)) req.feita = true;
         return N;

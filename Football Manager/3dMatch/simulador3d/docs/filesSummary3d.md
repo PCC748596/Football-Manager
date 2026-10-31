@@ -15,6 +15,17 @@ Consulta este ficheiro para saber **onde** mexer antes de abrir o código.
 
 ## Últimas Actualizações (Outubro 2026)
 
+### 31 de Outubro de 2026 (segunda ronda de correções da disputa)
+
+- **O goleiro que defendia "desaparecia"**: com a baliza do time reposta logo no fim da cobrança, o `updateGK` (estado DISPUTA) prendia-o na SUA grande área e teletransportava-o 88 m (z = −36.5). Agora `abortarCobranca(true)` mantém a baliza da disputa até `_parte` (coreografia) a repor, e a cobrança seguinte espera `pausa.levantar` (`_proximaPendente`).
+- **Goleiro a olhar para o céu**: o pescoço da postura do pênalti (−0.48) ficava em coreografia. `passoDoJogador` endireita pescoço, pés e tronco dos goleiros.
+- **Juiz**: `DisputaModel.posJuiz` = o sítio do pênalti em jogo (`juiz.arbitroX` = `PenaltyModel.arbitroX` × sinalZ, z da marca), como `Officials.pontoDoArbitro`.
+- **Goleiro que espera**: sobre a linha lateral da grande área (x = ±20.16), a 5 m da linha de fundo, do lado contrário ao bandeirinha.
+- **Batedor**: `posEsperaBatedor(sinalZ, pe)` com `desvioBatedor` (a conta do `setupSetPiece`); espera parado `pausa.esperaBatida` (4 s) antes da corrida (`Match.penaltiEspera`, em match_loop.js o `penaltiAtraso` não desce enquanto houver espera).
+- **Goleiro na linha**: medido nos dois times e nas duas balizas, ele está em z = ±53.000 no último frame antes do contato, como no pênalti em jogo. O "não está na linha" era o goleiro teletransportado a voltar a pé.
+- **Manager**: `substituicao_feita` leva `expulso`. `aplicarTrocaDo3d(lineup, bench, m, plantel)` espelha o 3D sem buracos: o reserva fica no posto do goleiro e o expulso (vermelho) no posto de quem saiu. Aceita o estado real do TacticsView, em que o expulso some da escalação e do banco. Banco vazio ou promoção: nada muda. `avisoDoGoleiro` respeita o `lado` do `goleiro_trocado`.
+- Teste novo `tests/disputa_cobranca_posicoes.test.js` (no `3d:teste`).
+
 ### 31 de Outubro de 2026 (correções depois do teste no browser) — disputa de pênaltis e goleiro expulso
 
 - **Contrato dos ids = `skills.id`.** O `FootballPlayer.id` é o LUGAR (0–10 TeamA, 20–30 TeamB; quem entra herda o do que sai) e não serve ao manager. `DisputaPenaltis.idApp(p)` (= `p.skills.id`, ou `p.id` sem skills) é o id em `disputa_reuniao`, `jogadorPorId` e `disputa_cobranca` (relato: *"disputa sem proximo batedor"*: a lista da ordem vinha vazia). Teste novo `tests/disputa_ids.test.js` com as equipas reais do manager e um jogador que entrou do banco.

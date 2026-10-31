@@ -69,19 +69,39 @@ test('a marca do penalti e o batedor a espera, para cada baliza', () => {
         assert.ok(Math.abs(m.z - s * (53 - 11)) < 1e-9);
         const e = DM.posEsperaBatedor(s);
         assert.ok(Math.abs(e.z - (m.z - s * 5.7)) < 1e-9, 'a espera e recuoBatedor atras da marca');
+        // O desvio do pe bom, com a conta do setupSetPiece (PENALTY): ladoDesvio = (pe === 'e') ? -1 : 1; x = ladoDesvio * attDir * desvioBatedor (attDir = s).
+        const destro = DM.posEsperaBatedor(s, 'd'), canhoto = DM.posEsperaBatedor(s, 'e');
+        assert.ok(Math.abs(destro.x - s * 1.2) < 1e-9, 'destro: a esquerda de quem corre para a baliza (x = +attDir * 1.2)');
+        assert.ok(Math.abs(canhoto.x + s * 1.2) < 1e-9, 'canhoto: a direita (x = -attDir * 1.2)');
+        assert.ok(destro.z === e.z && canhoto.z === e.z, 'o mesmo recuo');
         const g = DM.posGol(s);
         assert.deepStrictEqual(g, { x: 0, z: s * 53 });
     }
 });
 
-test('o goleiro que espera: 5 m da linha de fundo, entre a pequena e a grande area', () => {
+test('o goleiro que espera: SOBRE a linha lateral da grande area, a 5 m da linha de fundo, e nunca no sitio do bandeirinha', () => {
     for (const s of [1, -1]) for (const lx of [1, -1]) {
         const p = DM.posGoleiroEspera(s, lx);
         assert.ok(Math.abs(Math.abs(p.z) - (53 - 5)) < 1e-9, 'a 5 m da linha de fundo');
         assert.strictEqual(Math.sign(p.z), s);
         assert.strictEqual(Math.sign(p.x), lx);
-        assert.ok(Math.abs(p.x) > 9.16 && Math.abs(p.x) < 20.16, 'entre a linha da pequena area e a da grande');
+        assert.ok(Math.abs(Math.abs(p.x) - 20.16) < 1e-9, 'sobre a linha da grande area (x = +-20.16)');
+        // Na disputa o goleiro vai para -ladoAssist e o bandeirinha para +ladoAssist (js/disputa_penaltis.js): lados opostos, e mesmo do mesmo lado ficariam 5 m afastados.
+        const b = DM.posBandeirinha(s, -lx);
+        assert.ok(dist(p, b) > 30, 'o bandeirinha do outro lado');
     }
+});
+
+test('o juiz: o sitio do penalti em jogo (Officials.pontoDoArbitro: x = arbitroX * attDir, z da marca)', () => {
+    for (const s of [1, -1]) {
+        const j = DM.posJuiz(s), m = DM.posMarca(s);
+        assert.ok(Math.abs(j.x - 9.16 * s) < 1e-9, 'x = arbitroX * sinalZ');
+        assert.ok(Math.abs(j.z - m.z) < 1e-9, 'alinhado com a marca');
+    }
+});
+
+test('a espera antes da batida: esperaBatida = 4 s', () => {
+    assert.strictEqual(DM.pausa.esperaBatida, 4.0);
 });
 
 test('o bandeirinha: sobre a linha de fundo, em cima da linha da grande area', () => {

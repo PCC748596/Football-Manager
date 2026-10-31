@@ -95,20 +95,27 @@ const DisputaPenaltis = {
     cobranca desfeita (ou null). Chamado no fim normal de uma cobranca (`_fimDaCobranca`) e por todos os caminhos que acabam a disputa a meio (`_libertar`), para que nenhum
     jogador fique a apontar para a baliza errada nem sem o papel de goleiro.
     */
-    abortarCobranca() {
+    abortarCobranca(manterBaliza) {
         const c = this._cobranca;
         if (!c) return null;
         this._cobranca = null;
         if (c.papelGuardado) c.batedor.role = c.papelGuardado;
-        this._reporLados(c.batedor, c.goleiro);
+        // `manterBaliza` (o fim normal): a baliza do time volta quando eles entram em coreografia (`_parte`), nao ja — ver `_fimDaCobranca`.
+        if (!manterBaliza) this._reporLados(c.batedor, c.goleiro);
         Match.penaltiPendente = false;
         Match.penaltiEmVoo = 0;
         [c.batedor, c.goleiro].forEach(p => { if (p) { p.velocity.set(0, 0, 0); p.hasBall = false; if (p.fsm) p.fsm.changeState('IDLE'); } });
         return c;
     },
 
+    /*
+    O GOLEIRO QUE DEFENDIA "DESAPARECIA" DEPOIS DA DEFESA (relato). Com a baliza do time reposta logo no fim da cobranca, o goleiro sem coreografia corria o `updateGK` no estado
+    DISPUTA e o `updateGK` prende-o dentro da SUA grande area (clamp em z): um goleiro cuja baliza do time e a outra era teletransportado 88 m, para z = -36.5 (medido no harness,
+    stack em player.js updateGK), e caminhava de la. Agora a baliza fica a da cobranca ate eles entrarem em coreografia (`_parte` repoe-na) e a cobranca seguinte espera o
+    `pausa.levantar` (o mergulho acaba de cair; ver `receberProxima`).
+    */
     _fimDaCobranca() {
-        const c = this.abortarCobranca();
+        const c = this.abortarCobranca(true);
         if (!c) return;
         // O goleiro (e o batedor) sem coreografia ficavam congelados no ar no fim do mergulho durante a espera da app: passado `pausa.levantar` s ficam de pe onde estao.
         this._levantar = { t: 0, jogadores: [c.batedor, c.goleiro].filter(Boolean) };
@@ -140,6 +147,21 @@ const DisputaPenaltis = {
         const dif = Math.atan2(Math.sin(alvo - s.yaw), Math.cos(alvo - s.yaw));
         s.yaw += dif * (1 - Math.exp(-dt * 9));
         p.model.quaternion.setFromAxisAngle(this._eixoY || (this._eixoY = new THREE.Vector3(0, 1, 0)), s.yaw);
+        /*
+        O GOLEIRO A OLHAR PARA O CEU (relato com foto). A postura do penalti (GoalkeeperPose.penalti) levanta o pescoco (`cabeca` -0.48) e roda os pes (`pe` -0.75) para
+        compensar o tronco inclinado; quem escreve isso de volta e o `updateGK`, que nao corre em coreografia, e o `animateBones` endireita a anca mas nao o pescoco de um goleiro
+        (o `nivelarCabeca` nao trata goleiros). Saido da postura ele caminhava e esperava a olhar 30-37 graus para cima (medido). Em coreografia o pescoco e os pes voltam a direito.
+        */
+        const rg = p.rig;
+        if (rg) {
+            const k = 1 - Math.exp(-dt * 10);
+            if (rg.neck) rg.neck.rotation.x += (0 - rg.neck.rotation.x) * k;
+            if (p.role === 'gk' || p.gkEstado !== undefined) {
+                if (rg.lFoot) rg.lFoot.rotation.x += (0 - rg.lFoot.rotation.x) * k;
+                if (rg.rFoot) rg.rFoot.rotation.x += (0 - rg.rFoot.rotation.x) * k;
+                if (rg.chest) rg.chest.rotation.x += (0 - rg.chest.rotation.x) * k;
+            }
+        }
         p.animateBones(dt);
     },
 
@@ -172,7 +194,8 @@ const DisputaPenaltis = {
 
     // Um movimento: `obj` (jogador, oficial ou o registo do tecnico) vai pelos pontos `wps`, a `vel` m/s, e ao chegar olha para `olhar`.
     _parte(tipo, obj, model, wps, vel, olhar) {
-        if (tipo === 'jog') this._reporCorpo(obj);
+        // Em coreografia o jogador volta a baliza do time (o batedor e o goleiro da cobranca anterior ainda apontavam para a da disputa, ver `_fimDaCobranca`).
+        if (tipo === 'jog') { this._reporCorpo(obj); this._reporLados(obj); }
         const s = { tipo, obj, model, wps, i: 0, vel, olhar: olhar || null, chegou: false, yaw: 0, yawAlvo: undefined };
         const f = new THREE.Vector3(0, 0, 1).applyQuaternion(model.quaternion);
         s.yaw = Math.atan2(f.x, f.z);
@@ -203,7 +226,7 @@ const DisputaPenaltis = {
     iniciar() {
         const DM = DisputaModel;
         this.activa = true; this.fase = 'REUNIAO'; this.t = 0; this.partes = []; this.pens = [0, 0]; this.atual = null; this.sub = null; this._soltou = false;
-        this._nCobrancas = 0; this._ultimaCobranca = null; this._ultimaReuniao = null; this._levantar = null;
+        this._nCobrancas = 0; this._ultimaCobranca = null; this._ultimaReuniao = null; this._levantar = null; this._proximaPendente = null;
         this.sinalZ = Math.random() < 0.5 ? 1 : -1;
         this.primeiro = Math.random() < 0.5 ? 'casa' : 'fora';
         this.ladoBanco = Math.sign((typeof BancosDeReservas !== 'undefined' && BancosDeReservas.treinador && BancosDeReservas.treinador.x) || 1) || 1;
@@ -304,6 +327,9 @@ const DisputaPenaltis = {
             if (this._levantar.t > (DM.pausa.levantar || 0.8)) {
                 for (const p of this._levantar.jogadores) if (!p.disputaOrdem) this._parte('jog', p, p.model, [{ x: p.model.position.x, z: p.model.position.z }], DM.velocidade.jogador, DM.posMarca(this.sinalZ));
                 this._levantar = null;
+                // A resposta da app que chegou durante o levantar: a cobranca seguinte arranca agora.
+                const prox = this._proximaPendente; this._proximaPendente = null;
+                if (prox && this.fase === 'AGUARDA') this._prepararCobranca(prox);
             }
         }
         if (this._cobranca) {
@@ -352,7 +378,7 @@ const DisputaPenaltis = {
             }
         } else if (this.sub === 'ajeita') {
             if (this.tSub > DM.pausa.ajeitar) {
-                const e = DM.posEsperaBatedor(this.sinalZ), m = DM.posMarca(this.sinalZ);
+                const e = DM.posEsperaBatedor(this.sinalZ, a.batedor.pe), m = DM.posMarca(this.sinalZ);
                 this._parte('jog', a.batedor, a.batedor.model, [e], DM.velocidade.jogador, m);
                 this.sub = 'recuo'; this.tSub = 0;
             }
@@ -382,6 +408,8 @@ const DisputaPenaltis = {
         if (this.activa && m && m.abortar && !this._cobranca) { this._abortar(); return; }
         if (!this.activa || this.fase !== 'AGUARDA') return;
         if (m.fim) { this.pens = m.pens || this.pens; this.fase = 'FIM'; this.t = 0; return; }
+        // O goleiro ainda a cair do mergulho: espera o `pausa.levantar` (senao ficava de pe de uma vez e a cobranca seguinte comecava por cima da queda).
+        if (this._levantar) { this._proximaPendente = m; return; }
         this._prepararCobranca(m);
     },
 
@@ -397,6 +425,8 @@ const DisputaPenaltis = {
     // Todos os caminhos que acabam a disputa passam por aqui: antes de largar os jogadores desfaz-se uma cobranca a meio (baliza dos jogadores, papel `gk`, penalti pendente).
     _libertar() {
         this.abortarCobranca();
+        if (this._levantar) this._levantar.jogadores.forEach(p => this._reporLados(p));
+        this._proximaPendente = null;
         for (const s of this.partes) if (s.tipo === 'jog') { s.obj.disputaOrdem = null; s.model.visible = true; }
         this.partes = []; this.activa = false; this.fase = null; this.bolaComJuiz = false; this._levantar = null;
         Match.disputa = null;

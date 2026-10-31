@@ -595,6 +595,8 @@ Object.assign(Match, {
             this.setPieceTimer += dt;
             if (this.penaltiPendente) {
                 this.penaltiAtraso -= dt;
+                // A DISPUTA espera `penaltiEspera` s parada antes de a corrida comecar (a espera do penalti em jogo, e o plano da corrida, contam so depois).
+                if (this.penaltiEspera > 0) { this.penaltiEspera -= dt; this.penaltiAtraso += dt; this.setPieceTimer -= dt; }
                 // Teto de 25 s: sem ele uma marca presa (queda, lugar) prendia o penalti para sempre.
                 this.esperaBolaParada = (this.esperaBolaParada || 0) + dt;
                 if ((this.algumCaidoDaFalta(true) || this.algumACaminhoDoLugar(true)) && this.esperaBolaParada <= 25.0) {

@@ -1130,6 +1130,7 @@ Object.assign(Match, {
 
         } else if (type === 'PENALTY') {
             this._penPlano = null;   // o plano da corrida do batedor (match_loop.js) e por penalti
+            this.penaltiEspera = 0;  // so a disputa (iniciarPenaltiDaDisputa) espera parada antes da corrida
             /*
             PENÁLTI. Bola na marca, batedor atrás dela, guarda-redes na linha e
             toda a gente fora da área E fora da meia-lua. O remate tem resolução
@@ -1646,7 +1647,7 @@ Object.assign(Match, {
         this.lastTouchedPlayer = null;
         // Rede de seguranca: a coreografia ja deixa o batedor na espera; se ele vier de longe (uma corrida de dezenas de metros passaria o prazo do penalti, SetPiecePrazos),
         // poe-se-lhe la, como o `setupSetPiece` faz no penalti em jogo.
-        const espera = DM.posEsperaBatedor(D.sinalZ), pb = batedor.model.position;
+        const espera = DM.posEsperaBatedor(D.sinalZ, batedor.pe), pb = batedor.model.position;   // com o desvio do pe bom, como no penalti em jogo
         if (Math.hypot(pb.x - espera.x, pb.z - espera.z) > 3.0) pb.set(espera.x, ALTURA_BASE_Y, espera.z);
         this.setPieceTeam = batedor.team;
         this.setPieceTaker = batedor;
@@ -1667,6 +1668,8 @@ Object.assign(Match, {
         }
         this.penaltiPendente = true;
         this.penaltiAtraso = DM.pausa.ajeitar + 0.6;
+        // Parado na espera antes de a corrida do penalti em jogo comecar (match_loop.js: o `penaltiAtraso` nao desce enquanto ha `penaltiEspera`).
+        this.penaltiEspera = DM.pausa.esperaBatida || 0;
     },
 
     /*

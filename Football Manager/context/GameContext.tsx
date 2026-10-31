@@ -1365,8 +1365,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const meuLado = uf.homeTeamId === gameState.userTeamId ? 'casa' : 'fora';
       if (m.lado !== meuLado) return;
       const meu = meuLado === 'casa' ? casa : fora;
-      const r = aplicarTrocaDo3d(meu.lineup || [], meu.bench || [], m);
-      if (!r) { console.warn('[3D] substituicao_feita sem correspondencia na escalacao do manager', m); return; }
+      const r = aplicarTrocaDo3d(meu.lineup || [], meu.bench || [], m, players.filter(p => p.teamId === meu.id).map(p => p.id));
+      // Sem correspondencia (o reserva veio do plantel com o banco do manager vazio, ou ids desconhecidos): nao se mexe na escalacao (nada de buracos ou repetidos).
+      if (!r) { console.warn('[3D] substituicao_feita sem correspondencia na escalacao do manager (escalacao inalterada)', m); return; }
       setTeams(prev => prev.map(t => (t.id === meu.id ? { ...t, lineup: r.lineup, bench: r.bench } : t)));
       setFixtures(prev => prev.map(f => {
         if (f.id !== uf.id) return f;
