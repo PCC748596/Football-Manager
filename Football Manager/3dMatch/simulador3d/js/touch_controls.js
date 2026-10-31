@@ -35,7 +35,8 @@ const TouchControls = {
                 }
             }
         }
-        this.setVisible(isTouchDevice);
+        // Os controles touch comecam DESLIGADOS, tambem no iPad (pedido): liga-se no botao Touch Controls do painel.
+        this.setVisible(false);
     },
 
     createDOM: function () {

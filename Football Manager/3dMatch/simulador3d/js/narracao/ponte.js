@@ -131,7 +131,7 @@ const Ponte = {
                 '<button data-cam="lateraltv" data-r="3d">3D</button><button data-cam="topdown">2D</button><button id="tc-minimapa" title="Minimap">Minimap ON</button><button id="tc-nomes" title="Player names">Names OFF</button><span class="sep"></span>' +
                 '<span>Speed</span>' + [0.5, 1, 1.5].map(v => '<button data-vel="' + v + '">' + v + 'x</button>').join('') +
                 '<button id="tc-pausa">Pause</button><button id="tc-replay">Replay 10s</button><span class="sep"></span><button id="tc-tactics">Tactics</button>' +
-                '<span id="tc-evento"></span><button id="tc-debug" title="Right-hand debug panel">Debug ON</button><span id="tc-fps" title="Frames per second">FPS --</span>';
+                '<span id="tc-evento"></span><button id="tc-debug" title="Right-hand debug panel">Debug OFF</button><span id="tc-fps" title="Frames per second">FPS --</span>';
             document.body.appendChild(barra);
             barra.addEventListener('click', (e) => {
                 const b = e.target.closest('button'); if (!b) return;
@@ -150,7 +150,7 @@ const Ponte = {
             });
         }
         barra.style.display = 'flex';
-        this.definirDebug(true);   // entra em tela cheia com o painel de debug LIGADO e maximizado
+        this.definirDebug(false);   // entra em tela cheia com o painel de debug DESLIGADO (pedido); liga-se no botao Debug
         clearInterval(this._tBarra);
         const g = (id) => { const e = document.getElementById(id); return e ? e.textContent : ''; };
         this._tBarra = setInterval(() => {

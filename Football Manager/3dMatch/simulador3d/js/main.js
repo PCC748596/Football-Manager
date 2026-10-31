@@ -1213,7 +1213,9 @@ function animate(time) {
         let titleEl = document.getElementById('app-title');
         if (titleEl) titleEl.innerText = 'SOCCER SIM | FPS: ' + fps;
         
-        if (fps < 20 && window.Config && window.Config.enableCrowd && !window.crowdDisabledByFps) {   // a torcida so se desliga abaixo de 20 fps
+        // No iPad / ecra de toque a torcida NAO se desliga sozinha (pedido: a torcida volta no iPad); a qualidade e o limite de 5000 ja a aliviam.
+        const ecraDeToque = window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+        if (fps < 20 && !ecraDeToque && window.Config && window.Config.enableCrowd && !window.crowdDisabledByFps) {   // a torcida so se desliga abaixo de 20 fps (fora do iPad)
             window.consecutiveLowFps = (window.consecutiveLowFps || 0) + 1;
             if (window.consecutiveLowFps >= 10) { // 10 segundos consecutivos abaixo de 20 FPS (a torcida sumia por quedas curtas)
                 window.crowdDisabledByFps = true;
