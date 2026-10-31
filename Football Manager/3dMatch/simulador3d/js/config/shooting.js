@@ -2531,5 +2531,6 @@ const DirectFreeKickModel = {
 A CURVA DOS PASSES LONGOS PELO ALTO (lancamentos e lobados). Ver o fim de executePassGameplay (fsm.js).
 distMin e a distancia minima do passe; grausMin/Max o giro total do rumo ao longo do voo (sobe com o atributo e a distancia).
 */
-const PassCurva = { activa: true, distMin: 4, grausMin: 8, grausMax: 20, distRef: 50, grausRasteiro: 5 };
+// `fase`: a curva so no fim do voo (curvaDoPasse): 3 = a flecha maxima aos ~67% do caminho e a bola sai quase direita; 0 = a parabola simples (flecha a meio, saida torta).
+const PassCurva = { activa: true, distMin: 4, grausMin: 8, grausMax: 20, distRef: 50, grausRasteiro: 5, fase: 3 };
 

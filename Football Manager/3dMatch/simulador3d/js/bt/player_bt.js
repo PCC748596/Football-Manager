@@ -5567,6 +5567,40 @@ Dois modos, e é a distinção entre eles que faz a disputa aérea existir:
 Devolve `true` quando tomou conta do jogador, para o resto da árvore não lhe
 reescrever o alvo a seguir.
 */
+/*
+OS ATACANTES NA AREA FICAM LA — o espelho do `tratarMarcacaoNoCanto`. Os que estavam dentro da area quando o canto foi batido (`Match.cantoVivo.ataque`, posto em fsm.js) nao
+voltam ao bloco: com a bola no ar vao a ela, se cai perto; senao aguardam no sitio. Acaba aos `CornerAttackModel.fica` s, quando o adversario ganha a bola, ou quando o
+canto deixa de estar vivo. Quem e portador / destinatario do passe ou tem a bola para si nao e preso aqui.
+*/
+function tratarAtaqueNoCanto(p) {
+    if (typeof Match === 'undefined' || !Match.cantoVivo || !Match.cantoVivo.ataque) return false;
+    if (typeof CornerAttackModel === 'undefined') return false;
+    const reg = Match.cantoVivo.ataque.find(r => r.p === p);
+    if (!reg || p.role === 'gk' || p.hasBall) return false;
+    const C = CornerAttackModel;
+    if (Match.cantoVivo.timer > C.fica) return false;
+    const c = Match.ballCarrier;
+    if (c && c.team !== p.team) return false;                     // o adversario ganhou a bola: volta a defender
+    if (Match.intendedReceiver === p) return false;               // o passe e para ele: o ramo Receber manda
+    const bola = Match.ball.position;
+    const dBola = Math.hypot(bola.x - p.model.position.x, bola.z - p.model.position.z);
+    if (bola.y > C.alturaContestacao && dBola < C.raioContestacao) {
+        let alvoX = bola.x, alvoZ = bola.z;
+        if (typeof preverBolaEm === 'function') {
+            const S = (typeof SaltoCabeceio !== 'undefined') ? SaltoCabeceio : { duracao: 0.62 };
+            const prev = preverBolaEm(S.duracao * 0.5);
+            if (prev) { alvoX = prev.x; alvoZ = prev.z; }
+        }
+        p.dynamicTarget.set(alvoX, ALTURA_BASE_Y, alvoZ);
+        p.speedMult = p.sprintSpeed || p.speedMult;
+    } else {
+        p.dynamicTarget.set(reg.x, ALTURA_BASE_Y, reg.z);
+        p.speedMult = 3.0;
+    }
+    p.fsm.changeState('MOVE_TO_POS');
+    return true;
+}
+
 function tratarMarcacaoNoCanto(p) {
     if (typeof Match === 'undefined' || !Match.cantoVivo) return false;
     if (!p.marcaNoCanto || !p.marcaNoCanto.model) return false;
@@ -5747,6 +5781,7 @@ const PlayerAI = {
         marcação individual do canto tem prioridade sobre o bloco e sobre os
         estilos. Ver tratarMarcacaoNoCanto.
         */
+        if (tratarAtaqueNoCanto(player)) return;
         if (tratarMarcacaoNoCanto(player)) return;
 
         // A disputa aerea da bola corrida — ver tratarDisputaAerea.

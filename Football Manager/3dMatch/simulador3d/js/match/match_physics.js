@@ -63,8 +63,10 @@ Object.assign(Match, {
             if (this.ballCarrier || (!noAr && fc.voou && !fc.rasteira) || (fc.voou || fc.rasteira) && Math.hypot(this.ballVel.x, this.ballVel.z) < 1.0) {
                 this.freeKickCurve = null;
             } else {
-                this.ballVel.x += fc.ax * dt;
-                this.ballVel.z += fc.az * dt;
+                // Curva do passe: a aceleracao lateral cresce com (t/T)^n (curvaDoPasse, utils.js); sem `n` e constante, como na falta.
+                const f = (fc.n && fc.T) ? Math.pow(Math.min(1, fc.t / fc.T), fc.n) : 1;
+                this.ballVel.x += fc.ax * f * dt;
+                this.ballVel.z += fc.az * f * dt;
             }
         }
 

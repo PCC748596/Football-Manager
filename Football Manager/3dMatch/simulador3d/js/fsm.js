@@ -585,9 +585,12 @@ function executePassGameplay(p) {
         const vTot = Math.hypot(forcaPasse, Match.ballVel.y);
         const elevP = rasteira ? 0 : Math.atan2(Match.ballVel.y, forcaPasse);
         const sentido = (p.pe === 'e') ? -1 : 1;
-        const cv = curvaDaFaltaDirecta(distToTarget, vTot, elevP, 0, sentido, graus, dirX, dirZ);
+        // A curva cresce ao longo do voo (PassCurva.fase = n de curvaDoPasse): sai quase direita e acaba no ponto do passe. fase 0 = a parabola simples de antes.
+        const cv = (typeof curvaDoPasse === 'function' && PC.fase > 0)
+            ? curvaDoPasse(distToTarget, vTot, elevP, 0, sentido, graus, dirX, dirZ, PC.fase)
+            : curvaDaFaltaDirecta(distToTarget, vTot, elevP, 0, sentido, graus, dirX, dirZ);
         passeVLatX = cv.vLatX; passeVLatZ = cv.vLatZ;
-        Match.freeKickCurve = { active: true, ax: cv.ax, az: cv.az, rasteira: rasteira, tMax: cv.tVoo * 1.25 };
+        Match.freeKickCurve = { active: true, ax: cv.ax, az: cv.az, rasteira: rasteira, tMax: cv.tVoo * (cv.n ? 1.0 : 1.25), n: cv.n || 0, T: cv.tVoo };
     }
     Match.ballVel.set(dirX * forcaPasse + passeVLatX, Match.ballVel.y, dirZ * forcaPasse + passeVLatZ);
 
@@ -1651,6 +1654,16 @@ class PlayerFSM {
                         cruzamento e 0.8 quatro segundos depois.
                         */
                         Match.cantoVivo = { equipa: (p.team === 'TeamA') ? 'TeamB' : 'TeamA', timer: 0 };
+                        // Os ATACANTES que estao na area no instante da batida ficam la (ver tratarAtaqueNoCanto, player_bt.js): sem isto o bloco os mandava de volta
+                        // aos postos no mesmo frame (medido: 6 na area na batida, 2.4 tres segundos depois) e o cruzamento caia numa area vazia.
+                        {
+                            const sinal = Math.sign(p.targetGoalZ) || 1;
+                            const CA = (typeof CornerAttackModel !== 'undefined') ? CornerAttackModel : { larguraArea: 20.2, profundidadeArea: 16.5 };
+                            Match.cantoVivo.ataque = (p.team === 'TeamA' ? Match.players : Match.opponents)
+                                .filter(q => q !== p && q.role !== 'gk' && q.model && Math.abs(q.model.position.x) < CA.larguraArea &&
+                                    q.model.position.z * sinal > (CAMPO_COMP / 2 - CA.profundidadeArea))
+                                .map(q => ({ p: q, x: q.model.position.x, z: q.model.position.z }));
+                        }
 
                         Match.players.concat(Match.opponents).forEach(pl => {
                             pl.setPieceTarget = null;

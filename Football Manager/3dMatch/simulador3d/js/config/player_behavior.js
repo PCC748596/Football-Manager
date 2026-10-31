@@ -500,7 +500,7 @@ const CarryModel = {
     lote, e aqui que se olha primeiro.
     =====================================================================
     */
-    touchLong: 2.5,       // toque longo (campo aberto, adversário > 15m)
+    touchLong: 2.0,       // toque longo (campo aberto, adversário > 15m); 2.5 -> 2.0 (pedido: perdia a bola a alta velocidade)
     touchMedium: 1.6,     // toque médio (adversário entre 10-15m)
     touchShort: 1.4,      // toque curto (adversário entre 5-10m)
     touchPower: 8.0,      // força base do toque (m/s)

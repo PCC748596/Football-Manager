@@ -50,8 +50,9 @@ test('os três números do alívio vivem no config', () => {
     for (const k of ['zonaPerigo', 'preferirFundo', 'fundoMax']) {
         assert.strictEqual(typeof ClearanceModel[k], 'number', `${k} em falta`);
     }
-    assert.ok(ClearanceModel.preferirFundo > 1.0,
-        'sem preferência, a lateral ganha quase sempre — e foi isso que deu 0 afastamentos');
+    // Pedido: menos chutes para escanteio dos defensores, e a saída pela lateral. A preferência desceu de 2.2 para 0.6; tem de continuar positiva (a linha de fundo ainda
+    // vale para quem está colado a ela e longe da lateral — ver o teste seguinte).
+    assert.ok(ClearanceModel.preferirFundo > 0, 'a preferência pela linha de fundo tem de ser positiva');
 });
 
 test('encostado à própria linha de fundo, sai por ela', () => {

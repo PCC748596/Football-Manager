@@ -133,10 +133,11 @@ const ClearanceModel = {
     de fundo, e isso e fisica do lance, nao uma decisao do defensor.
     */
     zonaPerigo: 26.0,
-    preferirFundo: 2.2,
+    // 2.2 -> 0.6 (pedido: menos chutes para escanteio dos defensores, chutar pela lateral): so vai pela linha de fundo quem esta MUITO colado a ela e longe da lateral.
+    preferirFundo: 0.6,
     // Fora desta distancia a propria linha de fundo, o alivio e o de sempre:
     // para a lateral, que dai e mesmo a saida mais perto.
-    fundoMax: 32.0,
+    fundoMax: 24.0,   // 32 -> 24 (idem)
 
     /*
     ATE ONDE E QUE ALIVIAR FAZ SENTIDO, em avanco (z * dirZ): 0 e o
@@ -943,6 +944,19 @@ guarda-redes a agarrar, a posse mudar de dono, ou o prazo acabar.
     saidaDaArea       a que distância da área o lance se dá por resolvido
 =============================================================================
 */
+/*
+O ATAQUE NO CANTO — quem esta na area quando a bola e batida FICA la (tratarAtaqueNoCanto, player_bt.js) ate `fica` segundos, ou ate o lance morrer. Vai a bola alta que cai
+perto (`raioContestacao`) e, fora disso, aguarda no sitio. A equipa perde-lhe a posse (o adversario com a bola) e eles largam logo.
+*/
+const CornerAttackModel = {
+    larguraArea: 20.2,        // |x| da area grande
+    profundidadeArea: 16.5,   // metros a contar da linha de fundo
+    fica: 4.5,                // segundos desde a batida
+    raioContestacao: 7.0,
+    alturaContestacao: 1.5
+};
+if (typeof window !== 'undefined') window.CornerAttackModel = CornerAttackModel;
+
 const CornerDefenseModel = {
     distanciaAoHomem: 1.1,
     prazo: 9.0,

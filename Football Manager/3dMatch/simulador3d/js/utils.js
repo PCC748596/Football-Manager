@@ -6148,6 +6148,32 @@ gravidade efectiva). O tempo T sai da mesma integracao do updateBall. Pura: so B
 Devolve `{ ax, az, vLatX, vLatZ, tVoo }`: o chamador soma (vLatX, vLatZ) a velocidade de saida e
 liga `Match.freeKickCurve = { active: true, ax, az, rasteira }`.
 */
+/*
+A CURVA DO PASSE — a curva so no FIM. A parabola de aceleracao constante (curvaDaFaltaDirecta) e simetrica: a bola SAI torta (giro/2 fora do rumo), faz a maior flecha a meio
+caminho e so depois volta. Num passe isso le-se como a bola a curvar logo no pe e a chegar ao alvo ja de volta. Aqui a aceleracao lateral CRESCE ao longo do voo,
+a(t) = A * (t/T)^n: a bola sai quase direita para o alvo, a flecha fica para o fim, e a curva acaba exactamente no ponto do passe (y(T) = 0).
+
+Com s = t/T:  y(s) = A T^2 / ((n+1)(n+2)) * (s^(n+2) - s),  vLat0 = -A T / ((n+1)(n+2)).  A maior flecha esta em s* = (n+2)^(-1/(n+1)) (n = 3: s* = 0.67) e `A` escolhe-se para
+ela valer a mesma que a da parabola simples (distGol * giro / 8): o tamanho da curva nao muda, so o sitio onde ela acontece. n = 0 e a parabola de sempre.
+Devolve { ax, az, vLatX, vLatZ, tVoo, n }: (ax, az) e o `A` (a aceleracao final), e a fisica multiplica-o por (t/T)^n (ver updateBall).
+*/
+function curvaDoPasse(distGol, v, elev, extraGrav, sentido, giroGraus, rumoX, rumoZ, n) {
+    const base = curvaDaFaltaDirecta(distGol, v, elev, extraGrav, sentido, giroGraus, rumoX, rumoZ);
+    n = (typeof n === 'number' && n > 0) ? n : 0;
+    if (!n) return Object.assign({ n: 0 }, base);
+    const T = base.tVoo;
+    const nn = Math.hypot(rumoX, rumoZ) || 1;
+    const sg = (sentido >= 0) ? 1 : -1;
+    const qx = sg * (rumoZ / nn), qz = sg * (-rumoX / nn);
+    const flecha = distGol * (Math.abs(giroGraus) * Math.PI / 180) / 8;
+    const sMax = Math.pow(n + 2, -1 / (n + 1));
+    const forma = sMax - Math.pow(sMax, n + 2);
+    const c = (n + 1) * (n + 2);
+    const A = flecha * c / (T * T * forma);
+    const vLat = -A * T / c;
+    return { ax: qx * A, az: qz * A, vLatX: qx * vLat, vLatZ: qz * vLat, tVoo: T, n: n };
+}
+
 function curvaDaFaltaDirecta(distGol, v, elev, extraGrav, sentido, giroGraus, rumoX, rumoZ) {
     const k = BallPhysics.kArrasto;
     const dt = 1 / 120;
@@ -6381,7 +6407,7 @@ if (typeof window !== 'undefined') {
         esperarPeloSlot, eixoDeConducao, distanciaMinimaNoLateral,
         pontoDaFaltaDirecta, lugaresDaBarreira, alturaDaBolaEm,
         bandaDaFaltaDirecta, desfechoDaFaltaDirecta, alvoDaFaltaDirecta,
-        tiroDaFaltaDirecta, tiroTensoDaFaltaDirecta, curvaDaFaltaDirecta, lugaresDoApoioNaFaltaDirecta,
+        tiroDaFaltaDirecta, tiroTensoDaFaltaDirecta, curvaDaFaltaDirecta, curvaDoPasse, lugaresDoApoioNaFaltaDirecta,
         passaEntreAdversarios,
         maosProibidasNoRecuo, registarToqueComPe, limparRecuoParaGR, avaliarRecuoParaGR,
         distanciaEntreSegmentos,
