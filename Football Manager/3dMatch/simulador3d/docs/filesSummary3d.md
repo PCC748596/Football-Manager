@@ -59,7 +59,7 @@ Spec: `docs/superpowers/specs/2026-10-31-disputa-penaltis-3d-design.md`; plano: 
 - A bola salta para a mão do juiz no frame do resultado, sem pausa na rede.
 - Um goleiro expulso num pênalti ou no pontapé de saída joga sem goleiro até à próxima parada (a espera só cobre FREE_KICK, THROW_IN, GOAL_KICK e CORNER_KICK); `_promoverAGoleiro` ignora o repositor.
 - O caminho `trave` está ligado (`bateuNaTrave`) mas nunca foi exercitado nos testes (zero ocorrências em ~150 cobranças); `proximaMensagem` só tem 2 casos de teste.
-- Falhas anteriores a esta sessão e sem relação com ela: `lateral_bloco_marcador*` (3 testes) e `faltas_cartoes` (limiares de gravidade do cartão, depende do acaso).
+- Testes que já falhavam antes desta sessão (o mesmo conjunto de 21 ficheiros no commit 395f85d e neste ramo, com `node <ficheiro>`): `arvore_sem_bola`, `bloco_segue_bola_na_area`, `centro_do_bloco`, `faltas_cartoes`, `formacao_imutavel`, `guarda_redes_queda`, `guarda_redes_tiro_de_meta`, `intercecao_bola_alta`, `lancamento_nao_e_automatico`, `lancamento_vs_espaco`, `lateral_bloco_marcador`, `linha_defensiva`, `marcacao_e_bloco_por_fase`, `marcacao_por_setor`, `mentalidade_bloco`, `passe_em_voo_nao_e_bola_solta`, `planteis_reais`, `reach_ik`, `remate_tipo_mira`, `remate_zona`, `toque_com_marcador_atras`. Além disso, cerca de 50 testes são scripts simples que não terminam sozinhos (sem `process.exit`, o harness deixa handles abertos), por isso `npm run 3d:teste:todos` (`node --test` sobre todos) não chega ao fim; correr os ficheiros um a um, com tempo limite.
 
 ### Sessão de 22 de Outubro de 2026 — criação do treinador em 3D, uniforme do Sampaio, e (lado do manager) contratos, base Sub-20, Inbox, calendário e escudos
 
