@@ -55,8 +55,35 @@ export const opcoesGK = (team: Team, fieldKitIdx: number): OpcaoGK[] => {
   return lista;
 };
 
-export const opcoesJuiz = (): OpcaoJuiz[] => [
-  { nome: 'Automatico', camisa: '#14161a', calcao: '#14161a', gola: '#f5e61b', auto: true },
+// --- O traje AUTOMATICO, decidido aqui (e nao sorteado no jogo): a tela mostra EXATAMENTE o que o juiz vai vestir na entrada em campo. ---
+// Mesma regra do 3D (Officials.sortearTraje): o primeiro traje, pela ordem de prioridade, cuja camisa fica a `DELTA_MIN` (CIE76, Lab) ou mais de qualquer camisa em campo;
+// sem nenhum, o que mais se afasta.
+const DELTA_MIN = 38;
+const NOMES_DE_COR: Record<string, string> = { white: '#ffffff', black: '#000000', red: '#ff0000', blue: '#0000ff', yellow: '#ffff00', green: '#008000', gray: '#808080', grey: '#808080', orange: '#ffa500', purple: '#800080', pink: '#ffc0cb', silver: '#c0c0c0', gold: '#ffd700', lime: '#00ff00', cyan: '#00ffff', beige: '#f5f5dc', ivory: '#fffff0' };
+const paraLab = (cor: string): [number, number, number] | null => {
+  let h = (NOMES_DE_COR[String(cor).toLowerCase()] || String(cor)).replace('#', '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  if (!/^[0-9a-f]{6}$/i.test(h)) return null;
+  const lin = (v: number) => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const r = lin(parseInt(h.slice(0, 2), 16)), g = lin(parseInt(h.slice(2, 4), 16)), b = lin(parseInt(h.slice(4, 6), 16));
+  const x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047, y = 0.2126 * r + 0.7152 * g + 0.0722 * b, z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883;
+  const f = (t: number) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+  return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
+};
+export const trajeAutomatico = (coresEmCampo: string[]): OpcaoJuiz => {
+  const labs = coresEmCampo.map(paraLab).filter((l): l is [number, number, number] => !!l);
+  const folga = (t: { camisa: string }) => {
+    const l = paraLab(t.camisa)!; let m = Infinity;
+    for (const o of labs) m = Math.min(m, Math.hypot(l[0] - o[0], l[1] - o[1], l[2] - o[2]));
+    return m;
+  };
+  const bom = TRAJES_JUIZ.find(t => folga(t) >= DELTA_MIN);
+  const t = bom || TRAJES_JUIZ.reduce((a, b) => (folga(b) > folga(a) + 1e-6 ? b : a));
+  return { nome: 'Automatico (' + t.nome + ')', camisa: t.camisa, calcao: t.calcao, gola: t.gola, auto: true };
+};
+
+export const opcoesJuiz = (coresEmCampo: string[] = []): OpcaoJuiz[] => [
+  trajeAutomatico(coresEmCampo),
   ...TRAJES_JUIZ,
   // Gola em cor de contraste: amarela sobre camisa escura, azul sobre camisa clara.
   ...PALETA_JUIZ.map(c => ({ nome: c.nome, camisa: c.hex, calcao: '#14161a', gola: ehClara(c.hex) ? '#1f5fd1' : '#f5e61b' }))

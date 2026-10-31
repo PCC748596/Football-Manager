@@ -323,7 +323,7 @@ const Bancos = {
     OS RESERVAS: `infoA` / `infoB` são as equipas do motor (equipaInfoA/B, com `banco` = os substitutos do manager). Sem lista, um banco
     genérico de 10. `uniA` / `uniB` são os uniformes, como os dos titulares.
     */
-    preencher(infoA, infoB, uniA, uniB) {
+    preencher(infoA, infoB, uniA, uniB, uniGKA, uniGKB) {
         const B = (typeof BancosDeReservas !== 'undefined') ? BancosDeReservas : null;
         if (!B || !B.activo || !this.bancos.length || typeof FootballPlayer === 'undefined') return 0;
         this._varrer();
@@ -332,6 +332,7 @@ const Bancos = {
             this._limpar(b);
             const info = b.equipa === 'A' ? infoA : infoB;
             const uni = b.equipa === 'A' ? uniA : uniB;
+            const uniGuardaRedes = b.equipa === 'A' ? uniGKA : uniGKB;   // o goleiro reserva senta-se com o uniforme de goleiro, nao o de linha
             const time = b.equipa === 'A' ? 'TeamA' : 'TeamB';
             const lista = (info && Array.isArray(info.banco))
                 ? info.banco.slice(0, B.reservas)
@@ -340,7 +341,7 @@ const Bancos = {
             lista.forEach((j, i) => {
                 FootballPlayer.extra = true;   // reservas no banco: corpo de metade dos triangulos (Qualidade.corpoExtras)
                 let p;
-                try { p = new FootballPlayer(200 + (b.equipa === 'A' ? 0 : 20) + i, corCamisa, '#ffffff', time, uni, j.id || null); } finally { FootballPlayer.extra = false; }
+                try { const ehGK = !!(j.gk && uniGuardaRedes); p = new FootballPlayer(200 + (b.equipa === 'A' ? 0 : 20) + i, ehGK ? (typeof corDoUniforme === 'function' ? corDoUniforme(uniGuardaRedes, corCamisa) : corCamisa) : corCamisa, ehGK ? '#1e1b18' : '#ffffff', time, ehGK ? uniGuardaRedes : uni, j.id || null); } finally { FootballPlayer.extra = false; }
                 // O numero e as costas da camisa (como nos titulares): sem isto o reserva sentado/a aquecer tinha as costas lisas.
                 if (B.numeroNosReservas) p.updateShirt(j.numero || (12 + i), 'CM');   // desligado (`numeroNosReservas`): voltou-se ao banco de antes disto
                 this._sentar(p);

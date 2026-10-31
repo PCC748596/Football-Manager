@@ -46,7 +46,9 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
     const [juizOpt, setJuizOpt] = useState(0);
     const gkHomeOpcoes = useMemo(() => opcoesGK(homeTeam, homeIdx), [homeTeam, homeIdx]);
     const gkAwayOpcoes = useMemo(() => opcoesGK(awayTeam, awayIdx), [awayTeam, awayIdx]);
-    const juizOpcoes = useMemo(() => opcoesJuiz(), []);
+    // As camisas em campo (de linha e de goleiro dos dois times): o traje automatico do juiz e escolhido contra elas, aqui, para a tela e o jogo mostrarem o mesmo.
+    const camisasEmCampo = [getKitDetails(homeTeam, homeIdx as 0 | 1 | 2).c1, getKitDetails(awayTeam, awayIdx as 0 | 1 | 2).c1, gkHomeOpcoes[gkHomeOpt].details.c1, gkAwayOpcoes[gkAwayOpt].details.c1].filter(Boolean) as string[];
+    const juizOpcoes = useMemo(() => opcoesJuiz(camisasEmCampo), [camisasEmCampo.join('|')]);
     // Trocar o uniforme de linha refaz as opcoes do goleiro: volta ao padrao.
     useEffect(() => setGkHomeOpt(0), [homeIdx]);
     useEffect(() => setGkAwayOpt(0), [awayIdx]);
@@ -214,7 +216,7 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
                     onClick={() => onSelectionComplete(homeIdx, awayIdx, {
                         gkHome: gkHomeOpt > 0 ? gkHomeOpcoes[gkHomeOpt].details : undefined,
                         gkAway: gkAwayOpt > 0 ? gkAwayOpcoes[gkAwayOpt].details : undefined,
-                        arbitro: juizOpt > 0 ? { camisa: juizOpcoes[juizOpt].camisa, calcao: juizOpcoes[juizOpt].calcao, gola: juizOpcoes[juizOpt].gola } : undefined
+                        arbitro: { camisa: juizOpcoes[juizOpt].camisa, calcao: juizOpcoes[juizOpt].calcao, gola: juizOpcoes[juizOpt].gola }   // sempre enviado (o automatico ja vem resolvido): o juiz entra com a cor da tela
                     })}
                     className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-[0.3em] rounded-xl shadow-xl transition-all active:scale-95 border-b-4 border-emerald-800"
                 >

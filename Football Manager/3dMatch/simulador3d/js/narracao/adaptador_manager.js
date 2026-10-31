@@ -169,7 +169,7 @@ const AdaptadorManager = {
         const v = []; for (const j of plantel) for (const k of ['gk', 'tec', 'marking', 'intercept', 'pass', 'speed', 'strength', 'tacticknow', 'stamina', 'fitness']) v.push(j[k]);
         // O BANCO (os substitutos da aba Tactics) só para o cenário: o motor ainda não faz substituições. Vai para os bancos de reservas 3D.
         const banco = (equipaMgr.bench || []).map(id => jogadoresPorId[id]).filter(Boolean).slice(0, 10)
-            .map(mp => { const real = this._jogadorReal(mp.id); return { id: real ? real.id : this.idReal(mp.id), nome: mp.name, numero: mp.shirtNumber || 0 }; });
+            .map(mp => { const real = this._jogadorReal(mp.id); return { id: real ? real.id : this.idReal(mp.id), nome: mp.name, numero: mp.shirtNumber || 0, gk: String(mp.position) === 'GK' }; });
         // As skills dos reservas, ja convertidas: o treinador da CPU (js/treinador_cpu.js) mete-os em campo sem precisar do manager.
         const reservas = (equipaMgr.bench || []).map(id => jogadoresPorId[id]).filter(Boolean).slice(0, 10).map(mp => {
             try { const sk = this.jogador(mp, mp.position, opcoes); return { id: sk.id, sk: sk }; } catch (e) { return null; }

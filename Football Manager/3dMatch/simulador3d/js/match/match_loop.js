@@ -53,6 +53,32 @@ Object.assign(Match, {
         return false;
     },
 
+    /*
+    DEPOIS DAS TROCAS, A PARADA ESPERA PELOS QUE ENTRAM. Com varias substituicoes os que entraram ainda iam a caminho do posto quando a falta, o canto, o lateral
+    ou o tiro de meta saia: a espera pelos que caminham (algumACaminhoDoLugar) so existe na falta e tem um prazo contado desde o inicio da parada, que as trocas ja
+    tinham gasto. Aqui o jogo fica parado (so os jogadores andam, como durante a troca) enquanto algum substituto tiver `lugarBolaParada.entrada`, e mais 1.5 s depois
+    de o ultimo chegar, para a bola so sair com todos nos postos. Prazo de seguranca de 25 s.
+    */
+    _aguardaEntrantes: function (dt) {
+        if (!this._paradaParaSubstituir || !this._paradaParaSubstituir()) { this._tEsperaEntrantes = 0; this._folgaEntrantes = 0; return false; }
+        const listas = [this.players, this.opponents];
+        let aCaminho = false;
+        for (const l of listas) for (const p of l) if (p && p.lugarBolaParada && p.lugarBolaParada.entrada) { aCaminho = true; break; }
+        if (aCaminho) {
+            this._tEsperaEntrantes = (this._tEsperaEntrantes || 0) + dt;
+            if (this._tEsperaEntrantes > 25) {
+                for (const l of listas) for (const p of l) if (p && p.lugarBolaParada && p.lugarBolaParada.entrada) p.lugarBolaParada = null;
+                this._tEsperaEntrantes = 0; this._folgaEntrantes = 0;
+                return false;
+            }
+            this._folgaEntrantes = 1.5;
+            return true;
+        }
+        this._tEsperaEntrantes = 0;
+        if (this._folgaEntrantes > 0) { this._folgaEntrantes -= dt; return true; }
+        return false;
+    },
+
     // O acrescimo de um tempo em minutos inteiros (de 1 a 8), a partir dos segundos de calcularAcrescimo.
     acrescimoEmMinutos: function (faltasAntes, substituicoesAntes) {
         const seg = this.calcularAcrescimo(faltasAntes, substituicoesAntes);
@@ -213,7 +239,7 @@ Object.assign(Match, {
         if (this.tickSubstituicoes) this.tickSubstituicoes(dt);
         if (typeof TreinadorCPU !== 'undefined') TreinadorCPU.tick(dt);   // o treinador da CPU: tatica e substituicoes (js/treinador_cpu.js)
         // Enquanto a troca dura o jogo ESPERA: so os jogadores andam (os que ja iam para o lugar da parada) — ver js/match/match_substituicoes.js.
-        if (this.subsEmCurso && this._paradaParaSubstituir()) {
+        if ((this.subsEmCurso || this._aguardaEntrantes(dt)) && this._paradaParaSubstituir()) {
             this.correrPausaDeJogo(dt);
             if (typeof Officials !== 'undefined') Officials.update(dt);
             if (typeof Bancos !== 'undefined') Bancos.update(dt);

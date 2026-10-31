@@ -2422,7 +2422,7 @@ Object.assign(Match, {
         cor de uma camisa em campo — as duas de linha e as dos dois GR.
         */
         // Os substitutos de cada equipa sentam-se nos bancos (bancos.js), com o uniforme dela.
-        if (typeof Bancos !== 'undefined' && Bancos.preencher) Bancos.preencher(this.equipaInfoA, this.equipaInfoB, uniA, uniB);
+        if (typeof Bancos !== 'undefined' && Bancos.preencher) Bancos.preencher(this.equipaInfoA, this.equipaInfoB, uniA, uniB, this.uniformeGKA || uniGK, this.uniformeGKB || uniGK);
 
         const camisasEmCampo = [
             '#f1c40f', '#e67e22',
