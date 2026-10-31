@@ -1,3 +1,6 @@
+// Quantos segundos de jogo antes do fim do tempo o juiz define o acrescimo (43:00 e 88:00).
+const ANUNCIO_ACRESCIMO = 120;
+
 Object.assign(Match, {
     /*
     DOIS TEMPOS DE `MatchDuration.halfGameMinutes`. A 45:00 o jogo entra em
@@ -11,10 +14,11 @@ Object.assign(Match, {
         const meio = MatchDuration.halfGameMinutes * 60;
         const emLote = (typeof Sim !== 'undefined' && Sim.running);
         if (!this.primeiroTempoAcabou) {
-            // 45:00: calcula-se o acrescimo (as faltas e substituicoes do 1.o tempo) e o tempo continua ate la.
-            if (!this.acr1Calculado && this.tempoDeJogo >= meio) {
+            // 43:00: o juiz define o acrescimo (as faltas e substituicoes do 1.o tempo, em MINUTOS inteiros) e o relogio passa a mostrar "43:00 + N".
+            if (!this.acr1Calculado && this.tempoDeJogo >= meio - ANUNCIO_ACRESCIMO) {
                 this.acr1Calculado = true;
-                this.acrescimo1 = emLote ? 0 : this.calcularAcrescimo(0, 0);
+                this.acrMin1 = emLote ? 0 : this.acrescimoEmMinutos(0, 0);
+                this.acrescimo1 = this.acrMin1 * 60;
             }
             if (this.acr1Calculado && this.tempoDeJogo >= meio + this.acrescimo1) {
                 this.primeiroTempoAcabou = true;
@@ -27,10 +31,12 @@ Object.assign(Match, {
             return false;
         }
         if (!emLote) {
-            const fimBase = 2 * meio + this.acrescimo1;
-            if (!this.acr2Calculado && this.tempoDeJogo >= fimBase) {
+            // O 2.o tempo recomeca a 45:00 (iniciarSegundoTempo): o fim base e 90:00 e o acrescimo vem a seguir.
+            const fimBase = 2 * meio;
+            if (!this.acr2Calculado && this.tempoDeJogo >= fimBase - ANUNCIO_ACRESCIMO) {
                 this.acr2Calculado = true;
-                this.acrescimo2 = this.calcularAcrescimo(this.faltasNoIntervalo, this.substituicoesNoIntervalo);
+                this.acrMin2 = this.acrescimoEmMinutos(this.faltasNoIntervalo, this.substituicoesNoIntervalo);
+                this.acrescimo2 = this.acrMin2 * 60;
             }
             if (this.acr2Calculado && this.tempoDeJogo >= fimBase + this.acrescimo2) {
                 this.updatePlacar();
@@ -39,10 +45,18 @@ Object.assign(Match, {
                 // As estatisticas totais e a classificacao no fim do jogo (os mesmos paineis do intervalo).
                 if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(true, 'FIM DE JOGO');
                 if (typeof EfeitosSonoros !== 'undefined') EfeitosSonoros.apito(1.0);
+                // No fim do jogo os 22 e o trio tambem saem de campo, pelo vao da placa (como no intervalo).
+                if (typeof Abertura !== 'undefined' && Abertura.saidaIntervalo) Abertura.saidaIntervalo();
                 return true;
             }
         }
         return false;
+    },
+
+    // O acrescimo de um tempo em minutos inteiros (de 1 a 8), a partir dos segundos de calcularAcrescimo.
+    acrescimoEmMinutos: function (faltasAntes, substituicoesAntes) {
+        const seg = this.calcularAcrescimo(faltasAntes, substituicoesAntes);
+        return Math.max(1, Math.min(8, Math.round(seg / 60)));
     },
 
     // As faltas cometidas pelas duas equipas ate agora.
@@ -113,10 +127,10 @@ Object.assign(Match, {
     },
 
     correrPausaDeJogo: function (dt) {
-        if (this.state === 'INTERVALO' && this.intervaloComSaida && typeof Abertura !== 'undefined' && Abertura.activa) Abertura.update(dt);
+        if (((this.state === 'INTERVALO' && this.intervaloComSaida) || this.state === 'FIM_DE_JOGO') && typeof Abertura !== 'undefined' && Abertura.activa) Abertura.update(dt);
         this.players.forEach(p => p.update(dt));
         this.opponents.forEach(p => p.update(dt));
-        if (this.state === 'INTERVALO' && this.intervaloComSaida) {
+        if ((this.state === 'INTERVALO' && this.intervaloComSaida) || (this.state === 'FIM_DE_JOGO' && typeof Abertura !== 'undefined' && Abertura.activa)) {
             if (typeof Officials !== 'undefined') Officials.update(dt);
             if (typeof Bancos !== 'undefined') Bancos.update(dt);
             if (typeof Staff !== 'undefined' && Staff.update) Staff.update(dt);   // a cabeca da imprensa segue a bola
@@ -142,6 +156,9 @@ Object.assign(Match, {
     nao abriu o jogo.
     */
     iniciarSegundoTempo: function () {
+        // O 2.o tempo comeca a 45:00 (e nao em 45:00 + acrescimo), e o relogio so volta a andar depois da saida de bola.
+        this.tempoDeJogo = MatchDuration.halfGameMinutes * 60;
+        this.aguardaSaida2T = true;
         this.intervaloAvisou = false;
         this.intervaloSegura = false;
         if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(false);
@@ -258,7 +275,9 @@ Object.assign(Match, {
         }
 
         const clockScale = MatchDuration.timeScale;
-        this.tempoDeJogo += dt * clockScale;
+        // Depois da saida de bola do 2.o tempo (estado PLAY, sem saida pendente) o relogio volta a contar.
+        if (this.aguardaSaida2T && this.state === 'PLAY' && !this.kickoffActive) this.aguardaSaida2T = false;
+        if (!this.aguardaSaida2T) this.tempoDeJogo += dt * clockScale;
         if (this.verificarFimDeTempo()) return;
         // Relógio em segundos simulados, para a telemetria do passe (o
         // tempoDeJogo acima vem multiplicado pelo timeScale).

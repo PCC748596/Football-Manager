@@ -458,7 +458,8 @@ const ShotModel = {
     0.85 x 1.15 = 0.9775. Ã‰ o fator da nota acima, aplicado depois do tecto de 36 m/s â€” por isso o remate
     mais forte sai agora a 35.2 m/s (era 30.6) e a mediana (26 m/s antes do fator) passa de ~22.1 para ~25.4.
     */
-    factorForca: 0.85,   // 0.90 -> 0.80 -> 0.85 (15 de Outubro de 2026): com 0.80 os golos foram a 2.11 (alvo 2.52); 0.85 fica a meio
+    // +20% de velocidade no remate a baliza (pedido: "os chutes estao chochos"): 0.85 x 1.2 = 1.02, depois do tecto (potenciaMax 30 -> o remate mais forte sai a 30.6 m/s).
+    factorForca: 1.02,   // 0.90 -> 0.80 -> 0.85 (15 de Outubro de 2026): com 0.80 os golos foram a 2.11 (alvo 2.52); 0.85 fica a meio
 
     /*
     ElevaÃ§Ã£o de recurso, para quando nem no Ã¢ngulo Ã³ptimo a bola chega ao alvo

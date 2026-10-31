@@ -136,10 +136,13 @@ const Abertura = {
 
         const f = -T.lado;
         const x0 = T.xFundo + f * 0.9;
-        const xSaida = T.xBoca + f * 4.0;     // 4 m fora da boca, em linha reta ate la
+        // O CAMINHO PELO VAO DA PLACA, como na saida do intervalo (pedido: no retorno do segundo tempo tem que se deslocar ate a linha lateral para depois
+        // ir para as posicoes, senao passam por dentro das placas): boca do tunel -> ponto do relvado em frente a boca (a placa esta aberta) -> posto.
+        const xBocaFora = T.xBoca + f * 3.0;
+        const xVao = T.lado * (CAMPO_LARG / 2 + 1.5);
         const nova = (tipo, obj, model, team, tSpawn, z0, alvo) => {
             const s = { tipo: tipo, obj: obj, model: model, team: team, k: 0, tSpawn: tSpawn, spawned: false,
-                wps: [{ x: xSaida, z: z0 }, { x: alvo.x, z: alvo.z }], i: 0, chegou: false, x0: x0, z0: z0, vel: AM.velocidade2T };
+                wps: [{ x: xBocaFora, z: z0 }, { x: xVao, z: z0 }, { x: alvo.x, z: alvo.z }], i: 0, chegou: false, x0: x0, z0: z0, vel: AM.velocidade2T };
             model.visible = false;
             this.partes.push(s);
             return s;
@@ -394,6 +397,17 @@ const Abertura = {
                 const alvo = s.wps[Math.min(s.i, s.wps.length - 1)];
                 Officials.mover(s.obj, alvo.x, alvo.z, s.vel, dt, undefined);
                 if (Math.hypot(alvo.x - s.model.position.x, alvo.z - s.model.position.z) < AM.chegada) s.i = Math.min(s.wps.length, s.i + 1);
+                s.chegou = s.i >= s.wps.length;
+                if (s.tipo === 'lin') Officials._ajustarPano(s.obj, dt);
+                continue;
+            }
+            // A volta do 2.o tempo: o trio faz o mesmo caminho dos jogadores (boca -> vao da placa -> posto), waypoint a waypoint.
+            if (this.modo === 'segundo') {
+                if (this.t < s.tSpawn) continue;
+                const alvoW = s.wps[Math.min(s.i, s.wps.length - 1)];
+                const bolaS = (typeof Match !== 'undefined' && Match.ball && s.tipo === 'arb') ? { x: Match.ball.position.x, z: Match.ball.position.z } : undefined;
+                Officials.mover(s.obj, alvoW.x, alvoW.z, s.vel || AM.velocidade, dt, bolaS);
+                if (Math.hypot(alvoW.x - s.model.position.x, alvoW.z - s.model.position.z) < AM.chegada) s.i = Math.min(s.wps.length, s.i + 1);
                 s.chegou = s.i >= s.wps.length;
                 if (s.tipo === 'lin') Officials._ajustarPano(s.obj, dt);
                 continue;

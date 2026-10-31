@@ -379,7 +379,7 @@ const Ponte = {
         Match.segurarSaida = false;
         MatchStats.reset();
         Match.tempoDeJogo = 0; Match.placarA = 0; Match.placarB = 0; Match.segundoTempoIniciado = false;
-        Match.acrescimo1 = 0; Match.acrescimo2 = 0; Match.acr1Calculado = false; Match.acr2Calculado = false; Match.faltasNoIntervalo = 0; Match.substituicoes = 0; Match.substituicoesNoIntervalo = 0;
+        Match.acrescimo1 = 0; Match.acrescimo2 = 0; Match.acrMin1 = 0; Match.acrMin2 = 0; Match.aguardaSaida2T = false; Match.acr1Calculado = false; Match.acr2Calculado = false; Match.faltasNoIntervalo = 0; Match.substituicoes = 0; Match.substituicoesNoIntervalo = 0;
         Match.primeiroTempoAcabou = false;
         Eventos.reset();
         if (!this._ouvinte) {
@@ -424,7 +424,7 @@ const Ponte = {
         const v = new THREE.Vector3();
         return {
             tempo: Match.tempoDeJogo, placarA: Match.placarA, placarB: Match.placarB,
-            primeiroTempoAcabou: !!Match.primeiroTempoAcabou, acr1Calculado: !!Match.acr1Calculado, acrescimo1: Match.acrescimo1 || 0,
+            primeiroTempoAcabou: !!Match.primeiroTempoAcabou, acr1Calculado: !!Match.acr1Calculado, acrescimo1: Match.acrescimo1 || 0, acrMin1: Match.acrMin1 || 0, acr2Calculado: !!Match.acr2Calculado, acrMin2: Match.acrMin2 || 0, acrescimo2: Match.acrescimo2 || 0,
             segundoTempoIniciado: !!Match.segundoTempoIniciado, trocados: !!Lados.trocados, faltasNoIntervalo: Match.faltasNoIntervalo || 0,
             substituicoes: Match.substituicoes || 0, substituicoesNoIntervalo: Match.substituicoesNoIntervalo || 0,
             bola: { p: [Match.ball.position.x, Match.ball.position.y, Match.ball.position.z], v: [Match.ballVel.x, Match.ballVel.y, Match.ballVel.z] },
@@ -442,7 +442,7 @@ const Ponte = {
     _reporInstantaneo(s) {
         Match.tempoDeJogo = s.tempo || Match.tempoDeJogo;
         Match.placarA = s.placarA || 0; Match.placarB = s.placarB || 0;
-        Match.primeiroTempoAcabou = !!s.primeiroTempoAcabou; Match.acr1Calculado = !!s.acr1Calculado; Match.acrescimo1 = s.acrescimo1 || 0;
+        Match.primeiroTempoAcabou = !!s.primeiroTempoAcabou; Match.acr1Calculado = !!s.acr1Calculado; Match.acrescimo1 = s.acrescimo1 || 0; Match.acrMin1 = s.acrMin1 || 0; Match.acr2Calculado = !!s.acr2Calculado; Match.acrMin2 = s.acrMin2 || 0; Match.acrescimo2 = s.acrescimo2 || 0;
         Match.segundoTempoIniciado = !!s.segundoTempoIniciado; Match.faltasNoIntervalo = s.faltasNoIntervalo || 0;
         Match.substituicoes = s.substituicoes || 0; Match.substituicoesNoIntervalo = s.substituicoesNoIntervalo || 0;
         if (Lados.trocados !== !!s.trocados) {

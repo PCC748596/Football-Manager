@@ -6067,7 +6067,8 @@ class FootballPlayer {
         }
         // CORRER DE COSTAS PARA A BOLA so a 80% da velocidade maxima ou mais (CostasParaABola, config/gait.js): abaixo disso recua de frente para a bola.
         const CB = (typeof CostasParaABola !== 'undefined' && CostasParaABola.activo) ? CostasParaABola : null;
-        if (CB && Match.ball && this.role !== 'gk' && !this.hasBall && d > 0.2 && this.fsm) {
+        // Quem corre ao espaco (RUN_INTO_SPACE) ataca: corre sempre virado para onde vai, mesmo abaixo de 80% da velocidade maxima (senao corria para a baliza de costas, virado para a bola).
+        if (CB && Match.ball && this.role !== 'gk' && !this.hasBall && d > 0.2 && this.fsm && this.fsm.currentState !== 'RUN_INTO_SPACE') {
             const bx = Match.ball.position.x - this.model.position.x, bz = Match.ball.position.z - this.model.position.z;
             const db = Math.hypot(bx, bz);
             if (db > 0.5) {
