@@ -132,3 +132,27 @@ export const emCampoNoFim = (fixture: Fixture | undefined, teamId: string, lineu
   const campo = lineup.filter(id => !vermelhos.has(id)).map(id => porId.get(id)).filter((p): p is Player => !!p);
   return campo.length ? campo : plantel;
 };
+
+/*
+O CARD DA DISPUTA (pedido: "5 circulos cinza para cada um; conforme for batendo preenche de verde ou vermelho; se der empate no final dos 5, reseta para cinza e comeca
+novamente"). Para cada lado, as cobrancas da RODADA em curso, pela ordem: 'verde' golo, 'vermelho' falhou (defesa, trave, fora), 'cinza' por bater. A rodada 1 sao as 5
+regulares; empatadas as 5 de cada lado sem vencedor, a rodada 2 recomeca a cinza (e assim por diante, de 5 em 5). Acabada a disputa no fim de uma rodada, fica a rodada cheia
+(nao recomeca a cinza). As regras sao estas (a app e a arbitra); o 3D so desenha o que recebe (mensagem `disputa_card`).
+*/
+export type Circulo = 'cinza' | 'verde' | 'vermelho';
+export interface CardDaDisputa {
+  casa: Circulo[]; fora: Circulo[]; rodada: number; morteSubita: boolean;
+  golsCasa: number; golsFora: number; terminou: boolean; vencedor: Lado | null;
+}
+export const circulosDaDisputa = (cobrancas: Cobranca[], primeiro: Lado = 'casa'): CardDaDisputa => {
+  const R = COBRANCAS_REGULARES;
+  const e = estadoDaDisputa(cobrancas, primeiro);
+  const menor = Math.min(e.cobrancasCasa, e.cobrancasFora);
+  let rodada = 1 + Math.floor(menor / R);
+  if (e.terminou && menor > 0 && menor % R === 0 && e.cobrancasCasa === e.cobrancasFora) rodada -= 1;
+  const linha = (lado: Lado): Circulo[] => {
+    const minhas = cobrancas.filter(c => c.lado === lado).slice((rodada - 1) * R, rodada * R);
+    return Array.from({ length: R }, (_, i) => (i < minhas.length ? (minhas[i].gol ? 'verde' : 'vermelho') : 'cinza'));
+  };
+  return { casa: linha('casa'), fora: linha('fora'), rodada, morteSubita: rodada > 1, golsCasa: e.golsCasa, golsFora: e.golsFora, terminou: e.terminou, vencedor: e.vencedor };
+};

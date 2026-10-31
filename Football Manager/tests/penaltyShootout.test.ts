@@ -147,3 +147,56 @@ test('emCampoNoFim: so os 11 do fim (escalacao final do jogo, sem expulsos), nun
   assert.equal(emCampoNoFim(undefined, 'T1', ['p-1', 'p-2'], plantel).length, 2);
   assert.equal(emCampoNoFim(undefined, 'T1', undefined, plantel).length, 33);
 });
+
+import { circulosDaDisputa } from '../textSim/penaltyShootout';
+const cob = (seq: [Lado, boolean][]): Cobranca[] => seq.map(([lado, gol]) => ({ lado, jogadorId: 'x', gol }));
+const alt = (res: boolean[], primeiro: Lado = 'casa'): Cobranca[] => res.map((g, i) => ({ lado: (i % 2 === 0) === (primeiro === 'casa') ? 'casa' : 'fora', jogadorId: 'x', gol: g }));
+test('card: sem cobrancas, 5 cinza para cada um, rodada 1', () => {
+  const c = circulosDaDisputa([], 'casa');
+  assert.deepEqual(c.casa, ['cinza', 'cinza', 'cinza', 'cinza', 'cinza']);
+  assert.deepEqual(c.fora, ['cinza', 'cinza', 'cinza', 'cinza', 'cinza']);
+  assert.equal(c.rodada, 1); assert.equal(c.morteSubita, false);
+});
+test('card: preenche pela ordem de cada time, verde golo e vermelho falha', () => {
+  const c = circulosDaDisputa(alt([true, false, true, true, false]), 'casa');   // casa: G G F ; fora: F G
+  assert.deepEqual(c.casa, ['verde', 'verde', 'vermelho', 'cinza', 'cinza']);
+  assert.deepEqual(c.fora, ['vermelho', 'verde', 'cinza', 'cinza', 'cinza']);
+  assert.equal(c.golsCasa, 2); assert.equal(c.golsFora, 1);
+});
+test('card: primeiro = fora', () => {
+  const c = circulosDaDisputa(alt([true, false, true], 'fora'), 'fora');   // fora: G G ; casa: F
+  assert.deepEqual(c.fora.slice(0, 2), ['verde', 'verde']);
+  assert.deepEqual(c.casa.slice(0, 1), ['vermelho']);
+});
+test('card: empate no fim das 5 -> reseta a cinza (rodada 2, morte subita) e recomeca', () => {
+  const cinco = alt([true, true, false, false, true, true, false, false, true, true]);   // 3-3
+  const c = circulosDaDisputa(cinco, 'casa');
+  assert.equal(c.terminou, false);
+  assert.equal(c.rodada, 2); assert.equal(c.morteSubita, true);
+  assert.deepEqual(c.casa, ['cinza', 'cinza', 'cinza', 'cinza', 'cinza']);
+  assert.deepEqual(c.fora, ['cinza', 'cinza', 'cinza', 'cinza', 'cinza']);
+  assert.equal(c.golsCasa, 3); assert.equal(c.golsFora, 3);
+  const c2 = circulosDaDisputa([...cinco, ...cob([['casa', true]])], 'casa');
+  assert.deepEqual(c2.casa, ['verde', 'cinza', 'cinza', 'cinza', 'cinza']);
+  assert.deepEqual(c2.fora, ['cinza', 'cinza', 'cinza', 'cinza', 'cinza']);
+});
+test('card: varias rodadas (rodada 3 depois de 10 empatadas de cada lado) e o fim numa rodada de morte subita', () => {
+  const dez = alt(Array.from({ length: 20 }, () => true));   // 10-10
+  const c = circulosDaDisputa(dez, 'casa');
+  assert.equal(c.rodada, 3);
+  assert.deepEqual(c.casa, ['cinza', 'cinza', 'cinza', 'cinza', 'cinza']);
+  const fimMs = circulosDaDisputa([...dez, ...cob([['casa', true], ['fora', false]])], 'casa');
+  assert.equal(fimMs.terminou, true); assert.equal(fimMs.vencedor, 'casa'); assert.equal(fimMs.rodada, 3);
+  assert.deepEqual(fimMs.casa, ['verde', 'cinza', 'cinza', 'cinza', 'cinza']);
+  assert.deepEqual(fimMs.fora, ['vermelho', 'cinza', 'cinza', 'cinza', 'cinza']);
+});
+test('card: decidida no fim das 5 fica a rodada cheia; decidida antes das 5 fica como esta', () => {
+  const c = circulosDaDisputa(alt([true, true, true, true, true, false, true, true, true, false]), 'casa');   // casa 5, fora 3
+  assert.equal(c.terminou, true); assert.equal(c.rodada, 1);
+  assert.deepEqual(c.casa, ['verde', 'verde', 'verde', 'verde', 'verde']);
+  assert.deepEqual(c.fora, ['verde', 'verde', 'vermelho', 'verde', 'vermelho']);
+  const cedo = circulosDaDisputa(alt([true, false, true, false, true, false]), 'casa');   // 3-0 depois de 3 cada
+  assert.equal(cedo.terminou, true); assert.equal(cedo.rodada, 1);
+  assert.deepEqual(cedo.casa, ['verde', 'verde', 'verde', 'cinza', 'cinza']);
+  assert.deepEqual(cedo.fora, ['vermelho', 'vermelho', 'vermelho', 'cinza', 'cinza']);
+});

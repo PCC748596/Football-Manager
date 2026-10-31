@@ -15,6 +15,15 @@ Consulta este ficheiro para saber **onde** mexer antes de abrir o código.
 
 ## Últimas Actualizações (Outubro 2026)
 
+### 31 de Outubro de 2026 — o card da disputa de pênaltis
+
+- O cartão de evento (`#hud-evento`, `updateHudEvento` em `js/main.js`) fica tomado pela disputa enquanto ela está ativa, desde a ordem confirmada até o fim do jogo, sem temporizador. Os eventos de canto, falta e outros não o substituem.
+- O cartão mostra, da esquerda para a direita: escudo da casa, `SIGLA ●●●●● (g) - (g) ●●●●● SIGLA`, escudo de fora. Por cima vai o título `PENALTIES`, ou `SUDDEN DEATH · ROUND n` na morte súbita.
+- Cores dos círculos: verde = golo, vermelho = falhou (defesa, trave ou fora), cinza = por bater.
+- **Fonte única:** `circulosDaDisputa(cobrancas, primeiro)` em `textSim/penaltyShootout.ts`. Empatadas as 5 de cada lado, a fila recomeça a cinza, de 5 em 5. Acabada a disputa no fim de uma rodada, fica a rodada cheia.
+- A app manda `disputa_card { casa, fora, rodada, morteSubita, golsCasa, golsFora }` (`mensagemDoCard` em `3dMatch/disputa3d.ts`) ao confirmar a ordem e a cada cobrança.
+- O 3D só guarda e desenha (`DisputaPenaltis.receberCard`, `htmlDoCard`, `pintarCard`, `limparCard`; CSS `#hud-disputa` em `css/styles.css`). O card some com o `_libertar` e com um `iniciar` novo.
+
 ### 31 de Outubro de 2026 (segunda ronda de correções da disputa)
 
 - **O goleiro que defendia "desaparecia"**: com a baliza do time reposta logo no fim da cobrança, o `updateGK` (estado DISPUTA) prendia-o na SUA grande área e teletransportava-o 88 m (z = −36.5). Agora `abortarCobranca(true)` mantém a baliza da disputa até `_parte` (coreografia) a repor, e a cobrança seguinte espera `pausa.levantar` (`_proximaPendente`).

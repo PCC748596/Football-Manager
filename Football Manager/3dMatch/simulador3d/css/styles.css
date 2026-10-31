@@ -1125,3 +1125,16 @@ body.toque #hud-evento { transform: translateX(-50%) scale(0.84); }
     #hud-jogador-dir { transform: scale(0.84); }
     #hud-evento { transform: translateX(-50%) scale(0.84); }
 }
+
+/* O CARD DA DISPUTA DE PENALTIS no cartao de evento (js/disputa_penaltis.js pintarCard): SIGLA ooooo (g) - (g) ooooo SIGLA, o titulo por cima; os filhos do cartao de
+   estatistica escondem-se. Verde = golo, vermelho = falhou, cinza = por bater. */
+#hud-evento.modo-disputa .hud-evento-num, #hud-evento.modo-disputa .hud-evento-nome { display: none; }
+#hud-disputa { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+#hud-disputa .hd-titulo { font: 800 8px system-ui, sans-serif; letter-spacing: 1.5px; color: #cbd5e1; }
+#hud-disputa .hd-linha { display: flex; align-items: center; gap: 4px; }
+#hud-disputa .hd-sigla { font: 900 13px system-ui, sans-serif; letter-spacing: .5px; color: #fff; margin: 0 4px; }
+#hud-disputa .hd-gols { font: 800 12px system-ui, sans-serif; color: #fff; margin: 0 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#hud-disputa .hd-c { display: inline-block; width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .55); }
+#hud-disputa .hd-cinza { background: #64748b; }
+#hud-disputa .hd-verde { background: #22c55e; }
+#hud-disputa .hd-vermelho { background: #ef4444; }

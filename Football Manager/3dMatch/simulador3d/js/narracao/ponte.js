@@ -66,6 +66,8 @@ const Ponte = {
             // A disputa de penaltis em 3D (js/disputa_penaltis.js): a app (que arbitra) responde com as ordens dos cobradores e, depois de cada cobranca, com o proximo batedor ou o fim.
             else if (m.tipo === 'disputa_iniciar') { if (window.DisputaPenaltis) window.DisputaPenaltis.receberOrdens(m.ordemCasa, m.ordemFora, m.proxima); }
             else if (m.tipo === 'disputa_proxima') { if (window.DisputaPenaltis) window.DisputaPenaltis.receberProxima(m); }
+            // O card da disputa (circulos verdes/vermelhos/cinza por time), calculado pela app: desenha-se no cartao de evento (main.js updateHudEvento).
+            else if (m.tipo === 'disputa_card') { if (window.DisputaPenaltis) window.DisputaPenaltis.receberCard(m); }
             else if (m.tipo === 'instantaneo') this.enviar('instantaneo', { id: m.id, dados: this.instantaneo() });
             else if (m.tipo === 'pausar') this.pausar();
             else if (m.tipo === 'continuar') this.continuar();

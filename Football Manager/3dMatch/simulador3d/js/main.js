@@ -1051,6 +1051,22 @@ function updateHudEvento() {
         }
         H._antes = atual;
     }
+    /*
+    A DISPUTA DE PENALTIS toma o cartao enquanto dura (pedido): o card com as siglas e os 5 circulos por time (DisputaPenaltis.pintarCard), sempre no ecra; os eventos (remates da
+    disputa contam no MatchStats) nao o substituem. A casa a esquerda, como o placar de TV. Acabada (ou abortada) a disputa o cartao volta ao normal, escondido.
+    */
+    const DP = (typeof DisputaPenaltis !== 'undefined') ? DisputaPenaltis : null;
+    if (DP && DP.cardVisivel()) {
+        const nomeDe = (id) => { const e = document.getElementById(id); return e ? e.textContent : ''; };
+        const sigla = (n) => String(n || '').split('-')[0].normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || '---';
+        preencherEscudoHud(document.getElementById('hud-evento-logo-esq'), 'evento-esq', 'TeamA');
+        preencherEscudoHud(document.getElementById('hud-evento-logo-dir'), 'evento-dir', 'TeamB');
+        DP.pintarCard(el, sigla(nomeDe('placar-nome-a')), sigla(nomeDe('placar-nome-b')));
+        if (typeof Minimap !== 'undefined' && Minimap.suprimir) Minimap.suprimir(true);
+        H._fim = 0;
+        return;
+    }
+    if (DP && DP.limparCard(el)) { if (typeof Minimap !== 'undefined' && Minimap.suprimir) Minimap.suprimir(false); }
     const antesDaSaida = Match.state === 'ABERTURA' || Match.state === 'INTERVALO' || (typeof Abertura !== 'undefined' && Abertura.activa);
     if (novo >= 0 && !antesDaSaida) {
         const dirLado = (t) => (typeof Lados !== 'undefined' && Lados.dirDe) ? Lados.dirDe(t) : (t === 'TeamA' ? 1 : -1);

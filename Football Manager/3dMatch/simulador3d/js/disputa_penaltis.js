@@ -226,7 +226,7 @@ const DisputaPenaltis = {
     iniciar() {
         const DM = DisputaModel;
         this.activa = true; this.fase = 'REUNIAO'; this.t = 0; this.partes = []; this.pens = [0, 0]; this.atual = null; this.sub = null; this._soltou = false;
-        this._nCobrancas = 0; this._ultimaCobranca = null; this._ultimaReuniao = null; this._levantar = null; this._proximaPendente = null;
+        this._nCobrancas = 0; this._ultimaCobranca = null; this._ultimaReuniao = null; this._levantar = null; this._proximaPendente = null; this.card = null;
         this.sinalZ = Math.random() < 0.5 ? 1 : -1;
         this.primeiro = Math.random() < 0.5 ? 'casa' : 'fora';
         this.ladoBanco = Math.sign((typeof BancosDeReservas !== 'undefined' && BancosDeReservas.treinador && BancosDeReservas.treinador.x) || 1) || 1;
@@ -426,10 +426,49 @@ const DisputaPenaltis = {
     _libertar() {
         this.abortarCobranca();
         if (this._levantar) this._levantar.jogadores.forEach(p => this._reporLados(p));
-        this._proximaPendente = null;
+        this._proximaPendente = null; this.card = null;
         for (const s of this.partes) if (s.tipo === 'jog') { s.obj.disputaOrdem = null; s.model.visible = true; }
         this.partes = []; this.activa = false; this.fase = null; this.bolaComJuiz = false; this._levantar = null;
         Match.disputa = null;
+    },
+
+    /*
+    O CARD DA DISPUTA no cartao de evento (#hud-evento, main.js updateHudEvento). A app calcula os circulos (textSim/penaltyShootout.ts circulosDaDisputa: a app e a arbitra) e
+    manda-os em `disputa_card { casa: [5], fora: [5], rodada, morteSubita, golsCasa, golsFora }`; aqui so se guarda e desenha. Fica no ecra enquanto a disputa esta activa (sem
+    temporizador; os eventos de canto, falta... nao o substituem) e sai com ela (fim do jogo, aborto, `iniciar` novo).
+    */
+    card: null,
+    receberCard(m) {
+        if (!this.activa || !m) return;
+        const ok = (l) => Array.isArray(l) ? l.slice(0, 5).map(c => (c === 'verde' || c === 'vermelho') ? c : 'cinza') : ['cinza', 'cinza', 'cinza', 'cinza', 'cinza'];
+        this.card = { casa: ok(m.casa), fora: ok(m.fora), rodada: m.rodada || 1, morteSubita: !!m.morteSubita, golsCasa: m.golsCasa || 0, golsFora: m.golsFora || 0 };
+    },
+    cardVisivel() { return !!(this.activa && this.card); },
+    // O miolo do cartao: SIGLA circulos (gols) - (gols) circulos SIGLA, a casa a esquerda (como o placar de TV); por cima o titulo (a rodada na morte subita).
+    htmlDoCard(card, siglaCasa, siglaFora) {
+        const c = card || this.card; if (!c) return '';
+        const esc = (t) => String(t || '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+        const bolas = (l) => l.map(x => '<i class="hd-c hd-' + x + '"></i>').join('');
+        const titulo = c.morteSubita ? 'SUDDEN DEATH · ROUND ' + c.rodada : 'PENALTIES';
+        return '<div class="hd-titulo">' + titulo + '</div><div class="hd-linha"><span class="hd-sigla">' + esc(siglaCasa) + '</span>' + bolas(c.casa) +
+            '<span class="hd-gols">(' + c.golsCasa + ') - (' + c.golsFora + ')</span>' + bolas(c.fora) + '<span class="hd-sigla">' + esc(siglaFora) + '</span></div>';
+    },
+    // Desenha o card dentro do #hud-evento (esconde os filhos do cartao de estatistica) e mostra-o; `limparCard` desfaz.
+    pintarCard(el, siglaCasa, siglaFora) {
+        if (!el || !this.card) return;
+        let box = el.querySelector('#hud-disputa');
+        if (!box) { box = document.createElement('div'); box.id = 'hud-disputa'; el.appendChild(box); }
+        const html = this.htmlDoCard(this.card, siglaCasa, siglaFora);
+        if (box.innerHTML !== html) box.innerHTML = html;
+        el.classList.add('modo-disputa');
+        el.classList.remove('oculto');
+    },
+    limparCard(el) {
+        if (!el || !el.classList.contains('modo-disputa')) return false;
+        const box = el.querySelector('#hud-disputa'); if (box) box.remove();
+        el.classList.remove('modo-disputa');
+        el.classList.add('oculto');
+        return true;
     },
 
     // ESC: leva todos direto aos pontos finais (so durante o caminhar; nunca salta cobrancas, por isso nao ha cobranca a desfazer aqui).

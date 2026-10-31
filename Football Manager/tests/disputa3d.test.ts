@@ -107,3 +107,19 @@ test('aoConfirmarOrdem sem batedores: manda o aborto ao 3D em vez de lancar', ()
   aoReuniao(e, { casa: [], fora: [], primeiro: 'fora' });
   assert.deepStrictEqual(aoConfirmarOrdem(e, [], []), { tipo: 'disputa_proxima', abortar: true, motivo: 'sem proximo batedor' });
 });
+
+import { mensagemDoCard } from '../3dMatch/disputa3d';
+test('mensagemDoCard: disputa_card com os circulos da sessao (o primeiro das ordens)', () => {
+  const e = disputa3dDaSessao('jogo-card#0');
+  aoReuniao(e, { casa: [{ id: 1 }], fora: [{ id: 11 }], primeiro: 'fora' });
+  aoConfirmarOrdem(e, ['p-1'], ['p-11']);
+  const m0 = mensagemDoCard(e);
+  assert.strictEqual(m0.tipo, 'disputa_card');
+  assert.deepStrictEqual(m0.casa, ['cinza', 'cinza', 'cinza', 'cinza', 'cinza']);
+  aoCobranca(e, { lado: 'fora', jogadorId: 11, resultado: 'defesa', n: 0 }, (_l, id) => 'p-' + id);
+  aoCobranca(e, { lado: 'casa', jogadorId: 1, resultado: 'gol', n: 1 }, (_l, id) => 'p-' + id);
+  const m = mensagemDoCard(e);
+  assert.deepStrictEqual(m.fora.slice(0, 2), ['vermelho', 'cinza']);
+  assert.deepStrictEqual(m.casa.slice(0, 2), ['verde', 'cinza']);
+  assert.strictEqual(m.golsCasa, 1); assert.strictEqual(m.golsFora, 0);
+});

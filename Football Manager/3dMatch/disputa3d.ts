@@ -1,5 +1,5 @@
 import { Player } from '../types';
-import { Cobranca, Lado, estadoDaDisputa, normalizarOrdem, ordemAutomatica, proximaCobranca } from '../textSim/penaltyShootout';
+import { Cobranca, Lado, estadoDaDisputa, normalizarOrdem, ordemAutomatica, proximaCobranca, circulosDaDisputa } from '../textSim/penaltyShootout';
 
 /*
 A DISPUTA DE PENALTIS EM 3D, o lado da app (funcoes puras + o estado da disputa da sessao 3D). O 3D fala com os ids REAIS em numero ('p-269063' -> 269063, o `skills.id` do
@@ -110,3 +110,9 @@ export const aoCobranca = (e: EstadoDisputa3d, m: { lado: Lado; jogadorId: numbe
 
 /** A ordem do adversario (CPU) na disputa 3D: a automatica (Penalties + Consistency), so com os que estao em campo. */
 export const ordemDaCpu = (jogadoresEmCampo: Player[]): string[] => ordemAutomatica(jogadoresEmCampo);
+
+/**
+ * O card da disputa para o 3D (`disputa_card`): os circulos ja calculados aqui (a app e a arbitra das regras, ver circulosDaDisputa); o 3D desenha-o no cartao de evento
+ * enquanto a disputa dura. Mandado ao confirmar a ordem (tudo cinza) e a cada cobranca.
+ */
+export const mensagemDoCard = (e: EstadoDisputa3d): any => ({ tipo: 'disputa_card', ...circulosDaDisputa(e.cobrancas, e.ordens ? e.ordens.primeiro : 'casa') });

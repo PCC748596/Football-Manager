@@ -10,7 +10,7 @@ import { taticaParaMotor, taticaDoMotor } from '../3dMatch/simulador3dCliente';
 import { COUNTRIES } from '../textSim/dataGenerator';
 import { ligaDoClube } from '../textSim/competitions';
 import PenaltyOrderView from './PenaltyOrderView';
-import { emCampo, mesclarOrdem, ordemDaCpu, disputa3dDaSessao, limparDisputa3d, aoReuniao, aoConfirmarOrdem, aoCobranca } from '../3dMatch/disputa3d';
+import { emCampo, mesclarOrdem, ordemDaCpu, disputa3dDaSessao, limparDisputa3d, aoReuniao, aoConfirmarOrdem, aoCobranca, mensagemDoCard } from '../3dMatch/disputa3d';
 
 type VisualState = 'PRE_MATCH' | 'KICKOFF_SET' | 'PLAYING' | 'OFFSIDE' | 'GOAL';
 
@@ -116,7 +116,10 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
     const campoFora = emCampo(pedido.fora, players.filter(p => p.teamId === awayTeam.id));
     const ordemCasa = usuarioEhCasa ? ordemMeu : ordemDaCpu(campoCasa);
     const ordemFora = usuarioEhCasa ? ordemDaCpu(campoFora) : ordemMeu;
-    simulador3dEnviar(aoConfirmarOrdem(disputa, ordemCasa, ordemFora));
+    const inicio = aoConfirmarOrdem(disputa, ordemCasa, ordemFora);
+    simulador3dEnviar(inicio);
+    // O card da disputa (5 circulos cinza por time) fica no cartao de evento do 3D enquanto a disputa dura.
+    if (inicio.tipo === 'disputa_iniciar') simulador3dEnviar(mensagemDoCard(disputa));
     redesenharDisputa();
   };
 
@@ -417,7 +420,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                           const p = emCampo([id], players.filter(x => x.teamId === time.id))[0];
                           return p ? p.id : 'p-' + id;
                         });
-                        if (resposta) simulador3dEnviar(resposta);
+                        if (resposta) { simulador3dEnviar(mensagemDoCard(disputa)); simulador3dEnviar(resposta); }
                         redesenharDisputa();
                       } else {
                         if (m.tipo === 'disputa_fim') disputa.terminou = true;

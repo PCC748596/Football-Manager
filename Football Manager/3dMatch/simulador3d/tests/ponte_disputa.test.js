@@ -74,6 +74,29 @@ DisputaPenaltis.receberOrdens(Match.players.map(p => p.id), Match.opponents.map(
 verifica(!DisputaPenaltis.activa && Match.disputa === null && Match.state === 'FIM_DE_JOGO', 'batedor desconhecido: aborta e encerra o jogo', `activa=${DisputaPenaltis.activa} estado=${Match.state}`);
 Ponte.parar();
 
+console.log('6 — disputa_card: o card da disputa (circulos da app) so com a disputa activa; desenha-se no cartao de evento e sai com ela');
+const card = { tipo: 'disputa_card', casa: ['verde', 'vermelho', 'cinza', 'cinza', 'cinza'], fora: ['verde', 'cinza', 'cinza', 'cinza', 'cinza'], rodada: 1, morteSubita: false, golsCasa: 1, golsFora: 1 };
+DisputaPenaltis.activa = false; DisputaPenaltis.card = null;
+Ponte.aoMensagem(Object.assign({ para: 'simulador3d' }, card));
+verifica(DisputaPenaltis.card === null && !DisputaPenaltis.cardVisivel(), 'sem disputa activa o card e ignorado', 'card guardado sem disputa');
+DisputaPenaltis.activa = true; DisputaPenaltis.fase = 'AGUARDA'; Match.disputa = DisputaPenaltis;
+Ponte.aoMensagem(Object.assign({ para: 'simulador3d' }, card));
+verifica(DisputaPenaltis.cardVisivel() && DisputaPenaltis.card.casa[1] === 'vermelho', 'com a disputa activa o card fica visivel', 'card nao guardado');
+const html = DisputaPenaltis.htmlDoCard(null, 'FLA', 'PAL');
+const conta = (cls) => (html.match(new RegExp('hd-' + cls + '"', 'g')) || []).length;
+verifica(conta('verde') === 2 && conta('vermelho') === 1 && conta('cinza') === 7 && html.indexOf('FLA') < html.indexOf('PAL') && html.includes('(1) - (1)') && html.includes('PENALTIES'),
+    'html: 10 circulos (2 verdes, 1 vermelho, 7 cinza), a casa a esquerda, (1) - (1)', 'html errado: ' + html);
+Ponte.aoMensagem({ para: 'simulador3d', tipo: 'disputa_card', casa: [], fora: [], rodada: 2, morteSubita: true, golsCasa: 3, golsFora: 3 });
+verifica(DisputaPenaltis.htmlDoCard(null, 'A', 'B').includes('SUDDEN DEATH · ROUND 2') && DisputaPenaltis.card.casa.every(c => c === 'cinza'), 'morte subita: titulo da rodada e circulos a cinza', 'morte subita mal desenhada');
+if (typeof document !== 'undefined' && document.createElement) {
+    const el = document.createElement('div'); el.className = 'hud-jogador oculto';
+    DisputaPenaltis.pintarCard(el, 'FLA', 'PAL');
+    verifica(!el.classList.contains('oculto') && el.classList.contains('modo-disputa') && !!el.querySelector('#hud-disputa'), 'pintarCard mostra o cartao em modo disputa', 'pintarCard nao mostrou');
+    DisputaPenaltis._libertar();
+    verifica(!DisputaPenaltis.cardVisivel(), 'o fim da disputa apaga o card', 'o card ficou depois do fim');
+    verifica(DisputaPenaltis.limparCard(el) && el.classList.contains('oculto') && !el.querySelector('#hud-disputa'), 'limparCard devolve o cartao normal, escondido', 'limparCard falhou');
+} else erro('sem document no harness');
+
 if (falhas) { console.log(`\n${falhas} falha(s)`); process.exit(1); }
 console.log('\ntudo certo');
 process.exit(0);   // o harness deixa handles abertos: sai-se explicitamente (como os outros testes)
