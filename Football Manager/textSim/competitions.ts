@@ -372,13 +372,38 @@ const penaltis = (hK: string, aK: string, teams: Map<string, Team>): [number, nu
 };
 
 /** O vencedor de um confronto (1 ou 2 jogos) ou null se ainda nao acabou. Em ida e volta o desempate (penaltis) fica gravado no ultimo jogo. */
-export const vencedorDoConfronto = (jogos: CompMatch[], teams: Map<string, Team>, escrever: boolean): string | null => {
+/**
+ * Um confronto do UTILIZADOR empatado (jogo unico ou agregado) espera a disputa de penaltis escolhida por ele (tela da ordem dos batedores): enquanto nao houver `pens` o
+ * confronto fica em aberto, em vez de ser sorteado. `disputaPendente` diz qual e. Os confrontos dos outros clubes continuam a ser decididos aqui.
+ */
+export interface DisputaPendente { compId: string; matchId: string; casaKey: string; foraKey: string; stage: string; golsCasa: number; golsFora: number; }
+export const disputaPendente = (comps: Competition[] | null, userTeamId: string): DisputaPendente | null => {
+  if (!comps) return null;
+  const meu = (k: string) => k.endsWith('|' + userTeamId);
+  for (const c of comps) {
+    const ties = new Set(c.matches.filter(m => m.tie && (meu(m.homeKey) || meu(m.awayKey))).map(m => m.stage + '#' + m.tie));
+    for (const t of ties) {
+      const js = c.matches.filter(m => m.stage + '#' + m.tie === t).sort((x, y) => (x.leg || 0) - (y.leg || 0));
+      if (!js.length || !js.every(j => j.played)) continue;
+      const gols: Record<string, number> = {};
+      js.forEach(j => { gols[j.homeKey] = (gols[j.homeKey] || 0) + (j.homeScore || 0); gols[j.awayKey] = (gols[j.awayKey] || 0) + (j.awayScore || 0); });
+      const ks = Object.keys(gols);
+      const ultimo = js[js.length - 1];
+      if (ks.length !== 2 || gols[ks[0]] !== gols[ks[1]] || ultimo.pens) continue;
+      return { compId: c.id, matchId: ultimo.id, casaKey: ultimo.homeKey, foraKey: ultimo.awayKey, stage: ultimo.stage, golsCasa: gols[ultimo.homeKey], golsFora: gols[ultimo.awayKey] };
+    }
+  }
+  return null;
+};
+
+export const vencedorDoConfronto = (jogos: CompMatch[], teams: Map<string, Team>, escrever: boolean, manual?: string | null): string | null => {
   if (!jogos.length || !jogos.every(j => j.played)) return null;
   const gols: Record<string, number> = {};
   jogos.forEach(j => { gols[j.homeKey] = (gols[j.homeKey] || 0) + (j.homeScore || 0); gols[j.awayKey] = (gols[j.awayKey] || 0) + (j.awayScore || 0); });
   const ks = Object.keys(gols);
   if (gols[ks[0]] !== gols[ks[1]]) return gols[ks[0]] > gols[ks[1]] ? ks[0] : ks[1];
   const ultimo = jogos[jogos.length - 1];
+  if (!ultimo.pens && manual && (ultimo.homeKey === manual || ultimo.awayKey === manual)) return null;   // o utilizador decide na disputa (tela), nao se sorteia
   if (!ultimo.pens && escrever) ultimo.pens = penaltis(ultimo.homeKey, ultimo.awayKey, teams);
   if (!ultimo.pens) return null;
   return ultimo.pens[0] > ultimo.pens[1] ? ultimo.homeKey : ultimo.awayKey;
@@ -502,7 +527,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
       const out: string[] = [];
       for (const t of ties) {
         const js = c.matches.filter(m => m.tie === t && m.stage === nome).sort((x, y) => (x.leg || 0) - (y.leg || 0));
-        const v = vencedorDoConfronto(js, teams, true);
+        const v = vencedorDoConfronto(js, teams, true, uk);
         if (!v) return null;
         out.push(v);
       }

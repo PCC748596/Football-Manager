@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect, useMemo } from 'react';
 import { Team, Player, Contract, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador } from '../types';
 import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/dataGenerator';
 import { gruposDaSerieD } from '../textSim/competitions';
 import { espacarCalendario, comDatasDeCopa } from '../textSim/calendario';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, buildTable } from '../textSim/world';
-import { Competition, prepararCopas, ligaIdDoClube, teamKey } from '../textSim/competitions';
+import { Competition, DisputaPendente, disputaPendente, prepararCopas, ligaIdDoClube, teamKey } from '../textSim/competitions';
 import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
 import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia } from '../textSim/inbox';
@@ -202,6 +202,12 @@ interface GameContextType {
   dispensarJogador: (playerId: string) => { ok: boolean; motivo?: string };
   sellPlayer: (playerId: string) => void;
   swapShirtNumbers: (playerId1: string, playerId2: string) => void;
+  /** O confronto de copa do utilizador que espera a disputa de penaltis (ver PenaltyShootoutModal), ou null. */
+  disputaDePenaltis: DisputaPendente | null;
+  /** Grava o resultado da disputa (penaltis marcados pela casa e pelo fora) no jogo que decide o confronto. */
+  registrarPenaltis: (compId: string, matchId: string, pens: [number, number]) => void;
+  /** Guarda a ordem dos batedores de penalti de um time (ver PenaltyOrderView). */
+  definirOrdemPenaltis: (teamId: string, ordem: string[]) => void;
   scheduleActivity: (date: string, type: ActivityType, details: any) => void;
   setTrainingSchedules: (schedules: (string | null)[][][]) => void;
   unlockTrainingGroup: () => void;
@@ -1811,6 +1817,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     empurrarInbox([avisoDeVenda(gameState.currentDate, gameState.language, player, formatCurrency(sellPrice))]);
   };
 
+  const disputaDePenaltis = useMemo(() => (userTeam ? disputaPendente(comps, userTeam.id) : null), [comps, userTeam?.id]);
+  const registrarPenaltis = (compId: string, matchId: string, pens: [number, number]) =>
+    setComps(prev => (prev ? prev.map(c => (c.id === compId ? { ...c, matches: c.matches.map(m => (m.id === matchId ? { ...m, pens } : m)) } : c)) : prev));
+  const definirOrdemPenaltis = (teamId: string, ordem: string[]) => setTeams(prev => prev.map(t => (t.id === teamId ? { ...t, penaltyOrder: ordem } : t)));
+
   const swapShirtNumbers = (p1: string, p2: string) => {
     setPlayers(prev => {
       const player1 = prev.find(p => p.id === p1);
@@ -2051,7 +2062,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <GameContext.Provider value={{
       teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
-      hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
+      hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
       t,

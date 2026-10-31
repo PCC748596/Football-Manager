@@ -271,6 +271,8 @@ export interface Team {
   synergyMap?: Record<string, number>;
   /** Os cobradores e o capitao designados na aba Match Tactics (ids de jogador). Sem valor: o motor escolhe como sempre. */
   setPieceTakers?: SetPieceTakers;
+  /** A ordem dos batedores na disputa de penaltis (ids de TODOS os jogadores, goleiro incluido), escolhida na tela da disputa. Sem valor: a ordem automatica (Penalties + Consistency). Ver textSim/penaltyShootout.ts. */
+  penaltyOrder?: string[];
 }
 
 export type SetPieceRole = 'captain' | 'cornerL' | 'cornerR' | 'freeKickLong' | 'freeKickDirectL' | 'freeKickDirectR' | 'penalty';

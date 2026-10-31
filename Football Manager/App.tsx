@@ -11,6 +11,7 @@ import FinancesView from './components/FinancesView';
 import TrainingView from './components/TrainingView';
 import DashboardView from './components/DashboardView';
 import MatchDay from './components/MatchDay';
+import PenaltyShootoutModal from './components/PenaltyShootoutModal';
 import MatchRoundView from './components/MatchRoundView';
 import SettingsView from './components/SettingsView';
 import WorldView from './components/WorldView';
@@ -386,6 +387,9 @@ const GameContainer: React.FC = () => {
           {view === 'TRANSFERS' && <TransferMarketView setView={setView} />}
         </Layout>
       )}
+
+      {/* A disputa de penaltis de um confronto de copa empatado (jogo unico ou agregado): a ordem dos batedores e as cobrancas. */}
+      {appPhase === 'GAME' && gameState.userTeamId && <PenaltyShootoutModal />}
     </div>
   );
 };

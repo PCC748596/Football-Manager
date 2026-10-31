@@ -2241,7 +2241,7 @@ const DirectFreeKickModel = {
     `elevMin` e `elevMax` â€” acima disso jÃ¡ nÃ£o Ã© uma falta batida, Ã© um
     balÃ£o.
     */
-    potencia: 26.0,
+    potencia: 22.0,   // 26 -> 22 (pedido: a falta ficou forte demais)
     elevMin: 4 * Math.PI / 180,
     elevMax: 30 * Math.PI / 180,
 
@@ -2266,7 +2266,7 @@ const DirectFreeKickModel = {
     `dipMax` Ã© o tecto da queda extra: acima disso a bola jÃ¡ nÃ£o desenha uma
     falta, cai como uma pedra.
     */
-    potenciaPorForca: 5.0,   // m/s de variaÃ§Ã£o com o atributo FOR
+    potenciaPorForca: 4.0,   // m/s de variaÃ§Ã£o com o atributo FOR
     dipMax: 24.0,            // m/sÂ² de queda extra, no mÃ¡ximo
 
     /*
@@ -2532,5 +2532,5 @@ A CURVA DOS PASSES LONGOS PELO ALTO (lancamentos e lobados). Ver o fim de execut
 distMin e a distancia minima do passe; grausMin/Max o giro total do rumo ao longo do voo (sobe com o atributo e a distancia).
 */
 // `fase`: a curva so no fim do voo (curvaDoPasse): 3 = a flecha maxima aos ~67% do caminho e a bola sai quase direita; 0 = a parabola simples (flecha a meio, saida torta).
-const PassCurva = { activa: true, distMin: 4, grausMin: 8, grausMax: 20, distRef: 50, grausRasteiro: 5, fase: 3 };
+const PassCurva = { activa: true, distMin: 4, grausMin: 4, grausMax: 10, distRef: 50, grausRasteiro: 2.5, fase: 3 };   // graus pela metade (8/20/5 -> 4/10/2.5): a curva estava muito acentuada
 
