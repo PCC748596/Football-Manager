@@ -173,6 +173,7 @@ interface GameContextType {
   resetMatchDay: () => void; // RESET do MatchDay: volta ao minuto 0, sem eventos, para os times entrarem em campo outra vez
   finishMatchDayInstant: () => void;
   motor3dMensagem: (m: any) => void; // mensagens do iframe 3D visivel (modo 3D)
+  avisoGoleiro: boolean; // o goleiro do utilizador foi expulso e o time ainda esta sem goleiro (aviso no TacticsView)
   motor3dProgresso: number | null; // minutos ja simulados pelo motor 3D (null = parado)
   updateTactics: (teamId: string, tactics: Partial<Team['tactics']>, lineup?: string[], bench?: string[]) => void;
   updateSetPieceTakers: (teamId: string, takers: Team['setPieceTakers']) => void;
@@ -252,6 +253,8 @@ export const countsForLeague = (f: Fixture): boolean =>
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [teams, setTeams] = useState<Team[]>([]);
+  // O goleiro do utilizador foi expulso (mensagem `expulsao` com `goleiro`): o aviso vive aqui e nao no MatchDay, que desmonta quando o Tactics abre.
+  const [avisoGoleiro, setAvisoGoleiro] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
   const [world, setWorld] = useState<WorldLeague[] | null>(null);
   const [comps, setComps] = useState<Competition[] | null>(null);
@@ -1246,6 +1249,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // RESET do dia de jogo (MatchDay): zera o relogio, o placar e os eventos dos jogos de hoje que ainda nao acabaram, e esquece o
   // resultado/minuto do motor 3D. O 3D e recriado pelo MatchDay (a entrada dos times corre de novo). Jogo ja concluido nao se reinicia.
   const resetMatchDay = () => {
+    setAvisoGoleiro(false);
     if (matchTimerRef.current) clearTimeout(matchTimerRef.current);
     const hoje = gameState.currentDate;
     if (gameState.matchMinute >= maxDurationRef.current) return;
@@ -1326,6 +1330,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Modo 3D: o motor corre ao vivo no iframe; aqui chegam os eventos dele. O relogio do manager espera por window.motor3dMinuto.
   const motor3dMensagem = (m: any) => {
     const uf = fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId));
+    // O aviso do goleiro expulso: liga com o vermelho do goleiro do utilizador, desliga quando o 3D troca o goleiro (ou o jogo acaba).
+    if (m.tipo === 'expulsao' && m.goleiro && uf && m.lado === (uf.homeTeamId === gameState.userTeamId ? 'A' : 'B')) setAvisoGoleiro(true);
+    else if (m.tipo === 'goleiro_trocado' || m.tipo === 'fim') setAvisoGoleiro(false);
     if (!uf) return;
     const casa = teams.find(t => t.id === uf.homeTeamId)!, fora = teams.find(t => t.id === uf.awayTeamId)!;
     const w = window as any;
@@ -1715,6 +1722,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const velho = oldLineup[i];
               if (!id || !velho || id === velho || oldLineup.includes(id)) return;
               const jog = players.find(p => p.id === id);
+              if (jog && String(jog.position) === 'GK') setAvisoGoleiro(false);   // o manager ja pediu o goleiro: o aviso cumpriu-se
               if (jog) simulador3dEnviar({ tipo: 'substituicao', lado: fx.homeTeamId === teamId ? 'casa' : 'fora', sai: velho, entra: id, jogador: JSON.parse(JSON.stringify(jog)) });
             });
           }
@@ -2089,7 +2097,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <GameContext.Provider value={{
       teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
       hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, decisaoDoJogoDeHoje, guardarPenaltis3d, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
-      isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
+      isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, avisoGoleiro, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
       t,
       updateMatchVisualState,

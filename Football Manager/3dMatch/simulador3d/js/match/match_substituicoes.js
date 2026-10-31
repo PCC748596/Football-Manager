@@ -513,7 +513,20 @@ Object.assign(Match, {
         if (!G) return false;
         const lista = this._equipaDoLado(G.lado);
         if (lista.some(p => p.role === 'gk')) { this._limparGoleiroPendente(); return false; }
-        if (this.subsPendentes.some(r => !r.feita && r.goleiro && r.lado === G.lado)) return true;   // a troca esta a andar: o jogo espera por ela
+        // A troca esta a andar: o jogo espera por ela. So enquanto quem sai PODE sair: um do muro da falta, o batedor ou o repositor (o lance parado que se segue ao vermelho) nao
+        // pode, e o lance ficava preso a esperar por uma troca que nunca comeca. Esse pedido cai (a reserva volta a ficar livre) e a espera / a escolha automatica retomam.
+        for (const r of this.subsPendentes) {
+            if (r.feita || !r.goleiro || r.lado !== G.lado) continue;
+            const Pq = (r.estado === 'voltar') ? r.sai : this._jogadorPorIdManager(lista, r.sai);
+            if (r.estado !== 'novo' && r.estado !== 'pronto') return true;   // ja a decorrer (placa / sai / voltar): segue ate ao fim
+            if (this._elegivel(Pq)) return true;
+            this._cancelar(r);
+            // A reserva que o pedido tinha gasto (`_usados`) fica livre: a escolha automatica ainda pode usar o goleiro reserva verdadeiro (em vez de promover um de linha).
+            if (typeof TreinadorCPU !== 'undefined' && TreinadorCPU._usados) {
+                const real = (typeof AdaptadorManager !== 'undefined' && AdaptadorManager.idReal) ? AdaptadorManager.idReal(r.entra) : null;
+                for (const id of [r.entra, Number(r.entra), real]) TreinadorCPU._usados.delete(id);
+            }
+        }
         if (!this._paradaParaSubstituir()) return false;
         G.t += dt;
         const team = G.lado === 'casa' ? 'TeamA' : 'TeamB';

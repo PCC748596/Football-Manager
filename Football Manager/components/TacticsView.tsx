@@ -75,7 +75,7 @@ interface TacticsViewProps {
 }
 
 const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
-  const { userTeam, players, updateTactics, updateSetPieceTakers, gameState, fixtures, teams, comps } = useGame();
+  const { userTeam, players, updateTactics, updateSetPieceTakers, gameState, fixtures, teams, comps, avisoGoleiro } = useGame();
   const [localLineup, setLocalLineup] = useState<string[]>([]);
   const [localBench, setLocalBench] = useState<string[]>([]);
   const [isOverBench, setIsOverBench] = useState(false);
@@ -477,6 +477,11 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in" style={{ height: 'calc(100vh - 80px)' }}>
+        {avisoGoleiro && (
+          <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[250] bg-rose-700 text-white text-xs font-black uppercase tracking-widest px-4 py-2 rounded-lg shadow-xl">
+            Goalkeeper sent off — take off an outfield player and bring on a goalkeeper
+          </div>
+        )}
         {showZonas && <ZonePositionsModal team={userTeam} adversario={proximoAdversario} players={players} onClose={() => setShowZonas(false)} onLoadTactics={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })}
             onChange={(over) => { const todos = { ...(userTeam.tactics.zoneOverrides || {}) }; if (over) todos[userTeam.tactics.formation] = over; else delete todos[userTeam.tactics.formation]; updateTactics(userTeam.id, { zoneOverrides: Object.keys(todos).length ? todos : undefined }); }} />}
         {presetFoco && <TacticPresetsModal atual={userTeam.tactics} foco={presetFoco} onClose={() => setPresetFoco(null)} onLoad={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })} />}

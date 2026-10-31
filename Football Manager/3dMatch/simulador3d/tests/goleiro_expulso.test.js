@@ -87,6 +87,24 @@ verifica(req && req.goleiro === true && req.urgente === true, 'o pedido ficou go
 correrAte(() => !Match.goleiroPendente && Match.opponents[0].role === 'gk', 150);
 verifica(Match.opponents[0].skills.id === reserva.id, 'o goleiro pedido entrou', 'o goleiro pedido nao entrou');
 
+console.log('6 — o pedido do manager com um jogador ineligivel a sair (muro da falta / batedor) nao trava o jogo');
+for (const motivo of ['naBarreiraFalta', 'setPieceTaker']) {
+    gk = novoJogo(true);
+    Match.ladoDoUtilizador = 'fora';
+    expulsarEParar(gk);
+    const res6 = TreinadorCPU.reservasDe('TeamB').find(r => r.sk.role === 'gk');
+    const preso = Match.opponents.find(p => p.role !== 'gk' && p !== Match.setPieceTaker && !p.naBarreiraFalta);
+    if (motivo === 'naBarreiraFalta') preso.naBarreiraFalta = true; else Match.setPieceTaker = preso;
+    TreinadorCPU._usados.add(res6.id);   // como se um pedido anterior ja tivesse gasto a reserva
+    Match.pedirSubstituicao({ lado: 'fora', sai: String(preso.skills.id), entra: String(res6.id), jogador: { position: 'GK' }, _sk: res6.sk });
+    verifica(Match.subsPendentes.some(r => r.goleiro && !r.feita), `(${motivo}) o pedido do manager foi aceite (goleiro)`, `(${motivo}) o pedido nao foi aceite`);
+    // 20 s de espera + o tempo da troca (sem aquecimento: so a placa e a saida): 60 s chegam com folga
+    const t6 = correrAte(() => !Match.goleiroPendente && Match.opponents[0] && Match.opponents[0].role === 'gk', 60);
+    verifica(!Match.goleiroPendente && Match.opponents[0].role === 'gk', `(${motivo}) o time ficou com goleiro aos ${t6.toFixed(0)} s`, `(${motivo}) o jogo ficou preso sem goleiro (goleiroPendente ${!!Match.goleiroPendente})`);
+    verifica(Match.opponents[0].skills.id === res6.id, `(${motivo}) entrou o goleiro reserva verdadeiro (a reserva nao ficou gasta)`, `(${motivo}) nao entrou o reserva (foi promovido um de linha)`);
+    Match.setPieceTaker = null; preso.naBarreiraFalta = false;
+}
+
 if (falhas) { console.log(`\n${falhas} falha(s)`); process.exit(1); }
 console.log('\ntudo certo');
 process.exit(0);   // o harness deixa temporizadores abertos: sem isto o node nao termina
