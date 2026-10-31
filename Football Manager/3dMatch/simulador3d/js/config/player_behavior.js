@@ -343,7 +343,7 @@ const CarryModel = {
     corredor: 4.0,
     abertura: 0.35,
     espacoLivre: 16.0,
-    espacoLivreDefesa: 35.0,
+    espacoLivreDefesa: 24.0,   // 35 -> 24 (campo livre na propria metade: exigia-se um corredor limpo quase ate ao meio-campo adversario)
 
     /*
     Orçamento de condução: quantos metros o portador pode levar a bola antes de
@@ -359,7 +359,7 @@ const CarryModel = {
     a bola muda de pé.
     */
     distanciaMax: 16.0,
-    distanciaMaxDefesa: 2.0,
+    distanciaMaxDefesa: 8.0,   // 2 -> 8 (os que recebem na propria metade com o campo livre a frente nao avancavam)
 
     /*
     EXCEPÇÃO AO ORÇAMENTO: estar livre à frente (`livreAFrente10m20g` — ninguém

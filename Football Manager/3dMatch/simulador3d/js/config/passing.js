@@ -455,6 +455,9 @@ const PassModel = {
     // O LANÇAMENTO A QUEM ROMPE (RUN_INTO_SPACE, braço no ar): arranca de mais longe e a bola não precisa de 30 m.
     distMinRuptura: 18.0,
     throughBallGapRuptura: 24.0,
+    lancarLivre: true,         // false desliga o lancamento ao companheiro totalmente livre (comparar antes/depois)
+    distMinLivre: 16.0,        // o lancamento para um companheiro TOTALMENTE livre vale a partir daqui (ver findThroughBall)
+    bonusReceptorLivre: 60,    // e leva este bonus na nota do lancamento
     distMinLonga: 24.0,        // 30 -> 24: o lancamento em profundidade (pedido: havia pouco), ver tambem PasseParaOLivre.bonusProfundo
     throughBallCorredorLargura: 7.0,
     throughBallVaoMax: 13.0,
@@ -1822,6 +1825,8 @@ const LancamentoDecisao = {
         // Quem rompe e pede a bola ganha o lançamento, mesmo vindo de um defesa no próprio terço.
         if (e.receptorEmRuptura) return true;
         if (e.defesaNoProprioTerco) return false;
+        // Um companheiro TOTALMENTE livre (ninguem a 7 m nem a 20 m a frente, linha limpa) recebe o lancamento em qualquer mentalidade: nao e risco, e a melhor opcao.
+        if (e.receptorLivre) return true;
         const agressao = (typeof e.agressao === 'number') ? e.agressao : 0.5;
         return agressao >= this.agressaoMinima;
     }

@@ -278,6 +278,8 @@ esteja em condições de lá chegar primeiro.
 
 Aproveita o `defLineDir` que o nível 1 do adversário já calcula.
 */
+const emRupturaDe = (m) => !!(m && m.fsm && m.fsm.currentState === 'RUN_INTO_SPACE');
+
 function findThroughBall(ctx) {
     if (ctx._throughBall !== undefined) return ctx._throughBall;
     const p = ctx.p;
@@ -327,6 +329,15 @@ function findThroughBall(ctx) {
         // Alvo do PositionBT, não a posição actual — ver alvoDePasse().
         const mateAlvo = alvoDePasse(mate);
         const mateZ_current = mate.model.position.z * p.dirZ;
+
+        /*
+        O COMPANHEIRO TOTALMENTE LIVRE (pedido: *"o portador com uma opção de passe para um outro jogador com campo livre não lança a bola"*). Livre = ninguém a menos de 7 m
+        dele, ninguém a 20 m em 45 graus à frente dele, e a linha do passe limpa. Para ele o lançamento não exige "rasgar a linha entre dois adversários" (sem adversários
+        por perto não há linha a rasgar: o teste `passaEntreAdversarios` recusava-o sempre), nem estar colado à última linha, e vale a partir de `distMinLivre`.
+        */
+        const receptorLivre = PassModel.lancarLivre !== false && !soParaRuptura && !emRupturaDe(mate) && folgaDoMate(mate, ctx) > 7.0 &&
+            typeof semMarcacaoAFrente === 'function' && semMarcacaoAFrente(mate, ctx.opponents, 20.0, 45.0) &&
+            linhaLivreSaida(p, mate, ctx.opponents, 2.5);
         const mateZ = mateAlvo.z * p.dirZ;
         
         // Verificação de fora-de-jogo DEVE usar a posição ACTUAL do jogador, não a projetada,
@@ -334,7 +345,7 @@ function findThroughBall(ctx) {
         if (mateZ_current > linhaNoNosso + 0.5) continue; 
         
         // A folga avalia se o jogador já está razoavelmente perto da última linha para a conseguir romper.
-        if (mateZ_current < linhaNoNosso - (emRuptura ? (PassModel.throughBallGapRuptura || PassModel.throughBallGap) : PassModel.throughBallGap)) continue;
+        if (!receptorLivre && mateZ_current < linhaNoNosso - (emRuptura ? (PassModel.throughBallGapRuptura || PassModel.throughBallGap) : PassModel.throughBallGap)) continue;
         
         // Bónus especial se ele já estiver em movimento de ruptura
         let sprintBonus = 0;
@@ -343,14 +354,15 @@ function findThroughBall(ctx) {
 
         const dist = p.model.position.distanceTo(mateAlvo);
         // Lançamento é bola longa: abaixo de distMinLonga é passe normal.
-        const distMin = emRuptura ? (PassModel.distMinRuptura || PassModel.distMinLonga) : PassModel.distMinLonga;
+        const distMinBase = emRuptura ? (PassModel.distMinRuptura || PassModel.distMinLonga) : PassModel.distMinLonga;
+        const distMin = receptorLivre ? Math.min(distMinBase, PassModel.distMinLivre || 16.0) : distMinBase;
         if (dist < distMin || dist > PassModel.throughBallMaxDist) continue;
 
         /*
         E TEM DE RASGAR A LINHA. Longo nao chega: um lancamento sai por
         entre DOIS adversarios, senao e so uma bola comprida para o espaco.
         */
-        if (typeof passaEntreAdversarios === 'function') {
+        if (!receptorLivre && typeof passaEntreAdversarios === 'function') {
             const advPontos = [];
             for (const o of ctx.opponents) {
                 if (o.role === 'gk' || !o.model) continue;
@@ -425,7 +437,8 @@ function findThroughBall(ctx) {
         }
 
         if (window.showPlayerPoints) { mate.debugPoints = mate.debugPoints || {}; mate.debugPoints['Lanç'] = Math.round(nota); }
-        if (nota > melhorNota) { melhorNota = nota; melhor = { mate: mate, alvoX: alvoX, alvoZ: alvoZ }; }
+        if (receptorLivre) nota += (PassModel.bonusReceptorLivre || 60);   // o livre vale mais do que um marcado que se rasga
+        if (nota > melhorNota) { melhorNota = nota; melhor = { mate: mate, alvoX: alvoX, alvoZ: alvoZ, receptorLivre: receptorLivre }; }
     }
 
     /*
@@ -2097,6 +2110,7 @@ function findBestPassAnywhere(ctx) {
                     temPasseCurto: !!target,
                     receptorEmRuptura: !!(tb.mate && tb.mate.fsm &&
                         tb.mate.fsm.currentState === 'RUN_INTO_SPACE'),
+                    receptorLivre: !!tb.receptorLivre,
                     agressao: bb ? bb.aggression : 0.5,
                     // O terço próprio, e não a metade: sair a jogar acaba
                     // quando a bola passa a linha do terço, não a do meio.
@@ -5036,7 +5050,10 @@ const PlayerBT = sel('PlayerRoot',
                         ? tendenciaDeAccao(p, 'driveSpace') : 1.0;
                     const limite = (typeof CarryModel.conduzirSoAcimaDe === 'number')
                         ? CarryModel.conduzirSoAcimaDe / Math.max(0.25, tendCond) : -Infinity;
-                    if (ctx.zoneAhead < limite) {
+                    // CAMPO TOTALMENTE LIVRE (ninguem a 20 m em 45 graus e o corredor limpo ate 20 m): o passe NAO vem primeiro, adianta-se a bola e aproveita-se o espaco (medido: em campo livre so
+                    // ~1 posse em 4 continuava a conduzir 2 s depois; as outras passavam ou perdiam a bola).
+                    const campoTotalmenteLivre = ctx.livreAFrente10m20g && ctx.espacoAFrente >= 20.0 && !ctx.underPressure;
+                    if (ctx.zoneAhead < limite && !campoTotalmenteLivre) {
                         const passe = findBestPassAnywhere(ctx);
                         if (passe) {
                             // Guardado para o ProcurarPasse nao repetir a busca
