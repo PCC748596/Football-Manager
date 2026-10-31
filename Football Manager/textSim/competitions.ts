@@ -396,6 +396,25 @@ export const disputaPendente = (comps: Competition[] | null, userTeamId: string)
   return null;
 };
 
+/** O que o 3D precisa saber ANTES do jogo para decidir se o empate vai a penaltis: este jogo fecha um confronto (jogo unico ou ida e volta, na volta) e o agregado dos jogos anteriores. */
+export interface DecisaoDoJogo { compId: string; matchId: string; agregadoCasa: number; agregadoFora: number; }
+export const decisaoDoConfronto = (comps: Competition[] | null, fixtureId: string): DecisaoDoJogo | null => {
+  if (!comps || !fixtureId.startsWith('fix-cup-')) return null;
+  const matchId = fixtureId.slice('fix-cup-'.length);
+  for (const c of comps) {
+    const m = c.matches.find(x => x.id === matchId);
+    if (!m) continue;
+    if (!m.tie) return null;   // fase de grupos / liga: sem desempate
+    const irmaos = c.matches.filter(x => x.stage === m.stage && x.tie === m.tie);
+    const ultimaPerna = Math.max(...irmaos.map(x => x.leg || 1));
+    if ((m.leg || 1) !== ultimaPerna) return null;
+    const antes = irmaos.filter(x => x.id !== m.id && x.played);
+    const golsDe = (key: string) => antes.reduce((s, x) => s + (x.homeKey === key ? (x.homeScore || 0) : x.awayKey === key ? (x.awayScore || 0) : 0), 0);
+    return { compId: c.id, matchId: m.id, agregadoCasa: golsDe(m.homeKey), agregadoFora: golsDe(m.awayKey) };
+  }
+  return null;
+};
+
 export const vencedorDoConfronto = (jogos: CompMatch[], teams: Map<string, Team>, escrever: boolean, manual?: string | null): string | null => {
   if (!jogos.length || !jogos.every(j => j.played)) return null;
   const gols: Record<string, number> = {};
