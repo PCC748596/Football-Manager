@@ -63,6 +63,9 @@ const Ponte = {
                 Match.cobradores = Match.cobradores || { A: null, B: null };
                 Match.cobradores[m.lado === 'B' ? 'B' : 'A'] = o;
             }
+            // A disputa de penaltis em 3D (js/disputa_penaltis.js): a app (que arbitra) responde com as ordens dos cobradores e, depois de cada cobranca, com o proximo batedor ou o fim.
+            else if (m.tipo === 'disputa_iniciar') { if (window.DisputaPenaltis) window.DisputaPenaltis.receberOrdens(m.ordemCasa, m.ordemFora, m.proxima); }
+            else if (m.tipo === 'disputa_proxima') { if (window.DisputaPenaltis) window.DisputaPenaltis.receberProxima(m); }
             else if (m.tipo === 'instantaneo') this.enviar('instantaneo', { id: m.id, dados: this.instantaneo() });
             else if (m.tipo === 'pausar') this.pausar();
             else if (m.tipo === 'continuar') this.continuar();
@@ -200,6 +203,8 @@ const Ponte = {
 
     // O ESC que o manager reencaminha (a tela cheia do manager fica com o foco, nao o iframe): faz o mesmo que a tecla no jogo — cancela a entrada em campo, ou fecha a repeticao.
     esc() {
+        // Na disputa de penaltis o ESC leva todos direto aos pontos finais do caminhar (nunca salta cobrancas).
+        if (typeof DisputaPenaltis !== 'undefined' && DisputaPenaltis.activa) { DisputaPenaltis.cancelar(); return; }
         if (typeof Abertura !== 'undefined' && Abertura.activa) { Abertura.cancelar(); return; }
         const R = window.MatchReplay;
         if (R && R.isReplaying) R.stopReplay();
@@ -392,6 +397,11 @@ const Ponte = {
         Match.tempoDeJogo = 0; Match.placarA = 0; Match.placarB = 0; Match.segundoTempoIniciado = false;
         Match.acrescimo1 = 0; Match.acrescimo2 = 0; Match.acrMin1 = 0; Match.acrMin2 = 0; Match.aguardaSaida2T = false; Match.acr1Calculado = false; Match.acr2Calculado = false; Match.faltasNoIntervalo = 0; Match.substituicoes = 0; Match.substituicoesNoIntervalo = 0;
         Match.primeiroTempoAcabou = false;
+        // A DECISAO do confronto (agregado anterior, se este jogo fecha uma copa) so vale no 3D visivel: o oculto nunca encena penaltis. A disputa de um jogo anterior, se ficou
+        // a meio (ex.: o 3D fechado durante a reuniao), desfaz-se aqui para nao vazar para esta partida.
+        Match.decisao = (m.decisao && this.modo === 'visivel') ? m.decisao : null;
+        if (typeof DisputaPenaltis !== 'undefined' && (DisputaPenaltis.activa || DisputaPenaltis.fase)) DisputaPenaltis._libertar();
+        Match.disputa = null;
         Eventos.reset();
         if (!this._ouvinte) {
             this._ouvinte = (ev) => this._aoEvento(ev);

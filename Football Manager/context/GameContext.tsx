@@ -4,7 +4,7 @@ import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/data
 import { gruposDaSerieD } from '../textSim/competitions';
 import { espacarCalendario, comDatasDeCopa } from '../textSim/calendario';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, buildTable } from '../textSim/world';
-import { Competition, DisputaPendente, disputaPendente, prepararCopas, ligaIdDoClube, teamKey } from '../textSim/competitions';
+import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disputaPendente, prepararCopas, ligaIdDoClube, teamKey } from '../textSim/competitions';
 import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
 import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia } from '../textSim/inbox';
@@ -206,6 +206,10 @@ interface GameContextType {
   disputaDePenaltis: DisputaPendente | null;
   /** Grava o resultado da disputa (penaltis marcados pela casa e pelo fora) no jogo que decide o confronto. */
   registrarPenaltis: (compId: string, matchId: string, pens: [number, number]) => void;
+  /** O que o 3D precisa saber do jogo de hoje do utilizador: se fecha um confronto de copa e o agregado anterior (ver decisaoDoConfronto). */
+  decisaoDoJogoDeHoje: () => DecisaoDoJogo | null;
+  /** O 3D acabou a disputa de penaltis do jogo de hoje: guarda `pens` para gravar quando o confronto aparecer nas copas. */
+  guardarPenaltis3d: (fixtureId: string, pens: [number, number]) => void;
   /** Guarda a ordem dos batedores de penalti de um time (ver PenaltyOrderView). */
   definirOrdemPenaltis: (teamId: string, ordem: string[]) => void;
   scheduleActivity: (date: string, type: ActivityType, details: any) => void;
@@ -1337,6 +1341,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         novos.forEach(e => { if (e.type === 'GOAL') { if (e.teamId === f.homeTeamId) h++; else a++; } });
         return { ...f, events: [...(f.events || []), ...novos], homeScore: h, awayScore: a };
       }));
+    } else if (m.tipo === 'disputa_fim') {
+      // A disputa de penaltis em 3D acabou: guarda o resultado para gravar quando o confronto aparecer empatado nas copas (e o modal de texto nao abrir).
+      guardarPenaltis3d(uf.id, m.pens);
     } else if (m.tipo === 'placar_ajustado') {
       // O clique na sigla de um clube no placar do 3D somou +1 (sem evento de golo): o resultado do jogo acompanha o do motor.
       setFixtures(prev => prev.map(f => (f.id === uf.id ? { ...f, homeScore: m.placar.casa, awayScore: m.placar.fora } : f)));
@@ -1820,9 +1827,25 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     empurrarInbox([avisoDeVenda(gameState.currentDate, gameState.language, player, formatCurrency(sellPrice))]);
   };
 
-  const disputaDePenaltis = useMemo(() => (userTeam ? disputaPendente(comps, userTeam.id) : null), [comps, userTeam?.id]);
+  // Os penaltis que o 3D ja decidiu, por id do confronto (o do jogo da copa, sem o prefixo 'fix-cup-'), a espera de o confronto aparecer empatado nas copas.
+  const pens3d = useRef<Record<string, [number, number]>>({});
+  const decisaoDoJogoDeHoje = (): DecisaoDoJogo | null => {
+    const uf = fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId));
+    return uf ? decisaoDoConfronto(comps, uf.id) : null;
+  };
+  const guardarPenaltis3d = (fixtureId: string, pens: [number, number]) => { pens3d.current[fixtureId.replace('fix-cup-', '')] = pens; };
+  // Sem disputa pendente para o modal de texto quando o 3D ja resolveu o confronto.
+  const disputaDePenaltis = useMemo(() => {
+    const d = userTeam ? disputaPendente(comps, userTeam.id) : null;
+    return d && !pens3d.current[d.matchId] ? d : null;
+  }, [comps, userTeam?.id]);
   const registrarPenaltis = (compId: string, matchId: string, pens: [number, number]) =>
     setComps(prev => (prev ? prev.map(c => (c.id === compId ? { ...c, matches: c.matches.map(m => (m.id === matchId ? { ...m, pens } : m)) } : c)) : prev));
+  // O 3D ja decidiu: grava os penaltis assim que o confronto aparece empatado nas copas.
+  useEffect(() => {
+    const d = userTeam ? disputaPendente(comps, userTeam.id) : null;
+    if (d && pens3d.current[d.matchId]) { registrarPenaltis(d.compId, d.matchId, pens3d.current[d.matchId]); delete pens3d.current[d.matchId]; }
+  }, [comps]);
   const definirOrdemPenaltis = (teamId: string, ordem: string[]) => setTeams(prev => prev.map(t => (t.id === teamId ? { ...t, penaltyOrder: ordem } : t)));
 
   const swapShirtNumbers = (p1: string, p2: string) => {
@@ -2065,7 +2088,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <GameContext.Provider value={{
       teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
-      hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
+      hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, decisaoDoJogoDeHoje, guardarPenaltis3d, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
       t,

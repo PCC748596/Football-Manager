@@ -9,6 +9,9 @@ import Simulador3DView, { simulador3dArrancou, simulador3dReinicios, simulador3d
 import { taticaParaMotor, taticaDoMotor } from '../3dMatch/simulador3dCliente';
 import { COUNTRIES } from '../textSim/dataGenerator';
 import { ligaDoClube } from '../textSim/competitions';
+import PenaltyOrderView from './PenaltyOrderView';
+import { Cobranca } from '../textSim/penaltyShootout';
+import { emCampo, ordemParaOsEmCampo, proximaMensagem, idDoMotor } from '../3dMatch/disputa3d';
 
 type VisualState = 'PRE_MATCH' | 'KICKOFF_SET' | 'PLAYING' | 'OFFSIDE' | 'GOAL';
 
@@ -17,7 +20,7 @@ interface MatchDayProps {
 }
 
 const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
-  const { gameState, fixtures, teams, players, playMatchDay, pauseMatch, resetMatchDay, advanceWeek, updateMatchVisualState, motor3dMensagem, updateTactics, comps } = useGame();
+  const { gameState, fixtures, teams, players, playMatchDay, pauseMatch, resetMatchDay, advanceWeek, updateMatchVisualState, motor3dMensagem, updateTactics, comps, decisaoDoJogoDeHoje, definirOrdemPenaltis } = useGame();
   
   const match = fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId));
   const homeTeam = teams.find(t => t.id === match?.homeTeamId);
@@ -40,6 +43,15 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const [relogio3d, setRelogio3d] = useState<number | null>(null);
   const eventoTimer = useRef<any>(null);
   const [pronto3d, setPronto3d] = useState(() => simulador3dPronto());
+  /*
+  A DISPUTA DE PENALTIS EM 3D (ver 3dMatch/disputa3d.ts e js/disputa_penaltis.js no simulador). Terminado o jogo de copa empatado no agregado, o 3D junta os times e manda os jogadores em campo
+  (`disputa_reuniao`): aqui o utilizador escolhe a ordem dos batedores dele (`ordem3d` abre o modal). Depois a app e a arbitra: guarda as cobrancas (`cobrancas3d`, para o placar dos penaltis),
+  e responde a cada uma com o proximo batedor ou o fim (`proximaMensagem`). O ref espelha o estado para as mensagens seguidas nao lerem um valor velho.
+  */
+  const [ordem3d, setOrdem3d] = useState<{ casa: number[]; fora: number[]; primeiro: 'casa' | 'fora' } | null>(null);
+  const [cobrancas3d, setCobrancas3d] = useState<Cobranca[]>([]);
+  const cobrancas3dRef = useRef<Cobranca[]>([]);
+  const ordens3d = useRef<{ casa: string[]; fora: string[]; primeiro: 'casa' | 'fora' } | null>(null);
   // Os times estao a entrar em campo: o botao principal diz PULAR (ver Ponte.pularDisponivel).
   const [podePular, setPodePular] = useState(false);
   const userTeam = teams.find(t => t.id === gameState.userTeamId);
@@ -90,6 +102,21 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
     return <div className="text-white p-10 text-center font-black uppercase italic">No match today.</div>;
   }
 
+  const usuarioEhCasa = match.homeTeamId === gameState.userTeamId;
+  // O utilizador confirmou a ordem dos batedores dele: guarda-a no time, completa a do adversario (a guardada, so com os que estao em campo) e responde ao 3D com o primeiro batedor.
+  const confirmarOrdem3d = (ordemMeu: string[]) => {
+    const meuTime = usuarioEhCasa ? homeTeam : awayTeam;
+    definirOrdemPenaltis(meuTime.id, ordemMeu);
+    const campoCasa = emCampo(ordem3d!.casa, players.filter(p => p.teamId === homeTeam.id));
+    const campoFora = emCampo(ordem3d!.fora, players.filter(p => p.teamId === awayTeam.id));
+    const ordemCasa = usuarioEhCasa ? ordemMeu : ordemParaOsEmCampo(homeTeam.penaltyOrder, campoCasa);
+    const ordemFora = usuarioEhCasa ? ordemParaOsEmCampo(awayTeam.penaltyOrder, campoFora) : ordemMeu;
+    ordens3d.current = { casa: ordemCasa, fora: ordemFora, primeiro: ordem3d!.primeiro };
+    setOrdem3d(null);
+    const proxima = proximaMensagem([], ordemCasa, ordemFora, ordem3d!.primeiro) as { lado: 'casa' | 'fora'; jogadorId: number };
+    simulador3dEnviar({ tipo: 'disputa_iniciar', ordemCasa: ordemCasa.map(idDoMotor), ordemFora: ordemFora.map(idDoMotor), proxima });
+  };
+
   // Com o 3D o fim do jogo fica no 3D (as estatisticas dele): a aba de estatisticas do manager so abre se o treinador a escolher.
   const showStats = (gameState.matchMinute >= 90 && !iniciou) || activeTab === 'stats';
   // A posicao dos dois clubes na tabela da liga (pontos, saldo, golos): o treinador da CPU no 3D leva-a em conta (objetivo do clube). Sem jogos feitos, vale a ordem de OVR.
@@ -138,6 +165,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
     if (gameState.matchMinute >= 90) return;
     resetMatchDay();
     setIniciou(false);
+    setOrdem3d(null); setCobrancas3d([]); cobrancas3dRef.current = []; ordens3d.current = null;
     setReinicios(n => n + 1);
     setReplayAtivo(false);
     // Volta a tela dos uniformes, antes do jogo: o 3D so e preparado depois de novos kits escolhidos.
@@ -162,7 +190,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         <span className="text-white font-black italic">{homeTeam.name}</span>
                     </div>
                     <div className="bg-black/80 px-5 py-1.5 rounded-lg font-mono text-xl text-blue-400 font-black border border-slate-800 shadow-inner">
-                        {match.homeScore || 0} - {match.awayScore || 0}
+                        {match.homeScore || 0}{cobrancas3d.length ? ` (${cobrancas3d.filter(c => c.lado === 'casa' && c.gol).length})` : ''} - {cobrancas3d.length ? `(${cobrancas3d.filter(c => c.lado === 'fora' && c.gol).length}) ` : ''}{match.awayScore || 0}
                     </div>
                     <div className="flex items-center gap-3">
                         <span className="text-white font-black italic">{awayTeam.name}</span>
@@ -330,7 +358,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 );
              })() : null}
              <div className={`absolute inset-0 w-full h-full ${showStats ? 'hidden' : ''}`}>
-                <Simulador3DView retomar={retomarRef.current} competicao={nomeCompeticao} tabela={tabelaDosDois} amistoso={!!(match.isFriendly || match.type === 'FRIENDLY')} qualidade={gameState.graphicsQuality || 'HIGH'} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx} kitGkCasa={gameState.matchVisual?.gkHomeKit} kitGkFora={gameState.matchVisual?.gkAwayKit} trajeArbitro={gameState.matchVisual?.arbitroTraje}
+                <Simulador3DView retomar={retomarRef.current} competicao={nomeCompeticao} tabela={tabelaDosDois} amistoso={!!(match.isFriendly || match.type === 'FRIENDLY')} qualidade={gameState.graphicsQuality || 'HIGH'} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} decisao={decisaoDoJogoDeHoje()} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx} kitGkCasa={gameState.matchVisual?.gkHomeKit} kitGkFora={gameState.matchVisual?.gkAwayKit} trajeArbitro={gameState.matchVisual?.arbitroTraje}
                     iniciar={iniciou} pausado={iniciou && !gameState.isProcessing} aoPronto={() => setPronto3d(true)}
                     aoMensagem={(m) => {
                       // Tatica do painel do 3D -> manager (aba Tactics): so o que mudou de nivel.
@@ -370,6 +398,22 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                           }
                           concluidoRef.current = true; advanceWeek(); setView?.('DASHBOARD');
                         }
+                      } else if (m.tipo === 'disputa_reuniao') {
+                        // Os times estao reunidos: o modal da ordem abre so com os jogadores em campo (ids do motor).
+                        cobrancas3dRef.current = [];
+                        setCobrancas3d([]);
+                        setOrdem3d({ casa: m.casa.map((j: any) => j.id), fora: m.fora.map((j: any) => j.id), primeiro: m.primeiro });
+                      } else if (m.tipo === 'disputa_cobranca') {
+                        // Uma cobranca decidida pela fisica: soma-a (o placar dos penaltis) e responde ao 3D com o proximo batedor ou o fim.
+                        const o = ordens3d.current;
+                        if (!o) return;
+                        const lado = m.lado as 'casa' | 'fora';
+                        const time = lado === 'casa' ? homeTeam : awayTeam;
+                        const p = emCampo([m.jogadorId], players.filter(x => x.teamId === time.id))[0];
+                        const novas = [...cobrancas3dRef.current, { lado, jogadorId: p ? p.id : 'p-' + m.jogadorId, gol: m.resultado === 'gol' }];
+                        cobrancas3dRef.current = novas;
+                        setCobrancas3d(novas);
+                        simulador3dEnviar({ tipo: 'disputa_proxima', ...proximaMensagem(novas, o.casa, o.fora, o.primeiro) });
                       } else motor3dMensagem(m);
                     }} />
              </div>
@@ -389,6 +433,18 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                      </div>
                  </div>
              )}
+
+            {/* A ordem dos batedores da disputa de penaltis em 3D (o iframe tem z-index 5; este modal fica por cima, como o PenaltyShootoutModal) */}
+            {ordem3d && (
+              <div className="absolute inset-0 z-[300] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-6">
+                <PenaltyOrderView
+                  time={usuarioEhCasa ? homeTeam : awayTeam}
+                  jogadores={emCampo(usuarioEhCasa ? ordem3d.casa : ordem3d.fora, players.filter(p => p.teamId === (usuarioEhCasa ? homeTeam : awayTeam).id))}
+                  ordemInicial={(usuarioEhCasa ? homeTeam : awayTeam).penaltyOrder}
+                  aoConfirmar={confirmarOrdem3d}
+                />
+              </div>
+            )}
 
             {/* Kit Selection Overlay */}
             {showKitSelection && (

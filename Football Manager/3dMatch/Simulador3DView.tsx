@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { Team, Player } from '../types';
 import { urlSimulador, montarPayload } from './simulador3dCliente';
 import { settleMatch, ECONOMIA_ESTADIO } from '../textSim/stadiumEconomy';
+import type { DecisaoDoJogo } from '../textSim/competitions';
 
 interface Props {
   casa: Team;
@@ -20,6 +21,8 @@ interface Props {
   amistoso?: boolean;   // jogo amigavel: o treinador da CPU nao tem limite de substituicoes
   tabela?: { casa: { posicao: number; total: number }; fora: { posicao: number; total: number } };   // a posicao dos dois na tabela do campeonato (o treinador da CPU, 3D)         // nome da competicao: a placa fixa do 3D
   qualidade?: 'HIGH' | 'MEDIUM' | 'LOW';   // Game Settings > Graphics
+  /** Se este jogo fecha um confronto de copa: o agregado anterior (ver decisaoDoConfronto). O 3D, se terminar empatado no agregado, encena a disputa de penaltis. */
+  decisao?: DecisaoDoJogo | null;
   aoMensagem: (m: any) => void; // eventos do motor (evento, estado, fim, erro)
   aoPronto?: () => void;
   /** Retomar um jogo gravado a meio: o 3D comeca neste minuto, com este placar e estes expulsos (ver Ponte._retomar). */
@@ -163,11 +166,11 @@ const ocupacaoDoJogo = (casa: Team, fora: Team): number => {
 // A ocupacao do setor visitante: a base do clube visitante (60% no inicio, muda com os resultados dele).
 const ocupacaoVisitanteDoJogo = (fora: Team): number => (fora as any).stadiumOccupancy ?? ECONOMIA_ESTADIO.ocupacaoInicial;
 
-const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, chave, iniciar, pausado, kitCasa, kitFora, kitGkCasa, kitGkFora, trajeArbitro, competicao, tabela, amistoso, qualidade, aoMensagem, aoPronto, retomar }) => {
+const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, chave, iniciar, pausado, kitCasa, kitFora, kitGkCasa, kitGkFora, trajeArbitro, competicao, tabela, amistoso, qualidade, decisao, aoMensagem, aoPronto, retomar }) => {
   simulador3dQualidade(qualidade);   // antes de o iframe ser criado (useLayoutEffect) para entrar no URL
   const caixa = useRef<HTMLDivElement>(null);
   const dados = useRef<any>({});
-  dados.current = { casa, fora, players, userTeamId, kits: { casa: kitCasa, fora: kitFora, gkCasa: kitGkCasa, gkFora: kitGkFora, arbitro: trajeArbitro }, tabela, amistoso, retomar };
+  dados.current = { casa, fora, players, userTeamId, kits: { casa: kitCasa, fora: kitFora, gkCasa: kitGkCasa, gkFora: kitGkFora, arbitro: trajeArbitro }, tabela, amistoso, retomar, decisao };
   const iniciarRef = useRef(iniciar);
   iniciarRef.current = iniciar;
 
@@ -176,7 +179,7 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
     const d = dados.current;
     if (iniciarRef.current) {
       sessao.arrancou = true;
-      enviar({ ...montarPayload(d.casa, d.fora, d.players, d.userTeamId, { modo: 'visivel', velocidade: velocidadeDoJogo, fimEmMinutos: 90, ocupacao: ocupacaoDoJogo(d.casa, d.fora), ocupacaoVisitante: ocupacaoVisitanteDoJogo(d.fora), tabela: d.tabela, amistoso: d.amistoso }, d.kits), ...(d.retomar ? { retomar: d.retomar } : {}) });
+      enviar({ ...montarPayload(d.casa, d.fora, d.players, d.userTeamId, { modo: 'visivel', velocidade: velocidadeDoJogo, fimEmMinutos: 90, ocupacao: ocupacaoDoJogo(d.casa, d.fora), ocupacaoVisitante: ocupacaoVisitanteDoJogo(d.fora), tabela: d.tabela, amistoso: d.amistoso, ...(d.decisao ? { decisao: d.decisao } : {}) }, d.kits), ...(d.retomar ? { retomar: d.retomar } : {}) });
     } else {
       // A entrada dos times so comeca depois de os uniformes escolhidos (o modal de kits ainda aberto = kits indefinidos).
       if (d.kits.casa === undefined || d.kits.fora === undefined) return;

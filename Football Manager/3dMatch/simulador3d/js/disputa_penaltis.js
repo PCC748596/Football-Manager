@@ -220,6 +220,8 @@ const DisputaPenaltis = {
         this.fase = 'PREPARO'; this.sub = 'andar'; this.tSub = 0; this.t = 0;
         const lado = proxima.lado, outro = lado === 'casa' ? 'fora' : 'casa';
         const batedor = this.jogadorPorId(lado, proxima.jogadorId);
+        // O contrato: a app manda sempre ids que o 3D conhece. Se nao conhece o batedor nao ha como encenar a cobranca: acaba como se nao houvesse disputa (a app cai no modal de texto).
+        if (!batedor) { this._abortar(); return; }
         const goleiro = this.goleiroDe(outro);
         this.atual = { lado, batedor, goleiro, tecnicos: null };
         const marca = DM.posMarca(this.sinalZ), gol = DM.posGol(this.sinalZ);
