@@ -24,6 +24,7 @@ import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '.
 import { REAL_TEAMS_JSON } from '../textSim/realDatabase';
 import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager } from '../3dMatch/simulador3dCliente';
 import { simulador3dEnviar, simulador3dInstantaneo } from '../3dMatch/Simulador3DView';
+import { avisoDoGoleiro } from '../3dMatch/avisoGoleiro';
 
 const TRANSLATIONS: Record<string, any> = {
   EN: {
@@ -173,6 +174,7 @@ interface GameContextType {
   resetMatchDay: () => void; // RESET do MatchDay: volta ao minuto 0, sem eventos, para os times entrarem em campo outra vez
   finishMatchDayInstant: () => void;
   motor3dMensagem: (m: any) => void; // mensagens do iframe 3D visivel (modo 3D)
+  avisoGoleiroMensagem: (m: any) => void; // liga/desliga o aviso a partir de uma mensagem do 3D (chamar antes de abrir o Tactics)
   avisoGoleiro: boolean; // o goleiro do utilizador foi expulso e o time ainda esta sem goleiro (aviso no TacticsView)
   motor3dProgresso: number | null; // minutos ja simulados pelo motor 3D (null = parado)
   updateTactics: (teamId: string, tactics: Partial<Team['tactics']>, lineup?: string[], bench?: string[]) => void;
@@ -1327,12 +1329,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
+  // O aviso do goleiro expulso (ver 3dMatch/avisoGoleiro.ts): o MatchDay chama-o no TOPO do `aoMensagem`, antes de a expulsao abrir o Tactics (que desmonta o MatchDay).
+  const avisoGoleiroMensagem = (m: any) => {
+    const uf = fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId));
+    const r = avisoDoGoleiro(m, uf?.homeTeamId, gameState.userTeamId);
+    if (r !== null) setAvisoGoleiro(r);
+  };
+  // Outro dia / outro jogo: o aviso de um jogo que acabou sem `fim` (ex.: a simulacao instantanea) nao fica preso.
+  useEffect(() => { setAvisoGoleiro(false); }, [gameState.currentDate]);
+
   // Modo 3D: o motor corre ao vivo no iframe; aqui chegam os eventos dele. O relogio do manager espera por window.motor3dMinuto.
   const motor3dMensagem = (m: any) => {
     const uf = fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId));
-    // O aviso do goleiro expulso: liga com o vermelho do goleiro do utilizador, desliga quando o 3D troca o goleiro (ou o jogo acaba).
-    if (m.tipo === 'expulsao' && m.goleiro && uf && m.lado === (uf.homeTeamId === gameState.userTeamId ? 'A' : 'B')) setAvisoGoleiro(true);
-    else if (m.tipo === 'goleiro_trocado' || m.tipo === 'fim') setAvisoGoleiro(false);
     if (!uf) return;
     const casa = teams.find(t => t.id === uf.homeTeamId)!, fora = teams.find(t => t.id === uf.awayTeamId)!;
     const w = window as any;
@@ -2097,7 +2105,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <GameContext.Provider value={{
       teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
       hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, decisaoDoJogoDeHoje, guardarPenaltis3d, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
-      isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, avisoGoleiro, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
+      isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, avisoGoleiro, avisoGoleiroMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
       t,
       updateMatchVisualState,

@@ -20,7 +20,7 @@ interface MatchDayProps {
 }
 
 const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
-  const { gameState, fixtures, teams, players, playMatchDay, pauseMatch, resetMatchDay, advanceWeek, updateMatchVisualState, motor3dMensagem, updateTactics, comps, decisaoDoJogoDeHoje, definirOrdemPenaltis } = useGame();
+  const { gameState, fixtures, teams, players, playMatchDay, pauseMatch, resetMatchDay, advanceWeek, updateMatchVisualState, motor3dMensagem, avisoGoleiroMensagem, updateTactics, comps, decisaoDoJogoDeHoje, definirOrdemPenaltis } = useGame();
   
   const match = fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId));
   const homeTeam = teams.find(t => t.id === match?.homeTeamId);
@@ -364,6 +364,8 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 <Simulador3DView retomar={retomarRef.current} competicao={nomeCompeticao} tabela={tabelaDosDois} amistoso={!!(match.isFriendly || match.type === 'FRIENDLY')} qualidade={gameState.graphicsQuality || 'HIGH'} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} decisao={decisaoDoJogoDeHoje()} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx} kitGkCasa={gameState.matchVisual?.gkHomeKit} kitGkFora={gameState.matchVisual?.gkAwayKit} trajeArbitro={gameState.matchVisual?.arbitroTraje}
                     iniciar={iniciou} pausado={iniciou && !gameState.isProcessing} aoPronto={() => setPronto3d(true)}
                     aoMensagem={(m) => {
+                      // O aviso do goleiro expulso liga ANTES do ramo da expulsao abrir o Tactics (que desmonta este componente): a flag vive no GameContext e o TacticsView mostra-o.
+                      avisoGoleiroMensagem(m);
                       // Tatica do painel do 3D -> manager (aba Tactics): so o que mudou de nivel.
                       if (m.tipo === 'tatica_alterada' && userTeam) {
                         const mudou = taticaDoMotor(m, userTeam.tactics);
