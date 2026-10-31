@@ -164,7 +164,7 @@ function desenharCampo() {
       const g = el('g', { transform: 'translate(' + sx(-p.x) + ',' + sy(-p.z) + ')', opacity: .3 }, svg);
       el('circle', { r: 2.6, fill: '#dc2626', stroke: '#fca5a5', 'stroke-width': .35 }, g);
       const t = el('text', { y: 1, 'text-anchor': 'middle', fill: '#fff', 'font-size': 2.4, 'font-weight': 700 }, g);
-      t.textContent = FC.slots[i].pos; t.style.pointerEvents = 'none';
+      t.textContent = (FC.slots[i].pos === 'CF' ? 'ST' : FC.slots[i].pos); t.style.pointerEvents = 'none';
       g.style.pointerEvents = 'none';
     });
   }
@@ -173,7 +173,7 @@ function desenharCampo() {
     const cor = slots[i].role === 'gk' ? '#f1c40f' : (st.fase === 'com' ? '#3b82f6' : '#ef4444');
     const c = el('circle', { r: 2.6, fill: cor, stroke: '#fff', 'stroke-width': .35 }, g);
     const t = el('text', { y: 1, 'text-anchor': 'middle', fill: '#fff', 'font-size': 2.4, 'font-weight': 700 }, g);
-    t.textContent = slots[i].pos; t.style.pointerEvents = 'none';
+    t.textContent = (slots[i].pos === 'CF' ? 'ST' : slots[i].pos); t.style.pointerEvents = 'none';
     if (!st.previa) { c.style.cursor = 'grab'; c.addEventListener('pointerdown', (ev) => arrastar(ev, i)); }
   });
 }
@@ -221,7 +221,7 @@ function tabela() {
   const posicoes = tabAtual()[st.zona];
   F().slots.forEach((s, i) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td>' + (i + 1) + ' ' + s.pos + '</td><td>' + (posicoes[i].x * L).toFixed(1) + '</td><td>' + (posicoes[i].z * H).toFixed(1) + '</td>';
+    tr.innerHTML = '<td>' + (i + 1) + ' ' + (s.pos === 'CF' ? 'ST' : s.pos) + '</td><td>' + (posicoes[i].x * L).toFixed(1) + '</td><td>' + (posicoes[i].z * H).toFixed(1) + '</td>';
     tb.appendChild(tr);
   });
 }

@@ -1272,6 +1272,7 @@ const PlayingStyleTuning = {
     creativePlaymaker: {
         atrasDaLinha: 9.0,   // metros aquém da última linha adversária
         minAtras: 4.0,       // e nunca mais perto dela do que isto
+        raioBusca: 10.0,     // AMONG_SPACE: procura o vão até aqui do posto
         candidatosX: [-20, -14, -9, -4, 0, 4, 9, 14, 20]
     },
 

@@ -42,7 +42,17 @@ const PassModel = extrairObjecto(srcPass, 'PassModel', { Math, ALTURA_CABECA });
 const R = PassModel.recepcao;
 
 const ALTURA_BASE_Y = 0.9, ALTURA_TESTA = 0.8;
-const BallPhysics = { raio: 0.11 };
+const BallPhysics = { raio: 0.11, kArrasto: 0.0053, atritoRolamento: 0.38, gravidade: 9.81 };
+
+// Mesma fórmula de pontoDeRepousoDaBola (utils.js), sobre o Match do cenário.
+function pontoDeRepousoDaBola() {
+    const b = Match.ball.position, v = Match.ballVel;
+    const vel = Math.hypot(v.x, v.z);
+    if (vel < 0.05) return { x: b.x, z: b.z, dist: 0, vel };
+    const k = BallPhysics.kArrasto, a = BallPhysics.atritoRolamento * BallPhysics.gravidade;
+    const d = Math.log(1 + (k * vel * vel) / a) / (2 * k);
+    return { x: b.x + (v.x / vel) * d, z: b.z + (v.z / vel) * d, dist: d, vel };
+}
 
 // Estado partilhado, reposto por cenário.
 let Match, olhouParaBola;
@@ -76,7 +86,8 @@ function correr({ bolaX, bolaZ, velX, velZ, jogX, jogZ, estadoInicial }) {
         preverQuedaDaBola: () => ({ x: bolaX, z: bolaZ }),
         lookAtBola: () => { olhouParaBola = true; },
         tempoDoJogadorAte: (d, v, vmax) => d / Math.max(vmax, 0.1),
-        tempoRasteiroDaBola: () => 1.0
+        tempoRasteiroDaBola: () => 1.0,
+        pontoDeRepousoDaBola
     };
     const fn = new Function(...Object.keys(stubs),
         extrairFuncao(srcBT, 'actReceivePass') + '; return actReceivePass;')(...Object.values(stubs));
@@ -92,7 +103,8 @@ test('os três números vivem no config', () => {
 
 test('passe a vir direito a ele: fica quieto e olha para a bola', () => {
     // Bola em z=-10 a rolar para +z; jogador em z=0, em cima da linha dela.
-    const p = correr({ bolaX: 0, bolaZ: -10, velX: 0, velZ: 8, jogX: 0, jogZ: 0 });
+    // 10 m/s: com o arrasto, a bola chega aos pés dele (a 8 m/s morria a 8.4 m).
+    const p = correr({ bolaX: 0, bolaZ: -10, velX: 0, velZ: 10, jogX: 0, jogZ: 0 });
     assert.strictEqual(p.fsm.currentState, 'IDLE');
     assert.strictEqual(p.velocity.x, 0);
     assert.strictEqual(p.velocity.z, 0);
@@ -101,7 +113,7 @@ test('passe a vir direito a ele: fica quieto e olha para a bola', () => {
 
 test('fica quieto mesmo desalinhado dentro do corredor', () => {
     const dentro = R.desvioDirecto * 0.9;
-    const p = correr({ bolaX: 0, bolaZ: -10, velX: 0, velZ: 8, jogX: dentro, jogZ: 0 });
+    const p = correr({ bolaX: 0, bolaZ: -10, velX: 0, velZ: 10, jogX: dentro, jogZ: 0 });
     assert.strictEqual(p.fsm.currentState, 'IDLE');
 });
 
@@ -129,4 +141,18 @@ test('bola quase parada não conta como passe a caminho', () => {
     const p = correr({ bolaX: 0, bolaZ: -10, velX: 0, velZ: lenta, jogX: 0, jogZ: 0 });
     assert.notStrictEqual(p.fsm.currentState, 'IDLE',
         'bola morta vai-se buscar, não se espera por ela');
+});
+
+test('bola que morre antes dele: vai ao encontro já, para o ponto de repouso', () => {
+    // 4 m/s: para a ~2.1 m; o jogador está a 10 m. Não espera.
+    const p = correr({ bolaX: 0, bolaZ: -10, velX: 0, velZ: 4, jogX: 0, jogZ: 0 });
+    assert.strictEqual(p.fsm.currentState, 'MOVE_TO_POS');
+    assert.ok(p.dynamicTarget.z < -5, `alvo devia ficar perto da bola, ficou z=${p.dynamicTarget.z}`);
+    assert.ok(p.recepcao, 'a decisão tem de ficar travada');
+});
+
+test('bola quase parada a mais de 1 m: vai buscá-la', () => {
+    const p = correr({ bolaX: 0, bolaZ: -3, velX: 0, velZ: 0.6, jogX: 0, jogZ: 0 });
+    assert.strictEqual(p.fsm.currentState, 'MOVE_TO_POS');
+    assert.ok(Math.abs(p.dynamicTarget.z + 3) < 1.0, `alvo z=${p.dynamicTarget.z}`);
 });

@@ -13,6 +13,9 @@ interface Props {
   pausado: boolean;
   kitCasa?: number;            // kit escolhido (0 casa, 1 fora, 2 terceiro)
   kitFora?: number;
+  kitGkCasa?: any;             // cor escolhida do goleiro da casa (KitDetails), undefined = padrao
+  kitGkFora?: any;
+  trajeArbitro?: { camisa: string; calcao: string; gola?: string } | null;
   competicao?: string;
   amistoso?: boolean;   // jogo amigavel: o treinador da CPU nao tem limite de substituicoes
   tabela?: { casa: { posicao: number; total: number }; fora: { posicao: number; total: number } };   // a posicao dos dois na tabela do campeonato (o treinador da CPU, 3D)         // nome da competicao: a placa fixa do 3D
@@ -160,11 +163,11 @@ const ocupacaoDoJogo = (casa: Team, fora: Team): number => {
 // A ocupacao do setor visitante: a base do clube visitante (60% no inicio, muda com os resultados dele).
 const ocupacaoVisitanteDoJogo = (fora: Team): number => (fora as any).stadiumOccupancy ?? ECONOMIA_ESTADIO.ocupacaoInicial;
 
-const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, chave, iniciar, pausado, kitCasa, kitFora, competicao, tabela, amistoso, qualidade, aoMensagem, aoPronto, retomar }) => {
+const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, chave, iniciar, pausado, kitCasa, kitFora, kitGkCasa, kitGkFora, trajeArbitro, competicao, tabela, amistoso, qualidade, aoMensagem, aoPronto, retomar }) => {
   simulador3dQualidade(qualidade);   // antes de o iframe ser criado (useLayoutEffect) para entrar no URL
   const caixa = useRef<HTMLDivElement>(null);
   const dados = useRef<any>({});
-  dados.current = { casa, fora, players, userTeamId, kits: { casa: kitCasa, fora: kitFora }, tabela, amistoso, retomar };
+  dados.current = { casa, fora, players, userTeamId, kits: { casa: kitCasa, fora: kitFora, gkCasa: kitGkCasa, gkFora: kitGkFora, arbitro: trajeArbitro }, tabela, amistoso, retomar };
   const iniciarRef = useRef(iniciar);
   iniciarRef.current = iniciar;
 

@@ -18,6 +18,23 @@ Actualiza a ~15Hz por jogador (secção 17), não every frame — cada jogador
 tem o seu próprio `perceptionTimer` desfasado (ver player.js) para não
 recalcular todos no mesmo frame.
 */
+/*
+Distância que o jogador percorre em `t` segundos até um ponto, COM inércia: a
+velocidade persegue a máxima por lerp exponencial (o mesmo do steerArrive,
+tau = 0.2 s), e parte da velocidade que ele já leva na direcção do ponto.
+Antes era `vMax * t`, que o dava a sprintar desde o primeiro instante — e a
+percepção prometia intercepções que o jogador, parado, não fazia a tempo.
+*/
+function alcanceDoJogador(t, vMax, p, dx, dz, dist) {
+    const tau = 0.2;
+    let v0 = 0;
+    if (p.velocity && dist > 0.001) {
+        v0 = (p.velocity.x * dx + p.velocity.z * dz) / dist;
+        if (v0 > vMax) v0 = vMax; else if (v0 < -vMax) v0 = -vMax;
+    }
+    return vMax * t - tau * (vMax - v0) * (1 - Math.exp(-t / tau));
+}
+
 const Perception = {
     HZ: 15,
 
@@ -241,7 +258,7 @@ const Perception = {
             const bx = prev.x + (curr.x - prev.x) * f;
             const bz = prev.z + (curr.z - prev.z) * f;
             const reachDist = Math.hypot(bx - px, bz - pz);
-            const playerReach = maxChase * t;
+            const playerReach = alcanceDoJogador(t, maxChase, p, bx - px, bz - pz, reachDist);
 
             if (playerReach >= reachDist) {
                 melhor = { x: bx, z: bz, t: t, tipo: 'cabeca' };
@@ -258,7 +275,7 @@ const Perception = {
                 if (by > alturaMaxJogavel) continue;          // ainda alta demais para ser jogada
 
                 const reachDist = Math.hypot(bx - px, bz - pz);
-                const playerReach = maxChase * t;
+                const playerReach = alcanceDoJogador(t, maxChase, p, bx - px, bz - pz, reachDist);
 
                 if (playerReach >= reachDist) {
                     melhor = { x: bx, z: bz, t: t, tipo: 'jogavel' };
@@ -273,7 +290,7 @@ const Perception = {
             bb.timeToIntercept = melhor.t;
             // Confiança: margem entre o quanto ele alcança e o quanto
             // precisa — perto do limite (última hora) é baixa confiança.
-            bb.confidence = THREE.MathUtils.clamp((maxChase * melhor.t - Math.hypot(melhor.x - px, melhor.z - pz)) / (maxChase * 0.5), 0.1, 1.0);
+            bb.confidence = THREE.MathUtils.clamp((alcanceDoJogador(melhor.t, maxChase, p, melhor.x - px, melhor.z - pz, Math.hypot(melhor.x - px, melhor.z - pz)) - Math.hypot(melhor.x - px, melhor.z - pz)) / (maxChase * 0.5), 0.1, 1.0);
         } else {
             bb.interceptable = false;
             bb.interceptionPoint = null;

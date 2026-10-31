@@ -966,7 +966,7 @@ function mostrarClassificacaoIntervalo(linhas, emCurso) {
     document.getElementById('mc-linhas').innerHTML = linhas.map(l => {
         const forma = (l.forma || []).slice(-5);
         const bolas = [0, 1, 2, 3, 4].map(i => '<i class="' + (forma[i - (5 - forma.length)] || '') + '"></i>').join('');
-        return '<div class="mc-linha' + (l.destaque ? ' dest' : '') + '"><span class="mc-pos">' + l.pos + '</span><span class="mc-esc">' + escudo(l) + '</span><span class="mc-nome">' + esc(l.nome) + (l.vivo ? ' <small style="opacity:.8;font-weight:400">(' + esc(l.vivo) + ' ao vivo)</small>' : '') +
+        return '<div class="mc-linha' + (l.destaque ? ' dest' : '') + '"><span class="mc-pos">' + rotuloDaPosicao(l.pos) + '</span><span class="mc-esc">' + escudo(l) + '</span><span class="mc-nome">' + esc(l.nome) + (l.vivo ? ' <small style="opacity:.8;font-weight:400">(' + esc(l.vivo) + ' ao vivo)</small>' : '') +
             '</span><span class="mc-num">' + l.pts + '</span><span class="mc-num">' + l.v + '</span><span class="mc-forma">' + bolas + '</span></div>';
     }).join('');
     const nota = document.getElementById('mc-nota');
@@ -1083,7 +1083,7 @@ function preencherHudJogador(elId, p) {
     preencherEscudoHud(el.querySelector('.hud-jog-logo'), el.id, p.team);
     // Nome | numero | posicao.
     const numero = (p.skills.numero !== undefined && p.skills.numero !== null && p.skills.numero !== '') ? p.skills.numero : p.num;
-    el.querySelector('.hud-jog-nome').textContent = [p.skills.nome, numero, p.pos].filter(x => x !== undefined && x !== null && x !== '').join(' | ');
+    el.querySelector('.hud-jog-nome').textContent = [p.skills.nome, numero, rotuloDaPosicao(p.pos)].filter(x => x !== undefined && x !== null && x !== '').join(' | ');
     // Quem tem cartao AMARELO leva o nome em amarelo no cartao (pedido).
     el.querySelector('.hud-jog-nome').style.color = p.temAmarelo ? '#facc15' : '';
 

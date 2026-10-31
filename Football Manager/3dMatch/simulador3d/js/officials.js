@@ -327,17 +327,17 @@ const RefereeModel = {
     trajes: {
         deltaMin: 38,
         prioridade: [
-            { nome: 'tudo preto',   camisa: '#14161a', calcao: '#14161a' },
-            { nome: 'tudo amarelo', camisa: '#f5e61b', calcao: '#f5e61b' },
-            { nome: 'tudo azul',    camisa: '#1f5fd1', calcao: '#1f5fd1' }
+            { nome: 'tudo preto',   camisa: '#14161a', calcao: '#14161a', gola: '#f5e61b' },
+            { nome: 'tudo amarelo', camisa: '#f5e61b', calcao: '#f5e61b', gola: '#14161a' },
+            { nome: 'tudo azul',    camisa: '#1f5fd1', calcao: '#1f5fd1', gola: '#f5e61b' }
         ],
         demais: [
-            { nome: 'azul claro',      camisa: '#4fb8ff', calcao: '#14161a' },
-            { nome: 'verde limao',     camisa: '#9be31a', calcao: '#14161a' },
-            { nome: 'amarelo fosfor.', camisa: '#e8ff1f', calcao: '#14161a' },
-            { nome: 'preta',           camisa: '#14161a', calcao: '#14161a' },
-            { nome: 'rosa',            camisa: '#ff6fb5', calcao: '#14161a' },
-            { nome: 'lilas',           camisa: '#b58cf0', calcao: '#14161a' }
+            { nome: 'azul claro',      camisa: '#4fb8ff', calcao: '#14161a', gola: '#1f5fd1' },
+            { nome: 'verde limao',     camisa: '#9be31a', calcao: '#14161a', gola: '#166534' },
+            { nome: 'amarelo fosfor.', camisa: '#e8ff1f', calcao: '#14161a', gola: '#14161a' },
+            { nome: 'preta',           camisa: '#14161a', calcao: '#14161a', gola: '#f5e61b' },
+            { nome: 'rosa',            camisa: '#ff6fb5', calcao: '#14161a', gola: '#be185d' },
+            { nome: 'lilas',           camisa: '#b58cf0', calcao: '#14161a', gola: '#6d28d9' }
         ]
     },
 
@@ -780,17 +780,19 @@ const Officials = {
     Os ossos têm os mesmos nomes (`lLeg`, `rKnee`, `lArm`, `chest`…), por isso o
     `mover()` aqui em baixo não muda nada.
     */
-    criarCorpo: function (id, camisa, calcao, simples, arbitro) {
+    criarCorpo: function (id, camisa, calcao, simples, arbitro, gola) {
         const R = RefereeModel;
         /*
         GOLAS, BARRA DO SHORT E LISTAS DAS MEIAS PRETAS (pedido): num traje de cor o resto e preto — a gola (e os punhos), a barra do short (quando o
         short e de cor) e as argolas do cano; a meia leva a cor da camisa. Sem cor, o traje de sempre.
         */
         const preto = R.corCamisa;
+        // A gola (e os punhos) leva a cor do traje (`gola`); sem ela, preta como sempre.
         const uniforme = camisa ? {
-            gola: preto,
+            gola: gola || preto,
             argolas: preto,
-            calcao: { cores: [calcao || camisa], barra: (!simples && calcao && calcao !== preto) ? { cor: preto, altura: 0.12 } : null }
+            // A barra do calcao: nos arbitros (`gola` dada) e SEMPRE na cor da gola, mesmo com calcao preto; nos outros, preta so com calcao de cor.
+            calcao: { cores: [calcao || camisa], barra: (!simples && gola) ? { cor: gola, altura: 0.12 } : ((!simples && calcao && calcao !== preto) ? { cor: preto, altura: 0.12 } : null) }
         } : null;
         FootballPlayer.extra = arbitro ? 'arbitro' : true;   // arbitro e assistentes: o corpo dos jogadores (Qualidade.corpoArbitros); staff e reservas: Qualidade.corpoExtras
         let jogador;
@@ -951,6 +953,10 @@ const Officials = {
     },
 
     sortearTraje: function () {
+        // O traje que o utilizador escolheu na tela dos uniformes (KitSelection) manda; sem ele, sorteia-se como sempre.
+        if (this.trajeEscolhido && this.trajeEscolhido.camisa) {
+            return Object.assign({ nome: 'escolhido', folga: 99 }, this.trajeEscolhido, { calcao: this.trajeEscolhido.calcao || this.trajeEscolhido.camisa });
+        }
         const T = RefereeModel.trajes;
         const labs = [];
         for (const c of this._coresDeCamisaEmCampo()) {
@@ -984,7 +990,7 @@ const Officials = {
         const oficiais = [this.arbitro].concat(this.assistentes).concat(this.quarto ? [this.quarto] : []);
         oficiais.forEach((o, i) => {
             const velho = o.model;
-            const feito = this.criarCorpo(i, traje.camisa, traje.calcao, undefined, true);
+            const feito = this.criarCorpo(i, traje.camisa, traje.calcao, undefined, true, traje.gola);
             feito.corpo.position.copy(velho.position);
             feito.corpo.rotation.copy(velho.rotation);
             feito.corpo.visible = velho.visible;

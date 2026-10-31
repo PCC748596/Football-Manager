@@ -907,6 +907,9 @@ export interface MatchVisualState {
   awayPossessionCount?: number;
   kitHomeIdx?: number;
   kitAwayIdx?: number;
+  gkHomeKit?: any;       // cor escolhida do goleiro (KitDetails), undefined = padrao
+  gkAwayKit?: any;
+  arbitroTraje?: { camisa: string; calcao: string; gola?: string } | null;   // traje escolhido do juiz, undefined = automatico
   ballZone?: number;
 }
 

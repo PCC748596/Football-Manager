@@ -1760,6 +1760,8 @@ class PlayerFSM {
             // locomocao; estado proprio para se ver no debug quem se esta a
             // oferecer (ver atribuirApoiosDaEquipa).
             case 'SUPPORT_PASS':
+            // AMONG_SPACE: o Creative Playmaker a ocupar o vao entre os adversarios (ver actEntreEspacos).
+            case 'AMONG_SPACE':
             // SUP_TO_INVERT: o apoio que recua para permitir a inversao de jogo (js/inversao_sinalizada.js).
             case 'SUP_TO_INVERT':
                 // O apoio do ANCHOR MAN tambem respeita a faixa dele (entre a defesa e os medios): oferecer-se ao portador nao o leva a frente dos medios.

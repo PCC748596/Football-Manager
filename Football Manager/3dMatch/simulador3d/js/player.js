@@ -5386,7 +5386,7 @@ class FootballPlayer {
             this.labelSprite.visible = true;
             let parts = [];
             if (window.showPlayerNumber) parts.push(this.num);
-            if (window.showPlayerPOS) parts.push(this.pos);
+            if (window.showPlayerPOS) parts.push(rotuloDaPosicao(this.pos));
             if (window.showPlayerBT) parts.push(this.fsm.currentState);
             if (window.showPlayerPlayingStyle && this.playingStyle && !this.playingStyleDesligado) parts.push(this.playingStyle);
             if (window.showPlayerPoints && this.debugPoints) {
@@ -5448,7 +5448,7 @@ class FootballPlayer {
             this.nomeSprite.visible = mostra;
             this.labelSprite.position.y = (mostra && this.labelSprite.visible) ? 11.0 : 8.5;
             if (mostra) {
-                const nome = this.nomeCamisola || this.pos;
+                const nome = this.nomeCamisola || rotuloDaPosicao(this.pos);
                 if (nome !== this.ultimoNome) {
                     this.ultimoNome = nome;
                     const c = this.nomeCtx;
@@ -6052,7 +6052,11 @@ class FootballPlayer {
                         }
                     }
                 }
-            } else if ((this.chegouAoPosto || d < 2.5) && Match.ball) {
+            } else if ((this.chegouAoPosto || d < 2.5) && Match.ball &&
+                !(this.velocity.length() > ((typeof LateralGait !== 'undefined') ? LateralGait.velViragem : 3.6) &&
+                  (this.fsm.currentState === 'RUN_INTO_SPACE' || !this.chegouAoPosto))) {
+                // (Sem a ultima condicao, quem corre ao espaco com o alvo a menos de 2.5 m a frente — o alvo da corrida avanca sempre que ele chega — corria virado para a
+                // bola, a 90 graus do movimento. Acima de `velViragem` o corpo vira para onde corre; so quem ja chegou, ou vai devagar, acompanha a bola.)
                 // PERTO DO ALVO (a menos de 2.5 m, ainda sem 'chegou'): a direccao para o alvo vira de lado a cada passo do alvo — o corpo tremia, a virar de um lado para o outro
                 // (medido: ~190 segundos-jogador por 10 min com 4+ inversoes de giro por segundo, quase todos em MOVE_TO_POS e MARKING). Olha para a bola, como quem ja chegou.
                 // Já no sítio: acompanha a bola. O limiar tem histerese (ver
@@ -7206,7 +7210,7 @@ class FootballPlayer {
             btCtx.font = 'bold 36px sans-serif';
             btCtx.textAlign = 'center';
             btCtx.textBaseline = 'middle';
-            btCtx.fillText(pos, 64, 32);
+            btCtx.fillText(rotuloDaPosicao(pos), 64, 32);
             
             let btTex = new THREE.CanvasTexture(btCanvas);
             let btMat = new THREE.MeshBasicMaterial({ map: btTex, transparent: true, depthWrite: false, side: THREE.DoubleSide });
@@ -7276,7 +7280,7 @@ class FootballPlayer {
             btCtx.font = 'bold 36px sans-serif';
             btCtx.textAlign = 'center';
             btCtx.textBaseline = 'middle';
-            btCtx.fillText(pos, 64, 32);
+            btCtx.fillText(rotuloDaPosicao(pos), 64, 32);
             this.btTargetGroup.children[1].material.map.needsUpdate = true;
         }
 

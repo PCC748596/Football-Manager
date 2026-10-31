@@ -1792,6 +1792,22 @@ Tempo que a bola leva a percorrer `dist` rasteira. `null` se ela morrer pelo
 caminho — quem chama tem de tratar isso como "força insuficiente", não como
 tempo infinito.
 */
+/*
+ONDE A BOLA RASTEIRA PARA. Mesma física do `tempoRasteiroDaBola` (arrasto
+quadrático + atrito de rolamento): v(d)=0 dá d = ln(1 + k·v0²/a) / (2k).
+Devolve { x, z, dist, vel } a partir da posição e velocidade actuais da bola,
+ou com `dist` 0 se ela já está parada. Sem alocar mais do que o resultado.
+*/
+function pontoDeRepousoDaBola() {
+    const b = Match.ball.position, v = Match.ballVel;
+    const vel = Math.hypot(v.x, v.z);
+    if (vel < 0.05) return { x: b.x, z: b.z, dist: 0, vel: vel };
+    const k = BallPhysics.kArrasto;
+    const a = BallPhysics.atritoRolamento * BallPhysics.gravidade;
+    const d = Math.log(1 + (k * vel * vel) / a) / (2 * k);
+    return { x: b.x + (v.x / vel) * d, z: b.z + (v.z / vel) * d, dist: d, vel: vel };
+}
+
 function tempoRasteiroDaBola(dist, v0) {
     dist = Math.max(0, dist);
     if (dist < 0.001) return 0;
@@ -5577,6 +5593,15 @@ function estiloDeBarbaDe(id, tipo) {
     let acc = hashAparencia(n, 4) % total;
     for (const [nome, peso] of lista) { if (acc < peso) return nome; acc -= peso; }
     return 'nenhuma';
+}
+
+/*
+NOME DE EXIBIÇÃO DA POSIÇÃO. Internamente o centroavante é 'CF' (formações,
+estilos, dados); no ecrã chama-se ST, como no Manager. Só para mostrar — nunca
+para comparar.
+*/
+function rotuloDaPosicao(pos) {
+    return pos === 'CF' ? 'ST' : pos;
 }
 
 function offsetInquietacao(angulo, raio) {

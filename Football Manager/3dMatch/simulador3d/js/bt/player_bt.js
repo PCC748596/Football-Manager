@@ -1563,6 +1563,25 @@ function procurarTabelaEChute(p) {
 /*
 O ramo, chamado do topo do `actPass`. Devolve true se a bola foi jogada.
 */
+/*
+A MIRA DO PRIMEIRO TOQUE DE UMA TABELA: sempre para o espaço, nunca aos pés.
+Pedido: "as tabelas têm que ser com passes into space ou lançamentos; os passes
+diretos estão atrasando os deslocamentos". O parceiro parava para receber e a
+jogada perdia o tempo da corrida. Sem ponto válido no leque, em vez de cair em
+DIRECT mira 4 m à frente do parceiro, no sentido do ataque.
+*/
+function miraDeTabela(p, mate) {
+    const advs = (p.team === 'TeamA') ? Match.opponents : Match.players;
+    const leque = PassTypes.pontosPorMate(p);
+    const res = PassTypes.pontoPara(PassTypes.SPACE, (leque && leque[mate.id]) || [],
+        mate, p.targetGoalZ, advs, p);
+    if (res.tipo !== PassTypes.DIRECT && res.ponto) return res;
+    return {
+        tipo: PassTypes.LEADING,
+        ponto: { x: mate.model.position.x, z: mate.model.position.z + p.dirZ * 4.0 }
+    };
+}
+
 function tratarJogadaCombinada(ctx) {
     const p = ctx.p;
     if (typeof JogadasCombinadas === 'undefined' || typeof PassTypes === 'undefined') return false;
@@ -1612,7 +1631,8 @@ function tratarJogadaCombinada(ctx) {
             p.carryHold = 0;
             combinada.mate.devolverPara = { mate: p, alvo: combinada.alvo, timer: dur, chute: chute };
             p.esperarDevolucao = { alvo: combinada.alvo, timer: dur, chute: chute, tipo: chute ? 'tabelaChute' : 'overlap' };
-            aplicarMiraDoPasse(p, PassTypes.DIRECT, null);
+            const miraComb = miraDeTabela(p, combinada.mate);
+            aplicarMiraDoPasse(p, miraComb.tipo, miraComb.ponto);
             p.initiatePass(combinada.mate);
             return true;
         }
@@ -1646,11 +1666,7 @@ function tratarJogadaCombinada(ctx) {
         nenhum, cai sozinho para DIRECT — a tabelinha não morre por não haver
         espaço, só deixa de ser no espaço.
         */
-        const advsTab = (p.team === 'TeamA') ? Match.opponents : Match.players;
-        const leque = PassTypes.pontosPorMate(p);
-        const miraTab = PassTypes.pontoPara(
-            PassTypes.SPACE, (leque && leque[tab.mate.id]) || [],
-            tab.mate, p.targetGoalZ, advsTab);
+        const miraTab = miraDeTabela(p, tab.mate);
         aplicarMiraDoPasse(p, miraTab.tipo, miraTab.ponto);
         p.initiatePass(tab.mate);
         if (typeof MatchStats !== 'undefined' && MatchStats[p.team] &&
@@ -2952,6 +2968,53 @@ function actReceivePass(ctx) {
         const bb = p.blackboard && p.blackboard.ball;
 
         /*
+        BOLA QUE PARA ANTES DELE: VAI BUSCÁ-LA JÁ, sem esperar que pare.
+
+        O destinatário esperava (ou corria para o ponto do passe, que a bola
+        nunca alcança) até ela cair abaixo de 0.4 m/s — 2 a 3 s parado com a
+        bola a 2 m. Agora, ao primeiro frame em que se sabe onde ela PÁRA
+        (`pontoDeRepousoDaBola`), decide-se:
+          - a bola morre antes do ponto do passe, ou
+          - está quase parada (< 1 m/s) e a mais de 1 m dele,
+        e a decisão fica TRAVADA (`p.recepcao`) até a bola ser dele: não volta
+        a esperar, e o alvo só muda se o ponto de repouso se mexer > 1.5 m (um
+        desvio). O alvo é o ponto de intercepção, se o alcança, ou o repouso.
+        */
+        const agora = Date.now();
+        const rep = pontoDeRepousoDaBola();
+        const dBolaJog = Math.hypot(p.model.position.x - bola.x, p.model.position.z - bola.z);
+        let rec = p.recepcao;
+        if (rec && (agora - rec.ult > 400 || rec.ref !== Match.lastTouchedPlayer)) rec = p.recepcao = null;
+
+        if (!rec && dBolaJog > 1.0) {
+            let morreAntes = false;
+            if (Match.passTargetPos) {
+                const dPasse = Math.hypot(Match.passTargetPos.x - bola.x, Match.passTargetPos.z - bola.z);
+                morreAntes = rep.dist < dPasse - 1.0;
+            } else {
+                // Sem ponto de passe: a bola tem de chegar aos pés dele (a ~1 m).
+                morreAntes = rep.dist < dBolaJog - 1.0;
+            }
+            if (morreAntes || rep.vel < 1.0) {
+                rec = p.recepcao = { ref: Match.lastTouchedPlayer, ult: agora, rx: rep.x, rz: rep.z, x: 0, z: 0 };
+                rec.mudar = true;
+            }
+        }
+        if (rec) {
+            rec.ult = agora;
+            if (rec.mudar || Math.hypot(rep.x - rec.rx, rep.z - rec.rz) > 1.5) {
+                rec.mudar = false;
+                rec.rx = rep.x; rec.rz = rep.z;
+                const ip = bb && bb.interceptionPoint;
+                rec.x = ip ? ip.x : rep.x;
+                rec.z = ip ? ip.z : rep.z;
+            }
+            p.dynamicTarget.set(rec.x, ALTURA_BASE_Y, rec.z);
+            p.fsm.changeState('MOVE_TO_POS');
+            return;
+        }
+
+        /*
         PASSE DIRECTO: espera QUIETO, virado para a bola.
 
         O tremor na espera vinha daqui. O alvo era o `interceptionPoint`, que a
@@ -3089,9 +3152,80 @@ function podeApoiarCirculacao(ctx) {
 }
 
 
+/*
+AMONG_SPACE — o Creative Playmaker procura SEMPRE o espaço livre perto do seu
+posto: o ponto mais folgado entre os adversários que o rodeiam (o meio de 3 ou
+4 deles — os médios e os centrais). Não é uma corrida em profundidade
+(RUN_INTO_SPACE): ele fica no vão, à espera da bola, e ajusta-se quando o vão
+se mexe. O estilo vem de `entreLinhas` (ver PlayingStyleTuning.creativePlaymaker).
+*/
+function podeEntreEspacos(ctx) {
+    const p = ctx.p;
+    if (p.role === 'gk' || p === Match.ballCarrier) return false;
+    if (typeof estiloAtivoDe !== 'function' || !estiloAtivoDe(p).entreLinhas) return false;
+    return true;
+}
+
+function actEntreEspacos(ctx) {
+    const p = ctx.p;
+    const C = (typeof PlayingStyleTuning !== 'undefined' && PlayingStyleTuning.creativePlaymaker)
+        ? PlayingStyleTuning.creativePlaymaker : {};
+    const raioBusca = C.raioBusca || 10.0;
+    const agora = Date.now();
+    let e = p.entreEspacos;
+
+    // Reavalia a cada 0.4 s, ou quando já chegou ao ponto. Entre isso mantém o ponto (sem tremer).
+    const chegou = e && Math.hypot(p.model.position.x - e.x, p.model.position.z - e.z) < 1.0;
+    if (!e || chegou || agora - e.t > 400) {
+        const centro = p.baseTarget || p.model.position;
+        const cx = centro.x, cz = centro.z;
+        const advs = (p.team === 'TeamA') ? Match.opponents : Match.players;
+        const limX = CAMPO_LARG / 2 - 3.0, limZ = CAMPO_COMP / 2 - 3.0;
+        const linha = (typeof linhaLidaPor === 'function') ? linhaLidaPor(p, true) : null;
+
+        let melhor = null, melhorNota = -Infinity;
+        for (let r = 0; r <= raioBusca + 0.01; r += raioBusca / 2) {
+            const n = r === 0 ? 1 : 12;
+            for (let k = 0; k < n; k++) {
+                const ang = (k / n) * Math.PI * 2;
+                const x = THREE.MathUtils.clamp(cx + Math.cos(ang) * r, -limX, limX);
+                let z = THREE.MathUtils.clamp(cz + Math.sin(ang) * r, -limZ, limZ);
+                if (linha !== null && linha !== undefined && z * p.dirZ > linha - 0.8) z = (linha - 0.8) * p.dirZ;
+
+                // Folga ao adversário mais perto (tecto 8 m): o vão é onde ela é maior.
+                let folga = 8.0;
+                for (const o of advs) {
+                    if (!o || !o.model || o.role === 'gk' || o.expulso) continue;
+                    const d = Math.hypot(o.model.position.x - x, o.model.position.z - z);
+                    if (d < folga) folga = d;
+                }
+                // Perto do posto (0.15 por metro) e um pouco à frente.
+                const nota = folga - 0.15 * Math.hypot(x - cx, z - cz) + 0.02 * (z - cz) * p.dirZ;
+                if (nota > melhorNota) { melhorNota = nota; melhor = { x: x, z: z }; }
+            }
+        }
+        if (melhor) {
+            // Histerese: só muda de vão se o novo for claramente melhor que o actual.
+            if (!e || melhorNota > (e.nota || -Infinity) + 0.8 || chegou) {
+                e = p.entreEspacos = { x: melhor.x, z: melhor.z, t: agora, nota: melhorNota };
+            } else {
+                e.t = agora;
+            }
+        }
+    }
+    if (!e) { actHoldPosition(ctx); return; }
+
+    p.dynamicTarget.set(e.x, ALTURA_BASE_Y, e.z);
+    p.speedMult = (6.0 + ((ctx.skillSpeed - 50) / 50) * 1.2) * 1.25 * 0.9;
+    p.apoioAtivo = false;
+    p.fsm.changeState('AMONG_SPACE');
+}
+
 function podeInfiltrar(ctx) {
     const p = ctx.p;
     if (p.role === 'gk' || p.pos === 'CB' || p.role === 'def') return false;
+    // O Creative Playmaker não corre em profundidade: ocupa o vão (ver podeEntreEspacos).
+    if (typeof estiloAtivoDe === 'function' && estiloAtivoDe(p).entreLinhas) return false;
     if (p === Match.ballCarrier) return false;
 
     // Se já está a infiltrar, mantém a corrida enquanto tiver timer
@@ -5325,6 +5459,10 @@ const PlayerBT = sel('PlayerRoot',
                 seq('ApoioDeInversao',
                     cond('inversaoSinalizada', podeApoiarInversao),
                     act('apoiarInversao', actApoioInversao)
+                ),
+                seq('EntreEspacos',
+                    cond('creativoNoVao', podeEntreEspacos),
+                    act('entreEspacos', actEntreEspacos)
                 ),
                 seq('Infiltracao',
                     cond('querInfiltrar', podeInfiltrar),

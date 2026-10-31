@@ -141,13 +141,13 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
     setReinicios(n => n + 1);
     setReplayAtivo(false);
     // Volta a tela dos uniformes, antes do jogo: o 3D so e preparado depois de novos kits escolhidos.
-    updateMatchVisualState({ kitHomeIdx: undefined, kitAwayIdx: undefined, visualStatus: 'PRE_MATCH' });
+    updateMatchVisualState({ kitHomeIdx: undefined, kitAwayIdx: undefined, gkHomeKit: undefined, gkAwayKit: undefined, arbitroTraje: undefined, visualStatus: 'PRE_MATCH' });
     setVisualState('PRE_MATCH');
     setShowKitSelection(true);
   };
 
-  const handleKitSelection = (h: number, a: number) => {
-    updateMatchVisualState({ kitHomeIdx: h, kitAwayIdx: a, visualStatus: 'KICKOFF_SET' });
+  const handleKitSelection = (h: number, a: number, extra?: { gkHome?: any; gkAway?: any; arbitro?: { camisa: string; calcao: string; gola?: string } }) => {
+    updateMatchVisualState({ kitHomeIdx: h, kitAwayIdx: a, gkHomeKit: extra?.gkHome, gkAwayKit: extra?.gkAway, arbitroTraje: extra?.arbitro, visualStatus: 'KICKOFF_SET' });
     setVisualState('KICKOFF_SET');
     setShowKitSelection(false);
   };
@@ -330,7 +330,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 );
              })() : null}
              <div className={`absolute inset-0 w-full h-full ${showStats ? 'hidden' : ''}`}>
-                <Simulador3DView retomar={retomarRef.current} competicao={nomeCompeticao} tabela={tabelaDosDois} amistoso={!!(match.isFriendly || match.type === 'FRIENDLY')} qualidade={gameState.graphicsQuality || 'HIGH'} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx}
+                <Simulador3DView retomar={retomarRef.current} competicao={nomeCompeticao} tabela={tabelaDosDois} amistoso={!!(match.isFriendly || match.type === 'FRIENDLY')} qualidade={gameState.graphicsQuality || 'HIGH'} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx} kitGkCasa={gameState.matchVisual?.gkHomeKit} kitGkFora={gameState.matchVisual?.gkAwayKit} trajeArbitro={gameState.matchVisual?.arbitroTraje}
                     iniciar={iniciou} pausado={iniciou && !gameState.isProcessing} aoPronto={() => setPronto3d(true)}
                     aoMensagem={(m) => {
                       // Tatica do painel do 3D -> manager (aba Tactics): so o que mudou de nivel.

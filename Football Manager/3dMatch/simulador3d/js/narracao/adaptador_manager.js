@@ -285,6 +285,8 @@ const AdaptadorManager = {
             else if (orig) Uniformes[eq.nome] = orig; else delete Uniformes[eq.nome];
         };
         uni(casa, eC); uni(fora, eF);
+        // O traje do juiz escolhido na tela dos uniformes (null = sorteado, ver Officials.sortearTraje).
+        if (typeof Officials !== 'undefined') Officials.trajeEscolhido = (opcoes.arbitro && opcoes.arbitro.camisa) ? opcoes.arbitro : null;
         Match.uniformeGKA = (casa.uniforme && casa.uniforme.gk) || null;
         Match.uniformeGKB = (fora.uniforme && fora.uniforme.gk) || null;
         // As OUTRAS camisas de cada time (os outros dois kits do manager), para a torcida (crowd.js, `_kitsDaEquipa`).

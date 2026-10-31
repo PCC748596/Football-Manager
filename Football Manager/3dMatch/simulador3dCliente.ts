@@ -128,19 +128,20 @@ export const uniformeDoKit = (k: KitDetails, camisaDeLinha = true) => {
   };
 };
 
-export const montarPayload = (casa: Team, fora: Team, players: Player[], userTeamId: string, extra: Record<string, any> = {}, kits?: { casa?: number; fora?: number }) => {
-  const lado = (t: Team, idx?: number) => {
+export const montarPayload = (casa: Team, fora: Team, players: Player[], userTeamId: string, extra: Record<string, any> = {}, kits?: { casa?: number; fora?: number; gkCasa?: any; gkFora?: any; arbitro?: { camisa: string; calcao: string; gola?: string } | null }) => {
+  const lado = (t: Team, idx?: number, gkEscolhido?: any) => {
     const i = ((idx ?? (t === casa ? 0 : 1)) as 0 | 1 | 2);
     // O escudo na camisa (pose.js): a imagem do clube ou as tres cores em barras. O Vasco-RJ fica sem ele (a camisa tem a cruz de malta).
     const escudo = t.name === 'Vasco-RJ' ? null : { logo: (t as any).logoUrl || null, cores: [t.primaryColor, t.secondaryColor, t.tertiaryColor] };
-    return { ...ladoDe(t, players), uniforme: { titular: i === 0, linha: { ...uniformeDoKit(getKitDetails(t, i)), escudo }, gk: { ...uniformeDoKit(getGKKitDetails(t, i), false), escudo },
+    return { ...ladoDe(t, players), uniforme: { titular: i === 0, linha: { ...uniformeDoKit(getKitDetails(t, i)), escudo }, gk: { ...uniformeDoKit(gkEscolhido || getGKKitDetails(t, i), false), escudo },
       // Os outros kits do time (para as camisas da torcida).
       outros: ([0, 1, 2] as const).filter(j => j !== i).map(j => uniformeDoKit(getKitDetails(t, j))) } };
   };
   return {
     para: 'simulador3d', tipo: 'iniciar',
     taticaDe: casa.id === userTeamId ? 'casa' : 'fora',
-    casa: lado(casa, kits?.casa), fora: lado(fora, kits?.fora),
+    casa: lado(casa, kits?.casa, kits?.gkCasa), fora: lado(fora, kits?.fora, kits?.gkFora),
+    ...(kits?.arbitro ? { arbitro: kits.arbitro } : {}),
     ...extra
   };
 };
