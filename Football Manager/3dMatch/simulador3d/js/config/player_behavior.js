@@ -202,6 +202,10 @@ const GiroDeCostasModel = {
     raio: 7.0,
     meiaAberturaGraus: 45,
     passoGiroGraus: 30,
+    // Giro máximo por toque: de 5 a `raio` m, 90 graus; abaixo de `distCurta`, 60.
+    distCurta: 5.0,
+    giroMedioGraus: 90,
+    giroCurtoGraus: 60,
 
     /*
     ONDE O GIRO E LIVRE: o ULTIMO TERCO, e nao a metade adversaria.

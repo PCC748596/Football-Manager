@@ -77,11 +77,14 @@ console.log(LF + '1 — 7 metros, 45 graus para cada lado, toques de 30');
     if (G.raio !== 7.0) erro(`raio devia ser 7 m, é ${G.raio}`);
     else ok('raio: 7 m');
 
-    if (G.meiaAberturaGraus !== 45) erro(`abertura devia ser 45 graus, é ${G.meiaAberturaGraus}`);
-    else ok('abertura: 45 graus para cada lado');
+    if (G.distCurta !== 5.0) erro(`distCurta devia ser 5 m, é ${G.distCurta}`);
+    else ok('abaixo de 5 m: giro curto');
 
-    if (G.passoGiroGraus !== 30) erro(`o toque devia ser de 30 graus, é ${G.passoGiroGraus}`);
-    else ok('toque de giro: 30 graus');
+    if (G.giroMedioGraus !== 90) erro(`giro de 5 a 7 m devia ser 90 graus, é ${G.giroMedioGraus}`);
+    else ok('5 a 7 m: giro de 90 graus');
+
+    if (G.giroCurtoGraus !== 60) erro(`giro abaixo de 5 m devia ser 60 graus, é ${G.giroCurtoGraus}`);
+    else ok('abaixo de 5 m: giro de 60 graus');
 }
 
 /* =====================================================================
@@ -99,10 +102,14 @@ console.log(LF + '2 — cone limpo: gira e aponta ao ataque');
     if (graus(longe.bx, longe.bz) !== 0) erro('um adversário a 8 m travou o giro');
     else ok('adversário a 8 m (fora dos 5): gira na mesma');
 
-    // E um adversário dentro do raio mas FORA do ângulo também não.
+    // Um adversário dentro do raio limita o giro em QUALQUER direcção, também ao lado.
     const deLado = eixoDeConducao(base({ adversarios: [{ x: 4, z: -1 }] }));
-    if (graus(deLado.bx, deLado.bz) !== 0) erro('um adversário atrás do ombro travou o giro');
-    else ok('adversário fora dos 45 graus: gira na mesma');
+    if (Math.abs(Math.abs(graus(deLado.bx, deLado.bz)) - 120) > 1) erro(`a 4 m devia girar só 60 graus (ficar a 120), ficou a ${graus(deLado.bx, deLado.bz)}`);
+    else ok('adversário a 4 m (ao lado): gira só 60 graus');
+
+    const medio = eixoDeConducao(base({ adversarios: [{ x: 6, z: 0 }] }));
+    if (Math.abs(Math.abs(graus(medio.bx, medio.bz)) - 90) > 1) erro(`a 6 m devia girar 90 graus, ficou a ${graus(medio.bx, medio.bz)}`);
+    else ok('adversário a 6 m: gira 90 graus');
 }
 
 /* =====================================================================
@@ -124,12 +131,12 @@ console.log(LF + '3 — marcador nas costas: sai em toques de 30 graus');
     // a 150 ou -150 — nunca já virado para a frente.
     if (Math.abs(a) === 0) {
         erro('rodou os 180 graus para cima do marcador — é o defeito');
-    } else if (Math.abs(Math.abs(a) - 150) > 1) {
-        erro(`devia sair a 150 graus da frente (um toque de 30), saiu a ${a}`);
-    } else ok(`não gira: roda um toque de 30 graus (fica a ${a})`);
+    } else if (Math.abs(Math.abs(a) - 120) > 1) {
+        erro(`devia sair a 120 graus da frente (um toque de 60), saiu a ${a}`);
+    } else ok(`não gira: roda um toque de 60 graus (fica a ${a})`);
 
-    // E vai para o lado LIVRE: com o adversário à direita, sai pela esquerda.
-    if (a <= 0) erro(`saiu para o lado ocupado (${a})`);
+    // E vai para o lado LIVRE: com o adversário à direita (x > 0), sai para x < 0.
+    if (a >= 0) erro(`saiu para o lado ocupado (${a})`);
     else ok('sai pelo lado livre');
 }
 
@@ -198,7 +205,7 @@ console.log(LF + '5 — o resto da condução fica como estava');
         adversarios: [{ x: 0, z: -3 }, { x: -3, z: -2 }]
     }));
     const a2 = Math.atan2(outroLado.bx, outroLado.bz * -1) * 180 / Math.PI;
-    if (Math.abs(Math.abs(a2) - 150) > 1) {
+    if (Math.abs(Math.abs(a2) - 120) > 1) {
         erro(`para a equipa que ataca -z devia dar o mesmo, deu ${Math.round(a2)}`);
     } else ok('vale para as duas equipas');
 }

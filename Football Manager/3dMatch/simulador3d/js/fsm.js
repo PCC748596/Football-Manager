@@ -560,31 +560,36 @@ function executePassGameplay(p) {
     }
 
     // `forcaPasse` é a componente HORIZONTAL; o y já foi posto acima.
-    let passeDirX = dirX, passeDirZ = dirZ;
+    let passeVLatX = 0, passeVLatZ = 0;
 
     /*
-    A CURVA NOS PASSES LONGOS PELO ALTO (lancamentos e passes lobados a `distMin` m ou mais): o rumo
-    sai rodado e a bola fecha para o alvo, com o MESMO efeito lateral da falta (`Match.freeKickCurve`,
-    match_physics.js). O lado e sorteado; o giro cresce com o passe longo (atributo) e com a distancia.
-    Cruzamentos e a entrega do guarda-redes ficam de fora. Desliga com `PassCurva.activa = false`.
+    A CURVA DOS PASSES — uma parabola na horizontal, igual a vertical (ver `curvaDaFaltaDirecta`,
+    utils.js: aceleracao lateral constante, o arco chega ao alvo). Todos os passes sao dados com o LADO
+    DE DENTRO do pe, e isso faz a bola girar sempre um pouco para o mesmo lado: com o pe DIREITO ela
+    vira para a ESQUERDA do rumo, com o ESQUERDO para a DIREITA. O sentido e fixo pelo pe (`p.pe`:
+    'e' esquerdo, senao direito); o tamanho do arco sobe com a distancia e com o atributo de passe.
+    Rasteiros levam a curva no chao (`rasteira`); cruzamentos e a entrega do guarda-redes ficam de
+    fora. Desliga com `PassCurva.activa = false`.
     */
-    const PC = (typeof PassCurva !== 'undefined') ? PassCurva : { activa: true, distMin: 18, grausMin: 8, grausMax: 20, distRef: 50 };
+    const PC = (typeof PassCurva !== 'undefined') ? PassCurva : { activa: true, distMin: 4, grausMin: 8, grausMax: 20, distRef: 50, grausRasteiro: 5 };
     Match.freeKickCurve = null;
-    if (PC.activa && !ehCruzamento && !p.isGkThrow && Match.ballVel.y > 0.5 && distToTarget >= PC.distMin
+    if (PC.activa && !ehCruzamento && !p.isGkThrow && distToTarget >= PC.distMin
         && typeof curvaDaFaltaDirecta === 'function') {
+        const rasteira = !(Match.ballVel.y > 0.5);
         const kS = Math.max(0, Math.min(1, passSkill / 100));
         const kD = Math.max(0, Math.min(1, distToTarget / PC.distRef));
-        const graus = (PC.grausMin + (PC.grausMax - PC.grausMin) * (0.5 * kS + 0.5 * kD)) * (0.8 + Math.random() * 0.4);
+        const base = rasteira
+            ? PC.grausRasteiro * (0.5 + 0.5 * kD)
+            : PC.grausMin + (PC.grausMax - PC.grausMin) * (0.5 * kS + 0.5 * kD);
+        const graus = base * (0.8 + Math.random() * 0.4);
         const vTot = Math.hypot(forcaPasse, Match.ballVel.y);
-        const elevP = Math.atan2(Match.ballVel.y, forcaPasse);
-        const lado = (Math.random() < 0.5) ? 1 : -1;
-        const cv = curvaDaFaltaDirecta(distToTarget, vTot, elevP, 0, lado, graus, dirX, dirZ);
-        const c0 = Math.cos(cv.giroInicial), s0 = Math.sin(cv.giroInicial);
-        passeDirX = dirX * c0 + dirZ * s0;
-        passeDirZ = -dirX * s0 + dirZ * c0;
-        Match.freeKickCurve = { active: true, omega: cv.omega };
+        const elevP = rasteira ? 0 : Math.atan2(Match.ballVel.y, forcaPasse);
+        const sentido = (p.pe === 'e') ? -1 : 1;
+        const cv = curvaDaFaltaDirecta(distToTarget, vTot, elevP, 0, sentido, graus, dirX, dirZ);
+        passeVLatX = cv.vLatX; passeVLatZ = cv.vLatZ;
+        Match.freeKickCurve = { active: true, ax: cv.ax, az: cv.az, rasteira: rasteira, tMax: cv.tVoo * 1.25 };
     }
-    Match.ballVel.set(passeDirX * forcaPasse, Match.ballVel.y, passeDirZ * forcaPasse);
+    Match.ballVel.set(dirX * forcaPasse + passeVLatX, Match.ballVel.y, dirZ * forcaPasse + passeVLatZ);
 
     /*
     SOM DO CHUTE. Aqui e não no `initiatePass`: este é o instante do CONTACTO

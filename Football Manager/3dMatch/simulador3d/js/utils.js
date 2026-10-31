@@ -5620,26 +5620,32 @@ function eixoDeConducao(e) {
 
     if (e.zDir > G.zonaLivre) return paraFrente;
 
-    let sx = e.entradaX, sz = e.entradaZ;
-    const lenS = Math.hypot(sx, sz);
-    if (lenS < 0.001) { sx = 0; sz = e.dirZ; } else { sx /= lenS; sz /= lenS; }
-
-    const cosAbertura = Math.cos(e.meiaAberturaGraus !== undefined
-        ? e.meiaAberturaGraus * Math.PI / 180
-        : G.meiaAberturaGraus * Math.PI / 180);
+    /*
+    QUANTO PODE GIRAR DEPENDE DA DISTÂNCIA DO ADVERSÁRIO MAIS PERTO, em qualquer
+    direcção (e não só dentro do cone de trás: um marcador ao lado também fecha):
+        > raio (7 m)   gira à vontade, até 180 graus
+        5 a 7 m        no máximo `giroMedioGraus` (90) por toque
+        < 5 m          no máximo `giroCurtoGraus` (60) por toque
+    O limite é por toque, a partir de para onde o corpo está virado.
+    */
     const raio = G.raio;
-
-    let livre = true;
+    let dMin = Infinity;
     for (const o of (e.adversarios || [])) {
         const d = Math.hypot(o.x, o.z);
-        if (d > raio || d < 0.001) continue;
-        if ((o.x / d) * sx + (o.z / d) * sz >= cosAbertura) { livre = false; break; }
+        if (d < dMin) dMin = d;
     }
-    if (livre) return paraFrente;
+    if (dMin > raio) return paraFrente;
+
+    const limiteGraus = (dMin >= (G.distCurta || 5.0)) ? (G.giroMedioGraus || 90) : (G.giroCurtoGraus || 60);
+    const limite = limiteGraus * Math.PI / 180;
 
     const fLen = Math.hypot(e.facingX, e.facingZ) || 1;
     const fx = e.facingX / fLen, fz = e.facingZ / fLen;
-    const passo = (G.passoGiroGraus || 30) * Math.PI / 180;
+
+    // Ângulo (0..PI) entre o corpo e a direcção de ataque.
+    const cosA = fx * paraFrente.bx + fz * paraFrente.bz;
+    const angulo = Math.acos(Math.max(-1, Math.min(1, cosA)));
+    if (angulo <= limite) return paraFrente;
 
     const rodar = (ang) => ({
         bx: fx * Math.cos(ang) + fz * Math.sin(ang),
@@ -5659,8 +5665,18 @@ function eixoDeConducao(e) {
         return menor;
     };
 
-    const esq = rodar(-passo);
-    const dir = rodar(passo);
+    const esq = rodar(-limite);
+    const dir = rodar(limite);
+    // Roda para o lado que aproxima do ataque; só vira para o mais livre quando
+    // está de costas e os dois lados empatam.
+    const cruz = fx * paraFrente.bz - fz * paraFrente.bx;
+    if (Math.abs(cruz) > 0.05) {
+        const alvoDir = rodar(limite);
+        const alvoEsq = rodar(-limite);
+        const sentidoDir = (alvoDir.bx * paraFrente.bx + alvoDir.bz * paraFrente.bz) >=
+            (alvoEsq.bx * paraFrente.bx + alvoEsq.bz * paraFrente.bz);
+        return sentidoDir ? alvoDir : alvoEsq;
+    }
     return folgaDe(esq) >= folgaDe(dir) ? esq : dir;
 }
 
@@ -6074,42 +6090,59 @@ function tiroTensoDaFaltaDirecta(distGol, distBarreira, alvoY, v, cfg) {
 }
 
 /*
-A CURVA LATERAL DA FALTA DIRECTA (efeito, alem da folha seca vertical).
+A CURVA LATERAL — UMA PARABOLA NA HORIZONTAL, da mesma forma da parabola vertical da gravidade.
 
-A bola sai com o rumo desviado `giroGraus/2` para o lado do batedor-da-barreira (por cima/ao lado
-da barreira) e a taxa `omega` (rad/s) roda-lhe a velocidade horizontal ate ao fim do voo, de modo
-que a corda do arco aponta ao alvo. `lado` e o sinal do x da bola; a curva fecha SEMPRE para o
-canto oposto (o canto aberto, longe da barreira).
+Aceleracao lateral CONSTANTE `a`, fixa e perpendicular ao rumo da corda (como `g` e fixa na
+vertical): o desvio lateral e y(t) = vLat0*t + a*t^2/2. Com vLat0 = -a*T/2 a bola parte para um lado,
+volta e chega ao alvo no instante T (y(T) = 0): um arco simetrico de flecha a*T^2/8. Por isso a
+trajectoria vista de cima e a mesma parabola que se ve de lado num passe lobado.
 
-O tempo de voo sai da MESMA integracao do updateBall (arrasto + gravidade efectiva), por isso a
-curva acaba na linha e nao a meio do voo. Pura: so BallPhysics.
+`giroGraus` mede o tamanho do arco: flecha = distGol * giro(rad) / 8. `sentido`: +1 = a bola acaba
+a virar para a ESQUERDA do rumo, -1 = para a DIREITA (esquerda = (uz, -ux), a mao esquerda de quem
+olha para o rumo). `elev` ~ 0 e a bola rolada (arrasto + atrito de rolamento); senao voo (arrasto +
+gravidade efectiva). O tempo T sai da mesma integracao do updateBall. Pura: so BallPhysics.
 
-Devolve `{ omega, giroInicial, tVoo }`; o chamador roda o rumo por `giroInicial` e liga
-`Match.freeKickCurve = { active: true, omega }`.
+Devolve `{ ax, az, vLatX, vLatZ, tVoo }`: o chamador soma (vLatX, vLatZ) a velocidade de saida e
+liga `Match.freeKickCurve = { active: true, ax, az, rasteira }`.
 */
-function curvaDaFaltaDirecta(distGol, v, elev, extraGrav, lado, giroGraus, rumoX, rumoZ) {
-    const g = BallPhysics.gravidade + (extraGrav || 0);
+function curvaDaFaltaDirecta(distGol, v, elev, extraGrav, sentido, giroGraus, rumoX, rumoZ) {
     const k = BallPhysics.kArrasto;
-    let x = 0, y = BallPhysics.raio, t = 0;
-    let vx = v * Math.cos(elev), vy = v * Math.sin(elev);
     const dt = 1 / 120;
-    for (let i = 0; i < 900; i++) {
-        const s = Math.hypot(vx, vy);
-        if (s > 0.001) { const dv = k * s * s * dt; vx -= vx / s * dv; vy -= vy / s * dv; }
-        vy -= g * dt;
-        x += vx * dt; y += vy * dt; t += dt;
-        if (x >= distGol || y < 0) break;
+    let x = 0, t = 0;
+    if (elev < 0.02) {
+        // Rolada: arrasto quadratico e atrito de rolamento constante.
+        let vh = v;
+        const mu = BallPhysics.atritoRolamento * BallPhysics.gravidade;
+        for (let i = 0; i < 900; i++) {
+            vh -= (k * vh * vh + mu) * dt;
+            if (vh <= 0.5) break;
+            x += vh * dt; t += dt;
+            if (x >= distGol) break;
+        }
+    } else {
+        const g = BallPhysics.gravidade + (extraGrav || 0);
+        let y = BallPhysics.raio;
+        let vx = v * Math.cos(elev), vy = v * Math.sin(elev);
+        for (let i = 0; i < 900; i++) {
+            const s = Math.hypot(vx, vy);
+            if (s > 0.001) { const dv = k * s * s * dt; vx -= vx / s * dv; vy -= vy / s * dv; }
+            vy -= g * dt;
+            x += vx * dt; y += vy * dt; t += dt;
+            if (x >= distGol || y < 0) break;
+        }
     }
-    const tVoo = Math.max(0.2, t);
+    const T = Math.max(0.2, t);
 
-    // Sentido: a bola termina inclinada para o canto OPOSTO ao lado de onde se bate.
-    const oposto = -(lado >= 0 ? 1 : -1);
-    const rod = (ux, uz, a) => ({ x: ux * Math.cos(a) + uz * Math.sin(a), z: -ux * Math.sin(a) + uz * Math.cos(a) });
-    const teste = rod(rumoX, rumoZ, 0.1);
-    const sinal = ((teste.x - rumoX) * oposto > 0) ? 1 : -1;
+    // Perpendicular ao rumo: a esquerda e (uz, -ux).
+    const n = Math.hypot(rumoX, rumoZ) || 1;
+    const sg = (sentido >= 0) ? 1 : -1;
+    const qx = sg * (rumoZ / n), qz = sg * (-rumoX / n);
 
     const giro = Math.abs(giroGraus) * Math.PI / 180;
-    return { omega: sinal * giro / tVoo, giroInicial: -sinal * giro / 2, tVoo: tVoo };
+    const flecha = distGol * giro / 8;
+    const a = 8 * flecha / (T * T);
+    const vLat = -a * T / 2;
+    return { ax: qx * a, az: qz * a, vLatX: qx * vLat, vLatZ: qz * vLat, tVoo: T };
 }
 
 /*

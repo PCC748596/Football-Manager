@@ -1928,16 +1928,18 @@ class FootballPlayer {
             (`Match.freeKickCurve`, match_physics.js). O giro sobe com a TEC do batedor.
             */
             Match.freeKickCurve = null;
+            let vLatX = 0, vLatZ = 0;
             if (DF.curvaActiva && !vaiABarreira && !alvo.porBaixo) {
                 const kT = THREE.MathUtils.clamp((tec - DF.curvaTecMin) / Math.max(1, DF.curvaTecMax - DF.curvaTecMin), 0, 1);
                 const graus = (DF.curvaGrausMin + (DF.curvaGrausMax - DF.curvaGrausMin) * kT) * (0.8 + Math.random() * 0.4);
-                const cv = curvaDaFaltaDirecta(distGol, v, elev, tenso ? tenso.extraGrav : 0, ladoTiro, graus, rumoX, rumoZ);
-                const c0 = Math.cos(cv.giroInicial), s0 = Math.sin(cv.giroInicial);
-                const nx = rumoX * c0 + rumoZ * s0, nz = -rumoX * s0 + rumoZ * c0;
-                rumoX = nx; rumoZ = nz;
-                Match.freeKickCurve = { active: true, omega: cv.omega };
+                // A bola acaba a virar para o canto ABERTO (oposto ao lado de onde se bate).
+                const oposto = -ladoTiro;
+                const sentido = (rumoZ * oposto > 0) ? 1 : -1;   // a esquerda do rumo e (rumoZ, -rumoX)
+                const cv = curvaDaFaltaDirecta(distGol, v, elev, tenso ? tenso.extraGrav : 0, sentido, graus, rumoX, rumoZ);
+                vLatX = cv.vLatX; vLatZ = cv.vLatZ;
+                Match.freeKickCurve = { active: true, ax: cv.ax, az: cv.az, tMax: cv.tVoo * 1.25 };
             }
-            Match.ballVel.set(rumoX * vh, v * Math.sin(elev), rumoZ * vh);
+            Match.ballVel.set(rumoX * vh + vLatX, v * Math.sin(elev), rumoZ * vh + vLatZ);
 
             /*
             A BARREIRA NÃO INTERCEPTA A BOLA POR ACIDENTE. O

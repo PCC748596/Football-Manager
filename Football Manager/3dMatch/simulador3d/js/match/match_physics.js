@@ -49,18 +49,22 @@ Object.assign(Match, {
         }
 
         /*
-        A CURVA LATERAL DA FALTA (`freeKickCurve`): roda a velocidade horizontal a `omega` rad/s
-        enquanto a bola esta no ar (efeito). Acaba no chao, na posse, no embate e no `resetPlay`.
+        A CURVA LATERAL (`freeKickCurve`): aceleracao lateral CONSTANTE `ax, az`, uma parabola na
+        horizontal como a da gravidade na vertical. No ar sempre; a bola ROLADA (`rasteira`, os passes
+        rasteiros) mantem-na no chao ate quase parar. Acaba na posse, no embate e no `resetPlay`.
         */
         if (this.freeKickCurve && this.freeKickCurve.active) {
-            if (this.ballCarrier) {
+            const fc = this.freeKickCurve;
+            const noAr = this.ball.position.y > r + 0.001;
+            if (noAr) fc.voou = true;
+            fc.t = (fc.t || 0) + dt;
+            if (fc.tMax && fc.t > fc.tMax) { this.freeKickCurve = null; }
+            else
+            if (this.ballCarrier || (!noAr && fc.voou && !fc.rasteira) || (fc.voou || fc.rasteira) && Math.hypot(this.ballVel.x, this.ballVel.z) < 1.0) {
                 this.freeKickCurve = null;
-            } else if (this.ball.position.y > r + 0.001) {
-                const a = this.freeKickCurve.omega * dt;
-                const c = Math.cos(a), sn = Math.sin(a);
-                const vx0 = this.ballVel.x, vz0 = this.ballVel.z;
-                this.ballVel.x = vx0 * c + vz0 * sn;
-                this.ballVel.z = -vx0 * sn + vz0 * c;
+            } else {
+                this.ballVel.x += fc.ax * dt;
+                this.ballVel.z += fc.az * dt;
             }
         }
 
@@ -93,7 +97,7 @@ Object.assign(Match, {
 
             // A curva da falta acaba aqui: no chão já não há folha seca.
             this.freeKickDip = null;
-            this.freeKickCurve = null;
+            if (!(this.freeKickCurve && this.freeKickCurve.rasteira)) this.freeKickCurve = null;
 
             // Bola tocou no chão: reseta a contagem de cabeceios aéreos sucessivos
             this.aerialHeaderCount = 0;
