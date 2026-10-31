@@ -17,13 +17,21 @@ const DisputaPenaltis = {
     _cobranca: null,       // { lado, batedor, goleiro, aoFim, tContato, resultado, papelGuardado }
 
     // Os ganchos do motor (match_physics.js): so valem durante uma cobranca com o remate no ar.
-    golNaBaliza() { const c = this._cobranca; if (c && !c.resultado && c.tContato !== null) c.resultado = 'gol'; },
+    // Golo so do remate: depois de o goleiro tocar, se outro (o batedor na recarga) a mete, foi defesa (na disputa nao ha recarga).
+    golNaBaliza() {
+        const c = this._cobranca;
+        if (!c || c.resultado || c.tContato === null) return;
+        this._notarToque();
+        c.resultado = (c.gkTocou && Match.lastTouchedPlayer && Match.lastTouchedPlayer !== c.goleiro) ? 'defesa' : 'gol';
+    },
+    // O goleiro tocou na bola depois do contato (marca-se no frame, antes de alguem a tocar outra vez).
+    _notarToque() { const c = this._cobranca; if (c && c.goleiro && Match.lastTouchedPlayer === c.goleiro) c.gkTocou = true; },
     bolaFora() { const c = this._cobranca; if (c && !c.resultado && c.tContato !== null) this._classificarSemGol(); },
 
     // Defesa se o goleiro tem a bola ou foi o ultimo a toca-la; trave se bateu num poste; senao fora.
     _classificarSemGol() {
         const c = this._cobranca;
-        if (c.goleiro.hasBall || Match.lastTouchedPlayer === c.goleiro) c.resultado = 'defesa';
+        if (c.goleiro && (c.goleiro.hasBall || Match.lastTouchedPlayer === c.goleiro || c.gkTocou)) c.resultado = 'defesa';
         else if (this.bateuNaTrave) c.resultado = 'trave';
         else c.resultado = 'fora';
     },
@@ -70,6 +78,9 @@ const DisputaPenaltis = {
             else if (c.t > 30) { c.resultado = 'fora'; }  // a rede de seguranca: o batedor nunca chegou a bola
         } else {
             c.tContato += dt;
+            this._notarToque();
+            // A recarga: depois da defesa, quem toca a seguir (o batedor) ja nao conta — a cobranca acabou em defesa.
+            if (!c.resultado && c.gkTocou && Match.lastTouchedPlayer && Match.lastTouchedPlayer !== c.goleiro) c.resultado = 'defesa';
             if (!c.resultado) {
                 const parada = Match.ballVel.length() < 0.3 && c.tContato > 1.0;
                 if (c.goleiro && c.goleiro.hasBall) this._classificarSemGol();
@@ -134,12 +145,17 @@ const DisputaPenaltis = {
     // A COREOGRAFIA
     // ----------------------------------------------------------------------------------------------------------------------------------------------------------
     t: 0, partes: [], ordem: { casa: [], fora: [] }, primeiro: 'casa', atual: null, sub: null, tSub: 0, tApp: 0, pens: [0, 0],
-    bolaComJuiz: false, ladoBanco: 1, _slots: null, _v: null, _soltou: false, _prazoPreparo: 30,
+    bolaComJuiz: false, ladoBanco: 1, _slots: null, _v: null, _soltou: false, _prazoPreparo: 30, _nCobrancas: 0, _ultimaCobranca: null, _ultimaReuniao: null,
 
     lista(lado) { return lado === 'casa' ? Match.players : Match.opponents; },
     ladoDe(p) { return p.team === 'TeamA' ? 'casa' : 'fora'; },
     goleiroDe(lado) { return this.lista(lado).find(p => p.role === 'gk') || null; },
-    jogadorPorId(lado, id) { return this.lista(lado).find(p => p.id === id) || null; },
+    /*
+    O ID QUE A APP CONHECE: o real (`skills.id` = AdaptadorManager.idReal('p-269429')). O `p.id` do motor e o LUGAR (0..10 TeamA, 20..30 TeamB; quem entra herda o do que sai) e
+    nao serve ao manager. Tudo o que a disputa manda ou recebe da app (reuniao, ordens, proxima, cobranca) passa por aqui. Sem skills (nunca no manager), o id do motor.
+    */
+    idApp(p) { return (p && p.skills && p.skills.id !== undefined && p.skills.id !== null) ? p.skills.id : (p ? p.id : null); },
+    jogadorPorId(lado, id) { return this.lista(lado).find(p => this.idApp(p) === id) || null; },
     _banco(lado) { return (typeof Bancos !== 'undefined' && Bancos.bancos) ? (Bancos.bancos.find(b => b.equipa === (lado === 'casa' ? 'A' : 'B')) || null) : null; },
 
     // So arranca no 3D visivel dentro do manager, com `decisao` e o jogo empatado no agregado, e com goleiro em campo nos dois times.
@@ -167,6 +183,7 @@ const DisputaPenaltis = {
     iniciar() {
         const DM = DisputaModel;
         this.activa = true; this.fase = 'REUNIAO'; this.t = 0; this.partes = []; this.pens = [0, 0]; this.atual = null; this.sub = null; this._soltou = false;
+        this._nCobrancas = 0; this._ultimaCobranca = null; this._ultimaReuniao = null;
         this.sinalZ = Math.random() < 0.5 ? 1 : -1;
         this.primeiro = Math.random() < 0.5 ? 'casa' : 'fora';
         this.ladoBanco = Math.sign((typeof BancosDeReservas !== 'undefined' && BancosDeReservas.treinador && BancosDeReservas.treinador.x) || 1) || 1;
@@ -194,17 +211,29 @@ const DisputaPenaltis = {
 
     _todosChegaram() { return this.partes.every(s => s.chegou); },
 
-    // A reuniao acabou: o 3D pede a ordem (ids do motor, so quem esta em campo) e espera a resposta (`receberOrdens`).
+    // A reuniao acabou: o 3D pede a ordem (ids reais, `idApp`; so quem esta em campo) e espera a resposta (`receberOrdens`).
     _pedirOrdem() {
         this.fase = 'ORDEM'; this.tApp = 0;
         // O nome vem de `skills.nome` (data/player_skills.js) e o numero da camisola de `num` (ver desenhaCostas em player.js).
-        const dados = (lista) => lista.map(p => ({ id: p.id, nome: (p.skills && p.skills.nome) || p.nomeCamisola || '', numero: p.num || 0, gk: p.role === 'gk' }));
-        Ponte.enviar('disputa_reuniao', { casa: dados(Match.players), fora: dados(Match.opponents), ladoBaliza: this.sinalZ, primeiro: this.primeiro });
+        const dados = (lista) => lista.map(p => ({ id: this.idApp(p), nome: (p.skills && p.skills.nome) || p.nomeCamisola || '', numero: p.num || 0, gk: p.role === 'gk' }));
+        this._ultimaReuniao = { casa: dados(Match.players), fora: dados(Match.opponents), ladoBaliza: this.sinalZ, primeiro: this.primeiro };
+        Ponte.enviar('disputa_reuniao', this._ultimaReuniao);
     },
 
-    // A app mandou as ordens (ids do motor) e o primeiro batedor: monta os lugares da fila e arranca o preparo.
+    /*
+    O MANAGER VOLTOU (Ponte.continuar): enquanto esteve fora (Tactics...) o 3D esteve em pausa e o MatchDay desmontado, e uma mensagem mandada mesmo antes da pausa pode ter-se
+    perdido. O que estava a espera de resposta vai outra vez, marcado como reenvio: a ordem (ORDEM) ou a ultima cobranca (AGUARDA, com o mesmo `n`; a app nao a soma duas vezes).
+    */
+    reenviarPendente() {
+        if (!this.activa || typeof Ponte === 'undefined') return;
+        if (this.fase === 'ORDEM' && this._ultimaReuniao) Ponte.enviar('disputa_reuniao', Object.assign({}, this._ultimaReuniao, { reenvio: true }));
+        else if (this.fase === 'AGUARDA' && this._ultimaCobranca) Ponte.enviar('disputa_cobranca', Object.assign({}, this._ultimaCobranca, { reenvio: true }));
+    },
+
+    // A app mandou as ordens (ids reais, `idApp`) e o primeiro batedor: monta os lugares da fila e arranca o preparo.
     receberOrdens(ordemCasa, ordemFora, proxima) {
         if (!this.activa || this.fase !== 'ORDEM') return;
+        if (!proxima || proxima.abortar) { this._abortar(); return; }
         this.ordem.casa = (ordemCasa || []).slice(); this.ordem.fora = (ordemFora || []).slice();
         const f = DisputaModel.filaCentral(Match.players.length, Match.opponents.length);
         this._slots = new Map();
@@ -315,11 +344,15 @@ const DisputaPenaltis = {
         this.fase = 'AGUARDA'; this.tApp = 0;
         // A bola volta ao juiz (fora de cena, como o apanha-bolas): o preparo seguinte pega nela ja na mao dele.
         this.bolaComJuiz = true;
-        Ponte.enviar('disputa_cobranca', { lado: a.lado, jogadorId: a.batedor.id, resultado });
+        // `n`: o indice desta cobranca (a app nao soma duas vezes um reenvio, ver reenviarPendente).
+        this._ultimaCobranca = { lado: a.lado, jogadorId: this.idApp(a.batedor), resultado, n: this._nCobrancas++ };
+        Ponte.enviar('disputa_cobranca', this._ultimaCobranca);
     },
 
     // A resposta da app: o proximo batedor, ou o fim.
+    // `abortar` (a app nao tem proximo batedor): a disputa desfaz-se em qualquer fase e o jogo acaba sem ela.
     receberProxima(m) {
+        if (this.activa && m && m.abortar && !this._cobranca) { this._abortar(); return; }
         if (!this.activa || this.fase !== 'AGUARDA') return;
         if (m.fim) { this.pens = m.pens || this.pens; this.fase = 'FIM'; this.t = 0; return; }
         this._prepararCobranca(m);

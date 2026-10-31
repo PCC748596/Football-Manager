@@ -24,7 +24,7 @@ import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '.
 import { REAL_TEAMS_JSON } from '../textSim/realDatabase';
 import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager } from '../3dMatch/simulador3dCliente';
 import { simulador3dEnviar, simulador3dInstantaneo } from '../3dMatch/Simulador3DView';
-import { avisoDoGoleiro } from '../3dMatch/avisoGoleiro';
+import { avisoDoGoleiro, aplicarTrocaDo3d } from '../3dMatch/avisoGoleiro';
 
 const TRANSLATIONS: Record<string, any> = {
   EN: {
@@ -1355,6 +1355,30 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         let h = f.homeScore || 0, a = f.awayScore || 0;
         novos.forEach(e => { if (e.type === 'GOAL') { if (e.teamId === f.homeTeamId) h++; else a++; } });
         return { ...f, events: [...(f.events || []), ...novos], homeScore: h, awayScore: a };
+      }));
+    } else if (m.tipo === 'substituicao_feita') {
+      /*
+      Uma troca que o 3D fez sozinho no time do UTILIZADOR (goleiro expulso: o reserva depois da espera, ou o pedido do manager com o goleiro expulso a sair, que o 3D corrigiu):
+      a escalacao, o banco, o evento SUB e o contador de trocas acompanham o 3D (sem isto a troca seguinte do utilizador caia, o reserva podia entrar duas vezes e o limite de
+      5 deixava de valer). Nao passa pelo `updateTactics`: esse reenviaria a troca ao 3D. As trocas do adversario no 3D nao sao seguidas no manager (como as do treinador da CPU).
+      */
+      const meuLado = uf.homeTeamId === gameState.userTeamId ? 'casa' : 'fora';
+      if (m.lado !== meuLado) return;
+      const meu = meuLado === 'casa' ? casa : fora;
+      const r = aplicarTrocaDo3d(meu.lineup || [], meu.bench || [], m);
+      if (!r) { console.warn('[3D] substituicao_feita sem correspondencia na escalacao do manager', m); return; }
+      setTeams(prev => prev.map(t => (t.id === meu.id ? { ...t, lineup: r.lineup, bench: r.bench } : t)));
+      setFixtures(prev => prev.map(f => {
+        if (f.id !== uf.id) return f;
+        const nf: Fixture = { ...f };
+        if (meuLado === 'casa') nf.homeLineup = [...r.lineup]; else nf.awayLineup = [...r.lineup];
+        if (r.conta) {
+          if (meuLado === 'casa') nf.subsUsedHome = (f.subsUsedHome || 0) + 1; else nf.subsUsedAway = (f.subsUsedAway || 0) + 1;
+          const nome = (id: string | null) => (id ? players.find(p => p.id === id)?.name.split(' ').pop() || '' : '');
+          const minuto = typeof w.motor3dMinuto === 'number' && w.motor3dMinuto !== 999 ? w.motor3dMinuto : gameState.matchMinute;
+          nf.events = [...(f.events || []), { minute: minuto, type: 'SUB', description: `🔻 ${nome(r.sai)}   🔼 ${nome(r.entra)}`, teamId: meu.id, playerId: r.entra || undefined }];
+        }
+        return nf;
       }));
     } else if (m.tipo === 'disputa_fim') {
       // A disputa de penaltis em 3D acabou: guarda o resultado para gravar quando o confronto aparecer empatado nas copas (e o modal de texto nao abrir).

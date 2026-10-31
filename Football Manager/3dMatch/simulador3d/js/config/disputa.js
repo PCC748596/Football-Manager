@@ -26,7 +26,9 @@ const DisputaModel = {
     fila: { passo: 1.15, folgaDaMarca: 1.5 },
     goleiroEspera: { recuoDaLinhaDeFundo: 5.0 },
     juiz: { ladoDaMarca: 4.5 },
-    velocidade: { jogador: 1.9, tecnico: 1.4, juiz: 1.9, goleiro: 2.4, bandeirinha: 2.4 },
+    // m/s. Eram 1.9 / 1.4 / 1.9 / 2.4 / 2.4 (passo de passeio: relato "andam para o tecnico certo, mas devagar; o jogo parece lento"): agora um trote vivo para a meia-lua,
+    // a fila e os postos (cada `dt` ja vem multiplicado pela velocidade do jogo do manager, `speedMultiplier`, como no jogo normal).
+    velocidade: { jogador: 3.2, tecnico: 2.2, juiz: 3.0, goleiro: 3.5, bandeirinha: 3.5 },
     prazo: { reuniao: 45, preparo: 30, app: 30, ordem: 300, cobranca: 7 },   // `app`: a resposta automatica da app entre cobrancas; `ordem`: a decisao HUMANA da ordem dos batedores (o modal do manager)
     pausa: { entrega: 1.0, ajeitar: 0.8, aposContato: 1.2, fim: 4.0 },
 

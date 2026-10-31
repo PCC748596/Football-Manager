@@ -8,7 +8,7 @@ REGRAS
   . A ordem dos batedores e a do tecnico, com TODOS os jogadores (o guarda-redes tambem). Acabados os batedores, volta ao primeiro e segue a mesma sequencia.
   . A ordem automatica (CPU, ou o botao "Auto" da tela) e pelos melhores batedores: Penalties + Consistency.
 */
-import { Player } from '../types';
+import { Player, Fixture } from '../types';
 import { campo3d } from './atributos3d';
 
 export type Lado = 'casa' | 'fora';
@@ -114,4 +114,21 @@ export const simularDisputaCom = (
     cobrancas.push({ lado: prox.lado, jogadorId: prox.jogadorId, gol: rnd() < chanceDe(prox.lado, prox.jogadorId) });
   }
   return cobrancas;
+};
+
+/**
+ * Os jogadores de um time EM CAMPO no fim de um jogo (para a ordem dos batedores: so eles batem). A escalacao final do jogo (`homeLineup`/`awayLineup`: a simulacao de texto e o
+ * 3D gravam-na com as trocas feitas; sem ela a do time) menos os expulsos (`redCardedHome/Away` e os cartoes vermelhos dos eventos). Sem escalacao nenhuma, devolve o plantel
+ * inteiro (um jogo sem dados de quem jogou).
+ */
+export const emCampoNoFim = (fixture: Fixture | undefined, teamId: string, lineupDoTime: string[] | undefined, plantel: Player[]): Player[] => {
+  const ehCasa = !!fixture && fixture.homeTeamId === teamId;
+  const lineup = ((fixture && (ehCasa ? fixture.homeLineup : fixture.awayLineup)) || lineupDoTime || []).filter(Boolean);
+  const vermelhos = new Set<string>([...((fixture && (ehCasa ? fixture.redCardedHome : fixture.redCardedAway)) || [])]);
+  (fixture?.events || []).forEach(e => {
+    if (e.type === 'CARD' && e.playerId && (String(e.description || '').includes('🟥') || /RED|VERMELH/i.test(String(e.description || '')))) vermelhos.add(String(e.playerId));
+  });
+  const porId = new Map(plantel.map(p => [p.id, p]));
+  const campo = lineup.filter(id => !vermelhos.has(id)).map(id => porId.get(id)).filter((p): p is Player => !!p);
+  return campo.length ? campo : plantel;
 };

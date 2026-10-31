@@ -133,3 +133,17 @@ test('com vencedor no agregado ou com penaltis ja gravados nao ha disputa penden
   assert.equal(disputaPendente([comp([jogo('m', 'L|ME', 'L|OUTRO', 1, 1, { played: false, homeScore: null, awayScore: null })])], 'ME'), null);
   assert.equal(disputaPendente([comp([jogo('m', 'L|A', 'L|B', 1, 1)])], 'ME'), null, 'confronto de outros clubes nao e do utilizador');
 });
+
+import { emCampoNoFim } from '../textSim/penaltyShootout';
+test('emCampoNoFim: so os 11 do fim (escalacao final do jogo, sem expulsos), nunca o plantel de 33', () => {
+  const plantel = Array.from({ length: 33 }, (_, i) => ({ id: 'p-' + i, name: 'J' + i, teamId: 'T1', position: i === 0 ? 'GK' : 'CM', skill: 60, attributes: {} } as any));
+  const fx: any = { id: 'f', homeTeamId: 'T1', awayTeamId: 'T2', homeLineup: plantel.slice(0, 10).map((p: any) => p.id).concat(['p-20']), redCardedHome: ['p-3'],
+    events: [{ minute: 70, type: 'CARD', description: '🟥 J5', teamId: 'T1', playerId: 'p-5' }] };
+  const campo = emCampoNoFim(fx, 'T1', plantel.slice(0, 11).map((p: any) => p.id), plantel).map(p => p.id);
+  assert.equal(campo.length, 9);
+  assert.ok(campo.includes('p-20') && campo.includes('p-0'));
+  assert.ok(!campo.includes('p-3') && !campo.includes('p-5') && !campo.includes('p-10'));
+  // Sem escalacao no jogo: a do time; sem nenhuma: o plantel (jogo sem dados).
+  assert.equal(emCampoNoFim(undefined, 'T1', ['p-1', 'p-2'], plantel).length, 2);
+  assert.equal(emCampoNoFim(undefined, 'T1', undefined, plantel).length, 33);
+});

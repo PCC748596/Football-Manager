@@ -271,7 +271,8 @@ const TreinadorCPU = {
         if (!info) return [];
         const usados = this._usados || new Set();
         const emJogo = new Set();
-        [].concat(Match.players, Match.opponents, Match.expulsos || [], (Match.subsFeitas || []).map(s => s.sai)).forEach(p => { if (p && p.skills) emJogo.add(p.skills.id); });
+        // Os goleiros expulsos sairam de `Match.expulsos` (Match.goleiroExpulso): sem `goleirosExpulsos` o expulso era oferecido como o seu proprio reserva.
+        [].concat(Match.players, Match.opponents, Match.expulsos || [], Match.goleirosExpulsos || [], (Match.subsFeitas || []).map(s => s.sai)).forEach(p => { if (p && p.skills) emJogo.add(p.skills.id); });
         if (info.reservas && info.reservas.length) return info.reservas.filter(r => !usados.has(r.id) && !emJogo.has(r.id));
         return (info.plantel || []).filter(j => !usados.has(j.id) && !emJogo.has(j.id)).map(j => ({ id: j.id, sk: j }));
     },

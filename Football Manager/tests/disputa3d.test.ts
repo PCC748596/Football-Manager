@@ -59,3 +59,51 @@ test('proximaMensagem: continua enquanto nao ha vencedor, e fecha com o placar',
   const fim = proximaMensagem(cobr, ordemC, ordemF, 'casa');
   assert.deepStrictEqual(fim, { fim: true, vencedor: 'casa', pens: [3, 0] });
 });
+
+import { mesclarOrdem, disputa3dDaSessao, aoReuniao, aoConfirmarOrdem, aoCobranca, ordemDaCpu } from '../3dMatch/disputa3d';
+import { ordemAutomatica } from '../textSim/penaltyShootout';
+
+test('proximaMensagem sem batedores nunca lanca: devolve abortar (relato "disputa sem proximo batedor")', () => {
+  assert.deepStrictEqual(proximaMensagem([], [], [], 'casa'), { abortar: true, motivo: 'sem proximo batedor' });
+  assert.deepStrictEqual(proximaMensagem([], ['sem-digitos'], ['p-2'], 'casa'), { abortar: true, motivo: 'sem proximo batedor' });
+});
+
+test('mesclarOrdem: os de campo trocam entre si nos lugares que ja tinham; os do banco ficam onde estavam', () => {
+  const plantel = ['p-1', 'p-2', 'p-3', 'p-4', 'p-5'].map(id => jog(id, id));
+  const r = mesclarOrdem(['p-1', 'p-4', 'p-2', 'p-5', 'p-3'], ['p-3', 'p-1', 'p-2'], plantel);
+  assert.deepStrictEqual(r, ['p-3', 'p-4', 'p-1', 'p-5', 'p-2']);
+});
+
+test('ordemDaCpu: a automatica so com os em campo', () => {
+  const campo = [jog('p-1', 'A'), jog('p-2', 'B')];
+  assert.deepStrictEqual(ordemDaCpu(campo), ordemAutomatica(campo));
+});
+
+test('estado da disputa da sessao: sobrevive a desmontar o MatchDay; reenvios nao duplicam', () => {
+  const e = disputa3dDaSessao('jogo-x#0');
+  aoReuniao(e, { casa: [{ id: 1 }, { id: 2 }], fora: [{ id: 11 }, { id: 12 }], primeiro: 'casa' });
+  // "Remontar": o mesmo objeto volta pela chave, com o pedido aberto (o modal reabre).
+  assert.strictEqual(disputa3dDaSessao('jogo-x#0'), e);
+  assert.deepStrictEqual(e.pedido, { casa: [1, 2], fora: [11, 12], primeiro: 'casa' });
+  const ini = aoConfirmarOrdem(e, ['p-1', 'p-2'], ['p-11', 'p-12']);
+  assert.deepStrictEqual(ini, { tipo: 'disputa_iniciar', ordemCasa: [1, 2], ordemFora: [11, 12], proxima: { lado: 'casa', jogadorId: 1 } });
+  assert.strictEqual(e.pedido, null);
+  // Um reenvio da reuniao depois de respondida nao reabre o modal.
+  aoReuniao(e, { casa: [{ id: 1 }], fora: [{ id: 11 }], primeiro: 'casa', reenvio: true });
+  assert.strictEqual(e.pedido, null);
+  const idm = (_l: any, id: number) => 'p-' + id;
+  const r0 = aoCobranca(e, { lado: 'casa', jogadorId: 1, resultado: 'gol', n: 0 }, idm);
+  assert.deepStrictEqual(r0, { tipo: 'disputa_proxima', lado: 'fora', jogadorId: 11 });
+  // O 3D reenviou a mesma cobranca (n = 0): nao soma, responde o mesmo.
+  const r0b = aoCobranca(e, { lado: 'casa', jogadorId: 1, resultado: 'gol', n: 0 }, idm);
+  assert.deepStrictEqual(r0b, r0);
+  assert.strictEqual(e.cobrancas.length, 1);
+  // Outra sessao (outro jogo / RESET): comeca do zero.
+  assert.strictEqual(disputa3dDaSessao('jogo-x#1').cobrancas.length, 0);
+});
+
+test('aoConfirmarOrdem sem batedores: manda o aborto ao 3D em vez de lancar', () => {
+  const e = disputa3dDaSessao('jogo-y#0');
+  aoReuniao(e, { casa: [], fora: [], primeiro: 'fora' });
+  assert.deepStrictEqual(aoConfirmarOrdem(e, [], []), { tipo: 'disputa_proxima', abortar: true, motivo: 'sem proximo batedor' });
+});

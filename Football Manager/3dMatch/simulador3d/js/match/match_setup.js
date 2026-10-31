@@ -228,8 +228,9 @@ Object.assign(Match, {
         `init` recebe uma cena NOVA, e os antigos ja nao estao nela.
         */
         const doInitAnterior = [...(this.players || []), ...(this.opponents || []),
-            ...(this.expulsos || [])];
+            ...(this.expulsos || []), ...(this.goleirosExpulsos || [])];
         if (this.expulsos) this.expulsos.length = 0;
+        this.goleirosExpulsos = []; this._goleirosEmFila = [];   // o goleiro expulso ja nao esta em `expulsos` (Match.goleiroExpulso): limpa-se a parte
         this.players = [];
         this.opponents = [];
 
@@ -2288,7 +2289,8 @@ Object.assign(Match, {
         NOVAS, ficava uma equipa com doze, e dois deles eram fantasmas sem
         modelo na cena.
         */
-        const todos = [...this.players, ...this.opponents, ...(this.expulsos || [])];
+        const todos = [...this.players, ...this.opponents, ...(this.expulsos || []), ...(this.goleirosExpulsos || [])];
+        this.goleirosExpulsos = []; this._goleirosEmFila = [];
         for (const p of todos) {
             /*
             Tudo o que o jogador pôs na cena, e não só o boneco: os anéis do

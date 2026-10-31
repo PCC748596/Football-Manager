@@ -10,8 +10,7 @@ import { taticaParaMotor, taticaDoMotor } from '../3dMatch/simulador3dCliente';
 import { COUNTRIES } from '../textSim/dataGenerator';
 import { ligaDoClube } from '../textSim/competitions';
 import PenaltyOrderView from './PenaltyOrderView';
-import { Cobranca } from '../textSim/penaltyShootout';
-import { emCampo, ordemParaOsEmCampo, proximaMensagem, idDoMotor } from '../3dMatch/disputa3d';
+import { emCampo, mesclarOrdem, ordemDaCpu, disputa3dDaSessao, limparDisputa3d, aoReuniao, aoConfirmarOrdem, aoCobranca } from '../3dMatch/disputa3d';
 
 type VisualState = 'PRE_MATCH' | 'KICKOFF_SET' | 'PLAYING' | 'OFFSIDE' | 'GOAL';
 
@@ -45,16 +44,14 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const [pronto3d, setPronto3d] = useState(() => simulador3dPronto());
   /*
   A DISPUTA DE PENALTIS EM 3D (ver 3dMatch/disputa3d.ts e js/disputa_penaltis.js no simulador). Terminado o jogo de copa empatado no agregado, o 3D junta os times e manda os jogadores em campo
-  (`disputa_reuniao`): aqui o utilizador escolhe a ordem dos batedores dele (`ordem3d` abre o modal). Depois a app e a arbitra: guarda as cobrancas (`cobrancas3d`, para o placar dos penaltis),
-  e responde a cada uma com o proximo batedor ou o fim (`proximaMensagem`). O ref espelha o estado para as mensagens seguidas nao lerem um valor velho.
+  (`disputa_reuniao`, ids reais): aqui o utilizador escolhe a ordem dos batedores dele (`disputa.pedido` abre o modal). Depois a app e a arbitra: guarda as cobrancas (o placar dos penaltis) e
+  responde a cada uma com o proximo batedor ou o fim. O ESTADO vive fora do componente (`disputa3dDaSessao`, chaveado pela sessao do 3D): sair para o Tactics a meio desmonta este
+  componente e, ao voltar, o modal reabre e as cobrancas continuam. `versaoDisputa` so forca o redesenho.
   */
-  const [ordem3d, setOrdem3d] = useState<{ casa: number[]; fora: number[]; primeiro: 'casa' | 'fora' } | null>(null);
-  const [cobrancas3d, setCobrancas3d] = useState<Cobranca[]>([]);
-  const cobrancas3dRef = useRef<Cobranca[]>([]);
-  const ordens3d = useRef<{ casa: string[]; fora: string[]; primeiro: 'casa' | 'fora' } | null>(null);
-  // O 3D mandou `disputa_fim` (a disputa acabou bem): o `fim` do jogo que se segue nao limpa o placar dos penaltis. Sem ele a disputa foi abortada e tudo se limpa.
-  const disputaTerminou3d = useRef(false);
-  const limparDisputa3d = () => { setOrdem3d(null); setCobrancas3d([]); cobrancas3dRef.current = []; ordens3d.current = null; };
+  const disputa = disputa3dDaSessao(chave3d + '#' + reinicios);
+  const [, setVersaoDisputa] = useState(0);
+  const redesenharDisputa = () => setVersaoDisputa(v => v + 1);
+  const ordem3d = disputa.pedido, cobrancas3d = disputa.cobrancas;
   // Os times estao a entrar em campo: o botao principal diz PULAR (ver Ponte.pularDisponivel).
   const [podePular, setPodePular] = useState(false);
   const userTeam = teams.find(t => t.id === gameState.userTeamId);
@@ -106,18 +103,21 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   }
 
   const usuarioEhCasa = match.homeTeamId === gameState.userTeamId;
-  // O utilizador confirmou a ordem dos batedores dele: guarda-a no time, completa a do adversario (a guardada, so com os que estao em campo) e responde ao 3D com o primeiro batedor.
+  /*
+  O utilizador confirmou a ordem dos batedores dele (so os em campo): guarda-a no time sem estragar o lugar dos do banco (`mesclarOrdem`); a do adversario e a automatica dos
+  dele em campo; responde ao 3D com o primeiro batedor (ou, sem batedores, com o aborto da disputa: nunca lanca para o React).
+  */
   const confirmarOrdem3d = (ordemMeu: string[]) => {
+    const pedido = disputa.pedido;
+    if (!pedido) return;
     const meuTime = usuarioEhCasa ? homeTeam : awayTeam;
-    definirOrdemPenaltis(meuTime.id, ordemMeu);
-    const campoCasa = emCampo(ordem3d!.casa, players.filter(p => p.teamId === homeTeam.id));
-    const campoFora = emCampo(ordem3d!.fora, players.filter(p => p.teamId === awayTeam.id));
-    const ordemCasa = usuarioEhCasa ? ordemMeu : ordemParaOsEmCampo(homeTeam.penaltyOrder, campoCasa);
-    const ordemFora = usuarioEhCasa ? ordemParaOsEmCampo(awayTeam.penaltyOrder, campoFora) : ordemMeu;
-    ordens3d.current = { casa: ordemCasa, fora: ordemFora, primeiro: ordem3d!.primeiro };
-    setOrdem3d(null);
-    const proxima = proximaMensagem([], ordemCasa, ordemFora, ordem3d!.primeiro) as { lado: 'casa' | 'fora'; jogadorId: number };
-    simulador3dEnviar({ tipo: 'disputa_iniciar', ordemCasa: ordemCasa.map(idDoMotor), ordemFora: ordemFora.map(idDoMotor), proxima });
+    definirOrdemPenaltis(meuTime.id, mesclarOrdem(meuTime.penaltyOrder, ordemMeu, players.filter(p => p.teamId === meuTime.id)));
+    const campoCasa = emCampo(pedido.casa, players.filter(p => p.teamId === homeTeam.id));
+    const campoFora = emCampo(pedido.fora, players.filter(p => p.teamId === awayTeam.id));
+    const ordemCasa = usuarioEhCasa ? ordemMeu : ordemDaCpu(campoCasa);
+    const ordemFora = usuarioEhCasa ? ordemDaCpu(campoFora) : ordemMeu;
+    simulador3dEnviar(aoConfirmarOrdem(disputa, ordemCasa, ordemFora));
+    redesenharDisputa();
   };
 
   // Com o 3D o fim do jogo fica no 3D (as estatisticas dele): a aba de estatisticas do manager so abre se o treinador a escolher.
@@ -168,7 +168,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
     if (gameState.matchMinute >= 90) return;
     resetMatchDay();
     setIniciou(false);
-    limparDisputa3d(); disputaTerminou3d.current = false;
+    limparDisputa3d(disputa); redesenharDisputa();
     setReinicios(n => n + 1);
     setReplayAtivo(false);
     // Volta a tela dos uniformes, antes do jogo: o 3D so e preparado depois de novos kits escolhidos.
@@ -408,25 +408,21 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         // O iframe cobre o documento em tela cheia (e o proprio elemento em tela cheia): um modal daqui nao apareceria. Sai-se da tela cheia, como no `abrir_tactics` (nao se
                         // chama `simulador3dLembrarTelaCheia`: o seu estado so e consumido ao montar a tela e ficaria preso para um jogo futuro).
                         simulador3dSairDaTelaCheia();
-                        disputaTerminou3d.current = false;
-                        cobrancas3dRef.current = [];
-                        setCobrancas3d([]);
-                        setOrdem3d({ casa: m.casa.map((j: any) => j.id), fora: m.fora.map((j: any) => j.id), primeiro: m.primeiro });
+                        aoReuniao(disputa, m);
+                        redesenharDisputa();
                       } else if (m.tipo === 'disputa_cobranca') {
-                        // Uma cobranca decidida pela fisica: soma-a (o placar dos penaltis) e responde ao 3D com o proximo batedor ou o fim.
-                        const o = ordens3d.current;
-                        if (!o) { console.warn('[disputa 3D] cobranca recebida sem as ordens dos batedores (disputa_cobranca ignorada)', m); return; }
-                        const lado = m.lado as 'casa' | 'fora';
-                        const time = lado === 'casa' ? homeTeam : awayTeam;
-                        const p = emCampo([m.jogadorId], players.filter(x => x.teamId === time.id))[0];
-                        const novas = [...cobrancas3dRef.current, { lado, jogadorId: p ? p.id : 'p-' + m.jogadorId, gol: m.resultado === 'gol' }];
-                        cobrancas3dRef.current = novas;
-                        setCobrancas3d(novas);
-                        simulador3dEnviar({ tipo: 'disputa_proxima', ...proximaMensagem(novas, o.casa, o.fora, o.primeiro) });
+                        // Uma cobranca decidida pela fisica: soma-a (o placar dos penaltis) e responde ao 3D com o proximo batedor ou o fim (um reenvio so e respondido outra vez).
+                        const resposta = aoCobranca(disputa, m, (lado, id) => {
+                          const time = lado === 'casa' ? homeTeam : awayTeam;
+                          const p = emCampo([id], players.filter(x => x.teamId === time.id))[0];
+                          return p ? p.id : 'p-' + id;
+                        });
+                        if (resposta) simulador3dEnviar(resposta);
+                        redesenharDisputa();
                       } else {
-                        if (m.tipo === 'disputa_fim') disputaTerminou3d.current = true;
+                        if (m.tipo === 'disputa_fim') disputa.terminou = true;
                         // `fim` sem `disputa_fim`: a disputa foi abortada no 3D (sem resposta da app, batedor desconhecido...): nada de modal nem placar parcial dos penaltis.
-                        else if (m.tipo === 'fim' && !disputaTerminou3d.current) limparDisputa3d();
+                        else if (m.tipo === 'fim' && !disputa.terminou) { limparDisputa3d(disputa); redesenharDisputa(); }
                         motor3dMensagem(m);
                       }
                     }} />
@@ -454,7 +450,6 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 <PenaltyOrderView
                   time={usuarioEhCasa ? homeTeam : awayTeam}
                   jogadores={emCampo(usuarioEhCasa ? ordem3d.casa : ordem3d.fora, players.filter(p => p.teamId === (usuarioEhCasa ? homeTeam : awayTeam).id))}
-                  ordemInicial={(usuarioEhCasa ? homeTeam : awayTeam).penaltyOrder}
                   aoConfirmar={confirmarOrdem3d}
                 />
               </div>

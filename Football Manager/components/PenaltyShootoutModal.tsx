@@ -2,15 +2,17 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { Player, Team } from '../types';
 import PenaltyOrderView from './PenaltyOrderView';
-import { Cobranca, Lado, chanceDeGol, estadoDaDisputa, normalizarOrdem, simularDisputaCom, COBRANCAS_REGULARES } from '../textSim/penaltyShootout';
+import { Cobranca, Lado, chanceDeGol, estadoDaDisputa, ordemAutomatica, emCampoNoFim, simularDisputaCom, COBRANCAS_REGULARES } from '../textSim/penaltyShootout';
+import { mesclarOrdem } from '../3dMatch/disputa3d';
 
 /*
 A DISPUTA DE PENALTIS DO UTILIZADOR (copas: jogo unico ou agregado empatado). Abre sozinha quando um confronto dele acaba empatado (`disputaDePenaltis`): 1) o tecnico escolhe a ordem
-dos batedores (PenaltyOrderView, todo o plantel, goleiro incluido, ja pelos melhores em Penalties + Consistency); 2) as cobrancas saem uma a uma (regras em textSim/penaltyShootout.ts:
+dos batedores (PenaltyOrderView, SO OS EM CAMPO no fim do jogo — a escalacao final gravada no jogo, menos os expulsos (`emCampoNoFim`) —, goleiro incluido, ja pelos melhores em
+Penalties + Consistency; antes listava o plantel inteiro, 33); 2) as cobrancas saem uma a uma (regras em textSim/penaltyShootout.ts:
 5 alternadas, depois 1 para cada lado, e volta ao primeiro batedor se acabarem); 3) o resultado e gravado no jogo que decide o confronto. O adversario bate pela ordem automatica.
 */
 const PenaltyShootoutModal: React.FC = () => {
-  const { disputaDePenaltis, registrarPenaltis, definirOrdemPenaltis, teams, players, userTeam } = useGame();
+  const { disputaDePenaltis, registrarPenaltis, definirOrdemPenaltis, teams, players, userTeam, fixtures } = useGame();
   const [fase, setFase] = useState<'ORDEM' | 'DISPUTA'>('ORDEM');
   const [cobrancas, setCobrancas] = useState<Cobranca[]>([]);
   const [mostradas, setMostradas] = useState(0);
@@ -25,6 +27,9 @@ const PenaltyShootoutModal: React.FC = () => {
   const timeCasa: Team | undefined = teams.find(t => t.id === idCasa);
   const timeFora: Team | undefined = teams.find(t => t.id === idFora);
   const elenco = (id: string): Player[] => players.filter(p => p.teamId === id);
+  // O jogo que decide o confronto (o id da copa sem o prefixo do calendario) e quem acabou em campo nele: so esses batem.
+  const jogo = d ? fixtures.find(f => f.id === 'fix-cup-' + d.matchId) : undefined;
+  const emCampo = (t: Team): Player[] => emCampoNoFim(jogo, t.id, t.lineup, elenco(t.id));
   const porId = useMemo(() => { const m: Record<string, Player> = {}; players.forEach(p => { m[p.id] = p; }); return m; }, [players]);
 
   // O tempo das cobrancas: uma a cada ~1,1 s (ate o fim).
@@ -36,16 +41,16 @@ const PenaltyShootoutModal: React.FC = () => {
 
   if (!d || !userTeam || !timeCasa || !timeFora) return null;
   const meuTime = usuarioEhCasa ? timeCasa : timeFora;
-  const elencoMeu = elenco(meuTime.id);
+  const elencoMeu = emCampo(meuTime);
 
   const iniciar = (ordemMeu: string[]) => {
-    definirOrdemPenaltis(meuTime.id, ordemMeu);
+    // Guarda sem perder o lugar dos que nao estavam em campo (a ordem do plantel inteiro).
+    definirOrdemPenaltis(meuTime.id, mesclarOrdem(meuTime.penaltyOrder, ordemMeu, elenco(meuTime.id)));
     const outro = usuarioEhCasa ? timeFora : timeCasa;
-    const elencoOutro = elenco(outro.id);
-    const ordemOutro = normalizarOrdem(outro.penaltyOrder, elencoOutro);
+    const ordemOutro = ordemAutomatica(emCampo(outro));
     const ordemCasa = usuarioEhCasa ? ordemMeu : ordemOutro, ordemFora = usuarioEhCasa ? ordemOutro : ordemMeu;
     const gkDe = (lista: Player[]) => lista.find(p => p.position === 'GK') || null;
-    const gkCasa = gkDe(elenco(timeCasa.id)), gkFora = gkDe(elenco(timeFora.id));
+    const gkCasa = gkDe(emCampo(timeCasa)) || gkDe(elenco(timeCasa.id)), gkFora = gkDe(emCampo(timeFora)) || gkDe(elenco(timeFora.id));
     const lista = simularDisputaCom(ordemCasa, ordemFora, (lado: Lado, id: string) => {
       const b = porId[id];
       return b ? chanceDeGol(b, lado === 'casa' ? gkFora : gkCasa) : 0.72;
@@ -68,7 +73,7 @@ const PenaltyShootoutModal: React.FC = () => {
   return (
     <div className="absolute inset-0 z-[300] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-6">
       {fase === 'ORDEM' ? (
-        <PenaltyOrderView time={meuTime} jogadores={elencoMeu} ordemInicial={meuTime.penaltyOrder} aoConfirmar={iniciar} />
+        <PenaltyOrderView time={meuTime} jogadores={elencoMeu} aoConfirmar={iniciar} />
       ) : (
         <div className="flex flex-col gap-4 w-full max-w-2xl bg-slate-900/95 p-6 rounded-3xl border border-slate-800 shadow-2xl">
           <div className="text-center">

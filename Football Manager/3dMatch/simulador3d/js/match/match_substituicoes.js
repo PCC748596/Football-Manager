@@ -47,6 +47,8 @@ if (typeof window !== 'undefined') window.GoleiroExpulsoModel = GoleiroExpulsoMo
 Object.assign(Match, {
     subsPendentes: [],
     goleiroPendente: null,       // null ou { lado: 'casa'|'fora', expulso, t }: o time ficou sem goleiro (ver `goleiroExpulso`)
+    _goleirosEmFila: [],         // o OUTRO time ficou sem goleiro antes de o primeiro estar resolvido: espera aqui a sua vez (um de cada vez, ver `_limparGoleiroPendente`)
+    goleirosExpulsos: [],        // os goleiros expulsos deste jogo (sairam de `Match.expulsos`): nunca sao reserva de ninguem (TreinadorCPU.reservasDe)
     ladoDoUtilizador: null,      // 'casa' | 'fora' | null (modo oculto: a CPU decide pelos dois lados)
     subsEmCurso: null,
     _placaViva: 0,
@@ -104,10 +106,24 @@ Object.assign(Match, {
         // O MESMO pedido nao entra duas vezes: o manager envia-o de dentro de um `setTeams` que o React (modo dev) corre DUAS vezes, e dois pedidos a
         // comandar o mesmo reserva travavam-no (um empurra para a frente, o outro para o passo anterior; so andava quando o jogo parava).
         if (this.subsPendentes.some(q => !q.feita && q.lado === req.lado && (q.sai === req.sai || q.entra === req.entra))) return false;
+        // Quem ja esta em campo nao entra outra vez (o manager arrastou de novo o goleiro reserva que o 3D ja tinha posto: ficavam dois).
+        const lista = this._equipaDoLado(req.lado);
+        if (lista && this._jogadorPorIdManager(lista, req.entra)) return false;
         const r = Object.assign({ t: 0, feita: false, estado: 'novo', passo: 0, passos: null, B: null }, req);
         // O pedido do manager com um GOLEIRO, para o time que esta sem goleiro: troca urgente (sem aquecimento) e que vale como a troca obrigatoria.
         const ehGk = req.jogador && (String(req.jogador.position) === 'GK' || req.jogador.role === 'gk');
-        if (ehGk && this.goleiroPendente && this.goleiroPendente.lado === req.lado) { r.goleiro = true; r.urgente = true; }
+        if (ehGk && this.goleiroPendente && this.goleiroPendente.lado === req.lado) {
+            r.goleiro = true; r.urgente = true;
+            /*
+            O GESTO MAIS NATURAL do treinador e arrastar o goleiro reserva para o lugar do goleiro EXPULSO: `sai` e alguem que ja nao esta em campo, e o pedido caia (o manager
+            contava a troca e o 3D fazia outra sozinho). Sai entao quem o 3D escolheria (`saidaParaGoleiro`), e a troca feita e reportada (`substituicao_feita`, com `corrige` =
+            o `sai` do pedido) para a escalacao do manager ficar igual a do 3D.
+            */
+            if (lista && !this._jogadorPorIdManager(lista, req.sai) && typeof TreinadorCPU !== 'undefined') {
+                const P = TreinadorCPU.saidaParaGoleiro(req.lado === 'fora' ? 'TeamB' : 'TeamA');
+                if (P && P.skills) { r.corrige = req.sai; r.sai = String(P.skills.id); r._reportar = true; }
+            }
+        }
         this.subsPendentes.push(r);
         return true;
     },
@@ -494,7 +510,11 @@ Object.assign(Match, {
     */
     goleiroExpulso: function (expulso) {
         this.expulsos = (this.expulsos || []).filter(q => q !== expulso);
-        this.goleiroPendente = { lado: expulso.team === 'TeamA' ? 'casa' : 'fora', expulso: expulso, t: 0 };
+        this.goleirosExpulsos = (this.goleirosExpulsos || []).concat([expulso]);
+        const G = { lado: expulso.team === 'TeamA' ? 'casa' : 'fora', expulso: expulso, t: 0 };
+        // O outro time ja esta a espera do seu goleiro: este espera a vez (antes, o segundo vermelho apagava o primeiro e esse time ficava sem goleiro).
+        if (this.goleiroPendente && this.goleiroPendente.lado !== G.lado) { this._goleirosEmFila = (this._goleirosEmFila || []).concat([G]); return; }
+        this.goleiroPendente = G;
     },
 
     _trocasDoLado: function (lado) {
@@ -505,6 +525,8 @@ Object.assign(Match, {
         const lado = this.goleiroPendente && this.goleiroPendente.lado;
         this.goleiroPendente = null;
         if (typeof Ponte !== 'undefined' && Ponte.enviar && lado) Ponte.enviar('goleiro_trocado', { lado: lado });
+        // O outro time que tambem ficou sem goleiro: a vez dele.
+        if (this._goleirosEmFila && this._goleirosEmFila.length) this.goleiroPendente = this._goleirosEmFila.shift();
     },
 
     // `true` enquanto o jogo parado espera pela troca do goleiro (o `update` so anda os jogadores, como nas outras trocas).
@@ -539,7 +561,8 @@ Object.assign(Match, {
         const sai = TreinadorCPU.saidaParaGoleiro(team);
         if (!sai) { this._promoverAGoleiro(G); return false; }
         TreinadorCPU._usados = TreinadorCPU._usados || new Set(); TreinadorCPU._usados.add(reserva.id);
-        this.pedirSubstituicao({ lado: G.lado, sai: String(sai.skills && sai.skills.id), entra: String(reserva.id), jogador: reserva.sk, _sk: reserva.sk, goleiro: true, urgente: true });
+        // `_reportar`: a troca decidida pelo 3D vai ao manager quando se faz (`substituicao_feita`), para a escalacao, o banco e o contador de trocas dele acompanharem.
+        this.pedirSubstituicao({ lado: G.lado, sai: String(sai.skills && sai.skills.id), entra: String(reserva.id), jogador: reserva.sk, _sk: reserva.sk, goleiro: true, urgente: true, _reportar: true });
         return true;
     },
 
@@ -551,9 +574,16 @@ Object.assign(Match, {
         const P = candidatos[0] || lista[0];
         if (!P) { this._limparGoleiroPendente(); return; }
         const antesSubs = this.substituicoes || 0;
-        this.executarSubstituicao({ lado: G.lado, goleiro: true, urgente: true, _sk: P.skills, jogador: null }, P, lista, null);
+        // O mesmo jogador num corpo novo (o de goleiro): leva o amarelo e o cansaco que tinha.
+        const N = this.executarSubstituicao({ lado: G.lado, goleiro: true, urgente: true, _sk: P.skills, jogador: null }, P, lista, null);
+        if (N) { N.temAmarelo = P.temAmarelo; if (typeof P.energia === 'number') N.energia = P.energia; }
         this.substituicoes = antesSubs;
         this.subsFeitas.pop();
+        /*
+        Ao manager: nao ha jogador novo nem troca gasta (a escalacao e o banco dele nao mudam). So o aviso de quem foi ao gol; o `goleiro_trocado` ja desligou o aviso do
+        Tactics (`_limparGoleiroPendente`, no `executarSubstituicao`).
+        */
+        if (N && typeof Ponte !== 'undefined' && Ponte.enviar) Ponte.enviar('goleiro_promovido', { lado: G.lado, jogador: P.skills ? P.skills.id : null });
     },
 
     // A troca no motor. `opcoes.x/z`: onde o substituto aparece (a lateral); sem eles, no sitio de quem sai.
@@ -609,6 +639,15 @@ Object.assign(Match, {
         this.subsFeitas.push({ lado: req.lado, sai: P, entra: N, t: this.tempoDeJogo });
         // O acrescimo de tempo (MatchDuration.acrescimo): cada troca conta.
         this.substituicoes = (this.substituicoes || 0) + 1;
+        /*
+        A TROCA QUE O 3D DECIDIU (o goleiro reserva depois da espera, ou o pedido do manager cujo `sai` ja nao estava em campo) vai ao manager: ids REAIS (`skills.id`, os
+        digitos de 'p-269063'); `corrige` e o `sai` que o manager tinha pedido (o goleiro expulso), quando o 3D tirou outro.
+        */
+        if (req._reportar && typeof Ponte !== 'undefined' && Ponte.enviar) {
+            const real = (q) => (q && q.skills && q.skills.id !== undefined) ? q.skills.id : null;
+            const corrige = (req.corrige !== undefined && typeof AdaptadorManager !== 'undefined') ? AdaptadorManager.idReal(req.corrige) : null;
+            Ponte.enviar('substituicao_feita', { lado: req.lado, sai: real(P), entra: real(N), corrige: corrige });
+        }
         if (!(opcoes && opcoes.entrada)) req.feita = true;
         return N;
     }

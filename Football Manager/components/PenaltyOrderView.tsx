@@ -4,13 +4,13 @@ import { normalizarOrdem, ordemAutomatica, notaDePenalti } from '../textSim/pena
 import { campo3d } from '../textSim/atributos3d';
 
 /*
-A ORDEM DOS BATEDORES na disputa de penaltis (copas, jogo unico ou agregado empatado). Mostra TODOS os jogadores do time, goleiro incluido, ja pelos melhores batedores
-(Penalties + Consistency); o tecnico reordena arrastando ou com as setas e confirma. Acabados os batedores a disputa volta ao primeiro (ver textSim/penaltyShootout.ts).
+A ORDEM DOS BATEDORES na disputa de penaltis (copas, jogo unico ou agregado empatado). Mostra os jogadores que quem chama passa (na disputa: SO os em campo no fim do jogo,
+goleiro incluido), ja pelos melhores batedores (Penalties + Consistency; os dois modais nao passam `ordemInicial`, por isso abre sempre na ordem automatica); o tecnico reordena arrastando ou com as setas e confirma. Acabados os batedores a disputa volta ao primeiro (ver textSim/penaltyShootout.ts).
 A tela so devolve a ordem (`aoConfirmar`): quem a chama guarda-a (`definirOrdemPenaltis`) e abre a disputa.
 */
 interface Props {
   time: Team;
-  jogadores: Player[];                       // o plantel inteiro do time
+  jogadores: Player[];                       // os que podem bater (os em campo no fim do jogo)
   ordemInicial?: string[];                   // a guardada (time.penaltyOrder); sem ela, a automatica
   aoConfirmar: (ordem: string[]) => void;
   aoCancelar?: () => void;

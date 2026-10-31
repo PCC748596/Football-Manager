@@ -1642,6 +1642,8 @@ Object.assign(Match, {
         this.players.concat(this.opponents).forEach(p => { p.hasBall = false; });
         this.ballCarrier = null;
         this._penPlano = null;
+        // O ultimo toque e o desta cobranca: o da anterior (a defesa do goleiro) nao pode classificar uma cobranca que nunca chegou a ser batida.
+        this.lastTouchedPlayer = null;
         // Rede de seguranca: a coreografia ja deixa o batedor na espera; se ele vier de longe (uma corrida de dezenas de metros passaria o prazo do penalti, SetPiecePrazos),
         // poe-se-lhe la, como o `setupSetPiece` faz no penalti em jogo.
         const espera = DM.posEsperaBatedor(D.sinalZ), pb = batedor.model.position;

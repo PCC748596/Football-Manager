@@ -402,6 +402,8 @@ const Ponte = {
         Match.decisao = (m.decisao && this.modo === 'visivel') ? m.decisao : null;
         // O lado do utilizador (o jogo espera pela troca do goleiro expulso dele; no oculto a CPU decide pelos dois) e sem goleiro pendente de um jogo anterior.
         Match.ladoDoUtilizador = (this.modo === 'visivel') ? (m.taticaDe === 'fora' ? 'fora' : 'casa') : null; Match.goleiroPendente = null;
+        // As trocas e os goleiros expulsos de um jogo anterior nao contam neste (o limite de 5 trocas, os reservas oferecidos).
+        Match._goleirosEmFila = []; Match.goleirosExpulsos = []; Match.subsFeitas = []; Match.subsPendentes = []; Match.subsEmCurso = null;
         if (typeof DisputaPenaltis !== 'undefined' && (DisputaPenaltis.activa || DisputaPenaltis.fase)) DisputaPenaltis._libertar();
         Match.disputa = null;
         Eventos.reset();
@@ -581,6 +583,8 @@ const Ponte = {
         this._ultimoTempo = this._agora();
         if (this.modo === 'visivel') window.isPaused = false;
         this._somEmPausa(false);
+        // A disputa de penaltis a espera do manager (a ordem, a resposta a uma cobranca): reenvia-se, o MatchDay pode ter estado desmontado (ver DisputaPenaltis.reenviarPendente).
+        if (typeof DisputaPenaltis !== 'undefined' && DisputaPenaltis.activa) DisputaPenaltis.reenviarPendente();
     },
     // O som pára com o jogo (o mesmo que o botão Pause do 3D faz em match_ui.js): estádio e efeitos.
     _somEmPausa(on) {
