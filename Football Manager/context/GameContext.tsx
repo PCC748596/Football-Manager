@@ -1337,6 +1337,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         novos.forEach(e => { if (e.type === 'GOAL') { if (e.teamId === f.homeTeamId) h++; else a++; } });
         return { ...f, events: [...(f.events || []), ...novos], homeScore: h, awayScore: a };
       }));
+    } else if (m.tipo === 'placar_ajustado') {
+      // O clique na sigla de um clube no placar do 3D somou +1 (sem evento de golo): o resultado do jogo acompanha o do motor.
+      setFixtures(prev => prev.map(f => (f.id === uf.id ? { ...f, homeScore: m.placar.casa, awayScore: m.placar.fora } : f)));
     } else if (m.tipo === 'intervalo_iniciado') {
       // As estatisticas abriram no 3D: manda a classificacao ate este momento (com o resultado provisorio do jogo em curso).
       const linhas = classificacaoDoIntervalo(uf);

@@ -116,7 +116,7 @@ const Ponte = {
                 // O placar de TV: nomes curtos nas cores dos clubes, golos num miolo escuro com "vs", e o tempo numa aba por baixo.
                 '#tc-placar-tv{display:flex;flex-direction:column;align-items:center;font-family:system-ui,sans-serif}' +
                 '#tc-placar-tv .tv-linha{display:flex;height:24px;border-radius:5px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.55);font-weight:900}' +
-                '#tc-placar-tv .tv-eq{padding:0 9px;display:flex;align-items:center;justify-content:center;min-width:38px;font-size:13px;letter-spacing:.5px}' +
+                '#tc-placar-tv .tv-eq{cursor:pointer;padding:0 9px;display:flex;align-items:center;justify-content:center;min-width:38px;font-size:13px;letter-spacing:.5px}' +
                 '#tc-placar-tv .tv-gol{background:#1b0f33;color:#fff;font-size:15px;padding:0 8px;display:flex;align-items:center;min-width:12px;justify-content:center;font-variant-numeric:tabular-nums}' +
                 '#tc-placar-tv .tv-vs{background:#3b0764;color:#e9d5ff;font-size:10px;font-style:italic;padding:0 6px;display:flex;align-items:center}' +
                 '#tc-placar-tv .tv-tempo{background:#4c1d95;color:#fff;font:800 11px system-ui,sans-serif;letter-spacing:.5px;padding:1px 12px 2px;border-radius:0 0 6px 6px;font-variant-numeric:tabular-nums}' +
@@ -134,6 +134,9 @@ const Ponte = {
                 '<span id="tc-evento"></span><button id="tc-debug" title="Right-hand debug panel">Debug OFF</button><span id="tc-fps" title="Frames per second">FPS --</span>';
             document.body.appendChild(barra);
             barra.addEventListener('click', (e) => {
+                // Clicar na sigla de um clube no placar de TV soma +1 ao resultado dele (para ajustar um empate nos testes).
+                const eq = e.target.closest('.tv-eq');
+                if (eq) { this.ajustarPlacar(eq.id === 'tv-eq-e' ? 'A' : 'B'); return; }
                 const b = e.target.closest('button'); if (!b) return;
                 if (b.dataset.cam && Match.setCameraMode) Match.setCameraMode(b.dataset.cam);
                 else if (b.dataset.vel) { this.definirVelocidade(Number(b.dataset.vel)); }
@@ -180,6 +183,14 @@ const Ponte = {
             const t = this.pularDisponivel() ? 'Skip' : parado ? 'Continue' : 'Pause'; if (bp.textContent !== t) bp.textContent = t; bp.classList.toggle('on', parado); }
             const rp = barra.querySelector('#tc-replay'); if (rp) rp.classList.toggle('pisca', !!(window.MatchReplay && window.MatchReplay.isReplaying));
         }, 250);
+    },
+
+    // Soma +1 ao placar de um lado ('A' = casa, 'B' = fora) a pedido do clique na sigla do clube, e avisa o manager para o resultado dele acompanhar. Sem evento de golo: so o numero muda.
+    ajustarPlacar(lado) {
+        if (typeof Match === 'undefined' || this.estado === 'terminado') return;
+        if (lado === 'A') Match.placarA++; else Match.placarB++;
+        Match.updatePlacar();
+        this.enviar('placar_ajustado', { placar: { casa: Match.placarA, fora: Match.placarB } });
     },
 
     // Os times estao a ENTRAR em campo (a entrada pode ser saltada com ESC): o botao Pausar / Continuar do manager passa a PULAR. Quando ja estao alinhados a espera a saida o botao e o da SAIDA.
