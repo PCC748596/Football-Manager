@@ -66,3 +66,4 @@ for (const nome of Object.keys(FORM)) {
 function posDoRotuloEsperada(l) { return AdaptadorManager.POS_DO_ROTULO[l]; }
 if (falhas) { console.error(falhas + ' falha(s)'); process.exit(1); }
 console.log('OK adaptador_manager');
+process.exit(0);   // o harness deixa handles abertos: sem isto `node adaptador_manager.test.js` (e `npm run 3d:teste`) nunca termina
