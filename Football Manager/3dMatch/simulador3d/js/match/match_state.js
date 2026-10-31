@@ -120,6 +120,8 @@ const Match = {
     */
     repositor: null, repositorLance: null,
     setPieceTaker: null, setPieceTimer: 0,
+    // A disputa de penaltis em curso (js/disputa_penaltis.js), ou null: com ela posta o relogio, as trocas e as regras normais de bola parada ficam de lado.
+    disputa: null,
     // Tiro de meta: espera 3-6s depois de todos posicionados (ver
     // updateGoalKickWait / setupSetPiece).
     golKickProntos: false, golKickEspera: 0, golKickAlvoEspera: 0,

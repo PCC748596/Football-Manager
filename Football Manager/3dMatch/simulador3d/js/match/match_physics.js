@@ -169,7 +169,7 @@ Object.assign(Match, {
         Regra: a bola tem de passar a linha por INTEIRO (por isso o `- raio`).
         Repõe quem NÃO lhe tocou por último.
         */
-        if (this.state === 'PLAY' &&
+        if (this.state === 'PLAY' && !this.disputa &&   // na disputa de penaltis uma espalmada longa nao e lateral: a cobranca fecha-se pelo resultado
             Math.abs(this.ball.position.x) - BallPhysics.raio > CAMPO_LARG / 2 + MEIA_LINHA &&   // a bola inteira passou a linha toda
             // ...e a ir para FORA. Uma bola já lá fora mas a entrar (a reposição
             // acabada de fazer, um ressalto na barreira) não é lateral nenhum.

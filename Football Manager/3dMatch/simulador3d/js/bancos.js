@@ -373,6 +373,7 @@ const Bancos = {
     update(dt) {
         const B = (typeof BancosDeReservas !== 'undefined') ? BancosDeReservas : null;
         if (!B || !B.activo || typeof Officials === 'undefined' || !Officials.mover) return;
+        if (typeof DisputaPenaltis !== 'undefined' && DisputaPenaltis.activa) return;   // na disputa quem move o tecnico e a coreografia
         const T = B.treinador;
         const bola = (typeof Match !== 'undefined' && Match.ball) ? Match.ball.position : null;
         for (const b of this.bancos) {

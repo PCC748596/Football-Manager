@@ -288,7 +288,10 @@ Object.assign(Match, {
         let lookTarget = this._cLTar;
 
         // A abertura do jogo tem a camara dela (js/abertura.js). A orbital, que e do utilizador, nao se toca.
-        if (typeof Abertura !== 'undefined' && Abertura.activa && Abertura.modo !== 'segundo' && Abertura.modo !== 'intervalo') {
+        // A disputa de penaltis tambem (js/disputa_penaltis.js).
+        if (typeof DisputaPenaltis !== 'undefined' && DisputaPenaltis.activa) {
+            DisputaPenaltis.camera(targetPos, lookTarget);
+        } else if (typeof Abertura !== 'undefined' && Abertura.activa && Abertura.modo !== 'segundo' && Abertura.modo !== 'intervalo') {
             Abertura.camera(targetPos, lookTarget);
         } else if (window.cameraMode === 'center') {
             /*

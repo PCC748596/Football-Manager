@@ -2570,6 +2570,9 @@ const Officials = {
         // E as linhas do momento do passe, quando houve impedimento.
         this.tickLinhaDoPasse(dt);
 
+        // A disputa de penaltis (js/disputa_penaltis.js): o trio e os tecnicos andam pela coreografia, nao pelo jogo.
+        if (typeof DisputaPenaltis !== 'undefined' && DisputaPenaltis.activa) { DisputaPenaltis.moverOficiais(dt); return; }
+
         // A abertura do jogo (js/abertura.js): o trio anda pela coreografia, nao pelo jogo.
         if (typeof Abertura !== 'undefined' && Abertura.activa) { Abertura.moverOficiais(dt); return; }
 
