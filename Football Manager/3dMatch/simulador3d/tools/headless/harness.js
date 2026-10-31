@@ -59,7 +59,7 @@ const FICHEIROS = [
     'assets/ball_mesh.js', 'data/player_skills.js', 'data/squads.js',
     'js/event_bus.js', 'js/joint_limits.js',
     'js/config/physics.js', 'js/config/animations.js', 'js/config/gait.js',
-    'js/config/tactics.js', 'js/config/passing.js', 'js/config/shooting.js', 'js/config/falta_rotinas.js', 'js/config/tunel.js',
+    'js/config/tactics.js', 'js/config/passing.js', 'js/config/shooting.js', 'js/config/falta_rotinas.js', 'js/config/tunel.js', 'js/config/disputa.js',
     'js/config/defense.js', 'js/config/goalkeeper.js', 'js/config/player_behavior.js',
     'js/config/skill_map.js', 'js/config/comemoracao.js', 'js/config/balanco_corredores.js', 'js/config/mando.js',
     'js/stats.js',
