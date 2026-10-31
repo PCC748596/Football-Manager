@@ -64,7 +64,7 @@ Spec: `docs/superpowers/specs/2026-10-31-disputa-penaltis-3d-design.md`.
 
 ---
 
-### Tarefa 1: Geometria pura (`DisputaModel`)
+### Task 1: Geometria pura (`DisputaModel`)
 
 **Arquivos:**
 - Criar: `3dMatch/simulador3d/js/config/disputa.js`
@@ -294,7 +294,7 @@ git commit -m "feat(3d): geometria da disputa de penaltis (meia-lua, fila, posto
 
 ---
 
-### Tarefa 2: A cobrança real (o miolo)
+### Task 2: A cobrança real (o miolo)
 
 Esta é a tarefa de maior risco: prova que o motor do pênalti em jogo serve a disputa (batedor e goleiro escolhidos de fora, 20 jogadores quietos, resultado classificado, relógio e placar intactos). Faz-se antes da coreografia.
 
@@ -657,7 +657,7 @@ git commit -m "feat(3d): cobranca da disputa de penaltis pela fisica real"
 
 ---
 
-### Tarefa 3: Regras e ponte do lado da app (TypeScript)
+### Task 3: Regras e ponte do lado da app (TypeScript)
 
 **Arquivos:**
 - Alterar: `textSim/competitions.ts` (acrescentar `decisaoDoConfronto` depois de `disputaPendente`)
@@ -820,7 +820,7 @@ git commit -m "feat: decisao do confronto e funcoes da disputa 3D no lado da app
 
 ---
 
-### Tarefa 4: A coreografia e o fluxo (3D)
+### Task 4: A coreografia e o fluxo (3D)
 
 **Arquivos:**
 - Alterar: `3dMatch/simulador3d/js/disputa_penaltis.js` (acrescentar o fluxo, depois do bloco da cobrança)
@@ -1245,7 +1245,7 @@ git commit -m "feat(3d): coreografia e fluxo da disputa de penaltis"
 
 ---
 
-### Tarefa 5: A ponte do 3D (`ponte.js`) e o jogo do manager
+### Task 5: A ponte do 3D (`ponte.js`) e o jogo do manager
 
 **Arquivos:**
 - Alterar: `3dMatch/simulador3d/js/narracao/ponte.js` (`iniciar`, o ouvinte de mensagens, `esc`)
@@ -1411,7 +1411,7 @@ git commit -m "feat: disputa de penaltis em 3D ligada ao jogo do manager"
 
 ---
 
-### Tarefa 6: Goleiro expulso — troca obrigatória
+### Task 6: Goleiro expulso — troca obrigatória
 
 Independente da disputa, mas é o que garante que os dois times cheguem a ela com goleiro em campo. Reaproveita o pipeline de substituições (`pedirSubstituicao` → `_comecar` → `_comecarTroca` → `executarSubstituicao`, em `match_substituicoes.js`).
 
@@ -1704,7 +1704,7 @@ git commit -m "feat(3d): goleiro expulso, troca obrigatoria por goleiro reserva 
 
 ---
 
-### Tarefa 7: Documentação e verificação final
+### Task 7: Documentação e verificação final
 
 **Arquivos:**
 - Alterar: `3dMatch/simulador3d/docs/filesSummary3d.md` (entrada nova no topo das atualizações: o que o `disputa_penaltis.js` e o `config/disputa.js` fazem, as mensagens `disputa_*` e os ganchos em `match_loop.js`, `match_physics.js`, `player.js`, `officials.js`, `bancos.js`, `ponte.js`)
