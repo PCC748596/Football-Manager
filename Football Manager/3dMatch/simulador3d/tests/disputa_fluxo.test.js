@@ -80,17 +80,43 @@ verifica(fim && fim.dados.pens[0] === 2 && fim.dados.pens[1] === 1, 'disputa_fim
 verifica(Match.state === 'FIM_DE_JOGO' && !Match.disputa && !DisputaPenaltis.activa, 'so depois: FIM_DE_JOGO', 'estado final: ' + Match.state);
 verifica(Match.placarA === 1 && Match.placarB === 1, 'o placar do jogo ficou 1-1', `placar: ${Match.placarA}-${Match.placarB}`);
 
-console.log('4 — sem resposta da app em 30 s, aborta e o jogo termina como hoje');
-Match.init(cena); Officials.init(cena); Match.resetPlay('TeamA');
-for (let i = 0; i < 120; i++) Match.update(dt);
-msgs.length = 0;
-Match.decisao = { agregadoCasa: 0, agregadoFora: 0 };
-Match.placarA = 0; Match.placarB = 0;
-Match.primeiroTempoAcabou = true; Match.acr1Calculado = true; Match.acr2Calculado = true; Match.acrescimo2 = 0;
-Match.tempoDeJogo = 2 * meio; Match.state = 'PLAY';
-Match.verificarFimDeTempo();
-for (let i = 0; i < 60 * 140 && Match.state !== 'FIM_DE_JOGO'; i++) Match.update(dt);
-verifica(Match.state === 'FIM_DE_JOGO' && !msgs.some(m => m.tipo === 'disputa_fim'), 'abortou sem disputa_fim', 'nao abortou: ' + Match.state);
+// Um jogo de copa empatado ate a DISPUTA, com o 3D recem-criado.
+const comecarDisputa = () => {
+    Match.init(cena); Officials.init(cena); Match.resetPlay('TeamA');
+    for (let i = 0; i < 120; i++) Match.update(dt);
+    msgs.length = 0;
+    Match.decisao = { agregadoCasa: 0, agregadoFora: 0 };
+    Match.placarA = 0; Match.placarB = 0;
+    Match.primeiroTempoAcabou = true; Match.acr1Calculado = true; Match.acr2Calculado = true; Match.acrescimo2 = 0;
+    Match.tempoDeJogo = 2 * meio; Match.state = 'PLAY';
+    Match.verificarFimDeTempo();
+};
+const rodar = (segundos) => { for (let i = 0; i < Math.round(segundos / dt) && Match.state !== 'FIM_DE_JOGO'; i++) Match.update(dt); };
+
+console.log('4 — a ORDEM espera a decisao humana (prazo.ordem); so a resposta automatica da app (AGUARDA) aborta aos 30 s');
+const prazos = DisputaModel.prazo;
+verifica(prazos.ordem > prazos.app && prazos.app === 30, `prazo.ordem (${prazos.ordem} s) maior que prazo.app (${prazos.app} s)`, 'prazos: ' + JSON.stringify(prazos));
+comecarDisputa();
+for (let i = 0; i < 60 * 90 && !msgs.some(m => m.tipo === 'disputa_reuniao'); i++) Match.update(dt);
+verifica(DisputaPenaltis.fase === 'ORDEM', 'a reuniao acabou: fase ORDEM', 'fase: ' + DisputaPenaltis.fase);
+rodar(31);
+verifica(DisputaPenaltis.activa && DisputaPenaltis.fase === 'ORDEM' && Match.state === 'DISPUTA', 'ORDEM aos 31 s: NAO aborta (o treinador ainda esta a decidir)', `abortou cedo: activa=${DisputaPenaltis.activa} estado=${Match.state}`);
+rodar(prazos.ordem - 31 - 1);
+verifica(DisputaPenaltis.activa, `ORDEM a ${prazos.ordem - 1} s: ainda activa`, 'abortou antes do prazo.ordem');
+rodar(3);
+verifica(Match.state === 'FIM_DE_JOGO' && !DisputaPenaltis.activa && !msgs.some(m => m.tipo === 'disputa_fim'), `ORDEM passado prazo.ordem (${prazos.ordem} s): aborta sem disputa_fim`, 'nao abortou: ' + Match.state);
+
+console.log('4b — AGUARDA: sem resposta da app em 30 s depois de uma cobranca, aborta e o jogo termina como hoje');
+comecarDisputa();
+for (let i = 0; i < 60 * 90 && !msgs.some(m => m.tipo === 'disputa_reuniao'); i++) Match.update(dt);
+const reun = msgs.find(m => m.tipo === 'disputa_reuniao').dados;
+DisputaPenaltis.receberOrdens(reun.casa.map(j => j.id), reun.fora.map(j => j.id), { lado: reun.primeiro, jogadorId: reun[reun.primeiro][0].id });
+for (let i = 0; i < 60 * 120 && !msgs.some(m => m.tipo === 'disputa_cobranca'); i++) Match.update(dt);
+verifica(DisputaPenaltis.fase === 'AGUARDA', 'a primeira cobranca foi reportada: fase AGUARDA', 'fase: ' + DisputaPenaltis.fase);
+rodar(29);
+verifica(DisputaPenaltis.activa, 'AGUARDA aos 29 s: ainda activa', 'abortou cedo');
+rodar(3);
+verifica(Match.state === 'FIM_DE_JOGO' && !DisputaPenaltis.activa && !msgs.some(m => m.tipo === 'disputa_fim'), 'AGUARDA aos 32 s: abortou sem disputa_fim', 'nao abortou: ' + Match.state);
 
 console.log('5 — sem decisao no iniciar: nada muda');
 Match.init(cena); Officials.init(cena); Match.resetPlay('TeamA');

@@ -27,7 +27,7 @@ const DisputaModel = {
     goleiroEspera: { recuoDaLinhaDeFundo: 5.0 },
     juiz: { ladoDaMarca: 4.5 },
     velocidade: { jogador: 1.9, tecnico: 1.4, juiz: 1.9, goleiro: 2.4, bandeirinha: 2.4 },
-    prazo: { reuniao: 45, preparo: 30, app: 30, cobranca: 7 },
+    prazo: { reuniao: 45, preparo: 30, app: 30, ordem: 300, cobranca: 7 },   // `app`: a resposta automatica da app entre cobrancas; `ordem`: a decisao HUMANA da ordem dos batedores (o modal do manager)
     pausa: { entrega: 1.0, ajeitar: 0.8, aposContato: 1.2, fim: 4.0 },
 
     // O tecnico, ao lado do banco: `zBanco` e o z do centro do banco do time; fica a `zDoMeio` do meio-campo, no mesmo lado do eixo.

@@ -266,10 +266,11 @@ const DisputaPenaltis = {
             case 'REUNIAO':
                 if (this._todosChegaram() || this.t > DM.prazo.reuniao) this._pedirOrdem();
                 break;
+            // ORDEM espera uma decisao humana (o modal da ordem dos batedores no manager): prazo longo. AGUARDA espera so a resposta automatica da app.
             case 'ORDEM':
             case 'AGUARDA':
                 this.tApp += dt;
-                if (this.tApp > DM.prazo.app) this._abortar();
+                if (this.tApp > (this.fase === 'ORDEM' ? DM.prazo.ordem : DM.prazo.app)) this._abortar();
                 break;
             case 'PREPARO': this._atualizarPreparo(dt); break;
             case 'FIM':

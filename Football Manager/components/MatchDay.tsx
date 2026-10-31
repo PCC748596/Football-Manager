@@ -52,6 +52,9 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const [cobrancas3d, setCobrancas3d] = useState<Cobranca[]>([]);
   const cobrancas3dRef = useRef<Cobranca[]>([]);
   const ordens3d = useRef<{ casa: string[]; fora: string[]; primeiro: 'casa' | 'fora' } | null>(null);
+  // O 3D mandou `disputa_fim` (a disputa acabou bem): o `fim` do jogo que se segue nao limpa o placar dos penaltis. Sem ele a disputa foi abortada e tudo se limpa.
+  const disputaTerminou3d = useRef(false);
+  const limparDisputa3d = () => { setOrdem3d(null); setCobrancas3d([]); cobrancas3dRef.current = []; ordens3d.current = null; };
   // Os times estao a entrar em campo: o botao principal diz PULAR (ver Ponte.pularDisponivel).
   const [podePular, setPodePular] = useState(false);
   const userTeam = teams.find(t => t.id === gameState.userTeamId);
@@ -165,7 +168,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
     if (gameState.matchMinute >= 90) return;
     resetMatchDay();
     setIniciou(false);
-    setOrdem3d(null); setCobrancas3d([]); cobrancas3dRef.current = []; ordens3d.current = null;
+    limparDisputa3d(); disputaTerminou3d.current = false;
     setReinicios(n => n + 1);
     setReplayAtivo(false);
     // Volta a tela dos uniformes, antes do jogo: o 3D so e preparado depois de novos kits escolhidos.
@@ -400,13 +403,17 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         }
                       } else if (m.tipo === 'disputa_reuniao') {
                         // Os times estao reunidos: o modal da ordem abre so com os jogadores em campo (ids do motor).
+                        // O iframe cobre o documento em tela cheia (e o proprio elemento em tela cheia): um modal daqui nao apareceria. Sai-se da tela cheia, como no `abrir_tactics` (nao se
+                        // chama `simulador3dLembrarTelaCheia`: o seu estado so e consumido ao montar a tela e ficaria preso para um jogo futuro).
+                        simulador3dSairDaTelaCheia();
+                        disputaTerminou3d.current = false;
                         cobrancas3dRef.current = [];
                         setCobrancas3d([]);
                         setOrdem3d({ casa: m.casa.map((j: any) => j.id), fora: m.fora.map((j: any) => j.id), primeiro: m.primeiro });
                       } else if (m.tipo === 'disputa_cobranca') {
                         // Uma cobranca decidida pela fisica: soma-a (o placar dos penaltis) e responde ao 3D com o proximo batedor ou o fim.
                         const o = ordens3d.current;
-                        if (!o) return;
+                        if (!o) { console.warn('[disputa 3D] cobranca recebida sem as ordens dos batedores (disputa_cobranca ignorada)', m); return; }
                         const lado = m.lado as 'casa' | 'fora';
                         const time = lado === 'casa' ? homeTeam : awayTeam;
                         const p = emCampo([m.jogadorId], players.filter(x => x.teamId === time.id))[0];
@@ -414,7 +421,12 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         cobrancas3dRef.current = novas;
                         setCobrancas3d(novas);
                         simulador3dEnviar({ tipo: 'disputa_proxima', ...proximaMensagem(novas, o.casa, o.fora, o.primeiro) });
-                      } else motor3dMensagem(m);
+                      } else {
+                        if (m.tipo === 'disputa_fim') disputaTerminou3d.current = true;
+                        // `fim` sem `disputa_fim`: a disputa foi abortada no 3D (sem resposta da app, batedor desconhecido...): nada de modal nem placar parcial dos penaltis.
+                        else if (m.tipo === 'fim' && !disputaTerminou3d.current) limparDisputa3d();
+                        motor3dMensagem(m);
+                      }
                     }} />
              </div>
 
