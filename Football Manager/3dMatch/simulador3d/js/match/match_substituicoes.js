@@ -40,8 +40,14 @@ const Aquecimento = {
 };
 if (typeof window !== 'undefined') window.Aquecimento = Aquecimento;
 
+// O GOLEIRO EXPULSO: `limiteTrocas` por time; `esperaAuto` s de jogo parado a espera da troca do manager antes de o 3D decidir sozinho.
+const GoleiroExpulsoModel = { limiteTrocas: 5, esperaAuto: 20 };
+if (typeof window !== 'undefined') window.GoleiroExpulsoModel = GoleiroExpulsoModel;
+
 Object.assign(Match, {
     subsPendentes: [],
+    goleiroPendente: null,       // null ou { lado: 'casa'|'fora', expulso, t }: o time ficou sem goleiro (ver `goleiroExpulso`)
+    ladoDoUtilizador: null,      // 'casa' | 'fora' | null (modo oculto: a CPU decide pelos dois lados)
     subsEmCurso: null,
     _placaViva: 0,
 
@@ -99,6 +105,9 @@ Object.assign(Match, {
         // comandar o mesmo reserva travavam-no (um empurra para a frente, o outro para o passo anterior; so andava quando o jogo parava).
         if (this.subsPendentes.some(q => !q.feita && q.lado === req.lado && (q.sai === req.sai || q.entra === req.entra))) return false;
         const r = Object.assign({ t: 0, feita: false, estado: 'novo', passo: 0, passos: null, B: null }, req);
+        // O pedido do manager com um GOLEIRO, para o time que esta sem goleiro: troca urgente (sem aquecimento) e que vale como a troca obrigatoria.
+        const ehGk = req.jogador && (String(req.jogador.position) === 'GK' || req.jogador.role === 'gk');
+        if (ehGk && this.goleiroPendente && this.goleiroPendente.lado === req.lado) { r.goleiro = true; r.urgente = true; }
         this.subsPendentes.push(r);
         return true;
     },
@@ -129,7 +138,7 @@ Object.assign(Match, {
 
     _numeroDoEntrante: function (req, P, lista) {
         const opcoes = (typeof AdaptadorManager !== 'undefined' && AdaptadorManager._opcoes) ? AdaptadorManager._opcoes : {};
-        if (!req._sk) req._sk = AdaptadorManager.jogador(req.jogador, P.pos, opcoes);
+        if (!req._sk) req._sk = AdaptadorManager.jogador(req.jogador, (req.goleiro && this.goleiroPendente) ? this.goleiroPendente.expulso.pos : P.pos, opcoes);
         const n = req._sk.numero;
         return (n && !lista.some(q => q !== P && q.num === n)) ? n : P.num;
     },
@@ -277,7 +286,7 @@ Object.assign(Match, {
 
     _comecar: function (req, P, emBatch) {
         const banco = this._bancoDoLado(req.lado);
-        const B = (!emBatch && Aquecimento.activo) ? this._reservaDoBanco(banco, req.entra) : null;
+        const B = (!emBatch && Aquecimento.activo && !req.urgente) ? this._reservaDoBanco(banco, req.entra) : null;
         req.banco = banco; req.B = B;
         // So quando se levanta para aquecer a camisa leva o numero e as costas do clube (sentado, no banco, fica como estava).
         if (B && B.updateShirt) { try { B.updateShirt(this._numeroDoEntrante(req, P, this._equipaDoLado(req.lado)), P.pos); } catch (e) { /* sem textura: fica como estava */ } }
@@ -478,6 +487,62 @@ Object.assign(Match, {
         }
     },
 
+    /*
+    O GOLEIRO FOI EXPULSO (chamado do `Officials.expulsar`): o time precisa de outro. O expulso sai de `Match.expulsos` (o `reporExpulsos` devolvia-o ao campo e o time ficava com dois
+    goleiros). A troca faz-se na proxima parada (`_aguardaGoleiro`, chamada do `Match.update`): com goleiro reserva e menos de `limiteTrocas`, sai um jogador de linha e entra o reserva;
+    senao o de linha com melhor `skillFor('GK')` assume o gol. No time do utilizador o jogo espera pelo pedido do manager (aba Tactics) ate `esperaAuto` s.
+    */
+    goleiroExpulso: function (expulso) {
+        this.expulsos = (this.expulsos || []).filter(q => q !== expulso);
+        this.goleiroPendente = { lado: expulso.team === 'TeamA' ? 'casa' : 'fora', expulso: expulso, t: 0 };
+    },
+
+    _trocasDoLado: function (lado) {
+        return (this.subsFeitas || []).filter(s => s.lado === lado).length + this.subsPendentes.filter(r => !r.feita && r.lado === lado && !r.goleiro).length;
+    },
+
+    _limparGoleiroPendente: function () {
+        const lado = this.goleiroPendente && this.goleiroPendente.lado;
+        this.goleiroPendente = null;
+        if (typeof Ponte !== 'undefined' && Ponte.enviar && lado) Ponte.enviar('goleiro_trocado', { lado: lado });
+    },
+
+    // `true` enquanto o jogo parado espera pela troca do goleiro (o `update` so anda os jogadores, como nas outras trocas).
+    _aguardaGoleiro: function (dt) {
+        const G = this.goleiroPendente;
+        if (!G) return false;
+        const lista = this._equipaDoLado(G.lado);
+        if (lista.some(p => p.role === 'gk')) { this._limparGoleiroPendente(); return false; }
+        if (this.subsPendentes.some(r => !r.feita && r.goleiro && r.lado === G.lado)) return true;   // a troca esta a andar: o jogo espera por ela
+        if (!this._paradaParaSubstituir()) return false;
+        G.t += dt;
+        const team = G.lado === 'casa' ? 'TeamA' : 'TeamB';
+        const reserva = (typeof TreinadorCPU !== 'undefined') ? TreinadorCPU.reservasDe(team).find(r => r.sk && r.sk.role === 'gk') : null;
+        if (!reserva || this._trocasDoLado(G.lado) >= GoleiroExpulsoModel.limiteTrocas) {
+            this._promoverAGoleiro(G);
+            return false;
+        }
+        if (G.lado === this.ladoDoUtilizador && G.t < GoleiroExpulsoModel.esperaAuto) return true;   // o manager (aba Tactics) escolhe quem sai
+        const sai = TreinadorCPU.saidaParaGoleiro(team);
+        if (!sai) { this._promoverAGoleiro(G); return false; }
+        TreinadorCPU._usados = TreinadorCPU._usados || new Set(); TreinadorCPU._usados.add(reserva.id);
+        this.pedirSubstituicao({ lado: G.lado, sai: String(sai.skills && sai.skills.id), entra: String(reserva.id), jogador: reserva.sk, _sk: reserva.sk, goleiro: true, urgente: true });
+        return true;
+    },
+
+    // Sem reserva (ou sem trocas): o de linha com melhor nota de goleiro assume o gol, no sitio onde esta, com o uniforme de goleiro. Nao conta como substituicao.
+    _promoverAGoleiro: function (G) {
+        const lista = this._equipaDoLado(G.lado);
+        const candidatos = lista.filter(p => p.role !== 'gk' && !p.queda && !p.naBarreiraFalta && p !== this.setPieceTaker);
+        candidatos.sort((a, b) => b.skillFor('GK') - a.skillFor('GK'));
+        const P = candidatos[0] || lista[0];
+        if (!P) { this._limparGoleiroPendente(); return; }
+        const antesSubs = this.substituicoes || 0;
+        this.executarSubstituicao({ lado: G.lado, goleiro: true, urgente: true, _sk: P.skills, jogador: null }, P, lista, null);
+        this.substituicoes = antesSubs;
+        this.subsFeitas.pop();
+    },
+
     // A troca no motor. `opcoes.x/z`: onde o substituto aparece (a lateral); sem eles, no sitio de quem sai.
     executarSubstituicao: function (req, P, lista, opcoes) {
         const i = lista.indexOf(P);
@@ -485,37 +550,42 @@ Object.assign(Match, {
         const info = (P.team === 'TeamA') ? this.equipaInfoA : this.equipaInfoB;
         const ops = (typeof AdaptadorManager !== 'undefined' && AdaptadorManager._opcoes) ? AdaptadorManager._opcoes : {};
         const sk = req._sk || AdaptadorManager.jogador(req.jogador, P.pos, ops);
-        // O uniforme: o do clube; o guarda-redes leva o dele (o do que sai).
-        const uni = (P.role === 'gk') ? P.uniforme : ((typeof uniformeDe === 'function' && info) ? uniformeDe(info.nome) : P.uniforme);
-        const N = new FootballPlayer(P.id, P.corCamisa, P.corCalcao, P.team, uni, sk.id);
+        const G = (req.goleiro && this.goleiroPendente) ? this.goleiroPendente.expulso : null;   // o goleiro que saiu: o entrante herda o posto e o uniforme dele
+        const base = G || P;
+        // O uniforme: o do clube; o guarda-redes leva o dele (o do que sai, ou o do goleiro expulso na troca obrigatoria).
+        const uni = (base.role === 'gk') ? base.uniforme : ((typeof uniformeDe === 'function' && info) ? uniformeDe(info.nome) : base.uniforme);
+        const N = new FootballPlayer(P.id, base.corCamisa, base.corCalcao, P.team, uni, sk.id);
         N.skills = sk;
         if (sk && sk.pe) N.pe = sk.pe;
         N.playingStyleFixo = sk.estilo || null;
-        // O POSTO do que sai.
-        N.role = P.role;
-        N.slot = P.slot;
-        N.idxFormacao = P.idxFormacao;
-        N.baseTarget.copy(P.baseTarget);
+        // O POSTO do que sai (ou, na troca obrigatoria, o do goleiro expulso).
+        N.role = base.role;
+        N.slot = base.slot;
+        N.idxFormacao = base.idxFormacao;
+        N.baseTarget.copy(base.baseTarget);
         N.dirZ = P.dirZ; N.targetGoalZ = P.targetGoalZ; N.ownGoalZ = P.ownGoalZ;
         N.playingStyleDesligado = P.playingStyleDesligado;   // o ON/OFF dos Playing Styles do time vale tambem para quem entra
-        if (P.role === 'gk') { N.gkStyleBase = P.gkStyleBase; N.playingStyle = P.playingStyle; }
+        if (base.role === 'gk') { N.gkStyleBase = base.gkStyleBase; N.playingStyle = base.playingStyle; }
         const numero = this._numeroDoEntrante(req, P, lista);
-        N.updateShirt(numero, P.pos);
-        const idxPos = lista.slice(0, i).filter(q => q.pos === P.pos).length;
-        if (P.role !== 'gk') this.aplicarPlayingStyle(N, P.pos, idxPos);
+        N.updateShirt(numero, base.pos);
+        const idxPos = lista.slice(0, i).filter(q => q.pos === base.pos).length;
+        if (base.role !== 'gk') this.aplicarPlayingStyle(N, base.pos, idxPos);
         const ponto = (opcoes && typeof opcoes.x === 'number') ? opcoes : P.model.position;
         N.model.position.set(ponto.x, (typeof ALTURA_BASE_Y === 'number') ? ALTURA_BASE_Y : 0, ponto.z);
         if (opcoes && opcoes.entrada) N.model.rotation.y = -Math.PI / 2; else N.model.quaternion.copy(P.model.quaternion);
         N.velocity.set(0, 0, 0);
         // O alvo de quem sai (o que a parada lhe deu) passa a ser o de quem entra: segue para la; sem entrada em campo, fica onde esta.
         if (opcoes && opcoes.entrada && P.dynamicTarget) {
-            N.dynamicTarget.copy(P.dynamicTarget);
-            N.lugarBolaParada = { x: P.dynamicTarget.x, z: P.dynamicTarget.z, t: 0, vel: Aquecimento.velEntra, entrada: true };   // anda ao posto pelo caminho de sempre das bolas paradas
+            const alvo = G ? { x: G.baseTarget.x, z: G.baseTarget.z } : { x: P.dynamicTarget.x, z: P.dynamicTarget.z };
+            if (G) N.dynamicTarget.set(alvo.x, (typeof ALTURA_BASE_Y === 'number') ? ALTURA_BASE_Y : 0, alvo.z); else N.dynamicTarget.copy(P.dynamicTarget);   // troca normal: como sempre
+            N.lugarBolaParada = { x: alvo.x, z: alvo.z, t: 0, vel: Aquecimento.velEntra, entrada: true };   // anda ao posto pelo caminho de sempre das bolas paradas
         } else N.dynamicTarget.copy(N.model.position);
         // Quem ENTRA segue logo para o seu posto (nao espera por mais trocas); na troca em campo (batch) fica parado como sempre.
         if (N.fsm) N.fsm.changeState((opcoes && opcoes.entrada) ? 'MOVE_TO_POS' : 'IDLE');
         // Troca na lista e na cena (o que sai fica na cena enquanto anda para o banco, se for andado).
         lista[i] = N;
+        // O goleiro e sempre o indice 0 da lista (o jogo inteiro assume-o): o entrante vai para a frente e o lugar do que saiu fica vago (o time joga com menos um de linha).
+        if (G) { lista.splice(i, 1); lista.unshift(N); this._limparGoleiroPendente(); }
         this.scene.add(N.model);
         if (!(opcoes && opcoes.entrada)) {
             for (const obj of [P.model, P.discoTatico]) { if (obj) this.scene.remove(obj); }

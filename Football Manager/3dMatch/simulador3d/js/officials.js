@@ -3232,12 +3232,14 @@ const Officials = {
 
         Match.expulsos = Match.expulsos || [];
         Match.expulsos.push(p);
+        // O goleiro expulso: o time precisa de outro (troca obrigatoria na proxima parada, ver Match.goleiroExpulso). `p.role` mantem-se 'gk' ate ao fim da funcao.
+        if (p.role === 'gk' && typeof Match.goleiroExpulso === 'function') Match.goleiroExpulso(p);
         if (p.model) p.model.visible = false;
 
         console.log('Officials: ' + p.team + ' (' + p.pos + ') EXPULSO, ficam ' +
             lista.length + ' em campo.');
         // O manager decide se é a equipa dele: se for, pausa o jogo e abre o MATCH TACTICS (ver MatchDay.tsx).
-        if (typeof Ponte !== 'undefined' && Ponte.enviar) Ponte.enviar('expulsao', { lado: p.team === 'TeamA' ? 'A' : 'B', pos: p.pos });
+        if (typeof Ponte !== 'undefined' && Ponte.enviar) Ponte.enviar('expulsao', { lado: p.team === 'TeamA' ? 'A' : 'B', pos: p.pos, goleiro: p.role === 'gk' });
     },
 
     /*

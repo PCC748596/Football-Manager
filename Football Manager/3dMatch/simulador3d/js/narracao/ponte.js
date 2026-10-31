@@ -400,6 +400,8 @@ const Ponte = {
         // A DECISAO do confronto (agregado anterior, se este jogo fecha uma copa) so vale no 3D visivel: o oculto nunca encena penaltis. A disputa de um jogo anterior, se ficou
         // a meio (ex.: o 3D fechado durante a reuniao), desfaz-se aqui para nao vazar para esta partida.
         Match.decisao = (m.decisao && this.modo === 'visivel') ? m.decisao : null;
+        // O lado do utilizador (o jogo espera pela troca do goleiro expulso dele; no oculto a CPU decide pelos dois) e sem goleiro pendente de um jogo anterior.
+        Match.ladoDoUtilizador = (this.modo === 'visivel') ? (m.taticaDe === 'fora' ? 'fora' : 'casa') : null; Match.goleiroPendente = null;
         if (typeof DisputaPenaltis !== 'undefined' && (DisputaPenaltis.activa || DisputaPenaltis.fase)) DisputaPenaltis._libertar();
         Match.disputa = null;
         Eventos.reset();

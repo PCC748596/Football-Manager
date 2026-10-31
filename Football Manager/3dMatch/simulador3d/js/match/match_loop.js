@@ -264,7 +264,7 @@ Object.assign(Match, {
             if (typeof TreinadorCPU !== 'undefined') TreinadorCPU.tick(dt);   // o treinador da CPU: tatica e substituicoes (js/treinador_cpu.js)
         }
         // Enquanto a troca dura o jogo ESPERA: so os jogadores andam (os que ja iam para o lugar da parada) — ver js/match/match_substituicoes.js.
-        if ((this.subsEmCurso || this._aguardaEntrantes(dt)) && this._paradaParaSubstituir()) {
+        if ((this.subsEmCurso || this._aguardaEntrantes(dt) || this._aguardaGoleiro(dt)) && this._paradaParaSubstituir()) {
             this.correrPausaDeJogo(dt);
             if (typeof Officials !== 'undefined') Officials.update(dt);
             if (typeof Bancos !== 'undefined') Bancos.update(dt);

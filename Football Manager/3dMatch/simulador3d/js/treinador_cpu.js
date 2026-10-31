@@ -276,6 +276,15 @@ const TreinadorCPU = {
         return (info.plantel || []).filter(j => !usados.has(j.id) && !emJogo.has(j.id)).map(j => ({ id: j.id, sk: j }));
     },
 
+    // Troca obrigatoria do goleiro expulso: sai o avancado mais adiantado, senao um medio, senao um defesa (o que nao esta no lance parado).
+    saidaParaGoleiro(team) {
+        const lista = (team === 'TeamA' ? Match.players : Match.opponents)
+            .filter(p => p.role !== 'gk' && !p.naBarreiraFalta && p !== Match.setPieceTaker && p !== Match.repositor && !p.queda);
+        const ordem = { atk: 0, ata: 0, mid: 1, def: 2 };
+        lista.sort((a, b) => ((ordem[a.role] ?? 3) - (ordem[b.role] ?? 3)) || (b.dirZ * b.model.position.z - a.dirZ * a.model.position.z));
+        return lista[0] || null;
+    },
+
     escolherReserva(team, papel, sai) {
         const rs = this.reservasDe(team).filter(r => r.sk && r.sk.role === papel && r.sk.role !== 'gk');
         if (!rs.length) return null;

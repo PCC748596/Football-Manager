@@ -41,6 +41,8 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const [eventoHud, setEventoHud] = useState<{ nome: string; esq: number; dir: number } | null>(null);
   // O relogio do 3D em segundos (mensagem `relogio`): o TEMPO mostra-se em MM:SS.
   const [relogio3d, setRelogio3d] = useState<number | null>(null);
+  // O goleiro do utilizador foi expulso e o time ainda esta sem goleiro (aviso ate o 3D mandar `goleiro_trocado`).
+  const [avisoGoleiro, setAvisoGoleiro] = useState(false);
   const eventoTimer = useRef<any>(null);
   const [pronto3d, setPronto3d] = useState(() => simulador3dPronto());
   /*
@@ -184,7 +186,12 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-slate-950 rounded-xl overflow-hidden border border-slate-900 shadow-2xl">
+    <div className="relative w-full h-full flex flex-col bg-slate-950 rounded-xl overflow-hidden border border-slate-900 shadow-2xl">
+      {avisoGoleiro && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[250] bg-rose-700 text-white text-xs font-black uppercase tracking-widest px-4 py-2 rounded-lg shadow-xl">
+          Goalkeeper sent off — take off an outfield player and bring on a goalkeeper
+        </div>
+      )}
         <div className="h-20 bg-slate-900 border-b border-slate-800 flex flex-col items-center justify-center relative z-20 overflow-hidden">
             <div className="w-full flex items-center justify-between px-8">
                 <div className="flex items-center gap-8">
@@ -365,6 +372,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                     iniciar={iniciou} pausado={iniciou && !gameState.isProcessing} aoPronto={() => setPronto3d(true)}
                     aoMensagem={(m) => {
                       // Tatica do painel do 3D -> manager (aba Tactics): so o que mudou de nivel.
+                      if (m.tipo === 'expulsao' && m.goleiro && m.lado === (match.homeTeamId === gameState.userTeamId ? 'A' : 'B')) setAvisoGoleiro(true);
                       if (m.tipo === 'tatica_alterada' && userTeam) {
                         const mudou = taticaDoMotor(m, userTeam.tactics);
                         if (Object.keys(mudou).length) updateTactics(userTeam.id, mudou);
@@ -374,6 +382,8 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         simulador3dSairDaTelaCheia();
                         if (gameState.isProcessing) pauseMatch();
                         setView?.('TACTICS');
+                      } else if (m.tipo === 'goleiro_trocado') {
+                        setAvisoGoleiro(false);
                       } else if (m.tipo === 'sair_tela_cheia') {
                         // O botao Sair da barra da tela cheia do 3D (tablet: sem ESC).
                         simulador3dSairDaTelaCheia();
