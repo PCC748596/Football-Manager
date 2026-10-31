@@ -1630,6 +1630,44 @@ Object.assign(Match, {
     },
 
     /*
+    O PENALTI DA DISPUTA: o que o ramo PENALTY do `setupSetPiece` faz para o batedor e o goleiro, SEM o resto: a fila da entrada da area e o teletransporte do batedor ficam de
+    fora, porque na disputa os outros 20 estao em coreografia (js/disputa_penaltis.js) e o batedor ja esta na espera (`posEsperaBatedor`). `sinalZ` (em Match.disputa) e a baliza
+    em uso. O gesto e a corrida sao os de sempre (match_loop.js, `penaltiPendente`).
+    */
+    iniciarPenaltiDaDisputa: function (batedor, goleiro) {
+        const D = this.disputa, DM = DisputaModel;
+        const marca = DM.posMarca(D.sinalZ);
+        this.ball.position.set(marca.x, BallPhysics.raio, marca.z);
+        this.ballVel.set(0, 0, 0);
+        this.players.concat(this.opponents).forEach(p => { p.hasBall = false; });
+        this.ballCarrier = null;
+        this._penPlano = null;
+        // Rede de seguranca: a coreografia ja deixa o batedor na espera; se ele vier de longe (uma corrida de dezenas de metros passaria o prazo do penalti, SetPiecePrazos),
+        // poe-se-lhe la, como o `setupSetPiece` faz no penalti em jogo.
+        const espera = DM.posEsperaBatedor(D.sinalZ), pb = batedor.model.position;
+        if (Math.hypot(pb.x - espera.x, pb.z - espera.z) > 3.0) pb.set(espera.x, ALTURA_BASE_Y, espera.z);
+        this.setPieceTeam = batedor.team;
+        this.setPieceTaker = batedor;
+        this.mudarEstado('PENALTY', 'disputa_penalti');
+        this.setPieceTeam = batedor.team;
+        this.setPieceTaker = batedor;
+        this.setPieceTimer = 0;
+        lookAtBola(batedor.model, this.ball.position);
+        batedor.fsm.changeState('SET_PIECE_WAIT');
+        if (goleiro) {
+            goleiro.model.position.set(0, ALTURA_BASE_Y, D.sinalZ * CAMPO_COMP / 2);
+            goleiro.gkEstado = 'idle';
+            goleiro.gkReagiu = false;
+            goleiro.gkDelayReacao = 0;
+            goleiro.dive = null;
+            lookAtBola(goleiro.model, this.ball.position);
+            goleiro.resetBonesToDefault();
+        }
+        this.penaltiPendente = true;
+        this.penaltiAtraso = DM.pausa.ajeitar + 0.6;
+    },
+
+    /*
     =========================================================================
     CARA A CARA — o avançado sozinho contra o guarda-redes
     =========================================================================

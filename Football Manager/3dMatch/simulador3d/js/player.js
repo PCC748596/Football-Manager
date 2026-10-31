@@ -4710,6 +4710,11 @@ class FootballPlayer {
             Abertura.passoDoJogador(this, dt);
             return;
         }
+        // A disputa de penaltis (js/disputa_penaltis.js) manda neste jogador enquanto ele caminha para a meia-lua, a fila ou o posto.
+        if (this.disputaOrdem && typeof DisputaPenaltis !== 'undefined' && DisputaPenaltis.activa) {
+            DisputaPenaltis.passoDoJogador(this, dt);
+            return;
+        }
         /*
         MOVER SEM PASSOS NAO EXISTE: se algo o deslocou entre dois frames (colisao, o proprio lance parado,
         a volta da queda) a mais de `ColisaoJogadores.deslizeMin` m/s com a velocidade a zero e sem gesto,

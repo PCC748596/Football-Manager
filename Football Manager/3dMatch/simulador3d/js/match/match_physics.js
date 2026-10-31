@@ -230,7 +230,9 @@ Object.assign(Match, {
             this.colidirComRede(zSinal);
             if (Math.abs(this.ball.position.x) < (LARGURA_BALIZA / 2 - 0.1) && this.ball.position.y < ALTURA_BALIZA) {
 
-                if (this.state === 'PLAY') {
+                if (this.disputa) {
+                    this.disputa.golNaBaliza();   // na disputa o gol nao conta no jogo: so o resultado da cobranca
+                } else if (this.state === 'PLAY') {
                     this.mudarEstado('GOAL', 'goal_scored');
                     this.goalSequenceStage = 0;
                     this.tempoParada = 0;
@@ -298,7 +300,9 @@ Object.assign(Match, {
                 }
 
                 } else {
-                if (this.state === 'PLAY') {
+                if (this.disputa) {
+                    this.disputa.bolaFora();
+                } else if (this.state === 'PLAY') {
                     /*
                     A BOLA SAIU SEM NINGUEM A TOCAR: nao ha fora-de-jogo
                     nenhum, ainda que o passe fosse dirigido a alguem em
@@ -1777,6 +1781,7 @@ Object.assign(Match, {
                     if (vn < 0) {
                         // Bateu no poste: quase golo (ver Match.talvezLamentar).
                         if (this.ultimoRemate) this.ultimoRemate.bateuNaTrave = true;
+                        if (this.disputa) this.disputa.bateuNaTrave = true;
                         v.x -= (1 + GoalFrame.restituicao) * vn * nx;
                         v.z -= (1 + GoalFrame.restituicao) * vn * nz;
                         v.x *= GoalFrame.atrito;
@@ -1799,6 +1804,7 @@ Object.assign(Match, {
                     if (vn < 0) {
                         // Bateu no travessao: quase golo (ver Match.talvezLamentar).
                         if (this.ultimoRemate) this.ultimoRemate.bateuNaTrave = true;
+                        if (this.disputa) this.disputa.bateuNaTrave = true;
                         v.y -= (1 + GoalFrame.restituicao) * vn * ny;
                         v.z -= (1 + GoalFrame.restituicao) * vn * nz;
                         v.y *= GoalFrame.atrito;

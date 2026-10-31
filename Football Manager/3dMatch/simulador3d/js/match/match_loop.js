@@ -9,7 +9,19 @@ Object.assign(Match, {
     NAO abriu o jogo. A 90:00 o jogo acaba (FIM_DE_JOGO) — fora dos lotes do
     `Sim`, que decidem eles proprios quando param. Devolve true se mudou de estado.
     */
+    // O APITO FINAL: fim de jogo, estatisticas e a saida de campo. Tambem e chamado pela disputa de penaltis quando acaba (ou e abortada).
+    encerrarJogo: function () {
+        this.mudarEstado('FIM_DE_JOGO', 'apito_final');
+        this.pararTodos();
+        // As estatisticas totais e a classificacao no fim do jogo (os mesmos paineis do intervalo).
+        if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(true, 'FIM DE JOGO');
+        if (typeof EfeitosSonoros !== 'undefined') EfeitosSonoros.apito(1.0);
+        // No fim do jogo os 22 e o trio tambem saem de campo, pelo vao da placa (como no intervalo).
+        if (typeof Abertura !== 'undefined' && Abertura.saidaIntervalo) Abertura.saidaIntervalo();
+    },
+
     verificarFimDeTempo: function () {
+        if (this.disputa) return false;
         if (this.state !== 'PLAY') return false;
         const meio = MatchDuration.halfGameMinutes * 60;
         const emLote = (typeof Sim !== 'undefined' && Sim.running);
@@ -40,13 +52,9 @@ Object.assign(Match, {
             }
             if (this.acr2Calculado && this.tempoDeJogo >= fimBase + this.acrescimo2) {
                 this.updatePlacar();
-                this.mudarEstado('FIM_DE_JOGO', 'apito_final');
-                this.pararTodos();
-                // As estatisticas totais e a classificacao no fim do jogo (os mesmos paineis do intervalo).
-                if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(true, 'FIM DE JOGO');
-                if (typeof EfeitosSonoros !== 'undefined') EfeitosSonoros.apito(1.0);
-                // No fim do jogo os 22 e o trio tambem saem de campo, pelo vao da placa (como no intervalo).
-                if (typeof Abertura !== 'undefined' && Abertura.saidaIntervalo) Abertura.saidaIntervalo();
+                // Copa empatada, vista em 3D: a disputa de penaltis (js/disputa_penaltis.js) encena-se antes do apito final.
+                if (typeof DisputaPenaltis !== 'undefined' && !this.disputa && DisputaPenaltis.podeIniciar()) { DisputaPenaltis.iniciar(); return true; }
+                this.encerrarJogo();
                 return true;
             }
         }
@@ -235,9 +243,26 @@ Object.assign(Match, {
         for (let p of this.players) { p.debugPoints = null; }
         for (let p of this.opponents) { p.debugPoints = null; }
         this.delta = dt;
+        // A DISPUTA DE PENALTIS (js/disputa_penaltis.js): o relogio, as trocas e a IA do treinador ficam parados; nas fases de coreografia (estado DISPUTA) so andam os
+        // jogadores, os oficiais e o pessoal. Na cobranca o estado e PENALTY/PLAY e o jogo corre como num penalti, com os outros 20 em `disputaOrdem`.
+        if (this.disputa) {
+            this.disputa.update(dt);
+            if (this.state === 'DISPUTA') {
+                this.players.forEach(p => p.update(dt));
+                this.opponents.forEach(p => p.update(dt));
+                if (typeof Officials !== 'undefined') Officials.update(dt);
+                if (typeof Bancos !== 'undefined') Bancos.update(dt);
+                if (typeof Staff !== 'undefined' && Staff.update) Staff.update(dt);
+                if (typeof Crowd !== 'undefined' && !(typeof Config !== 'undefined' && Config.enableCrowd === false)) Crowd.update(dt);
+                this.somDoEstadio(dt);
+                return;
+            }
+        }
         // As substituicoes pedidas pelo manager fazem-se numa parada (js/match/match_substituicoes.js).
-        if (this.tickSubstituicoes) this.tickSubstituicoes(dt);
-        if (typeof TreinadorCPU !== 'undefined') TreinadorCPU.tick(dt);   // o treinador da CPU: tatica e substituicoes (js/treinador_cpu.js)
+        if (!this.disputa) {
+            if (this.tickSubstituicoes) this.tickSubstituicoes(dt);
+            if (typeof TreinadorCPU !== 'undefined') TreinadorCPU.tick(dt);   // o treinador da CPU: tatica e substituicoes (js/treinador_cpu.js)
+        }
         // Enquanto a troca dura o jogo ESPERA: so os jogadores andam (os que ja iam para o lugar da parada) — ver js/match/match_substituicoes.js.
         if ((this.subsEmCurso || this._aguardaEntrantes(dt)) && this._paradaParaSubstituir()) {
             this.correrPausaDeJogo(dt);
@@ -303,7 +328,7 @@ Object.assign(Match, {
         const clockScale = MatchDuration.timeScale;
         // Depois da saida de bola do 2.o tempo (estado PLAY, sem saida pendente) o relogio volta a contar.
         if (this.aguardaSaida2T && this.state === 'PLAY' && !this.kickoffActive) this.aguardaSaida2T = false;
-        if (!this.aguardaSaida2T) this.tempoDeJogo += dt * clockScale;
+        if (!this.aguardaSaida2T && !this.disputa) this.tempoDeJogo += dt * clockScale;
         if (this.verificarFimDeTempo()) return;
         // Relógio em segundos simulados, para a telemetria do passe (o
         // tempoDeJogo acima vem multiplicado pelo timeScale).
@@ -1324,6 +1349,8 @@ Object.assign(Match, {
         for (let i = 0; i < allPlayers.length; i++) {
             for (let j = i + 1; j < allPlayers.length; j++) {
                 const a = allPlayers[i]; const b = allPlayers[j];
+                // Na disputa quem esta em coreografia (`disputaOrdem`) nao e empurrado: fica onde esta, mesmo com o batedor a correr junto dele.
+                if (this.disputa && (a.disputaOrdem || b.disputaOrdem)) continue;
                 const dx = a.model.position.x - b.model.position.x;
                 const dz = a.model.position.z - b.model.position.z;
                 const distSq = dx * dx + dz * dz;
