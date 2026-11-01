@@ -445,7 +445,9 @@ Object.assign(Match, {
                     });
                 });
 
-                if (allInPosition || this.tempoParada > PRAZO_CAMINHADA_SAIDA) {
+                // A entrada dos times (abertura.js `terminar`) pede mais tempo: saem do tunel, bem atras do que no golo, e no fim apareciam teletransportados.
+                if (allInPosition || this.tempoParada > (this.prazoCaminhadaAbertura || PRAZO_CAMINHADA_SAIDA)) {
+                    this.prazoCaminhadaAbertura = 0;
                     this.tempoParada = 0;
                     this.goalSequenceStage = 2;
                 }
@@ -1116,7 +1118,14 @@ Object.assign(Match, {
         nenhuma. O peito e a cabeça não chegam aqui: saem nos ramos deles, e
         esses limpam a marca.
         */
-        if (typeof registarToqueComPe === 'function') registarToqueComPe(best, true);
+        /*
+        UM REMATE QUE BATE NUM JOGADOR NAO E RECUO (pedido: *"se depois de um chute a bola pegar num jogador e for para o goleiro ele pode pegar com a mao; so nao pode se o recuo for
+        intencional de um jogador do proprio time"*). Se a bola vinha de um remate do adversario (o ultimo toque foi o do rematador, ha pouco), o toque do defesa e um bloqueio: nao marca o
+        recuo e devolve as maos ao guarda-redes. O recuo que ele faz DEPOIS, de proposito, marca no passe (executePassGameplay) e no alivio (player_bt).
+        */
+        const remate = this.ultimoRemate;
+        const bloqueouRemate = !!(remate && remate.p && remate.p === this.lastTouchedPlayer && remate.p.team !== best.team && remate.idade < 3.0);
+        if (typeof registarToqueComPe === 'function') registarToqueComPe(best, !bloqueouRemate);
         else this.recuoParaGR = null;
         // Alguém dominou a bola: a sequência de peitos acabou.
         this.peitosSeguidos = 0;

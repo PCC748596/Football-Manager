@@ -2129,6 +2129,8 @@ const Officials = {
 
             rig.lLeg.rotation.x = P.lHip * amp; rig.lKnee.rotation.x = P.lKnee * amp;
             rig.rLeg.rotation.x = P.rHip * amp; rig.rKnee.rotation.x = P.rKnee * amp;
+            // Os pes tambem (como no `aplicarPosePassada` dos jogadores): sem eles ficavam na ultima pose (ponta do pe) — relato: o jogador substituido sai de campo a correr na ponta do pe.
+            rig.lFoot.rotation.x = P.lFoot * amp; rig.rFoot.rotation.x = P.rFoot * amp;
             rig.lArm.rotation.x = P.lArm * amp; rig.rArm.rotation.x = P.rArm * amp;
             rig.lElbow.rotation.x = P.cotovelo; rig.rElbow.rotation.x = P.cotovelo;
             rig.chest.rotation.x = P.tronco * amp;
@@ -2148,6 +2150,7 @@ const Officials = {
             for (let i = 0; i < ossos.length; i++) {
                 rig[ossos[i]].rotation.x = lerpTo(rig[ossos[i]].rotation.x, 0, 0.2);
             }
+            rig.lFoot.rotation.x = lerpTo(rig.lFoot.rotation.x, 0, 0.2); rig.rFoot.rotation.x = lerpTo(rig.rFoot.rotation.x, 0, 0.2);
             rig.lElbow.rotation.x = lerpTo(rig.lElbow.rotation.x, -0.3, 0.2);
             rig.rElbow.rotation.x = lerpTo(rig.rElbow.rotation.x, -0.3, 0.2);
             rig.chest.rotation.x = lerpTo(rig.chest.rotation.x, 0, 0.2);

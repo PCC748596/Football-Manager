@@ -1464,6 +1464,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         SEGURANCAS (colete amarelo) dentro da passagem, do lado da casa, um a cada `CrowdModel.divisoria.cadaFilas` filas. A fronteira e o meio da faixa de mescla de `claqueEm`.
         */
         this._tirarDivisorias();
+        const escolhidosInicio = new Set(lugaresEscolhidos), colunasLivres = [];   // para repor, no setor visitante, a gente que ele nao enche (ver abaixo)
         const DV = CrowdModel.divisoria;
         if (DV && DV.ativa && THREE && this._visT !== undefined) {
             const m = Math.max(1e-6, CrowdModel.visitanteMescla);
@@ -1505,6 +1506,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                     const l = lugaresEscolhidos[i], d = coord(l) - ln.f;
                     if (ln.ok(l) && d > -0.05 && d < DV.colunaLivre) lugaresEscolhidos.splice(i, 1);
                 }
+                colunasLivres.push((l) => { const d = coord(l) - ln.f; return ln.ok(l) && d > -0.05 && d < DV.colunaLivre; });
             }
             nTotal = lugaresEscolhidos.length;
             this._criarDivisorias(scene, grades, seguros, DV);
@@ -1519,13 +1521,25 @@ void crowdPesos(out float dePe, out float w1, out float w2,
             if (rel < 1) {
                 const M = CrowdModel, m = Math.max(1e-6, M.visitanteMescla);
                 const vT = this._visT, vU = this._visU;
-                for (let i = lugaresEscolhidos.length - 1; i >= 0; i--) {
-                    const l = lugaresEscolhidos[i];
+                const peso = (l) => {
                     const t = (l.z - zMin) / spanZ;
                     let u = (l.x - xMin) / spanX; if (M.visitanteEmFrente) u = 1 - u;
-                    const w = ((t <= vT + m / 2) ? 1 : 0) * ((u >= vU - m / 2) ? 1 : 0);
-                    if (w > 0 && rnd() < w * (1 - rel)) lugaresEscolhidos.splice(i, 1);
+                    return ((t <= vT + m / 2) ? 1 : 0) * ((u >= vU - m / 2) ? 1 : 0);
+                };
+                /*
+                O PUBLICO NAO MUDA (pedido: capacidade 19 706, 19 076 na bancada e lugares vazios no setor visitante): os adeptos que o visitante nao traz sentam-se na casa, em lugares ainda livres
+                (fora do canto, das passagens das divisorias e dos escolhidos). So se esvazia o setor visitante ate onde ha lugar na casa para os repor: estadio cheio = setor visitante cheio.
+                */
+                const livres = [];
+                for (const i of ordem) { const l = lugares[i]; if (!escolhidosInicio.has(l) && peso(l) === 0 && !colunasLivres.some(f => f(l))) livres.push(l); }
+                const tirar = [];
+                for (let i = lugaresEscolhidos.length - 1; i >= 0 && tirar.length < livres.length; i--) {
+                    const w = peso(lugaresEscolhidos[i]);
+                    if (w > 0 && rnd() < w * (1 - rel)) tirar.push(i);
                 }
+                for (const i of tirar) lugaresEscolhidos.splice(i, 1);   // `tirar` vem por ordem decrescente: os indices que faltam continuam validos
+                for (let k = 0; k < tirar.length; k++) lugaresEscolhidos.push(livres[k]);
+                lugaresEscolhidos.sort((a, b) => Math.atan2(a.z, a.x) - Math.atan2(b.z, b.x));
                 nTotal = lugaresEscolhidos.length;
             }
         }

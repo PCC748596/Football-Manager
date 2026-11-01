@@ -2158,7 +2158,19 @@ class PlayerFSM {
                         p.dynamicTarget.z = Math.max(minZ, Math.min(maxZ, p.dynamicTarget.z));
                         p.dynamicTarget.x = Math.max(-18, Math.min(18, p.dynamicTarget.x));
                         if ((p.model.position.z - p.ownGoalZ) * p.dirZ >= 13) {
-                            p.puntBall();
+                            /*
+                            O CHUTAO DE QUEM CONDUZ A BOLA (ex.: dominou um recuo com o pe) TEM O GESTO DO TIRO DE META (relato: *"o goleiro chuta pra frente, mas sem a animacao do chute"*).
+                            O `puntBall` directo largava a bola sem gesto nenhum. Solta-se a posse (a bola fica no chao, a frente dele) e o gesto da o contacto, como no recuo de urgencia.
+                            Em lote (sem animacao) fica o `puntBall` de sempre.
+                            */
+                            if (typeof Sim !== 'undefined' && Sim.running) p.puntBall();
+                            else if (!p.gkKickAction && p.gkEstado !== 'chutando') {
+                                p.hasBall = false; Match.ballCarrier = null; p.velocity.set(0, 0, 0);
+                                p.chutarComGestoDeTiroDeMeta(() => {
+                                    p.kickFromGround();
+                                    if (typeof registarToqueComPe === 'function') registarToqueComPe(p, true);
+                                });
+                            }
                         }
                     }
                     p.velocity = p.steerArrive(p.dynamicTarget, p.speedMult * 0.95, 0);

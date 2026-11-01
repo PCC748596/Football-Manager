@@ -1389,7 +1389,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setFixtures(prev => prev.map(f => (f.id === uf.id ? { ...f, homeScore: m.placar.casa, awayScore: m.placar.fora } : f)));
     } else if (m.tipo === 'intervalo_iniciado') {
       // As estatisticas abriram no 3D: manda a classificacao ate este momento (com o resultado provisorio do jogo em curso).
-      const linhas = classificacaoDoIntervalo(uf);
+      // So jogos de campeonato: no intervalo de uma copa a tabela da liga nao se mostra.
+      const linhas = uf.type !== 'CUP' ? classificacaoDoIntervalo(uf) : [];
       if (linhas.length) simulador3dEnviar({ tipo: 'classificacao', linhas, emCurso: (classificacaoDoIntervalo as any).ultimoEmCurso || 0 });
       // As notas dos jogadores ate este momento, no mesmo ecra das estatisticas (nome curto e nota, de cada equipa, pela nota).
       try {

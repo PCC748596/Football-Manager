@@ -483,6 +483,7 @@ const Abertura = {
         }
         // Estado GOAL so para a caminhada: o som da torcida fica, mas sem o grito de golo (ver ambiente_sonoro.js).
         Match.semFestaDeGolo = true;
+        Match.prazoCaminhadaAbertura = (this.modo !== 'segundo') ? 25.0 : 0;   // a entrada pelo tunel: mais tempo que a caminhada do golo (PRAZO_CAMINHADA_SAIDA)
         Match.mudarEstado('GOAL', 'abertura_fim');
         Match.goalSequenceStage = 1;
         Match.tempoParada = 0;
