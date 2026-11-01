@@ -63,6 +63,7 @@ const TRANSLATIONS: Record<string, any> = {
     cam_orbit: "Orbit", cam_center: "TV Centre", cam_sideline: "Moving Sideline", cam_lateraltv: "TV Sideline", cam_grua: "Crane", cam_cinema: "Cinema",
     fx_type: "Type", fx_date: "Date", fx_home: "Home", fx_result: "Result", fx_away: "Away", fx_status: "Status",
     ly_continue: "CONTINUE", ly_simulating: "SIMULATING...", ly_match_week: "Match Week",
+    set_tablet: "Tablet Mode (4:3)", set_tablet_desc: "Runs the game inside a frame with the real tablet size (iPad landscape, 1180 x 820) so the screens look as they do on the tablet.", set_tablet_aviso: "Reloads the page: save the game first (the current game is not kept).", set_tablet_janela: "Window now", set_tablet_quadro: "Tablet frame (width × height)", set_on: "ON", set_off: "OFF",
     // Tactics
     tac_match: "Match", tac_tactics: "Tactics", tac_formation: "Formation",
     tac_instr: "Tactical Instructions", tac_style: "Play Style", tac_aggression: "Aggression",
@@ -132,6 +133,7 @@ const TRANSLATIONS: Record<string, any> = {
     cam_orbit: "Órbita", cam_center: "TV Centro", cam_sideline: "Lateral Móvel", cam_lateraltv: "TV Lateral", cam_grua: "Grua", cam_cinema: "Cinema",
     fx_type: "Tipo", fx_date: "Data", fx_home: "Casa", fx_result: "Resultado", fx_away: "Fora", fx_status: "Situação",
     ly_continue: "CONTINUAR", ly_simulating: "SIMULANDO...", ly_match_week: "Semana de Jogos",
+    set_tablet: "Modo Tablet (4:3)", set_tablet_desc: "Roda o jogo num quadro com o tamanho real do tablet (iPad deitado, 1180 x 820) para as telas ficarem como no tablet.", set_tablet_aviso: "Recarrega a página: salve o jogo antes (o jogo atual não é mantido).", set_tablet_janela: "Janela agora", set_tablet_quadro: "Quadro do tablet (largura × altura)", set_on: "LIGADO", set_off: "DESLIGADO",
     // Tactics
     tac_match: "Partida", tac_tactics: "Tática", tac_formation: "Esquema",
     tac_instr: "Instruções Táticas", tac_style: "Estilo", tac_aggression: "Agressividade",

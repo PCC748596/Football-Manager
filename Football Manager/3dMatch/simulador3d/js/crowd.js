@@ -1362,13 +1362,15 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         const canais = Object.keys(geos);
         
         let crowdLimit = CrowdModel.total;
+        let emTablet = false;
         if (typeof window !== 'undefined') {
             const ponteiroGrosso = window.matchMedia
                 ? window.matchMedia('(pointer: coarse)').matches
                 : (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
             // So ecra de TOQUE conta como tablet/telemovel: a largura da janela nao (o 3D dentro do manager, no PC, e um iframe estreito e ficava com a torcida cortada a 5000).
             const isTabletOrMobile = ponteiroGrosso && (navigator.maxTouchPoints > 0 || 'ontouchstart' in window);
-            if (isTabletOrMobile) crowdLimit = 5000;
+            // SEM TETO NO TABLET (pedido): a torcida e a de qualquer ecra (so as fatias menores, `tamanhoDaFatiaTablet`, para o corte do que esta fora do ecra).
+            emTablet = isTabletOrMobile;
         }
         
         /*
@@ -1558,7 +1560,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
 
         // 4 InstancedMesh (um por canal de cor) para o total de adeptos
         // Fatias de ~1500 adeptos (por angulo, em volta do estadio): permitem NAO desenhar o que esta fora do ecra (ver `cullar`). Uma fatia so (`nTotal`) desenhava a torcida toda sempre.
-        const TAMANHO_CHUNK = Math.max(1, ((crowdLimit < CrowdModel.total) ? CrowdModel.tamanhoDaFatiaTablet : CrowdModel.tamanhoDaFatia) || nTotal);
+        const TAMANHO_CHUNK = Math.max(1, (emTablet ? CrowdModel.tamanhoDaFatiaTablet : CrowdModel.tamanhoDaFatia) || nTotal);
         this._esferas = [];
         const numChunks = Math.ceil(nTotal / TAMANHO_CHUNK);
         this._grupos = [];

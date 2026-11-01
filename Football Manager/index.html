@@ -81,6 +81,14 @@
         transition: background-color 0.3s ease;
       }
       
+      /* MODO TABLET (Configuracoes): o jogo corre numa caixa 4:3 centrada (iPad), para afinar as telas do tablet no computador. */
+      html.modo-tablet body { background: #000; }
+      html.modo-tablet .game-container {
+        position: absolute; inset: 0; margin: auto;
+        width: min(100vw, calc(100vh * 4 / 3));
+        height: min(100vh, calc(100vw * 3 / 4));
+      }
+
       .dark .game-container {
         background-color: #0f172a;
         box-shadow: 0 0 100px rgba(0,0,0,0.8), 0 0 20px rgba(59,130,246,0.1);
