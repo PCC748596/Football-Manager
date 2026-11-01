@@ -155,6 +155,8 @@ const DisputaPenaltis = {
         if (c.papelGuardado) c.batedor.role = c.papelGuardado;
         // `manterBaliza` (o fim normal): a baliza do time volta quando eles entram em coreografia (`_parte`), nao ja — ver `_fimDaCobranca`.
         if (!manterBaliza) this._reporLados(c.batedor, c.goleiro);
+        // O goleiro que bateu volta a ser goleiro ja: com a baliza de ATACANTE (a do outro lado) o `updateGK` prendia-o a area errada e ele saltava ~5 m (ou o campo todo).
+        else if (c.papelGuardado) { const meio = CAMPO_COMP / 2; c.batedor.dirZ = -this.sinalZ; c.batedor.targetGoalZ = -meio * this.sinalZ; c.batedor.ownGoalZ = meio * this.sinalZ; }
         Match.penaltiPendente = false;
         Match.penaltiEmVoo = 0;
         [c.batedor, c.goleiro].forEach(p => { if (p) { p.velocity.set(0, 0, 0); p.hasBall = false; if (p.fsm) p.fsm.changeState('IDLE'); } });
@@ -487,6 +489,12 @@ const DisputaPenaltis = {
         this.abortarCobranca();
         if (this._levantar) this._levantar.jogadores.forEach(p => this._reporLados(p));
         this._proximaPendente = null; this.card = null;
+        // Os goleiros ficam apontados a baliza da disputa: se voltassem ao lado do time, o `updateGK` do estado seguinte prendia-os a area da OUTRA baliza e o goleiro era
+        // teletransportado para o outro lado do campo (relato: "as vezes o goleiro e resetado para o meio do campo"). So antes da primeira cobranca (reuniao/ordem) nao se aplica.
+        if (this.fase && this.fase !== 'REUNIAO' && this.fase !== 'ORDEM') {
+            const meio = CAMPO_COMP / 2;
+            Match.players.concat(Match.opponents).filter(p => p.role === 'gk').forEach(g => { g.dirZ = -this.sinalZ; g.targetGoalZ = -meio * this.sinalZ; g.ownGoalZ = meio * this.sinalZ; });
+        }
         for (const s of this.partes) if (s.tipo === 'jog') { s.obj.disputaOrdem = null; s.model.visible = true; }
         this.partes = []; this.activa = false; this.fase = null; this.bolaComJuiz = false; this._levantar = null;
         Match.disputa = null;

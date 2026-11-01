@@ -78,6 +78,10 @@ verifica(vistas.every((u, i) => i === 0 || u.lado !== vistas[i - 1].lado), 'os l
 const fim = msgs.find(m => m.tipo === 'disputa_fim');
 verifica(fim && fim.dados.pens[0] === 2 && fim.dados.pens[1] === 1, 'disputa_fim com os penaltis da app', 'disputa_fim em falta ou errada');
 verifica(Match.state === 'FIM_DE_JOGO' && !Match.disputa && !DisputaPenaltis.activa, 'so depois: FIM_DE_JOGO', 'estado final: ' + Match.state);
+// Acabada a disputa os goleiros nao sao teletransportados para a area da outra baliza (relato: "as vezes o goleiro e resetado para o meio do campo").
+for (let i = 0; i < 120; i++) Match.update(dt);
+const gksFim = [Match.players, Match.opponents].map(l => l.find(p => p.role === 'gk'));
+verifica(gksFim.every(g => g && Math.abs(g.model.position.z) >= 44), 'no fim da disputa os dois goleiros continuam junto da baliza', 'um goleiro foi levado para longe da baliza no fim: z = ' + gksFim.map(g => g && g.model.position.z.toFixed(1)).join(' / '));
 verifica(Match.placarA === 1 && Match.placarB === 1, 'o placar do jogo ficou 1-1', `placar: ${Match.placarA}-${Match.placarB}`);
 
 // Um jogo de copa empatado ate a DISPUTA, com o 3D recem-criado.
@@ -147,7 +151,8 @@ verifica(!!DisputaPenaltis._cobranca && gkCasa.role !== 'gk', 'a cobranca do gol
 DisputaPenaltis._abortar();
 verifica(gkCasa.role === 'gk', 'o goleiro-batedor voltou a ser gk', 'o goleiro-batedor ficou sem o papel gk');
 const meioC = CAMPO_COMP / 2;
-verifica([gkCasa, gkFora].every(p => p.dirZ === Lados.dirDe(p.team) && p.targetGoalZ === meioC * Lados.dirDe(p.team) && p.ownGoalZ === -meioC * Lados.dirDe(p.team)), 'a baliza do time foi reposta aos dois', 'os campos da baliza ficaram trocados');
+// Os dois goleiros ficam a defender a baliza da disputa (nao a do time): a do time prendia-os a area da outra baliza e eles eram teletransportados ("goleiro resetado para o meio do campo").
+verifica([gkCasa, gkFora].every(p => p.ownGoalZ === meioC * DisputaPenaltis.sinalZ && p.targetGoalZ === -meioC * DisputaPenaltis.sinalZ), 'os dois goleiros ficam a defender a baliza da disputa', 'os campos da baliza dos goleiros ficaram trocados');
 verifica(!Match.disputa && !DisputaPenaltis.activa && !Match.penaltiPendente && Match.state === 'FIM_DE_JOGO', 'o jogo acabou sem disputa nem penalti pendente', 'estado final: ' + Match.state);
 verifica(Match.players.concat(Match.opponents).every(p => !p.disputaOrdem), 'ninguem ficou preso na coreografia', 'alguem ficou com disputaOrdem');
 

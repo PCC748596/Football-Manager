@@ -77,7 +77,8 @@ verifica(r3 !== null, `o goleiro bateu: ${r3}`, 'a cobranca do goleiro nao acabo
 // O resultado chega logo; o lance ainda corre o DESFECHO (DisputaModel.pausa.desfecho*) e so no fim dele o papel volta.
 for (let n = 0; DisputaPenaltis._cobranca && n < 60 * 10; n++) Match.update(dt);
 verifica(gkA.role === 'gk', 'o papel gk foi reposto', 'o goleiro ficou sem o papel gk');
-verifica(gkA.dirZ === Lados.dirDe(gkA.team) && gkA.targetGoalZ === (CAMPO_COMP / 2) * Lados.dirDe(gkA.team), 'a baliza do time foi reposta ao goleiro-batedor', 'o goleiro-batedor ficou a apontar para a baliza da disputa');
+// O goleiro que bateu volta a defender a baliza da disputa (a do time prendia-o a area da outra baliza).
+verifica(gkA.ownGoalZ === (CAMPO_COMP / 2) * DisputaPenaltis.sinalZ && gkA.targetGoalZ === -(CAMPO_COMP / 2) * DisputaPenaltis.sinalZ, 'o goleiro-batedor volta a defender a baliza da disputa', 'o goleiro-batedor ficou a apontar para a baliza errada');
 
 DisputaPenaltis.activa = false; Match.disputa = null;
 if (falhas) { console.log(`\n${falhas} falha(s)`); process.exit(1); }
