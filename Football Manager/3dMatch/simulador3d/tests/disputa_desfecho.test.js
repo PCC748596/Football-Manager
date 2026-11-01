@@ -14,7 +14,7 @@ const ok = m => console.log('  . ' + m);
 const erro = m => { console.log('  X ' + m); falhas++; };
 const verifica = (cond, bom, mau) => { if (cond) ok(bom); else erro(mau); };
 
-let semente = 123;
+let semente = 3;
 Math.random = () => { semente = (semente + 0x6D2B79F5) | 0; let t = Math.imul(semente ^ (semente >>> 15), 1 | semente); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 
 // Espias: o apito (EfeitosSonoros nao vem no harness) e a comemoracao.
@@ -95,7 +95,7 @@ for (const [i, x] of kicks.entries()) {
         verifica(x.festejou, `${rot}: o batedor chega a festa (estado COMEMORAR; correu ${(x.maxDesloc || 0).toFixed(1)} m)`, `${rot}: o batedor nao comemorou (o posicionamento da equipa levou-o: correu ${(x.maxDesloc || 0).toFixed(1)} m)`);
         verifica(!x.festaDepois && x.alertaDepois === '0', `${rot}: festa e aviso acabam com o desfecho`, `${rot}: a festa ficou depois do desfecho`);
     } else {
-        verifica(!x.festaVista, `${rot}: sem festa`, `${rot}: festa num nao-golo`);
+        verifica(x.festaVista && !x.alertaVisto, `${rot}: a torcida do OUTRO time festeja (festa), sem aviso GOOL`, `${rot}: festa ${x.festaVista} aviso ${x.alertaVisto} (esperada festa sem aviso)`);
         verifica(!x.gkMau, `${rot}: goleiro visivel e na area durante o desfecho`, `${rot}: goleiro ${x.gkMau}`);
     }
 }

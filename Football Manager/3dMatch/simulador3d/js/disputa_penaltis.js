@@ -104,8 +104,11 @@ const DisputaPenaltis = {
     _iniciarDesfecho() {
         const c = this._cobranca, DM = DisputaModel;
         const P = DM.pausa;
+        c.gkSegurou = !!(c.goleiro && c.goleiro.hasBall);   // ficou com a bola: no fim ele a atira ao juiz
         c.desfecho = { t: 0, dur: c.resultado === 'gol' ? (P.desfechoGol || 4.5) : c.resultado === 'defesa' ? (P.desfechoDefesa || 2.5) : (P.desfechoFora || 2.5) };
         if (c.resultado === 'gol') this._reacaoDeGolo(c);
+        // Quem bate e PERDE (defesa, trave, fora): a torcida do OUTRO time vibra e grita GOOOL (a `festa` e a mesma do golo, para a equipa do goleiro, sem aviso GOOL nem apito).
+        else this.festa = { equipa: (c.batedor.team === 'TeamA') ? 'TeamB' : 'TeamA', t: 0 };
         // O batedor nao fica solto no desfecho (o estado e PLAY e a arvore do jogo levava-o para o posto da formacao — um goleiro que batia, com o papel 'atk', atravessava o
         // campo): se nao comemora, sai ja da jogada (o resultado pode chegar antes do `pausa.aposContato` do `update`).
         if (!c.comemora && !this._soltou) this._soltarBatedor(c);
@@ -177,8 +180,10 @@ const DisputaPenaltis = {
         this._levantar = { t: 0, jogadores: [c.batedor, c.goleiro].filter(Boolean) };
         Match.mudarEstado('DISPUTA', 'fim_da_cobranca');
         Match.ballVel.set(0, 0, 0);
-        // So agora (acabado o desfecho) a bola vai para a mao do juiz, que a leva para a cobranca seguinte.
+        // So agora (acabado o desfecho) a bola vai para a mao do juiz, que a leva para a cobranca seguinte. Se o goleiro ficou com ela, ATIRA-A ao juiz (arco ate a mao dele);
+        // senao ela vai direto (rolou para fora / ficou na rede).
         this.bolaComJuiz = true;
+        if (c.gkSegurou) { const b = Match.ball.position; this._passeJuiz = { t: 0, dur: 1.0, x0: b.x, y0: Math.max(BallPhysics.raio, b.y), z0: b.z, gk: c.goleiro }; }
         if (c.aoFim) c.aoFim(c.resultado);
     },
 
@@ -194,7 +199,8 @@ const DisputaPenaltis = {
                 const passo = Math.min(d, s.vel * dt);
                 pos.x += dx / d * passo; pos.z += dz / d * passo;
                 p.velocity.set(dx / d * s.vel, 0, dz / d * s.vel);
-                s.yawAlvo = Math.atan2(dx, dz);
+                // ANDAR DE COSTAS (`re`): de frente para onde olha (o gol / a bola) enquanto o corpo vai para o lado oposto — o `animateBones` le a frente contra a velocidade e faz a passada de re.
+                s.yawAlvo = (s.re && s.olhar) ? Math.atan2(s.olhar.x - pos.x, s.olhar.z - pos.z) : Math.atan2(dx, dz);
             }
         }
         if (s.i >= s.wps.length) {
@@ -221,6 +227,29 @@ const DisputaPenaltis = {
             }
         }
         p.animateBones(dt);
+        // OS COLEGAS FESTEJAM A BATIDA FAVORAVEL (golo do time deles ou erro do adversario): ja nos postos, pulam de bracos no ar. Nao o batedor (comemora a parte). Os goleiros tambem vibram (o da cobranca, se defendeu, depois de se levantar: ver o desfecho).
+        const fe = this.festa, cb = this._cobranca;
+        if (fe && fe.equipa === p.team && s.chegou && rg && !(cb && p === cb.batedor)) {
+            if (s.faseFesta === undefined) s.faseFesta = Math.random() * 6.28;
+            const ondaP = Math.abs(Math.sin(fe.t * 8 + s.faseFesta));
+            p.model.position.y = ALTURA_BASE_Y + 0.34 * ondaP;
+            const bx = -2.6 + Math.sin(fe.t * 11 + s.faseFesta) * 0.25;
+            rg.lArm.rotation.x = bx; rg.rArm.rotation.x = bx;
+            rg.lArm.rotation.z = 0.25; rg.rArm.rotation.z = -0.25;
+            rg.lElbow.rotation.x = -0.3; rg.rElbow.rotation.x = -0.3;
+            rg.lLeg.rotation.x = -0.25 * ondaP; rg.rLeg.rotation.x = -0.25 * ondaP;
+        }
+        // O BATEDOR SE ABAIXA PARA AJEITAR A BOLA, como o goleiro se abaixa para apanha-la (GoalkeeperPose.apanhar + as solas e as palmas por IK), antes de recuar para bater.
+        if (s.agachar && Match.ball && typeof GoalkeeperPose !== 'undefined' && GoalkeeperPose.apanhar && rg) {
+            const P = GoalkeeperPose.apanhar, L = (a, b) => a + (b - a) * 0.5;
+            rg.lLeg.rotation.x = L(rg.lLeg.rotation.x, P.coxa); rg.rLeg.rotation.x = L(rg.rLeg.rotation.x, P.coxa);
+            rg.lKnee.rotation.x = L(rg.lKnee.rotation.x, P.joelho); rg.rKnee.rotation.x = L(rg.rKnee.rotation.x, P.joelho);
+            rg.lArm.rotation.x = L(rg.lArm.rotation.x, P.bracoX); rg.rArm.rotation.x = L(rg.rArm.rotation.x, P.bracoX);
+            rg.lElbow.rotation.x = L(rg.lElbow.rotation.x, P.cotovelo); rg.rElbow.rotation.x = L(rg.rElbow.rotation.x, P.cotovelo);
+            rg.chest.rotation.x = L(rg.chest.rotation.x, P.chest);
+            p.model.position.y = L(p.model.position.y, ALTURA_BASE_Y + P.altura);
+            if (p.apanharPorIK) p.apanharPorIK(p.model, rg, P);
+        }
     },
 
     // ----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -366,6 +395,7 @@ const DisputaPenaltis = {
                 this._parte('jog', p, p.model, [DM.posGoleiroEspera(this.sinalZ, ladoAssist)], vel.goleiro, marca); continue;
             }
             const slot = this._slots.get(p);
+            // Para o meio-campo / o posto anda-se SEMPRE de frente (de costas so o batedor, a tomar a distancia da batida).
             this._parte('jog', p, p.model, [slot], vel.jogador, { x: 0, z: this.sinalZ * 20 });
         }
         const arb = Officials.arbitro, j = DM.posJuiz(this.sinalZ);
@@ -392,8 +422,14 @@ const DisputaPenaltis = {
         }
         if (this._cobranca && this._cobranca.desfecho) {
             // O desfecho: o lance corre como em jogo; no fim todos param e a disputa segue.
-            const d = this._cobranca.desfecho;
+            const c0 = this._cobranca, d = c0.desfecho;
             d.t += dt;
+            // O goleiro que DEFENDEU (ou viu o adversario falhar) tambem festeja: depois de se levantar passa a coreografia no sitio onde esta (a festa pula-o la em `passoDoJogador`).
+            if (this.festa && c0 && c0.goleiro && this.festa.equipa === c0.goleiro.team && !c0._gkFesta && d.t > (DisputaModel.pausa.levantar || 0.8) + 0.3) {
+                c0._gkFesta = true;
+                const q = c0.goleiro.model.position;
+                this._parte('jog', c0.goleiro, c0.goleiro.model, [{ x: q.x, z: q.z }], DisputaModel.velocidade.goleiro, { x: q.x, z: q.z - this.sinalZ * 10 });
+            }
             if (this.festa) { this.festa.t += dt; if (typeof Comemoracao !== 'undefined' && Comemoracao.ativa) Comemoracao.update(dt); }   // no jogo e o ramo GOAL de match_physics.js que a corre
             if (d.t >= d.dur) this._fimDaCobranca();
             else return;
@@ -463,13 +499,26 @@ const DisputaPenaltis = {
                         Match.ball.position.set(m.x, r, m.z);
                         this._lance = null;
                         this.sub = 'ajeita'; this.tSub = 0;
+                        { const sb = this._parteDe(a.batedor); if (sb) sb.agachar = true; }   // abaixa-se para ajeitar a bola
                     }
                 }
             }
         } else if (this.sub === 'ajeita') {
+            // MEXE NA BOLA PARA ARRUMAR: duas idas e vindas para um lado e para o outro (ao longo da linha da area), a bola quase sem sair do sitio, e assenta exacta na marca no fim.
+            {
+                const mk = DM.posMarca(this.sinalZ), u = Math.min(1, this.tSub / DM.pausa.ajeitar), bola = Match.ball.position;
+                const amp = 0.09 * (1 - u);
+                bola.x = mk.x + Math.sin(u * Math.PI * 4) * amp;
+                bola.z = mk.z + Math.sin(u * Math.PI * 4 + 1.2) * amp * 0.35;
+                bola.y = BallPhysics.raio;
+                Match.ballVel.set(0, 0, 0);
+            }
             if (this.tSub > DM.pausa.ajeitar) {
+                Match.ball.position.set(DM.posMarca(this.sinalZ).x, BallPhysics.raio, DM.posMarca(this.sinalZ).z);
                 const e = DM.posEsperaBatedor(this.sinalZ, a.batedor.pe), m = DM.posMarca(this.sinalZ);
-                this._parte('jog', a.batedor, a.batedor.model, [e], DM.velocidade.jogador, m);
+                const sr = this._parte('jog', a.batedor, a.batedor.model, [e], DM.velocidade.jogador, m);
+                // A distancia da batida: de COSTAS (de frente para a bola) ou de frente, ao acaso.
+                if (Math.random() < 0.5) sr.re = true;
                 this.sub = 'recuo'; this.tSub = 0;
             }
         } else if (this.sub === 'recuo') {
@@ -513,7 +562,7 @@ const DisputaPenaltis = {
 
     // Todos os caminhos que acabam a disputa passam por aqui: antes de largar os jogadores desfaz-se uma cobranca a meio (baliza dos jogadores, papel `gk`, penalti pendente).
     _libertar() {
-        this._lance = null;
+        this._lance = null; this._passeJuiz = null;
         this._acabarFesta();
         this.abortarCobranca();
         if (this._levantar) this._levantar.jogadores.forEach(p => this._reporLados(p));
@@ -577,6 +626,26 @@ const DisputaPenaltis = {
         }
     },
 
+    /*
+    A PALMA DO JUIZ: a posicao da mao (o centro da esfera da mao) e a normal da palma — o eixo local +X da mao, que com a pose do braco (`AberturaModel.bracoDaBola`, `maoRoll`) aponta
+    para CIMA (medido: (0.10, 0.99, -0.03)). A bola assenta nela: centro = palma + normal * (raio da mao + raio da bola), por isso encosta na palma sem entrar no braco.
+    */
+    _palma(out, normal) {
+        const arb = Officials.arbitro, h = arb.rig.rHand;
+        arb.model.updateMatrixWorld(true);
+        h.getWorldPosition(out);
+        const n = normal || (this._n = this._n || new THREE.Vector3());
+        n.set(1, 0, 0).transformDirection(h.matrixWorld);
+        const m = h.children.find(c => c.isMesh && c.geometry && c.geometry.parameters && c.geometry.parameters.radius);
+        this._rMao = m ? m.geometry.parameters.radius * m.getWorldScale(this._ws = this._ws || new THREE.Vector3()).x : 0.04;
+        return n;
+    },
+    _bolaNaPalma() {
+        this._v = this._v || new THREE.Vector3();
+        const n = this._palma(this._v), d = this._rMao + BallPhysics.raio;
+        Match.ball.position.set(this._v.x + n.x * d, this._v.y + n.y * d, this._v.z + n.z * d);
+    },
+
     // O juiz, o bandeirinha e o tecnico andam por `Officials.mover`; a bola vai na mao do juiz enquanto `bolaComJuiz`.
     moverOficiais(dt) {
         for (const s of this.partes) {
@@ -599,28 +668,29 @@ const DisputaPenaltis = {
             arbL.rig.rArm.rotation.set(ombro, 0, -0.12);
             arbL.rig.rElbow.rotation.x = cot;
             if (!Lc.solta && arbL.rig.rHand) {
-                // A bola ASSENTA NA PALMA ate ser lancada: como na abertura (a palma virada para cima, `maoRoll`), um pouco para la da mao (`avancoMao`, na direccao cotovelo -> mao) e por cima (`sobe`).
-                const BB = (typeof AberturaModel !== 'undefined' && AberturaModel.bracoDaBola) || { maoRoll: -1.57, avancoMao: 0.06, sobe: 0.155 };
-                if (arbL.rig.rHand.rotation) arbL.rig.rHand.rotation.set(0, BB.maoRoll || 0, 0);
-                this._v = this._v || new THREE.Vector3(); this._w = this._w || new THREE.Vector3();
-                arbL.model.updateMatrixWorld(true);
-                arbL.rig.rHand.getWorldPosition(this._v);
-                arbL.rig.rElbow.getWorldPosition(this._w);
-                let ddx = this._v.x - this._w.x, ddy = this._v.y - this._w.y, ddz = this._v.z - this._w.z;
-                const dl = Math.hypot(ddx, ddy, ddz) || 1;
-                const av = BB.avancoMao || 0;
-                // Dir. do antebraco f (cotovelo -> mao) e a normal da palma n = o "cima" menos a parte ao longo de f: com o braco a rodar, a bola fica sempre POR CIMA DA PALMA (para la do
-                // pulso, `palma` m) e nao em cima do antebraco.
-                const fx = ddx / dl, fy = ddy / dl, fz = ddz / dl;
-                let nx = -fy * fx, ny = 1 - fy * fy, nz = -fy * fz;
-                const nl = Math.hypot(nx, ny, nz);
-                if (nl > 0.2) { nx /= nl; ny /= nl; nz /= nl; } else { nx = 0; ny = 1; nz = 0; }
-                const palma = 0.17, alto = 0.11;
-                Match.ball.position.set(this._v.x + fx * palma + nx * alto, this._v.y + fy * palma + ny * alto, this._v.z + fz * palma + nz * alto);
+                // A bola ASSENTA NA PALMA ate ser lancada (ver `_bolaNaPalma`).
+                if (arbL.rig.rHand.rotation) arbL.rig.rHand.rotation.set(0, ((typeof AberturaModel !== 'undefined' && AberturaModel.bracoDaBola) || {}).maoRoll || -1.57, 0);
+                this._bolaNaPalma();
                 Match.ballVel.set(0, 0, 0);
             }
         }
-        if (this.bolaComJuiz && typeof Abertura !== 'undefined') { this._v = this._v || new THREE.Vector3(); Abertura._v = Abertura._v || this._v; Abertura._bolaNaMao(); }
+        // O PASSE DO GOLEIRO AO JUIZ: arco da posicao da bola ate a mao do juiz (que continua a andar).
+        const Pj = this._passeJuiz;
+        if (Pj && arbL && arbL.rig && arbL.rig.rHand) {
+            Pj.t += dt;
+            this._v = this._v || new THREE.Vector3();
+            this._palma(this._v);
+            const u = Math.min(1, Pj.t / Pj.dur), k = u * u * (3 - 2 * u);
+            Match.ball.position.set(Pj.x0 + (this._v.x - Pj.x0) * k, Pj.y0 + (this._v.y - Pj.y0) * k + 1.4 * 4 * u * (1 - u), Pj.z0 + (this._v.z - Pj.z0) * k);
+            Match.ballVel.set(0, 0, 0);
+            if (Pj.gk && Pj.gk.model && Pj.t < 0.4) {   // o goleiro vira-se para o juiz ao atirar
+                const g = Pj.gk.model.position, ang = Math.atan2(arbL.model.position.x - g.x, arbL.model.position.z - g.z);
+                if (Pj.gk.disputaOrdem) Pj.gk.disputaOrdem.yawAlvo = ang;
+            }
+            if (u >= 1) this._passeJuiz = null;
+        }
+        // A bola na mao do juiz (a andar ou parado): braco na pose da abertura e a bola ASSENTA NA PALMA.
+        if (this.bolaComJuiz && !this._passeJuiz && !Lc && arbL && arbL.rig && arbL.rig.rHand && typeof Abertura !== 'undefined') { Abertura._poseDoBracoDoJuiz(); this._bolaNaPalma(); Match.ballVel.set(0, 0, 0); }
         Officials.atualizarVista();
     },
 
@@ -636,6 +706,9 @@ const DisputaPenaltis = {
             // A marca do penalti no centro do ecra.
             const mk = DM.posMarca(this.sinalZ);
             look.set(mk.x, 0.3, mk.z);
+            // O ZOOM (rodinha / botoes) vale aqui: a camara aproxima-se ou afasta-se da marca ao longo da diagonal, como nas outras vistas (posicao = alvo + (base - alvo) * zoom).
+            const z = Math.max(0.2, window.cameraZoom || 1.0);
+            pos.set(look.x + (pos.x - look.x) * z, look.y + (pos.y - look.y) * z, look.z + (pos.z - look.z) * z);
         } else {
             const m = DM.posMarca(this.sinalZ);
             pos.set(0, 2.4, m.z - this.sinalZ * 16);
