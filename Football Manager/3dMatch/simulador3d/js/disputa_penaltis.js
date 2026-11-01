@@ -432,11 +432,33 @@ const DisputaPenaltis = {
         } else if (this.sub === 'entrega') {
             // O juiz entrega a bola; o batedor a ajeita na marca.
             if (this.tSub > DM.pausa.entrega) {
-                this.bolaComJuiz = false;
-                const m = DM.posMarca(this.sinalZ);
-                Match.ball.position.set(m.x, BallPhysics.raio, m.z);
+                const m = DM.posMarca(this.sinalZ), r = BallPhysics.raio;
+                // O JUIZ ATIRA A BOLA PARA A MARCA (pedido): sai da mao dele em arco e assenta na marca (a fisica da bola esta parada no estado DISPUTA: o arco e escrito aqui). Dois saltos curtos e para.
+                if (!this._lance) {
+                    this.bolaComJuiz = false;
+                    this._lance = { t: 0, dur: 1.2, x0: Match.ball.position.x, z0: Match.ball.position.z, y0: Math.max(r, Match.ball.position.y) };
+                    if (typeof EfeitosSonoros !== 'undefined' && EfeitosSonoros.chute) EfeitosSonoros.chute(Match.ball.position, 0.4);
+                }
+                const L = this._lance;
+                L.t += dt;
+                const u = Math.min(1, L.t / L.dur);
+                // No ar ate u = 0.6 (arco), depois dois saltos que morrem no chao.
+                const ar = u < 0.6 ? u / 0.6 : 1;
+                const k = ar * ar * (3 - 2 * ar);
+                const andou = u < 0.6 ? k : 1;
+                Match.ball.position.x = L.x0 + (m.x - L.x0) * (u < 0.6 ? 0.85 * andou : 0.85 + 0.15 * (u - 0.6) / 0.4);
+                Match.ball.position.z = L.z0 + (m.z - L.z0) * (u < 0.6 ? 0.85 * andou : 0.85 + 0.15 * (u - 0.6) / 0.4);
+                let y;
+                if (u < 0.6) y = L.y0 * (1 - ar) + r + 1.1 * 4 * ar * (1 - ar);
+                else if (u < 0.85) { const v = (u - 0.6) / 0.25; y = r + 0.22 * 4 * v * (1 - v); }
+                else { const v = (u - 0.85) / 0.15; y = r + 0.06 * 4 * v * (1 - v); }
+                Match.ball.position.y = y;
                 Match.ballVel.set(0, 0, 0);
-                this.sub = 'ajeita'; this.tSub = 0;
+                if (u >= 1) {
+                    Match.ball.position.set(m.x, r, m.z);
+                    this._lance = null;
+                    this.sub = 'ajeita'; this.tSub = 0;
+                }
             }
         } else if (this.sub === 'ajeita') {
             if (this.tSub > DM.pausa.ajeitar) {
@@ -485,6 +507,7 @@ const DisputaPenaltis = {
 
     // Todos os caminhos que acabam a disputa passam por aqui: antes de largar os jogadores desfaz-se uma cobranca a meio (baliza dos jogadores, papel `gk`, penalti pendente).
     _libertar() {
+        this._lance = null;
         this._acabarFesta();
         this.abortarCobranca();
         if (this._levantar) this._levantar.jogadores.forEach(p => this._reporLados(p));

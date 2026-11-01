@@ -16,8 +16,10 @@ Object.assign(Match, {
         // As estatisticas totais e a classificacao no fim do jogo (os mesmos paineis do intervalo).
         if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(true, 'FIM DE JOGO');
         if (typeof EfeitosSonoros !== 'undefined') EfeitosSonoros.apito(1.0);
-        // No fim do jogo os 22 e o trio tambem saem de campo, pelo vao da placa (como no intervalo).
-        if (typeof Abertura !== 'undefined' && Abertura.saidaIntervalo) Abertura.saidaIntervalo();
+        // O juiz APITA o fim (acima) e APONTA PARA O CENTRO DO CAMPO; so depois os 22 e o trio saem de campo, pelo vao da placa (como no intervalo).
+        if (typeof Officials !== 'undefined' && Officials.sinalizar && typeof RefereeModel !== 'undefined') Officials.sinalizar(0, 0, RefereeModel.elevacaoSinal);
+        const sair = () => { if (Match.state === 'FIM_DE_JOGO' && typeof Abertura !== 'undefined' && Abertura.saidaIntervalo) Abertura.saidaIntervalo(); };
+        if (typeof Sim !== 'undefined' && Sim.running) sair(); else setTimeout(sair, ((typeof RefereeModel !== 'undefined' && RefereeModel.duracaoSinal) || 2.5) * 1000 + 300);
     },
 
     verificarFimDeTempo: function () {
@@ -164,7 +166,7 @@ Object.assign(Match, {
         if (((this.state === 'INTERVALO' && this.intervaloComSaida) || this.state === 'FIM_DE_JOGO') && typeof Abertura !== 'undefined' && Abertura.activa) Abertura.update(dt);
         this.players.forEach(p => p.update(dt));
         this.opponents.forEach(p => p.update(dt));
-        if ((this.state === 'INTERVALO' && this.intervaloComSaida) || (this.state === 'FIM_DE_JOGO' && typeof Abertura !== 'undefined' && Abertura.activa)) {
+        if ((this.state === 'INTERVALO' && this.intervaloComSaida) || this.state === 'FIM_DE_JOGO') {   // no fim o juiz aponta o centro antes da saida: o `Officials.update` corre mesmo antes de a saida comecar
             if (typeof Officials !== 'undefined') Officials.update(dt);
             if (typeof Bancos !== 'undefined') Bancos.update(dt);
             if (typeof Staff !== 'undefined' && Staff.update) Staff.update(dt);   // a cabeca da imprensa segue a bola
