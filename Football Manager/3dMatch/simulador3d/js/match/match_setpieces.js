@@ -115,7 +115,7 @@ Object.assign(Match, {
         */
         if (typeof EfeitosSonoros !== 'undefined' &&
             (type === 'FREE_KICK' || type === 'PENALTY' ||
-             type === 'GOAL_KICK' || type === 'CORNER_KICK')) {
+             type === 'GOAL_KICK' || type === 'CORNER_KICK' || type === 'THROW_IN')) {
             EfeitosSonoros.apito(1.0);
         }
 

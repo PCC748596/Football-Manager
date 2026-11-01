@@ -349,6 +349,13 @@ const Ponte = {
         if (typeof AmbienteSonoro !== 'undefined' && AmbienteSonoro.setLigado) { AmbienteSonoro.setLigado(true); if (AmbienteSonoro.tentarTocar) AmbienteSonoro.tentarTocar(); }
         if (typeof Sim === 'undefined') global_Sim();
         Sim.running = false;
+        // Jogo carregado a meio (save): sem a entrada dos times; o `iniciar` com `retomar` poe cada um no posto.
+        if (m.retomar && typeof m.retomar.minuto === 'number' && m.retomar.minuto > 0) {
+            // Ja nos postos do save, em pausa, antes de o treinador continuar (o `iniciar` repoe o mesmo estado e solta o jogo).
+            this._retomar(m.retomar, true);
+            window.isPaused = true;
+            return;
+        }
         if (typeof Abertura !== 'undefined') {
             Abertura.aguardarSaida = false; Match.segurarSaida = true; Match._saidaAutoPedida = false; Abertura.jaCorreu = false; Abertura.activa = false;
             window.isPaused = false;
@@ -506,9 +513,17 @@ const Ponte = {
         if (typeof Match.updatePlacar === 'function') Match.updatePlacar();
     },
 
-    _retomar(r) {
+    _retomar(r, soPosicoes) {
         // Sem a entrada pelo tunel: quem estava escondido a espera aparece no posto.
-        if (typeof Abertura !== 'undefined') { Abertura.activa = false; Abertura.aguardarSaida = false; Abertura.jaCorreu = true; }
+        if (typeof Abertura !== 'undefined') {
+            // A entrada ja podia estar montada (`preparar`): larga-a (mostra o trio) para o trio nao sair do tunel; depois poe-no nos postos de campo.
+            if (Abertura.partes && Abertura.partes.length && Abertura._libertar) Abertura._libertar();
+            Abertura.activa = false; Abertura.aguardarSaida = false; Abertura.jaCorreu = true;
+        }
+        if (typeof Officials !== 'undefined' && Officials.arbitro) {
+            [Officials.arbitro].concat(Officials.assistentes || [], Officials.quarto ? [Officials.quarto] : []).forEach(o => { if (o && o.model) o.model.visible = (Officials._ativo !== false); });
+            if (Officials.colocarInicial) Officials.colocarInicial();
+        }
         Match.segurarSaida = false;
         [...Match.players, ...Match.opponents].forEach(p => { if (p && p.model) p.model.visible = true; });
         Match.tempoDeJogo = Math.max(0, r.minuto) * 60;
@@ -546,6 +561,7 @@ const Ponte = {
             const saida = (r.saida === 'fora') ? 'TeamB' : 'TeamA';
             if (typeof Match.resetPlay === 'function') Match.resetPlay(saida);
         }
+        if (soPosicoes) return;   // so a pose do jogo: nada se diz ao manager antes de ele continuar
         this._ultimoEstado = -1;
         this._estadoPeriodico();
     },

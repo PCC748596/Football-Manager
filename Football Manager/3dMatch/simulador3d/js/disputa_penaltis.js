@@ -553,7 +553,9 @@ const DisputaPenaltis = {
         for (const s of this.partes) {
             if (s.tipo === 'jog') continue;
             const w = s.wps[s.wps.length - 1];
-            Officials.mover(s.obj, w.x, w.z, s.vel, dt, s.olhar || undefined);
+            // A andar vai de frente para onde caminha (com a bola na mao, de lado ou de costas parecia perdido); so ao chegar se vira para onde tem de olhar.
+            const perto = Math.hypot(w.x - s.model.position.x, w.z - s.model.position.z) < 0.6;
+            Officials.mover(s.obj, w.x, w.z, s.vel, dt, (s.tipo === 'arb' && !perto) ? undefined : (s.olhar || undefined));
             s.chegou = Math.hypot(w.x - s.model.position.x, w.z - s.model.position.z) < 0.4;
             if (s.tipo === 'lin') Officials._ajustarPano(s.obj, dt);
         }
@@ -567,6 +569,12 @@ const DisputaPenaltis = {
         if (this.fase === 'REUNIAO' || this.fase === 'ORDEM') {
             pos.set(-this.ladoBanco * 30, 14, 0);
             look.set(this.ladoBanco * 26, 1.2, 0);
+        } else if (window.cameraMode === 'sideline') {
+            // TV SIDELINE: em cima do bico da grande area (o canto dela no lado das cameras, +X), olhando para a marca do penalti (no centro do ecra) — fica na diagonal.
+            pos.set(DM.area.grandeMeiaLargura, 5.0, this.sinalZ * (DM.campo.comp / 2 - (typeof Area !== 'undefined' ? Area.profundidade : 16.5)));
+            // A marca do penalti no centro do ecra.
+            const mk = DM.posMarca(this.sinalZ);
+            look.set(mk.x, 0.3, mk.z);
         } else {
             const m = DM.posMarca(this.sinalZ);
             pos.set(0, 2.4, m.z - this.sinalZ * 16);

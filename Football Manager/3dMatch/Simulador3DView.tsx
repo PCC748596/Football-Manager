@@ -187,7 +187,7 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
       const chaveKits = JSON.stringify(d.kits);
       if (sessao.preparadoCom === chaveKits) return;
       sessao.preparadoCom = chaveKits;
-      enviar({ ...montarPayload(d.casa, d.fora, d.players, d.userTeamId, { ocupacao: ocupacaoDoJogo(d.casa, d.fora), ocupacaoVisitante: ocupacaoVisitanteDoJogo(d.fora), tabela: d.tabela, amistoso: d.amistoso }, d.kits), tipo: 'preparar' });
+      enviar({ ...montarPayload(d.casa, d.fora, d.players, d.userTeamId, { ocupacao: ocupacaoDoJogo(d.casa, d.fora), ocupacaoVisitante: ocupacaoVisitanteDoJogo(d.fora), tabela: d.tabela, amistoso: d.amistoso }, d.kits), ...(d.retomar ? { retomar: d.retomar } : {}), tipo: 'preparar' });
     }
   };
 
