@@ -2255,13 +2255,26 @@ class FootballPlayer {
                         targetCol = pick(colsGolCantos);
                         targetRow = rowTrave;
                     }
+                    // Meta de resultados (75% golos, 25% o resto, liga a 80): quem bate mal (0 a -2) nem sempre vai a trave — 50% (diff 0) e 80% (-1, -2) vao ao canto da baliza.
+                    if (Math.random() < (diff === 0 ? 0.5 : 0.8)) {
+                        targetCol = pick(colsGolCantos);
+                        targetRow = pick(rowsGol);
+                        gkDiveCol = oppositeCol(targetCol);
+                    }
                 } else if (diff === -3 || diff === -4) {
-                    if (Math.random() > 0.5) {
-                        targetCol = pick(colsFora);
-                        targetRow = pick([0, 1, 2, 3, 4]);
+                    // Mal batido, mas nem sempre por fora: so 30% sai fora; o resto vai ao canto da baliza (e o goleiro pode defender, ver `chanceDefesa.fraco`). Eram 100% fora/trave
+                    // e, com a media da liga a 80, 1 em cada 3 penaltis nem chegava ao goleiro.
+                    if (Math.random() < 0.2) {
+                        if (Math.random() > 0.5) {
+                            targetCol = pick(colsFora);
+                            targetRow = pick([0, 1, 2, 3, 4]);
+                        } else {
+                            targetCol = pick(colsGolCantos.concat(colsTrave));
+                            targetRow = rowFora;
+                        }
                     } else {
-                        targetCol = pick(colsGolCantos.concat(colsTrave));
-                        targetRow = rowFora;
+                        targetCol = pick(colsGolCantos);
+                        targetRow = pick(rowsGol);
                     }
                     gkDiveCol = oppositeCol(targetCol);
                 } else {
@@ -7494,7 +7507,9 @@ class FootballPlayer {
 
         A condição é a mesma; o que muda é correr SEMPRE, e não só naquele ramo.
         */
-        if (Match.state === 'PLAY' && !Match.faltaDirectaPlano) this.isPenaltyDive = false;
+        // O PENALTI (jogo e disputa) tambem passa a PLAY no contacto (`baterPenalti`): enquanto o remate esta no ar (`penaltiEmVoo`) o mergulho sorteado vale — limpa-lo aqui ao frame
+        // seguinte fazia o goleiro LER a bola e defender quase tudo (medido na disputa: ~55% de defesas com GK 80 contra TEC 80, metade com o goleiro a ir ao lado errado).
+        if (Match.state === 'PLAY' && !Match.faltaDirectaPlano && !(Match.penaltiEmVoo > 0)) this.isPenaltyDive = false;
 
         /*
         QUEM SAI DO MERGULHO SEM O ACABAR FICA PENDURADO NO AR.

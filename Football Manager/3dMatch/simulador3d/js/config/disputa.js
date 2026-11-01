@@ -83,7 +83,7 @@ const DisputaModel = {
     // O juiz, como no penalti em jogo: x = arbitroX * attDir (attDir = sinalZ, o sentido do batedor), z da marca.
     posJuiz(sinalZ) { const m = this.posMarca(sinalZ); return { x: this.juiz.arbitroX * sinalZ, z: m.z }; },
 
-    // O goleiro que nao defende: SOBRE a linha lateral da grande area, a 5 m da linha de fundo, do lado `ladoX` (o contrario do bandeirinha).
+    // O goleiro que nao defende: SOBRE a linha lateral da grande area, a 5 m da linha de fundo, do lado `ladoX` (o mesmo lado do bandeirinha, 5 m a frente dele).
     posGoleiroEspera(sinalZ, ladoX) {
         return { x: ladoX * this.area.grandeMeiaLargura, z: sinalZ * (this.campo.comp / 2 - this.goleiroEspera.recuoDaLinhaDeFundo) };
     },

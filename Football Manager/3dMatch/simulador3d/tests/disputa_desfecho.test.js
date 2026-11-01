@@ -14,7 +14,7 @@ const ok = m => console.log('  . ' + m);
 const erro = m => { console.log('  X ' + m); falhas++; };
 const verifica = (cond, bom, mau) => { if (cond) ok(bom); else erro(mau); };
 
-let semente = 99;
+let semente = 123;
 Math.random = () => { semente = (semente + 0x6D2B79F5) | 0; let t = Math.imul(semente ^ (semente >>> 15), 1 | semente); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 
 // Espias: o apito (EfeitosSonoros nao vem no harness) e a comemoracao.

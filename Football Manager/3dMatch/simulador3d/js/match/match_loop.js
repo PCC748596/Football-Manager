@@ -11,11 +11,12 @@ Object.assign(Match, {
     */
     // O APITO FINAL: fim de jogo, estatisticas e a saida de campo. Tambem e chamado pela disputa de penaltis quando acaba (ou e abortada).
     encerrarJogo: function () {
+        // O APITO PRIMEIRO: antes de tudo o resto, para um erro mais abaixo (modal, estatisticas) nao o deixar mudo.
+        if (typeof EfeitosSonoros !== 'undefined') { try { EfeitosSonoros.apito(1.0); } catch (e) { /* sem som */ } }
         this.mudarEstado('FIM_DE_JOGO', 'apito_final');
         this.pararTodos();
         // As estatisticas totais e a classificacao no fim do jogo (os mesmos paineis do intervalo).
-        if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(true, 'FIM DE JOGO');
-        if (typeof EfeitosSonoros !== 'undefined') EfeitosSonoros.apito(1.0);
+        try { if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(true, 'FIM DE JOGO'); } catch (e) { console.warn('[fim de jogo] modal:', e); }
         // O juiz APITA o fim (acima) e APONTA PARA O CENTRO DO CAMPO; so depois os 22 e o trio saem de campo, pelo vao da placa (como no intervalo).
         if (typeof Officials !== 'undefined' && Officials.sinalizar && typeof RefereeModel !== 'undefined') Officials.sinalizar(0, 0, RefereeModel.elevacaoSinal);
         const sair = () => { if (Match.state === 'FIM_DE_JOGO' && typeof Abertura !== 'undefined' && Abertura.saidaIntervalo) Abertura.saidaIntervalo(); };

@@ -363,7 +363,7 @@ const DisputaPenaltis = {
             if (p === batedor) { this._parte('jog', p, p.model, [{ x: marca.x, z: marca.z - this.sinalZ * 0.9 }], vel.jogador, marca); continue; }
             if (p === goleiro) { this._parte('jog', p, p.model, [{ x: gol.x, z: gol.z - this.sinalZ * 0.5 }], vel.goleiro, marca); continue; }
             if (p.role === 'gk' && this.ladoDe(p) === lado) {
-                this._parte('jog', p, p.model, [DM.posGoleiroEspera(this.sinalZ, -ladoAssist)], vel.goleiro, marca); continue;
+                this._parte('jog', p, p.model, [DM.posGoleiroEspera(this.sinalZ, ladoAssist)], vel.goleiro, marca); continue;
             }
             const slot = this._slots.get(p);
             this._parte('jog', p, p.model, [slot], vel.jogador, { x: 0, z: this.sinalZ * 20 });
@@ -433,31 +433,37 @@ const DisputaPenaltis = {
             // O juiz entrega a bola; o batedor a ajeita na marca.
             if (this.tSub > DM.pausa.entrega) {
                 const m = DM.posMarca(this.sinalZ), r = BallPhysics.raio;
-                // O JUIZ ATIRA A BOLA PARA A MARCA (pedido): sai da mao dele em arco e assenta na marca (a fisica da bola esta parada no estado DISPUTA: o arco e escrito aqui). Dois saltos curtos e para.
+                // O JUIZ ATIRA A BOLA PARA A MARCA (pedido): primeiro leva o braco para TRAS (a bola vai na mao), depois para a FRENTE, e solta. Dai a bola sai em arco e assenta na marca
+                // (a fisica da bola esta parada no estado DISPUTA: o arco e escrito aqui; o braco e a bola na mao sao postos em `moverOficiais`, depois do `Officials.mover`).
+                // Dois saltos curtos e para.
                 if (!this._lance) {
                     this.bolaComJuiz = false;
-                    this._lance = { t: 0, dur: 1.2, x0: Match.ball.position.x, z0: Match.ball.position.z, y0: Math.max(r, Match.ball.position.y) };
-                    if (typeof EfeitosSonoros !== 'undefined' && EfeitosSonoros.chute) EfeitosSonoros.chute(Match.ball.position, 0.4);
+                    this._lance = { t: 0, A: 0.55, S: 0.2, F: 1.0, solta: false };
                 }
                 const L = this._lance;
                 L.t += dt;
-                const u = Math.min(1, L.t / L.dur);
-                // No ar ate u = 0.6 (arco), depois dois saltos que morrem no chao.
-                const ar = u < 0.6 ? u / 0.6 : 1;
-                const k = ar * ar * (3 - 2 * ar);
-                const andou = u < 0.6 ? k : 1;
-                Match.ball.position.x = L.x0 + (m.x - L.x0) * (u < 0.6 ? 0.85 * andou : 0.85 + 0.15 * (u - 0.6) / 0.4);
-                Match.ball.position.z = L.z0 + (m.z - L.z0) * (u < 0.6 ? 0.85 * andou : 0.85 + 0.15 * (u - 0.6) / 0.4);
-                let y;
-                if (u < 0.6) y = L.y0 * (1 - ar) + r + 1.1 * 4 * ar * (1 - ar);
-                else if (u < 0.85) { const v = (u - 0.6) / 0.25; y = r + 0.22 * 4 * v * (1 - v); }
-                else { const v = (u - 0.85) / 0.15; y = r + 0.06 * 4 * v * (1 - v); }
-                Match.ball.position.y = y;
-                Match.ballVel.set(0, 0, 0);
-                if (u >= 1) {
-                    Match.ball.position.set(m.x, r, m.z);
-                    this._lance = null;
-                    this.sub = 'ajeita'; this.tSub = 0;
+                if (L.t >= L.A + L.S) {
+                    if (!L.solta) {
+                        L.solta = true;
+                        L.x0 = Match.ball.position.x; L.z0 = Match.ball.position.z; L.y0 = Math.max(r, Match.ball.position.y);
+                        if (typeof EfeitosSonoros !== 'undefined' && EfeitosSonoros.chute) EfeitosSonoros.chute(Match.ball.position, 0.4);
+                    }
+                    const u = Math.min(1, (L.t - L.A - L.S) / L.F);
+                    const ar = u < 0.6 ? u / 0.6 : 1;
+                    const f = u < 0.6 ? 0.85 * ar * ar * (3 - 2 * ar) : 0.85 + 0.15 * (u - 0.6) / 0.4;
+                    Match.ball.position.x = L.x0 + (m.x - L.x0) * f;
+                    Match.ball.position.z = L.z0 + (m.z - L.z0) * f;
+                    let y;
+                    if (u < 0.6) y = L.y0 * (1 - ar) + r + 1.1 * 4 * ar * (1 - ar);
+                    else if (u < 0.85) { const v = (u - 0.6) / 0.25; y = r + 0.22 * 4 * v * (1 - v); }
+                    else { const v = (u - 0.85) / 0.15; y = r + 0.06 * 4 * v * (1 - v); }
+                    Match.ball.position.y = y;
+                    Match.ballVel.set(0, 0, 0);
+                    if (u >= 1) {
+                        Match.ball.position.set(m.x, r, m.z);
+                        this._lance = null;
+                        this.sub = 'ajeita'; this.tSub = 0;
+                    }
                 }
             }
         } else if (this.sub === 'ajeita') {
@@ -581,6 +587,38 @@ const DisputaPenaltis = {
             Officials.mover(s.obj, w.x, w.z, s.vel, dt, (s.tipo === 'arb' && !perto) ? undefined : (s.olhar || undefined));
             s.chegou = Math.hypot(w.x - s.model.position.x, w.z - s.model.position.z) < 0.4;
             if (s.tipo === 'lin') Officials._ajustarPano(s.obj, dt);
+        }
+        // O LANCAMENTO DA BOLA: braco direito atras e depois a frente; ate soltar a bola vai na mao.
+        const Lc = this._lance, arbL = Officials.arbitro;
+        if (Lc && arbL && arbL.rig && arbL.rig.rArm && arbL.rig.rElbow) {
+            const lerp = (a, b, k) => a + (b - a) * Math.max(0, Math.min(1, k)), suave = (k) => { k = Math.max(0, Math.min(1, k)); return k * k * (3 - 2 * k); };
+            let ombro, cot;
+            if (Lc.t < Lc.A) { const k = suave(Lc.t / Lc.A); ombro = lerp(-0.3, 1.2, k); cot = lerp(-1.3, -0.7, k); }
+            else if (Lc.t < Lc.A + Lc.S) { const k = (Lc.t - Lc.A) / Lc.S; ombro = lerp(1.2, -1.5, k); cot = lerp(-0.7, -0.15, k); }
+            else { const k = suave((Lc.t - Lc.A - Lc.S) / 0.5); ombro = lerp(-1.5, 0, k); cot = lerp(-0.15, -0.3, k); }
+            arbL.rig.rArm.rotation.set(ombro, 0, -0.12);
+            arbL.rig.rElbow.rotation.x = cot;
+            if (!Lc.solta && arbL.rig.rHand) {
+                // A bola ASSENTA NA PALMA ate ser lancada: como na abertura (a palma virada para cima, `maoRoll`), um pouco para la da mao (`avancoMao`, na direccao cotovelo -> mao) e por cima (`sobe`).
+                const BB = (typeof AberturaModel !== 'undefined' && AberturaModel.bracoDaBola) || { maoRoll: -1.57, avancoMao: 0.06, sobe: 0.155 };
+                if (arbL.rig.rHand.rotation) arbL.rig.rHand.rotation.set(0, BB.maoRoll || 0, 0);
+                this._v = this._v || new THREE.Vector3(); this._w = this._w || new THREE.Vector3();
+                arbL.model.updateMatrixWorld(true);
+                arbL.rig.rHand.getWorldPosition(this._v);
+                arbL.rig.rElbow.getWorldPosition(this._w);
+                let ddx = this._v.x - this._w.x, ddy = this._v.y - this._w.y, ddz = this._v.z - this._w.z;
+                const dl = Math.hypot(ddx, ddy, ddz) || 1;
+                const av = BB.avancoMao || 0;
+                // Dir. do antebraco f (cotovelo -> mao) e a normal da palma n = o "cima" menos a parte ao longo de f: com o braco a rodar, a bola fica sempre POR CIMA DA PALMA (para la do
+                // pulso, `palma` m) e nao em cima do antebraco.
+                const fx = ddx / dl, fy = ddy / dl, fz = ddz / dl;
+                let nx = -fy * fx, ny = 1 - fy * fy, nz = -fy * fz;
+                const nl = Math.hypot(nx, ny, nz);
+                if (nl > 0.2) { nx /= nl; ny /= nl; nz /= nl; } else { nx = 0; ny = 1; nz = 0; }
+                const palma = 0.17, alto = 0.11;
+                Match.ball.position.set(this._v.x + fx * palma + nx * alto, this._v.y + fy * palma + ny * alto, this._v.z + fz * palma + nz * alto);
+                Match.ballVel.set(0, 0, 0);
+            }
         }
         if (this.bolaComJuiz && typeof Abertura !== 'undefined') { this._v = this._v || new THREE.Vector3(); Abertura._v = Abertura._v || this._v; Abertura._bolaNaMao(); }
         Officials.atualizarVista();

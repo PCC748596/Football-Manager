@@ -98,7 +98,8 @@ const FixturesView: React.FC = () => {
                   <tr key={fixture.id} className={`group relative transition-all duration-300 ${isCurrent ? 'bg-blue-600/5 dark:bg-blue-600/[0.08] z-10' : 'hover:bg-blue-50/30 dark:hover:bg-white/[0.01] hover:z-30 z-0'}`}>
                     {/* TYPE BADGE */}
                     <td className="px-6 py-4">
-                      <div className={`min-w-[8rem] px-3 h-8 flex items-center justify-center whitespace-nowrap rounded-[3px] text-[13px] font-black transition-all ${fixture.isFriendly ? 'bg-emerald-500 text-white' : (isCurrent ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-900/80 text-slate-400 dark:text-slate-600 border border-slate-300 dark:border-slate-800')}`}>
+                      <div className={`min-w-[8rem] px-3 h-8 flex items-center justify-center whitespace-nowrap rounded-[3px] text-[13px] font-black transition-all ${fixture.isFriendly ? 'bg-emerald-500 text-white' : (isCurrent ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-900/80 text-slate-600 dark:text-slate-200 border border-slate-300 dark:border-slate-700')}`}
+                        style={!fixture.isFriendly && fixture.type !== undefined && fixture.type !== 'LEAGUE' ? { backgroundImage: 'repeating-linear-gradient(45deg, rgba(148,163,184,0.28) 0, rgba(148,163,184,0.28) 2px, transparent 2px, transparent 7px)' } : undefined}>
                         {rotuloDoJogo(fixture)}
                       </div>
                     </td>

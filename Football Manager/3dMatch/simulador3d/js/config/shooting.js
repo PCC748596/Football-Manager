@@ -1528,14 +1528,14 @@ const PenaltyModel = {
     nenhuma nos remates perfeitos ao Ã¢ngulo.
     */
     chanceDefesa: {
-        perfeito: 0.02,   // diff > 5   â€” ao Ã¢ngulo, sem hipÃ³tese
-        bom: 0.12,        // diff 3..5
-        medio: 0.30,      // diff 1..2
-        fraco: 0.55       // diff <= 0  â€” mal batido
+        perfeito: 0.05,   // diff > 5   — ao angulo, quase sem hipotese
+        bom: 0.32,        // diff 3..5
+        medio: 0.50,      // diff 1..2
+        fraco: 0.48       // diff <= 0  — mal batido
     },
     // DEFESAS -25% (pedido: "os goleiros estao pegando muito penaltis; reduz em 25%"), em TODOS os penaltis (jogo e disputa): multiplica a chance de ir ao sitio certo
     // (`chanceDefesa`) e a do ramo `diff <= -5` do baterPenalti; o que sobra e mergulho para o lado errado.
-    fatorDefesa: 0.55,   // era 0.75 (~29% de defesas com batedor e goleiro de nivel igual); 0.55 da ~20% (meta pedida). Simulado com skills 50-95, ver o pedido de 20%
+    fatorDefesa: 0.55,   // multiplica as bandas e a defesa do ramo `diff <= -5`. Meta: 75% golos / 25% o resto com a liga a 80 (GK 80 x TEC 80), medido na disputa
 
     /*
     ÃRBITRO no penÃ¡lti: Ã  ESQUERDA do batedor (ele olha para a baliza), no
