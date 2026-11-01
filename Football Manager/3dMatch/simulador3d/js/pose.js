@@ -1523,6 +1523,20 @@ da ponta da cadeia) e nunca teve canais — no editor abria sem anéis nenhuns.
 Canais: `peLx`, `peLy`, `peRx`, `peRy`, `cabecaX`, `cabecaY`,
         `maoLx`, `maoLy`, `maoLz`, `maoRx`, `maoRy`, `maoRz`.
 */
+/*
+CHUTAR COM O LADO DO PE, NAO DE BICO (relato: *"os jogadores estao chutando de bico"*): no remate e na bola parada o pe que bate gira ligeiramente PARA FORA do corpo (o esquerdo para +, o direito
+para -, como a abertura de repouso de PI/16), em proporcao a quanto a perna esta em acao (`coxaChute`). Corre depois dos canais de pe do keyframe, por cima deles.
+*/
+const PE_PELO_LADO = 0.5;
+function pePeloLado(rig, chuteR, K) {
+    if (!rig || !K) return;
+    const w = Math.min(1, Math.abs(K.coxaChute || 0) / 0.3);
+    const pe = chuteR ? rig.rFoot : rig.lFoot;
+    if (!pe || w <= 0) return;
+    // Absoluto (o `aplicarPesECabeca` deixa o `y` como estava quando o keyframe nao o traz: somar acumulava de frame para frame): base do keyframe, ou a abertura de repouso, mais o giro.
+    const k = chuteR ? K.peRy : K.peLy, base = (typeof k === 'number') ? k : (chuteR ? -Math.PI / 16 : Math.PI / 16);
+    pe.rotation.y = base + (chuteR ? -1 : 1) * PE_PELO_LADO * w;
+}
 function aplicarPesECabeca(rig, K) {
     if (!rig || !K) return;
     const n = (v) => typeof v === 'number';
@@ -1608,6 +1622,7 @@ function aplicarPoseLateral(rig, K, giroAlvo) {
     rig.rFoot.rotation.set(0, -Math.PI / 16, 0);
 
     aplicarPesECabeca(rig, K);
+    pePeloLado(rig, chuteR, K);   // chuta com o LADO DO PE, nao de bico
 }
 
 /*
@@ -1965,6 +1980,7 @@ function escreverPoseBolaParada(rig, K, corpo, pernaChute) {
     rig.rElbow.rotation.x = K.cotoveloR || 0;
 
     aplicarPesECabeca(rig, K);
+    pePeloLado(rig, chuteR, K);   // chuta com o LADO DO PE, nao de bico
 
     if (corpo) corpo.position.y = ALTURA_BASE_Y + (K.altura || 0);
 }

@@ -49,7 +49,7 @@ function chanceDefesa(diff) {
 }
 
 test('fatorDefesa: fator de defesas (meta 20%), e o baterPenalti usa-o nos dois sitios', () => {
-    assert.strictEqual(PM.fatorDefesa, 1.0);
+    assert.strictEqual(PM.fatorDefesa, 0.55);
     assert.ok((srcPlayer.match(/PM\.fatorDefesa/g) || []).length >= 2, 'baterPenalti nao aplica PenaltyModel.fatorDefesa as bandas e ao ramo diff <= -5');
     assert.ok(!srcPlayer.split(LF).some(l => l.includes('fatorDefesa') && l.includes('Match.disputa')), 'o fator nao pode depender da disputa (vale para todos os penaltis)');
 });

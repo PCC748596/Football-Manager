@@ -108,10 +108,19 @@ const DisputaPenaltis = {
         c.desfecho = { t: 0, dur: c.resultado === 'gol' ? (P.desfechoGol || 4.5) : c.resultado === 'defesa' ? (P.desfechoDefesa || 2.5) : (P.desfechoFora || 2.5) };
         if (c.resultado === 'gol') this._reacaoDeGolo(c);
         // Quem bate e PERDE (defesa, trave, fora): a torcida do OUTRO time vibra e grita GOOOL (a `festa` e a mesma do golo, para a equipa do goleiro, sem aviso GOOL nem apito).
-        else this.festa = { equipa: (c.batedor.team === 'TeamA') ? 'TeamB' : 'TeamA', t: 0 };
+        else {
+            this.festa = { equipa: (c.batedor.team === 'TeamA') ? 'TeamB' : 'TeamA', t: 0 };
+            // E quem PERDEU leva as maos a cabeca (a animacao do gol perdido, QuaseGoloModel): fica parado a lamentar ate ela acabar, e so entao volta ao posto.
+            // Fica PARADO, com a mao na cabeca, uns 5 s (`dur`), e so entao caminha para o meio-campo (antes a arvore do jogo o levava a correr para o posto).
+            if (c.batedor.rig) {
+                c.batedor.lamento = { t: 0, dur: 5.0 }; c.lamentou = true;
+                const q = c.batedor.model.position;
+                this._parte('jog', c.batedor, c.batedor.model, [{ x: q.x, z: q.z }], 1.0, { x: q.x, z: q.z - this.sinalZ * 10 });
+            }
+        }
         // O batedor nao fica solto no desfecho (o estado e PLAY e a arvore do jogo levava-o para o posto da formacao — um goleiro que batia, com o papel 'atk', atravessava o
         // campo): se nao comemora, sai ja da jogada (o resultado pode chegar antes do `pausa.aposContato` do `update`).
-        if (!c.comemora && !this._soltou) this._soltarBatedor(c);
+        if (!c.comemora && !this._soltou && !c.batedor.lamento) this._soltarBatedor(c);
         if (c.aoFim) { const f = c.aoFim; c.aoFim = null; f(c.resultado); }
     },
     // A apresentacao do golo do ramo normal (match_physics.js), sem creditar nada: apito, aviso GOOL, torcida e grito (via `festa`), comemoracao do batedor.
@@ -135,7 +144,7 @@ const DisputaPenaltis = {
         this._soltou = true;
         const slot = this._slots && this._slots.get(c.batedor);   // sem fila (a cobranca corrida a seco, nos testes) o batedor fica onde esta
         if (c.papelGuardado) { const q = c.batedor.model.position; this._parte('jog', c.batedor, c.batedor.model, [{ x: q.x, z: q.z }], DM.velocidade.jogador, DM.posMarca(this.sinalZ)); }
-        else if (slot && c.batedor.role !== 'gk') this._parte('jog', c.batedor, c.batedor.model, [slot], DM.velocidade.jogador, { x: 0, z: this.sinalZ * 20 });
+        else if (slot && c.batedor.role !== 'gk') this._parte('jog', c.batedor, c.batedor.model, [slot], c.lamentou ? 2.0 : DM.velocidade.jogador, { x: 0, z: this.sinalZ * 20 });   // depois de lamentar: a andar
     },
 
     _acabarFesta() {
@@ -226,18 +235,26 @@ const DisputaPenaltis = {
                 if (rg.chest) rg.chest.rotation.x += (0 - rg.chest.rotation.x) * k;
             }
         }
+        // O relogio da lamentacao do gol perdido (em coreografia o `update` do jogador sai antes de o contar).
+        if (p.lamento) { p.lamento.t += dt; if (typeof QuaseGoloModel === 'undefined' || p.lamento.t >= (p.lamento.dur || QuaseGoloModel.duracao)) p.lamento = null; }
         p.animateBones(dt);
         // OS COLEGAS FESTEJAM A BATIDA FAVORAVEL (golo do time deles ou erro do adversario): ja nos postos, pulam de bracos no ar. Nao o batedor (comemora a parte). Os goleiros tambem vibram (o da cobranca, se defendeu, depois de se levantar: ver o desfecho).
         const fe = this.festa, cb = this._cobranca;
         if (fe && fe.equipa === p.team && s.chegou && rg && !(cb && p === cb.batedor)) {
             if (s.faseFesta === undefined) s.faseFesta = Math.random() * 6.28;
             const ondaP = Math.abs(Math.sin(fe.t * 8 + s.faseFesta));
-            p.model.position.y = ALTURA_BASE_Y + 0.34 * ondaP;
             const bx = -2.6 + Math.sin(fe.t * 11 + s.faseFesta) * 0.25;
             rg.lArm.rotation.x = bx; rg.rArm.rotation.x = bx;
             rg.lArm.rotation.z = 0.25; rg.rArm.rotation.z = -0.25;
             rg.lElbow.rotation.x = -0.3; rg.rElbow.rotation.x = -0.3;
             rg.lLeg.rotation.x = -0.25 * ondaP; rg.rLeg.rotation.x = -0.25 * ondaP;
+            // AS SOLAS NO RELVADO ANTES DE SALTAR (relato: pulavam "no ar" — o goleiro, que o `animateBones` nao assenta, ficava com os pes acima do chao ate no ponto mais baixo): assenta-se com a
+            // pose ja escrita e so entao se soma o salto, que vai a zero no ponto mais baixo.
+            // (o goleiro que mergulhou ficava com `gkEstado` 'mergulho': o assento ignora-o ate no chao; em festa volta a 'idle'.)
+            if (p.role === 'gk' && p.gkEstado !== undefined && p.gkEstado !== 'idle') { p.gkEstado = 'idle'; p.dive = null; }
+            p.jumpTimer = 0;
+            if (p.assentarNoChao) { for (let k = 0; k < 6; k++) p.assentarNoChao(); }
+            p.model.position.y += 0.34 * ondaP;
         }
         // O BATEDOR SE ABAIXA PARA AJEITAR A BOLA, como o goleiro se abaixa para apanha-la (GoalkeeperPose.apanhar + as solas e as palmas por IK), antes de recuar para bater.
         if (s.agachar && Match.ball && typeof GoalkeeperPose !== 'undefined' && GoalkeeperPose.apanhar && rg) {
@@ -332,6 +349,7 @@ const DisputaPenaltis = {
             if (banco && banco.treinador) this._parte('tec', banco.treinador, banco.treinador.model, [tec], DM.velocidade.tecnico, { x: 0, z: tec.z });
             jogs.forEach((p, i) => this._parte('jog', p, p.model, [pts[i]], DM.velocidade.jogador, tec));
         }
+        this._reservasEmPe();
         // O juiz, com a bola na mao, vai ao circulo central e anuncia o sorteio.
         this.bolaComJuiz = true;
         const arb = Officials.arbitro;
@@ -408,6 +426,7 @@ const DisputaPenaltis = {
     // Um frame (chamado do Match.update): a cobranca corre pelo miolo (`atualizarCobranca`); as outras fases tem os seus tempos.
     update(dt) {
         if (!this.activa) return;
+        this._animarReservas(dt);
         const DM = DisputaModel;
         this.t += dt;
         if (this._levantar && !this._cobranca) {
@@ -439,7 +458,7 @@ const DisputaPenaltis = {
             this.atualizarCobranca(dt);
             // Passado o contato, o batedor volta andando para o lugar dele na fila (no golo, comemora: ver `_reacaoDeGolo`).
             const c = this._cobranca;
-            if (c && c.tContato !== null && c.tContato > DM.pausa.aposContato && !this._soltou && !c.comemora) this._soltarBatedor(c);
+            if (c && c.tContato !== null && c.tContato > DM.pausa.aposContato && !this._soltou && !c.comemora && !c.batedor.lamento) this._soltarBatedor(c);
             return;
         }
         switch (this.fase) {
@@ -454,6 +473,7 @@ const DisputaPenaltis = {
                 break;
             case 'PREPARO': this._atualizarPreparo(dt); break;
             case 'FIM':
+                if (this.festa) this.festa.t += dt;   // a festa final (ver `_festaFinal`) continua a contar
                 if (this.t > DM.pausa.fim) this._encerrar();
                 break;
         }
@@ -478,13 +498,15 @@ const DisputaPenaltis = {
                 }
                 const L = this._lance;
                 L.t += dt;
-                if (L.t >= L.A + L.S) {
+                // SOLTA com o braco ja a voltar e ligeiramente a FRENTE do corpo (ombro ~ -0.5 rad, 63% do avanco de +1.2 a -1.5), e nao no fim do avanco; o braco segue ate la.
+                const tSolta = L.A + L.S * 0.63;
+                if (L.t >= tSolta) {
                     if (!L.solta) {
                         L.solta = true;
                         L.x0 = Match.ball.position.x; L.z0 = Match.ball.position.z; L.y0 = Math.max(r, Match.ball.position.y);
                         if (typeof EfeitosSonoros !== 'undefined' && EfeitosSonoros.chute) EfeitosSonoros.chute(Match.ball.position, 0.4);
                     }
-                    const u = Math.min(1, (L.t - L.A - L.S) / L.F);
+                    const u = Math.min(1, (L.t - tSolta) / L.F);
                     const ar = u < 0.6 ? u / 0.6 : 1;
                     const f = u < 0.6 ? 0.85 * ar * ar * (3 - 2 * ar) : 0.85 + 0.15 * (u - 0.6) / 0.4;
                     Match.ball.position.x = L.x0 + (m.x - L.x0) * f;
@@ -540,6 +562,29 @@ const DisputaPenaltis = {
         Ponte.enviar('disputa_cobranca', this._ultimaCobranca);
     },
 
+    /*
+    A FESTA DO ULTIMO PENALTI (o que decide a disputa): se foi o BATEDOR a marcar, os jogadores do time dele correm do meio-campo para festejar com ele onde ele esta (a intermediaria); se foi o
+    GOLEIRO a defender, correm para ele, no meio da area. Chegados, pulam (a `festa` do time, em `passoDoJogador`), e a torcida dele vibra. Sem gol decisivo nem defesa (ex.: o adversario
+    chutou fora) nao ha corrida.
+    */
+    _festaFinal(m) {
+        const a = this.atual, res = this._ultimaCobranca && this._ultimaCobranca.resultado;
+        if (!a || !res) return;
+        const venc = m.vencedor || ((m.pens && m.pens[0] > m.pens[1]) ? 'casa' : 'fora');
+        const foco = (res === 'gol' && this.ladoDe(a.batedor) === venc) ? a.batedor : (res === 'defesa' && a.goleiro && this.ladoDe(a.goleiro) === venc) ? a.goleiro : null;
+        if (!foco) return;
+        const DM = DisputaModel, c = foco.model.position;
+        this.festa = { equipa: foco.team, t: 0 };
+        const outros = this.lista(venc).filter(p => p !== foco && p.role !== 'gk' && !p.expulso);
+        outros.forEach((p, i) => {
+            const ang = (i / Math.max(1, outros.length)) * Math.PI * 2, raio = 1.4 + (i % 2) * 0.7;
+            const pt = { x: c.x + Math.cos(ang) * raio, z: c.z + Math.sin(ang) * raio };
+            this._parte('jog', p, p.model, [pt], (DM.velocidade.jogador || 2) * 2.6, { x: c.x, z: c.z });
+        });
+        // O foco tambem festeja onde esta (o batedor ja voltou ao posto; o goleiro fica na area).
+        if (!foco.disputaOrdem) this._parte('jog', foco, foco.model, [{ x: c.x, z: c.z }], DM.velocidade.jogador, { x: c.x, z: c.z + this.sinalZ * 5 });
+    },
+
     // A resposta da app: o proximo batedor, ou o fim.
     // `abortar` (a app nao tem proximo batedor): a disputa desfaz-se em qualquer fase e o jogo acaba sem ela.
     receberProxima(m) {
@@ -547,7 +592,7 @@ const DisputaPenaltis = {
         if (!this.activa || this.fase !== 'AGUARDA') return;
         // O lance ainda no desfecho, ou o goleiro ainda a cair do mergulho: a resposta (o proximo batedor ou o fim) espera o fim do desfecho e o `pausa.levantar`.
         if (this._levantar || (this._cobranca && this._cobranca.desfecho)) { this._proximaPendente = m; return; }
-        if (m.fim) { this.pens = m.pens || this.pens; this.fase = 'FIM'; this.t = 0; return; }
+        if (m.fim) { this.pens = m.pens || this.pens; this.fase = 'FIM'; this.t = 0; this._festaFinal(m); return; }
         this._prepararCobranca(m);
     },
 
@@ -563,6 +608,7 @@ const DisputaPenaltis = {
     // Todos os caminhos que acabam a disputa passam por aqui: antes de largar os jogadores desfaz-se uma cobranca a meio (baliza dos jogadores, papel `gk`, penalti pendente).
     _libertar() {
         this._lance = null; this._passeJuiz = null;
+        this._reservasSentar();
         this._acabarFesta();
         this.abortarCobranca();
         if (this._levantar) this._levantar.jogadores.forEach(p => this._reporLados(p));
@@ -644,6 +690,58 @@ const DisputaPenaltis = {
         this._v = this._v || new THREE.Vector3();
         const n = this._palma(this._v), d = this._rMao + BallPhysics.raio;
         Match.ball.position.set(this._v.x + n.x * d, this._v.y + n.y * d, this._v.z + n.z * d);
+    },
+
+    /*
+    OS RESERVAS NA BEIRA DO GRAMADO (pedido): durante a disputa os jogadores dos bancos levantam-se e ficam em pe, em fila na linha lateral (do lado do banco), a olhar para o campo; festejam
+    com o time (a mesma festa dos colegas). No fim sentam-se onde estavam.
+    */
+    _reservasEmPe() {
+        if (typeof Bancos === 'undefined' || !Bancos.bancos) return;
+        this._reservas = [];
+        const xLinha = this.ladoBanco * (CAMPO_LARG / 2 + 1.2);
+        for (const b of Bancos.bancos) {
+            const rs = (b.reservas || []).filter(r => r && r.model);
+            rs.forEach((r, i) => {
+                const q = r.model.position;
+                r._posBanco = { x: q.x, z: q.z, ry: r.model.rotation.y };
+                if (Bancos.descongelar) Bancos.descongelar(r);
+                r.model.visible = true;
+                r.model.position.set(xLinha, 0, b.zc + (i - (rs.length - 1) / 2) * 1.15);
+                r.model.rotation.set(0, Math.atan2(-xLinha, 0), 0);   // de frente para o campo
+                if (r.resetBonesToDefault) r.resetBonesToDefault();
+                if (r.rig && r.rig.pelvis) r.rig.pelvis.position.y = (typeof r.pelvisY0 === 'number') ? r.pelvisY0 : 2.6;
+                r._faseFesta = Math.random() * 6.28;
+                r._equipaDisputa = b.equipa === 'A' ? 'TeamA' : 'TeamB';
+                this._reservas.push(r);
+            });
+        }
+    },
+    _reservasSentar() {
+        if (!this._reservas) return;
+        for (const r of this._reservas) {
+            if (!r._posBanco) continue;
+            r.model.position.set(r._posBanco.x, 0, r._posBanco.z); r.model.rotation.set(0, r._posBanco.ry, 0);
+            if (typeof Bancos !== 'undefined') { Bancos._sentar(r); r.model.rotation.y = r._posBanco.ry; if (Bancos.congelar) Bancos.congelar(r); }
+            r._posBanco = null;
+        }
+        this._reservas = null;
+    },
+    _animarReservas(dt) {
+        if (!this._reservas) return;
+        const fe = this.festa;
+        for (const r of this._reservas) {
+            if (!r.rig) continue;
+            r.velocity.set(0, 0, 0);
+            r.animateBones(dt);
+            if (fe && fe.equipa === r._equipaDisputa) {
+                const ondaP = Math.abs(Math.sin(fe.t * 8 + r._faseFesta)), bx = -2.6 + Math.sin(fe.t * 11 + r._faseFesta) * 0.25, g = r.rig;
+                g.lArm.rotation.x = bx; g.rArm.rotation.x = bx; g.lArm.rotation.z = 0.25; g.rArm.rotation.z = -0.25;
+                g.lElbow.rotation.x = -0.3; g.rElbow.rotation.x = -0.3;
+                if (r.assentarNoChao) { for (let k = 0; k < 4; k++) r.assentarNoChao(); }
+                r.model.position.y += 0.34 * ondaP;
+            }
+        }
     },
 
     // O juiz, o bandeirinha e o tecnico andam por `Officials.mover`; a bola vai na mao do juiz enquanto `bolaComJuiz`.

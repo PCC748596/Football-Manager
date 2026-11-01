@@ -136,6 +136,9 @@ Object.assign(Match, {
         [...this.players, ...this.opponents].forEach(p => {
             p.hasBall = false;
             p.speedMult = 1;
+            // Os gestos que o `update` do jogador apaga com o tempo nao correm em coreografia (saida de campo do fim do jogo / intervalo): quem tinha o braco no ar (a pedir a bola) ou as maos
+            // na cabeca ficava assim ate sair de campo (relato: um jogador de braco levantado no fim do jogo).
+            p.pedindoBola = 0; p.lamento = null;
             if (p.velocity) p.velocity.set(0, 0, 0);
             p.dynamicTarget = p.model.position.clone();
             p.fsm.changeState('IDLE');

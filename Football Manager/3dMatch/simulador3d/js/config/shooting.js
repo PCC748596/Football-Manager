@@ -1530,7 +1530,7 @@ const PenaltyModel = {
     chanceDefesa: {
         perfeito: 0.05,   // diff > 5   — ao angulo, quase sem hipotese
         bom: 0.32,        // diff 3..5
-        medio: 0.50,      // diff 1..2
+        medio: 0.40,      // diff 1..2
         fraco: 0.48       // diff <= 0  — mal batido
     },
     // DEFESAS -25% (pedido: "os goleiros estao pegando muito penaltis; reduz em 25%"), em TODOS os penaltis (jogo e disputa): multiplica a chance de ir ao sitio certo

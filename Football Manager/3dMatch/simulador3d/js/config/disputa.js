@@ -35,7 +35,7 @@ const DisputaModel = {
     prazo: { reuniao: 45, preparo: 30, app: 30, ordem: 300, cobranca: 7 },   // `app`: a resposta automatica da app entre cobrancas; `ordem`: a decisao HUMANA da ordem dos batedores (o modal do manager)
     // `esperaBatida`: s PARADO na espera antes de a corrida do penalti comecar (pedido: "uns 4 segundos"), somado antes da corrida do penalti em jogo (Match.penaltiEspera).
     // `desfechoGol/Defesa/Fora`: s em que o lance continua depois do resultado (a bola na rede, a festa, a defesa, a bola a sair) antes de todos pararem (ver DisputaPenaltis._iniciarDesfecho).
-    pausa: { entrega: 1.0, ajeitar: 1.8, aposContato: 1.2, fim: 4.0, levantar: 0.8, esperaBatida: 4.0, desfechoGol: 4.5, desfechoDefesa: 2.5, desfechoFora: 2.5 },   // `levantar`: s depois do fim da cobranca ate o goleiro (e o batedor) ficarem de pe onde estao
+    pausa: { entrega: 1.0, ajeitar: 1.8, aposContato: 1.2, fim: 9.0, levantar: 0.8, esperaBatida: 4.0, desfechoGol: 7.0, desfechoDefesa: 7.0, desfechoFora: 7.0 },   // `levantar`: s depois do fim da cobranca ate o goleiro (e o batedor) ficarem de pe onde estao
 
     // O tecnico, ao lado do banco: `zBanco` e o z do centro do banco do time; fica a `zDoMeio` do meio-campo, no mesmo lado do eixo.
     posTecnico(ladoBanco, zBanco) {

@@ -1477,7 +1477,9 @@ class FootballPlayer {
 
     aplicarFrameLancamento(K) {
         if (!this.rig || typeof escreverPoseBolaParada !== 'function') return;
-        escreverPoseBolaParada(this.rig, K, this.model, LancamentoClip.pernaChute);
+        // A perna que bate e a do pe bom: o clip e escrito para `LancamentoClip.pernaChute`; o canhoto usa a outra.
+        const perna = (this.pe === 'e') ? (LancamentoClip.pernaChute === 'r' ? 'l' : 'r') : LancamentoClip.pernaChute;
+        escreverPoseBolaParada(this.rig, K, this.model, perna);
         this.assentarNoChao();
     }
 
@@ -1742,9 +1744,12 @@ class FootballPlayer {
         const b = Match.ball.position;
         // O eixo +x local do corpo, virado para (dirX, dirZ), é (dirZ, -dirX): a
         // esquerda dele. O pé direito fica `peLado` para a direita da origem.
+        // O CANHOTO ESPELHA: o corpo fica do outro lado da bola (o pe de apoio e o outro) e bate com a perna esquerda (ver `aplicarFrameLancamento`). Valia para penaltis, cantos e faltas
+        // directas: todos batiam de direita (relato: *"nao vi nenhum jogador batendo de esquerda"*).
+        const sgPe = (this.pe === 'e') ? -1 : 1;
         const fim = {
-            x: b.x - dirX * L.peFrente + dirZ * L.peLado,
-            z: b.z - dirZ * L.peFrente - dirX * L.peLado
+            x: b.x - dirX * L.peFrente + dirZ * L.peLado * sgPe,
+            z: b.z - dirZ * L.peFrente - dirX * L.peLado * sgPe
         };
         const inicio = { x: this.model.position.x, z: this.model.position.z };
         this.velocity.set(0, 0, 0);
@@ -4048,6 +4053,7 @@ class FootballPlayer {
     a relançar de onde quer que ela esteja (ver a nota do puntBall).
     */
     aliviarForaDaArea() {
+        if (Match.disputa) { this.gkKickAction = null; this.gkEstado = 'idle'; this.gkKickNorm = 0; return; }
         const G = (typeof GkSaidaDaArea !== 'undefined') ? GkSaidaDaArea : null;
         const perto = Match.ball &&
             this.model.position.distanceTo(Match.ball.position) < 2.5;
@@ -4090,6 +4096,7 @@ class FootballPlayer {
     bola lá com a elevação sorteada. `g` é 15 aqui (ver updateBall).
     */
     puntBall() {
+        if (Match.disputa) { this.gkKickAction = null; if (this.gkEstado === 'chutando') this.gkEstado = 'idle'; return; }   // disputa: a bola nao e chutada para longe
         /*
         A BOLA AINDA É DELE? O chutão é um `ActionState` cujo `onContact` cai no
         `contactTime` do clip, uns décimos depois da decisão — e entre a decisão
@@ -4772,7 +4779,7 @@ class FootballPlayer {
         // O quase golo (ver QuaseGoloModel): o relógio da camada das mãos na cabeça.
         if (this.lamento) {
             this.lamento.t += dt;
-            if (typeof QuaseGoloModel === 'undefined' || this.lamento.t >= QuaseGoloModel.duracao) this.lamento = null;
+            if (typeof QuaseGoloModel === 'undefined' || this.lamento.t >= (this.lamento.dur || QuaseGoloModel.duracao)) this.lamento = null;
         }
 
         /*
@@ -6568,7 +6575,8 @@ class FootballPlayer {
         if (!this.lamento || !this.rig || typeof QuaseGoloModel === 'undefined') return;
         const Q = QuaseGoloModel;
         const t = this.lamento.t;
-        const w = Math.max(0, Math.min(1, Math.min(t / Q.transicao, (Q.duracao - t) / Q.transicao)));
+        const dur = this.lamento.dur || Q.duracao;   // a disputa de penaltis segura a lamentacao mais tempo (`lamento.dur`)
+        const w = Math.max(0, Math.min(1, Math.min(t / Q.transicao, (dur - t) / Q.transicao)));
         const r = this.rig;
         const mistura = (a, b) => a + (b - a) * w;
         r.lArm.rotation.x = mistura(r.lArm.rotation.x, Q.bracoX);
@@ -10178,7 +10186,8 @@ class FootballPlayer {
                 ? Math.max(GoalkeeperPose.segurarMinimo, GoalkeeperPose.segurarDirecto || 3.0)
                 : (this.gkSegurarDur ?? GoalkeeperPose.segurarDur);
 
-            if (lancarCedo || t >= prazo) {
+            // Na DISPUTA de penaltis o goleiro que fica com a bola NAO a relanca (nem a chuta): ela vai para o juiz no fim do desfecho (disputa_penaltis.js).
+            if ((lancarCedo || t >= prazo) && !Match.disputa) {
                 const alvoLancamento = (this.gkSaida === 'laterais') ? this.gkThrowTarget : null;
                 if (alvoLancamento && alvoLancamento.model) {
                     this.gkEstado = 'lancando';
@@ -11189,6 +11198,7 @@ class FootballPlayer {
     }
 
     chutarRecuoDeUrgencia() {
+        if (Match.disputa) return;
         if (this.gkKickAction || this.gkEstado === 'chutando') return;
         const R = (typeof GkRecuoModel !== 'undefined') ? GkRecuoModel : null;
         if (!R || !Match.ball) return;
