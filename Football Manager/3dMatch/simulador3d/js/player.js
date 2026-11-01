@@ -2299,7 +2299,7 @@ class FootballPlayer {
                     else if (diff >= 3) pDef = CD.bom || 0;
                     else if (diff >= 1) pDef = CD.medio || 0;
                     else pDef = CD.fraco || 0;
-                    pDef *= (PM.fatorDefesa ?? 1);   // -25% de defesas em todos os penaltis (ver acima)
+                    pDef *= (PM.fatorDefesa ?? 1);   // fatorDefesa em todos os penaltis (ver acima)
                     if (Math.random() < pDef) gkDiveCol = targetCol;
                 }
 
