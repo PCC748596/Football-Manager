@@ -39,7 +39,7 @@ function disputa(sinalZ, nCobrancas) {
     DisputaPenaltis.sinalZ = sinalZ;   // a baliza do teste (o sorteio ainda nao foi usado)
     const D = DisputaPenaltis, M = 53;
     const r = { kicks: [], cabeca: [], vigia: [], espera: [], juiz: [] };
-    let k = null, vig = null, n = 0, antes = null;
+    let k = null, vig = null, n = 0, antes = null, ultimaCob = null;
     while (D.activa && n < 60 * 600) {
         const estadoAntes = Match.state, faseAntes = D.fase;
         const gkAntes = k && k.goleiro ? { x: k.goleiro.model.position.x, z: k.goleiro.model.position.z, cab: inclinacao(k.goleiro) } : null;
@@ -47,7 +47,9 @@ function disputa(sinalZ, nCobrancas) {
         const juizEsperado = (Match.state === 'PENALTY') ? Officials.pontoDoArbitro(Match.ball) : null;
         Match.update(dt); n++;
         // O inicio da cobranca (cobrar): onde esta o batedor e quando.
-        if (D._cobranca && !k) {
+        // Uma cobranca NOVA (a anterior pode ainda estar no desfecho depois do resultado).
+        if (D._cobranca && !k && !D._cobranca.desfecho && D._cobranca !== ultimaCob) {
+            ultimaCob = D._cobranca;
             const c = D._cobranca;
             k = { lado: c.lado, batedor: c.batedor, goleiro: c.goleiro, pe: c.batedor.pe, t0: n, p0: { x: c.batedor.model.position.x, z: c.batedor.model.position.z }, maxMov4: 0 };
         }

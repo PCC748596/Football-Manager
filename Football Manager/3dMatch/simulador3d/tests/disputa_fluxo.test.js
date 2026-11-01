@@ -113,6 +113,8 @@ const reun = msgs.find(m => m.tipo === 'disputa_reuniao').dados;
 DisputaPenaltis.receberOrdens(reun.casa.map(j => j.id), reun.fora.map(j => j.id), { lado: reun.primeiro, jogadorId: reun[reun.primeiro][0].id });
 for (let i = 0; i < 60 * 120 && !msgs.some(m => m.tipo === 'disputa_cobranca'); i++) Match.update(dt);
 verifica(DisputaPenaltis.fase === 'AGUARDA', 'a primeira cobranca foi reportada: fase AGUARDA', 'fase: ' + DisputaPenaltis.fase);
+// O prazo da app conta depois do DESFECHO (o lance continua uns segundos depois do resultado: DisputaModel.pausa.desfecho*).
+for (let i = 0; i < 60 * 10 && DisputaPenaltis._cobranca; i++) Match.update(dt);
 rodar(29);
 verifica(DisputaPenaltis.activa, 'AGUARDA aos 29 s: ainda activa', 'abortou cedo');
 rodar(3);
