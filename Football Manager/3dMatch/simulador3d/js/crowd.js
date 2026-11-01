@@ -228,7 +228,8 @@ const CrowdModel = {
     fracao que de vez em quando vira a cabeca para tras. Tudo sorteado por adepto no shader.
     */
     // `fracao`: a que aplaude na entrada dos times; `perigo`: a que aplaude (em continuo) numa claque quando o seu time tem um lance perigoso (ataque no terco ofensivo). No jogo normal ninguem aplaude.
-    aplauso: { fracao: 0.16, perigo: 0.50, repouso: 0.6, entrada: 1.0 },
+    // `perigo`: fracao da claque que bate palmas num lance perigoso do seu time e durante as substituicoes dele; `duracaoPerigo` s de palmas depois do lance.
+    aplauso: { fracao: 0.16, perigo: 0.50, repouso: 0.6, entrada: 1.0, duracaoPerigo: 6 },
     olhaParaTras: 0.12,
     amplitudeIdle: 0.35,
     ritmoIdle: 1.6,
@@ -1752,11 +1753,16 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         this.setFraccao('A', r.A, r.festa === 'A', salto('A'));
         this.setFraccao('B', r.B, r.festa === 'B', salto('B'));
 
-        // PALMAS: na entrada dos times a fracao de sempre; no jogo, so a claque cujo time tem um lance perigoso (esta no ataque) e `perigo` dela bate palmas.
+        // PALMAS (pedido: "palmas so na entrada dos times, depois de uma finalizacao perigosa ou durante as mudancas de cada time"): na entrada dos times a fracao de sempre;
+        // no jogo so a claque do time que acabou de ter uma finalizacao perigosa (`Match.palmasPerigo`, escrito pelo `talvezLamentar`: remate rente a baliza, defendido ou na trave;
+        // palmas por `duracaoPerigo` s) ou que esta a fazer uma substituicao (troca em curso desse lado). Estar no ataque ja nao basta.
         const U = this._uniforms, AP = CrowdModel.aplauso;
         if (U.uFracPalmas) {
-            const perigo = (f, claque) => (r.festa || r.semSalto || f < CrowdModel.fraccaoAtaque - 1e-6) ? 0 : AP.perigo;
-            const pA = abertura ? AP.fracao : perigo(r.A, 'A'), pB = abertura ? AP.fracao : perigo(r.B, 'B');
+            const pp = Match.palmasPerigo;
+            if (pp && pp !== this._ultimoPerigo) { this._ultimoPerigo = pp; this._palmasAte = this._palmasAte || {}; this._palmasAte[pp.team === 'TeamA' ? 'A' : 'B'] = this._tempo + AP.duracaoPerigo; }
+            const emTroca = (lado) => (Match.subsPendentes || []).some(q => !q.feita && q.lado === lado && (q.estado === 'placa' || q.estado === 'sai' || q.estado === 'voltar')) || !!(Match.subsEmCurso && Match.subsEmCurso.lado === lado);
+            const palmas = (claque) => (r.festa || r.semSalto) ? 0 : ((this._palmasAte && this._palmasAte[claque] > this._tempo) || emTroca(claque === 'A' ? 'casa' : 'fora')) ? AP.perigo : 0;
+            const pA = abertura ? AP.fracao : palmas('A'), pB = abertura ? AP.fracao : palmas('B');
             U.uFracPalmas.value.set(pA, pB);
             U.uPalmasFirme.value = (!abertura && (pA > 0 || pB > 0)) ? 1 : 0;
             U.uAplauso.value = (abertura || pA > 0 || pB > 0) ? AP.entrada : AP.repouso;

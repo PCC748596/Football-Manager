@@ -1440,7 +1440,7 @@ Object.assign(Match, {
         const ultimo = this.lastTouchedPlayer;
         const defesa = !!(ultimo && ultimo.role === 'gk' && ultimo.team !== r.p.team);
         // O remate que bateu no poste ou no travessao e quase golo, passe ou nao perto.
-        if (rente || defesa || r.bateuNaTrave) r.p.lamento = { t: 0 };
+        if (rente || defesa || r.bateuNaTrave) { r.p.lamento = { t: 0 }; this.palmasPerigo = { team: r.p.team }; }   // a claque de quem rematou bate palmas (js/crowd.js)
     },
 
     algumACaminhoDoLugar: function (comVitima) {
