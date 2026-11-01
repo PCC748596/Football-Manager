@@ -12,7 +12,7 @@ const ordinal = (n: number) => {
 };
 
 const FixturesView: React.FC = () => {
-  const { fixtures, teams, gameState, players, comps } = useGame();
+  const { fixtures, teams, gameState, players, comps, t } = useGame();
 
   // Os jogos de copa do utilizador (`fix-cup-<id do jogo da copa>`) -> o rotulo da fase (LIBERT-16, SULA-G ...).
   const rotulosDeCopa = useMemo(() => {
@@ -58,7 +58,7 @@ const FixturesView: React.FC = () => {
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-4xl font-black uppercase tracking-tighter leading-none italic transition-colors">
-            <span className="text-slate-900 dark:text-white transition-colors">SEASON</span> <span className="text-blue-500">SCHEDULE</span>
+            <span className="text-slate-900 dark:text-white transition-colors">{t('fix_season').toUpperCase()}</span> <span className="text-blue-500">{t('fix_schedule').toUpperCase()}</span>
           </h2>
           <p className="text-slate-400 dark:text-slate-500 font-bold text-[15px] uppercase tracking-widest mt-2 opacity-60 italic transition-colors">
             Fixture List for {getTeamObj(gameState.userTeamId || '')?.name}
@@ -71,12 +71,12 @@ const FixturesView: React.FC = () => {
           <table className="w-full text-left border-collapse bg-white dark:bg-transparent">
             <thead className="bg-slate-100/80 dark:bg-slate-900/40 sticky top-0 z-20 transition-colors">
               <tr className="text-[13px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em] italic transition-colors">
-                <th className="px-6 py-5">Type</th>
-                <th className="px-6 py-5">Date</th>
-                <th className="px-6 py-5 text-right">Home</th>
-                <th className="px-6 py-5 text-center w-32">Result</th>
-                <th className="px-6 py-5">Away</th>
-                <th className="px-6 py-5 text-right">Status</th>
+                <th className="px-6 py-5">{t('fx_type')}</th>
+                <th className="px-6 py-5">{t('fx_date')}</th>
+                <th className="px-6 py-5 text-right">{t('fx_home')}</th>
+                <th className="px-6 py-5 text-center w-32">{t('fx_result')}</th>
+                <th className="px-6 py-5">{t('fx_away')}</th>
+                <th className="px-6 py-5 text-right">{t('fx_status')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/20 transition-colors">

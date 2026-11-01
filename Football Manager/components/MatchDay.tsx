@@ -19,7 +19,7 @@ interface MatchDayProps {
 }
 
 const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
-  const { gameState, fixtures, teams, players, playMatchDay, pauseMatch, resetMatchDay, advanceWeek, updateMatchVisualState, motor3dMensagem, avisoGoleiroMensagem, updateTactics, comps, decisaoDoJogoDeHoje, definirOrdemPenaltis } = useGame();
+  const { gameState, fixtures, teams, players, playMatchDay, pauseMatch, resetMatchDay, advanceWeek, updateMatchVisualState, motor3dMensagem, avisoGoleiroMensagem, updateTactics, comps, decisaoDoJogoDeHoje, definirOrdemPenaltis, t } = useGame();
   
   const match = fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId));
   const homeTeam = teams.find(t => t.id === match?.homeTeamId);
@@ -213,7 +213,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 <div className="flex items-center gap-4 shrink-0">
                     <div className="text-right">
                         <div className="text-2xl font-black text-blue-500 italic leading-none tabular-nums">{(() => { const s = (iniciou && relogio3d !== null) ? relogio3d : gameState.matchMinute * 60; return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); })()}{(iniciou || !!(window as any).__instantaneo3d) && descontos3d > 0 && <span className="text-sm text-amber-400 ml-2 not-italic">+{descontos3d}'</span>}</div>
-                        <div className="text-[8px] text-slate-500 font-black uppercase tracking-widest mt-1">TEMPO</div>
+                        <div className="text-[8px] text-slate-500 font-black uppercase tracking-widest mt-1">{t('md_time')}</div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                         {gameState.matchMinute < 90 && (
@@ -235,13 +235,13 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                                   onClick={() => setActiveTab('stats')} 
                                   className={`${activeTab === 'stats' ? 'bg-blue-650 hover:bg-blue-600 border-blue-850' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-3 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4`}
                                 >
-                                  STATISTICS
+                                  {t('md_stats')}
                                 </button>
                             </>
                         )}
-                        <button onClick={handleReset} className="bg-slate-700 hover:bg-slate-600 text-white font-black px-3 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4 border-slate-900">RESET</button>
+                        <button onClick={handleReset} className="bg-slate-700 hover:bg-slate-600 text-white font-black px-3 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4 border-slate-900">{t('md_reset')}</button>
                         <button onClick={() => handleAction()} className="bg-blue-600 hover:bg-blue-500 text-white font-black px-6 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4 border-blue-800">
-                          {gameState.matchMinute >= 90 && !(retomarRef.current && !iniciou) && !(typeof (window as any).motor3dMinuto === 'number' && (window as any).motor3dMinuto !== 999) ? 'FINISH' : podePular ? 'SKIP' : gameState.isProcessing ? 'PAUSE' : (gameState.matchMinute === 0 || gameState.matchMinute === 45) && !iniciou ? 'KICK-OFF' : 'CONTINUE'}
+                          {gameState.matchMinute >= 90 && !(retomarRef.current && !iniciou) && !(typeof (window as any).motor3dMinuto === 'number' && (window as any).motor3dMinuto !== 999) ? t('md_finish') : podePular ? t('md_skip') : gameState.isProcessing ? t('md_pause') : (gameState.matchMinute === 0 || gameState.matchMinute === 45) && !iniciou ? t('md_kickoff') : t('md_continue')}
                         </button>
                     </div>
                 </div>
@@ -250,19 +250,19 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
         
         {!showStats && (
         <div className="bg-slate-900 border-b border-slate-800 px-6 py-2 flex items-center gap-2 flex-wrap">
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mr-1">Camera</span>
-            {[['orbit', 'Orbit'], ['center', 'TV Centre'], ['sideline', 'Moving Sideline'], ['lateraltv', 'TV Sideline'], ['grua', 'Crane'], ['cinema', 'Cinema']].map(([modo, nome]) => (
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mr-1">{t('md_camera')}</span>
+            {['orbit', 'center', 'sideline', 'lateraltv', 'grua', 'cinema'].map((modo) => (
               <button key={modo} onClick={() => { setCamara(modo); simulador3dEnviar({ tipo: 'camera', modo }); }}
-                className={`${camara === modo ? 'bg-sky-600 border-sky-800' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-3 py-1.5 rounded text-[10px] uppercase tracking-wider border-b-2 active:scale-95`}>{nome}</button>
+                className={`${camara === modo ? 'bg-sky-600 border-sky-800' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-3 py-1.5 rounded text-[10px] uppercase tracking-wider border-b-2 active:scale-95`}>{t('cam_' + modo)}</button>
             ))}
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-3 mr-1">Speed</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-3 mr-1">{t('md_speed')}</span>
             {[0.5, 1, 1.5].map(v => (
               <button key={v} onClick={() => { setVelocidade(v); simulador3dVelocidade(v); }}
                 className={`${velocidade === v ? 'bg-sky-600 border-sky-800' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-3 py-1.5 rounded text-[10px] tracking-wider border-b-2 active:scale-95`}>{v}x</button>
             ))}
             <button onClick={() => simulador3dEnviar({ tipo: 'replay', segundos: 10 })}
-              title="Replays the last 10 seconds (click again to stop)"
-              className={`${replayAtivo ? 'animate-pulse bg-yellow-400 hover:bg-yellow-300 border-yellow-600 text-black' : 'bg-slate-700 hover:bg-slate-600 border-slate-900 text-white'} font-black px-3 py-1.5 rounded text-[10px] uppercase tracking-wider border-b-2 active:scale-95`}>Replay 10s</button>
+              title={t('md_replay_tip')}
+              className={`${replayAtivo ? 'animate-pulse bg-yellow-400 hover:bg-yellow-300 border-yellow-600 text-black' : 'bg-slate-700 hover:bg-slate-600 border-slate-900 text-white'} font-black px-3 py-1.5 rounded text-[10px] uppercase tracking-wider border-b-2 active:scale-95`}>{t('md_replay')}</button>
             {eventoHud && (
               <span className="ml-3 flex items-center gap-2 bg-slate-950 border border-slate-600 rounded px-3 py-1 text-white font-black text-[10px] uppercase tracking-widest">
                 <span className="text-sm">{eventoHud.esq}</span>{eventoHud.nome}<span className="text-sm">{eventoHud.dir}</span>

@@ -171,12 +171,12 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
               onClick={handleContinue}
               className={`w-full min-h-[44px] font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 text-sm tracking-widest uppercase active:scale-95 border-b-4 ${isMatchDay ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20 border-emerald-800' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20 border-blue-800'}`}
             >
-              <span className="xl:hidden">▶</span><span className="hidden xl:inline">{isSimulating ? 'SIMULATING...' : (isMatchDay ? 'PLAY MATCH' : 'CONTINUE')}</span>
+              <span className="xl:hidden">▶</span><span className="hidden xl:inline">{isSimulating ? t('ly_simulating') : (isMatchDay ? 'PLAY MATCH' : t('ly_continue'))}</span>
             </button>
             )}
 
            <div className="hidden xl:block bg-slate-100 dark:bg-slate-900/40 rounded-lg px-4 py-0 text-center border border-slate-200 dark:border-slate-800 shadow-inner">
-             <div className="text-[11px] text-slate-800 dark:text-white uppercase font-black tracking-tight italic mb-[5px]">Match Week</div>
+             <div className="text-[11px] text-slate-800 dark:text-white uppercase font-black tracking-tight italic mb-[5px]">{t('ly_match_week')}</div>
              <div className="text-4xl font-black text-blue-600 dark:text-blue-500 leading-none italic tracking-tighter">
                {gameState.currentWeek} 
                <span className="text-slate-400 dark:text-slate-800 text-sm ml-1 not-italic">/ {gameState.totalWeeks}</span>

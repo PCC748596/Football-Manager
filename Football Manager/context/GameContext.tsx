@@ -57,6 +57,12 @@ const TRANSLATIONS: Record<string, any> = {
     // Squad
     sq_management: "Squad Management", sq_subtitle: "Drag n drop shirt numbers to swap between players • Click on rows for details",
     sq_gk: "Goalkeepers", sq_def: "Defenders", sq_mid: "Midfielders", sq_fwd: "Forwards",
+    // Match Day / Schedule / Layout (extras)
+    md_stats: "STATISTICS", md_reset: "RESET", md_pause: "PAUSE", md_continue: "CONTINUE", md_skip: "SKIP", md_kickoff: "KICK-OFF", md_finish: "FINISH", md_time: "TIME",
+    md_camera: "Camera", md_speed: "Speed", md_replay: "Replay 10s", md_replay_tip: "Replays the last 10 seconds (click again to stop)",
+    cam_orbit: "Orbit", cam_center: "TV Centre", cam_sideline: "Moving Sideline", cam_lateraltv: "TV Sideline", cam_grua: "Crane", cam_cinema: "Cinema",
+    fx_type: "Type", fx_date: "Date", fx_home: "Home", fx_result: "Result", fx_away: "Away", fx_status: "Status",
+    ly_continue: "CONTINUE", ly_simulating: "SIMULATING...", ly_match_week: "Match Week",
     // Tactics
     tac_match: "Match", tac_tactics: "Tactics", tac_formation: "Formation",
     tac_instr: "Tactical Instructions", tac_style: "Play Style", tac_aggression: "Aggression",
@@ -120,6 +126,12 @@ const TRANSLATIONS: Record<string, any> = {
     // Squad
     sq_management: "Gestão do Elenco", sq_subtitle: "Arraste os números para trocar camisas • Clique nas linhas para detalhes",
     sq_gk: "Goleiros", sq_def: "Defensores", sq_mid: "Meio-campistas", sq_fwd: "Atacantes",
+    // Dia de Jogo / Calendario / Layout (extras)
+    md_stats: "ESTATÍSTICAS", md_reset: "REINICIAR", md_pause: "PAUSAR", md_continue: "CONTINUAR", md_skip: "PULAR", md_kickoff: "SAÍDA DE BOLA", md_finish: "FINALIZAR", md_time: "TEMPO",
+    md_camera: "Câmera", md_speed: "Velocidade", md_replay: "Replay 10s", md_replay_tip: "Repete os últimos 10 segundos (clique de novo para parar)",
+    cam_orbit: "Órbita", cam_center: "TV Centro", cam_sideline: "Lateral Móvel", cam_lateraltv: "TV Lateral", cam_grua: "Grua", cam_cinema: "Cinema",
+    fx_type: "Tipo", fx_date: "Data", fx_home: "Casa", fx_result: "Resultado", fx_away: "Fora", fx_status: "Situação",
+    ly_continue: "CONTINUAR", ly_simulating: "SIMULANDO...", ly_match_week: "Semana de Jogos",
     // Tactics
     tac_match: "Partida", tac_tactics: "Tática", tac_formation: "Esquema",
     tac_instr: "Instruções Táticas", tac_style: "Estilo", tac_aggression: "Agressividade",
