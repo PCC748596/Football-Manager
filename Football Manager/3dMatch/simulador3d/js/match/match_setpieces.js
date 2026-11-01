@@ -1670,6 +1670,7 @@ Object.assign(Match, {
         this.penaltiAtraso = DM.pausa.ajeitar + 0.6;
         // Parado na espera antes de a corrida do penalti em jogo comecar (match_loop.js: o `penaltiAtraso` nao desce enquanto ha `penaltiEspera`).
         this.penaltiEspera = DM.pausa.esperaBatida || 0;
+        this._juizApontou = false; this._juizApitou = false;
     },
 
     /*

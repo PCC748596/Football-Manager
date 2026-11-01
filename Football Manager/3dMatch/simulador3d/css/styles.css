@@ -272,8 +272,8 @@ canvas {
     display: flex;
     align-items: center;
     gap: 8px;
-    /* Retangulo preto com 20% de opacidade (rgba 0.2), sem cantos arredondados nem borda (pedido). */
-    background: rgba(0, 0, 0, 0.2);
+    /* Retangulo preto com 40% de opacidade (rgba 0.4, escurecido a pedido), sem cantos arredondados nem borda (pedido). */
+    background: rgba(0, 0, 0, 0.4);
     border: none;
     border-radius: 0;
     box-shadow: none;

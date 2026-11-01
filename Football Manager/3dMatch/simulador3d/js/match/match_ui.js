@@ -289,7 +289,8 @@ Object.assign(Match, {
 
         // A abertura do jogo tem a camara dela (js/abertura.js). A orbital, que e do utilizador, nao se toca.
         // A disputa de penaltis tambem (js/disputa_penaltis.js).
-        if (typeof DisputaPenaltis !== 'undefined' && DisputaPenaltis.activa) {
+        // A grua (8) segue a bola/batedor como no jogo: so ela escapa a camera da disputa (as outras dao a diagonal ou a de tras do batedor).
+        if (typeof DisputaPenaltis !== 'undefined' && DisputaPenaltis.activa && window.cameraMode !== 'grua') {
             DisputaPenaltis.camera(targetPos, lookTarget);
         } else if (typeof Abertura !== 'undefined' && Abertura.activa && Abertura.modo !== 'segundo' && Abertura.modo !== 'intervalo') {
             Abertura.camera(targetPos, lookTarget);

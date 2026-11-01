@@ -2574,7 +2574,7 @@ const Officials = {
         this.tickLinhaDoPasse(dt);
 
         // A disputa de penaltis (js/disputa_penaltis.js): o trio e os tecnicos andam pela coreografia, nao pelo jogo.
-        if (typeof DisputaPenaltis !== 'undefined' && DisputaPenaltis.activa) { DisputaPenaltis.moverOficiais(dt); return; }
+        if (typeof DisputaPenaltis !== 'undefined' && DisputaPenaltis.activa) { DisputaPenaltis.moverOficiais(dt); this.tickSinal(dt); return; }   // o gesto do juiz (aponta a linha de fundo antes da cobranca) corre por cima da coreografia
 
         // A abertura do jogo (js/abertura.js): o trio anda pela coreografia, nao pelo jogo.
         if (typeof Abertura !== 'undefined' && Abertura.activa) { Abertura.moverOficiais(dt); return; }

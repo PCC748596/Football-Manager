@@ -2006,7 +2006,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const saveGame = async () => {
     // A partida 3D a meio: o instantaneo do motor (posicoes, bola, posse, estatisticas) vai no save, para o load continuar exactamente dali (ver Ponte.instantaneo).
     let motor3d: any = null;
-    if (gameState.matchMinute > 0 && gameState.matchMinute < 90 && typeof (window as any).motor3dMinuto === 'number') {
+    if (gameState.matchMinute > 0 && typeof (window as any).motor3dMinuto === 'number' && (window as any).motor3dMinuto !== 999) {   // inclui os descontos (>= 90); o 3D devolve null se o jogo ja acabou
       try { motor3d = await simulador3dInstantaneo(); } catch { motor3d = null; }
     }
     const saveData = {

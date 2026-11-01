@@ -597,6 +597,20 @@ Object.assign(Match, {
                 this.penaltiAtraso -= dt;
                 // A DISPUTA espera `penaltiEspera` s parada antes de a corrida comecar (a espera do penalti em jogo, e o plano da corrida, contam so depois).
                 if (this.penaltiEspera > 0) { this.penaltiEspera -= dt; this.penaltiAtraso += dt; this.setPieceTimer -= dt; }
+                /*
+                O JUIZ AUTORIZA A COBRANCA DA DISPUTA (pedido): antes de o batedor cobrar, aponta na direccao da linha de fundo (a baliza em uso) e apita. O gesto sobe nos ultimos
+                `duracaoSinal` s da espera parada e o apito sai perto do fim dela; `_autorizacaoDada` e reposto em `iniciarPenaltiDaDisputa`.
+                */
+                if (this.disputa && this.penaltiEspera > 0 && typeof Officials !== 'undefined') {
+                    if (!this._juizApontou && this.penaltiEspera <= RefereeModel.duracaoSinal + 0.3 && Officials.sinalizar) {
+                        this._juizApontou = true;
+                        Officials.sinalizar(0, this.disputa.sinalZ * CAMPO_COMP / 2, RefereeModel.elevacaoSinal);
+                    }
+                    if (!this._juizApitou && this.penaltiEspera <= 0.7) {
+                        this._juizApitou = true;
+                        if (typeof EfeitosSonoros !== 'undefined' && EfeitosSonoros.apito) EfeitosSonoros.apito(1.0);
+                    }
+                }
                 // Teto de 25 s: sem ele uma marca presa (queda, lugar) prendia o penalti para sempre.
                 this.esperaBolaParada = (this.esperaBolaParada || 0) + dt;
                 if ((this.algumCaidoDaFalta(true) || this.algumACaminhoDoLugar(true)) && this.esperaBolaParada <= 25.0) {

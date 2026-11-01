@@ -40,6 +40,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const [eventoHud, setEventoHud] = useState<{ nome: string; esq: number; dir: number } | null>(null);
   // O relogio do 3D em segundos (mensagem `relogio`): o TEMPO mostra-se em MM:SS.
   const [relogio3d, setRelogio3d] = useState<number | null>(null);
+  const [descontos3d, setDescontos3d] = useState(() => { const i = (window as any).__instantaneo3d; return i ? ((i.segundoTempoIniciado ? i.acrMin2 : i.acrMin1) || 0) : 0; });   // save gravado nos descontos: ja os mostra antes de continuar;   // minutos de acrescimo anunciados pelo juiz no 3D
   const eventoTimer = useRef<any>(null);
   const [pronto3d, setPronto3d] = useState(() => simulador3dPronto());
   /*
@@ -69,7 +70,8 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   entrada dos times), com o placar e os expulsos (os vermelhos dos eventos). Ver Ponte._retomar no simulador.
   */
   const retomarRef = useRef<{ minuto: number; placar: { casa: number; fora: number }; expulsos: string[]; saida: 'casa' | 'fora'; instantaneo?: any } | null>(
-    (!iniciou && match && !match.played && gameState.matchMinute > 0 && gameState.matchMinute < 90) ? {
+    // Nos descontos (relogio >= 90) so ha o que retomar se o save trouxe o instantaneo do 3D (so existe com o jogo ainda a correr; acabado nao ha).
+    (!iniciou && match && !match.played && gameState.matchMinute > 0 && (gameState.matchMinute < 90 || !!(window as any).__instantaneo3d)) ? {
       minuto: gameState.matchMinute,
       placar: { casa: match.homeScore || 0, fora: match.awayScore || 0 },
       expulsos: (match.events || []).filter((e: any) => e.type === 'CARD' && (String(e.description || '').includes('🟥') || /RED|VERMELH/i.test(String(e.description || ''))) && e.playerId).map((e: any) => String(e.playerId)),
@@ -91,7 +93,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
     estatisticas, as notas e a tabela, e o treinador sai com CONTINUAR (o botao do manager ou o do 3D: handleAction / `saida_pedida`, que so concluem depois do `fim` do 3D).
     */
     if (gameState.matchMinute >= 90) {
-      if (iniciou) return;
+      if (iniciou || retomarRef.current) return;   // save gravado nos descontos: o jogo continua no 3D (ver retomarRef)
       if (setView) {
         if (!concluidoRef.current) { concluidoRef.current = true; advanceWeek(); setView('DASHBOARD'); }
       } else setActiveTab('stats');
@@ -124,7 +126,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   };
 
   // Com o 3D o fim do jogo fica no 3D (as estatisticas dele): a aba de estatisticas do manager so abre se o treinador a escolher.
-  const showStats = (gameState.matchMinute >= 90 && !iniciou) || activeTab === 'stats';
+  const showStats = (gameState.matchMinute >= 90 && !iniciou && !retomarRef.current) || activeTab === 'stats';
   // A posicao dos dois clubes na tabela da liga (pontos, saldo, golos): o treinador da CPU no 3D leva-a em conta (objetivo do clube). Sem jogos feitos, vale a ordem de OVR.
   const tabelaDosDois = (() => {
     const liga = teams.filter(t => t.leagueId === homeTeam.leagueId && (t.groupId || '') === (homeTeam.groupId || ''));
@@ -145,6 +147,10 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const handleAction = (daSaidaPedida = false) => {
     // Os times entram em campo: o botao e PULAR (o mesmo que o ESC do 3D). O pedido de saida que o ESC gera volta aqui e ai arranca a partida (daSaidaPedida).
     if (podePular && !daSaidaPedida && gameState.matchMinute < 90) { simulador3dEnviar({ tipo: 'esc' }); return; }
+    if (gameState.matchMinute >= 90 && !iniciou && retomarRef.current) {
+        // Save gravado nos descontos: continua o 3D de onde parou.
+        (window as any).motor3dMinuto = retomarRef.current.minuto; setIniciou(true); playMatchDay('VISUAL'); return;
+    }
     if (gameState.matchMinute >= 90) {
         /*
         SO SE CONCLUI DEPOIS DO 3D ACABAR. Com o 3D ao vivo o relogio do manager chega aos 90 enquanto o jogo do 3D ainda esta no ACRESCIMO; concluir ai (advanceWeek) tirava o
@@ -190,7 +196,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
     <div className="w-full h-full flex flex-col bg-slate-950 rounded-xl overflow-hidden border border-slate-900 shadow-2xl">
         <div className="h-20 bg-slate-900 border-b border-slate-800 flex flex-col items-center justify-center relative z-20 overflow-hidden">
             <div className="w-full flex items-center justify-between px-8">
-                <div className="flex items-center gap-8">
+                <div className="flex items-center gap-8 min-w-0 overflow-hidden">
                     <div className="flex items-center gap-3">
                         <TeamShield team={homeTeam} className="w-12 h-14" />
                         <span className="text-white font-black italic">{homeTeam.name}</span>
@@ -204,38 +210,38 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                     </div>
                 </div>
                 
-                <div className="flex items-center gap-8">
+                <div className="flex items-center gap-4 shrink-0">
                     <div className="text-right">
-                        <div className="text-2xl font-black text-blue-500 italic leading-none tabular-nums">{(() => { const s = (iniciou && relogio3d !== null) ? relogio3d : gameState.matchMinute * 60; return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); })()}</div>
+                        <div className="text-2xl font-black text-blue-500 italic leading-none tabular-nums">{(() => { const s = (iniciou && relogio3d !== null) ? relogio3d : gameState.matchMinute * 60; return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); })()}{(iniciou || !!(window as any).__instantaneo3d) && descontos3d > 0 && <span className="text-sm text-amber-400 ml-2 not-italic">+{descontos3d}'</span>}</div>
                         <div className="text-[8px] text-slate-500 font-black uppercase tracking-widest mt-1">TEMPO</div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
                         {gameState.matchMinute < 90 && (
                             <>
                                 <button 
                                   onClick={() => { setActiveTab('pitch3d'); if (camara === 'topdown') { setCamara('lateraltv'); simulador3dEnviar({ tipo: 'camera', modo: 'lateraltv' }); } }} 
-                                  className={`${activeTab === 'pitch3d' && camara !== 'topdown' ? 'bg-sky-650 hover:bg-sky-600 border-sky-850' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-4 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4`}
+                                  className={`${activeTab === 'pitch3d' && camara !== 'topdown' ? 'bg-sky-650 hover:bg-sky-600 border-sky-850' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-3 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4`}
                                 >
                                   3D
                                 </button>
                                 {/* 2D = a camara tatica (vista de cima), que era um botao da fila de cameras */}
                                 <button 
                                   onClick={() => { setActiveTab('pitch3d'); setCamara('topdown'); simulador3dEnviar({ tipo: 'camera', modo: 'topdown' }); }} 
-                                  className={`${activeTab === 'pitch3d' && camara === 'topdown' ? 'bg-sky-650 hover:bg-sky-600 border-sky-850' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-4 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4`}
+                                  className={`${activeTab === 'pitch3d' && camara === 'topdown' ? 'bg-sky-650 hover:bg-sky-600 border-sky-850' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-3 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4`}
                                 >
                                   2D
                                 </button>
                                 <button 
                                   onClick={() => setActiveTab('stats')} 
-                                  className={`${activeTab === 'stats' ? 'bg-blue-650 hover:bg-blue-600 border-blue-850' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-4 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4`}
+                                  className={`${activeTab === 'stats' ? 'bg-blue-650 hover:bg-blue-600 border-blue-850' : 'bg-slate-700 hover:bg-slate-600 border-slate-900'} text-white font-black px-3 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4`}
                                 >
                                   STATISTICS
                                 </button>
                             </>
                         )}
-                        <button onClick={handleReset} className="bg-slate-700 hover:bg-slate-600 text-white font-black px-4 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4 border-slate-900">RESET</button>
-                        <button onClick={() => handleAction()} className="bg-blue-600 hover:bg-blue-500 text-white font-black px-8 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4 border-blue-800">
-                          {gameState.matchMinute >= 90 ? 'FINISH' : podePular ? 'SKIP' : gameState.isProcessing ? 'PAUSE' : (gameState.matchMinute === 0 || gameState.matchMinute === 45) && !iniciou ? 'KICK-OFF' : 'CONTINUE'}
+                        <button onClick={handleReset} className="bg-slate-700 hover:bg-slate-600 text-white font-black px-3 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4 border-slate-900">RESET</button>
+                        <button onClick={() => handleAction()} className="bg-blue-600 hover:bg-blue-500 text-white font-black px-6 py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 border-b-4 border-blue-800">
+                          {gameState.matchMinute >= 90 && !(retomarRef.current && !iniciou) && !(typeof (window as any).motor3dMinuto === 'number' && (window as any).motor3dMinuto !== 999) ? 'FINISH' : podePular ? 'SKIP' : gameState.isProcessing ? 'PAUSE' : (gameState.matchMinute === 0 || gameState.matchMinute === 45) && !iniciou ? 'KICK-OFF' : 'CONTINUE'}
                         </button>
                     </div>
                 </div>
@@ -386,6 +392,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         setPodePular(!!m.pular);
                       } else if (m.tipo === 'relogio') {
                         setRelogio3d(typeof m.segundos === 'number' ? m.segundos : null);
+                        setDescontos3d(typeof m.acrescimo === 'number' ? m.acrescimo : 0);
                       } else if (m.tipo === 'hud_evento') {
                         setEventoHud({ nome: m.nome, esq: m.esq, dir: m.dir });
                         clearTimeout(eventoTimer.current);

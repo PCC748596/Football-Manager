@@ -569,9 +569,9 @@ const DisputaPenaltis = {
         if (this.fase === 'REUNIAO' || this.fase === 'ORDEM') {
             pos.set(-this.ladoBanco * 30, 14, 0);
             look.set(this.ladoBanco * 26, 1.2, 0);
-        } else if (window.cameraMode === 'sideline') {
+        } else if (window.cameraMode === 'sideline' || window.cameraMode === 'lateraltv') {
             // TV SIDELINE: em cima do bico da grande area (o canto dela no lado das cameras, +X), olhando para a marca do penalti (no centro do ecra) — fica na diagonal.
-            pos.set(DM.area.grandeMeiaLargura, 5.0, this.sinalZ * (DM.campo.comp / 2 - (typeof Area !== 'undefined' ? Area.profundidade : 16.5)));
+            pos.set(DM.area.grandeMeiaLargura, 8.0, this.sinalZ * (DM.campo.comp / 2 - (typeof Area !== 'undefined' ? Area.profundidade : 16.5)));
             // A marca do penalti no centro do ecra.
             const mk = DM.posMarca(this.sinalZ);
             look.set(mk.x, 0.3, mk.z);

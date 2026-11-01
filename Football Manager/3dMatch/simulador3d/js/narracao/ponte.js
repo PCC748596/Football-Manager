@@ -340,7 +340,7 @@ const Ponte = {
     },
 
     _preparar(m) {
-        AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala, ocupacao: m.ocupacao, ocupacaoVisitante: m.ocupacaoVisitante, arbitro: m.arbitro }); this._reaplicarPlayingStyles();
+        AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala, ocupacao: m.ocupacao, ocupacaoVisitante: m.ocupacaoVisitante, arbitro: m.arbitro }); this._reaplicarPlayingStyles(); this._ladosBase = undefined;
         this._preparada = this._chave(m);
         this._medir();
         this._ligarPainel();
@@ -397,7 +397,8 @@ const Ponte = {
         // A partida no motor: elencos, escalacao, formacoes e tatica.
         // Se o `preparar` ja montou esta partida (e a entrada dos times esta a correr), nao se refaz nada: so se solta a espera.
         const jaPreparada = (this.modo === 'visivel' && this._preparada === this._chave(m));
-        if (!jaPreparada) AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala, ocupacao: m.ocupacao, ocupacaoVisitante: m.ocupacaoVisitante, arbitro: m.arbitro }); this._reaplicarPlayingStyles();
+        if (!jaPreparada) { this._ladosBase = undefined; AdaptadorManager.prepararPartida(m.casa, m.fora, { taticaDe: m.taticaDe || 'casa', escala: m.escala, ocupacao: m.ocupacao, ocupacaoVisitante: m.ocupacaoVisitante, arbitro: m.arbitro }); }
+        this._reaplicarPlayingStyles();
         this._preparada = null;
         if (Match.ball) Match.ball.visible = true;   // o `esconderTimes` do arranque
         if (typeof Abertura !== 'undefined') Abertura.aguardarSaida = false;
@@ -533,7 +534,9 @@ const Ponte = {
         if (r.minuto >= 45) {
             // O 2.o tempo, ja a correr: os lados trocam (como no iniciarSegundoTempo), sem intervalo nem tunel.
             Match.primeiroTempoAcabou = true; Match.acr1Calculado = true; Match.segundoTempoIniciado = true;
-            Lados.trocados = !Lados.trocados;
+            // Idempotente (o `_retomar` corre no `preparar` e outra vez no `iniciar`): o 2.o tempo e o inverso dos lados de base, nunca um `!` sobre o que la estava.
+            if (this._ladosBase === undefined) this._ladosBase = Lados.trocados;
+            Lados.trocados = !this._ladosBase;
             [...Match.players, ...Match.opponents].forEach(p => {
                 p.dirZ = Lados.dirDe(p.team);
                 p.targetGoalZ = (CAMPO_COMP / 2) * p.dirZ;
@@ -659,7 +662,9 @@ const Ponte = {
             this._estadoPeriodico();
             // O RELOGIO EM MM:SS no manager: os segundos de jogo, quando mudam (o `estado` so vai uma vez por minuto).
             const seg = Math.floor(Match.tempoDeJogo || 0);
-            if (seg !== this._ultimoSegundo) { this._ultimoSegundo = seg; this.enviar('relogio', { segundos: seg }); }
+            if (seg !== this._ultimoSegundo) { this._ultimoSegundo = seg; // Os DESCONTOS que o juiz anunciou (minutos) no tempo em curso; 0 ate ele os definir.
+                const acr = Match.segundoTempoIniciado ? (Match.acr2Calculado ? (Match.acrMin2 || 0) : 0) : (Match.acr1Calculado ? (Match.acrMin1 || 0) : 0);
+                this.enviar('relogio', { segundos: seg, acrescimo: acr }); }
             if (this._acabou()) this._terminar();
         }, 500);
     },
