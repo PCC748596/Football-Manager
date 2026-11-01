@@ -93,7 +93,7 @@ const Comemoracao = {
         // Os companheiros: os mais perto do ponto onde ele vai parar.
         const A = C.apoio;
         const meus = ((autor.team === 'TeamA') ? Match.players : Match.opponents)
-            .filter(o => o && o !== autor && o.role !== 'gk' && o.model && !o.expulso)
+            .filter(o => o && o !== autor && o.role !== 'gk' && o.model && !o.expulso && !o.disputaOrdem)   // na disputa os outros estao em coreografia
             .map(o => ({ o, d: o.model.position.distanceTo(E) }))
             .filter(x => x.d <= A.raioMax)
             .sort((a, b) => a.d - b.d)
@@ -125,13 +125,14 @@ const Comemoracao = {
         p.hasBall = false;
         if (!p.dynamicTarget) p.dynamicTarget = new THREE.Vector3();
         p.dynamicTarget.set(alvo.x, ALTURA_BASE_Y, alvo.z);
+        p._alvoComemoracao = p.dynamicTarget.clone();   // na disputa de penaltis (estado PLAY) o player.update repoe-no a cada frame
         p.speedMult = velocidade;
         p.fsm.changeState('MOVE_TO_POS');
     },
 
     _largar(par) {
         const p = par.p;
-        p.comemorando = false;
+        p.comemorando = false; p._alvoComemoracao = null;
         if (p.fsm && p.fsm.currentState === 'COMEMORAR') {
             p.model.position.y = ALTURA_BASE_Y;
             p.fsm.changeState('MOVE_TO_POS');
@@ -142,7 +143,8 @@ const Comemoracao = {
 
     update(dt) {
         if (!this.ativa) return;
-        if (typeof Match !== 'undefined' && Match.state !== 'GOAL') { this.limpar(); return; }
+        // A festa de um golo da disputa de penaltis (DisputaPenaltis.festa) corre sem o estado GOAL (o jogo nao recomeca).
+        if (typeof Match !== 'undefined' && Match.state !== 'GOAL' && !(Match.disputa && Match.disputa.festa)) { this.limpar(); return; }
         this.t += dt;
         const C = ComemoracaoGol, pl = this.plano;
         let todosFim = true;
@@ -199,7 +201,7 @@ const Comemoracao = {
     limpar() {
         for (const par of this.participantes) {
             const p = par.p;
-            if (p) { p.comemorando = false; if (par.fase !== 'fim' && p.fsm && p.fsm.currentState === 'COMEMORAR') { p.model.position.y = ALTURA_BASE_Y; p.fsm.changeState('MOVE_TO_POS'); } p.comemoracao = null; }
+            if (p) { p.comemorando = false; p._alvoComemoracao = null; if (par.fase !== 'fim' && p.fsm && p.fsm.currentState === 'COMEMORAR') { p.model.position.y = ALTURA_BASE_Y; p.fsm.changeState('MOVE_TO_POS'); } p.comemoracao = null; }
         }
         this.ativa = false; this.t = 0; this.autor = null; this.plano = null; this.participantes = [];
     }

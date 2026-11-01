@@ -167,7 +167,9 @@ const AmbienteSonoro = {
         O GRITO DISPARA NA ENTRADA EM GOAL, e so uma vez: enquanto o estado
         for GOAL a faixa continua a tocar sozinha ate ao fim.
         */
-        const estado = (typeof Match !== 'undefined') ? Match.state : null;
+        // O golo da disputa de penaltis (DisputaPenaltis.festa) grita-se como um golo, sem o estado GOAL.
+        const festaDisputa = (typeof Match !== 'undefined' && Match.disputa && Match.disputa.festa) || null;
+        const estado = festaDisputa ? 'GOAL' : ((typeof Match !== 'undefined') ? Match.state : null);
         // O estado GOAL sem golo (a caminhada de saida depois da abertura do jogo, Match.semFestaDeGolo): sem grito.
         if (estado !== 'GOAL' && typeof Match !== 'undefined') Match.semFestaDeGolo = false;
         if (estado === 'GOAL' && this._estadoAnterior !== 'GOAL' && !Match.semFestaDeGolo) this.gritarGolo();
@@ -232,7 +234,7 @@ const AmbienteSonoro = {
     */
     volumeAlvo() {
         if (typeof Crowd === 'undefined' || !Crowd._frac) return this.volumeRepouso;
-        if (typeof Match !== 'undefined' && Match.state === 'GOAL' && !Match.semFestaDeGolo) return this.volumeGolo;
+        if (typeof Match !== 'undefined' && ((Match.state === 'GOAL' && !Match.semFestaDeGolo) || (Match.disputa && Match.disputa.festa))) return this.volumeGolo;
 
         const maior = Math.max(Crowd._frac.A || 0, Crowd._frac.B || 0);
         const repouso = (typeof CrowdModel !== 'undefined') ? CrowdModel.fraccaoRepouso : 0.08;

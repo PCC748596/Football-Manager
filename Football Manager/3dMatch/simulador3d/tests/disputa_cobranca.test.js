@@ -74,6 +74,8 @@ DisputaPenaltis.sinalZ = 1;
 DisputaPenaltis.cobrar('casa', gkA, gk(Match.opponents), (r) => { r3 = r; });
 for (let n = 0; r3 === null && n < 60 * 25; n++) Match.update(dt);
 verifica(r3 !== null, `o goleiro bateu: ${r3}`, 'a cobranca do goleiro nao acabou');
+// O resultado chega logo; o lance ainda corre o DESFECHO (DisputaModel.pausa.desfecho*) e so no fim dele o papel volta.
+for (let n = 0; DisputaPenaltis._cobranca && n < 60 * 10; n++) Match.update(dt);
 verifica(gkA.role === 'gk', 'o papel gk foi reposto', 'o goleiro ficou sem o papel gk');
 verifica(gkA.dirZ === Lados.dirDe(gkA.team) && gkA.targetGoalZ === (CAMPO_COMP / 2) * Lados.dirDe(gkA.team), 'a baliza do time foi reposta ao goleiro-batedor', 'o goleiro-batedor ficou a apontar para a baliza da disputa');
 

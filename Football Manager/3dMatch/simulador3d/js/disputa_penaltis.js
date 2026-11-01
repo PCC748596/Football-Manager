@@ -57,6 +57,8 @@ const DisputaPenaltis = {
     chama-se uma vez; depois o estado volta a `DISPUTA` e a bola fica onde parou.
     */
     cobrar(lado, batedor, goleiro, aoFim) {
+        if (this._cobranca) this._fimDaCobranca();   // uma cobranca anterior ainda no desfecho: fecha-se primeiro
+        this.bolaComJuiz = false;                     // a bola esta na marca (o juiz ja a entregou no preparo)
         this.bateuNaTrave = false;
         this._soltou = false;
         const papelGuardado = batedor.role === 'gk' ? 'gk' : null;
@@ -87,7 +89,58 @@ const DisputaPenaltis = {
                 else if (parada || c.tContato > DisputaModel.prazo.cobranca) this._classificarSemGol();
             }
         }
-        if (c.resultado) this._fimDaCobranca();
+        if (c.resultado && !c.desfecho) this._iniciarDesfecho();
+    },
+
+    /*
+    O DESFECHO (relato: "sai gol mas a bola nao bate na rede e a torcida nao vibra; o goleiro defende e a bola some; e um penalti normal"). O resultado era classificado e no
+    MESMO frame tudo parava: estado DISPUTA, bola congelada e posta na mao do juiz. Agora, conhecido o resultado, a app fica logo a saber (o card atualiza), mas o lance continua
+    como um penalti em jogo durante `pausa.desfechoGol` / `desfechoDefesa` / `desfechoFora` s: a bola segue a fisica (a rede, o ressalto, sai pela linha de fundo), o goleiro
+    fica com ela ou espalma; no golo a torcida festeja e o estadio grita (`festa`, lida pelo Crowd e pelo AmbienteSonoro como o estado GOAL), o juiz apita, o aviso GOOL acende e o
+    batedor comemora (Comemoracao). Nada disto toca no placar, nos eventos ou nas estatisticas do jogo (o ramo do golo em match_physics.js so chama `golNaBaliza` na disputa) e o
+    estado nunca passa a GOAL (sem saida de bola). So no fim do desfecho todos param e o juiz fica com a bola; a cobranca seguinte espera por isso (`receberProxima`).
+    */
+    festa: null,
+    _iniciarDesfecho() {
+        const c = this._cobranca, DM = DisputaModel;
+        const P = DM.pausa;
+        c.desfecho = { t: 0, dur: c.resultado === 'gol' ? (P.desfechoGol || 4.5) : c.resultado === 'defesa' ? (P.desfechoDefesa || 2.5) : (P.desfechoFora || 2.5) };
+        if (c.resultado === 'gol') this._reacaoDeGolo(c);
+        // O batedor nao fica solto no desfecho (o estado e PLAY e a arvore do jogo levava-o para o posto da formacao — um goleiro que batia, com o papel 'atk', atravessava o
+        // campo): se nao comemora, sai ja da jogada (o resultado pode chegar antes do `pausa.aposContato` do `update`).
+        if (!c.comemora && !this._soltou) this._soltarBatedor(c);
+        if (c.aoFim) { const f = c.aoFim; c.aoFim = null; f(c.resultado); }
+    },
+    // A apresentacao do golo do ramo normal (match_physics.js), sem creditar nada: apito, aviso GOOL, torcida e grito (via `festa`), comemoracao do batedor.
+    _reacaoDeGolo(c) {
+        this.festa = { equipa: c.batedor.team, t: 0 };
+        if (typeof EfeitosSonoros !== 'undefined' && EfeitosSonoros.apito) EfeitosSonoros.apito(1.0);
+        const alerta = (typeof document !== 'undefined') ? document.getElementById('alerta-golo') : null;
+        if (alerta) { alerta.style.opacity = '1'; alerta.style.transform = 'translate(-50%, -50%) scale(1.2)'; setTimeout(() => { alerta.style.transform = 'translate(-50%, -50%) scale(1)'; }, 150); }
+        if (typeof Comemoracao !== 'undefined' && c.batedor.role !== 'gk' && !c.papelGuardado) {
+            c.batedor.disputaOrdem = null;
+            c.comemora = !!Comemoracao.iniciar(c.batedor, this.sinalZ, true);
+        }
+    },
+    /*
+    O batedor sai da jogada depois do remate: volta andando para o lugar dele na fila. O GOLEIRO QUE BATEU nao vai para a fila do meio-campo (relato: "as vezes o goleiro e
+    resetado para o meio do campo"): durante a cobranca o papel dele e 'atk' (papelGuardado), e o teste `role !== 'gk'` mandava-o para a fila (z = 0); e solto, a arvore do
+    jogo (estado PLAY) levava-o como avancado. Fica parado onde esta, em coreografia, ate o preparo seguinte o levar a baliza ou ao lado da area.
+    */
+    _soltarBatedor(c) {
+        const DM = DisputaModel;
+        this._soltou = true;
+        const slot = this._slots && this._slots.get(c.batedor);   // sem fila (a cobranca corrida a seco, nos testes) o batedor fica onde esta
+        if (c.papelGuardado) { const q = c.batedor.model.position; this._parte('jog', c.batedor, c.batedor.model, [{ x: q.x, z: q.z }], DM.velocidade.jogador, DM.posMarca(this.sinalZ)); }
+        else if (slot && c.batedor.role !== 'gk') this._parte('jog', c.batedor, c.batedor.model, [slot], DM.velocidade.jogador, { x: 0, z: this.sinalZ * 20 });
+    },
+
+    _acabarFesta() {
+        if (!this.festa) return;
+        this.festa = null;
+        const alerta = (typeof document !== 'undefined') ? document.getElementById('alerta-golo') : null;
+        if (alerta) alerta.style.opacity = '0';
+        if (typeof Comemoracao !== 'undefined' && Comemoracao.ativa) Comemoracao.limpar();
     },
 
     /*
@@ -115,12 +168,15 @@ const DisputaPenaltis = {
     `pausa.levantar` (o mergulho acaba de cair; ver `receberProxima`).
     */
     _fimDaCobranca() {
+        this._acabarFesta();
         const c = this.abortarCobranca(true);
         if (!c) return;
         // O goleiro (e o batedor) sem coreografia ficavam congelados no ar no fim do mergulho durante a espera da app: passado `pausa.levantar` s ficam de pe onde estao.
         this._levantar = { t: 0, jogadores: [c.batedor, c.goleiro].filter(Boolean) };
         Match.mudarEstado('DISPUTA', 'fim_da_cobranca');
         Match.ballVel.set(0, 0, 0);
+        // So agora (acabado o desfecho) a bola vai para a mao do juiz, que a leva para a cobranca seguinte.
+        this.bolaComJuiz = true;
         if (c.aoFim) c.aoFim(c.resultado);
     },
 
@@ -226,7 +282,7 @@ const DisputaPenaltis = {
     iniciar() {
         const DM = DisputaModel;
         this.activa = true; this.fase = 'REUNIAO'; this.t = 0; this.partes = []; this.pens = [0, 0]; this.atual = null; this.sub = null; this._soltou = false;
-        this._nCobrancas = 0; this._ultimaCobranca = null; this._ultimaReuniao = null; this._levantar = null; this._proximaPendente = null; this.card = null;
+        this._nCobrancas = 0; this._ultimaCobranca = null; this._ultimaReuniao = null; this._levantar = null; this._proximaPendente = null; this.card = null; this.festa = null;
         this.sinalZ = Math.random() < 0.5 ? 1 : -1;
         this.primeiro = Math.random() < 0.5 ? 'casa' : 'fora';
         this.ladoBanco = Math.sign((typeof BancosDeReservas !== 'undefined' && BancosDeReservas.treinador && BancosDeReservas.treinador.x) || 1) || 1;
@@ -329,19 +385,23 @@ const DisputaPenaltis = {
                 this._levantar = null;
                 // A resposta da app que chegou durante o levantar: a cobranca seguinte arranca agora.
                 const prox = this._proximaPendente; this._proximaPendente = null;
-                if (prox && this.fase === 'AGUARDA') this._prepararCobranca(prox);
+                if (prox) this.receberProxima(prox);
             }
+        }
+        if (this._cobranca && this._cobranca.desfecho) {
+            // O desfecho: o lance corre como em jogo; no fim todos param e a disputa segue.
+            const d = this._cobranca.desfecho;
+            d.t += dt;
+            if (this.festa) { this.festa.t += dt; if (typeof Comemoracao !== 'undefined' && Comemoracao.ativa) Comemoracao.update(dt); }   // no jogo e o ramo GOAL de match_physics.js que a corre
+            if (d.t >= d.dur) this._fimDaCobranca();
+            else return;
         }
         if (this._cobranca) {
             this.fase = 'COBRANCA';
             this.atualizarCobranca(dt);
-            // Passado o contato, o batedor volta andando para o lugar dele na fila.
+            // Passado o contato, o batedor volta andando para o lugar dele na fila (no golo, comemora: ver `_reacaoDeGolo`).
             const c = this._cobranca;
-            if (c && c.tContato !== null && c.tContato > DM.pausa.aposContato && !this._soltou) {
-                this._soltou = true;
-                const slot = this._slots && this._slots.get(c.batedor);   // sem fila (a cobranca corrida a seco, nos testes) o batedor fica onde esta
-                if (slot && c.batedor.role !== 'gk') this._parte('jog', c.batedor, c.batedor.model, [slot], DM.velocidade.jogador, { x: 0, z: this.sinalZ * 20 });
-            }
+            if (c && c.tContato !== null && c.tContato > DM.pausa.aposContato && !this._soltou && !c.comemora) this._soltarBatedor(c);
             return;
         }
         switch (this.fase) {
@@ -395,8 +455,7 @@ const DisputaPenaltis = {
         const a = this.atual;
         this._soltou = false;
         this.fase = 'AGUARDA'; this.tApp = 0;
-        // A bola volta ao juiz (fora de cena, como o apanha-bolas): o preparo seguinte pega nela ja na mao dele.
-        this.bolaComJuiz = true;
+        // A bola vai ao juiz no fim do DESFECHO (`_fimDaCobranca`), nao ja: o lance ainda corre.
         // `n`: o indice desta cobranca (a app nao soma duas vezes um reenvio, ver reenviarPendente).
         this._ultimaCobranca = { lado: a.lado, jogadorId: this.idApp(a.batedor), resultado, n: this._nCobrancas++ };
         Ponte.enviar('disputa_cobranca', this._ultimaCobranca);
@@ -407,9 +466,9 @@ const DisputaPenaltis = {
     receberProxima(m) {
         if (this.activa && m && m.abortar && !this._cobranca) { this._abortar(); return; }
         if (!this.activa || this.fase !== 'AGUARDA') return;
+        // O lance ainda no desfecho, ou o goleiro ainda a cair do mergulho: a resposta (o proximo batedor ou o fim) espera o fim do desfecho e o `pausa.levantar`.
+        if (this._levantar || (this._cobranca && this._cobranca.desfecho)) { this._proximaPendente = m; return; }
         if (m.fim) { this.pens = m.pens || this.pens; this.fase = 'FIM'; this.t = 0; return; }
-        // O goleiro ainda a cair do mergulho: espera o `pausa.levantar` (senao ficava de pe de uma vez e a cobranca seguinte comecava por cima da queda).
-        if (this._levantar) { this._proximaPendente = m; return; }
         this._prepararCobranca(m);
     },
 
@@ -424,6 +483,7 @@ const DisputaPenaltis = {
 
     // Todos os caminhos que acabam a disputa passam por aqui: antes de largar os jogadores desfaz-se uma cobranca a meio (baliza dos jogadores, papel `gk`, penalti pendente).
     _libertar() {
+        this._acabarFesta();
         this.abortarCobranca();
         if (this._levantar) this._levantar.jogadores.forEach(p => this._reporLados(p));
         this._proximaPendente = null; this.card = null;
@@ -489,7 +549,7 @@ const DisputaPenaltis = {
             s.chegou = Math.hypot(w.x - s.model.position.x, w.z - s.model.position.z) < 0.4;
             if (s.tipo === 'lin') Officials._ajustarPano(s.obj, dt);
         }
-        if (this.bolaComJuiz && typeof Abertura !== 'undefined') { Abertura._v = Abertura._v || this._v; Abertura._bolaNaMao(); }
+        if (this.bolaComJuiz && typeof Abertura !== 'undefined') { this._v = this._v || new THREE.Vector3(); Abertura._v = Abertura._v || this._v; Abertura._bolaNaMao(); }
         Officials.atualizarVista();
     },
 

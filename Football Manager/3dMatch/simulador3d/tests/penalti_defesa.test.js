@@ -41,12 +41,18 @@ const LARGURA_BALIZA = 7.32, ALTURA_BALIZA = 2.44;
 
 // A mesma escolha de banda do baterPenalti.
 function chanceDefesa(diff) {
-    const CD = PM.chanceDefesa;
-    if (diff > 5) return CD.perfeito;
-    if (diff >= 3) return CD.bom;
-    if (diff >= 1) return CD.medio;
-    return CD.fraco;
+    const CD = PM.chanceDefesa, f = (PM.fatorDefesa ?? 1);   // o fator de -25% de defesas multiplica a banda (ver baterPenalti)
+    if (diff > 5) return CD.perfeito * f;
+    if (diff >= 3) return CD.bom * f;
+    if (diff >= 1) return CD.medio * f;
+    return CD.fraco * f;
 }
+
+test('fatorDefesa: -25% de defesas em todos os penaltis, e o baterPenalti usa-o nos dois sitios', () => {
+    assert.strictEqual(PM.fatorDefesa, 0.75);
+    assert.ok((srcPlayer.match(/PM\.fatorDefesa/g) || []).length >= 2, 'baterPenalti nao aplica PenaltyModel.fatorDefesa as bandas e ao ramo diff <= -5');
+    assert.ok(!srcPlayer.split(LF).some(l => l.includes('fatorDefesa') && l.includes('Match.disputa')), 'o fator nao pode depender da disputa (vale para todos os penaltis)');
+});
 
 test('chanceDefesa: existe, cai com a qualidade do remate e o ramo está no código', () => {
     assert.ok(PM.chanceDefesa, 'PenaltyModel.chanceDefesa em falta');

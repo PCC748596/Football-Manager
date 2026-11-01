@@ -1533,6 +1533,9 @@ const PenaltyModel = {
         medio: 0.30,      // diff 1..2
         fraco: 0.55       // diff <= 0  â€” mal batido
     },
+    // DEFESAS -25% (pedido: "os goleiros estao pegando muito penaltis; reduz em 25%"), em TODOS os penaltis (jogo e disputa): multiplica a chance de ir ao sitio certo
+    // (`chanceDefesa`) e a do ramo `diff <= -5` do baterPenalti; o que sobra e mergulho para o lado errado.
+    fatorDefesa: 0.75,
 
     /*
     ÃRBITRO no penÃ¡lti: Ã  ESQUERDA do batedor (ele olha para a baliza), no

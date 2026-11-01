@@ -2270,6 +2270,9 @@ class FootballPlayer {
                     targetCol = (Math.random() < 0.15) ? 4 : pick(colsGolCantos);
                     targetRow = pick(rowsGol);
                     gkDiveCol = targetCol;
+                    // O goleiro defende 25% menos em TODOS os penaltis (PenaltyModel.fatorDefesa, pedido: "os goleiros estao pegando muito penaltis; reduz em 25%"): com a
+                    // probabilidade que sobra atira-se para o lado errado (golo).
+                    if (Math.random() >= (PM.fatorDefesa ?? 1)) gkDiveCol = oppositeCol(targetCol);
                 }
 
                 /*
@@ -2296,6 +2299,7 @@ class FootballPlayer {
                     else if (diff >= 3) pDef = CD.bom || 0;
                     else if (diff >= 1) pDef = CD.medio || 0;
                     else pDef = CD.fraco || 0;
+                    pDef *= (PM.fatorDefesa ?? 1);   // -25% de defesas em todos os penaltis (ver acima)
                     if (Math.random() < pDef) gkDiveCol = targetCol;
                 }
 
@@ -2916,6 +2920,7 @@ class FootballPlayer {
         const Z = (typeof ZonasModel !== 'undefined') ? ZonasModel : null;
         if (!Z || !(Z.raioMaxLivre > 0) || !this._zonal || !this.slotTarget || this.role === 'gk' || this.hasBall) return;
         if (typeof Match === 'undefined' || Match.state !== 'PLAY') return;
+        if (this.comemorando && Match.disputa) return;   // o batedor a comemorar um golo da disputa de penaltis (o jogo fica em PLAY): vai para onde a festa o manda
         if (Match.chaserA === this || Match.chaserB === this || Match.intendedReceiver === this || Match.ballCarrier === this) return;
         // Bola SOLTA perto (ninguem com ela): quem esta ao lado vai a ela. Sem isto a coleira puxava-o de volta para o posto e ele ficava a tremer a 4 m de uma bola parada.
         if (!Match.ballCarrier && Match.ball && this.model.position.distanceTo(Match.ball.position) < (Z.raioBolaSolta || 8)) return;
@@ -5123,6 +5128,9 @@ class FootballPlayer {
             // LABORATORIO (Match.triggerCruzamento): o finalizador marcado fica parado a espera do gesto (a arvore nao o manda receber a bola nem cabecear antes).
             const labParado = (!!this.labGesto || !!this.labCruzador) && Date.now() <= this.labExpira;
             if (labParado) { this.velocity.set(0, 0, 0); if (this.fsm.currentState !== 'IDLE') this.fsm.changeState('IDLE'); }
+            // O batedor que comemora um golo da DISPUTA de penaltis (o estado continua PLAY: ver DisputaPenaltis._reacaoDeGolo) segue a Comemoracao, nao a arvore.
+            // O jogo continua em PLAY e o posicionamento da equipa reescreve os alvos a cada frame: o alvo da festa (Comemoracao._mandar) repoe-se aqui.
+            else if (this.comemorando && Match.disputa) { if (this._alvoComemoracao) this.dynamicTarget.copy(this._alvoComemoracao); }
             else this.runBehaviorTree(dt);
             this.fsm.update(dt);
             // Batido num drible: o marcador fica para tras uns instantes (DribbleModel.marcadorDur / marcadorFator).

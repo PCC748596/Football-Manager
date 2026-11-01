@@ -15,6 +15,21 @@ Consulta este ficheiro para saber **onde** mexer antes de abrir o código.
 
 ## Últimas Actualizações (Outubro 2026)
 
+### 31 de Outubro de 2026 — o desfecho da cobrança, o goleiro no meio-campo e −25% de defesas
+
+- **O DESFECHO** (`DisputaPenaltis._iniciarDesfecho`, `DisputaModel.pausa.desfechoGol` 4.5 / `desfechoDefesa` 2.5 / `desfechoFora` 2.5 s). Conhecido o resultado, a app recebe logo o `disputa_cobranca`. O lance continua como num pênalti em jogo, no estado PLAY, sem placar, eventos nem estatísticas:
+  - a bola segue a física (rede, ressalto, linha de fundo);
+  - o goleiro fica com a bola;
+  - **no golo** (`_reacaoDeGolo`): `DisputaPenaltis.festa`, que `js/crowd.js` e `js/ambiente_sonoro.js` leem como o estado GOAL (torcida e grito); o apito; o aviso GOOL; e a `Comemoracao` do batedor. Para a comemoração, `comemoracao.js` corre com a festa da disputa, e no `player.update`/`prenderAoPostoDaTabela` o batedor que comemora com `Match.disputa` posta não segue a árvore nem a coleira do posto (`_alvoComemoracao`).
+  - Só no fim do desfecho todos param e a bola vai para a mão do juiz.
+  - A resposta da app (o próximo batedor ou o fim) espera em `_proximaPendente` até ao fim do desfecho e do `pausa.levantar`.
+  - O estado nunca passa a GOAL.
+- **O batedor sai da jogada já no desfecho** (`_soltarBatedor`). O GOLEIRO que bate fica parado onde está, em coreografia.
+  - Antes, com o papel 'atk', ia para a fila do meio-campo, ou a árvore do jogo levava-o como avançado através do campo. Era o relato *"às vezes o goleiro é resetado para o meio do campo"*.
+- **`PenaltyModel.fatorDefesa` = 0.75** (`js/config/shooting.js`), em TODOS os pênaltis, no jogo e na disputa: multiplica a probabilidade de o goleiro ir ao sítio certo no `baterPenalti` (bandas `chanceDefesa` e o ramo `diff <= -5`).
+  - Atenção: o alcance do mergulho (GkDive) ainda defende parte dos remates com o goleiro do lado errado, por isso as defesas totais descem menos de 25%.
+- Testes novos: `disputa_desfecho`, `disputa_goleiros_posto`, `penalti_fator_defesa` (no `3d:teste`).
+
 ### 31 de Outubro de 2026 — o card da disputa de pênaltis
 
 - O cartão de evento (`#hud-evento`, `updateHudEvento` em `js/main.js`) fica tomado pela disputa enquanto ela está ativa, desde a ordem confirmada até o fim do jogo, sem temporizador. Os eventos de canto, falta e outros não o substituem.
