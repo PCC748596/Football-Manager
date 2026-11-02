@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useMemo } from 'react';
+import { assetUrl } from '../textSim/assetUrl';
 import { Team, Player, Contract, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador, PontoFinanceiro } from '../types';
 import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/dataGenerator';
 import { gruposDaSerieD } from '../textSim/competitions';
@@ -2112,12 +2113,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ...t,
             stadium: stadiumName,
             stadiumCapacity: t.stadiumCapacity || ((stadiumName === 'Maracanã' || stadiumName === 'Estádio do Maracanã') ? 78838 : (Math.floor((t.fanBase || 10000) * 0.45) + 15000)),
-            logoUrl: t.logoUrl || dbTeam?.teamBadgeLocation || `/Assets/Escudos/${t.name}.png`,
-            kitUrls: t.kitUrls || [
+            logoUrl: assetUrl(t.logoUrl || dbTeam?.teamBadgeLocation || `/Assets/Escudos/${t.name}.png`),
+            kitUrls: (t.kitUrls || [
               `/Assets/Camisas/${t.name}_1.png`,
               `/Assets/Camisas/${t.name}_2.png`,
               `/Assets/Camisas/${t.name}_3.png`,
-            ] as [string, string, string],
+            ]).map((u: string) => assetUrl(u)) as [string, string, string],
           };
         });
 

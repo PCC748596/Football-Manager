@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { assetUrl } from '../textSim/assetUrl';
 import { useGame } from '../context/GameContext';
 import { COUNTRIES } from '../textSim/dataGenerator';
 import { WorldLeague, buildTable } from '../textSim/world';
@@ -12,8 +13,8 @@ WORLD COMPETITIONS: as ligas do jogo (tabela e jogos de cada uma) e as copas (Li
 */
 
 // Bandeiras (Assets/Bandeiras/<id do pais>.png) e logos das copas (Assets/Competicoes/<id>.png).
-const bandeira = (countryId: string) => `/Assets/Bandeiras/${countryId}.png`;
-const logoCopa = (id: string) => `/Assets/Competicoes/${id}.png`;
+const bandeira = (countryId: string) => assetUrl(`/Assets/Bandeiras/${countryId}.png`);
+const logoCopa = (id: string) => assetUrl(`/Assets/Competicoes/${id}.png`);
 // Nomes das abas das Series C e D (as fases do regulamento).
 const NOME_FASE_BR: Record<string, string> = { 'SERIE_C:G': 'Segunda fase', 'SERIE_C:F': 'Final', 'SERIE_D:R64': 'Segunda fase', 'SERIE_D:R32': 'Terceira fase', 'SERIE_D:R16': 'Oitavas de final', 'SERIE_D:QF': 'Quartas de final', 'SERIE_D:SF': 'Semi final', 'SERIE_D:PA': 'Playoffs de acesso', 'SERIE_D:F': 'Final' };
 const nomeGrupo = (c: Competition, g: string) => c.id === 'UCL' ? 'League phase' : (c.id === 'SERIE_C' && g === 'L') ? 'First phase' : (c.id === 'SERIE_C' && /^G\d$/.test(g)) ? 'Group ' + g.slice(1) : 'Group ' + g;

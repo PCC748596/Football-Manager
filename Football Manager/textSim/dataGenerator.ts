@@ -1,4 +1,5 @@
 
+import { assetUrl } from './assetUrl';
 import { Team, Player, Fixture, Position, Tactics } from '../types';
 import { ECONOMIA_ESTADIO } from './stadiumEconomy';
 import { calcularSkill } from './overall';
@@ -519,11 +520,11 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
       primaryColor: getColorHex(t.color1 || t.color || '#333'),
       secondaryColor: getColorHex(t.color2 || '#fff'),
       tertiaryColor: getColorHex(t.color3, 'transparent'),
-      logoUrl: t.teamBadgeLocation || `/Assets/Escudos/${t.teamName.replace('Man United', 'Man Utd').replace('Nottm Forest', 'Nottingham Forest')}.png`,
+      logoUrl: assetUrl(t.teamBadgeLocation || `/Assets/Escudos/${t.teamName.replace('Man United', 'Man Utd').replace('Nottm Forest', 'Nottingham Forest')}.png`),
       kitUrls: [
-        `/Assets/Camisas/${t.teamName}_1.png`,
-        `/Assets/Camisas/${t.teamName}_2.png`,
-        `/Assets/Camisas/${t.teamName}_3.png`,
+        assetUrl(`/Assets/Camisas/${t.teamName}_1.png`),
+        assetUrl(`/Assets/Camisas/${t.teamName}_2.png`),
+        assetUrl(`/Assets/Camisas/${t.teamName}_3.png`),
       ] as [string, string, string],
       tactics: { ...DEFAULT_TACTICS },
       lineup: [],

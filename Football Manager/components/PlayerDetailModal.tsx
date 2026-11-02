@@ -1,4 +1,5 @@
 
+import { assetUrl } from '../textSim/assetUrl';
 import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Player, Position, Team } from '../types';
@@ -262,7 +263,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                 <span className="text-sm font-black text-slate-300 uppercase tracking-widest">{player.position}{playStyles[0] ? ` · ${playStyles[0].name}` : ''}</span>
               </div>
               <div className="mt-2 flex items-center gap-3">
-                <img src={`/Assets/Bandeiras/${paisDoJogador(player, (team as any)?.country) || 'x'}.png`} alt="" title="Nationality" className="w-10 h-7 object-cover rounded-sm border border-slate-700" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <img src={assetUrl(`/Assets/Bandeiras/${paisDoJogador(player, (team as any)?.country) || 'x'}.png`)} alt="" title="Nationality" className="w-10 h-7 object-cover rounded-sm border border-slate-700" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                 <div className="min-w-0">
                   <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-none">{player.name.split(' ').slice(0, -1).join(' ') || team?.name}</div>
                   <h2 className="text-3xl font-black text-white uppercase tracking-tight leading-tight truncate">{player.name.split(' ').slice(-1)[0]}</h2>
