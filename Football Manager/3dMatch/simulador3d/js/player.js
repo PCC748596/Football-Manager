@@ -5011,6 +5011,28 @@ class FootballPlayer {
             }
         }
 
+        /*
+        INQUIETACAO NA FALTA: quem esta em campo, fora da barreira, sem ser o batedor nem o goleiro, nem a caminho de algum lugar, nao fica
+        cravado ate a falta sair (pedido: *"so pro jogo nao parecer travado"*). Anda devagar em volta do sitio onde parou, em desvios curtos
+        (`InquietacaoFalta`), com fase propria. Termina com o estado FREE_KICK; a base e lembrada uma vez por falta.
+        */
+        if (Match.state === 'FREE_KICK' && this.role !== 'gk' && !this.naBarreiraFalta && this !== Match.setPieceTaker && !this.lugarBolaParada &&
+            !this.voltaDaQueda && !this.queda && !this.rotinaOrdem && !this.expulso && !this.actionState && typeof InquietacaoFalta !== 'undefined' && InquietacaoFalta.amplitude > 0) {
+            const Q = InquietacaoFalta, pos = this.model.position;
+            if (this._inqFalta !== Match.faltaId) {
+                this._inqFalta = Match.faltaId;
+                this._inqBase = { x: pos.x, z: pos.z };
+                if (this._inqFase === undefined) this._inqFase = Math.random() * 6.283;
+            }
+            const tt = (Match.setPieceTimer || 0) * (6.283 / Q.periodo);
+            const alvo = _p_v2.set(this._inqBase.x + Math.sin(tt + this._inqFase) * Q.amplitude, ALTURA_BASE_Y, this._inqBase.z + Math.cos(tt * 0.8 + this._inqFase * 1.7) * Q.amplitude);
+            this.steerArrive(alvo, Q.velocidade, 0.8);
+            pos.addScaledVector(this.velocity, dt);
+            if (Match.ball) lookAtBola(this.model, Match.ball.position);
+            if (!headless) this.animateBones(dt); else pos.y = ALTURA_BASE_Y;
+            return;
+        }
+
         if (Match.kickoffActive || Match.state === 'PENALTY') {
             /*
             O BATEDOR DO PENÁLTI É A EXCEPÇÃO AO FREEZE, e tem de o ser ANTES

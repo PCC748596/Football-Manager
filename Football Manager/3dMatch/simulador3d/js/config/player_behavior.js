@@ -1922,6 +1922,9 @@ podem ficar a menos de `raioNaoReceptor` m (26); o alvo dos outros e empurrado p
 const ThrowInModel = {
     // No lateral, os jogadores do mesmo time ficam a pelo menos isto (m) uns dos outros (Match.afastarCompanheirosNoLateral).
     distMinEntreCompanheiros: 12.0,
+    // Inquietacao: ate o lateral ser batido os jogadores nao ficam parados, mexem-se em pequenos desvios do alvo (pedido: "muito parados").
+    // `amplitude` m de desvio maximo, `periodo` s de cada ida e volta (cada jogador com fase e periodo proprios).
+    inquietacao: { amplitude: 2.2, periodo: 2.6 },
     receptoresMax: 3,
     raioNaoReceptor: 26.0,
     alcanceMin: 9.0,

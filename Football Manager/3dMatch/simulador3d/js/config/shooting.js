@@ -833,6 +833,8 @@ A BARREIRA REPOE-SE â€” ver Player.update (`barreiraSlot`). `limiar`: a que
 distancia do lugar um homem da barreira deixa de se considerar la; `velocidade`:
 o passo com que volta; `encaixe`: a que distancia fica exactamente no ponto.
 */
+// Quem espera a falta fora da barreira mexe-se pouco, so para o jogo nao parecer travado (ver Player.update). `amplitude` m, `periodo` s, `velocidade` m/s.
+const InquietacaoFalta = { amplitude: 0.9, periodo: 3.2, velocidade: 1.0 };
 const BarreiraRepoe = { limiar: 0.12, velocidade: 3.0, encaixe: 0.06 };
 if (typeof window !== 'undefined') window.BarreiraRepoe = BarreiraRepoe;
 
@@ -879,7 +881,7 @@ const FreeKickModel = {
     // Segundos entre o fim do cartao e a cobranca (o juiz apita antes de a falta sair).
     apitoAposCartao: 1.5,
     // Segundos de espera, no maximo (contados sem o cartao), para a barreira ficar toda no lugar antes de a falta sair.
-    esperaBarreira: 4.0,   // 6.0 -> 4.0: o prazo esgotava-se sempre; com tempoAlvo menor a barreira chega a tempo
+    esperaBarreira: 9.0,   // 4.0 -> 9.0 (+5 s)   // 6.0 -> 4.0: o prazo esgotava-se sempre; com tempoAlvo menor a barreira chega a tempo
     /*
     DECISÃƒO DA COBRANÃ‡A â€” ver decisaoDeFalta em utils.js. TrÃªs casos:
 
@@ -1011,11 +1013,11 @@ const FreeKickModel = {
     velocidadeAproximacao: 2.4,   // m/s a caminhar para a bola, antes do gesto
     // A espera ate ao gesto (s), depois de montada a falta; antes valia a das outras reposicoes (3 s). O batedor caminha todo este tempo
     // (ver o FREE_KICK no match_loop.js): nao ha espera parada, so a que um caido ou alguem a caminho do lugar impoe.
-    esperaFalta: 1.8,
+    esperaFalta: 6.8,   // 1.8 -> 6.8 (+5 s: pedido, o batedor saia em disparada sem dar tempo de a barreira e os outros se posicionarem)
     // Quanto tempo (s) a cobranca espera por quem ainda caminha para o lugar; passado isto bate-se na mesma.
-    esperaCaminhantes: 4.0,
+    esperaCaminhantes: 9.0,   // 4.0 -> 9.0 (+5 s)
     // E por quem sofreu a falta e ainda esta caido (a queda dura ~7 s): bate-se passados estes segundos, sem esperar que ele se levante.
-    esperaCaido: 4.0,
+    esperaCaido: 9.0,   // 4.0 -> 9.0 (+5 s)
     // Onde o pÃ© fica no instante do contacto: um passo atrÃ¡s da bola.
     paragemNoContacto: 0.55,
     afastaAdversarios: 9.15,   // ninguÃ©m da defesa mais perto do que isto da bola

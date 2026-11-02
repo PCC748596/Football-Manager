@@ -29,7 +29,7 @@ const { SetPiecePrazos, ESPERA_APOS_REPOSICAO, APITO_ANTES_DA_SAIDA } = fn(sandb
 test('1 — SetPiecePrazos existe e tem todos os valores canónicos', () => {
     assert.ok(SetPiecePrazos, 'SetPiecePrazos está definido');
     assert.strictEqual(SetPiecePrazos.canto, 20.0, 'prazo do canto é 20s');
-    assert.strictEqual(SetPiecePrazos.falta, 15.0, 'prazo da falta é 15s');
+    assert.strictEqual(SetPiecePrazos.falta, 20.0, 'prazo da falta é 20s');
     assert.strictEqual(SetPiecePrazos.penalti, 15.0, 'prazo do penálti é 15s');
     assert.strictEqual(SetPiecePrazos.lateral, 15.0, 'prazo do lateral é 15s');
     assert.strictEqual(SetPiecePrazos.tiroDeMeta, 20.0, 'prazo do tiro de meta é 20s');

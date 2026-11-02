@@ -1700,6 +1700,17 @@ Object.assign(Match, {
                 const t = (!fixo && p.dynamicTarget) ? p.dynamicTarget : p.model.position;
                 return { p: p, x: t.x, z: t.z, fixo: fixo };
             });
+            // Inquietos: um desvio suave e lento do alvo, com fase propria por jogador (ver ThrowInModel.inquietacao).
+            const Q = M && M.inquietacao;
+            if (Q && Q.amplitude > 0) {
+                const tt = this.setPieceTimer || 0;
+                pts.forEach((q, i) => {
+                    if (q.fixo) return;
+                    const w = (2 * Math.PI) / (Q.periodo * (0.8 + 0.07 * (i % 6)));
+                    q.x += Math.sin(tt * w + i * 1.7) * Q.amplitude;
+                    q.z += Math.cos(tt * w * 0.8 + i * 2.3) * Q.amplitude;
+                });
+            }
             for (let it = 0; it < 16; it++) {
                 let mexeu = false;
                 for (let i = 0; i < pts.length; i++) {

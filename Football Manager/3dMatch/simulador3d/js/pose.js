@@ -1622,7 +1622,6 @@ function aplicarPoseLateral(rig, K, giroAlvo) {
     rig.rFoot.rotation.set(0, -Math.PI / 16, 0);
 
     aplicarPesECabeca(rig, K);
-    pePeloLado(rig, chuteR, K);   // chuta com o LADO DO PE, nao de bico
 }
 
 /*

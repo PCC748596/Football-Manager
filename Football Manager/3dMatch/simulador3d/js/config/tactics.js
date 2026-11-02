@@ -195,7 +195,7 @@ if (typeof window !== 'undefined') window.StatsModel = StatsModel;
 
 const SetPiecePrazos = {
     canto: 20.0,
-    falta: 15.0,
+    falta: 20.0,   // 15 -> 20 (+5 s, junto com FreeKickModel.esperaFalta)
     penalti: 15.0,
     lateral: 15.0,
     tiroDeMeta: 20.0

@@ -113,6 +113,7 @@ Object.assign(Match, {
         `GOAL` fica de fora de propósito: o golo tem o seu próprio apito no
         match_loop.js, e apitar aqui também dava dois.
         */
+        this.faltaId = (this.faltaId || 0) + 1;   // uma por bola parada: a inquietacao dos jogadores relembra a base (ver InquietacaoFalta)
         if (typeof EfeitosSonoros !== 'undefined' &&
             (type === 'FREE_KICK' || type === 'PENALTY' ||
              type === 'GOAL_KICK' || type === 'CORNER_KICK' || type === 'THROW_IN')) {
