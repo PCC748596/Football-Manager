@@ -637,6 +637,7 @@ Object.assign(Match, {
         this.esquecerJogadoresAntigos([P]);
         if (typeof this.subsFeitas === 'undefined') this.subsFeitas = [];
         this.subsFeitas.push({ lado: req.lado, sai: P, entra: N, t: this.tempoDeJogo });
+        if (typeof Notas !== 'undefined') Notas.substituir(P, N);
         // O acrescimo de tempo (MatchDuration.acrescimo): cada troca conta.
         this.substituicoes = (this.substituicoes || 0) + 1;
         /*

@@ -2311,6 +2311,7 @@ Object.assign(Match, {
         this.esquecerJogadoresAntigos(todos);
         this.resetPlay();
         if (typeof MatchStats !== 'undefined' && MatchStats.reset) MatchStats.reset();
+        if (typeof Notas !== 'undefined') Notas.iniciar();   // as notas dos jogadores recomecam com os jogadores novos
         // A roupa do trio de arbitragem sorteia-se contra as camisas das equipas novas (Officials.vestir).
         if (typeof Officials !== 'undefined' && Officials.vestir) Officials.vestir();
 

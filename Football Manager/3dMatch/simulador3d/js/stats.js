@@ -749,6 +749,8 @@ const MatchStats = {
 
         this._pendingPassType = tipo;
         this._pendingPassTeam = team;
+        // Quem passou (o ultimo a tocar na bola quando o passe sai): as notas dos jogadores precisam dele quando a bola chegar.
+        this._pendingPasser = (typeof Match !== 'undefined') ? Match.lastTouchedPlayer : null;
         // O CONTEXTO do passe fica guardado: a qualidade dele (progressivo,
         // quebra-linhas, sob pressao) so se pode contar quando a bola chegar.
         this._pendingPasseCtx = (dados && dados.origem) ? {
@@ -856,6 +858,8 @@ const MatchStats = {
         this._pendingPassTeam = null;
         const ctxPasse = this._pendingPasseCtx;
         this._pendingPasseCtx = null;
+        const passador = this._pendingPasser;
+        this._pendingPasser = null;
 
         if (!tipo || !equipaPasse) return;
         const s = this[equipaPasse];
@@ -878,6 +882,10 @@ const MatchStats = {
             // E a QUALIDADE do passe, agora que se sabe que ele chegou.
             this.registarPasseCerto(equipaPasse, ctxPasse);
             this.fecharAmostraPasse('certo', vChegada);
+            if (typeof Notas !== 'undefined' && passador && passador.team === equipaPasse) {
+                if (tipo === 'cruzamento') Notas.cruzamento(passador);
+                else if (ctxPasse && ctxPasse.origem && ctxPasse.destino && (ctxPasse.destino.z - ctxPasse.origem.z) * (ctxPasse.dirZ || 1) >= 10) Notas.passeProgressivo(passador);
+            }
         } else {
             const outra = this[jogador.team];
             if (outra) {
@@ -887,6 +895,11 @@ const MatchStats = {
                 if (jogador.role === 'gk' && tipo === 'cruzamento') outra.cruzamentosCortadosGK++;
             }
             this.fecharAmostraPasse('corte', vChegada);
+            // Notas: o passe cortado e perda de quem passou; quem corta ganha corte (defesa) ou interceptacao.
+            if (typeof Notas !== 'undefined') {
+                if (passador && passador.team === equipaPasse) Notas.perda(passador);
+                if (jogador.role === 'def') Notas.corte(jogador); else if (jogador.role !== 'gk') Notas.intercecao(jogador);
+            }
         }
     },
 

@@ -3026,6 +3026,7 @@ class PlayerFSM {
                                 Match.lastTouchedPlayer = p;
                                 if (typeof MatchStats !== 'undefined') {
                                     MatchStats[p.team].desarmes.sucesso++;
+                                    if (typeof Notas !== 'undefined') Notas.tackle(p);
                                     // Um desarme e um DUELO ganho — a ficha de
                                     // jogo conta as duas coisas.
                                     if (MatchStats.registarDuelo && carrier) {

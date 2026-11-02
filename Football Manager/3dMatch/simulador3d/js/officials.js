@@ -3174,6 +3174,7 @@ const Officials = {
         }
         const penalti = this.ehPenaltiNoLance(infractor, vitima);
         if (penalti && typeof MatchStats !== 'undefined') MatchStats[vitima.team].penaltis++;
+        if (penalti && typeof Notas !== 'undefined') Notas.penaltiCometido(infractor);
         const montar = penalti
             ? () => Match.triggerPenalty(vitima.team)
             : () => Match.triggerFreeKick(vitima.team);

@@ -40,7 +40,7 @@ const NotasConfig = {
     // Tipos defensivos (desempate do Man of the Match).
     defensivos: ['DESARME', 'INTERCEPTACAO', 'CORTE', 'DUELO_AEREO', 'DEFESA', 'DEFESA_DIFICIL'],
     // Posicao do motor -> grupo.
-    grupos: { GK: 'GK', CB: 'CB', LB: 'FB', RB: 'FB', LWB: 'FB', RWB: 'FB', DM: 'DM', CM: 'CM', AM: 'CM', LM: 'W', RM: 'W', LW: 'W', RW: 'W', ST: 'ST', CF: 'ST' },
+    grupos: { GK: 'GK', CB: 'CB', LB: 'FB', RB: 'FB', LWB: 'FB', RWB: 'FB', DM: 'DM', CM: 'CM', AM: 'CM', LM: 'W', RM: 'W', LW: 'W', RW: 'W', ST: 'ST', CF: 'ST', SS: 'ST' },
     /*
     Perfil por grupo: `mult` multiplica o valor dos eventos (1 se ausente); `pesos` (opcional) substitui os pesos dos
     componentes (renormalizados); `tatico` multiplica o efeito da qualidade tatica.
@@ -55,15 +55,19 @@ const NotasConfig = {
         ST: { mult: { GOLO: 1.0, REMATE_NO_GOL: 1.2, GRANDE_CHANCE_PERDIDA: 1.1, DESARME: 0.6, INTERCEPTACAO: 0.6, CORTE: 0.5 }, tatico: 0.8 }
     },
     /*
-    Playing Styles (chave = nome normalizado: minusculas, espacos/hifens -> '_'). So se aplicam em `posicoes`
+    Playing Styles (chave = a do motor, js/config/tactics.js `PlayingStyles`, em snake_case). So se aplicam em `posicoes`
     compativeis; fora delas manda o perfil da posicao. `liberdade` (0..1) alarga a tolerancia tatica.
     */
     estilos: {
-        box_to_box_midfielder:  { posicoes: ['CM', 'DM'], mult: { DESARME: 1.1, PASSE_DECISIVO: 1.1, GOLO: 1.2 }, liberdade: 0.9 },
-        anchor_man:             { posicoes: ['DM'], mult: { INTERCEPTACAO: 1.2, CORTE: 1.2 }, liberdade: 0.2 },
-        deep_lying_playmaker:   { posicoes: ['DM', 'CM'], mult: { PASSE_PROGRESSIVO: 1.3, PASSE_DECISIVO: 1.2, DESARME: 0.8 }, liberdade: 0.5 },
-        poacher:                { posicoes: ['ST'], mult: { GOLO: 1.0, REMATE_NO_GOL: 1.2, GRANDE_CHANCE_PERDIDA: 1.2 }, liberdade: 0.4 },
-        ball_playing_defender:  { posicoes: ['CB'], mult: { PASSE_PROGRESSIVO: 1.5, PASSE_DECISIVO: 1.3 }, liberdade: 0.3 }
+        box_to_box:         { posicoes: ['CM', 'DM', 'AM', 'LM', 'RM'], mult: { DESARME: 1.1, PASSE_DECISIVO: 1.1, GOLO: 1.2 }, liberdade: 0.9 },
+        anchor_man:         { posicoes: ['DM'], mult: { INTERCEPTACAO: 1.2, CORTE: 1.2 }, liberdade: 0.2 },
+        the_destroyer:      { posicoes: ['CM', 'DM', 'CB'], mult: { DESARME: 1.2, INTERCEPTACAO: 1.1 }, liberdade: 0.5 },
+        orchestrator:       { posicoes: ['CM', 'DM'], mult: { PASSE_PROGRESSIVO: 1.3, PASSE_DECISIVO: 1.2, DESARME: 0.8 }, liberdade: 0.5 },
+        creative_playmaker: { posicoes: ['SS', 'LW', 'RW', 'AM', 'LM', 'RM'], mult: { PASSE_DECISIVO: 1.3, DRIBLE: 1.1 }, liberdade: 0.7 },
+        goal_poacher:       { posicoes: ['CF', 'SS', 'ST'], mult: { REMATE_NO_GOL: 1.2, GRANDE_CHANCE_PERDIDA: 1.2 }, liberdade: 0.4 },
+        build_up:           { posicoes: ['CB'], mult: { PASSE_PROGRESSIVO: 1.5, PASSE_DECISIVO: 1.3 }, liberdade: 0.3 },
+        cross_specialist:   { posicoes: ['LW', 'RW', 'LM', 'RM'], mult: { CRUZAMENTO_CERTO: 1.3 }, liberdade: 0.6 },
+        prolific_winger:    { posicoes: ['LW', 'RW'], mult: { DRIBLE: 1.2, GOLO: 1.1 }, liberdade: 0.6 }
     },
     liberdadePadrao: 0.4
 };
