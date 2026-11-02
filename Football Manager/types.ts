@@ -137,6 +137,8 @@ export interface RatingDetalhe {
   pos?: string;
   moc?: boolean; // Man of the Match
   def?: number;  // acoes defensivas (destaque defensivo)
+  golos?: number;
+  assistencias?: number;
 }
 
 export interface RatingHistorico { fixtureId: string; nota: number; minutos: number; motm: boolean; }

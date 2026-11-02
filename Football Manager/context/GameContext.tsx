@@ -1429,13 +1429,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // As notas dos jogadores ate este momento, no mesmo ecra das estatisticas (nome curto e nota, de cada equipa, pela nota).
       try {
         // As notas do proprio 3D (js/ratings) quando vieram; senao o calculo antigo, por eventos.
-        const doMotor = m.notas && Object.keys(m.notas).length ? notasDoMotor(m.notas, casa, fora, players).playerRatings : null;
+        const dm = m.notas && Object.keys(m.notas).length ? notasDoMotor(m.notas, casa, fora, players) : null;
+        const doMotor = dm ? dm.playerRatings : null;
         const notas = doMotor || calculateMatchRatings(uf.events || [], casa, fora, uf.homeScore || 0, uf.awayScore || 0, uf.homeLineup, uf.awayLineup, players);
         const lado = (t: Team) => Object.entries(notas)
           .map(([id, nota]) => ({ p: players.find(x => x.id === id), nota: nota as number }))
           .filter(x => x.p && x.p.teamId === t.id)
           .sort((a, b) => b.nota - a.nota)
-          .map(x => ({ nome: String(x.p!.name).split(' ').pop(), nota: Math.round(x.nota * 10) / 10 }));
+          .map(x => {
+            const d = dm ? dm.ratingDetalhes[x.p!.id] : undefined;   // com as notas do 3D a tabela leva o detalhe (posicao, minutos, gols, componentes)
+            return { nome: String(x.p!.name).split(' ').pop(), nota: Math.round(x.nota * 10) / 10, ...(d ? { pos: d.pos, minutos: d.minutos, golos: d.golos || 0, assistencias: d.assistencias || 0, moc: !!d.moc, def: d.def || 0, tatico: d.tatico, tecnico: d.tecnico, participacao: d.participacao, disciplina: d.disciplina } : {}) };
+          });
         simulador3dEnviar({ tipo: 'notas', casa: { nome: casa.name, jogadores: lado(casa) }, fora: { nome: fora.name, jogadores: lado(fora) } });
       } catch (e) { console.warn('[notas do intervalo]', e); }
     } else if (m.tipo === 'intervalo_pronto') {

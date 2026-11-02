@@ -156,3 +156,12 @@ test('tick: expulso ou substituido nao e amostrado', () => {
     assert.strictEqual(Motor.jogadores['2'].qN, 0);
     assert.strictEqual(Motor.jogadores['1'].qN, 1);
 });
+
+test('resultado traz golos, assistencias e nome', () => {
+    const E = cenario();
+    E.registar('GOLO', { equipa: 'TeamA', jogador: J('1'), assistente: J('2') });
+    const r = Notas.resultado();
+    assert.strictEqual(r['1'].golos, 1);
+    assert.strictEqual(r['2'].assistencias, 1);
+    assert.strictEqual(r['1'].golos + r['3'].golos, 1);
+});

@@ -981,11 +981,31 @@ function mostrarNotasIntervalo(dados) {
     if (!el || !dados || !dados.casa || !dados.fora) return;
     if (!stats || stats.classList.contains('oculto')) return;
     const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    /*
+    A TABELA INDIVIDUAL (sistema de notas, js/ratings): posicao, nome, gols/assistencias, nota na cor da faixa (Notas.corDaNota).
+    Destaques: MoM (estrela), as duas piores notas da equipa, e o destaque defensivo (6+ acoes defensivas). Clicar numa linha abre as
+    4 categorias (tatico, tecnico, participacao, disciplina). Sem detalhe (notas do calculo antigo) fica a linha simples de sempre.
+    */
+    const cor = (n) => (typeof Notas !== 'undefined' && Notas.corDaNota) ? Notas.corDaNota(n) : '#fcc419';
+    const barra = (rot, v) => '<div class="mn-barra"><span>' + rot + '</span><i><b style="width:' + Math.max(0, Math.min(100, v)) + '%;background:' + cor(1 + 9 * v / 100) + '"></b></i></div>';
     const coluna = (id, lado) => {
-        document.getElementById(id).innerHTML = '<div class="mn-eq">' + esc(String(lado.nome || '').split('-')[0]) + '</div>' + (lado.jogadores || []).map(j =>
-            '<div class="mn-linha"><span>' + esc(j.nome || '') + '</span><span class="' + (j.nota >= 7.5 ? 'alta' : j.nota <= 5.5 ? 'baixa' : '') + '">' + Number(j.nota).toFixed(1) + '</span></div>').join('');
+        const js = lado.jogadores || [];
+        const piores = js.filter(j => j.minutos !== undefined).sort((a, b) => a.nota - b.nota).slice(0, 2).filter(j => j.nota < 6).map(j => j);
+        document.getElementById(id).innerHTML = '<div class="mn-eq">' + esc(String(lado.nome || '').split('-')[0]) + '</div>' + js.map(j => {
+            const detalhe = j.tatico !== undefined;
+            const classe = 'mn-linha' + (j.moc ? ' moc' : '') + (piores.indexOf(j) >= 0 ? ' pior' : '') + (j.def >= 6 ? ' defdest' : '') + (detalhe ? ' clicavel' : '');
+            const icones = (j.golos ? ' ⚽' + (j.golos > 1 ? j.golos : '') : '') + (j.assistencias ? ' 🅰' + (j.assistencias > 1 ? j.assistencias : '') : '') + (j.def >= 6 ? ' 🛡' : '');
+            const linha = '<div class="' + classe + '">' +
+                (j.pos ? '<em>' + esc(j.pos) + '</em>' : '') + '<span>' + (j.moc ? '★ ' : '') + esc(j.nome || '') + '<small>' + icones + '</small></span>' +
+                '<span class="mn-nota" style="background:' + cor(j.nota) + '">' + Number(j.nota).toFixed(1) + '</span></div>';
+            const extra = detalhe ? '<div class="mn-detalhe">' + (j.minutos !== undefined ? '<div class="mn-min">' + j.minutos + ' min</div>' : '') +
+                barra('TAT', j.tatico) + barra('TEC', j.tecnico) + barra('PAR', j.participacao) + barra('DIS', j.disciplina) + '</div>' : '';
+            return linha + extra;
+        }).join('');
     };
     coluna('mn-casa', dados.casa); coluna('mn-fora', dados.fora);
+    // Clicar numa linha com detalhe abre/fecha as 4 categorias (o bloco logo a seguir).
+    el.querySelectorAll('.mn-linha.clicavel').forEach(l => { l.onclick = () => l.nextElementSibling.classList.toggle('aberto'); });
     el.classList.remove('oculto');
     // As tres caixas lado a lado cabem no ecra: reduz a escala (a de sempre e 1.3) se for preciso.
     const par = document.getElementById('intervalo-par');

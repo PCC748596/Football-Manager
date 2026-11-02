@@ -364,7 +364,7 @@ mantem o escudo normal.
     color: #ffffff;
 }
 /* AS NOTAS DOS JOGADORES: o mesmo padrao (preto a 60%, sem cantos arredondados, texto branco), ao lado da classificacao; duas colunas, uma por equipa. */
-#modal-notas { width: 270px; padding: 12px 14px 12px; display: flex; flex-direction: column; background: rgba(0, 0, 0, 0.6); border: none; border-radius: 0; color: #ffffff; }
+#modal-notas { width: 340px; padding: 12px 14px 12px; display: flex; flex-direction: column; background: rgba(0, 0, 0, 0.6); border: none; border-radius: 0; color: #ffffff; }
 #modal-notas.oculto { display: none; }
 .mn-titulo { text-align: center; font-weight: 700; letter-spacing: 3px; font-size: 12px; margin-bottom: 8px; }
 #mn-cols { flex: 1 1 auto; display: flex; gap: 12px; }
@@ -374,6 +374,22 @@ mantem o escudo normal.
 .mn-linha span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .mn-linha .alta { color: #22c55e; }
 .mn-linha .baixa { color: #ef4444; }
+/* Sistema de notas: posicao, icones de gol/assistencia, nota na cor da faixa, destaques e detalhe por categoria. */
+.mn-linha em { font-style: normal; font-size: 9px; opacity: 0.6; width: 22px; flex: 0 0 auto; }
+.mn-linha span:first-of-type { flex: 1 1 auto; }
+.mn-linha small { font-size: 10px; font-weight: 400; margin-left: 2px; }
+.mn-nota { min-width: 28px; text-align: center; color: #101010; border-radius: 3px; padding: 1px 3px; font-weight: 800; }
+.mn-linha.moc { background: rgba(250, 204, 21, 0.18); }
+.mn-linha.pior .mn-nota { outline: 1px solid #ef4444; }
+.mn-linha.defdest span:first-of-type { color: #7dd3fc; }
+.mn-linha.clicavel { cursor: pointer; }
+.mn-detalhe { display: none; padding: 2px 0 4px 24px; font-size: 9px; }
+.mn-detalhe.aberto { display: block; }
+.mn-min { opacity: 0.6; margin-bottom: 2px; }
+.mn-barra { display: flex; align-items: center; gap: 4px; height: 10px; }
+.mn-barra span { width: 22px; opacity: 0.7; }
+.mn-barra i { flex: 1 1 auto; height: 4px; background: rgba(255, 255, 255, 0.15); position: relative; }
+.mn-barra b { display: block; height: 100%; }
 #mc-linhas { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: space-between; }
 #modal-intervalo .hud-jog-logo { width: 52px; height: 63px; }   /* escudos +80% (pedido) */
 #modal-classificacao.oculto { display: none; }

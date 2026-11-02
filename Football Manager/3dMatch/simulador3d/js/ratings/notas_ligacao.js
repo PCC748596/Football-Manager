@@ -161,7 +161,7 @@ const Notas = {
         const mocA = _NMotor.melhor('TeamA', agora), mocB = _NMotor.melhor('TeamB', agora);
         for (const id in _NMotor.jogadores) {
             const j = _NMotor.jogadores[id], d = _NMotor.detalhes(id, agora);
-            o[id] = Object.assign({ pos: j.pos, equipa: j.equipa, moc: id === mocA || id === mocB, def: j.nDef }, d);
+            o[id] = Object.assign({ pos: j.pos, equipa: j.equipa, moc: id === mocA || id === mocB, def: j.nDef, golos: _NMotor.contar(id, 'GOLO'), assistencias: _NMotor.contar(id, 'ASSISTENCIA') }, d);
         }
         return o;
     }

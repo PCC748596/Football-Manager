@@ -147,3 +147,15 @@ test('erro que gera remate e depois golo equivale a ERRO_GOLO direto', () => {
     M.evento('a', 'ERRO_GOLO', { evId: 'x' });
     assert.strictEqual(n, M.nota('a', 90));
 });
+
+test('contadores por tipo: golos e assistencias, e a substituicao de um evId nao duplica a contagem', () => {
+    M.reset();
+    M.entrar('a', { equipa: 'TeamA', pos: 'ST', minuto: 0 });
+    M.evento('a', 'GOLO', { evId: 'g1' }); M.evento('a', 'GOLO', { evId: 'g2' }); M.evento('a', 'ASSISTENCIA', { evId: 'a1' });
+    M.evento('a', 'GOLO', { evId: 'g1' });
+    assert.strictEqual(M.contar('a', 'GOLO'), 2);
+    assert.strictEqual(M.contar('a', 'ASSISTENCIA'), 1);
+    M.evento('a', 'PASSE_ERRADO', { evId: 'p1' }); M.evento('a', 'ERRO_GOLO', { evId: 'p1' });
+    assert.strictEqual(M.contar('a', 'PASSE_ERRADO'), 0);
+    assert.strictEqual(M.contar('a', 'ERRO_GOLO'), 1);
+});

@@ -31,7 +31,7 @@ const NotasMotor = {
             id: id, equipa: d.equipa, pos: pos, grupo: this.grupoDe(pos), estilo: this.normalizarEstilo(d.estilo),
             entrou: d.minuto || 0, saiu: null,
             raw: { tatico: 0, tecnico: 0, participacao: 0, disciplina: 0 },
-            aplicado: {}, nDef: 0, nEventos: 0, qSoma: 0, qN: 0
+            aplicado: {}, cont: {}, nDef: 0, nEventos: 0, qSoma: 0, qN: 0
         };
         return this.jogadores[id];
     },
@@ -60,10 +60,12 @@ const NotasMotor = {
         if (ant) {
             if (ant.tipo === tipo) return false;
             this._somar(j, ant.contribs, -1);
+            j.cont[ant.tipo]--;
             if (this.cfg.defensivos.indexOf(ant.tipo) >= 0) j.nDef--;
         }
         this._somar(j, contribs, +1);
         j.aplicado[evId] = { tipo: tipo, contribs: contribs };
+        j.cont[tipo] = (j.cont[tipo] || 0) + 1;
         if (this.cfg.defensivos.indexOf(tipo) >= 0) j.nDef++;
         if (!ant) j.nEventos++;
         return true;
@@ -107,6 +109,9 @@ const NotasMotor = {
         j.qSoma += this.qualidadeTatica(id, ctx);
         j.qN++;
     },
+
+    // Quantas vezes o jogador fez `tipo` (para a tabela: golos, assistencias...).
+    contar(id, tipo) { const j = this.jogadores[id]; return (j && j.cont[tipo]) || 0; },
 
     _min(j, agora) { return Math.max(0, (j.saiu !== null ? j.saiu : agora) - j.entrou); },
     _pesos(j) {
