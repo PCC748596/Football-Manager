@@ -1119,11 +1119,11 @@ OS CARTOES DO HUD NO IPAD / TABLET (pedido): 40% mais pequenos que os de computa
 mesmo canto de antes. Vale quando o JS marca o `body.toque` (main.js: ontouchstart ou maxTouchPoints > 0 — o iPad com teclado/trackpad diz `pointer: fine` e a media query so nao chegava) e,
 por reserva, nos ecras `pointer: coarse`. Fica no FIM do ficheiro para ganhar as regras acima.
 */
-body.toque #hud-jogador-esq, body.toque #hud-jogador-dir { transform: scale(0.84); }
+body.toque #hud-jogador-esq, body.toque #hud-jogador-dir { transform: scale(0.924); }
 body.toque #hud-evento { transform: translateX(-50%) scale(0.84); }
 @media (pointer: coarse) {
-    #hud-jogador-esq { transform: scale(0.84); }
-    #hud-jogador-dir { transform: scale(0.84); }
+    #hud-jogador-esq { transform: scale(0.924); }
+    #hud-jogador-dir { transform: scale(0.924); }
     #hud-evento { transform: translateX(-50%) scale(0.84); }
 }
 
