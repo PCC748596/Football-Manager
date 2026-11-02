@@ -95,13 +95,22 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   const [contra, setContra] = useState(false);
   const [arrasto, setArrasto] = useState<{ slot: number; x: number; z: number } | null>(null);
   const campoRef = useRef<HTMLDivElement>(null);
-  // Tablet (< 1280 px de largura): os paineis ficam em UMA coluna, os da direita abaixo dos da esquerda; no computador, as colunas de sempre.
-  const [largo, setLargo] = useState(() => typeof window === 'undefined' || window.matchMedia('(min-width: 1280px)').matches);
+  // So no IPAD (pedido): o layout de uma coluna vale para o tablet — ecra de TOQUE (ponteiro grosso) com menos de 1280 px, ou o quadro do modo Tablet das Configuracoes (o PC a imitar o iPad).
+  // No computador o layout e sempre o de 3 colunas, seja qual for o tamanho da janela.
+  const ehTablet = () => {
+    if (typeof window === 'undefined') return false;
+    if (window.innerWidth >= 1280) return false;
+    const toque = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+    let quadroTablet = false;
+    try { quadroTablet = window.self !== window.top && localStorage.getItem('fm_tablet') === '1'; } catch { /* iframe de outra origem */ }
+    return toque || quadroTablet;
+  };
+  const [largo, setLargo] = useState(() => !ehTablet());
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1280px)');
-    const f = () => setLargo(mq.matches);
-    mq.addEventListener('change', f);
-    return () => mq.removeEventListener('change', f);
+    const f = () => setLargo(!ehTablet());
+    f();
+    window.addEventListener('resize', f);
+    return () => window.removeEventListener('resize', f);
   }, []);
   const [formContra, setFormContra] = useState<string>('ADV');
 
@@ -533,8 +542,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             </div>
         </div>
 
-        <div className={`flex-1 grid gap-[5px] min-h-0 ${largo ? 'grid-cols-[5.6fr_3.7fr_3fr]' : 'grid-cols-1 overflow-y-auto custom-scrollbar'}`}>
-            <div className="flex flex-col gap-[3px] min-h-0 min-w-0" style={largo ? { width: 'calc(100% + 129px)' } : { minHeight: 700 }}>
+        <div className={`flex-1 grid gap-[5px] min-h-0 ${largo ? 'grid-cols-[5.6fr_3.7fr_3fr]' : 'grid-cols-[1fr_1fr_1.35fr] overflow-y-auto custom-scrollbar content-start'}`}>   {/* tablet: o campo com os reservas em cima (linha inteira) e, em baixo, em UMA linha: Squad Pool | Set Pieces | Kit + instrucoes */}
+            <div className="flex flex-col gap-[3px] min-h-0 min-w-0" style={largo ? { width: 'calc(100% + 129px)' } : { minHeight: 700, gridColumn: '1 / -1' }}>
                 <div className="flex-1 relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ minHeight: '350px', containerType: 'size' }}>
                     {aba === 'geral' && (
                         <button onClick={() => handleTacticChange('playingStylesOn' as keyof Tactics, userTeam.tactics.playingStylesOn === false)} title="Turns the players' individual Playing Styles on or off in the 3D match"
@@ -848,7 +857,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
 
             {/* SQUAD POOL e COBRADORES: duas colunas do mesmo tamanho, no espaco que o campo deixa (o campo avanca 109 px sobre ele). */}
             {/* Set Pieces 20 px mais estreito e Squad Pool outra vez como era (pedido): antes 1fr 1fr com folga de 16 px; as duas encostadas a direita (margem 109 -> 129, mesmas larguras): os 20 px livres vao para a area dos reservas. */}
-            <div className="grid gap-[5px] min-h-0 min-w-0" style={largo ? { marginLeft: 129, gridTemplateColumns: 'calc(50% + 7.5px) calc(50% - 12.5px)' } : { gridTemplateColumns: '1fr 1fr', minHeight: 460 }}>   {/* paineis a 5 px uns dos outros (pedido) */}
+            <div className="grid gap-[5px] min-h-0 min-w-0" style={largo ? { marginLeft: 129, gridTemplateColumns: 'calc(50% + 7.5px) calc(50% - 12.5px)' } : { display: 'contents' }}>   {/* paineis a 5 px uns dos outros (pedido) */}
             {/* O SQUAD POOL: o que sobrou do plantel, ao lado do campo (antes ficava sob as instrucoes). */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col shadow-sm overflow-hidden min-h-0 min-w-0">
                     <div className="px-3 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900">
@@ -973,7 +982,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
 
             </div>
 
-            <div className="flex flex-col gap-4 min-h-0 min-w-0" style={largo ? undefined : { minHeight: 420 }}>
+            <div className="flex flex-col gap-4 min-h-0 min-w-0" style={largo ? undefined : { minHeight: 560 }}>
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm pb-6">
                     <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic mb-4">KIT</h3>
                     <div className="flex justify-around items-center">

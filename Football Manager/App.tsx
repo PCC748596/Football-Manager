@@ -68,7 +68,7 @@ const StartMenu: React.FC<{ onNewGame: () => void, onContinue: () => void, onSet
         </div>
 
         <div className="text-center text-slate-400 text-xs font-mono tracking-widest uppercase mt-8 bg-black/40 px-3 py-1.5 rounded backdrop-blur-sm border border-white/5">
-          v 0.0479 • BUILD 2025.01.BETA • FILE SYSTEM ENABLED
+          v 0.0481 • BUILD 2025.01.BETA • FILE SYSTEM ENABLED
         </div>
       </div>
     </div>
@@ -109,7 +109,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
       setPreviewPlayers(players);
       // o 1.o clube da lista (a ordem mostrada: alfabetica; na Serie D, o 1.o do Grupo A) ja aparece no overview
       const ordenados = [...teams].sort((a, b) => a.name.localeCompare(b.name));
-      const liga = COUNTRIES.find(c => c.id === selectedCountryId)?.leagues.find(l => l.id === selectedLeagueId) as any;
+      const liga = COUNTRIES.find(c => c.id === selectedCountryId)?.leagues.find((l: any) => l.id === selectedLeagueId) as any;
       let primeiro = ordenados[0];
       if (liga?.format === 'SERIE_D') {
         const grupos = Object.values(gruposDaSerieD((liga.teamIds as number[]).map(String))) as string[][];
@@ -197,7 +197,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step2')}</div>
           <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
-              {activeCountry?.leagues.filter(l => !l.hidden).map(league => (
+              {activeCountry?.leagues.filter((l: any) => !l.hidden).map(league => (
                 <button key={league.id} onClick={() => setSelectedLeagueId(league.id)} className={`w-full text-left p-3 rounded border-2 transition-all group ${selectedLeagueId === league.id ? 'bg-emerald-600 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-emerald-400'}`}>
                   <span className={`text-lg font-black uppercase ${selectedLeagueId === league.id ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>{league.name}</span>
                   <div className="flex items-center gap-2 mt-1">
@@ -208,7 +208,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             </div>
             <div className="px-2 pb-2">
               <div className="text-blue-600 dark:text-blue-400 font-black text-xs uppercase italic tracking-widest border-t border-slate-100 dark:border-slate-800 pt-3 transition-colors">
-                {selectedLeagueId === 'bra_serie_a' ? 'BRASILEIRÃO SÉRIE A.' : selectedLeagueId === 'bra_serie_b' ? 'BRASILEIRÃO SÉRIE B.' : selectedLeagueId === 'eng_prem' ? 'PREMIER LEAGUE' : (activeCountry?.leagues.find(l => l.id === selectedLeagueId)?.name || '').toUpperCase() + '.'}
+                {selectedLeagueId === 'bra_serie_a' ? 'BRASILEIRÃO SÉRIE A.' : selectedLeagueId === 'bra_serie_b' ? 'BRASILEIRÃO SÉRIE B.' : selectedLeagueId === 'eng_prem' ? 'PREMIER LEAGUE' : (activeCountry?.leagues.find((l: any) => l.id === selectedLeagueId)?.name || '').toUpperCase() + '.'}
               </div>
             </div>
           </div>
@@ -217,9 +217,9 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step3')}</div>
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
             {/* Serie D do Brasil: os clubes divididos pelos 16 grupos de 6 (a 1.a fase da competicao). */}
-            {(activeCountry?.leagues.find(l => l.id === selectedLeagueId) as any)?.format === 'SERIE_D' ? (
+            {(activeCountry?.leagues.find((l: any) => l.id === selectedLeagueId) as any)?.format === 'SERIE_D' ? (
               <div className="space-y-4">
-                {Object.entries(gruposDaSerieD(((activeCountry?.leagues.find(l => l.id === selectedLeagueId) as any).teamIds as number[]).map(String))).map(([g, ids]) => {
+                {Object.entries(gruposDaSerieD(((activeCountry?.leagues.find((l: any) => l.id === selectedLeagueId) as any).teamIds as number[]).map(String))).map(([g, ids]) => {
                   const doGrupo = sortedTeams.filter(t => ids.includes(t.id));
                   if (!doGrupo.length) return null;
                   return (
@@ -249,7 +249,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
                     <div className={`relative overflow-hidden h-[84px] flex flex-col justify-center text-left pl-3 pr-[88px] ${painel}`}>
                       <div className="absolute top-1/2 -translate-y-1/2 -right-[26px] w-[120px] h-[144px]"><TeamShield team={clubeSel} className="w-full h-full" /></div>
                       <div className="text-2xl font-black text-white uppercase leading-tight truncate">{clubeSel.name}</div>
-                      <div className="text-[10px] font-bold text-blue-300 uppercase tracking-widest">{activeCountry?.leagues.find(l => l.id === selectedLeagueId)?.name}</div>
+                      <div className="text-[10px] font-bold text-blue-300 uppercase tracking-widest">{activeCountry?.leagues.find((l: any) => l.id === selectedLeagueId)?.name}</div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-center">
                       {[['OVR', clubeSel.strength], ['Founded', clubeSel.foundedYear || '-'], ['Fan base', (clubeSel.fanBase || 0).toLocaleString()], ['Budget', '$' + Math.round((clubeSel.cash || 0) / 1000).toLocaleString() + 'k']].map(([k, v]) => (
@@ -361,7 +361,7 @@ const GameContainer: React.FC = () => {
 
       {appPhase === 'GAME' && gameState.userTeamId && (
         <Layout setView={setView} currentView={view} onMainMenu={() => setAppPhase('MENU')}>
-          {view === 'TRAINING' && !jogoBloqueado && <MatchRoundView setView={setView} />}
+          {view === 'TRAINING' && !jogoBloqueado && <MatchRoundView setView={(v: string) => setView(v as GameState['view'])} />}
           {view === 'MATCH' && !jogoBloqueado && <MatchDay setView={setView} />}
           {view === 'DASHBOARD' && (
             <DashboardView
