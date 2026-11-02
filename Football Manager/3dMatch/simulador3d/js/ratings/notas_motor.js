@@ -45,7 +45,7 @@ const NotasMotor = {
     _contribs(j, tipo) {
         const base = this.cfg.eventos[tipo];
         if (!base) return null;
-        const m = this._mult(j, tipo);
+        const m = this._mult(j, tipo) * (this.cfg.escalaEventos || 1);
         return base.map(([c, v]) => [c, v * m]);
     },
     _somar(j, contribs, sinal) { for (const [c, v] of contribs) j.raw[c] += sinal * v; },
@@ -95,9 +95,10 @@ const NotasMotor = {
         if (!j) return 0;
         const e = this._estiloAtivo(j);
         const liberdade = e ? e.liberdade : this.cfg.liberdadePadrao;
-        const tolerancia = 6 + 10 * liberdade + (ctx.bolaPerto ? 6 : 0);
+        // Tolerancias medidas em jogo: dEsperada tem mediana 4.5 m e p90 13.5 m; so o que passa do ~5 m (6-9 m com liberdade) conta.
+        const tolerancia = 3 + 6 * liberdade + (ctx.bolaPerto ? 4 : 0);
         const excesso = Math.max(0, ctx.dEsperada - tolerancia);
-        let q = 0.75 * (1 - 2 * Math.min(1, excesso / 20));
+        let q = 0.75 * (1 - 2 * Math.min(1, excesso / 15));
         if (ctx.fase === 'ataque' && ctx.ofereceLinha) q += 0.25;
         if (ctx.fase === 'defesa' && ctx.fechaLinha) q += 0.25;
         if (ctx.fase === 'defesa' && ctx.pressiona) q += 0.10;
@@ -128,8 +129,9 @@ const NotasMotor = {
     },
     _rawTatico(j) {
         if (!j.qN) return 0;
-        const perfil = (this.cfg.perfis[j.grupo] || {}).tatico || 1;
-        return (j.qSoma / j.qN) * this.cfg.ampTatica * perfil * Math.min(1, j.qN / this.cfg.amostrasPlenas);
+        const pf = this.cfg.perfis[j.grupo] || {};
+        const perfil = pf.tatico || 1;
+        return (j.qSoma / j.qN - (pf.qNeutro !== undefined ? pf.qNeutro : this.cfg.qNeutro)) * this.cfg.ampTatica * perfil * Math.pow(Math.min(1, j.qN / this.cfg.amostrasPlenas), 2);
     },
 
     detalhes(id, agora) {

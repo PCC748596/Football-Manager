@@ -10,8 +10,10 @@ const NotasConfig = {
     neutra: 6.0,
     pesos: { tatico: 0.35, tecnico: 0.30, participacao: 0.25, disciplina: 0.10 },
     amostrasPlenas: 120,      // amostras taticas (1 a cada ~5 s de jogo) para a componente tatica valer por inteiro (~10 min)
-    ampTatica: 0.9,           // efeito maximo da qualidade tatica media (unidades de nota)
+    ampTatica: 3.0,           // efeito da qualidade tatica media, em torno do neutro (unidades de nota)
+    qNeutro: 0.63,            // qualidade tatica media de um jogo normal (medida em lote); cada perfil pode ter o seu `qNeutro`
     janelaErroSeg: 8,         // uma perda de bola ate N s antes de um remate/golo adversario vira "erro que gera ..."
+    escalaEventos: 1.5,       // fator global sobre os valores da tabela de eventos (calibrado em lote: sem ele o desvio das notas fica ~0.4)
     minutosMoc: 30,           // minimo de minutos para ser Man of the Match
     eventos: {
         GOLO:                  [['tecnico', 0.50], ['participacao', 0.30]],
@@ -31,7 +33,7 @@ const NotasConfig = {
         DRIBLE:                [['tecnico', 0.06], ['participacao', 0.02]],
         PASSE_ERRADO:          [['disciplina', -0.02]],
         ERRO_REMATE:           [['disciplina', -0.20], ['tecnico', -0.10]],
-        ERRO_GOLO:             [['disciplina', -0.60], ['tecnico', -0.40], ['tatico', -0.30]],
+        ERRO_GOLO:             [['disciplina', -0.45], ['tecnico', -0.28], ['tatico', -0.20]],
         FALTA:                 [['disciplina', -0.03]],
         AMARELO:               [['disciplina', -0.15]],
         VERMELHO:              [['disciplina', -0.50], ['tatico', -0.30], ['participacao', -0.20]],
@@ -46,13 +48,13 @@ const NotasConfig = {
     componentes (renormalizados); `tatico` multiplica o efeito da qualidade tatica.
     */
     perfis: {
-        GK: { pesos: { tatico: 0.20, tecnico: 0.45, participacao: 0.15, disciplina: 0.20 }, mult: { DEFESA: 1.2, DEFESA_DIFICIL: 1.3, ERRO_GOLO: 1.2 }, tatico: 0.8 },
-        CB: { mult: { DESARME: 1.2, INTERCEPTACAO: 1.2, CORTE: 1.4, DUELO_AEREO: 1.4, GOLO: 1.1, ERRO_GOLO: 1.15 }, tatico: 1.1 },
-        FB: { mult: { DESARME: 1.1, INTERCEPTACAO: 1.1, CRUZAMENTO_CERTO: 1.4, PASSE_PROGRESSIVO: 1.1 }, tatico: 1.0 },
-        DM: { mult: { DESARME: 1.3, INTERCEPTACAO: 1.4, CORTE: 1.2, PASSE_PROGRESSIVO: 1.2, GOLO: 1.1 }, tatico: 1.15 },
-        CM: { mult: { PASSE_DECISIVO: 1.5, PASSE_PROGRESSIVO: 1.4, ASSISTENCIA: 1.1, DESARME: 0.9 }, tatico: 1.0 },
-        W:  { mult: { DRIBLE: 1.5, CRUZAMENTO_CERTO: 1.5, PASSE_DECISIVO: 1.3, DESARME: 0.7 }, tatico: 0.9 },
-        ST: { mult: { GOLO: 1.0, REMATE_NO_GOL: 1.2, GRANDE_CHANCE_PERDIDA: 1.1, DESARME: 0.6, INTERCEPTACAO: 0.6, CORTE: 0.5 }, tatico: 0.8 }
+        GK: { qNeutro: 0.8, pesos: { tatico: 0.20, tecnico: 0.45, participacao: 0.15, disciplina: 0.20 }, mult: { DEFESA: 1.2, DEFESA_DIFICIL: 1.3, ERRO_GOLO: 1.2 }, tatico: 0.8 },
+        CB: { qNeutro: 0.67, mult: { DESARME: 1.1, INTERCEPTACAO: 1.1, CORTE: 1.2, DUELO_AEREO: 1.2, GOLO: 1.1, ERRO_GOLO: 1.15 }, tatico: 1.1 },
+        FB: { qNeutro: 0.65, mult: { DESARME: 1.1, INTERCEPTACAO: 1.1, CRUZAMENTO_CERTO: 1.4, PASSE_PROGRESSIVO: 1.1 }, tatico: 1.0 },
+        DM: { qNeutro: 0.64, mult: { DESARME: 1.3, INTERCEPTACAO: 1.4, CORTE: 1.2, PASSE_PROGRESSIVO: 1.2, GOLO: 1.1 }, tatico: 1.15 },
+        CM: { qNeutro: 0.61, mult: { PASSE_DECISIVO: 1.5, PASSE_PROGRESSIVO: 1.4, ASSISTENCIA: 1.1, DESARME: 0.9 }, tatico: 1.0 },
+        W:  { qNeutro: 0.63, mult: { DRIBLE: 1.5, CRUZAMENTO_CERTO: 1.5, PASSE_DECISIVO: 1.3, DESARME: 0.7 }, tatico: 0.9 },
+        ST: { qNeutro: 0.63, mult: { GOLO: 1.0, REMATE_NO_GOL: 1.2, GRANDE_CHANCE_PERDIDA: 1.1, DESARME: 0.6, INTERCEPTACAO: 0.6, CORTE: 0.5 }, tatico: 0.8 }
     },
     /*
     Playing Styles (chave = a do motor, js/config/tactics.js `PlayingStyles`, em snake_case). So se aplicam em `posicoes`
