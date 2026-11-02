@@ -126,6 +126,21 @@ export interface Contract {
   years: number;   // duracao sorteada na assinatura (pela idade nessa data)
 }
 
+// Os detalhes da nota de um jogador numa partida 3D (cada componente e uma pontuacao 0-100; 56 = neutro).
+export interface RatingDetalhe {
+  nota: number;
+  tatico: number;
+  tecnico: number;
+  participacao: number;
+  disciplina: number;
+  minutos: number;
+  pos?: string;
+  moc?: boolean; // Man of the Match
+  def?: number;  // acoes defensivas (destaque defensivo)
+}
+
+export interface RatingHistorico { fixtureId: string; nota: number; minutos: number; motm: boolean; }
+
 export interface Player {
   id: string;
   name: string;
@@ -179,6 +194,7 @@ export interface Player {
     sht: number;
   };
   lastRating?: number;
+  ratingHistory?: RatingHistorico[]; // notas por partida (so jogos 3D): base das medias, ranking e evolucao
   playStyle?: PlayStyle;
   trainingGroupId?: number; // 0, 1, or 2
   injury?: {
@@ -854,6 +870,8 @@ export interface Fixture {
   momentum?: number;         // -100 (away dominando) a +100 (home dominando)
   momentumHistory?: number[]; // timeline para visualização
   playerRatings?: Record<string, number>; // playerId -> match rating (0.0 to 10.0)
+  ratingDetalhes?: Record<string, RatingDetalhe>; // playerId -> detalhes da nota (so jogos 3D)
+  motm?: string; // playerId do Man of the Match (so jogos 3D)
   
   // FM2D-style simulation statistics
   homeShots?: number;

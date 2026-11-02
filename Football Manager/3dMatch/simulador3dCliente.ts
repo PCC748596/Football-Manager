@@ -6,7 +6,7 @@ O motor 3D decide a partida e gera a narracao. Dois usos:
 */
 import { atributosParaMotor } from '../textSim/atributos3d';
 import { peBomDe } from '../textSim/peBom';
-import { Team, Player, Fixture, MatchEvent, Tactics, FORMATIONS, getKitDetails, getGKKitDetails, resolveSetPieceTakers, kitShorts, ehVerde, KitDetails } from '../types';
+import { Team, Player, Fixture, MatchEvent, RatingDetalhe, Tactics, FORMATIONS, getKitDetails, getGKKitDetails, resolveSetPieceTakers, kitShorts, ehVerde, KitDetails } from '../types';
 
 // Relativo a pagina (nao a raiz do dominio): no GitHub Pages o jogo vive em /Football-Manager/, e '/simulador3d/...' apontava para fora dele.
 const CAMINHO_SIMULADOR = (typeof document !== 'undefined' ? new URL('simulador3d/index.html', document.baseURI).pathname : '/simulador3d/index.html');
@@ -38,6 +38,8 @@ export interface ResultadoMotor {
   cartoes: { minuto: number; equipa: 'casa' | 'fora'; jogador: any; cor: string; segundoAmarelo: boolean }[];
   eventos: any[];
   relato: { minuto: number; texto: string; importante?: boolean }[];
+  /** As notas do motor (js/ratings): id do motor -> detalhes. Ausente em resultados antigos. */
+  notas?: Record<string, RatingDetalhe & { equipa: 'TeamA' | 'TeamB' }>;
 }
 
 /*
@@ -157,6 +159,28 @@ const jogadorDoMotor = (j: any, lado: Team, players: Player[]): Player | undefin
 };
 
 /*
+As notas do motor (id do ELENCO do motor, com o lado da equipa) -> as do manager (id do manager). O lado conta: o mesmo numero
+pode existir nos dois clubes. Sem correspondencia, o jogador e ignorado.
+*/
+export const notasDoMotor = (notas: ResultadoMotor['notas'], casa: Team, fora: Team, players: Player[]):
+  { playerRatings: Record<string, number>; ratingDetalhes: Record<string, RatingDetalhe>; motm?: string } => {
+  const playerRatings: Record<string, number> = {};
+  const ratingDetalhes: Record<string, RatingDetalhe> = {};
+  let motm: string | undefined;
+  for (const [idMotor, d] of Object.entries(notas || {})) {
+    const lado = d.equipa === 'TeamA' ? casa : fora;
+    const p = jogadorDoMotor({ id: idMotor }, lado, players);
+    if (!p) continue;
+    playerRatings[p.id] = d.nota;
+    const { equipa, ...resto } = d;
+    void equipa;
+    ratingDetalhes[p.id] = resto;
+    if (d.moc && !motm) motm = p.id;
+  }
+  return { playerRatings, ratingDetalhes, motm };
+};
+
+/*
 Converte o resultado do motor em eventos do manager. O motor conta o relogio em minutos de jogo (1..), o mesmo do manager.
 Tipos: GOLO->GOAL, REMATE defendido->SAVE, REMATE fora/bloqueado->MISS, FALTA->FOUL (+CARD), CANTO->CORNER, IMPEDIMENTO->OFFSIDE,
 INTERVALO->HALF_TIME, FIM->FULL_TIME. A frase narrada vai na descricao.
@@ -216,6 +240,7 @@ export const aplicarResultado = (f: Fixture, r: ResultadoMotor, casa: Team, fora
     homeCorners: A.cantos, awayCorners: B.cantos,
     homeFouls: A.faltas, awayFouls: B.faltas,
     homeLineup: casa.lineup.filter(Boolean), awayLineup: fora.lineup.filter(Boolean),
+    ...(r.notas && Object.keys(r.notas).length ? notasDoMotor(r.notas, casa, fora, players) : {}),
     played: false
   };
 };

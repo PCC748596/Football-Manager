@@ -23,7 +23,7 @@ import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSi
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
 import { REAL_TEAMS_JSON } from '../textSim/realDatabase';
-import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager } from '../3dMatch/simulador3dCliente';
+import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager, notasDoMotor } from '../3dMatch/simulador3dCliente';
 import { simulador3dEnviar, simulador3dInstantaneo, simulador3dDescartar } from '../3dMatch/Simulador3DView';
 import { avisoDoGoleiro, aplicarTrocaDo3d } from '../3dMatch/avisoGoleiro';
 
@@ -1059,6 +1059,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const p = newPlayers.find(pl => pl.id === pid);
             if (p) {
               p.lastRating = rating;
+              // Historico por partida (so jogos com detalhes, ou seja, 3D): sem duplicar o mesmo jogo.
+              const det = (f.ratingDetalhes || {})[pid];
+              if (det && !(p.ratingHistory || []).some(h => h.fixtureId === f.id)) {
+                p.ratingHistory = [...(p.ratingHistory || []), { fixtureId: f.id, nota: rating, minutos: det.minutos, motm: f.motm === pid }];
+              }
               // Ajusta moral baseado na nota
               if (rating >= 8.5) p.morale = Math.min(100, p.morale + 10);
               else if (rating >= 7.5) p.morale = Math.min(100, p.morale + 5);
@@ -1423,7 +1428,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (linhas.length) simulador3dEnviar({ tipo: 'classificacao', linhas, emCurso: (classificacaoDoIntervalo as any).ultimoEmCurso || 0 });
       // As notas dos jogadores ate este momento, no mesmo ecra das estatisticas (nome curto e nota, de cada equipa, pela nota).
       try {
-        const notas = calculateMatchRatings(uf.events || [], casa, fora, uf.homeScore || 0, uf.awayScore || 0, uf.homeLineup, uf.awayLineup, players);
+        // As notas do proprio 3D (js/ratings) quando vieram; senao o calculo antigo, por eventos.
+        const doMotor = m.notas && Object.keys(m.notas).length ? notasDoMotor(m.notas, casa, fora, players).playerRatings : null;
+        const notas = doMotor || calculateMatchRatings(uf.events || [], casa, fora, uf.homeScore || 0, uf.awayScore || 0, uf.homeLineup, uf.awayLineup, players);
         const lado = (t: Team) => Object.entries(notas)
           .map(([id, nota]) => ({ p: players.find(x => x.id === id), nota: nota as number }))
           .filter(x => x.p && x.p.teamId === t.id)
