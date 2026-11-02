@@ -296,7 +296,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
 };
 
 const GameContainer: React.FC = () => {
-  const { gameState, startGame, importGameData, t, userTeam, players, fixtures } = useGame();
+  const { gameState, startGame, importGameData, loadId, t, userTeam, players, fixtures } = useGame();
   const [appPhase, setAppPhase] = useState<'MENU' | 'CREATE_MANAGER' | 'SELECT_MODE' | 'CAREER' | 'SELECT_TEAM' | 'GAME' | 'SETTINGS' | 'EDITOR'>('MENU');
   const [tempManagerName, setTempManagerName] = useState('');
   const [view, setView] = useState<GameState['view']>('DASHBOARD');
@@ -362,7 +362,7 @@ const GameContainer: React.FC = () => {
       {appPhase === 'GAME' && gameState.userTeamId && (
         <Layout setView={setView} currentView={view} onMainMenu={() => setAppPhase('MENU')}>
           {view === 'TRAINING' && !jogoBloqueado && <MatchRoundView setView={(v: string) => setView(v as GameState['view'])} />}
-          {view === 'MATCH' && !jogoBloqueado && <MatchDay setView={setView} />}
+          {view === 'MATCH' && !jogoBloqueado && <MatchDay key={loadId} setView={setView} />}
           {view === 'DASHBOARD' && (
             <DashboardView
               onGoToRoundSimulation={() => setView('TRAINING')}

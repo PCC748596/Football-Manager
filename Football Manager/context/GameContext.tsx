@@ -23,7 +23,7 @@ import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } fr
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
 import { REAL_TEAMS_JSON } from '../textSim/realDatabase';
 import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager } from '../3dMatch/simulador3dCliente';
-import { simulador3dEnviar, simulador3dInstantaneo } from '../3dMatch/Simulador3DView';
+import { simulador3dEnviar, simulador3dInstantaneo, simulador3dDescartar } from '../3dMatch/Simulador3DView';
 import { avisoDoGoleiro, aplicarTrocaDo3d } from '../3dMatch/avisoGoleiro';
 
 const TRANSLATIONS: Record<string, any> = {
@@ -235,6 +235,8 @@ interface GameContextType {
   updatePlayerTrainingGroup: (playerId: string, groupId: number) => void;
   saveGame: () => Promise<void>;
   importGameData: (jsonString: string) => boolean;
+  /** Sobe a cada save carregado: serve de `key` para remontar as telas com estado proprio (MatchDay). */
+  loadId: number;
   currentFixtures: Fixture[];
   userTeam: Team | undefined;
   /** As outras ligas (aba WORLD); null ate a aba se abrir pela primeira vez. A liga do utilizador nao esta aqui: vive em `teams`/`fixtures`. */
@@ -2082,6 +2084,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.teams && data.players && data.gameState) {
         // O instantaneo da partida 3D gravada a meio (saveGame): o MatchDay leva-o ao 3D para continuar exactamente dali.
         (window as any).__instantaneo3d = data.motor3d || null;
+        simulador3dDescartar();   // o 3D do save anterior sai: o MatchDay (remontado por loadId) cria o do save carregado
+        pauseMatch();
+        (window as any).motor3dMinuto = undefined;
         // Saves antigos: ninguem fica abaixo do nivel minimo (50).
         data.players = data.players.map((p: any) => (p.skill < 50 || p.def < 50 || p.pas < 50 || p.drb < 50 || p.sht < 50
           ? { ...p, skill: Math.max(50, p.skill), def: Math.max(50, p.def), pas: Math.max(50, p.pas), drb: Math.max(50, p.drb), sht: Math.max(50, p.sht) } : p));
@@ -2156,7 +2161,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <GameContext.Provider value={{
       teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
-      hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, decisaoDoJogoDeHoje, guardarPenaltis3d, scheduleActivity, saveGame, importGameData, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
+      hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, decisaoDoJogoDeHoje, guardarPenaltis3d, scheduleActivity, saveGame, importGameData, loadId, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, avisoGoleiro, avisoGoleiroMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
       t,

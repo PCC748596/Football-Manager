@@ -50,6 +50,14 @@ export const simulador3dArrancou = (chave: string) => sessao.chave === chave && 
 // Quantos RESETs desta partida ja se fizeram (a chave do iframe leva `#N`): sair para o Tactics e voltar nao pode perder a conta, senao a chave muda e o 3D e recriado.
 export const simulador3dReinicios = (base: string) => (sessao.chave.startsWith(base + '#') ? Number(sessao.chave.slice(base.length + 1)) || 0 : 0);
 export const simulador3dPronto = () => sessao.pronto;
+// Carregar outro save: o jogo 3D em curso era do save anterior. Para e remove o iframe; o MatchDay (remontado) cria um novo com o jogo do save carregado.
+export const simulador3dDescartar = () => {
+  if (!sessao.iframe) return;
+  enviar({ para: 'simulador3d', tipo: 'parar' });
+  sessao.iframe.remove();
+  Object.assign(sessao, { iframe: null, chave: '', pronto: false, arrancou: false, preparadoCom: '', terminou: false });
+  definirEscTravado(false);
+};
 // Velocidade do jogo (0.5x, 1x, 1.5x): guardada para a partida que ainda vai arrancar (o `iniciar` do motor usa-a) e enviada ao motor ja em curso.
 let velocidadeDoJogo = 1;
 export const simulador3dVelocidade = (v: number) => { velocidadeDoJogo = v; sessao.iframe?.contentWindow?.postMessage({ para: 'simulador3d', tipo: 'velocidade', valor: v }, '*'); };
