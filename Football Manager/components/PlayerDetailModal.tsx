@@ -1,5 +1,6 @@
 
 import React, { useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Player, Position, Team } from '../types';
 import { useGame } from '../context/GameContext';
 import { TeamShield } from './TeamShield';
@@ -389,7 +390,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
           ✕
         </button>
       </div>
-      {dispensando && (
+      {dispensando && createPortal(
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={e => { e.stopPropagation(); setDispensando(false); }}>
           <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
             <div className="text-[10px] font-black uppercase tracking-widest text-rose-400">Release player</div>
@@ -409,7 +410,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 };

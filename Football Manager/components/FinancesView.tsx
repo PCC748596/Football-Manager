@@ -207,7 +207,7 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                         <td className="px-6 py-2 font-bold text-sm text-slate-700 dark:text-slate-200"><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview" className="text-left hover:text-blue-500 dark:hover:text-blue-400 hover:underline transition-colors">{p.name}</button></td>
                         <td className="px-4 py-2 text-center text-xs font-black text-blue-600 dark:text-blue-400">{p.skill}</td>
                         <td className="px-4 py-2 text-right text-rose-500 text-sm font-mono">{formatWage(p.salary)}</td>
-                        <td className="px-4 py-2 text-center"><ContractChip player={p} hoje={gameState.currentDate} /></td>
+                        <td className="px-4 py-2 text-center"><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview (contract)" className="cursor-pointer hover:brightness-125 transition"><ContractChip player={p} hoje={gameState.currentDate} /></button></td>
                         <td className="px-6 py-2 text-right font-black text-sm text-slate-900 dark:text-white">
                            <div className="flex flex-col items-end">
                               {formatCurrency(p.value)}

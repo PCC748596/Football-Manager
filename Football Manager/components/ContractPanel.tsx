@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Player } from '../types';
 import { useGame } from '../context/GameContext';
 import { EstadoContrato, diasRestantes, estadoDoContrato, faixaDeContrato, mesesRestantes, somarAnos } from '../textSim/contracts';
@@ -70,7 +71,8 @@ const RenovarModal: React.FC<{ player: Player; hoje: string; onClose: () => void
   }, [onClose]);
   const enviar = () => { const r = proporRenovacao(player.id, { salario, anos }); if (r !== 'BLOQUEADO') setResultado(r); };
 
-  return (
+  // PORTAL no <body>: o modal e filho do Overview (que tem animacao/transform e pilhas de camadas proprias), e no iPad ficava ATRAS da lista de jogadores do mesmo Overview.
+  return createPortal(
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="w-full max-w-3xl max-h-[95vh] overflow-y-auto custom-scrollbar bg-slate-950 border border-slate-700 rounded-xl shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-start">
@@ -140,7 +142,7 @@ const RenovarModal: React.FC<{ player: Player; hoje: string; onClose: () => void
         )}
       </div>
     </div>
-  );
+  , document.body);
 };
 
 /** O bloco de contrato do jogador: datas, duracao, estado, alerta e (no clube do utilizador) o botao de renovar. */
