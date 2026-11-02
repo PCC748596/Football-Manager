@@ -55,6 +55,7 @@ const Ponte = {
             else if (m.tipo === 'classificacao') { if (typeof mostrarClassificacaoIntervalo === 'function') mostrarClassificacaoIntervalo(m.linhas, m.emCurso); }
             else if (m.tipo === 'camera') this.camera(m.modo);
             else if (m.tipo === 'zoom') this.zoom(m.fator);
+            else if (m.tipo === 'tecla_espaco') { if (typeof Match !== 'undefined' && Match.togglePause) Match.togglePause(); }   // o espaco carregado fora do iframe (o foco ficou no manager): o mesmo que a tecla aqui dentro
             else if (m.tipo === 'tela_cheia') { document.body.classList.toggle('tela-cheia', !!m.ligada); this.barraTopo(!!m.ligada); }
             else if (m.tipo === 'tatica') this.aplicarTatica(m);
             else if (m.tipo === 'cobradores') {
@@ -111,7 +112,7 @@ const Ponte = {
                 '#tc-barra>*{position:static}#tc-esq,#tc-dir{display:flex;align-items:center;gap:6px}' +
                 '#tc-barra button{height:32px;padding:0 10px;border-radius:0;font-size:12px}' +
                 // CENTRO: o placar, no padrao dos cartoes dos jogadores (preto a 40%, sem cantos arredondados).
-                '#tc-centro{left:50%;top:58px;transform:translateX(-50%) scale(1.3);transform-origin:top center;background:rgba(0,0,0,.75);padding:8px 44px;overflow:hidden}' +
+                '#tc-centro{left:12px;top:58px;transform:scale(1.105);transform-origin:top left;background:rgba(0,0,0,.75);padding:8px 44px;overflow:hidden}' +
                 // Os escudos como nos cartoes dos jogadores: grandes, entram pelo lado do cartao que os corta.
                 '#tc-centro .hud-jog-logo{position:absolute;top:50%;width:60px;height:72px;transform:translateY(-50%)}#tc-logo-e{left:-26px}#tc-logo-d{right:-26px}' +
                 // DIREITA: Exit, Debug e FPS em cima; os demais numa coluna por baixo.
@@ -154,6 +155,7 @@ const Ponte = {
                 const eq = e.target.closest('.tv-eq');
                 if (eq) { this.ajustarPlacar(eq.id === 'tv-eq-e' ? 'A' : 'B'); return; }
                 const b = e.target.closest('button'); if (!b) return;
+                b.blur();   // sem foco no botao: o espaco nao o "clica" de novo (era o Pause/Continue que desfazia a pausa do espaco)
                 if (b.dataset.cam && Match.setCameraMode) Match.setCameraMode(b.dataset.cam);
                 else if (b.dataset.vel) { this.definirVelocidade(Number(b.dataset.vel)); }
                 else if (b.id === 'tc-replay' && window.MatchReplay) window.MatchReplay.replayUltimos(10);

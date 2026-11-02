@@ -140,6 +140,15 @@ if (typeof window !== 'undefined') {
     ev.preventDefault(); ev.stopPropagation();
     sessao.iframe?.contentWindow?.postMessage({ para: 'simulador3d', tipo: 'esc' }, '*');
   }, true);
+  // O ESPACO em tela cheia com o foco FORA do iframe (ficou no botao Fullscreen do manager): pausa/continua o jogo, em vez de clicar o botao e sair da tela cheia.
+  window.addEventListener('keydown', (ev: KeyboardEvent) => {
+    if ((ev.key !== ' ' && ev.code !== 'Space') || !sessao.iframe || !emTelaCheia()) return;
+    ev.preventDefault(); ev.stopPropagation();
+    if (!ev.repeat) sessao.iframe.contentWindow?.postMessage({ para: 'simulador3d', tipo: 'tecla_espaco' }, '*');
+  }, true);
+  window.addEventListener('keyup', (ev: KeyboardEvent) => {
+    if ((ev.key === ' ' || ev.code === 'Space') && sessao.iframe && emTelaCheia()) ev.preventDefault();
+  }, true);
 }
 
 const enviar = (m: any) => sessao.iframe?.contentWindow?.postMessage(m, '*');

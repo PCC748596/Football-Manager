@@ -193,6 +193,13 @@ const StatsModel = {
 
 if (typeof window !== 'undefined') window.StatsModel = StatsModel;
 
+/*
+A BOLA PERTO DAS LATERAIS E DAS LINHAS DE FUNDO (pedido): as cameras de transmissao deslocam o enquadramento para o centro do campo, de modo que a bola fique a 3/4 da imagem (`fracao` 0.5 =
+meio caminho entre o centro e a borda do ecra) do lado dela, e se veja mais campo. O efeito sobe de 0 a 1 nos `zona` m ate a linha. Metros de campo; valores 0 desligam.
+*/
+const CameraBolaNaBorda = { activo: true, zona: 14.0, fracao: 0.5, modos: ['center', 'sideline', 'lateraltv', 'grua'] };
+if (typeof window !== 'undefined') window.CameraBolaNaBorda = CameraBolaNaBorda;
+
 const SetPiecePrazos = {
     canto: 20.0,
     falta: 20.0,   // 15 -> 20 (+5 s, junto com FreeKickModel.esperaFalta)

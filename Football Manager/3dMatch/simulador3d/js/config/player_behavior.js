@@ -1924,7 +1924,7 @@ const ThrowInModel = {
     distMinEntreCompanheiros: 12.0,
     // Inquietacao: ate o lateral ser batido os jogadores nao ficam parados, mexem-se em pequenos desvios do alvo (pedido: "muito parados").
     // `amplitude` m de desvio maximo, `periodo` s de cada ida e volta (cada jogador com fase e periodo proprios).
-    inquietacao: { amplitude: 2.2, periodo: 2.6 },
+    inquietacao: { amplitude: 0.9, periodo: 3.2 },   // 2.2/2.6 -> 0.9/3.2: estava muita correria; so o time que cobra (o outro marca os deslocamentos)
     receptoresMax: 3,
     raioNaoReceptor: 26.0,
     alcanceMin: 9.0,

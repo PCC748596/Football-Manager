@@ -1701,7 +1701,9 @@ Object.assign(Match, {
                 return { p: p, x: t.x, z: t.z, fixo: fixo };
             });
             // Inquietos: um desvio suave e lento do alvo, com fase propria por jogador (ver ThrowInModel.inquietacao).
-            const Q = M && M.inquietacao;
+            // So o time que cobra o lateral se mexe assim: o outro vai marcar os deslocamentos.
+            const timeQueCobra = this.setPieceTaker ? this.setPieceTaker.team : null;
+            const Q = (M && M.inquietacao && timeQueCobra && lista === (timeQueCobra === 'TeamA' ? this.players : this.opponents)) ? M.inquietacao : null;
             if (Q && Q.amplitude > 0) {
                 const tt = this.setPieceTimer || 0;
                 pts.forEach((q, i) => {

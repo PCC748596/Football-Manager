@@ -1140,10 +1140,10 @@ body.toque #hud-evento { transform: translateX(-50%) scale(0.84); }
 #hud-disputa .hd-verde { background: #22c55e; }
 #hud-disputa .hd-vermelho { background: #ef4444; }
 
-/* NO TABLET (pedido): o placar da tela cheia 10% menor (1.3 -> 1.17) e as telas do intervalo 30% menores (1.3 -> 0.91). Mesma marca do HUD: `body.toque` e, por reserva, `pointer: coarse`. */
-body.toque #tc-centro { transform: translateX(-50%) scale(1.17) !important; }
+/* NO TABLET (pedido): o placar da tela cheia menor (1.3 -> 1.17 -> 0.99, mais 15%) e na ESQUERDA da tela e as telas do intervalo 30% menores (1.3 -> 0.91). Mesma marca do HUD: `body.toque` e, por reserva, `pointer: coarse`. */
+body.toque #tc-centro { left: 12px !important; transform: scale(0.99) !important; transform-origin: top left !important; }
 body.toque #intervalo-par { transform: translate(-50%, -50%) scale(0.91); }
 @media (pointer: coarse) {
-    #tc-centro { transform: translateX(-50%) scale(1.17) !important; }
+    #tc-centro { left: 12px !important; transform: scale(0.99) !important; transform-origin: top left !important; }
     #intervalo-par { transform: translate(-50%, -50%) scale(0.91); }
 }

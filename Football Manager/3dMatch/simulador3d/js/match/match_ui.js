@@ -1,5 +1,7 @@
 Object.assign(Match, {
     setupKeyboardListeners: function () {
+        // O espaco so alterna a pausa no keydown; o keyup nao pode "clicar" no botao que ficou com o foco.
+        window.addEventListener('keyup', (e) => { if (e.key === ' ' || e.code === 'Space') e.preventDefault(); });
         window.addEventListener('keydown', (e) => {
             if (e.key === 'o' || e.key === 'O') {
                 this.showOffsideLines = !this.showOffsideLines;
@@ -525,6 +527,38 @@ Object.assign(Match, {
                     lookTarget.x += (mx - lookTarget.x) * w;
                     lookTarget.y += (foco.y - lookTarget.y) * w;
                     lookTarget.z = lz0 + (mz - lz0) * w;
+                }
+            }
+        }
+
+        /*
+        A BOLA A 3/4 DA IMAGEM PERTO DAS BORDAS (ver CameraBolaNaBorda): o enquadramento (camara e foco juntos) desloca-se para o centro do campo, em metros de campo, o que poe a bola
+        no lado dela do ecra. A distancia que corresponde a `fracao` da meia-imagem sai da posicao e do FOV da camara, por eixo do mundo (serve a qualquer orientacao: lateral ou grua).
+        */
+        {
+            const CB = (typeof CameraBolaNaBorda !== 'undefined') ? CameraBolaNaBorda : null;
+            const bola = this.ball.position;
+            if (CB && CB.activo && CB.modos.indexOf(window.cameraMode) >= 0 && foco === bola && window.cameraCore && !(typeof DisputaPenaltis !== 'undefined' && DisputaPenaltis.activa) &&
+                !(typeof Abertura !== 'undefined' && Abertura.activa && Abertura.modo !== 'segundo' && Abertura.modo !== 'intervalo')) {
+                const meiaL = (typeof CAMPO_LARG !== 'undefined' ? CAMPO_LARG : 68) / 2, meiaC = (typeof CAMPO_COMP !== 'undefined' ? CAMPO_COMP : 105) / 2;
+                const pX = THREE.MathUtils.clamp((Math.abs(bola.x) - (meiaL - CB.zona)) / CB.zona, 0, 1);
+                const pZ = THREE.MathUtils.clamp((Math.abs(bola.z) - (meiaC - CB.zona)) / CB.zona, 0, 1);
+                if (pX > 0 || pZ > 0) {
+                    const fx = lookTarget.x - targetPos.x, fy = lookTarget.y - targetPos.y, fz = lookTarget.z - targetPos.z;
+                    const d = Math.hypot(fx, fy, fz) || 1;
+                    const cam = window.cameraCore;
+                    const tanV = Math.tan(THREE.MathUtils.degToRad(cam.fov || 50) / 2);
+                    const halfV = d * tanV, halfH = halfV * (cam.aspect || 16 / 9);
+                    // Direita da imagem no chao (frente x cima) e frente no chao, normalizadas.
+                    let rx = -fz, rz = fx; const rl = Math.hypot(rx, rz) || 1; rx /= rl; rz /= rl;
+                    let gx = fx, gz = fz; const gl = Math.hypot(gx, gz) || 1; gx /= gl; gz /= gl;
+                    const elev = Math.max(Math.abs(fy) / d, 0.35);
+                    const halfVg = halfV / elev * 0.65;   // a meia-altura da imagem, medida no chao (0.65: a perspectiva encurta a profundidade; calibrado a ~3/4)
+                    const Lx = CB.fracao * (Math.abs(rx) * halfH + Math.abs(gx) * halfVg);
+                    const Lz = CB.fracao * (Math.abs(rz) * halfH + Math.abs(gz) * halfVg);
+                    const sx = -Math.sign(bola.x) * pX * Lx, sz = -Math.sign(bola.z) * pZ * Lz;
+                    targetPos.x += sx; lookTarget.x += sx;
+                    targetPos.z += sz; lookTarget.z += sz;
                 }
             }
         }
