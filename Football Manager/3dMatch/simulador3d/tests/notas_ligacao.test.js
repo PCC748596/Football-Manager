@@ -23,7 +23,8 @@ function falsoEventos() {
 }
 
 function cenario() {
-    global.Match = { tempoDeJogo: 600, players: [pl('1', 'TeamA', 'ST'), pl('2', 'TeamA', 'CB'), pl('3', 'TeamB', 'CM'), pl('4', 'TeamB', 'GK')] };
+    const A = [pl('1', 'TeamA', 'ST'), pl('2', 'TeamA', 'CB')], B = [pl('3', 'TeamB', 'CM'), pl('4', 'TeamB', 'GK')];
+    global.Match = { tempoDeJogo: 600, players: A, opponents: B };
     const E = falsoEventos();
     Notas._ligado = false;
     Notas.iniciar();
@@ -78,7 +79,7 @@ test('cartao vermelho congela a nota do expulso', () => {
 
 test('ganchos: desarme sobe a nota; perda que gera golo desce', () => {
     const E = cenario();
-    const volante = global.Match.players[2];
+    const volante = global.Match.opponents[0];
     Notas.tackle(volante);
     assert.ok(Notas.resultado()['3'].nota > 6.0);
     const cb = global.Match.players[1];
@@ -91,8 +92,8 @@ test('ganchos: desarme sobe a nota; perda que gera golo desce', () => {
 
 test('substituicao: quem sai congela, quem entra comeca a 6.0', () => {
     cenario();
-    Notas.tackle(global.Match.players[2]);
-    const sai = global.Match.players[2], entra = pl('9', 'TeamB', 'CM');
+    Notas.tackle(global.Match.opponents[0]);
+    const sai = global.Match.opponents[0], entra = pl('9', 'TeamB', 'CM');
     Notas.substituir(sai, entra);
     const n = Notas.resultado()['3'].nota;
     global.Match.tempoDeJogo = 5400;

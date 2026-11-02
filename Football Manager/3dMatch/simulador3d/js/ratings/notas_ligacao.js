@@ -31,9 +31,11 @@ const Notas = {
     iniciar() {
         _NMotor.reset();
         this._n = 0;
-        if (typeof Match !== 'undefined' && Match.players) for (const p of Match.players) this.registarJogador(p, 0);
+        if (typeof Match !== 'undefined') for (const p of this.emCampo()) this.registarJogador(p, 0);
         if (!this._ligado && typeof Eventos !== 'undefined') { Eventos.aoRegistar(ev => this._aoEvento(ev)); this._ligado = true; }
     },
+    // As duas equipas: `Match.players` e a TeamA, `Match.opponents` a TeamB.
+    emCampo() { return (typeof Match !== 'undefined') ? [].concat(Match.players || [], Match.opponents || []) : []; },
     sair(p) { const id = this.jogadorId(p); if (id !== null) _NMotor.sair(id, this.minutoAtual()); },
     substituir(sai, entra) { this.sair(sai); this.registarJogador(entra, this.minutoAtual()); },
 
