@@ -110,3 +110,49 @@ test('corDaNota segue as faixas da especificacao', () => {
     assert.strictEqual(Notas.corDaNota(4.0), '#e8590c');
     assert.strictEqual(Notas.corDaNota(3.9), '#e03131');
 });
+
+// ---- amostrador tatico -------------------------------------------------------------------------------------------
+function jogadorEm(id, team, pos, x, z, slot, extra) {
+    const p = pl(id, team, pos);
+    p.role = pos === 'GK' ? 'gk' : 'mid';
+    p.model = { position: { x, y: 0, z } };
+    p.slotTarget = { x: slot.x, z: slot.z };
+    p.dynamicTarget = { x: slot.x, z: slot.z };
+    p.ownGoalZ = team === 'TeamA' ? -52 : 52;
+    return Object.assign(p, extra || {});
+}
+function cenarioTatico(posNoPosto, posLonge) {
+    const noPosto = jogadorEm('1', 'TeamA', 'CM', 0, 0, { x: 0, z: 0 });
+    const longe = jogadorEm('2', 'TeamA', 'CM', 30, 30, { x: 0, z: 0 });
+    const adv = jogadorEm('3', 'TeamB', 'CM', 5, 5, { x: 5, z: 5 });
+    global.Match = { tempoDeJogo: 0, state: 'PLAY', players: [noPosto, longe], opponents: [adv], ball: { position: { x: 5, y: 0, z: 5 } }, ballCarrier: adv, possessionTeam: 'TeamB', possessionTimer: 10 };
+    falsoEventos(); Notas._ligado = false; Notas.iniciar(); Notas._ultT = 0;
+}
+
+test('tick so amostra a cada intervalo de jogo, nao a cada frame', () => {
+    cenarioTatico();
+    for (let t = 1; t <= 4; t++) { global.Match.tempoDeJogo = t; Notas.tick(1); }
+    assert.strictEqual(Motor.jogadores['1'].qN, 0);
+    global.Match.tempoDeJogo = 5; Notas.tick(1);
+    assert.strictEqual(Motor.jogadores['1'].qN, 1);
+    global.Match.tempoDeJogo = 6; Notas.tick(1);
+    assert.strictEqual(Motor.jogadores['1'].qN, 1);
+});
+
+test('tick: quem esta no posto pontua melhor que quem esta longe, e nao amostra fora de jogo', () => {
+    cenarioTatico();
+    for (let s = 5; s <= 600; s += 5) { global.Match.tempoDeJogo = s; Notas.tick(5); }
+    assert.ok(Notas.resultado()['1'].nota > Notas.resultado()['2'].nota);
+    const n = Motor.jogadores['1'].qN;
+    global.Match.state = 'GOAL_PAUSE';
+    for (let s = 605; s <= 700; s += 5) { global.Match.tempoDeJogo = s; Notas.tick(5); }
+    assert.strictEqual(Motor.jogadores['1'].qN, n);
+});
+
+test('tick: expulso ou substituido nao e amostrado', () => {
+    cenarioTatico();
+    Notas.sair(global.Match.players[1]);
+    global.Match.tempoDeJogo = 5; Notas.tick(5);
+    assert.strictEqual(Motor.jogadores['2'].qN, 0);
+    assert.strictEqual(Motor.jogadores['1'].qN, 1);
+});

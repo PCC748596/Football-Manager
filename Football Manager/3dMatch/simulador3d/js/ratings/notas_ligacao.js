@@ -87,6 +87,69 @@ const Notas = {
     penaltiCometido(p) { this._gancho(p, 'PENALTI_COMETIDO'); },
     perda(p) { const id = this.jogadorId(p); if (id !== null && this.ativo) _NMotor.perda(id, p.team, this.segAtual(), 'pp:' + (++this._n)); },
 
+    /*
+    =========================================================================
+    A AMOSTRAGEM TATICA — uma leitura de cada jogador a cada `intervaloAmostra` s de JOGO (nao por frame)
+    =========================================================================
+    So le o que o motor ja calculou: posicao do jogador (`model.position`), o posto da tabela (`slotTarget`, ou `baseTarget`),
+    o alvo da arvore individual (`dynamicTarget`), a posse (`Match.possessionTeam/possessionTimer`), o portador e a bola.
+    Sem varrer a cena: so os 22 jogadores e, no maximo, os adversarios para a linha de passe.
+    */
+    intervaloAmostra: 5,
+    _ultT: 0,
+    tick() {
+        if (!this.ativo || typeof Match === 'undefined' || Match.state !== 'PLAY') return;
+        const t = Match.tempoDeJogo;
+        if (typeof t !== 'number' || t - this._ultT < this.intervaloAmostra) return;
+        this._ultT = t;
+        for (const p of this.emCampo()) {
+            if (!p || p.expulso || !p.model) continue;
+            const id = this.jogadorId(p);
+            const j = id !== null ? _NMotor.jogadores[id] : null;
+            if (!j || j.saiu !== null) continue;
+            _NMotor.amostrar(id, this._ctxDe(p));
+        }
+    },
+    _d(a, b) { return Math.hypot(a.x - b.x, a.z - b.z); },
+    // Distancia de `q` ao segmento a-b (plano XZ).
+    _dSegmento(q, a, b) {
+        const vx = b.x - a.x, vz = b.z - a.z, l2 = vx * vx + vz * vz;
+        const u = l2 > 0 ? Math.max(0, Math.min(1, ((q.x - a.x) * vx + (q.z - a.z) * vz) / l2)) : 0;
+        return Math.hypot(q.x - (a.x + u * vx), q.z - (a.z + u * vz));
+    },
+    /*
+    dEsperada: distancia ao posto da tabela; mas quem esta a cumprir o alvo da propria arvore (movimento tatico de
+    desmarque, apoio, cobertura) nao e penalizado por isso: conta a menor entre o posto e o alvo da arvore (com meia
+    distancia entre os dois como custo, para o alvo nao justificar tudo).
+    */
+    _ctxDe(p) {
+        const pos = p.model.position;
+        const slot = p.slotTarget || p.baseTarget || pos;
+        const din = p.dynamicTarget || slot;
+        const dSlot = this._d(pos, slot);
+        const dEsperada = Math.min(dSlot, this._d(pos, din) + 0.5 * this._d(slot, din));
+        const equipaComPosse = Match.possessionTeam;
+        // Transicao: sem posse, ou nos primeiros 4 s depois de a posse mudar.
+        const fasePos = (!equipaComPosse || Match.possessionTimer < 4) ? 'transicao' : (equipaComPosse === p.team ? 'ataque' : 'defesa');
+        const bola = Match.ball ? Match.ball.position : null;
+        const bolaPerto = !!bola && this._d(pos, bola) < 18;
+        const portador = Match.ballCarrier;
+        let ofereceLinha = false, fechaLinha = false, pressiona = false;
+        if (fasePos === 'ataque' && portador && portador !== p && portador.model) {
+            const adv = (p.team === 'TeamA') ? Match.opponents : Match.players;
+            ofereceLinha = true;
+            for (const o of adv || []) {
+                if (!o || !o.model) continue;
+                if (this._dSegmento(o.model.position, portador.model.position, pos) < 3) { ofereceLinha = false; break; }
+            }
+        } else if (fasePos === 'defesa' && bola) {
+            const golo = { x: 0, z: p.ownGoalZ || 0 };
+            fechaLinha = this._dSegmento(pos, bola, golo) < 6;
+            pressiona = !!portador && portador.team !== p.team && this._d(pos, bola) < 8;
+        }
+        return { fase: fasePos, dEsperada: dEsperada, bolaPerto: bolaPerto, ofereceLinha: ofereceLinha, fechaLinha: fechaLinha, pressiona: pressiona };
+    },
+
     // Faixas de cor da especificacao (seccao 11).
     corDaNota(n) {
         return n >= 9 ? '#1b8a3a' : n >= 8 ? '#37b24d' : n >= 7 ? '#82c91e' : n >= 6 ? '#fcc419' : n >= 5 ? '#fd9a14' : n >= 4 ? '#e8590c' : '#e03131';

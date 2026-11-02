@@ -1220,6 +1220,7 @@ Object.assign(Match, {
         // O tempo de posse por corredor (Left/Center/Right): ver js/balanco_corredores.js.
         if (typeof TempoPorCorredor !== 'undefined') TempoPorCorredor.tick(dt);
         if (typeof Eventos !== 'undefined') Eventos.varrer(dt);
+        if (typeof Notas !== 'undefined') Notas.tick();   // notas dos jogadores: amostra tatica a cada ~5 s de jogo
 
         // Arbitragem: fora das listas de jogadores, corre à parte (officials.js).
         if (typeof Officials !== 'undefined') Officials.update(dt);
