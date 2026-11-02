@@ -8,7 +8,8 @@ import { atributosParaMotor } from '../textSim/atributos3d';
 import { peBomDe } from '../textSim/peBom';
 import { Team, Player, Fixture, MatchEvent, Tactics, FORMATIONS, getKitDetails, getGKKitDetails, resolveSetPieceTakers, kitShorts, ehVerde, KitDetails } from '../types';
 
-const CAMINHO_SIMULADOR = '/simulador3d/index.html';
+// Relativo a pagina (nao a raiz do dominio): no GitHub Pages o jogo vive em /Football-Manager/, e '/simulador3d/...' apontava para fora dele.
+const CAMINHO_SIMULADOR = (typeof document !== 'undefined' ? new URL('simulador3d/index.html', document.baseURI).pathname : '/simulador3d/index.html');
 /*
 O simulador corre NOUTRO PROCESSO do navegador: um iframe de outro "site" (localhost <-> 127.0.0.1) tem a sua propria thread, e o 3D
 deixa de disputar o processador com a pagina do manager (React a re-renderizar a cada tick). Fora do dev (outro host) cai no mesmo
