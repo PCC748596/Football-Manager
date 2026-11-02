@@ -7,6 +7,7 @@ import { Position, Player } from '../types';
 import { ACTIVITIES, TrainingActivity, Impact } from '../textSim/trainingService';
 import { AttributeGrowthArrow } from './SquadView';
 import FitnessBar from './FitnessBar';
+import TrainingIcon, { COR_DO_TREINO } from './TrainingIcon';
 
 const PLANE_ICON = (
   <div className="flex flex-col items-center justify-center opacity-30 select-none pointer-events-none">
@@ -281,7 +282,7 @@ const TrainingView: React.FC = () => {
                                    {(act || day.isTrainingCamp) && !isBlocked ? (
                                      <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
                                         <span className={`text-6xl drop-shadow-sm leading-none flex-1 flex items-center justify-center ${day.isTrainingCamp && !act ? 'opacity-20 grayscale scale-110' : ''}`}>
-                                            {act ? act.icon : '🏔️'}
+                                            <TrainingIcon id={act ? act.id : 'camp'} categoria={act?.category} semCor={!act} className="w-16 h-16" />
                                         </span>
                                         <span className="absolute bottom-0 w-full text-center text-[10px] font-black text-slate-800 dark:text-white uppercase leading-none tracking-tighter truncate bg-white/60 dark:bg-black/60 backdrop-blur-[2px] py-1">
                                             {act ? act.name : 'CAMP'}
@@ -353,7 +354,10 @@ const TrainingView: React.FC = () => {
                    : 'bg-slate-300/40 dark:bg-slate-950/60 text-slate-500 dark:text-slate-600 border-t border-x border-transparent hover:text-slate-700 dark:hover:text-slate-400'
                  }`}
                >
-                 <span>{tab.label}</span>
+                 <span className="flex items-center gap-1">
+                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COR_DO_TREINO[tab.id as TrainingActivity['category']] }} />
+                   {tab.label}
+                 </span>
                  <span className={`text-[7px] mt-0.5 px-1.5 py-0.5 rounded leading-none ${isExhausted ? 'bg-rose-500 text-white' : activeCategory === tab.id ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-500' : 'bg-slate-200/50 dark:bg-black/20 text-slate-400'}`}>{catUsage}/{limitCat}</span>
                </button>
              )})}
@@ -398,7 +402,7 @@ const TrainingView: React.FC = () => {
                              </div>
                            )}
                            <div className={`w-16 h-16 bg-white dark:bg-slate-800/80 border ${isDisabled ? 'border-rose-200 dark:border-rose-800' : 'border-slate-200 dark:border-slate-700 group-hover:border-blue-500/50 group-hover:scale-105 active:scale-95 group-hover:-translate-y-1'} rounded-2xl flex items-center justify-center text-4xl shadow-md transition-all`}>
-                             {act.icon}
+                             <TrainingIcon id={act.id} categoria={act.category} semCor={isDisabled} className="w-9 h-9" />
                            </div>
                            <div className="flex flex-col gap-1 w-full">
                              <span className={`text-base font-black uppercase tracking-tight transition-colors ${isDisabled ? 'text-rose-500/70 dark:text-rose-400/70' : 'text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-white'}`}>
