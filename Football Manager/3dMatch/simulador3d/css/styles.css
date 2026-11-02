@@ -662,9 +662,10 @@ arrastar a câmara mesmo por cima dele).
        fundo opaco e o minimapa sai azulado em vez de deixar ver o jogo. */
     background-color: transparent;
     pointer-events: none;
-    border-radius: 6px;
-    border: 1px solid rgba(236, 240, 241, 0.35);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.45);
+    /* Sem borda, cantos nem sombra: o mesmo fundo dos cartoes (preto a 40%, pintado no canvas: Minimap.cores.relva). */
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
 }
 
 /* A linha do topo: o placar e, ao lado dele, o aviso de repetição. É esta que
@@ -1138,3 +1139,11 @@ body.toque #hud-evento { transform: translateX(-50%) scale(0.84); }
 #hud-disputa .hd-cinza { background: #64748b; }
 #hud-disputa .hd-verde { background: #22c55e; }
 #hud-disputa .hd-vermelho { background: #ef4444; }
+
+/* NO TABLET (pedido): o placar da tela cheia 10% menor (1.3 -> 1.17) e as telas do intervalo 30% menores (1.3 -> 0.91). Mesma marca do HUD: `body.toque` e, por reserva, `pointer: coarse`. */
+body.toque #tc-centro { transform: translateX(-50%) scale(1.17) !important; }
+body.toque #intervalo-par { transform: translate(-50%, -50%) scale(0.91); }
+@media (pointer: coarse) {
+    #tc-centro { transform: translateX(-50%) scale(1.17) !important; }
+    #intervalo-par { transform: translate(-50%, -50%) scale(0.91); }
+}

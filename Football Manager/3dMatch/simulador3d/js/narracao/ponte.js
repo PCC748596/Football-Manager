@@ -107,21 +107,22 @@ const Ponte = {
                 '#barra-topo-tc button.pisca{background:#facc15;color:#000;animation:pisca-tc 0.8s ease-in-out infinite}' +
                 '@keyframes pisca-tc{50%{opacity:.45}}' +
                 // ESQUERDA: cameras, 3D e 2D com icone e texto, 128x32, sem cantos arredondados.
-                '#tc-esq{left:12px;top:12px;display:flex;flex-direction:column;gap:6px}' +
-                '#tc-esq button{width:128px;height:32px;padding:0 10px;border-radius:0;font-size:12px;text-align:left;overflow:hidden;text-overflow:ellipsis}' +
+                '#barra-topo-tc>#tc-barra{left:0;right:0;top:0;display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(15,23,42,.92);border-bottom:1px solid #334155;overflow-x:auto}' +
+                '#tc-barra>*{position:static}#tc-esq,#tc-dir{display:flex;align-items:center;gap:6px}' +
+                '#tc-barra button{height:32px;padding:0 10px;border-radius:0;font-size:12px}' +
                 // CENTRO: o placar, no padrao dos cartoes dos jogadores (preto a 40%, sem cantos arredondados).
-                '#tc-centro{left:50%;top:12px;transform:translateX(-50%) scale(1.3);transform-origin:top center;background:rgba(0,0,0,.75);padding:8px 44px;overflow:hidden}' +
+                '#tc-centro{left:50%;top:58px;transform:translateX(-50%) scale(1.3);transform-origin:top center;background:rgba(0,0,0,.75);padding:8px 44px;overflow:hidden}' +
                 // Os escudos como nos cartoes dos jogadores: grandes, entram pelo lado do cartao que os corta.
                 '#tc-centro .hud-jog-logo{position:absolute;top:50%;width:60px;height:72px;transform:translateY(-50%)}#tc-logo-e{left:-26px}#tc-logo-d{right:-26px}' +
                 // DIREITA: Exit, Debug e FPS em cima; os demais numa coluna por baixo.
-                '#tc-dir-topo{right:12px;top:12px;display:flex;align-items:center;gap:6px}' +
-                '#tc-dir{right:12px;top:56px;display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:110px}' +
-                '#tc-dir .linha{display:flex;gap:6px}#tc-dir .linha button{flex:1}' +
+                '#tc-dir-topo{margin-left:auto;display:flex;align-items:center;gap:6px}' +
+                '' +
+                '#tc-dir .linha{display:flex;gap:6px}' +
                 '#barra-topo-tc #tc-evento{display:none;align-items:center;gap:8px;padding:4px 10px;background:rgba(0,0,0,.4);font:700 12px system-ui,sans-serif}' +
                 '#barra-topo-tc #tc-evento b{font-size:15px;color:#fff}#barra-topo-tc #tc-evento span{letter-spacing:1px;color:#e2e8f0}' +
                 'body.debug-off #coluna-direita{display:none !important}' +
                 // O painel de debug sai da coluna dos botoes: fica a esquerda dela.
-                'body.tela-cheia #coluna-direita{top:12px;right:136px}' +
+                'body.tela-cheia #coluna-direita{top:50px;right:12px}' +
                 '#barra-topo-tc #tc-fps{font:900 13px/1 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.5px;padding:8px 9px;background:rgba(0,0,0,.75);color:#22c55e;min-width:62px;text-align:center}' +
                 'body.tela-cheia #placar-linha{display:none !important}' +
                 // TODOS os menus do 3D saem em tela cheia: o botao Tactics abre o MATCH TACTICS do manager (ver abaixo).
@@ -138,14 +139,15 @@ const Ponte = {
             document.head.appendChild(css);
             barra = document.createElement('div'); barra.id = 'barra-topo-tc';
             const cams = [['orbit', 'Orbit', '🔄'], ['center', 'TV Centre', '📺'], ['sideline', 'Moving Sideline', '↔️'], ['lateraltv', 'TV Sideline', '🎥'], ['grua', 'Crane', '🏗️'], ['cinema', 'Cinema', '🎬']];
-            barra.innerHTML = '<div id="tc-esq">' + cams.map(c => '<button data-cam="' + c[0] + '" title="' + c[1] + '">' + c[1] + '</button>').join('') +
+            barra.innerHTML = '<div id="tc-barra"><div id="tc-esq">' + cams.map(c => '<button data-cam="' + c[0] + '" title="' + c[1] + '">' + c[1] + '</button>').join('') +
                 '<button data-cam="lateraltv" data-r="3d" title="3D">3D</button><button data-cam="topdown" title="2D">2D</button></div>' +
-                '<div id="tc-centro"><div class="hud-jog-logo" id="tc-logo-e"></div><div class="hud-jog-logo" id="tc-logo-d"></div><div id="tc-placar-tv"><div class="tv-linha"><span class="tv-eq" id="tv-eq-e">---</span><span class="tv-gol" id="tv-gol-e">0</span>' +
-                '<span class="tv-vs">vs</span><span class="tv-gol" id="tv-gol-d">0</span><span class="tv-eq" id="tv-eq-d">---</span></div><div class="tv-tempo" id="tv-tempo">00:00</div></div></div>' +
-                '<div id="tc-dir-topo"><span id="tc-evento"></span><button id="tc-debug" title="Right-hand debug panel">Debug OFF</button><span id="tc-fps" title="Frames per second">FPS --</span><button id="tc-sair" title="Exit fullscreen" style="background:rgba(185,28,28,.85)">✕ Exit</button></div>' +
                 '<div id="tc-dir"><button id="tc-minimapa" title="Minimap">Minimap ON</button><button id="tc-nomes" title="Player names">Names OFF</button>' +
                 '<div class="linha">' + [0.5, 1, 1.5].map(v => '<button data-vel="' + v + '">' + v + 'x</button>').join('') + '</div>' +
-                '<button id="tc-pausa">Pause</button><button id="tc-replay">Replay 10s</button><button id="tc-tactics">Tactics</button></div>';
+                '<button id="tc-pausa">Pause</button><button id="tc-replay">Replay 10s</button><button id="tc-tactics">Tactics</button></div>' +
+                '<div id="tc-dir-topo"><span id="tc-evento"></span><button id="tc-debug" title="Right-hand debug panel">Debug OFF</button><span id="tc-fps" title="Frames per second">FPS --</span><button id="tc-sair" title="Exit fullscreen" style="background:rgba(185,28,28,.85)">✕ Exit</button></div>' +
+                '</div>' +
+                '<div id="tc-centro"><div class="hud-jog-logo" id="tc-logo-e"></div><div class="hud-jog-logo" id="tc-logo-d"></div><div id="tc-placar-tv"><div class="tv-linha"><span class="tv-eq" id="tv-eq-e">---</span><span class="tv-gol" id="tv-gol-e">0</span>' +
+                '<span class="tv-vs">vs</span><span class="tv-gol" id="tv-gol-d">0</span><span class="tv-eq" id="tv-eq-d">---</span></div><div class="tv-tempo" id="tv-tempo">00:00</div></div></div>';
             document.body.appendChild(barra);
             barra.addEventListener('click', (e) => {
                 // Clicar na sigla de um clube no placar de TV soma +1 ao resultado dele (para ajustar um empate nos testes).

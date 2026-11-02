@@ -40,7 +40,7 @@ const Minimap = {
     contornoEquipa: { TeamA: '#000000', TeamB: '#ffffff' },
 
     cores: {
-        relva: 'rgba(22, 78, 42, 0.30)',
+        relva: 'rgba(0, 0, 0, 0.4)',   // o fundo dos cartoes (pedido)
         linha: 'rgba(255, 255, 255, 0.55)',
         TeamA: '#3498db',
         TeamB: '#e74c3c',
@@ -159,7 +159,7 @@ const Minimap = {
 
         // Relva com cantos redondos, por baixo de tudo.
         ctx.beginPath();
-        const r = 6;
+        const r = 0;   // sem cantos arredondados, como os cartoes
         ctx.moveTo(r, 0);
         ctx.arcTo(this.largura, 0, this.largura, this.altura, r);
         ctx.arcTo(this.largura, this.altura, 0, this.altura, r);
