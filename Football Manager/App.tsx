@@ -121,10 +121,12 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
 
   const activeCountry = COUNTRIES.find(c => c.id === selectedCountryId);
 
-  const paisesDaConf = COUNTRIES.filter(c => confederacaoDe(c) === selectedConf);
+  // So se escolhem paises com pelo menos uma liga jogavel: os que tem apenas ligas `hidden` existem so para compor as competicoes (Champions etc.).
+  const paisJogavel = (c: any) => c.leagues.some((l: any) => !l.hidden);
+  const paisesDaConf = COUNTRIES.filter(c => confederacaoDe(c) === selectedConf && paisJogavel(c));
   const handleConfSelect = (id: string) => {
     setSelectedConf(id);
-    const primeiro = COUNTRIES.find(c => confederacaoDe(c) === id);
+    const primeiro = COUNTRIES.find(c => confederacaoDe(c) === id && paisJogavel(c));
     if (primeiro) handleCountrySelect(primeiro.id); else { setSelectedCountryId(''); setSelectedLeagueId(''); setPreviewTeams([]); }
   };
 
@@ -171,7 +173,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">Confederations</div>
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
             {CONFEDERACOES.map(f => {
-              const n = COUNTRIES.filter(c => confederacaoDe(c) === f.id).length;
+              const n = COUNTRIES.filter(c => confederacaoDe(c) === f.id && paisJogavel(c)).length;
               return (
                 <button key={f.id} onClick={() => handleConfSelect(f.id)} className={`w-full text-left p-3 rounded border-2 transition-all ${selectedConf === f.id ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-blue-400'} ${n === 0 ? 'opacity-60' : ''}`}>
                   <div className={`text-lg font-black uppercase ${selectedConf === f.id ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>{f.nome}</div>

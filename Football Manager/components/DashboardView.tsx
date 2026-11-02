@@ -468,7 +468,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
     // @ts-ignore
     const dayNames = gameState.language === 'PT' ? ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'] : ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 10; i++) {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
       const dStr = d.toISOString().split('T')[0];
@@ -501,7 +501,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
   }, [gameState.currentDate, fixtures, userTeam.id, gameState.activities, teams, gameState.language]);
 
   return (
-    <div className="h-full flex flex-col gap-6 animate-fade-in overflow-hidden relative">
+    <div className="h-full flex flex-col gap-[5px] animate-fade-in overflow-hidden relative">
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-4xl font-black uppercase tracking-tight italic leading-none transition-colors">
@@ -558,17 +558,17 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
         </div>
       </div>
 
-      <div className="flex flex-col gap-1 transition-all">
+      <div className="flex flex-col gap-1 transition-all px-[5px] pt-[5px]">
         <div className="text-[10px] font-black text-slate-900 dark:text-slate-400 uppercase tracking-[0.2em] italic transition-colors px-1">
           {calendarInfo.monthYearLabel}
         </div>
-        <div className="grid grid-cols-9 gap-2">
+        <div className="grid grid-cols-5 gap-[5px]">
           {calendarInfo.days.map((day, idx) => (
             <button 
               key={idx} 
               onClick={() => !day.isPast && setSelectedDate(day.date)}
               className={`relative rounded-lg border overflow-hidden flex transition-all min-h-[85px] justify-center text-left group ${
-                day.isToday ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.4)] scale-105 z-10' : 
+                day.isToday ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.4)] z-10' : 
                 day.isPast ? 'bg-slate-100 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 opacity-40 cursor-default' : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm'
               }`}
             >
@@ -606,9 +606,9 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 xl:grid-cols-12 gap-6 min-h-0 pt-6 overflow-y-auto xl:overflow-visible custom-scrollbar" style={{ zoom: 0.75 }}>   {/* tablet (< 1280 px): o League Standings vai para baixo dos paineis da esquerda; no computador, ao lado */}   {/* os cartoes do Dashboard 25% menores (15% + mais 10%, pedido); o calendario e o titulo ficam como estao */}
-        <div className="xl:col-span-8 flex flex-col gap-6">
-          <div className="grid grid-cols-12 gap-6 h-[300px]">
+      <div className="flex-1 grid grid-cols-1 xl:grid-cols-12 gap-[7px] min-h-0 pt-0 pb-3 overflow-y-auto custom-scrollbar" style={{ zoom: 0.75 }}>   {/* tablet (< 1280 px): o League Standings vai para baixo dos paineis da esquerda; no computador, ao lado */}   {/* os cartoes do Dashboard 25% menores (15% + mais 10%, pedido); o calendario e o titulo ficam como estao */}
+        <div className="xl:col-span-8 flex flex-col gap-[7px]">
+          <div className="grid grid-cols-12 gap-[7px] h-[300px]">
             {/* User Club Details */}
             <div className="col-span-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xl relative overflow-hidden flex flex-col">
                 <ClubDetailsCard team={userTeam} t={t} title="My Club" />
@@ -712,7 +712,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
+          <div className="grid grid-cols-2 gap-[7px] flex-1">
             <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col transition-all shadow-md">
               <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 transition-colors">{t('dash_squad_snap')}</h3>
               <div className="flex-1 flex flex-col gap-2">
