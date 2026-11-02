@@ -917,8 +917,13 @@ export interface MatchVisualState {
   ballZone?: number;
 }
 
+/** Um ponto do historico financeiro do clube: o mes ('AAAA-MM') e os quatro valores da Tesouraria do Home naquele mes (o ultimo valor visto no mes). */
+export interface PontoFinanceiro { m: string; cash: number; sal: number; rec: number; spo: number; }
+
 export interface GameState {
   currentWeek: number;
+  /** Historico mensal da Tesouraria por clube (ate 12 meses) para os graficos de barras do Home. */
+  financeHistory?: Record<string, PontoFinanceiro[]>;
   totalWeeks: number;
   currentDate: string; 
   userTeamId: string | null;

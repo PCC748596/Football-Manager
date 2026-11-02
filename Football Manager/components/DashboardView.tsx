@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import NextGameButton, { SetasAGirar } from './NextGameButton';
-import { useGame } from '../context/GameContext';
+import { useGame, countsForLeague } from '../context/GameContext';
 import { Position, ActivityType, Team, Player, Tactics, getKitDetails, getGKKitDetails, kitShorts, naLigaDoUtilizador } from '../types';
 import ActivityModal from './ActivityModal';
 import { TeamShield } from './TeamShield';
@@ -319,8 +319,23 @@ const ClubDetailsCard: React.FC<{ team: Team, t: any, title: string, isOpponent?
 
 // --- Main Dashboard Component ---
 
+// Grafico de barras dos ULTIMOS 6 MESES de um valor da Tesouraria: `valores` (do mais antigo ao mais recente; null = sem registo), com a letra do mes por baixo. A barra do mes actual e a mais clara.
+const BarrasDe6Meses: React.FC<{ meses: string[]; valores: (number | null)[]; cor: string }> = ({ meses, valores, cor }) => {
+  const max = Math.max(1, ...valores.map(v => Math.abs(v ?? 0)));
+  return (
+    <div className="w-full mt-2 flex items-end gap-1.5 h-12">
+      {valores.map((v, i) => (
+        <div key={meses[i]} className="flex-1 flex flex-col items-center justify-end h-full" title={meses[i] + (v === null ? ': -' : ': ' + Math.round(v).toLocaleString('en-US'))}>
+          <div className={`w-full rounded-t ${cor} ${i === valores.length - 1 ? 'opacity-100' : 'opacity-60'} ${v === null ? '!opacity-15' : ''}`} style={{ height: `${v === null ? 6 : Math.max(6, Math.round(Math.abs(v) / max * 100))}%` }} />
+          <div className="text-[8px] font-bold text-slate-400 uppercase mt-0.5 leading-none">{new Date(meses[i] + '-15T12:00:00').toLocaleDateString('en-US', { month: 'short' }).slice(0, 1)}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay }) => {
-  const { userTeam, players, teams, fixtures, gameState, advanceDay, scheduleActivity, formatCurrency, t } = useGame();
+  const { userTeam, players, teams, fixtures, gameState, advanceDay, scheduleActivity, formatCurrency, t, registrarFinanceiro } = useGame();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [viewOpponent, setViewOpponent] = useState<Team | null>(null);
   
@@ -388,6 +403,31 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
   
   const userPos = sortedTeams.findIndex(t => t.id === userTeam.id) + 1;
   const top20 = sortedTeams.slice(0, 20);
+  // OS ULTIMOS RESULTADOS do time (jogos ja disputados, do mais recente para o mais antigo): o painel de noticias do Home.
+  const resultadosRecentes = useMemo(() => {
+    if (!userTeam) return [] as { f: any; casa: Team; fora: Team; res: 'V' | 'E' | 'D' }[];
+    const out: { f: any; casa: Team; fora: Team; res: 'V' | 'E' | 'D' }[] = [];
+    const jogados = fixtures.filter(f => f.played && !f.isFriendly && (f.homeTeamId === userTeam.id || f.awayTeamId === userTeam.id)).slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    for (const f of jogados) {
+      const casa = teams.find(t => t.id === f.homeTeamId), fora = teams.find(t => t.id === f.awayTeamId);
+      if (!casa || !fora) continue;
+      const meu = f.homeTeamId === userTeam.id ? (f.homeScore || 0) - (f.awayScore || 0) : (f.awayScore || 0) - (f.homeScore || 0);
+      out.push({ f, casa, fora, res: meu > 0 ? 'V' : meu < 0 ? 'D' : 'E' });
+      if (out.length >= 4) break;
+    }
+    return out;
+  }, [fixtures, teams, userTeam]);
+  // OS ULTIMOS 5 RESULTADOS de cada time (so jogos de liga ja disputados, do mais antigo para o mais recente): V (verde), E (amarelo), D (vermelho).
+  const formaDosTimes = useMemo(() => {
+    const m = new Map<string, ('V' | 'E' | 'D')[]>();
+    const jogados = fixtures.filter(f => f.played && countsForLeague(f)).slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    for (const f of jogados) {
+      const hs = f.homeScore || 0, as = f.awayScore || 0;
+      const r = hs > as ? ['V', 'D'] : hs < as ? ['D', 'V'] : ['E', 'E'];
+      for (const [id, res] of [[f.homeTeamId, r[0]], [f.awayTeamId, r[1]]] as const) { const l = m.get(id) || []; l.push(res as 'V' | 'E' | 'D'); m.set(id, l); }
+    }
+    return m;
+  }, [fixtures]);
 
   // Formula: OVR only as requested
   const top5Players = useMemo(() => {
@@ -402,6 +442,17 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
   const totalSalaries = teamPlayers.reduce((sum, p) => sum + p.salary, 0);
   const eco = settleMatch(userTeam, userTeam, { id: '', week: 0, date: '', homeTeamId: userTeam.id, awayTeamId: '', homeScore: 0, awayScore: 0 } as any, gameState.currency as CurrencyCode);
   const estMatchRevenue = Math.round(eco.revenueUSD);
+  // O HISTORICO DA TESOURARIA: regista o mes actual (so quando um valor muda) e monta os ultimos 6 meses para os graficos de barras.
+  const mesAtual = gameState.currentDate.slice(0, 7);
+  useEffect(() => {
+    if (!userTeam) return;
+    registrarFinanceiro(userTeam.id, { m: mesAtual, cash: Math.round(userTeam.cash), sal: Math.round(totalSalaries), rec: Math.round(estMatchRevenue), spo: Math.round(userTeam.sponsorAmount || 0) });
+  }, [userTeam?.id, mesAtual, userTeam?.cash, totalSalaries, estMatchRevenue, userTeam?.sponsorAmount]);
+  const ultimos6Meses = useMemo(() => {
+    const [a, m] = mesAtual.split('-').map(Number);
+    return Array.from({ length: 6 }, (_, k) => { const d = new Date(Date.UTC(a, m - 1 - (5 - k), 1)); return d.toISOString().slice(0, 7); });
+  }, [mesAtual]);
+  const serie = (campo: 'cash' | 'sal' | 'rec' | 'spo') => ultimos6Meses.map(mes => { const p = (gameState.financeHistory?.[userTeam?.id || ''] || []).find(x => x.m === mes); return p ? p[campo] : null; });
 
   const calendarInfo = useMemo(() => {
     const days = [];
@@ -555,8 +606,8 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-12 gap-6 min-h-0 pt-6" style={{ zoom: 0.75 }}>   {/* os cartoes do Dashboard 25% menores (15% + mais 10%, pedido); o calendario e o titulo ficam como estao */}
-        <div className="col-span-8 flex flex-col gap-6">
+      <div className="flex-1 grid grid-cols-1 xl:grid-cols-12 gap-6 min-h-0 pt-6 overflow-y-auto xl:overflow-visible custom-scrollbar" style={{ zoom: 0.75 }}>   {/* tablet (< 1280 px): o League Standings vai para baixo dos paineis da esquerda; no computador, ao lado */}   {/* os cartoes do Dashboard 25% menores (15% + mais 10%, pedido); o calendario e o titulo ficam como estao */}
+        <div className="xl:col-span-8 flex flex-col gap-6">
           <div className="grid grid-cols-12 gap-6 h-[300px]">
             {/* User Club Details */}
             <div className="col-span-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xl relative overflow-hidden flex flex-col">
@@ -641,6 +692,26 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
             </div>
           </div>
 
+          {/* AS ULTIMAS NOTICIAS (pedido): os ultimos resultados do time em cartoes no padrao dos cartoes do 3D — o escudo de cada time grande e cortado ao meio pelo lado do cartao —, entre os cartoes de cima e o resumo do plantel / tesouraria. */}
+          <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col shadow-md shrink-0">
+            <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 transition-colors">{gameState.language === 'PT' ? 'Últimas notícias · resultados' : 'Latest news · results'}</h3>
+            {resultadosRecentes.length === 0 ? (
+              <div className="text-xs italic opacity-40 py-2">{gameState.language === 'PT' ? 'Sem resultados por enquanto' : 'No results yet'}</div>
+            ) : (
+              <div className="grid grid-cols-4 gap-3">
+                {resultadosRecentes.map(({ f, casa, fora, res }) => (
+                  <div key={f.id} className={`relative overflow-hidden rounded-lg border h-[76px] flex flex-col items-center justify-center ${res === 'V' ? 'border-emerald-500/50 bg-emerald-500/10' : res === 'D' ? 'border-rose-500/50 bg-rose-500/10' : 'border-amber-400/50 bg-amber-400/10'}`}>
+                    <div className="absolute -left-10 top-1/2 -translate-y-1/2 w-[84px] h-[100px] opacity-90 pointer-events-none"><TeamShield team={casa} className="w-full h-full" /></div>
+                    <div className="absolute -right-10 top-1/2 -translate-y-1/2 w-[84px] h-[100px] opacity-90 pointer-events-none"><TeamShield team={fora} className="w-full h-full" /></div>
+                    <div className="text-xl font-black italic text-slate-800 dark:text-white leading-none">{f.homeScore} - {f.awayScore}</div>
+                    <div className="mt-1 text-[9px] font-black uppercase tracking-wider text-slate-400 truncate max-w-[60%]">{casa.name.split('-')[0]} × {fora.name.split('-')[0]}</div>
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500">{f.date.slice(8, 10)}/{f.date.slice(5, 7)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
             <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col transition-all shadow-md">
               <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 transition-colors">{t('dash_squad_snap')}</h3>
@@ -695,52 +766,65 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                  <div className="bg-white dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col justify-center text-center shadow-sm">
                     <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('dash_avail_balance')}</div>
                     <div className="text-xl font-black text-slate-800 dark:text-white truncate">{formatCurrency(userTeam.cash)}</div>
+                    <BarrasDe6Meses meses={ultimos6Meses} valores={serie('cash')} cor="bg-slate-500 dark:bg-slate-300" />
                  </div>
 
                  <div className="bg-white dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col justify-center text-center shadow-sm">
                     <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('fin_weekly_sal')}</div>
                     <div className="text-xl font-black text-rose-500 truncate">{formatCurrency(totalSalaries)}</div>
+                    <BarrasDe6Meses meses={ultimos6Meses} valores={serie('sal')} cor="bg-rose-500" />
                  </div>
 
                  <div className="bg-white dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col justify-center text-center shadow-sm">
                     <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('fin_match_rev')}</div>
                     <div className="text-xl font-black text-blue-500 truncate">{formatCurrency(estMatchRevenue)}</div>
+                    <BarrasDe6Meses meses={ultimos6Meses} valores={serie('rec')} cor="bg-blue-500" />
                  </div>
 
                  <div className="bg-white dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col justify-center text-center shadow-sm">
                     <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('fin_sponsor')}</div>
                     <div className="text-xl font-black text-emerald-500 truncate">{formatCurrency(userTeam.sponsorAmount || 0)}</div>
+                    <BarrasDe6Meses meses={ultimos6Meses} valores={serie('spo')} cor="bg-emerald-500" />
                  </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="col-span-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col overflow-hidden shadow-xl transition-colors">
+        <div className="xl:col-span-4 min-h-[420px] xl:min-h-0 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col overflow-hidden shadow-xl transition-colors">
           <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-950 transition-colors shadow-sm">
-            <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest transition-colors">{t('dash_standings')}</h3>
+            <h3 className="text-xs xl:text-base font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest transition-colors">{t('dash_standings')}</h3>
             <span className="text-[10px] font-black bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded italic border border-blue-200 dark:border-blue-500/30 transition-colors">Pos: {userPos}º</span>
           </div>
           <div className="flex-1 bg-white dark:bg-transparent transition-colors overflow-y-auto custom-scrollbar">
             <table className="w-full">
               <thead className="bg-slate-50 dark:bg-slate-900/50 transition-colors border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
-                <tr className="text-[8px] font-black text-slate-900 dark:text-slate-600 uppercase transition-colors">
+                <tr className="text-[8px] xl:text-[11px] font-black text-slate-900 dark:text-slate-600 uppercase transition-colors">
                   <th className="px-4 py-2 text-left w-12 tracking-widest bg-slate-50 dark:bg-slate-900/50">Pos</th>
                   <th className="px-2 py-2 text-left tracking-widest bg-slate-50 dark:bg-slate-900/50">Team</th>
+                  <th className="px-2 py-2 text-center tracking-widest bg-slate-50 dark:bg-slate-900/50">Form</th>
                   <th className="px-4 py-2 text-right tracking-widest bg-slate-50 dark:bg-slate-900/50">Pts</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30 transition-colors">
                 {top20.map((t, i) => (
                   <tr key={t.id} className={`group ${t.id === userTeam.id ? 'bg-blue-50 dark:bg-blue-600/10' : ''} transition-colors`}>
-                    <td className="px-4 py-0.5 font-black text-slate-300 dark:text-slate-500 text-xs transition-colors">{i + 1}</td>
-                    <td className="px-2 py-0.5">
-                      <div className="flex items-center gap-2">
-                        <TeamShield team={t} className="w-6 h-[29.5px]" />
-                        <span className="text-xs font-bold text-slate-900 dark:text-slate-400 uppercase truncate max-w-[120px] transition-colors">{t.name}</span>
+                    <td className="px-4 py-0.5 xl:py-2 font-black text-slate-300 dark:text-slate-500 text-xs xl:text-base transition-colors">{i + 1}</td>
+                    <td className="px-2 py-0.5 xl:py-2">
+                      <div className="flex items-center gap-2 xl:gap-3">
+                        <TeamShield team={t} className="w-6 h-[29.5px] xl:w-8 xl:h-10" />
+                        <span className="text-xs xl:text-base font-bold text-slate-900 dark:text-slate-400 uppercase truncate max-w-[120px] xl:max-w-[200px] transition-colors">{t.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-0.5 text-right font-black text-slate-800 dark:text-slate-200 text-xs transition-colors">{t.points}</td>
+                    <td className="px-2 py-0.5 xl:py-2">
+                      <div className="flex items-center justify-center gap-1" title="Last 5 league results (oldest to newest)">
+                        {Array.from({ length: 5 }, (_, k) => {
+                          const l = (formaDosTimes.get(t.id) || []).slice(-5), r = l[k - (5 - l.length)];
+                          return <span key={k} className={`w-[18px] h-[18px] xl:w-6 xl:h-6 rounded-[5px] flex items-center justify-center text-[10px] xl:text-xs font-black leading-none text-white ${r === 'V' ? 'bg-emerald-500' : r === 'E' ? 'bg-amber-400' : r === 'D' ? 'bg-rose-500' : 'bg-slate-300 dark:bg-slate-700/60'}`}>{r === 'V' ? 'W' : r === 'E' ? 'D' : r === 'D' ? 'L' : ''}</span>;
+                        })}
+                      </div>
+                    </td>
+                    <td className="px-4 py-0.5 xl:py-2 text-right font-black text-slate-800 dark:text-slate-200 text-xs xl:text-base transition-colors">{t.points}</td>
                   </tr>
                 ))}
               </tbody>

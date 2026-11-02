@@ -184,10 +184,11 @@ const TrainingView: React.FC = () => {
 </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-12 gap-6 min-h-0">
+      {/* No tablet (< 1280 px) uma coluna so: os 2 paineis da direita ficam ABAIXO dos 2 da esquerda, e a tela rola na vertical. No computador, as duas colunas de sempre. */}
+      <div className="flex-1 grid grid-cols-1 xl:grid-cols-12 gap-6 min-h-0 overflow-y-auto xl:overflow-visible custom-scrollbar">
         
         {/* LEFT COLUMN: CALENDAR GRID + TEAM STATS */}
-        <div className="col-span-7 flex flex-col gap-4 min-h-0">
+        <div className="xl:col-span-7 flex flex-col gap-4 min-h-[640px] xl:min-h-0">
            {/* CALENDAR */}
            <div className="flex-1 bg-slate-200/50 dark:bg-slate-950/40 rounded-xl border border-slate-300 dark:border-slate-800/60 flex flex-col overflow-hidden shadow-xl transition-colors min-h-0">
               <div className="bg-slate-300/50 dark:bg-slate-900/60 px-6 py-3 border-b border-slate-300 dark:border-slate-800 flex justify-between items-center transition-colors">
@@ -328,7 +329,7 @@ const TrainingView: React.FC = () => {
         </div>
 
         {/* RIGHT: TRAINING SESSIONS */}
-        <div className="col-span-5 flex flex-col min-h-0">
+        <div className="xl:col-span-5 flex flex-col min-h-[560px] xl:min-h-0">
            {/* TABS */}
            <div className="flex gap-1 mb-0.5 shrink-0">
              {[

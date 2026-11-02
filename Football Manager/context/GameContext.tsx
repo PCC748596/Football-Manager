@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useMemo } from 'react';
-import { Team, Player, Contract, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador } from '../types';
+import { Team, Player, Contract, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador, PontoFinanceiro } from '../types';
 import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/dataGenerator';
 import { gruposDaSerieD } from '../textSim/competitions';
 import { espacarCalendario, comDatasDeCopa } from '../textSim/calendario';
@@ -255,6 +255,7 @@ interface GameContextType {
   reportMatchEvent: (fixtureId: string, event: Partial<MatchEvent>) => void;
   t: (key: string) => any;
   updateMatchVisualState: (visual: Partial<MatchVisualState>) => void;
+  registrarFinanceiro: (teamId: string, ponto: PontoFinanceiro) => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -670,6 +671,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateSettings = (settings: Partial<Pick<GameState, 'language' | 'currency' | 'wageFrequency' | 'themeMode' | 'matchDuration' | 'simulationSpeed' | 'graphicsQuality'>>) => {
     if (settings.language) localStorage.setItem('fm_lang', settings.language);
     setGameState(prev => ({ ...prev, ...settings }));
+  };
+
+  // Guarda (ou actualiza) o ponto do mes no historico financeiro do clube: so os ultimos 12 meses, e so mexe no estado se algum valor mudou.
+  const registrarFinanceiro = (teamId: string, ponto: PontoFinanceiro) => {
+    setGameState(prev => {
+      const lista = (prev.financeHistory && prev.financeHistory[teamId]) || [];
+      const i = lista.findIndex(x => x.m === ponto.m);
+      if (i >= 0 && lista[i].cash === ponto.cash && lista[i].sal === ponto.sal && lista[i].rec === ponto.rec && lista[i].spo === ponto.spo) return prev;
+      const nova = i >= 0 ? lista.map((x, k) => (k === i ? ponto : x)) : [...lista, ponto].sort((a, b) => (a.m < b.m ? -1 : 1)).slice(-12);
+      return { ...prev, financeHistory: { ...(prev.financeHistory || {}), [teamId]: nova } };
+    });
   };
 
   const updateMatchVisualState = (visual: Partial<MatchVisualState>) => {
@@ -2149,6 +2161,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       reportLiveGoal,
       t,
       updateMatchVisualState,
+      registrarFinanceiro,
       setTrainingSchedules,
       unlockTrainingGroup,
       updatePlayerTrainingGroup
