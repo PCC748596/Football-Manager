@@ -100,43 +100,52 @@ const Ponte = {
         if (!ligada) { if (barra) barra.style.display = 'none'; clearInterval(this._tBarra); return; }
         if (!barra) {
             const css = document.createElement('style');
-            css.textContent = '#barra-topo-tc{position:fixed;top:0;left:0;right:0;z-index:2000;display:flex;align-items:center;gap:10px;padding:6px 12px;' +
-                'background:rgba(15,23,42,.92);color:#ecf0f1;font:700 12px/1 system-ui,sans-serif;white-space:nowrap;overflow-x:auto;border-bottom:1px solid #334155}' +
-                '#barra-topo-tc .sep{width:1px;align-self:stretch;background:#334155;margin:0 2px}' +
-                '#barra-topo-tc .pl{font-size:15px;font-weight:900;letter-spacing:1px;font-variant-numeric:tabular-nums}' +
-                '#barra-topo-tc button{background:#334155;color:#fff;border:0;border-bottom:2px solid #0f172a;border-radius:4px;padding:6px 9px;font:700 11px system-ui,sans-serif;cursor:pointer}' +
-                '#barra-topo-tc button:hover{background:#475569}#barra-topo-tc button.on{background:#0284c7}' +
+            css.textContent = '#barra-topo-tc{position:fixed;inset:0;z-index:2000;pointer-events:none;color:#ecf0f1;font:700 12px/1 system-ui,sans-serif;white-space:nowrap}' +
+                '#barra-topo-tc>*{position:absolute;pointer-events:auto}' +
+                '#barra-topo-tc button{background:rgba(0,0,0,.75);color:#fff;border:0;border-radius:0;padding:8px 10px;font:700 11px system-ui,sans-serif;cursor:pointer}' +
+                '#barra-topo-tc button:hover{background:rgba(51,65,85,.9)}#barra-topo-tc button.on{background:rgba(2,132,199,.85)}' +
                 '#barra-topo-tc button.pisca{background:#facc15;color:#000;animation:pisca-tc 0.8s ease-in-out infinite}' +
                 '@keyframes pisca-tc{50%{opacity:.45}}' +
-                // O indicador de FPS fica no canto direito da barra.
-                '#barra-topo-tc #tc-evento{display:none;align-items:center;gap:8px;padding:4px 10px;border-radius:4px;background:#0f172a;border:1px solid #475569;font:700 12px system-ui,sans-serif}' +
+                // ESQUERDA: cameras, 3D e 2D com icone e texto, 128x32, sem cantos arredondados.
+                '#tc-esq{left:12px;top:12px;display:flex;flex-direction:column;gap:6px}' +
+                '#tc-esq button{width:128px;height:32px;padding:0 10px;border-radius:0;font-size:12px;text-align:left;overflow:hidden;text-overflow:ellipsis}' +
+                // CENTRO: o placar, no padrao dos cartoes dos jogadores (preto a 40%, sem cantos arredondados).
+                '#tc-centro{left:50%;top:12px;transform:translateX(-50%) scale(1.3);transform-origin:top center;background:rgba(0,0,0,.75);padding:8px 44px;overflow:hidden}' +
+                // Os escudos como nos cartoes dos jogadores: grandes, entram pelo lado do cartao que os corta.
+                '#tc-centro .hud-jog-logo{position:absolute;top:50%;width:60px;height:72px;transform:translateY(-50%)}#tc-logo-e{left:-26px}#tc-logo-d{right:-26px}' +
+                // DIREITA: Exit, Debug e FPS em cima; os demais numa coluna por baixo.
+                '#tc-dir-topo{right:12px;top:12px;display:flex;align-items:center;gap:6px}' +
+                '#tc-dir{right:12px;top:56px;display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:110px}' +
+                '#tc-dir .linha{display:flex;gap:6px}#tc-dir .linha button{flex:1}' +
+                '#barra-topo-tc #tc-evento{display:none;align-items:center;gap:8px;padding:4px 10px;background:rgba(0,0,0,.4);font:700 12px system-ui,sans-serif}' +
                 '#barra-topo-tc #tc-evento b{font-size:15px;color:#fff}#barra-topo-tc #tc-evento span{letter-spacing:1px;color:#e2e8f0}' +
                 'body.debug-off #coluna-direita{display:none !important}' +
-                '#barra-topo-tc #tc-debug{margin-left:auto}' +
-                '#barra-topo-tc #tc-fps{margin-left:0;font:900 13px/1 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.5px;padding:5px 9px;border-radius:4px;background:#0f172a;color:#22c55e;min-width:62px;text-align:center}' +
+                // O painel de debug sai da coluna dos botoes: fica a esquerda dela.
+                'body.tela-cheia #coluna-direita{top:12px;right:136px}' +
+                '#barra-topo-tc #tc-fps{font:900 13px/1 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.5px;padding:8px 9px;background:rgba(0,0,0,.75);color:#22c55e;min-width:62px;text-align:center}' +
                 'body.tela-cheia #placar-linha{display:none !important}' +
                 // TODOS os menus do 3D saem em tela cheia: o botao Tactics abre o MATCH TACTICS do manager (ver abaixo).
                 'body.tela-cheia #painel-comandos,body.tela-cheia #painel-jogadores,' +
                 'body.tela-cheia #modal-skills{display:none !important}' +   // o painel da DIREITA (debug) fica visivel em tela cheia (pedido)
-                // O placar de TV: nomes curtos nas cores dos clubes, golos num miolo escuro com "vs", e o tempo numa aba por baixo.
-                '#tc-placar-tv{display:flex;flex-direction:column;align-items:center;font-family:system-ui,sans-serif}' +
-                '#tc-placar-tv .tv-linha{display:flex;height:24px;border-radius:5px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.55);font-weight:900}' +
+                // O placar: nomes curtos nas cores dos clubes, golos num miolo escuro com "vs", e o tempo por baixo.
+                '#tc-placar-tv{display:flex;flex-direction:column;align-items:center;font-family:system-ui,sans-serif;gap:4px}' +
+                '#tc-placar-tv .tv-linha{display:flex;height:24px;overflow:hidden;font-weight:900}' +
                 '#tc-placar-tv .tv-eq{cursor:pointer;padding:0 9px;display:flex;align-items:center;justify-content:center;min-width:38px;font-size:13px;letter-spacing:.5px}' +
-                '#tc-placar-tv .tv-gol{background:#1b0f33;color:#fff;font-size:15px;padding:0 8px;display:flex;align-items:center;min-width:12px;justify-content:center;font-variant-numeric:tabular-nums}' +
-                '#tc-placar-tv .tv-vs{background:#3b0764;color:#e9d5ff;font-size:10px;font-style:italic;padding:0 6px;display:flex;align-items:center}' +
-                '#tc-placar-tv .tv-tempo{background:#4c1d95;color:#fff;font:800 11px system-ui,sans-serif;letter-spacing:.5px;padding:1px 12px 2px;border-radius:0 0 6px 6px;font-variant-numeric:tabular-nums}' +
-                // O painel de comandos (onde esta a tatica) desce para baixo da barra do topo.
+                '#tc-placar-tv .tv-gol{color:#fff;font-size:15px;padding:0 8px;display:flex;align-items:center;min-width:12px;justify-content:center;font-variant-numeric:tabular-nums}' +
+                '#tc-placar-tv .tv-vs{color:#e9d5ff;font-size:10px;font-style:italic;padding:0 6px;display:flex;align-items:center}' +
+                '#tc-placar-tv .tv-tempo{color:#fff;font:800 12px system-ui,sans-serif;letter-spacing:.5px;font-variant-numeric:tabular-nums}' +
                 '';
             document.head.appendChild(css);
             barra = document.createElement('div'); barra.id = 'barra-topo-tc';
-            const cams = [['orbit', 'Orbit'], ['center', 'TV Centre'], ['sideline', 'Moving Sideline'], ['lateraltv', 'TV Sideline'], ['grua', 'Crane'], ['cinema', 'Cinema']];
-            barra.innerHTML = '<button id="tc-sair" title="Exit fullscreen" style="background:#b91c1c">✕ Exit</button><span class="sep"></span><div id="tc-placar-tv"><div class="tv-linha"><span class="tv-eq" id="tv-eq-e">---</span><span class="tv-gol" id="tv-gol-e">0</span>' +
-                '<span class="tv-vs">vs</span><span class="tv-gol" id="tv-gol-d">0</span><span class="tv-eq" id="tv-eq-d">---</span></div><div class="tv-tempo" id="tv-tempo">00:00</div></div><span class="sep"></span>' +
-                '<span>Camera</span>' + cams.map(c => '<button data-cam="' + c[0] + '">' + c[1] + '</button>').join('') +
-                '<button data-cam="lateraltv" data-r="3d">3D</button><button data-cam="topdown">2D</button><button id="tc-minimapa" title="Minimap">Minimap ON</button><button id="tc-nomes" title="Player names">Names OFF</button><span class="sep"></span>' +
-                '<span>Speed</span>' + [0.5, 1, 1.5].map(v => '<button data-vel="' + v + '">' + v + 'x</button>').join('') +
-                '<button id="tc-pausa">Pause</button><button id="tc-replay">Replay 10s</button><span class="sep"></span><button id="tc-tactics">Tactics</button>' +
-                '<span id="tc-evento"></span><button id="tc-debug" title="Right-hand debug panel">Debug OFF</button><span id="tc-fps" title="Frames per second">FPS --</span>';
+            const cams = [['orbit', 'Orbit', '🔄'], ['center', 'TV Centre', '📺'], ['sideline', 'Moving Sideline', '↔️'], ['lateraltv', 'TV Sideline', '🎥'], ['grua', 'Crane', '🏗️'], ['cinema', 'Cinema', '🎬']];
+            barra.innerHTML = '<div id="tc-esq">' + cams.map(c => '<button data-cam="' + c[0] + '" title="' + c[1] + '">' + c[1] + '</button>').join('') +
+                '<button data-cam="lateraltv" data-r="3d" title="3D">3D</button><button data-cam="topdown" title="2D">2D</button></div>' +
+                '<div id="tc-centro"><div class="hud-jog-logo" id="tc-logo-e"></div><div class="hud-jog-logo" id="tc-logo-d"></div><div id="tc-placar-tv"><div class="tv-linha"><span class="tv-eq" id="tv-eq-e">---</span><span class="tv-gol" id="tv-gol-e">0</span>' +
+                '<span class="tv-vs">vs</span><span class="tv-gol" id="tv-gol-d">0</span><span class="tv-eq" id="tv-eq-d">---</span></div><div class="tv-tempo" id="tv-tempo">00:00</div></div></div>' +
+                '<div id="tc-dir-topo"><span id="tc-evento"></span><button id="tc-debug" title="Right-hand debug panel">Debug OFF</button><span id="tc-fps" title="Frames per second">FPS --</span><button id="tc-sair" title="Exit fullscreen" style="background:rgba(185,28,28,.85)">✕ Exit</button></div>' +
+                '<div id="tc-dir"><button id="tc-minimapa" title="Minimap">Minimap ON</button><button id="tc-nomes" title="Player names">Names OFF</button>' +
+                '<div class="linha">' + [0.5, 1, 1.5].map(v => '<button data-vel="' + v + '">' + v + 'x</button>').join('') + '</div>' +
+                '<button id="tc-pausa">Pause</button><button id="tc-replay">Replay 10s</button><button id="tc-tactics">Tactics</button></div>';
             document.body.appendChild(barra);
             barra.addEventListener('click', (e) => {
                 // Clicar na sigla de um clube no placar de TV soma +1 ao resultado dele (para ajustar um empate nos testes).
@@ -171,6 +180,7 @@ const Ponte = {
                 el.textContent = sigla(nome); el.style.background = '#' + c.getHexString(); el.style.color = lum > 0.55 ? '#111' : '#fff';
             };
             pintar('#tv-eq-e', g('placar-nome-a'), Match.players); pintar('#tv-eq-d', g('placar-nome-b'), Match.opponents);
+            if (typeof preencherEscudoHud === 'function') { preencherEscudoHud(barra.querySelector('#tc-logo-e'), 'tc-e', 'TeamA'); preencherEscudoHud(barra.querySelector('#tc-logo-d'), 'tc-d', 'TeamB'); }
             const ge = barra.querySelector('#tv-gol-e'), gd = barra.querySelector('#tv-gol-d'), tp = barra.querySelector('#tv-tempo');
             if (ge) ge.textContent = g('placar-b'); if (gd) gd.textContent = g('placar-a'); if (tp) tp.textContent = g('placar-tempo');
             barra.querySelectorAll('button[data-cam]').forEach(b => b.classList.toggle('on', window.cameraMode === b.dataset.cam && !(b.dataset.r === '3d' && false)));
