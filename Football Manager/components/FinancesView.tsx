@@ -5,10 +5,13 @@ import { generatePlayer } from '../textSim/dataGenerator';
 import { Position, Player } from '../types';
 import { settleMatch, type CurrencyCode } from '../textSim/stadiumEconomy';
 import { ContractChip } from './ContractPanel';
+import { estadoDoContrato } from '../textSim/contracts';
+import PlayerDetailModal from './PlayerDetailModal';
 
 const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => {
   const { userTeam, players, hirePlayer, sellPlayer, gameState, isTransferWindowOpen, formatCurrency, formatWage, t } = useGame();
   const [marketPhase, setMarketPhase] = useState<'OVERVIEW' | 'MARKET'>('OVERVIEW');
+  const [jogadorAberto, setJogadorAberto] = useState<Player | null>(null);   // o Overview do jogador (o mesmo modal do Squad), aberto pelo nome na folha salarial
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
   
   // Market Filters
@@ -130,31 +133,46 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
            </button>
         </div>
       </div>
+      {/* Os contratos que pedem decisao (antes no Squad): critico = 6 meses ou menos; atencao = 12 meses ou menos. */}
+      {(() => {
+        const comEstado = teamPlayers.map(p => ({ p, estado: estadoDoContrato(p.contract, gameState.currentDate) }));
+        const criticos = comEstado.filter(x => x.estado === 'CRITICO').map(x => x.p);
+        const atencao = comEstado.filter(x => x.estado === 'ATENCAO').map(x => x.p);
+        if (!criticos.length && !atencao.length) return null;
+        return (
+          <div className={`rounded-lg border px-4 py-2.5 text-sm font-bold flex flex-wrap items-center gap-x-4 gap-y-1 ${criticos.length ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-300 dark:border-rose-500/40 text-rose-600 dark:text-rose-400' : 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/40 text-amber-600 dark:text-amber-400'}`}>
+            <span className="font-black uppercase tracking-widest">⚠ Contracts</span>
+            {criticos.length > 0 && <span>Critical (6 months or less): {criticos.map(p => p.name).join(', ')}</span>}
+            {atencao.length > 0 && <span>Attention (12 months or less): {atencao.map(p => p.name).join(', ')}</span>}
+            <span className="opacity-80">Negotiate a renewal or sell.</span>
+          </div>
+        );
+      })()}
 
       <div className="flex-1 min-h-0">
         {marketPhase === 'OVERVIEW' ? (
-          <div className="grid grid-cols-12 gap-6 h-full">
+          <div className="grid grid-cols-12 gap-6 h-full content-start">   {/* content-start: as linhas nao esticam para a altura toda */}
             <div className="col-span-12 grid grid-cols-5 gap-4">
-               <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xl transition-colors">
+               <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-2.5 shadow-xl transition-colors">
                   <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{t('dash_avail_balance')}</div>
-                  <div className="text-2xl font-black text-slate-800 dark:text-white transition-colors">{formatCurrency(userTeam.cash)}</div>
+                  <div className="text-xl font-black text-slate-800 dark:text-white transition-colors">{formatCurrency(userTeam.cash)}</div>
                </div>
-               <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xl transition-colors">
+               <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-2.5 shadow-xl transition-colors">
                   <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{t('fin_weekly_sal')}</div>
-                  <div className="text-2xl font-black text-rose-500 transition-colors">{formatCurrency(totalSalaries)}</div>
+                  <div className="text-xl font-black text-rose-500 transition-colors">{formatCurrency(totalSalaries)}</div>
                </div>
-               <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xl transition-colors">
+               <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-2.5 shadow-xl transition-colors">
                   <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{t('fin_match_rev')}</div>
-                  <div className="text-2xl font-black text-blue-500 dark:text-blue-400 transition-colors">{formatCurrency(estMatchRevenue)}</div>
+                  <div className="text-xl font-black text-blue-500 dark:text-blue-400 transition-colors">{formatCurrency(estMatchRevenue)}</div>
                   <div className="text-[9px] text-slate-400 mt-1">{formatNumber(attendance)} fans · {Math.round(eco.occupancy * 100)}% full · stadium cost {formatCurrency(estStadiumCost)}/match</div>
                </div>
-               <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xl transition-colors">
+               <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-2.5 shadow-xl transition-colors">
                   <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{t('fin_sponsor')}</div>
-                  <div className="text-2xl font-black text-emerald-500 transition-colors">{formatCurrency(userTeam.sponsorAmount || 0)}</div>
+                  <div className="text-xl font-black text-emerald-500 transition-colors">{formatCurrency(userTeam.sponsorAmount || 0)}</div>
                </div>
-               <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xl transition-colors">
+               <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-2.5 shadow-xl transition-colors">
                   <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{t('fin_fanbase')}</div>
-                  <div className="text-2xl font-black text-slate-600 dark:text-slate-300 transition-colors">{formatNumber(userTeam.fanBase || 0)}</div>
+                  <div className="text-xl font-black text-slate-600 dark:text-slate-300 transition-colors">{formatNumber(userTeam.fanBase || 0)}</div>
                </div>
             </div>
 
@@ -165,7 +183,7 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
               <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <table className="w-full text-left">
                   <thead className="sticky top-0 z-10 shadow-sm">
-                    <tr className="bg-slate-50 dark:bg-slate-900 text-[9px] text-slate-400 uppercase font-black">
+                    <tr className="bg-slate-50 dark:bg-slate-900 text-[13px] tracking-wide text-slate-400 dark:text-slate-300 uppercase font-black">
                       <th className="px-6 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('name')}>
                         Player {getSortIcon('name')}
                       </th>
@@ -186,7 +204,7 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                     {sortedTeamPlayers.map(p => (
                       <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
-                        <td className="px-6 py-2 font-bold text-sm text-slate-700 dark:text-slate-200">{p.name}</td>
+                        <td className="px-6 py-2 font-bold text-sm text-slate-700 dark:text-slate-200"><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview" className="text-left hover:text-blue-500 dark:hover:text-blue-400 hover:underline transition-colors">{p.name}</button></td>
                         <td className="px-4 py-2 text-center text-xs font-black text-blue-600 dark:text-blue-400">{p.skill}</td>
                         <td className="px-4 py-2 text-right text-rose-500 text-sm font-mono">{formatWage(p.salary)}</td>
                         <td className="px-4 py-2 text-center"><ContractChip player={p} hoje={gameState.currentDate} /></td>
@@ -297,6 +315,7 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
           </div>
         )}
       </div>
+      {jogadorAberto && <PlayerDetailModal player={jogadorAberto} onClose={() => setJogadorAberto(null)} />}
     </div>
   );
 };

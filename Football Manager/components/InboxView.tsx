@@ -76,11 +76,11 @@ const InboxView: React.FC<Props> = ({ setView }) => {
           {lista.length === 0 && <div className="p-8 text-center text-slate-400 text-sm font-bold uppercase tracking-widest">{pt ? 'Nenhuma mensagem' : 'No messages'}</div>}
           {lista.map(m => (
             <div key={m.id} role="button" tabIndex={0} onClick={() => setSelId(m.id)} onKeyDown={e => { if (e.key === 'Enter') setSelId(m.id); }}
-              className={`group w-full text-left px-4 py-3 border-b border-slate-200 dark:border-slate-800/60 flex gap-3 items-start transition-colors cursor-pointer ${selId === m.id ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
-              <div className="text-xl leading-none mt-0.5">{CATEGORIAS[m.categoria].icone}</div>
+              className={`group w-full text-left px-4 py-3 border-b border-slate-200 dark:border-slate-800/60 border-l-4 flex gap-3 items-start transition-colors cursor-pointer ${m.lida ? 'border-l-transparent opacity-60 hover:opacity-100' : 'border-l-blue-500 bg-blue-500/10'} ${selId === m.id ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
+              <div className={`text-xl leading-none mt-0.5 ${m.lida ? 'grayscale' : ''}`}>{CATEGORIAS[m.categoria].icone}</div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  {!m.lida && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />}
+                  {!m.lida && <span className="text-[9px] font-black uppercase tracking-wider bg-blue-500 text-white px-1.5 py-0.5 rounded shrink-0">{pt ? 'Nova' : 'New'}</span>}
                   <span className={`text-sm truncate ${m.lida ? 'font-semibold text-slate-500 dark:text-slate-400' : 'font-black text-slate-900 dark:text-white'}`}>{m.assunto}</span>
                   {m.alta && <span className="text-[10px] font-black uppercase bg-rose-500/15 text-rose-500 border border-rose-500/30 px-1.5 rounded shrink-0">!</span>}
                 </div>

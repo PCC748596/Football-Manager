@@ -555,7 +555,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-12 gap-6 min-h-0 pt-6">
+      <div className="flex-1 grid grid-cols-12 gap-6 min-h-0 pt-6" style={{ zoom: 0.75 }}>   {/* os cartoes do Dashboard 25% menores (15% + mais 10%, pedido); o calendario e o titulo ficam como estao */}
         <div className="col-span-8 flex flex-col gap-6">
           <div className="grid grid-cols-12 gap-6 h-[300px]">
             {/* User Club Details */}

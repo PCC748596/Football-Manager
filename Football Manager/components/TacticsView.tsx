@@ -513,7 +513,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
         </div>
 
         <div className="flex-1 grid grid-cols-[5.6fr_3.7fr_3fr] gap-4 min-h-0">
-            <div className="flex flex-col gap-4 min-h-0 min-w-0" style={{ width: 'calc(100% + 109px)' }}>
+            <div className="flex flex-col gap-[3px] min-h-0 min-w-0" style={{ width: 'calc(100% + 129px)' }}>
                 <div className="flex-1 relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ minHeight: '350px', containerType: 'size' }}>
                     {aba === 'geral' && (
                         <button onClick={() => handleTacticChange('playingStylesOn' as keyof Tactics, userTeam.tactics.playingStylesOn === false)} title="Turns the players' individual Playing Styles on or off in the 3D match"
@@ -559,7 +559,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                     </div>
 
                     {/* O CAMPO PROPORCIONAL: uma caixa 68:106 centrada na area (a margem de 2.5rem em cima e em baixo); linhas, zonas e jogadores vivem dentro dela, em percentagem. */}
-                    <div ref={campoRef} className="absolute" style={{ top: '2.5rem', bottom: '2.5rem', left: '50%', transform: 'translateX(calc(-50% - 30px))', width: 'calc((100cqh - 5rem) * 68 / 106 + 140px)' }}>
+                    <div ref={campoRef} className="absolute" style={{ top: '2.5rem', bottom: 0, left: '50%', transform: 'translateX(calc(-50% - 50px))', width: 'calc((100cqh - 2.5rem) * 68 / 106 + 140px)' }}>
                     {/* O campo em metros (68 x 106, as medidas do motor), esticado na area de jogo: linhas, circulo central, areas, marcas de penalti, meias-luas e cantos. */}
                     <svg className="absolute inset-0 w-full h-full pointer-events-none text-slate-500 dark:text-slate-300" viewBox="0 0 68 106" preserveAspectRatio="none" fill="none" stroke="currentColor" strokeWidth="1.6" strokeOpacity="0.85">
                         <rect x="0" y="0" width="68" height="106" vectorEffect="non-scaling-stroke" />
@@ -721,7 +721,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                     </div>
                 </div>
 
-                <div onDragOver={(e) => { e.preventDefault(); setIsOverBench(true); }} onDragLeave={() => setIsOverBench(false)} onClick={tocarNoPainelDoBanco} onDrop={(e) => handleDropToBench(e.dataTransfer.getData("playerId"))} className={`bg-white dark:bg-slate-900/50 rounded-xl p-5 flex flex-col gap-0 h-[236px] shadow-sm border transition-all ${isOverBench ? 'border-blue-400 bg-blue-50/50' : 'border-slate-200 dark:border-slate-800'}`}>
+                <div onDragOver={(e) => { e.preventDefault(); setIsOverBench(true); }} onDragLeave={() => setIsOverBench(false)} onClick={tocarNoPainelDoBanco} onDrop={(e) => handleDropToBench(e.dataTransfer.getData("playerId"))} className={`bg-white dark:bg-slate-900/50 rounded-xl p-3 flex flex-col gap-0 shrink-0 shadow-sm border transition-all ${isOverBench ? 'border-blue-400 bg-blue-50/50' : 'border-slate-200 dark:border-slate-800'}`}>
                     <div className="flex justify-between items-center mb-0">
                         <div className="flex items-center gap-4">
                             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">SUBSTITUTES</span>
@@ -734,7 +734,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         </div>
                         <span className="text-xl font-black text-slate-200 italic leading-none">{localBench.length} <span className="text-xs">/ 10</span></span>
                     </div>
-                    <div className="flex gap-[2px] overflow-x-auto custom-scrollbar pb-2" onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
+                    {/* Os reservas em 2 fileiras de 5 cards (pedido), sem rolagem. */}
+                    <div className="grid grid-cols-5 gap-[4px] pb-1 mt-1" style={{ zoom: 0.9 }}>   {/* cards menores: 2 fileiras sem espremer o campo */}
                         {sorted_bench.map(id => {
                             const p = players.find(x => x.id === id); if (!p) return null;
                              let benchColor: string; let benchColor2: string | undefined; let benchColor3: string | undefined; let bnc: string | undefined; let bclc: string | undefined; let bnoc: string | undefined; let bsc: string | undefined;
@@ -764,13 +765,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                              } else benchColor = getPosColor(p.position);
                             const status = getPlayerMatchStatus(p.id);
                             return (
-                                <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.stopPropagation(); handleBenchSwap(e.dataTransfer.getData("playerId"), p.id); }} onClick={(e) => { e.stopPropagation(); tocarNoBanco(p.id); }} title={indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-[85px] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-lg p-1 flex flex-col items-center justify-start hover:border-blue-300 cursor-pointer group shadow-sm transition-all`}>
+                                <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.stopPropagation(); handleBenchSwap(e.dataTransfer.getData("playerId"), p.id); }} onClick={(e) => { e.stopPropagation(); tocarNoBanco(p.id); }} title={indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1.5 flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
                                     {!jogoIniciado && <button onClick={(e) => { e.stopPropagation(); removeFromSquad(p.id); }} title="Remove from bench" className="absolute top-1/2 -translate-y-1/2 right-1 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>}
-                                    <div className={`flex justify-between w-full items-start mb-1 ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
-                                        <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span></span>
-                                        <span className="flex items-center gap-1">{iconeDoEstilo(p)}<MoraleArrow morale={p.morale} /></span>
-                                    </div>
-                                    <div className={`relative mt-[2px] -translate-x-2 ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
+                                    <div className={`relative mt-[2px] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
                                         <ShirtIcon 
                                             color={benchColor} 
                                             color2={benchColor2} 
@@ -797,11 +794,15 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="text-center w-full mt-[2px] border-t border-slate-100 dark:border-slate-700 pt-[2px]">
-                                        <div className={`w-14 mx-auto mb-1 ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
+                                    <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                    <div className={`flex justify-between w-full items-start mb-0 ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
+                                        <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span></span>
+                                        <span className="flex items-center gap-1">{iconeDoEstilo(p)}<MoraleArrow morale={p.morale} /></span>
+                                    </div>
+                                        <div className={`${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
                                             <FitnessBar fitness={p.fitness} className="h-1.5" />
                                         </div>
-                                        <div className={`flex flex-col items-center justify-start leading-[1.1] mt-0 min-h-[26px] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
+                                        <div className={`flex flex-col items-start justify-start leading-[1.1] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
                                             {p.name.split(' ').map((part, index) => (
                                                 <span key={index} className="text-[9px] font-black text-slate-400 uppercase truncate max-w-full">
                                                     {part}
@@ -813,13 +814,14 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                 </div>
                             );
                         })}
-                        {localBench.length === 0 && <div className="flex-1 flex items-center justify-center text-[10px] text-slate-300 font-black uppercase italic tracking-widest border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-lg">Bench Empty</div>}
+                        {localBench.length === 0 && <div className="col-span-5 flex-1 flex items-center justify-center text-[10px] text-slate-300 font-black uppercase italic tracking-widest border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-lg">Bench Empty</div>}
                     </div>
                 </div>
             </div>
 
             {/* SQUAD POOL e COBRADORES: duas colunas do mesmo tamanho, no espaco que o campo deixa (o campo avanca 109 px sobre ele). */}
-            <div className="grid grid-cols-2 gap-4 min-h-0 min-w-0" style={{ marginLeft: 109 }}>
+            {/* Set Pieces 20 px mais estreito e Squad Pool outra vez como era (pedido): antes 1fr 1fr com folga de 16 px; as duas encostadas a direita (margem 109 -> 129, mesmas larguras): os 20 px livres vao para a area dos reservas. */}
+            <div className="grid gap-4 min-h-0 min-w-0" style={{ marginLeft: 149, gridTemplateColumns: 'calc(50% + 2px) calc(50% - 18px)' }}>
             {/* O SQUAD POOL: o que sobrou do plantel, ao lado do campo (antes ficava sob as instrucoes). */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col shadow-sm overflow-hidden min-h-0 min-w-0">
                     <div className="px-3 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900">

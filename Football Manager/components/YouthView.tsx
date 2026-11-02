@@ -40,9 +40,11 @@ const Mudancas: React.FC<{ r?: RelatorioMes }> = ({ r }) => {
   );
 };
 
-const YouthView: React.FC = () => {
+// `abaExterna`: a aba (Academy / Monthly report) vive no Squad, na mesma linha de Main team / Sub-20; sem ela, YouthView mostra os seus proprios botoes.
+const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExterna }) => {
   const { base, userTeam, gameState, promoteYouth, dispensarJovem, formatCurrencyShort, players } = useGame();
-  const [aba, setAba] = useState<'LISTA' | 'RELATORIO'>('LISTA');
+  const [abaLocal, setAba] = useState<'LISTA' | 'RELATORIO'>('LISTA');
+  const aba = abaExterna || abaLocal;
   const [selId, setSelId] = useState<string | null>(null);
   const [promovendo, setPromovendo] = useState<Player | null>(null);   // jogador no modal de confirmacao da promocao
   const [erroPromo, setErroPromo] = useState<string | null>(null);
@@ -77,7 +79,8 @@ const YouthView: React.FC = () => {
   const ultimo = (p: Player): RelatorioMes | undefined => base?.relatorios[p.id]?.slice(-1)[0];
   const mesDoRelatorio = base?.mesProcessado || '';
   const temRelatorio = jovens.some(p => ultimo(p));
-  const movimentos = (base?.movimentos || []).filter(m => m.teamId === userTeam?.id).slice().reverse();
+  const movimentos = (base?.movimentos || []).filter(m => m.teamId === userTeam?.id).slice().reverse()
+    .sort((a, b) => (a.tipo === 'DISPENSADO' ? 1 : 0) - (b.tipo === 'DISPENSADO' ? 1 : 0));   // os dispensados vao para o fim (estavel: dentro de cada grupo, o mais recente primeiro)
 
   if (!userTeam) return null;
   if (!base) return <div className="text-slate-400 text-sm font-bold uppercase tracking-widest p-8">Generating youth academies...</div>;
@@ -97,9 +100,10 @@ const YouthView: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col gap-4 min-h-0">
-      <div className="flex items-center justify-between">
+      {/* Com os botoes no Squad esta linha so tem o resumo a direita: sobe para a linha das abas (margem negativa) e a lista ganha o espaco que ela ocupava. */}
+      <div className={`flex items-center justify-between ${abaExterna ? '-mt-10 pointer-events-none' : ''}`}>
         <div className="flex gap-2">
-          {([['LISTA', 'Academy'], ['RELATORIO', 'Monthly report']] as const).map(([id, rotulo]) => (
+          {!abaExterna && ([['LISTA', 'Academy'], ['RELATORIO', 'Monthly report']] as const).map(([id, rotulo]) => (
             <button key={id} onClick={() => setAba(id)} className={`px-4 py-1.5 rounded text-xs font-black uppercase tracking-widest transition-colors ${aba === id ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`}>{rotulo}</button>
           ))}
         </div>

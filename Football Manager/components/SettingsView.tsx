@@ -30,13 +30,13 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
         </div>
       </div>
 
-      <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-xl flex flex-col gap-8 transition-colors min-h-[75vh]">
+      <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-5 content-start transition-colors">
           
           {/* General Section */}
           <section className="space-y-4">
               <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">{t('set_gen')}</h3>
               
-              <div className="grid grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">{t('set_lang')}</label>
                       <div className="flex gap-2">
@@ -81,7 +81,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
           <section className="space-y-4">
               <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">Gameplay</h3>
               
-              <div className="grid grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">Match Day Time (Real Min)</label>
                       <div className="flex gap-2">
@@ -164,7 +164,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
           </section>
 
           {/* Financial Section */}
-          <section className="space-y-4">
+          <section className="space-y-4 lg:col-span-2">
               <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">{t('set_fin')}</h3>
               
               <div className="grid grid-cols-2 gap-8">

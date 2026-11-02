@@ -38,6 +38,9 @@ const getPosColor = (pos: Position) => {
     return '#2563eb';
 };
 
+// Ordem da coluna POS: goleiro, defesa (LB CB RB), meio-campo (DM LM CM RM AM), ataque (LW RW SS ST).
+const ORDEM_POS: Record<string, number> = { GK: 0, LB: 1, CB: 2, RB: 3, DM: 4, LM: 5, CM: 6, RM: 7, AM: 8, LW: 9, RW: 10, SS: 11, ST: 12 };
+
 // Helper to calculate star count based on OVR
 // Logic: <60=1 (nunca fica sem estrela), 60-69=2, 70-79=3, 80-89=4, 90+=5
 const getStarCount = (skill: number) => {
@@ -69,8 +72,21 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
   const [draggingPlayerId, setDraggingPlayerId] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [aba, setAba] = useState<'MAIN' | 'U20'>('MAIN');
+  const [abaJovens, setAbaJovens] = useState<'LISTA' | 'RELATORIO'>('LISTA');   // Academy / Monthly report, na linha de cima junto de Sub-20
   // Ordenacao das colunas (vale para os quatro grupos de posicao): clicar no titulo ordena; clicar de novo inverte.
-  const [ordem, setOrdem] = useState<{ chave: string; dir: 1 | -1 }>({ chave: 'ovr', dir: -1 });
+  // A ultima ordenacao feita fica guardada (localStorage): ao voltar a esta aba abre ordenada como estava.
+  const [ordem, setOrdemEstado] = useState<{ chave: string; dir: 1 | -1 }>(() => {
+    try {
+      const g = JSON.parse(localStorage.getItem('fm_squad_ordem') || 'null');
+      if (g && typeof g.chave === 'string' && (g.dir === 1 || g.dir === -1)) return { chave: g.chave, dir: g.dir };
+    } catch { /* sem localStorage ou valor invalido */ }
+    return { chave: 'ovr', dir: -1 };
+  });
+  const setOrdem = (f: (o: { chave: string; dir: 1 | -1 }) => { chave: string; dir: 1 | -1 }) => setOrdemEstado(o => {
+    const n = f(o);
+    try { localStorage.setItem('fm_squad_ordem', JSON.stringify(n)); } catch { /* sem localStorage */ }
+    return n;
+  });
 
   if (!userTeam) return null;
 
@@ -78,8 +94,9 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
 
   const myPlayers = players.filter(p => p.teamId === userTeam.id);
 
+  // (a coluna `pos` ordena por ORDEM_POS: goleiro, defesa, meio-campo, ataque — nao alfabetica)
   const VALOR_DA_COLUNA: Record<string, (p: Player) => number | string> = {
-    num: p => p.shirtNumber, pos: p => p.position, name: p => p.name, age: p => p.age, ovr: p => p.skill, pot: p => potencialVisivel(p), fit: p => p.fitness, mor: p => p.morale,
+    num: p => p.shirtNumber, pos: p => ORDEM_POS[p.position] ?? 99, name: p => p.name, age: p => p.age, ovr: p => p.skill, pot: p => potencialVisivel(p), fit: p => p.fitness, mor: p => p.morale,
     def: p => atributos3d(p).tec, pas: p => atributos3d(p).tac, drb: p => atributos3d(p).men, sht: p => atributos3d(p).fis, prog: p => p.weeklyGrowth, val: p => p.value,
     contract: p => (p.contract ? p.contract.end : '9999-99-99')   // o que vence primeiro vem primeiro
   };
@@ -129,11 +146,13 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
     setDraggingPlayerId(null);
   };
 
-  const PositionGroup = ({ title, positions, heightClass }: { title: string, positions: Position[], heightClass: string }) => {
-    const groupPlayers = myPlayers.filter(p => positions.includes(p.position)).sort(comparar);
+  // `lista`: jogadores ja escolhidos (sem agrupar por posicao); sem titulo nao ha cabecalho de grupo.
+  const PositionGroup = ({ title, positions, heightClass, lista }: { title: string, positions: Position[], heightClass: string, lista?: typeof myPlayers }) => {
+    const groupPlayers = lista || myPlayers.filter(p => positions.includes(p.position)).sort(comparar);
     
     return (
       <div className={`flex flex-col ${heightClass} min-h-0`}>
+        {title && (
         <div className="flex justify-between items-center mb-2 px-1">
           <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest italic transition-colors">
             {title}
@@ -142,6 +161,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
             {groupPlayers.length}
           </span>
         </div>
+        )}
         <div className="bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col shadow-xl transition-colors">
           <div className="overflow-y-auto custom-scrollbar flex-1">
             <table className="w-full text-left border-separate border-spacing-0">
@@ -150,7 +170,6 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                    <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 w-12 text-center cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('num')}>#{seta('num')}</th>
                    <th className="px-2 py-2 border-b border-slate-200 dark:border-slate-800 text-center w-12 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pos')}>Pos{seta('pos')}</th>
                    <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('name')}>Name{seta('name')}</th>
-                   <th className="px-2 py-2 border-b border-slate-200 dark:border-slate-800 w-16"></th>{/* Star Column */}
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('age')}>Age{seta('age')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('ovr')}>OVR{seta('ovr')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pot')}>Pot{seta('pot')}</th>
@@ -202,23 +221,15 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                         </div>
                      </td>
                      
-                     {/* Star Rating Cell */}
-                     <td className="px-2 py-2 text-left">
-                        <div className="flex space-x-[1px]">
-                          {Array.from({ length: starCount }).map((_, i) => (
-                             <span key={i} className="text-[10px] text-yellow-400 drop-shadow-sm">⭐</span>
-                          ))}
-                        </div>
-                     </td>
-
                      <td className="px-2 py-2 text-center text-xs text-slate-400 dark:text-slate-500 font-medium transition-colors">{p.age}</td>
                      <td className="px-2 py-2 text-center">
                        <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 px-1.5 py-0.5 rounded shadow-sm transition-colors">
                          {Math.round(p.skill)}
                        </span>
                      </td>
-                     <td className="px-2 py-2 text-center whitespace-nowrap text-xs tracking-tighter" title="Estimated potential (scout estimate)">
-                       {Array.from({ length: 5 }, (_, i) => <span key={i} className={i < estrelasDoJogador(p) ? 'text-slate-400 dark:text-slate-300' : 'text-slate-200 dark:text-slate-700'}>★</span>)}
+                     <td className="px-2 py-2 text-center whitespace-nowrap text-lg leading-none tracking-tighter" title="Current level (gold) and estimated potential (grey, scout estimate)">
+                       {/* Uma linha de 5 estrelas so: douradas = o nivel atual; cinzentas = o que falta ate ao potencial; apagadas = acima do potencial. */}
+                       {Array.from({ length: 5 }, (_, i) => <span key={i} className={i < starCount ? 'text-yellow-400' : i < estrelasDoJogador(p) ? 'text-slate-400 dark:text-slate-400' : 'text-slate-200 dark:text-slate-700'}>★</span>)}
                      </td>
                      <td className="px-2 py-2 text-center text-xs text-slate-500 dark:text-slate-400 font-medium transition-colors">
                         <div className="flex flex-col items-center gap-1">
@@ -339,27 +350,32 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
         {([['MAIN', 'Main team'], ['U20', 'Sub-20']] as const).map(([id, rotulo]) => (
           <button key={id} onClick={() => setAba(id)} className={`px-6 py-2 rounded text-sm font-black uppercase tracking-widest transition-colors ${aba === id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-800 dark:hover:text-white'}`}>{rotulo}</button>
         ))}
+        {aba === 'U20' && (
+          <div className="flex gap-2 ml-4 items-center">
+            {([['LISTA', 'Academy'], ['RELATORIO', 'Monthly report']] as const).map(([id, rotulo]) => (
+              <button key={id} onClick={() => setAbaJovens(id)} className={`px-4 py-1.5 rounded text-xs font-black uppercase tracking-widest transition-colors ${abaJovens === id ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`}>{rotulo}</button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {aba === 'U20' ? <YouthView /> : (<>
-      {(criticos.length > 0 || atencao.length > 0) && (
-        <div className={`rounded-lg border px-4 py-2.5 text-sm font-bold flex flex-wrap items-center gap-x-4 gap-y-1 ${criticos.length ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-300 dark:border-rose-500/40 text-rose-600 dark:text-rose-400' : 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/40 text-amber-600 dark:text-amber-400'}`}>
-          <span className="font-black uppercase tracking-widest">⚠ Contracts</span>
-          {criticos.length > 0 && <span>Critical (6 months or less): {criticos.map(p => p.name).join(', ')}</span>}
-          {atencao.length > 0 && <span>Attention (12 months or less): {atencao.map(p => p.name).join(', ')}</span>}
-          <span className="opacity-80">Negotiate a renewal or sell — click a player to open the contract.</span>
-        </div>
-      )}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-0">
-        <div className="flex flex-col gap-8 min-h-0">
-          <PositionGroup title="Goalkeepers" positions={[Position.GK]} heightClass="h-[25%]" />
-          <PositionGroup title="Defenders" positions={[Position.LB, Position.CB, Position.RB]} heightClass="h-[75%]" />
-        </div>
-        <div className="flex flex-col gap-8 min-h-0">
-          <PositionGroup title="Midfielders" positions={[Position.DM, Position.LM, Position.CM, Position.RM, Position.AM]} heightClass="h-1/2" />
-          <PositionGroup title="Forwards" positions={[Position.LW, Position.RW, Position.SS, Position.ST]} heightClass="h-1/2" />
-        </div>
-      </div>
+      {aba === 'U20' ? <YouthView abaExterna={abaJovens} /> : (<>
+      {/* Sem grupos por posicao (pedido): uma lista so, ordenada como o utilizador escolher. Em 2 colunas no computador (a metade de cima e a de baixo) e em 1 no tablet (< 1280 px). */}
+      {(() => {
+        const todos = myPlayers.slice().sort(comparar);
+        const meio = Math.ceil(todos.length / 2);
+        return (
+          <>
+            <div className="hidden xl:grid flex-1 grid-cols-2 gap-8 min-h-0 grid-rows-[minmax(0,1fr)]">
+              <PositionGroup title="" positions={[]} heightClass="min-h-0 h-full" lista={todos.slice(0, meio)} />
+              <PositionGroup title="" positions={[]} heightClass="min-h-0 h-full" lista={todos.slice(meio)} />
+            </div>
+            <div className="xl:hidden flex-1 flex flex-col min-h-0">
+              <PositionGroup title="" positions={[]} heightClass="flex-1 min-h-0" lista={todos} />
+            </div>
+          </>
+        );
+      })()}
       </>)}
 
       {selectedPlayer && (
