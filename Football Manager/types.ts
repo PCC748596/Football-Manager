@@ -212,6 +212,8 @@ export interface Tactics {
   zoneOverrides?: Record<string, ZoneOverrides>;
   /** Playing Styles dos jogadores (os estilos individuais, como Box-to-Box ou Hole Player) ligados no 3D; omitido = ligados. Botao ON/OFF da aba GENERAL do Match Tactics. */
   playingStylesOn?: boolean;
+  /** Mostra a MEDIA DAS NOTAS dos jogos de cada jogador nos cards do Match Tactics (campo, reservas e Squad Pool); omitido = ligado. Botao ON/OFF da aba GENERAL. */
+  mediaNotasOn?: boolean;
 }
 
 export type ZoneOverrides = { com?: Record<string, Record<string, [number, number]>>; sem?: Record<string, Record<string, [number, number]>> };

@@ -409,6 +409,19 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     updateSetPieceTakers(userTeam.id, atual);
   };
 
+  // A MEDIA DAS NOTAS de cada jogador nos jogos disputados (os `playerRatings` das partidas jogadas): { playerId -> media }. Mostrada nos cards quando `mediaNotasOn` nao e false.
+  const mediasDeNotas = useMemo(() => {
+    const soma: Record<string, { s: number; n: number }> = {};
+    for (const f of fixtures) {
+      if (!f.played || !f.playerRatings) continue;
+      for (const [id, nota] of Object.entries(f.playerRatings)) { if (typeof nota !== 'number') continue; const e = soma[id] || (soma[id] = { s: 0, n: 0 }); e.s += nota; e.n++; }
+    }
+    const r: Record<string, number> = {};
+    for (const id of Object.keys(soma)) r[id] = soma[id].s / soma[id].n;
+    return r;
+  }, [fixtures]);
+  const mediaNotas = (p: Player | null | undefined): string | null => (userTeam.tactics.mediaNotasOn === false || !p || mediasDeNotas[p.id] === undefined) ? null : mediasDeNotas[p.id].toFixed(1);
+
   const handleTacticChange = (field: keyof Tactics, value: any) => {
     let finalValue = value;
     if (field === 'defensiveLine') {
@@ -512,13 +525,19 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             </div>
         </div>
 
-        <div className="flex-1 grid grid-cols-[5.6fr_3.7fr_3fr] gap-4 min-h-0">
+        <div className="flex-1 grid grid-cols-[5.6fr_3.7fr_3fr] gap-[5px] min-h-0">
             <div className="flex flex-col gap-[3px] min-h-0 min-w-0" style={{ width: 'calc(100% + 129px)' }}>
                 <div className="flex-1 relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ minHeight: '350px', containerType: 'size' }}>
                     {aba === 'geral' && (
                         <button onClick={() => handleTacticChange('playingStylesOn' as keyof Tactics, userTeam.tactics.playingStylesOn === false)} title="Turns the players' individual Playing Styles on or off in the 3D match"
                             className={`absolute top-[7.25rem] right-1 z-20 flex items-center gap-1.5 px-2.5 py-1.5 min-h-[32px] rounded-full border text-[9px] font-black uppercase tracking-widest transition-colors ${userTeam.tactics.playingStylesOn === false ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-emerald-600 border-emerald-400 text-white'}`}>
                             Playing Styles <span className={`px-2 py-0.5 rounded-full text-[9px] ${userTeam.tactics.playingStylesOn === false ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{userTeam.tactics.playingStylesOn === false ? 'OFF' : 'ON'}</span>
+                        </button>
+                    )}
+                    {aba === 'geral' && (
+                        <button onClick={() => handleTacticChange('mediaNotasOn' as keyof Tactics, userTeam.tactics.mediaNotasOn === false)} title="Shows the average of each player's match ratings on the cards"
+                            className={`absolute top-[9.75rem] right-1 z-20 flex items-center gap-1.5 px-2.5 py-1.5 min-h-[32px] rounded-full border text-[9px] font-black uppercase tracking-widest transition-colors ${userTeam.tactics.mediaNotasOn === false ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-emerald-600 border-emerald-400 text-white'}`}>
+                            Avg Ratings <span className={`px-2 py-0.5 rounded-full text-[9px] ${userTeam.tactics.mediaNotasOn === false ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{userTeam.tactics.mediaNotasOn === false ? 'OFF' : 'ON'}</span>
                         </button>
                     )}
                     <div className="absolute top-6 left-6 z-20 flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
@@ -656,7 +675,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                         style={{ filter: player ? undefined : 'brightness(0.3)', width: 45, height: 30, fontSize: 10, background: color, borderColor: kitNoc || kitCollarColor || 'rgba(255,255,255,0.4)', color: kitNumberColor || '#fff', textShadow: kitNoc ? `0 0 1px ${kitNoc}` : undefined }}>
                                         {player?.shirtNumber ?? '-'}{' | '}{pos.label}
                                     </div>
-                                    <span className="mt-0.5 text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap">{player && userTeam.tactics.playingStylesOn !== false && <span className="mr-1 text-[12px]" title={'Playing Style: ' + estiloDoJogador(player)}>{ICONE_DO_ESTILO[estiloDoJogador(player)] || '💡'}</span>}{player ? player.name.split(' ').pop() : '---'}</span>
+                                    <span className="mt-0.5 text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap">{player && userTeam.tactics.playingStylesOn !== false && <span className="mr-1 text-[12px]" title={'Playing Style: ' + estiloDoJogador(player)}>{ICONE_DO_ESTILO[estiloDoJogador(player)] || '💡'}</span>}{player ? player.name.split(' ').pop() : '---'}{mediaNotas(player) && <span className="ml-1 text-amber-400">{mediaNotas(player)}</span>}</span>
                                 </div>
                             );
                         }
@@ -712,7 +731,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                             <FitnessBar fitness={player.fitness} className="h-2" />
                                         </div>
                                     )}
-                                    <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase truncate block text-center mt-[2px]">{player ? player.name.split(' ').pop() : '---'}</span>
+                                    <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase truncate block text-center mt-[2px]">{player ? player.name.split(' ').pop() : '---'}{mediaNotas(player) && <span className="ml-1 text-amber-400">{mediaNotas(player)}</span>}</span>
                                 </div>
 
                             </div>
@@ -796,7 +815,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                     </div>
                                     <div className="flex-1 min-w-0 flex flex-col gap-1">
                                     <div className={`flex justify-between w-full items-start mb-0 ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
-                                        <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span></span>
+                                        <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span>{mediaNotas(p) && <> <span className="text-slate-500">|</span> <span className="text-amber-400">{mediaNotas(p)}</span></>}</span>
                                         <span className="flex items-center gap-1">{iconeDoEstilo(p)}<MoraleArrow morale={p.morale} /></span>
                                     </div>
                                         <div className={`${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
@@ -821,7 +840,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
 
             {/* SQUAD POOL e COBRADORES: duas colunas do mesmo tamanho, no espaco que o campo deixa (o campo avanca 109 px sobre ele). */}
             {/* Set Pieces 20 px mais estreito e Squad Pool outra vez como era (pedido): antes 1fr 1fr com folga de 16 px; as duas encostadas a direita (margem 109 -> 129, mesmas larguras): os 20 px livres vao para a area dos reservas. */}
-            <div className="grid gap-4 min-h-0 min-w-0" style={{ marginLeft: 149, gridTemplateColumns: 'calc(50% + 2px) calc(50% - 18px)' }}>
+            <div className="grid gap-[5px] min-h-0 min-w-0" style={{ marginLeft: 129, gridTemplateColumns: 'calc(50% + 7.5px) calc(50% - 12.5px)' }}>   {/* paineis a 5 px uns dos outros (pedido) */}
             {/* O SQUAD POOL: o que sobrou do plantel, ao lado do campo (antes ficava sob as instrucoes). */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col shadow-sm overflow-hidden min-h-0 min-w-0">
                     <div className="px-3 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900">
@@ -892,7 +911,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                         </div>
                                         <div className="flex-1 min-w-0 flex flex-col gap-1">
                                         <div className={`flex justify-between w-full items-start mb-0 ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
-                                            <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span></span>
+                                            <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span>{mediaNotas(p) && <> <span className="text-slate-500">|</span> <span className="text-amber-400">{mediaNotas(p)}</span></>}</span>
                                             <span className="flex items-center gap-1">{iconeDoEstilo(p)}<MoraleArrow morale={p.morale} /></span>
                                         </div>
                                             <div className={`${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}><FitnessBar fitness={p.fitness} className="h-1.5" /></div>
