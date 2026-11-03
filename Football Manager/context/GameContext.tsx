@@ -8,7 +8,9 @@ import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, 
 import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disputaPendente, prepararCopas, ligaIdDoClube, teamKey } from '../textSim/competitions';
 import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
-import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia } from '../textSim/inbox';
+import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa } from '../textSim/inbox';
+import { ManagerState, semearTreinadores, atualizarTreinadores, aplicarTreinadores } from '../textSim/managerExpectations';
+import { montarLigas } from '../textSim/managerLigas';
 import { regiaoDoClube } from '../textSim/dataGenerator';
 import { MercadoState, Universo, Evento, mercadoVazio, prepararOrcamentos, proporCompra as mercadoPropor, responderComoVendedor, responderComoComprador, retirar as mercadoRetirar, concluir as mercadoConcluir,
   contratarAgenteLivre as mercadoContratarLivre, listarParaVenda as mercadoListar, listarParaEmprestimo as mercadoListarEmprestimo, dispensarJogador as mercadoDispensar, tickDoDia as mercadoTick, recalcularValoresDoMes, janelaAberta, proximaAberturaJanela } from '../textSim/transferencias';
@@ -171,6 +173,7 @@ const TRANSLATIONS: Record<string, any> = {
 };
 
 interface GameContextType {
+  managerState: ManagerState | null;
   teams: Team[];
   players: Player[];
   fixtures: Fixture[];
@@ -277,6 +280,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [avisoGoleiro, setAvisoGoleiro] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
   const [world, setWorld] = useState<WorldLeague[] | null>(null);
+  // MERCADO DE TREINADORES (textSim/managerExpectations.ts): null ate o mundo existir (um save antigo, sem `managers`, e semeado no primeiro efeito).
+  const [managerState, setManagerState] = useState<ManagerState | null>(null);
   const [comps, setComps] = useState<Competition[] | null>(null);
   // As categorias de base (Sub-20) de todos os clubes: lista a parte (mesmo tipo `Player`), para nao entrar nas contas do elenco, da folha e do motor de partidas.
   const [base, setBase] = useState<BaseState | null>(null);
@@ -468,6 +473,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + p.usd } : t));
     setInbox(prev => adicionar(prev, [avisoDePremiacao(p.data, gameState.language, p.key, NOME_DA_COPA[p.copa as string], p.razao, formatCurrency(p.usd))]));
   }, [fixtures]);
+
+  // MERCADO DE TREINADORES: a cada jogo novo (do utilizador ou do mundo) atualiza confianca, demissoes e, no fim das ligas, reputacao e ofertas. Idempotente (ver `atualizarTreinadores`).
+  useEffect(() => {
+    if (!userTeam || !world) return;
+    const ligas = montarLigas({ userTeam, teams: teams.filter(t => naLigaDoUtilizador(t, userTeam)), fixtures, world });
+    const atual = managerState ?? semearTreinadores(ligas, { clubKey: teamKey(userTeam.leagueId, userTeam.id), nome: gameState.managerName });
+    const { estado, eventos, mudou } = atualizarTreinadores(atual, ligas, gameState.currentDate);
+    if (mudou || !managerState) setManagerState(estado);
+    const lang = gameState.language, hoje = gameState.currentDate;
+    const avisos = eventos.filter(e => e.usuario).flatMap(e => {
+      const chave = (t: string) => `board|${t}|${e.clubKey}|${e.faixa ?? ''}|${hoje}`;
+      if (e.tipo === 'DEMISSAO') return [avisoDeDemissao(hoje, lang, chave('demissao'), e.clube)];
+      if (e.tipo === 'OFERTA') return [avisoDeOferta(hoje, lang, chave('oferta'), e.clube)];
+      if (e.tipo === 'FAIXA') return [avisoDeFaixa(hoje, lang, chave('faixa'), e.clube, e.faixa!)];
+      return [];
+    });
+    if (avisos.length) empurrarInbox(avisos);
+    // Os clubes mostram o treinador atual (o motor das partidas le `managerTactics`).
+    const novosTeams = aplicarTreinadores(teams, estado);
+    if (novosTeams !== teams) setTeams(novosTeams);
+    const novoMundo = world.map(l => { const ts = aplicarTreinadores(l.teams, estado, l.leagueId); return ts === l.teams ? l : { ...l, teams: ts }; });
+    if (novoMundo.some((l, i) => l !== world[i])) setWorld(novoMundo);
+  }, [world, fixtures]);
 
   // INBOX — o motor escreve; a tela so le. Cada razao gera uma mensagem so (as `keys` evitam repeticao ao recarregar ou reprocessar um dia).
   const empurrarInbox = (novas: MensagemInbox[]) => {
@@ -2061,6 +2089,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       inboxVistas: Array.from(vistasRef.current),
       negociacoes,
       mercado,
+      managers: managerState,
       motor3d,
       saveDate: new Date().toISOString()
     };
@@ -2148,6 +2177,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else { setWorld(null); setComps(null); }
         setTeams(tm);
         setPlayers(pl);
+        setManagerState(data.managers || null);   // save antigo, sem treinadores: o efeito semeia a partir da base
         setBase(data.base || null);   // save antigo, sem base: o motor gera as bases
         // As chaves ja emitidas: as do save (inboxVistas) mais as das mensagens que ainda la estao (saves antigos).
         vistasRef.current = new Set<string>([...(data.inboxVistas || []), ...(data.inbox || []).flatMap((m: any) => (m.keys || []) as string[])] as string[]);
@@ -2172,7 +2202,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <GameContext.Provider value={{
-      teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
+      managerState, teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
       hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, decisaoDoJogoDeHoje, guardarPenaltis3d, scheduleActivity, saveGame, importGameData, loadId, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, avisoGoleiro, avisoGoleiroMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
