@@ -23,6 +23,7 @@ import { slotsVazios } from '../textSim/escalacao';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
+import { estiloPorPosicao } from '../textSim/playStyleFallback';
 import { PLAYSTYLE_AJUSTES } from '../textSim/playStylesAjustes';
 import { FaseZona, ZONAS, postosEfetivos, espelharFase, espelharZona, zonaEspelhada, repor, moverPosto, formacaoTemTabela, temAjustes } from '../textSim/formacoesZonas';
 
@@ -201,7 +202,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     PLAYSTYLE_AJUSTES[`${userTeam.name}|${p.name}`]
     || (p.playStyle && p.playStyle !== 'None' ? p.playStyle : undefined)
     || PLAYSTYLE_DA_BASE[p.id]
-    || (Object.keys(PLAYSTYLE_POSITIONS) as PlayStyle[]).find(st => st !== 'None' && PLAYSTYLE_POSITIONS[st].includes(p.position))
+    || estiloPorPosicao(p)
     || 'Creative Playmaker'
   );
   // O icone do Playing Style nos cards do banco e do squad pool (so com o botao Playing Styles ligado).

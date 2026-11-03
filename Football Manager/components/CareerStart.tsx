@@ -149,13 +149,13 @@ export const CareerOffers: React.FC<{ managerName: string; onSelectTeam: (teamId
                     <div className={`${painel} px-0 py-1`}>
                       <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-0 px-2">Kits</div>
                       <div className="flex flex-wrap justify-center gap-y-2">
-                        {([0, 1, 2] as const).map(k => <TeamKit key={k} team={c} kitIndex={k} className="w-[95px] h-[122px]" showLabel number={10} />)}
-                        <TeamKit team={c} gk className="w-[95px] h-[122px]" showLabel number={1} />
+                        {([0, 1, 2] as const).map(k => <TeamKit key={k} team={c} kitIndex={k} className="w-[66px] h-[85px]" showLabel number={10} />)}
+                        <TeamKit team={c} gk className="w-[66px] h-[85px]" showLabel number={1} />
                       </div>
                     </div>
                     <div className={`${painel} p-3`}>
                       <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-2">Key players ({sel.elenco.length})</div>
-                      {sel.elenco.slice(0, 6).map(p => (
+                      {sel.elenco.slice(0, 5).map(p => (
                         <div key={p.id} className="flex items-center justify-between text-sm py-0.5 gap-2">
                           <PlayerFace playerId={p.id} camisa={c.homeKit?.color1 || c.primaryColor} className="w-[49px] h-[49px] shrink-0 rounded-lg overflow-hidden bg-black/30 border border-white/20" />
                           <span className="font-bold text-white truncate flex-1 min-w-0">{p.name}</span>

@@ -14,6 +14,7 @@ import { estrelasDoJogador, potencialVisivel } from '../textSim/youth';
 import { atributos3d } from '../textSim/atributos3d';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
+import { estiloPorPosicao } from '../textSim/playStyleFallback';
 import { PLAYSTYLE_AJUSTES } from '../textSim/playStylesAjustes';
 
 const MoraleArrow = ({ morale }: { morale: number }) => {
@@ -102,7 +103,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
     PLAYSTYLE_AJUSTES[`${userTeam.name}|${p.name}`]
     || (p.playStyle && p.playStyle !== 'None' ? p.playStyle : undefined)
     || PLAYSTYLE_DA_BASE[p.id]
-    || (Object.keys(PLAYSTYLE_POSITIONS) as PlayStyle[]).find(st => st !== 'None' && PLAYSTYLE_POSITIONS[st].includes(p.position))
+    || estiloPorPosicao(p)
     || 'Creative Playmaker'
   );
 

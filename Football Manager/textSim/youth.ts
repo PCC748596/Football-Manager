@@ -146,6 +146,21 @@ export const escolherPlayStyle = (pos: Position, a: Record<Attr, number>, atual?
   return melhor;
 };
 
+/**
+ * SORTEIA o PlayStyle entre os que servem a posicao, com mais chance para os que combinam com os atributos (peso exp((encaixe - melhor) / 8)).
+ * Para os jogadores GERADOS: `escolherPlayStyle` devolve sempre o melhor encaixe, e com atributos sorteados quase todos da mesma posicao caiam no mesmo estilo.
+ * `rnd` e injectavel (semente do jogador: o mesmo jogador da sempre o mesmo estilo).
+ */
+export const sortearPlayStyle = (pos: Position, a: Record<Attr, number>, rnd: Rnd): PlayStyle => {
+  const candidatos = (Object.keys(PLAYSTYLE_POSITIONS) as PlayStyle[]).filter(s => s !== 'None' && PLAYSTYLE_POSITIONS[s].includes(pos) && PESOS_ESTILO[s]);
+  if (!candidatos.length) return 'None';
+  const notas = candidatos.map(s => encaixe(s, a)), melhor = Math.max(...notas);
+  const pesos = notas.map(n => Math.exp((n - melhor) / 8));
+  let r = rnd() * pesos.reduce((x, y) => x + y, 0);
+  for (let i = 0; i < candidatos.length; i++) { r -= pesos[i]; if (r <= 0) return candidatos[i]; }
+  return candidatos[candidatos.length - 1];
+};
+
 // Teto de OVR por idade: ninguem na base passa de 75 (aos 20); proporcional para os mais novos.
 const OVR_MAX_IDADE: Record<number, number> = { 15: 58, 16: 63, 17: 67, 18: 70, 19: 73, 20: 75 };
 const ovrMaxDaIdade = (idade: number) => OVR_MAX_IDADE[Math.max(IDADE_MIN, Math.min(IDADE_MAX, idade))];

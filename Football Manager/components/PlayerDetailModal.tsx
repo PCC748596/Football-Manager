@@ -9,6 +9,7 @@ import { AttributeGrowthArrow } from './SquadView';
 import { PlayerFace } from './PlayerFace';
 import { ContractPanel } from './ContractPanel';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
+import { estiloPorPosicao } from '../textSim/playStyleFallback';
 import { atributos3d, campo3d, paisDoJogador } from '../textSim/atributos3d';
 import { peBomDe } from '../textSim/peBom';
 import { potencialVisivel, estrelasDoJogador } from '../textSim/youth';
@@ -185,7 +186,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
     const daBase = (team ? PLAYSTYLE_AJUSTES[`${team.name}|${player.name}`] : undefined)
       || (player.playStyle && player.playStyle !== 'None' ? player.playStyle : undefined)   // o estilo definido pela base Sub-20 (a partir dos 18 anos)
       || PLAYSTYLE_DA_BASE[player.id]
-      || (Object.keys(PLAYSTYLE_POSITIONS) as PlayStyle[]).find(s => s !== 'None' && PLAYSTYLE_POSITIONS[s].includes(player.position))
+      || estiloPorPosicao(player)
       || 'Creative Playmaker';
     return [{ icon: ICONE_DO_ESTILO[daBase] || '💡', name: daBase, descricao: PLAYSTYLE_DESCRICAO[daBase as PlayStyle] || '' }];
   }, [player, team]);

@@ -2,19 +2,30 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { CategoriaInbox, MensagemInbox } from '../textSim/inbox';
 
-// Bola de linha (SVG, herda a cor do texto): o icone da categoria Jogos, no lugar do emoji.
-const IconeJogo = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="inline-block w-[1em] h-[1em] align-[-0.125em]" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8l3.5 2.5-1.3 4h-4.4l-1.3-4z" /><path d="M12 8V3M15.5 10.5l4.7-1.5M14.2 14.5l3 4M9.8 14.5l-3 4M8.5 10.5L3.800 9" /></svg>;
+// Icones de linha (SVG, herdam a cor do texto; o mesmo padrao dos icones de treino): um por categoria.
+const ic = (forma: React.ReactNode) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="inline-block w-[1em] h-[1em] align-[-0.125em]" aria-hidden="true">{forma}</svg>;
+const ICONES: Record<CategoriaInbox, React.ReactNode> = {
+  WELCOME: ic(<><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2.5 4 2.5S16 14 16 14" /><path d="M9 9.5h.01M15 9.5h.01" /></>),
+  BOARD: ic(<><path d="M3 10l9-6 9 6" /><path d="M5 10v9M9.7 10v9M14.3 10v9M19 10v9" /><path d="M3 21h18" /></>),
+  TRAINING: ic(<><path d="M6.5 6.5v11M17.5 6.5v11" /><path d="M3 9v6M21 9v6" /><path d="M6.5 12h11" /></>),
+  MATCH: ic(<><circle cx="12" cy="12" r="9" /><path d="M12 8l3.5 2.5-1.3 4h-4.4l-1.3-4z" /><path d="M12 8V3M15.5 10.5l4.7-1.5M14.2 14.5l3 4M9.8 14.5l-3 4M8.5 10.5L3.8 9" /></>),
+  SCOUTING: ic(<><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5L21 21" /></>),
+  FINANCE: ic(<><rect x="3" y="6" width="18" height="12" rx="2" /><circle cx="12" cy="12" r="2.8" /><path d="M6.5 12h.01M17.5 12h.01" /></>),
+  TRANSFER: ic(<><path d="M4 8h14" /><path d="M14 4l4 4-4 4" /><path d="M20 16H6" /><path d="M10 12l-4 4 4 4" /></>),
+  CONTRACT: ic(<><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /><path d="M9 13h6M9 17h4" /></>),
+  SQUAD: ic(<><circle cx="9" cy="8" r="3" /><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5" /><circle cx="17" cy="9" r="2.4" /><path d="M16 15.2c3 0 5 1.8 5 4.8" /></>)
+};
 
 const CATEGORIAS: Record<CategoriaInbox, { icone: React.ReactNode; en: string; pt: string; cor: string }> = {
-  WELCOME: { icone: '👋', en: 'Welcome', pt: 'Boas-vindas', cor: 'text-sky-400' },
-  BOARD: { icone: '🏛️', en: 'Board', pt: 'Diretoria', cor: 'text-sky-400' },
-  TRAINING: { icone: '🏋️', en: 'Training', pt: 'Treino', cor: 'text-emerald-400' },
-  MATCH: { icone: IconeJogo, en: 'Matches', pt: 'Jogos', cor: 'text-blue-400' },
-  SCOUTING: { icone: '🔭', en: 'Scouting', pt: 'Olheiros', cor: 'text-violet-400' },
-  FINANCE: { icone: '💰', en: 'Finance', pt: 'Finanças', cor: 'text-amber-400' },
-  TRANSFER: { icone: '🔄', en: 'Transfers', pt: 'Negociações', cor: 'text-pink-400' },
-  CONTRACT: { icone: '📝', en: 'Contracts', pt: 'Contratos', cor: 'text-rose-400' },
-  SQUAD: { icone: '👥', en: 'Squad', pt: 'Elenco', cor: 'text-teal-400' }
+  WELCOME: { icone: ICONES.WELCOME, en: 'Welcome', pt: 'Boas-vindas', cor: 'text-sky-400' },
+  BOARD: { icone: ICONES.BOARD, en: 'Board', pt: 'Diretoria', cor: 'text-sky-400' },
+  TRAINING: { icone: ICONES.TRAINING, en: 'Training', pt: 'Treino', cor: 'text-emerald-400' },
+  MATCH: { icone: ICONES.MATCH, en: 'Matches', pt: 'Jogos', cor: 'text-blue-400' },
+  SCOUTING: { icone: ICONES.SCOUTING, en: 'Scouting', pt: 'Olheiros', cor: 'text-violet-400' },
+  FINANCE: { icone: ICONES.FINANCE, en: 'Finance', pt: 'Finanças', cor: 'text-amber-400' },
+  TRANSFER: { icone: ICONES.TRANSFER, en: 'Transfers', pt: 'Negociações', cor: 'text-pink-400' },
+  CONTRACT: { icone: ICONES.CONTRACT, en: 'Contracts', pt: 'Contratos', cor: 'text-rose-400' },
+  SQUAD: { icone: ICONES.SQUAD, en: 'Squad', pt: 'Elenco', cor: 'text-teal-400' }
 };
 const ABA_ROTULO: Record<string, { en: string; pt: string }> = {
   DASHBOARD: { en: 'Home', pt: 'Início' }, SQUAD: { en: 'Squad', pt: 'Elenco' }, LEAGUE: { en: 'Standings', pt: 'Tabela' }, FINANCES: { en: 'Finance', pt: 'Finanças' },
@@ -22,6 +33,9 @@ const ABA_ROTULO: Record<string, { en: string; pt: string }> = {
 };
 
 const dataCurta = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+
+// A renovacao de contratos fica nas Financas: as mensagens de contrato ja gravadas num save (com destino Squad) tambem levam para la.
+const destinoDe = (m: MensagemInbox) => (m.categoria === 'CONTRACT' && m.ir === 'SQUAD') ? 'FINANCES' : m.ir;
 
 interface Props { setView: (v: any) => void; }
 
@@ -80,7 +94,7 @@ const InboxView: React.FC<Props> = ({ setView }) => {
           {lista.map(m => (
             <div key={m.id} role="button" tabIndex={0} onClick={() => setSelId(m.id)} onKeyDown={e => { if (e.key === 'Enter') setSelId(m.id); }}
               className={`group w-full text-left px-4 py-3 border-b border-slate-200 dark:border-slate-800/60 border-l-4 flex gap-3 items-start transition-colors cursor-pointer ${m.lida ? 'border-l-transparent opacity-60 hover:opacity-100' : 'border-l-blue-500 bg-blue-500/10'} ${selId === m.id ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
-              <div className={`text-xl leading-none mt-0.5 ${m.lida ? 'grayscale' : ''}`}>{CATEGORIAS[m.categoria].icone}</div>
+              <div className={`text-2xl leading-none mt-0.5 ${m.lida ? 'text-slate-500' : CATEGORIAS[m.categoria].cor}`}>{CATEGORIAS[m.categoria].icone}</div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   {!m.lida && <span className="text-[9px] font-black uppercase tracking-wider bg-blue-500 text-white px-1.5 py-0.5 rounded shrink-0">{pt ? 'Nova' : 'New'}</span>}
@@ -114,8 +128,8 @@ const InboxView: React.FC<Props> = ({ setView }) => {
               <div className="mt-4 text-base leading-relaxed text-slate-700 dark:text-slate-200 whitespace-pre-line">{sel.corpo}</div>
               <div className="mt-auto pt-6 flex gap-3">
                 {sel.ir && (
-                  <button onClick={() => setView(sel.ir)} className="bg-blue-600 hover:bg-blue-500 text-white font-black px-5 py-2.5 rounded text-xs uppercase tracking-widest transition-colors">
-                    {pt ? 'Abrir' : 'Open'} {ABA_ROTULO[sel.ir] ? (pt ? ABA_ROTULO[sel.ir].pt : ABA_ROTULO[sel.ir].en) : ''}
+                  <button onClick={() => setView(destinoDe(sel))} className="bg-blue-600 hover:bg-blue-500 text-white font-black px-5 py-2.5 rounded text-xs uppercase tracking-widest transition-colors">
+                    {pt ? 'Abrir' : 'Open'} {ABA_ROTULO[destinoDe(sel)] ? (pt ? ABA_ROTULO[destinoDe(sel)].pt : ABA_ROTULO[destinoDe(sel)].en) : ''}
                   </button>
                 )}
                 <button onClick={() => { const i = lista.findIndex(m => m.id === sel.id); deleteInbox([sel.id]); setSelId(lista[i + 1]?.id || lista[i - 1]?.id || null); }}

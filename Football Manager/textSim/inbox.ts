@@ -146,7 +146,7 @@ export const avisosDoDia = (e: EntradaAvisos, vistas: Set<string> = new Set()): 
     const critico = estado === 'CRITICO';
     const linhas = lista.map(p => `• ${p.name} (${p.position}, OVR ${p.skill}) — ${l === 'PT' ? 'vence em' : 'expires'} ${dataLonga(p.contract!.end, l)}`).join('\n');
     out.push(criar({
-      keys: lista.map(p => `contract|${estado}|${p.id}`), date: hoje, categoria: 'CONTRACT', alta: critico, ir: 'SQUAD', de: L(l, 'Director of Football', 'Diretor de Futebol'),
+      keys: lista.map(p => `contract|${estado}|${p.id}`), date: hoje, categoria: 'CONTRACT', alta: critico, ir: 'FINANCES', de: L(l, 'Director of Football', 'Diretor de Futebol'),
       assunto: critico ? L(l, `Critical: ${lista.length} contract(s) end within 6 months`, `Crítico: ${lista.length} contrato(s) terminam em até 6 meses`) : L(l, `${lista.length} contract(s) end within 12 months`, `${lista.length} contrato(s) terminam em até 12 meses`),
       corpo: `${linhas}\n\n${critico ? L(l, 'Renew now or sell: when the contract ends the player leaves for free.', 'Renove agora ou venda: ao fim do contrato o jogador sai de graça.') : L(l, 'Negotiate a renewal, or consider selling while he still has market value.', 'Negocie a renovação ou considere vender enquanto ele ainda tem valor de mercado.')}`
     }));
@@ -239,12 +239,12 @@ export const avisoDePremiacao = (hoje: string, lang: Idioma, key: string, copa: 
   return criar({ keys: [key], date: hoje, categoria: 'FINANCE', ir: 'FINANCES', de: L(lang, 'Finance Director', 'Diretor Financeiro'),
     assunto: L(lang, `${copa}: prize money of ${valor}`, `${copa}: premiação de ${valor}`), corpo: L(lang, `The club received ${valor} from ${copa} for ${motivo}.`, `O clube recebeu ${valor} da ${copa} por ${motivo}.`) });
 };
-export const avisoDeRenovacao = (hoje: string, lang: Idioma, p: Player): MensagemInbox => criar({ keys: [], date: hoje, categoria: 'CONTRACT', ir: 'SQUAD', de: L(lang, 'Director of Football', 'Diretor de Futebol'),
+export const avisoDeRenovacao = (hoje: string, lang: Idioma, p: Player): MensagemInbox => criar({ keys: [], date: hoje, categoria: 'CONTRACT', ir: 'FINANCES', de: L(lang, 'Director of Football', 'Diretor de Futebol'),
   assunto: L(lang, `Contract renewed: ${p.name}`, `Contrato renovado: ${p.name}`), corpo: p.contract ? L(lang, `${p.name} signed a new contract until ${dataLonga(p.contract.end, lang)} (${p.contract.years} years).`, `${p.name} assinou novo contrato até ${dataLonga(p.contract.end, lang)} (${p.contract.years} anos).`) : '' });
 export const avisoDePromocao = (hoje: string, lang: Idioma, p: Player): MensagemInbox => criar({ keys: [], date: hoje, categoria: 'SQUAD', ir: 'SQUAD', de: L(lang, 'Head of Scouting', 'Chefe de Olheiros'),
   assunto: L(lang, `Promoted from the academy: ${p.name}`, `Promovido da base: ${p.name}`), corpo: L(lang, `${p.name} (${p.position}, OVR ${p.skill}, ${p.age}) joined the first team. A new youngster will fill the academy spot.`, `${p.name} (${p.position}, OVR ${p.skill}, ${p.age}) subiu ao time principal. Um novo jovem ocupará a vaga na base.`) });
 export const avisoDeLiberados = (hoje: string, lang: Idioma, jogadores: Player[]): MensagemInbox[] => jogadores.map(p => criar({
-  keys: [`released|${p.id}|${p.contract?.end || hoje}`], date: hoje, categoria: 'CONTRACT', alta: true, ir: 'SQUAD', de: L(lang, 'Director of Football', 'Diretor de Futebol'),
+  keys: [`released|${p.id}|${p.contract?.end || hoje}`], date: hoje, categoria: 'CONTRACT', alta: true, ir: 'FINANCES', de: L(lang, 'Director of Football', 'Diretor de Futebol'),
   assunto: L(lang, `Contract expired: ${p.name} left the club`, `Contrato vencido: ${p.name} deixou o clube`),
   corpo: L(lang, `${p.name} (${p.position}, OVR ${p.skill}) was not renewed and is now a free agent.`, `${p.name} (${p.position}, OVR ${p.skill}) não foi renovado e agora é jogador livre.`) }));
 export const avisoDeSaidaDaBase = (hoje: string, lang: Idioma, jogadores: Player[]): MensagemInbox[] => jogadores.map(p => criar({
@@ -254,12 +254,12 @@ export const avisoDeSaidaDaBase = (hoje: string, lang: Idioma, jogadores: Player
 
 // ------------------------------------------------------------------ negociacao de renovacao
 export const avisoDeNegociacaoIniciada = (hoje: string, lang: Idioma, p: Player, decide: string, salario: string, anos: number): MensagemInbox => criar({
-  keys: [], date: hoje, categoria: 'CONTRACT', ir: 'SQUAD', de: L(lang, 'Director of Football', 'Diretor de Futebol'),
+  keys: [], date: hoje, categoria: 'CONTRACT', ir: 'FINANCES', de: L(lang, 'Director of Football', 'Diretor de Futebol'),
   assunto: L(lang, `Negotiation: ${p.name} is analysing your offer`, `Negociação: ${p.name} está analisando sua proposta`),
   corpo: L(lang, `You offered ${p.name} ${salario} per week for ${anos} year(s). He will answer on ${dataLonga(decide, lang)}.`, `Você ofereceu a ${p.name} ${salario} por semana por ${anos} ano(s). Ele responde em ${dataLonga(decide, lang)}.`) });
 
 export const avisoDeRespostaRenovacao = (hoje: string, lang: Idioma, p: Player, aceitou: boolean, salario: string, anos: number): MensagemInbox => criar({
-  keys: [], date: hoje, categoria: 'CONTRACT', alta: !aceitou, ir: 'SQUAD', de: L(lang, 'Director of Football', 'Diretor de Futebol'),
+  keys: [], date: hoje, categoria: 'CONTRACT', alta: !aceitou, ir: 'FINANCES', de: L(lang, 'Director of Football', 'Diretor de Futebol'),
   assunto: aceitou ? L(lang, `${p.name} accepted the renewal`, `${p.name} aceitou a renovação`) : L(lang, `${p.name} rejected your offer`, `${p.name} recusou sua proposta`),
   corpo: aceitou
     ? L(lang, `${p.name} signed until ${p.contract ? dataLonga(p.contract.end, lang) : '-'} (${anos} year(s)) for ${salario} per week. His morale went up.`, `${p.name} assinou até ${p.contract ? dataLonga(p.contract.end, lang) : '-'} (${anos} ano(s)) por ${salario} por semana. A moral dele subiu.`)
