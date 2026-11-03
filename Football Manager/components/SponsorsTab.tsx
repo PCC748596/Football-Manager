@@ -36,7 +36,11 @@ const SponsorsTab: React.FC = () => {
     else if ('motivo' in r) setMsg({ ok: false, texto: MOTIVO[r.motivo] });
   };
 
-  const lista = PATROCINADORES.filter(p => p.regiao === regiao);
+  // Ativo e Disponivel primeiro, depois Contrato em vigor e Reputacao insuficiente; dentro de cada grupo, a ordem do banco (maior valor primeiro).
+  const ORDEM = { ATIVO: 0, DISPONIVEL: 1, INDISPONIVEL: 2, BLOQUEADO: 3 };
+  const lista = PATROCINADORES.filter(p => p.regiao === regiao)
+    .map((p, i) => ({ p, i, st: statusDoPatrocinador(reputacaoClube, p, atual, proximo, hoje) }))
+    .sort((x, y) => ORDEM[x.st] - ORDEM[y.st] || x.i - y.i);
   const aba = (r: RegiaoPatrocinio, rotulo: string) => (
     <button onClick={() => { setRegiao(r); setAberto(null); setMsg(null); }} className={`min-h-[44px] px-6 rounded font-black text-xs uppercase tracking-widest transition-all ${regiao === r ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}>{rotulo}</button>
   );
@@ -80,8 +84,7 @@ const SponsorsTab: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-        {lista.map(p => {
-          const st = statusDoPatrocinador(reputacaoClube, p, atual, proximo, hoje);
+        {lista.map(({ p, st }) => {
           const clicavel = st === 'DISPONIVEL';
           return (
             <button key={p.id} disabled={!clicavel} onClick={() => { setAberto(p); setAnos(1); setMsg(null); }}
