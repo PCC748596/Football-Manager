@@ -310,3 +310,12 @@ export const avisoDeFaixa = (hoje: string, lang: Idioma, key: string, clube: str
   return criar({ keys: [key], date: hoje, categoria: 'BOARD', de: L(lang, 'Chairman', 'Presidente'), alta: faixa === 'RISCO' || faixa === 'IMINENTE',
     assunto: L(lang, `${clube}: board confidence dropping`, `${clube}: a confiança da diretoria caiu`), corpo: L(lang, en, pt) });
 };
+
+// ------------------------------------------------------------------ patrocinio (textSim/patrocinadores.ts)
+export const avisoDeParcelaPatrocinio = (hoje: string, lang: Idioma, nome: string, parcelas: number, valor: string, key: string): MensagemInbox => criar({ keys: [key], date: hoje, categoria: 'FINANCE', ir: 'FINANCES', de: L(lang, 'Finance Director', 'Diretor Financeiro'),
+  assunto: L(lang, `Sponsorship payment received — ${nome}`, `Parcela de patrocínio recebida — ${nome}`),
+  corpo: L(lang, `${nome} paid ${parcelas > 1 ? `${parcelas} instalments` : 'the monthly instalment'}: ${valor} added to the club's cash.`, `${nome} pagou ${parcelas > 1 ? `${parcelas} parcelas` : 'a parcela mensal'}: ${valor} entraram no caixa do clube.`) });
+
+export const avisoDeFimPatrocinio = (hoje: string, lang: Idioma, nome: string, fim: string, key: string): MensagemInbox => criar({ keys: [key], date: hoje, categoria: 'FINANCE', alta: true, ir: 'FINANCES', de: L(lang, 'Finance Director', 'Diretor Financeiro'),
+  assunto: L(lang, `Sponsorship ending soon — ${nome}`, `Patrocínio perto do fim — ${nome}`),
+  corpo: L(lang, `The ${nome} contract ends on ${dataLonga(fim, lang)}. Open Finance → Sponsors to renew or choose another sponsor.`, `O contrato com ${nome} termina em ${dataLonga(fim, lang)}. Abra Finanças → Patrocinadores para renovar ou escolher outro patrocinador.`) });

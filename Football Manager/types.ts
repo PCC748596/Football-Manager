@@ -257,6 +257,8 @@ export interface Team {
   initialCapital?: number;
   initialTransfer?: number;
   sponsorAmount?: number;
+  sponsorContract?: import('./textSim/patrocinadores').ContratoPatrocinio;   // patrocinio principal ativo do clube do utilizador (ver textSim/patrocinadores.ts)
+  sponsorNext?: import('./textSim/patrocinadores').ContratoPatrocinio;       // renovacao/troca ja acordada: comeca quando o contrato atual termina
   fanBase?: number;
   avrAttendance?: number;
   stadiumOccupancy?: number;   // 0..1: a ocupacao-BASE do estadio (comeca em 60%, minimo 20%; ver textSim/stadiumEconomy.ts)

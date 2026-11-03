@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { adicionar, chavesDe, avisosDoDia, boasVindas, avisoDeLiberados, LIMITE_INBOX, EntradaAvisos, MensagemInbox } from '../textSim/inbox';
+import { adicionar, chavesDe, avisosDoDia, boasVindas, avisoDeLiberados, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, LIMITE_INBOX, EntradaAvisos, MensagemInbox } from '../textSim/inbox';
 import { processarContratos } from '../textSim/contracts';
 import { generateLeagueData } from '../textSim/dataGenerator';
 
@@ -112,4 +112,17 @@ test('simulacao de 2 anos com dados reais: sem enxurrada nem duplicacao', () => 
   console.log('mensagens em 2 anos:', inbox.length, JSON.stringify(porCat));
   assert.ok(inbox.length <= LIMITE_INBOX);
   assert.ok(inbox.every(m => m.corpo && m.assunto));
+});
+
+test('avisos do patrocinio: categoria FINANCE, chave propria, nos dois idiomas', () => {
+  for (const lang of ['EN', 'PT'] as const) {
+    const a = avisoDeParcelaPatrocinio('2024-05-01', lang, 'Banco Aurora', 1, '$240K', 'spons-pay|2024-05');
+    assert.equal(a.categoria, 'FINANCE');
+    assert.deepEqual(a.keys, ['spons-pay|2024-05']);
+    assert.ok(a.corpo.includes('Banco Aurora') && a.corpo.includes('$240K'));
+    const f = avisoDeFimPatrocinio('2025-02-01', lang, 'Banco Aurora', '2025-04-01', 'spons-end|2025-04-01');
+    assert.equal(f.categoria, 'FINANCE');
+    assert.equal(f.alta, true);
+    assert.deepEqual(f.keys, ['spons-end|2025-04-01']);
+  }
 });

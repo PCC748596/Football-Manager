@@ -8,7 +8,8 @@ import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, 
 import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disputaPendente, prepararCopas, ligaIdDoClube, teamKey } from '../textSim/competitions';
 import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
-import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa } from '../textSim/inbox';
+import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio } from '../textSim/inbox';
+import { PATROCINADORES, criarContrato, avaliarProposta, pagarParcelas, reputacaoDoClube, diasParaFim, JANELA_RENOVACAO_DIAS, type MotivoRecusa } from '../textSim/patrocinadores';
 import { ManagerState, semearTreinadores, atualizarTreinadores, aplicarTreinadores, registrosDosEventos, registrarNoDiario, declinarOferta } from '../textSim/managerExpectations';
 import { montarLigas } from '../textSim/managerLigas';
 import { regiaoDoClube } from '../textSim/dataGenerator';
@@ -213,6 +214,10 @@ interface GameContextType {
   negociacoes: Negociacao[];
   /** Faz a oferta de renovacao: aceitar a proposta do jogador assina na hora; mudar o salario ou os anos abre uma negociacao de 2-3 dias. */
   proporRenovacao: (playerId: string, oferta: Oferta) => 'ASSINADO' | 'EM_ANALISE' | 'BLOQUEADO';
+  /** Proposta de patrocinio principal (Finance > Sponsors): aceita pela reputacao do clube; na janela dos 60 dias finais vira renovacao (comeca no fim do contrato atual). */
+  proporPatrocinio: (sponsorId: string, anos: number) => { ok: true; renovacao: boolean } | { ok: false; motivo: MotivoRecusa };
+  /** Reputacao 0-100 do clube do utilizador (fanBase, tradicao e forca). */
+  reputacaoClube: number;
   /** O mercado de transferencias: estado (negociacoes, transacoes, historico) e as acoes do treinador. Cada acao devolve { ok, motivo }. */
   mercado: MercadoState;
   proporCompraMercado: (playerId: string, valor: number) => { ok: boolean; motivo?: string };
@@ -450,6 +455,47 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + total } : t));
     setInbox(prev => adicionar(prev, pend.map(p => avisoDePremiacao(p.data, gameState.language, p.key, NOME_DA_COPA[p.copa] || p.copa, p.razao, formatCurrency(p.usd)))));
   }, [comps]);
+
+  // PATROCINIO PRINCIPAL (textSim/patrocinadores.ts): reputacao do clube, proposta, parcelas mensais no caixa e fim do contrato (tudo por data).
+  const reputacaoClube = useMemo(() => (userTeam ? reputacaoDoClube(userTeam, teams) : 0), [userTeam?.id, userTeam?.fanBase, userTeam?.strength, teams.length]);
+  const proporPatrocinio = (sponsorId: string, anos: number): { ok: true; renovacao: boolean } | { ok: false; motivo: MotivoRecusa } => {
+    const p = PATROCINADORES.find(x => x.id === sponsorId);
+    if (!userTeam || !p) return { ok: false, motivo: 'REPUTACAO' };
+    const hoje = gameState.currentDate;
+    const r = avaliarProposta(reputacaoClube, p, userTeam.sponsorContract, userTeam.sponsorNext, anos, hoje);
+    if (!r.ok) return r;
+    const novo = criarContrato(p, anos, r.renovacao ? userTeam.sponsorContract!.fim : hoje);
+    setTeams(prev => prev.map(t => t.id === userTeam.id ? (r.renovacao ? { ...t, sponsorNext: novo } : { ...t, sponsorContract: novo }) : t));
+    return r;
+  };
+  useEffect(() => {
+    if (!userTeam) return;
+    const hoje = gameState.currentDate;
+    const c0 = userTeam.sponsorContract, n0 = userTeam.sponsorNext;
+    if (!c0 && !n0) return;
+    let c = c0, n = n0;
+    const avisos: MensagemInbox[] = [];
+    let usd = 0;
+    // 1) fim do contrato: entra o proximo (se houver) ou o clube fica sem patrocinador
+    if (c && c.fim <= hoje) { c = n; n = undefined; }
+    // 2) parcelas vencidas
+    if (c && c.inicio <= hoje) {
+      const r = pagarParcelas(c, hoje);
+      c = r.contrato;
+      if (r.parcelas > 0) {
+        usd = r.usd;
+        const nome = PATROCINADORES.find(x => x.id === c!.sponsorId)?.nome || '';
+        avisos.push(avisoDeParcelaPatrocinio(hoje, gameState.language, nome, r.parcelas, formatCurrency(usd), `spons-pay|${c.sponsorId}|${hoje.slice(0, 7)}`));
+      }
+    }
+    // 3) aviso dos 60 dias finais (so sem renovacao acordada)
+    if (c && !n && diasParaFim(c, hoje) <= JANELA_RENOVACAO_DIAS) {
+      const nome = PATROCINADORES.find(x => x.id === c!.sponsorId)?.nome || '';
+      avisos.push(avisoDeFimPatrocinio(hoje, gameState.language, nome, c.fim, `spons-end|${c.sponsorId}|${c.fim}`));
+    }
+    if (c !== c0 || n !== n0 || usd) setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, sponsorContract: c, sponsorNext: n, cash: t.cash + usd } : t));
+    if (avisos.length) setInbox(prev => adicionar(prev, avisos));
+  }, [gameState.currentDate, userTeam?.id, userTeam?.sponsorContract, userTeam?.sponsorNext]);
 
   // COTA DE PARTICIPACAO das Series C e D (a 1.a fase e a liga do jogo): paga no primeiro jogo da liga.
   useEffect(() => {
@@ -2238,7 +2284,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <GameContext.Provider value={{
       managerState, recusarOferta, teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
-      hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, decisaoDoJogoDeHoje, guardarPenaltis3d, scheduleActivity, saveGame, importGameData, loadId, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
+      hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, proporPatrocinio, reputacaoClube, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, decisaoDoJogoDeHoje, guardarPenaltis3d, scheduleActivity, saveGame, importGameData, loadId, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, avisoGoleiro, avisoGoleiroMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
       t,
