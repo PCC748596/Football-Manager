@@ -10,10 +10,14 @@ import { acharEntrada, percentis } from './tradicao';
 
 export type RegiaoPatrocinio = 'BRASIL' | 'INTERNATIONAL';
 export interface Patrocinador { id: string; nome: string; pais: string; cod: string; moeda: 'BRL' | 'EUR'; valorAnual: number; regiao: RegiaoPatrocinio; }
-export interface ContratoPatrocinio { sponsorId: string; anos: number; valorAnualUSD: number; inicio: string; fim: string; parcelasPagas: number; ultimoMes: string; }
+export interface ContratoPatrocinio { sponsorId: string; anos: number; valorAnualUSD: number; bonusPct?: number; inicio: string; fim: string; parcelasPagas: number; ultimoMes: string; }
 
 export const JANELA_RENOVACAO_DIAS = 60;
 export const ANOS_MIN = 1, ANOS_MAX = 4;
+/** Contrato mais longo paga menos por ano (o patrocinador ganha seguranca): 1 ano 100%, 2 anos 95%, 3 anos 90%, 4 anos 85% do valor de referencia. */
+export const FATOR_DURACAO: Record<number, number> = { 1: 1, 2: 0.95, 3: 0.9, 4: 0.85 };
+/** Valor anual em USD do jogo que a marca paga num contrato de `anos`. */
+export const valorAnualPara = (p: Patrocinador, anos: number): number => paraDolares(p.valorAnual, p.moeda) * (FATOR_DURACAO[anos] ?? 1);
 
 const slug = (nome: string) => nome.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 const BR = (nome: string, valorAnual: number): Patrocinador => ({ id: 'br-' + slug(nome), nome, pais: 'Brasil', cod: 'br', moeda: 'BRL', valorAnual, regiao: 'BRASIL' });
@@ -73,8 +77,12 @@ export const statusDoPatrocinador = (rep: number, p: Patrocinador, atual: Contra
 };
 
 const somaAnos = (iso: string, anos: number) => { const [y, m, d] = iso.split('-').map(Number); return `${y + anos}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`; };
+/** Bonus de competicao: percentual do premio que o clube recebe da organizacao, pago a mais pelo patrocinador; de 5% (marca menor) a 15% (marca maior). */
+export const bonusPctDaMarca = (p: Patrocinador): number => 0.05 + 0.10 * reputacaoMinima(p) / 90;
+export const bonusDeCompeticao = (c: ContratoPatrocinio | undefined, premioUsd: number, hoje: string): number =>
+  (c && c.inicio <= hoje && hoje < c.fim) ? Math.round(premioUsd * (c.bonusPct || 0)) : 0;
 export const criarContrato = (p: Patrocinador, anos: number, inicio: string): ContratoPatrocinio =>
-  ({ sponsorId: p.id, anos, valorAnualUSD: paraDolares(p.valorAnual, p.moeda), inicio, fim: somaAnos(inicio, anos), parcelasPagas: 0, ultimoMes: inicio.slice(0, 7) });
+  ({ sponsorId: p.id, anos, valorAnualUSD: valorAnualPara(p, anos), bonusPct: bonusPctDaMarca(p), inicio, fim: somaAnos(inicio, anos), parcelasPagas: 0, ultimoMes: inicio.slice(0, 7) });
 
 const mesesEntre = (a: string, b: string) => (Number(b.slice(0, 4)) - Number(a.slice(0, 4))) * 12 + (Number(b.slice(5, 7)) - Number(a.slice(5, 7)));
 

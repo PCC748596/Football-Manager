@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PATROCINADORES, reputacaoMinima, reputacaoDoClube, avaliarProposta, criarContrato, pagarParcelas, diasParaFim, statusDoPatrocinador } from '../textSim/patrocinadores';
+import { PATROCINADORES, valorAnualPara, bonusPctDaMarca, bonusDeCompeticao, FATOR_DURACAO, reputacaoMinima, reputacaoDoClube, avaliarProposta, criarContrato, pagarParcelas, diasParaFim, statusDoPatrocinador } from '../textSim/patrocinadores';
 import { paraDolares } from '../textSim/cambio';
 
 const time = (id: string, fanBase: number, strength: number) => ({ id, name: 'Clube ' + id, fanBase, strength }) as any;
@@ -61,7 +61,25 @@ test('contrato: valor em USD do jogo, fim = inicio + anos', () => {
   assert.equal(c.anos, 3);
   assert.equal(c.parcelasPagas, 0);
   assert.equal(c.ultimoMes, '2024-04');
-  assert.ok(Math.abs(c.valorAnualUSD - paraDolares(15_000_000, 'BRL')) < 1e-6);
+  assert.ok(Math.abs(c.valorAnualUSD - paraDolares(15_000_000, 'BRL') * 0.9) < 1e-6);
+});
+
+test('duracao muda o valor anual: 100% / 95% / 90% / 85%', () => {
+  const p = porNome('Banco Aurora'), base = paraDolares(15_000_000, 'BRL');
+  assert.deepEqual([1, 2, 3, 4].map(a => FATOR_DURACAO[a]), [1, 0.95, 0.9, 0.85]);
+  [1, 2, 3, 4].forEach(a => assert.ok(Math.abs(valorAnualPara(p, a) - base * FATOR_DURACAO[a]) < 1e-6));
+  assert.ok(valorAnualPara(p, 4) < valorAnualPara(p, 1));
+  assert.ok(Math.abs(criarContrato(p, 2, '2024-04-01').valorAnualUSD - base * 0.95) < 1e-6);
+});
+
+test('bonus de competicao: 5% a 15% do premio pela marca, so com contrato vigente', () => {
+  assert.ok(Math.abs(bonusPctDaMarca(porNome('EcoFuture')) - 0.05) < 1e-9);
+  assert.ok(Math.abs(bonusPctDaMarca(porNome('Banco Aurora')) - 0.15) < 1e-9);
+  const c = criarContrato(porNome('Banco Aurora'), 1, '2024-04-01');
+  assert.equal(bonusDeCompeticao(c, 1_000_000, '2024-09-01'), 150_000);
+  assert.equal(bonusDeCompeticao(c, 1_000_000, '2025-04-01'), 0);
+  assert.equal(bonusDeCompeticao(c, 1_000_000, '2024-03-01'), 0);
+  assert.equal(bonusDeCompeticao(undefined, 1_000_000, '2024-09-01'), 0);
 });
 
 test('parcelas: 1a no mes seguinte, idempotente no mesmo mes, 12 por ano, depois para', () => {

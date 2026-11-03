@@ -319,3 +319,7 @@ export const avisoDeParcelaPatrocinio = (hoje: string, lang: Idioma, nome: strin
 export const avisoDeFimPatrocinio = (hoje: string, lang: Idioma, nome: string, fim: string, key: string): MensagemInbox => criar({ keys: [key], date: hoje, categoria: 'FINANCE', alta: true, ir: 'FINANCES', de: L(lang, 'Finance Director', 'Diretor Financeiro'),
   assunto: L(lang, `Sponsorship ending soon — ${nome}`, `Patrocínio perto do fim — ${nome}`),
   corpo: L(lang, `The ${nome} contract ends on ${dataLonga(fim, lang)}. Open Finance → Sponsors to renew or choose another sponsor.`, `O contrato com ${nome} termina em ${dataLonga(fim, lang)}. Abra Finanças → Patrocinadores para renovar ou escolher outro patrocinador.`) });
+
+export const avisoDeBonusPatrocinio = (hoje: string, lang: Idioma, nome: string, valor: string, premioKeys: string[]): MensagemInbox => criar({ keys: premioKeys.map(k => `spons-bonus|${k}`), date: hoje, categoria: 'FINANCE', ir: 'FINANCES', de: L(lang, 'Finance Director', 'Diretor Financeiro'),
+  assunto: L(lang, `Sponsor bonus — ${nome}`, `Bônus do patrocinador — ${nome}`),
+  corpo: L(lang, `${nome} paid a competition bonus of ${valor} on top of the prize money.`, `${nome} pagou um bônus de competição de ${valor} além do prêmio recebido.`) });

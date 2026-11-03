@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { adicionar, chavesDe, avisosDoDia, boasVindas, avisoDeLiberados, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, LIMITE_INBOX, EntradaAvisos, MensagemInbox } from '../textSim/inbox';
+import { adicionar, chavesDe, avisosDoDia, boasVindas, avisoDeLiberados, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, avisoDeBonusPatrocinio, LIMITE_INBOX, EntradaAvisos, MensagemInbox } from '../textSim/inbox';
 import { processarContratos } from '../textSim/contracts';
 import { generateLeagueData } from '../textSim/dataGenerator';
 
@@ -124,5 +124,9 @@ test('avisos do patrocinio: categoria FINANCE, chave propria, nos dois idiomas',
     assert.equal(f.categoria, 'FINANCE');
     assert.equal(f.alta, true);
     assert.deepEqual(f.keys, ['spons-end|2025-04-01']);
+    const b = avisoDeBonusPatrocinio('2024-06-01', lang, 'Banco Aurora', '$90K', ['premio|lib|G']);
+    assert.equal(b.categoria, 'FINANCE');
+    assert.deepEqual(b.keys, ['spons-bonus|premio|lib|G']);
+    assert.ok(b.corpo.includes('$90K'));
   }
 });

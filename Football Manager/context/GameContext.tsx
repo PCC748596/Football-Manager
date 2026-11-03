@@ -8,8 +8,8 @@ import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, 
 import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disputaPendente, prepararCopas, ligaIdDoClube, teamKey } from '../textSim/competitions';
 import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
-import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio } from '../textSim/inbox';
-import { PATROCINADORES, criarContrato, avaliarProposta, pagarParcelas, reputacaoDoClube, diasParaFim, JANELA_RENOVACAO_DIAS, type MotivoRecusa } from '../textSim/patrocinadores';
+import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, avisoDeBonusPatrocinio } from '../textSim/inbox';
+import { PATROCINADORES, criarContrato, avaliarProposta, pagarParcelas, reputacaoDoClube, bonusDeCompeticao, diasParaFim, JANELA_RENOVACAO_DIAS, type MotivoRecusa } from '../textSim/patrocinadores';
 import { ManagerState, semearTreinadores, atualizarTreinadores, aplicarTreinadores, registrosDosEventos, registrarNoDiario, declinarOferta } from '../textSim/managerExpectations';
 import { montarLigas } from '../textSim/managerLigas';
 import { regiaoDoClube } from '../textSim/dataGenerator';
@@ -454,6 +454,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const total = pend.reduce((s, p) => s + p.usd, 0);
     setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + total } : t));
     setInbox(prev => adicionar(prev, pend.map(p => avisoDePremiacao(p.data, gameState.language, p.key, NOME_DA_COPA[p.copa] || p.copa, p.razao, formatCurrency(p.usd)))));
+    pagarBonusPatrocinio(pend);
   }, [comps]);
 
   // PATROCINIO PRINCIPAL (textSim/patrocinadores.ts): reputacao do clube, proposta, parcelas mensais no caixa e fim do contrato (tudo por data).
@@ -467,6 +468,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const novo = criarContrato(p, anos, r.renovacao ? userTeam.sponsorContract!.fim : hoje);
     setTeams(prev => prev.map(t => t.id === userTeam.id ? (r.renovacao ? { ...t, sponsorNext: novo } : { ...t, sponsorContract: novo }) : t));
     return r;
+  };
+  /** Bonus do patrocinador por competicao: um percentual (5% a 15%, pela marca) de cada premio pago ao clube, so enquanto o contrato esta vigente. */
+  const pagarBonusPatrocinio = (premios: { key: string; usd: number; data: string }[]) => {
+    if (!userTeam?.sponsorContract) return;
+    const c = userTeam.sponsorContract;
+    const total = premios.reduce((s, p) => s + bonusDeCompeticao(c, p.usd, p.data), 0);
+    if (total <= 0) return;
+    const nome = PATROCINADORES.find(x => x.id === c.sponsorId)?.nome || '';
+    setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + total } : t));
+    setInbox(prev => adicionar(prev, [avisoDeBonusPatrocinio(premios[0].data, gameState.language, nome, formatCurrency(total), premios.map(p => p.key))]));
   };
   useEffect(() => {
     if (!userTeam) return;
@@ -507,6 +518,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     premiosPagos.current.add(p.key);
     setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + p.usd } : t));
     setInbox(prev => adicionar(prev, [avisoDePremiacao(p.data, gameState.language, p.key, NOME_DA_COPA[p.copa as string], p.razao, formatCurrency(p.usd))]));
+    pagarBonusPatrocinio([p]);
   }, [fixtures]);
 
   // PREMIACAO DO CAMPEONATO (textSim/premiacoes.json, `ligas`): paga pela posicao final quando todos os jogos da liga do utilizador acabam.
@@ -521,6 +533,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     premiosPagos.current.add(p.key);
     setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + p.usd } : t));
     setInbox(prev => adicionar(prev, [avisoDePremiacao(p.data, gameState.language, p.key, NOME_DA_COPA[p.copa as string], p.razao, formatCurrency(p.usd))]));
+    pagarBonusPatrocinio([p]);
   }, [fixtures]);
 
   // MERCADO DE TREINADORES: a cada jogo novo (do utilizador ou do mundo) atualiza confianca, demissoes e, no fim das ligas, reputacao e ofertas. Idempotente (ver `atualizarTreinadores`).
