@@ -1129,6 +1129,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               // Ajusta moral baseado na nota
               if (rating >= 8.5) p.morale = Math.min(100, p.morale + 10);
               else if (rating >= 7.5) p.morale = Math.min(100, p.morale + 5);
+              else if (rating > 7.0) p.morale = Math.min(100, p.morale + 2);   // acima de 7,0 ja ganha moral
               else if (rating <= 4.0) p.morale = Math.max(0, p.morale - 10);
               else if (rating <= 5.5) p.morale = Math.max(0, p.morale - 5);
               updated = true;
