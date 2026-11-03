@@ -72,7 +72,7 @@ interface SquadViewProps {
 }
 
 const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatchDay }) => {
-  const { players, userTeam, fixtures, gameState, swapShirtNumbers, formatCurrencyShort, advanceDay, t } = useGame();
+  const { players, userTeam, fixtures, gameState, swapShirtNumbers, advanceDay, t } = useGame();
   const [draggingPlayerId, setDraggingPlayerId] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [aba, setAba] = useState<'MAIN' | 'U20'>('MAIN');
@@ -110,7 +110,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
   // (a coluna `pos` ordena por ORDEM_POS: goleiro, defesa, meio-campo, ataque — nao alfabetica)
   const VALOR_DA_COLUNA: Record<string, (p: Player) => number | string> = {
     num: p => p.shirtNumber, pos: p => ORDEM_POS[p.position] ?? 99, name: p => p.name, age: p => p.age, ovr: p => p.skill, pot: p => potencialVisivel(p), fit: p => p.fitness, mor: p => p.morale,
-    def: p => atributos3d(p).tec, pas: p => atributos3d(p).tac, drb: p => atributos3d(p).men, sht: p => atributos3d(p).fis, style: p => estiloDoJogador(p), val: p => p.value,
+    def: p => atributos3d(p).tec, pas: p => atributos3d(p).tac, drb: p => atributos3d(p).men, sht: p => atributos3d(p).fis, style: p => estiloDoJogador(p),
     contract: p => (p.contract ? p.contract.end : '9999-99-99')   // o que vence primeiro vem primeiro
   };
   const comparar = (a: Player, b: Player) => {
@@ -193,7 +193,6 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('drb')} title="Mental: aggression, reactions, composure, consistency">MEN{seta('drb')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('sht')} title="Physical: pace, acceleration, agility, jumping, strength, stamina, balance">FIS{seta('sht')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('style')}>Style{seta('style')}</th>
-                   <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('val')}>Val{seta('val')}</th>
                  </tr>
                </thead>
                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30 transition-colors">
@@ -279,9 +278,6 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                       </td>
                      <td className="px-2 py-[6.5px] text-center text-xs font-bold transition-colors">
                         <span title={'Playing Style: ' + estiloDoJogador(p)} className="inline-flex items-center justify-center" style={{ width: 24, height: 24 }}><IconePlayStyleSvg estilo={estiloDoJogador(p)} tam={24} /></span>
-                     </td>
-                     <td className="px-4 py-[6.5px] text-right text-emerald-600 dark:text-emerald-400 text-[11px] font-black tracking-tight font-mono transition-colors">
-                       {formatCurrencyShort(p.value)}
                      </td>
                    </tr>
                  )})}
