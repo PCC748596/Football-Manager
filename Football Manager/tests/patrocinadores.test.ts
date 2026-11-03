@@ -20,11 +20,12 @@ test('banco: 50 patrocinadores, 25 por regiao, ids unicos, valores do spec', () 
   assert.equal(porNome('EcoFuture Global').valorAnual, 1_000_000);
 });
 
-test('reputacao minima: 90 no topo de cada regiao, 0 no menor', () => {
+test('reputacao minima: 90 no topo; menor marca exige 0 no Brasil e 50 nas internacionais', () => {
   assert.equal(reputacaoMinima(porNome('Banco Aurora')), 90);
   assert.equal(reputacaoMinima(porNome('EcoFuture')), 0);
   assert.equal(reputacaoMinima(porNome('Global Finance')), 90);
-  assert.equal(reputacaoMinima(porNome('EcoFuture Global')), 0);
+  assert.equal(reputacaoMinima(porNome('EcoFuture Global')), 50);
+  assert.ok(PATROCINADORES.filter(p => p.regiao === 'INTERNATIONAL').every(p => reputacaoMinima(p) >= 50));
   assert.ok(reputacaoMinima(porNome('PrimeBank')) > reputacaoMinima(porNome('SportLine')));
 });
 
@@ -74,6 +75,7 @@ test('duracao muda o valor anual: 100% / 95% / 90% / 85%', () => {
 
 test('bonus de competicao: 5% a 15% do premio pela marca, so com contrato vigente', () => {
   assert.ok(Math.abs(bonusPctDaMarca(porNome('EcoFuture')) - 0.05) < 1e-9);
+  assert.ok(Math.abs(bonusPctDaMarca(porNome('EcoFuture Global')) - 0.05) < 1e-9);
   assert.ok(Math.abs(bonusPctDaMarca(porNome('Banco Aurora')) - 0.15) < 1e-9);
   const c = criarContrato(porNome('Banco Aurora'), 1, '2024-04-01');
   assert.equal(bonusDeCompeticao(c, 1_000_000, '2024-09-01'), 150_000);

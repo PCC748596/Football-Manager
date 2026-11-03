@@ -38,11 +38,17 @@ export const PATROCINADORES: Patrocinador[] = [
   EX('EcoFuture Global', 'Suécia', 'se', 1),
 ];
 
-/** Reputacao minima do clube: 90 no patrocinador de maior valor da regiao, 0 no de menor, linear pelo ranking. */
-export const reputacaoMinima = (p: Patrocinador): number => {
+/** Posicao da marca no ranking de valor da sua regiao: 1 = a de maior valor, 0 = a de menor. */
+const posicaoNoRanking = (p: Patrocinador): number => {
   const regiao = PATROCINADORES.filter(x => x.regiao === p.regiao).sort((a, b) => paraDolares(b.valorAnual, b.moeda) - paraDolares(a.valorAnual, a.moeda));
-  const i = regiao.findIndex(x => x.id === p.id);
-  return Math.round(90 * (1 - i / (regiao.length - 1)));
+  return 1 - regiao.findIndex(x => x.id === p.id) / (regiao.length - 1);
+};
+
+/** Reputacao minima do clube: 90 na marca de maior valor da regiao, linear pelo ranking ate a de menor valor (0 no Brasil, 50 nas internacionais). */
+export const REPUTACAO_BASE: Record<RegiaoPatrocinio, number> = { BRASIL: 0, INTERNATIONAL: 50 };
+export const reputacaoMinima = (p: Patrocinador): number => {
+  const base = REPUTACAO_BASE[p.regiao];
+  return Math.round(base + (90 - base) * posicaoNoRanking(p));
 };
 
 /** Reputacao 0-100 do clube: fanBase (0,4) + tradicao (0,3) + forca (0,3), percentis entre `todos`. Clube sem entrada de tradicao usa o percentil da torcida. */
@@ -78,7 +84,7 @@ export const statusDoPatrocinador = (rep: number, p: Patrocinador, atual: Contra
 
 const somaAnos = (iso: string, anos: number) => { const [y, m, d] = iso.split('-').map(Number); return `${y + anos}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`; };
 /** Bonus de competicao: percentual do premio que o clube recebe da organizacao, pago a mais pelo patrocinador; de 5% (marca menor) a 15% (marca maior). */
-export const bonusPctDaMarca = (p: Patrocinador): number => 0.05 + 0.10 * reputacaoMinima(p) / 90;
+export const bonusPctDaMarca = (p: Patrocinador): number => 0.05 + 0.10 * posicaoNoRanking(p);
 export const bonusDeCompeticao = (c: ContratoPatrocinio | undefined, premioUsd: number, hoje: string): number =>
   (c && c.inicio <= hoje && hoje < c.fim) ? Math.round(premioUsd * (c.bonusPct || 0)) : 0;
 export const criarContrato = (p: Patrocinador, anos: number, inicio: string): ContratoPatrocinio =>
