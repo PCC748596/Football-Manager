@@ -183,3 +183,106 @@ export const processarRodada = (estado: ManagerState, ligas: LigaSnap[]): { esta
   }
   return { estado: garantirPool({ ...estado, managers }), eventos };
 };
+
+/** Contexto de todos os clubes das ligas (para as ofertas): liga, nome, forca e exigencia de cada clube. */
+const contextoDeClubes = (ligas: LigaSnap[]) => {
+  const liga: Record<string, string> = {}, nome: Record<string, string> = {}, forca: Record<string, number> = {}, exig: Record<string, number> = {};
+  for (const l of ligas) {
+    const ajustes = ajustesDeTradicao(l.times);
+    for (const t of l.times) {
+      const k = teamKey(l.leagueId, t.id);
+      liga[k] = l.leagueId; nome[k] = t.name; forca[k] = t.strength; exig[k] = exigenciaDoNivel(nivelDoClube(t.strength, ajustes[t.id] ?? 0));
+    }
+  }
+  return { liga, nome, forca, exig };
+};
+
+/**
+ * Fim da liga (uma vez por liga): reputacao, confianca final, demissao dos que merecem e, com todas as ligas fechadas ate agora, as ofertas de emprego:
+ * um clube precisa de treinador se a confianca do dele esta abaixo de 40 ou se a reputacao esta `lacunaReputacao` abaixo da exigencia; convida o melhor compativel
+ * (reputacao perto da exigencia, confianca alta) de um clube MENOR. A IA aceita conforme a melhora; o utilizador recebe uma oferta pendente.
+ */
+export const fecharTemporadas = (estado: ManagerState, ligas: LigaSnap[], hoje: string): { estado: ManagerState; eventos: EventoMgr[] } => {
+  const fechadasAgora = ligas.filter(l => l.encerrada && l.tabela.length > 1 && !estado.fechadas.includes(l.leagueId));
+  if (!fechadasAgora.length) return { estado, eventos: [] };
+  const managers = { ...estado.managers };
+  const porClube = indicePorClube(managers);
+  const eventos: EventoMgr[] = [];
+  const ctx = contextoDeClubes(ligas);
+  for (const liga of fechadasAgora) {
+    const n = liga.tabela.length;
+    const ajustes = ajustesDeTradicao(liga.times);
+    liga.tabela.forEach((row, i) => {
+      const k = teamKey(liga.leagueId, row.team.id);
+      const m = managers[porClube[k]];
+      if (!m || !row.played) return;
+      const pos = i + 1, nivel = nivelDoClube(row.team.strength, ajustes[row.team.id] ?? 0), alvoPos = posicaoAlvo(nivel, n, liga.rebaixados);
+      const campeao = pos === 1, promovido = liga.tier > 1 && pos <= liga.promovidos, rebaixado = pos > n - liga.rebaixados, classificado = pos <= fracao(n, 0.2);
+      const aprov = row.points / (3 * row.played);
+      let delta = (aprov - aproveitamentoEsperado(alvoPos, n)) * C.repGanhoAproveitamento + ((alvoPos - pos) / Math.max(1, n - 1)) * C.repGanhoPosicao
+        + (campeao ? C.repTitulo : 0) + (promovido ? C.repPromocao : 0) + (classificado ? C.repClassificacao : 0) + (rebaixado ? C.repRebaixamento : 0);
+      if (delta > 0) delta *= 1 - m.reputation / 150;   // quanto mais alta a reputacao, mais dificil subir
+      const conquistas = campeao ? 100 : promovido ? 85 : classificado ? 70 : C.neutro;
+      let conf = atualizarConfianca(m.confidence, alvoDeConfianca({ jogos: row.played, pontos: row.points, posicao: pos, n, alvo: alvoPos, conquistas }), 3);
+      if (rebaixado) conf = clamp(conf - C.penalidadeRebaixamento);
+      const novo: Manager = { ...m, reputation: clamp(Math.round(m.reputation + delta)), confidence: conf, lowConfRounds: conf < C.limitePressao ? m.lowConfRounds + 1 : 0, ultimoJogos: C.jogosTemporadaFechada };
+      managers[m.id] = novo;
+      if (criarRng(`demissao|${m.id}|fim`)() < probDemissao(novo, rebaixado, row.played)) demitir(managers, porClube, novo, row.team.name, exigenciaDoNivel(nivel), C.jogosTemporadaFechada, eventos);
+    });
+  }
+  const fechadas = [...estado.fechadas, ...fechadasAgora.map(l => l.leagueId)];
+  const ofertas = [...estado.ofertas];
+  const clubes = Object.keys(porClube).filter(k => fechadas.includes(ctx.liga[k])).sort((a, b) => ctx.forca[b] - ctx.forca[a] || a.localeCompare(b));
+  for (const k of clubes) {
+    const atual = managers[porClube[k]];
+    if (!atual || atual.usuario || atual.jaMovido) continue;
+    const exig = ctx.exig[k];
+    if (!(atual.confidence < C.limitePressao || exig - atual.reputation >= C.lacunaReputacao)) continue;
+    const nota = (c: Manager) => (100 - Math.abs(c.reputation - exig)) * 0.5 + c.confidence * 0.3 + c.reputation * 0.2;
+    const cands = Object.values(managers).filter(c => c.clubKey && c.clubKey !== k && !c.jaMovido && fechadas.includes(ctx.liga[c.clubKey]) && ctx.forca[c.clubKey] < ctx.forca[k]
+      && c.reputation >= exig - C.tolerInf && c.reputation <= exig + C.tolerSup).sort((a, b) => nota(b) - nota(a) || a.id.localeCompare(b.id));
+    const c = cands[0];
+    if (!c) continue;
+    if (c.usuario) {
+      if (ofertas.length < C.maxOfertasUsuario && !ofertas.some(o => o.clubKey === k)) {
+        ofertas.push({ id: `oferta|${k}|${hoje}`, clubKey: k, clube: ctx.nome[k], exigencia: exig, data: hoje });
+        eventos.push({ tipo: 'OFERTA', managerId: c.id, clubKey: k, clube: ctx.nome[k], usuario: true });
+      }
+      continue;
+    }
+    const melhora = ctx.forca[k] - ctx.forca[c.clubKey!];
+    const pAceita = clamp(0.5 + melhora / 40 + (c.confidence < C.limitePressao ? 0.2 : 0), 0.3, 1);
+    if (criarRng(`oferta|${c.id}|${k}`)() >= pAceita) continue;
+    const origem = c.clubKey!;
+    managers[atual.id] = { ...atual, clubKey: null, reputation: clamp(atual.reputation + C.repPreterido), grace: 0 };
+    managers[c.id] = { ...c, clubKey: k, grace: C.carencia, confidence: C.confInicial, lowConfRounds: 0, ultimoJogos: C.jogosTemporadaFechada, jaMovido: true };
+    porClube[k] = c.id; delete porClube[origem];
+    eventos.push({ tipo: 'TRANSFERENCIA', managerId: c.id, clubKey: k, clube: ctx.nome[k], usuario: false, de: origem });
+    preencherVaga(managers, porClube, origem, ctx.nome[origem], ctx.exig[origem], C.jogosTemporadaFechada, eventos);
+  }
+  return { estado: garantirPool({ managers, fechadas, ofertas }), eventos };
+};
+
+/** Ponto de entrada do jogo: jogos novos + fim de liga. Sem novidade devolve o MESMO `estado` (`mudou` falso). */
+export const atualizarTreinadores = (estado: ManagerState, ligas: LigaSnap[], hoje: string): { estado: ManagerState; eventos: EventoMgr[]; mudou: boolean } => {
+  const a = processarRodada(estado, ligas);
+  const b = fecharTemporadas(a.estado, ligas, hoje);
+  const novo = b.estado, antes = estado.managers, depois = novo.managers;
+  const mudou = Object.keys(depois).length !== Object.keys(antes).length || Object.keys(depois).some(id => depois[id] !== antes[id])
+    || novo.fechadas.length !== estado.fechadas.length || novo.ofertas.length !== estado.ofertas.length;
+  return { estado: mudou ? novo : estado, eventos: [...a.eventos, ...b.eventos], mudou };
+};
+
+/** Copia o treinador do estado para `Team.managerName`/`managerTactics`. Pula o clube do utilizador. Sem mudanca devolve o mesmo array. */
+export const aplicarTreinadores = (times: Team[], estado: ManagerState, leagueId?: string): Team[] => {
+  const porClube: Record<string, Manager> = {};
+  for (const m of Object.values(estado.managers)) if (m.clubKey && !m.usuario) porClube[m.clubKey] = m;
+  let mudou = false;
+  const out = times.map(t => {
+    const m = porClube[teamKey(leagueId ?? t.leagueId, t.id)];
+    if (!m || (t.managerName === m.nome && t.managerTactics === m.tatico)) return t;
+    mudou = true;
+    return { ...t, managerName: m.nome, managerTactics: m.tatico };
+  });
+  return mudou ? out : times;
+};

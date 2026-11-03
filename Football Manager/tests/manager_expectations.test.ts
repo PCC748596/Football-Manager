@@ -135,3 +135,78 @@ test('processarRodada: o utilizador em crise e avisado (faixa) e, se cair, recom
   assert.equal(eu.grace, CONFIG_MGR.carenciaUsuario);
   assert.equal(eu.confidence, CONFIG_MGR.confUsuarioAposDemissao);
 });
+
+import { fecharTemporadas, atualizarTreinadores, aplicarTreinadores } from '../textSim/managerExpectations';
+
+const fechada = (times: any[], pontos: Record<string, number>) => snap(times, pontos, 10, { encerrada: true });
+
+test('fecharTemporadas: campeao ganha reputacao, ultimo (rebaixado) perde; fecha a liga uma vez so', () => {
+  const times = seis();
+  const estado0 = semearTreinadores([snap(times, {}, 0)]);
+  const s = fechada(times, { A: 28, B: 20, C: 18, D: 12, E: 6, F: 2 });
+  const r = fecharTemporadas(estado0, [s], '2024-12-08');
+  assert.ok(r.estado.managers['m|' + key('A')].reputation > estado0.managers['m|' + key('A')].reputation);
+  assert.ok(r.estado.managers['m|' + key('F')].reputation < estado0.managers['m|' + key('F')].reputation);
+  assert.deepEqual(r.estado.fechadas, ['L1']);
+  assert.ok(todosTemTreinador(r.estado, times));
+  const de_novo = fecharTemporadas(r.estado, [s], '2024-12-09');
+  assert.deepEqual(de_novo.estado, r.estado);
+  assert.equal(de_novo.eventos.length, 0);
+});
+
+test('fecharTemporadas: clube grande com treinador fraco convida o treinador forte de um clube menor', () => {
+  const times = [time('K', 85), time('W', 60), time('X', 60), time('Y', 55), time('Z', 50), time('V', 50)];
+  const estado0 = semearTreinadores([snap(times, {}, 0)]);
+  const ajustar = (id: string, extra: any) => { estado0.managers[id] = { ...estado0.managers[id], ...extra }; };
+  ajustar('m|' + key('K'), { reputation: 30, confidence: 30, grace: 99 });   // grace: nao e demitido, mas o clube quer outro
+  ajustar('m|' + key('W'), { reputation: 90 });
+  const r = fecharTemporadas(estado0, [fechada(times, { K: 2, W: 16, X: 20, Y: 14, Z: 8, V: 6 })], '2024-12-08');
+  const novo = r.estado.managers['m|' + key('W')];
+  assert.equal(novo.clubKey, key('K'));
+  assert.ok(novo.jaMovido);
+  const ev = r.eventos.find(e => e.tipo === 'TRANSFERENCIA')!;
+  assert.equal(ev.clubKey, key('K'));
+  assert.equal(ev.de, key('W'));
+  assert.ok(todosTemTreinador(r.estado, times));
+});
+
+test('fecharTemporadas: se o convidado e o utilizador, vira oferta pendente e ele nao sai do clube', () => {
+  const times = [time('K', 85), time('W', 60), time('X', 60), time('Y', 55), time('Z', 50), time('V', 50)];
+  const estado0 = semearTreinadores([snap(times, {}, 0)], { clubKey: key('W'), nome: 'Eu' });
+  estado0.managers['m|' + key('K')] = { ...estado0.managers['m|' + key('K')], reputation: 30, confidence: 30, grace: 99 };
+  estado0.managers[USUARIO_ID] = { ...estado0.managers[USUARIO_ID], reputation: 90 };
+  const r = fecharTemporadas(estado0, [fechada(times, { K: 2, W: 16, X: 20, Y: 14, Z: 8, V: 6 })], '2024-12-08');
+  assert.equal(r.estado.ofertas.length, 1);
+  assert.equal(r.estado.ofertas[0].clubKey, key('K'));
+  assert.equal(r.estado.managers[USUARIO_ID].clubKey, key('W'));
+  assert.ok(r.eventos.some(e => e.tipo === 'OFERTA' && e.usuario));
+  assert.ok(!r.eventos.some(e => e.tipo === 'TRANSFERENCIA'));
+});
+
+test('atualizarTreinadores: sem novidade devolve o mesmo estado (o efeito do jogo nao entra em loop)', () => {
+  const times = seis();
+  const s = snap(times, { A: 20, B: 18, C: 15, D: 10, E: 5, F: 2 }, 10);
+  const a = atualizarTreinadores(semearTreinadores([snap(times, {}, 0)]), [s], '2024-06-01');
+  assert.ok(a.mudou);
+  const b = atualizarTreinadores(a.estado, [s], '2024-06-02');
+  assert.equal(b.mudou, false);
+  assert.equal(b.estado, a.estado);
+});
+
+test('aplicarTreinadores: copia nome e conhecimento tatico para os clubes; sem mudanca devolve o mesmo array', () => {
+  const times = seis();
+  const estado = semearTreinadores([snap(times, {}, 0)]);
+  assert.equal(aplicarTreinadores(times, estado), times);
+  estado.managers['m|' + key('A')] = { ...estado.managers['m|' + key('A')], nome: 'Novo Tec', tatico: 99 };
+  const out = aplicarTreinadores(times, estado);
+  assert.notEqual(out, times);
+  assert.equal(out[0].managerName, 'Novo Tec');
+  assert.equal(out[0].managerTactics, 99);
+  assert.equal(out[1], times[1]);
+});
+
+test('aplicarTreinadores: nao troca o treinador do clube do utilizador (o nome dele vive em gameState.managerName)', () => {
+  const times = seis();
+  const estado = semearTreinadores([snap(times, {}, 0)], { clubKey: key('A'), nome: 'Eu' });
+  assert.equal(aplicarTreinadores(times, estado), times);
+});
