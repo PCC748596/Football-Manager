@@ -211,7 +211,7 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                     {sortedTeamPlayers.map(p => (
                       <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
-                        <td className="px-6 py-2 font-bold text-sm text-slate-700 dark:text-slate-200"><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview" className="text-left hover:text-blue-500 dark:hover:text-blue-400 hover:underline transition-colors">{p.name}</button></td>
+                        <td className="px-6 py-2 font-bold text-sm text-slate-700 dark:text-slate-200"><span className="inline-block w-9 mr-2 text-center text-[10px] font-black text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded px-1 py-0.5 align-middle">{p.position}</span><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview" className="text-left hover:text-blue-500 dark:hover:text-blue-400 hover:underline transition-colors">{p.name}</button></td>
                         <td className="px-4 py-2 text-center text-xs font-black text-blue-600 dark:text-blue-400">{p.skill}</td>
                         <td className="px-4 py-2 text-right text-rose-500 text-sm font-mono">{formatWage(p.salary)}</td>
                         <td className="px-4 py-2 text-center"><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview (contract)" className="cursor-pointer hover:brightness-125 transition"><ContractChip player={p} hoje={gameState.currentDate} /></button></td>
