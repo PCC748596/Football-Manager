@@ -9,7 +9,7 @@ import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disput
 import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
 import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa } from '../textSim/inbox';
-import { ManagerState, semearTreinadores, atualizarTreinadores, aplicarTreinadores } from '../textSim/managerExpectations';
+import { ManagerState, semearTreinadores, atualizarTreinadores, aplicarTreinadores, registrosDosEventos, registrarNoDiario, declinarOferta } from '../textSim/managerExpectations';
 import { montarLigas } from '../textSim/managerLigas';
 import { regiaoDoClube } from '../textSim/dataGenerator';
 import { MercadoState, Universo, Evento, mercadoVazio, prepararOrcamentos, proporCompra as mercadoPropor, responderComoVendedor, responderComoComprador, retirar as mercadoRetirar, concluir as mercadoConcluir,
@@ -174,6 +174,8 @@ const TRANSLATIONS: Record<string, any> = {
 
 interface GameContextType {
   managerState: ManagerState | null;
+  /** O utilizador recusa uma oferta de emprego pendente (aba Manager). */
+  recusarOferta: (id: string) => void;
   teams: Team[];
   players: Player[];
   fixtures: Fixture[];
@@ -282,6 +284,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [world, setWorld] = useState<WorldLeague[] | null>(null);
   // MERCADO DE TREINADORES (textSim/managerExpectations.ts): null ate o mundo existir (um save antigo, sem `managers`, e semeado no primeiro efeito).
   const [managerState, setManagerState] = useState<ManagerState | null>(null);
+  const recusarOferta = (id: string) => setManagerState(prev => (prev ? declinarOferta(prev, id) : prev));
   const [comps, setComps] = useState<Competition[] | null>(null);
   // As categorias de base (Sub-20) de todos os clubes: lista a parte (mesmo tipo `Player`), para nao entrar nas contas do elenco, da folha e do motor de partidas.
   const [base, setBase] = useState<BaseState | null>(null);
@@ -478,10 +481,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!userTeam || !world) return;
     const ligas = montarLigas({ userTeam, teams: teams.filter(t => naLigaDoUtilizador(t, userTeam)), fixtures, world });
-    const atual = managerState ?? semearTreinadores(ligas, { clubKey: teamKey(userTeam.leagueId, userTeam.id), nome: gameState.managerName });
-    const { estado, eventos, mudou } = atualizarTreinadores(atual, ligas, gameState.currentDate);
-    if (mudou || !managerState) setManagerState(estado);
     const lang = gameState.language, hoje = gameState.currentDate;
+    const atual = managerState ?? registrarNoDiario(semearTreinadores(ligas, { clubKey: teamKey(userTeam.leagueId, userTeam.id), nome: gameState.managerName }), [{ data: hoje, tipo: 'CONTRATADO', clube: userTeam.name }]);
+    const { estado: calculado, eventos, mudou } = atualizarTreinadores(atual, ligas, hoje);
+    const estado = registrarNoDiario(calculado, registrosDosEventos(eventos, hoje));   // o diario da aba Manager
+    if (mudou || !managerState || estado !== calculado) setManagerState(estado);
     const avisos = eventos.filter(e => e.usuario).flatMap(e => {
       const chave = (t: string) => `board|${t}|${e.clubKey}|${e.faixa ?? ''}|${hoje}`;
       if (e.tipo === 'DEMISSAO') return [avisoDeDemissao(hoje, lang, chave('demissao'), e.clube)];
@@ -2177,7 +2181,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else { setWorld(null); setComps(null); }
         setTeams(tm);
         setPlayers(pl);
-        setManagerState(data.managers || null);   // save antigo, sem treinadores: o efeito semeia a partir da base
+        setManagerState(data.managers ? { historico: [], ...data.managers } : null);   // save antigo, sem treinadores: o efeito semeia a partir da base
         setBase(data.base || null);   // save antigo, sem base: o motor gera as bases
         // As chaves ja emitidas: as do save (inboxVistas) mais as das mensagens que ainda la estao (saves antigos).
         vistasRef.current = new Set<string>([...(data.inboxVistas || []), ...(data.inbox || []).flatMap((m: any) => (m.keys || []) as string[])] as string[]);
@@ -2202,7 +2206,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <GameContext.Provider value={{
-      managerState, teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
+      managerState, recusarOferta, teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
       hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, decisaoDoJogoDeHoje, guardarPenaltis3d, scheduleActivity, saveGame, importGameData, loadId, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, avisoGoleiro, avisoGoleiroMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal,
