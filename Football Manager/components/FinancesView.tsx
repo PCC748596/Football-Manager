@@ -245,13 +245,14 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                           const pct = Math.round((userTeam.transferPct ?? PADRAO_COMPRAS) * 100), pt = gameState.language === 'PT';
                           return (
                             <div className="mt-3">
-                              <div className="flex justify-between text-[10px] font-black uppercase tracking-wider">
+                              <div className="flex justify-between text-base font-black uppercase tracking-wide">
                                 <span className="text-emerald-600">{pt ? 'Compras' : 'Transfers'} {pct}% · {formatCurrency(userTeam.initialTransfer || 0)}</span>
                                 <span className="text-rose-500">{pt ? 'Salários' : 'Wages'} {100 - pct}% · {formatCurrency(orcamentoDaTemporada(userTeam) - (userTeam.initialTransfer || 0))}</span>
                               </div>
                               <input type="range" min={0} max={100} step={10} value={pct} onChange={e => definirDivisaoOrcamento(Number(e.target.value) / 100)}
                                 aria-label={pt ? 'Divisão do orçamento entre compras e salários' : 'Budget split between transfers and wages'}
-                                className="w-full h-11 cursor-pointer accent-emerald-600" />
+                                className="orcamento-range w-full mt-2"
+                                style={{ background: `linear-gradient(to right, #059669 ${pct}%, #f43f5e ${pct}%)` }} />
                             </div>
                           );
                         })()}

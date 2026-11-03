@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Barra da divisao do orcamento (Finance): larga, sem pontas arredondadas; a parte das compras e verde e a dos salarios, vermelha (o fundo e um degrade posto pelo componente). */
+.orcamento-range { -webkit-appearance: none; appearance: none; height: 28px; border-radius: 0; cursor: pointer; outline: none; }
+.orcamento-range::-webkit-slider-runnable-track { height: 28px; background: transparent; border-radius: 0; }
+.orcamento-range::-moz-range-track { height: 28px; background: transparent; border-radius: 0; }
+.orcamento-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 40px; margin-top: -6px; background: #f8fafc; border: 2px solid #0f172a; border-radius: 0; }
+.orcamento-range::-moz-range-thumb { width: 8px; height: 36px; background: #f8fafc; border: 2px solid #0f172a; border-radius: 0; }
+
