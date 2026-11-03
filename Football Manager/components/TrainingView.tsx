@@ -24,7 +24,9 @@ const PLANE_ICON = (
 const getTeamState = (name: string) => name.split('-').pop() || '';
 
 /** Icones do painel de atributos do time: SVG de linha, todos do mesmo estilo e da mesma cor. */
-const Ico: React.FC<{ children: React.ReactNode }> = ({ children }) => <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{children}</svg>;
+const Ico: React.FC<{ children: React.ReactNode }> = ({ children }) => <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{children}</svg>;
+/** Cor da nota de um grupo de atributos: abaixo de 60 vermelho, 60-69 laranja, 70 ou mais verde. */
+const corDaNota = (v: number) => (v < 60 ? 'text-red-500' : v < 70 ? 'text-orange-500' : 'text-emerald-500');
 const ICONE_TEC = <Ico><circle cx="12" cy="12" r="9" /><path d="m12 8 3.5 2.5-1.3 4h-4.4l-1.3-4z" /><path d="M12 3v5M15.5 10.5 20 9M14.2 14.5 17 18.5M9.8 14.5 7 18.5M8.5 10.5 4 9" /></Ico>;
 const ICONE_TAC = <Ico><rect x="3" y="4" width="18" height="16" rx="2" /><path d="m7 8 4 4M11 8l-4 4" /><circle cx="16" cy="15" r="1.6" /></Ico>;
 const ICONE_MEN = <Ico><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 3 3 2.5 2.5 0 0 0 3-2.5V6.5A2.5 2.5 0 0 0 9 4z" /><path d="M15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-3 3 2.5 2.5 0 0 1-3-2.5" /></Ico>;
@@ -340,12 +342,12 @@ const TrainingView: React.FC = () => {
 
            {/* TEAM STATS PANEL - 6 COLUMNS: TEC, TAC, MEN, STA, CHE, MOR */}
            <div className="h-32 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex overflow-hidden shadow-lg transition-colors">
-              <StatBox icon={ICONE_TEC} label="TEC" value={media3d.tec} color="text-slate-800 dark:text-white" />
-              <StatBox icon={ICONE_TAC} label="TAC" value={media3d.tac} color="text-slate-800 dark:text-white" />
-              <StatBox icon={ICONE_MEN} label="MEN" value={media3d.men} color="text-slate-800 dark:text-white" />
-              <StatBox icon={ICONE_STA} label="STA" value={avgFit} color="text-emerald-500" />
-              <StatBox icon={ICONE_CHE} label="CHE" value={teamChe} color="text-blue-500" />
-              <StatBox icon={ICONE_MOR} label="MOR" value={avgMor} color="text-amber-500" />
+              <StatBox icon={ICONE_TEC} label="TECHNIQUE" value={media3d.tec} color={corDaNota(media3d.tec)} />
+              <StatBox icon={ICONE_TAC} label="TACTICS" value={media3d.tac} color={corDaNota(media3d.tac)} />
+              <StatBox icon={ICONE_MEN} label="MENTAL" value={media3d.men} color={corDaNota(media3d.men)} />
+              <StatBox icon={ICONE_STA} label="STAMINA" value={avgFit} color="text-emerald-500" />
+              <StatBox icon={ICONE_CHE} label="CHEMISTRY" value={teamChe} color="text-blue-500" />
+              <StatBox icon={ICONE_MOR} label="MORALE" value={avgMor} color="text-amber-500" />
            </div>
         </div>
 
