@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { COUNTRIES, generateLeagueData } from '../textSim/dataGenerator';
 import { Team, Player, League } from '../types';
 import { TeamShield } from './TeamShield';
 import { ClubOverviewContent } from './ClubOverviewContent';
+import { DIFICULDADES, escolherDificuldade, type Dificuldade } from '../textSim/orcamento';
 
 // Depois do Manage Profile: escolher o clube a mao ou deixar o sistema propor 5 clubes de dificuldades diferentes.
 
@@ -39,19 +40,33 @@ const escolher = (times: Team[], alvo: Alvo): Team => {
 };
 
 export const ModeSelection: React.FC<{ managerName: string; onPickClub: () => void; onCareer: () => void; onBack: () => void }> = ({ managerName, onPickClub, onCareer, onBack }) => {
-  const cartao = 'flex-1 max-w-sm p-8 rounded border-2 text-left transition-all bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:scale-[1.02]';
+  const [dif, setDif] = useState<Dificuldade | null>(null);   // so depois de escolher a dificuldade financeira as opcoes de baixo ficam ativas
+  useEffect(() => { escolherDificuldade(null); }, []);   // ao voltar a esta tela, a escolha anterior nao vale
+  const escolherDif = (d: Dificuldade) => { setDif(d); escolherDificuldade(d); };
+  const cartao = `flex-1 max-w-sm p-8 rounded border-2 text-left transition-all bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 ${dif ? 'hover:border-blue-500 hover:scale-[1.02]' : 'opacity-40 cursor-not-allowed'}`;
   return (
     <div className="w-full h-full flex flex-col items-center justify-center gap-8 p-8 bg-white dark:bg-manager-bg transition-colors duration-300">
       <div className="text-center">
         <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white">How do you want to start?</h1>
         <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest mt-1">Manager: {managerName}</p>
       </div>
+      <div className="w-full max-w-3xl">
+        <div className="text-center text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3">Financial difficulty · starting budget = payroll ×</div>
+        <div className="grid grid-cols-5 gap-3">
+          {DIFICULDADES.map(d => (
+            <button key={d.id} onClick={() => escolherDif(d.id)} className={`min-h-[64px] rounded border-2 px-2 py-3 text-center transition-all bg-slate-50 dark:bg-slate-800 ${dif === d.id ? 'border-blue-500 bg-blue-500/10' : 'border-slate-200 dark:border-slate-700 hover:border-blue-500'}`}>
+              <div className={`font-black uppercase text-sm ${d.cor}`}>{d.rotulo}</div>
+              <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">{d.fator}× payroll</div>
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="flex gap-6 w-full max-w-3xl">
-        <button onClick={onPickClub} className={cartao}>
+        <button onClick={onPickClub} disabled={!dif} className={cartao}>
           <div className="text-2xl font-black uppercase text-slate-800 dark:text-white mb-2">Choose your club</div>
           <div className="text-sm text-slate-500 dark:text-slate-400">Pick any club from any league.</div>
         </button>
-        <button onClick={onCareer} className={cartao}>
+        <button onClick={onCareer} disabled={!dif} className={cartao}>
           <div className="text-2xl font-black uppercase text-slate-800 dark:text-white mb-2">Manager career</div>
           <div className="text-sm text-slate-500 dark:text-slate-400">Choose a country and take one of 5 offers, from a top club to a real challenge.</div>
         </button>

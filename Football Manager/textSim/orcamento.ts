@@ -33,3 +33,29 @@ export const aplicarDivisao = (t: Team, compras: number, folha = 0): Team => {
   const antigo = t.initialTransfer ?? 0;
   return { ...t, transferPct: pct, initialTransfer: novo, transferBudget: Math.max(0, (t.transferBudget ?? antigo) + novo - antigo) };
 };
+
+/*
+DIFICULDADE FINANCEIRA (escolhida antes de comecar o jogo, na tela "How do you want to start?"): o orcamento da temporada do clube do utilizador passa a ser N vezes a folha anual do elenco.
+O caixa inicial e o `initialCapital` sao esse valor; as compras comecam em 80% dele. Os outros clubes ficam como estao na base.
+*/
+export type Dificuldade = 'VERY_EASY' | 'EASY' | 'NORMAL' | 'HARD' | 'VERY_HARD';
+export const DIFICULDADES: { id: Dificuldade; rotulo: string; fator: number; cor: string }[] = [
+  { id: 'VERY_EASY', rotulo: 'Very easy', fator: 4, cor: 'text-emerald-400' },
+  { id: 'EASY', rotulo: 'Easy', fator: 3.5, cor: 'text-lime-400' },
+  { id: 'NORMAL', rotulo: 'Normal', fator: 3, cor: 'text-amber-400' },
+  { id: 'HARD', rotulo: 'Hard', fator: 2.5, cor: 'text-orange-400' },
+  { id: 'VERY_HARD', rotulo: 'Very hard', fator: 2, cor: 'text-rose-400' },
+];
+
+/** O clube com o orcamento da dificuldade: capital = fator x folha anual; caixa igual ao capital; compras em 80%. */
+export const aplicarDificuldade = (t: Team, folha: number, dif: Dificuldade): Team => {
+  const fator = DIFICULDADES.find(d => d.id === dif)?.fator ?? 3;
+  const capital = Math.round(folha * fator);
+  const compras = Math.round(capital * PADRAO_COMPRAS);
+  return { ...t, initialCapital: capital, cash: capital, initialTransfer: compras, transferBudget: compras, transferPct: PADRAO_COMPRAS };
+};
+
+/** A dificuldade escolhida na tela de inicio, ate o jogo comecar (modulo, como as taxas de cambio); `null` = nenhuma (o orcamento da base). */
+let escolhida: Dificuldade | null = null;
+export const escolherDificuldade = (d: Dificuldade | null) => { escolhida = d; };
+export const dificuldadeEscolhida = (): Dificuldade | null => escolhida;

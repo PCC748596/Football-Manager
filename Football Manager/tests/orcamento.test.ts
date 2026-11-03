@@ -52,3 +52,16 @@ test('os salarios nao ficam abaixo da folha: limita o maximo das compras (passo 
   assert.equal(r.initialTransfer, 7_500_000);
   assert.ok(10_000_000 - r.initialTransfer! >= 2_300_000);
 });
+
+test('dificuldade: orcamento = fator x folha anual, caixa igual, compras em 80%', async () => {
+  const { aplicarDificuldade, DIFICULDADES } = await import('../textSim/orcamento');
+  assert.deepEqual(DIFICULDADES.map(d => d.fator), [4, 3.5, 3, 2.5, 2]);
+  const t = aplicarDificuldade(time({ cash: 1, initialCapital: 1 }), 2_000_000, 'EASY');
+  assert.equal(t.initialCapital, 7_000_000);
+  assert.equal(t.cash, 7_000_000);
+  assert.equal(t.initialTransfer, 5_600_000);
+  assert.equal(t.transferBudget, 5_600_000);
+  assert.equal(t.transferPct, 0.8);
+  assert.equal(aplicarDificuldade(time(), 1_000_000, 'VERY_HARD').initialCapital, 2_000_000);
+  assert.equal(aplicarDificuldade(time(), 1_000_000, 'VERY_EASY').initialCapital, 4_000_000);
+});

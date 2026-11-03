@@ -10,7 +10,7 @@ import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem a
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
 import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, avisoDeBonusPatrocinio } from '../textSim/inbox';
 import { salarioDeMercadoDaLiga } from '../textSim/salarios';
-import { aplicarDivisao, folhaAnual, PADRAO_COMPRAS } from '../textSim/orcamento';
+import { aplicarDivisao, aplicarDificuldade, dificuldadeEscolhida, folhaAnual, PADRAO_COMPRAS } from '../textSim/orcamento';
 import { PATROCINADORES, criarContrato, avaliarProposta, pagarParcelas, reputacaoDoClube, bonusDeCompeticao, diasParaFim, JANELA_RENOVACAO_DIAS, type MotivoRecusa } from '../textSim/patrocinadores';
 import { ManagerState, semearTreinadores, atualizarTreinadores, aplicarTreinadores, registrosDosEventos, registrarNoDiario, declinarOferta } from '../textSim/managerExpectations';
 import { montarLigas } from '../textSim/managerLigas';
@@ -834,6 +834,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       initTeams = initTeams.filter(t => doGrupo.has(t.id)).map(t => ({ ...t, groupId: nomeGrupo }));
       initPlayers = initPlayers.filter(p => doGrupo.has(p.teamId));
     }
+    // DIFICULDADE FINANCEIRA escolhida na tela de inicio (textSim/orcamento.ts): o clube do utilizador comeca com N x a folha anual.
+    const dificuldade = dificuldadeEscolhida();
+    if (dificuldade) initTeams = initTeams.map(t => t.id === teamId ? aplicarDificuldade(t, folhaAnual(initPlayers.filter(p => p.teamId === t.id).map(p => p.salary)), dificuldade) : t);
     let initFixtures = generateFixtures(initTeams, leagueId);
     if (formato === 'SERIE_C') initFixtures = initFixtures.filter(f => f.week <= initTeams.length - 1);   // so o 1.o turno
 
