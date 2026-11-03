@@ -53,6 +53,7 @@ function relatorio() {
     const GR = { GK: ['GK'], DEF: ['CB', 'LB', 'RB'], MED: ['DM', 'CM', 'AM', 'LM', 'RM'], ATA: ['LW', 'RW', 'CF', 'SS', 'ST'] };
     for (const k in GR) { const e = est(todos.filter(x => GR[k].includes(x.pos)).map(x => x.nota)); console.log('  ' + k.padEnd(4), 'n', String(e.n).padStart(3), 'media', e.media.toFixed(2), 'dp', e.dp.toFixed(2)); }
     for (const k in GR) { const q = todos.filter(x => GR[k].includes(x.pos) && x.qMedia).map(x => x.qMedia); console.log('  qMedia ' + k.padEnd(4), (q.reduce((s, x) => s + x, 0) / q.length).toFixed(3), 'dp', est(q).dp.toFixed(3)); }
+    const POS = [...new Set(todos.map(x => x.pos))].sort(); console.log('qMedia e nota por posicao:', POS.map(k => { const g = todos.filter(x => x.pos === k && x.qMedia); return k + ' q ' + (g.reduce((s, x) => s + x.qMedia, 0) / g.length).toFixed(3) + ' nota ' + (g.reduce((s, x) => s + x.nota, 0) / g.length).toFixed(2) + ' (n' + g.length + ')'; }).join(' | '));
     const qa = todos.filter(x => x.qMedia).map(x => x.qMedia); console.log('qMedia geral', est(qa).media.toFixed(3), 'dp', est(qa).dp.toFixed(3));
     const moc = todos.filter(x => x.moc), porGrupo = {};
     moc.forEach(x => { const k = Object.keys(GR).find(k => GR[k].includes(x.pos)) || '?'; porGrupo[k] = (porGrupo[k] || 0) + 1; });

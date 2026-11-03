@@ -45,7 +45,11 @@ const NotasMotor = {
     _contribs(j, tipo) {
         const base = this.cfg.eventos[tipo];
         if (!base) return null;
-        const m = this._mult(j, tipo) * (this.cfg.escalaEventos || 1);
+        // RENDIMENTO DECRESCENTE: eventos de volume (passes progressivos, cortes...) valem cheio ate `ate` por partida e `depois` do valor a seguir;
+        // sem isto, com o topo da curva aberto, um volante/meia que repete o mesmo gesto 40 vezes passava quem decide o jogo.
+        const rd = this.cfg.rendimento && this.cfg.rendimento[tipo];
+        const fator = rd && (j.cont[tipo] || 0) >= rd.ate ? rd.depois : 1;
+        const m = this._mult(j, tipo) * (this.cfg.escalaEventos || 1) * fator;
         return base.map(([c, v]) => [c, v * m]);
     },
     _somar(j, contribs, sinal) { for (const [c, v] of contribs) j.raw[c] += sinal * v; },
