@@ -24,7 +24,8 @@ const Delta: React.FC<{ v: number }> = ({ v }) => (
 const EstiloDoJovem: React.FC<{ p: Player; completo?: boolean }> = ({ p, completo }) => {
   const e = p.playStyle && p.playStyle !== 'None' ? p.playStyle : null;
   if (!e) return <span className="text-slate-400 text-xs italic">{completo ? `Defined from age ${IDADE_ESTILO}` : `from ${IDADE_ESTILO}`}</span>;
-  return <span className="whitespace-nowrap text-xs font-bold text-slate-600 dark:text-slate-300" title={e}><span className="mr-1 inline-flex items-center align-middle" style={{ width: 18, height: 18 }}><IconePlayStyleSvg estilo={e} tam={18} /></span>{e}</span>;
+  // So o icone (maior); o nome do Playing Style aparece ao passar o mouse.
+  return <span className="inline-flex items-center align-middle cursor-default" title={'Playing Style: ' + e} style={{ width: 30, height: 30 }}><IconePlayStyleSvg estilo={e} tam={30} /></span>;
 };
 
 const Mudancas: React.FC<{ r?: RelatorioMes }> = ({ r }) => {

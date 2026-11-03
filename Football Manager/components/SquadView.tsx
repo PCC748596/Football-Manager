@@ -177,7 +177,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
         <div className="bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col shadow-xl transition-colors">
           <div className="overflow-y-auto custom-scrollbar flex-1">
             <table className="w-full text-left border-separate border-spacing-0">
-               <thead className="bg-slate-200/40 dark:bg-slate-950/60 text-[9px] text-slate-400 dark:text-slate-500 font-black uppercase sticky top-0 z-10 transition-colors">
+               <thead className="bg-slate-200/40 dark:bg-slate-950/60 text-[13px] text-slate-400 dark:text-slate-500 font-black uppercase sticky top-0 z-10 transition-colors">
                  <tr>
                    <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 w-12 text-center cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('num')}>#{seta('num')}</th>
                    <th className="px-2 py-2 border-b border-slate-200 dark:border-slate-800 text-center w-12 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pos')}>Pos{seta('pos')}</th>
@@ -214,7 +214,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                           className="flex items-center justify-center cursor-grab active:cursor-grabbing hover:scale-110 transition-transform"
                         >
                             <div 
-                                className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-xs shadow-md border-b-2 border-black/20"
+                                className="w-[34px] h-[34px] rounded-lg flex items-center justify-center text-white font-black text-xs shadow-md border-b-2 border-black/20"
                                 style={{ backgroundColor: getPosColor(p.position) }}
                             >
                                 {p.shirtNumber}

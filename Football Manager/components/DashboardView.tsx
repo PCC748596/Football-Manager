@@ -279,14 +279,14 @@ const ClubDetailsCard: React.FC<{ team: Team, t: any, title: string, isOpponent?
         <>
             <h3 className="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-3">{title}</h3>
             
-            <div className="flex justify-center gap-1 mb-[3px]">
+            <div className="flex justify-center gap-2 mb-[3px]">
                {[0, 1, 2].map(idx => {
                   const d = getKitDetails(team, idx as any);
-                  return <ShirtIcon key={idx} color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={d.horizontal} multipleDiagonals={d.multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} collarColor={d.clc} number="9" numberColor={d.nc} numberOutlineColor={d.noc} sleeveColor={d.sc} shortColor={kitShorts(d).cor} shortTrimColor={kitShorts(d).aba} scale={1.2} className="w-20" />;
+                  return <ShirtIcon key={idx} color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={d.horizontal} multipleDiagonals={d.multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} collarColor={d.clc} number="9" numberColor={d.nc} numberOutlineColor={d.noc} sleeveColor={d.sc} shortColor={kitShorts(d).cor} shortTrimColor={kitShorts(d).aba} scale={1.5} className="w-20" />;
                })}
                {(() => {
                     const d = getGKKitDetails(team, (team.selectedKitIdx || 0) as 0 | 1 | 2, 0, userTeam);
-                    return <ShirtIcon color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={d.horizontal} multipleDiagonals={d.multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} collarColor={d.clc} number="1" numberColor={d.nc} numberOutlineColor={d.noc} sleeveColor={d.sc} shortColor={kitShorts(d, false).cor} shortTrimColor={kitShorts(d, false).aba} scale={1.2} longSleeves={true} className="w-20" />;
+                    return <ShirtIcon color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={d.horizontal} multipleDiagonals={d.multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} collarColor={d.clc} number="1" numberColor={d.nc} numberOutlineColor={d.noc} sleeveColor={d.sc} shortColor={kitShorts(d, false).cor} shortTrimColor={kitShorts(d, false).aba} scale={1.5} longSleeves={true} className="w-20" />;
                })()}
             </div>
 
@@ -299,18 +299,20 @@ const ClubDetailsCard: React.FC<{ team: Team, t: any, title: string, isOpponent?
                   <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">Avg OVR</div>
                   <div className="text-[14px] text-slate-800 dark:text-white font-black italic">{team.strength}</div>
                </div>
-               <div className="col-span-2">
-                  <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">Stadium</div>
-                  <div className="text-[12px] font-black text-slate-600 dark:text-slate-300 uppercase truncate">
-                    {team.stadium}
+               <div className="col-span-2 flex items-end justify-between gap-3">
+                  <div className="min-w-0">
+                     <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">Stadium</div>
+                     <div className="text-[12px] font-black text-slate-600 dark:text-slate-300 uppercase truncate">
+                       {team.stadium}
+                     </div>
                   </div>
+                  {!isOpponent && (   // a capacidade so aparece no My Club (no Opponent saiu, pedido); fica ao lado do nome do estadio
+                  <div className="shrink-0 text-right">
+                     <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">Capacity</div>
+                     <div className="text-[14px] text-slate-800 dark:text-white font-black tabular-nums">{(team.stadiumCapacity || 0).toLocaleString()}</div>
+                  </div>
+                  )}
                </div>
-               {!isOpponent && (   // a capacidade so aparece no My Club (no Opponent saiu, pedido)
-               <div className="col-span-2">
-                  <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">Capacity</div>
-                  <div className="text-[14px] text-slate-800 dark:text-white font-black tabular-nums">{(team.stadiumCapacity || 0).toLocaleString()}</div>
-               </div>
-               )}
             </div>
             
         </>
