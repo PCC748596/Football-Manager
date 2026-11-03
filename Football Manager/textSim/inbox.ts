@@ -7,6 +7,7 @@ Os textos saem no idioma do jogo (EN ou PT).
 */
 import type { Player } from '../types';
 import { EstadoContrato, estadoDoContrato } from './contracts';
+import type { Faixa } from './managerExpectations';
 
 export type CategoriaInbox = 'WELCOME' | 'BOARD' | 'TRAINING' | 'MATCH' | 'SCOUTING' | 'FINANCE' | 'TRANSFER' | 'CONTRACT' | 'SQUAD';
 export type AbaDoJogo = 'DASHBOARD' | 'TRANSFERS' | 'SQUAD' | 'LEAGUE' | 'FINANCES' | 'STATISTICS' | 'TACTICS' | 'FIXTURES' | 'TRAINING_VIEW' | 'WORLD';
@@ -282,4 +283,30 @@ export const avisoDeTransferencia = (hoje: string, lang: Idioma, e: EventoMercad
     case 'AGENTE_LIVRE': return M(L(lang, `Free agent signed: ${j}`, `Agente livre contratado: ${j}`), L(lang, `${j} joined as a free agent, with no transfer fee.`, `${j} chegou como agente livre, sem taxa de transferência.`));
     default: return M(`${j}`, `${c} ${valor}`);
   }
+};
+
+
+/** O utilizador foi "demitido": sem game over, ele fica no clube com a confianca em baixo (ver textSim/managerExpectations.ts, `demitir`). */
+export const avisoDeDemissao = (hoje: string, lang: Idioma, key: string, clube: string): MensagemInbox =>
+  criar({ keys: [key], date: hoje, categoria: 'BOARD', de: L(lang, 'Chairman', 'Presidente'), alta: true,
+    assunto: L(lang, `${clube}: the board has lost patience`, `${clube}: a diretoria perdeu a paciência`),
+    corpo: L(lang, `After the recent results the board decided to end your contract at ${clube}. It is giving you one last chance: confidence is very low and the next results will decide.`,
+      `Depois dos resultados recentes a diretoria decidiu encerrar o seu contrato no ${clube}. Dá-lhe uma última chance: a confiança está muito baixa e os próximos resultados decidem.`) });
+
+/** Um clube maior quer contratar o utilizador (a oferta fica pendente; ver `ManagerState.ofertas`). */
+export const avisoDeOferta = (hoje: string, lang: Idioma, key: string, clube: string): MensagemInbox =>
+  criar({ keys: [key], date: hoje, categoria: 'BOARD', de: L(lang, 'Sporting Director', 'Diretor Desportivo'),
+    assunto: L(lang, `${clube} wants you as manager`, `${clube} quer você como treinador`),
+    corpo: L(lang, `${clube} was impressed by your work and wants to hire you.`, `O ${clube} ficou impressionado com o seu trabalho e quer contratá-lo.`) });
+
+/** A confianca da diretoria entrou numa faixa pior. */
+export const avisoDeFaixa = (hoje: string, lang: Idioma, key: string, clube: string, faixa: Faixa): MensagemInbox => {
+  const texto: Record<string, [string, string]> = {
+    PRESSAO: ['The board is putting pressure on you.', 'A diretoria está a pressioná-lo.'],
+    RISCO: ['Your job is at risk: the board expects an improvement soon.', 'O seu cargo está em risco: a diretoria espera melhora em breve.'],
+    IMINENTE: ['Dismissal is imminent unless results change immediately.', 'A demissão é iminente se os resultados não mudarem já.']
+  };
+  const [en, pt] = texto[faixa] || texto.PRESSAO;
+  return criar({ keys: [key], date: hoje, categoria: 'BOARD', de: L(lang, 'Chairman', 'Presidente'), alta: faixa === 'RISCO' || faixa === 'IMINENTE',
+    assunto: L(lang, `${clube}: board confidence dropping`, `${clube}: a confiança da diretoria caiu`), corpo: L(lang, en, pt) });
 };
