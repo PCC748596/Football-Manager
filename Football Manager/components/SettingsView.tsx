@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useGame } from '../context/GameContext';
 import { MatchDuration } from '../types';
 
@@ -9,7 +9,6 @@ interface SettingsViewProps {
 
 const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
   const { gameState, updateSettings, t, taxasDeCambio, atualizarTaxas } = useGame();
-  const [modoTablet, setModoTablet] = useState(() => { try { return localStorage.getItem('fm_tablet') === '1'; } catch { return false; } });
 
   return (
     <div className="h-full flex flex-col gap-6 animate-fade-in max-w-6xl mx-auto w-full">
@@ -99,42 +98,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                               </button>
                           ))}
                       </div>
-                  </div>
-              </div>
-          </section>
-
-          {/* Tablet Section */}
-          <section className="space-y-4">
-              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">Tablet</h3>
-              <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">{t('set_tablet')}</label>
-                  <div className="flex gap-2">
-                      {[true, false].map((on) => (
-                          <button
-                            key={String(on)}
-                            onClick={() => { setModoTablet(on); try { localStorage.setItem('fm_tablet', on ? '1' : '0'); } catch { /* sem localStorage */ } try { (window.top || window).location.reload(); } catch { window.location.reload(); } }}
-                            className={`flex-1 py-3 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
-                                modoTablet === on
-                                ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-400'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                            }`}
-                          >
-                              {on ? t('set_on') : t('set_off')}
-                          </button>
-                      ))}
-                  </div>
-                  <p className="text-xs text-slate-400">{t('set_tablet_desc')}</p>
-                  <p className="text-xs text-amber-500">{t('set_tablet_aviso')}</p>
-                  {/* O tamanho REAL da janela (no iPad: o que o Safari da ao jogo) e o do quadro do modo Tablet: igualar os dois faz o PC mostrar o mesmo que o iPad. */}
-                  <p className="text-xs text-slate-500 dark:text-slate-300 font-mono">{t('set_tablet_janela')}: {window.innerWidth} × {window.innerHeight} px (DPR {window.devicePixelRatio})</p>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-300">
-                      {t('set_tablet_quadro')}:
-                      {(['fm_tablet_w', 'fm_tablet_h'] as const).map((k, i) => (
-                          <input key={k} type="number" min={400} max={3000} defaultValue={Number(localStorage.getItem(k)) || (i === 0 ? 1180 : 820)}
-                            onBlur={(e) => { const v = Math.max(400, Math.min(3000, Math.round(Number(e.target.value) || 0))); if (v) { try { localStorage.setItem(k, String(v)); } catch { /* sem localStorage */ } if (modoTablet) { try { (window.top || window).location.reload(); } catch { window.location.reload(); } } } }}
-                            className="w-20 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono" />
-                      ))}
-                      px
                   </div>
               </div>
           </section>
