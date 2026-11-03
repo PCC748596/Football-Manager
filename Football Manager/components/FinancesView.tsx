@@ -241,20 +241,17 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                     </div>
                      <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">{t('fin_transfer_budget')}</div>
-                        <div className="text-xl font-black text-emerald-600 mt-1">{formatCurrency(userTeam.initialTransfer || 0)}</div>
                         {(() => {
                           const pct = Math.round((userTeam.transferPct ?? PADRAO_COMPRAS) * 100), pt = gameState.language === 'PT';
                           return (
                             <div className="mt-3">
                               <div className="flex justify-between text-[10px] font-black uppercase tracking-wider">
-                                <span className="text-emerald-600">{formatCurrency(userTeam.initialTransfer || 0)}</span>
-                                <span className="text-rose-500">{formatCurrency(orcamentoDaTemporada(userTeam) - (userTeam.initialTransfer || 0))}</span>
+                                <span className="text-emerald-600">{pt ? 'Compras' : 'Transfers'} {pct}% · {formatCurrency(userTeam.initialTransfer || 0)}</span>
+                                <span className="text-rose-500">{pt ? 'Salários' : 'Wages'} {100 - pct}% · {formatCurrency(orcamentoDaTemporada(userTeam) - (userTeam.initialTransfer || 0))}</span>
                               </div>
                               <input type="range" min={0} max={100} step={10} value={pct} onChange={e => definirDivisaoOrcamento(Number(e.target.value) / 100)}
                                 aria-label={pt ? 'Divisão do orçamento entre compras e salários' : 'Budget split between transfers and wages'}
                                 className="w-full h-11 cursor-pointer accent-emerald-600" />
-                              <div className="flex justify-between text-[10px] font-black uppercase tracking-wider"><span className="text-emerald-600">{pt ? 'Compras' : 'Transfers'} {pct}%</span><span className="text-rose-500">{pt ? 'Salários' : 'Wages'} {100 - pct}%</span></div>
-                              <div className="text-[9px] text-slate-400 mt-1">{pt ? 'Disponível p/ compras' : 'Left for transfers'}: {formatCurrency(userTeam.transferBudget ?? 0)}</div>
                             </div>
                           );
                         })()}
