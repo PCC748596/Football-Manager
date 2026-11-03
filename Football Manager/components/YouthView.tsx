@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { atributos3d } from '../textSim/atributos3d';
 import { useGame } from '../context/GameContext';
 import { Player, Position } from '../types';
 import { estrelasDoJogador, MudancaAtributo, RelatorioMes, TAMANHO_BASE, IDADE_ESTILO, podeDispensar } from '../textSim/youth';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
+import { PlayerSummary, PlayerRadar } from './PlayerOverviewParts';
 import { ContractChip, ContractPanel } from './ContractPanel';
 
 const ORDEM: Position[] = [Position.GK, Position.LB, Position.CB, Position.RB, Position.DM, Position.LM, Position.CM, Position.RM, Position.AM, Position.LW, Position.RW, Position.SS, Position.ST];
@@ -54,7 +55,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
 
   // Ordenacao pelos cabecalhos (clique alterna crescente/decrescente). Padrao: por posicao e depois OVR.
   type ColunaOrdem = 'POS' | 'NAME' | 'AGE' | 'OVR' | 'POT' | 'STYLE' | 'CONTRACT' | 'MONTH';
-  const [ordem, setOrdem] = useState<{ col: ColunaOrdem; asc: boolean } | null>(null);
+  const [ordem, setOrdem] = useState<{ col: ColunaOrdem; asc: boolean } | null>({ col: 'OVR', asc: false });   // ao entrar: por OVR, do maior para o menor
   const alternarOrdem = (col: ColunaOrdem) => setOrdem(o => (o && o.col === col ? { col, asc: !o.asc } : { col, asc: col === 'NAME' || col === 'POS' || col === 'STYLE' }));
   const jovens = useMemo(() => {
     const lista = (base && userTeam ? base.jogadores.filter(p => p.teamId === userTeam.id) : []).slice()
@@ -76,6 +77,8 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
     const dir = ordem.asc ? 1 : -1;
     return lista.sort((a, b) => { const x = chave(a), y = chave(b); return (x < y ? -1 : x > y ? 1 : 0) * dir || b.skill - a.skill; });
   }, [base, userTeam?.id, ordem]);
+  // Ao entrar (e quando o selecionado sai da lista: promovido ou dispensado) seleciona o primeiro da lista ordenada.
+  useEffect(() => { if (jovens.length && !jovens.some(p => p.id === selId)) setSelId(jovens[0].id); }, [jovens, selId]);
   const sel = jovens.find(p => p.id === selId) || null;
   const ultimo = (p: Player): RelatorioMes | undefined => base?.relatorios[p.id]?.slice(-1)[0];
   const mesDoRelatorio = base?.mesProcessado || '';
@@ -124,15 +127,15 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
                     const r = ultimo(p);
                     return (
                       <tr key={p.id} onClick={() => setSelId(p.id)} className={`cursor-pointer transition-colors ${selId === p.id ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-blue-50/50 dark:hover:bg-white/5'}`}>
-                        <td className="px-3 py-2"><span className="text-xs font-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded bg-slate-50 dark:bg-slate-900/40">{p.position}</span></td>
-                        <td className="px-3 py-2 font-bold text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">{p.name}</td>
-                        <td className="px-3 py-2 text-center text-sm text-slate-500 dark:text-slate-400">{p.age}</td>
-                        <td className="px-3 py-2 text-center"><span className="text-sm font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 px-2 py-0.5 rounded">{p.skill}</span></td>
-                        <td className="px-3 py-2"><Estrelas n={estrelasDoJogador(p)} /></td>
-                        <td className="px-3 py-2"><EstiloDoJovem p={p} /></td>
-                        <td className="px-3 py-2"><ContractChip player={p} hoje={hoje} /></td>
-                        <td className="px-3 py-2 text-center text-sm">{r ? <Delta v={r.delta} /> : <span className="text-slate-400">-</span>}</td>
-                        <td className="px-3 py-2 text-right"><button onClick={e => { e.stopPropagation(); promover(p); }} className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-500 text-white font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">Promote</button><button disabled={!podeDispensar(base, p.id).ok} title={podeDispensar(base, p.id).motivo} onClick={e => { e.stopPropagation(); dispensar(p); }} className="ml-1 disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap bg-transparent border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">Release</button></td>
+                        <td className="px-3 py-[6px]"><span className="text-xs font-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded bg-slate-50 dark:bg-slate-900/40">{p.position}</span></td>
+                        <td className="px-3 py-[6px] font-bold text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">{p.name}</td>
+                        <td className="px-3 py-[6px] text-center text-sm text-slate-500 dark:text-slate-400">{p.age}</td>
+                        <td className="px-3 py-[6px] text-center"><span className="text-sm font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 px-2 py-0.5 rounded">{p.skill}</span></td>
+                        <td className="px-3 py-[6px]"><Estrelas n={estrelasDoJogador(p)} /></td>
+                        <td className="px-3 py-[6px]"><EstiloDoJovem p={p} /></td>
+                        <td className="px-3 py-[6px]"><ContractChip player={p} hoje={hoje} /></td>
+                        <td className="px-3 py-[6px] text-center text-sm">{r ? <Delta v={r.delta} /> : <span className="text-slate-400">-</span>}</td>
+                        <td className="px-3 py-[6px] text-right"><button onClick={e => { e.stopPropagation(); promover(p); }} className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-500 text-white font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">Promote</button><button disabled={!podeDispensar(base, p.id).ok} title={podeDispensar(base, p.id).motivo} onClick={e => { e.stopPropagation(); dispensar(p); }} className="ml-1 disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap bg-transparent border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">Release</button></td>
                       </tr>
                     );
                   })}
@@ -141,7 +144,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
             </div>
           </div>
 
-          <div className="bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl p-5 overflow-y-auto custom-scrollbar flex flex-col gap-4">
+          <div className="bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl p-4 overflow-y-auto custom-scrollbar flex flex-col gap-2">
             {!sel ? (
               <div className="text-slate-400 text-sm font-bold uppercase tracking-widest m-auto text-center">Select a player to see attributes and development</div>
             ) : (
@@ -154,6 +157,10 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
                     <div className="mt-1 text-[11px] font-black uppercase tracking-widest text-slate-400">PlayStyle: <EstiloDoJovem p={sel} completo /></div>
                   </div>
                   <div className="text-right"><div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Overall</div><div className="text-5xl font-black italic text-blue-500">{sel.skill}</div></div>
+                </div>
+                <div className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-3 items-center">
+                  <PlayerSummary player={sel} nomeDoClube={userTeam.name} />
+                  <PlayerRadar player={sel} tam={190} />
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   {(['tec', 'tac', 'men', 'fis'] as const).map(k => {
@@ -168,11 +175,10 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
                     );
                   })}
                 </div>
-                <ContractPanel player={sel} />
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Monthly development</div>
                   {(base.relatorios[sel.id] || []).length === 0 ? <div className="text-xs text-slate-400">No monthly update yet.</div> : (
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1">
                       {[...(base.relatorios[sel.id] || [])].reverse().map(r => (
                         <div key={r.mes} className="bg-slate-200/50 dark:bg-slate-950/50 rounded px-3 py-2 border border-slate-200 dark:border-slate-800 text-xs">
                           <div className="flex justify-between font-black uppercase tracking-wider"><span className="text-slate-500">{mesEmTexto(r.mes)}</span><span className="text-slate-700 dark:text-slate-200">OVR {r.ovrAntes} → {r.ovrDepois} <Delta v={r.delta} /></span></div>
@@ -182,6 +188,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
                     </div>
                   )}
                 </div>
+                <ContractPanel player={sel} />
                 <button onClick={() => promover(sel)} className="mt-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded text-xs uppercase tracking-widest shadow-lg transition-colors">Promote to first team</button>
                 <button disabled={!podeDispensar(base, sel.id).ok} title={podeDispensar(base, sel.id).motivo} onClick={() => dispensar(sel)} className="disabled:opacity-30 disabled:cursor-not-allowed border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black py-2.5 rounded text-xs uppercase tracking-widest transition-colors">Release from academy</button>
               </>
@@ -217,13 +224,13 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
                     const r = ultimo(p);
                     return (
                       <tr key={p.id} onClick={() => { setSelId(p.id); setAba('LISTA'); }} className="cursor-pointer hover:bg-blue-50/50 dark:hover:bg-white/5">
-                        <td className="px-3 py-2 font-bold text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">{p.name}</td>
-                        <td className="px-3 py-2 text-center text-sm text-slate-500">{p.age}</td>
-                        <td className="px-3 py-2 text-xs font-black text-slate-500">{p.position}</td>
-                        <td className="px-3 py-2 text-center text-sm font-black text-slate-700 dark:text-slate-200">{r ? `${r.ovrAntes} → ${r.ovrDepois}` : p.skill}</td>
-                        <td className="px-3 py-2 text-center text-sm">{r ? <Delta v={r.delta} /> : '-'}</td>
-                        <td className="px-3 py-2"><Estrelas n={estrelasDoJogador(p)} /></td>
-                        <td className="px-3 py-2 text-xs"><Mudancas r={r} /></td>
+                        <td className="px-3 py-[6px] font-bold text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">{p.name}</td>
+                        <td className="px-3 py-[6px] text-center text-sm text-slate-500">{p.age}</td>
+                        <td className="px-3 py-[6px] text-xs font-black text-slate-500">{p.position}</td>
+                        <td className="px-3 py-[6px] text-center text-sm font-black text-slate-700 dark:text-slate-200">{r ? `${r.ovrAntes} → ${r.ovrDepois}` : p.skill}</td>
+                        <td className="px-3 py-[6px] text-center text-sm">{r ? <Delta v={r.delta} /> : '-'}</td>
+                        <td className="px-3 py-[6px]"><Estrelas n={estrelasDoJogador(p)} /></td>
+                        <td className="px-3 py-[6px] text-xs"><Mudancas r={r} /></td>
                       </tr>
                     );
                   })}

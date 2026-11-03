@@ -158,7 +158,10 @@ export const sortearPlayStyle = (pos: Position, rnd: Rnd): PlayStyle => {
 };
 
 // Teto de OVR por idade: ninguem na base passa de 75 (aos 20); proporcional para os mais novos.
-const OVR_MAX_IDADE: Record<number, number> = { 15: 58, 16: 63, 17: 67, 18: 70, 19: 73, 20: 75 };
+// (aos 15 anos era 58: com o minimo de 60 (OVR_MIN_BASE) o teto tem de ficar acima dele, senao a evolucao mensal baixaria o jovem de volta; 62 deixa 60-62 aos 15)
+const OVR_MAX_IDADE: Record<number, number> = { 15: 62, 16: 63, 17: 67, 18: 70, 19: 73, 20: 75 };
+/** OVR minimo de um jovem ao ser gerado. */
+export const OVR_MIN_BASE = 60;
 const ovrMaxDaIdade = (idade: number) => OVR_MAX_IDADE[Math.max(IDADE_MIN, Math.min(IDADE_MAX, idade))];
 
 const sortearPotencial = (rnd: Rnd) => limitar(Math.round(50 + 49 * limitar(0.36 + normal(rnd) * 0.21, 0, 1)));
@@ -176,13 +179,17 @@ const subirAteOPotencial = (pos: Position, a: Record<Attr, number>, potencial: n
 /** Gera um jovem do clube: `idade` de 15 a 20, na `posicao`, com o contrato assinado `hoje`. */
 export const gerarJovem = (teamId: string, posicao: Position, idade: number, hoje: string, rnd: Rnd, id: string, nome: string, camisa: number): Player => {
   const potencial = sortearPotencial(rnd);
-  const alvo = 50 + (potencial - 50) * limitar((FRACAO_FEITA[idade] ?? 0.6) + (rnd() - 0.5) * 0.12, 0.2, 0.95) + (rnd() - 0.5) * 3;
+  // A curva parte do OVR minimo da base (60), e nao de 50: o caminho ate o potencial e feito a partir de 60; com o piso a empurrar, quase todos os jovens de 15-16 anos ficavam em 60 exatos.
+  const alvo = OVR_MIN_BASE + (Math.max(potencial, OVR_MIN_BASE) - OVR_MIN_BASE) * limitar((FRACAO_FEITA[idade] ?? 0.6) + (rnd() - 0.5) * 0.12, 0.2, 0.95) + (rnd() - 0.5) * 3;
   const tetoIdade = ovrMaxDaIdade(idade);
   const o = perfil(posicao);
   const a: Record<Attr, number> = { def: 0, pas: 0, drb: 0, sht: 0 };
   ATTRS.forEach(k => { a[k] = limitar(Math.round(Math.min(alvo, tetoIdade) + o[k] + (rnd() - 0.5) * 6)); });
   subirAteOPotencial(posicao, a, Math.min(potencial, tetoIdade));
+  // MINIMO de OVR da base: quem nasce abaixo sobe (todos os atributos +1 de cada vez); o potencial acompanha, porque o OVR nunca passa dele.
+  for (let guarda = 30; guarda-- > 0 && calcularSkill(posicao, a.def, a.pas, a.drb, a.sht) < OVR_MIN_BASE;) ATTRS.forEach(k => { a[k] = Math.min(99, a[k] + 1); });
   const skill = calcularSkill(posicao, a.def, a.pas, a.drb, a.sht);
+  const potencialFinal = Math.max(potencial, skill);
   // O salario segue a conta do `generatePlayer` (jovem: fator de idade 1.2); o VALOR e o de mercado (textSim/valuation.ts), calculado abaixo.
   const valorParaSalario = Math.round(150000 * Math.pow(1.1, Math.max(0, skill - 50)) * 1.2);
   const nascimento = somarAnos(hoje, -idade);
@@ -194,7 +201,7 @@ export const gerarJovem = (teamId: string, posicao: Position, idade: number, hoj
     value: 0, salary: Math.max(500, Math.round(valorParaSalario * 0.002)), contractExpiry: '',
     contract: novoContrato(idade, hoje, rnd),
     birthDate: d.toISOString().slice(0, 10),
-    potential: potencial, potentialEstimate: estimar(potencial, idade, rnd),
+    potential: potencialFinal, potentialEstimate: estimar(potencialFinal, idade, rnd),
     ...(idade >= IDADE_ESTILO ? { playStyle: escolherPlayStyle(posicao, a) } : {}),
     devAcc: { def: 0, pas: 0, drb: 0, sht: 0 },
     teamId, shirtNumber: camisa, def: a.def, pas: a.pas, drb: a.drb, sht: a.sht,
