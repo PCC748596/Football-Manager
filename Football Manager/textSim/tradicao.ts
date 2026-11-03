@@ -27,7 +27,7 @@ export const acharEntrada = (nome: string): EntradaTradicao | undefined => {
 };
 
 /** Percentil 0-100 de cada valor (empates dividem a posicao: todos iguais -> 50). */
-const percentis = (valores: number[]): number[] => {
+export const percentis = (valores: number[]): number[] => {
   if (valores.length < 2) return valores.map(() => 50);
   return valores.map(v => {
     const abaixo = valores.filter(x => x < v).length, iguais = valores.filter(x => x === v).length;
