@@ -878,6 +878,8 @@ export interface Fixture {
   // FM2D-style simulation statistics
   homeShots?: number;
   awayShots?: number;
+  homePasses?: number; // passes tentados reais (so jogos 3D)
+  awayPasses?: number;
   homeShotsOnTarget?: number;
   awayShotsOnTarget?: number;
   homeXG?: number;

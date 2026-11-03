@@ -34,6 +34,8 @@ export interface ResultadoMotor {
   placar: { casa: number; fora: number };
   posse: { casa: number; fora: number };
   estatisticas: any;
+  /** Passes reais por equipa (curtos + lancamentos + cruzamentos). Ausente em resultados antigos. */
+  passes?: { casa: { tentados: number; certos: number }; fora: { tentados: number; certos: number } };
   golos: { minuto: number; equipa: 'casa' | 'fora'; jogador: any; assistente: any; proprioGolo: boolean }[];
   cartoes: { minuto: number; equipa: 'casa' | 'fora'; jogador: any; cor: string; segundoAmarelo: boolean }[];
   eventos: any[];
@@ -239,6 +241,7 @@ export const aplicarResultado = (f: Fixture, r: ResultadoMotor, casa: Team, fora
     homeShots: A.remates, awayShots: B.remates, homeShotsOnTarget: A.rematesNoAlvo, awayShotsOnTarget: B.rematesNoAlvo, homeXG: A.xg, awayXG: B.xg,
     homeCorners: A.cantos, awayCorners: B.cantos,
     homeFouls: A.faltas, awayFouls: B.faltas,
+    ...(r.passes ? { homePasses: r.passes.casa.tentados, awayPasses: r.passes.fora.tentados } : {}),
     homeLineup: casa.lineup.filter(Boolean), awayLineup: fora.lineup.filter(Boolean),
     ...(r.notas && Object.keys(r.notas).length ? notasDoMotor(r.notas, casa, fora, players) : {}),
     played: false

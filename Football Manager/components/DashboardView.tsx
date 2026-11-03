@@ -638,7 +638,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                        onClick={() => displayHomeTeam.id !== userTeam.id && setViewOpponent(displayHomeTeam)}
                      >
                         <div className="flex items-center justify-center mx-auto mb-2 drop-shadow-2xl transition-transform group-hover:scale-110">
-                           <TeamShield team={displayHomeTeam} className="w-14 h-16" />
+                           <TeamShield team={displayHomeTeam} className="w-[80px] h-[92px]" />
                         </div>
                         <div className="text-[11px] font-black text-slate-800 dark:text-white uppercase italic transition-colors truncate w-full group-hover:text-blue-500">{displayHomeTeam.name}</div>
                      </div>
@@ -653,7 +653,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                        onClick={() => displayAwayTeam && displayAwayTeam.id !== userTeam.id && setViewOpponent(displayAwayTeam)}
                      >
                         <div className="flex items-center justify-center mx-auto mb-2 drop-shadow-2xl transition-transform group-hover:scale-110 duration-300">
-                           <TeamShield team={displayAwayTeam || displayHomeTeam} className="w-14 h-16" />
+                           <TeamShield team={displayAwayTeam || displayHomeTeam} className="w-[80px] h-[92px]" />
                         </div>
                         <div className="text-[11px] font-black text-slate-800 dark:text-white uppercase italic transition-colors group-hover:text-blue-500 truncate w-full">{displayAwayTeam?.name || 'Unknown'}</div>
                      </div>
@@ -701,10 +701,10 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
               <div className="grid grid-cols-4 gap-3">
                 {resultadosRecentes.map(({ f, casa, fora, res }) => (
                   <div key={f.id} className={`relative overflow-hidden rounded-lg border h-[76px] flex flex-col items-center justify-center ${res === 'V' ? 'border-emerald-500/50 bg-emerald-500/10' : res === 'D' ? 'border-rose-500/50 bg-rose-500/10' : 'border-amber-400/50 bg-amber-400/10'}`}>
-                    <div className="absolute -left-10 top-1/2 -translate-y-1/2 w-[84px] h-[100px] opacity-90 pointer-events-none"><TeamShield team={casa} className="w-full h-full" /></div>
-                    <div className="absolute -right-10 top-1/2 -translate-y-1/2 w-[84px] h-[100px] opacity-90 pointer-events-none"><TeamShield team={fora} className="w-full h-full" /></div>
+                    <div className="absolute -left-12 top-1/2 -translate-y-1/2 w-[100px] h-[120px] opacity-90 pointer-events-none"><TeamShield team={casa} className="w-full h-full" /></div>
+                    <div className="absolute -right-12 top-1/2 -translate-y-1/2 w-[100px] h-[120px] opacity-90 pointer-events-none"><TeamShield team={fora} className="w-full h-full" /></div>
                     <div className="text-xl font-black italic text-slate-800 dark:text-white leading-none">{f.homeScore} - {f.awayScore}</div>
-                    <div className="mt-1 text-[9px] font-black uppercase tracking-wider text-slate-400 truncate max-w-[60%]">{casa.name.split('-')[0]} × {fora.name.split('-')[0]}</div>
+                    <div className="mt-1 text-[13px] font-black uppercase tracking-wider text-slate-400 truncate max-w-[75%]">{casa.name.split('-')[0]} × {fora.name.split('-')[0]}</div>
                     <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500">{f.date.slice(8, 10)}/{f.date.slice(5, 7)}</div>
                   </div>
                 ))}

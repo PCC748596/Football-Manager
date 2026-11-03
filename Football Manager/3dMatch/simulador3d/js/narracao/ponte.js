@@ -738,8 +738,11 @@ const Ponte = {
             minuto: e.minuto, equipa: e.equipa === 'TeamA' ? 'casa' : 'fora', jogador: e.jogador, assistente: e.assistente, proprioGolo: !!e.proprioGolo }));
         const cartoes = L.filter(e => e.tipo === 'FALTA' && e.cartao).map(e => ({
             minuto: e.minuto, equipa: e.equipa === 'TeamA' ? 'casa' : 'fora', jogador: e.jogador, cor: e.cartao, segundoAmarelo: !!e.segundoAmarelo }));
+        // Passes de verdade (curtos + lancamentos + cruzamentos, como no benchmark do porJogo), para a tela de estatisticas do manager.
+        const passesDe = (s) => ({ tentados: s.passes.tentados + s.lancamentos.tentados + s.cruzamentos.tentados, certos: s.passes.certos + s.lancamentos.certos + s.cruzamentos.certos });
         return {
             placar: { casa: Match.placarA, fora: Match.placarB },
+            passes: { casa: passesDe(A), fora: passesDe(B) },
             posse: { casa: posseT > 0 ? Math.round(1000 * (A.posseSegundos || 0) / posseT) / 10 : 50, fora: posseT > 0 ? Math.round(1000 * (B.posseSegundos || 0) / posseT) / 10 : 50 },
             estatisticas: this._limpar(MatchStats.resumo()),
             golos: golos, cartoes: cartoes,

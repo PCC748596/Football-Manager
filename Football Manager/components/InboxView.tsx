@@ -2,11 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { CategoriaInbox, MensagemInbox } from '../textSim/inbox';
 
-const CATEGORIAS: Record<CategoriaInbox, { icone: string; en: string; pt: string; cor: string }> = {
+// Bola de linha (SVG, herda a cor do texto): o icone da categoria Jogos, no lugar do emoji.
+const IconeJogo = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="inline-block w-[1em] h-[1em] align-[-0.125em]" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8l3.5 2.5-1.3 4h-4.4l-1.3-4z" /><path d="M12 8V3M15.5 10.5l4.7-1.5M14.2 14.5l3 4M9.8 14.5l-3 4M8.5 10.5L3.800 9" /></svg>;
+
+const CATEGORIAS: Record<CategoriaInbox, { icone: React.ReactNode; en: string; pt: string; cor: string }> = {
   WELCOME: { icone: '👋', en: 'Welcome', pt: 'Boas-vindas', cor: 'text-sky-400' },
   BOARD: { icone: '🏛️', en: 'Board', pt: 'Diretoria', cor: 'text-sky-400' },
   TRAINING: { icone: '🏋️', en: 'Training', pt: 'Treino', cor: 'text-emerald-400' },
-  MATCH: { icone: '⚽', en: 'Matches', pt: 'Jogos', cor: 'text-blue-400' },
+  MATCH: { icone: IconeJogo, en: 'Matches', pt: 'Jogos', cor: 'text-blue-400' },
   SCOUTING: { icone: '🔭', en: 'Scouting', pt: 'Olheiros', cor: 'text-violet-400' },
   FINANCE: { icone: '💰', en: 'Finance', pt: 'Finanças', cor: 'text-amber-400' },
   TRANSFER: { icone: '🔄', en: 'Transfers', pt: 'Negociações', cor: 'text-pink-400' },

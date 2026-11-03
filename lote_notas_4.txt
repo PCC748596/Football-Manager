@@ -1,0 +1,21 @@
+jogos 8 | jogadores 176
+   Grêmio-RS 1x0 Internacional-RS
+   Palmeiras-SP 1x0 Flamengo-RJ
+   Flamengo-RJ 2x1 Atlético-MG
+   Atlético-MG 1x0 Cruzeiro-MG
+   Botafogo-RJ 2x1 Atlético-PR
+   Bragantino-SP 0x2 Corinthians-SP
+   Atlético-PR 1x1 Fluminense-RJ
+   Fluminense-RJ 2x1 Grêmio-RS
+geral: media 6.63 dp 0.54 | >=9: 0.0% | <=4: 0.0%
+  GK   n  16 media 6.56 dp 0.74
+  DEF  n  64 media 6.83 dp 0.35
+  MED  n  64 media 6.56 dp 0.59
+  ATA  n  32 media 6.43 dp 0.51
+  qMedia GK   0.807 dp 0.010
+  qMedia DEF  0.677 dp 0.039
+  qMedia MED  0.605 dp 0.090
+  qMedia ATA  0.629 dp 0.014
+qMedia geral 0.654 dp 0.083
+MoM por grupo {"DEF":7,"MED":6,"GK":2,"ATA":1}
+amostragem tatica: ms por passagem (22 jogadores) media 0.056 max 0.059 | passagens/jogo 780

@@ -682,20 +682,21 @@ export const NOMES_FASES: Record<string, string> = { R64: 'Round of 64', PA: 'Pr
 
 /**
  * O RÓTULO CURTO DA FASE, para a coluna Type do calendario (components/FixturesView.tsx): LIBERT-G, LIBERT-16, LIBERT-8, LIBERT-4, LIBERT FINAL; o mesmo para a
- * Sul-Americana (SULA-...), a Copa do Brasil (COPA-1 ... COPA-5, COPA-16 ...), a Serie C (C-G, C FINAL) e a Serie D (D-G, D-64 ... D FINAL). O numero e quantos clubes
+ * Sul-Americana (SULA-...), a Copa do Brasil (CUP - 1 ... CUP - 5, CUP - 16 ...), a Serie C (C-G, C FINAL) e a Serie D (D-G, D-64 ... D FINAL). O numero e quantos clubes
  * ficam na fase (16 = oitavas, 8 = quartas, 4 = meias); a final e `... FINAL`, e nao ha fase de 2 alem dela.
  */
-const PREFIXO_COMP: Record<Competition['id'], string> = { UCL: 'UCL', LIB: 'LIBERT', SUL: 'SULA', COPA_BR: 'COPA', SERIE_C: 'C', SERIE_D: 'D' };
+const PREFIXO_COMP: Record<Competition['id'], string> = { UCL: 'UCL', LIB: 'LIBERT', SUL: 'SULA', COPA_BR: 'CUP', SERIE_C: 'C', SERIE_D: 'D' };
 export const rotuloDaFase = (compId: Competition['id'], stage: string): string => {
   const p = PREFIXO_COMP[compId];
+  const sep = compId === 'COPA_BR' ? ' - ' : '-';   // a Copa do Brasil mostra "CUP - 1"
   if (stage === 'F') return p + ' FINAL';
-  if (/^G\d*$/.test(stage) || stage === 'D') return p + '-G';
-  if (/^P\d$/.test(stage)) return p + '-' + stage[1];
-  if (stage === 'QF') return p + '-8';
-  if (stage === 'SF') return p + '-4';
-  if (stage === 'PA') return p + '-PLAYOFF';
-  if (/^R\d+$/.test(stage)) return p + '-' + stage.slice(1);
-  return p + '-' + stage;
+  if (/^G\d*$/.test(stage) || stage === 'D') return p + sep + 'G';
+  if (/^P\d$/.test(stage)) return p + sep + stage[1];
+  if (stage === 'QF') return p + sep + '8';
+  if (stage === 'SF') return p + sep + '4';
+  if (stage === 'PA') return p + sep + 'PLAYOFF';
+  if (/^R\d+$/.test(stage)) return p + sep + stage.slice(1);
+  return p + sep + stage;
 };
 
 // ------------------------------------------------------------------ ligas -> copas

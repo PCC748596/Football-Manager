@@ -2,7 +2,7 @@
 import NextGameButton from './NextGameButton';
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
-import { Position, Player } from '../types';
+import { Position, Player, PLAYSTYLE_POSITIONS, PlayStyle } from '../types';
 import PlayerDetailModal from './PlayerDetailModal';
 import FitnessBar from './FitnessBar';
 import { ShirtIcon } from './ShirtIcon';
@@ -12,6 +12,9 @@ import { ContractChip } from './ContractPanel';
 import { estadoDoContrato } from '../textSim/contracts';
 import { estrelasDoJogador, potencialVisivel } from '../textSim/youth';
 import { atributos3d } from '../textSim/atributos3d';
+import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
+import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
+import { PLAYSTYLE_AJUSTES } from '../textSim/playStylesAjustes';
 
 const MoraleArrow = ({ morale }: { morale: number }) => {
   if (morale >= 90) return <span className="text-amber-400 transform -rotate-90 inline-block font-bold drop-shadow-[0_0_2px_rgba(251,191,36,0.5)]">➤</span>; // Excelência
@@ -94,10 +97,19 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
 
   const myPlayers = players.filter(p => p.teamId === userTeam.id);
 
+  // O PLAYING STYLE do jogador, pela mesma ordem do TacticsView: ajuste manual, o definido no jogador, o da base e, por fim, o primeiro que serve a posicao dele.
+  const estiloDoJogador = (p: Player): string => (
+    PLAYSTYLE_AJUSTES[`${userTeam.name}|${p.name}`]
+    || (p.playStyle && p.playStyle !== 'None' ? p.playStyle : undefined)
+    || PLAYSTYLE_DA_BASE[p.id]
+    || (Object.keys(PLAYSTYLE_POSITIONS) as PlayStyle[]).find(st => st !== 'None' && PLAYSTYLE_POSITIONS[st].includes(p.position))
+    || 'Creative Playmaker'
+  );
+
   // (a coluna `pos` ordena por ORDEM_POS: goleiro, defesa, meio-campo, ataque — nao alfabetica)
   const VALOR_DA_COLUNA: Record<string, (p: Player) => number | string> = {
     num: p => p.shirtNumber, pos: p => ORDEM_POS[p.position] ?? 99, name: p => p.name, age: p => p.age, ovr: p => p.skill, pot: p => potencialVisivel(p), fit: p => p.fitness, mor: p => p.morale,
-    def: p => atributos3d(p).tec, pas: p => atributos3d(p).tac, drb: p => atributos3d(p).men, sht: p => atributos3d(p).fis, prog: p => p.weeklyGrowth, val: p => p.value,
+    def: p => atributos3d(p).tec, pas: p => atributos3d(p).tac, drb: p => atributos3d(p).men, sht: p => atributos3d(p).fis, style: p => estiloDoJogador(p), val: p => p.value,
     contract: p => (p.contract ? p.contract.end : '9999-99-99')   // o que vence primeiro vem primeiro
   };
   const comparar = (a: Player, b: Player) => {
@@ -179,7 +191,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pas')} title="Tactical: tackling, marking, positioning, vision, tactical awareness">TAC{seta('pas')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('drb')} title="Mental: aggression, reactions, composure, consistency">MEN{seta('drb')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('sht')} title="Physical: pace, acceleration, agility, jumping, strength, stamina, balance">FIS{seta('sht')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('prog')}>Prog{seta('prog')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('style')}>Style{seta('style')}</th>
                    <th className="px-4 py-2 text-right border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('val')}>Val{seta('val')}</th>
                  </tr>
                </thead>
@@ -265,9 +277,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                         </div>
                       </td>
                      <td className="px-2 py-2 text-center text-xs font-bold transition-colors">
-                        <span className={`${p.weeklyGrowth > 0 ? 'text-emerald-500' : 'text-slate-300 dark:text-slate-600'}`}>
-                           {p.weeklyGrowth > 0 ? '+' : ''}{p.weeklyGrowth}
-                        </span>
+                        <span title={'Playing Style: ' + estiloDoJogador(p)} className="inline-flex items-center justify-center" style={{ width: 24, height: 24 }}><IconePlayStyleSvg estilo={estiloDoJogador(p)} tam={24} /></span>
                      </td>
                      <td className="px-4 py-2 text-right text-emerald-600 dark:text-emerald-400 text-[11px] font-black tracking-tight font-mono transition-colors">
                        {formatCurrencyShort(p.value)}

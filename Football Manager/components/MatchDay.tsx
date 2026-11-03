@@ -4,6 +4,7 @@ import { Team, Player, Fixture, resolveSetPieceTakers } from '../types';
 import { TeamShield } from './TeamShield';
 import { KitSelection } from './KitSelection';
 import { MatchStatsModal } from './MatchStatsModal';
+import PlayerRatingsList from './PlayerRatingsList';
 import { calculateMatchRatings } from '../textSim/matchEngine';
 import Simulador3DView, { simulador3dArrancou, simulador3dReinicios, simulador3dPronto, simulador3dEnviar, simulador3dTelaCheia, simulador3dSairDaTelaCheia, simulador3dLembrarTelaCheia, simulador3dVelocidade } from '../3dMatch/Simulador3DView';
 import { taticaParaMotor, taticaDoMotor } from '../3dMatch/simulador3dCliente';
@@ -281,6 +282,13 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 const hShots = events.filter(e => e.teamId === match.homeTeamId && ['GOAL', 'MISS', 'MISS_PENALTY'].includes(e.type)).length + events.filter(e => e.teamId === match.awayTeamId && e.type === 'SAVE').length;
                 const aShots = events.filter(e => e.teamId === match.awayTeamId && ['GOAL', 'MISS', 'MISS_PENALTY'].includes(e.type)).length + events.filter(e => e.teamId === match.homeTeamId && e.type === 'SAVE').length;
 
+                const hOnTarget = events.filter(e => e.teamId === match.homeTeamId && e.type === 'GOAL').length + events.filter(e => e.teamId === match.awayTeamId && e.type === 'SAVE').length;
+                const aOnTarget = events.filter(e => e.teamId === match.awayTeamId && e.type === 'GOAL').length + events.filter(e => e.teamId === match.homeTeamId && e.type === 'SAVE').length;
+                const hSaves = events.filter(e => e.teamId === match.homeTeamId && e.type === 'SAVE').length;
+                const aSaves = events.filter(e => e.teamId === match.awayTeamId && e.type === 'SAVE').length;
+                const hOffsides = events.filter(e => e.teamId === match.homeTeamId && e.type === 'OFFSIDE').length;
+                const aOffsides = events.filter(e => e.teamId === match.awayTeamId && e.type === 'OFFSIDE').length;
+
                 const hFouls = events.filter(e => e.teamId === match.homeTeamId && e.type === 'FOUL').length;
                 const aFouls = events.filter(e => e.teamId === match.awayTeamId && e.type === 'FOUL').length;
 
@@ -294,82 +302,62 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 const aReds = events.filter(e => e.teamId === match.awayTeamId && e.type === 'CARD' && e.description.includes('🟥')).length;
 
                 const timeFactor = (gameState.matchMinute > 0 ? gameState.matchMinute : 90) / 90;
-                const hPasses = Math.floor((300 + hPos * 3) * timeFactor) + hShots * 2;
-                const aPasses = Math.floor((300 + aPos * 3) * timeFactor) + aShots * 2;
+                // Jogo 3D encerrado: os passes reais do motor; senao a estimativa por posse.
+                const hPasses = match.homePasses ?? Math.floor((300 + hPos * 3) * timeFactor) + hShots * 2;
+                const aPasses = match.awayPasses ?? Math.floor((300 + aPos * 3) * timeFactor) + aShots * 2;
 
                 const playerRatings = match.playerRatings || calculateMatchRatings(events, homeTeam, awayTeam, match.homeScore || 0, match.awayScore || 0, match.homeLineup, match.awayLineup, players);
 
                 return (
-                    <div className="bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-800 p-6 w-full max-w-5xl h-full flex flex-col overflow-hidden shadow-2xl animate-fade-in text-white">
-                         <h2 className="text-sm font-black uppercase mb-4 text-center tracking-widest text-slate-400">
-                              {gameState.matchMinute >= 90 ? "STATISTICS FINAIS" : "MATCH STATISTICS"}
+                  <div className="absolute inset-0 z-20 flex items-center justify-center p-4">
+                    <div className="bg-black/40 p-6 w-full max-w-5xl h-[calc(100%-240px)] flex flex-col overflow-hidden animate-fade-in text-white">
+                         <h2 className="text-2xl font-black uppercase mb-4 text-center tracking-widest text-white">
+                              {gameState.matchMinute >= 90 ? "FINAL STATISTICS" : "MATCH STATISTICS"}
                          </h2>
                          <div className="flex-1 grid grid-cols-1 md:grid-cols-[1fr_1.2fr_1fr] gap-6 overflow-hidden min-h-0">
                              {/* HOME TEAM RATINGS */}
                              <div className="flex flex-col gap-3 overflow-hidden h-full">
-                                 <h3 className="font-black text-sm text-center uppercase truncate text-blue-400">{homeTeam.name}</h3>
-                                 <div className="flex-1 overflow-y-auto pr-1 space-y-1 custom-scrollbar">
-                                     {Object.entries(playerRatings).filter(([id]) => {
-                                         const p = players.find(x => x.id === id);
-                                         return p && p.teamId === match.homeTeamId;
-                                     }).map(([id, rating]) => {
-                                         const p = players.find(x => x.id === id);
-                                         return (
-                                             <div key={id} className="flex justify-between items-center bg-slate-800/40 hover:bg-slate-800/80 px-3 py-1.5 rounded-lg border-l-4 transition-colors border-blue-500">
-                                                 <span className="text-[11px] font-bold text-slate-300 truncate">{p?.name.split(' ').pop()}</span>
-                                                 <span className={`font-black text-[11px] ${(rating as number) >= 7.5 ? 'text-emerald-500' : (rating as number) <= 5.5 ? 'text-rose-500' : 'text-slate-400'}`}>{(rating as number).toFixed(1)}</span>
-                                             </div>
-                                         );
-                                     })}
-                                 </div>
+                                 <div className="relative overflow-hidden bg-black/50 flex items-center pl-[42px] py-3 min-h-[49px]"><TeamShield team={homeTeam} className="absolute left-[-26px] top-1/2 -translate-y-1/2 w-[60px] h-[72px]" /><span className="font-bold text-[13px] text-white uppercase truncate">{homeTeam.name}</span></div>
+                                 <PlayerRatingsList jogadores={players.filter(p => p.teamId === match.homeTeamId)} notas={playerRatings as Record<string, number>} detalhes={match.ratingDetalhes} motm={match.motm} />
                              </div>
 
                              {/* STATS COMPARISON */}
-                             <div className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-4 flex flex-col justify-center gap-1.5 overflow-y-auto custom-scrollbar">
+                             <div className="bg-black/60 p-4 flex flex-col justify-start gap-[2px] overflow-y-auto custom-scrollbar">
                                  <h4 className="text-[10px] font-black text-center uppercase tracking-widest text-slate-500 mb-2">
                                      {gameState.matchMinute >= 90 ? "FULL TIME STATS" : "MATCH STATS"}
                                  </h4>
                                  {[
-                                   { label: 'GOLS', h: match.homeScore || 0, a: match.awayScore || 0 },
-                                   { label: 'POSSE DE BOLA', h: `${hPos}%`, a: `${aPos}%` },
-                                   { label: 'CHUTES', h: hShots, a: aShots },
+                                   { label: 'GOALS', h: match.homeScore || 0, a: match.awayScore || 0 },
+                                   { label: 'POSSESSION', h: `${hPos}%`, a: `${aPos}%` },
+                                   { label: 'SHOTS', h: hShots, a: aShots },
+                                   { label: 'SHOTS ON TARGET', h: hOnTarget, a: aOnTarget },
+                                   { label: 'SAVES', h: hSaves, a: aSaves },
+                                   { label: 'OFFSIDES', h: hOffsides, a: aOffsides },
                                    { label: 'PASSES', h: hPasses, a: aPasses },
-                                   { label: 'ESCANTEIOS', h: hCorners, a: aCorners },
-                                   { label: 'FALTAS', h: hFouls, a: aFouls },
-                                   { label: 'CA', h: hYellows, a: aYellows },
-                                   { label: 'CV', h: hReds, a: aReds },
+                                   { label: 'CORNERS', h: hCorners, a: aCorners },
+                                   { label: 'FOULS', h: hFouls, a: aFouls },
+                                   { label: 'YELLOW CARDS', h: hYellows, a: aYellows },
+                                   { label: 'RED CARDS', h: hReds, a: aReds },
                                  ].map((stat, i) => (
                                    <div key={i} className="flex justify-between items-center py-1.5 border-b border-slate-900/60 last:border-0">
-                                     <span className="w-1/3 text-right font-black text-sm text-slate-100">{stat.h}</span>
+                                     <span className="w-1/3 text-right pr-[30px] font-black text-[15px] text-slate-100">{stat.h}</span>
                                      <span className="w-1/3 text-center text-[9px] font-black uppercase tracking-wider text-slate-500">{stat.label}</span>
-                                     <span className="w-1/3 text-left font-black text-sm text-slate-100">{stat.a}</span>
+                                     <span className="w-1/3 text-left pl-[30px] font-black text-[15px] text-slate-100">{stat.a}</span>
                                    </div>
                                  ))}
                              </div>
 
                              {/* AWAY TEAM RATINGS */}
                              <div className="flex flex-col gap-3 overflow-hidden h-full">
-                                 <h3 className="font-black text-sm text-center uppercase truncate text-red-400">{awayTeam.name}</h3>
-                                 <div className="flex-1 overflow-y-auto pr-1 space-y-1 custom-scrollbar">
-                                     {Object.entries(playerRatings).filter(([id]) => {
-                                         const p = players.find(x => x.id === id);
-                                         return p && p.teamId === match.awayTeamId;
-                                     }).map(([id, rating]) => {
-                                         const p = players.find(x => x.id === id);
-                                         return (
-                                             <div key={id} className="flex justify-between items-center bg-slate-800/40 hover:bg-slate-800/80 px-3 py-1.5 rounded-lg border-r-4 transition-colors border-red-500">
-                                                 <span className="text-[11px] font-bold text-slate-300 truncate">{p?.name.split(' ').pop()}</span>
-                                                 <span className={`font-black text-[11px] ${(rating as number) >= 7.5 ? 'text-emerald-500' : (rating as number) <= 5.5 ? 'text-rose-500' : 'text-slate-400'}`}>{(rating as number).toFixed(1)}</span>
-                                             </div>
-                                         );
-                                     })}
-                                 </div>
+                                 <div className="relative overflow-hidden bg-black/50 flex items-center pr-[42px] justify-end py-3 min-h-[49px]"><TeamShield team={awayTeam} className="absolute right-[-26px] top-1/2 -translate-y-1/2 w-[60px] h-[72px]" /><span className="font-bold text-[13px] text-white uppercase truncate">{awayTeam.name}</span></div>
+                                 <PlayerRatingsList jogadores={players.filter(p => p.teamId === match.awayTeamId)} notas={playerRatings as Record<string, number>} detalhes={match.ratingDetalhes} motm={match.motm} />
                              </div>
                          </div>
                     </div>
+                  </div>
                 );
              })() : null}
-             <div className={`absolute inset-0 w-full h-full ${showStats ? 'hidden' : ''}`}>
+             <div className="absolute inset-0 w-full h-full">
                 <Simulador3DView retomar={retomarRef.current} competicao={nomeCompeticao} tabela={tabelaDosDois} amistoso={!!(match.isFriendly || match.type === 'FRIENDLY')} qualidade={gameState.graphicsQuality || 'HIGH'} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} decisao={decisaoDoJogoDeHoje()} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx} kitGkCasa={gameState.matchVisual?.gkHomeKit} kitGkFora={gameState.matchVisual?.gkAwayKit} trajeArbitro={gameState.matchVisual?.arbitroTraje}
                     iniciar={iniciou} pausado={iniciou && !gameState.isProcessing} aoPronto={() => setPronto3d(true)}
                     aoMensagem={(m) => {
