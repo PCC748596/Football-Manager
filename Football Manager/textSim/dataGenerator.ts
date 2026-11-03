@@ -564,6 +564,12 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
     // RULE: Transfer Budget is 70% of Season Budget
     const transferBudget = Math.round(seasonBudget * 0.70);
 
+    // PUBLICO MEDIO INICIAL: 60% da lotacao do estadio, no maximo um teto entre 30 000 e 32 000 (fixo por clube, derivado do id). O Maracana mantem os 22 000 de sempre.
+    const maracana = t.teamStadiumName === 'Maracanã' || t.teamStadiumName === 'Estádio do Maracanã';
+    const lotacao = maracana ? 78838 : (Math.floor((t.fanBase || 10000) * 0.45) + 15000);
+    const tetoPublico = 30000 + (Number(t.teamID) * 7919) % 2001;
+    const publicoInicial = maracana ? 22000 : Math.min(Math.round(lotacao * ECONOMIA_ESTADIO.ocupacaoInicial), tetoPublico);
+
     const team: Team = {
       id: t.teamID.toString(),
       name: t.teamName,
@@ -584,7 +590,7 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
       initialTransfer: transferBudget, // Applied rule
       sponsorAmount: t.sponsorAmount,
       fanBase: t.fanBase || 10000,
-      avrAttendance: t.avrAttendance || 5000,
+      avrAttendance: publicoInicial,
       // No inicio do campeonato os estadios estao a 70%; o Maracana (78 838 lugares) comeca com 22 000 torcedores.
       stadiumOccupancy: (t.teamStadiumName === 'Maracanã' || t.teamStadiumName === 'Estádio do Maracanã') ? 22000 / 78838 : ECONOMIA_ESTADIO.ocupacaoInicial,
       played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0,
