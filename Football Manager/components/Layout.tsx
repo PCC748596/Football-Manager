@@ -14,6 +14,7 @@ const IconTrophy = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" heig
 const IconTactics = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h20"></path><path d="M5 20v-5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v5"></path><path d="M12 10V4"></path><path d="M12 4L8 8"></path><path d="M12 4l4 4"></path></svg>;
 const IconFinance = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>;
 const IconStatistics = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>;
+const IconManager = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" /><path d="m12 14 1.5 3L12 20l-1.5-3z" /></svg>;
 const IconTraining = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path><path d="M8.5 8.5l7 7"></path></svg>;
 const IconBall = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M6.7 6.7l10.6 10.6"></path><path d="M6.7 17.3l10.6-10.6"></path></svg>;
 const IconField = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h18v18H3z"/><path d="M3 12h18"/><circle cx="12" cy="12" r="3"/></svg>;
@@ -155,6 +156,9 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
           </div>
           <div onClick={() => handleNavClick('STATISTICS')} className={navItemClass('STATISTICS')}>
             <IconStatistics /> <span className="hidden lg:inline">{t('nav_statistics')}</span>
+          </div>
+          <div onClick={() => handleNavClick('MANAGER')} className={navItemClass('MANAGER')}>
+            <IconManager /> <span className="hidden lg:inline">{t('nav_manager')}</span>
           </div>
           <div onClick={() => handleNavClick('SETTINGS')} className={navItemClass('SETTINGS')}>
             <IconSettings /> <span className="hidden lg:inline">{t('nav_settings')}</span>

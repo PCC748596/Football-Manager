@@ -2,7 +2,7 @@ import React from 'react';
 import { useGame } from '../context/GameContext';
 import { faixaDeConfianca, USUARIO_ID, Faixa } from '../textSim/managerExpectations';
 
-const FAIXAS: Record<Faixa, { en: string; pt: string; cor: string }> = {
+export const FAIXAS: Record<Faixa, { en: string; pt: string; cor: string }> = {
   EXCELENTE: { en: 'Excellent', pt: 'Excelente', cor: 'bg-emerald-500' },
   BOA: { en: 'Good', pt: 'Boa', cor: 'bg-lime-500' },
   PRESSAO: { en: 'Under pressure', pt: 'Pressão', cor: 'bg-amber-500' },

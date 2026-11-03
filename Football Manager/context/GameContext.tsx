@@ -33,7 +33,7 @@ const TRANSLATIONS: Record<string, any> = {
   EN: {
     // Nav
     nav_home: "Home", nav_inbox: "Inbox", nav_transfers: "Transfers", nav_squad: "Squad", nav_tactics: "Tactics", nav_training: "Training",
-    nav_fixtures: "Fixtures", nav_standings: "Standings", nav_finance: "Finance", nav_statistics: "Statistics", nav_settings: "Settings", nav_world: "World",
+    nav_fixtures: "Fixtures", nav_standings: "Standings", nav_finance: "Finance", nav_statistics: "Statistics", nav_manager: "Manager", nav_settings: "Settings", nav_world: "World",
     nav_match_day: "Match Day", nav_sim_round: "Simulate Round", nav_save_game: "Save Game",
     // Start Menu
     start_new: "START NEW CAREER", start_continue: "CONTINUE CAREER", start_editor: "EDITOR", start_settings: "SETTINGS",
@@ -103,7 +103,7 @@ const TRANSLATIONS: Record<string, any> = {
   PT: {
     // Nav
     nav_home: "Início", nav_inbox: "Caixa de Entrada", nav_transfers: "Transferências", nav_squad: "Elenco", nav_tactics: "Tática", nav_training: "Treino",
-    nav_fixtures: "Jogos", nav_standings: "Tabela", nav_finance: "Finanças", nav_statistics: "Estatísticas", nav_settings: "Config.", nav_world: "Mundo",
+    nav_fixtures: "Jogos", nav_standings: "Tabela", nav_finance: "Finanças", nav_statistics: "Estatísticas", nav_manager: "Treinador", nav_settings: "Config.", nav_world: "Mundo",
     nav_match_day: "Dia de Jogo", nav_sim_round: "Simular Rodada", nav_save_game: "Salvar Jogo",
     // Start Menu
     start_new: "INICIAR NOVA CARREIRA", start_continue: "CONTINUAR CARREIRA", start_editor: "EDITOR", start_settings: "CONFIGURAÇÕES",
