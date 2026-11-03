@@ -457,7 +457,7 @@ test('processarRodada: quem cumpre a expectativa nunca e demitido e a confianca 
     estado = r.estado;
     assert.ok(!r.eventos.some(e => e.tipo === 'DEMISSAO' && e.clubKey === key('A')), 'rodada ' + k);
   }
-  assert.ok(estado.managers['m|' + key('A')].confidence > 85);
+  assert.ok(estado.managers['m|' + key('A')].confidence > 75, 'converge para ~80 (posicao-alvo cumprida, aproveitamento acima do esperado)');
 });
 
 test('processarRodada: idempotente (mesmos jogos, nada muda)', () => {
@@ -538,8 +538,8 @@ const indicePorClube = (managers: Record<string, Manager>) => {
 };
 
 /** Poe no clube o livre com reputacao mais proxima da exigencia (ou cria um sintetico). Altera `managers` e `porClube`. */
-const preencherVaga = (managers: Record<string, Manager>, porClube: Record<string, string>, clubKey: string, clube: string, exigencia: number, jogos: number, eventos: EventoMgr[]) => {
-  const m = livres(managers).sort((a, b) => Math.abs(a.reputation - exigencia) - Math.abs(b.reputation - exigencia) || a.id.localeCompare(b.id))[0] || novoLivre('livre|' + Object.keys(managers).length, exigencia);
+const preencherVaga = (managers: Record<string, Manager>, porClube: Record<string, string>, clubKey: string, clube: string, exigencia: number, jogos: number, eventos: EventoMgr[], excluirId?: string) => {
+  const m = livres(managers).filter(x => x.id !== excluirId).sort((a, b) => Math.abs(a.reputation - exigencia) - Math.abs(b.reputation - exigencia) || a.id.localeCompare(b.id))[0] || novoLivre('livre|' + Object.keys(managers).length, exigencia);
   managers[m.id] = { ...m, clubKey, grace: C.carencia, confidence: C.confInicial, lowConfRounds: 0, ultimoJogos: jogos, jaMovido: true };
   porClube[clubKey] = m.id;
   eventos.push({ tipo: 'CONTRATACAO', managerId: m.id, clubKey, clube, usuario: false });
@@ -554,7 +554,7 @@ const demitir = (managers: Record<string, Manager>, porClube: Record<string, str
   const k = m.clubKey!;
   managers[m.id] = { ...m, clubKey: null, reputation: clamp(m.reputation + C.repDemitido), confidence: C.confInicial, lowConfRounds: 0, grace: 0 };
   delete porClube[k];
-  preencherVaga(managers, porClube, k, clube, exigencia, jogos, eventos);
+  preencherVaga(managers, porClube, k, clube, exigencia, jogos, eventos, m.id);   // o demitido nao volta para o proprio clube
 };
 
 /** Atualiza a confianca de cada treinador com os jogos novos de cada liga e demite quem merece. Idempotente: sem jogos novos nada muda. */

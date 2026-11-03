@@ -96,3 +96,90 @@ export const probDemissao = (m: Manager, emZonaDeQueda: boolean, jogos: number):
   if (emZonaDeQueda) p *= C.multZonaDeQueda;
   return Math.min(C.probTeto, p);
 };
+
+const livres = (managers: Record<string, Manager>) => Object.values(managers).filter(m => !m.clubKey && !m.usuario);
+
+const novoLivre = (id: string, reputation?: number): Manager => {
+  const rnd = criarRng(id);
+  return { id, nome: nomeAleatorio(rnd), tatico: Math.round(60 + rnd() * 30), reputation: Math.round(reputation ?? 20 + rnd() * 65), confidence: C.confInicial, clubKey: null, lowConfRounds: 0, grace: 0, ultimoJogos: 0, jaMovido: false };
+};
+
+/** Mantem pelo menos `tamanhoMinimoPool` treinadores livres (sinteticos, com semente). */
+export const garantirPool = (estado: ManagerState): ManagerState => {
+  const managers = { ...estado.managers };
+  let n = Object.keys(managers).length;
+  for (let faltam = C.tamanhoMinimoPool - livres(managers).length; faltam > 0; faltam--) { const id = 'livre|' + n++; managers[id] = novoLivre(id); }
+  return { ...estado, managers };
+};
+
+/** Um treinador por clube de cada liga (os de `Team.managerName`, que vem de textSim/treinadores.ts) e o do utilizador no clube dele. */
+export const semearTreinadores = (ligas: LigaSnap[], usuario?: { clubKey: string; nome: string }): ManagerState => {
+  const managers: Record<string, Manager> = {};
+  for (const liga of ligas) {
+    const ajustes = ajustesDeTradicao(liga.times);
+    for (const t of liga.times) {
+      const k = teamKey(liga.leagueId, t.id);
+      const exig = exigenciaDoNivel(nivelDoClube(t.strength, ajustes[t.id] ?? 0));
+      const ehUsuario = usuario?.clubKey === k;
+      const id = ehUsuario ? USUARIO_ID : 'm|' + k;
+      managers[id] = { id, nome: ehUsuario ? usuario!.nome : t.managerName, tatico: t.managerTactics ?? 60, reputation: clamp(Math.round(exig + criarRng('mgr|' + k)() * 16 - 8)),
+        confidence: C.confInicial, clubKey: k, lowConfRounds: 0, grace: 0, ultimoJogos: 0, jaMovido: false, ...(ehUsuario ? { usuario: true } : {}) };
+    }
+  }
+  return garantirPool({ managers, fechadas: [], ofertas: [] });
+};
+
+const indicePorClube = (managers: Record<string, Manager>) => {
+  const out: Record<string, string> = {};
+  for (const m of Object.values(managers)) if (m.clubKey) out[m.clubKey] = m.id;
+  return out;
+};
+
+/** Poe no clube o livre com reputacao mais proxima da exigencia (ou cria um sintetico). Altera `managers` e `porClube`. */
+const preencherVaga = (managers: Record<string, Manager>, porClube: Record<string, string>, clubKey: string, clube: string, exigencia: number, jogos: number, eventos: EventoMgr[], excluirId?: string) => {
+  const m = livres(managers).filter(x => x.id !== excluirId).sort((a, b) => Math.abs(a.reputation - exigencia) - Math.abs(b.reputation - exigencia) || a.id.localeCompare(b.id))[0] || novoLivre('livre|' + Object.keys(managers).length, exigencia);
+  managers[m.id] = { ...m, clubKey, grace: C.carencia, confidence: C.confInicial, lowConfRounds: 0, ultimoJogos: jogos, jaMovido: true };
+  porClube[clubKey] = m.id;
+  eventos.push({ tipo: 'CONTRATACAO', managerId: m.id, clubKey, clube, usuario: false });
+};
+
+/**
+ * Demissao. A IA vai para o pool e o clube contrata um substituto. O utilizador NUNCA fica sem clube (sem game over): recebe o aviso e recomeca com confianca baixa e carencia.
+ */
+const demitir = (managers: Record<string, Manager>, porClube: Record<string, string>, m: Manager, clube: string, exigencia: number, jogos: number, eventos: EventoMgr[]) => {
+  eventos.push({ tipo: 'DEMISSAO', managerId: m.id, clubKey: m.clubKey, clube, usuario: !!m.usuario });
+  if (m.usuario) { managers[m.id] = { ...m, reputation: clamp(m.reputation + C.repDemitido), confidence: C.confUsuarioAposDemissao, lowConfRounds: 0, grace: C.carenciaUsuario }; return; }
+  const k = m.clubKey!;
+  managers[m.id] = { ...m, clubKey: null, reputation: clamp(m.reputation + C.repDemitido), confidence: C.confInicial, lowConfRounds: 0, grace: 0 };
+  delete porClube[k];
+  preencherVaga(managers, porClube, k, clube, exigencia, jogos, eventos, m.id);   // o demitido nao volta para o proprio clube
+};
+
+/** Atualiza a confianca de cada treinador com os jogos novos de cada liga e demite quem merece. Idempotente: sem jogos novos nada muda. */
+export const processarRodada = (estado: ManagerState, ligas: LigaSnap[]): { estado: ManagerState; eventos: EventoMgr[] } => {
+  const managers = { ...estado.managers };
+  const porClube = indicePorClube(managers);
+  const eventos: EventoMgr[] = [];
+  for (const liga of ligas) {
+    const n = liga.tabela.length;
+    if (n < 2) continue;
+    const ajustes = ajustesDeTradicao(liga.times);
+    liga.tabela.forEach((row, i) => {
+      const k = teamKey(liga.leagueId, row.team.id);
+      const m = managers[porClube[k]];
+      if (!m || row.played < C.minJogosAvaliar || row.played <= m.ultimoJogos) return;
+      const nivel = nivelDoClube(row.team.strength, ajustes[row.team.id] ?? 0);
+      const alvoPos = posicaoAlvo(nivel, n, liga.rebaixados);
+      const passos = row.played - m.ultimoJogos;
+      const conf = atualizarConfianca(m.confidence, alvoDeConfianca({ jogos: row.played, pontos: row.points, posicao: i + 1, n, alvo: alvoPos }), passos);
+      const baixa = conf < C.limitePressao ? m.lowConfRounds + passos : conf >= C.neutro ? 0 : Math.max(0, m.lowConfRounds - passos);
+      const novo: Manager = { ...m, confidence: conf, lowConfRounds: baixa, grace: Math.max(0, m.grace - passos), ultimoJogos: row.played };
+      managers[m.id] = novo;
+      if (m.usuario && faixaDeConfianca(conf) !== faixaDeConfianca(m.confidence) && conf < m.confidence && conf < C.limitePressao)
+        eventos.push({ tipo: 'FAIXA', managerId: m.id, clubKey: k, clube: row.team.name, usuario: true, faixa: faixaDeConfianca(conf) });
+      const zona = i + 1 > n - liga.rebaixados;
+      if (criarRng(`demissao|${m.id}|${row.played}`)() < probDemissao(novo, zona, row.played)) demitir(managers, porClube, novo, row.team.name, exigenciaDoNivel(nivel), row.played, eventos);
+    });
+  }
+  return { estado: garantirPool({ ...estado, managers }), eventos };
+};

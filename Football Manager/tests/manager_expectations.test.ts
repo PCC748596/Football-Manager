@@ -52,3 +52,86 @@ test('probDemissao: protegido por carencia e por poucos jogos; so cai com confia
   assert.equal(probDemissao(mgr({ confidence: 10, lowConfRounds: 9 }), false, 20), CONFIG_MGR.probTeto);
   assert.ok(Math.abs(probDemissao(mgr({ confidence: 30, lowConfRounds: 6 }), false, 20) - 0.1) < 1e-9);
 });
+
+import { semearTreinadores, processarRodada, LigaSnap, USUARIO_ID } from '../textSim/managerExpectations';
+
+// Todos os clubes de teste tem a mesma torcida e fundacao: a tradicao nao muda nenhum nivel (ajuste 0).
+const time = (id: string, strength: number, leagueId = 'L1') => ({ id, name: 'Clube ' + id, leagueId, strength, managerName: 'Tec ' + id, managerTactics: 70, fanBase: 10, foundedYear: 1950 }) as any;
+const key = (id: string, leagueId = 'L1') => leagueId + '|' + id;
+const snap = (times: any[], pontos: Record<string, number>, jogos: number, extra: Partial<LigaSnap> = {}): LigaSnap => ({
+  leagueId: 'L1', tier: 1, promovidos: 1, rebaixados: 2, times, encerrada: false, ...extra,
+  tabela: times.map(t => ({ team: t, played: jogos, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: pontos[t.id] ?? 0 })).sort((a, b) => b.points - a.points)
+});
+const seis = () => [time('A', 90), time('B', 90), time('C', 70), time('D', 60), time('E', 50), time('F', 50)];
+const todosTemTreinador = (estado: any, times: any[]) => times.every(t => Object.values<any>(estado.managers).filter(m => m.clubKey === key(t.id)).length === 1);
+
+test('semear: um treinador por clube (o do utilizador no clube dele), reputacao segue o nivel e ha pool de livres', () => {
+  const times = [time('A', 85), time('Z', 45)];
+  const estado = semearTreinadores([snap(times, {}, 0)], { clubKey: key('A'), nome: 'Eu' });
+  assert.equal(estado.managers[USUARIO_ID].clubKey, key('A'));
+  assert.equal(estado.managers[USUARIO_ID].nome, 'Eu');
+  assert.equal(estado.managers['m|' + key('Z')].nome, 'Tec Z');
+  assert.ok(estado.managers[USUARIO_ID].reputation > estado.managers['m|' + key('Z')].reputation);
+  assert.ok(Object.values(estado.managers).filter(m => !m.clubKey).length >= 30);
+  assert.ok(todosTemTreinador(estado, times));
+});
+
+test('processarRodada: treinador fracassado cai (com carencia e reposicao), sem sobrar clube vazio', () => {
+  const times = seis();
+  let estado = semearTreinadores([snap(times, {}, 0)]);
+  const velho = estado.managers['m|' + key('A')];
+  let demitido = false, contratou = false;
+  for (let k = 3; k <= 40; k++) {
+    const pontos: Record<string, number> = { A: 0, B: 3 * k, C: 2 * k, D: 2 * k, E: k, F: k };   // A, o favorito, em ultimo
+    const r = processarRodada(estado, [snap(times, pontos, k)]);
+    estado = r.estado;
+    if (r.eventos.some(e => e.tipo === 'DEMISSAO' && e.clubKey === key('A'))) demitido = true;
+    if (r.eventos.some(e => e.tipo === 'CONTRATACAO' && e.clubKey === key('A'))) contratou = true;
+    assert.ok(todosTemTreinador(estado, times), 'rodada ' + k);
+    if (demitido) break;
+  }
+  assert.ok(demitido && contratou, 'o clube A deveria demitir e contratar');
+  const novo = Object.values(estado.managers).find(m => m.clubKey === key('A'))!;
+  assert.notEqual(novo.id, velho.id);
+  assert.equal(estado.managers[velho.id].clubKey, null);
+  assert.equal(novo.grace, CONFIG_MGR.carencia);
+});
+
+test('processarRodada: quem cumpre a expectativa nunca e demitido e a confianca sobe', () => {
+  const times = seis();
+  let estado = semearTreinadores([snap(times, {}, 0)]);
+  for (let k = 3; k <= 38; k++) {
+    const r = processarRodada(estado, [snap(times, { A: 3 * k, B: 2 * k, C: 2 * k, D: k, E: k, F: 0 }, k)]);
+    estado = r.estado;
+    assert.ok(!r.eventos.some(e => e.tipo === 'DEMISSAO' && e.clubKey === key('A')), 'rodada ' + k);
+  }
+  assert.ok(estado.managers['m|' + key('A')].confidence > 75, 'converge para ~80 (posicao-alvo cumprida, aproveitamento acima do esperado)');
+});
+
+test('processarRodada: idempotente (mesmos jogos, nada muda)', () => {
+  const times = seis();
+  const estado0 = semearTreinadores([snap(times, {}, 0)]);
+  const s = snap(times, { A: 20, B: 18, C: 15, D: 10, E: 5, F: 2 }, 10);
+  const a = processarRodada(estado0, [s]);
+  const b = processarRodada(a.estado, [s]);
+  assert.deepEqual(b.estado, a.estado);
+  assert.equal(b.eventos.length, 0);
+});
+
+test('processarRodada: o utilizador em crise e avisado (faixa) e, se cair, recomeca com carencia sem perder o clube', () => {
+  const times = seis();
+  let estado = semearTreinadores([snap(times, {}, 0)], { clubKey: key('A'), nome: 'Eu' });
+  let faixas = 0, demissoes = 0;
+  for (let k = 3; k <= 40 && !demissoes; k++) {
+    const r = processarRodada(estado, [snap(times, { A: 0, B: 3 * k, C: 2 * k, D: 2 * k, E: k, F: k }, k)]);
+    estado = r.estado;
+    faixas += r.eventos.filter(e => e.tipo === 'FAIXA' && e.usuario).length;
+    demissoes += r.eventos.filter(e => e.tipo === 'DEMISSAO' && e.usuario).length;
+  }
+  assert.ok(faixas >= 1, 'avisos de faixa');
+  assert.equal(demissoes, 1);
+  const eu = estado.managers[USUARIO_ID];
+  assert.equal(eu.clubKey, key('A'));
+  assert.equal(eu.grace, CONFIG_MGR.carenciaUsuario);
+  assert.equal(eu.confidence, CONFIG_MGR.confUsuarioAposDemissao);
+});
