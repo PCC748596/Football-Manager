@@ -57,6 +57,17 @@ function relatorio() {
     const moc = todos.filter(x => x.moc), porGrupo = {};
     moc.forEach(x => { const k = Object.keys(GR).find(k => GR[k].includes(x.pos)) || '?'; porGrupo[k] = (porGrupo[k] || 0) + 1; });
     console.log('MoM por grupo', JSON.stringify(porGrupo));
+    // COERENCIA: a nota deve acompanhar o que o jogador fez e o resultado da equipa.
+    const m = (a) => a.length ? (a.reduce((s, x) => s + x, 0) / a.length).toFixed(2) + ' (n ' + a.length + ')' : '-';
+    const nota = (f) => m(todos.filter(f).map(x => x.nota));
+    console.log('coerencia: sem golo', nota(x => !x.golos), '| 1 golo', nota(x => x.golos === 1), '| 2+ golos', nota(x => x.golos >= 2), '| com assist.', nota(x => x.assistencias > 0), '| destaque def.', nota(x => x.def >= 6), '| MoM', nota(x => x.moc));
+    const porRes = { V: [], E: [], D: [] };
+    res.forEach(r => { const p = /(\d+)x(\d+)/.exec(r.jogo); if (!p) return; const a = +p[1], b = +p[2]; r.notas.forEach(x => { const meu = x.equipa === 'TeamA' ? a : b, deles = x.equipa === 'TeamA' ? b : a; porRes[meu > deles ? 'V' : meu < deles ? 'D' : 'E'].push(x.nota); }); });
+    console.log('por resultado da equipa: vitoria', m(porRes.V), '| empate', m(porRes.E), '| derrota', m(porRes.D));
+    const linha = (x) => x.nota.toFixed(1) + ' ' + String(x.pos || '?').padEnd(3) + ' ' + x.minutos + 'min golos ' + (x.golos || 0) + ' ass ' + (x.assistencias || 0) + ' def ' + (x.def || 0) + ' | tat ' + Math.round(x.tatico) + ' tec ' + Math.round(x.tecnico) + ' par ' + Math.round(x.participacao) + ' dis ' + Math.round(x.disciplina) + (x.moc ? ' MoM' : '');
+    const ord = todos.filter(x => x.minutos >= 45).sort((a, b) => b.nota - a.nota);
+    console.log('10 melhores:'); ord.slice(0, 10).forEach(x => console.log('  ' + linha(x)));
+    console.log('10 piores:'); ord.slice(-10).forEach(x => console.log('  ' + linha(x)));
     const ms = res.map(r => r.msPorAmostra), am = res.map(r => r.amostras);
     console.log('amostragem tatica: ms por passagem (22 jogadores) media', (ms.reduce((s, x) => s + x, 0) / ms.length).toFixed(3), 'max', Math.max(...ms).toFixed(3), '| passagens/jogo', Math.round(am.reduce((s, x) => s + x, 0) / am.length));
 }

@@ -68,6 +68,14 @@ const NotasMotor = {
         j.cont[tipo] = (j.cont[tipo] || 0) + 1;
         if (this.cfg.defensivos.indexOf(tipo) >= 0) j.nDef++;
         if (!ant) j.nEventos++;
+        // BONUS POR GOLOS NA PARTIDA (`bonusGolos`: n -> tipo de evento): o 2.o golo (dobradinha) e o 3.o (hat-trick) dao, cada um uma unica vez,
+        // um bonus proprio; a curva sozinha dava a um hat-trick quase o mesmo que a 2 golos + assistencia.
+        if (tipo === 'GOLO' && this.cfg.bonusGolos) {
+            for (const n in this.cfg.bonusGolos) {
+                const chave = 'bonus' + n, extra = this._contribs(j, this.cfg.bonusGolos[n]);
+                if (extra && j.cont.GOLO >= Number(n) && !j.aplicado[chave]) { this._somar(j, extra, +1); j.aplicado[chave] = { tipo: this.cfg.bonusGolos[n], contribs: extra }; }
+            }
+        }
         return true;
     },
 
@@ -124,8 +132,14 @@ const NotasMotor = {
     _base() { return 100 * (this.cfg.neutra - 1) / 9; },
     // raw (unidades de nota) -> pontuacao 0..100. Escala 4*peso: pequenos valores dao ~ o mesmo delta de nota.
     _pontuacao(raw, peso) {
-        const B = this._base(), t = Math.tanh(raw / (4 * peso));
-        return t >= 0 ? B + (100 - B) * t : B * (1 + t);
+        const B = this._base(), x = raw / (4 * peso);
+        if (x < 0) return B * (1 + Math.tanh(x));
+        // TOPO DA CURVA: ate `topo.x0` e a tanh de sempre; depois dele continua pela tangente (suave, sem teto) em vez de saturar.
+        // Sem isto a componente travava em 100 e a nota maxima ficava ~8.2 (um hat-trick valia o mesmo que 2 golos + assistencia).
+        // O resultado pode passar de 100: so a nota final e limitada (10), e a tabela mostra a barra limitada a 100.
+        const topo = this.cfg.topo, x0 = topo ? topo.x0 : Infinity, t0 = Math.tanh(Math.min(x, x0));
+        const t = x <= x0 ? t0 : t0 + (x - x0) * (1 - t0 * t0) * topo.k;
+        return B + (100 - B) * t;
     },
     _rawTatico(j) {
         if (!j.qN) return 0;
@@ -142,7 +156,7 @@ const NotasMotor = {
         const sc = {}; let pond = 0;
         for (const c of COMPONENTES) { sc[c] = this._pontuacao(raw[c], pesos[c]); pond += pesos[c] * sc[c]; }
         const nota = Math.min(10, Math.max(1, 1 + 9 * pond / 100));
-        const r = {}; for (const c of COMPONENTES) r[c] = Math.round(sc[c]);
+        const r = {}; for (const c of COMPONENTES) r[c] = Math.min(100, Math.round(sc[c]));
         return Object.assign({ nota: Math.round(nota * 10) / 10, minutos: Math.round(this._min(j, agora)) }, r);
     },
     nota(id, agora) { const d = this.detalhes(id, agora); return d ? d.nota : null; },

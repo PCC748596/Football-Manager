@@ -2456,6 +2456,7 @@ class PlayerFSM {
 
                     if (plano.sucesso) {
                         if (typeof MatchStats !== 'undefined') MatchStats[p.team].dribles.sucesso++;
+                        if (typeof Notas !== 'undefined') Notas.drible(p);   // nota do jogador: drible certo
                         // O marcador foi BATIDO: fica para tras (ver DribbleModel.marcadorDur / marcadorFator, aplicado no Player.update).
                         if (opp && DribbleModel.marcadorDur) opp.dribladoTimer = DribbleModel.marcadorDur;
                         p.speedMult = DribbleModel.sprintBoost;

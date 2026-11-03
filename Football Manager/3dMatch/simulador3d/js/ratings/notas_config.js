@@ -14,10 +14,14 @@ const NotasConfig = {
     qNeutro: 0.63,            // qualidade tatica media de um jogo normal (medida em lote); cada perfil pode ter o seu `qNeutro`
     janelaErroSeg: 8,         // uma perda de bola ate N s antes de um remate/golo adversario vira "erro que gera ..."
     escalaEventos: 1.5,       // fator global sobre os valores da tabela de eventos (calibrado em lote: sem ele o desvio das notas fica ~0.4)
+    topo: { x0: 1.0, k: 1.0 },   // a partir de x0 (raw / (4*peso)) a componente deixa de saturar e segue pela tangente; k = inclinacao (ver NotasMotor._pontuacao)
+    bonusGolos: { 2: 'DOBRADINHA', 3: 'HATTRICK' },   // n.o de golos na partida -> evento de bonus (aplicado uma vez)
     minutosMoc: 30,           // minimo de minutos para ser Man of the Match
     eventos: {
         GOLO:                  [['tecnico', 0.50], ['participacao', 0.30]],
         ASSISTENCIA:           [['tecnico', 0.30], ['participacao', 0.20]],
+        DOBRADINHA:            [['tecnico', 0.40], ['participacao', 0.16]],   // bonus unico no 2.o golo da partida (ver `bonusGolos`)
+        HATTRICK:              [['tecnico', 0.40], ['participacao', 0.16]],   // bonus unico no 3.o golo da partida
         PASSE_DECISIVO:        [['tecnico', 0.08], ['participacao', 0.04]],
         REMATE_NO_GOL:         [['tecnico', 0.08]],
         REMATE_FORA:           [['tecnico', -0.03]],

@@ -17,7 +17,7 @@ test('1. atacante com 2 golos e pouco mais', () => {
 });
 test('2. volante dominante sem golos', () => {
     M.reset(); jog('a', 'DM'); ev('a', 'DESARME', 6); ev('a', 'INTERCEPTACAO', 6); ev('a', 'PASSE_PROGRESSIVO', 8); amostras('a', 200, bom);
-    faixa(M.nota('a', 90), 7.2, 8.9, 'DM dominante');
+    faixa(M.nota('a', 90), 7.2, 9.2, 'DM dominante');   // 12 acoes defensivas + 8 passes progressivos + posicionamento perfeito: pode chegar a ~9 com o topo da curva aberto
 });
 test('3. zagueiro perfeito', () => {
     M.reset(); jog('a', 'CB'); ev('a', 'DESARME', 4); ev('a', 'INTERCEPTACAO', 5); ev('a', 'CORTE', 8); ev('a', 'DUELO_AEREO', 6); amostras('a', 200, bom);
@@ -55,4 +55,22 @@ test('Man of the Match: volante pode ganhar do atacante com golo; minimo de minu
     ev('sub', 'GOLO', 3);
     assert.strictEqual(M.melhor('TeamA', 90), 'dm');
     assert.strictEqual(M.melhor('TeamB', 90), null);
+});
+
+test('topo da curva: um hat-trick vale ~9.0 e mais que 2 golos + assistencia; 4 golos + assistencias chegam ao teto', () => {
+    M.reset(); jog('a', 'ST'); ev('a', 'GOLO', 2); ev('a', 'ASSISTENCIA', 1); amostras('a', 120, neutro);
+    const dois = M.nota('a', 90);
+    M.reset(); jog('a', 'ST'); ev('a', 'GOLO', 3); amostras('a', 120, neutro);
+    const tres = M.nota('a', 90);
+    M.reset(); jog('a', 'ST'); ev('a', 'GOLO', 3); ev('a', 'ASSISTENCIA', 2); ev('a', 'REMATE_NO_GOL', 4); amostras('a', 120, neutro);
+    const mega = M.nota('a', 90);
+    M.reset(); jog('a', 'ST'); ev('a', 'GOLO', 4); ev('a', 'ASSISTENCIA', 2); ev('a', 'REMATE_NO_GOL', 3); amostras('a', 120, neutro);
+    const quatro = M.nota('a', 90);
+    assert.ok(tres > dois, `hat-trick (${tres}) deve passar 2 golos + assistencia (${dois})`);
+    faixa(dois, 8.4, 8.6, '2 golos + 1 assistencia');
+    faixa(tres, 8.8, 9.2, 'hat-trick');
+    faixa(mega, 9.4, 10, 'hat-trick + 2 assistencias');
+    faixa(quatro, 9.7, 10, '4 golos + 2 assistencias');
+    M.reset(); jog('a', 'ST'); ev('a', 'GOLO', 1); amostras('a', 120, neutro);
+    faixa(M.nota('a', 90), 6.8, 7.5, 'um golo nao muda com o topo novo');
 });
