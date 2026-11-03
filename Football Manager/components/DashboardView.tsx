@@ -7,6 +7,7 @@ import { TeamShield } from './TeamShield';
 import { PlayerFace } from './PlayerFace';
 import { ShirtIcon } from './ShirtIcon';
 import FitnessBar from './FitnessBar';
+import BoardConfidenceCard from './BoardConfidenceCard';
 import { settleMatch, ECONOMIA_ESTADIO, competicaoDoJogo, type CurrencyCode } from '../textSim/stadiumEconomy';
 
 interface Props {
@@ -512,6 +513,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
           <p className="text-blue-500 dark:text-blue-400 font-bold text-[10px] uppercase tracking-widest mt-1 italic transition-colors">
             {t('dash_manager_home')}
           </p>
+          <BoardConfidenceCard />
         </div>
         <div className="flex gap-2">
            {matchToday ? (
