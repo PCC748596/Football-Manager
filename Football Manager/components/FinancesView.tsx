@@ -8,7 +8,7 @@ import { ContractChip } from './ContractPanel';
 import { estadoDoContrato } from '../textSim/contracts';
 import PlayerDetailModal from './PlayerDetailModal';
 import SponsorsTab from './SponsorsTab';
-import { orcamentoDaTemporada, PADRAO_COMPRAS } from '../textSim/orcamento';
+import { orcamentoDaTemporada, maxCompras, folhaAnual, PADRAO_COMPRAS, PASSO_COMPRAS } from '../textSim/orcamento';
 
 const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => {
   const { definirDivisaoOrcamento, userTeam, players, hirePlayer, sellPlayer, gameState, isTransferWindowOpen, formatCurrency, formatWage, t } = useGame();
@@ -242,17 +242,22 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                      <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">{t('fin_transfer_budget')}</div>
                         {(() => {
-                          const pct = Math.round((userTeam.transferPct ?? PADRAO_COMPRAS) * 100), pt = gameState.language === 'PT';
+                          const pool = orcamentoDaTemporada(userTeam), folha = folhaAnual(teamPlayers.map(p => p.salary));
+                          const maxPct = Math.round(maxCompras(userTeam, folha) * 100), folhaPct = pool > 0 ? Math.min(100, (folha / pool) * 100) : 100;
+                          const pct = Math.min(Math.round((userTeam.transferPct ?? PADRAO_COMPRAS) * 100), maxPct), pt = gameState.language === 'PT';
                           return (
                             <div className="mt-3">
                               <div className="flex justify-between text-base font-black uppercase tracking-wide">
                                 <span className="text-emerald-600">{pt ? 'Compras' : 'Transfers'} {pct}% · {formatCurrency(userTeam.initialTransfer || 0)}</span>
                                 <span className="text-rose-500">{pt ? 'Salários' : 'Wages'} {100 - pct}% · {formatCurrency(orcamentoDaTemporada(userTeam) - (userTeam.initialTransfer || 0))}</span>
                               </div>
-                              <input type="range" min={0} max={100} step={10} value={pct} onChange={e => definirDivisaoOrcamento(Number(e.target.value) / 100)}
-                                aria-label={pt ? 'Divisão do orçamento entre compras e salários' : 'Budget split between transfers and wages'}
-                                className="orcamento-range w-full mt-2"
-                                style={{ background: `linear-gradient(to right, #059669 ${pct}%, #f43f5e ${pct}%)` }} />
+                              <div className="relative mt-2">
+                                <input type="range" min={0} max={100} step={PASSO_COMPRAS * 100} value={pct} onChange={e => definirDivisaoOrcamento(Math.min(Number(e.target.value), maxPct) / 100)}
+                                  aria-label={pt ? 'Divisão do orçamento entre compras e salários' : 'Budget split between transfers and wages'}
+                                  className="orcamento-range w-full"
+                                  style={{ background: `linear-gradient(to right, #059669 ${pct}%, #f43f5e ${pct}%)` }} />
+                                <div className="orcamento-folha" style={{ width: `${folhaPct}%` }} title={pt ? `Folha salarial anual (mínimo dos salários): ${formatCurrency(folha)}` : `Annual payroll (wage minimum): ${formatCurrency(folha)}`} />
+                              </div>
                             </div>
                           );
                         })()}

@@ -8,4 +8,5 @@
 .orcamento-range::-moz-range-track { height: 28px; background: transparent; border-radius: 0; }
 .orcamento-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 40px; margin-top: -6px; background: #f8fafc; border: 2px solid #0f172a; border-radius: 0; }
 .orcamento-range::-moz-range-thumb { width: 8px; height: 36px; background: #f8fafc; border: 2px solid #0f172a; border-radius: 0; }
-
+/* A folha salarial anual (o minimo dos salarios) no fim da barra: vermelho hachurado, por cima do vermelho dos salarios; o marcador nao entra nela. */
+.orcamento-folha { position: absolute; right: 0; top: 0; height: 28px; pointer-events: none; background: repeating-linear-gradient(45deg, rgba(15,23,42,0.55) 0 4px, transparent 4px 9px); border-left: 2px solid #0f172a; }

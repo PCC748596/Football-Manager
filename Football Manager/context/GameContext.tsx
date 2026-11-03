@@ -9,7 +9,7 @@ import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disput
 import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
 import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, avisoDeBonusPatrocinio } from '../textSim/inbox';
-import { aplicarDivisao, PADRAO_COMPRAS } from '../textSim/orcamento';
+import { aplicarDivisao, folhaAnual, PADRAO_COMPRAS } from '../textSim/orcamento';
 import { PATROCINADORES, criarContrato, avaliarProposta, pagarParcelas, reputacaoDoClube, bonusDeCompeticao, diasParaFim, JANELA_RENOVACAO_DIAS, type MotivoRecusa } from '../textSim/patrocinadores';
 import { ManagerState, semearTreinadores, atualizarTreinadores, aplicarTreinadores, registrosDosEventos, registrarNoDiario, declinarOferta } from '../textSim/managerExpectations';
 import { montarLigas } from '../textSim/managerLigas';
@@ -469,10 +469,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const r = avaliarProposta(reputacaoClube, p, userTeam.sponsorContract, userTeam.sponsorNext, anos, hoje);
     if (!r.ok) return r;
     const novo = criarContrato(p, anos, r.renovacao ? userTeam.sponsorContract!.fim : hoje);
-    setTeams(prev => prev.map(t => t.id === userTeam.id ? (r.renovacao ? { ...t, sponsorNext: novo } : aplicarDivisao({ ...t, sponsorContract: novo }, t.transferPct ?? PADRAO_COMPRAS)) : t));
+    setTeams(prev => prev.map(t => t.id === userTeam.id ? (r.renovacao ? { ...t, sponsorNext: novo } : aplicarDivisao({ ...t, sponsorContract: novo }, t.transferPct ?? PADRAO_COMPRAS, folhaDoClube(t.id))) : t));
     return r;
   };
-  const definirDivisaoOrcamento = (compras: number) => { if (userTeam) setTeams(prev => prev.map(t => t.id === userTeam.id ? aplicarDivisao(t, compras) : t)); };
+  const folhaDoClube = (teamId: string) => folhaAnual(players.filter(p => p.teamId === teamId).map(p => p.salary));
+  const definirDivisaoOrcamento = (compras: number) => { if (userTeam) setTeams(prev => prev.map(t => t.id === userTeam.id ? aplicarDivisao(t, compras, folhaDoClube(t.id)) : t)); };
   /** Bonus do patrocinador por competicao: um percentual (5% a 15%, pela marca) de cada premio pago ao clube, so enquanto o contrato esta vigente. */
   const pagarBonusPatrocinio = (premios: { key: string; usd: number; data: string }[]) => {
     if (!userTeam?.sponsorContract) return;
