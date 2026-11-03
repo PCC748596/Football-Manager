@@ -8,6 +8,7 @@ import { nomeDoClube } from './nomes';
 import { criarRng } from './contracts';
 import { TREINADORES, sortearConhecimento } from './treinadores';
 import { REAL_TEAMS_JSON, REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
+import { jogadoresLocaisDoClube } from './dadosLocais';
 import { sortearPlayStyle } from './youth';
 import { PLAYSTYLE_DA_BASE } from './playStylesDatabase';
 
@@ -613,7 +614,8 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
     const squad: Player[] = [];
 
     // Check for real players first
-    const realPlayers = REAL_PLAYERS_JSON.filter((p: any) => p.team === t.teamName);
+    // Dados locais (CountryData<N>.json, textSim/dadosLocais.ts) mandam sobre a base quando existem para o clube.
+    const realPlayers: any[] = jogadoresLocaisDoClube(Number(t.teamID)) || REAL_PLAYERS_JSON.filter((p: any) => p.team === t.teamName);
 
     if (realPlayers.length > 0) {
       realPlayers.forEach((p: any, index) => {
@@ -628,6 +630,7 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
           name: p.namePlayer,
           age: p.agePlayer,
           position: mapPosString(p.posPlayer),
+          ...(p.birthDate ? { birthDate: p.birthDate } : {}),
           skill: Math.max(NIVEL_MINIMO, p.ovrPlayer),
           fitness: randomInt(45, 55), // Everyone starts at 45-55% in preseason
           morale: randomInt(40, 60), // Everyone starts at 4-6 morale in preseason

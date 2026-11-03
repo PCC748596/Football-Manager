@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import { carregarDadosLocais } from './textSim/dadosLocais';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -32,10 +33,13 @@ if (modoTablet) {
   window.addEventListener('resize', ajustar);
   rootElement.appendChild(quadro);
 } else {
-  const root = ReactDOM.createRoot(rootElement);
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
+  // Dados locais (CountryData<N>.json, so no servidor de desenvolvimento): carregam-se ANTES de arrancar, para a primeira partida nova ja os usar. Sem ficheiro, segue de imediato.
+  carregarDadosLocais().finally(() => {
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+  });
 }

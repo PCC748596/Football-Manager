@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Dados reais locais (nomes reais de jogadores): nunca publicar
+local-data/
+docs/CountryData54.sav
+docs/jogadores_skills.csv

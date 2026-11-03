@@ -13,6 +13,7 @@ import type { Player } from '../types';
 import { REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 import { PLAYSTYLE_DA_BASE } from './playStylesDatabase';
 import { NIVEL_MINIMO } from './dataGenerator';
+import { jogadorLocalPorId } from './dadosLocais';
 import { GRUPOS, ATRIBUTOS_GK, gerarAtributos, limitarAtributo, curvaFisica, calcularGrupos } from './geradorAtributos';
 
 /*
@@ -22,6 +23,9 @@ TEC recebe 0.4 DRB + 0.3 SHT + 0.3 PAS e TAC recebe DEF. MEN e FIS ficam como es
 const BASE: Map<string, { def: number; pas: number; drb: number; sht: number; idade: number; attrs3d?: Record<string, number> }> = new Map();
 let baseFeita = false;
 const baseDe = (id: string) => {
+  // Jogador dos dados locais (CountryData<N>.json): vem com os atributos e fica fora da base (nunca e gravado).
+  const l = jogadorLocalPorId(id);
+  if (l) return { def: Math.max(NIVEL_MINIMO, l.defPlayer), pas: Math.max(NIVEL_MINIMO, l.pasPlayer), drb: Math.max(NIVEL_MINIMO, l.drbplayer), sht: Math.max(NIVEL_MINIMO, l.shtPlayer), idade: l.agePlayer || 0, attrs3d: l.attrs3d };
   if (!baseFeita) {
     baseFeita = true;
     for (const r of REAL_PLAYERS_JSON as any[]) {
@@ -134,7 +138,8 @@ const PAIS_DO_3D: Record<string, string> = { '54': '45' };
 export const paisDoJogador = (p: Player, paisDoClube?: string | number): string | null => {
   const id = String(p.id).replace(/^p-/, '');
   const linha = D.jogadores[id];
-  const cod = linha ? String(linha[IDX['nationality']] || '') : '';
+  const local = jogadorLocalPorId(id);
+  const cod = local ? local.nationality : linha ? String(linha[IDX['nationality']] || '') : '';
   if (cod && cod !== '0') return PAIS_DO_3D[cod] || cod;
   if (paisDoClube === undefined || paisDoClube === null || paisDoClube === '') return null;
   const c = String(paisDoClube);
