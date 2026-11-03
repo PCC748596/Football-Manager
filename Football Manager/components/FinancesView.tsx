@@ -7,10 +7,11 @@ import { settleMatch, type CurrencyCode } from '../textSim/stadiumEconomy';
 import { ContractChip } from './ContractPanel';
 import { estadoDoContrato } from '../textSim/contracts';
 import PlayerDetailModal from './PlayerDetailModal';
+import SponsorsTab from './SponsorsTab';
 
 const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => {
   const { userTeam, players, hirePlayer, sellPlayer, gameState, isTransferWindowOpen, formatCurrency, formatWage, t } = useGame();
-  const [marketPhase, setMarketPhase] = useState<'OVERVIEW' | 'MARKET'>('OVERVIEW');
+  const [marketPhase, setMarketPhase] = useState<'OVERVIEW' | 'MARKET' | 'SPONSORS'>('OVERVIEW');
   const [jogadorAberto, setJogadorAberto] = useState<Player | null>(null);   // o Overview do jogador (o mesmo modal do Squad), aberto pelo nome na folha salarial
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
   
@@ -125,6 +126,12 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
            >
              {t('fin_treasury')}
            </button>
+           <button
+             onClick={() => setMarketPhase('SPONSORS')}
+             className={`px-6 py-2 rounded font-black text-xs uppercase tracking-widest transition-all ${marketPhase === 'SPONSORS' ? 'bg-emerald-600/10 text-emerald-600 dark:bg-emerald-600 dark:text-white border border-emerald-600/30 shadow-lg' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+           >
+             {gameState.language === 'PT' ? 'PATROCINADORES' : 'SPONSORS'}
+           </button>
            <button 
              onClick={() => (setView ? setView('TRANSFERS') : setMarketPhase('MARKET'))}   // o mercado de verdade e a aba Transfers
              className={`px-6 py-2 rounded font-black text-xs uppercase tracking-widest transition-all ${marketPhase === 'MARKET' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
@@ -150,7 +157,7 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
       })()}
 
       <div className="flex-1 min-h-0">
-        {marketPhase === 'OVERVIEW' ? (
+        {marketPhase === 'SPONSORS' ? <SponsorsTab /> : marketPhase === 'OVERVIEW' ? (
           <div className="grid grid-cols-12 gap-6 h-full content-start">   {/* content-start: as linhas nao esticam para a altura toda */}
             <div className="col-span-12 grid grid-cols-5 gap-4">
                <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-2.5 shadow-xl transition-colors">
@@ -168,7 +175,7 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                </div>
                <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-2.5 shadow-xl transition-colors">
                   <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{t('fin_sponsor')}</div>
-                  <div className="text-xl font-black text-emerald-500 transition-colors">{formatCurrency(userTeam.sponsorAmount || 0)}</div>
+                  <div className="text-xl font-black text-emerald-500 transition-colors">{formatCurrency(userTeam.sponsorContract?.valorAnualUSD || 0)}</div>
                </div>
                <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-2.5 shadow-xl transition-colors">
                   <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{t('fin_fanbase')}</div>

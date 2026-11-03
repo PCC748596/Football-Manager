@@ -449,8 +449,8 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
   const mesAtual = gameState.currentDate.slice(0, 7);
   useEffect(() => {
     if (!userTeam) return;
-    registrarFinanceiro(userTeam.id, { m: mesAtual, cash: Math.round(userTeam.cash), sal: Math.round(totalSalaries), rec: Math.round(estMatchRevenue), spo: Math.round(userTeam.sponsorAmount || 0) });
-  }, [userTeam?.id, mesAtual, userTeam?.cash, totalSalaries, estMatchRevenue, userTeam?.sponsorAmount]);
+    registrarFinanceiro(userTeam.id, { m: mesAtual, cash: Math.round(userTeam.cash), sal: Math.round(totalSalaries), rec: Math.round(estMatchRevenue), spo: Math.round(userTeam.sponsorContract?.valorAnualUSD || 0) });
+  }, [userTeam?.id, mesAtual, userTeam?.cash, totalSalaries, estMatchRevenue, userTeam?.sponsorContract?.valorAnualUSD]);
   const ultimos6Meses = useMemo(() => {
     const [a, m] = mesAtual.split('-').map(Number);
     return Array.from({ length: 6 }, (_, k) => { const d = new Date(Date.UTC(a, m - 1 - (5 - k), 1)); return d.toISOString().slice(0, 7); });
@@ -787,7 +787,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
 
                  <div className="bg-white dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-slate-800 p-4 flex flex-col justify-center text-center shadow-sm">
                     <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('fin_sponsor')}</div>
-                    <div className="text-xl font-black text-emerald-500 truncate">{formatCurrency(userTeam.sponsorAmount || 0)}</div>
+                    <div className="text-xl font-black text-emerald-500 truncate">{formatCurrency(userTeam.sponsorContract?.valorAnualUSD || 0)}</div>
                     <BarrasDe6Meses meses={ultimos6Meses} valores={serie('spo')} cor="bg-emerald-500" />
                  </div>
               </div>
