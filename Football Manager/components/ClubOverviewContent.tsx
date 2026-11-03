@@ -4,7 +4,7 @@ import { TeamShield } from './TeamShield';
 import { TeamKit } from './TeamKit';
 import { PlayerFace } from './PlayerFace';
 import { useGame } from '../context/GameContext';
-import { expectativaDoClube, expectativaPorFases } from '../textSim/managerExpectations';
+import { BoardExpectationBox, calcularExpectativa } from './BoardExpectationBox';
 
 const painel = 'bg-black/45 backdrop-blur-sm border border-white/15 rounded';
 
@@ -25,28 +25,14 @@ interface Props {
 export const ClubOverviewContent: React.FC<Props> = ({ team, leagueName, leagueTeams, league, elenco }) => {
   const { gameState } = useGame();
   const pt = gameState.language === 'PT';
-  // Serie D (grupos + mata-mata): a meta e a FASE que o clube deve alcancar; nas outras ligas, a posicao na tabela.
-  const porFases = league?.format === 'SERIE_D';
-  const fases = expectativaPorFases(leagueTeams, team);
-  const tab = expectativaDoClube(leagueTeams, team, league?.relegated ?? Math.round(leagueTeams.length * 0.2));
-  const nivel = porFases ? fases.fase : tab.nivel, ajuste = porFases ? fases.ajuste : tab.ajuste;
-  const notaTradicao = ajuste === 0 ? '' : ajuste > 0 ? (pt ? 'A tradição do clube eleva a cobrança.' : "The club's history raises the demand.") : (pt ? 'A pouca tradição reduz a cobrança.' : 'Little history lowers the demand.');
-  const rotulos = porFases
-    ? (pt ? ['Passar da primeira fase', 'Chegar à terceira fase', 'Chegar às oitavas de final', 'Chegar às quartas de final', 'Chegar à semifinal e subir', 'Conquistar o título']
-      : ['Get past the group stage', 'Reach the third phase', 'Reach the round of 16', 'Reach the quarter-finals', 'Reach the semi-finals and go up', 'Win the title'])
-    : pt ? ['Evitar o rebaixamento', 'Garantir a permanência', 'Terminar na metade de cima', 'Terminar entre os primeiros', 'Disputar o título', 'Conquistar o título']
-      : ['Avoid relegation', 'Secure survival', 'Finish in the upper half', 'Finish near the top', 'Compete for the title', 'Win the title'];
-  const campeao = porFases ? nivel === 5 : tab.alvo <= 3;
-  const nomesFase = pt ? ['Segunda fase', 'Terceira fase', 'Oitavas de final', 'Quartas de final', 'Semifinal'] : ['Second phase', 'Third phase', 'Round of 16', 'Quarter-finals', 'Semi-finals'];
-  const meta = campeao ? (pt ? 'Ser campeão' : 'To be Champion') : porFases ? nomesFase[nivel] : (pt ? `Meta: top ${tab.alvo}` : `Target: top ${tab.alvo}`);
-  const cores = ['bg-red-500', 'bg-orange-500', 'bg-amber-400', 'bg-lime-400', 'bg-emerald-400', 'bg-yellow-300'];
+  const exp = calcularExpectativa(pt, team, leagueTeams, league);
   return (
     <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-0.5 min-h-0">
       <div className={`relative overflow-hidden h-[84px] flex flex-col justify-center text-left pl-3 pr-[88px] ${painel}`}>
         <div className="absolute top-1/2 -translate-y-1/2 -right-[26px] w-[120px] h-[144px]"><TeamShield team={team} className="w-full h-full" /></div>
         <div className="text-2xl font-black text-white uppercase leading-tight truncate">{team.name}</div>
         <div className="text-[10px] font-bold text-blue-300 uppercase tracking-widest">{leagueName}</div>
-        {notaTradicao && <div className="text-[9px] text-white/50 leading-tight mt-0.5">{notaTradicao}</div>}
+        {exp.notaTradicao && <div className="text-[9px] text-white/50 leading-tight mt-0.5">{exp.notaTradicao}</div>}
       </div>
       <div className="grid grid-cols-2 gap-0.5 text-center">
         {[['OVR', team.strength], ['Founded', team.foundedYear || '-'], ['Fan base', (team.fanBase || 0).toLocaleString()], ['Budget', '$' + Math.round((team.cash || 0) / 1000).toLocaleString() + 'k']].map(([k, v]) => (
@@ -61,17 +47,7 @@ export const ClubOverviewContent: React.FC<Props> = ({ team, leagueName, leagueT
         <div className="flex justify-between gap-2"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Stadium</span><span className="font-bold text-white text-right">{team.stadium || '-'}</span></div>
         {team.stadiumCapacity ? <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Capacity</span><span className="font-bold text-white">{team.stadiumCapacity.toLocaleString()}</span></div> : null}
       </div>
-      <div className={`${painel} p-3`}>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{pt ? 'Expectativa da diretoria' : 'Board expectations'}</span>
-          <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 ${campeao ? 'bg-yellow-400/20 text-yellow-300' : 'bg-blue-500/20 text-blue-300'}`}>{campeao ? '🏆 ' : ''}{meta}</span>
-        </div>
-        <div className="font-black text-white text-base leading-tight mt-1">{rotulos[nivel]}</div>
-        <div className="flex gap-1 mt-2">
-          {cores.map((cor, i) => <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= nivel ? cor : 'bg-white/10'}`} />)}
-        </div>
-        <div className="flex justify-between text-[8px] font-bold text-white/40 uppercase tracking-widest mt-1"><span>{porFases ? (pt ? 'Grupos' : 'Groups') : (pt ? 'Permanência' : 'Survival')}</span><span>{pt ? 'Título' : 'Title'}</span></div>
-      </div>
+      <BoardExpectationBox exp={exp} pt={pt} className={`${painel} p-3`} />
       <div className={`${painel} px-0 pt-[2px] pb-0`}>
         <div className="text-[10px] font-black text-white/60 uppercase tracking-widest leading-none mb-0 px-2">Kits</div>
         <div className="flex flex-wrap justify-center gap-x-0 gap-y-0 -mt-[10px] -mb-[11px]">
