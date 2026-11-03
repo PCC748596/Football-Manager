@@ -210,3 +210,18 @@ test('aplicarTreinadores: nao troca o treinador do clube do utilizador (o nome d
   const estado = semearTreinadores([snap(times, {}, 0)], { clubKey: key('A'), nome: 'Eu' });
   assert.equal(aplicarTreinadores(times, estado), times);
 });
+
+import { expectativaPorFases } from '../textSim/managerExpectations';
+
+test('expectativaPorFases (Serie D): a posicao do OVR entre os 96 da a fase, a tradicao move uma', () => {
+  const times = Array.from({ length: 96 }, (_, i) => ({ id: 't' + i, name: 'Clube ' + i, strength: 70 - i * 0.1, fanBase: 10, foundedYear: 1950 }) as any);
+  const fase = (i: number) => expectativaPorFases(times, times[i]).fase;
+  assert.equal(fase(0), 5);    // 1o: titulo
+  assert.equal(fase(2), 5);
+  assert.equal(fase(3), 4);    // 4o a 8o: semifinal
+  assert.equal(fase(7), 4);
+  assert.equal(fase(8), 3);    // 9o a 16o: quartas
+  assert.equal(fase(16), 2);   // 17o a 32o: oitavas
+  assert.equal(fase(40), 1);   // 33o a 64o: terceira fase
+  assert.equal(fase(90), 0);   // resto: passar dos grupos
+});

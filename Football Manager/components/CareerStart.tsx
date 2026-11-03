@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { COUNTRIES, generateLeagueData } from '../textSim/dataGenerator';
-import { Team, Player } from '../types';
+import { Team, Player, League } from '../types';
 import { TeamShield } from './TeamShield';
 import { ClubOverviewContent } from './ClubOverviewContent';
 
@@ -26,7 +26,7 @@ const NIVEIS_BRASIL: Nivel[] = [
   { ...NIVEIS_PADRAO[4], liga: 3, alvo: 'PIOR6' }
 ];
 
-interface Oferta { nivel: Nivel; team: Team; elenco: Player[]; leagueId: string; leagueName: string; ligaTimes: Team[]; rebaixados?: number; }
+interface Oferta { nivel: Nivel; team: Team; elenco: Player[]; leagueId: string; leagueName: string; ligaTimes: Team[]; liga: League; }
 
 const escolher = (times: Team[], alvo: Alvo): Team => {
   const o = [...times].sort((a, b) => b.strength - a.strength || a.name.localeCompare(b.name));
@@ -81,7 +81,7 @@ export const CareerOffers: React.FC<{ managerName: string; onSelectTeam: (teamId
       if (!times.length) continue;
       const team = escolher(times, nivel.alvo);
       usados.add(team.id);
-      out.push({ nivel, team, elenco: dados.players.filter(p => p.teamId === team.id).sort((a, b) => b.skill - a.skill), leagueId: liga.id, leagueName: liga.name, ligaTimes: dados.teams, rebaixados: liga.relegated });
+      out.push({ nivel, team, elenco: dados.players.filter(p => p.teamId === team.id).sort((a, b) => b.skill - a.skill), leagueId: liga.id, leagueName: liga.name, ligaTimes: dados.teams, liga });
     }
     return out;
   }, [countryId]);
@@ -125,7 +125,7 @@ export const CareerOffers: React.FC<{ managerName: string; onSelectTeam: (teamId
             return (
               <div className="flex-1 relative overflow-hidden rounded border-2 border-slate-200 dark:border-slate-800 min-h-0" style={{ background: `linear-gradient(165deg, ${c1} 0%, ${c1} 18%, ${c2} 62%, #020617 100%)` }}>
                 <div className="absolute inset-0 flex flex-col gap-2 p-1.5 min-h-0">
-                  <ClubOverviewContent team={c} leagueName={sel.leagueName} leagueTeams={sel.ligaTimes} relegated={sel.rebaixados} elenco={sel.elenco} />
+                  <ClubOverviewContent team={c} leagueName={sel.leagueName} leagueTeams={sel.ligaTimes} league={sel.liga} elenco={sel.elenco} />
                   <button onClick={() => onSelectTeam(c.id, countryId, sel.leagueId)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-sm transition-all shadow-lg text-xl uppercase tracking-widest">Take job</button>
                 </div>
               </div>

@@ -1,20 +1,20 @@
 import React from 'react';
-import { Team, Player } from '../types';
+import { Team, Player, League } from '../types';
 import { TeamShield } from './TeamShield';
 import { TeamKit } from './TeamKit';
 import { PlayerFace } from './PlayerFace';
 import { useGame } from '../context/GameContext';
-import { expectativaDoClube } from '../textSim/managerExpectations';
+import { expectativaDoClube, expectativaPorFases } from '../textSim/managerExpectations';
 
 const painel = 'bg-black/45 backdrop-blur-sm border border-white/15 rounded';
 
 interface Props {
   team: Team;
   leagueName?: string;
-  /** Todos os clubes da liga do clube (a expectativa e a tradicao sao relativas a liga). */
+  /** Todos os clubes carregados da liga do clube (a expectativa e a tradicao sao relativas a liga; na Serie D, so ao grupo dele). */
   leagueTeams: Team[];
-  /** Quantos descem na liga (sem valor: 20% dos clubes). */
-  relegated?: number;
+  /** A liga (de `COUNTRIES`): quantos descem e o formato. */
+  league?: League;
   elenco: Player[];
 }
 
@@ -22,16 +22,23 @@ interface Props {
  * O conteudo da area rolavel do "Club Overview" (escolha de clube e Manager career): nome e liga, numeros, estadio, expectativa da diretoria, kits e os 5 melhores jogadores.
  * O fundo degradê e o botao de entrar ficam por conta de quem usa.
  */
-export const ClubOverviewContent: React.FC<Props> = ({ team, leagueName, leagueTeams, relegated, elenco }) => {
+export const ClubOverviewContent: React.FC<Props> = ({ team, leagueName, leagueTeams, league, elenco }) => {
   const { gameState } = useGame();
   const pt = gameState.language === 'PT';
-  const { nivel, alvo, ajuste } = expectativaDoClube(leagueTeams, team, relegated ?? Math.round(leagueTeams.length * 0.2));
+  // Serie D (grupos + mata-mata): a meta e a FASE que o clube deve alcancar; nas outras ligas, a posicao na tabela.
+  const porFases = league?.format === 'SERIE_D';
+  const fases = expectativaPorFases(leagueTeams, team);
+  const tab = expectativaDoClube(leagueTeams, team, league?.relegated ?? Math.round(leagueTeams.length * 0.2));
+  const nivel = porFases ? fases.fase : tab.nivel, ajuste = porFases ? fases.ajuste : tab.ajuste;
   const notaTradicao = ajuste === 0 ? '' : ajuste > 0 ? (pt ? 'A tradição do clube eleva a cobrança.' : "The club's history raises the demand.") : (pt ? 'A pouca tradição reduz a cobrança.' : 'Little history lowers the demand.');
-  const rotulos = pt
-    ? ['Evitar o rebaixamento', 'Garantir a permanência', 'Terminar na metade de cima', 'Terminar entre os primeiros', 'Disputar o título', 'Conquistar o título']
-    : ['Avoid relegation', 'Secure survival', 'Finish in the upper half', 'Finish near the top', 'Compete for the title', 'Win the title'];
-  const campeao = alvo <= 3;
-  const meta = campeao ? (pt ? 'Ser campeão' : 'To be Champion') : (pt ? `Meta: top ${alvo}` : `Target: top ${alvo}`);
+  const rotulos = porFases
+    ? (pt ? ['Passar da primeira fase', 'Chegar à terceira fase', 'Chegar às oitavas de final', 'Chegar às quartas de final', 'Chegar à semifinal e subir', 'Conquistar o título']
+      : ['Get past the group stage', 'Reach the third phase', 'Reach the round of 16', 'Reach the quarter-finals', 'Reach the semi-finals and go up', 'Win the title'])
+    : pt ? ['Evitar o rebaixamento', 'Garantir a permanência', 'Terminar na metade de cima', 'Terminar entre os primeiros', 'Disputar o título', 'Conquistar o título']
+      : ['Avoid relegation', 'Secure survival', 'Finish in the upper half', 'Finish near the top', 'Compete for the title', 'Win the title'];
+  const campeao = porFases ? nivel === 5 : tab.alvo <= 3;
+  const nomesFase = pt ? ['Segunda fase', 'Terceira fase', 'Oitavas de final', 'Quartas de final', 'Semifinal'] : ['Second phase', 'Third phase', 'Round of 16', 'Quarter-finals', 'Semi-finals'];
+  const meta = campeao ? (pt ? 'Ser campeão' : 'To be Champion') : porFases ? nomesFase[nivel] : (pt ? `Meta: top ${tab.alvo}` : `Target: top ${tab.alvo}`);
   const cores = ['bg-red-500', 'bg-orange-500', 'bg-amber-400', 'bg-lime-400', 'bg-emerald-400', 'bg-yellow-300'];
   return (
     <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-0.5 min-h-0">
@@ -63,7 +70,7 @@ export const ClubOverviewContent: React.FC<Props> = ({ team, leagueName, leagueT
         <div className="flex gap-1 mt-2">
           {cores.map((cor, i) => <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= nivel ? cor : 'bg-white/10'}`} />)}
         </div>
-        <div className="flex justify-between text-[8px] font-bold text-white/40 uppercase tracking-widest mt-1"><span>{pt ? 'Permanência' : 'Survival'}</span><span>{pt ? 'Título' : 'Title'}</span></div>
+        <div className="flex justify-between text-[8px] font-bold text-white/40 uppercase tracking-widest mt-1"><span>{porFases ? (pt ? 'Grupos' : 'Groups') : (pt ? 'Permanência' : 'Survival')}</span><span>{pt ? 'Título' : 'Title'}</span></div>
       </div>
       <div className={`${painel} px-0 pt-[2px] pb-0`}>
         <div className="text-[10px] font-black text-white/60 uppercase tracking-widest leading-none mb-0 px-2">Kits</div>

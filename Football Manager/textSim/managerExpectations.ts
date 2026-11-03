@@ -310,3 +310,15 @@ export const expectativaDoClube = (times: Team[], clube: Team, rebaixados: numbe
   const n = Math.max(2, times.length);
   return { nivel, ajuste, alvo: metaDoClube(nivel, n, rebaixados, rankDeForca(times)[clube.id] ?? Math.ceil(n / 2)) };
 };
+
+/**
+ * Serie D (96 clubes, mata-mata depois dos grupos): a expectativa e a FASE que o clube deve alcancar, nao uma posicao. Pela posicao do OVR entre todos os clubes da liga:
+ * 1-3 titulo, 4-8 semifinal (os 4 semifinalistas sobem), 9-16 quartas, 17-32 oitavas, 33-64 terceira fase, resto segunda fase (passar dos grupos). A tradicao move uma fase.
+ * Devolve 0-5: 0 segunda fase, 1 terceira fase, 2 oitavas, 3 quartas, 4 semifinal, 5 titulo.
+ */
+export const expectativaPorFases = (times: Team[], clube: Team): { fase: number; ajuste: -1 | 0 | 1 } => {
+  const ajuste = ajustesDeTradicao(times)[clube.id] ?? 0;
+  const rank = rankDeForca(times)[clube.id] ?? times.length;
+  const base = rank <= 3 ? 5 : rank <= 8 ? 4 : rank <= 16 ? 3 : rank <= 32 ? 2 : rank <= 64 ? 1 : 0;
+  return { fase: clamp(base + ajuste, 0, 5), ajuste };
+};
