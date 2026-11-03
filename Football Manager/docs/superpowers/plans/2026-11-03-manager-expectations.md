@@ -1119,3 +1119,15 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 Tasks 1-7 generate offers for the user and show them in the inbox, but the user cannot accept them: moving the user to another club means changing the controlled club (`gameState.userTeamId`, lineup, fixtures, league-bound state), which is far larger than the coach market and was not in the approved design.
 
 - [ ] **Step 1: Stop and ask the user.** Report this limitation and ask whether to (a) leave offers informational, (b) allow accepting only for clubs in the same league, or (c) support any club. Do not implement anything until they answer. If they choose (b) or (c), write a new design note first (what `userTeamId` change affects: grep `userTeamId` and `naLigaDoUtilizador` usages), then a short follow-up plan.
+
+---
+
+## Execution notes (calibration changes made while implementing)
+
+The first version of Tasks 2-4 dismissed 125% of all clubs in a simulated year on the real database. Three changes brought it to ~25% (`tests/manager_mercado.test.ts` guards 5-45%):
+
+1. **Realistic target position** (`metaDoClube`, `rankDeForca`): the level's position target is blended 50/50 (`pesoRankOvr`) with the club's OVR rank inside its own league, so a league where every club has high OVR does not "expect" everyone to finish in the top half.
+2. **Judged only since hire** (`Manager.baseJogos`/`basePontos`): a new coach is evaluated on points earned after he arrived, and the season-end reputation uses only his period. Without this he inherited the previous coach's record and was sacked again.
+3. **Softer constants**: `ganhoAproveitamento` 250 to 120, `ganhoPosicao` 160 to 80, `suavizacao` 0.15 to 0.1, `minJogosDemissao` 8 to 10, `carencia` 6 to 8.
+
+Also fixed: a dismissed coach is excluded from his own club's replacement (`preencherVaga` `excluirId`). Code blocks in Tasks 2-4 above show the first version; the committed code in `textSim/managerExpectations.ts` is authoritative.

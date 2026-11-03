@@ -4,8 +4,8 @@ MANAGER EXPECTATIONS — expectativas dos clubes, confianca da diretoria, demiss
 Funcoes puras: o contexto do jogo (context/GameContext.tsx) chama `atualizarTreinadores` quando o mundo ou os jogos mudam. Nao mexe no motor das partidas.
 - Expectativa: o OVR do clube (`Team.strength`) da o nivel 0-5 (90+ titulo, 80+ disputar, 70+ primeiros, 60+ metade de cima, 50+ permanencia, abaixo evitar queda); a tradicao
   (textSim/tradicao.ts) soma +-1. O nivel vira uma posicao-alvo relativa ao tamanho da liga.
-- Board Confidence 0-100: 50% aproveitamento (contra o esperado para a posicao-alvo), 30% posicao, 20% conquistas. Muda aos poucos (15% do caminho por rodada).
-- Demissao: so com confianca < 20 (ou pressao longa abaixo de 40), nunca na carencia pos-contratacao nem antes de 8 jogos; a zona de rebaixamento acelera. Sorteio com semente.
+- Board Confidence 0-100: 50% aproveitamento (contra o esperado para a posicao-alvo), 30% posicao, 20% conquistas. Muda aos poucos (10% do caminho por rodada).
+- Demissao: so com confianca < 20 (ou pressao longa abaixo de 40), nunca na carencia pos-contratacao nem antes de 10 jogos; a zona de rebaixamento acelera. Sorteio com semente.
 - Reputacao 0-100, independente da confianca: muda no fim da liga (aproveitamento, posicao final, titulo, promocao, classificacao).
 - Ofertas: no fim da liga, clubes precisando de treinador convidam o melhor compativel de um clube menor. Substituto: o livre com reputacao mais proxima da exigencia do clube.
 O jogo ainda nao tem virada de temporada: cada liga fecha uma vez (`fechadas`) e cada treinador muda de clube no maximo uma vez (`jaMovido`).
@@ -23,14 +23,16 @@ export const CONFIG_MGR = {
   niveisOvr: [50, 60, 70, 80, 90],
   /** Reputacao que cada nivel (0-5) exige de um treinador. */
   exigencia: [20, 35, 50, 65, 80, 92],
-  confInicial: 62, suavizacao: 0.15, minJogosAvaliar: 3, minJogosDemissao: 8, carencia: 6,
+  confInicial: 62, suavizacao: 0.1, minJogosAvaliar: 3, minJogosDemissao: 10, carencia: 8,
   pesos: { aproveitamento: 0.5, posicao: 0.3, conquistas: 0.2 },
-  neutro: 60, ganhoAproveitamento: 250, ganhoPosicao: 160,
+  neutro: 60, ganhoAproveitamento: 120, ganhoPosicao: 80,
   limiteDemissao: 20, limitePressao: 40,
   probDemissaoBase: 0.25, probDemissaoPorRodada: 0.15, probPressao: 0.05, probTeto: 0.6, multZonaDeQueda: 1.5,
   repGanhoAproveitamento: 60, repGanhoPosicao: 20, repTitulo: 15, repPromocao: 8, repClassificacao: 4, repRebaixamento: -12, repDemitido: -6, repPreterido: -4,
   penalidadeRebaixamento: 25, confUsuarioAposDemissao: 35, carenciaUsuario: 10,
   lacunaReputacao: 25, tolerInf: 10, tolerSup: 25, maxOfertasUsuario: 3,
+  /** Peso do ranking de OVR dentro da liga na posicao-alvo (0 = so o nivel absoluto). Evita metas impossiveis em ligas onde todos tem OVR alto. */
+  pesoRankOvr: 0.5,
   tamanhoMinimoPool: 30, jogosTemporadaFechada: 9999
 };
 const C = CONFIG_MGR;
@@ -43,6 +45,8 @@ export interface Manager {
   lowConfRounds: number; grace: number;
   /** Jogos do clube na ultima atualizacao (a atualizacao so corre quando ha jogos novos). */
   ultimoJogos: number;
+  /** Jogos e pontos do clube quando o treinador chegou: ele so e julgado pelo que veio depois. */
+  baseJogos: number; basePontos: number;
   jaMovido: boolean;
   usuario?: boolean;
 }
@@ -70,12 +74,23 @@ export const posicaoAlvo = (nivel: number, n: number, rebaixados: number): numbe
   return clamp(alvo, 1, n);
 };
 
+/** Posicao de cada clube da liga pelo OVR (1 = mais forte; empate pelo id). */
+export const rankDeForca = (times: Team[]): Record<string, number> => {
+  const out: Record<string, number> = {};
+  [...times].sort((a, b) => b.strength - a.strength || a.id.localeCompare(b.id)).forEach((t, i) => { out[t.id] = i + 1; });
+  return out;
+};
+
+/** A meta realista: o nivel (absoluto, pelo OVR e tradicao) misturado com o lugar do clube pelo OVR na propria liga. */
+export const metaDoClube = (nivel: number, n: number, rebaixados: number, rankOvr: number): number =>
+  clamp(Math.round((1 - C.pesoRankOvr) * posicaoAlvo(nivel, n, rebaixados) + C.pesoRankOvr * rankOvr), 1, n);
+
 /** Aproveitamento (0-1) normal de quem termina na posicao-alvo. */
 export const aproveitamentoEsperado = (alvo: number, n: number) => 0.72 - 0.42 * ((alvo - 1) / Math.max(1, n - 1));
 
 /** O valor (0-100) para o qual a confianca tende, dado o momento da liga. Cumprir a expectativa = `neutro`. */
 export const alvoDeConfianca = (r: Rodada): number => {
-  const aprov = r.jogos ? r.pontos / (3 * r.jogos) : 0;
+  const aprov = r.jogos ? r.pontos / (3 * r.jogos) : aproveitamentoEsperado(r.alvo, r.n);
   const a = clamp(C.neutro + (aprov - aproveitamentoEsperado(r.alvo, r.n)) * C.ganhoAproveitamento);
   const p = clamp(C.neutro + ((r.alvo - r.posicao) / Math.max(1, r.n - 1)) * C.ganhoPosicao);
   const c = clamp(r.conquistas ?? C.neutro);
@@ -101,7 +116,7 @@ const livres = (managers: Record<string, Manager>) => Object.values(managers).fi
 
 const novoLivre = (id: string, reputation?: number): Manager => {
   const rnd = criarRng(id);
-  return { id, nome: nomeAleatorio(rnd), tatico: Math.round(60 + rnd() * 30), reputation: Math.round(reputation ?? 20 + rnd() * 65), confidence: C.confInicial, clubKey: null, lowConfRounds: 0, grace: 0, ultimoJogos: 0, jaMovido: false };
+  return { id, nome: nomeAleatorio(rnd), tatico: Math.round(60 + rnd() * 30), reputation: Math.round(reputation ?? 20 + rnd() * 65), confidence: C.confInicial, clubKey: null, lowConfRounds: 0, grace: 0, ultimoJogos: 0, baseJogos: 0, basePontos: 0, jaMovido: false };
 };
 
 /** Mantem pelo menos `tamanhoMinimoPool` treinadores livres (sinteticos, com semente). */
@@ -123,7 +138,7 @@ export const semearTreinadores = (ligas: LigaSnap[], usuario?: { clubKey: string
       const ehUsuario = usuario?.clubKey === k;
       const id = ehUsuario ? USUARIO_ID : 'm|' + k;
       managers[id] = { id, nome: ehUsuario ? usuario!.nome : t.managerName, tatico: t.managerTactics ?? 60, reputation: clamp(Math.round(exig + criarRng('mgr|' + k)() * 16 - 8)),
-        confidence: C.confInicial, clubKey: k, lowConfRounds: 0, grace: 0, ultimoJogos: 0, jaMovido: false, ...(ehUsuario ? { usuario: true } : {}) };
+        confidence: C.confInicial, clubKey: k, lowConfRounds: 0, grace: 0, ultimoJogos: 0, baseJogos: 0, basePontos: 0, jaMovido: false, ...(ehUsuario ? { usuario: true } : {}) };
     }
   }
   return garantirPool({ managers, fechadas: [], ofertas: [] });
@@ -136,9 +151,9 @@ const indicePorClube = (managers: Record<string, Manager>) => {
 };
 
 /** Poe no clube o livre com reputacao mais proxima da exigencia (ou cria um sintetico). Altera `managers` e `porClube`. */
-const preencherVaga = (managers: Record<string, Manager>, porClube: Record<string, string>, clubKey: string, clube: string, exigencia: number, jogos: number, eventos: EventoMgr[], excluirId?: string) => {
+const preencherVaga = (managers: Record<string, Manager>, porClube: Record<string, string>, clubKey: string, clube: string, exigencia: number, jogos: number, eventos: EventoMgr[], excluirId?: string, pontos = 0) => {
   const m = livres(managers).filter(x => x.id !== excluirId).sort((a, b) => Math.abs(a.reputation - exigencia) - Math.abs(b.reputation - exigencia) || a.id.localeCompare(b.id))[0] || novoLivre('livre|' + Object.keys(managers).length, exigencia);
-  managers[m.id] = { ...m, clubKey, grace: C.carencia, confidence: C.confInicial, lowConfRounds: 0, ultimoJogos: jogos, jaMovido: true };
+  managers[m.id] = { ...m, clubKey, grace: C.carencia, confidence: C.confInicial, lowConfRounds: 0, ultimoJogos: jogos, baseJogos: jogos, basePontos: pontos, jaMovido: true };
   porClube[clubKey] = m.id;
   eventos.push({ tipo: 'CONTRATACAO', managerId: m.id, clubKey, clube, usuario: false });
 };
@@ -146,13 +161,13 @@ const preencherVaga = (managers: Record<string, Manager>, porClube: Record<strin
 /**
  * Demissao. A IA vai para o pool e o clube contrata um substituto. O utilizador NUNCA fica sem clube (sem game over): recebe o aviso e recomeca com confianca baixa e carencia.
  */
-const demitir = (managers: Record<string, Manager>, porClube: Record<string, string>, m: Manager, clube: string, exigencia: number, jogos: number, eventos: EventoMgr[]) => {
+const demitir = (managers: Record<string, Manager>, porClube: Record<string, string>, m: Manager, clube: string, exigencia: number, jogos: number, eventos: EventoMgr[], pontos = 0) => {
   eventos.push({ tipo: 'DEMISSAO', managerId: m.id, clubKey: m.clubKey, clube, usuario: !!m.usuario });
-  if (m.usuario) { managers[m.id] = { ...m, reputation: clamp(m.reputation + C.repDemitido), confidence: C.confUsuarioAposDemissao, lowConfRounds: 0, grace: C.carenciaUsuario }; return; }
+  if (m.usuario) { managers[m.id] = { ...m, reputation: clamp(m.reputation + C.repDemitido), confidence: C.confUsuarioAposDemissao, lowConfRounds: 0, grace: C.carenciaUsuario, baseJogos: jogos, basePontos: pontos }; return; }
   const k = m.clubKey!;
   managers[m.id] = { ...m, clubKey: null, reputation: clamp(m.reputation + C.repDemitido), confidence: C.confInicial, lowConfRounds: 0, grace: 0 };
   delete porClube[k];
-  preencherVaga(managers, porClube, k, clube, exigencia, jogos, eventos, m.id);   // o demitido nao volta para o proprio clube
+  preencherVaga(managers, porClube, k, clube, exigencia, jogos, eventos, m.id, pontos);   // o demitido nao volta para o proprio clube
 };
 
 /** Atualiza a confianca de cada treinador com os jogos novos de cada liga e demite quem merece. Idempotente: sem jogos novos nada muda. */
@@ -163,22 +178,22 @@ export const processarRodada = (estado: ManagerState, ligas: LigaSnap[]): { esta
   for (const liga of ligas) {
     const n = liga.tabela.length;
     if (n < 2) continue;
-    const ajustes = ajustesDeTradicao(liga.times);
+    const ajustes = ajustesDeTradicao(liga.times), ranks = rankDeForca(liga.times);
     liga.tabela.forEach((row, i) => {
       const k = teamKey(liga.leagueId, row.team.id);
       const m = managers[porClube[k]];
       if (!m || row.played < C.minJogosAvaliar || row.played <= m.ultimoJogos) return;
       const nivel = nivelDoClube(row.team.strength, ajustes[row.team.id] ?? 0);
-      const alvoPos = posicaoAlvo(nivel, n, liga.rebaixados);
+      const alvoPos = metaDoClube(nivel, n, liga.rebaixados, ranks[row.team.id]);
       const passos = row.played - m.ultimoJogos;
-      const conf = atualizarConfianca(m.confidence, alvoDeConfianca({ jogos: row.played, pontos: row.points, posicao: i + 1, n, alvo: alvoPos }), passos);
+      const conf = atualizarConfianca(m.confidence, alvoDeConfianca({ jogos: row.played - m.baseJogos, pontos: row.points - m.basePontos, posicao: i + 1, n, alvo: alvoPos }), passos);
       const baixa = conf < C.limitePressao ? m.lowConfRounds + passos : conf >= C.neutro ? 0 : Math.max(0, m.lowConfRounds - passos);
       const novo: Manager = { ...m, confidence: conf, lowConfRounds: baixa, grace: Math.max(0, m.grace - passos), ultimoJogos: row.played };
       managers[m.id] = novo;
       if (m.usuario && faixaDeConfianca(conf) !== faixaDeConfianca(m.confidence) && conf < m.confidence && conf < C.limitePressao)
         eventos.push({ tipo: 'FAIXA', managerId: m.id, clubKey: k, clube: row.team.name, usuario: true, faixa: faixaDeConfianca(conf) });
       const zona = i + 1 > n - liga.rebaixados;
-      if (criarRng(`demissao|${m.id}|${row.played}`)() < probDemissao(novo, zona, row.played)) demitir(managers, porClube, novo, row.team.name, exigenciaDoNivel(nivel), row.played, eventos);
+      if (criarRng(`demissao|${m.id}|${row.played}`)() < probDemissao(novo, zona, row.played)) demitir(managers, porClube, novo, row.team.name, exigenciaDoNivel(nivel), row.played, eventos, row.points);
     });
   }
   return { estado: garantirPool({ ...estado, managers }), eventos };
@@ -211,19 +226,20 @@ export const fecharTemporadas = (estado: ManagerState, ligas: LigaSnap[], hoje: 
   const ctx = contextoDeClubes(ligas);
   for (const liga of fechadasAgora) {
     const n = liga.tabela.length;
-    const ajustes = ajustesDeTradicao(liga.times);
+    const ajustes = ajustesDeTradicao(liga.times), ranks = rankDeForca(liga.times);
     liga.tabela.forEach((row, i) => {
       const k = teamKey(liga.leagueId, row.team.id);
       const m = managers[porClube[k]];
-      if (!m || !row.played) return;
-      const pos = i + 1, nivel = nivelDoClube(row.team.strength, ajustes[row.team.id] ?? 0), alvoPos = posicaoAlvo(nivel, n, liga.rebaixados);
+      const jogosM = m ? row.played - m.baseJogos : 0, pontosM = m ? row.points - m.basePontos : 0;   // so o periodo dele no clube
+      if (!m || jogosM <= 0) return;
+      const pos = i + 1, nivel = nivelDoClube(row.team.strength, ajustes[row.team.id] ?? 0), alvoPos = metaDoClube(nivel, n, liga.rebaixados, ranks[row.team.id]);
       const campeao = pos === 1, promovido = liga.tier > 1 && pos <= liga.promovidos, rebaixado = pos > n - liga.rebaixados, classificado = pos <= fracao(n, 0.2);
-      const aprov = row.points / (3 * row.played);
+      const aprov = pontosM / (3 * jogosM);
       let delta = (aprov - aproveitamentoEsperado(alvoPos, n)) * C.repGanhoAproveitamento + ((alvoPos - pos) / Math.max(1, n - 1)) * C.repGanhoPosicao
         + (campeao ? C.repTitulo : 0) + (promovido ? C.repPromocao : 0) + (classificado ? C.repClassificacao : 0) + (rebaixado ? C.repRebaixamento : 0);
       if (delta > 0) delta *= 1 - m.reputation / 150;   // quanto mais alta a reputacao, mais dificil subir
       const conquistas = campeao ? 100 : promovido ? 85 : classificado ? 70 : C.neutro;
-      let conf = atualizarConfianca(m.confidence, alvoDeConfianca({ jogos: row.played, pontos: row.points, posicao: pos, n, alvo: alvoPos, conquistas }), 3);
+      let conf = atualizarConfianca(m.confidence, alvoDeConfianca({ jogos: jogosM, pontos: pontosM, posicao: pos, n, alvo: alvoPos, conquistas }), 3);
       if (rebaixado) conf = clamp(conf - C.penalidadeRebaixamento);
       const novo: Manager = { ...m, reputation: clamp(Math.round(m.reputation + delta)), confidence: conf, lowConfRounds: conf < C.limitePressao ? m.lowConfRounds + 1 : 0, ultimoJogos: C.jogosTemporadaFechada };
       managers[m.id] = novo;
