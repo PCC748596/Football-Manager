@@ -1,6 +1,7 @@
 
 import { assetUrl } from './assetUrl';
 import { Team, Player, Fixture, Position, Tactics } from '../types';
+import { salariosDaLiga } from './salarios';
 import { ECONOMIA_ESTADIO } from './stadiumEconomy';
 import { calcularSkill } from './overall';
 import { nomeDoClube } from './nomes';
@@ -695,5 +696,8 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
   const faixa = faixaDeOvr(countryId, league);
   if (faixa) ajustarLigaParaFaixa(teams, players, faixa);
 
+  // Series C e D do Brasil: salarios proprios, em reais por mes (textSim/salarios.ts); as outras ligas ficam com 0,2% do valor por semana.
+  const salariosSerie = salariosDaLiga(leagueId, players.map(p => p.skill));
+  if (salariosSerie) players.forEach((p, i) => { p.salary = salariosSerie[i]; });
   return { teams, players };
 };
