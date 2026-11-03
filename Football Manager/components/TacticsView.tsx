@@ -81,6 +81,9 @@ interface TacticsViewProps {
   setView?: (view: any) => void;
 }
 
+/** Nos cards dos reservas e do squad pool o nome cabe em 2 linhas: o primeiro e o ultimo ("Ederson Arthur Ribeiro Fonseca" -> "Ederson", "Fonseca"). */
+const doisNomes = (nome: string): string[] => { const p = nome.split(" ").filter(Boolean); return p.length <= 2 ? p : [p[0], p[p.length - 1]]; };
+
 const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   const { userTeam, players, updateTactics, updateSetPieceTakers, gameState, fixtures, teams, comps, avisoGoleiro } = useGame();
   const [localLineup, setLocalLineup] = useState<string[]>([]);
@@ -857,7 +860,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                             <FitnessBar fitness={p.fitness} className="h-1.5" />
                                         </div>
                                         <div className={`flex flex-col items-start justify-start leading-[1.1] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
-                                            {p.name.split(' ').map((part, index) => (
+                                            {doisNomes(p.name).map((part, index) => (
                                                 <span key={index} className="text-[9px] font-black text-slate-400 uppercase truncate max-w-full">
                                                     {part}
                                                 </span>
@@ -951,7 +954,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                         </div>
                                             <div className={`-mt-1 mb-1 ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}><FitnessBar fitness={p.fitness} className="h-1.5" /></div>
                                             <div className={`flex flex-col items-start justify-start leading-[1.1] min-h-[20px] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
-                                                {p.name.split(' ').map((part, index) => (
+                                                {doisNomes(p.name).map((part, index) => (
                                                     <span key={index} className="text-[9px] font-black text-slate-400 uppercase truncate max-w-full">
                                                         {part}
                                                     </span>
