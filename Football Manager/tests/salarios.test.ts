@@ -1,30 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { salariosDaLiga, salarioMensalBRL, SERIES_SALARIOS, SEMANAS_NO_MES } from '../textSim/salarios';
+import { salariosDaLiga, salarioMensalBRL, salarioDoJovem, ajustarSalariosDaBase, salarioDeMercadoDaLiga, SERIES_SALARIOS, CURVA_A, SEMANAS_NO_MES } from '../textSim/salarios';
 import { TAXAS } from '../textSim/cambio';
 
 const skills = Array.from({ length: 500 }, (_, i) => 40 + (i % 50));            // 500 jogadores, overalls 40..89
 const mensalBRL = (usdSemana: number) => usdSemana * SEMANAS_NO_MES * TAXAS.BRL;
 const media = (v: number[]) => v.reduce((s, x) => s + x, 0) / v.length;
 
-test('Serie C e D: media mensal perto de R$ 8 000 e R$ 3 500', () => {
-  const c = media(salariosDaLiga('bra_serie_c', skills)!.map(mensalBRL)), d = media(salariosDaLiga('bra_serie_d', skills)!.map(mensalBRL));
-  assert.ok(c > 7000 && c < 9000, `Serie C: ${Math.round(c)}`);
-  assert.ok(d > 3000 && d < 4000, `Serie D: ${Math.round(d)}`);
+test('curva da Serie A: minimo 50 mil, maximo 2,5 milhoes, media perto de 150 mil', () => {
+  assert.equal(salarioMensalBRL('bra_serie_a', 0), 50_000);
+  assert.equal(salarioMensalBRL('bra_serie_a', 1), 2_500_000);
+  const m = media(salariosDaLiga('bra_serie_a', skills)!.map(mensalBRL));
+  assert.ok(m > 135_000 && m < 165_000, `Serie A: ${Math.round(m)}`);
 });
 
-test('Serie A e B: media mensal perto de R$ 140 000 e R$ 30 000', () => {
-  const a = media(salariosDaLiga('bra_serie_a', skills)!.map(mensalBRL)), b = media(salariosDaLiga('bra_serie_b', skills)!.map(mensalBRL));
-  assert.ok(a > 130_000 && a < 150_000, `Serie A: ${Math.round(a)}`);
-  assert.ok(b > 27_000 && b < 33_000, `Serie B: ${Math.round(b)}`);
-});
-
-test('os extremos de cada serie ficam nas faixas da tabela', () => {
-  assert.ok(salarioMensalBRL('bra_serie_c', 0)! >= 2000 && salarioMensalBRL('bra_serie_c', 0)! <= 2600);
-  assert.ok(salarioMensalBRL('bra_serie_c', 1)! >= 40000 && salarioMensalBRL('bra_serie_c', 1)! <= 50000);
-  assert.ok(salarioMensalBRL('bra_serie_d', 0)! >= 800 && salarioMensalBRL('bra_serie_d', 0)! <= 1200);
-  assert.equal(salarioMensalBRL('bra_serie_a', 0), 10000);
-  assert.equal(salarioMensalBRL('bra_serie_a', 1), 1_500_000);
+test('B, C e D pagam 50%, 25% e 15% da Serie A (minimo, maximo e media)', () => {
+  const mediaA = media(salariosDaLiga('bra_serie_a', skills)!.map(mensalBRL));
+  for (const [liga, f] of [['bra_serie_b', 0.5], ['bra_serie_c', 0.25], ['bra_serie_d', 0.15]] as const) {
+    assert.equal(SERIES_SALARIOS[liga].fracao, f);
+    assert.equal(salarioMensalBRL(liga, 0), Math.round(CURVA_A.min * f / 50) * 50);
+    assert.equal(salarioMensalBRL(liga, 1), Math.round(CURVA_A.max * f / 50) * 50);
+    const m = media(salariosDaLiga(liga, skills)!.map(mensalBRL));
+    assert.ok(Math.abs(m / mediaA - f) < 0.01, `${liga}: ${m / mediaA} vs ${f}`);
+  }
 });
 
 test('mais overall, mais salario; ligas sem tabela ficam como estao', () => {
@@ -34,9 +32,9 @@ test('mais overall, mais salario; ligas sem tabela ficam como estao', () => {
   assert.equal(Object.keys(SERIES_SALARIOS).length, 4);
 });
 
-test('jogo gerado: a media mensal de cada divisao fica perto da referencia', async () => {
+test('jogo gerado: a media mensal de cada divisao fica perto de 150K / 75K / 37,5K / 22,5K', async () => {
   const { generateLeagueData } = await import('../textSim/dataGenerator');
-  const alvo: Record<string, number> = { bra_serie_a: 140_000, bra_serie_b: 30_000, bra_serie_c: 8_000, bra_serie_d: 3_500 };
+  const alvo: Record<string, number> = { bra_serie_a: 150_000, bra_serie_b: 75_000, bra_serie_c: 37_500, bra_serie_d: 22_500 };
   for (const [liga, ref] of Object.entries(alvo)) {
     const { players } = generateLeagueData('45', liga) as any;
     const m = media(players.map((p: any) => mensalBRL(p.salary)));
@@ -44,8 +42,7 @@ test('jogo gerado: a media mensal de cada divisao fica perto da referencia', asy
   }
 });
 
-test('salario de mercado da liga: so nas ligas com tabela, e cresce com o overall', async () => {
-  const { salarioDeMercadoDaLiga } = await import('../textSim/salarios');
+test('salario de mercado da liga: so nas ligas com tabela, e cresce com o overall', () => {
   const times = [{ id: 'a', leagueId: 'bra_serie_c' }, { id: 'b', leagueId: 'eng_premier' }] as any;
   const jogs = Array.from({ length: 20 }, (_, i) => ({ id: 'p' + i, teamId: 'a', skill: 50 + i })) as any[];
   jogs.push({ id: 'x', teamId: 'b', skill: 80 });
@@ -53,17 +50,17 @@ test('salario de mercado da liga: so nas ligas com tabela, e cresce com o overal
   assert.ok(salarioDeMercadoDaLiga(jogs[19], times, jogs)! > salarioDeMercadoDaLiga(jogs[0], times, jogs)!);
 });
 
-test('Sub-20: salario na faixa mais baixa da liga, bem abaixo do profissional medio', async () => {
-  const { salarioDoJovem, ajustarSalariosDaBase } = await import('../textSim/salarios');
+test('Sub-20: 20% da media da serie (de 10% a 30% pelo overall)', () => {
   for (const liga of ['bra_serie_a', 'bra_serie_b', 'bra_serie_c', 'bra_serie_d']) {
-    const piso = mensalBRL(salarioDoJovem(liga, 55)!), teto = mensalBRL(salarioDoJovem(liga, 90)!);
-    const tab = SERIES_SALARIOS[liga].niveis[0];
-    assert.ok(piso >= tab.min * 0.8 && teto <= tab.max * 1.2, `${liga}: ${Math.round(piso)}-${Math.round(teto)}`);
-    assert.ok(piso <= teto);
+    const mediaSerie = SERIES_SALARIOS[liga].fracao * CURVA_A.media;
+    const meio = mensalBRL(salarioDoJovem(liga, 70)!), piso = mensalBRL(salarioDoJovem(liga, 55)!), teto = mensalBRL(salarioDoJovem(liga, 90)!);
+    assert.ok(Math.abs(meio / mediaSerie - 0.2) < 0.02, `${liga}: ${meio / mediaSerie}`);
+    assert.ok(Math.abs(piso / mediaSerie - 0.1) < 0.02 && Math.abs(teto / mediaSerie - 0.3) < 0.02);
   }
   assert.equal(salarioDoJovem('eng_premier', 70), undefined);
   const base: any = { jogadores: [{ id: 'j1', teamId: 'a', skill: 62, salary: 9_999 }, { id: 'j2', teamId: 'b', skill: 62, salary: 9_999 }] };
-  const b1 = ajustarSalariosDaBase(base, [{ id: 'a', leagueId: 'bra_serie_d' }, { id: 'b', leagueId: 'eng_premier' }] as any);
-  assert.ok(b1.jogadores[0].salary < 500 && b1.jogadores[1].salary === 9_999);
-  assert.equal(ajustarSalariosDaBase(b1, [{ id: 'a', leagueId: 'bra_serie_d' }, { id: 'b', leagueId: 'eng_premier' }] as any), b1, 'idempotente');
+  const ts = [{ id: 'a', leagueId: 'bra_serie_d' }, { id: 'b', leagueId: 'eng_premier' }] as any;
+  const b1 = ajustarSalariosDaBase(base, ts);
+  assert.ok(b1.jogadores[0].salary < 9_999 && b1.jogadores[1].salary === 9_999);
+  assert.equal(ajustarSalariosDaBase(b1, ts), b1, 'idempotente');
 });

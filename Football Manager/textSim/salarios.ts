@@ -1,7 +1,9 @@
 /*
-SALARIOS DA SERIE A, C E D DO BRASIL: faixas em reais POR MES, pelo nivel do jogador na liga (percentil do overall entre os jogadores da propria liga).
-A tabela do jogo e o salario semanal em dolares (`Player.salary`); aqui o valor mensal em BRL converte-se pelas taxas de Settings (cambio.ts) e por 4,33 semanas por mes.
-Os pesos dos niveis e o `calibre` fazem a media da liga ficar perto da referencia (Serie A: R$ 140 000; Serie B: R$ 30 000; Serie C: R$ 8 000; Serie D: R$ 3 500 por mes). As faixas das series A, C e D sao as do utilizador; as da B sao estimadas para dar a media pedida. As outras ligas continuam com 0,2% do valor por semana.
+SALARIOS DA SERIE A, B, C E D DO BRASIL (reais POR MES): uma curva so, a da Serie A, e as outras divisoes sao percentuais dela.
+  Serie A: minimo R$ 50 000, media R$ 150 000, maximo R$ 2 500 000. Serie B: 50% da A; Serie C: 25%; Serie D: 15%. Sub-20: 20% da media da serie do clube.
+O nivel do jogador e o percentil do overall entre os jogadores da propria liga (0 = pior, 1 = melhor). A curva e `min + (max - min) * p^k`, com k escolhido para a media da liga dar a media pedida
+(poucos jogadores ganham perto do maximo, a maioria perto do minimo). A tabela do jogo e o salario semanal em dolares (`Player.salary`): o mensal em BRL converte-se pelas taxas de Settings (cambio.ts) e por 4,33 semanas.
+As outras ligas continuam com 0,2% do valor por semana.
 */
 import type { Player, Team } from '../types';
 import type { BaseState } from './youth';
@@ -9,36 +11,24 @@ import { paraDolares } from './cambio';
 
 export const SEMANAS_NO_MES = 4.33;
 
-interface Nivel { nome: string; peso: number; min: number; max: number; }
-interface TabelaSerie { calibre: number; niveis: Nivel[]; }   // niveis do pior para o melhor; os pesos somam 1; min/max em reais por mes
-
-export const SERIES_SALARIOS: Record<string, TabelaSerie> = {
-  bra_serie_a: { calibre: 1, niveis: [
-    { nome: 'Jovem / reserva', peso: 0.18, min: 10000, max: 25000 }, { nome: 'Reserva', peso: 0.20, min: 25000, max: 50000 }, { nome: 'Titular comum', peso: 0.22, min: 50000, max: 100000 },
-    { nome: 'Bom titular', peso: 0.17, min: 100000, max: 180000 }, { nome: 'Destaque', peso: 0.12, min: 180000, max: 300000 }, { nome: 'Estrela', peso: 0.09, min: 300000, max: 600000 },
-    { nome: 'Craque nacional', peso: 0.02, min: 600000, max: 1500000 }] },
-  bra_serie_b: { calibre: 1.16, niveis: [
-    { nome: 'Jovem / reserva', peso: 0.20, min: 4000, max: 8000 }, { nome: 'Reserva', peso: 0.22, min: 8000, max: 14000 }, { nome: 'Titular comum', peso: 0.24, min: 14000, max: 25000 },
-    { nome: 'Bom titular', peso: 0.16, min: 25000, max: 40000 }, { nome: 'Destaque', peso: 0.12, min: 40000, max: 70000 }, { nome: 'Estrela', peso: 0.06, min: 70000, max: 120000 }] },
-  bra_serie_c: { calibre: 1.085, niveis: [
-    { nome: 'Jovem / reserva', peso: 0.30, min: 2000, max: 4000 }, { nome: 'Reserva', peso: 0.28, min: 4000, max: 6000 }, { nome: 'Titular comum', peso: 0.24, min: 6000, max: 10000 },
-    { nome: 'Bom titular', peso: 0.10, min: 10000, max: 15000 }, { nome: 'Destaque', peso: 0.06, min: 15000, max: 25000 }, { nome: 'Estrela', peso: 0.02, min: 25000, max: 45000 }] },
-  bra_serie_d: { calibre: 0.9, niveis: [
-    { nome: 'Jovem / reserva', peso: 0.30, min: 1000, max: 2000 }, { nome: 'Reserva', peso: 0.28, min: 2000, max: 3000 }, { nome: 'Titular comum', peso: 0.24, min: 3000, max: 5000 },
-    { nome: 'Bom titular', peso: 0.10, min: 5000, max: 8000 }, { nome: 'Destaque', peso: 0.06, min: 8000, max: 15000 }, { nome: 'Estrela', peso: 0.02, min: 15000, max: 30000 }] },
+/** A curva da Serie A (R$ por mes). */
+export const CURVA_A = { min: 50_000, media: 150_000, max: 2_500_000 };
+/** A fracao da curva da Serie A que cada divisao paga. */
+export const SERIES_SALARIOS: Record<string, { fracao: number }> = {
+  bra_serie_a: { fracao: 1 }, bra_serie_b: { fracao: 0.5 }, bra_serie_c: { fracao: 0.25 }, bra_serie_d: { fracao: 0.15 },
 };
+/** O Sub-20 ganha esta fracao da media da serie (de 10% a 30% da media, subindo com o overall: ver `salarioDoJovem`). */
+export const FRACAO_SUB20 = 0.2;
 
-/** O salario mensal em reais de um jogador no percentil `p` (0 = pior da liga, 1 = melhor). */
+const EXPOENTE = (CURVA_A.max - CURVA_A.min) / (CURVA_A.media - CURVA_A.min) - 1;
+const arredondar = (v: number) => Math.round(v / 50) * 50;
+
+/** O salario mensal em reais de um jogador no percentil `p` (0 = pior da liga, 1 = melhor); null se a liga nao tem tabela. */
 export const salarioMensalBRL = (leagueId: string, p: number): number | null => {
   const tab = SERIES_SALARIOS[leagueId];
   if (!tab) return null;
-  let acima = 1 - p, acc = 0;                     // fatia a partir do topo
-  const niveis = [...tab.niveis].reverse();       // melhor primeiro
-  for (const n of niveis) {
-    if (acima <= acc + n.peso + 1e-9) { const t = 1 - (acima - acc) / n.peso; return Math.round(((n.min + (n.max - n.min) * Math.min(1, Math.max(0, t))) * tab.calibre) / 50) * 50; }
-    acc += n.peso;
-  }
-  return Math.round(tab.niveis[0].min * tab.calibre);
+  const q = Math.min(1, Math.max(0, p));
+  return arredondar(tab.fracao * (CURVA_A.min + (CURVA_A.max - CURVA_A.min) * Math.pow(q, EXPOENTE)));
 };
 
 /** O salario semanal em dolares do jogo (o `Player.salary`) para o mensal em reais. */
@@ -50,14 +40,14 @@ export const percentisDeNivel = (skills: number[]): number[] => {
   return skills.map(v => { const abaixo = skills.filter(x => x < v).length, iguais = skills.filter(x => x === v).length; return (abaixo + (iguais - 1) / 2) / (skills.length - 1); });
 };
 
-/** Os salarios semanais (USD) dos jogadores de uma liga das series C/D, ou null se a liga nao tem tabela. */
+/** Os salarios semanais (USD) dos jogadores de uma liga com tabela, ou null se a liga nao tem. */
 export const salariosDaLiga = (leagueId: string, skills: number[]): number[] | null => {
   if (!SERIES_SALARIOS[leagueId]) return null;
   return percentisDeNivel(skills).map(p => salarioSemanalUSD(salarioMensalBRL(leagueId, p) as number));
 };
 
 /**
- * O salario de mercado (semanal, USD) de um jogador que joga numa liga com tabela (A, B, C ou D do Brasil): o da faixa do nivel dele entre os jogadores da liga.
+ * O salario de mercado (semanal, USD) de um jogador que joga numa liga com tabela: o do nivel dele entre os jogadores da liga.
  * `undefined` nas outras ligas (la vale 0,2% do valor por semana). Usado no pedido de renovacao (`propostaDoJogador`).
  */
 export const salarioDeMercadoDaLiga = (p: Player, teams: Team[], players: Player[]): number | undefined => {
@@ -70,15 +60,12 @@ export const salarioDeMercadoDaLiga = (p: Player, teams: Team[], players: Player
   return salarioSemanalUSD(salarioMensalBRL(liga, pct) as number);
 };
 
-/**
- * O salario semanal (USD) de um jovem da base (Sub-20) numa liga com tabela: sempre na faixa mais baixa ("Jovem / reserva") da liga, subindo com o overall (OVR 55 ou menos = piso; 85 ou mais = teto da faixa).
- * `undefined` nas ligas sem tabela.
- */
+/** O salario semanal (USD) de um jovem da base: 20% da media da serie, de 0,5x (overall 55 ou menos) a 1,5x (overall 85 ou mais). `undefined` nas ligas sem tabela. */
 export const salarioDoJovem = (leagueId: string | undefined, skill: number): number | undefined => {
   const tab = leagueId ? SERIES_SALARIOS[leagueId] : undefined;
-  if (!leagueId || !tab) return undefined;
+  if (!tab) return undefined;
   const t = Math.min(1, Math.max(0, (skill - 55) / 30));
-  return salarioSemanalUSD(salarioMensalBRL(leagueId, t * tab.niveis[0].peso) as number);
+  return salarioSemanalUSD(arredondar(FRACAO_SUB20 * tab.fracao * CURVA_A.media * (0.5 + t)));
 };
 
 /** Poe nos jovens das ligas com tabela o salario da faixa Sub-20 da liga (idempotente: devolve a MESMA base se nada mudou). */
