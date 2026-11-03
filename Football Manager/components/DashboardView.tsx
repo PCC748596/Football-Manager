@@ -573,8 +573,8 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
               }`}
             >
               {/* Left Column: 1/3 Width - Day & Week */}
-              <div className={`w-[35%] flex flex-col justify-center items-center h-full border-r ${day.isToday ? 'border-blue-500' : 'border-slate-100 dark:border-slate-700/50'} bg-black/5 dark:bg-black/20`}>
-                <span className={`text-lg font-black leading-none mb-0.5 inline-flex items-center gap-1 ${day.isToday ? 'text-white' : 'text-slate-800 dark:text-slate-300'}`}>{day.dayNum}{day.isToday && <SetasAGirar className="w-4 h-4 text-white" />}</span>
+              <div className={`w-[30%] xl:w-[35%] flex flex-col justify-center items-center h-full border-r ${day.isToday ? 'border-blue-500' : 'border-slate-100 dark:border-slate-700/50'} bg-black/5 dark:bg-black/20`}>
+                <span className={`text-base xl:text-lg font-black leading-none mb-0.5 inline-flex items-center gap-1 ${day.isToday ? 'text-white' : 'text-slate-800 dark:text-slate-300'}`}>{day.dayNum}{day.isToday && <SetasAGirar className="w-4 h-4 text-white" />}</span>
                 <span className={`text-[9px] font-black uppercase leading-none ${day.isToday ? 'text-blue-200' : 'text-slate-400'}`}>{day.dayName}</span>
                 {day.isTransferWindow && (
                     <div className="mt-1" title="Transfer Market Open">
@@ -584,11 +584,11 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
               </div>
 
               {/* Right Column: 2/3 Width - Shield or Activity */}
-              <div className="flex-1 flex flex-col items-center justify-center p-2 overflow-hidden">
+              <div className="flex-1 flex flex-col items-center justify-center p-1 xl:p-2 overflow-hidden">
                 {day.isMatch && day.opponentTeam ? (
                    <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
-                     <TeamShield team={day.opponentTeam} className="w-10 h-12 drop-shadow-md transform group-hover:scale-110 transition-transform" />
-                     <span className={`text-[11px] font-black uppercase tracking-tight text-center leading-tight px-1 truncate w-full ${day.isToday ? 'text-blue-100' : 'text-slate-600 dark:text-slate-300'}`}>
+                     <TeamShield team={day.opponentTeam} className="w-8 h-10 xl:w-10 xl:h-12 drop-shadow-md transform group-hover:scale-110 transition-transform" />
+                     <span className={`text-[10px] xl:text-[11px] font-black uppercase tracking-tight text-center leading-tight px-0.5 xl:px-1 truncate w-full ${day.isToday ? 'text-blue-100' : 'text-slate-600 dark:text-slate-300'}`}>
                         {day.opponentTeam.name}
                      </span>
                    </div>
