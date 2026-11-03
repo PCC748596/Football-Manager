@@ -247,14 +247,14 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                           return (
                             <div className="mt-3">
                               <div className="flex justify-between text-[10px] font-black uppercase tracking-wider">
-                                <span className="text-emerald-600">{pt ? 'Compras' : 'Transfers'} {pct}%</span>
-                                <span className="text-rose-500">{pt ? 'Salários' : 'Wages'} {100 - pct}%</span>
+                                <span className="text-emerald-600">{pt ? 'Compras' : 'Transfers'} {pct}% · {formatCurrency(userTeam.initialTransfer || 0)}</span>
+                                <span className="text-rose-500">{pt ? 'Salários' : 'Wages'} {100 - pct}% · {formatCurrency(orcamentoDaTemporada(userTeam) - (userTeam.initialTransfer || 0))}</span>
                               </div>
                               <input type="range" min={0} max={100} step={10} value={pct} onChange={e => definirDivisaoOrcamento(Number(e.target.value) / 100)}
                                 aria-label={pt ? 'Divisão do orçamento entre compras e salários' : 'Budget split between transfers and wages'}
                                 className="w-full h-11 cursor-pointer accent-emerald-600" />
                               <div className="flex justify-between text-[9px] text-slate-400"><span>0%</span><span>50%</span><span>100%</span></div>
-                              <div className="text-[9px] text-slate-400 mt-1">{pt ? 'Salários' : 'Wages'}: {formatCurrency(orcamentoDaTemporada(userTeam) - (userTeam.initialTransfer || 0))} · {pt ? 'Disponível p/ compras' : 'Left for transfers'}: {formatCurrency(userTeam.transferBudget ?? 0)}</div>
+                              <div className="text-[9px] text-slate-400 mt-1">{pt ? 'Disponível p/ compras' : 'Left for transfers'}: {formatCurrency(userTeam.transferBudget ?? 0)}</div>
                             </div>
                           );
                         })()}
