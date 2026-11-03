@@ -27,9 +27,9 @@ export interface Negociacao {
 const moral = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
 /** A proposta do jogador: o salario pedido (o de mercado, 0,2% do valor por semana, com um aumento de 8% a 25% por jogador, nunca abaixo do atual) e a duracao da faixa da idade. */
-export const propostaDoJogador = (p: Player, hoje: string): Oferta => {
+export const propostaDoJogador = (p: Player, hoje: string, mercadoSemanal?: number): Oferta => {
   const rnd = criarRng(`pedido|${p.id}|${hoje.slice(0, 7)}`);
-  const mercado = Math.round(p.value * 0.002);
+  const mercado = mercadoSemanal ?? Math.round(p.value * 0.002);   // `mercadoSemanal`: o salario da tabela da liga (Series A-D do Brasil, textSim/salarios.ts); sem ele, 0,2% do valor
   const salario = Math.max(p.salary, mercado) * (1.08 + rnd() * 0.17);
   const anos = sortearDuracao(p.age, criarRng(`anos|${p.id}|${hoje.slice(0, 7)}`));
   return { salario: Math.max(500, Math.round(salario / 10) * 10), anos };

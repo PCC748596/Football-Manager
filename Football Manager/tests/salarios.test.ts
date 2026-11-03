@@ -43,3 +43,12 @@ test('jogo gerado: a media mensal de cada divisao fica perto da referencia', asy
     assert.ok(m > ref * 0.85 && m < ref * 1.15, `${liga}: media ${Math.round(m)} (referencia ${ref})`);
   }
 });
+
+test('salario de mercado da liga: so nas ligas com tabela, e cresce com o overall', async () => {
+  const { salarioDeMercadoDaLiga } = await import('../textSim/salarios');
+  const times = [{ id: 'a', leagueId: 'bra_serie_c' }, { id: 'b', leagueId: 'eng_premier' }] as any;
+  const jogs = Array.from({ length: 20 }, (_, i) => ({ id: 'p' + i, teamId: 'a', skill: 50 + i })) as any[];
+  jogs.push({ id: 'x', teamId: 'b', skill: 80 });
+  assert.equal(salarioDeMercadoDaLiga(jogs[20], times, jogs), undefined);
+  assert.ok(salarioDeMercadoDaLiga(jogs[19], times, jogs)! > salarioDeMercadoDaLiga(jogs[0], times, jogs)!);
+});

@@ -89,3 +89,11 @@ test('resolver: so no dia; aceita (contrato, salario e moral sobem) ou recusa (m
   const vendido = resolverNegociacoes([ofertas[0]], [{ ...jogadores[0], teamId: 'MARKET' }], dia, 'U');
   assert.equal(vendido.respostas.length, 0); assert.equal(vendido.negociacoes.length, 0);
 });
+
+test('pedido de renovacao: com salario de mercado da liga, parte dele e nao do valor do jogador', () => {
+  const p = jog('serieC', { age: 27, value: 5_000_000, salary: 1_000 });
+  const comValor = propostaDoJogador(p, HOJE);                 // 0,2% de 5M = 10 000/semana
+  const comTabela = propostaDoJogador(p, HOJE, 1_500);         // tabela da liga: 1 500/semana
+  assert.ok(comValor.salario >= 10_000);
+  assert.ok(comTabela.salario >= 1_500 && comTabela.salario < 1_500 * 1.3, `pede ${comTabela.salario}`);
+});

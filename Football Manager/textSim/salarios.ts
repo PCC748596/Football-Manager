@@ -3,6 +3,7 @@ SALARIOS DA SERIE A, C E D DO BRASIL: faixas em reais POR MES, pelo nivel do jog
 A tabela do jogo e o salario semanal em dolares (`Player.salary`); aqui o valor mensal em BRL converte-se pelas taxas de Settings (cambio.ts) e por 4,33 semanas por mes.
 Os pesos dos niveis e o `calibre` fazem a media da liga ficar perto da referencia (Serie A: R$ 140 000; Serie B: R$ 30 000; Serie C: R$ 8 000; Serie D: R$ 3 500 por mes). As faixas das series A, C e D sao as do utilizador; as da B sao estimadas para dar a media pedida. As outras ligas continuam com 0,2% do valor por semana.
 */
+import type { Player, Team } from '../types';
 import { paraDolares } from './cambio';
 
 export const SEMANAS_NO_MES = 4.33;
@@ -52,4 +53,18 @@ export const percentisDeNivel = (skills: number[]): number[] => {
 export const salariosDaLiga = (leagueId: string, skills: number[]): number[] | null => {
   if (!SERIES_SALARIOS[leagueId]) return null;
   return percentisDeNivel(skills).map(p => salarioSemanalUSD(salarioMensalBRL(leagueId, p) as number));
+};
+
+/**
+ * O salario de mercado (semanal, USD) de um jogador que joga numa liga com tabela (A, B, C ou D do Brasil): o da faixa do nivel dele entre os jogadores da liga.
+ * `undefined` nas outras ligas (la vale 0,2% do valor por semana). Usado no pedido de renovacao (`propostaDoJogador`).
+ */
+export const salarioDeMercadoDaLiga = (p: Player, teams: Team[], players: Player[]): number | undefined => {
+  const liga = teams.find(t => t.id === p.teamId)?.leagueId;
+  if (!liga || !SERIES_SALARIOS[liga]) return undefined;
+  const ids = new Set(teams.filter(t => t.leagueId === liga).map(t => t.id));
+  const skills = players.filter(x => ids.has(x.teamId)).map(x => x.skill);
+  const abaixo = skills.filter(v => v < p.skill).length, iguais = Math.max(1, skills.filter(v => v === p.skill).length);
+  const pct = skills.length > 1 ? (abaixo + (iguais - 1) / 2) / (skills.length - 1) : 0.5;
+  return salarioSemanalUSD(salarioMensalBRL(liga, pct) as number);
 };

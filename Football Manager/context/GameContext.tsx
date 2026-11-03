@@ -9,6 +9,7 @@ import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disput
 import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
 import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, avisoDeBonusPatrocinio } from '../textSim/inbox';
+import { salarioDeMercadoDaLiga } from '../textSim/salarios';
 import { aplicarDivisao, folhaAnual, PADRAO_COMPRAS } from '../textSim/orcamento';
 import { PATROCINADORES, criarContrato, avaliarProposta, pagarParcelas, reputacaoDoClube, bonusDeCompeticao, diasParaFim, JANELA_RENOVACAO_DIAS, type MotivoRecusa } from '../textSim/patrocinadores';
 import { ManagerState, semearTreinadores, atualizarTreinadores, aplicarTreinadores, registrosDosEventos, registrarNoDiario, declinarOferta } from '../textSim/managerExpectations';
@@ -704,7 +705,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!userTeam) return 'BLOQUEADO';
     const alvo = players.find(p => p.id === playerId && p.teamId === userTeam.id);
     if (!alvo || negociacoes.some(n => n.playerId === playerId)) return 'BLOQUEADO';
-    const hoje = gameState.currentDate, pedido = propostaDoJogador(alvo, hoje);
+    const hoje = gameState.currentDate, pedido = propostaDoJogador(alvo, hoje, salarioDeMercadoDaLiga(alvo, teams, players));
     if (chanceDeAceitar(alvo, oferta, pedido) === 1) {
       const novo = assinar(alvo, oferta, hoje);
       setPlayers(prev => prev.map(p => (p.id === playerId ? novo : p)));

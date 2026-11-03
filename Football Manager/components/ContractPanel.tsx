@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Player } from '../types';
 import { useGame } from '../context/GameContext';
 import { EstadoContrato, diasRestantes, estadoDoContrato, faixaDeContrato, mesesRestantes, somarAnos } from '../textSim/contracts';
+import { salarioDeMercadoDaLiga } from '../textSim/salarios';
 import { ANOS_MAX, ANOS_MIN, chanceDeAceitar, humorDaOferta, propostaDoJogador } from '../textSim/negociacao';
 
 const ESTILO: Record<EstadoContrato, { rotulo: string; classe: string }> = {
@@ -42,8 +43,8 @@ export const ContractChip: React.FC<{ player: Player; hoje: string }> = ({ playe
  * os anos: ai o jogador analisa 2 ou 3 dias e responde (aceita: moral em alta; recusa: moral em baixa e o contrato fica como estava).
  */
 const RenovarModal: React.FC<{ player: Player; hoje: string; onClose: () => void }> = ({ player, hoje, onClose }) => {
-  const { proporRenovacao, negociacoes, formatCurrency } = useGame();
-  const pedido = useMemo(() => propostaDoJogador(player, hoje), [player.id, hoje.slice(0, 7)]);
+  const { proporRenovacao, negociacoes, formatCurrency, teams, players } = useGame();
+  const pedido = useMemo(() => propostaDoJogador(player, hoje, salarioDeMercadoDaLiga(player, teams, players)), [player.id, hoje.slice(0, 7)]);
   const [salario, setSalario] = useState(pedido.salario);
   const [anos, setAnos] = useState(pedido.anos);
   const [resultado, setResultado] = useState<'ASSINADO' | 'EM_ANALISE' | null>(null);
