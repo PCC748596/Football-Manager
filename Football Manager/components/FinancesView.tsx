@@ -235,7 +235,8 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                  <div className="space-y-4">
                     <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">{t('fin_season_budget')}</div>
-                        <div className="text-xl font-black text-slate-800 dark:text-white mt-1">{formatCurrency(userTeam.initialCapital || 0)}</div>
+                        <div className="text-xl font-black text-slate-800 dark:text-white mt-1">{formatCurrency((userTeam.initialCapital || 0) + (userTeam.sponsorContract?.valorAnualUSD || 0))}</div>
+                        {!!userTeam.sponsorContract && <div className="text-[9px] text-slate-400 mt-1">{formatCurrency(userTeam.initialCapital || 0)} + {t('fin_sponsor')} {formatCurrency(userTeam.sponsorContract.valorAnualUSD)}</div>}
                     </div>
                      <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">{t('fin_transfer_budget')}</div>
