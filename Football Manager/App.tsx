@@ -20,7 +20,7 @@ import InboxView from './components/InboxView';
 import TransferMarketView from './components/TransferMarketView';
 import { COUNTRIES, generateLeagueData } from './textSim/dataGenerator';
 import { gruposDaSerieD } from './textSim/competitions';
-import { expectativaDoClube } from './textSim/managerExpectations';
+import { ClubOverviewContent } from './components/ClubOverviewContent';
 import { Team, Player, GameState } from './types';
 import { TeamShield } from './components/TeamShield';
 import { TeamKit } from './components/TeamKit';
@@ -94,7 +94,7 @@ const CONFEDERACOES: { id: string; nome: string; continentes: string[] }[] = [
 const confederacaoDe = (c: any) => (CONFEDERACOES.find(f => f.continentes.includes(c.continent)) || { id: '' }).id;
 
 const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, onBack }) => {
-  const { t, gameState } = useGame();
+  const { t } = useGame();
   const [selectedConf, setSelectedConf] = useState<string>('CONMEBOL');
   const [selectedCountryId, setSelectedCountryId] = useState<string>('45');
   const [selectedLeagueId, setSelectedLeagueId] = useState<string>('bra_serie_a');
@@ -142,10 +142,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
   const clubeSel = previewTeams.find(t => t.id === clubeSelId);
   const elencoSel = previewPlayers.filter(p => p.teamId === clubeSelId).sort((a, b) => b.skill - a.skill);
   const sortedTeams = [...previewTeams].sort((a, b) => a.name.localeCompare(b.name));
-  const ptSel = gameState.language === 'PT';
   const ligaSel = activeCountry?.leagues.find((l: any) => l.id === selectedLeagueId) as any;
-  const expSel = clubeSel ? expectativaDoClube(previewTeams, clubeSel, ligaSel?.relegated ?? Math.round(previewTeams.length * 0.2)) : null;
-  const notaTradicao = !expSel || expSel.ajuste === 0 ? '' : expSel.ajuste > 0 ? (ptSel ? 'A tradição do clube eleva a cobrança.' : "The club's history raises the demand.") : (ptSel ? 'A pouca tradição reduz a cobrança.' : 'Little history lowers the demand.');
   const botaoTime = (team: Team) => (
     <button key={team.id} onClick={() => setClubeSelId(team.id)} className={`${clubeSelId === team.id ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500' : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'} border-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 ${selectedCountryId === '52' ? 'py-1 px-3' : 'py-3 px-4'} rounded transition-all group text-left flex items-center justify-between shadow-sm min-w-0 overflow-hidden`}>
       <div className="flex items-center gap-4 min-w-0 w-full">
@@ -252,66 +249,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             return (
               <div className="flex-1 relative overflow-hidden rounded border-2 border-slate-200 dark:border-slate-800 min-h-0" style={{ background: `linear-gradient(165deg, ${c1} 0%, ${c1} 18%, ${c2} 62%, #020617 100%)` }}>
                 <div className="absolute inset-0 flex flex-col gap-2 p-1.5 min-h-0">
-                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-0.5 min-h-0">
-                    <div className={`relative overflow-hidden h-[84px] flex flex-col justify-center text-left pl-3 pr-[88px] ${painel}`}>
-                      <div className="absolute top-1/2 -translate-y-1/2 -right-[26px] w-[120px] h-[144px]"><TeamShield team={clubeSel} className="w-full h-full" /></div>
-                      <div className="text-2xl font-black text-white uppercase leading-tight truncate">{clubeSel.name}</div>
-                      <div className="text-[10px] font-bold text-blue-300 uppercase tracking-widest">{activeCountry?.leagues.find((l: any) => l.id === selectedLeagueId)?.name}</div>
-                      {notaTradicao && <div className="text-[9px] text-white/50 leading-tight mt-0.5">{notaTradicao}</div>}
-                    </div>
-                    <div className="grid grid-cols-2 gap-0.5 text-center">
-                      {[['OVR', clubeSel.strength], ['Founded', clubeSel.foundedYear || '-'], ['Fan base', (clubeSel.fanBase || 0).toLocaleString()], ['Budget', '$' + Math.round((clubeSel.cash || 0) / 1000).toLocaleString() + 'k']].map(([k, v]) => (
-                        <div key={String(k)} className={`${painel} px-2 py-[5.5px]`}>
-                          <div className="text-[9px] font-black text-white/60 uppercase tracking-widest">{k}</div>
-                          <div className="text-lg font-black text-white">{v}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className={`${painel} px-3 py-[7px] text-sm space-y-1`}>
-                      <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">City</span><span className="font-bold text-white">{clubeSel.city || '-'}</span></div>
-                      <div className="flex justify-between gap-2"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Stadium</span><span className="font-bold text-white text-right">{clubeSel.stadium || '-'}</span></div>
-                      {clubeSel.stadiumCapacity ? <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Capacity</span><span className="font-bold text-white">{clubeSel.stadiumCapacity.toLocaleString()}</span></div> : null}
-                    </div>
-                    {expSel && (() => {
-                      const pt = ptSel, { nivel, alvo } = expSel;
-                      const rotulos = pt
-                        ? ['Evitar o rebaixamento', 'Garantir a permanência', 'Terminar na metade de cima', 'Terminar entre os primeiros', 'Disputar o título', 'Conquistar o título']
-                        : ['Avoid relegation', 'Secure survival', 'Finish in the upper half', 'Finish near the top', 'Compete for the title', 'Win the title'];
-                      const campeao = alvo <= 3;
-                      const meta = campeao ? (pt ? 'Ser campeão' : 'To be Champion') : (pt ? `Meta: top ${alvo}` : `Target: top ${alvo}`);
-                      const cores = ['bg-red-500', 'bg-orange-500', 'bg-amber-400', 'bg-lime-400', 'bg-emerald-400', 'bg-yellow-300'];
-                      return (
-                        <div className={`${painel} p-3`}>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{pt ? 'Expectativa da diretoria' : 'Board expectations'}</span>
-                            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 ${campeao ? 'bg-yellow-400/20 text-yellow-300' : 'bg-blue-500/20 text-blue-300'}`}>{campeao ? '🏆 ' : ''}{meta}</span>
-                          </div>
-                          <div className="font-black text-white text-base leading-tight mt-1">{rotulos[nivel]}</div>
-                          <div className="flex gap-1 mt-2">
-                            {cores.map((cor, i) => <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= nivel ? cor : 'bg-white/10'}`} />)}
-                          </div>
-                          <div className="flex justify-between text-[8px] font-bold text-white/40 uppercase tracking-widest mt-1"><span>{pt ? 'Permanência' : 'Survival'}</span><span>{pt ? 'Título' : 'Title'}</span></div>
-                        </div>
-                      );
-                    })()}
-                    <div className={`${painel} px-0 pt-[2px] pb-0`}>
-                      <div className="text-[10px] font-black text-white/60 uppercase tracking-widest leading-none mb-0 px-2">Kits</div>
-                      <div className="flex flex-wrap justify-center gap-x-0 gap-y-0 -mt-[10px] -mb-[11px]">
-                        {([0, 1, 2] as const).map(k => <TeamKit key={k} team={clubeSel} kitIndex={k} className="w-[66px] h-[85px]" number={10} />)}
-                        <TeamKit team={clubeSel} gk className="w-[66px] h-[85px]" number={1} />
-                      </div>
-                    </div>
-                    <div className={`${painel} p-3`}>
-                      <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-2">Key players ({elencoSel.length})</div>
-                      {elencoSel.slice(0, 5).map(p => (
-                        <div key={p.id} className="flex items-center justify-between text-sm py-0.5 gap-2">
-                          <PlayerFace playerId={p.id} camisa={clubeSel.homeKit?.color1 || clubeSel.primaryColor} className="w-[47px] h-[47px] shrink-0 rounded-lg overflow-hidden bg-black/30 border border-white/20" />
-                          <span className="font-bold text-white truncate flex-1 min-w-0">{p.name}</span>
-                          <span className="text-white/60 font-bold text-xs shrink-0 ml-2">{p.position} · {p.age}y · <span className="text-blue-300">{p.skill}</span></span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <ClubOverviewContent team={clubeSel} leagueName={ligaSel?.name} leagueTeams={previewTeams} relegated={ligaSel?.relegated} elenco={elencoSel} />
                   <button onClick={() => onSelectTeam(clubeSel.id, selectedCountryId, selectedLeagueId)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-sm transition-all shadow-lg text-xl uppercase tracking-widest">{t('sel_join')}</button>
                 </div>
               </div>

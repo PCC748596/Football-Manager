@@ -2,8 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { COUNTRIES, generateLeagueData } from '../textSim/dataGenerator';
 import { Team, Player } from '../types';
 import { TeamShield } from './TeamShield';
-import { TeamKit } from './TeamKit';
-import { PlayerFace } from './PlayerFace';
+import { ClubOverviewContent } from './ClubOverviewContent';
 
 // Depois do Manage Profile: escolher o clube a mao ou deixar o sistema propor 5 clubes de dificuldades diferentes.
 
@@ -27,7 +26,7 @@ const NIVEIS_BRASIL: Nivel[] = [
   { ...NIVEIS_PADRAO[4], liga: 3, alvo: 'PIOR6' }
 ];
 
-interface Oferta { nivel: Nivel; team: Team; elenco: Player[]; leagueId: string; leagueName: string; }
+interface Oferta { nivel: Nivel; team: Team; elenco: Player[]; leagueId: string; leagueName: string; ligaTimes: Team[]; rebaixados?: number; }
 
 const escolher = (times: Team[], alvo: Alvo): Team => {
   const o = [...times].sort((a, b) => b.strength - a.strength || a.name.localeCompare(b.name));
@@ -82,7 +81,7 @@ export const CareerOffers: React.FC<{ managerName: string; onSelectTeam: (teamId
       if (!times.length) continue;
       const team = escolher(times, nivel.alvo);
       usados.add(team.id);
-      out.push({ nivel, team, elenco: dados.players.filter(p => p.teamId === team.id).sort((a, b) => b.skill - a.skill), leagueId: liga.id, leagueName: liga.name });
+      out.push({ nivel, team, elenco: dados.players.filter(p => p.teamId === team.id).sort((a, b) => b.skill - a.skill), leagueId: liga.id, leagueName: liga.name, ligaTimes: dados.teams, rebaixados: liga.relegated });
     }
     return out;
   }, [countryId]);
@@ -123,47 +122,10 @@ export const CareerOffers: React.FC<{ managerName: string; onSelectTeam: (teamId
           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Club Overview</div>
           {sel ? (() => {
             const c = sel.team, c1 = c.homeKit?.color1 || '#1e293b', c2 = c.homeKit?.color2 || c1;
-            const painel = 'bg-black/45 backdrop-blur-sm border border-white/15 rounded';
             return (
               <div className="flex-1 relative overflow-hidden rounded border-2 border-slate-200 dark:border-slate-800 min-h-0" style={{ background: `linear-gradient(165deg, ${c1} 0%, ${c1} 18%, ${c2} 62%, #020617 100%)` }}>
                 <div className="absolute inset-0 flex flex-col gap-2 p-1.5 min-h-0">
-                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-3 min-h-0">
-                    <div className={`relative overflow-hidden h-[84px] flex flex-col justify-center text-left pl-3 pr-[88px] ${painel}`}>
-                      <div className="absolute top-1/2 -translate-y-1/2 -right-[26px] w-[120px] h-[144px]"><TeamShield team={c} className="w-full h-full" /></div>
-                      <div className="text-2xl font-black text-white uppercase leading-tight truncate">{c.name}</div>
-                      <div className="text-[10px] font-bold text-blue-300 uppercase tracking-widest">{sel.leagueName}</div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-center">
-                      {[['OVR', c.strength], ['Founded', c.foundedYear || '-'], ['Fan base', (c.fanBase || 0).toLocaleString()], ['Budget', '$' + Math.round((c.cash || 0) / 1000).toLocaleString() + 'k']].map(([k, v]) => (
-                        <div key={String(k)} className={`${painel} p-2`}>
-                          <div className="text-[9px] font-black text-white/60 uppercase tracking-widest">{k}</div>
-                          <div className="text-lg font-black text-white">{v}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className={`${painel} p-3 text-sm space-y-1`}>
-                      <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">City</span><span className="font-bold text-white">{c.city || '-'}</span></div>
-                      <div className="flex justify-between gap-2"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Stadium</span><span className="font-bold text-white text-right">{c.stadium || '-'}</span></div>
-                      {c.stadiumCapacity ? <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Capacity</span><span className="font-bold text-white">{c.stadiumCapacity.toLocaleString()}</span></div> : null}
-                    </div>
-                    <div className={`${painel} px-0 py-1`}>
-                      <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-0 px-2">Kits</div>
-                      <div className="flex flex-wrap justify-center gap-y-2">
-                        {([0, 1, 2] as const).map(k => <TeamKit key={k} team={c} kitIndex={k} className="w-[66px] h-[85px]" showLabel number={10} />)}
-                        <TeamKit team={c} gk className="w-[66px] h-[85px]" showLabel number={1} />
-                      </div>
-                    </div>
-                    <div className={`${painel} p-3`}>
-                      <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-2">Key players ({sel.elenco.length})</div>
-                      {sel.elenco.slice(0, 5).map(p => (
-                        <div key={p.id} className="flex items-center justify-between text-sm py-0.5 gap-2">
-                          <PlayerFace playerId={p.id} camisa={c.homeKit?.color1 || c.primaryColor} className="w-[49px] h-[49px] shrink-0 rounded-lg overflow-hidden bg-black/30 border border-white/20" />
-                          <span className="font-bold text-white truncate flex-1 min-w-0">{p.name}</span>
-                          <span className="text-white/60 font-bold text-xs shrink-0 ml-2">{p.position} · {p.age}y · <span className="text-blue-300">{p.skill}</span></span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <ClubOverviewContent team={c} leagueName={sel.leagueName} leagueTeams={sel.ligaTimes} relegated={sel.rebaixados} elenco={sel.elenco} />
                   <button onClick={() => onSelectTeam(c.id, countryId, sel.leagueId)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-sm transition-all shadow-lg text-xl uppercase tracking-widest">Take job</button>
                 </div>
               </div>
