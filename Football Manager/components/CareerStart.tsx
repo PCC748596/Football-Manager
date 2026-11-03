@@ -7,7 +7,7 @@ import { PlayerFace } from './PlayerFace';
 
 // Depois do Manage Profile: escolher o clube a mao ou deixar o sistema propor 5 clubes de dificuldades diferentes.
 
-type Alvo = 'TOP' | 'MEDIO' | 'PIOR';
+type Alvo = 'TOP' | 'MEDIO' | 'PIOR' | 'TOP3' | 'PIOR3' | 'PIOR6';   // TOP3/PIOR3/PIOR6: um clube SORTEADO entre os 3 melhores / 3 piores / 6 piores da liga
 interface Nivel { rotulo: string; cor: string; liga: number; alvo: Alvo; }   // `liga`: posicao na lista de ligas visiveis do pais (0 = Serie A)
 
 // Padrao: A-top, A-medio, A-pior, B-medio, B-pior.
@@ -18,18 +18,24 @@ const NIVEIS_PADRAO: Nivel[] = [
   { rotulo: 'Hard', cor: 'text-orange-400', liga: 1, alvo: 'MEDIO' },
   { rotulo: 'Very hard', cor: 'text-rose-400', liga: 1, alvo: 'PIOR' }
 ];
-// Brasil (id 45): A-top, A-medio, B-pior, C-medio, D-pior.
+// Brasil (id 45): 1 dos 3 melhores da A, 1 dos 3 piores da A, 1 dos 3 melhores da B, 1 dos 3 melhores da C e 1 dos 6 piores da D.
 const NIVEIS_BRASIL: Nivel[] = [
-  NIVEIS_PADRAO[0], NIVEIS_PADRAO[1],
-  { ...NIVEIS_PADRAO[2], liga: 1 },
-  { ...NIVEIS_PADRAO[3], liga: 2 },
-  { ...NIVEIS_PADRAO[4], liga: 3 }
+  { ...NIVEIS_PADRAO[0], liga: 0, alvo: 'TOP3' },
+  { ...NIVEIS_PADRAO[1], liga: 0, alvo: 'PIOR3' },
+  { ...NIVEIS_PADRAO[2], liga: 1, alvo: 'TOP3' },
+  { ...NIVEIS_PADRAO[3], liga: 2, alvo: 'TOP3' },
+  { ...NIVEIS_PADRAO[4], liga: 3, alvo: 'PIOR6' }
 ];
 
 interface Oferta { nivel: Nivel; team: Team; elenco: Player[]; leagueId: string; leagueName: string; }
 
 const escolher = (times: Team[], alvo: Alvo): Team => {
   const o = [...times].sort((a, b) => b.strength - a.strength || a.name.localeCompare(b.name));
+  // Sorteio entre os N melhores (TOP3) ou os N piores (PIOR3 / PIOR6); com menos clubes que N sorteia entre os que ha.
+  const sorteia = (grupo: Team[]) => grupo[Math.floor(Math.random() * grupo.length)];
+  if (alvo === 'TOP3') return sorteia(o.slice(0, 3));
+  if (alvo === 'PIOR3') return sorteia(o.slice(-3));
+  if (alvo === 'PIOR6') return sorteia(o.slice(-6));
   return alvo === 'TOP' ? o[0] : alvo === 'PIOR' ? o[o.length - 1] : o[Math.floor((o.length - 1) / 2)];
 };
 

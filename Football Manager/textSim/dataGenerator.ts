@@ -456,6 +456,73 @@ export const generateFixtures = (teams: Team[], leagueId: string): Fixture[] => 
   return fixtures.sort((a, b) => a.week - b.week);
 };
 
+/*
+A FAIXA DE OVR POR DIVISAO ([clube mais forte, clube mais fraco], em OVR medio do elenco). Antes a media de cada divisao saia dos jogadores reais da base e de jogadores sorteados
+(50-100), e as divisoes quase nao se distinguiam (Serie B mais forte que a A, o pior da A abaixo do pior da D). Agora, depois de gerar a liga, os clubes sao reescalados para caber na faixa,
+mantendo a ORDEM e a proporcao entre eles (ver `ajustarLigaParaFaixa`).
+- Brasil: A 77-70, B 74-67, C 71-64, D 68-61.
+- Demais paises da America do Sul: A 74-67, B 71-64.
+- Europa (ligas completas): A 80-75, B 75-70, C 70-65, D 65.
+- Ligas ocultas (os 'clubes' dos paises sem liga completa, que so compoem as competicoes): 75-70.
+Sem faixa definida (divisao que o jogo ainda nao tem), a liga fica como foi gerada.
+*/
+export const FAIXA_OVR_BRASIL: Record<number, [number, number]> = { 1: [77, 70], 2: [74, 67], 3: [71, 64], 4: [68, 61] };
+export const FAIXA_OVR_AMERICA_DO_SUL: Record<number, [number, number]> = { 1: [74, 67], 2: [71, 64] };
+export const FAIXA_OVR_EUROPA: Record<number, [number, number]> = { 1: [80, 75], 2: [75, 70], 3: [70, 65], 4: [65, 65] };
+export const FAIXA_OVR_LIGA_OCULTA: [number, number] = [75, 70];
+
+export const faixaDeOvr = (countryId: string, league: any): [number, number] | null => {
+  if (!league) return null;
+  if (league.hidden || league.tier >= 9) return FAIXA_OVR_LIGA_OCULTA;
+  if (countryId === '45') return FAIXA_OVR_BRASIL[league.tier] || null;
+  const pais: any = COUNTRIES.find((c: any) => c.id === countryId);
+  const continente = pais?.continent;
+  if (continente === 'South America') return FAIXA_OVR_AMERICA_DO_SUL[league.tier] || null;
+  if (continente === 'Europe') return FAIXA_OVR_EUROPA[league.tier] || null;
+  return null;
+};
+
+/*
+Reescala os clubes de UMA liga para a faixa [alto, baixo]: o mais forte vai ao `alto`, o mais fraco ao `baixo` e os outros ficam na mesma proporcao entre os dois (ordem preservada).
+Cada clube anda somando o mesmo numero ao OVR e aos 4 atributos de todos os seus jogadores (o OVR e a media pesada dos atributos), com o piso NIVEL_MINIMO e o teto 99; como o piso/teto
+podem travar alguns, repete ate a media bater (+-0.5). Valor de mercado e salario NAO mudam (a economia do jogo foi calibrada com eles).
+*/
+export const ajustarLigaParaFaixa = (teams: Team[], players: Player[], faixa: [number, number]) => {
+  if (!teams.length) return;
+  const [alto, baixo] = faixa;
+  const fortes = teams.map(t => t.strength);
+  const max = Math.max(...fortes), min = Math.min(...fortes);
+  const limita = (v: number) => Math.min(99, Math.max(NIVEL_MINIMO, v));
+  for (const t of teams) {
+    const alvo = max === min ? (alto + baixo) / 2 : baixo + ((t.strength - min) / (max - min)) * (alto - baixo);
+    const elenco = players.filter(p => p.teamId === t.id);
+    if (!elenco.length) continue;
+    const mover = (p: Player, d: number) => {
+      p.skill = limita(p.skill + d);
+      p.def = limita(p.def + d); p.pas = limita(p.pas + d); p.drb = limita(p.drb + d); p.sht = limita(p.sht + d);
+    };
+    // 1) passos inteiros ate a media ficar a menos de 1 do alvo (o piso/teto pode travar alguns jogadores, por isso repete).
+    for (let i = 0; i < 8; i++) {
+      const d = Math.round(alvo - elenco.reduce((s, p) => s + p.skill, 0) / elenco.length);
+      if (d === 0) break;
+      for (const p of elenco) mover(p, d);
+    }
+    // 2) ajuste fino: +-1 em alguns jogadores ate a media bater no alvo (com folga de meio ponto de uma unidade por jogador).
+    for (let i = 0; i < 4; i++) {
+      const falta = (alvo - elenco.reduce((s, p) => s + p.skill, 0) / elenco.length) * elenco.length;
+      let k = Math.round(falta);
+      if (k === 0) break;
+      const sinal = k > 0 ? 1 : -1;
+      for (const p of elenco) {
+        if (k === 0) break;
+        if (limita(p.skill + sinal) === p.skill) continue;
+        mover(p, sinal); k -= sinal;
+      }
+    }
+    t.strength = Math.round(elenco.reduce((s, p) => s + p.skill, 0) / elenco.length);
+  }
+};
+
 export const generateLeagueData = (countryId: string, leagueId: string = '') => {
   const teams: Team[] = [];
   const players: Player[] = [];
@@ -611,6 +678,10 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
 
     teams.push(team);
   });
+
+  // A faixa de OVR da divisao (ver FAIXA_OVR_*): reescala os clubes desta liga.
+  const faixa = faixaDeOvr(countryId, league);
+  if (faixa) ajustarLigaParaFaixa(teams, players, faixa);
 
   return { teams, players };
 };
