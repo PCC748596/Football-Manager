@@ -52,3 +52,18 @@ test('salario de mercado da liga: so nas ligas com tabela, e cresce com o overal
   assert.equal(salarioDeMercadoDaLiga(jogs[20], times, jogs), undefined);
   assert.ok(salarioDeMercadoDaLiga(jogs[19], times, jogs)! > salarioDeMercadoDaLiga(jogs[0], times, jogs)!);
 });
+
+test('Sub-20: salario na faixa mais baixa da liga, bem abaixo do profissional medio', async () => {
+  const { salarioDoJovem, ajustarSalariosDaBase } = await import('../textSim/salarios');
+  for (const liga of ['bra_serie_a', 'bra_serie_b', 'bra_serie_c', 'bra_serie_d']) {
+    const piso = mensalBRL(salarioDoJovem(liga, 55)!), teto = mensalBRL(salarioDoJovem(liga, 90)!);
+    const tab = SERIES_SALARIOS[liga].niveis[0];
+    assert.ok(piso >= tab.min * 0.8 && teto <= tab.max * 1.2, `${liga}: ${Math.round(piso)}-${Math.round(teto)}`);
+    assert.ok(piso <= teto);
+  }
+  assert.equal(salarioDoJovem('eng_premier', 70), undefined);
+  const base: any = { jogadores: [{ id: 'j1', teamId: 'a', skill: 62, salary: 9_999 }, { id: 'j2', teamId: 'b', skill: 62, salary: 9_999 }] };
+  const b1 = ajustarSalariosDaBase(base, [{ id: 'a', leagueId: 'bra_serie_d' }, { id: 'b', leagueId: 'eng_premier' }] as any);
+  assert.ok(b1.jogadores[0].salary < 500 && b1.jogadores[1].salary === 9_999);
+  assert.equal(ajustarSalariosDaBase(b1, [{ id: 'a', leagueId: 'bra_serie_d' }, { id: 'b', leagueId: 'eng_premier' }] as any), b1, 'idempotente');
+});

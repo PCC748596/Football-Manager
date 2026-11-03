@@ -9,7 +9,7 @@ import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disput
 import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
 import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, avisoDeBonusPatrocinio } from '../textSim/inbox';
-import { salarioDeMercadoDaLiga } from '../textSim/salarios';
+import { salarioDeMercadoDaLiga, ajustarSalariosDaBase } from '../textSim/salarios';
 import { aplicarDivisao, aplicarDificuldade, dificuldadeEscolhida, folhaAnual, PADRAO_COMPRAS } from '../textSim/orcamento';
 import { PATROCINADORES, criarContrato, avaliarProposta, pagarParcelas, reputacaoDoClube, bonusDeCompeticao, diasParaFim, JANELA_RENOVACAO_DIAS, type MotivoRecusa } from '../textSim/patrocinadores';
 import { ManagerState, semearTreinadores, atualizarTreinadores, aplicarTreinadores, registrosDosEventos, registrarNoDiario, declinarOferta } from '../textSim/managerExpectations';
@@ -682,7 +682,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!teams.length || !gameState.userTeamId) return;
     const hoje = gameState.currentDate;
     const r = processarBase(garantirBase(base, teams.map(t => t.id), hoje), hoje);
-    if (r.base !== base) setBase(r.base);
+    const baseFinal = ajustarSalariosDaBase(r.base, teams);   // Sub-20 das series A-D com o salario da faixa de base da liga (textSim/salarios.ts)
+    if (baseFinal !== base) setBase(baseFinal);
     const doUtilizador = r.saidas.filter(j => j.teamId === gameState.userTeamId).map(j => ({ ...j, teamId: 'MARKET' }));
     if (doUtilizador.length) { setPlayers(prev => [...prev, ...doUtilizador.filter(j => !prev.some(p => p.id === j.id))]); empurrarInbox(avisoDeSaidaDaBase(hoje, gameState.language, doUtilizador)); }
   }, [gameState.currentDate, teams.length, gameState.userTeamId, loadId]);

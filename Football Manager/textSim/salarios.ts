@@ -4,6 +4,7 @@ A tabela do jogo e o salario semanal em dolares (`Player.salary`); aqui o valor 
 Os pesos dos niveis e o `calibre` fazem a media da liga ficar perto da referencia (Serie A: R$ 140 000; Serie B: R$ 30 000; Serie C: R$ 8 000; Serie D: R$ 3 500 por mes). As faixas das series A, C e D sao as do utilizador; as da B sao estimadas para dar a media pedida. As outras ligas continuam com 0,2% do valor por semana.
 */
 import type { Player, Team } from '../types';
+import type { BaseState } from './youth';
 import { paraDolares } from './cambio';
 
 export const SEMANAS_NO_MES = 4.33;
@@ -41,7 +42,7 @@ export const salarioMensalBRL = (leagueId: string, p: number): number | null => 
 };
 
 /** O salario semanal em dolares do jogo (o `Player.salary`) para o mensal em reais. */
-export const salarioSemanalUSD = (mensalBRL: number): number => Math.max(100, Math.round(paraDolares(mensalBRL, 'BRL') / SEMANAS_NO_MES));
+export const salarioSemanalUSD = (mensalBRL: number): number => Math.max(10, Math.round(paraDolares(mensalBRL, 'BRL') / SEMANAS_NO_MES));
 
 /** Percentil (0..1) do overall de cada jogador entre os da lista (empates dividem a posicao). */
 export const percentisDeNivel = (skills: number[]): number[] => {
@@ -67,4 +68,28 @@ export const salarioDeMercadoDaLiga = (p: Player, teams: Team[], players: Player
   const abaixo = skills.filter(v => v < p.skill).length, iguais = Math.max(1, skills.filter(v => v === p.skill).length);
   const pct = skills.length > 1 ? (abaixo + (iguais - 1) / 2) / (skills.length - 1) : 0.5;
   return salarioSemanalUSD(salarioMensalBRL(liga, pct) as number);
+};
+
+/**
+ * O salario semanal (USD) de um jovem da base (Sub-20) numa liga com tabela: sempre na faixa mais baixa ("Jovem / reserva") da liga, subindo com o overall (OVR 55 ou menos = piso; 85 ou mais = teto da faixa).
+ * `undefined` nas ligas sem tabela.
+ */
+export const salarioDoJovem = (leagueId: string | undefined, skill: number): number | undefined => {
+  const tab = leagueId ? SERIES_SALARIOS[leagueId] : undefined;
+  if (!leagueId || !tab) return undefined;
+  const t = Math.min(1, Math.max(0, (skill - 55) / 30));
+  return salarioSemanalUSD(salarioMensalBRL(leagueId, t * tab.niveis[0].peso) as number);
+};
+
+/** Poe nos jovens das ligas com tabela o salario da faixa Sub-20 da liga (idempotente: devolve a MESMA base se nada mudou). */
+export const ajustarSalariosDaBase = (base: BaseState, teams: Team[]): BaseState => {
+  const ligaDe = new Map(teams.map(t => [t.id, t.leagueId] as const));
+  let mudou = false;
+  const jogadores = base.jogadores.map(j => {
+    const alvo = salarioDoJovem(ligaDe.get(j.teamId), j.skill);
+    if (alvo === undefined || alvo === j.salary) return j;
+    mudou = true;
+    return { ...j, salary: alvo };
+  });
+  return mudou ? { ...base, jogadores } : base;
 };
