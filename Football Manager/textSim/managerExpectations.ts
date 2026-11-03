@@ -51,13 +51,22 @@ export interface Manager {
   usuario?: boolean;
 }
 export interface OfertaUsuario { id: string; clubKey: string; clube: string; exigencia: number; data: string; }
-export interface ManagerState { managers: Record<string, Manager>; fechadas: string[]; ofertas: OfertaUsuario[]; }
+/** Uma linha do diario da carreira do utilizador (aba Manager). */
+export interface RegistroCarreira {
+  data: string; tipo: 'CONTRATADO' | 'DEMITIDO' | 'OFERTA' | 'FIM_LIGA'; clube: string;
+  pos?: number; n?: number; pontos?: number; jogos?: number; titulo?: boolean; promovido?: boolean; rebaixado?: boolean;
+}
+export interface ManagerState { managers: Record<string, Manager>; fechadas: string[]; ofertas: OfertaUsuario[]; historico: RegistroCarreira[]; }
 
 /** Uma liga num instante: tabela atual e se acabou. (`managerLigas.ts` monta isto a partir do estado do jogo.) */
 export interface LigaSnap { leagueId: string; tier: number; promovidos: number; rebaixados: number; times: Team[]; tabela: TableRow[]; encerrada: boolean; }
 
 export type Faixa = 'EXCELENTE' | 'BOA' | 'PRESSAO' | 'RISCO' | 'IMINENTE';
-export interface EventoMgr { tipo: 'DEMISSAO' | 'CONTRATACAO' | 'TRANSFERENCIA' | 'OFERTA' | 'FAIXA'; managerId: string; clubKey: string | null; clube: string; usuario: boolean; de?: string | null; faixa?: Faixa; }
+export interface EventoMgr {
+  tipo: 'DEMISSAO' | 'CONTRATACAO' | 'TRANSFERENCIA' | 'OFERTA' | 'FAIXA' | 'FIM_LIGA'; managerId: string; clubKey: string | null; clube: string; usuario: boolean; de?: string | null; faixa?: Faixa;
+  /** So em FIM_LIGA (do utilizador): o resultado final da liga. */
+  pos?: number; n?: number; pontos?: number; jogos?: number; titulo?: boolean; promovido?: boolean; rebaixado?: boolean;
+}
 export interface Rodada { jogos: number; pontos: number; posicao: number; n: number; alvo: number; conquistas?: number; }
 
 const clamp = (v: number, a = 0, b = 100) => Math.max(a, Math.min(b, v));
@@ -141,7 +150,7 @@ export const semearTreinadores = (ligas: LigaSnap[], usuario?: { clubKey: string
         confidence: C.confInicial, clubKey: k, lowConfRounds: 0, grace: 0, ultimoJogos: 0, baseJogos: 0, basePontos: 0, jaMovido: false, ...(ehUsuario ? { usuario: true } : {}) };
     }
   }
-  return garantirPool({ managers, fechadas: [], ofertas: [] });
+  return garantirPool({ managers, fechadas: [], ofertas: [], historico: [] });
 };
 
 const indicePorClube = (managers: Record<string, Manager>) => {
@@ -243,6 +252,7 @@ export const fecharTemporadas = (estado: ManagerState, ligas: LigaSnap[], hoje: 
       if (rebaixado) conf = clamp(conf - C.penalidadeRebaixamento);
       const novo: Manager = { ...m, reputation: clamp(Math.round(m.reputation + delta)), confidence: conf, lowConfRounds: conf < C.limitePressao ? m.lowConfRounds + 1 : 0, ultimoJogos: C.jogosTemporadaFechada };
       managers[m.id] = novo;
+      if (m.usuario) eventos.push({ tipo: 'FIM_LIGA', managerId: m.id, clubKey: k, clube: row.team.name, usuario: true, pos, n, pontos: pontosM, jogos: jogosM, titulo: campeao, promovido, rebaixado });
       if (criarRng(`demissao|${m.id}|fim`)() < probDemissao(novo, rebaixado, row.played)) demitir(managers, porClube, novo, row.team.name, exigenciaDoNivel(nivel), C.jogosTemporadaFechada, eventos);
     });
   }
@@ -276,7 +286,7 @@ export const fecharTemporadas = (estado: ManagerState, ligas: LigaSnap[], hoje: 
     eventos.push({ tipo: 'TRANSFERENCIA', managerId: c.id, clubKey: k, clube: ctx.nome[k], usuario: false, de: origem });
     preencherVaga(managers, porClube, origem, ctx.nome[origem], ctx.exig[origem], C.jogosTemporadaFechada, eventos);
   }
-  return { estado: garantirPool({ managers, fechadas, ofertas }), eventos };
+  return { estado: garantirPool({ ...estado, managers, fechadas, ofertas }), eventos };
 };
 
 /** Ponto de entrada do jogo: jogos novos + fim de liga. Sem novidade devolve o MESMO `estado` (`mudou` falso). */
@@ -322,3 +332,19 @@ export const expectativaPorFases = (times: Team[], clube: Team): { fase: number;
   const base = rank <= 3 ? 5 : rank <= 8 ? 4 : rank <= 16 ? 3 : rank <= 32 ? 2 : rank <= 64 ? 1 : 0;
   return { fase: clamp(base + ajuste, 0, 5), ajuste };
 };
+
+/** Converte os eventos do UTILIZADOR em linhas do diario da carreira (os da IA e os avisos de faixa ficam de fora). */
+export const registrosDosEventos = (eventos: EventoMgr[], hoje: string): RegistroCarreira[] => eventos.filter(e => e.usuario).flatMap((e): RegistroCarreira[] => {
+  if (e.tipo === 'DEMISSAO') return [{ data: hoje, tipo: 'DEMITIDO', clube: e.clube }];
+  if (e.tipo === 'OFERTA') return [{ data: hoje, tipo: 'OFERTA', clube: e.clube }];
+  if (e.tipo === 'FIM_LIGA') return [{ data: hoje, tipo: 'FIM_LIGA', clube: e.clube, pos: e.pos, n: e.n, pontos: e.pontos, jogos: e.jogos, titulo: e.titulo, promovido: e.promovido, rebaixado: e.rebaixado }];
+  return [];
+});
+
+/** Anexa linhas ao diario. Sem linhas devolve o MESMO estado. */
+export const registrarNoDiario = (estado: ManagerState, registros: RegistroCarreira[]): ManagerState =>
+  registros.length ? { ...estado, historico: [...(estado.historico || []), ...registros] } : estado;
+
+/** O utilizador recusa uma oferta pendente (so a tira da lista). Id desconhecido devolve o MESMO estado. */
+export const declinarOferta = (estado: ManagerState, id: string): ManagerState =>
+  estado.ofertas.some(o => o.id === id) ? { ...estado, ofertas: estado.ofertas.filter(o => o.id !== id) } : estado;

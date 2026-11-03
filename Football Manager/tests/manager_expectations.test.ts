@@ -225,3 +225,52 @@ test('expectativaPorFases (Serie D): a posicao do OVR entre os 96 da a fase, a t
   assert.equal(fase(40), 1);   // 33o a 64o: terceira fase
   assert.equal(fase(90), 0);   // resto: passar dos grupos
 });
+
+import { registrosDosEventos, registrarNoDiario, declinarOferta, EventoMgr } from '../textSim/managerExpectations';
+
+test('fecharTemporadas: o treinador do utilizador recebe FIM_LIGA (posicao, pontos e flags); a IA nao', () => {
+  const times = seis();
+  const tabela = { A: 28, B: 20, C: 18, D: 12, E: 6, F: 2 };
+  const r = fecharTemporadas(semearTreinadores([snap(times, {}, 0)], { clubKey: key('B'), nome: 'Eu' }), [fechada(times, tabela)], '2024-12-08');
+  const fins = r.eventos.filter(e => e.tipo === 'FIM_LIGA');
+  assert.equal(fins.length, 1);
+  const ev = fins[0];
+  assert.ok(ev.usuario);
+  assert.equal(ev.clubKey, key('B'));
+  assert.deepEqual([ev.pos, ev.n, ev.pontos, ev.jogos, ev.titulo, ev.rebaixado], [2, 6, 20, 10, false, false]);
+  const campeao = fecharTemporadas(semearTreinadores([snap(times, {}, 0)], { clubKey: key('A'), nome: 'Eu' }), [fechada(times, tabela)], '2024-12-08').eventos.find(e => e.tipo === 'FIM_LIGA')!;
+  assert.equal(campeao.titulo, true);
+  const ultimo = fecharTemporadas(semearTreinadores([snap(times, {}, 0)], { clubKey: key('F'), nome: 'Eu' }), [fechada(times, tabela)], '2024-12-08').eventos.find(e => e.tipo === 'FIM_LIGA')!;
+  assert.deepEqual([ultimo.pos, ultimo.rebaixado], [6, true]);
+});
+
+test('registrosDosEventos: so o que e do utilizador entra no diario; registrarNoDiario anexa', () => {
+  const evs: EventoMgr[] = [
+    { tipo: 'DEMISSAO', managerId: 'user', clubKey: 'L1|A', clube: 'Clube A', usuario: true },
+    { tipo: 'DEMISSAO', managerId: 'm|L1|B', clubKey: 'L1|B', clube: 'Clube B', usuario: false },
+    { tipo: 'FAIXA', managerId: 'user', clubKey: 'L1|A', clube: 'Clube A', usuario: true, faixa: 'RISCO' },
+    { tipo: 'OFERTA', managerId: 'user', clubKey: 'L1|K', clube: 'Clube K', usuario: true },
+    { tipo: 'FIM_LIGA', managerId: 'user', clubKey: 'L1|A', clube: 'Clube A', usuario: true, pos: 3, n: 6, pontos: 15, jogos: 10, titulo: false, promovido: false, rebaixado: false }
+  ];
+  const regs = registrosDosEventos(evs, '2024-12-08');
+  assert.deepEqual(regs.map(r => r.tipo), ['DEMITIDO', 'OFERTA', 'FIM_LIGA']);
+  assert.ok(regs.every(r => r.data === '2024-12-08'));
+  assert.deepEqual([regs[2].clube, regs[2].pos, regs[2].n, regs[2].pontos], ['Clube A', 3, 6, 15]);
+  const estado = semearTreinadores([snap(seis(), {}, 0)]);
+  assert.deepEqual(estado.historico, []);
+  const com = registrarNoDiario(estado, regs);
+  assert.equal(com.historico.length, 3);
+  assert.equal(registrarNoDiario(com, []), com);
+});
+
+test('fecharTemporadas preserva o diario; declinarOferta tira so a oferta pedida', () => {
+  const times = seis();
+  const base = semearTreinadores([snap(times, {}, 0)]);
+  const estado = registrarNoDiario({ ...base, ofertas: [{ id: 'a', clubKey: 'L1|K', clube: 'K', exigencia: 80, data: '2024-12-08' }, { id: 'b', clubKey: 'L1|W', clube: 'W', exigencia: 50, data: '2024-12-08' }] },
+    [{ data: '2024-03-01', tipo: 'CONTRATADO', clube: 'Clube A' }]);
+  const fechado = fecharTemporadas(estado, [fechada(times, { A: 28, B: 20, C: 18, D: 12, E: 6, F: 2 })], '2024-12-08').estado;
+  assert.equal(fechado.historico.length, 1);
+  const sem = declinarOferta(estado, 'a');
+  assert.deepEqual(sem.ofertas.map(o => o.id), ['b']);
+  assert.equal(declinarOferta(estado, 'nao-existe'), estado);
+});

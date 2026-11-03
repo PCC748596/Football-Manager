@@ -7,11 +7,11 @@ import { buildTable, type WorldLeague } from './world';
 import { COUNTRIES } from './dataGenerator';
 import type { LigaSnap } from './managerExpectations';
 
-const liga = (leagueId: string) => { for (const c of COUNTRIES) { const l = c.leagues.find(x => x.id === leagueId); if (l) return l; } return undefined; };
+export const ligaPorId = (leagueId: string) => { for (const c of COUNTRIES) { const l = c.leagues.find(x => x.id === leagueId); if (l) return l; } return undefined; };
 
 export const snapDeLiga = (leagueId: string, times: Team[], fixtures: Fixture[]): LigaSnap => {
   const jogos = fixtures.filter(f => !f.isFriendly && (f.type === undefined || f.type === 'LEAGUE'));
-  const l = liga(leagueId);
+  const l = ligaPorId(leagueId);
   return { leagueId, tier: l?.tier ?? 1, promovidos: l?.promoted ?? 0, rebaixados: l?.relegated ?? Math.round(times.length * 0.2), times,
     tabela: buildTable(times, jogos), encerrada: jogos.length > 0 && jogos.every(f => f.played) };
 };
