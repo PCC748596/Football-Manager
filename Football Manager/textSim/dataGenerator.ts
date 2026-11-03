@@ -95,8 +95,8 @@ export const generatePlayer = (teamId: string, position: Position, idCounter: nu
     pas,
     drb,
     sht,
-    // O PLAYING STYLE vem dos atributos (o mesmo criterio da base Sub-20): sem isto todo jogador gerado caia no 1.o estilo que serve a posicao (todo goleiro defensivo, todo lateral ofensivo...).
-    playStyle: sortearPlayStyle(position, { def, pas, drb, sht }, criarRng(`estilo|p-${idCounter}`)),
+    // O PLAYING STYLE e sorteado entre os da posicao, com a mesma chance para cada um: sem isto todo jogador gerado caia no 1.o estilo que serve a posicao (todo goleiro defensivo, todo lateral ofensivo...).
+    playStyle: sortearPlayStyle(position, criarRng(`estilo|p-${idCounter}`)),
     trainingAccumulated: { def: 0, pas: 0, drb: 0, sht: 0, mor: 0 },
     lastGrowth: { def: 0, pas: 0, drb: 0, sht: 0 },
     weeklyGrowth: 0
@@ -637,7 +637,7 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
           drb: Math.max(NIVEL_MINIMO, p.drbplayer),
           sht: Math.max(NIVEL_MINIMO, p.shtPlayer),
           // Quem nao tem estilo na base do 3D (PLAYSTYLE_DA_BASE) recebe um pelos atributos; quem tem, mantem o da base.
-          ...(p.idPlayer && PLAYSTYLE_DA_BASE[`p-${p.idPlayer}`] ? {} : { playStyle: sortearPlayStyle(mapPosString(p.posPlayer), { def: Math.max(NIVEL_MINIMO, p.defPlayer), pas: Math.max(NIVEL_MINIMO, p.pasPlayer), drb: Math.max(NIVEL_MINIMO, p.drbplayer), sht: Math.max(NIVEL_MINIMO, p.shtPlayer) }, criarRng(`estilo|real|${p.idPlayer}|${index}`)) }),
+          ...(p.idPlayer && PLAYSTYLE_DA_BASE[`p-${p.idPlayer}`] ? {} : { playStyle: sortearPlayStyle(mapPosString(p.posPlayer), criarRng(`estilo|real|${p.idPlayer}|${index}`)) }),
           trainingAccumulated: { def: 0, pas: 0, drb: 0, sht: 0, mor: 0 },
           lastGrowth: { def: 0, pas: 0, drb: 0, sht: 0 },
           weeklyGrowth: 0
