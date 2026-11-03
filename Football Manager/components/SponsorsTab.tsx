@@ -6,6 +6,16 @@ import { paraDolares } from '../textSim/cambio';
 
 const bandeira = (p: Patrocinador) => assetUrl(p.cod === 'br' ? '/Assets/Bandeiras/45.png' : `/flags/${p.cod}.svg`);
 
+/** Logo da marca (todas ficticias): monograma com as iniciais sobre uma cor derivada do nome. Se existir public/sponsors/<id>.png, usa a imagem. */
+const LogoMarca: React.FC<{ p: Patrocinador; className?: string }> = ({ p, className = 'w-10 h-10' }) => {
+  const [semImagem, setSemImagem] = useState(false);
+  const palavras = p.nome.replace(/[^A-Za-z0-9 -]/g, '').split(/[ -]+/).filter(Boolean);
+  const iniciais = (palavras.length > 1 ? palavras[0][0] + palavras[1][0] : p.nome.slice(0, 2)).toUpperCase();
+  let h = 0; for (const c of p.nome) h = (h * 31 + c.charCodeAt(0)) % 360;
+  if (!semImagem) return <img src={assetUrl(`/sponsors/${p.id}.png`)} alt="" onError={() => setSemImagem(true)} className={`${className} object-contain rounded-lg shrink-0`} />;
+  return <div className={`${className} rounded-lg shrink-0 flex items-center justify-center font-black text-white text-sm tracking-tight shadow-inner`} style={{ background: `linear-gradient(135deg, hsl(${h} 65% 45%), hsl(${(h + 40) % 360} 65% 32%))` }}>{iniciais}</div>;
+};
+
 const SponsorsTab: React.FC = () => {
   const { userTeam, gameState, formatCurrency, proporPatrocinio, reputacaoClube } = useGame();
   const [regiao, setRegiao] = useState<RegiaoPatrocinio>('BRASIL');
@@ -66,7 +76,7 @@ const SponsorsTab: React.FC = () => {
 
       {aberto && (
         <div className="bg-white dark:bg-slate-900 border border-blue-500/40 rounded-xl p-5 flex flex-wrap items-center gap-4 shadow-xl">
-          <img src={bandeira(aberto)} alt="" className="w-12 h-8 object-cover rounded-sm border border-slate-300 dark:border-slate-700" />
+          <LogoMarca p={aberto} className="w-12 h-12" />
           <div className="flex-1 min-w-[180px]">
             <div className="font-black text-lg text-slate-900 dark:text-white">{aberto.nome}</div>
             <div className="text-sm text-slate-500">{formatCurrency(paraDolares(aberto.valorAnual, aberto.moeda))} / {pt ? 'ano' : 'year'} · 12 {pt ? 'parcelas mensais' : 'monthly instalments'}</div>
@@ -89,10 +99,10 @@ const SponsorsTab: React.FC = () => {
           return (
             <button key={p.id} disabled={!clicavel} onClick={() => { setAberto(p); setAnos(1); setMsg(null); }}
               className={`min-h-[64px] text-left flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${aberto?.id === p.id ? 'border-blue-500 bg-blue-500/10' : 'border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60'} ${clicavel ? 'hover:border-blue-400 cursor-pointer' : 'opacity-70 cursor-default'}`}>
-              <img src={bandeira(p)} alt="" className="w-10 h-7 object-cover rounded-sm border border-slate-300 dark:border-slate-700 shrink-0" />
+              <LogoMarca p={p} />
               <div className="flex-1 min-w-0">
                 <div className="font-black text-slate-900 dark:text-white truncate">{p.nome}</div>
-                <div className="text-[11px] text-slate-500 truncate">{p.pais} · {pt ? 'rep. mín.' : 'min. rep.'} {reputacaoMinima(p)}</div>
+                <div className="text-[11px] text-slate-500 truncate flex items-center gap-1.5"><img src={bandeira(p)} alt="" className="w-4 h-3 object-cover rounded-[2px] border border-slate-300 dark:border-slate-700" />{p.pais} · {pt ? 'rep. mín.' : 'min. rep.'} {reputacaoMinima(p)}</div>
               </div>
               <div className="text-right shrink-0">
                 <div className="font-black text-slate-900 dark:text-white">{formatCurrency(paraDolares(p.valorAnual, p.moeda))}</div>
