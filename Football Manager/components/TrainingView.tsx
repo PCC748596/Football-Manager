@@ -1,4 +1,7 @@
 
+import { atributos3d } from '../textSim/atributos3d';
+import { calcularQuimica } from '../textSim/quimica';
+import { doisNomes } from '../textSim/nomes';
 import NextGameButton, { SetasAGirar } from './NextGameButton';
 import React, { useState, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
@@ -19,6 +22,15 @@ const PLANE_ICON = (
 );
 
 const getTeamState = (name: string) => name.split('-').pop() || '';
+
+/** Icones do painel de atributos do time: SVG de linha, todos do mesmo estilo e da mesma cor. */
+const Ico: React.FC<{ children: React.ReactNode }> = ({ children }) => <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{children}</svg>;
+const ICONE_TEC = <Ico><circle cx="12" cy="12" r="9" /><path d="m12 8 3.5 2.5-1.3 4h-4.4l-1.3-4z" /><path d="M12 3v5M15.5 10.5 20 9M14.2 14.5 17 18.5M9.8 14.5 7 18.5M8.5 10.5 4 9" /></Ico>;
+const ICONE_TAC = <Ico><rect x="3" y="4" width="18" height="16" rx="2" /><path d="m7 8 4 4M11 8l-4 4" /><circle cx="16" cy="15" r="1.6" /></Ico>;
+const ICONE_MEN = <Ico><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 3 3 2.5 2.5 0 0 0 3-2.5V6.5A2.5 2.5 0 0 0 9 4z" /><path d="M15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-3 3 2.5 2.5 0 0 1-3-2.5" /></Ico>;
+const ICONE_STA = <Ico><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" /></Ico>;
+const ICONE_CHE = <Ico><path d="M4 8h14" /><path d="m14 4 4 4-4 4" /><path d="M20 16H6" /><path d="m10 12-4 4 4 4" /></Ico>;
+const ICONE_MOR = <Ico><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><path d="M9 9h.01M15 9h.01" /></Ico>;
 
 const TrainingView: React.FC = () => {
   const { gameState, userTeam, teams, fixtures, players, setTrainingSchedules, unlockTrainingGroup, updatePlayerTrainingGroup, advanceDay, formatCurrency, formatCurrencyShort, t } = useGame();
@@ -106,12 +118,20 @@ const TrainingView: React.FC = () => {
     return Math.round(teamPlayers.reduce((acc, p) => acc + (p[attr] || 0), 0) / teamPlayers.length);
   };
 
-  const avgDef = useMemo(() => getTeamAvg('def'), [players, userTeam]);
-  const avgPas = useMemo(() => getTeamAvg('pas'), [players, userTeam]);
-  const avgDrb = useMemo(() => getTeamAvg('drb'), [players, userTeam]);
-  const avgSht = useMemo(() => getTeamAvg('sht'), [players, userTeam]);
+  // TEC, TAC e MEN: a media do plantel dos grupos de atributos do 3D Match (textSim/atributos3d.ts); STA: a condicao fisica; MOR: a moral.
+  const media3d = useMemo(() => {
+    const ps = players.filter(p => p.teamId === userTeam?.id);
+    const media = (k: 'tec' | 'tac' | 'men') => (ps.length ? Math.round(ps.reduce((acc, p) => acc + atributos3d(p)[k], 0) / ps.length) : 0);
+    return { tec: media('tec'), tac: media('tac'), men: media('men') };
+  }, [players, userTeam]);
   const avgFit = useMemo(() => getTeamAvg('fitness'), [players, userTeam]);
-  const teamChe = useMemo(() => userTeam?.chemistry || 50, [userTeam]);
+  const avgMor = useMemo(() => getTeamAvg('morale'), [players, userTeam]);
+  // CHE: o mesmo Chemistry da aba Tactics (textSim/quimica.ts), com a escalacao salva do time.
+  const teamChe = useMemo(() => {
+    if (!userTeam) return 0;
+    const titulares = (userTeam.lineup || []).filter(Boolean).map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p);
+    return calcularQuimica(titulares, userTeam.tactics.formation, userTeam.synergyMap);
+  }, [players, userTeam]);
 
   const squadPlayers = useMemo(() => {
     const list = players.filter(p => p.teamId === userTeam?.id);
@@ -154,9 +174,9 @@ const TrainingView: React.FC = () => {
     return counts;
   }, [program]);
 
-  const StatBox = ({ icon, label, value, color }: { icon: string, label: string, value: number, color: string }) => (
+  const StatBox = ({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: number, color: string }) => (
     <div className="flex-1 flex flex-col items-center justify-center p-2 border-r last:border-r-0 border-slate-200 dark:border-slate-800/50 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors">
-        <span className="text-2xl mb-1 filter drop-shadow-sm">{icon}</span>
+        <span className="mb-1 text-slate-500 dark:text-slate-300">{icon}</span>
         <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{label}</div>
         <div className={`text-2xl font-black italic tracking-tighter ${color}`}>{value}</div>
     </div>
@@ -318,14 +338,14 @@ const TrainingView: React.FC = () => {
               )}
            </div>
 
-           {/* TEAM STATS PANEL - 6 COLUMNS: DEF, PAS, DRB, SHT, FIT, TAC */}
+           {/* TEAM STATS PANEL - 6 COLUMNS: TEC, TAC, MEN, STA, CHE, MOR */}
            <div className="h-32 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex overflow-hidden shadow-lg transition-colors">
-              <StatBox icon="🛡️" label="DEF" value={avgDef} color="text-slate-800 dark:text-white" />
-              <StatBox icon="🔄" label="PAS" value={avgPas} color="text-slate-800 dark:text-white" />
-              <StatBox icon="⚽" label="DRB" value={avgDrb} color="text-slate-800 dark:text-white" />
-              <StatBox icon="🎯" label="SHT" value={avgSht} color="text-slate-800 dark:text-white" />
-              <StatBox icon="⚡" label="FIT" value={avgFit} color="text-emerald-500" />
-              <StatBox icon="🧠" label="ENT" value={teamChe} color="text-blue-500" />
+              <StatBox icon={ICONE_TEC} label="TEC" value={media3d.tec} color="text-slate-800 dark:text-white" />
+              <StatBox icon={ICONE_TAC} label="TAC" value={media3d.tac} color="text-slate-800 dark:text-white" />
+              <StatBox icon={ICONE_MEN} label="MEN" value={media3d.men} color="text-slate-800 dark:text-white" />
+              <StatBox icon={ICONE_STA} label="STA" value={avgFit} color="text-emerald-500" />
+              <StatBox icon={ICONE_CHE} label="CHE" value={teamChe} color="text-blue-500" />
+              <StatBox icon={ICONE_MOR} label="MOR" value={avgMor} color="text-amber-500" />
            </div>
         </div>
 
@@ -457,7 +477,7 @@ const TrainingView: React.FC = () => {
                               <div className="grid grid-cols-12 items-center gap-3">
                                   {/* COL 1: PLAYER INFO */}
                                   <div className="col-span-3 flex flex-col min-w-0">
-                                      <span className="text-[15px] font-black text-slate-700 dark:text-slate-200 uppercase truncate leading-tight">{p.name}</span>
+                                      <span className="text-[13px] font-black text-slate-700 dark:text-slate-200 uppercase truncate leading-tight">{doisNomes(p.name).join(' ')}</span>
                                       <span className="text-[12px] text-slate-400 font-bold uppercase truncate">{p.position} • Age {p.age}</span>
                                   </div>
 

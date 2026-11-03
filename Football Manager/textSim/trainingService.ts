@@ -1,4 +1,7 @@
 
+/** Minutos de "jogar junto" que cada ponto de impacto CHE (ex.: Analysis) soma a cada par de jogadores do grupo: o Chemistry (textSim/quimica.ts) sobe com eles. */
+export const MINUTOS_POR_PONTO_CHE = 60;
+
 export interface Impact {
   label: string;
   value: number;
@@ -32,7 +35,7 @@ export const ACTIVITIES: TrainingActivity[] = [
   { id: 'wingplay', name: 'Wing Play', category: 'ATTACK', icon: '🏃', impacts: [{ label: 'DRB', value: 1.5 }, { label: 'STM', value: -2 }] },
 
   // TACTICS
-  { id: 'video', name: 'Analysis', category: 'TACTICS', icon: '📺', impacts: [{ label: 'ENT', value: 0.5 }] },
+  { id: 'video', name: 'Analysis', category: 'TACTICS', icon: '📺', impacts: [{ label: 'CHE', value: 0.5 }] },
   { id: 'setpieces', name: 'Set Pieces', category: 'TACTICS', icon: '🚩', impacts: [{ label: 'SHT', value: 0.5 }, { label: 'PAS', value: 0.5 }, { label: 'STM', value: -1 }] },
   { id: 'pressing', name: 'Pressing', category: 'TACTICS', icon: '😤', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'STM', value: -3 }] },
   { id: 'shadow', name: 'Shadow Play', category: 'TACTICS', icon: '👥', impacts: [{ label: 'MOR', value: 1.0 }, { label: 'STM', value: -1 }] },

@@ -1,3 +1,5 @@
+import { doisNomes } from '../textSim/nomes';
+import { calcularQuimica, checkPosMatch } from '../textSim/quimica';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import { Tactics, Position, Player, Team, SetPieceRole, getEffectiveSkill, resolveSetPieceTakers, FORMATIONS, POSITION_ORDER, getKitDetails, getGKKitDetails, KitDetails, PLAYSTYLE_POSITIONS, PlayStyle } from '../types';
@@ -47,15 +49,6 @@ const getPosColor = (posLabel: string | Position) => {
   return '#2563eb'; 
 };
 
-const checkPosMatch = (assignedPos: string, playerPos: Position): boolean => {
-  if (assignedPos === playerPos) return true;
-  if (assignedPos === 'SS' && playerPos === Position.ST) return true;
-  if (assignedPos === 'ST' && playerPos === Position.SS) return true;
-  if (['LW', 'RW'].includes(assignedPos) && [Position.ST, Position.SS].includes(playerPos)) return true;
-  if (['LM', 'RM', 'AM'].includes(assignedPos) && playerPos === Position.CM) return true;
-  return false;
-};
-
 const getInjuryColorClass = (injury: any) => {
   if (!injury) return 'text-emerald-500';
   const severity = typeof injury === 'object' ? (injury.severity || injury.injurySeverity) : 'LIGHT';
@@ -80,9 +73,6 @@ const NOME_DA_ZONA = ['Def. right', 'Def. centre', 'Def. left', 'Mid right', 'Mi
 interface TacticsViewProps {
   setView?: (view: any) => void;
 }
-
-/** Nos cards dos reservas e do squad pool o nome cabe em 2 linhas: o primeiro e o ultimo ("Ederson Arthur Ribeiro Fonseca" -> "Ederson", "Fonseca"). */
-const doisNomes = (nome: string): string[] => { const p = nome.split(" ").filter(Boolean); return p.length <= 2 ? p : [p[0], p[p.length - 1]]; };
 
 const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   const { userTeam, players, updateTactics, updateSetPieceTakers, gameState, fixtures, teams, comps, avisoGoleiro } = useGame();
@@ -233,57 +223,12 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     );
   };
 
+  // O Chemistry e o mesmo do Training Center (textSim/quimica.ts); aqui com a escalacao em edicao.
   const teamChemistry = useMemo(() => {
-    if (localLineup.length === 0) return 0;
     const starters = localLineup
       .map(id => players.find(p => p.id === id))
       .filter((p): p is Player => !!p && !getPlayerMatchStatus(p.id).red);
-    
-    if (starters.length === 0) return 0;
-  const currentPositions = FORMATIONS[userTeam.tactics.formation] || FORMATIONS['4-4-2'];
-    let score = 10;
-    starters.forEach((p, idx) => {
-      const assignedPosLabel = currentPositions[idx]?.label;
-      if (assignedPosLabel) {
-        if (checkPosMatch(assignedPosLabel, p.position)) {
-          score += 2;
-        } else {
-            const s1 = assignedPosLabel === 'GK' ? 'GK' : (['LB', 'CB', 'RB'].includes(assignedPosLabel) ? 'DEF' : (['LW', 'RW', 'SS', 'ST'].includes(assignedPosLabel) ? 'ATK' : 'MID'));
-            const s2 = p.position === Position.GK ? 'GK' : ([Position.LB, Position.CB, Position.RB].includes(p.position) ? 'DEF' : ([Position.LW, Position.RW, Position.SS, Position.ST].includes(p.position) ? 'ATK' : 'MID'));
-            if (s1 === s2) score -= 0;
-            else if (s1 === 'GK' || s2 === 'GK') score -= 10;
-            else if ((s1 === 'DEF' && s2 === 'MID') || (s1 === 'MID' && s2 === 'DEF')) score -= 3;
-            else if ((s1 === 'MID' && s2 === 'ATK') || (s1 === 'ATK' && s2 === 'MID')) score -= 3;
-            else score -= 6;
-        }
-      }
-    });
-    
-    // --- SYNERGY BONUS ---
-    let synergyScore = 0;
-    if (userTeam.synergyMap && starters.length > 1) {
-        let totalSyn = 0;
-        let pCount = 0;
-        for (let i = 0; i < starters.length; i++) {
-            for (let j = i + 1; j < starters.length; j++) {
-                const p1 = starters[i].id;
-                const p2 = starters[j].id;
-                const key = p1 < p2 ? `${p1}-${p2}` : `${p2}-${p1}`;
-                totalSyn += userTeam.synergyMap[key] || 0;
-                pCount++;
-            }
-        }
-        const avgSyn = pCount > 0 ? totalSyn / pCount : 0;
-        // Every 100 minutes of average shared time gives +1 to chemistry, up to +25
-        synergyScore = Math.min(25, Math.floor(avgSyn / 100));
-    }
-    score += synergyScore;
-
-    const avgMorale = starters.reduce((sum, p) => sum + p.morale, 0) / starters.length;
-    score += (avgMorale / 100) * 15;
-    const avgFitness = starters.reduce((sum, p) => sum + p.fitness, 0) / starters.length;
-    score += (avgFitness / 100) * 12;
-    return Math.max(0, Math.min(100, Math.round(score)));
+    return calcularQuimica(starters, userTeam.tactics.formation, userTeam.synergyMap);
   }, [localLineup, players, userTeam.tactics.formation, userTeam.synergyMap]);
 
   // O banco tem sempre 10 (antes do jogo): vagas vazias (jogador vendido ou contrato expirado) e bancos curtos enchem-se com os melhores do plantel que nao estao no onze nem no banco.

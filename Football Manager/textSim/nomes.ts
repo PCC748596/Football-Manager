@@ -29,3 +29,6 @@ export const nomeDoClube = (rnd: Rnd, teamId: string): string => {
   if (rnd() < 0.18) sob += ' ' + um(N.sobrenomes.filter(x => !x.includes(' ')));
   return nome + ' ' + sob;
 };
+
+/** Nos cards o nome cabe em 2 palavras: o primeiro e o ultimo ("Ederson Arthur Ribeiro Fonseca" -> ["Ederson", "Fonseca"]). */
+export const doisNomes = (nome: string): string[] => { const p = nome.split(' ').filter(Boolean); return p.length <= 2 ? p : [p[0], p[p.length - 1]]; };

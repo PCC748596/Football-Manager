@@ -20,7 +20,7 @@ import { rotuloDaFase } from '../textSim/competitions';
 import { slotsVazios } from '../textSim/escalacao';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
-import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino } from '../textSim/trainingService';
+import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE } from '../textSim/trainingService';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
@@ -931,6 +931,36 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         return { ...t, synergyMap: newSynergy };
+      }));
+    }
+
+    // Sessoes com impacto CHE (ex.: Analysis): cada uma soma minutos de "jogar junto" a cada par de jogadores do grupo que a faz (o Chemistry sobe; ver textSim/quimica.ts).
+    {
+      const diaDaSemana = (new Date(gameState.currentDate + 'T12:00:00').getDay() + 6) % 7;   // segunda = 0
+      const agendas = gameState.trainingSchedules || [gameState.trainingSchedule, [], []];
+      const porGrupo = new Map<number, string[]>();
+      players.filter(p => p.teamId === gameState.userTeamId && !p.injury).forEach(p => { const g = p.trainingGroupId || 0; porGrupo.set(g, [...(porGrupo.get(g) || []), p.id]); });
+      const ganhos: [string[], number][] = [];
+      porGrupo.forEach((ids, g) => {
+        const agenda = agendas[g] || gameState.trainingSchedule;
+        let che = 0;
+        for (let slot = 0; slot < 4; slot++) {
+          const actId = agenda[diaDaSemana] ? agenda[diaDaSemana][slot] : null;
+          const act = actId ? ACTIVITIES.find(a => a.id === actId) : undefined;
+          che += act?.impacts.find(imp => imp.label === 'CHE')?.value || 0;
+        }
+        if (che > 0) ganhos.push([ids, che * MINUTOS_POR_PONTO_CHE]);
+      });
+      if (ganhos.length) setTeams(prevTeams => prevTeams.map(t => {
+        if (t.id !== gameState.userTeamId) return t;
+        const sinergia = { ...(t.synergyMap || {}) };
+        ganhos.forEach(([ids, minutos]) => {
+          for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+            const chave = ids[i] < ids[j] ? `${ids[i]}-${ids[j]}` : `${ids[j]}-${ids[i]}`;
+            sinergia[chave] = (sinergia[chave] || 0) + minutos;
+          }
+        });
+        return { ...t, synergyMap: sinergia };
       }));
     }
   };
