@@ -561,8 +561,8 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
     // Ensure initialCapital is a number
     const seasonBudget = t.initialCapital ? Number(t.initialCapital) : 10000000;
 
-    // RULE: Transfer Budget is 70% of Season Budget
-    const transferBudget = Math.round(seasonBudget * 0.70);
+    // RULE: Transfer Budget is 80% of Season Budget (the manager can move it in 10% steps, see textSim/orcamento.ts)
+    const transferBudget = Math.round(seasonBudget * 0.80);
 
     // PUBLICO MEDIO INICIAL: 60% da lotacao do estadio, no maximo um teto entre 30 000 e 32 000 (fixo por clube, derivado do id). O Maracana mantem os 22 000 de sempre.
     const maracana = t.teamStadiumName === 'Maracanã' || t.teamStadiumName === 'Estádio do Maracanã';

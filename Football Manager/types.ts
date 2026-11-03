@@ -256,6 +256,7 @@ export interface Team {
   transferBudget?: number;
   initialCapital?: number;
   initialTransfer?: number;
+  transferPct?: number;        // fracao do orcamento da temporada para compras (0..1, passos de 10%; padrao 0.8); o resto vai para salarios (ver textSim/orcamento.ts)
   sponsorAmount?: number;
   sponsorContract?: import('./textSim/patrocinadores').ContratoPatrocinio;   // patrocinio principal ativo do clube do utilizador (ver textSim/patrocinadores.ts)
   sponsorNext?: import('./textSim/patrocinadores').ContratoPatrocinio;       // renovacao/troca ja acordada: comeca quando o contrato atual termina

@@ -141,7 +141,7 @@ export const perfilDoClube = (teamId: string, cfg: ConfigMercado = CONFIG_MERCAD
   return { rigidez: r0 + r() * (r1 - r0), apetite: a0 + r() * (a1 - a0), ativo: 0.6 + r() * 0.8 };
 };
 
-export const orcamentoInicial = (t: Team, cfg: ConfigMercado = CONFIG_MERCADO): number => Math.round((t.initialTransfer ?? t.cash * 0.7) * cfg.orcamentoFator);
+export const orcamentoInicial = (t: Team, cfg: ConfigMercado = CONFIG_MERCADO): number => Math.round((t.initialTransfer ?? t.cash * 0.8) * cfg.orcamentoFator);
 /** Garante o orcamento de transferencias em todos os clubes (so preenche o que falta; devolve a MESMA lista se nada mudou). */
 export const prepararOrcamentos = (teams: Team[], cfg: ConfigMercado = CONFIG_MERCADO): Team[] => {
   if (teams.every(t => typeof t.transferBudget === 'number')) return teams;
