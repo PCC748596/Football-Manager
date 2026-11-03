@@ -302,3 +302,11 @@ export const aplicarTreinadores = (times: Team[], estado: ManagerState, leagueId
   });
   return mudou ? out : times;
 };
+
+/** A expectativa de UM clube numa liga (para mostrar na tela de escolha): nivel 0-5, posicao-alvo e o ajuste de tradicao. `times` sao os clubes da liga. */
+export const expectativaDoClube = (times: Team[], clube: Team, rebaixados: number): { nivel: number; alvo: number; ajuste: -1 | 0 | 1 } => {
+  const ajuste = ajustesDeTradicao(times)[clube.id] ?? 0;
+  const nivel = nivelDoClube(clube.strength, ajuste);
+  const n = Math.max(2, times.length);
+  return { nivel, ajuste, alvo: metaDoClube(nivel, n, rebaixados, rankDeForca(times)[clube.id] ?? Math.ceil(n / 2)) };
+};
