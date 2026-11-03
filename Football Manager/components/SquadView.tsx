@@ -204,7 +204,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                      onClick={() => setSelectedPlayer(p)}
                      className={`hover:bg-blue-50/50 dark:hover:bg-white/5 transition-colors group cursor-pointer ${draggingPlayerId === p.id ? 'opacity-40' : ''}`}
                    >
-                     <td className="px-4 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                     <td className="px-4 py-[6.5px] text-center" onClick={(e) => e.stopPropagation()}>
                         <div 
                           draggable
                           onDragStart={(e) => handleDragStart(e, p.id)}
@@ -221,65 +221,65 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                             </div>
                         </div>
                      </td>
-                     <td className="px-2 py-2 text-center">
+                     <td className="px-2 py-[6.5px] text-center">
                        <span className="text-[11px] font-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded uppercase bg-slate-50 dark:bg-slate-900/40">
                          {p.position}
                        </span>
                      </td>
-                     <td className="px-4 py-2 font-bold text-slate-700 dark:text-slate-200 text-sm truncate max-w-[140px] transition-colors group-hover:text-blue-500">
+                     <td className="px-4 py-[6.5px] font-bold text-slate-700 dark:text-slate-200 text-sm truncate max-w-[140px] transition-colors group-hover:text-blue-500">
                         <div className="flex items-center gap-1.5">
                            {p.name}
                            {p.injury && <span className={`text-[11px] ${getInjuryColorClass(p.injury)} font-black cursor-help drop-shadow-sm leading-none`} title={typeof p.injury === 'object' ? `${p.injury.type} (${p.injury.daysOut} dias)` : 'Contundido'}>✚</span>}
                         </div>
                      </td>
                      
-                     <td className="px-2 py-2 text-center text-xs text-slate-400 dark:text-slate-500 font-medium transition-colors">{p.age}</td>
-                     <td className="px-2 py-2 text-center">
+                     <td className="px-2 py-[6.5px] text-center text-xs text-slate-400 dark:text-slate-500 font-medium transition-colors">{p.age}</td>
+                     <td className="px-2 py-[6.5px] text-center">
                        <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 px-1.5 py-0.5 rounded shadow-sm transition-colors">
                          {Math.round(p.skill)}
                        </span>
                      </td>
-                     <td className="px-2 py-2 text-center whitespace-nowrap text-lg leading-none tracking-tighter" title="Current level (gold) and estimated potential (grey, scout estimate)">
+                     <td className="px-2 py-[6.5px] text-center whitespace-nowrap text-lg leading-none tracking-tighter" title="Current level (gold) and estimated potential (grey, scout estimate)">
                        {/* Uma linha de 5 estrelas so: douradas = o nivel atual; cinzentas = o que falta ate ao potencial; apagadas = acima do potencial. */}
                        {Array.from({ length: 5 }, (_, i) => <span key={i} className={i < starCount ? 'text-yellow-400' : i < estrelasDoJogador(p) ? 'text-slate-400 dark:text-slate-400' : 'text-slate-200 dark:text-slate-700'}>★</span>)}
                      </td>
-                     <td className="px-2 py-2 text-center text-xs text-slate-500 dark:text-slate-400 font-medium transition-colors">
+                     <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-400 font-medium transition-colors">
                         <div className="flex flex-col items-center gap-1">
                            <FitnessBar fitness={p.fitness} className="w-12 h-1.5" />
                            <span>{Math.round(p.fitness)}%</span>
                         </div>
                      </td>
-                     <td className="px-2 py-2 text-center text-xs font-medium transition-colors">
+                     <td className="px-2 py-[6.5px] text-center text-xs font-medium transition-colors">
                         <MoraleArrow morale={Math.round(p.morale)} />
                      </td>
-                      <td className="px-2 py-2 text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
+                      <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         <div className="flex items-center justify-center gap-1">
                           <span>{atributos3d(p).tec}</span>
                           <AttributeGrowthArrow val={(p.lastGrowth?.drb || 0) + (p.lastGrowth?.sht || 0) + (p.lastGrowth?.pas || 0)} />
                         </div>
                       </td>
-                      <td className="px-2 py-2 text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
+                      <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         <div className="flex items-center justify-center gap-1">
                           <span>{atributos3d(p).tac}</span>
                           <AttributeGrowthArrow val={(p.lastGrowth?.def || 0)} />
                         </div>
                       </td>
-                      <td className="px-2 py-2 text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
+                      <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         <div className="flex items-center justify-center gap-1">
                           <span>{atributos3d(p).men}</span>
                           <AttributeGrowthArrow val={0} />
                         </div>
                       </td>
-                      <td className="px-2 py-2 text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
+                      <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         <div className="flex items-center justify-center gap-1">
                           <span>{atributos3d(p).fis}</span>
                           <AttributeGrowthArrow val={0} />
                         </div>
                       </td>
-                     <td className="px-2 py-2 text-center text-xs font-bold transition-colors">
+                     <td className="px-2 py-[6.5px] text-center text-xs font-bold transition-colors">
                         <span title={'Playing Style: ' + estiloDoJogador(p)} className="inline-flex items-center justify-center" style={{ width: 24, height: 24 }}><IconePlayStyleSvg estilo={estiloDoJogador(p)} tam={24} /></span>
                      </td>
-                     <td className="px-4 py-2 text-right text-emerald-600 dark:text-emerald-400 text-[11px] font-black tracking-tight font-mono transition-colors">
+                     <td className="px-4 py-[6.5px] text-right text-emerald-600 dark:text-emerald-400 text-[11px] font-black tracking-tight font-mono transition-colors">
                        {formatCurrencyShort(p.value)}
                      </td>
                    </tr>

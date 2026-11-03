@@ -4187,6 +4187,15 @@ class FootballPlayer {
     initiateShoot() {
         // Depois de tentar um remate o jogador fica `ShootingModel.esperaEntreRemates` s sem tentar outro (emZonaDeRemate).
         this.chuteEspera = (typeof ShootingModel !== 'undefined' && ShootingModel.esperaEntreRemates) || 3.0;
+        // DENTRO DA GRANDE AREA a espera e curta (`esperaEntreRematesNaArea`): a sobra de um remate defendido ou bloqueado tem de poder ser rematada,
+        // senao o atacante fica de frente para o guarda-redes sem poder chutar e so remata, 3 s depois, com ele colado (medido: os casos de 'nao chuta' perto do GK eram todos esta espera).
+        const SM = (typeof ShootingModel !== 'undefined') ? ShootingModel : null;
+        if (SM && SM.esperaEntreRematesNaArea && SM.dentroDaArea) {
+            const A = SM.dentroDaArea;
+            if (Math.abs(this.targetGoalZ - this.model.position.z) <= A.profundidade && Math.abs(this.model.position.x) <= A.meiaLargura) {
+                this.chuteEspera = SM.esperaEntreRematesNaArea;
+            }
+        }
         this.showActionBanner('SHOT');
         // `remates.tentados` NAO se conta aqui: so conta o remate em que a bola sai (onContact); a furada vai para `remates.furados`.
         /*

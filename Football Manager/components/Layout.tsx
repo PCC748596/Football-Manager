@@ -168,12 +168,12 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
             {/* O botao CONTINUE / PLAY MATCH nao aparece no painel da esquerda (pedido): avanca-se o dia e abre-se o jogo pelo Dashboard. */}
 
            <div className="hidden lg:block bg-slate-100 dark:bg-slate-900/40 rounded-lg px-4 py-0 text-center border border-slate-200 dark:border-slate-800 shadow-inner">
-             <div className="text-[11px] text-slate-800 dark:text-white uppercase font-black tracking-tight italic mb-[5px]">{t('ly_match_week')}</div>
+             <div className="text-[11px] text-slate-800 dark:text-white uppercase font-black tracking-tight italic mb-[2px]">{t('ly_match_week')}</div>
              <div className="text-4xl font-black text-blue-600 dark:text-blue-500 leading-none italic tracking-tighter">
                {gameState.currentWeek} 
                <span className="text-slate-400 dark:text-slate-800 text-sm ml-1 not-italic">/ {gameState.totalWeeks}</span>
              </div>
-             <div className="mt-3 text-[9px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest border-t border-slate-200 dark:border-slate-800 pt-2 transition-colors">
+             <div className="mt-1.5 text-[9px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest border-t border-slate-200 dark:border-slate-800 pt-1 transition-colors">
                <span className="inline-flex items-center justify-center gap-1.5">{new Date(gameState.currentDate + 'T12:00:00').toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}<SetasAGirar className="w-3 h-3 text-blue-500" /></span>
              </div>
            </div>

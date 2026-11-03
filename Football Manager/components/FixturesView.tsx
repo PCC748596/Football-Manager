@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { Fixture, Team, MatchEvent } from '../types';
 import { TeamShield } from './TeamShield';
@@ -25,6 +25,17 @@ const FixturesView: React.FC = () => {
   const userFixtures = fixtures
     .filter(f => f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId)
     .sort((a, b) => a.date.localeCompare(b.date));
+
+  // O JOGO ATUAL fica sempre no MEIO da lista: o de hoje, ou o proximo se hoje nao ha jogo (ou o ultimo, no fim da epoca).
+  const jogoAtualId = (userFixtures.find(f => f.date >= gameState.currentDate) || userFixtures[userFixtures.length - 1])?.id;
+  const listaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const c = listaRef.current;
+    const linha = c?.querySelector('[data-atual="1"]') as HTMLElement | null;
+    if (!c || !linha) return;
+    const cr = c.getBoundingClientRect(), lr = linha.getBoundingClientRect();
+    c.scrollTop += (lr.top - cr.top) - (cr.height / 2 - lr.height / 2);
+  }, [gameState.currentDate, jogoAtualId, fixtures.length]);
 
   const getTeamObj = (id: string) => teams.find(t => t.id === id);
 
@@ -66,10 +77,10 @@ const FixturesView: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar pr-4">
+      <div ref={listaRef} className="flex-1 overflow-y-auto custom-scrollbar pr-4">
         <div className="bg-slate-200/50 dark:bg-slate-950/20 rounded-lg border border-slate-300 dark:border-slate-800/40 shadow-xl transition-colors">
           <table className="w-full text-left border-collapse bg-white dark:bg-transparent">
-            <thead className="bg-slate-100/80 dark:bg-slate-900/40 sticky top-0 z-20 transition-colors">
+            <thead className="bg-slate-100 dark:bg-[#0b1325] sticky top-0 z-20 transition-colors">
               <tr className="text-[13px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em] italic transition-colors">
                 <th className="px-6 py-5">{t('fx_type')}</th>
                 <th className="px-6 py-5">{t('fx_date')}</th>
@@ -95,9 +106,9 @@ const FixturesView: React.FC = () => {
                 const isOpeningDown = fixture.week <= 30;
 
                 return (
-                  <tr key={fixture.id} className={`group relative transition-all duration-300 ${isCurrent ? 'bg-blue-600/5 dark:bg-blue-600/[0.08] z-10' : 'hover:bg-blue-50/30 dark:hover:bg-white/[0.01] hover:z-30 z-0'}`}>
+                  <tr key={fixture.id} data-atual={fixture.id === jogoAtualId ? '1' : undefined} className={`group relative transition-all duration-300 ${isCurrent ? 'bg-blue-600/5 dark:bg-blue-600/[0.08] z-10' : 'hover:bg-blue-50/30 dark:hover:bg-white/[0.01] hover:z-30 z-0'}`}>
                     {/* TYPE BADGE */}
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-[14.5px]">
                       <div className={`min-w-[8rem] px-3 h-8 flex items-center justify-center whitespace-nowrap rounded-[3px] text-[13px] font-black transition-all ${fixture.isFriendly ? 'bg-emerald-500 text-white' : (isCurrent ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-900/80 text-slate-600 dark:text-slate-200 border border-slate-300 dark:border-slate-700')}`}
                         style={!fixture.isFriendly && fixture.type !== undefined && fixture.type !== 'LEAGUE' ? { backgroundImage: 'repeating-linear-gradient(45deg, rgba(148,163,184,0.28) 0, rgba(148,163,184,0.28) 2px, transparent 2px, transparent 7px)' } : undefined}>
                         {rotuloDoJogo(fixture)}
@@ -105,14 +116,14 @@ const FixturesView: React.FC = () => {
                     </td>
 
                     {/* DATE */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-[14.5px] whitespace-nowrap">
                        <div className="text-[15px] font-black text-slate-400 dark:text-slate-500 uppercase italic tracking-tighter transition-colors">
                           {formatDateLabel(fixture.date)}
                        </div>
                     </td>
                     
                     {/* HOME TEAM */}
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-[14.5px] text-right">
                       <div className="flex items-center justify-end gap-3">
                         <span className={`text-lg font-black transition-colors uppercase italic tracking-tight ${isUserHome ? 'text-slate-800 dark:text-white transition-colors' : 'text-slate-400 dark:text-slate-500 opacity-80 group-hover:opacity-100'}`}>
                           {home?.name}
@@ -122,7 +133,7 @@ const FixturesView: React.FC = () => {
                     </td>
 
                     {/* RESULT / VS PILL */}
-                    <td className="px-6 py-4 relative">
+                    <td className="px-6 py-[14.5px] relative">
                       <div className="flex justify-center relative group/result">
                         {fixture.played ? (
                           <>
@@ -186,7 +197,7 @@ const FixturesView: React.FC = () => {
                     </td>
 
                     {/* AWAY TEAM */}
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-[14.5px]">
                       <div className="flex items-center justify-start gap-3">
                         <TeamShield team={away} className="w-10 h-12" />
                         <span className={`text-lg font-black transition-colors uppercase italic tracking-tight ${!isUserHome ? 'text-slate-800 dark:text-white transition-colors' : 'text-slate-400 dark:text-slate-500 opacity-80 group-hover:opacity-100'}`}>
@@ -196,7 +207,7 @@ const FixturesView: React.FC = () => {
                     </td>
 
                     {/* STATUS COLUMN */}
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-[14.5px] text-right">
                       {isCurrent ? (
                         <span className="text-[13px] font-black text-blue-600 dark:text-blue-500 uppercase tracking-[0.2em] flex items-center justify-end gap-1.5 italic transition-colors">
                           <span className="w-1 h-1 rounded-full bg-blue-600 dark:bg-blue-500 animate-pulse"></span>
