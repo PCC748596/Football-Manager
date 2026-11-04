@@ -61,13 +61,13 @@ export const MatchStatsModal: React.FC<MatchStatsModalProps> = ({ fixture, homeT
             
             {/* HOME TEAM */}
             <div className="flex flex-col gap-4">
-              <h3 className="font-black text-2xl text-center uppercase tracking-wider mb-2" style={{ color: homeTeam?.colorPrimary }}>{homeTeam?.name}</h3>
+              <h3 className="font-black text-2xl text-center uppercase tracking-wider mb-2" style={{ color: homeTeam?.primaryColor }}>{homeTeam?.name}</h3>
               <div className="space-y-1.5">
                 {Object.entries(playerRatings).map(([id, rating]) => {
                     const p = players.find(x => x.id === id);
                     if (!p || p.teamId !== fixture.homeTeamId) return null;
                     return (
-                      <div key={id} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border-l-4" style={{ borderColor: homeTeam?.colorPrimary }}>
+                      <div key={id} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border-l-4" style={{ borderColor: homeTeam?.primaryColor }}>
                           <span className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate">{p.name.split(' ').pop()}</span>
                           <span className={`font-black text-sm ${(rating as number) >= 7.5 ? 'text-emerald-500' : (rating as number) <= 5 ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400'}`}>{(rating as number).toFixed(1)}</span>
                       </div>
@@ -98,13 +98,13 @@ export const MatchStatsModal: React.FC<MatchStatsModalProps> = ({ fixture, homeT
 
             {/* AWAY TEAM */}
             <div className="flex flex-col gap-4">
-              <h3 className="font-black text-2xl text-center uppercase tracking-wider mb-2" style={{ color: awayTeam?.colorPrimary }}>{awayTeam?.name}</h3>
+              <h3 className="font-black text-2xl text-center uppercase tracking-wider mb-2" style={{ color: awayTeam?.primaryColor }}>{awayTeam?.name}</h3>
               <div className="space-y-1.5">
                 {Object.entries(playerRatings).map(([id, rating]) => {
                     const p = players.find(x => x.id === id);
                     if (!p || p.teamId !== fixture.awayTeamId) return null;
                     return (
-                      <div key={id} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border-r-4" style={{ borderColor: awayTeam?.colorPrimary }}>
+                      <div key={id} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border-r-4" style={{ borderColor: awayTeam?.primaryColor }}>
                           <span className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate">{p.name.split(' ').pop()}</span>
                           <span className={`font-black text-sm ${(rating as number) >= 7.5 ? 'text-emerald-500' : (rating as number) <= 5 ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400'}`}>{(rating as number).toFixed(1)}</span>
                       </div>

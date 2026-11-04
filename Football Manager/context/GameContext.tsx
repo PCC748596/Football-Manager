@@ -1200,7 +1200,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const p = newPlayers.find(pl => pl.id === e.playerId);
             if (p) {
               p.injury = { type: e.injuryName, daysOut: e.injuryDaysOut, severity: e.injurySeverity };
-              if (e.injurySeverity === 'LIGHT') {
+              if (e.injurySeverity === 'LIGHT' || e.injurySeverity === 'LEVE') {
                 p.fitness = Math.max(0, (p.fitness || 100) - 15);
               } else {
                 p.fitness = 80 - (e.injuryDaysOut * 15);
@@ -1297,7 +1297,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         p.lastGrowth = { def: 0, pas: 0, drb: 0, sht: 0 };
 
         // Ensure robust initialization of tracking objects
-        if (!p.trainingAccumulated) p.trainingAccumulated = { def: 0, pas: 0, drb: 0, sht: 0 };
+        if (!p.trainingAccumulated) p.trainingAccumulated = { def: 0, pas: 0, drb: 0, sht: 0, mor: 0 };
 
         // Age factor: Young players grow faster, old players might decline
         const ageFactor = p.age < 22 ? 1.5 : (p.age > 32 ? 0.5 : 1.0);
@@ -2357,7 +2357,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       managerState, recusarOferta, teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
       hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, proporPatrocinio, reputacaoClube, definirDivisaoOrcamento, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, decisaoDoJogoDeHoje, guardarPenaltis3d, scheduleActivity, saveGame, importGameData, loadId, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, avisoGoleiro, avisoGoleiroMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
-      reportLiveGoal,
+      reportLiveGoal, reportMatchEvent,
       t,
       updateMatchVisualState,
       registrarFinanceiro,

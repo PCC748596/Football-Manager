@@ -204,7 +204,7 @@ export interface Player {
   injury?: {
     type: string;
     daysOut: number;
-    severity: 'LIGHT' | 'MEDIUM' | 'SEVERE';
+    severity: 'LIGHT' | 'MEDIUM' | 'SEVERE' | 'LEVE' | 'MÉDIA' | 'GRAVE';
   };
   /** Cartoes amarelos acumulados por competicao ('LEAGUE' ou o id da copa): ver textSim/suspensoes.ts. */
   amarelos?: Record<string, number>;

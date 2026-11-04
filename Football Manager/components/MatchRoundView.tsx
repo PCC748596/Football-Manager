@@ -80,7 +80,7 @@ const TeamShield: React.FC<TeamShieldProps> = ({ team, className = "w-12 h-12" }
         <img src={team.logoUrl} alt={team.name} className="w-full h-full object-contain" />
       ) : isVasco ? (
          <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: 'black' }}>
-            <div className="absolute bg-white transition-all" style={{ width: `${team.kit?.diagonalWidth || 20}%`, height: '150%', transform: 'rotate(-45deg)', boxShadow: '0 0 10px rgba(0,0,0,0.1)' }} />
+            <div className="absolute bg-white transition-all" style={{ width: `20%`, height: '150%', transform: 'rotate(-45deg)', boxShadow: '0 0 10px rgba(0,0,0,0.1)' }} />
             <span className="relative z-10 text-[10px] font-black" style={{ color: team.secondaryColor || 'red' }}>V</span>
          </div>
       ) : (

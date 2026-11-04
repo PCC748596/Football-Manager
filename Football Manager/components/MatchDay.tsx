@@ -13,7 +13,7 @@ import { ligaDoClube } from '../textSim/competitions';
 import PenaltyOrderView from './PenaltyOrderView';
 import { emCampo, mesclarOrdem, ordemDaCpu, disputa3dDaSessao, limparDisputa3d, aoReuniao, aoConfirmarOrdem, aoCobranca, mensagemDoCard } from '../3dMatch/disputa3d';
 
-type VisualState = 'PRE_MATCH' | 'KICKOFF_SET' | 'PLAYING' | 'OFFSIDE' | 'GOAL';
+type VisualState = 'PRE_MATCH' | 'KICKOFF_SET' | 'KICKOFF_PASS' | 'PLAYING' | 'OFFSIDE' | 'GOAL' | 'RESET';
 
 interface MatchDayProps {
   setView?: (view: any) => void;

@@ -286,7 +286,7 @@ const ClubDetailsCard: React.FC<{ team: Team, t: any, title: string, isOpponent?
                   return <ShirtIcon key={idx} color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={d.horizontal} multipleDiagonals={d.multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} collarColor={d.clc} number="9" numberColor={d.nc} numberOutlineColor={d.noc} sleeveColor={d.sc} shortColor={kitShorts(d).cor} shortTrimColor={kitShorts(d).aba} scale={1.5} className="w-20" />;
                })}
                {(() => {
-                    const d = getGKKitDetails(team, (team.selectedKitIdx || 0) as 0 | 1 | 2, 0, userTeam);
+                    const d = getGKKitDetails(team, 0, 0, userTeam);
                     return <ShirtIcon color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={d.horizontal} multipleDiagonals={d.multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} collarColor={d.clc} number="1" numberColor={d.nc} numberOutlineColor={d.noc} sleeveColor={d.sc} shortColor={kitShorts(d, false).cor} shortTrimColor={kitShorts(d, false).aba} scale={1.5} longSleeves={true} className="w-20" />;
                })()}
             </div>

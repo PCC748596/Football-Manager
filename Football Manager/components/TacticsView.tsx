@@ -83,6 +83,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   const showMatchKit = true;
   const [poolSortBy, setPoolSortBy] = useState<'skill' | 'position'>('skill');
   const [selectedKitIdx, setSelectedKitIdx] = useState<0 | 1 | 2 | 3>(0);
+  // O 4.o botao (3) e o goleiro: as camisas de campo e a base do goleiro usam so 0-2.
+  const kitDeCampo = (selectedKitIdx === 3 ? 0 : selectedKitIdx) as 0 | 1 | 2;
   const [showZonas, setShowZonas] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
   const [presetFoco, setPresetFoco] = useState<null | 'save' | 'load'>(null);
@@ -177,7 +179,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     return {
       yellow: pEvents.some(e => e.type === 'CARD' && !e.description.includes('🟥') && !e.description.includes('RED')),
       red: redIds.includes(playerId) || pEvents.some(e => e.description.includes('🟥')),
-      injury: players.find(p => p.id === playerId)?.injury || pEvents.find(e => e.type === 'INJURY')
+      injury: players.find(p => p.id === playerId)?.injury || (pEvents.some(e => e.type === 'INJURY') ? true : undefined)
     };
   };
 
@@ -626,8 +628,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         
                         if (showMatchKit) {
                             const details = (player?.position === Position.GK || pos.label === 'GK') 
-                                ? getGKKitDetails(userTeam, selectedKitIdx) 
-                                : getKitDetails(userTeam, selectedKitIdx);
+                                ? getGKKitDetails(userTeam, kitDeCampo) 
+                                : getKitDetails(userTeam, kitDeCampo);
                             color = details.c1; color2 = details.c2; color3 = details.c3; 
                             kitNumberColor = details.nc; kitCollarColor = details.clc; kitNoc = details.noc;
                             kitDiag = !!details.diagonal;
@@ -744,14 +746,14 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                              let bDiag = false; let bHoriz = false; let bMultiDiag = false; let bDualDiag = false; let bCenterVert = false; let bDiagW: number | undefined = undefined;
                              if (showMatchKit) {
                                  if (p.position === Position.GK) {
-                                    const details = getGKKitDetails(userTeam, selectedKitIdx);
+                                    const details = getGKKitDetails(userTeam, kitDeCampo);
                                     benchColor = details.c1;
                                     bnc = details.nc;
                                     bclc = details.clc;
                                     bnoc = details.noc;
                                     bsc = details.sc;
                                  } else { 
-                                     const details = getKitDetails(userTeam, selectedKitIdx);
+                                     const details = getKitDetails(userTeam, kitDeCampo);
                                      benchColor = details.c1; benchColor2 = details.c2; benchColor3 = details.c3;
                                      bnc = details.nc;
                                      bclc = details.clc;
@@ -851,7 +853,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                 let d: KitDetails;
                                 if (showMatchKit) {
                                     if (p.position === Position.GK) {
-                                        d = getGKKitDetails(userTeam, selectedKitIdx);
+                                        d = getGKKitDetails(userTeam, kitDeCampo);
                                     } else { 
                                         d = getKitDetailsWrapper(userTeam, selectedKitIdx);
                                     }
@@ -922,7 +924,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                     const pid = userTeam.setPieceTakers?.[r.role];
                     const pl = pid ? players.find(x => x.id === pid && x.teamId === userTeam.id) : undefined;
                     // Acompanha o campo: com o botao em 'Uniforme' leva o kit escolhido; em 'Posicao', a cor da posicao do jogador.
-                    const d: KitDetails = !pl ? { c1: '#e2e8f0' } : (showMatchKit ? (pl.position === Position.GK ? getGKKitDetails(userTeam, selectedKitIdx) : getKitDetailsWrapper(userTeam, selectedKitIdx)) : { c1: getPosColor(pl.position) });
+                    const d: KitDetails = !pl ? { c1: '#e2e8f0' } : (showMatchKit ? (pl.position === Position.GK ? getGKKitDetails(userTeam, kitDeCampo) : getKitDetailsWrapper(userTeam, selectedKitIdx)) : { c1: getPosColor(pl.position) });
                     return (
                         <div key={r.role}
                              onDragOver={(e) => { e.preventDefault(); }}
@@ -960,7 +962,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                 className={`transition-all rounded-lg border-2 ${largo ? 'p-1' : 'p-0.5 flex-1 min-w-0 flex justify-center'} ${idx < 3 ? 'cursor-pointer hover:border-slate-200' : 'cursor-default'} ${selectedKitIdx === idx ? 'border-blue-400 bg-blue-50/10' : 'border-transparent'}`}
                             >
                                 {(() => {
-                                    const d = idx === 3 ? getGKKitDetails(userTeam, selectedKitIdx) : getKitDetailsWrapper(userTeam, idx as any);
+                                    const d = idx === 3 ? getGKKitDetails(userTeam, kitDeCampo) : getKitDetailsWrapper(userTeam, idx as any);
                                     return <ShirtIcon color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={(d as any).horizontal} multipleDiagonals={(d as any).multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} number={idx === 3 ? "1" : "9"} numberColor={d.nc} collarColor={d.clc} numberOutlineColor={d.noc} sleeveColor={d.sc} scale={largo ? 1.2 : 0.8} longSleeves={idx === 3} className="w-[77px] h-[77px]" />;   {/* iPad: uniformes menores (51 px em vez de 77) para os 4 caberem no box */}
                                 })() }
                             </div>
