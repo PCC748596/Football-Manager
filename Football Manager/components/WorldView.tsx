@@ -107,10 +107,10 @@ const WorldView: React.FC = () => {
                   const eu = userTeam?.id === r.team.id && ehMeu;
                   return (
                     <tr key={r.team.id} style={eu ? HACHURA : undefined} className={`${eu ? '' : ''} ${rebaixado && !eu ? 'bg-red-500/5' : ''}`}>
-                      <td className={`px-3 py-[3.5px] text-center text-xs font-black border-b border-slate-100 dark:border-slate-800/30 ${i < 4 ? 'text-emerald-600 dark:text-emerald-400' : rebaixado ? 'text-red-500' : 'text-slate-500'}`}>{i + 1}</td>
-                      <td className="px-3 py-[3.5px] border-b border-slate-100 dark:border-slate-800/30"><div className="flex items-center gap-3"><TeamShield team={r.team} className="w-[30px] h-9" /><span className={`text-sm font-bold ${eu ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>{r.team.name}</span></div></td>
-                      {[r.played, r.won, r.drawn, r.lost, r.gf, r.ga, r.gd].map((v, k) => <td key={k} className="px-3 py-[3.5px] text-center text-xs text-slate-600 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800/30">{k === 6 && v > 0 ? '+' + v : v}</td>)}
-                      <td className="px-3 py-[3.5px] text-center text-sm font-black text-blue-600 dark:text-white border-b border-slate-100 dark:border-slate-800/30">{r.points}</td>
+                      <td className={`px-3 py-[2.5px] text-center text-xs font-black border-b border-slate-100 dark:border-slate-800/30 ${i < 4 ? 'text-emerald-600 dark:text-emerald-400' : rebaixado ? 'text-red-500' : 'text-slate-500'}`}>{i + 1}</td>
+                      <td className="px-3 py-[2.5px] border-b border-slate-100 dark:border-slate-800/30"><div className="flex items-center gap-3"><TeamShield team={r.team} className="w-[30px] h-9" /><span className={`text-sm font-bold ${eu ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>{r.team.name}</span></div></td>
+                      {[r.played, r.won, r.drawn, r.lost, r.gf, r.ga, r.gd].map((v, k) => <td key={k} className="px-3 py-[2.5px] text-center text-xs text-slate-600 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800/30">{k === 6 && v > 0 ? '+' + v : v}</td>)}
+                      <td className="px-3 py-[2.5px] text-center text-sm font-black text-blue-600 dark:text-white border-b border-slate-100 dark:border-slate-800/30">{r.points}</td>
                     </tr>
                   );
                 })}
@@ -204,6 +204,33 @@ const WorldView: React.FC = () => {
     </div>
   );
 
+  // Fase unica em tabela (Serie C 1.a fase, Paulista): EXATAMENTE a tabela da Serie A e B (mesmo th, linhas, escudo e espacamento), sem caixa nem margem a volta.
+  const estiloLiga = (c: Competition, g: string) => (c.id === 'SERIE_C' && g === 'L') || (c.id === 'PAULISTA' && g === 'L');
+  const tabelaEstiloLiga = (c: Competition, g: string) => {
+    const linhas = tabelaDaVista(c, g);
+    const passam = 8, descem = c.id === 'SERIE_C' ? 4 : 0;   // Serie C: 8 vao a 2.a fase e 4 descem; Paulista: 8 vao as quartas
+    return (
+      <table className="w-full text-left border-separate border-spacing-0">
+        <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-950/90">
+          <tr><th className={th}>#</th><th className={th + ' text-left'}>Team</th><th className={th}>P</th><th className={th}>W</th><th className={th}>D</th><th className={th}>L</th><th className={th}>GF</th><th className={th}>GA</th><th className={th}>GD</th><th className={th + ' text-blue-600 dark:text-white'}>Pts</th></tr>
+        </thead>
+        <tbody>
+          {linhas.map((r, i) => {
+            const rebaixado = descem > 0 && i >= linhas.length - descem, eu = souEu(r.key), gd = r.gf - r.ga;
+            return (
+              <tr key={r.key} style={eu ? HACHURA : undefined} className={rebaixado && !eu ? 'bg-red-500/5' : ''}>
+                <td className={`px-3 py-[2.5px] text-center text-xs font-black border-b border-slate-100 dark:border-slate-800/30 ${i < passam ? 'text-emerald-600 dark:text-emerald-400' : rebaixado ? 'text-red-500' : 'text-slate-500'}`}>{i + 1}</td>
+                <td className="px-3 py-[2.5px] border-b border-slate-100 dark:border-slate-800/30"><div className="flex items-center gap-3"><Escudo k={r.key} /><span className={`text-sm font-bold ${eu ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>{nomeDe(r.key)}</span></div></td>
+                {[r.played, r.won, r.drawn, r.lost, r.gf, r.ga, gd].map((v, k) => <td key={k} className="px-3 py-[2.5px] text-center text-xs text-slate-600 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800/30">{k === 6 && v > 0 ? '+' + v : v}</td>)}
+                <td className="px-3 py-[2.5px] text-center text-sm font-black text-blue-600 dark:text-white border-b border-slate-100 dark:border-slate-800/30">{r.points}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    );
+  };
+
   const painelCopa = (c: Competition) => {
     const fasesSerie = (c.id === 'SERIE_C' || c.id === 'SERIE_D') ? fasesDeSerieCD(c, ordemVista(c)) : null;
     const fasesTodas = Array.from(new Set(c.matches.filter(m => !m.group).map(m => m.stage)));
@@ -217,12 +244,13 @@ const WorldView: React.FC = () => {
           ))}
           {c.champion && <span className="ml-auto flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-amber-500">🏆 Champion <Escudo k={c.champion} /> {nomeDe(c.champion)}</span>}
         </div>
-        <div className="flex-1 overflow-auto custom-scrollbar p-3">
+        <div className={`flex-1 overflow-auto custom-scrollbar ${(aba === 'GRUPOS' || aba === 'P1') && c.groups && estiloLiga(c, 'L') ? '' : 'p-3'}`}>
           {(aba === 'GRUPOS' || aba === 'P1' || (aba === 'F:G' && !!c.groups?.G1)) && c.groups && (
-            <div className={`grid ${ehLigaFase(c.id) ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
+            <div className={`grid ${ehLigaFase(c.id) || estiloLiga(c, 'L') ? 'grid-cols-1' : 'grid-cols-2'} ${estiloLiga(c, 'L') ? '' : 'gap-4'}`}>
               {(aba === 'F:G' ? ['G1', 'G2'] : (aba === 'P1' && c.id === 'SERIE_C') ? ['L'] : Object.keys(c.groups)).map(g => (
-                <div key={g} className="rounded border border-slate-200 dark:border-slate-800 overflow-hidden">
-                  <div className="px-3 py-1 bg-slate-100 dark:bg-slate-950/70 text-[10px] font-black uppercase tracking-widest text-slate-500">{nomeGrupo(c, g)}</div>
+                <div key={g} className={estiloLiga(c, g) ? '' : 'rounded border border-slate-200 dark:border-slate-800 overflow-hidden'}>
+                  {!estiloLiga(c, g) && <div className="px-3 py-1 bg-slate-100 dark:bg-slate-950/70 text-[10px] font-black uppercase tracking-widest text-slate-500">{nomeGrupo(c, g)}</div>}
+                  {estiloLiga(c, g) ? tabelaEstiloLiga(c, g) : (
                   <table className="w-full">
                     <thead><tr><th className={th + ' text-left'}>Team</th><th className={th}>P</th><th className={th}>W</th><th className={th}>D</th><th className={th}>L</th><th className={th}>GD</th><th className={th + ' text-blue-600 dark:text-white'}>Pts</th></tr></thead>
                     <tbody>
@@ -235,6 +263,7 @@ const WorldView: React.FC = () => {
                       ))}
                     </tbody>
                   </table>
+                  )}
                 </div>
               ))}
             </div>
