@@ -12,10 +12,10 @@ import { calcularSkill } from './overall';
 import { limitarAtributo } from './geradorAtributos';
 import { REAL_TEAMS_JSON } from './realDatabase';
 
-/** Paises dos ficheiros CountryData<N>.json, pelo numero do jogo de origem (54 = Brasil, 14 = Inglaterra). */
-export const PAISES_DOS_DADOS_LOCAIS = [54, 14];
+/** Paises dos ficheiros CountryData<N>.json, pelo numero do jogo de origem (54 = Brasil, 14 = Inglaterra, 27 = Italia, 21 = Alemanha, 45 = Espanha, 18 = Franca, 38 = Portugal). */
+export const PAISES_DOS_DADOS_LOCAIS = [54, 14, 27, 21, 45, 18, 38];
 /** Codigo de nacionalidade do jogo de origem -> id do pais do manager (o nome do ficheiro em /Assets/Bandeiras). Sem entrada: sem bandeira certa (null). */
-const BANDEIRA_DO_CODIGO: Record<string, string> = { '54': '45', '14': '65', '52': '52', '53': '53', '55': '55', '56': '56', '57': '57', '58': '58', '59': '59', '60': '60', '61': '61' };
+const BANDEIRA_DO_CODIGO: Record<string, string> = { '54': '45', '14': '65', '27': '68', '21': '67', '45': '66', '18': '69', '38': '81', '52': '52', '53': '53', '55': '55', '56': '56', '57': '57', '58': '58', '59': '59', '60': '60', '61': '61' };
 export const bandeiraDoCodigo = (cod: string): string | null => BANDEIRA_DO_CODIGO[cod] ?? null;
 /** A data de arranque do jogo (GameContext.startGame): as idades saem dela. */
 const DATA_DE_ARRANQUE = '2024-04-01';
@@ -118,7 +118,8 @@ export const carregarDadosLocais = async (): Promise<boolean> => {
   POR_CLUBE.clear(); POR_ID.clear();
   const nomesDosClubes: Record<number, string> = {};
   for (const t of REAL_TEAMS_JSON as any[]) nomesDosClubes[t.teamID] = t.teamName;
-  for (const pais of PAISES_DOS_DADOS_LOCAIS) { try { await carregarPais(pais, nomesDosClubes); } catch { /* sem ficheiro (ou fora do servidor de desenvolvimento) */ } }
+  // Em paralelo (sao varios ficheiros de alguns MB); sem ficheiro (ou fora do servidor de desenvolvimento) o pais fica de fora.
+  await Promise.all(PAISES_DOS_DADOS_LOCAIS.map(pais => carregarPais(pais, nomesDosClubes).catch(() => false)));
   ativo = POR_CLUBE.size > 0;
   if (ativo) console.info(`[dadosLocais] ${POR_CLUBE.size} clubes, ${POR_ID.size} jogadores reais`);
   return ativo;

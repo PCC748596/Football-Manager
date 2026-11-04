@@ -92,8 +92,11 @@ def main(src, dst):
 
 # Last club id of each division, by country (inferred from club order, not stored in the file; checked against club lists).
 # 54 Brazil: 1-20 A, 21-40 B, 41-60 C, rest D/regional. 14 England: 1-20 Premier League, 21-44 Championship, 45-68 League One, 69-92 League Two, rest lower.
-TIER_ENDS = {54: [20, 40, 60], 14: [20, 44, 68, 92]}
+TIER_ENDS = {54: [20, 40, 60], 14: [20, 44, 68, 92],
+             27: [20, 40], 21: [18, 36], 45: [20, 41], 18: [18, 36], 38: [18, 33]}   # Italy, Germany, Spain, France, Portugal: only A and B (Spain B = 21 file clubs + Real Sociedad B; Portugal B = 15 file clubs + Sporting B, Benfica B, Porto B: built below from the parent clubs' reserves)
 COUNTRY = 54
+B_TEAMS = {45: [(11, 'Real Sociedad B', 9011, 'Instalaciones de Zubieta')],
+           38: [(1, 'Sporting CP B', 9001, 'Estádio Aurélio Pereira'), (2, 'Benfica B', 9002, 'Benfica Campus'), (3, 'Porto B', 9003, 'Estádio Luís Filipe Menezes')]}
 
 def tier(club_id):
     for t, end in enumerate(TIER_ENDS[COUNTRY], 1):
@@ -121,6 +124,13 @@ def export_game_json(src, dst, max_tier=None):
             } for p in c['players']],
             'staff': [{'firstName': x['first_name'], 'lastName': x['last_name'], 'birthDate': x['birth']} for x in c['staff']],
         })
+    # B teams that exist in the game but are not clubs in the file: the squad is the parent club's reserves + youth (the parent keeps the first team only).
+    for parent_id, name, new_id, stadium in B_TEAMS.get(COUNTRY, []):
+        par = next(c for c in out['clubs'] if c['id'] == parent_id)
+        b_players = [p for p in par['players'] if p['squad'] != 'first_team']
+        par['players'] = [p for p in par['players'] if p['squad'] == 'first_team']
+        out['clubs'].append({'id': new_id, 'name': name, 'shortName': name, 'abbr': name[:3].upper(), 'nickname': '', 'stadium': stadium,
+                             'founded': par['founded'], 'fanBase': 6000, 'tier': 2, 'players': b_players, 'staff': []})
     json.dump(out, open(dst, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
 
 if len(sys.argv) > 3 and sys.argv[3] == '--game':
