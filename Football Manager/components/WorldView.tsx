@@ -19,6 +19,12 @@ const logoCopa = (id: string) => assetUrl(`/Assets/Competicoes/${id}.png`);
 const NOME_FASE_BR: Record<string, string> = { 'SERIE_C:G': 'Segunda fase', 'SERIE_C:F': 'Final', 'SERIE_D:R64': 'Segunda fase', 'SERIE_D:R32': 'Terceira fase', 'SERIE_D:R16': 'Oitavas de final', 'SERIE_D:QF': 'Quartas de final', 'SERIE_D:SF': 'Semi final', 'SERIE_D:PA': 'Playoffs de acesso', 'SERIE_D:F': 'Final' };
 const nomeGrupo = (c: Competition, g: string) => c.id === 'UCL' ? 'League phase' : c.id === 'PAULISTA' ? 'First phase' : (c.id === 'SERIE_C' && g === 'L') ? 'First phase' : (c.id === 'SERIE_C' && /^G\d$/.test(g)) ? 'Group ' + g.slice(1) : 'Group ' + g;
 
+// As Series C e D do Brasil sao competicoes (com a fase final): quando o utilizador joga numa delas, a liga dele nao aparece a parte (seria a mesma divisao duas vezes).
+const COMP_DA_LIGA: Record<string, Competition['id']> = { bra_serie_c: 'SERIE_C', bra_serie_d: 'SERIE_D' };
+
+// O clube escolhido nas tabelas: fundo hachurado (listras diagonais azuis), para saltar a vista.
+const HACHURA: React.CSSProperties = { backgroundImage: 'repeating-linear-gradient(135deg, rgba(37,99,235,0.20) 0, rgba(37,99,235,0.20) 2px, rgba(15,23,42,0.35) 2px, rgba(15,23,42,0.35) 4px)' };
+
 type Selecao = { tipo: 'LIGA'; id: string } | { tipo: 'COPA'; id: Competition['id'] };
 
 const WorldView: React.FC = () => {
@@ -26,6 +32,8 @@ const WorldView: React.FC = () => {
   const [sel, setSel] = useState<Selecao | null>(null);
   const [aba, setAba] = useState<string>('TABELA');
   const [rodada, setRodada] = useState<number | null>(null);
+  // Paises abertos/fechados na lista: o escolhido pelo utilizador (clique) manda; sem escolha, so o pais do clube do utilizador (e o da selecao atual) fica aberto.
+  const [abertos, setAbertos] = useState<Record<string, boolean>>({});
 
   // O mundo cria-se aqui, depois de o ecra pintar "a carregar" (gerar as ligas demora uma fracao de segundo).
   useEffect(() => {
@@ -44,7 +52,8 @@ const WorldView: React.FC = () => {
   }, [world, meu]);
   const mapa = useMemo(() => mapaDeClubes([...ligas, ...(world || []).filter(l => l.oculta)]), [ligas, world]);
 
-  const selecao: Selecao | null = sel || (ligas.length ? { tipo: 'LIGA', id: (meu && meu.leagueId) || ligas[0].leagueId } : null);
+  const compDoMeu = meu && COMP_DA_LIGA[meu.leagueId] && comps?.some(c => c.id === COMP_DA_LIGA[meu.leagueId]) ? COMP_DA_LIGA[meu.leagueId] : null;
+  const selecao: Selecao | null = sel || (compDoMeu ? { tipo: 'COPA', id: compDoMeu } : ligas.length ? { tipo: 'LIGA', id: (meu && meu.leagueId) || ligas[0].leagueId } : null);
   const liga = selecao && selecao.tipo === 'LIGA' ? ligas.find(l => l.leagueId === selecao.id) || null : null;
   const copa = selecao && selecao.tipo === 'COPA' && comps ? comps.find(c => c.id === selecao.id) || null : null;
   useEffect(() => { setRodada(null); setAba(copa ? ((copa.id === 'SERIE_C' || copa.id === 'SERIE_D') ? 'P1' : copa.groups ? 'GRUPOS' : 'MATA') : 'TABELA'); }, [selecao?.tipo, selecao?.id]);
@@ -95,7 +104,7 @@ const WorldView: React.FC = () => {
                   const rebaixado = l.relegated > 0 && i >= tabela.length - l.relegated;
                   const eu = userTeam?.id === r.team.id && ehMeu;
                   return (
-                    <tr key={r.team.id} className={`${eu ? 'bg-blue-600/10' : ''} ${rebaixado ? 'bg-red-500/5' : ''}`}>
+                    <tr key={r.team.id} style={eu ? HACHURA : undefined} className={`${eu ? '' : ''} ${rebaixado && !eu ? 'bg-red-500/5' : ''}`}>
                       <td className={`px-3 py-[3.5px] text-center text-xs font-black border-b border-slate-100 dark:border-slate-800/30 ${i < 4 ? 'text-emerald-600 dark:text-emerald-400' : rebaixado ? 'text-red-500' : 'text-slate-500'}`}>{i + 1}</td>
                       <td className="px-3 py-[3.5px] border-b border-slate-100 dark:border-slate-800/30"><div className="flex items-center gap-3"><TeamShield team={r.team} className="w-[30px] h-9" /><span className={`text-sm font-bold ${eu ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>{r.team.name}</span></div></td>
                       {[r.played, r.won, r.drawn, r.lost, r.gf, r.ga, r.gd].map((v, k) => <td key={k} className="px-3 py-[3.5px] text-center text-xs text-slate-600 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800/30">{k === 6 && v > 0 ? '+' + v : v}</td>)}
@@ -216,7 +225,7 @@ const WorldView: React.FC = () => {
                     <thead><tr><th className={th + ' text-left'}>Team</th><th className={th}>P</th><th className={th}>W</th><th className={th}>D</th><th className={th}>L</th><th className={th}>GD</th><th className={th + ' text-blue-600 dark:text-white'}>Pts</th></tr></thead>
                     <tbody>
                       {tabelaDaVista(c, g).map((r, i) => (
-                        <tr key={r.key} className={souEu(r.key) ? 'bg-blue-600/10' : ''}>
+                        <tr key={r.key} style={souEu(r.key) ? HACHURA : undefined}>
                           <td className="px-3 py-1 text-xs font-bold text-slate-800 dark:text-slate-200"><div className="flex items-center gap-2"><span className={`w-3 text-[10px] ${c.id === 'UCL' ? (i < 8 ? 'text-emerald-500' : i < 24 ? 'text-amber-500' : 'text-red-400') : (i < (c.id === 'PAULISTA' ? 8 : 2) ? 'text-emerald-500' : 'text-slate-400')}`}>{i + 1}</span><Escudo k={r.key} /><span className="truncate">{nomeDe(r.key)}</span></div></td>
                           {[r.played, r.won, r.drawn, r.lost, r.gf - r.ga].map((v, k) => <td key={k} className="px-2 py-1 text-center text-xs text-slate-600 dark:text-slate-300">{k === 4 && v > 0 ? '+' + v : v}</td>)}
                           <td className="px-2 py-1 text-center text-xs font-black text-blue-600 dark:text-white">{r.points}</td>
@@ -296,6 +305,7 @@ const WorldView: React.FC = () => {
     const jaTem = new Set<string>();
     ligas.forEach(l => {
       if (jaTem.has(l.leagueId)) return;   // nunca a mesma liga duas vezes
+      if (comps.some(c => c.id === COMP_DA_LIGA[l.leagueId])) return;   // Series C e D: aparecem como competicao
       jaTem.add(l.leagueId);
       pais(l.countryId, l.countryName).itens.push({ sel: { tipo: 'LIGA', id: l.leagueId }, titulo: l.leagueName, sub: `${l.teams.length} clubs`, tier: l.tier });
     });
@@ -331,25 +341,28 @@ const WorldView: React.FC = () => {
           })}
           <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-3">Countries</div>
           {paises.map(p => {
-            const meuPais = !!meu && p.itens.some(it => it.sel.tipo === 'LIGA' && it.sel.id === meu.leagueId);
+            const meuPais = !!meu && p.itens.some(it => (it.sel.tipo === 'LIGA' && it.sel.id === meu.leagueId) || (it.sel.tipo === 'COPA' && it.sel.id === compDoMeu));
+            const temSelecao = !!selecao && p.itens.some(it => it.sel.tipo === selecao.tipo && it.sel.id === selecao.id);
+            const aberto = abertos[p.id] ?? (meuPais || temSelecao);
             return (
               <div key={p.id} className="rounded-lg border-2 border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50 dark:bg-slate-800/70">
-                <div className="flex items-center gap-3 px-3 py-2 border-b border-slate-200 dark:border-slate-700">
+                <button onClick={() => setAbertos(a => ({ ...a, [p.id]: !aberto }))} className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700/50 ${aberto ? 'border-b border-slate-200 dark:border-slate-700' : ''}`}>
                   <img src={bandeira(p.id)} alt="" className="w-8 h-[22px] object-cover rounded-sm shadow flex-shrink-0" />
-                  <span className="text-xs font-black uppercase leading-tight text-slate-800 dark:text-slate-100">{p.nome}{meuPais ? ' ★' : ''}</span>
-                </div>
-                <div className="p-1 space-y-0">
+                  <span className="flex-1 text-xs font-black uppercase leading-tight text-slate-800 dark:text-slate-100">{p.nome}{meuPais ? ' ★' : ''}</span>
+                  <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-300"><span className="text-sm font-black">{p.itens.length}</span><span className="text-xl leading-none">{aberto ? '▾' : '▸'}</span></span>
+                </button>
+                {aberto && <div className="p-1 space-y-0">
                   {p.itens.map(it => {
                     const ativo = !!selecao && selecao.tipo === it.sel.tipo && selecao.id === it.sel.id;
                     return (
                       <button key={it.sel.tipo + it.sel.id} onClick={() => setSel(it.sel)}
                         className={`w-full text-left px-3 py-1.5 rounded transition-all ${ativo ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/70'}`}>
-                        <div className="text-[11px] font-black uppercase leading-tight">{it.titulo}{meu && it.sel.tipo === 'LIGA' && it.sel.id === meu.leagueId ? ' ★' : ''}</div>
+                        <div className="text-[11px] font-black uppercase leading-tight">{it.titulo}{meu && ((it.sel.tipo === 'LIGA' && it.sel.id === meu.leagueId) || (it.sel.tipo === 'COPA' && it.sel.id === compDoMeu)) ? ' ★' : ''}</div>
                         <div className={`text-[10px] font-bold ${ativo ? 'text-blue-100' : 'text-slate-400'}`}>{it.sub}</div>
                       </button>
                     );
                   })}
-                </div>
+                </div>}
               </div>
             );
           })}

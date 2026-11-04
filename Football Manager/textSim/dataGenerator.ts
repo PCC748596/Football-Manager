@@ -596,7 +596,7 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
       leagueId,
       city: t.teamCityName || 'Unknown City',
       stadium: t.teamStadiumName || 'Generic Stadium',
-      stadiumCapacity: (t.teamStadiumName === 'Maracanã' || t.teamStadiumName === 'Estádio do Maracanã') ? 78838 : (Math.floor((t.fanBase || 10000) * 0.45) + 15000),
+      stadiumCapacity: t.stadiumCapacity || ((t.teamStadiumName === 'Maracanã' || t.teamStadiumName === 'Estádio do Maracanã') ? 78838 : (Math.floor((t.fanBase || 10000) * 0.45) + 15000)),
       foundedYear: t.yearOfFoundation || 1900,
       strength: 0,
       chemistry: randomInt(10, 25),

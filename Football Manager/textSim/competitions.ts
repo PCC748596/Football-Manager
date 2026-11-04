@@ -920,6 +920,11 @@ export const prepararCopas = (a: EntradaCopas): SaidaCopas | null => {
     const novas = criarCopas(todas, undefined, oc, uk, minha.leagueId).filter(c => !base!.some(b => b.id === c.id));
     if (novas.length) base = [...base, ...novas];
   }
+  // Um save de antes do Campeonato Paulista: cria so ele (se ainda nao passou da final).
+  if (base && !base.some(c => c.id === 'PAULISTA') && a.date <= '2026-03-21' && todas.some(l => l.leagueId === 'bra_serie_a')) {
+    const nova = criarCopas(todas, undefined, oc, uk, minha.leagueId).filter(c => c.id === 'PAULISTA');
+    if (nova.length) base = [...base, ...nova];
+  }
   // Um save de antes da Champions League: cria so ela.
   if (base && !base.some(c => c.id === 'UCL') && todas.some(l => l.leagueId === 'esp_laliga')) {
     const nova = criarCopas(todas, undefined, oc, uk, minha.leagueId).filter(c => c.id === 'UCL');
