@@ -1,5 +1,5 @@
 
-import { atributos3d } from '../textSim/atributos3d';
+import { atributos3d, NOME_DO_CAMPO } from '../textSim/atributos3d';
 import { calcularQuimica } from '../textSim/quimica';
 import { doisNomes } from '../textSim/nomes';
 import NextGameButton, { SetasAGirar } from './NextGameButton';
@@ -36,7 +36,7 @@ const ICONE_MOR = <Ico><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 
 
 const TrainingView: React.FC = () => {
   const { gameState, userTeam, teams, fixtures, players, setTrainingSchedules, unlockTrainingGroup, updatePlayerTrainingGroup, advanceDay, formatCurrency, formatCurrencyShort, t } = useGame();
-  const [activeCategory, setActiveCategory] = useState<TrainingActivity['category']>('DEFENSE');
+  const [activeCategory, setActiveCategory] = useState<TrainingActivity['category']>('TECHNIQUE');
   const [selectedGroup, setSelectedGroup] = useState<number>(0);
   // Toque (iPad): escolhe-se o treino e depois o slot, como na substituicao de jogadores; arrastar continua a funcionar.
   const [selActivity, setSelActivity] = useState<string | null>(null);
@@ -164,18 +164,17 @@ const TrainingView: React.FC = () => {
   // Training Limits
   const LIMITS = {
     categories: {
-      DEFENSE: 7,
-      MIDFIELD: 7,
-      ATTACK: 7,
-      TACTICS: 4,
-      FITNESS: 4
+      TECHNIQUE: 12,
+      TACTICS: 10,
+      PHYSICAL: 8,
+      MENTAL: 8
     },
     activities: 2
   };
 
   const usageCounts = useMemo(() => {
     const counts = {
-      categories: { DEFENSE: 0, MIDFIELD: 0, ATTACK: 0, TACTICS: 0, FITNESS: 0 },
+      categories: { TECHNIQUE: 0, TACTICS: 0, PHYSICAL: 0, MENTAL: 0 },
       activities: {} as Record<string, number>
     };
 
@@ -375,11 +374,10 @@ const TrainingView: React.FC = () => {
            {/* TABS */}
            <div className="flex gap-1 mb-0.5 shrink-0">
              {[
-               { id: 'DEFENSE', label: 'Defense' },
-               { id: 'MIDFIELD', label: 'Midfield' },
-               { id: 'ATTACK', label: 'Attack' },
-               { id: 'TACTICS', label: 'Tactics' },
-               { id: 'FITNESS', label: 'Fitness' }
+               { id: 'TECHNIQUE', label: 'TEC' },
+               { id: 'TACTICS', label: 'TAC' },
+               { id: 'PHYSICAL', label: 'FIS' },
+               { id: 'MENTAL', label: 'MEN · CHEM · MOR' }
              ].map(tab => {
                const catUsage = usageCounts.categories[tab.id as keyof typeof LIMITS.categories];
                const limitCat = LIMITS.categories[tab.id as keyof typeof LIMITS.categories];
@@ -418,7 +416,7 @@ const TrainingView: React.FC = () => {
                      Tap a session, then tap a calendar slot (or drag it there)
                    </p>
 
-                   <div className="grid grid-cols-4 gap-2 flex-1 bg-white/40 dark:bg-transparent rounded p-2 overflow-hidden">
+                   <div className="grid grid-cols-2 gap-2 flex-1 content-start bg-white/40 dark:bg-transparent rounded p-2 overflow-y-auto custom-scrollbar">
                       {ACTIVITIES.filter(a => a.category === activeCategory).map(act => {
                         const actUsage = usageCounts.activities[act.id] || 0;
                         const catUsage = usageCounts.categories[act.category as keyof typeof LIMITS.categories];
@@ -436,32 +434,32 @@ const TrainingView: React.FC = () => {
                           draggable={!isDisabled}
                           onDragStart={(e) => { if (!isDisabled) e.dataTransfer.setData("activityId", act.id); }}
                           onClick={() => { if (!isDisabled) setSelActivity(s => (s === act.id ? null : act.id)); }}
-                          className={`flex flex-col items-center justify-center text-center gap-1 group p-2 rounded-xl transition-all border border-transparent h-full relative ${isDisabled ? 'opacity-50 grayscale cursor-not-allowed border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-900/10' : `cursor-grab active:cursor-grabbing hover:bg-blue-50 dark:hover:bg-white/5 hover:border-blue-200 dark:hover:border-slate-800 hover:shadow-lg ${selActivity === act.id ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-600/20' : ''}`}`}
+                          className={`flex items-center gap-3 group p-2 rounded-xl transition-all border border-transparent relative min-w-0 ${isDisabled ? 'opacity-50 grayscale cursor-not-allowed border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-900/10' : `cursor-grab active:cursor-grabbing hover:bg-blue-50 dark:hover:bg-white/5 hover:border-blue-200 dark:hover:border-slate-800 hover:shadow-lg ${selActivity === act.id ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-600/20' : ''}`}`}
                         >
                            {isDisabled && (
                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-rose-500 text-white text-[8px] font-black px-2 py-0.5 rounded rotate-12 z-20 whitespace-nowrap shadow-lg">
                                {isCatExhausted ? 'CAT. LIMIT' : 'EXHAUSTED'}
                              </div>
                            )}
-                           <div className={`w-16 h-16 bg-white dark:bg-slate-800/80 border ${isDisabled ? 'border-rose-200 dark:border-rose-800' : 'border-slate-200 dark:border-slate-700 group-hover:border-blue-500/50 group-hover:scale-105 active:scale-95 group-hover:-translate-y-1'} rounded-2xl flex items-center justify-center text-4xl shadow-md transition-all`}>
+                           <div className={`w-14 h-14 shrink-0 bg-white dark:bg-slate-800/80 border ${isDisabled ? 'border-rose-200 dark:border-rose-800' : 'border-slate-200 dark:border-slate-700 group-hover:border-blue-500/50 group-hover:scale-105 active:scale-95 group-hover:-translate-y-1'} rounded-2xl flex items-center justify-center text-4xl shadow-md transition-all`}>
                              <TrainingIcon id={act.id} categoria={act.category} semCor={isDisabled} className="w-9 h-9" />
                            </div>
-                           <div className="flex flex-col gap-1 w-full">
-                             <span className={`text-base font-black uppercase tracking-tight transition-colors ${isDisabled ? 'text-rose-500/70 dark:text-rose-400/70' : 'text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-white'}`}>
-                               {act.name}
-                             </span>
-                             <div className="flex justify-center gap-2 mb-1">
-                                <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${isActExhausted ? 'bg-rose-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
-                                  {actUsage}/{limitAct} Uses
-                                </span>
+                           <div className="flex flex-col gap-1 min-w-0 flex-1">
+                             <div className="flex items-center gap-2 min-w-0">
+                               <span className={`text-sm truncate font-black uppercase tracking-tight transition-colors ${isDisabled ? 'text-rose-500/70 dark:text-rose-400/70' : 'text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-white'}`}>
+                                 {act.name}
+                               </span>
+                               <span className={`shrink-0 text-[10px] font-black tracking-widest px-1.5 py-0.5 rounded ${isActExhausted ? 'bg-rose-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
+                                 [{actUsage}/{limitAct}]
+                               </span>
                              </div>
-                             <div className="flex flex-wrap gap-1.5 mt-0.5 justify-center">
-                               {act.impacts.map((impact, idx) => (
+                             <div className="flex flex-wrap gap-1">
+                               {act.impacts.filter(impact => !['DEF', 'PAS', 'DRB', 'SHT'].includes(impact.label)).map((impact, idx) => (
                                  <span 
                                    key={idx} 
-                                   className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded leading-none transition-colors ${isDisabled ? 'bg-rose-100/50 dark:bg-rose-900/20 text-rose-500/50' : impact.value > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'}`}
+                                   className={`text-[11px] font-black uppercase px-2 py-1 rounded leading-none transition-colors ${isDisabled ? 'bg-rose-100/50 dark:bg-rose-900/20 text-rose-500/50' : impact.value > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'}`}
                                  >
-                                   {impact.value > 0 ? '+' : ''}{impact.value} {({ DEF: 'TAC', PAS: 'TEC', DRB: 'TEC', SHT: 'TEC' } as Record<string, string>)[impact.label] || impact.label}
+                                   {impact.value > 0 ? '+' : ''}{impact.value} {impact.campo ? NOME_DO_CAMPO[impact.campo] : impact.skill || impact.label}
                                  </span>
                                ))}
                              </div>

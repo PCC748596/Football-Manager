@@ -5,46 +5,58 @@ export const MINUTOS_POR_PONTO_CHE = 60;
 export interface Impact {
   label: string;
   value: number;
+  /** Nome do atributo do 3D (ou Morale/Chemistry) que o treino mexe; e o que o cartao mostra no lugar do grupo. */
+  skill?: string;
+  /** Atributo do 3D (id do campo, ex.: 'headAccurancy') que ganha `value` pontos (label 'SKL'); 100 pontos = +1 no atributo. */
+  campo?: string;
 }
 
 export interface TrainingActivity {
   id: string;
   name: string;
-  category: 'DEFENSE' | 'MIDFIELD' | 'ATTACK' | 'TACTICS' | 'FITNESS';
+  category: 'TECHNIQUE' | 'TACTICS' | 'PHYSICAL' | 'MENTAL';
   icon: string;
   impacts: Impact[];
 }
 
 export const ACTIVITIES: TrainingActivity[] = [
-  // DEFENSE
-  { id: 'tackling', name: 'Tackling', category: 'DEFENSE', icon: '👟', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'STM', value: -1 }] },
-  { id: 'marking', name: 'Man Marking', category: 'DEFENSE', icon: '🛡️', impacts: [{ label: 'DEF', value: 1.5 }, { label: 'STM', value: -2 }] },
-  { id: 'def_pos', name: 'Def. Shape', category: 'DEFENSE', icon: '🧱', impacts: [{ label: 'DEF', value: 0.5 }, { label: 'MOR', value: 5 }, { label: 'STM', value: -1 }] },
-  { id: 'aerial', name: 'Aerial Duels', category: 'DEFENSE', icon: '✈️', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'STM', value: -2 }] },
-
-  // MIDFIELD
-  { id: 'passing', name: 'Passing', category: 'MIDFIELD', icon: '🔄', impacts: [{ label: 'PAS', value: 1.0 }, { label: 'STM', value: -1 }] },
-  { id: 'control', name: 'Ball Control', category: 'MIDFIELD', icon: '⚽', impacts: [{ label: 'DRB', value: 1.0 }, { label: 'STM', value: -1 }] },
-  { id: 'vision', name: 'Vision', category: 'MIDFIELD', icon: '👁️', impacts: [{ label: 'PAS', value: 1.5 }, { label: 'STM', value: -2 }] },
-  { id: 'playmaking', name: 'Playmaking', category: 'MIDFIELD', icon: '🧠', impacts: [{ label: 'PAS', value: 1.0 }, { label: 'DRB', value: 0.5 }, { label: 'STM', value: -2 }] },
-
-  // ATTACK
-  { id: 'shooting', name: 'Shooting', category: 'ATTACK', icon: '🎯', impacts: [{ label: 'SHT', value: 1.0 }, { label: 'STM', value: -1 }] },
-  { id: 'finishing', name: '1v1 Finish', category: 'ATTACK', icon: '🥅', impacts: [{ label: 'SHT', value: 1.5 }, { label: 'STM', value: -2 }] },
-  { id: 'crossing', name: 'Crossing', category: 'ATTACK', icon: '⤴️', impacts: [{ label: 'PAS', value: 1.0 }, { label: 'STM', value: -1 }] },
-  { id: 'wingplay', name: 'Wing Play', category: 'ATTACK', icon: '🏃', impacts: [{ label: 'DRB', value: 1.5 }, { label: 'STM', value: -2 }] },
-
-  // TACTICS
-  { id: 'video', name: 'Analysis', category: 'TACTICS', icon: '📺', impacts: [{ label: 'CHE', value: 0.5 }] },
-  { id: 'setpieces', name: 'Set Pieces', category: 'TACTICS', icon: '🚩', impacts: [{ label: 'SHT', value: 0.5 }, { label: 'PAS', value: 0.5 }, { label: 'STM', value: -1 }] },
-  { id: 'pressing', name: 'Pressing', category: 'TACTICS', icon: '😤', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'STM', value: -3 }] },
-  { id: 'shadow', name: 'Shadow Play', category: 'TACTICS', icon: '👥', impacts: [{ label: 'MOR', value: 1.0 }, { label: 'STM', value: -1 }] },
-
-  // FITNESS
-  { id: 'cardio', name: 'Cardio', category: 'FITNESS', icon: '🫁', impacts: [{ label: 'FIT', value: 2.0 }, { label: 'STM', value: -2 }] },
-  { id: 'strength', name: 'Gym Work', category: 'FITNESS', icon: '🏋️', impacts: [{ label: 'FIT', value: 1.5 }, { label: 'STM', value: -2 }] },
-  { id: 'sprints', name: 'Sprints', category: 'FITNESS', icon: '⚡', impacts: [{ label: 'FIT', value: 1.0 }, { label: 'STM', value: -3 }] },
-  { id: 'recovery', name: 'Recovery', category: 'FITNESS', icon: '🩹', impacts: [{ label: 'FIT', value: 3.0 }, { label: 'MOR', value: 1.0 }] },
+  { id: 'passing', name: 'Passing', category: 'TECHNIQUE', icon: '🔄', impacts: [{ label: 'PAS', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'passing' }, { label: 'STM', value: -1 }] },
+  { id: 'longpass', name: 'Long Passing', category: 'TECHNIQUE', icon: '📡', impacts: [{ label: 'PAS', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'longPassing' }, { label: 'STM', value: -1 }] },
+  { id: 'control', name: 'Ball Control', category: 'TECHNIQUE', icon: '⚽', impacts: [{ label: 'DRB', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'ballControl' }, { label: 'STM', value: -1 }] },
+  { id: 'wingplay', name: 'Dribbling', category: 'TECHNIQUE', icon: '🏃', impacts: [{ label: 'DRB', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'dribbling' }, { label: 'STM', value: -2 }] },
+  { id: 'crossing', name: 'Crossing', category: 'TECHNIQUE', icon: '⤴️', impacts: [{ label: 'PAS', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'crossing' }, { label: 'STM', value: -1 }] },
+  { id: 'shooting', name: 'Shot Power', category: 'TECHNIQUE', icon: '🎯', impacts: [{ label: 'SHT', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'shotPower' }, { label: 'STM', value: -1 }] },
+  { id: 'longshots', name: 'Long Shots', category: 'TECHNIQUE', icon: '🌠', impacts: [{ label: 'SHT', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'longShots' }, { label: 'STM', value: -2 }] },
+  { id: 'finishing', name: '1v1 Finish', category: 'TECHNIQUE', icon: '🥅', impacts: [{ label: 'SHT', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'finishing' }, { label: 'STM', value: -2 }] },
+  { id: 'volleys', name: 'Volleys', category: 'TECHNIQUE', icon: '🦵', impacts: [{ label: 'SHT', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'volleys' }, { label: 'STM', value: -2 }] },
+  { id: 'aerial', name: 'Aerial Duels', category: 'TECHNIQUE', icon: '✈️', impacts: [{ label: 'SHT', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'headAccurancy' }, { label: 'STM', value: -2 }] },
+  { id: 'setpieces', name: 'Set Pieces', category: 'TECHNIQUE', icon: '🚩', impacts: [{ label: 'SHT', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'freekicks' }, { label: 'SKL', value: 1.0, campo: 'cornerKicks' }, { label: 'STM', value: -1 }] },
+  { id: 'penalties', name: 'Penalties', category: 'TECHNIQUE', icon: '⚪', impacts: [{ label: 'SHT', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'penalties' }, { label: 'STM', value: -1 }] },
+  { id: 'tackling', name: 'Tackling', category: 'TACTICS', icon: '👟', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'tackleStanding' }, { label: 'STM', value: -1 }] },
+  { id: 'sliding', name: 'Sliding Tackle', category: 'TACTICS', icon: '🛷', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'tackleSliding' }, { label: 'STM', value: -2 }] },
+  { id: 'marking', name: 'Man Marking', category: 'TACTICS', icon: '🛡️', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'manMarking' }, { label: 'STM', value: -2 }] },
+  { id: 'def_pos', name: 'Def. Shape', category: 'TACTICS', icon: '🧱', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'posDefense' }, { label: 'MOR', value: 5, skill: 'Morale' }, { label: 'STM', value: -1 }] },
+  { id: 'positioning', name: 'Att. Positioning', category: 'TACTICS', icon: '📍', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'posOffense' }, { label: 'STM', value: -1 }] },
+  { id: 'vision', name: 'Vision', category: 'TACTICS', icon: '👁️', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'vision' }, { label: 'STM', value: -2 }] },
+  { id: 'pressing', name: 'Pressing', category: 'TACTICS', icon: '😤', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'tacticalAwa' }, { label: 'STM', value: -3 }] },
+  { id: 'playmaking', name: 'Playmaking', category: 'TACTICS', icon: '🧠', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'tacticalAwa' }, { label: 'STM', value: -2 }] },
+  { id: 'transition', name: 'Transitions', category: 'TACTICS', icon: '🔀', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'tacticalAwa' }, { label: 'STM', value: -2 }] },
+  { id: 'cardio', name: 'Cardio', category: 'PHYSICAL', icon: '🫁', impacts: [{ label: 'FIT', value: 2.0 }, { label: 'SKL', value: 1.0, campo: 'stamina' }, { label: 'STM', value: -2 }] },
+  { id: 'sprints', name: 'Sprints', category: 'PHYSICAL', icon: '⚡', impacts: [{ label: 'FIT', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'speed' }, { label: 'STM', value: -3 }] },
+  { id: 'acceleration', name: 'Acceleration', category: 'PHYSICAL', icon: '🚀', impacts: [{ label: 'FIT', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'acceleration' }, { label: 'STM', value: -2 }] },
+  { id: 'agility', name: 'Agility', category: 'PHYSICAL', icon: '🤸', impacts: [{ label: 'FIT', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'agility' }, { label: 'STM', value: -1 }] },
+  { id: 'jumping', name: 'Jumping', category: 'PHYSICAL', icon: '🦘', impacts: [{ label: 'FIT', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'jumping' }, { label: 'STM', value: -2 }] },
+  { id: 'strength', name: 'Gym Work', category: 'PHYSICAL', icon: '🏋️', impacts: [{ label: 'FIT', value: 1.5 }, { label: 'SKL', value: 1.0, campo: 'strength' }, { label: 'STM', value: -2 }] },
+  { id: 'balance', name: 'Balance', category: 'PHYSICAL', icon: '⚖️', impacts: [{ label: 'FIT', value: 1.5 }, { label: 'SKL', value: 1.0, campo: 'balance' }, { label: 'STM', value: -1 }] },
+  { id: 'recovery', name: 'Recovery', category: 'PHYSICAL', icon: '🩹', impacts: [{ label: 'FIT', value: 3.0, skill: 'Fitness' }, { label: 'MOR', value: 1.0, skill: 'Morale' }] },
+  { id: 'aggression', name: 'Aggression', category: 'MENTAL', icon: '💢', impacts: [{ label: 'SKL', value: 1.0, campo: 'aggression' }, { label: 'STM', value: -2 }] },
+  { id: 'reactions', name: 'Reactions', category: 'MENTAL', icon: '⏱️', impacts: [{ label: 'SKL', value: 1.0, campo: 'reactions' }, { label: 'STM', value: -1 }] },
+  { id: 'composure', name: 'Composure', category: 'MENTAL', icon: '😌', impacts: [{ label: 'SKL', value: 1.0, campo: 'composure' }, { label: 'STM', value: -1 }] },
+  { id: 'consistency', name: 'Consistency', category: 'MENTAL', icon: '📈', impacts: [{ label: 'SKL', value: 1.0, campo: 'consistency' }, { label: 'STM', value: -1 }] },
+  { id: 'video', name: 'Analysis', category: 'MENTAL', icon: '📺', impacts: [{ label: 'CHE', value: 0.5, skill: 'Chemistry' }] },
+  { id: 'teambuilding', name: 'Team Dinner', category: 'MENTAL', icon: '🍽️', impacts: [{ label: 'CHE', value: 0.5, skill: 'Chemistry' }, { label: 'MOR', value: 2.0, skill: 'Morale' }] },
+  { id: 'shadow', name: 'Shadow Play', category: 'MENTAL', icon: '👥', impacts: [{ label: 'MOR', value: 1.0, skill: 'Morale' }, { label: 'STM', value: -1 }] },
+  { id: 'focus', name: 'Mental Focus', category: 'MENTAL', icon: '🧘', impacts: [{ label: 'MOR', value: 2.0, skill: 'Morale' }, { label: 'STM', value: -1 }] },
 ];
 
 // =====================================================================

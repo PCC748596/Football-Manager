@@ -5,11 +5,10 @@ type Categoria = TrainingActivity['category'];
 
 // Uma cor por tipo de treino (usada nos icones, nas abas e nos cartoes).
 export const COR_DO_TREINO: Record<Categoria, string> = {
-  DEFENSE: '#3b82f6',   // azul
-  MIDFIELD: '#22c55e',  // verde
-  ATTACK: '#ef4444',    // vermelho
+  TECHNIQUE: '#3b82f6', // azul
   TACTICS: '#a855f7',   // roxo
-  FITNESS: '#f59e0b',   // ambar
+  PHYSICAL: '#f59e0b',  // ambar
+  MENTAL: '#22c55e',    // verde
 };
 
 // Icones de linha (viewBox 24x24, traco 2): um por sessao de treino, pelo id de ACTIVITIES.
@@ -39,6 +38,23 @@ const FORMAS: Record<string, React.ReactNode> = {
   strength: <><path d="M6.5 6.5v11M17.5 6.5v11" /><path d="M3 9v6M21 9v6" /><path d="M6.5 12h11" /></>,
   sprints: <path d="M13 2L4 14h7l-1 8 9-12h-7z" />,
   recovery: <><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></>,
+  positioning: <><circle cx="12" cy="10" r="3" /><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z" /></>,
+  transition: <><path d="M4 8h13" /><path d="m13 4 4 4-4 4" /><path d="M20 16H7" /><path d="m11 12-4 4 4 4" /></>,
+  agility: <><path d="M4 6h10l-8 6h14" /><path d="m16 8 4 4-4 4" /></>,
+  jumping: <><path d="M12 20V8" /><path d="m7 12 5-5 5 5" /><path d="M5 4h14" /></>,
+  balance: <><path d="M12 4v16M6 20h12" /><path d="M4 8h16" /><path d="M4 8l-2 5h4zM20 8l-2 5h4z" /></>,
+  acceleration: <><path d="M5 7l6 5-6 5" /><path d="M12 7l6 5-6 5" /></>,
+  teambuilding: <><circle cx="8" cy="9" r="2.5" /><circle cx="16" cy="9" r="2.5" /><path d="M3 19c0-3 2.2-5 5-5s5 2 5 5M11 19c0-3 2.2-5 5-5s5 2 5 5" /></>,
+  focus: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /><path d="M12 1v4M12 19v4M1 12h4M19 12h4" /></>,
+  longpass: <><path d="M3 18c4-10 14-10 18-10" /><path d="m17 4 4 4-4 4" /></>,
+  longshots: <><circle cx="7" cy="17" r="3" /><path d="M10 14 20 4" /><path d="M15 4h5v5" /></>,
+  volleys: <><circle cx="12" cy="9" r="4" /><path d="M5 21c1-4 3-6 7-6s6 2 7 6" /></>,
+  penalties: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="1.5" /><path d="M12 3v3M12 18v3" /></>,
+  sliding: <><path d="M3 18h18" /><path d="M5 14h9l3-4h3" /></>,
+  aggression: <><path d="M13 3 5 13h6l-1 8 9-12h-6z" /></>,
+  reactions: <><circle cx="12" cy="13" r="8" /><path d="M12 13V8M9 2h6" /></>,
+  composure: <><path d="M3 9c3-3 6 3 9 0s6 3 9 0" /><path d="M3 15c3-3 6 3 9 0s6 3 9 0" /></>,
+  consistency: <><path d="M3 17l5-5 4 3 8-9" /><path d="M15 6h5v5" /></>,
 };
 
 const MONTANHA = <><path d="M3 20l6-11 4 6 2-3 6 8z" /><circle cx="17" cy="6" r="1.5" /></>;

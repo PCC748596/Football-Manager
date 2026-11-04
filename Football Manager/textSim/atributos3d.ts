@@ -17,8 +17,8 @@ import { jogadorLocalPorId, bandeiraDoCodigo } from './dadosLocais';
 import { GRUPOS, ATRIBUTOS_GK, gerarAtributos, limitarAtributo, curvaFisica, calcularGrupos } from './geradorAtributos';
 
 /*
-O TREINO MEXE NOS ATRIBUTOS DO 3D: o treino sobe/desce DEF/PAS/DRB/SHT e esse ganho (o valor de hoje menos o do inicio, da realDatabase com o piso NIVEL_MINIMO) soma-se aos campos do grupo:
-TEC recebe 0.4 DRB + 0.3 SHT + 0.3 PAS e TAC recebe DEF. MEN e FIS ficam como estao.
+O TREINO MEXE NOS ATRIBUTOS DO 3D, um a um: cada sessao (textSim/trainingService.ts) da pontos aos atributos que treina (`Player.treino3d`, campo -> pontos) e 100 pontos = +1 no atributo.
+O DEF/PAS/DRB/SHT antigos continuam a subir por baixo (OVR e valor de mercado), mas ja nao entram nos atributos do 3D (senao o mesmo treino contaria duas vezes).
 */
 const BASE: Map<string, { def: number; pas: number; drb: number; sht: number; idade: number; attrs3d?: Record<string, number> }> = new Map();
 let baseFeita = false;
@@ -72,11 +72,16 @@ export const campo3d = (p: Player, campos: string[]): number => {
 
 const cache = new Map<string, Atributos3D>();
 
+/** Os pontos inteiros de treino de um atributo (a parte que ja conta). */
+const bonusTreino = (p: Player, campo: string): number => Math.floor(((p.treino3d && p.treino3d[campo]) || 0) / 100);
+/** Entra na chave do cache: o treino muda os atributos. */
+const assinaturaTreino = (p: Player): string => (p.treino3d ? Object.keys(p.treino3d).map(c => c + bonusTreino(p, c)).join(',') : '');
+
 export const atributos3d = (p: Player): Atributos3D => {
   const id = String(p.id).replace(/^p-/, '');
   const linha = D.jogadores[id];
   // Os derivados dependem dos atributos que o treino mexe, da idade e do OVR: a chave inclui-os.
-  const chave = `${p.id}|${p.age}|${p.position}|${(p as any).playStyle || ''}|${p.def}|${p.pas}|${p.drb}|${p.sht}|${Math.round(p.skill)}`;
+  const chave = `${p.id}|${p.age}|${p.position}|${(p as any).playStyle || ''}|${p.def}|${p.pas}|${p.drb}|${p.sht}|${Math.round(p.skill)}|${assinaturaTreino(p)}`;
   const c = cache.get(chave);
   if (c) return c;
   const b0 = baseDe(id);
@@ -85,15 +90,13 @@ export const atributos3d = (p: Player): Atributos3D => {
   const b = (linha || guardados) ? b0 : undefined;
   // O jogador do 3D: os campos do 3D + o ganho do treino (TEC/TAC) + o desvio de idade no fisico; o gerado: os atributos gerados (posicao, estilo, nivel e idade).
   const gerado = (guardados || linha) ? null : gerarAtributos(p.position, (p as any).playStyle || (PLAYSTYLE_DA_BASE as any)[String(p.id)], p.skill, String(p.id), { idade: p.age }).atributos;
-  const dTec = b ? 0.4 * (p.drb - b.drb) + 0.3 * (p.sht - b.sht) + 0.3 * (p.pas - b.pas) : 0;
-  const dTac = b ? p.def - b.def : 0;
   const dFis = b && b.idade ? curvaFisica(p.age) - curvaFisica(b.idade) : 0;
-  const delta: Record<GrupoAtributo, number> = { TEC: Math.round(dTec), TAC: Math.round(dTac), MEN: 0, FIS: Math.round(dFis) };
+  const delta: Record<GrupoAtributo, number> = { TEC: 0, TAC: 0, MEN: 0, FIS: Math.round(dFis) };
   const detalhe = {} as Record<GrupoAtributo, { campo: string; nome: string; valor: number }[]>;
   const valores: Record<string, number> = {};
   for (const k of ORDEM_GRUPOS) {
     detalhe[k] = GRUPOS[k].map(campo => {
-      const valor = gerado ? gerado[campo] : limitarAtributo((guardados ? guardados[campo] : linha![IDX[campo]]) + delta[k]);
+      const valor = limitarAtributo((gerado ? gerado[campo] : (guardados ? guardados[campo] : linha![IDX[campo]]) + delta[k]) + bonusTreino(p, campo));
       valores[campo] = valor;
       return { campo, nome: NOME_DO_CAMPO[campo] || campo, valor };
     });

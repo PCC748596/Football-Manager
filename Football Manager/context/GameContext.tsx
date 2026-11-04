@@ -1245,7 +1245,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const unlockedGroups = gameState.unlockedTrainingGroups || 1;
 
       const groupGains = [0, 1, 2].map(grpId => {
-        const gains = { def: 0, pas: 0, drb: 0, sht: 0, mor: 0 };
+        const gains = { def: 0, pas: 0, drb: 0, sht: 0, mor: 0, skl: {} as Record<string, number> };
         if (grpId < unlockedGroups) {
           schedules[grpId].forEach(day => {
             day.forEach(actId => {
@@ -1258,6 +1258,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     if (imp.label === 'DRB') gains.drb += imp.value;
                     if (imp.label === 'SHT') gains.sht += imp.value;
                     if (imp.label === 'MOR') gains.mor += imp.value;
+                    if (imp.label === 'SKL' && imp.campo) gains.skl[imp.campo] = (gains.skl[imp.campo] || 0) + imp.value;
                   });
                 }
               }
@@ -1281,7 +1282,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           pas: Math.random() * 8,
           drb: Math.random() * 8,
           sht: Math.random() * 8,
-          mor: (Math.random() - 0.5) * 4
+          mor: (Math.random() - 0.5) * 4,
+          skl: {} as Record<string, number>
         };
 
         // Reset weekly level-up indicator (Prog. column OVR growth) only on Mondays 
@@ -1300,8 +1302,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Age factor: Young players grow faster, old players might decline
         const ageFactor = p.age < 22 ? 1.5 : (p.age > 32 ? 0.5 : 1.0);
 
+        // Treino por atributo do 3D: os pontos de cada atributo treinado (100 pontos = +1, ver textSim/atributos3d.ts); a idade pesa como no treino de DEF/PAS/DRB/SHT.
+        if (isUserPlayer && Object.keys(gains.skl).length) {
+          const t3 = { ...(p.treino3d || {}) };
+          for (const campo of Object.keys(gains.skl)) t3[campo] = Math.min(4900, (t3[campo] || 0) + gains.skl[campo] * ageFactor);
+          p.treino3d = t3;
+          updated = true;
+        }
+
         ['def', 'pas', 'drb', 'sht'].forEach(attr => {
-          const key = attr as keyof typeof groupGains[0];
+          const key = attr as 'def' | 'pas' | 'drb' | 'sht';
           const attrKey = attr as 'def' | 'pas' | 'drb' | 'sht';
 
           // Add points to accumulation buffer (100 points = +1 attribute)
