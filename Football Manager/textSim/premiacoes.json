@@ -186,6 +186,69 @@
       "clubes": 18,
       "primeiro": 40000000,
       "ultimo": 8500000
+    },
+    "eng_champ": {
+      "nome": "Championship",
+      "moeda": "GBP",
+      "clubes": 24,
+      "primeiro": 12000000,
+      "ultimo": 6000000
+    },
+    "eng_l1": {
+      "nome": "League One",
+      "moeda": "GBP",
+      "clubes": 24,
+      "primeiro": 3500000,
+      "ultimo": 1800000
+    },
+    "eng_l2": {
+      "nome": "League Two",
+      "moeda": "GBP",
+      "clubes": 24,
+      "primeiro": 1800000,
+      "ultimo": 1000000
+    },
+    "esp_segunda": {
+      "nome": "Segunda Division",
+      "moeda": "EUR",
+      "clubes": 22,
+      "primeiro": 8000000,
+      "ultimo": 3000000
+    },
+    "ger_2bundesliga": {
+      "nome": "2. Bundesliga",
+      "moeda": "EUR",
+      "clubes": 18,
+      "primeiro": 11000000,
+      "ultimo": 6000000
+    },
+    "ita_serieb": {
+      "nome": "Serie B",
+      "moeda": "EUR",
+      "clubes": 20,
+      "primeiro": 6000000,
+      "ultimo": 2500000
+    },
+    "fra_ligue2": {
+      "nome": "Ligue 2",
+      "moeda": "EUR",
+      "clubes": 20,
+      "primeiro": 4000000,
+      "ultimo": 1800000
+    },
+    "por_liga": {
+      "nome": "Liga Portugal",
+      "moeda": "EUR",
+      "clubes": 18,
+      "primeiro": 15000000,
+      "ultimo": 5000000
+    },
+    "por_liga2": {
+      "nome": "Liga Portugal 2",
+      "moeda": "EUR",
+      "clubes": 18,
+      "primeiro": 1500000,
+      "ultimo": 600000
     }
   }
 }

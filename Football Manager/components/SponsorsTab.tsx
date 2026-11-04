@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { escalaDaLiga } from '../textSim/economia';
 import { useGame } from '../context/GameContext';
 import { assetUrl } from '../textSim/assetUrl';
 import { PATROCINADORES, statusDoPatrocinador, reputacaoMinima, diasParaFim, ANOS_MIN, ANOS_MAX, valorAnualPara, bonusPctDaMarca, FATOR_DURACAO, JANELA_RENOVACAO_DIAS, type Patrocinador, type RegiaoPatrocinio } from '../textSim/patrocinadores';
@@ -79,8 +80,8 @@ const SponsorsTab: React.FC = () => {
           <LogoMarca p={aberto} className="w-12 h-12" />
           <div className="flex-1 min-w-[180px]">
             <div className="font-black text-lg text-slate-900 dark:text-white">{aberto.nome}</div>
-            <div className="text-sm text-slate-500">{formatCurrency(valorAnualPara(aberto, anos))} / {pt ? 'ano' : 'year'} ({Math.round(FATOR_DURACAO[anos] * 100)}%) · 12 {pt ? 'parcelas mensais' : 'monthly instalments'}</div>
-            <div className="text-[11px] text-slate-500">{pt ? 'Total do contrato' : 'Contract total'}: {formatCurrency(valorAnualPara(aberto, anos) * anos)} · {pt ? 'bônus de competição' : 'competition bonus'}: {Math.round(bonusPctDaMarca(aberto) * 100)}% {pt ? 'dos prêmios' : 'of prize money'}</div>
+            <div className="text-sm text-slate-500">{formatCurrency(valorAnualPara(aberto, anos, escalaDaLiga(userTeam.leagueId)))} / {pt ? 'ano' : 'year'} ({Math.round(FATOR_DURACAO[anos] * 100)}%) · 12 {pt ? 'parcelas mensais' : 'monthly instalments'}</div>
+            <div className="text-[11px] text-slate-500">{pt ? 'Total do contrato' : 'Contract total'}: {formatCurrency(valorAnualPara(aberto, anos, escalaDaLiga(userTeam.leagueId)) * anos)} · {pt ? 'bônus de competição' : 'competition bonus'}: {Math.round(bonusPctDaMarca(aberto) * 100)}% {pt ? 'dos prêmios' : 'of prize money'}</div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">{pt ? 'Duração' : 'Duration'}</span>

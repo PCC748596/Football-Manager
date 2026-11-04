@@ -1,7 +1,9 @@
 
 import { assetUrl } from './assetUrl';
 import { Team, Player, Fixture, Position, Tactics } from '../types';
-import { salariosDaLiga } from './salarios';
+import { salarioSemanalDoMercado, registrarLigas } from './economia';
+import { valorDeMercado } from './valuation';
+import { folhaAnual } from './orcamento';
 import { ECONOMIA_ESTADIO } from './stadiumEconomy';
 import { calcularSkill } from './overall';
 import { nomeDoClube } from './nomes';
@@ -529,9 +531,12 @@ export const ajustarLigaParaFaixa = (teams: Team[], players: Player[], faixa: [n
   }
 };
 
+const DATA_BASE_VALOR = '2024-04-01';
 export const generateLeagueData = (countryId: string, leagueId: string = '') => {
   const teams: Team[] = [];
   const players: Player[] = [];
+  // Clubes com jogadores reais (json / dados locais): ja vem ajustados, a faixa de OVR nao lhes mexe.
+  const comJogadoresReais = new Set<string>();
 
   const country = COUNTRIES.find(c => c.id === countryId);
   const league = country?.leagues.find(l => l.id === leagueId);
@@ -618,6 +623,7 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
     const realPlayers: any[] = jogadoresLocaisDoClube(Number(t.teamID)) || REAL_PLAYERS_JSON.filter((p: any) => p.team === t.teamName);
 
     if (realPlayers.length > 0) {
+      comJogadoresReais.add(team.id);
       realPlayers.forEach((p: any, index) => {
         const expiryYear = 2024 + randomInt(1, 4);
         const expiryWeek = randomInt(1, 38);
@@ -695,12 +701,23 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
     teams.push(team);
   });
 
-  // A faixa de OVR da divisao (ver FAIXA_OVR_*): reescala os clubes desta liga.
+  // A faixa de OVR da divisao (ver FAIXA_OVR_*): reescala so os clubes de jogadores gerados.
   const faixa = faixaDeOvr(countryId, league);
-  if (faixa) ajustarLigaParaFaixa(teams, players, faixa);
+  if (faixa) ajustarLigaParaFaixa(teams.filter(t => !comJogadoresReais.has(t.id)), players, faixa);
 
-  // Series C e D do Brasil: salarios proprios, em reais por mes (textSim/salarios.ts); as outras ligas ficam com 0,2% do valor por semana.
-  const salariosSerie = salariosDaLiga(leagueId, players.map(p => p.skill));
-  if (salariosSerie) players.forEach((p, i) => { p.salary = salariosSerie[i]; });
+  registrarLigas(teams);
+  // Salario e valor da economia da liga (textSim/economia.ts) e caixa do clube = 3 x folha anual.
+  {
+    players.forEach(p => {
+      p.salary = salarioSemanalDoMercado(p.skill, p.age, leagueId);
+      const fim = Number(String(p.contractExpiry).split(' ')[1]) || 2026;
+      p.value = valorDeMercado({ ...p, contract: { start: DATA_BASE_VALOR, end: `${fim}-06-30`, years: 3 } } as Player, DATA_BASE_VALOR);
+    });
+    teams.forEach(t => {
+      const capital = Math.round(folhaAnual(players.filter(p => p.teamId === t.id).map(p => p.salary)) * 3);
+      const compras = Math.round(capital * 0.8);
+      t.cash = capital; t.initialCapital = capital; t.initialTransfer = compras; t.transferBudget = compras;
+    });
+  }
   return { teams, players };
 };

@@ -19,8 +19,9 @@ test('valor sobe com o overall e e coerente com a economia (mediana dos dados re
   const v50 = valorDeMercado(jog({ skill: 50 }), HOJE), v60 = valorDeMercado(jog({ skill: 60 }), HOJE), v70 = valorDeMercado(jog({ skill: 70 }), HOJE), v80 = valorDeMercado(jog({ skill: 80 }), HOJE);
   assert.ok(v50 < v60 && v60 < v70 && v70 < v80);
   console.log('valores (25 anos, contrato longo): ovr50', v50, 'ovr60', v60, 'ovr70', v70, 'ovr80', v80);
-  assert.ok(v50 > 800_000 && v50 < 1_400_000, 'ovr 50 ~1,1 M: ' + v50);
-  assert.ok(v80 > 3_000_000 && v80 < 8_000_000, 'ovr 80 ~5 M: ' + v80);
+  assert.ok(v50 > 15_000 && v50 < 60_000, 'ovr 50 ~25 mil EUR: ' + v50);
+  assert.ok(v70 > 3_000_000 && v70 < 4_500_000, 'ovr 70 ~3 M EUR: ' + v70);
+  assert.ok(v80 > 35_000_000 && v80 < 48_000_000, 'ovr 80 ~35 M EUR: ' + v80);
 });
 
 test('idade: o veterano vale menos que o jogador no auge', () => {

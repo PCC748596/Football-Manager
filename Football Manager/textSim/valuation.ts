@@ -4,38 +4,40 @@ VALOR DE MERCADO DOS JOGADORES — uma formula centralizada e configuravel (`CON
 O valor e uma REFERENCIA, nao um preco obrigatorio: a negociacao (textSim/transferencias.ts) parte dele e sobe ou desce conforme o contrato, o interesse de outros clubes, a necessidade
 de venda e a importancia do jogador no elenco.
 
-A curva sai do ajuste dos valores reais da base de dados (11 406 jogadores, mediana por overall: 50 -> 3,65 M; 60 -> 6,2 M; 70 -> 7,5 M; 80 -> 16 M, ou seja ~5% por ponto de overall) e a
-`escala` leva-os para a economia dos clubes do jogo (caixa mediano ~1,8 M; o maior ~15 M), para que o mercado nao seja uma coisa que so tres clubes podem pagar.
+A base e a tabela por overall de textSim/economia.ts (EUR, liga neutra: 50 -> 25 mil; 60 -> 250 mil; 70 -> 3 M; 75 -> 10 M; 80 -> 35 M; 90 -> 130 M), multiplicada pelo peso da liga do clube e convertida
+para dolares (cambio).
 
-  valor = escala x base x crescimento^(overall-50) x idade x potencial x contrato x forma x posicao
+  valor = base(overall) x liga x idade x potencial x contrato x forma x posicao
+  liga        peso economico da divisao do clube (economia.ts); sem clube registado = 1,0
 
   idade       curva linear por pontos (pico dos 22 aos 26)
   potencial   so para jovens: premia a margem de crescimento (potencial - overall), no maximo +60%, e e cortado por `potencialTeto` para um overall baixo nunca valer mais que um consolidado
   contrato    quanto menos tempo resta, menos vale (risco de saida gratuita); contrato vencido = 0,30 (o jogador e agente livre: nao ha taxa)
   forma       evolucao recente (soma das variacoes dos atributos): +-5% no maximo
-  posicao     goleiro vale um pouco menos
+  posicao     atacantes e pontas valem mais; defesas e goleiros menos
 */
 import type { Player } from '../types';
 import { Position } from '../types';
+import { valorBaseEUR, economiaDoClube } from './economia';
+import { paraDolares } from './cambio';
 
 export const CONFIG_VALOR = {
-  escala: 0.30,
-  base: 3_650_000,
-  crescimento: 1.051,
   minimo: 20_000,
-  maximo: 80_000_000,
+  maximo: 250_000_000,
   arredondar: 10_000,
   // idade -> fator (interpolado linearmente entre os pontos)
-  idade: [[15, 0.70], [17, 0.85], [19, 0.95], [22, 1.05], [26, 1.05], [28, 0.97], [30, 0.85], [32, 0.70], [34, 0.52], [36, 0.35], [38, 0.22], [42, 0.12]] as [number, number][],
+  idade: [[16, 1.35], [21, 1.15], [22, 1.0], [27, 1.0], [28, 0.85], [31, 0.85], [32, 0.60], [36, 0.15], [42, 0.08]] as [number, number][],
   // premio de potencial: peso por idade (o jovem tem mais futuro), e o teto do multiplicador
   potencialPeso: [[15, 0.60], [18, 0.55], [20, 0.45], [22, 0.30], [24, 0.15], [26, 0.0]] as [number, number][],
   potencialMargemMax: 30,
   potencialTeto: 1.6,
   // contrato: anos restantes -> fator
-  contrato: [[0, 0.30], [0.25, 0.45], [0.5, 0.65], [1, 0.82], [2, 0.95], [3, 1.0]] as [number, number][],
+  contrato: [[0, 0.30], [0.5, 0.40], [1, 0.70], [1.5, 1.0], [3, 1.0], [4, 1.15]] as [number, number][],
   contratoVencido: 0.30,
   forma: { porPonto: 0.01, limite: 0.05 },
-  goleiro: 0.85
+  goleiro: 0.85,
+  // atacantes e pontas valorizam mais que defesas e laterais no mesmo patamar
+  posicao: { ST: 1.10, SS: 1.08, LW: 1.08, RW: 1.08, AM: 1.04, CM: 1.0, LM: 1.0, RM: 1.0, DM: 0.97, CB: 0.92, LB: 0.92, RB: 0.92 } as Record<string, number>
 };
 export type ConfigValor = typeof CONFIG_VALOR;
 
@@ -62,7 +64,7 @@ export const potencialParaValor = (p: Player): number => p.potential ?? Math.min
 
 export const valorDeMercado = (p: Player, hoje: string, cfg: ConfigValor = CONFIG_VALOR): number => {
   const overall = Math.max(30, Math.min(99, p.skill));
-  let v = cfg.escala * cfg.base * Math.pow(cfg.crescimento, overall - 50);
+  let v = paraDolares(valorBaseEUR(overall), 'EUR') * (economiaDoClube(p.teamId)?.valor ?? 1);
   v *= interpolar(cfg.idade, p.age);
   const margem = Math.max(0, Math.min(cfg.potencialMargemMax, potencialParaValor(p) - overall));
   v *= Math.min(cfg.potencialTeto, 1 + (margem / cfg.potencialMargemMax) * cfg.potencialMargemMax / 30 * interpolar(cfg.potencialPeso, p.age));
@@ -70,7 +72,7 @@ export const valorDeMercado = (p: Player, hoje: string, cfg: ConfigValor = CONFI
   v *= (p.contract && hoje >= p.contract.end) ? cfg.contratoVencido : interpolar(cfg.contrato, anos);
   const g = p.lastGrowth;
   if (g) v *= 1 + Math.max(-cfg.forma.limite, Math.min(cfg.forma.limite, (g.def + g.pas + g.drb + g.sht) * cfg.forma.porPonto));
-  if (p.position === Position.GK) v *= cfg.goleiro;
+  if (p.position === Position.GK) v *= cfg.goleiro; else v *= cfg.posicao[p.position] ?? 1;
   v = Math.max(cfg.minimo, Math.min(cfg.maximo, v));
   return Math.round(v / cfg.arredondar) * cfg.arredondar;
 };

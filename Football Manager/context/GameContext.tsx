@@ -18,6 +18,7 @@ import { regiaoDoClube } from '../textSim/dataGenerator';
 import { MercadoState, Universo, Evento, mercadoVazio, prepararOrcamentos, proporCompra as mercadoPropor, responderComoVendedor, responderComoComprador, retirar as mercadoRetirar, concluir as mercadoConcluir,
   contratarAgenteLivre as mercadoContratarLivre, listarParaVenda as mercadoListar, listarParaEmprestimo as mercadoListarEmprestimo, dispensarJogador as mercadoDispensar, tickDoDia as mercadoTick, recalcularValoresDoMes, janelaAberta, proximaAberturaJanela } from '../textSim/transferencias';
 import { recalcularValores } from '../textSim/valuation';
+import { registrarLigas, escalaDaLiga } from '../textSim/economia';
 import { Negociacao, Oferta, abrirNegociacao, assinar, chanceDeAceitar, propostaDoJogador, resolverNegociacoes } from '../textSim/negociacao';
 import { rotuloDaFase } from '../textSim/competitions';
 import { slotsVazios } from '../textSim/escalacao';
@@ -469,7 +470,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const hoje = gameState.currentDate;
     const r = avaliarProposta(reputacaoClube, p, userTeam.sponsorContract, userTeam.sponsorNext, anos, hoje);
     if (!r.ok) return r;
-    const novo = criarContrato(p, anos, r.renovacao ? userTeam.sponsorContract!.fim : hoje);
+    const novo = criarContrato(p, anos, r.renovacao ? userTeam.sponsorContract!.fim : hoje, escalaDaLiga(userTeam.leagueId));
     setTeams(prev => prev.map(t => t.id === userTeam.id ? (r.renovacao ? { ...t, sponsorNext: novo } : aplicarDivisao({ ...t, sponsorContract: novo }, t.transferPct ?? PADRAO_COMPRAS, folhaDoClube(t.id))) : t));
     return r;
   };
@@ -658,6 +659,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [teams.length, userTeam?.id, loadId]);
   useEffect(() => {
     if (!userTeam || !players.length) return;
+    registrarLigas(teams);   // o valor depende da liga atual do clube (promocoes/descensos)
     const u = universoAtual();
     const u2 = recalcularValoresDoMes(u, gameState.currentDate, recalcularValores);
     if (u2 !== u) { setPlayers(u2.players); setBase(u2.base); setMercado(u2.mercado); }

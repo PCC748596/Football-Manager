@@ -27,7 +27,7 @@ const invariantes = (u: Universo, rotulo = '') => {
   const ids = [...u.players.map(p => p.id), ...(u.base?.jogadores.map(p => p.id) || [])];
   assert.equal(new Set(ids).size, ids.length, `${rotulo}: jogador duplicado (em dois clubes ou duas categorias)`);
   u.teams.forEach(t => { assert.ok(Number.isFinite(t.cash), 'saldo finito'); assert.ok((t.transferBudget ?? 0) >= 0, `${rotulo}: orcamento negativo em ${t.id}`); });
-  if (u.base) u.teams.forEach(t => assert.equal(u.base!.jogadores.filter(p => p.teamId === t.id).length, TAMANHO_BASE, `${rotulo}: base de ${t.id} fora de 20`));
+  if (u.base) u.teams.forEach(t => assert.equal(u.base!.jogadores.filter(p => p.teamId === t.id).length, TAMANHO_BASE - ((u.base!.vagas || {})[t.id] || 0), `${rotulo}: base de ${t.id} fora de 20 (menos as vagas por repor)`));
   const tx = u.mercado.transacoes.map(t => t.id);
   assert.equal(new Set(tx).size, tx.length, `${rotulo}: transacao repetida`);
   const concluidas = u.mercado.negociacoes.filter(n => n.estado === 'CONCLUIDA');
@@ -151,7 +151,7 @@ test('compra sem saldo ou sem orcamento nao conclui; fica ACEITA ate haver recur
   // sem orcamento de transferencias (saldo sobrando)
   let v = criarUniverso(); const al = escolherAlvo(v, v.teams[0].id);
   v = patch(v, v.teams[0].id, t => ({ ...t, cash: 90_000_000, transferBudget: 10_000 }));
-  const rv = proporCompra(v, v.teams[0].id, al.id, 20_000_000, '2024-04-02', DONO); v = rv.u;
+  const rv = proporCompra(v, v.teams[0].id, al.id, Math.round(valorDeMercado(al, '2024-04-02') * 1.4), '2024-04-02', DONO); v = rv.u;
   for (let d = 1; d <= 4; d++) v = tickDoDia(v, { donoId: DONO, hoje: mover('2024-04-02', d) }).u;
   const n2 = v.mercado.negociacoes.find(n => n.id === rv.negId)!;
   assert.equal(n2.estado, 'ACEITA', 'aceita pelo vendedor mas o orcamento nao deixa concluir');
@@ -284,7 +284,7 @@ test('jogadores do Sub-20 com 18+ entram no mercado: o vendedor repoe a vaga e o
   const pro = u.players.find(p => p.id === jovem.id)!;
   assert.equal(pro.teamId, comprador);
   assert.equal(JSON.stringify({ ...pro, teamId: '', shirtNumber: 0, listedForSale: false, trainingGroupId: undefined }), copia, 'mesmo id, atributos, potencial, contrato e historico');
-  assert.equal(u.base!.jogadores.filter(p => p.teamId === vendedor).length, TAMANHO_BASE, 'a base do vendedor continua com 20');
+  assert.equal(u.base!.jogadores.filter(p => p.teamId === vendedor).length, TAMANHO_BASE - 1, 'a vaga so e reposta na proxima janela');
   assert.ok(u.base!.jogadores.filter(p => p.teamId === vendedor).every(p => p.age >= 15 && p.age <= 20));
   invariantes(u);
 });

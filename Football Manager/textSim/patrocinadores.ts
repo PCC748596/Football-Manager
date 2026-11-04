@@ -17,7 +17,8 @@ export const ANOS_MIN = 1, ANOS_MAX = 4;
 /** Contrato mais longo paga menos por ano (o patrocinador ganha seguranca): 1 ano 100%, 2 anos 95%, 3 anos 90%, 4 anos 85% do valor de referencia. */
 export const FATOR_DURACAO: Record<number, number> = { 1: 1, 2: 0.95, 3: 0.9, 4: 0.85 };
 /** Valor anual em USD do jogo que a marca paga num contrato de `anos`. */
-export const valorAnualPara = (p: Patrocinador, anos: number): number => paraDolares(p.valorAnual, p.moeda) * (FATOR_DURACAO[anos] ?? 1);
+/** `escala`: o porte da liga do clube (escalaDaLiga em economia.ts; 1 = Serie A do Brasil, ate 4 na Premier League). */
+export const valorAnualPara = (p: Patrocinador, anos: number, escala = 1): number => paraDolares(p.valorAnual, p.moeda) * (FATOR_DURACAO[anos] ?? 1) * escala;
 
 const slug = (nome: string) => nome.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 const BR = (nome: string, valorAnual: number): Patrocinador => ({ id: 'br-' + slug(nome), nome, pais: 'Brasil', cod: 'br', moeda: 'BRL', valorAnual, regiao: 'BRASIL' });
@@ -87,8 +88,8 @@ const somaAnos = (iso: string, anos: number) => { const [y, m, d] = iso.split('-
 export const bonusPctDaMarca = (p: Patrocinador): number => 0.05 + 0.10 * posicaoNoRanking(p);
 export const bonusDeCompeticao = (c: ContratoPatrocinio | undefined, premioUsd: number, hoje: string): number =>
   (c && c.inicio <= hoje && hoje < c.fim) ? Math.round(premioUsd * (c.bonusPct || 0)) : 0;
-export const criarContrato = (p: Patrocinador, anos: number, inicio: string): ContratoPatrocinio =>
-  ({ sponsorId: p.id, anos, valorAnualUSD: valorAnualPara(p, anos), bonusPct: bonusPctDaMarca(p), inicio, fim: somaAnos(inicio, anos), parcelasPagas: 0, ultimoMes: inicio.slice(0, 7) });
+export const criarContrato = (p: Patrocinador, anos: number, inicio: string, escala = 1): ContratoPatrocinio =>
+  ({ sponsorId: p.id, anos, valorAnualUSD: valorAnualPara(p, anos, escala), bonusPct: bonusPctDaMarca(p), inicio, fim: somaAnos(inicio, anos), parcelasPagas: 0, ultimoMes: inicio.slice(0, 7) });
 
 const mesesEntre = (a: string, b: string) => (Number(b.slice(0, 4)) - Number(a.slice(0, 4))) * 12 + (Number(b.slice(5, 7)) - Number(a.slice(5, 7)));
 
