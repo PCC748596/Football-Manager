@@ -27,3 +27,4 @@ dist-ssr
 local-data/
 docs/CountryData54.sav
 docs/jogadores_skills.csv
+docs/*.sav

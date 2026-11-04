@@ -12,8 +12,11 @@ import { calcularSkill } from './overall';
 import { limitarAtributo } from './geradorAtributos';
 import { REAL_TEAMS_JSON } from './realDatabase';
 
-/** Pais do ficheiro no jogo de origem (o Brasil e 54 la; 45 no manager). */
-export const PAIS_DOS_DADOS_LOCAIS = 54;
+/** Paises dos ficheiros CountryData<N>.json, pelo numero do jogo de origem (54 = Brasil, 14 = Inglaterra). */
+export const PAISES_DOS_DADOS_LOCAIS = [54, 14];
+/** Codigo de nacionalidade do jogo de origem -> id do pais do manager (o nome do ficheiro em /Assets/Bandeiras). Sem entrada: sem bandeira certa (null). */
+const BANDEIRA_DO_CODIGO: Record<string, string> = { '54': '45', '14': '65', '52': '52', '53': '53', '55': '55', '56': '56', '57': '57', '58': '58', '59': '59', '60': '60', '61': '61' };
+export const bandeiraDoCodigo = (cod: string): string | null => BANDEIRA_DO_CODIGO[cod] ?? null;
 /** A data de arranque do jogo (GameContext.startGame): as idades saem dela. */
 const DATA_DE_ARRANQUE = '2024-04-01';
 /** Tamanho minimo do plantel (o gerador completa com tapa-buracos abaixo de 28). */
@@ -73,7 +76,7 @@ const derivar = (a: Record<string, number>, goleiro: boolean) => {
 };
 const lim = (v: number) => Math.max(50, Math.min(99, Math.round(v)));
 
-const converter = (c: any, nomeDoJogo: string, p: any, idx: number): JogadorLocal => {
+const converter = (pais: number, c: any, nomeDoJogo: string, p: any, idx: number): JogadorLocal => {
   const attrs3d: Record<string, number> = {};
   for (const [k, v] of Object.entries(p.skills as Record<string, number>)) if (CHAVE_3D[k]) attrs3d[CHAVE_3D[k]] = limitarAtributo(v);
   const pos = POSICAO_DO_JOGO[p.position] || Position.ST;
@@ -83,35 +86,42 @@ const converter = (c: any, nomeDoJogo: string, p: any, idx: number): JogadorLoca
   const idade = idadeEm(p.birthDate, DATA_DE_ARRANQUE);
   const nome = (p.shortName || `${p.firstName} ${p.lastName}`).trim();
   return {
-    idPlayer: PAIS_DOS_DADOS_LOCAIS * 1_000_000 + c.id * 1000 + idx, team: nomeDoJogo, namePlayer: nome, posPlayer: CODIGO_POSICAO[p.position] || 13,
+    idPlayer: pais * 1_000_000 + c.id * 1000 + idx, team: nomeDoJogo, namePlayer: nome, posPlayer: CODIGO_POSICAO[p.position] || 13,
     agePlayer: idade, ovrPlayer: skill, defPlayer: def, pasPlayer: pas, drbplayer: drb, shtPlayer: sht, valPlayer: valorInicial(skill, idade),
     nationality: p.nationality ? String(p.nationality) : '', birthDate: p.birthDate, attrs3d, shirtNumber: p.shirtFirstTeam || p.shirtReserve || 0, squad: p.squad
   };
 };
 
-/** Le o ficheiro (se existir) e monta o overlay. Chamar uma vez ao abrir o jogo; nunca lanca: sem ficheiro devolve false. */
+/** Le o ficheiro de um pais e junta-o ao overlay. false se nao existir. */
+const carregarPais = async (pais: number, nomesDosClubes: Record<number, string>): Promise<boolean> => {
+  const r = await fetch(`/api/country-data/${pais}`);
+  if (!r.ok) return false;
+  const dados = await r.json();
+  let clubes = 0;
+  for (const c of dados.clubs || []) {
+    const teamId = Number(c.gameTeamId);
+    if (!teamId || !nomesDosClubes[teamId] || !c.players?.length) continue;
+    // O plantel principal; a reserva e a base so entram para completar ate PLANTEL_MINIMO (os jovens vivem na base Sub-20, textSim/youth.ts).
+    const todos: JogadorLocal[] = c.players.map((p: any, i: number) => converter(pais, c, nomesDosClubes[teamId], p, i));
+    const lista = todos.filter(j => j.squad === 'first_team');
+    for (const j of todos.filter(j => j.squad === 'reserves').sort((a, b) => b.ovrPlayer - a.ovrPlayer)) if (lista.length < PLANTEL_MINIMO) lista.push(j);
+    POR_CLUBE.set(teamId, lista);
+    for (const j of lista) POR_ID.set(String(j.idPlayer), j);
+    clubes++;
+  }
+  console.info(`[dadosLocais] CountryData${pais}.json: ${clubes} clubes`);
+  return clubes > 0;
+};
+
+/** Le os ficheiros (os que existirem) e monta o overlay. Chamar uma vez ao abrir o jogo; nunca lanca: sem nenhum ficheiro devolve false. */
 export const carregarDadosLocais = async (): Promise<boolean> => {
-  try {
-    const r = await fetch(`/api/country-data/${PAIS_DOS_DADOS_LOCAIS}`);
-    if (!r.ok) return false;
-    const dados = await r.json();
-    const nomesDosClubes: Record<number, string> = {};
-    for (const t of REAL_TEAMS_JSON as any[]) nomesDosClubes[t.teamID] = t.teamName;
-    POR_CLUBE.clear(); POR_ID.clear();
-    for (const c of dados.clubs || []) {
-      const teamId = Number(c.gameTeamId);
-      if (!teamId || !nomesDosClubes[teamId] || !c.players?.length) continue;
-      // O plantel principal; a reserva e a base so entram para completar ate PLANTEL_MINIMO (os jovens vivem na base Sub-20, textSim/youth.ts).
-      const todos: JogadorLocal[] = c.players.map((p: any, i: number) => converter(c, nomesDosClubes[teamId], p, i));
-      const lista = todos.filter(j => j.squad === 'first_team');
-      for (const j of todos.filter(j => j.squad === 'reserves').sort((a, b) => b.ovrPlayer - a.ovrPlayer)) if (lista.length < PLANTEL_MINIMO) lista.push(j);
-      POR_CLUBE.set(teamId, lista);
-      for (const j of lista) POR_ID.set(String(j.idPlayer), j);
-    }
-    ativo = POR_CLUBE.size > 0;
-    console.info(`[dadosLocais] CountryData${PAIS_DOS_DADOS_LOCAIS}.json: ${POR_CLUBE.size} clubes, ${POR_ID.size} jogadores reais`);
-    return ativo;
-  } catch { return false; }
+  POR_CLUBE.clear(); POR_ID.clear();
+  const nomesDosClubes: Record<number, string> = {};
+  for (const t of REAL_TEAMS_JSON as any[]) nomesDosClubes[t.teamID] = t.teamName;
+  for (const pais of PAISES_DOS_DADOS_LOCAIS) { try { await carregarPais(pais, nomesDosClubes); } catch { /* sem ficheiro (ou fora do servidor de desenvolvimento) */ } }
+  ativo = POR_CLUBE.size > 0;
+  if (ativo) console.info(`[dadosLocais] ${POR_CLUBE.size} clubes, ${POR_ID.size} jogadores reais`);
+  return ativo;
 };
 
 export const dadosLocaisAtivos = () => ativo;

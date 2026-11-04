@@ -13,7 +13,7 @@ import type { Player } from '../types';
 import { REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 import { PLAYSTYLE_DA_BASE } from './playStylesDatabase';
 import { NIVEL_MINIMO } from './dataGenerator';
-import { jogadorLocalPorId } from './dadosLocais';
+import { jogadorLocalPorId, bandeiraDoCodigo } from './dadosLocais';
 import { GRUPOS, ATRIBUTOS_GK, gerarAtributos, limitarAtributo, curvaFisica, calcularGrupos } from './geradorAtributos';
 
 /*
@@ -139,7 +139,9 @@ export const paisDoJogador = (p: Player, paisDoClube?: string | number): string 
   const id = String(p.id).replace(/^p-/, '');
   const linha = D.jogadores[id];
   const local = jogadorLocalPorId(id);
-  const cod = local ? local.nationality : linha ? String(linha[IDX['nationality']] || '') : '';
+  // Jogador dos dados locais: o codigo do jogo de origem so vale com bandeira conhecida; sem ela fica sem bandeira (nunca a do clube, que seria enganadora).
+  if (local && local.nationality) return bandeiraDoCodigo(local.nationality);
+  const cod = linha ? String(linha[IDX['nationality']] || '') : '';
   if (cod && cod !== '0') return PAIS_DO_3D[cod] || cod;
   if (paisDoClube === undefined || paisDoClube === null || paisDoClube === '') return null;
   const c = String(paisDoClube);

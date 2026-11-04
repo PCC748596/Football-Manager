@@ -29,7 +29,7 @@ test('sem ficheiro (404) nada muda: usa a base de sempre', async () => {
 });
 
 test('com ficheiro, a partida nova usa os jogadores dele no clube casado e completa o plantel', async () => {
-  globalThis.fetch = (async () => ({ ok: true, json: async () => ficheiro })) as any;
+  globalThis.fetch = (async (url: string) => String(url).endsWith('/54') ? { ok: true, json: async () => ficheiro } : { ok: false }) as any;
   assert.equal(await carregarDadosLocais(), true);
   assert.equal(jogadoresLocaisDoClube(450171)!.length, 13);   // a base (youth) fica de fora
   const { teams, players } = generateLeagueData('45', 'bra_serie_a');
@@ -53,5 +53,20 @@ test('os atributos do 3D do jogador local vem do ficheiro (50 a 99) e a nacional
   assert.ok(Math.abs(a.tec - 70) <= 4 && Math.abs(a.fis - 70) <= 1);
   const gk = atributos3d(players.find(p => p.name === 'Jog1')!);
   assert.equal(gk.gk, 77);   // media de diving, handling, reflexes, posGK, onos, kicking = (80*5+60)/6
-  assert.equal(paisDoJogador(cm, 45), '45');
+  assert.equal(paisDoJogador(cm, 45), '45');   // 54 (Brasil no jogo de origem) -> 45
+});
+
+test('Inglaterra (pais 14): as ligas novas existem, e o overlay usa os jogadores no clube casado; bandeira 14 -> 65', async () => {
+  const ing = { country: 14, clubs: [{ id: 25, name: 'Clube Ingles', tier: 2, gameTeamId: 650025, players: [{ ...jogador(1, 'GK', 'first_team'), nationality: 14 }, { ...jogador(2, 'CM', 'first_team'), nationality: 50 }], staff: [] }] };
+  globalThis.fetch = (async (url: string) => String(url).endsWith('/14') ? { ok: true, json: async () => ing } : { ok: false }) as any;
+  assert.equal(await carregarDadosLocais(), true);
+  const champ = generateLeagueData('65', 'eng_champ');
+  assert.equal(champ.teams.length, 24);
+  assert.ok(champ.players.some(p => p.name === 'Jog1' && p.teamId === '650025'));
+  assert.equal(generateLeagueData('65', 'eng_l1').teams.length, 24);
+  assert.equal(generateLeagueData('65', 'eng_l2').teams.length, 24);
+  assert.equal(generateLeagueData('65', 'eng_prem').teams.length, 20);
+  const gk = champ.players.find(p => p.name === 'Jog1')!, outro = champ.players.find(p => p.name === 'Jog2')!;
+  assert.equal(paisDoJogador(gk, 65), '65');
+  assert.equal(paisDoJogador(outro, 65), null);   // codigo 50 sem bandeira conhecida: nada de bandeira errada
 });

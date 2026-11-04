@@ -1,5 +1,5 @@
 """Parse CountryData54.sav (Brazilian series A-D) into JSON.
-Usage: python parse_countrydata.py <input.sav> <output.json> [--game]
+Usage: python parse_countrydata.py <input.sav> <output.json> [--game [--country N] [--max-tier T]]
 --game writes the compact CountryData<N>.json the game loads; without it, a full dump with raw lines.
 Known fields are named; the rest kept as raw line arrays for later mapping."""
 import json, re, sys
@@ -77,7 +77,8 @@ def main(src, dst):
                 'short_name': csv_line(inner[q + 2])[0], 'abbr': csv_line(inner[q + 4])[0],
                 'nickname': csv_line(inner[q + 7])[0], 'stadium': csv_line(inner[q + 10])[0],
                 'address': inner[q + 20] if q + 20 < len(inner) else '',
-                'website': inner[q + 22], 'players': [], 'staff': []}
+                'website': inner[q + 22], 'founded': int(inner[q + 30] or 0), 'fan_base': int(inner[q + 37].split(',')[0] or 0),
+                'players': [], 'staff': []}
         k = 0
         while k < len(inner):
             if inner[k] == '%INDEX%PLAYER':
@@ -89,21 +90,28 @@ def main(src, dst):
     json.dump({'competitions': comps, 'clubs': clubs}, open(dst, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     print(len(clubs), 'clubs', sum(len(c['players']) for c in clubs), 'players', sum(len(c['staff']) for c in clubs), 'staff')
 
-def tier(club_id):
-    # file order: 1-20 Serie A, 21-40 B, 41-60 C, rest D / regional (inferred from club order, not stored in the file)
-    return 1 if club_id <= 20 else 2 if club_id <= 40 else 3 if club_id <= 60 else 4
+# Last club id of each division, by country (inferred from club order, not stored in the file; checked against club lists).
+# 54 Brazil: 1-20 A, 21-40 B, 41-60 C, rest D/regional. 14 England: 1-20 Premier League, 21-44 Championship, 45-68 League One, 69-92 League Two, rest lower.
+TIER_ENDS = {54: [20, 40, 60], 14: [20, 44, 68, 92]}
+COUNTRY = 54
 
-def export_game_json(src, dst):
+def tier(club_id):
+    for t, end in enumerate(TIER_ENDS[COUNTRY], 1):
+        if club_id <= end: return t
+    return len(TIER_ENDS[COUNTRY]) + 1
+
+def export_game_json(src, dst, max_tier=None):
     """Compact JSON the game loads as CountryData<country>.json."""
     import io, os
     tmp = dst + '.tmp'
     main(src, tmp)
     d = json.load(open(tmp, encoding='utf-8')); os.remove(tmp)
-    out = {'country': 54, 'source': os.path.basename(src), 'clubs': []}
+    out = {'country': COUNTRY, 'source': os.path.basename(src), 'clubs': []}
     for c in d['clubs']:
+        if max_tier and tier(c['id']) > max_tier: continue   # e.g. --max-tier 3: only the top three divisions
         out['clubs'].append({
             'id': c['id'], 'name': c['name'], 'shortName': c['short_name'], 'abbr': c['abbr'],
-            'nickname': c['nickname'], 'stadium': c['stadium'], 'tier': tier(c['id']),
+            'nickname': c['nickname'], 'stadium': c['stadium'], 'founded': c['founded'], 'fanBase': c['fan_base'], 'tier': tier(c['id']),
             'players': [{
                 'firstName': p['first_name'], 'lastName': p['last_name'], 'shortName': p['short_name'],
                 'birthDate': p['birth'], 'nationality': p['nationality'], 'nationality2': p['nationality2'], 'fifaId': p['fifa_id'], 'position': p['main_position'],
@@ -116,6 +124,8 @@ def export_game_json(src, dst):
     json.dump(out, open(dst, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
 
 if len(sys.argv) > 3 and sys.argv[3] == '--game':
-    export_game_json(*sys.argv[1:3])
+    a = sys.argv
+    if '--country' in a: COUNTRY = int(a[a.index('--country') + 1])
+    export_game_json(a[1], a[2], int(a[a.index('--max-tier') + 1]) if '--max-tier' in a else None)
 else:
     main(*sys.argv[1:3])
