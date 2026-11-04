@@ -3,7 +3,7 @@ import { assetUrl } from '../textSim/assetUrl';
 import { useGame } from '../context/GameContext';
 import { COUNTRIES } from '../textSim/dataGenerator';
 import { WorldLeague, buildTable } from '../textSim/world';
-import { Competition, CompMatch, FaseVista, NOMES_FASES, fasesDeSerieCD, ligaDoUtilizador, mapaDeClubes, ordemDoGrupoVista, tabelaDoGrupo, teamKey, vencedorDoConfronto } from '../textSim/competitions';
+import { Competition, CompMatch, ehLigaFase, FaseVista, NOMES_FASES, fasesDeSerieCD, ligaDoUtilizador, mapaDeClubes, ordemDoGrupoVista, tabelaDoGrupo, teamKey, vencedorDoConfronto } from '../textSim/competitions';
 import { Fixture, Team, naLigaDoUtilizador } from '../types';
 import { TeamShield } from './TeamShield';
 
@@ -17,7 +17,7 @@ const bandeira = (countryId: string) => assetUrl(`/Assets/Bandeiras/${countryId}
 const logoCopa = (id: string) => assetUrl(`/Assets/Competicoes/${id}.png`);
 // Nomes das abas das Series C e D (as fases do regulamento).
 const NOME_FASE_BR: Record<string, string> = { 'SERIE_C:G': 'Segunda fase', 'SERIE_C:F': 'Final', 'SERIE_D:R64': 'Segunda fase', 'SERIE_D:R32': 'Terceira fase', 'SERIE_D:R16': 'Oitavas de final', 'SERIE_D:QF': 'Quartas de final', 'SERIE_D:SF': 'Semi final', 'SERIE_D:PA': 'Playoffs de acesso', 'SERIE_D:F': 'Final' };
-const nomeGrupo = (c: Competition, g: string) => c.id === 'UCL' ? 'League phase' : c.id === 'PAULISTA' ? 'First phase' : (c.id === 'SERIE_C' && g === 'L') ? 'First phase' : (c.id === 'SERIE_C' && /^G\d$/.test(g)) ? 'Group ' + g.slice(1) : 'Group ' + g;
+const nomeGrupo = (c: Competition, g: string) => ehLigaFase(c.id) ? 'League phase' : c.id === 'PAULISTA' ? 'First phase' : (c.id === 'SERIE_C' && g === 'L') ? 'First phase' : (c.id === 'SERIE_C' && /^G\d$/.test(g)) ? 'Group ' + g.slice(1) : 'Group ' + g;
 
 // As Series C e D do Brasil sao competicoes (com a fase final): quando o utilizador joga numa delas, a liga dele nao aparece a parte (seria a mesma divisao duas vezes).
 const COMP_DA_LIGA: Record<string, Competition['id']> = { bra_serie_c: 'SERIE_C', bra_serie_d: 'SERIE_D' };
@@ -206,18 +206,18 @@ const WorldView: React.FC = () => {
     const fasesSerie = (c.id === 'SERIE_C' || c.id === 'SERIE_D') ? fasesDeSerieCD(c, ordemVista(c)) : null;
     const fasesTodas = Array.from(new Set(c.matches.filter(m => !m.group).map(m => m.stage)));
     // Champions: o playoff tem a sua aba (entre Groups e Knockout); o Knockout so mostra as fases seguintes.
-    const fases = c.id === 'UCL' ? (aba === 'PLAYOFF' ? ['PO'].filter(f => fasesTodas.includes(f)) : fasesTodas.filter(f => f !== 'PO')) : fasesTodas;
+    const fases = ehLigaFase(c.id) ? (aba === 'PLAYOFF' ? ['PO'].filter(f => fasesTodas.includes(f)) : fasesTodas.filter(f => f !== 'PO')) : fasesTodas;
     return (
       <>
         <div className="flex gap-2 p-3 border-b border-slate-200 dark:border-slate-800 items-center">
-          {(fasesSerie ? ['P1', ...fasesSerie.map(f => 'F:' + f.stage), 'JOGOS'] : c.groups ? ['GRUPOS', ...(c.id === 'UCL' ? ['PLAYOFF'] : []), 'MATA', 'JOGOS'] : ['MATA', 'JOGOS']).map(a => (
+          {(fasesSerie ? ['P1', ...fasesSerie.map(f => 'F:' + f.stage), 'JOGOS'] : c.groups ? ['GRUPOS', ...(ehLigaFase(c.id) ? ['PLAYOFF'] : []), 'MATA', 'JOGOS'] : ['MATA', 'JOGOS']).map(a => (
             <button key={a} onClick={() => setAba(a)} className={`px-4 py-1.5 rounded text-[11px] font-black uppercase tracking-widest ${aba === a ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>{fasesSerie ? (a === 'P1' ? 'Primeira fase' : a === 'JOGOS' ? 'Todos os jogos' : (NOME_FASE_BR[c.id + ':' + a.slice(2)] || a)) : (a === 'GRUPOS' ? 'Groups' : a === 'PLAYOFF' ? 'Playoffs' : a === 'MATA' ? 'Knockout' : 'All matches')}</button>
           ))}
           {c.champion && <span className="ml-auto flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-amber-500">🏆 Champion <Escudo k={c.champion} /> {nomeDe(c.champion)}</span>}
         </div>
         <div className="flex-1 overflow-auto custom-scrollbar p-3">
           {(aba === 'GRUPOS' || aba === 'P1' || (aba === 'F:G' && !!c.groups?.G1)) && c.groups && (
-            <div className={`grid ${c.id === 'UCL' ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
+            <div className={`grid ${ehLigaFase(c.id) ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
               {(aba === 'F:G' ? ['G1', 'G2'] : (aba === 'P1' && c.id === 'SERIE_C') ? ['L'] : Object.keys(c.groups)).map(g => (
                 <div key={g} className="rounded border border-slate-200 dark:border-slate-800 overflow-hidden">
                   <div className="px-3 py-1 bg-slate-100 dark:bg-slate-950/70 text-[10px] font-black uppercase tracking-widest text-slate-500">{nomeGrupo(c, g)}</div>
@@ -226,7 +226,7 @@ const WorldView: React.FC = () => {
                     <tbody>
                       {tabelaDaVista(c, g).map((r, i) => (
                         <tr key={r.key} style={souEu(r.key) ? HACHURA : undefined}>
-                          <td className="px-3 py-1 text-xs font-bold text-slate-800 dark:text-slate-200"><div className="flex items-center gap-2"><span className={`w-3 text-[10px] ${c.id === 'UCL' ? (i < 8 ? 'text-emerald-500' : i < 24 ? 'text-amber-500' : 'text-red-400') : (i < (c.id === 'PAULISTA' ? 8 : 2) ? 'text-emerald-500' : 'text-slate-400')}`}>{i + 1}</span><Escudo k={r.key} /><span className="truncate">{nomeDe(r.key)}</span></div></td>
+                          <td className="px-3 py-1 text-xs font-bold text-slate-800 dark:text-slate-200"><div className="flex items-center gap-2"><span className={`w-3 text-[10px] ${ehLigaFase(c.id) ? (i < 8 ? 'text-emerald-500' : i < 24 ? 'text-amber-500' : 'text-red-400') : (i < (c.id === 'PAULISTA' ? 8 : 2) ? 'text-emerald-500' : 'text-slate-400')}`}>{i + 1}</span><Escudo k={r.key} /><span className="truncate">{nomeDe(r.key)}</span></div></td>
                           {[r.played, r.won, r.drawn, r.lost, r.gf - r.ga].map((v, k) => <td key={k} className="px-2 py-1 text-center text-xs text-slate-600 dark:text-slate-300">{k === 4 && v > 0 ? '+' + v : v}</td>)}
                           <td className="px-2 py-1 text-center text-xs font-black text-blue-600 dark:text-white">{r.points}</td>
                         </tr>
@@ -313,7 +313,7 @@ const WorldView: React.FC = () => {
     const ordem = (COUNTRIES as any[]).map(c => c.id);
     return Array.from(m.values()).sort((x, y) => ordem.indexOf(x.id) - ordem.indexOf(y.id)).map(p => ({ ...p, itens: p.itens.sort((a, b) => a.tier - b.tier) }));
   })();
-  const copasSoltas = comps.filter(c => c.id === 'UCL' || c.id === 'LIB' || c.id === 'SUL' || c.id === 'COPA_BR');
+  const copasSoltas = comps.filter(c => ehLigaFase(c.id) || c.id === 'CARABAO' || c.id === 'LIB' || c.id === 'SUL' || c.id === 'COPA_BR');
 
   return (
     <div className="h-full flex flex-col animate-fade-in min-h-0">
