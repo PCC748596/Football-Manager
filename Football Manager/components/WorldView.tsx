@@ -17,7 +17,7 @@ const bandeira = (countryId: string) => assetUrl(`/Assets/Bandeiras/${countryId}
 const logoCopa = (id: string) => assetUrl(`/Assets/Competicoes/${id}.png`);
 // Nomes das abas das Series C e D (as fases do regulamento).
 const NOME_FASE_BR: Record<string, string> = { 'SERIE_C:G': 'Segunda fase', 'SERIE_C:F': 'Final', 'SERIE_D:R64': 'Segunda fase', 'SERIE_D:R32': 'Terceira fase', 'SERIE_D:R16': 'Oitavas de final', 'SERIE_D:QF': 'Quartas de final', 'SERIE_D:SF': 'Semi final', 'SERIE_D:PA': 'Playoffs de acesso', 'SERIE_D:F': 'Final' };
-const nomeGrupo = (c: Competition, g: string) => c.id === 'UCL' ? 'League phase' : (c.id === 'SERIE_C' && g === 'L') ? 'First phase' : (c.id === 'SERIE_C' && /^G\d$/.test(g)) ? 'Group ' + g.slice(1) : 'Group ' + g;
+const nomeGrupo = (c: Competition, g: string) => c.id === 'UCL' ? 'League phase' : c.id === 'PAULISTA' ? 'First phase' : (c.id === 'SERIE_C' && g === 'L') ? 'First phase' : (c.id === 'SERIE_C' && /^G\d$/.test(g)) ? 'Group ' + g.slice(1) : 'Group ' + g;
 
 type Selecao = { tipo: 'LIGA'; id: string } | { tipo: 'COPA'; id: Competition['id'] };
 
@@ -217,7 +217,7 @@ const WorldView: React.FC = () => {
                     <tbody>
                       {tabelaDaVista(c, g).map((r, i) => (
                         <tr key={r.key} className={souEu(r.key) ? 'bg-blue-600/10' : ''}>
-                          <td className="px-3 py-1 text-xs font-bold text-slate-800 dark:text-slate-200"><div className="flex items-center gap-2"><span className={`w-3 text-[10px] ${c.id === 'UCL' ? (i < 8 ? 'text-emerald-500' : i < 24 ? 'text-amber-500' : 'text-red-400') : (i < 2 ? 'text-emerald-500' : 'text-slate-400')}`}>{i + 1}</span><Escudo k={r.key} /><span className="truncate">{nomeDe(r.key)}</span></div></td>
+                          <td className="px-3 py-1 text-xs font-bold text-slate-800 dark:text-slate-200"><div className="flex items-center gap-2"><span className={`w-3 text-[10px] ${c.id === 'UCL' ? (i < 8 ? 'text-emerald-500' : i < 24 ? 'text-amber-500' : 'text-red-400') : (i < (c.id === 'PAULISTA' ? 8 : 2) ? 'text-emerald-500' : 'text-slate-400')}`}>{i + 1}</span><Escudo k={r.key} /><span className="truncate">{nomeDe(r.key)}</span></div></td>
                           {[r.played, r.won, r.drawn, r.lost, r.gf - r.ga].map((v, k) => <td key={k} className="px-2 py-1 text-center text-xs text-slate-600 dark:text-slate-300">{k === 4 && v > 0 ? '+' + v : v}</td>)}
                           <td className="px-2 py-1 text-center text-xs font-black text-blue-600 dark:text-white">{r.points}</td>
                         </tr>
@@ -299,7 +299,7 @@ const WorldView: React.FC = () => {
       jaTem.add(l.leagueId);
       pais(l.countryId, l.countryName).itens.push({ sel: { tipo: 'LIGA', id: l.leagueId }, titulo: l.leagueName, sub: `${l.teams.length} clubs`, tier: l.tier });
     });
-    comps.filter(c => c.id === 'SERIE_C' || c.id === 'SERIE_D').forEach(c => pais('45', 'Brazil').itens.push({ sel: { tipo: 'COPA', id: c.id }, titulo: c.name, sub: `${c.teamKeys.length} clubs${c.champion ? ' · finished' : ''}`, tier: c.id === 'SERIE_C' ? 3 : 4 }));
+    comps.filter(c => c.id === 'SERIE_C' || c.id === 'SERIE_D' || c.id === 'PAULISTA').forEach(c => pais('45', 'Brazil').itens.push({ sel: { tipo: 'COPA', id: c.id }, titulo: c.name, sub: `${c.teamKeys.length} clubs${c.champion ? ' · finished' : ''}`, tier: c.id === 'SERIE_C' ? 3 : c.id === 'SERIE_D' ? 4 : 5 }));
     const ordem = (COUNTRIES as any[]).map(c => c.id);
     return Array.from(m.values()).sort((x, y) => ordem.indexOf(x.id) - ordem.indexOf(y.id)).map(p => ({ ...p, itens: p.itens.sort((a, b) => a.tier - b.tier) }));
   })();

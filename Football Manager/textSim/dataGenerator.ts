@@ -76,7 +76,7 @@ export const generatePlayer = (teamId: string, position: Position, idCounter: nu
   // Keeps economy sustainable with initialCapital ~10M
   const salary = Math.max(500, Math.round(calculatedValue * 0.002));
 
-  const expiryYear = 2024 + randomInt(1, 4);
+  const expiryYear = 2026 + randomInt(1, 4);
   const expiryWeek = randomInt(1, 38);
 
   return {
@@ -368,9 +368,9 @@ export const generateFixtures = (teams: Team[], leagueId: string): Fixture[] => 
     // Série B: Fri(5), Sat(6), Tue(2), Wed(3)
     const allowedDays = leagueId.includes('serie_b') ? [2, 3, 5, 6] : [0, 3, 4, 6];
 
-    let cursor = new Date('2024-04-14T12:00:00'); // Start on a Sunday (Serie A) or Friday (Serie B)
+    let cursor = new Date('2026-04-12T12:00:00'); // Start on a Sunday (Serie A) or Friday (Serie B)
     if (leagueId.includes('serie_b')) {
-      cursor = new Date('2024-04-12T12:00:00'); // Friday April 12th
+      cursor = new Date('2026-04-10T12:00:00'); // Friday April 12th
     }
 
     const minGapDays = 3;
@@ -397,7 +397,7 @@ export const generateFixtures = (teams: Team[], leagueId: string): Fixture[] => 
   // First half of season
   for (let round = 0; round < numRounds; round++) {
     const week = round + 1;
-    const dateStr = matchDates[round] || '2024-04-06';
+    const dateStr = matchDates[round] || '2026-04-04';
 
     for (let match = 0; match < matchesPerRound; match++) {
       const home = roundTeams[match];
@@ -444,7 +444,7 @@ export const generateFixtures = (teams: Team[], leagueId: string): Fixture[] => 
   const firstHalf = [...fixtures];
   firstHalf.forEach(f => {
     const week = f.week + numRounds;
-    const dateStr = matchDates[week - 1] || '2024-10-01';
+    const dateStr = matchDates[week - 1] || '2026-09-29';
 
     fixtures.push({
       id: `fix-${leagueId}-w${week}-${f.homeTeamId}-${f.awayTeamId}`,
@@ -481,6 +481,8 @@ export const FAIXA_OVR_LIGA_OCULTA: [number, number] = [75, 70];
 
 export const faixaDeOvr = (countryId: string, league: any): [number, number] | null => {
   if (!league) return null;
+  // Os clubes gerados da liga oculta do Brasil (ex.: Capivariano, do Paulistao) saem no nivel da Serie C.
+  if ((league.hidden || league.tier >= 9) && countryId === '45') return FAIXA_OVR_BRASIL[3];
   if (league.hidden || league.tier >= 9) return FAIXA_OVR_LIGA_OCULTA;
   if (countryId === '45') return FAIXA_OVR_BRASIL[league.tier] || null;
   const pais: any = COUNTRIES.find((c: any) => c.id === countryId);
@@ -538,7 +540,7 @@ export const ajustarLigaParaFaixa = (teams: Team[], players: Player[], faixa: [n
 /** Quantos pontos acima do clube mais forte da divisao um jogador gerado pode chegar. */
 const TETO_ACIMA_DA_FAIXA = 5;
 
-const DATA_BASE_VALOR = '2024-04-01';
+const DATA_BASE_VALOR = '2026-01-01';
 export const generateLeagueData = (countryId: string, leagueId: string = '') => {
   const teams: Team[] = [];
   const players: Player[] = [];
@@ -633,7 +635,7 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
       // So os dados locais (CountryData) e a 1.a divisao (fora do Brasil) ficam como vem; nas divisoes de baixo a base tem jogadores de 88-96 em clubes pequenos, que a faixa de OVR reescala.
       if (jogadoresLocaisDoClube(Number(t.teamID)) || (league?.tier === 1 && countryId !== '45')) comJogadoresReais.add(team.id);
       realPlayers.forEach((p: any, index) => {
-        const expiryYear = 2024 + randomInt(1, 4);
+        const expiryYear = 2026 + randomInt(1, 4);
         const expiryWeek = randomInt(1, 38);
 
         // Calculated Salary for Real Players: 0.2% of Value to match game economy

@@ -6,11 +6,11 @@ import { semearTreinadores, atualizarTreinadores } from '../textSim/managerExpec
 
 // Calibragem com a base real: um ano com todas as ligas do mundo, a cada 3 dias. Protege contra demissoes em massa (o primeiro desenho dava 125% dos clubes).
 test('mercado de treinadores na base real: demissoes moderadas e nenhum clube sem treinador', () => {
-  let w = createWorld(undefined, '2024-03-01');
+  let w = createWorld(undefined, '2026-03-01');
   const ligas = () => w.map(l => snapDeLiga(l.leagueId, l.teams, l.fixtures));
   let estado = semearTreinadores(ligas());
   let demissoes = 0;
-  const d0 = new Date('2024-03-01T12:00:00').getTime();
+  const d0 = new Date('2026-03-01T12:00:00').getTime();
   for (let dia = 0; dia < 400; dia += 3) {
     const d = new Date(d0 + dia * 86400000).toISOString().slice(0, 10);
     w = simulateWorldTo(w, d);

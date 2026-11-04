@@ -304,7 +304,8 @@ export const REAL_COUNTRIES_JSON: any[] = [
           451127,
           451128,
           451129,
-          451130
+          451130,
+          451131
         ],
         "promoted": 0,
         "relegated": 0,
@@ -23678,8 +23679,8 @@ export const REAL_TEAMS_JSON: any[] = [
     "color": "#fb0c0c",
     "color2": "#fbf4f4",
     "color3": "",
-    "teamCityName": "São Paulo",
-    "teamStadiumName": "Estádio Municipal de São Paulo",
+    "teamCityName": "Bauru",
+    "teamStadiumName": "Estádio Alfredo de Castilho",
     "yearOfFoundation": 0,
     "initialCapital": 900000,
     "initialTransfer": 450000,
@@ -23736,7 +23737,7 @@ export const REAL_TEAMS_JSON: any[] = [
     "color2": "#fdfdfc",
     "color3": "",
     "teamCityName": "São Paulo",
-    "teamStadiumName": "Estádio Municipal de São Paulo",
+    "teamStadiumName": "Estádio do Canindé",
     "yearOfFoundation": 0,
     "initialCapital": 500000,
     "initialTransfer": 250000,
@@ -25264,6 +25265,63 @@ export const REAL_TEAMS_JSON: any[] = [
       "numberColor": "white",
       "numberOutlineColor": "",
       "collarColor": "#ffffff",
+      "sleeveColor": ""
+    }
+  },
+  {
+    "teamID": 451131,
+    "teamName": "Capivariano-SP",
+    "teamAbb": "CAV",
+    "color": "#15803d",
+    "color2": "#ffffff",
+    "color3": "",
+    "teamCityName": "Capivari",
+    "teamStadiumName": "Estádio Municipal de Capivari",
+    "yearOfFoundation": 0,
+    "initialCapital": 500000,
+    "initialTransfer": 250000,
+    "sponsorAmount": 0,
+    "fanBase": 3000,
+    "avrAttendance": 750,
+    "country": "45",
+    "homeKit": {
+      "pattern": "stripes",
+      "color1": "#15803d",
+      "color2": "#ffffff",
+      "color3": "",
+      "numberColor": "#ffffff",
+      "numberOutlineColor": "",
+      "collarColor": "#111111",
+      "sleeveColor": ""
+    },
+    "awayKit": {
+      "pattern": "solid",
+      "color1": "#ffffff",
+      "color2": "",
+      "color3": "",
+      "numberColor": "#15803d",
+      "numberOutlineColor": "",
+      "collarColor": "#15803d",
+      "sleeveColor": ""
+    },
+    "thirdKit": {
+      "pattern": "solid",
+      "color1": "#111111",
+      "color2": "",
+      "color3": "",
+      "numberColor": "#ffffff",
+      "numberOutlineColor": "",
+      "collarColor": "#ffffff",
+      "sleeveColor": ""
+    },
+    "gkKit": {
+      "pattern": "solid",
+      "color1": "#0ea5e9",
+      "color2": "",
+      "color3": "",
+      "numberColor": "white",
+      "numberOutlineColor": "",
+      "collarColor": "#111111",
       "sleeveColor": ""
     }
   },

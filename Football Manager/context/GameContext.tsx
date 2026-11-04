@@ -5,7 +5,7 @@ import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/data
 import { gruposDaSerieD } from '../textSim/competitions';
 import { espacarCalendario, comDatasDeCopa } from '../textSim/calendario';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, buildTable } from '../textSim/world';
-import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disputaPendente, prepararCopas, ligaIdDoClube, teamKey } from '../textSim/competitions';
+import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disputaPendente, prepararCopas, ligaIdDoClube, teamKey, ehDoPaulista } from '../textSim/competitions';
 import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
 import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, avisoDeBonusPatrocinio } from '../textSim/inbox';
@@ -322,7 +322,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return {
       currentWeek: 1,
       totalWeeks: 0,
-      currentDate: '2024-04-01',
+      currentDate: '2026-01-01',
       userTeamId: null,
       managerName: '',
       isProcessing: false,
@@ -844,13 +844,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (formato === 'SERIE_C') initFixtures = initFixtures.filter(f => f.week <= initTeams.length - 1);   // so o 1.o turno
 
     // --- CPU FRIENDLY SCHEDULING (PRE-SEASON) ---
-    const preseasonDates = ["2024-04-04", "2024-04-07", "2024-04-11"];
+    // Os clubes do Paulistao comecam em janeiro (a bola rola na 3.a semana); os outros, a 1 de janeiro nao tem jogos ate abril: a pre-temporada deles fica perto do inicio da liga.
+    const preseasonPaulista = ["2026-01-04", "2026-01-07", "2026-01-11"], preseasonOutros = ["2026-04-02", "2026-04-05", "2026-04-09"];
     const cpuFriendlies: Fixture[] = [];
 
     initTeams.forEach(team => {
       if (team.id === teamId) return; // Player schedules their own via UI
 
-      preseasonDates.forEach(date => {
+      (ehDoPaulista(team.name) ? preseasonPaulista : preseasonOutros).forEach(date => {
         const hasMatch = [...initFixtures, ...cpuFriendlies].some(f => f.date === date && (f.homeTeamId === team.id || f.awayTeamId === team.id));
         if (hasMatch) return;
 
@@ -886,8 +887,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const jornadasDaLiga = initFixtures.reduce((m, f) => Math.max(m, f.week || 0), 0) || 38;
 
     // O MUNDO e as COPAS: criam-se agora, para os jogos de copa do utilizador entrarem no calendario desde o primeiro dia.
-    const mundo = createWorld(leagueId, '2024-04-01', null);
-    const copas = prepararCopas({ world: mundo, userTeamId: teamId, teams: initTeams, players: initPlayers, fixtures: initFixtures, date: '2024-04-01', comps: null });
+    const mundo = createWorld(leagueId, '2026-01-01', null);
+    const copas = prepararCopas({ world: mundo, userTeamId: teamId, teams: initTeams, players: initPlayers, fixtures: initFixtures, date: '2026-01-01', comps: null });
     worldSaved.current = null; compsSaved.current = null;
     setWorld(mundo);
     if (copas) {
@@ -907,7 +908,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...prev,
       currentWeek: 1,
       totalWeeks: jornadasDaLiga,
-      currentDate: '2024-04-01',
+      currentDate: '2026-01-01',
       userTeamId: teamId,
       managerName,
       view: 'DASHBOARD',

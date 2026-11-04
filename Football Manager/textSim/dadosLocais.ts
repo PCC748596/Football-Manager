@@ -18,7 +18,7 @@ export const PAISES_DOS_DADOS_LOCAIS = [54, 14, 27, 21, 45, 18, 38, 52];
 const BANDEIRA_DO_CODIGO: Record<string, string> = { '54': '45', '14': '65', '27': '68', '21': '67', '45': '66', '18': '69', '38': '81', '52': '52', '53': '53', '55': '55', '56': '56', '57': '57', '58': '58', '59': '59', '60': '60', '61': '61' };
 export const bandeiraDoCodigo = (cod: string): string | null => BANDEIRA_DO_CODIGO[cod] ?? null;
 /** A data de arranque do jogo (GameContext.startGame): as idades saem dela. */
-const DATA_DE_ARRANQUE = '2024-04-01';
+const DATA_DE_ARRANQUE = '2026-01-01';
 /** Tamanho minimo do plantel (o gerador completa com tapa-buracos abaixo de 28). */
 const PLANTEL_MINIMO = 28;
 

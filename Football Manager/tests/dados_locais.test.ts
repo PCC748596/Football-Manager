@@ -38,7 +38,7 @@ test('com ficheiro, a partida nova usa os jogadores dele no clube casado e compl
   assert.ok(doClube.length >= 28);
   const gk = doClube.find(p => p.name === 'Jog1')!;
   assert.equal(gk.position, 'GK');
-  assert.ok(gk.birthDate === '1999-07-23' && gk.age === 24);
+  assert.ok(gk.birthDate === '1999-07-23' && gk.age === 26);
   assert.ok(!doClube.some(p => p.name === 'Jog40'));
   // os outros clubes ficam como estavam
   assert.ok(!players.filter(p => p.teamId !== t.id).some(p => p.name.startsWith('Jog')));

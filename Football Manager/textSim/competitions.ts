@@ -26,7 +26,7 @@ export interface CompMatch {
 }
 
 export interface Competition {
-  id: 'LIB' | 'SUL' | 'COPA_BR' | 'SERIE_C' | 'SERIE_D' | 'UCL';
+  id: 'LIB' | 'SUL' | 'COPA_BR' | 'SERIE_C' | 'SERIE_D' | 'UCL' | 'PAULISTA';
   name: string;
   teamKeys: string[];
   groups?: Record<string, string[]>;
@@ -53,31 +53,45 @@ export const VAGAS: Record<'LIB' | 'SUL', Record<string, number>> = {
 
 // Champions League: vagas por pais (id do pais; 36 clubes). Inglaterra, Espanha, Alemanha, Italia e Franca tem a liga completa; os outros paises so 5 clubes (liga oculta).
 export const VAGAS_UCL: Record<string, number> = { '65': 5, '66': 5, '67': 4, '68': 4, '69': 3, '70': 2, '80': 2, '81': 2, '82': 2, '83': 1, '84': 1, '85': 1, '86': 1, '87': 1, '88': 1, '89': 1 };
-const GRUPOS_UCL = ['2024-04-17', '2024-05-01', '2024-05-15', '2024-05-29', '2024-06-12', '2024-06-26', '2024-07-17', '2024-07-31'];
-const FASES_UCL = [{ nome: 'PO', datas: ['2024-08-28', '2024-09-04'] }, { nome: 'R16', datas: ['2024-10-02', '2024-10-09'] }, { nome: 'QF', datas: ['2024-10-30', '2024-11-06'] },
-  { nome: 'SF', datas: ['2024-11-20', '2024-11-27'] }, { nome: 'F', datas: ['2024-12-14'] }];
+const GRUPOS_UCL = ['2026-04-15', '2026-04-29', '2026-05-13', '2026-05-27', '2026-06-10', '2026-06-24', '2026-07-15', '2026-07-29'];
+const FASES_UCL = [{ nome: 'PO', datas: ['2026-08-26', '2026-09-02'] }, { nome: 'R16', datas: ['2026-09-30', '2026-10-07'] }, { nome: 'QF', datas: ['2026-10-28', '2026-11-04'] },
+  { nome: 'SF', datas: ['2026-11-18', '2026-11-25'] }, { nome: 'F', datas: ['2026-12-12'] }];
 
 // Datas (temporada 2024). Libertadores nas terças, Sul-Americana nas quartas e Copa do Brasil em outras semanas, para ninguém jogar duas vezes no mesmo dia.
-const GRUPOS_LIB = ['2024-04-09', '2024-04-23', '2024-05-07', '2024-05-21', '2024-06-04', '2024-06-18'];
-const GRUPOS_SUL = ['2024-04-10', '2024-04-24', '2024-05-08', '2024-05-22', '2024-06-05', '2024-06-19'];
-const FASES_LIB = [{ nome: 'R16', datas: ['2024-08-13', '2024-08-20'] }, { nome: 'QF', datas: ['2024-09-17', '2024-09-24'] }, { nome: 'SF', datas: ['2024-10-22', '2024-10-29'] }, { nome: 'F', datas: ['2024-11-30'] }];
-const FASES_SUL = [{ nome: 'R16', datas: ['2024-08-14', '2024-08-21'] }, { nome: 'QF', datas: ['2024-09-18', '2024-09-25'] }, { nome: 'SF', datas: ['2024-10-23', '2024-10-30'] }, { nome: 'F', datas: ['2024-11-23'] }];
+const GRUPOS_LIB = ['2026-04-07', '2026-04-21', '2026-05-05', '2026-05-19', '2026-06-02', '2026-06-16'];
+const GRUPOS_SUL = ['2026-04-08', '2026-04-22', '2026-05-06', '2026-05-20', '2026-06-03', '2026-06-17'];
+const FASES_LIB = [{ nome: 'R16', datas: ['2026-08-11', '2026-08-18'] }, { nome: 'QF', datas: ['2026-09-15', '2026-09-22'] }, { nome: 'SF', datas: ['2026-10-20', '2026-10-27'] }, { nome: 'F', datas: ['2026-11-28'] }];
+const FASES_SUL = [{ nome: 'R16', datas: ['2026-08-12', '2026-08-19'] }, { nome: 'QF', datas: ['2026-09-16', '2026-09-23'] }, { nome: 'SF', datas: ['2026-10-21', '2026-10-28'] }, { nome: 'F', datas: ['2026-11-21'] }];
 const FASES_COPA = [
-  { nome: 'P1', datas: ['2024-04-10'] }, { nome: 'P2', datas: ['2024-04-24'] }, { nome: 'P3', datas: ['2024-05-08'] }, { nome: 'P4', datas: ['2024-05-22'] },
-  { nome: 'P5', datas: ['2024-06-12', '2024-07-10'] }, { nome: 'R16', datas: ['2024-08-07', '2024-08-21'] }, { nome: 'QF', datas: ['2024-09-11', '2024-09-25'] },
-  { nome: 'SF', datas: ['2024-10-09', '2024-10-23'] }, { nome: 'F', datas: ['2024-12-06'] }   // final em jogo unico a 6 de dezembro, como em 2026
+  { nome: 'P1', datas: ['2026-04-08'] }, { nome: 'P2', datas: ['2026-04-22'] }, { nome: 'P3', datas: ['2026-05-06'] }, { nome: 'P4', datas: ['2026-05-20'] },
+  { nome: 'P5', datas: ['2026-06-10', '2026-07-08'] }, { nome: 'R16', datas: ['2026-08-05', '2026-08-19'] }, { nome: 'QF', datas: ['2026-09-09', '2026-09-23'] },
+  { nome: 'SF', datas: ['2026-10-07', '2026-10-21'] }, { nome: 'F', datas: ['2026-12-04'] }   // final em jogo unico a 6 de dezembro, como em 2026
 ];
 
 // SERIE C (20 clubes): 1.a fase todos contra todos (19 rodadas, sabados), os 8 primeiros vao a 2 grupos de 4 (ida e volta, 6 rodadas), os 2 primeiros de cada grupo as meias (ida e volta) e final (ida e volta).
 // Os 4 semifinalistas sobem; os 4 ultimos da 1.a fase descem. Datas nominais (o agendador desloca o que coincidir com outro jogo do clube).
-const C_L_INICIO = '2024-04-13', C_G_INICIO = '2024-08-24';
-const FASES_C = [{ nome: 'F', datas: ['2024-11-02', '2024-11-09'] }];
+const C_L_INICIO = '2026-04-11', C_G_INICIO = '2026-08-22';
+const FASES_C = [{ nome: 'F', datas: ['2026-10-31', '2026-11-07'] }];
 // SERIE D (96 clubes, regulamento): 16 grupos de 6 (ida e volta, 10 rodadas, domingos); os 4 primeiros de cada grupo (64) vao ao mata-mata, SEMPRE em ida e volta e sem gol fora (saldo do
 // confronto e depois penaltis): 2.a fase (64), 3.a fase (32), oitavas, quartas, semifinal e final. Sobem 4: os 4 semifinalistas (sem playoff de acesso).
 // Os grupos seguem a ordem da liga (por regiao: Norte, Nordeste, Centro-Oeste, Sudeste, Sul). Desempate nos grupos: vitorias, saldo, golos, confronto direto.
-const D_INICIO = '2024-04-07';
-const FASES_D = [{ nome: 'R64', datas: ['2024-06-16', '2024-06-23'] }, { nome: 'R32', datas: ['2024-07-07', '2024-07-14'] }, { nome: 'R16', datas: ['2024-07-28', '2024-08-04'] },
-  { nome: 'QF', datas: ['2024-08-18', '2024-08-25'] }, { nome: 'SF', datas: ['2024-09-15', '2024-09-22'] }, { nome: 'F', datas: ['2024-10-13', '2024-10-20'] }];
+const D_INICIO = '2026-04-05';
+const FASES_D = [{ nome: 'R64', datas: ['2026-06-14', '2026-06-21'] }, { nome: 'R32', datas: ['2026-07-05', '2026-07-12'] }, { nome: 'R16', datas: ['2026-07-26', '2026-08-02'] },
+  { nome: 'QF', datas: ['2026-08-16', '2026-08-23'] }, { nome: 'SF', datas: ['2026-09-13', '2026-09-20'] }, { nome: 'F', datas: ['2026-10-11', '2026-10-18'] }];
+
+// CAMPEONATO PAULISTA (Serie A1, 2026): 16 clubes em 4 potes; fase classificatoria unica de 8 rodadas (cada clube joga 2 vezes contra cada pote, o seu incluido: 4 em casa e 4 fora), os 8
+// primeiros vao as quartas (1x8, 2x7, 3x6, 4x5, jogo unico em casa do melhor), meias em jogo unico (mando do melhor) e final em ida e volta (agregado e depois penaltis). Sem rebaixamento.
+// Nomes dos clubes na base. Datas: a bola rola na 3.a semana de janeiro e a final e na 3.a semana de marco.
+const POTES_PAULISTA = [
+  ['Corinthians-SP', 'Palmeiras-SP', 'Santos-SP', 'São Paulo-SP'],
+  ['São Bernardo-SP', 'Novorizontino-SP', 'Bragantino-SP', 'Mirassol-SP'],
+  ['Guarani-SP', 'Ponte Preta-SP', 'Velo Clube-SP', 'Portuguesa-SP'],
+  ['Primavera-SP', 'Capivariano-SP', 'Noroeste-SP', 'Botafogo-SP']
+];
+export const ehDoPaulista = (nome: string): boolean => POTES_PAULISTA.some(p => p.includes(nome));
+const RODADAS_PAULISTA = ['2026-01-15', '2026-01-22', '2026-01-29', '2026-02-05', '2026-02-12', '2026-02-19', '2026-02-26', '2026-03-05'];
+const FASES_PAULISTA = [{ nome: 'QF', datas: ['2026-03-08'] }, { nome: 'SF', datas: ['2026-03-12'] }, { nome: 'F', datas: ['2026-03-15', '2026-03-21'] }];
+const INICIO_PAULISTA = '2026-01-02';
 
 // Quem entra em cada fase da Copa do Brasil alem dos vencedores da anterior (por nome do clube na base).
 const COPA_CAMPEOES = new Set(['Paysandu-PA', 'Ponte Preta-SP', 'Confiança-SE', 'Barra-SC']);   // campeoes de competicoes de 2025: entram na 3.a fase
@@ -147,7 +161,10 @@ export const qualificados = (ligas: LigaParaCopas[]) => {
     const ordem: string[] = (((paisBR && paisBR.leagues.find((l: any) => l.id === id)) || {}).teamIds || []).map(String);   // a ordem da liga (por regiao na Serie D), nao a da base
     return (brasil.find(l => l.leagueId === id)?.teams || []).slice().sort((x, y) => ordem.indexOf(x.id) - ordem.indexOf(y.id)).map(t => ({ key: teamKey(id, t.id), team: t }));
   };
-  return { lib, sul, ucl, copa: { serieA, campeoes, outros }, serieC: daLiga('bra_serie_c'), serieD: daLiga('bra_serie_d') };
+  // Campeonato Paulista: os 16 clubes pelo nome na base (estejam na liga que estiverem; a chave leva a liga de cada um).
+  const paulista: { key: string; team: Team }[] = [], vistos = new Set<string>();
+  brasil.forEach(l => l.teams.forEach(t => { if (ehDoPaulista(t.name) && !vistos.has(t.name)) { vistos.add(t.name); paulista.push({ key: teamKey(l.leagueId, t.id), team: t }); } }));
+  return { lib, sul, ucl, paulista, copa: { serieA, campeoes, outros }, serieC: daLiga('bra_serie_c'), serieD: daLiga('bra_serie_d') };
 };
 
 const embaralhar = <T,>(a: T[]): T[] => { const r = a.slice(); for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; } return r; };
@@ -214,7 +231,7 @@ export const ocupacaoDe = (ligas: { leagueId: string; fixtures: import('../types
   return oc;
 };
 
-const INICIO_DA_EPOCA = '2024-04-02';
+const INICIO_DA_EPOCA = '2026-03-31';
 
 const jogosDeGrupo = (prefixo: string, grupos: Record<string, string[]>, datas: string[], oc: Ocupacao): CompMatch[] => {
   const out: CompMatch[] = [];
@@ -330,6 +347,65 @@ export const criarSerieD = (clubes: { key: string; team: Team }[], oc: Ocupacao 
   return { id: 'SERIE_D', name: 'Série D', teamKeys: keys, groups: grupos, matches, grupoExterno };
 };
 
+/** Os 64 jogos da fase classificatoria: 2 contra cada pote (um em casa, um fora), sem repetir adversario. */
+const sortearJogosPaulista = (potes: string[][]): [string, string][] => {
+  const sorteio = (n: number) => Math.floor(Math.random() * n);
+  let ultimo: [string, string][] = [];
+  for (let t = 0; t < 2000; t++) {
+    const pt = potes.map(embaralhar), jogos: [string, string][] = [];
+    for (const p of pt) for (let i = 0; i < p.length; i++) jogos.push([p[i], p[(i + 1) % p.length]]);
+    for (let p = 0; p < pt.length; p++) for (let q = p + 1; q < pt.length; q++) {
+      const a = sorteio(pt[q].length), b = sorteio(pt[p].length);
+      for (let i = 0; i < pt[p].length; i++) { jogos.push([pt[p][i], pt[q][(i + a) % pt[q].length]]); jogos.push([pt[q][i], pt[p][(i + b) % pt[p].length]]); }
+    }
+    ultimo = jogos;
+    if (new Set(jogos.map(([h, v]) => [h, v].sort().join('~'))).size === jogos.length) return jogos;
+  }
+  return ultimo;
+};
+
+/** Reparte os jogos em `n` rodadas em que cada clube joga uma vez (emparelhamento perfeito por rodada, com retrocesso). Devolve a rodada de cada jogo; sem solucao, null. */
+const repartirEmRodadas = (jogos: [string, string][], n: number): number[] | null => {
+  const clubes = Array.from(new Set(jogos.flat()));
+  for (let tentativa = 0; tentativa < 300; tentativa++) {
+    const rodada: number[] = jogos.map(() => -1);
+    let ok = true;
+    for (let r = 0; r < n && ok; r++) {
+      const ocupados = new Set<string>();
+      const resolver = (): boolean => {
+        const alvo = clubes.find(c => !ocupados.has(c));
+        if (!alvo) return true;
+        for (const i of embaralhar(jogos.map((_, k) => k).filter(k => rodada[k] < 0 && (jogos[k][0] === alvo || jogos[k][1] === alvo)))) {
+          const [h, v] = jogos[i];
+          if (ocupados.has(h) || ocupados.has(v)) continue;
+          ocupados.add(h); ocupados.add(v); rodada[i] = r;
+          if (resolver()) return true;
+          ocupados.delete(h); ocupados.delete(v); rodada[i] = -1;
+        }
+        return false;
+      };
+      ok = resolver();
+    }
+    if (ok && rodada.every(x => x >= 0)) return rodada;
+  }
+  return null;
+};
+
+/** O Campeonato Paulista: `clubes` sao os 16 (chave `liga|id`); os potes vem dos nomes na base (`POTES_PAULISTA`). */
+export const criarPaulistao = (clubes: { key: string; team: Team }[], oc: Ocupacao = new Map()): Competition => {
+  const porNome = new Map(clubes.map(c => [c.team.name, c.key]));
+  const potes = POTES_PAULISTA.map(p => p.map(n => porNome.get(n) as string));
+  const keys = clubes.slice().sort((a, b) => b.team.strength - a.team.strength).map(c => c.key);
+  const jogos = sortearJogosPaulista(potes);
+  const rodada = repartirEmRodadas(jogos, RODADAS_PAULISTA.length) || jogos.map((_, i) => i % RODADAS_PAULISTA.length);   // sem solucao perfeita o agendador desloca o que coincidir
+  const contagem: number[] = RODADAS_PAULISTA.map(() => 0);
+  const matches = jogos.map(([h, v], i) => {
+    const r = rodada[i];
+    return jogo(`PAULISTA-L-${r + 1}-${contagem[r]++}`, 'G' + (r + 1), agendarJogo(oc, RODADAS_PAULISTA[r], [h, v], INICIO_PAULISTA), h, v, { group: 'L' });
+  });
+  return { id: 'PAULISTA', name: 'Campeonato Paulista', teamKeys: keys, groups: { L: keys }, matches };
+};
+
 type Clube = { key: string; team: Team };
 /** Os pares [melhor, pior] por cabeca de serie (1.o contra o ultimo, 2.o contra o penultimo...). `seed`: posicao do clube na ordem de cabecas de serie (menor = melhor). */
 const parearPorSerie = (ks: string[], seed: (k: string) => number): [string, string][] => {
@@ -428,7 +504,7 @@ export const vencedorDoConfronto = (jogos: CompMatch[], teams: Map<string, Team>
   return ultimo.pens[0] > ultimo.pens[1] ? ultimo.homeKey : ultimo.awayKey;
 };
 
-const faseDoComp = (c: Competition) => (c.id === 'UCL' ? FASES_UCL : c.id === 'LIB' ? FASES_LIB : c.id === 'SUL' ? FASES_SUL : c.id === 'SERIE_C' ? FASES_C : c.id === 'SERIE_D' ? FASES_D : FASES_COPA);
+const faseDoComp = (c: Competition) => (c.id === 'UCL' ? FASES_UCL : c.id === 'LIB' ? FASES_LIB : c.id === 'SUL' ? FASES_SUL : c.id === 'SERIE_C' ? FASES_C : c.id === 'SERIE_D' ? FASES_D : c.id === 'PAULISTA' ? FASES_PAULISTA : FASES_COPA);
 
 /** Cria os jogos de uma fase a partir de pares [melhor, pior] (ida em casa do pior, volta em casa do melhor; jogo unico: em casa o 1.o). */
 const jogosDaFase = (c: Competition, fase: { nome: string; datas: string[] }, pares: [string, string][], oc: Ocupacao, minimoExtra: string = INICIO_DA_EPOCA): CompMatch[] => {
@@ -559,7 +635,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
       for (let i = 0; i < o.length / 2; i++) p.push([o[i], o[o.length - 1 - i]]);
       return p;
     };
-    const sequencia = c.id === 'COPA_BR' ? ['P1', 'P2', 'P3', 'P4', 'P5', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_D' ? ['R64', 'R32', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_C' ? ['F'] : ['R16', 'QF', 'SF', 'F'];
+    const sequencia = c.id === 'COPA_BR' ? ['P1', 'P2', 'P3', 'P4', 'P5', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_D' ? ['R64', 'R32', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_C' ? ['F'] : c.id === 'PAULISTA' ? ['QF', 'SF', 'F'] : ['R16', 'QF', 'SF', 'F'];
     const fase = (nome: string) => fases.find(f => f.nome === nome)!;
     const seed = (k: string) => c.teamKeys.indexOf(k);
 
@@ -591,6 +667,16 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         copia();
         const top8 = c.teamKeys.slice(0, 8);
         c.matches.push(...jogosDaFase(c, fase('R16'), top8.map((k, i) => [k, venc[7 - i]] as [string, string]), oc, somarDias(hoje, 1)));
+        progressou = true;
+      }
+    } else if (c.id === 'PAULISTA' && !temFase('QF')) {
+      // Fim da fase classificatoria: os 8 primeiros (pontos, vitorias, saldo, golos, confronto direto, sorteio) jogam as quartas: 1x8, 2x7, 3x6, 4x5, em casa do melhor.
+      if (c.matches.filter(m => m.group).every(m => m.played)) {
+        copia();
+        const ord = ordemDoGrupo(c, 'L', true);
+        c.teamKeys = ord.concat(c.teamKeys.filter(k => ord.indexOf(k) < 0));
+        const pares: [string, string][] = []; for (let i = 0; i < 4; i++) pares.push([ord[i], ord[7 - i]]);
+        c.matches.push(...jogosDaFase(c, fase('QF'), pares, oc, somarDias(hoje, 1)));
         progressou = true;
       }
     } else if (c.id === 'SERIE_C' && !temFase('G')) {
@@ -645,7 +731,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         const venc = vencedoresDe(a)!;
         // Copa do Brasil: os vencedores mais quem entra nesta fase, pareados por cabeca de serie; nas copas de grupos: o quadro fixo (1.o com 2.o...).
         const consecutivos = (ks: string[]) => { const p: [string, string][] = []; for (let k = 0; k < ks.length; k += 2) p.push(seed(ks[k]) <= seed(ks[k + 1]) ? [ks[k], ks[k + 1]] : [ks[k + 1], ks[k]]); return p; };
-        const par = c.id === 'SERIE_D' ? consecutivos(venc) : c.id === 'COPA_BR' ? parear(venc.concat((c.entradas && c.entradas[b]) || []), seed) : (() => { const p: [string, string][] = []; for (let k = 0; k < venc.length; k += 2) p.push([venc[k], venc[k + 1]]); return p; })();
+        const par = c.id === 'SERIE_D' ? consecutivos(venc) : c.id === 'PAULISTA' ? parear(venc, seed) : c.id === 'COPA_BR' ? parear(venc.concat((c.entradas && c.entradas[b]) || []), seed) : (() => { const p: [string, string][] = []; for (let k = 0; k < venc.length; k += 2) p.push([venc[k], venc[k + 1]]); return p; })();
         c.matches.push(...jogosDaFase(c, fase(b), par, oc, somarDias(hoje, 1)));
         // Serie D: sobem SO OS 4 SEMIFINALISTAS (sem playoff de acesso).
         if (c.id === 'SERIE_D' && b === 'SF') {
@@ -685,7 +771,7 @@ export const NOMES_FASES: Record<string, string> = { R64: 'Round of 64', PA: 'Pr
  * Sul-Americana (SULA-...), a Copa do Brasil (CUP - 1 ... CUP - 5, CUP - 16 ...), a Serie C (C-G, C FINAL) e a Serie D (D-G, D-64 ... D FINAL). O numero e quantos clubes
  * ficam na fase (16 = oitavas, 8 = quartas, 4 = meias); a final e `... FINAL`, e nao ha fase de 2 alem dela.
  */
-const PREFIXO_COMP: Record<Competition['id'], string> = { UCL: 'UCL', LIB: 'LIBERT', SUL: 'SULA', COPA_BR: 'CUP', SERIE_C: 'C', SERIE_D: 'D' };
+const PREFIXO_COMP: Record<Competition['id'], string> = { UCL: 'UCL', LIB: 'LIBERT', SUL: 'SULA', COPA_BR: 'CUP', SERIE_C: 'C', SERIE_D: 'D', PAULISTA: 'PAULISTA' };
 export const rotuloDaFase = (compId: Competition['id'], stage: string): string => {
   const p = PREFIXO_COMP[compId];
   const sep = compId === 'COPA_BR' ? ' - ' : '-';   // a Copa do Brasil mostra "CUP - 1"
@@ -751,12 +837,37 @@ export const criarCopas = (ligas: WorldLeague[], anterior?: Record<string, strin
   // Uma de cada vez, para a seguinte ja ver os dias que a anterior ocupou.
   const lib = criarLibertadores(q.lib, oc), sul = criarSulAmericana(q.sul, oc), copa = criarCopaDoBrasil(q.copa, oc);
   const out: Competition[] = [lib, sul, copa];
+  if (q.paulista.length === 16) out.push(criarPaulistao(q.paulista, oc));
   if (q.ucl.length >= 32) out.push(criarChampions(q.ucl, oc));
   if (q.serieC.length === 20) out.push(criarSerieC(q.serieC, oc, userLeagueId === 'bra_serie_c'));
   if (q.serieD.length >= 16) {
     // Com o utilizador na Serie D, o grupo dele e a liga do jogo.
     const gD = userLeagueId === 'bra_serie_d' && userKey ? Object.entries(gruposDaSerieD(q.serieD.map(x => x.key))).find(([, ks]) => ks.includes(userKey))?.[0] : undefined;
     out.push(criarSerieD(q.serieD, oc, gD));
+  }
+  return out;
+};
+
+/**
+ * As competicoes que um clube joga na temporada (escolha de clube e Manager career): a liga, a Copa do Brasil e os torneios continentais (Champions, Libertadores, Sul-Americana).
+ * Usa as MESMAS regras de `qualificados` (classificacao do ano anterior + vagas por pais), mas so para a liga do clube, sem montar as copas.
+ */
+export const competicoesDoClube = (team: Team, leagueId: string, leagueTeams: Team[]): { id: string; nome: string }[] => {
+  const pais: any = (COUNTRIES as any[]).find(c => c.leagues.some((l: any) => l.id === leagueId));
+  const liga: any = pais?.leagues.find((l: any) => l.id === leagueId);
+  if (!pais || !liga) return [];
+  const out: { id: string; nome: string }[] = [{ id: 'LIGA', nome: liga.name }];
+  if (ehDoPaulista(team.name)) out.push({ id: 'PAULISTA', nome: 'Campeonato Paulista' });
+  if (((pais.copaTeamIds || []) as number[]).map(String).includes(String(team.id))) out.push({ id: 'COPA_BR', nome: 'Copa do Brasil' });
+  const ordem = classificacaoAnoAnterior(leagueId, leagueTeams, (liga.teamIds || []).map(String));
+  const pos = ordem.findIndex(t => t.id === team.id);
+  if (pos < 0) return out;
+  const nU = VAGAS_UCL[pais.id] || 0;
+  if (nU && (liga.tier === 1 || /_clubes$/.test(leagueId)) && pos < nU) out.push({ id: 'UCL', nome: 'UEFA Champions League' });
+  if (liga.tier === 1) {
+    const nL = VAGAS.LIB[pais.id] || 0, nS = VAGAS.SUL[pais.id] || 0;
+    if (pos < nL) out.push({ id: 'LIB', nome: 'Copa Libertadores' });
+    else if (pos < nL + nS) out.push({ id: 'SUL', nome: 'Copa Sul-Americana' });
   }
   return out;
 };

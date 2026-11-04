@@ -36,7 +36,7 @@ export const percentis = (valores: number[]): number[] => {
 };
 
 /** Ajuste de tradicao (+1, 0, -1) de cada clube de UMA liga, por `team.id`. */
-export const ajustesDeTradicao = (times: Team[], anoBase = 2024): Record<string, -1 | 0 | 1> => {
+export const ajustesDeTradicao = (times: Team[], anoBase = 2026): Record<string, -1 | 0 | 1> => {
   const C = CONFIG_TRADICAO;
   const idade = (t: Team) => Math.max(0, Math.min(100, ((anoBase - (t.foundedYear || anoBase)) / C.idadeMaxima) * 100));
   const pTorcida = percentis(times.map(t => t.fanBase || 0));
