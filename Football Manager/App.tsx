@@ -142,10 +142,12 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
   const elencoSel = previewPlayers.filter(p => p.teamId === clubeSelId).sort((a, b) => b.skill - a.skill);
   const sortedTeams = [...previewTeams].sort((a, b) => a.name.localeCompare(b.name));
   const ligaSel = activeCountry?.leagues.find((l: any) => l.id === selectedLeagueId) as any;
+  // Todas as ligas, menos a Serie D do Brasil (em grupos): cards mais baixos e grade a ocupar a altura do Club Overview.
+  const inglesaInferior = ligaSel?.format !== 'SERIE_D';
   const botaoTime = (team: Team) => (
-    <button key={team.id} onClick={() => setClubeSelId(team.id)} className={`${clubeSelId === team.id ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500' : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'} border-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 ${selectedCountryId === '52' ? 'py-1 px-3' : 'py-3 px-4'} rounded transition-all group text-left flex items-center justify-between shadow-sm min-w-0 overflow-hidden`}>
+    <button key={team.id} onClick={() => setClubeSelId(team.id)} className={`${clubeSelId === team.id ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500' : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'} border-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 ${selectedCountryId === '52' ? 'py-1 px-3' : inglesaInferior ? 'py-[9px] px-3' : 'py-3 px-4'} rounded transition-all group text-left flex items-center justify-between shadow-sm min-w-0 overflow-hidden`}>
       <div className="flex items-center gap-4 min-w-0 w-full">
-        <TeamShield team={team} className={`shrink-0 ${selectedCountryId === '52' ? 'w-[22px] h-[28px]' : 'w-[40px] h-[50px]'}`} />
+        <TeamShield team={team} className={`shrink-0 ${selectedCountryId === '52' ? 'w-[22px] h-[28px]' : inglesaInferior ? 'w-[32px] h-[40px]' : 'w-[40px] h-[50px]'}`} />
         <div className="min-w-0">
           <div className={`${team.name.length > 20 ? 'text-[11px]' : team.name.length > 15 ? 'text-xs' : team.name.length > 11 ? 'text-sm' : 'text-base'} font-black text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase truncate leading-tight`}>{team.name}</div>
           <div className="text-[9px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase">Rep: {team.strength} OVR</div>
@@ -234,7 +236,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
                 })}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2 content-start">
+              <div className={`grid grid-cols-2 gap-2 ${inglesaInferior ? 'h-full' : 'content-start'}`} style={inglesaInferior ? { gridTemplateRows: `repeat(${Math.ceil(sortedTeams.length / 2)}, minmax(48px, 1fr))` } : undefined}>
                 {sortedTeams.map(botaoTime)}
               </div>
             )}
