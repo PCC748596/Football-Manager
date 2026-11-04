@@ -505,7 +505,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             </div>
         </div>
 
-        <div className={`flex-1 grid gap-[5px] min-h-0 ${largo ? 'grid-cols-[5.6fr_3.7fr_3fr]' : 'grid-cols-3 overflow-y-auto custom-scrollbar content-start'}`}>   {/* tablet: o campo com os reservas em cima (linha inteira) e, em baixo, em UMA linha: Squad Pool | Set Pieces | Kit + instrucoes */}
+        <div className={`flex-1 grid gap-[5px] min-h-0 ${largo ? 'grid-cols-[5.6fr_3.7fr_3fr]' : 'grid-cols-4 overflow-y-auto custom-scrollbar content-start'}`}>   {/* tablet: o campo com os reservas em cima (linha inteira) e, em baixo, em UMA linha de 4 colunas: Squad Pool | Set Pieces | Kit + Tactical Instructions (colunas 3 e 4 fundidas) */}
             <div className="flex flex-col gap-[3px] min-h-0 min-w-0" style={largo ? { width: 'calc(100% + 129px)' } : { minHeight: 700, gridColumn: '1 / -1' }}>
                 <div className="flex-1 relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ minHeight: '350px', containerType: 'size' }}>
                     {aba === 'geral' && (
@@ -949,10 +949,10 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
 
             </div>
 
-            <div className="flex flex-col gap-4 min-h-0 min-w-0" style={largo ? undefined : { minHeight: 560 }}>
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm pb-6">
+            <div className="flex flex-col gap-4 min-h-0 min-w-0" style={largo ? undefined : { gridColumn: 'span 2', minHeight: 560 }}>   {/* tablet: as colunas 3 e 4 fundidas; Kit e Tactical Instructions empilhados nela */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm pb-6 min-w-0">
                     <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic mb-4">KIT</h3>
-                    <div className="flex justify-around items-center">
+                    <div className={`flex justify-around items-center ${largo ? '' : 'flex-wrap gap-2'}`}>
                         {[0, 1, 2, 3].map((idx) => (
                             <div 
                                 key={idx} 
@@ -968,7 +968,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                     </div>
                 </div>
 
-                <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-[13px] px-4 shadow-sm min-h-0 flex flex-col">
+                <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-[13px] px-4 shadow-sm min-h-0 min-w-0 flex flex-col">
                     <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic mb-2">TACTICAL INSTRUCTIONS</h3>
                     <div className="flex-1 flex flex-col justify-between pt-2">
                         <div className="space-y-2">

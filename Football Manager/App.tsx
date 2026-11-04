@@ -172,9 +172,9 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
         </div>
       </div>
       <div className="flex-1 flex gap-3 xl:gap-6 min-h-0 overflow-hidden">
-        <div className="w-[12%] min-w-[104px] flex flex-col gap-4">
+        <div className="w-auto shrink-0 px-[5px] xl:px-0 xl:w-[12%] xl:min-w-[104px] flex flex-col gap-4">
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">Confederations</div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-0 xl:pr-2 space-y-2">
             {CONFEDERACOES.map(f => {
               const n = COUNTRIES.filter(c => confederacaoDe(c) === f.id && paisJogavel(c)).length;
               return (
@@ -186,9 +186,9 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             })}
           </div>
         </div>
-        <div className="w-[calc(18%-50px)] min-w-[120px] flex flex-col gap-4">
+        <div className="w-auto shrink-0 px-[5px] xl:px-0 xl:w-[calc(18%-50px)] xl:min-w-[120px] flex flex-col gap-4">
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step1')}</div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-0 xl:pr-2 space-y-2">
             {paisesDaConf.length === 0 && <div className="text-xs text-slate-400 font-bold px-2 pt-2">No national associations in this confederation yet.</div>}
             {paisesDaConf.map(country => (
               <button key={country.id} onClick={() => handleCountrySelect(country.id)} className={`w-full text-left p-3 rounded border-2 transition-all flex items-center justify-between group ${selectedCountryId === country.id ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-blue-400'}`}>
@@ -198,10 +198,10 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
             ))}
           </div>
         </div>
-        <div className="w-[17%] min-w-[120px] flex flex-col gap-4">
+        <div className="w-auto shrink-0 px-[5px] xl:px-0 xl:w-[17%] xl:min-w-[120px] flex flex-col gap-4">
           <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">{t('sel_step2')}</div>
           <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-0 xl:pr-2 space-y-2">
               {activeCountry?.leagues.filter((l: any) => !l.hidden).map((league: any) => (
                 <button key={league.id} onClick={() => setSelectedLeagueId(league.id)} className={`w-full text-left p-3 rounded border-2 transition-all group ${selectedLeagueId === league.id ? 'bg-emerald-600 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-emerald-400'}`}>
                   <span className={`text-lg font-black uppercase ${selectedLeagueId === league.id ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>{league.name}</span>
