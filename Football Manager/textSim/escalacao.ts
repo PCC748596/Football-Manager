@@ -4,9 +4,15 @@ arrastado para o banco sem ninguem no lugar, uma venda, o fim de um contrato —
 */
 import { Team, Player, FORMATIONS } from '../types';
 
-/** Os indices dos slots da formacao sem jogador valido do proprio time (lista vazia = escalacao completa). */
-export const slotsVazios = (team: Team | undefined, players: Player[]): number[] => {
-  if (!team) return [];
+/** O jogo do utilizador ja comecou (relogio do manager ou motor 3D em andamento): a partir dai a escalacao nao e mais conferida. */
+export const jogoEmAndamento = (matchMinute: number): boolean => matchMinute > 0 || typeof (globalThis as any).motor3dMinuto === 'number';
+
+/**
+ * Os indices dos slots da formacao sem jogador valido do proprio time (lista vazia = escalacao completa).
+ * `emJogo`: com o jogo em andamento nao ha "escalacao incompleta" — um expulso sai do onze e o time joga com menos um; so antes do apito inicial o onze tem de estar completo.
+ */
+export const slotsVazios = (team: Team | undefined, players: Player[], emJogo = false): number[] => {
+  if (!team || emJogo) return [];
   const slots = FORMATIONS[team.tactics?.formation as keyof typeof FORMATIONS] || FORMATIONS['4-4-2'];
   const ids = new Set(players.filter(p => p.teamId === team.id).map(p => p.id));
   const vazios: number[] = [];

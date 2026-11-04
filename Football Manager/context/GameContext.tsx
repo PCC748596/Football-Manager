@@ -22,7 +22,7 @@ import { recalcularValores } from '../textSim/valuation';
 import { registrarLigas, escalaDaLiga } from '../textSim/economia';
 import { Negociacao, Oferta, abrirNegociacao, assinar, chanceDeAceitar, propostaDoJogador, resolverNegociacoes } from '../textSim/negociacao';
 import { rotuloDaFase } from '../textSim/competitions';
-import { slotsVazios } from '../textSim/escalacao';
+import { slotsVazios, jogoEmAndamento } from '../textSim/escalacao';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO } from '../textSim/trainingService';
@@ -1634,7 +1634,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const ut = teams.find(x => x.id === gameState.userTeamId);
     if (!ut) return false;
     const temJogo = fixtures.some(f => f.date === gameState.currentDate && !f.played && (f.homeTeamId === ut.id || f.awayTeamId === ut.id));
-    return temJogo && slotsVazios(ut, players).length > 0;
+    return temJogo && slotsVazios(ut, players, jogoEmAndamento(gameState.matchMinute)).length > 0;
   };
 
   const playMatchDay = (modo?: any) => {

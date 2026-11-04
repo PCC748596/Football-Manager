@@ -416,7 +416,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
 
   // O editor das posicoes (antes o modal): ajustes por formacao, fase e zona da bola. O campo desenha a area de jogo dentro de `inset-10` (2.5rem de cada lado).
   const formacaoAtual = userTeam.tactics.formation;
-  const vaziosDoOnze = slotsVazios(userTeam, players);   // slots sem jogador: o jogo fica fechado ate completar o onze
+  const vaziosDoOnze = slotsVazios(userTeam, players, jogoIniciado);   // slots sem jogador: o jogo fica fechado ate completar o onze
   const overAtual = userTeam.tactics.zoneOverrides?.[formacaoAtual];
   const temTabela = formacaoTemTabela(formacaoAtual);
   const postos = (temTabela && aba !== 'geral' && zona !== null) ? postosEfetivos(formacaoAtual, overAtual, fase, zona) : null;

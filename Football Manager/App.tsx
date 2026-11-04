@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { GameProvider, useGame } from './context/GameContext';
-import { slotsVazios } from './textSim/escalacao';
+import { slotsVazios, jogoEmAndamento } from './textSim/escalacao';
 import Layout from './components/Layout';
 import SquadView from './components/SquadView';
 import LeagueTable from './components/LeagueTable';
@@ -270,7 +270,7 @@ const GameContainer: React.FC = () => {
   const [view, setView] = useState<GameState['view']>('DASHBOARD');
   // ESCALACAO INCOMPLETA: com jogo hoje e um slot vazio, o Match Day (3D) e a simulacao da rodada ficam fechados e o treinador vai para o MATCH TACTICS.
   const jogoDoUtilizadorHoje = !!userTeam && fixtures.some(f => f.date === gameState.currentDate && !f.played && (f.homeTeamId === userTeam.id || f.awayTeamId === userTeam.id));
-  const escalacaoIncompleta = jogoDoUtilizadorHoje && slotsVazios(userTeam, players).length > 0;
+  const escalacaoIncompleta = jogoDoUtilizadorHoje && slotsVazios(userTeam, players, jogoEmAndamento(gameState.matchMinute)).length > 0;
   const jogoBloqueado = escalacaoIncompleta && (view === 'MATCH' || view === 'TRAINING');
   useEffect(() => { if (jogoBloqueado) setView('TACTICS'); }, [jogoBloqueado]);
   const fileInputRef = useRef<HTMLInputElement>(null);
