@@ -12,8 +12,8 @@ import { calcularSkill } from './overall';
 import { limitarAtributo } from './geradorAtributos';
 import { REAL_TEAMS_JSON } from './realDatabase';
 
-/** Paises dos ficheiros CountryData<N>.json, pelo numero do jogo de origem (54 = Brasil, 14 = Inglaterra, 27 = Italia, 21 = Alemanha, 45 = Espanha, 18 = Franca, 38 = Portugal). */
-export const PAISES_DOS_DADOS_LOCAIS = [54, 14, 27, 21, 45, 18, 38];
+/** Paises dos ficheiros CountryData<N>.json, pelo numero do jogo de origem (54 = Brasil, 14 = Inglaterra, 27 = Italia, 21 = Alemanha, 45 = Espanha, 18 = Franca, 38 = Portugal, 52 = Argentina: so os clubes que o jogo ja tem). */
+export const PAISES_DOS_DADOS_LOCAIS = [54, 14, 27, 21, 45, 18, 38, 52];
 /** Codigo de nacionalidade do jogo de origem -> id do pais do manager (o nome do ficheiro em /Assets/Bandeiras). Sem entrada: sem bandeira certa (null). */
 const BANDEIRA_DO_CODIGO: Record<string, string> = { '54': '45', '14': '65', '27': '68', '21': '67', '45': '66', '18': '69', '38': '81', '52': '52', '53': '53', '55': '55', '56': '56', '57': '57', '58': '58', '59': '59', '60': '60', '61': '61' };
 export const bandeiraDoCodigo = (cod: string): string | null => BANDEIRA_DO_CODIGO[cod] ?? null;
