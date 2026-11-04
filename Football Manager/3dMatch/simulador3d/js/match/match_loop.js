@@ -53,8 +53,27 @@ Object.assign(Match, {
                 this.acrMin2 = this.acrescimoEmMinutos(this.faltasNoIntervalo, this.substituicoesNoIntervalo);
                 this.acrescimo2 = this.acrMin2 * 60;
             }
+            // PRORROGACAO (copa que o 3D visivel sabe decidir, `decisao.prorrogacao`): 2 tempos de 15 min. O relogio volta a 90:00 (1.o) e a 105:00 (2.o) e cada um vai ate ao fim + o seu
+            // acrescimo; entre eles ha pausa (como o intervalo) e os times trocam de lado. Empatado no fim, penaltis (abaixo).
+            if (this.faseExtra) {
+                const quinze = 15 * 60, ini = fimBase + (this.faseExtra - 1) * quinze, fim = ini + quinze;
+                if (!this.acrExtraCalculado && this.tempoDeJogo >= fim - ANUNCIO_ACRESCIMO) {
+                    this.acrExtraCalculado = true;
+                    this.acrExtraMin = Math.min(3, this.acrescimoEmMinutos(this.faltasNoInicioExtra || 0, this.subsNoInicioExtra || 0));
+                    this.acrExtra = this.acrExtraMin * 60;
+                }
+                if (this.acrExtraCalculado && this.tempoDeJogo >= fim + this.acrExtra) {
+                    this.updatePlacar();
+                    if (this.faseExtra === 1) { this.faseExtra = 2; this.prepararPeriodoExtra(); this.iniciarIntervalo(); return true; }
+                    if (typeof DisputaPenaltis !== 'undefined' && !this.disputa && DisputaPenaltis.podeIniciar()) { DisputaPenaltis.iniciar(); return true; }
+                    this.encerrarJogo();
+                    return true;
+                }
+                return false;
+            }
             if (this.acr2Calculado && this.tempoDeJogo >= fimBase + this.acrescimo2) {
                 this.updatePlacar();
+                if (this.precisaProrrogacao()) { this.faseExtra = 1; this.prepararPeriodoExtra(); this.iniciarIntervalo(); return true; }
                 // Copa empatada, vista em 3D: a disputa de penaltis (js/disputa_penaltis.js) encena-se antes do apito final.
                 if (typeof DisputaPenaltis !== 'undefined' && !this.disputa && DisputaPenaltis.podeIniciar()) { DisputaPenaltis.iniciar(); return true; }
                 this.encerrarJogo();
@@ -88,6 +107,20 @@ Object.assign(Match, {
         this._tEsperaEntrantes = 0;
         if (this._folgaEntrantes > 0) { this._folgaEntrantes -= dt; return true; }
         return false;
+    },
+
+    // A copa vista em 3D empatada no agregado, num jogo que tem prorrogacao (final; 2.o jogo das meias): o jogo continua em vez de ir direto aos penaltis.
+    precisaProrrogacao: function () {
+        const d = this.decisao;
+        if (!d || !d.prorrogacao || this.faseExtra) return false;
+        if (typeof Ponte === 'undefined' || Ponte.modo !== 'visivel') return false;
+        return this.placarA + d.agregadoCasa === this.placarB + d.agregadoFora;
+    },
+
+    // Zera o acrescimo do periodo da prorrogacao e guarda as faltas/trocas ate agora (so as do periodo contam no acrescimo seguinte).
+    prepararPeriodoExtra: function () {
+        this.acrExtraCalculado = false; this.acrExtraMin = 0; this.acrExtra = 0;
+        this.faltasNoInicioExtra = this.faltasTotais(); this.subsNoInicioExtra = this.substituicoes || 0;
     },
 
     // O acrescimo de um tempo em minutos inteiros (de 1 a 8), a partir dos segundos de calcularAcrescimo.
@@ -197,7 +230,7 @@ Object.assign(Match, {
     */
     iniciarSegundoTempo: function () {
         // O 2.o tempo comeca a 45:00 (e nao em 45:00 + acrescimo), e o relogio so volta a andar depois da saida de bola.
-        this.tempoDeJogo = MatchDuration.halfGameMinutes * 60;
+        this.tempoDeJogo = this.faseExtra ? 2 * MatchDuration.halfGameMinutes * 60 + (this.faseExtra - 1) * 15 * 60 : MatchDuration.halfGameMinutes * 60;
         this.aguardaSaida2T = true;
         this.intervaloAvisou = false;
         this.intervaloSegura = false;
@@ -222,6 +255,7 @@ Object.assign(Match, {
 
         const abriu = this.saidaInicial || 'TeamA';
         this.nextKickoffTeam = (abriu === 'TeamA') ? 'TeamB' : 'TeamA';
+        if (this.faseExtra === 2) this.nextKickoffTeam = abriu;   // o 2.o tempo da prorrogacao sai da equipa que abriu o jogo
         this.saidaPlano = null;
         this.ball.position.set(0, BallPhysics.raio, 0);
         // A saida do tunel (js/abertura.js): trio e depois os 22 em ordem aleatoria, direto para os postos.

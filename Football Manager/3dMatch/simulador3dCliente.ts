@@ -32,6 +32,8 @@ export interface LadoPayload {
 
 export interface ResultadoMotor {
   placar: { casa: number; fora: number };
+  /** O jogo foi a prorrogacao (copa; ver ponte.js resultado). */
+  prorrogacao?: boolean;
   posse: { casa: number; fora: number };
   estatisticas: any;
   /** Passes reais por equipa (curtos + lancamentos + cruzamentos). Ausente em resultados antigos. */
@@ -236,6 +238,7 @@ export const aplicarResultado = (f: Fixture, r: ResultadoMotor, casa: Team, fora
     ...f,
     events: eventosDoManager(r, casa, fora, players),
     homeScore: r.placar.casa, awayScore: r.placar.fora,
+    ...(r.prorrogacao ? { extraTime: true } : {}),
     homePossession: r.posse.casa, awayPossession: r.posse.fora,
     possessionTimeline: poss,
     homeShots: A.remates, awayShots: B.remates, homeShotsOnTarget: A.rematesNoAlvo, awayShotsOnTarget: B.rematesNoAlvo, homeXG: A.xg, awayXG: B.xg,

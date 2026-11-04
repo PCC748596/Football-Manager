@@ -17,6 +17,8 @@ const bandeira = (countryId: string) => assetUrl(`/Assets/Bandeiras/${countryId}
 const logoCopa = (id: string) => assetUrl(`/Assets/Competicoes/${id}.png`);
 // Nomes das abas das Series C e D (as fases do regulamento).
 const NOME_FASE_BR: Record<string, string> = { 'SERIE_C:G': 'Segunda fase', 'SERIE_C:F': 'Final', 'SERIE_D:R64': 'Segunda fase', 'SERIE_D:R32': 'Terceira fase', 'SERIE_D:R16': 'Oitavas de final', 'SERIE_D:QF': 'Quartas de final', 'SERIE_D:SF': 'Semi final', 'SERIE_D:PA': 'Playoffs de acesso', 'SERIE_D:F': 'Final' };
+// Carabao Cup: uma aba por fase (a mais recente abre primeiro).
+const FASES_CARABAO_ABAS = ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'];
 const nomeGrupo = (c: Competition, g: string) => ehLigaFase(c.id) ? 'League phase' : c.id === 'PAULISTA' ? 'First phase' : (c.id === 'SERIE_C' && g === 'L') ? 'First phase' : (c.id === 'SERIE_C' && /^G\d$/.test(g)) ? 'Group ' + g.slice(1) : 'Group ' + g;
 
 // As Series C e D do Brasil sao competicoes (com a fase final): quando o utilizador joga numa delas, a liga dele nao aparece a parte (seria a mesma divisao duas vezes).
@@ -56,7 +58,7 @@ const WorldView: React.FC = () => {
   const selecao: Selecao | null = sel || (compDoMeu ? { tipo: 'COPA', id: compDoMeu } : ligas.length ? { tipo: 'LIGA', id: (meu && meu.leagueId) || ligas[0].leagueId } : null);
   const liga = selecao && selecao.tipo === 'LIGA' ? ligas.find(l => l.leagueId === selecao.id) || null : null;
   const copa = selecao && selecao.tipo === 'COPA' && comps ? comps.find(c => c.id === selecao.id) || null : null;
-  useEffect(() => { setRodada(null); setAba(copa ? ((copa.id === 'SERIE_C' || copa.id === 'SERIE_D') ? 'P1' : copa.groups ? 'GRUPOS' : 'MATA') : 'TABELA'); }, [selecao?.tipo, selecao?.id]);
+  useEffect(() => { setRodada(null); setAba(copa ? ((copa.id === 'SERIE_C' || copa.id === 'SERIE_D') ? 'P1' : copa.id === 'CARABAO' ? 'C:' + (FASES_CARABAO_ABAS.filter(s => copa.matches.some(m => m.stage === s)).pop() || 'R1') : copa.groups ? 'GRUPOS' : 'MATA') : 'TABELA'); }, [selecao?.tipo, selecao?.id]);
 
   if (!world || !comps) {
     return <div className="h-full flex items-center justify-center text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest text-sm animate-pulse">A gerar as competições do mundo...</div>;
@@ -206,12 +208,12 @@ const WorldView: React.FC = () => {
     const fasesSerie = (c.id === 'SERIE_C' || c.id === 'SERIE_D') ? fasesDeSerieCD(c, ordemVista(c)) : null;
     const fasesTodas = Array.from(new Set(c.matches.filter(m => !m.group).map(m => m.stage)));
     // Champions: o playoff tem a sua aba (entre Groups e Knockout); o Knockout so mostra as fases seguintes.
-    const fases = ehLigaFase(c.id) ? (aba === 'PLAYOFF' ? ['PO'].filter(f => fasesTodas.includes(f)) : fasesTodas.filter(f => f !== 'PO')) : fasesTodas;
+    const fases = (c.id === 'CARABAO' && aba.startsWith('C:')) ? fasesTodas.filter(f => f === aba.slice(2)) : ehLigaFase(c.id) ? (aba === 'PLAYOFF' ? ['PO'].filter(f => fasesTodas.includes(f)) : fasesTodas.filter(f => f !== 'PO')) : fasesTodas;
     return (
       <>
         <div className="flex gap-2 p-3 border-b border-slate-200 dark:border-slate-800 items-center">
-          {(fasesSerie ? ['P1', ...fasesSerie.map(f => 'F:' + f.stage), 'JOGOS'] : c.groups ? ['GRUPOS', ...(ehLigaFase(c.id) ? ['PLAYOFF'] : []), 'MATA', 'JOGOS'] : ['MATA', 'JOGOS']).map(a => (
-            <button key={a} onClick={() => setAba(a)} className={`px-4 py-1.5 rounded text-[11px] font-black uppercase tracking-widest ${aba === a ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>{fasesSerie ? (a === 'P1' ? 'Primeira fase' : a === 'JOGOS' ? 'Todos os jogos' : (NOME_FASE_BR[c.id + ':' + a.slice(2)] || a)) : (a === 'GRUPOS' ? 'Groups' : a === 'PLAYOFF' ? 'Playoffs' : a === 'MATA' ? 'Knockout' : 'All matches')}</button>
+          {(c.id === 'CARABAO' ? [...FASES_CARABAO_ABAS.map(s => 'C:' + s), 'JOGOS'] : fasesSerie ? ['P1', ...fasesSerie.map(f => 'F:' + f.stage), 'JOGOS'] : c.groups ? ['GRUPOS', ...(ehLigaFase(c.id) ? ['PLAYOFF'] : []), 'MATA', 'JOGOS'] : ['MATA', 'JOGOS']).map(a => (
+            <button key={a} onClick={() => setAba(a)} className={`px-4 py-1.5 rounded text-[11px] font-black uppercase tracking-widest ${aba === a ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>{c.id === 'CARABAO' ? (a === 'JOGOS' ? 'All matches' : NOMES_FASES[a.slice(2)] || a) : fasesSerie ? (a === 'P1' ? 'Primeira fase' : a === 'JOGOS' ? 'Todos os jogos' : (NOME_FASE_BR[c.id + ':' + a.slice(2)] || a)) : (a === 'GRUPOS' ? 'Groups' : a === 'PLAYOFF' ? 'Playoffs' : a === 'MATA' ? 'Knockout' : 'All matches')}</button>
           ))}
           {c.champion && <span className="ml-auto flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-amber-500">🏆 Champion <Escudo k={c.champion} /> {nomeDe(c.champion)}</span>}
         </div>
@@ -238,9 +240,9 @@ const WorldView: React.FC = () => {
             </div>
           )}
           {fasesSerie && aba.startsWith('F:') && !(aba === 'F:G' && c.groups?.G1) && (() => { const f = fasesSerie.find(x => x.stage === aba.slice(2)); return f ? painelFase(f, c.id) : null; })()}
-          {(aba === 'MATA' || aba === 'PLAYOFF') && (
+          {(aba === 'MATA' || aba === 'PLAYOFF' || aba.startsWith('C:')) && (
             <div className="space-y-5">
-              {fases.length === 0 && <div className="text-slate-500 text-sm p-4">{aba === 'PLAYOFF' ? 'The playoffs (9th to 24th) are drawn when the league phase ends.' : 'The knockout rounds are drawn when the group stage ends.'}</div>}
+              {fases.length === 0 && <div className="text-slate-500 text-sm p-4">{aba === 'PLAYOFF' ? 'The playoffs (9th to 24th) are drawn when the league phase ends.' : c.id === 'CARABAO' ? 'This round is drawn when the previous one ends.' : 'The knockout rounds are drawn when the group stage ends.'}</div>}
               {fases.map(f => {
                 const ties = Array.from(new Set(c.matches.filter(m => m.stage === f).map(m => m.tie)));
                 return (

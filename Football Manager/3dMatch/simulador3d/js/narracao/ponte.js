@@ -422,6 +422,7 @@ const Ponte = {
         Match.tempoDeJogo = 0; Match.placarA = 0; Match.placarB = 0; Match.segundoTempoIniciado = false;
         Match.acrescimo1 = 0; Match.acrescimo2 = 0; Match.acrMin1 = 0; Match.acrMin2 = 0; Match.aguardaSaida2T = false; Match.acr1Calculado = false; Match.acr2Calculado = false; Match.faltasNoIntervalo = 0; Match.substituicoes = 0; Match.substituicoesNoIntervalo = 0;
         Match.primeiroTempoAcabou = false;
+        Match.faseExtra = 0; Match.acrExtraCalculado = false; Match.acrExtraMin = 0; Match.acrExtra = 0;   // prorrogacao (ver match_loop.js)
         // A DECISAO do confronto (agregado anterior, se este jogo fecha uma copa) so vale no 3D visivel: o oculto nunca encena penaltis. A disputa de um jogo anterior, se ficou
         // a meio (ex.: o 3D fechado durante a reuniao), desfaz-se aqui para nao vazar para esta partida.
         Match.decisao = (m.decisao && this.modo === 'visivel') ? m.decisao : null;
@@ -475,7 +476,7 @@ const Ponte = {
         return {
             tempo: Match.tempoDeJogo, placarA: Match.placarA, placarB: Match.placarB,
             primeiroTempoAcabou: !!Match.primeiroTempoAcabou, acr1Calculado: !!Match.acr1Calculado, acrescimo1: Match.acrescimo1 || 0, acrMin1: Match.acrMin1 || 0, acr2Calculado: !!Match.acr2Calculado, acrMin2: Match.acrMin2 || 0, acrescimo2: Match.acrescimo2 || 0,
-            segundoTempoIniciado: !!Match.segundoTempoIniciado, trocados: !!Lados.trocados, faltasNoIntervalo: Match.faltasNoIntervalo || 0,
+            faseExtra: Match.faseExtra || 0, acrExtraCalculado: !!Match.acrExtraCalculado, acrExtraMin: Match.acrExtraMin || 0, acrExtra: Match.acrExtra || 0, segundoTempoIniciado: !!Match.segundoTempoIniciado, trocados: !!Lados.trocados, faltasNoIntervalo: Match.faltasNoIntervalo || 0,
             substituicoes: Match.substituicoes || 0, substituicoesNoIntervalo: Match.substituicoesNoIntervalo || 0,
             bola: { p: [Match.ball.position.x, Match.ball.position.y, Match.ball.position.z], v: [Match.ballVel.x, Match.ballVel.y, Match.ballVel.z] },
             portador: Match.ballCarrier ? { team: Match.ballCarrier.team, id: Match.ballCarrier.id } : null,
@@ -493,7 +494,7 @@ const Ponte = {
         Match.tempoDeJogo = s.tempo || Match.tempoDeJogo;
         Match.placarA = s.placarA || 0; Match.placarB = s.placarB || 0;
         Match.primeiroTempoAcabou = !!s.primeiroTempoAcabou; Match.acr1Calculado = !!s.acr1Calculado; Match.acrescimo1 = s.acrescimo1 || 0; Match.acrMin1 = s.acrMin1 || 0; Match.acr2Calculado = !!s.acr2Calculado; Match.acrMin2 = s.acrMin2 || 0; Match.acrescimo2 = s.acrescimo2 || 0;
-        Match.segundoTempoIniciado = !!s.segundoTempoIniciado; Match.faltasNoIntervalo = s.faltasNoIntervalo || 0;
+        Match.faseExtra = s.faseExtra || 0; Match.acrExtraCalculado = !!s.acrExtraCalculado; Match.acrExtraMin = s.acrExtraMin || 0; Match.acrExtra = s.acrExtra || 0; Match.segundoTempoIniciado = !!s.segundoTempoIniciado; Match.faltasNoIntervalo = s.faltasNoIntervalo || 0;
         Match.substituicoes = s.substituicoes || 0; Match.substituicoesNoIntervalo = s.substituicoesNoIntervalo || 0;
         if (Lados.trocados !== !!s.trocados) {
             Lados.trocados = !!s.trocados;
@@ -678,7 +679,7 @@ const Ponte = {
             // O RELOGIO EM MM:SS no manager: os segundos de jogo, quando mudam (o `estado` so vai uma vez por minuto).
             const seg = Math.floor(Match.tempoDeJogo || 0);
             if (seg !== this._ultimoSegundo) { this._ultimoSegundo = seg; // Os DESCONTOS que o juiz anunciou (minutos) no tempo em curso; 0 ate ele os definir.
-                const acr = Match.segundoTempoIniciado ? (Match.acr2Calculado ? (Match.acrMin2 || 0) : 0) : (Match.acr1Calculado ? (Match.acrMin1 || 0) : 0);
+                const acr = Match.faseExtra ? (Match.acrExtraCalculado ? (Match.acrExtraMin || 0) : 0) : Match.segundoTempoIniciado ? (Match.acr2Calculado ? (Match.acrMin2 || 0) : 0) : (Match.acr1Calculado ? (Match.acrMin1 || 0) : 0);
                 this.enviar('relogio', { segundos: seg, acrescimo: acr }); }
             if (this._acabou()) this._terminar();
         }, 500);
@@ -742,6 +743,7 @@ const Ponte = {
         const passesDe = (s) => ({ tentados: s.passes.tentados + s.lancamentos.tentados + s.cruzamentos.tentados, certos: s.passes.certos + s.lancamentos.certos + s.cruzamentos.certos });
         return {
             placar: { casa: Match.placarA, fora: Match.placarB },
+            prorrogacao: !!Match.faseExtra,
             passes: { casa: passesDe(A), fora: passesDe(B) },
             posse: { casa: posseT > 0 ? Math.round(1000 * (A.posseSegundos || 0) / posseT) / 10 : 50, fora: posseT > 0 ? Math.round(1000 * (B.posseSegundos || 0) / posseT) / 10 : 50 },
             estatisticas: this._limpar(MatchStats.resumo()),

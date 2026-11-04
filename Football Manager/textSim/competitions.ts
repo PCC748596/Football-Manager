@@ -63,13 +63,31 @@ export const VAGAS: Record<'LIB' | 'SUL', Record<string, number>> = {
 export const VAGAS_UCL: Record<string, number> = { '65': 5, '66': 5, '67': 4, '68': 4, '69': 3, '70': 2, '80': 2, '81': 2, '82': 2, '83': 1, '84': 1, '85': 1, '86': 1, '87': 1, '88': 1, '89': 1 };
 // Europa League (36 clubes) e Conference League (36 clubes): mesmo formato da Champions (fase de liga de 8 jornadas, playoff, oitavas...), jogados as quintas-feiras (dia seguinte a Champions).
 // Vagas por pais, depois das da Champions, pela classificacao do ano anterior; o campeao da Carabao Cup fica com uma vaga na Europa League (se ja estiver na Champions a vaga desce na tabela).
-export const VAGAS_UEL: Record<string, number> = { '65': 3, '66': 3, '67': 3, '68': 3, '69': 3, '70': 2, '80': 2, '81': 3, '82': 2, '83': 2, '84': 1, '85': 2, '86': 1, '87': 2, '88': 2, '89': 2 };
-export const VAGAS_UECL: Record<string, number> = { '65': 4, '66': 3, '67': 3, '68': 3, '69': 2, '70': 1, '80': 1, '81': 2, '82': 1, '83': 2, '84': 3, '85': 2, '86': 3, '87': 2, '88': 2, '89': 2 };
+export const VAGAS_UEL: Record<string, number> = { '65': 3, '66': 4, '67': 3, '68': 3, '69': 3, '70': 2, '80': 1, '81': 3, '82': 2, '83': 2, '84': 1, '85': 2, '86': 1, '87': 2, '88': 2, '89': 2 };
+export const VAGAS_UECL: Record<string, number> = { '65': 3, '66': 3, '67': 3, '68': 3, '69': 2, '70': 1, '80': 2, '81': 2, '82': 1, '83': 2, '84': 3, '85': 2, '86': 3, '87': 2, '88': 2, '89': 2 };
 const GRUPOS_UCL = ['2026-04-15', '2026-04-29', '2026-05-13', '2026-05-27', '2026-06-10', '2026-06-24', '2026-07-15', '2026-07-29'];
 const FASES_UCL = [{ nome: 'PO', datas: ['2026-08-26', '2026-09-02'] }, { nome: 'R16', datas: ['2026-09-30', '2026-10-07'] }, { nome: 'QF', datas: ['2026-10-28', '2026-11-04'] },
   { nome: 'SF', datas: ['2026-11-18', '2026-11-25'] }, { nome: 'F', datas: ['2026-12-12'] }];
 
 // Datas de UEL/UECL: as da Champions mais um dia.
+// Libertadores e Sul-Americana 2026 (os 32 clubes e os 8 grupos REAIS; nomes na base: "UCV FC" e Universidad Central). Valem na 1.a temporada, enquanto nenhuma liga sul-americana tem a classificacao do ano anterior
+// jogada; depois as vagas voltam a vir das tabelas (`VAGAS`). Se algum clube faltar na base, usa-se o criterio normal.
+export const GRUPOS_REAIS_LIB: Record<string, string[]> = {
+  A: ['Flamengo-RJ', 'Estudiantes de La Plata', 'Cusco FC', 'Independiente Medellín'], B: ['Nacional-URU', 'Universitario', 'Coquimbo Unido', 'Deportes Tolima'],
+  C: ['Fluminense-RJ', 'Bolívar', 'Deportivo La Guaira', 'Independiente Rivadavia'], D: ['Boca Juniors', 'Cruzeiro-MG', 'Universidad Católica', 'Barcelona SC'],
+  E: ['Peñarol', 'Corinthians-SP', 'Santa Fe', 'Platense'], F: ['Palmeiras-SP', 'Cerro Porteño', 'Junior', 'Sporting Cristal'],
+  G: ['LDU Quito', 'Lanús', 'Always Ready', 'Mirassol-SP'], H: ['Independiente del Valle', 'Libertad', 'Rosario Central', 'UCV FC']
+};
+export const GRUPOS_REAIS_SUL: Record<string, string[]> = {
+  A: ['América de Cali', 'Tigre', 'Macará', 'Alianza Atlético'], B: ['Atlético-MG', 'Cienciano', 'Academia Puerto Cabello', 'Juventud'],
+  C: ['São Paulo-SP', 'Millonarios', 'Boston River', "O'Higgins"], D: ['Santos-SP', 'San Lorenzo', 'Deportivo Cuenca', 'Recoleta'],
+  E: ['Racing Club', 'Caracas FC', 'Independiente Petrolero', 'Botafogo-RJ'], F: ['Grêmio-RS', 'Palestino', 'Torque', 'Deportivo Riestra'],
+  G: ['Olimpia', 'Vasco-RJ', 'Audax Italiano', 'Barracas Central'], H: ['River Plate', 'Bragantino-SP', 'Blooming', 'Carabobo FC']
+};
+
+// Os classificados REAIS de 2026/27 (nomes na base): entram primeiro; as vagas que sobrarem do pais sao preenchidas pela classificacao do ano anterior. Clubes que a base nao tem sao ignorados.
+export const SEED_UEL = new Set(['Bournemouth', 'Crystal Palace', 'Sunderland', 'Milan', 'Juventus', 'Real Sociedad', 'Celta Vigo', 'Hoffenheim', 'Bayer Leverkusen', 'Lyon', 'Marseille', 'Rennes', 'Benfica', 'AZ Alkmaar', 'Anderlecht', 'Union Saint-Gilloise', 'Olympiacos', 'Red Bull Salzburg', 'Sturm Graz', 'Sparta Praha', 'Viktoria Plzeň']);
+export const SEED_UECL = new Set(['Brighton', 'Atalanta', 'Getafe', 'Freiburg', 'Monaco', 'Braga', 'Ajax', 'FC Twente', 'Gent', 'Trabzonspor', 'Panathinaikos', 'Brann']);
 const dia1 = (d: string): string => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + 1); return x.toISOString().split('T')[0]; };
 const mais1 = (x: string[]): string[] => x.map(dia1);
 const mais1Fases = (x: { nome: string; datas: string[] }[]) => x.map(i => ({ ...i, datas: i.datas.map(dia1) }));
@@ -159,6 +177,15 @@ export interface LigaParaCopas { leagueId: string; countryId: string; tier: numb
 export interface HistoricoCopas { /** Nome do clube campeao da Carabao Cup da temporada anterior (vaga na Europa League). */ carabao?: string }
 export const qualificados = (ligas: LigaParaCopas[], historico: HistoricoCopas = {}) => {
   const lib: { key: string; team: Team; countryId: string }[] = [], sul: typeof lib = [], ucl: typeof lib = [], uel: typeof lib = [], uecl: typeof lib = [];
+  // Libertadores / Sul-Americana da 1.a temporada: os clubes reais (se nenhuma liga sul-americana tem tabela do ano anterior e a base tem os 32).
+  const sulAmerica = (l: LigaParaCopas) => l.countryId in VAGAS.LIB;
+  const semAnterior = ligas.every(l => !sulAmerica(l) || !l.anterior);
+  const porNome = new Map<string, { key: string; team: Team; countryId: string }>();
+  ligas.forEach(l => { if (sulAmerica(l)) l.teams.forEach(t => { if (!porNome.has(t.name)) porNome.set(t.name, { key: teamKey(l.leagueId, t.id), team: t, countryId: l.countryId }); }); });
+  const doSeed = (g: Record<string, string[]>) => { const nomes = Object.values(g).flat(); return semAnterior && nomes.every(n => porNome.has(n)) ? nomes.map(n => porNome.get(n)!) : null; };
+  const seedLib = doSeed(GRUPOS_REAIS_LIB), seedSul = doSeed(GRUPOS_REAIS_SUL);
+  if (seedLib) lib.push(...seedLib);
+  if (seedSul) sul.push(...seedSul);
   for (const l of ligas) {
     // Champions, Europa League e Conference: as 1.as divisoes e as ligas ocultas de 5 clubes (`*_clubes`) dos paises europeus. Cada clube so numa delas.
     const nU = VAGAS_UCL[l.countryId] || 0;
@@ -172,15 +199,19 @@ export const qualificados = (ligas: LigaParaCopas[], historico: HistoricoCopas =
       if (copeiro) resto = [copeiro, ...resto.filter(t => t !== copeiro)];
       const nL = VAGAS_UEL[l.countryId] || 0, nC = VAGAS_UECL[l.countryId] || 0;
       daUcl.forEach(t => ucl.push(item(t)));
-      resto.slice(0, nL).forEach(t => uel.push(item(t)));
-      resto.slice(nL, nL + nC).forEach(t => uecl.push(item(t)));
+      // Os classificados reais primeiro (sem o campeao da Carabao, que ja vai a frente); as vagas que faltam, pela ordem da tabela.
+      const realL = resto.filter(t => SEED_UEL.has(t.name) && t !== copeiro), realC = resto.filter(t => SEED_UECL.has(t.name) && t !== copeiro);
+      const sobra = resto.filter(t => !realL.includes(t) && !realC.includes(t));
+      const daL = [...(copeiro ? [copeiro] : []), ...realL]; daL.push(...sobra.splice(0, Math.max(0, nL - daL.length)));
+      const daC = [...realC]; daC.push(...sobra.splice(0, Math.max(0, nC - daC.length)));
+      daL.slice(0, nL).forEach(t => uel.push(item(t))); daC.slice(0, nC).forEach(t => uecl.push(item(t)));
     }
     if (l.tier !== 1 && !(l.countryId === '45')) continue;
     const ordem = classificacaoAnoAnterior(l.leagueId, l.teams, l.teamIds, l.anterior);
     if (l.tier === 1) {
       const nL = VAGAS.LIB[l.countryId] || 0, nS = VAGAS.SUL[l.countryId] || 0;
-      ordem.slice(0, nL).forEach(t => lib.push({ key: teamKey(l.leagueId, t.id), team: t, countryId: l.countryId }));
-      ordem.slice(nL, nL + nS).forEach(t => sul.push({ key: teamKey(l.leagueId, t.id), team: t, countryId: l.countryId }));
+      if (!seedLib) ordem.slice(0, nL).forEach(t => lib.push({ key: teamKey(l.leagueId, t.id), team: t, countryId: l.countryId }));
+      if (!seedSul) ordem.slice(nL, nL + nS).forEach(t => sul.push({ key: teamKey(l.leagueId, t.id), team: t, countryId: l.countryId }));
     }
   }
   // Copa do Brasil: a Serie A do jogo entra na 5.a fase; os campeoes de 2025 na 3.a; os outros (Serie B da lista + os clubes da liga escondida `bra_clubes`) pelas fases baixas.
@@ -292,12 +323,19 @@ const jogosDeGrupo = (prefixo: string, grupos: Record<string, string[]>, datas: 
   return out;
 };
 
+/** Os grupos reais, se os 32 clubes sao exatamente os do seed; senao null (sorteio normal). */
+const gruposReais = (itens: { key: string; team: Team }[], reais: Record<string, string[]>): Record<string, string[]> | null => {
+  const porNome = new Map(itens.map(x => [x.team.name, x.key]));
+  const nomes = Object.values(reais).flat();
+  if (itens.length !== nomes.length || !nomes.every(n => porNome.has(n))) return null;
+  return Object.fromEntries(Object.entries(reais).map(([g, ns]) => [g, ns.map(n => porNome.get(n)!)]));
+};
 export const criarLibertadores = (lib: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map(), ano: number = ANO_BASE): Competition => {
-  const grupos = sortearGrupos(lib);
+  const grupos = gruposReais(lib, GRUPOS_REAIS_LIB) || sortearGrupos(lib);
   return { id: 'LIB', name: 'Copa Libertadores', teamKeys: lib.map(x => x.key), groups: grupos, matches: jogosDeGrupo('LIB', grupos, GRUPOS_LIB, oc, ano), ano };
 };
 export const criarSulAmericana = (sul: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map(), ano: number = ANO_BASE): Competition => {
-  const grupos = sortearGrupos(sul);
+  const grupos = gruposReais(sul, GRUPOS_REAIS_SUL) || sortearGrupos(sul);
   return { id: 'SUL', name: 'Copa Sul-Americana', teamKeys: sul.map(x => x.key), groups: grupos, matches: jogosDeGrupo('SUL', grupos, GRUPOS_SUL, oc, ano), ano };
 };
 
@@ -555,7 +593,7 @@ export const disputaPendente = (comps: Competition[] | null, userTeamId: string)
 };
 
 /** O que o 3D precisa saber ANTES do jogo para decidir se o empate vai a penaltis: este jogo fecha um confronto (jogo unico ou ida e volta, na volta) e o agregado dos jogos anteriores. */
-export interface DecisaoDoJogo { compId: string; matchId: string; agregadoCasa: number; agregadoFora: number; }
+export interface DecisaoDoJogo { compId: string; matchId: string; agregadoCasa: number; agregadoFora: number; /** Empatado no agregado, o 3D joga a prorrogacao antes dos penaltis (Carabao Cup: final e 2.o jogo das meias). */ prorrogacao?: boolean; }
 export const decisaoDoConfronto = (comps: Competition[] | null, fixtureId: string): DecisaoDoJogo | null => {
   if (!comps || !fixtureId.startsWith('fix-cup-')) return null;
   const matchId = fixtureId.slice('fix-cup-'.length);
@@ -568,7 +606,7 @@ export const decisaoDoConfronto = (comps: Competition[] | null, fixtureId: strin
     if ((m.leg || 1) !== ultimaPerna) return null;
     const antes = irmaos.filter(x => x.id !== m.id && x.played);
     const golsDe = (key: string) => antes.reduce((s, x) => s + (x.homeKey === key ? (x.homeScore || 0) : x.awayKey === key ? (x.awayScore || 0) : 0), 0);
-    return { compId: c.id, matchId: m.id, agregadoCasa: golsDe(m.homeKey), agregadoFora: golsDe(m.awayKey) };
+    return { compId: c.id, matchId: m.id, agregadoCasa: golsDe(m.homeKey), agregadoFora: golsDe(m.awayKey), ...(c.id === 'CARABAO' && (m.stage === 'F' || m.stage === 'SF') ? { prorrogacao: true } : {}) };
   }
   return null;
 };
@@ -1005,7 +1043,10 @@ export const competicoesDoClube = (team: Team, leagueId: string, leagueTeams: Te
   }
   if (liga.tier === 1) {
     const nL = VAGAS.LIB[pais.id] || 0, nS = VAGAS.SUL[pais.id] || 0;
-    if (pos < nL) out.push({ id: 'LIB', nome: 'Copa Libertadores' });
+    const reaisLib = Object.values(GRUPOS_REAIS_LIB).flat(), reaisSul = Object.values(GRUPOS_REAIS_SUL).flat();
+    if (reaisLib.includes(team.name)) out.push({ id: 'LIB', nome: 'Copa Libertadores' });   // 1.a temporada: os clubes reais de 2026
+    else if (reaisSul.includes(team.name)) out.push({ id: 'SUL', nome: 'Copa Sul-Americana' });
+    else if (pos < nL) out.push({ id: 'LIB', nome: 'Copa Libertadores' });
     else if (pos < nL + nS) out.push({ id: 'SUL', nome: 'Copa Sul-Americana' });
   }
   return out;
@@ -1017,7 +1058,7 @@ export const sincronizarResultados = (comp: Competition, fixtures: import('../ty
   if (!comp.matches.some(m => !m.played && jogados.has('fix-cup-' + m.id))) return comp;
   return { ...comp, matches: comp.matches.map(m => {
     const f = jogados.get('fix-cup-' + m.id);
-    return (!m.played && f) ? { ...m, homeScore: f.homeScore || 0, awayScore: f.awayScore || 0, played: true } : m;
+    return (!m.played && f) ? { ...m, homeScore: f.homeScore || 0, awayScore: f.awayScore || 0, played: true, ...(f.extraTime ? { et: true } : {}) } : m;
   }) };
 };
 

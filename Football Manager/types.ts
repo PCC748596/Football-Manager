@@ -859,6 +859,8 @@ export interface Fixture {
   awayScore: number;
   homePossession?: number; // percentage 0-100
   awayPossession?: number; // percentage 0-100
+  /** Jogo de copa decidido com prorrogacao (os golos dela ja estao no placar); ver Competition/CompMatch.et. */
+  extraTime?: boolean;
   currentPossession?: 'home' | 'away'; // currently attacking team
   possessionTimeline?: ('home' | 'away')[];
   subsUsedHome?: number;

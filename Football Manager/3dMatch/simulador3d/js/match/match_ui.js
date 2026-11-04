@@ -634,7 +634,8 @@ Object.assign(Match, {
             const ss = String(total % 60).padStart(2, '0');
             // Depois de o juiz definir o acrescimo (43:00 / 88:00): "tempo de jogo + N" (minutos), ex.: "43:00 + 7".
             let acr = '';
-            if (!this.primeiroTempoAcabou && this.acr1Calculado && this.acrMin1 > 0) acr = ' + ' + this.acrMin1;
+            if (this.faseExtra) { if (this.acrExtraCalculado && this.acrExtraMin > 0) acr = ' + ' + this.acrExtraMin; }
+            else if (!this.primeiroTempoAcabou && this.acr1Calculado && this.acrMin1 > 0) acr = ' + ' + this.acrMin1;
             else if (this.primeiroTempoAcabou && this.acr2Calculado && this.acrMin2 > 0) acr = ' + ' + this.acrMin2;
             elT.textContent = mm + ':' + ss + acr;
         }

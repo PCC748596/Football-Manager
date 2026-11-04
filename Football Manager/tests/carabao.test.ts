@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createWorld } from '../textSim/world';
-import { criarCopas, avancarCompeticao, mapaDeClubes, ocupacaoDe, somarDias, Competition } from '../textSim/competitions';
+import { criarCopas, decisaoDoConfronto, avancarCompeticao, mapaDeClubes, ocupacaoDe, somarDias, Competition } from '../textSim/competitions';
 
 const mundo = () => createWorld('bra_serie_a', '2026-01-01', null);
 
@@ -59,4 +59,13 @@ test('Carabao: 2.a rodada com 24 jogos; campeao da Carabao ganha vaga na Europa 
   assert.ok((com.find(x => x.id === 'UEL') as Competition).teamKeys.includes(fora), 'campeao da Carabao entra na UEL');
   assert.equal((com.find(x => x.id === 'UEL') as Competition).teamKeys.length, 36);
   assert.equal(uelBase.length, 36);
+});
+
+test('decisaoDoConfronto manda prorrogacao na final e no 2.o jogo das meias, nao nas rodadas de jogo unico', () => {
+  const mk = (stage: string, leg?: number, played = false) => ({ id: `CARABAO-${stage}-${leg || 0}`, stage, tie: stage + '-0', leg, date: '2026-01-01', homeKey: 'a|1', awayKey: 'b|2', homeScore: played ? 1 : null, awayScore: played ? 1 : null, played });
+  const comp = { id: 'CARABAO', name: 'x', teamKeys: [], matches: [mk('R4'), mk('SF', 1, true), mk('SF', 2), mk('F')] } as any;
+  assert.ok(!decisaoDoConfronto([comp], 'fix-cup-CARABAO-R4-0')?.prorrogacao);
+  assert.equal(decisaoDoConfronto([comp], 'fix-cup-CARABAO-SF-1'), null);
+  assert.equal(decisaoDoConfronto([comp], 'fix-cup-CARABAO-SF-2')?.prorrogacao, true);
+  assert.equal(decisaoDoConfronto([comp], 'fix-cup-CARABAO-F-0')?.prorrogacao, true);
 });
