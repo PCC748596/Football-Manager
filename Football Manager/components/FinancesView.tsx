@@ -55,6 +55,11 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
     });
   }, [marketPlayers, searchTerm, positionFilter]);
 
+  // A divisao guardada pode estar fora do limite atual (folha subiu, patrocinio mudou): reaplica-a ao abrir, para o valor mostrado e o orcamento real acompanharem a barra.
+  const pctEfetivo = userTeam ? Math.min(userTeam.transferPct ?? PADRAO_COMPRAS, maxCompras(userTeam, folhaAnual(players.filter(p => p.teamId === userTeam.id).map(p => p.salary)))) : 0;
+  const compraEsperada = userTeam ? Math.round(orcamentoDaTemporada(userTeam) * Math.round(pctEfetivo * 20) / 20) : 0;
+  React.useEffect(() => { if (userTeam && (userTeam.initialTransfer ?? 0) !== compraEsperada) definirDivisaoOrcamento(pctEfetivo); }, [userTeam?.initialTransfer, compraEsperada]);
+
   if (!userTeam) return null;
 
   const teamPlayers = players.filter(p => p.teamId === userTeam.id);

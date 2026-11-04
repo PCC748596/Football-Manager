@@ -31,6 +31,7 @@ export const CONFIG_MERCADO = {
   agentesLivresForaDaJanela: true,
   idadeMinimaBase: 18,                 // jovens do Sub-20 com esta idade ou mais podem ser negociados
   diasResposta: [1, 3] as [number, number],
+  diasRespostaNaoListado: [2, 3] as [number, number],   // 1a oferta por um jogador que o clube nao pos a venda
   diasValidade: 7,                     // a negociacao expira
   maxRodadas: 3,                       // propostas do comprador por negociacao (a primeira + 2 revisoes)
   minimoElenco: { total: 20, GK: 2, DEF: 6, MID: 6, ATT: 3 },
@@ -226,7 +227,7 @@ const comNeg = (u: Universo, neg: NegociacaoTransf): Universo => ({ ...u, mercad
 const adicionarNeg = (u: Universo, neg: NegociacaoTransf): Universo => ({ ...u, mercado: { ...u.mercado, negociacoes: [...u.mercado.negociacoes, neg], proximoNum: u.mercado.proximoNum + 1 } });
 const ev = (u: Universo, tipo: Evento['tipo'], neg: NegociacaoTransf | null, p: Player, clubeId: string, valor: number, motivo?: string): Evento =>
   ({ tipo, negId: neg ? neg.id : null, jogadorId: p.id, jogadorNome: p.name, clubeId, clubeNome: clube(u, clubeId)?.name || clubeId, valor, motivo });
-const diasDeResposta = (semente: string, cfg: ConfigMercado): number => { const [a, b] = cfg.diasResposta; return a + Math.floor(criarRng(semente)() * (b - a + 1)); };
+const diasDeResposta = (semente: string, cfg: ConfigMercado, faixa: [number, number] = cfg.diasResposta): number => { const [a, b] = faixa; return a + Math.floor(criarRng(semente)() * (b - a + 1)); };
 
 /** Abre uma negociacao de COMPRA: `compradorId` propoe `valor` pelo jogador. O vendedor humano recebe (RECEBIDA); o vendedor IA responde em 1-3 dias (ENVIADA). */
 export const proporCompra = (u: Universo, compradorId: string, playerId: string, valor: number, hoje: string, donoId: string, cfg: ConfigMercado = CONFIG_MERCADO): Resultado => {
@@ -246,7 +247,7 @@ export const proporCompra = (u: Universo, compradorId: string, playerId: string,
   const neg: NegociacaoTransf = {
     id: `neg-${num}`, playerId, compradorId, vendedorId, origem: loc.origem, estado: humanoVende ? 'RECEBIDA' : 'ENVIADA', aguarda: 'VENDEDOR',
     valor: arred(valor), rodadas: 1, criada: hoje, atualizada: hoje, expira: somarDias(hoje, cfg.diasValidade),
-    respondeEm: humanoVende ? null : somarDias(hoje, diasDeResposta(`resp|neg-${num}|1`, cfg)),
+    respondeEm: humanoVende ? null : somarDias(hoje, p.listedForSale ? 0 : diasDeResposta(`resp|neg-${num}|1`, cfg, cfg.diasRespostaNaoListado)),   // listado: a negociacao ja abre; senao o clube leva 2-3 dias
     historico: [{ n: 1, de: 'COMPRADOR', valor: arred(valor), data: hoje }]
   };
   const eventos = humanoVende ? [ev(u, 'OFERTA_RECEBIDA', neg, p, compradorId, neg.valor)] : [];

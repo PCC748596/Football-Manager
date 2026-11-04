@@ -42,13 +42,13 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const [ovrMin, setOvrMin] = useState(50), [ovrMax, setOvrMax] = useState(99);
   const [valorMax, setValorMax] = useState<number>(Infinity);
   const [clubeId, setClubeId] = useState('');
-  const [soLivres, setSoLivres] = useState(false), [soListados, setSoListados] = useState(false), [soContrato, setSoContrato] = useState(false), [soBase, setSoBase] = useState(false), [soShortlist, setSoShortlist] = useState(false);
+  const [soLivres, setSoLivres] = useState(false), [soListados, setSoListados] = useState(true), [soContrato, setSoContrato] = useState(false), [soBase, setSoBase] = useState(false), [soShortlist, setSoShortlist] = useState(false);
   // Os filtros so valem ao carregar em APPLY FILTERS (ou Enter): os campos acima sao o rascunho.
   const rascunho = { nome, grupo, idadeMin, idadeMax, ovrMin, ovrMax, valorMax, clubeId, soLivres, soListados, soContrato, soBase, soShortlist };
   const [filtros, setFiltros] = useState(rascunho);
   const aplicar = () => setFiltros(rascunho);
-  const limpar = () => { setNome(''); setGrupo('ANY'); setIdadeMin(15); setIdadeMax(42); setOvrMin(50); setOvrMax(99); setValorMax(Infinity); setClubeId(''); setSoLivres(false); setSoListados(false); setSoContrato(false); setSoBase(false); setSoShortlist(false);
-    setFiltros({ nome: '', grupo: 'ANY', idadeMin: 15, idadeMax: 42, ovrMin: 50, ovrMax: 99, valorMax: Infinity, clubeId: '', soLivres: false, soListados: false, soContrato: false, soBase: false, soShortlist: false }); };
+  const limpar = () => { setNome(''); setGrupo('ANY'); setIdadeMin(15); setIdadeMax(42); setOvrMin(50); setOvrMax(99); setValorMax(Infinity); setClubeId(''); setSoLivres(false); setSoListados(true); setSoContrato(false); setSoBase(false); setSoShortlist(false);
+    setFiltros({ nome: '', grupo: 'ANY', idadeMin: 15, idadeMax: 42, ovrMin: 50, ovrMax: 99, valorMax: Infinity, clubeId: '', soLivres: false, soListados: true, soContrato: false, soBase: false, soShortlist: false }); };
   // A lista de interesse (shortlist): guardada no navegador (so uma conveniencia de quem joga).
   const [shortlist, setShortlist] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem('fm_shortlist') || '[]'); } catch { return []; } });
   const alternarShortlist = (id: string) => setShortlist(l => { const n = l.includes(id) ? l.filter(x => x !== id) : [...l, id]; try { localStorage.setItem('fm_shortlist', JSON.stringify(n)); } catch { /* sem armazenamento */ } return n; });
@@ -78,6 +78,9 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
     return out;
   }, [players, base, porId, meuId, hoje.slice(0, 7)]);
 
+  // So conta quem ainda esta no mercado: ids de jogadores que se aposentaram, mudaram para o meu clube ou sumiram ficavam guardados e inflavam o contador.
+  const shortlistN = useMemo(() => { const ids = new Set(linhas.map(l => l.p.id)); return shortlist.filter(id => ids.has(id)).length; }, [linhas, shortlist]);
+
   const filtradas = useMemo(() => {
     const F = filtros, q = F.nome.trim().toLowerCase();
     const f = linhas.filter(l => {
@@ -89,7 +92,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
       if (l.origem !== 'LIVRE' && p.value > F.valorMax) return false;
       if (F.clubeId && p.teamId !== F.clubeId) return false;
       if (F.soLivres && l.origem !== 'LIVRE') return false;
-      if (F.soListados && !p.listedForSale) return false;
+      if (F.soListados && aba !== 'SHORTLIST' && !F.soShortlist && !p.listedForSale) return false;
       if (F.soBase && l.origem !== 'BASE') return false;
       if (F.soContrato && !(l.origem !== 'LIVRE' && l.meses <= 12)) return false;
       if ((F.soShortlist || aba === 'SHORTLIST') && !shortlist.includes(p.id)) return false;   // a aba SHORTLIST e o mercado so com os jogadores da lista de interesse
@@ -170,7 +173,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
           <button onClick={() => { setSoLivres(!soLivres); setFiltros(f => ({ ...f, soLivres: !soLivres })); }} className={botaoStatus(soLivres)}>Free agents</button>
           <button onClick={() => { setSoContrato(!soContrato); setFiltros(f => ({ ...f, soContrato: !soContrato })); }} className={botaoStatus(soContrato)}>Contract ≤ 12 months</button>
           <button onClick={() => { setSoBase(!soBase); setFiltros(f => ({ ...f, soBase: !soBase })); }} className={botaoStatus(soBase)}>Sub-20 (18+)</button>
-          {aba !== 'SHORTLIST' && <button onClick={() => { setSoShortlist(!soShortlist); setFiltros(f => ({ ...f, soShortlist: !soShortlist })); }} className={botaoStatus(soShortlist)}>Shortlist ({shortlist.length})</button>}
+          {aba !== 'SHORTLIST' && <button onClick={() => { setSoShortlist(!soShortlist); setFiltros(f => ({ ...f, soShortlist: !soShortlist })); }} className={botaoStatus(soShortlist)}>Shortlist ({shortlistN})</button>}
         </div>
         <div className="mt-auto flex flex-col gap-2">
           <button onClick={aplicar} className="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded text-xs uppercase tracking-widest shadow-lg">Apply filters</button>
@@ -455,7 +458,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
         <p className="text-slate-400 dark:text-slate-500 font-bold text-[11px] uppercase tracking-widest mt-2 opacity-70">Player search and transactions • window {janela ? <span className="text-emerald-500">open{fecha !== null ? ` (${fecha} days left)` : ''}</span> : <span className="text-rose-400">closed{abre !== null ? ` (opens in ${abre} days)` : ''}</span>}</p>
       </div>
       <div className="flex flex-wrap gap-2 items-center">
-        {([['MARKET', 'Market'], ['SHORTLIST', `Shortlist (${shortlist.length})`], ['NEGOTIATIONS', `Negotiations${pendentes ? ` (${pendentes})` : ''}`], ['MY_PLAYERS', 'My players / for sale'], ['FINANCES', 'Transfer finances']] as const).map(([id, r]) => (
+        {([['MARKET', 'Market'], ['SHORTLIST', `Shortlist (${shortlistN})`], ['NEGOTIATIONS', `Negotiations${pendentes ? ` (${pendentes})` : ''}`], ['MY_PLAYERS', 'My players / for sale'], ['FINANCES', 'Transfer finances']] as const).map(([id, r]) => (
           <button key={id} onClick={() => setAba(id)} className={`px-5 py-2 rounded text-xs font-black uppercase tracking-widest transition-colors ${aba === id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-800 dark:hover:text-white'}`}>{r}</button>
         ))}
         {aviso && <div className={`ml-auto px-4 py-2 rounded text-xs font-black uppercase tracking-wider cursor-pointer ${aviso.tipo === 'ok' ? 'bg-emerald-600/15 text-emerald-400 border border-emerald-600/40' : 'bg-rose-600/15 text-rose-400 border border-rose-600/40'}`} onClick={() => setAviso(null)}>{aviso.texto} ✕</div>}
