@@ -36,6 +36,8 @@ export interface ResultadoMotor {
   prorrogacao?: boolean;
   posse: { casa: number; fora: number };
   estatisticas: any;
+  /** As linhas das estatisticas como o 3D as mostra (ver js/main.js linhasEstatisticas). Ausente em resultados antigos. */
+  estatLinhas?: { id: string; e: number; d: number; sufixo?: string }[] | null;
   /** Passes reais por equipa (curtos + lancamentos + cruzamentos). Ausente em resultados antigos. */
   passes?: { casa: { tentados: number; certos: number }; fora: { tentados: number; certos: number } };
   golos: { minuto: number; equipa: 'casa' | 'fora'; jogador: any; assistente: any; proprioGolo: boolean }[];
@@ -244,6 +246,7 @@ export const aplicarResultado = (f: Fixture, r: ResultadoMotor, casa: Team, fora
     homeShots: A.remates, awayShots: B.remates, homeShotsOnTarget: A.rematesNoAlvo, awayShotsOnTarget: B.rematesNoAlvo, homeXG: A.xg, awayXG: B.xg,
     homeCorners: A.cantos, awayCorners: B.cantos,
     homeFouls: A.faltas, awayFouls: B.faltas,
+    ...(r.estatLinhas ? { estat3d: r.estatLinhas } : {}),
     ...(r.passes ? { homePasses: r.passes.casa.tentados, awayPasses: r.passes.fora.tentados } : {}),
     homeLineup: casa.lineup.filter(Boolean), awayLineup: fora.lineup.filter(Boolean),
     ...(r.notas && Object.keys(r.notas).length ? notasDoMotor(r.notas, casa, fora, players) : {}),
@@ -333,3 +336,7 @@ export const taticaDoMotor = (m: any, atual: Tactics): Partial<Tactics> => {
   }
   return r;
 };
+
+/** A ordem das tabelas de jogadores nas estatisticas: por posicao em campo (goleiro, defesa, meio, ataque), nunca por nota. */
+const ORDEM_POSICAO: Record<string, number> = { GK: 0, LB: 1, CB: 2, RB: 3, DM: 4, LM: 5, CM: 6, RM: 7, AM: 8, LW: 9, SS: 10, RW: 11, ST: 12 };
+export const ordemDaPosicao = (p: { position?: any }): number => ORDEM_POSICAO[String(p.position)] ?? 99;

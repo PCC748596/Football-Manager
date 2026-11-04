@@ -599,7 +599,7 @@ const Ponte = {
     // O intervalo comecou (as estatisticas abrem): pede ao manager a classificacao actualizada.
     aoIntervaloIniciado() {
         const noManager = typeof window !== 'undefined' && window.parent && window.parent !== window;
-        if (noManager && this.modo === 'visivel') this.enviar('intervalo_iniciado', { notas: (typeof Notas !== 'undefined') ? this._limpar(Notas.resultado()) : null });
+        if (noManager && this.modo === 'visivel') this.enviar('intervalo_iniciado', { notas: (typeof Notas !== 'undefined') ? this._limpar(Notas.resultado()) : null, estatLinhas: (typeof estatisticasLinhas === 'function') ? estatisticasLinhas() : null });
     },
 
     segundoTempo() {
@@ -747,6 +747,7 @@ const Ponte = {
             passes: { casa: passesDe(A), fora: passesDe(B) },
             posse: { casa: posseT > 0 ? Math.round(1000 * (A.posseSegundos || 0) / posseT) / 10 : 50, fora: posseT > 0 ? Math.round(1000 * (B.posseSegundos || 0) / posseT) / 10 : 50 },
             estatisticas: this._limpar(MatchStats.resumo()),
+            estatLinhas: (typeof estatisticasLinhas === 'function') ? estatisticasLinhas() : null,
             golos: golos, cartoes: cartoes,
             eventos: this._limpar({ l: L }).l.map((e, i) => { const ln = Narrador.linha(L[i]); e.texto = ln ? ln.texto : null; return e; }),
             relato: Narrador.relato(L),

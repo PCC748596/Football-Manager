@@ -2,12 +2,17 @@
 /** Minutos de "jogar junto" que cada ponto de impacto CHE (ex.: Analysis) soma a cada par de jogadores do grupo: o Chemistry (textSim/quimica.ts) sobe com eles. */
 export const MINUTOS_POR_PONTO_CHE = 60;
 
+/** Pontos de treino que valem +1 num atributo do 3D (Player.treino3d). Calibrado com tools/auditoriaTreino.ts: uma sessao 2x por semana numa temporada de 38 semanas da ~+3. */
+export const PONTOS_POR_ATRIBUTO = 25;
+/** Teto de pontos de treino por atributo (+15 no atributo). */
+export const TETO_PONTOS_TREINO = 15 * PONTOS_POR_ATRIBUTO;
+
 export interface Impact {
   label: string;
   value: number;
   /** Nome do atributo do 3D (ou Morale/Chemistry) que o treino mexe; e o que o cartao mostra no lugar do grupo. */
   skill?: string;
-  /** Atributo do 3D (id do campo, ex.: 'headAccurancy') que ganha `value` pontos (label 'SKL'); 100 pontos = +1 no atributo. */
+  /** Atributo do 3D (id do campo, ex.: 'headAccurancy') que ganha `value` pontos (label 'SKL'); PONTOS_POR_ATRIBUTO pontos = +1 no atributo. */
   campo?: string;
 }
 

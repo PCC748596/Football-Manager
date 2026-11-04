@@ -10,6 +10,7 @@ TEC, TAC e MEN seguem a QUALIDADE do jogador; o FIS e parecido num craque e num 
 */
 import dados from './atributos3d.json';
 import type { Player } from '../types';
+import { PONTOS_POR_ATRIBUTO } from './trainingService';
 import { REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 import { PLAYSTYLE_DA_BASE } from './playStylesDatabase';
 import { NIVEL_MINIMO } from './dataGenerator';
@@ -17,7 +18,7 @@ import { jogadorLocalPorId, bandeiraDoCodigo } from './dadosLocais';
 import { GRUPOS, ATRIBUTOS_GK, gerarAtributos, limitarAtributo, curvaFisica, calcularGrupos } from './geradorAtributos';
 
 /*
-O TREINO MEXE NOS ATRIBUTOS DO 3D, um a um: cada sessao (textSim/trainingService.ts) da pontos aos atributos que treina (`Player.treino3d`, campo -> pontos) e 100 pontos = +1 no atributo.
+O TREINO MEXE NOS ATRIBUTOS DO 3D, um a um: cada sessao (textSim/trainingService.ts) da pontos aos atributos que treina (`Player.treino3d`, campo -> pontos) e PONTOS_POR_ATRIBUTO (trainingService.ts) pontos = +1 no atributo.
 O DEF/PAS/DRB/SHT antigos continuam a subir por baixo (OVR e valor de mercado), mas ja nao entram nos atributos do 3D (senao o mesmo treino contaria duas vezes).
 */
 const BASE: Map<string, { def: number; pas: number; drb: number; sht: number; idade: number; attrs3d?: Record<string, number> }> = new Map();
@@ -73,7 +74,7 @@ export const campo3d = (p: Player, campos: string[]): number => {
 const cache = new Map<string, Atributos3D>();
 
 /** Os pontos inteiros de treino de um atributo (a parte que ja conta). */
-const bonusTreino = (p: Player, campo: string): number => Math.floor(((p.treino3d && p.treino3d[campo]) || 0) / 100);
+const bonusTreino = (p: Player, campo: string): number => Math.floor(((p.treino3d && p.treino3d[campo]) || 0) / PONTOS_POR_ATRIBUTO);
 /** Entra na chave do cache: o treino muda os atributos. */
 const assinaturaTreino = (p: Player): string => (p.treino3d ? Object.keys(p.treino3d).map(c => c + bonusTreino(p, c)).join(',') : '');
 

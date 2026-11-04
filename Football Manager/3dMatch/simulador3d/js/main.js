@@ -886,6 +886,33 @@ aparece no título da barra.
 O MODAL DAS ESTATISTICAS DO INTERVALO (pedido): enquanto os jogadores saem de campo e durante a pausa do treinador. Equipa da esquerda do ecra a esquerda (como os cartoes);
 linhas: % posse, finalizacoes, % passes certos, amarelos, vermelhos, corners, faltas, impedimentos, defesas do guarda-redes. Match.iniciarSegundoTempo esconde-o.
 */
+/*
+AS LINHAS DAS ESTATISTICAS (uma unica fonte): o modal do intervalo/fim aqui e a tela MATCH STATISTICS do manager mostram exactamente estes numeros.
+`x` e `y` sao os MatchStats de cada equipa; devolve [{ id, r (rotulo), e (de x), d (de y), sufixo }]. O manager recebe-as por `Ponte` (intervalo_iniciado e fim) com x = TeamA (casa).
+*/
+function linhasEstatisticas(x, y) {
+    const pct = (a, b) => (b > 0 ? Math.round(100 * a / b) : 0);
+    const posse = (s, o) => { const t = (s.posseSegundos || 0) + (o.posseSegundos || 0); return t > 0 ? Math.round(100 * (s.posseSegundos || 0) / t) : 50; };
+    const passes = (s) => pct(s.passes.certos + s.lancamentos.certos + s.cruzamentos.certos, s.passes.tentados + s.lancamentos.tentados + s.cruzamentos.tentados);
+    return [
+        { id: 'posse', r: 'POSSE DE BOLA %', e: posse(x, y), d: posse(y, x), sufixo: '%' },
+        { id: 'finalizacoes', r: 'FINALIZAÇÕES', e: x.remates.tentados, d: y.remates.tentados },
+        { id: 'passes', r: 'PASSES CERTOS %', e: passes(x), d: passes(y), sufixo: '%' },
+        { id: 'amarelos', r: 'CARTÕES AMARELOS', e: x.cartoes.amarelos, d: y.cartoes.amarelos },
+        { id: 'vermelhos', r: 'CARTÕES VERMELHOS', e: x.cartoes.vermelhos, d: y.cartoes.vermelhos },
+        { id: 'corners', r: 'CORNERS', e: x.cantos, d: y.cantos },
+        { id: 'faltas', r: 'FALTAS', e: x.faltas.cometidas, d: y.faltas.cometidas },
+        { id: 'impedimentos', r: 'IMPEDIMENTOS', e: x.impedimentos, d: y.impedimentos },
+        { id: 'defesas', r: 'DEFESAS DO GOLEIRO', e: x.defesas, d: y.defesas }
+    ];
+}
+// Para o manager (Ponte): as mesmas linhas, casa (TeamA) a esquerda.
+function estatisticasLinhas() {
+    if (typeof MatchStats === 'undefined' || !MatchStats.TeamA || !MatchStats.TeamB) return null;
+    return linhasEstatisticas(MatchStats.TeamA, MatchStats.TeamB).map(l => ({ id: l.id, e: l.e || 0, d: l.d || 0, sufixo: l.sufixo || '' }));
+}
+if (typeof window !== 'undefined') window.estatisticasLinhas = estatisticasLinhas;
+
 function mostrarModalIntervalo(ligar, titulo) {
     const el = document.getElementById('modal-intervalo');
     if (!el) return;
@@ -920,20 +947,7 @@ function mostrarModalIntervalo(ligar, titulo) {
     const golos = (t) => (t === 'TeamA' ? Match.placarA : Match.placarB) || 0;
     document.getElementById('mi-golos').textContent = golos(esq) + ' - ' + golos(dir);
 
-    const pct = (a, b) => (b > 0 ? Math.round(100 * a / b) : 0);
-    const posse = (s, o) => { const t = (s.posseSegundos || 0) + (o.posseSegundos || 0); return t > 0 ? Math.round(100 * (s.posseSegundos || 0) / t) : 50; };
-    const passes = (s) => pct(s.passes.certos + s.lancamentos.certos + s.cruzamentos.certos, s.passes.tentados + s.lancamentos.tentados + s.cruzamentos.tentados);
-    const linhas = [
-        { r: 'POSSE DE BOLA %', e: posse(S.esq, S.dir), d: posse(S.dir, S.esq), sufixo: '%' },
-        { r: 'FINALIZAÇÕES', e: S.esq.remates.tentados, d: S.dir.remates.tentados },
-        { r: 'PASSES CERTOS %', e: passes(S.esq), d: passes(S.dir), sufixo: '%' },
-        { r: 'CARTÕES AMARELOS', e: S.esq.cartoes.amarelos, d: S.dir.cartoes.amarelos },
-        { r: 'CARTÕES VERMELHOS', e: S.esq.cartoes.vermelhos, d: S.dir.cartoes.vermelhos },
-        { r: 'CORNERS', e: S.esq.cantos, d: S.dir.cantos },
-        { r: 'FALTAS', e: S.esq.faltas.cometidas, d: S.dir.faltas.cometidas },
-        { r: 'IMPEDIMENTOS', e: S.esq.impedimentos, d: S.dir.impedimentos },
-        { r: 'DEFESAS DO GOLEIRO', e: S.esq.defesas, d: S.dir.defesas }
-    ];
+    const linhas = linhasEstatisticas(S.esq, S.dir);
     const cE = cor(esq), cD = cor(dir);
     el.querySelector('#mi-linhas').innerHTML = linhas.map(l => {
         const e = l.e || 0, d = l.d || 0, t = e + d;
@@ -1010,9 +1024,11 @@ function mostrarNotasIntervalo(dados) {
     // As tres caixas lado a lado cabem no ecra: reduz a escala (a de sempre e 1.3) se for preciso.
     const par = document.getElementById('intervalo-par');
     if (par) {
-        par.style.transform = 'translate(-50%, -50%) scale(1.3)';
-        const w = par.getBoundingClientRect().width / 1.3;
-        const s = Math.min(1.3, (window.innerWidth * 0.97) / Math.max(1, w));
+        // No tablet (toque ou < 1280 px) a escala de base e 20% menor (1.04 em vez de 1.3).
+        const base = (document.body.classList.contains('toque') || window.innerWidth < 1280) ? 1.04 : 1.3;
+        par.style.transform = 'translate(-50%, -50%) scale(' + base + ')';
+        const w = par.getBoundingClientRect().width / base;
+        const s = Math.min(base, (window.innerWidth * 0.97) / Math.max(1, w));
         par.style.transform = 'translate(-50%, -50%) scale(' + s.toFixed(3) + ')';
     }
 }

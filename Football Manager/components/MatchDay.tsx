@@ -19,6 +19,9 @@ interface MatchDayProps {
   setView?: (view: any) => void;
 }
 
+// Os rotulos das linhas de `Fixture.estat3d` (as mesmas do modal do intervalo do 3D).
+const ROTULO_ESTAT3D: Record<string, string> = { posse: 'POSSESSION %', finalizacoes: 'SHOTS', passes: 'PASSING ACCURACY %', amarelos: 'YELLOW CARDS', vermelhos: 'RED CARDS', corners: 'CORNERS', faltas: 'FOULS', impedimentos: 'OFFSIDES', defesas: 'GOALKEEPER SAVES' };
+
 const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const { gameState, fixtures, teams, players, playMatchDay, pauseMatch, resetMatchDay, advanceWeek, updateMatchVisualState, motor3dMensagem, avisoGoleiroMensagem, updateTactics, comps, decisaoDoJogoDeHoje, definirOrdemPenaltis, t } = useGame();
   
@@ -326,7 +329,10 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                                  <h4 className="text-[10px] font-black text-center uppercase tracking-widest text-slate-500 mb-2">
                                      {gameState.matchMinute >= 90 ? "FULL TIME STATS" : "MATCH STATS"}
                                  </h4>
-                                 {[
+                                 {(match.estat3d ? [
+                                   { label: 'GOALS', h: match.homeScore || 0, a: match.awayScore || 0 },
+                                   ...match.estat3d.map(l => ({ label: ROTULO_ESTAT3D[l.id] || l.id.toUpperCase(), h: `${l.e}${l.sufixo || ''}`, a: `${l.d}${l.sufixo || ''}` })),
+                                 ] : [
                                    { label: 'GOALS', h: match.homeScore || 0, a: match.awayScore || 0 },
                                    { label: 'POSSESSION', h: `${hPos}%`, a: `${aPos}%` },
                                    { label: 'SHOTS', h: hShots, a: aShots },
@@ -338,7 +344,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                                    { label: 'FOULS', h: hFouls, a: aFouls },
                                    { label: 'YELLOW CARDS', h: hYellows, a: aYellows },
                                    { label: 'RED CARDS', h: hReds, a: aReds },
-                                 ].map((stat, i) => (
+                                 ]).map((stat, i) => (
                                    <div key={i} className="flex justify-between items-center py-1.5 border-b border-slate-900/60 last:border-0">
                                      <span className="w-1/3 text-right pr-[30px] font-black text-[15px] text-slate-100">{stat.h}</span>
                                      <span className="w-1/3 text-center text-[9px] font-black uppercase tracking-wider text-slate-500">{stat.label}</span>

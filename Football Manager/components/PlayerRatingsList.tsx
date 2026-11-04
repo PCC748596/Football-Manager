@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Player, RatingDetalhe } from '../types';
+import { ordemDaPosicao } from '../3dMatch/simulador3dCliente';
 
 // As mesmas faixas do 3D (Notas.corDaNota em simulador3d/js/ratings/notas_ligacao.js).
 export const corDaNota = (n: number) =>
@@ -29,9 +30,9 @@ const PlayerRatingsList: React.FC<Props> = ({ jogadores, notas, detalhes, motm }
   const linhas = jogadores
     .filter(p => notas[p.id] !== undefined)
     .map(p => ({ p, nota: notas[p.id], d: detalhes?.[p.id] }))
-    .sort((a, b) => b.nota - a.nota);
+    .sort((a, b) => ordemDaPosicao(a.p) - ordemDaPosicao(b.p) || b.nota - a.nota);
   const piores = new Set(
-    linhas.filter(l => l.d).slice(-2).filter(l => l.nota < 6).map(l => l.p.id)
+    [...linhas].sort((a, b) => a.nota - b.nota).filter(l => l.d).slice(0, 2).filter(l => l.nota < 6).map(l => l.p.id)
   );
 
   return (

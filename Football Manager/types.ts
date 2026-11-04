@@ -908,6 +908,8 @@ export interface Fixture {
   // FM2D-style simulation statistics
   homeShots?: number;
   awayShots?: number;
+  /** As linhas das estatisticas do 3D (as mesmas do modal do intervalo/fim; ver js/main.js linhasEstatisticas): id, casa (e), fora (d). So jogos 3D. */
+  estat3d?: { id: string; e: number; d: number; sufixo?: string }[];
   homePasses?: number; // passes tentados reais (so jogos 3D)
   awayPasses?: number;
   homeShotsOnTarget?: number;

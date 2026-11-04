@@ -25,12 +25,12 @@ import { rotuloDaFase } from '../textSim/competitions';
 import { slotsVazios } from '../textSim/escalacao';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
-import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE } from '../textSim/trainingService';
+import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO } from '../textSim/trainingService';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
 import { REAL_TEAMS_JSON } from '../textSim/realDatabase';
-import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager, notasDoMotor } from '../3dMatch/simulador3dCliente';
+import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager, notasDoMotor, ordemDaPosicao } from '../3dMatch/simulador3dCliente';
 import { simulador3dEnviar, simulador3dInstantaneo, simulador3dDescartar } from '../3dMatch/Simulador3DView';
 import { avisoDoGoleiro, aplicarTrocaDo3d } from '../3dMatch/avisoGoleiro';
 
@@ -1302,10 +1302,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Age factor: Young players grow faster, old players might decline
         const ageFactor = p.age < 22 ? 1.5 : (p.age > 32 ? 0.5 : 1.0);
 
-        // Treino por atributo do 3D: os pontos de cada atributo treinado (100 pontos = +1, ver textSim/atributos3d.ts); a idade pesa como no treino de DEF/PAS/DRB/SHT.
+        // Treino por atributo do 3D: os pontos de cada atributo treinado (PONTOS_POR_ATRIBUTO = +1, ver textSim/atributos3d.ts); a idade pesa como no treino de DEF/PAS/DRB/SHT.
         if (isUserPlayer && Object.keys(gains.skl).length) {
           const t3 = { ...(p.treino3d || {}) };
-          for (const campo of Object.keys(gains.skl)) t3[campo] = Math.min(4900, (t3[campo] || 0) + gains.skl[campo] * ageFactor);
+          for (const campo of Object.keys(gains.skl)) t3[campo] = Math.min(TETO_PONTOS_TREINO, (t3[campo] || 0) + gains.skl[campo] * ageFactor);
           p.treino3d = t3;
           updated = true;
         }
@@ -1598,6 +1598,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else if (m.tipo === 'intervalo_iniciado') {
       // As estatisticas abriram no 3D: manda a classificacao ate este momento (com o resultado provisorio do jogo em curso).
       // So jogos de campeonato: no intervalo de uma copa a tabela da liga nao se mostra.
+      // As estatisticas do 3D (as mesmas do modal do intervalo) ficam no jogo: a tela MATCH STATISTICS do manager mostra-as em vez de as recontar pelos eventos.
+      if (Array.isArray(m.estatLinhas)) setFixtures(prev => prev.map(f => (f.id === uf.id ? { ...f, estat3d: m.estatLinhas } : f)));
       const linhas = uf.type !== 'CUP' ? classificacaoDoIntervalo(uf) : [];
       if (linhas.length) simulador3dEnviar({ tipo: 'classificacao', linhas, emCurso: (classificacaoDoIntervalo as any).ultimoEmCurso || 0 });
       // As notas dos jogadores ate este momento, no mesmo ecra das estatisticas (nome curto e nota, de cada equipa, pela nota).
@@ -1609,7 +1611,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const lado = (t: Team) => Object.entries(notas)
           .map(([id, nota]) => ({ p: players.find(x => x.id === id), nota: nota as number }))
           .filter(x => x.p && x.p.teamId === t.id)
-          .sort((a, b) => b.nota - a.nota)
+          .sort((a, b) => ordemDaPosicao(a.p!) - ordemDaPosicao(b.p!) || b.nota - a.nota)
           .map(x => {
             const d = dm ? dm.ratingDetalhes[x.p!.id] : undefined;   // com as notas do 3D a tabela leva o detalhe (posicao, minutos, gols, componentes)
             return { nome: String(x.p!.name).split(' ').pop(), nota: Math.round(x.nota * 10) / 10, ...(d ? { pos: d.pos, minutos: d.minutos, golos: d.golos || 0, assistencias: d.assistencias || 0, moc: !!d.moc, def: d.def || 0, tatico: d.tatico, tecnico: d.tecnico, participacao: d.participacao, disciplina: d.disciplina } : {}) };
