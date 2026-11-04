@@ -5,7 +5,8 @@ Os saves guardam o `logoUrl`/`kitUrls` ja com o caminho antigo: ao carregar, o m
 */
 export const assetUrl = <T extends string | undefined | null>(u: T): T => {
   if (typeof u !== 'string' || typeof document === 'undefined') return u;
-  const p = u.replace(/^(?:https?:\/\/[^/]+)?\/?(?=Assets\/)/, '');   // '/Assets/x' (ou o mesmo com o dominio de um save antigo) -> 'Assets/x'
-  if (!p.startsWith('Assets/')) return u;
+  // Tambem /sponsors/ e /flags/ (a pasta public/ do Vite): em absoluto ('/sponsors/x.png') apontavam para a raiz do dominio e, no jogo instalado ou num sub-caminho (tablet), davam 404.
+  const p = u.replace(/^(?:https?:\/\/[^/]+)?\/?(?=(?:Assets|sponsors|flags)\/)/, '');   // '/Assets/x' (ou o mesmo com o dominio de um save antigo) -> 'Assets/x'
+  if (!/^(?:Assets|sponsors|flags)\//.test(p)) return u;
   return new URL(p, document.baseURI).pathname as T;
 };

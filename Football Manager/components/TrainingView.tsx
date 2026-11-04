@@ -38,6 +38,8 @@ const TrainingView: React.FC = () => {
   const { gameState, userTeam, teams, fixtures, players, setTrainingSchedules, unlockTrainingGroup, updatePlayerTrainingGroup, advanceDay, formatCurrency, formatCurrencyShort, t } = useGame();
   const [activeCategory, setActiveCategory] = useState<TrainingActivity['category']>('DEFENSE');
   const [selectedGroup, setSelectedGroup] = useState<number>(0);
+  // Toque (iPad): escolhe-se o treino e depois o slot, como na substituicao de jogadores; arrastar continua a funcionar.
+  const [selActivity, setSelActivity] = useState<string | null>(null);
   const [squadSortBy, setSquadSortBy] = useState<'growth' | 'fitness'>('growth');
   
   // Use gameState schedule directly
@@ -112,6 +114,22 @@ const TrainingView: React.FC = () => {
   };
 
   const getActivity = (id: string | null) => ACTIVITIES.find(a => a.id === id);
+
+  // Toque num slot com um treino escolhido: poe o treino la (respeitando os limites) e, se esgotou, desmarca.
+  const colocarSelecionado = (dIdx: number, slotIdx: number) => {
+    if (!selActivity) return;
+    const act = ACTIVITIES.find(a => a.id === selActivity);
+    if (!act) return;
+    const naSlot = program[dIdx][slotIdx];
+    const actUsage = usageCounts.activities[act.id] || 0, catUsage = usageCounts.categories[act.category as keyof typeof LIMITS.categories];
+    const limitCat = LIMITS.categories[act.category as keyof typeof LIMITS.categories];
+    const mesmaAct = naSlot === act.id;
+    if (!mesmaAct && (actUsage >= LIMITS.activities || catUsage >= limitCat)) { setSelActivity(null); return; }
+    handleSlotUpdate(dIdx, slotIdx, act.id);
+    const ocupava = !mesmaAct && !!naSlot;
+    const novoAct = actUsage + (mesmaAct ? 0 : 1), novoCat = catUsage + (mesmaAct ? 0 : 1) - (ocupava && getActivity(naSlot)?.category === act.category ? 1 : 0);
+    if (novoAct >= LIMITS.activities || novoCat >= limitCat) setSelActivity(null);
+  };
 
   const getTeamAvg = (attr: keyof Player) => {
     const teamPlayers = players.filter(p => p.teamId === userTeam?.id);
@@ -289,6 +307,7 @@ const TrainingView: React.FC = () => {
                               return (
                                 <div 
                                   key={slotIdx}
+                                  onClick={() => { if (!isBlocked) colocarSelecionado(dIdx, slotIdx); }}
                                   onDragOver={(e) => !isBlocked && e.preventDefault()}
                                   onDrop={(e) => {
                                     if (isBlocked) return;
@@ -396,7 +415,7 @@ const TrainingView: React.FC = () => {
                  <div className="relative z-10 h-full flex flex-col">
                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mb-4 font-black uppercase tracking-widest italic flex items-center gap-2 transition-colors">
                      <span className="w-1 h-1 bg-blue-500 rounded-full animate-pulse"></span>
-                     Drag sessions into the calendar slots
+                     Tap a session, then tap a calendar slot (or drag it there)
                    </p>
 
                    <div className="grid grid-cols-4 gap-2 flex-1 bg-white/40 dark:bg-transparent rounded p-2 overflow-hidden">
@@ -416,7 +435,8 @@ const TrainingView: React.FC = () => {
                           key={act.id}
                           draggable={!isDisabled}
                           onDragStart={(e) => { if (!isDisabled) e.dataTransfer.setData("activityId", act.id); }}
-                          className={`flex flex-col items-center justify-center text-center gap-1 group p-2 rounded-xl transition-all border border-transparent h-full relative ${isDisabled ? 'opacity-50 grayscale cursor-not-allowed border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-900/10' : 'cursor-grab active:cursor-grabbing hover:bg-blue-50 dark:hover:bg-white/5 hover:border-blue-200 dark:hover:border-slate-800 hover:shadow-lg'}`}
+                          onClick={() => { if (!isDisabled) setSelActivity(s => (s === act.id ? null : act.id)); }}
+                          className={`flex flex-col items-center justify-center text-center gap-1 group p-2 rounded-xl transition-all border border-transparent h-full relative ${isDisabled ? 'opacity-50 grayscale cursor-not-allowed border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-900/10' : `cursor-grab active:cursor-grabbing hover:bg-blue-50 dark:hover:bg-white/5 hover:border-blue-200 dark:hover:border-slate-800 hover:shadow-lg ${selActivity === act.id ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-600/20' : ''}`}`}
                         >
                            {isDisabled && (
                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-rose-500 text-white text-[8px] font-black px-2 py-0.5 rounded rotate-12 z-20 whitespace-nowrap shadow-lg">

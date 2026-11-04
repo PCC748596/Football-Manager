@@ -505,7 +505,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             </div>
         </div>
 
-        <div className={`flex-1 grid gap-[5px] min-h-0 ${largo ? 'grid-cols-[5.6fr_3.7fr_3fr]' : 'grid-cols-4 overflow-y-auto custom-scrollbar content-start'}`}>   {/* tablet: o campo com os reservas em cima (linha inteira) e, em baixo, em UMA linha de 4 colunas: Squad Pool | Set Pieces | Kit + Tactical Instructions (colunas 3 e 4 fundidas) */}
+        <div className={`flex-1 grid gap-[5px] min-h-0 ${largo ? 'grid-cols-[5.6fr_3.7fr_3fr]' : 'grid-cols-3 overflow-y-auto custom-scrollbar content-start'}`}>   {/* tablet: o campo com os reservas em cima (linha inteira) e, em baixo, em UMA linha de 3 colunas IGUAIS: Squad Pool | Set Pieces | Kit + Tactical Instructions */}
             <div className="flex flex-col gap-[3px] min-h-0 min-w-0" style={largo ? { width: 'calc(100% + 129px)' } : { minHeight: 700, gridColumn: '1 / -1' }}>
                 <div className="flex-1 relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ minHeight: '350px', containerType: 'size' }}>
                     {aba === 'geral' && (
@@ -949,19 +949,19 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
 
             </div>
 
-            <div className="flex flex-col gap-4 min-h-0 min-w-0" style={largo ? undefined : { gridColumn: 'span 2', minHeight: 560 }}>   {/* tablet: as colunas 3 e 4 fundidas; Kit e Tactical Instructions empilhados nela */}
+            <div className="flex flex-col gap-4 min-h-0 min-w-0" style={largo ? undefined : { minHeight: 560 }}>   {/* tablet: Kit e Tactical Instructions empilhados na 3.a coluna, do mesmo tamanho das outras duas */}
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm pb-6 min-w-0">
                     <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic mb-4">KIT</h3>
-                    <div className={`flex justify-around items-center ${largo ? '' : 'flex-wrap gap-2'}`}>
+                    <div className={`flex justify-around items-center ${largo ? '' : 'gap-1'}`}>
                         {[0, 1, 2, 3].map((idx) => (
                             <div 
                                 key={idx} 
                             onClick={() => idx < 3 && setSelectedKitIdx(idx as any)}
-                                className={`transition-all p-1 rounded-lg border-2 ${idx < 3 ? 'cursor-pointer hover:border-slate-200' : 'cursor-default'} ${selectedKitIdx === idx ? 'border-blue-400 bg-blue-50/10' : 'border-transparent'}`}
+                                className={`transition-all rounded-lg border-2 ${largo ? 'p-1' : 'p-0.5 flex-1 min-w-0 flex justify-center'} ${idx < 3 ? 'cursor-pointer hover:border-slate-200' : 'cursor-default'} ${selectedKitIdx === idx ? 'border-blue-400 bg-blue-50/10' : 'border-transparent'}`}
                             >
                                 {(() => {
                                     const d = idx === 3 ? getGKKitDetails(userTeam, selectedKitIdx) : getKitDetailsWrapper(userTeam, idx as any);
-                                    return <ShirtIcon color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={(d as any).horizontal} multipleDiagonals={(d as any).multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} number={idx === 3 ? "1" : "9"} numberColor={d.nc} collarColor={d.clc} numberOutlineColor={d.noc} sleeveColor={d.sc} scale={1.2} longSleeves={idx === 3} className="w-[77px] h-[77px]" />;
+                                    return <ShirtIcon color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={(d as any).horizontal} multipleDiagonals={(d as any).multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} number={idx === 3 ? "1" : "9"} numberColor={d.nc} collarColor={d.clc} numberOutlineColor={d.noc} sleeveColor={d.sc} scale={largo ? 1.2 : 0.8} longSleeves={idx === 3} className="w-[77px] h-[77px]" />;   {/* iPad: uniformes menores (51 px em vez de 77) para os 4 caberem no box */}
                                 })() }
                             </div>
                         ))}
