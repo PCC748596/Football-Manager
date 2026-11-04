@@ -340,3 +340,15 @@ test('IA: tres temporadas, todos os clubes, mercado ativo e sem violar nenhum in
   const porNeg: Record<string, number> = {}; u.mercado.transacoes.forEach(t => { if (t.negId) porNeg[t.negId] = (porNeg[t.negId] || 0) + 1; });
   Object.values(porNeg).forEach(n => assert.equal(n, 2));
 });
+
+test('esquema: o clube so vende se sobrar 1 por posicao do esquema + banco de 10 (1 GK, 3 DEF, 3 MID, 3 ATT)', async () => {
+  const { titularesDaFormacao, necessarioPorGrupo, elencoValidoSem, CONFIG_MERCADO } = await import('../textSim/transferencias');
+  assert.deepEqual(titularesDaFormacao('4-2-3-1'), { GK: 1, DEF: 4, MID: 5, ATT: 1 });
+  assert.deepEqual(necessarioPorGrupo('4-3-3'), { GK: 2, DEF: 7, MID: 6, ATT: 6 });
+  const mk = (pos: string, n: number, pre: string) => Array.from({ length: n }, (_, i) => ({ id: pre + i, position: pos, skill: 60 })) as any[];
+  const justo = [...mk('GK', 2, 'g'), ...mk('CB', 7, 'd'), ...mk('CM', 6, 'm'), ...mk('ST', 6, 'a'), ...mk('CM', 0, 'x')];
+  assert.equal(justo.length, 21);
+  const cfg = { ...CONFIG_MERCADO, minimoElenco: { total: 1, GK: 0, DEF: 0, MID: 0, ATT: 0 } };
+  for (const p of [justo[0], justo[3], justo[10], justo[17]]) assert.equal(elencoValidoSem(justo, p, cfg, '4-3-3'), false, 'sem reposicao no grupo: nao vende ' + p.id);
+  assert.equal(elencoValidoSem([...justo, ...mk('ST', 1, 'extra')], justo[17], cfg, '4-3-3'), true, 'com um a mais no grupo pode vender');
+});

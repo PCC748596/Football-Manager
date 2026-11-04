@@ -158,14 +158,33 @@ export const localizar = (u: Universo, id: string): Local | null => {
 };
 const elencoDe = (u: Universo, teamId: string): Player[] => u.players.filter(p => p.teamId === teamId);
 
-/** O elenco do vendedor continua funcional depois de perder `p`? (minimos configuraveis por posicao). */
-export const elencoValidoSem = (elenco: Player[], p: Player, cfg: ConfigMercado = CONFIG_MERCADO): boolean => {
+/** Quantos titulares de cada grupo a formacao pede (o primeiro numero e a defesa, o ultimo o ataque, os do meio o meio-campo; "4-2-3-1" = 4 / 5 / 1). */
+export const titularesDaFormacao = (formacao?: string): Record<Grupo, number> => {
+  const n = String(formacao || '4-4-2').match(/\d/g)?.map(Number) || [4, 4, 2];
+  return { GK: 1, DEF: n[0], MID: n.slice(1, -1).reduce((a, b) => a + b, 0), ATT: n[n.length - 1] };
+};
+/** O que o elenco precisa ter por grupo: os titulares do esquema + o banco de 10 (1 GK, 3 DEF, 3 MID, 3 ATT). */
+export const BANCO_MINIMO: Record<Grupo, number> = { GK: 1, DEF: 3, MID: 3, ATT: 3 };
+export const necessarioPorGrupo = (formacao?: string): Record<Grupo, number> => {
+  const t = titularesDaFormacao(formacao);
+  return { GK: t.GK + BANCO_MINIMO.GK, DEF: t.DEF + BANCO_MINIMO.DEF, MID: t.MID + BANCO_MINIMO.MID, ATT: t.ATT + BANCO_MINIMO.ATT };
+};
+
+/**
+ * O elenco do vendedor continua funcional depois de perder `p`? (minimos configuraveis por posicao). Com a `formacao` do clube (clubes da CPU) vale tambem o minimo do esquema:
+ * um jogador para cada posicao do esquema mais o banco de 10 (1 GK, 3 DEF, 3 MID, 3 ATT); sem ele ninguem sai se faltar reposicao.
+ */
+export const elencoValidoSem = (elenco: Player[], p: Player, cfg: ConfigMercado = CONFIG_MERCADO, formacao?: string): boolean => {
   const resto = elenco.filter(x => x.id !== p.id);
   if (resto.length < cfg.minimoElenco.total) return false;
   const n: Record<Grupo, number> = { GK: 0, DEF: 0, MID: 0, ATT: 0 };
   resto.forEach(x => { n[grupoDe(x.position)]++; });
-  return n.GK >= cfg.minimoElenco.GK && n.DEF >= cfg.minimoElenco.DEF && n.MID >= cfg.minimoElenco.MID && n.ATT >= cfg.minimoElenco.ATT;
+  if (!(n.GK >= cfg.minimoElenco.GK && n.DEF >= cfg.minimoElenco.DEF && n.MID >= cfg.minimoElenco.MID && n.ATT >= cfg.minimoElenco.ATT)) return false;
+  if (!formacao) return true;
+  const g = grupoDe(p.position), precisa = necessarioPorGrupo(formacao);
+  return n[g] >= precisa[g];    // so o grupo do vendido muda; os outros ja estavam como estavam
 };
+const formacaoDe = (u: Universo, teamId: string): string | undefined => u.teams.find(t => t.id === teamId)?.tactics?.formation;
 
 // ------------------------------------------------------------------ preco desejado e decisao do vendedor
 /** O que o vendedor quer pelo jogador: o valor de mercado ajustado pela importancia dele, pelo interesse de outros clubes, pela situacao financeira, pelo estar a venda e pela personalidade do clube. */
@@ -192,7 +211,7 @@ export const avaliarOferta = (u: Universo, neg: NegociacaoTransf, oferta: number
   const loc = localizar(u, neg.playerId);
   const desejado = loc ? precoDesejado(u, loc.jogador, neg.vendedorId, hoje, neg.id, cfg) : oferta;
   if (!loc) return { decisao: 'RECUSA', motivo: 'jogador indisponivel', desejado };
-  if (loc.origem === 'ELENCO' && !elencoValidoSem(elencoDe(u, neg.vendedorId), loc.jogador, cfg)) return { decisao: 'RECUSA', motivo: 'o elenco ficaria sem o minimo', desejado };
+  if (loc.origem === 'ELENCO' && !elencoValidoSem(elencoDe(u, neg.vendedorId), loc.jogador, cfg, formacaoDe(u, neg.vendedorId))) return { decisao: 'RECUSA', motivo: 'o elenco ficaria sem o minimo', desejado };
   const D = cfg.decisao, r = oferta / Math.max(1, desejado);
   const ultima = neg.rodadas >= cfg.maxRodadas;
   if (r >= D.aceitaA) return { decisao: 'ACEITA', desejado };
@@ -538,19 +557,31 @@ export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigM
     const elenco = elencoDe(u, t.id);
     const rnd = criarRng(`ia|${t.id}|${hoje}`);
 
+    // 0. o tecnico confere a lista de venda: se os que ficam (os nao listados) nao cobrem o esquema e o banco em algum grupo, os melhores listados desse grupo saem da lista
+    {
+      const precisa = necessarioPorGrupo(formacaoDe(u, t.id));
+      const atuais = elencoDe(u, t.id);
+      for (const g of ['GK', 'DEF', 'MID', 'ATT'] as Grupo[]) {
+        const fica = atuais.filter(x => grupoDe(x.position) === g && !x.listedForSale).length;
+        const falta = precisa[g] - fica;
+        if (falta <= 0) continue;
+        const retirar = atuais.filter(x => grupoDe(x.position) === g && x.listedForSale).sort((x, y) => y.skill - x.skill).slice(0, falta).map(x => x.id);
+        if (retirar.length) u = { ...u, players: u.players.map(x => (retirar.includes(x.id) ? { ...x, listedForSale: false, listadoEm: undefined } : x)) };
+      }
+    }
     // 1. excedentes: elenco acima do maximo da IA lista os de menor valor nos grupos com sobra; quem esta listado ha muito tempo e dispensado (vira agente livre)
     if (elenco.length > cfg.ia.maxElenco) {
       const sobra = elenco.length - cfg.ia.maxElenco;
       const candidatos = [...elenco].filter(p => !p.listedForSale).sort((a, b) => a.skill - b.skill);
-      let marcados = 0;
+      let marcados = 0, ficam = elenco.filter(p => !p.listedForSale);   // quem ja esta listado conta como saida
       for (const p of candidatos) {
         if (marcados >= sobra) break;
-        if (elencoValidoSem(elenco, p, cfg)) { u = { ...u, players: u.players.map(x => (x.id === p.id ? { ...x, listedForSale: true, listadoEm: hoje } : x)) }; marcados++; }
+        if (elencoValidoSem(ficam, p, cfg, formacaoDe(u, t.id))) { ficam = ficam.filter(x => x.id !== p.id); u = { ...u, players: u.players.map(x => (x.id === p.id ? { ...x, listedForSale: true, listadoEm: hoje } : x)) }; marcados++; }
       }
     }
     for (const p of elencoDe(u, t.id)) {
       if (p.listedForSale && p.listadoEm && diasEntre(p.listadoEm, hoje) > cfg.ia.diasParaDispensar && elencoDe(u, t.id).length > cfg.ia.maxElenco
-        && !u.mercado.negociacoes.some(g => g.playerId === p.id && ESTADOS_ATIVOS.includes(g.estado)) && elencoValidoSem(elencoDe(u, t.id), p, cfg)) {
+        && !u.mercado.negociacoes.some(g => g.playerId === p.id && ESTADOS_ATIVOS.includes(g.estado)) && elencoValidoSem(elencoDe(u, t.id), p, cfg, formacaoDe(u, t.id))) {
         u = { ...u, players: u.players.map(x => (x.id === p.id ? { ...x, teamId: 'MARKET', listedForSale: false, listadoEm: undefined, livreDesde: hoje } : x)),
           teams: u.teams.map(x => (x.id === t.id ? limparEscalacao(x, p.id) : x)),
           mercado: { ...u.mercado, historico: [...u.mercado.historico, { id: `mov-disp-${u.mercado.proximoNum}-${p.id}`, data: hoje, jogadorId: p.id, jogadorNome: p.name, de: t.id, para: 'MARKET', valor: 0, tipo: 'DISPENSA' as const }].slice(-cfg.maxTransacoes), proximoNum: u.mercado.proximoNum + 1 } };
