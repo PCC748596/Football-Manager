@@ -509,6 +509,9 @@ export const ajustarLigaParaFaixa = (teams: Team[], players: Player[], faixa: [n
       p.skill = limita(p.skill + d);
       p.def = limita(p.def + d); p.pas = limita(p.pas + d); p.drb = limita(p.drb + d); p.sht = limita(p.sht + d);
     };
+    // 0) comprime a dispersao do elenco (jogadores sorteados de 50 a 100 davam 99 num clube pequeno): metade do desvio em torno da media do clube.
+    const media0 = elenco.reduce((s, p) => s + p.skill, 0) / elenco.length;
+    for (const p of elenco) mover(p, Math.round((p.skill - media0) * -0.5));
     // 1) passos inteiros ate a media ficar a menos de 1 do alvo (o piso/teto pode travar alguns jogadores, por isso repete).
     for (let i = 0; i < 8; i++) {
       const d = Math.round(alvo - elenco.reduce((s, p) => s + p.skill, 0) / elenco.length);
@@ -527,9 +530,13 @@ export const ajustarLigaParaFaixa = (teams: Team[], players: Player[], faixa: [n
         mover(p, sinal); k -= sinal;
       }
     }
+    // 3) teto individual: ninguem passa `alto` + TETO_ACIMA_DA_FAIXA (um jogador de 90 nao joga numa serie D); a media cai so uma fracao de ponto.
+    for (const p of elenco) if (p.skill > alto + TETO_ACIMA_DA_FAIXA) mover(p, alto + TETO_ACIMA_DA_FAIXA - p.skill);
     t.strength = Math.round(elenco.reduce((s, p) => s + p.skill, 0) / elenco.length);
   }
 };
+/** Quantos pontos acima do clube mais forte da divisao um jogador gerado pode chegar. */
+const TETO_ACIMA_DA_FAIXA = 5;
 
 const DATA_BASE_VALOR = '2024-04-01';
 export const generateLeagueData = (countryId: string, leagueId: string = '') => {
@@ -623,7 +630,8 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
     const realPlayers: any[] = jogadoresLocaisDoClube(Number(t.teamID)) || REAL_PLAYERS_JSON.filter((p: any) => p.team === t.teamName);
 
     if (realPlayers.length > 0) {
-      comJogadoresReais.add(team.id);
+      // So os dados locais (CountryData) e a 1.a divisao (fora do Brasil) ficam como vem; nas divisoes de baixo a base tem jogadores de 88-96 em clubes pequenos, que a faixa de OVR reescala.
+      if (jogadoresLocaisDoClube(Number(t.teamID)) || (league?.tier === 1 && countryId !== '45')) comJogadoresReais.add(team.id);
       realPlayers.forEach((p: any, index) => {
         const expiryYear = 2024 + randomInt(1, 4);
         const expiryWeek = randomInt(1, 38);
@@ -661,6 +669,17 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
       });
     }
 
+    // Dados locais muito abaixo da divisao (media do plantel real menor que o clube mais fraco da faixa de OVR): sobe os reais ate o piso da faixa ANTES de gerar os tapa-buracos,
+    // que saem no nivel deles. So o OVR e os 4 grupos do manager sobem; os 37 atributos do 3D ficam como no arquivo.
+    const faixaLocal = jogadoresLocaisDoClube(Number(t.teamID)) ? faixaDeOvr(countryId, league) : null;
+    if (faixaLocal && squad.length) {
+      const d = Math.round(faixaLocal[1] - squad.reduce((a, p) => a + p.skill, 0) / squad.length);
+      if (d > 0) for (const p of squad) {
+        const sobe = (v: number) => Math.min(99, v + d);
+        p.skill = sobe(p.skill); p.def = sobe(p.def); p.pas = sobe(p.pas); p.drb = sobe(p.drb); p.sht = sobe(p.sht);
+      }
+    }
+
     // Fill remaining spots with generated players if needed (minimum 28 players per user request to avoid fillers)
     if (squad.length < 28) {
       const positionsNeeded = [
@@ -676,7 +695,15 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
 
       for (let i = 0; i < fillerCount; i++) {
         const pos = positionsNeeded[i % positionsNeeded.length];
-        squad.push(generatePlayer(team.id, pos, playerIdCounter++, currentMaxShirt + 1 + i));
+        const f = generatePlayer(team.id, pos, playerIdCounter++, currentMaxShirt + 1 + i);
+        // Clube com dados locais: o tapa-buracos sai no nivel do plantel real (sorteado de 50 a 100 daria 95 num clube da Serie D).
+        if (squad.length && jogadoresLocaisDoClube(Number(t.teamID))) {
+          const media = squad.slice(0, squad.length - i).reduce((a, p) => a + p.skill, 0) / Math.max(1, squad.length - i);
+          const nivel = (v: number) => Math.min(99, Math.max(NIVEL_MINIMO, Math.round(media - 3 + (v - 75) * 0.2)));
+          f.def = nivel(f.def); f.pas = nivel(f.pas); f.drb = nivel(f.drb); f.sht = nivel(f.sht);
+          f.skill = Math.min(99, Math.max(NIVEL_MINIMO, calcularSkill(pos, f.def, f.pas, f.drb, f.sht)));
+        }
+        squad.push(f);
       }
     }
 

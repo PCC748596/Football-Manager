@@ -36,7 +36,7 @@ const invariantes = (u: Universo, rotulo = '') => {
 const somaCaixa = (u: Universo) => u.teams.reduce((s, t) => s + t.cash, 0);
 
 /** Um alvo comum: um titular de outro clube, com bom contrato. */
-const escolherAlvo = (u: Universo, compradorId: string) => u.players.filter(p => p.teamId !== compradorId && p.teamId !== 'MARKET' && p.skill >= 60 && p.contract && p.contract.end > '2026-01-01')[0];
+const escolherAlvo = (u: Universo, compradorId: string) => u.players.filter(p => p.teamId !== compradorId && p.teamId !== 'MARKET' && p.skill >= 60 && p.skill <= 72 && p.contract && p.contract.end > '2026-01-01')[0];
 const aceitarTudo = (u: Universo, compradorId: string, alvoId: string, hoje: string): Universo => {
   let x = u;
   const r = proporCompra(x, compradorId, alvoId, 50_000_000, hoje, DONO);
