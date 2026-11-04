@@ -40,6 +40,8 @@ export interface Competition {
   /** Copa do Brasil: clubes que entram numa fase alem dos vencedores da anterior (fase -> chaves). */
   entradas?: Record<string, string[]>;
   champion?: string;
+  /** O ano da temporada (as datas nominais abaixo sao de 2026 e deslocam-se por `noAno`); sem ele, 2026. */
+  ano?: number;
 }
 
 /** Os clubes identificam-se por `liga|id` (os ids repetem-se entre ligas: os ingleses sao renumerados). */
@@ -232,8 +234,12 @@ export const ocupacaoDe = (ligas: { leagueId: string; fixtures: import('../types
 };
 
 const INICIO_DA_EPOCA = '2026-03-31';
+/** As datas nominais abaixo sao da temporada de 2026. Noutros anos desloca-se um multiplo de 52 semanas (364 dias): o dia da semana de cada jornada mantem-se. */
+export const ANO_BASE = 2026;
+export const noAno = (d: string, ano: number = ANO_BASE): string => (ano === ANO_BASE ? d : somarDias(d, 364 * (ano - ANO_BASE)));
+const fasesNoAno = (fs: { nome: string; datas: string[] }[], ano?: number) => (ano === undefined || ano === ANO_BASE ? fs : fs.map(f => ({ ...f, datas: f.datas.map(d => noAno(d, ano)) })));
 
-const jogosDeGrupo = (prefixo: string, grupos: Record<string, string[]>, datas: string[], oc: Ocupacao): CompMatch[] => {
+const jogosDeGrupo = (prefixo: string, grupos: Record<string, string[]>, datas: string[], oc: Ocupacao, ano: number = ANO_BASE): CompMatch[] => {
   const out: CompMatch[] = [];
   const rondas = [[[0, 1], [2, 3]], [[2, 0], [1, 3]], [[0, 3], [1, 2]]];
   for (const g of Object.keys(grupos)) {
@@ -242,20 +248,20 @@ const jogosDeGrupo = (prefixo: string, grupos: Record<string, string[]>, datas: 
       const volta = md >= 3;
       rondas[md % 3].forEach(([a, b], k) => {
         const [h, v] = volta ? [t[b], t[a]] : [t[a], t[b]];
-        out.push(jogo(`${prefixo}-G${g}-${md + 1}-${k}`, 'G' + (md + 1), agendarJogo(oc, datas[md], [h, v], INICIO_DA_EPOCA), h, v, { group: g }));
+        out.push(jogo(`${prefixo}-G${g}-${md + 1}-${k}`, 'G' + (md + 1), agendarJogo(oc, noAno(datas[md], ano), [h, v], noAno(INICIO_DA_EPOCA, ano)), h, v, { group: g }));
       });
     }
   }
   return out;
 };
 
-export const criarLibertadores = (lib: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map()): Competition => {
+export const criarLibertadores = (lib: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map(), ano: number = ANO_BASE): Competition => {
   const grupos = sortearGrupos(lib);
-  return { id: 'LIB', name: 'Copa Libertadores', teamKeys: lib.map(x => x.key), groups: grupos, matches: jogosDeGrupo('LIB', grupos, GRUPOS_LIB, oc) };
+  return { id: 'LIB', name: 'Copa Libertadores', teamKeys: lib.map(x => x.key), groups: grupos, matches: jogosDeGrupo('LIB', grupos, GRUPOS_LIB, oc, ano), ano };
 };
-export const criarSulAmericana = (sul: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map()): Competition => {
+export const criarSulAmericana = (sul: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map(), ano: number = ANO_BASE): Competition => {
   const grupos = sortearGrupos(sul);
-  return { id: 'SUL', name: 'Copa Sul-Americana', teamKeys: sul.map(x => x.key), groups: grupos, matches: jogosDeGrupo('SUL', grupos, GRUPOS_SUL, oc) };
+  return { id: 'SUL', name: 'Copa Sul-Americana', teamKeys: sul.map(x => x.key), groups: grupos, matches: jogosDeGrupo('SUL', grupos, GRUPOS_SUL, oc, ano), ano };
 };
 
 /**
@@ -284,7 +290,7 @@ const sortearFaseDeLiga = (itens: { key: string; team: Team; countryId: string }
   return melhor;
 };
 
-export const criarChampions = (ucl: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map()): Competition => {
+export const criarChampions = (ucl: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map(), ano: number = ANO_BASE): Competition => {
   const keys = ucl.map(x => x.key);
   const jogos = sortearFaseDeLiga(ucl);
   // Jornada de cada jogo: a 1.a em que os dois clubes estao livres (em geral as 8 bastam; senao uma qualquer, e o agendador desloca o dia).
@@ -296,8 +302,8 @@ export const criarChampions = (ucl: { key: string; team: Team; countryId: string
     if (d < 0) d = Math.floor(Math.random() * ocupado.length);
     ocupado[d].add(h); ocupado[d].add(v); dia[i] = d;
   });
-  const matches = jogos.map(([h, v], i) => jogo(`UCL-L-${dia[i] + 1}-${i}`, 'G' + (dia[i] + 1), agendarJogo(oc, GRUPOS_UCL[dia[i]], [h, v], INICIO_DA_EPOCA), h, v, { group: 'L' }));
-  return { id: 'UCL', name: 'UEFA Champions League', teamKeys: keys, groups: { L: keys }, matches };
+  const matches = jogos.map(([h, v], i) => jogo(`UCL-L-${dia[i] + 1}-${i}`, 'G' + (dia[i] + 1), agendarJogo(oc, noAno(GRUPOS_UCL[dia[i]], ano), [h, v], noAno(INICIO_DA_EPOCA, ano)), h, v, { group: 'L' }));
+  return { id: 'UCL', name: 'UEFA Champions League', teamKeys: keys, groups: { L: keys }, matches, ano };
 };
 
 /** Rondas todos-contra-todos (metodo do circulo). `duplo`: ida e volta (a 2.a metade inverte os mandos). */
@@ -319,18 +325,18 @@ const rondasTodosContraTodos = (keys: string[], duplo: boolean): [string, string
 };
 
 /** Os jogos de um grupo todos-contra-todos: uma rodada por data nominal (a cada 7 dias a partir de `inicio`), agendados sem coincidir com outros jogos dos clubes. */
-const jogosDeLiga = (prefixo: string, stage: string, grupo: string, keys: string[], duplo: boolean, inicio: string, oc: Ocupacao): CompMatch[] => {
+const jogosDeLiga = (prefixo: string, stage: string, grupo: string, keys: string[], duplo: boolean, inicio: string, oc: Ocupacao, ano: number = ANO_BASE): CompMatch[] => {
   const out: CompMatch[] = [];
   rondasTodosContraTodos(keys, duplo).forEach((rd, r) => rd.forEach(([h, v], i) => {
-    out.push(jogo(`${prefixo}-${grupo}-${r + 1}-${i}`, stage, agendarJogo(oc, somarDias(inicio, 7 * r), [h, v], INICIO_DA_EPOCA), h, v, { group: grupo }));
+    out.push(jogo(`${prefixo}-${grupo}-${r + 1}-${i}`, stage, agendarJogo(oc, somarDias(noAno(inicio, ano), 7 * r), [h, v], noAno(INICIO_DA_EPOCA, ano)), h, v, { group: grupo }));
   }));
   return out;
 };
 
-export const criarSerieC = (clubes: { key: string; team: Team }[], oc: Ocupacao = new Map(), externa = false): Competition => {
+export const criarSerieC = (clubes: { key: string; team: Team }[], oc: Ocupacao = new Map(), externa = false, ano: number = ANO_BASE): Competition => {
   const keys = clubes.map(c => c.key);
   // Com o utilizador na Serie C a 1.a fase e a liga do jogo: aqui nao se criam esses jogos.
-  return { id: 'SERIE_C', name: 'Série C', teamKeys: keys, groups: { L: keys }, matches: externa ? [] : jogosDeLiga('SERIE_C', 'L', 'L', keys, false, C_L_INICIO, oc), ligaExterna: externa || undefined };
+  return { id: 'SERIE_C', name: 'Série C', teamKeys: keys, groups: { L: keys }, matches: externa ? [] : jogosDeLiga('SERIE_C', 'L', 'L', keys, false, C_L_INICIO, oc, ano), ligaExterna: externa || undefined, ano };
 };
 
 /** Os 16 grupos da Serie D (A-P): fatias de 6 da lista de clubes (que vai por regiao). */
@@ -340,11 +346,11 @@ export const gruposDaSerieD = (ordem: string[]): Record<string, string[]> => {
   return g;
 };
 
-export const criarSerieD = (clubes: { key: string; team: Team }[], oc: Ocupacao = new Map(), grupoExterno?: string): Competition => {
+export const criarSerieD = (clubes: { key: string; team: Team }[], oc: Ocupacao = new Map(), grupoExterno?: string, ano: number = ANO_BASE): Competition => {
   const keys = clubes.map(c => c.key), grupos = gruposDaSerieD(keys), matches: CompMatch[] = [];
   // O grupo do utilizador e a liga do jogo: os outros 7 jogam-se aqui.
-  Object.keys(grupos).filter(g => g !== grupoExterno).forEach(g => matches.push(...jogosDeLiga('SERIE_D', 'D', g, grupos[g], true, D_INICIO, oc)));
-  return { id: 'SERIE_D', name: 'Série D', teamKeys: keys, groups: grupos, matches, grupoExterno };
+  Object.keys(grupos).filter(g => g !== grupoExterno).forEach(g => matches.push(...jogosDeLiga('SERIE_D', 'D', g, grupos[g], true, D_INICIO, oc, ano)));
+  return { id: 'SERIE_D', name: 'Série D', teamKeys: keys, groups: grupos, matches, grupoExterno, ano };
 };
 
 /** Os 64 jogos da fase classificatoria: 2 contra cada pote (um em casa, um fora), sem repetir adversario. */
@@ -392,7 +398,7 @@ const repartirEmRodadas = (jogos: [string, string][], n: number): number[] | nul
 };
 
 /** O Campeonato Paulista: `clubes` sao os 16 (chave `liga|id`); os potes vem dos nomes na base (`POTES_PAULISTA`). */
-export const criarPaulistao = (clubes: { key: string; team: Team }[], oc: Ocupacao = new Map()): Competition => {
+export const criarPaulistao = (clubes: { key: string; team: Team }[], oc: Ocupacao = new Map(), ano: number = ANO_BASE): Competition => {
   const porNome = new Map(clubes.map(c => [c.team.name, c.key]));
   const potes = POTES_PAULISTA.map(p => p.map(n => porNome.get(n) as string));
   const keys = clubes.slice().sort((a, b) => b.team.strength - a.team.strength).map(c => c.key);
@@ -401,9 +407,9 @@ export const criarPaulistao = (clubes: { key: string; team: Team }[], oc: Ocupac
   const contagem: number[] = RODADAS_PAULISTA.map(() => 0);
   const matches = jogos.map(([h, v], i) => {
     const r = rodada[i];
-    return jogo(`PAULISTA-L-${r + 1}-${contagem[r]++}`, 'G' + (r + 1), agendarJogo(oc, RODADAS_PAULISTA[r], [h, v], INICIO_PAULISTA), h, v, { group: 'L' });
+    return jogo(`PAULISTA-L-${r + 1}-${contagem[r]++}`, 'G' + (r + 1), agendarJogo(oc, noAno(RODADAS_PAULISTA[r], ano), [h, v], noAno(INICIO_PAULISTA, ano)), h, v, { group: 'L' });
   });
-  return { id: 'PAULISTA', name: 'Campeonato Paulista', teamKeys: keys, groups: { L: keys }, matches };
+  return { id: 'PAULISTA', name: 'Campeonato Paulista', teamKeys: keys, groups: { L: keys }, matches, ano };
 };
 
 type Clube = { key: string; team: Team };
@@ -419,7 +425,7 @@ const parearPorSerie = (ks: string[], seed: (k: string) => number): [string, str
  * Copa do Brasil: a 1.a fase leva os clubes mais fracos (pela forca) que sobram depois de 74 entrarem direto na 2.a; os campeoes entram na 3.a e a Serie A na 5.a (`entradas`).
  * A ordem de cabecas de serie (`teamKeys`) e a forca do clube.
  */
-export const criarCopaDoBrasil = (a: { serieA: Clube[]; campeoes: Clube[]; outros: Clube[] }, oc: Ocupacao = new Map()): Competition => {
+export const criarCopaDoBrasil = (a: { serieA: Clube[]; campeoes: Clube[]; outros: Clube[] }, oc: Ocupacao = new Map(), ano: number = ANO_BASE): Competition => {
   const porForca = (x: Clube, y: Clube) => y.team.strength - x.team.strength || hash(x.key) - hash(y.key);
   const todos = [...a.serieA, ...a.campeoes, ...a.outros].sort(porForca);
   const outros = a.outros.slice().sort(porForca);
@@ -427,10 +433,10 @@ export const criarCopaDoBrasil = (a: { serieA: Clube[]; campeoes: Clube[]; outro
   const p1 = outros.slice(outros.length - n1).map(c => c.key), direto = outros.slice(0, outros.length - n1).map(c => c.key);
   const c: Competition = {
     id: 'COPA_BR', name: 'Copa do Brasil', teamKeys: todos.map(x => x.key), matches: [],
-    entradas: { P2: direto, P3: a.campeoes.map(x => x.key), P5: a.serieA.map(x => x.key) }
+    entradas: { P2: direto, P3: a.campeoes.map(x => x.key), P5: a.serieA.map(x => x.key) }, ano
   };
   const seed = (k: string) => c.teamKeys.indexOf(k);
-  c.matches.push(...jogosDaFase(c, FASES_COPA[0], parearPorSerie(p1, seed), oc, INICIO_DA_EPOCA));
+  c.matches.push(...jogosDaFase(c, fasesNoAno(FASES_COPA, ano)[0], parearPorSerie(p1, seed), oc, noAno(INICIO_DA_EPOCA, ano)));
   return c;
 };
 
@@ -504,13 +510,13 @@ export const vencedorDoConfronto = (jogos: CompMatch[], teams: Map<string, Team>
   return ultimo.pens[0] > ultimo.pens[1] ? ultimo.homeKey : ultimo.awayKey;
 };
 
-const faseDoComp = (c: Competition) => (c.id === 'UCL' ? FASES_UCL : c.id === 'LIB' ? FASES_LIB : c.id === 'SUL' ? FASES_SUL : c.id === 'SERIE_C' ? FASES_C : c.id === 'SERIE_D' ? FASES_D : c.id === 'PAULISTA' ? FASES_PAULISTA : FASES_COPA);
+const faseDoComp = (c: Competition) => fasesNoAno(c.id === 'UCL' ? FASES_UCL : c.id === 'LIB' ? FASES_LIB : c.id === 'SUL' ? FASES_SUL : c.id === 'SERIE_C' ? FASES_C : c.id === 'SERIE_D' ? FASES_D : c.id === 'PAULISTA' ? FASES_PAULISTA : FASES_COPA, c.ano);
 
 /** Cria os jogos de uma fase a partir de pares [melhor, pior] (ida em casa do pior, volta em casa do melhor; jogo unico: em casa o 1.o). */
-const jogosDaFase = (c: Competition, fase: { nome: string; datas: string[] }, pares: [string, string][], oc: Ocupacao, minimoExtra: string = INICIO_DA_EPOCA): CompMatch[] => {
+const jogosDaFase = (c: Competition, fase: { nome: string; datas: string[] }, pares: [string, string][], oc: Ocupacao, minimoExtra: string = noAno(INICIO_DA_EPOCA, c.ano)): CompMatch[] => {
   const out: CompMatch[] = [];
   // Nunca antes do ultimo jogo da fase anterior, nem antes de `minimoExtra` (o dia seguinte a hoje: um jogo novo nao pode nascer no passado).
-  const ultimo = c.matches.length ? somarDias(c.matches.reduce((m, x) => (x.date > m ? x.date : m), '0000-00-00'), 1) : INICIO_DA_EPOCA;
+  const ultimo = c.matches.length ? somarDias(c.matches.reduce((m, x) => (x.date > m ? x.date : m), '0000-00-00'), 1) : noAno(INICIO_DA_EPOCA, c.ano);
   const minimo = ultimo > minimoExtra ? ultimo : minimoExtra;
   pares.forEach(([melhor, pior], i) => {
     const tie = `${fase.nome}-${i}`;
@@ -553,6 +559,17 @@ const ordemDoGrupo = (c: Competition, g: string, confrontoDireto = false): strin
     if (confrontoDireto) { const iguais = (c.groups![g] || []).filter(k => base(x, k) === 0); const d = dir(y, iguais) - dir(x, iguais); if (d !== 0) return d; }
     return hash(x) - hash(y);
   });
+};
+/** A classificacao final da Serie C e da D para o plano de acessos (ids dos clubes): os promovidos primeiro e depois os outros pela ordem da 1.a fase (C) ou da lista (D). Vazio enquanto a competicao nao tem os promovidos. */
+export const classificacaoDeCeD = (comps: Competition[]): Record<string, string[]> => {
+  const out: Record<string, string[]> = {};
+  const idDe = (k: string) => k.split('|')[1];
+  for (const c of comps) {
+    if ((c.id !== 'SERIE_C' && c.id !== 'SERIE_D') || !c.promovidos || c.promovidos.length < 4) continue;
+    const resto = c.id === 'SERIE_C' && !c.ligaExterna ? ordemDoGrupo(c, 'L') : c.teamKeys;
+    out[c.id === 'SERIE_C' ? 'bra_serie_c' : 'bra_serie_d'] = [...c.promovidos, ...resto.filter(k => !c.promovidos!.includes(k))].map(idDe);
+  }
+  return out;
 };
 const estatDoGrupo = (c: Competition, g: string) => {
   const ord = ordemDoGrupo(c, g, true), pts: Record<string, { p: number; sg: number; gf: number }> = {};
@@ -687,7 +704,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         const top8 = ordL.slice(0, 8);
         const g1 = [top8[0], top8[3], top8[4], top8[7]], g2 = [top8[1], top8[2], top8[5], top8[6]];
         c.groups = { ...c.groups, G1: g1, G2: g2 };
-        c.matches.push(...jogosDeLiga('SERIE_C', 'G', 'G1', g1, true, C_G_INICIO, oc), ...jogosDeLiga('SERIE_C', 'G', 'G2', g2, true, C_G_INICIO, oc));
+        c.matches.push(...jogosDeLiga('SERIE_C', 'G', 'G1', g1, true, noAno(C_G_INICIO, c.ano), oc), ...jogosDeLiga('SERIE_C', 'G', 'G2', g2, true, noAno(C_G_INICIO, c.ano), oc));
         progressou = true;
       }
     } else if (c.id === 'SERIE_C' && !temFase('F')) {
@@ -827,7 +844,7 @@ export const mapaDeClubes = (ligas: WorldLeague[]): Map<string, Team> => {
 };
 
 /** Cria as tres copas a partir das ligas (a classificacao do ano anterior define quem joga). `anterior`: tabelas finais da temporada passada por liga (nomes), se houver. */
-export const criarCopas = (ligas: WorldLeague[], anterior?: Record<string, string[]>, ocupado?: Ocupacao, userKey?: string | null, userLeagueId?: string): Competition[] => {
+export const criarCopas = (ligas: WorldLeague[], anterior?: Record<string, string[]>, ocupado?: Ocupacao, userKey?: string | null, userLeagueId?: string, ano: number = ANO_BASE): Competition[] => {
   const oc = ocupado || ocupacaoDe(ligas, []);
   const paraCopas: LigaParaCopas[] = ligas.map(l => {
     const lg: any = (COUNTRIES as any[]).find(c => c.id === l.countryId)?.leagues.find((x: any) => x.id === l.leagueId);
@@ -835,15 +852,15 @@ export const criarCopas = (ligas: WorldLeague[], anterior?: Record<string, strin
   });
   const q = qualificados(paraCopas);
   // Uma de cada vez, para a seguinte ja ver os dias que a anterior ocupou.
-  const lib = criarLibertadores(q.lib, oc), sul = criarSulAmericana(q.sul, oc), copa = criarCopaDoBrasil(q.copa, oc);
+  const lib = criarLibertadores(q.lib, oc, ano), sul = criarSulAmericana(q.sul, oc, ano), copa = criarCopaDoBrasil(q.copa, oc, ano);
   const out: Competition[] = [lib, sul, copa];
-  if (q.paulista.length === 16) out.push(criarPaulistao(q.paulista, oc));
-  if (q.ucl.length >= 32) out.push(criarChampions(q.ucl, oc));
-  if (q.serieC.length === 20) out.push(criarSerieC(q.serieC, oc, userLeagueId === 'bra_serie_c'));
+  if (q.paulista.length === 16) out.push(criarPaulistao(q.paulista, oc, ano));
+  if (q.ucl.length >= 32) out.push(criarChampions(q.ucl, oc, ano));
+  if (q.serieC.length === 20) out.push(criarSerieC(q.serieC, oc, userLeagueId === 'bra_serie_c', ano));
   if (q.serieD.length >= 16) {
     // Com o utilizador na Serie D, o grupo dele e a liga do jogo.
     const gD = userLeagueId === 'bra_serie_d' && userKey ? Object.entries(gruposDaSerieD(q.serieD.map(x => x.key))).find(([, ks]) => ks.includes(userKey))?.[0] : undefined;
-    out.push(criarSerieD(q.serieD, oc, gD));
+    out.push(criarSerieD(q.serieD, oc, gD, ano));
   }
   return out;
 };
@@ -913,24 +930,25 @@ export const prepararCopas = (a: EntradaCopas): SaidaCopas | null => {
   // As ligas de formato proprio (C, D) estao sempre no mundo com TODOS os clubes: a do utilizador so entra por si se o mundo nao a tiver.
   const todas = a.world.some(l => l.leagueId === minha.leagueId) ? a.world.slice() : [minha, ...a.world];
   const uk = teamKey(minha.leagueId, user.id);
+  const anoDaData = Number(a.date.slice(0, 4)) || ANO_BASE;   // as copas novas nascem no ano da data de hoje
   let base = a.comps ? a.comps.map(c => sincronizarResultados(c, a.fixtures)) : null;
   let oc = ocupacaoDe([...todas, minha], base || []);
   // Um save de antes das Series C e D: cria so as que faltam.
   if (base && !base.some(c => c.id === 'SERIE_C') && todas.some(l => l.leagueId === 'bra_serie_c')) {
-    const novas = criarCopas(todas, undefined, oc, uk, minha.leagueId).filter(c => !base!.some(b => b.id === c.id));
+    const novas = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData).filter(c => !base!.some(b => b.id === c.id));
     if (novas.length) base = [...base, ...novas];
   }
   // Um save de antes do Campeonato Paulista: cria so ele (se ainda nao passou da final).
-  if (base && !base.some(c => c.id === 'PAULISTA') && a.date <= '2026-03-21' && todas.some(l => l.leagueId === 'bra_serie_a')) {
-    const nova = criarCopas(todas, undefined, oc, uk, minha.leagueId).filter(c => c.id === 'PAULISTA');
+  if (base && !base.some(c => c.id === 'PAULISTA') && a.date <= noAno('2026-03-21', anoDaData) && todas.some(l => l.leagueId === 'bra_serie_a')) {
+    const nova = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData).filter(c => c.id === 'PAULISTA');
     if (nova.length) base = [...base, ...nova];
   }
   // Um save de antes da Champions League: cria so ela.
   if (base && !base.some(c => c.id === 'UCL') && todas.some(l => l.leagueId === 'esp_laliga')) {
-    const nova = criarCopas(todas, undefined, oc, uk, minha.leagueId).filter(c => c.id === 'UCL');
+    const nova = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData).filter(c => c.id === 'UCL');
     if (nova.length) base = [...base, ...nova];
   }
-  let cs = base || criarCopas(todas, undefined, oc, uk, minha.leagueId);
+  let cs = base || criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData);
   const mapa = mapaDeClubes(todas);
   // Serie C / D com o utilizador: a 1.a fase (C) ou o grupo (D) e a liga do jogo; quando acaba, a classificacao dela alimenta a competicao.
   const ligaAcabou = minha.fixtures.length > 0 && minha.fixtures.every(f => f.played);

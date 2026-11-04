@@ -5,7 +5,8 @@ import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/data
 import { gruposDaSerieD } from '../textSim/competitions';
 import { espacarCalendario, comDatasDeCopa } from '../textSim/calendario';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, buildTable } from '../textSim/world';
-import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disputaPendente, prepararCopas, ligaIdDoClube, teamKey, ehDoPaulista } from '../textSim/competitions';
+import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disputaPendente, prepararCopas, ligaIdDoClube, teamKey, ehDoPaulista, noAno, ANO_BASE } from '../textSim/competitions';
+import { calcularVirada, aplicarDivisoes, divisoesAtuais, paisDaLiga, Divisoes } from '../textSim/virada';
 import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
 import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, avisoDeBonusPatrocinio } from '../textSim/inbox';
@@ -184,7 +185,7 @@ interface GameContextType {
   players: Player[];
   fixtures: Fixture[];
   gameState: GameState;
-  startGame: (teamId: string, managerName: string, countryId: string, leagueId?: string) => void;
+  startGame: (teamId: string, managerName: string, countryId: string, leagueId?: string, continuacao?: { teams: Team[]; players: Player[]; ano: number }) => void;
   advanceDay: () => void;
   /** NEXT GAME: passa os dias (5 s por dia) ate ao proximo jogo do utilizador; para num e-mail de resposta de negociacao. */
   proximoJogo: { date: string; adversario: string; dias: number } | null;
@@ -283,6 +284,9 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
  * Amistosos e jogos de copa não somam pontos nem entram na artilharia do
  * campeonato. Lesões e desgaste continuam valendo — esses acontecem de verdade.
  */
+/** As divisoes de antes de qualquer virada: um jogo novo comeca sempre daqui. */
+const DIVISOES_ORIGINAIS: Divisoes = divisoesAtuais();
+
 export const countsForLeague = (f: Fixture): boolean =>
   !f.isFriendly && (f.type === undefined || f.type === 'LEAGUE');
 
@@ -292,6 +296,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [avisoGoleiro, setAvisoGoleiro] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
   const [world, setWorld] = useState<WorldLeague[] | null>(null);
+  const [anoTemporada, setAnoTemporada] = useState(ANO_BASE);   // o ano em que a temporada de agora comecou (a virada acontece em 1 de janeiro do seguinte)
   // MERCADO DE TREINADORES (textSim/managerExpectations.ts): null ate o mundo existir (um save antigo, sem `managers`, e semeado no primeiro efeito).
   const [managerState, setManagerState] = useState<ManagerState | null>(null);
   const recusarOferta = (id: string) => setManagerState(prev => (prev ? declinarOferta(prev, id) : prev));
@@ -414,7 +419,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Os jogos de copa do utilizador entram nas `fixtures` (tipo CUP) sem coincidir com outros jogos dos clubes, e os adversarios entram em `teams`/`players`.
   const openWorld = () => {
     if (world || !userTeam) return;   // normalmente ja existe (startGame / importGameData)
-    const w = createWorld(ligaIdDoClube(userTeam), gameState.currentDate, worldSaved.current);
+    const w = createWorld(ligaIdDoClube(userTeam), gameState.currentDate, worldSaved.current, anoTemporada);
     const r = prepararCopas({ world: w, userTeamId: userTeam.id, teams, players, fixtures, date: gameState.currentDate, comps: compsSaved.current });
     worldSaved.current = null; compsSaved.current = null;
     setWorld(w);
@@ -824,8 +829,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return formatCurrency(amount);
   };
 
-  const startGame = (teamId: string, managerName: string, countryId: string, leagueId: string = 'bra_serie_a') => {
+  /** `continuacao`: a VIRADA de temporada. Os clubes e jogadores que ja estao no jogo ficam (com as tabelas a zero) e so entram os que chegam (promovidos/rebaixados); o resto
+   (calendario, mundo e copas do ano `ano`) refaz-se como num jogo novo, mas inbox, base, mercado e negociacoes continuam. */
+  const startGame = (teamId: string, managerName: string, countryId: string, leagueId: string = 'bra_serie_a', continuacao?: { teams: Team[]; players: Player[]; ano: number }) => {
+    if (!continuacao) aplicarDivisoes(DIVISOES_ORIGINAIS);   // um jogo novo parte das divisoes originais
+    const ano = continuacao ? continuacao.ano : ANO_BASE;
     let { teams: initTeams, players: initPlayers } = generateLeagueData(countryId, leagueId);
+    if (continuacao) {
+      const guardados = new Map(continuacao.teams.map(t => [t.id, t]));
+      const ficam = new Set(initTeams.filter(t => guardados.has(t.id)).map(t => t.id));
+      initTeams = initTeams.map(t => (guardados.has(t.id) ? { ...(guardados.get(t.id) as Team), leagueId, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 } : t));
+      initPlayers = [...initPlayers.filter(p => !ficam.has(p.teamId)), ...continuacao.players.filter(p => ficam.has(p.teamId) || p.teamId === 'MARKET')];
+    }
     // Series C e D do Brasil (formato proprio): na C a liga do jogo e a 1.a fase (todos contra todos, 19 rodadas); na D e o GRUPO do clube (12 clubes, ida e volta). O resto
     // (grupos, mata-mata) vem da competicao (textSim/competitions.ts); os outros 7 grupos da D jogam-se la.
     const formato: string | undefined = ((COUNTRIES as any[]).find(c => c.id === countryId)?.leagues.find((l: any) => l.id === leagueId) || {}).format;
@@ -839,13 +854,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     // DIFICULDADE FINANCEIRA escolhida na tela de inicio (textSim/orcamento.ts): o clube do utilizador comeca com N x a folha anual.
     const dificuldade = dificuldadeEscolhida();
-    if (dificuldade) initTeams = initTeams.map(t => t.id === teamId ? aplicarDificuldade(t, folhaAnual(initPlayers.filter(p => p.teamId === t.id).map(p => p.salary)), dificuldade) : t);
-    let initFixtures = generateFixtures(initTeams, leagueId);
+    if (dificuldade && !continuacao) initTeams = initTeams.map(t => t.id === teamId ? aplicarDificuldade(t, folhaAnual(initPlayers.filter(p => p.teamId === t.id).map(p => p.salary)), dificuldade) : t);
+    let initFixtures = generateFixtures(initTeams, leagueId, ano);
     if (formato === 'SERIE_C') initFixtures = initFixtures.filter(f => f.week <= initTeams.length - 1);   // so o 1.o turno
 
     // --- CPU FRIENDLY SCHEDULING (PRE-SEASON) ---
     // Os clubes do Paulistao comecam em janeiro (a bola rola na 3.a semana); os outros, a 1 de janeiro nao tem jogos ate abril: a pre-temporada deles fica perto do inicio da liga.
-    const preseasonPaulista = ["2026-01-04", "2026-01-07", "2026-01-11"], preseasonOutros = ["2026-04-02", "2026-04-05", "2026-04-09"];
+    const preseasonPaulista = ["2026-01-04", "2026-01-07", "2026-01-11"].map(d => noAno(d, ano)), preseasonOutros = ["2026-04-02", "2026-04-05", "2026-04-09"].map(d => noAno(d, ano));
     const cpuFriendlies: Fixture[] = [];
 
     initTeams.forEach(team => {
@@ -887,8 +902,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const jornadasDaLiga = initFixtures.reduce((m, f) => Math.max(m, f.week || 0), 0) || 38;
 
     // O MUNDO e as COPAS: criam-se agora, para os jogos de copa do utilizador entrarem no calendario desde o primeiro dia.
-    const mundo = createWorld(leagueId, '2026-01-01', null);
-    const copas = prepararCopas({ world: mundo, userTeamId: teamId, teams: initTeams, players: initPlayers, fixtures: initFixtures, date: '2026-01-01', comps: null });
+    const mundo = createWorld(leagueId, `${ano}-01-01`, null, ano);
+    const copas = prepararCopas({ world: mundo, userTeamId: teamId, teams: initTeams, players: initPlayers, fixtures: initFixtures, date: `${ano}-01-01`, comps: null });
     worldSaved.current = null; compsSaved.current = null;
     setWorld(mundo);
     if (copas) {
@@ -898,12 +913,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setTeams(copas ? [...initTeams, ...copas.teams] : initTeams);
     setPlayers(copas ? [...initPlayers, ...copas.players] : initPlayers);
-    setBase(null);   // a base nasce no motor (efeito acima), com a data do jogo
-    vistasRef.current = new Set<string>(); setInboxVistas([]);
-    setInbox([]);    // as boas-vindas nascem no motor, com o clube escolhido
-    setNegociacoes([]);
-    setMercado(mercadoVazio(''));
+    if (!continuacao) {
+      setBase(null);   // a base nasce no motor (efeito acima), com a data do jogo
+      vistasRef.current = new Set<string>(); setInboxVistas([]);
+      setInbox([]);    // as boas-vindas nascem no motor, com o clube escolhido
+      setNegociacoes([]);
+      setMercado(mercadoVazio(''));
+    }
+    setAnoTemporada(ano);
     setFixtures(initFixtures);
+    if (continuacao) { setGameState(prev => ({ ...prev, currentWeek: 1, totalWeeks: jornadasDaLiga })); return; }   // a virada: a data, o clube e a vista continuam
     setGameState(prev => ({
       ...prev,
       currentWeek: 1,
@@ -916,6 +935,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       matchVisual: undefined
     }));
   };
+
+  // A VIRADA DE TEMPORADA (textSim/virada.ts): no 1.o de janeiro do ano seguinte aplicam-se os acessos e descensos e comeca a temporada nova (idade, contratos e base ja andam com a data).
+  useEffect(() => {
+    if (!userTeam || !world || Number(gameState.currentDate.slice(0, 4)) <= anoTemporada) return;
+    const ligaId = ligaIdDoClube(userTeam);
+    const doClube = teams.filter(t => t.leagueId === ligaId);
+    const r = calcularVirada({ teams: doClube, fixtures, userLeagueId: ligaId, userTeamId: userTeam.id, world, comps });
+    aplicarDivisoes(r.divisoes);
+    startGame(userTeam.id, gameState.managerName, paisDaLiga(r.ligaDoUtilizador) || userTeam.country, r.ligaDoUtilizador, { teams: doClube, players, ano: Number(gameState.currentDate.slice(0, 4)) });
+  }, [gameState.currentDate]);
 
   const advanceDay = () => {
     const isTrainingCamp = gameState.activities.some(a => a.date === gameState.currentDate && a.type === 'TRAINING_CAMP');
@@ -2190,6 +2219,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       fixtures,
       gameState,
       worldResults: worldResults(world),
+      temporada: { ano: anoTemporada, divisoes: divisoesAtuais() },   // as divisoes depois dos acessos/descensos e o ano da temporada
       comps,
       base,
       inbox,
@@ -2270,10 +2300,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         // O mundo refaz-se (repondo os resultados do save) e as copas voltam do save; um save antigo, sem copas, ganha-as agora (com os jogos do utilizador no calendario).
+        // As divisoes e o ano do save (acessos/descensos ja aplicados); um save antigo, sem elas, parte das originais.
+        const ano: number = data.temporada?.ano ?? (Number(String(data.gameState.currentDate).slice(0, 4)) || ANO_BASE);
+        aplicarDivisoes(data.temporada?.divisoes || DIVISOES_ORIGINAIS); setAnoTemporada(ano);
         let tm: Team[] = patchedTeams, pl: Player[] = data.players, fx: Fixture[] = data.fixtures;
         const donoId = data.gameState.userTeamId, dono = patchedTeams.find((t: Team) => t.id === donoId);
         if (dono) {
-          const mundo = createWorld(ligaIdDoClube(dono), data.gameState.currentDate, data.worldResults || null);
+          const mundo = createWorld(ligaIdDoClube(dono), data.gameState.currentDate, data.worldResults || null, ano);
           const copas = prepararCopas({ world: mundo, userTeamId: donoId, teams: patchedTeams, players: data.players, fixtures: data.fixtures, date: data.gameState.currentDate, comps: data.comps || null });
           worldSaved.current = null; compsSaved.current = null;
           setWorld(mundo);

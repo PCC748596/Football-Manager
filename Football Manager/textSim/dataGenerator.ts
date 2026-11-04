@@ -350,7 +350,8 @@ export const ordemComClassicosNoMeio = (teams: Team[], leagueId: string): string
   return ordem.map(i => ids[i]);
 };
 
-export const generateFixtures = (teams: Team[], leagueId: string): Fixture[] => {
+/** `ano`: o ano da temporada. As datas nominais sao de 2026; noutro ano desloca-se um multiplo de 52 semanas (364 dias), que preserva o dia da semana de cada rodada. */
+export const generateFixtures = (teams: Team[], leagueId: string, ano: number = 2026): Fixture[] => {
   const fixtures: Fixture[] = [];
   const teamIds = ordemComClassicosNoMeio(teams, leagueId);
   const totalTeams = teamIds.length;
@@ -373,6 +374,8 @@ export const generateFixtures = (teams: Team[], leagueId: string): Fixture[] => 
     if (leagueId.includes('serie_b')) {
       cursor = new Date('2026-04-10T12:00:00'); // Friday April 12th
     }
+
+    cursor.setDate(cursor.getDate() + 364 * (ano - 2026));
 
     const minGapDays = 3;
 
@@ -398,7 +401,7 @@ export const generateFixtures = (teams: Team[], leagueId: string): Fixture[] => 
   // First half of season
   for (let round = 0; round < numRounds; round++) {
     const week = round + 1;
-    const dateStr = matchDates[round] || '2026-04-04';
+    const dateStr = matchDates[round] || `${ano}-04-04`;
 
     for (let match = 0; match < matchesPerRound; match++) {
       const home = roundTeams[match];
@@ -445,7 +448,7 @@ export const generateFixtures = (teams: Team[], leagueId: string): Fixture[] => 
   const firstHalf = [...fixtures];
   firstHalf.forEach(f => {
     const week = f.week + numRounds;
-    const dateStr = matchDates[week - 1] || '2026-09-29';
+    const dateStr = matchDates[week - 1] || `${ano}-09-29`;
 
     fixtures.push({
       id: `fix-${leagueId}-w${week}-${f.homeTeamId}-${f.awayTeamId}`,

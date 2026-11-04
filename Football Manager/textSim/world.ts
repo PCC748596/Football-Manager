@@ -58,14 +58,14 @@ export const buildTable = (teams: Team[], fixtures: Fixture[]): TableRow[] => {
 };
 
 /** Cria todas as ligas menos a do utilizador (essa vive no estado do jogo). Os resultados do save, se houver, repoem-se; o resto joga-se ate `ate`. */
-export const createWorld = (excludeLeagueId: string | undefined, ate: string, results?: WorldResults | null): WorldLeague[] => {
+export const createWorld = (excludeLeagueId: string | undefined, ate: string, results?: WorldResults | null, ano?: number): WorldLeague[] => {
   const leagues: WorldLeague[] = [];
   for (const c of COUNTRIES as any[]) {
     for (const lg of c.leagues) {
       if (lg.id === excludeLeagueId && !lg.worldOnly) continue;   // (C e D entram sempre: sao a lista de clubes das competicoes)
       const { teams, players } = generateLeagueData(c.id, lg.id);
       if (lg.hidden || lg.worldOnly) { leagues.push({ countryId: c.id, countryName: c.name, leagueId: lg.id, leagueName: lg.name, tier: lg.tier, relegated: 0, teams, fixtures: [], players, oculta: true }); continue; }
-      const fixtures = generateFixtures(teams, lg.id).map(f => {
+      const fixtures = generateFixtures(teams, lg.id, ano).map(f => {
         const r = results && results[f.id];
         return r ? { ...f, homeScore: r[0], awayScore: r[1], played: true } : f;
       });
