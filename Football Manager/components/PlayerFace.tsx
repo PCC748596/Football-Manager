@@ -106,8 +106,8 @@ export const PlayerFace: React.FC<Props> = ({ playerId, camisa = '#475569', face
         {/* Olhos, nariz e boca (desenhados so quando nao ha a cara em pixels) */}
         {!ap.rosto && (<>
           {/* Olhos de qualquer pele: o branco com a pupila preta no meio */}
-          <rect x="-0.25" y="-0.21" width="0.18" height="0.11" fill="#e9e4dc" />
-          <rect x="0.07" y="-0.21" width="0.18" height="0.11" fill="#e9e4dc" />
+          <rect x="-0.215" y="-0.21" width="0.12" height="0.11" fill="#e9e4dc" />
+          <rect x="0.095" y="-0.21" width="0.12" height="0.11" fill="#e9e4dc" />
           <rect x="-0.19" y="-0.2" width="0.07" height="0.09" fill="#14100e" />
           <rect x="0.12" y="-0.2" width="0.07" height="0.09" fill="#14100e" />
           <polyline points="0,-0.05 0,0.08 0.06,0.08" fill="none" stroke={tintaNariz} strokeWidth="0.025" />

@@ -112,7 +112,8 @@ const getColorHex = (colorName: string | undefined, defaultColor: string = "#94a
   if (colorName.startsWith('#')) return colorName;
   const map: Record<string, string> = {
     "green": "#166534", "red": "#b91c1c", "blue": "#1e40af", "white": "#f8fafc", "black": "#0f172a",
-    "yellow": "#ca8a04", "gold": "#d97706", "orange": "#ea580c", "stripes": "#334155", "lightgray": "#cbd5e1"
+    "yellow": "#ca8a04", "gold": "#d97706", "orange": "#ea580c", "stripes": "#334155", "lightgray": "#cbd5e1",
+    "maroon": "#7f1d1d", "lightblue": "#6cb4ee", "navy": "#1e3a8a"
   };
   return map[colorName.toLowerCase()] || defaultColor;
 };

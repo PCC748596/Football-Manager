@@ -380,13 +380,24 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
         c2 = undefined;
         c3 = undefined;
     } else if (kitIdx === 1) { // Away
+        // Casa lisa (a cor secundaria e igual a principal): a fora e BRANCA (ou escura, se a principal for clara), com gola e numero na cor do clube; nunca igual a casa.
+        if (team.secondaryColor === team.primaryColor || !team.secondaryColor || team.secondaryColor === 'transparent') {
+            c1 = !isColorLight(team.primaryColor) ? 'white' : '#1e293b'; clc = !isColorLight(team.primaryColor) ? team.primaryColor : 'white'; nc = clc; c2 = undefined; c3 = undefined;
+        } else {
         c1 = team.secondaryColor;
         c2 = team.primaryColor;
         c3 = undefined;
+        }
     } else if (kitIdx === 2) { // Third
         c1 = team.tertiaryColor && team.tertiaryColor !== 'transparent' ? team.tertiaryColor : team.primaryColor;
         c2 = undefined;
         c3 = undefined;
+    }
+
+    // Sunderland: 2.a rosa lisa (gola e numero pretos), 3.a azul lisa (gola e numero brancos); a 1.a e a listrada vermelha e branca.
+    if (team.name === 'Sunderland') {
+        if (kitIdx === 1) { c1 = '#f9a8d4'; c2 = undefined; c3 = undefined; nc = '#111111'; clc = '#111111'; }
+        else if (kitIdx === 2) { c1 = '#1d4ed8'; c2 = undefined; c3 = undefined; nc = 'white'; clc = 'white'; }
     }
 
     // Special Cases: Tricolor or Striped Pattern Clubs
