@@ -324,7 +324,7 @@ export const taticaDoMotor = (m: any, atual: Tactics): Partial<Tactics> => {
   const r: Partial<Tactics> = {};
   if (m.estilo && m.estilo !== a.estilo && ESTILO_DO_MOTOR[m.estilo]) r.style = ESTILO_DO_MOTOR[m.estilo] as Tactics['style'];
   if (m.pressaoDefensiva && m.pressaoDefensiva !== a.pressaoDefensiva) r.pressure = ({ low: 20, balanced: 50, high: 85 } as any)[m.pressaoDefensiva];
-  if (m.linhaDefensiva && m.linhaDefensiva !== a.linhaDefensiva) r.defensiveLine = ({ low: 40, medium: 65, high: 90 } as any)[m.linhaDefensiva];
+  if (m.linhaDefensiva && m.linhaDefensiva !== a.linhaDefensiva) r.defensiveLine = ({ low: 30, medium: 60, high: 90 } as any)[m.linhaDefensiva];
   if (m.teamPlayStyle && m.teamPlayStyle !== a.teamPlayStyle) {
     r.playStyle = m.teamPlayStyle;
     if (({ possession: 20, positional: 50, direct: 80 } as any)[m.teamPlayStyle] !== undefined) r.tempo = ({ possession: 20, positional: 50, direct: 80 } as any)[m.teamPlayStyle];

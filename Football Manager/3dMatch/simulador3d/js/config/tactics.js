@@ -415,9 +415,10 @@ const TeamShape = {
     no mesmo z. Ver computeBlock em team_bt.js.
     */
     linhaDefensiva: {
-        low: -32.5,     // 4 m à frente da linha da grande área
-        medium: -18.25, // a meio caminho entre a grande área e a linha central
-        high: -2.0      // 2 m atrás da linha central
+        // Em percentagem da distancia entre a linha da grande area (0%) e a linha do meio-campo (100%): low 30%, medium 60%, high 90% (o manager tem 30/45/60/75/90).
+        low: -36.5 * (1 - 0.30),      // 30%
+        medium: -36.5 * (1 - 0.60),   // 60%
+        high: -36.5 * (1 - 0.90)      // 90%
     },
 
     /*
@@ -1945,7 +1946,7 @@ function valorPorPressao(tabela, team) {
 A LINHA DEFENSIVA EM PERCENTAGEM (manager 30-100; o motor tem low / medium / high). Mesma ideia da pressao: `linhaValorDe(team)` e o numero do manager
 (`linhaValor`, desde que caia no nivel em uso) e `valorPorLinha(tabela, team)` interpola { low, medium, high } entre 40 / 65 / 90, os valores tipicos de cada nivel.
 */
-const LINHA_PONTOS = { low: 40, medium: 65, high: 90 };
+const LINHA_PONTOS = { low: 30, medium: 60, high: 90 };   // a percentagem tipica de cada nivel (a mesma escala do manager: 30-90)
 function nivelDaLinha(v) { return v < 53 ? 'low' : v < 77 ? 'medium' : 'high'; }
 function linhaValorDe(team) {
     const nivel = taticaDe(team, 'linhaDefensiva');

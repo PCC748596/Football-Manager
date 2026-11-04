@@ -24,6 +24,19 @@ const FORMATIONS: Record<string, { id: number, x: number, y: number, label: stri
     { id: 5, x: 15, y: 45, label: 'LM' }, { id: 6, x: 38, y: 50, label: 'CM' }, { id: 7, x: 62, y: 50, label: 'CM' }, { id: 8, x: 85, y: 45, label: 'RM' },
     { id: 9, x: 35, y: 18, label: 'ST' }, { id: 10, x: 65, y: 18, label: 'ST' },
   ],
+  // 4-4-2 D (Diamond): losango no meio (DM, 2 CM, AM) com dois atacantes.
+  '4-4-2 D': [
+    { id: 0, x: 50, y: 88, label: 'GK' },
+    { id: 1, x: 15, y: 72, label: 'LB' }, { id: 2, x: 38, y: 75, label: 'CB' }, { id: 3, x: 62, y: 75, label: 'CB' }, { id: 4, x: 85, y: 72, label: 'RB' },
+    { id: 5, x: 50, y: 60, label: 'DM' }, { id: 6, x: 28, y: 50, label: 'CM' }, { id: 7, x: 72, y: 50, label: 'CM' }, { id: 8, x: 50, y: 38, label: 'AM' },
+    { id: 9, x: 38, y: 18, label: 'ST' }, { id: 10, x: 62, y: 18, label: 'ST' },
+  ],
+  '4-4-2 ATA': [
+    { id: 0, x: 50, y: 88, label: 'GK' },
+    { id: 1, x: 15, y: 72, label: 'LB' }, { id: 2, x: 38, y: 75, label: 'CB' }, { id: 3, x: 62, y: 75, label: 'CB' }, { id: 4, x: 85, y: 72, label: 'RB' },
+    { id: 5, x: 15, y: 40, label: 'LW' }, { id: 6, x: 38, y: 52, label: 'CM' }, { id: 7, x: 62, y: 52, label: 'CM' }, { id: 8, x: 85, y: 40, label: 'RW' },
+    { id: 9, x: 35, y: 18, label: 'ST' }, { id: 10, x: 65, y: 18, label: 'ST' },
+  ],
   '4-3-3': [
     { id: 0, x: 50, y: 88, label: 'GK' },
     { id: 1, x: 15, y: 72, label: 'LB' }, { id: 2, x: 38, y: 75, label: 'CB' }, { id: 3, x: 62, y: 75, label: 'CB' }, { id: 4, x: 85, y: 72, label: 'RB' },
@@ -39,8 +52,15 @@ const FORMATIONS: Record<string, { id: number, x: number, y: number, label: stri
   '3-5-2': [
     { id: 0, x: 50, y: 88, label: 'GK' },
     { id: 1, x: 25, y: 75, label: 'CB' }, { id: 2, x: 50, y: 78, label: 'CB' }, { id: 3, x: 75, y: 75, label: 'CB' },
-    { id: 4, x: 10, y: 45, label: 'LM' }, { id: 5, x: 30, y: 52, label: 'DM' }, { id: 6, x: 50, y: 55, label: 'CM' }, { id: 7, x: 70, y: 52, label: 'DM' }, { id: 8, x: 90, y: 45, label: 'RM' },
+    { id: 4, x: 10, y: 45, label: 'LM' }, { id: 5, x: 30, y: 57, label: 'DM' }, { id: 6, x: 50, y: 47, label: 'CM' }, { id: 7, x: 70, y: 57, label: 'DM' }, { id: 8, x: 90, y: 45, label: 'RM' },
     { id: 9, x: 40, y: 18, label: 'SS' }, { id: 10, x: 60, y: 18, label: 'ST' },
+  ],
+  '3-5-2 ATA': [
+    { id: 0, x: 50, y: 88, label: 'GK' },
+    { id: 1, x: 25, y: 75, label: 'CB' }, { id: 2, x: 50, y: 78, label: 'CB' }, { id: 3, x: 75, y: 75, label: 'CB' },
+    { id: 4, x: 50, y: 58, label: 'DM' }, { id: 5, x: 33, y: 47, label: 'CM' }, { id: 6, x: 67, y: 47, label: 'CM' },
+    { id: 7, x: 12, y: 35, label: 'LW' }, { id: 8, x: 88, y: 35, label: 'RW' },
+    { id: 9, x: 40, y: 18, label: 'ST' }, { id: 10, x: 60, y: 18, label: 'ST' },
   ],
   '5-4-1': [
     { id: 0, x: 50, y: 88, label: 'GK' },
@@ -52,13 +72,13 @@ const FORMATIONS: Record<string, { id: number, x: number, y: number, label: stri
     { id: 0, x: 50, y: 88, label: 'GK' },
     { id: 1, x: 15, y: 72, label: 'LB' }, { id: 2, x: 38, y: 75, label: 'CB' }, { id: 3, x: 62, y: 75, label: 'CB' }, { id: 4, x: 85, y: 72, label: 'RB' },
     { id: 5, x: 35, y: 60, label: 'DM' }, { id: 6, x: 65, y: 60, label: 'DM' },
-    { id: 7, x: 20, y: 35, label: 'LW' }, { id: 8, x: 50, y: 38, label: 'AM' }, { id: 9, x: 80, y: 35, label: 'RW' },
+    { id: 7, x: 20, y: 29, label: 'LW' }, { id: 8, x: 50, y: 38, label: 'AM' }, { id: 9, x: 80, y: 29, label: 'RW' },
     { id: 10, x: 50, y: 15, label: 'ST' },
   ],
   '5-3-2': [
     { id: 0, x: 50, y: 88, label: 'GK' },
     { id: 1, x: 15, y: 72, label: 'LB' }, { id: 2, x: 32, y: 75, label: 'CB' }, { id: 3, x: 50, y: 78, label: 'CB' }, { id: 4, x: 68, y: 75, label: 'CB' }, { id: 5, x: 85, y: 72, label: 'RB' },
-    { id: 6, x: 30, y: 52, label: 'CM' }, { id: 7, x: 50, y: 55, label: 'DM' }, { id: 8, x: 70, y: 52, label: 'CM' },
+    { id: 6, x: 30, y: 57, label: 'DM' }, { id: 7, x: 50, y: 47, label: 'CM' }, { id: 8, x: 70, y: 57, label: 'DM' },
     { id: 9, x: 40, y: 18, label: 'SS' }, { id: 10, x: 60, y: 18, label: 'ST' },
   ],
 };

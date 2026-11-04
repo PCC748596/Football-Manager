@@ -1393,6 +1393,31 @@ function limitesDoBloco(bb) {
 O POSTO PELAS TABELAS POR ZONA (ZonasModel): onde a formacao do editor (data/formacoes_zonas.js) poe este jogador com a bola onde esta e a fase (com/sem bola),
 interpolado entre as 4 zonas mais proximas. Devolve { x, z } no MUNDO, ou null (desligado, formacao sem tabela, ou sem indice) e o bloco manda como sempre.
 */
+/*
+O LIMITE DE RECUO DA LINHA DEFENSIVA com as tabelas por zona (o posto da tabela nao passa pelo bloco, onde esta regra vivia). Os defensores posicionam-se pela tabela, mas SEM bola nao recuam
+alem desta linha (referencial de ataque da propria equipa; a propria baliza e o mais negativo): a Defensive Line do painel, em % da distancia entre a linha da grande area (0%) e a do meio-campo (100%).
+O limite nao e fixo: segue a regra da linha de impedimento — desce quando um adversario fica atras dela (a linha acompanha o avancado mais adiantado, a `distancia` da marcacao atras dele, como em
+`recuoDaUltimaLinha`) e nunca passa da baliza (+1 m). Devolve null quando nao se aplica (com a bola, sem Tatics).
+*/
+function limiteDeRecuoDaLinha(bb) {
+    if (!bb || bb.isAttacking || typeof TeamShape === 'undefined' || typeof valorPorLinha !== 'function') return null;
+    const base = valorPorLinha(TeamShape.linhaDefensiva, bb.team);
+    let maisAvancado = null, pisoDir = null;
+    for (const o of (bb.opp || [])) {
+        if (!o || o.role === 'gk' || !o.model) continue;
+        const zDir = o.model.position.z * bb.dir;
+        if (maisAvancado === null || zDir < maisAvancado) maisAvancado = zDir;
+    }
+    const gk = (bb.own || []).find(pl => pl && pl.role === 'gk' && pl.model);
+    if (gk) pisoDir = gk.model.position.z * bb.dir + 1.0;
+    const M = (typeof MarkingModel !== 'undefined') ? MarkingModel : null;
+    const distancia = (M && M.distanciaPorPressao)
+        ? (typeof valorPorPressao === 'function' ? valorPorPressao(M.distanciaPorPressao, bb.team) : (M.distanciaPorPressao[taticaDe(bb.team, 'pressaoDefensiva')] ?? M.distanciaPorPressao.balanced))
+        : 3.0;
+    // Sem tecto: o painel e o LIMITE DE RECUO; so as regras da linha de impedimento (o adversario atras da linha, a baliza) o baixam.
+    return recuoDaUltimaLinha(base, maisAvancado, distancia, pisoDir, null);
+}
+
 function posicaoPorZona(p, bb) {
     const Z = (typeof ZonasModel !== 'undefined') ? ZonasModel : null;
     if (!Z || !Z.activo || typeof FormacoesZonasLib === 'undefined' || typeof FormacoesZonas === 'undefined') return null;
@@ -2624,6 +2649,11 @@ const PosicionamentoAI = {
         const slot = zonal ? zonal : slotNoBloco(p, bb);
         let targetX = slot ? slot.x : p.baseTarget.x;
         let targetZ = slot ? slot.z : p.baseTarget.z;
+        // Defensive Line com as tabelas por zona: os defensores posicionam-se pela tabela mas nao recuam alem do limite da linha (ver limiteDeRecuoDaLinha).
+        if (zonal && p.role === 'def') {
+            const lim = limiteDeRecuoDaLinha(bb);
+            if (lim !== null && targetZ * p.dirZ < lim) targetZ = lim * p.dirZ;
+        }
 
         /*
         SEGURAR A LINHA: quem foi chamado para completar o mínimo atrás não

@@ -120,11 +120,14 @@ const getColorHex = (colorName: string | undefined, defaultColor: string = "#94a
 
 const FORMATION_ROLES: Record<string, Position[]> = {
   '4-4-2': [Position.GK, Position.LB, Position.CB, Position.CB, Position.RB, Position.LM, Position.CM, Position.CM, Position.RM, Position.ST, Position.ST],
+  '4-4-2 D': [Position.GK, Position.LB, Position.CB, Position.CB, Position.RB, Position.DM, Position.CM, Position.CM, Position.AM, Position.ST, Position.ST],
+  '4-4-2 ATA': [Position.GK, Position.LB, Position.CB, Position.CB, Position.RB, Position.LW, Position.CM, Position.CM, Position.RW, Position.ST, Position.ST],
   '4-3-3': [Position.GK, Position.LB, Position.CB, Position.CB, Position.RB, Position.DM, Position.CM, Position.CM, Position.LW, Position.RW, Position.ST],
   '4-3-3 ATA': [Position.GK, Position.LB, Position.CB, Position.CB, Position.RB, Position.CM, Position.CM, Position.AM, Position.LW, Position.RW, Position.ST],
   '3-5-2': [Position.GK, Position.CB, Position.CB, Position.CB, Position.LM, Position.DM, Position.DM, Position.RM, Position.AM, Position.ST, Position.ST],
+  '3-5-2 ATA': [Position.GK, Position.CB, Position.CB, Position.CB, Position.DM, Position.CM, Position.CM, Position.LW, Position.RW, Position.ST, Position.ST],
   '5-4-1': [Position.GK, Position.LB, Position.CB, Position.CB, Position.CB, Position.RB, Position.LM, Position.CM, Position.CM, Position.RM, Position.ST],
-  '5-3-2': [Position.GK, Position.LB, Position.CB, Position.CB, Position.CB, Position.RB, Position.DM, Position.CM, Position.CM, Position.ST, Position.ST],
+  '5-3-2': [Position.GK, Position.LB, Position.CB, Position.CB, Position.CB, Position.RB, Position.DM, Position.DM, Position.CM, Position.ST, Position.ST],
   '4-2-3-1': [Position.GK, Position.LB, Position.CB, Position.CB, Position.RB, Position.DM, Position.DM, Position.LW, Position.AM, Position.RW, Position.ST],
 };
 
