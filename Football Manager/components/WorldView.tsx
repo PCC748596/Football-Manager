@@ -66,7 +66,9 @@ const WorldView: React.FC = () => {
 
   const fmtData = (s: string) => { const d = new Date(s + 'T12:00:00'); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`; };
   const th = 'px-3 py-2 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 text-center';
-  const Escudo = ({ k }: { k: string }) => <TeamShield team={mapa.get(k)} className="w-[30px] h-9" />;
+  // Champions, Europa League, Conference e Carabao: escudos dos clubes 15,3% maiores (30x36 -> 34.6x40.6).
+  const escudoGrande = !!copa && (ehLigaFase(copa.id) || copa.id === 'CARABAO');
+  const Escudo = ({ k }: { k: string }) => <TeamShield team={mapa.get(k)} className={escudoGrande ? 'w-[34.6px] h-[40.6px]' : 'w-[30px] h-9'} />;
   const nomeDe = (k: string) => mapa.get(k)?.name || '?';
   const souEu = (k: string) => !!userTeam && mapa.get(k)?.id === userTeam.id && k.startsWith(userTeam.leagueId + '|');
 

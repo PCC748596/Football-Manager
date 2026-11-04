@@ -616,6 +616,14 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
         else { c1 = '#444444'; c2 = undefined; c3 = undefined; nc = '#ffffff'; noc = undefined; clc = '#ffffff'; }
     }
 
+    // Portuguesa-SP: 1.o = faixas horizontais verdes e vermelhas, calcao verde e meiao verde e vermelho, numero branco; 2.o = toda branca; 3.o = camisa vermelha com calcao verde.
+    if (team.name === 'Portuguesa-SP') {
+        const verde = '#0f7a3a', verm = '#d71920';
+        if (kitIdx === 0) { c1 = verde; c2 = verm; c3 = undefined; horizontal = true; nc = 'white'; noc = undefined; clc = verm; shcK = verde; }
+        else if (kitIdx === 1) { c1 = 'white'; c2 = undefined; c3 = undefined; nc = verde; noc = undefined; clc = verde; }
+        else { c1 = verm; c2 = undefined; c3 = undefined; nc = 'white'; noc = undefined; clc = 'white'; shcK = verde; }
+    }
+
     const cruzMalta = isVasco && diagonal;
     // O meião com desenho (faixas horizontais de cima para baixo; sem isto o meião é liso na cor da camisa).
     let meiao: KitDetails['meiao'];
@@ -625,6 +633,10 @@ export const getKitDetails = (team: Team, kitIdx: 0 | 1 | 2): KitDetails => {
     } else if (isVasco && kitIdx === 0) {
         // Preto com a aba branca no alto.
         meiao = { cores: ['#f2f2f2', '#000000'], pesos: [1.3, 8.7] };
+    } else if (team.name === 'Portuguesa-SP' && kitIdx === 0) {
+        meiao = { cores: ['#d71920', '#0f7a3a'], pesos: [3, 7] };   // vermelho no alto, verde embaixo
+    } else if (team.name === 'Portuguesa-SP' && kitIdx === 2) {
+        meiao = { cores: ['#0f7a3a', '#d71920'], pesos: [3, 7] };
     }
     // Uniforme 3 GERADO (sem gola definida a mao para o clube): a gola e o numero levam a MESMA cor, a que contrasta com a camisa (branca na escura, escura na clara). Os kits feitos a mao mantem-se.
     if (kitIdx === 2 && !clc) { clc = isColorLight(c1) ? '#111827' : 'white'; if (!nc) nc = clc; }

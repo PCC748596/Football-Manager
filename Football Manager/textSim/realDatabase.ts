@@ -23786,13 +23786,13 @@ export const REAL_TEAMS_JSON: any[] = [
     "avrAttendance": 563,
     "country": "45",
     "homeKit": {
-      "pattern": "stripes",
-      "color1": "#ff0315",
-      "color2": "#fdfdfc",
+      "pattern": "horizontal",
+      "color1": "#0f7a3a",
+      "color2": "#d71920",
       "color3": "",
-      "numberColor": "#000000",
+      "numberColor": "#ffffff",
       "numberOutlineColor": "",
-      "collarColor": "#111111",
+      "collarColor": "#d71920",
       "sleeveColor": ""
     },
     "awayKit": {
@@ -23800,14 +23800,14 @@ export const REAL_TEAMS_JSON: any[] = [
       "color1": "#ffffff",
       "color2": "",
       "color3": "",
-      "numberColor": "#ff0315",
+      "numberColor": "#0f7a3a",
       "numberOutlineColor": "",
-      "collarColor": "#ff0315",
+      "collarColor": "#0f7a3a",
       "sleeveColor": ""
     },
     "thirdKit": {
       "pattern": "solid",
-      "color1": "#590107",
+      "color1": "#d71920",
       "color2": "",
       "color3": "",
       "numberColor": "#ffffff",
