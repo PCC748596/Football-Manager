@@ -627,6 +627,10 @@ button.btn-action:active {
 }
 
 /* O aviso grande das marcacoes (FOUL !!!, CORNER KICK, GOAL KICK, cartoes...): como o GOOL!, 3 s. */
+/* GOOL! pisca enquanto esta no ecra (opacity 1 posta em linha pelo jogo; ao ficar a 0 a animacao sai com o seletor). */
+@keyframes pisca-gol { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0.15; } }
+#alerta-golo[style*="opacity: 1"] { animation: pisca-gol 0.5s linear infinite; }
+
 #alerta-jogo {
     position: absolute;
     top: 96px;   /* logo abaixo do placar, centrado com ele (era 40%, depois 22%): o aviso ao centro tapava o lance */

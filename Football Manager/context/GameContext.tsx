@@ -1610,7 +1610,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // So jogos de campeonato: no intervalo de uma copa a tabela da liga nao se mostra.
       // As estatisticas do 3D (as mesmas do modal do intervalo) ficam no jogo: a tela MATCH STATISTICS do manager mostra-as em vez de as recontar pelos eventos.
       if (Array.isArray(m.estatLinhas)) setFixtures(prev => prev.map(f => (f.id === uf.id ? { ...f, estat3d: m.estatLinhas } : f)));
-      const linhas = uf.type !== 'CUP' ? classificacaoDoIntervalo(uf) : [];
+      // Copas e AMISTOSOS nao levam a tabela do campeonato ao lado das estatisticas e das notas (intervalo, fim e botao Statistics).
+      const linhas = (uf.type !== 'CUP' && !uf.isFriendly && !String(uf.id).startsWith('fix-friendly-')) ? classificacaoDoIntervalo(uf) : [];
       if (linhas.length) simulador3dEnviar({ tipo: 'classificacao', linhas, emCurso: (classificacaoDoIntervalo as any).ultimoEmCurso || 0 });
       // As notas dos jogadores ate este momento, no mesmo ecra das estatisticas (nome curto e nota, de cada equipa, pela nota).
       try {

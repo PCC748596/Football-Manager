@@ -4653,14 +4653,29 @@ class FootballPlayer {
                 this.showActionBanner('CLEARANCE');
             }
 
-            const target = this.findPassTarget('mid') || this.findPassTarget('atk') ||
-                this.findPassTarget('def');
+            /*
+            COM O ESPACO TODO A FRENTE NAO SE ESCORA PARA TRAS. Relato: *"recebem bons lancamentos mas, em vez de dominar mantendo o movimento, tocam de cabeca de volta para tras; com todo o
+            espaco a frente, que foi o motivo do lancamento"*. O `findPassTarget('mid')` abaixo e um colega ATRAS dele. Sem marcador colado, fora do alivio defensivo e com o corredor a frente livre,
+            a cabecada amortece-se a frente: um toque curto na direccao em que ele vinha (a baliza), para correr para ela.
+            */
+            const livreParaAvancar = !ehAlivioDefensivo && !marcador &&
+                (this.targetGoalZ - this.model.position.z) * this.dirZ > 10.0 &&
+                (typeof semMarcacaoAFrente === 'function') && semMarcacaoAFrente(this, opponentsHead, 14.0, 50.0);
+            const target = livreParaAvancar ? null : (this.findPassTarget('mid') || this.findPassTarget('atk') ||
+                this.findPassTarget('def'));
 
             const tectoAlivio = HeaderModel.alcanceAlivioBaixo || 11.0;
             let uxP = 0, uzP = this.dirZ, distDesejada = tectoAlivio;
             const eP = HeaderModel.elevacaoEscora;
 
-            if (target) {
+            if (livreParaAvancar) {
+                // Para a frente e um pouco para o eixo do gol, curto (6-7 m): a bola cai-lhe a corrida.
+                const gx = -this.model.position.x * 0.15;
+                const gz = this.dirZ * 6.5;
+                const len = Math.hypot(gx, gz) || 1;
+                uxP = gx / len; uzP = gz / len;
+                distDesejada = 6.5;
+            } else if (target) {
                 const dxP = target.model.position.x - Match.ball.position.x;
                 const dzP = target.model.position.z - Match.ball.position.z;
                 const d = Math.hypot(dxP, dzP);

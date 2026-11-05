@@ -1167,6 +1167,23 @@ Object.assign(Match, {
                 typeof Area !== 'undefined' && Area.contem(best.model.position.x, best.model.position.z, -best.dirZ)) {
                 best.jogarDePrimeira = true;
             }
+            /*
+            CHUTE DE PRIMEIRA DENTRO DA AREA (relato: *"sempre dominam para chutar; tem que ter chute de primeira dentro da area"*). A bola que lhe chega (passe, cruzamento rasteiro,
+            devolucao) com a baliza a frente e a menos de `AREA_PRIMEIRA.dist` m: na maioria das vezes decide-se ja, sem dominar — a arvore chuta se puder. Quanto maior o TEC, mais vezes.
+            Nao conta a bola que ele proprio adiantou (conducao), nem com a bola lenta (< `velMin` m/s: ai domina-se).
+            */
+            if (!best.jogarDePrimeira && typeof Area !== 'undefined') {
+                const AP = { dist: 20.0, velMin: 3.0, chanceBase: 0.45, chanceTec: 0.40 };
+                const gz = best.targetGoalZ;
+                const viradoPraBaliza = typeof gz === 'number' && (gz - best.model.position.z) * best.dirZ > 0;
+                const dGol = typeof gz === 'number' ? Math.hypot(best.model.position.x, gz - best.model.position.z) : 99;
+                const naAreaAdv = Math.abs(best.model.position.x) < Area.meiaLargura && typeof gz === 'number' && Math.abs(gz - best.model.position.z) < Area.profundidade;
+                const velBola = Math.hypot(this.ballVel.x, this.ballVel.z);
+                if (viradoPraBaliza && naAreaAdv && dGol <= AP.dist && !bolaAdiantadaPorEle && velBola >= AP.velMin) {
+                    const chance = AP.chanceBase + AP.chanceTec * Math.max(0, Math.min(1, best.skillFor('TEC') / 100));
+                    if (Math.random() < chance) best.jogarDePrimeira = true;
+                }
+            }
             // CRUZAR SEM DOMINAR (ver FirstTouchModel.cruzarSemDominar): quem adiantou a bola na ala e ganhou a corrida ao defesa chega a ela ja em posicao de cruzar e cruza de primeira.
             const CSD = FirstTouchModel.cruzarSemDominar;
             if (!best.jogarDePrimeira && CSD && CSD.activo && bolaAdiantadaPorEle && typeof CrossModel !== 'undefined' &&
