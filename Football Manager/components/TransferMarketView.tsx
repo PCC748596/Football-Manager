@@ -152,7 +152,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const mercadoAba = (
     <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_300px] lg:grid-rows-[auto_minmax(0,1fr)] xl:grid-cols-[250px_1fr_300px] xl:grid-rows-1 gap-5 min-h-0">
       {/* FILTROS */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0b1324] p-4 overflow-y-auto custom-scrollbar grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-3 lg:col-span-2 xl:col-span-1 xl:flex xl:flex-col xl:gap-4" onKeyDown={e => { if (e.key === 'Enter') aplicar(); }}>
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0b1324] p-4 overflow-y-auto custom-scrollbar grid grid-cols-4 gap-x-3 gap-y-3 lg:col-span-2 xl:col-span-1 xl:flex xl:flex-col xl:gap-4" onKeyDown={e => { if (e.key === 'Enter') aplicar(); }}>
         <div className="col-span-full xl:col-auto text-[12px] font-black uppercase tracking-widest text-slate-500">Search filters</div>
         <div><label className={rotulo}>Player name</label><input className={campo} value={nome} onChange={e => setNome(e.target.value)} placeholder="Search by name" /></div>
         <div><label className={rotulo}>Position</label>
@@ -169,7 +169,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
             {[...teams].filter(t => t.id !== meuId).sort((a, b) => a.name.localeCompare(b.name)).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
-        <div className="flex flex-col gap-1.5 col-span-2 md:col-span-2 xl:col-auto"><label className={rotulo}>Status</label>
+        <div className="flex flex-col gap-1.5 col-span-2 xl:col-auto"><label className={rotulo}>Status</label>
           <button onClick={() => { setSoListados(!soListados); setFiltros(f => ({ ...f, soListados: !soListados })); }} className={botaoStatus(soListados)}>Transfer listed</button>
           <button onClick={() => { setSoLivres(!soLivres); setFiltros(f => ({ ...f, soLivres: !soLivres })); }} className={botaoStatus(soLivres)}>Free agents</button>
           <button onClick={() => { setSoContrato(!soContrato); setFiltros(f => ({ ...f, soContrato: !soContrato })); }} className={botaoStatus(soContrato)}>Contract ≤ 12 months</button>
