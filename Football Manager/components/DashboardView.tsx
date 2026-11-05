@@ -1,3 +1,4 @@
+import { getWeatherForMatch, horaDoJogo } from '../textSim/clima';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import NextGameButton, { SetasAGirar } from './NextGameButton';
 import { useGame, countsForLeague } from '../context/GameContext';
@@ -89,76 +90,6 @@ const getPosColor = (posLabel: string) => {
   if (['LB', 'CB', 'RB'].includes(posLabel)) return '#eab308';
   if (['DM', 'LM', 'CM', 'RM', 'AM'].includes(posLabel)) return '#16a34a';
   return '#2563eb';
-};
-
-const getWeatherForMatch = (dateStr: string, matchId: string, country: string) => {
-  // Deterministic random based on match ID string sum
-  const seed = matchId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const pseudoRandom = (offset: number) => {
-    const x = Math.sin(seed + offset) * 10000;
-    return x - Math.floor(x);
-  };
-
-  const month = new Date(dateStr + 'T12:00:00').getMonth(); // 0-11
-  
-  // Brazil (South Hemisphere) seasons
-  // Summer: Dec, Jan, Feb (11, 0, 1)
-  // Autumn: Mar, Apr, May (2, 3, 4)
-  // Winter: Jun, Jul, Aug (5, 6, 7)
-  // Spring: Sep, Oct, Nov (8, 9, 10)
-  
-  const isSouth = country === 'brazil' || country === '45';   // 45 = o id do Brasil na base atual
-  let season = 'summer';
-  
-  if (isSouth) {
-    if (month >= 2 && month <= 4) season = 'autumn';
-    else if (month >= 5 && month <= 7) season = 'winter';
-    else if (month >= 8 && month <= 10) season = 'spring';
-  } else {
-    // North Hemisphere (England)
-    if (month >= 2 && month <= 4) season = 'spring';
-    else if (month >= 5 && month <= 7) season = 'summer';
-    else if (month >= 8 && month <= 10) season = 'autumn';
-    else season = 'winter';
-  }
-
-  // Icons: ☁️ ⛅ ⛈️ 🌤️ 🌥️ 🌦️ 🌧️ 🌨️ 🌩️ ☀️ 🍃
-  let icon = '☀️';
-  let temp = 25;
-
-  const rand = pseudoRandom(1);
-
-  if (season === 'summer') {
-    // Hot, Sun, Storms
-    temp = Math.floor(25 + pseudoRandom(2) * 12); // 25-37
-    if (rand < 0.5) icon = '☀️';
-    else if (rand < 0.8) icon = '🌤️';
-    else icon = '⛈️';
-  } else if (season === 'autumn') {
-    // Mild, Windy, Clouds
-    temp = Math.floor(18 + pseudoRandom(2) * 10); // 18-28
-    if (rand < 0.4) icon = '⛅';
-    else if (rand < 0.7) icon = '🍃';
-    else icon = '🌥️';
-  } else if (season === 'winter') {
-    // Cold, Rain, Overcast
-    temp = Math.floor(10 + pseudoRandom(2) * 12); // 10-22 (Brazil logic mostly)
-    if (!isSouth) temp -= 10; // Colder in England
-    
-    if (rand < 0.4) icon = '☁️';
-    else if (rand < 0.7) icon = '🌧️';
-    else if (rand < 0.9) icon = '🌦️';
-    else icon = '🌨️'; // Rare snow
-  } else { // Spring
-    // Warm, Pleasant
-    temp = Math.floor(20 + pseudoRandom(2) * 8); // 20-28
-    if (rand < 0.5) icon = '🌤️';
-    else if (rand < 0.8) icon = '🍃';
-    else icon = '☀️';
-  }
-
-  const desc: Record<string, string> = { '☀️': 'Sunny', '🌤️': 'Mostly sunny', '⛈️': 'Storms', '⛅': 'Partly cloudy', '🍃': 'Windy', '🌥️': 'Cloudy', '☁️': 'Overcast', '🌧️': 'Rain', '🌦️': 'Showers', '🌨️': 'Snow' };
-  return { icon, temp, desc: desc[icon] || '' };
 };
 
 const OpponentTacticsModal: React.FC<{ team: Team, players: Player[], onClose: () => void }> = ({ team, players: teamPlayers, onClose }) => {
@@ -413,7 +344,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
     if (!nextMatch) return null;
     const homeTeam = teams.find(t => t.id === nextMatch.homeTeamId);
     if (!homeTeam) return null;
-    return getWeatherForMatch(nextMatch.date, nextMatch.id, homeTeam.country);
+    return { ...getWeatherForMatch(nextMatch.date, nextMatch.id, homeTeam.country), hora: horaDoJogo(nextMatch.date, nextMatch.id).rotulo };
   }, [nextMatch, teams]);
 
   // Sort: Points DESC, but if all 0 played, then alphabetical
@@ -695,7 +626,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                          <div className="text-center">
                            <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Weather</div>
                            <div className="text-[17px] font-black text-slate-700 dark:text-slate-200"><span className="text-2xl mr-1 align-middle">{weather.icon}</span>{weather.temp}°C</div>
-                           <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500">{weather.desc}</div>
+                           <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500">{weather.desc} • {weather.hora}</div>
                          </div>
                        )}
                      </div>

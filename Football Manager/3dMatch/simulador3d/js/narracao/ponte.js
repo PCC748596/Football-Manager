@@ -357,6 +357,8 @@ const Ponte = {
     tunel) e o ecra volta (fade in). Fora do iframe (testes, jogo solto) corre de imediato.
     */
     preparar(m) {
+        // O MESMO TEMPO do Next match do manager (textSim/clima.ts): chuva la e chuva aqui.
+        if ((m.clima || m.periodo) && typeof Weather !== 'undefined' && Weather.setTempo) Weather.setTempo(m.periodo, m.clima);
         // Sem fade (pedido): os times entram logo depois dos uniformes. A bola, escondida no arranque, volta a ver-se.
         this._preparar(m);
         if (typeof Match !== 'undefined' && Match.ball) Match.ball.visible = true;
@@ -409,6 +411,8 @@ const Ponte = {
     _chave(m) { return m.casa.equipa.name + '|' + m.fora.equipa.name; },
 
     iniciar(m) {
+        // O MESMO TEMPO do Next match do manager (textSim/clima.ts): chuva la e chuva aqui.
+        if ((m.clima || m.periodo) && typeof Weather !== 'undefined' && Weather.setTempo) Weather.setTempo(m.periodo, m.clima);
         this.parar();
         this.modo = (m.modo === 'visivel') ? 'visivel' : 'oculto';
         this.ritmo = (m.ritmo === 'maximo') ? 'maximo' : 'real';
