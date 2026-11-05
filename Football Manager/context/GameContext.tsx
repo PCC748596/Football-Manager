@@ -1001,7 +1001,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             if (actId && actId !== 'recovery') {
               const act = ACTIVITIES.find(a => a.id === actId);
-              const fitBonus = act?.impacts.find(imp => imp.label === 'FIT')?.value || 0;
+              const fitBonus = act?.impacts.find(imp => imp.label === 'FIS')?.value || 0;
               const stmCost = act?.impacts.find(imp => imp.label === 'STM')?.value || 0;
               dailyRecovery += (fitBonus + stmCost); // Sum bonus and cost
             }

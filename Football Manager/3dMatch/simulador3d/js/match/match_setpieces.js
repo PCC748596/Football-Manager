@@ -932,25 +932,6 @@ Object.assign(Match, {
             */
             // Com rotina marca-se pelo diagrama (marcarAtacantesNaRotina), nao pelos slots do sector.
             if (planoRotina) this.marcarAtacantesNaRotina(planoRotina, defesaOrdenada.slice(nBarreira), bolaFK);
-            if (!planoRotina && (setorFK === 'ataque_lateral' || setorFK === 'ataque_entrada')) {
-                const ladoFK = Math.sign(bolaFK.x) || 1;
-                const linhaFundoFK = attDir * LINHA_FUNDO;
-                const naArea = lugares.filter(l => Area.contem(l.x, l.z, linhaFundoFK));
-                const livres = defesaOrdenada.slice(nBarreira);
-                for (let i = 0; i < naArea.length && i < livres.length && i < F.slotsMarcacao.length; i++) {
-                    const cfg = F.slotsMarcacao[i];
-                    const d = livres[i];
-                    d.model.position.set(
-                        ladoFK * cfg.relX, ALTURA_BASE_Y,
-                        linhaFundoFK - attDir * cfg.dist);
-                    // Marcação POSICIONAL: o slot é que emparelha com o do
-                    // atacante. O `markingTarget` não serve aqui — está
-                    // atribuído em vários sítios e não é lido por ninguém.
-                    lookAtBola(d.model, bolaFK);
-                    d.fsm.changeState('SET_PIECE_WAIT');
-                }
-            }
-
             /*
             FALTA DE ATAQUE DENTRO DA ÁREA ADVERSÁRIA: OS INFRACTORES RECUAM.
 
@@ -1054,6 +1035,59 @@ Object.assign(Match, {
                     p.setPieceTarget.z = limiteZ;
                     if (p.jostleAncora) p.jostleAncora.z = limiteZ;
                 }
+            });
+
+            /*
+            A DEFESA MARCA OS ATACANTES SOLTOS — pela ORDEM pedida: primeiro o ataque (os `lugares`, acima), depois a barreira (`nBarreira`), e so entao os restantes defensores marcam.
+            Antes os marcadores iam para `slotsMarcacao` FIXOS dentro da area (um homem na pequena area a fazer nada, o lateral na ponta da area sem ninguem, os avancados la a frente) sem
+            olhar para onde os atacantes estavam. Agora, do mais PERIGOSO (o mais perto da baliza) para o menos, cada atacante recebe o defensor livre mais perto e este fica do lado da propria
+            baliza em relacao a ele (a ~1.8 m). Corre DEPOIS dos 9.15 m e do corte do fora-de-jogo (que movem os atacantes), para marcar onde eles ficaram. Sem rotina (a rotina marca pelo diagrama).
+            */
+            if (!planoRotina) {
+                const golDefendido = attDir * LINHA_FUNDO;   // z da baliza de quem defende (a que o batedor ataca)
+                if (Math.hypot(bolaFK.x, bolaFK.z - golDefendido) < 50) {
+                    const livres = defesaOrdenada.slice(nBarreira).filter(d => d && d.role !== 'gk' && !d.naBarreiraFalta);
+                    const atacantes = restantes.filter(a => a && a.model).slice().sort((a, b) =>
+                        Math.hypot(a.model.position.x, a.model.position.z - golDefendido) - Math.hypot(b.model.position.x, b.model.position.z - golDefendido));
+                    for (const a of atacantes) {
+                        if (!livres.length) break;
+                        let k = 0, melhorD = Infinity;
+                        livres.forEach((d, i) => {
+                            const dd = Math.hypot(d.model.position.x - a.model.position.x, d.model.position.z - a.model.position.z);
+                            if (dd < melhorD) { melhorD = dd; k = i; }
+                        });
+                        const d = livres.splice(k, 1)[0];
+                        // Do lado da propria baliza em relacao ao atacante.
+                        let ux = 0 - a.model.position.x, uz = golDefendido - a.model.position.z;
+                        const ul = Math.hypot(ux, uz) || 1; ux /= ul; uz /= ul;
+                        const mx = THREE.MathUtils.clamp(a.model.position.x + ux * 1.8, -(CAMPO_LARG / 2 - 1), CAMPO_LARG / 2 - 1);
+                        const mz = THREE.MathUtils.clamp(a.model.position.z + uz * 1.8, -(CAMPO_COMP / 2 - 1), CAMPO_COMP / 2 - 1);
+                        // Os 9.15 m tambem valem para o marcador: se o ponto cai dentro, afasta-se radialmente da bola.
+                        let fx = mx, fz = mz;
+                        const dBola = Math.hypot(fx - bolaFK.x, fz - bolaFK.z);
+                        if (dBola < F.afastaAdversarios && dBola > 0.001) {
+                            fx = bolaFK.x + (fx - bolaFK.x) / dBola * F.afastaAdversarios;
+                            fz = bolaFK.z + (fz - bolaFK.z) / dBola * F.afastaAdversarios;
+                        }
+                        d.model.position.set(fx, ALTURA_BASE_Y, fz);
+                        d.dynamicTarget.set(fx, ALTURA_BASE_Y, fz);
+                        d.setPieceTarget = new THREE.Vector3(fx, ALTURA_BASE_Y, fz);
+                        d.jostleAncora = { x: fx, z: fz };
+                        d.velocity.set(0, 0, 0);
+                        lookAtBola(d.model, bolaFK);
+                        d.fsm.changeState('SET_PIECE_WAIT');
+                    }
+                }
+            }
+
+            // Os 9.15 m, uma ultima vez para TODOS os defensores, depois dos marcadores (a barreira esta a 9.15 e nao e tocada).
+            defendingPlayers.forEach(p => {
+                if (p.role === 'gk') return;
+                const dx = p.model.position.x - bolaFK.x, dz = p.model.position.z - bolaFK.z;
+                const d = Math.hypot(dx, dz);
+                if (d >= F.afastaAdversarios || d < 0.001) return;
+                p.model.position.x = THREE.MathUtils.clamp(bolaFK.x + dx / d * F.afastaAdversarios, -(CAMPO_LARG / 2 - 1), CAMPO_LARG / 2 - 1);
+                p.model.position.z = THREE.MathUtils.clamp(bolaFK.z + dz / d * F.afastaAdversarios, -(CAMPO_COMP / 2 - 1), CAMPO_COMP / 2 - 1);
             });
 
             /*

@@ -2667,6 +2667,17 @@ function emZonaDeFinalizacao(p) {
     const A = ShootingModel.dentroDaArea;
     if (A && Math.abs(dz) <= A.profundidade && Math.abs(dx) <= A.meiaLargura) return true;
 
+    // FORA DA AREA, COM O CAMINHO LIVRE E AINDA LONGE PARA ELE, NAO E ZONA DE FINALIZACAO: o `podeRematar` manda-o PROGREDIR (ShootingModel.progredirComEspaco, distancia por TEC e tacticknow).
+    // Aqui a bola ficava no pe (sem toque a frente) e la ele nao rematava: o portador parava na linha da grande area uns 3 s (relato). Mesma conta, os dois lados.
+    const PE = ShootingModel.progredirComEspaco;
+    if (PE && typeof semMarcacaoAFrente === 'function' && typeof Match !== 'undefined') {
+        const nota = ((p.skillFor ? p.skillFor('TEC') : 50) + (p.skillFor ? p.skillFor('tacticknow') : 50)) / 2;
+        const dMin = Math.max(PE.distMinMin || 0, Math.min(PE.distMinMax || 99, PE.distMin - ((nota - 75) / 25) * (PE.variacaoPorSkill || 0)));
+        const advs = (p.team === 'TeamA') ? Match.opponents : Match.players;
+        if (dist > dMin && semMarcacaoAFrente(p, advs, PE.alcanceCone, PE.anguloCone)) return false;
+    }
+
+
     if (dist >= p.shootingRange() || Math.abs(dx) >= ShootingModel.maxOffsetX) return false;
 
     /*
@@ -4325,7 +4336,11 @@ function resolverDefesaGK(o) {
     ao miolo (ver `GkDive.espalmar` e a nota do `semAgarrar` no config).
     */
     let semAgarrar = false;
-    if (SA && typeof o.dist === 'number' && o.dist <= SA.distMax && v >= SA.velMin) {
+    // De PERTO (`SA.perto`): sem tempo para encaixar a bola rapida; o limite sobe com o GK (reflexos); a bola lenta ainda se segura, nao se espalma sem motivo.
+    // O atributo REFLEXES do goleiro (50..99) quando existe; senao a skill `gk` do motor.
+    const reflexos = (typeof o.reflexes === 'number') ? o.reflexes : gk;
+    const velPerto = (SA && SA.perto) ? (SA.perto.velBase + ((reflexos - 75) / 25) * (SA.perto.variacaoPorGK || 0)) : Infinity;
+    if (SA && typeof o.dist === 'number' && ((o.dist <= SA.distMax && v >= SA.velMin) || (SA.perto && o.dist <= SA.perto.dist && v >= velPerto))) {
         pAgarra = 0;
         semAgarrar = true;
     }

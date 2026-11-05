@@ -140,6 +140,7 @@ class ReplaySystem {
     */
     marcarGolo() {
         this.marcaDoGolo = this.head;
+        this.framesAposGolo = 0;
     }
 
     /*
@@ -147,7 +148,7 @@ class ReplaySystem {
     o automatico estiver desligado — e ai o golo segue o seu caminho normal.
     */
     replayDoGolo() {
-        if (!this.automatico || this.count === 0 || this.marcaDoGolo === null) return false;
+        if (!this.automatico || this.count === 0 || this.marcaDoGolo === null) { this.marcaDoGolo = null; return false; }
 
         const fps = 60;
         const antes = Math.round(REPLAY_GOLO.SEGUNDOS_ANTES * fps);
@@ -190,6 +191,18 @@ class ReplaySystem {
 
     recordFrame() {
         if (this.isReplaying || !Match.ball) return;
+        /*
+        COM UM GOLO MARCADO O BUFFER ESPERA PELA REPETICAO. A festa (comemoracao) pode durar mais do que a folga do buffer (20 s - 9 s antes): o gravador escrevia por cima dos frames do golo e
+        a repeticao mostrava so o goleiro a recolher a bola (relato). Gravam-se os frames de DEPOIS do golo ate sobrar o necessario para os 9 s de ANTES (mais 1 s de margem) e para-se;
+        volta a gravar quando a repeticao arranca/acaba (a marca sai) ou o jogo ja voltou a PLAY sem repeticao.
+        */
+        if (this.marcaDoGolo !== null) {
+            const maxApos = REPLAY_FRAMES - Math.round(REPLAY_GOLO.SEGUNDOS_ANTES * 60) - 60;
+            if ((this.framesAposGolo || 0) >= maxApos) {
+                if (typeof Match !== 'undefined' && Match.state === 'PLAY') this.marcaDoGolo = null;
+                else return;
+            } else this.framesAposGolo = (this.framesAposGolo || 0) + 1;
+        }
         
         const base = this.head * FLOATS_PER_FRAME;
         let pIdx = base;

@@ -42,7 +42,7 @@ L('=== 2. SESSOES: efeito no fitness por periodo (FIT + STM; um periodo vazio va
 for (const cat of Object.keys(LIMITE_ABA)) {
   const lista = ACTIVITIES.filter(a => a.category === cat);
   L(`${cat} (${lista.length} sessoes, teto ${LIMITE_ABA[cat]} periodos/semana)`);
-  L('  ' + lista.map(a => `${a.id}:${(val(a.id, 'FIT') + val(a.id, 'STM')).toFixed(0)}`).join('  '));
+  L('  ' + lista.map(a => `${a.id}:${(val(a.id, 'FIS') + val(a.id, 'STM')).toFixed(0)}`).join('  '));
 }
 L();
 
@@ -102,7 +102,7 @@ const simular = (plano: Plano, idade: number) => {
       if (!id || id === 'recovery') { rec += 4; vazios++; }
       if (id && id !== 'recovery') {
         usados++;
-        rec += val(id, 'FIT') + val(id, 'STM');
+        rec += val(id, 'FIS') + val(id, 'STM');
         for (const i of ACTIVITIES.find(a => a.id === id)!.impacts) if (i.label === 'SKL' && i.campo) {
           p.treino3d[i.campo] = Math.min(TETO_PONTOS_TREINO, (p.treino3d[i.campo] || 0) + i.value * FATOR_IDADE(p.age));
           pts[i.campo] = (pts[i.campo] || 0) + i.value;

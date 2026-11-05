@@ -1133,7 +1133,8 @@ const GkDive = {
             altura: Math.max(0, Match.ball.position.y - GkCatchModel.alturaPeito),
             bolaY: Match.ball.position.y,
             // De onde saiu o remate -- ver `semAgarrar` no GkCatchModel.
-            dist: p.gkDistRemate
+            dist: p.gkDistRemate,
+            reflexes: (p.skills && typeof p.skills.reflexes === 'number') ? p.skills.reflexes : undefined
         });
 
         Match.lastTouchedPlayer = p;

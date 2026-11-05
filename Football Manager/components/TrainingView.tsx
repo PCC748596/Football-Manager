@@ -30,6 +30,8 @@ const corDaNota = (v: number) => (v < 60 ? 'text-red-500' : v < 70 ? 'text-orang
 const ICONE_TEC = <Ico><circle cx="12" cy="12" r="9" /><path d="m12 8 3.5 2.5-1.3 4h-4.4l-1.3-4z" /><path d="M12 3v5M15.5 10.5 20 9M14.2 14.5 17 18.5M9.8 14.5 7 18.5M8.5 10.5 4 9" /></Ico>;
 const ICONE_TAC = <Ico><rect x="3" y="4" width="18" height="16" rx="2" /><path d="m7 8 4 4M11 8l-4 4" /><circle cx="16" cy="15" r="1.6" /></Ico>;
 const ICONE_MEN = <Ico><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 3 3 2.5 2.5 0 0 0 3-2.5V6.5A2.5 2.5 0 0 0 9 4z" /><path d="M15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-3 3 2.5 2.5 0 0 1-3-2.5" /></Ico>;
+// FIS: halter.
+const ICONE_FIS = <Ico><path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12" /></Ico>;
 const ICONE_STA = <Ico><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" /></Ico>;
 const ICONE_CHE = <Ico><path d="M4 8h14" /><path d="m14 4 4 4-4 4" /><path d="M20 16H6" /><path d="m10 12-4 4 4 4" /></Ico>;
 const ICONE_MOR = <Ico><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><path d="M9 9h.01M15 9h.01" /></Ico>;
@@ -141,8 +143,8 @@ const TrainingView: React.FC = () => {
   // TEC, TAC e MEN: a media do plantel dos grupos de atributos do 3D Match (textSim/atributos3d.ts); STA: a condicao fisica; MOR: a moral.
   const media3d = useMemo(() => {
     const ps = players.filter(p => p.teamId === userTeam?.id);
-    const media = (k: 'tec' | 'tac' | 'men') => (ps.length ? Math.round(ps.reduce((acc, p) => acc + atributos3d(p)[k], 0) / ps.length) : 0);
-    return { tec: media('tec'), tac: media('tac'), men: media('men') };
+    const media = (k: 'tec' | 'tac' | 'men' | 'fis') => (ps.length ? Math.round(ps.reduce((acc, p) => acc + atributos3d(p)[k], 0) / ps.length) : 0);
+    return { tec: media('tec'), tac: media('tac'), men: media('men'), fis: media('fis') };
   }, [players, userTeam]);
   const avgFit = useMemo(() => getTeamAvg('fitness'), [players, userTeam]);
   const avgMor = useMemo(() => getTeamAvg('morale'), [players, userTeam]);
@@ -358,11 +360,12 @@ const TrainingView: React.FC = () => {
               )}
            </div>
 
-           {/* TEAM STATS PANEL - 6 COLUMNS: TEC, TAC, MEN, STA, CHE, MOR */}
+           {/* TEAM STATS PANEL - 7 COLUMNS: TEC, TAC, MEN, FIS, STA, CHE, MOR */}
            <div className="h-32 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex overflow-hidden shadow-lg transition-colors">
               <StatBox icon={ICONE_TEC} label="TECHNIQUE" value={media3d.tec} color={corDaNota(media3d.tec)} />
               <StatBox icon={ICONE_TAC} label="TACTICS" value={media3d.tac} color={corDaNota(media3d.tac)} />
               <StatBox icon={ICONE_MEN} label="MENTAL" value={media3d.men} color={corDaNota(media3d.men)} />
+              <StatBox icon={ICONE_FIS} label="PHYSICAL" value={media3d.fis} color={corDaNota(media3d.fis)} />
               <StatBox icon={ICONE_STA} label="STAMINA" value={avgFit} color="text-emerald-500" />
               <StatBox icon={ICONE_CHE} label="CHEMISTRY" value={teamChe} color="text-blue-500" />
               <StatBox icon={ICONE_MOR} label="MORALE" value={avgMor} color="text-amber-500" />

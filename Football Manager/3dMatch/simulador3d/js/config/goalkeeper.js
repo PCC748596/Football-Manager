@@ -2425,7 +2425,7 @@ const GkCatchModel = {
     `distMax` 8.0 -> 6.0 a pedido. É a distância a que o REMATE SAIU
     (`gkDistRemate`), não a que a bola está quando lhe toca.
     */
-    semAgarrar: { distMax: 6.0, velMin: 22.0 },
+    semAgarrar: { distMax: 6.0, velMin: 22.0, perto: { dist: 5.0, velBase: 15.0, variacaoPorGK: 3.0 } },   // perto: a menos de `dist` m a bola a `velBase` m/s ou mais nao se encaixa (1/3 s de reaccao); sobe/desce `variacaoPorGK` m/s por cada 25 pontos de GK face a 75
     /*
     A MAO DE ALFACE — pedido de 6 de Outubro de 2026. Tres falhas do guarda-redes, cada uma `prob` das
     vezes que a situacao acontece, e `probBaixa` se a tecnica de GK dele (skill) for abaixo de

@@ -97,6 +97,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   const [contra, setContra] = useState(false);
   const [arrasto, setArrasto] = useState<{ slot: number; x: number; z: number } | null>(null);
   const campoRef = useRef<HTMLDivElement>(null);
+  // Quando acabou o ultimo arrasto de um posto: o toque que o termina nao pode escolher a zona onde o dedo pousou (tablet).
+  const fimDoArrasto = useRef(0);
   // So no IPAD (pedido): o layout de uma coluna vale para o tablet — ecra de TOQUE (ponteiro grosso) com menos de 1280 px, ou o quadro do modo Tablet das Configuracoes (o PC a imitar o iPad).
   // No computador o layout e sempre o de 3 colunas, seja qual for o tamanho da janela.
   const ehTablet = () => {
@@ -560,7 +562,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                     </div>
 
                     {/* O CAMPO PROPORCIONAL: uma caixa 68:106 centrada na area (a margem de 2.5rem em cima e em baixo); linhas, zonas e jogadores vivem dentro dela, em percentagem. */}
-                    <div ref={campoRef} className="absolute" style={{ top: '2.5rem', bottom: 0, left: '50%', transform: 'translateX(calc(-50% - 50px))', width: 'calc((100cqh - 2.5rem) * 68 / 106 + 140px)' }}>
+                    <div ref={campoRef} className="absolute" style={{ top: '2.5rem', bottom: '2.5rem', left: '50%', transform: 'translateX(calc(-50% - 50px))', width: 'calc((100cqh - 5rem) * 68 / 106 + 140px)' }}>
                     {/* O campo em metros (68 x 106, as medidas do motor), esticado na area de jogo: linhas, circulo central, areas, marcas de penalti, meias-luas e cantos. */}
                     <svg className="absolute inset-0 w-full h-full pointer-events-none text-slate-500 dark:text-slate-300" viewBox="0 0 68 106" preserveAspectRatio="none" fill="none" stroke="currentColor" strokeWidth="1.6" strokeOpacity="0.85">
                         <rect x="0" y="0" width="68" height="106" vectorEffect="non-scaling-stroke" />
@@ -593,7 +595,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                     const z = (2 - r) * 3 + (2 - v);
                                     const sel = zona === z;
                                     return (
-                                        <div key={z} onClick={() => setZona(sel ? null : z)} title={NOME_DA_ZONA[z]}
+                                        <div key={z} onClick={() => { if (Date.now() - fimDoArrasto.current < 500) return; setZona(sel ? null : z); }} title={NOME_DA_ZONA[z]}
                                             className={`absolute cursor-pointer transition-colors ${sel ? 'border border-blue-400/70' : 'hover:bg-blue-400/10'}`}
                                             style={{ left: `${xs[v] * 100}%`, width: `${(xs[v + 1] - xs[v]) * 100}%`, top: `${ys[r] * 100}%`, height: `${(ys[r + 1] - ys[r]) * 100}%`,
                                                 backgroundImage: sel ? 'repeating-linear-gradient(45deg, rgba(96,165,250,0.35) 0, rgba(96,165,250,0.35) 2px, transparent 2px, transparent 9px)' : undefined }} />
@@ -652,7 +654,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                     <div
                                         onPointerDown={e => { if (!postos) return; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); setArrasto({ slot: idx, ...paraCampo(e.clientX, e.clientY) }); }}
                                         onPointerMove={e => { if (arrasto && arrasto.slot === idx) setArrasto({ slot: idx, ...paraCampo(e.clientX, e.clientY) }); }}
-                                        onPointerUp={() => { if (arrasto && arrasto.slot === idx) { aplicarOver(moverPosto(formacaoAtual, overAtual, fase, zonaEfetiva, idx, arrasto.x, arrasto.z)); setArrasto(null); } }}
+                                        onPointerUp={e => { if (arrasto && arrasto.slot === idx) { fimDoArrasto.current = Date.now(); e.stopPropagation(); aplicarOver(moverPosto(formacaoAtual, overAtual, fase, zonaEfetiva, idx, arrasto.x, arrasto.z)); setArrasto(null); } }}
+                                        onPointerCancel={() => { if (arrasto && arrasto.slot === idx) { fimDoArrasto.current = Date.now(); setArrasto(null); } }}
                                         className="flex items-center justify-center rounded-md border whitespace-nowrap font-black leading-none shadow-sm cursor-grab active:cursor-grabbing touch-none select-none"
                                         style={{ filter: player ? undefined : 'brightness(0.3)', width: 54, height: 34, fontSize: 12, background: color, borderColor: kitNoc || kitCollarColor || 'rgba(255,255,255,0.4)', color: kitNumberColor || '#fff', textShadow: kitNoc ? `0 0 1px ${kitNoc}` : undefined }}>
                                         {player?.shirtNumber ?? '-'}{' | '}{pos.label}

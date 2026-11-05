@@ -3949,8 +3949,10 @@ class FootballPlayer {
                 (forcarArco || Math.random() < PA.chanceArco);
         }
         const LANC_MIN = 20.0;
-        this.passeLancamento = !this.isCross && !!this.passePeloAr && distPasse >= LANC_MIN &&
+        // O CRUZAMENTO TAMBEM USA O GESTO DE LANCAMENTO (perna atras e chuta a bola para o alto): sem clip proprio ficava sem movimento de chute nenhum.
+        this.passeLancamento = (this.isCross || (!!this.passePeloAr && distPasse >= LANC_MIN)) &&
             typeof LancamentoClip !== 'undefined';
+        if (this.isCross && this.passeLancamento) this.passeComClip = true;   // protege a pose do clip (ver o update do rig)
         this.actionState = new ActionState(this.passeLancamento ? 'lancamento' : 'pass', {
             onContact: () => { if (this.hasBall && this.passTarget) executePassGameplay(this); }
         });
@@ -10911,7 +10913,8 @@ class FootballPlayer {
             altura: Math.max(0, Match.ball.position.y - GkCatchModel.alturaPeito),
             bolaY: Match.ball.position.y,
             // De onde saiu o remate -- ver `semAgarrar` no GkCatchModel.
-            dist: this.gkDistRemate
+            dist: this.gkDistRemate,
+            reflexes: (this.skills && typeof this.skills.reflexes === 'number') ? this.skills.reflexes : undefined
         });
 
         Match.lastTouchedPlayer = this;
