@@ -285,8 +285,8 @@ const TrainingView: React.FC = () => {
                        
                        {isMatchDay && matchForDay ? (
                          <div className="flex-1 bg-blue-50 dark:bg-blue-900/10 rounded-b-lg border border-blue-200 dark:border-blue-500/20 flex flex-col items-center relative overflow-hidden transition-colors">
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-1">
-                               <div className="text-[50px] font-black italic tracking-tighter text-blue-500/20 dark:text-blue-500/15 whitespace-nowrap transition-all uppercase leading-none" style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}>
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-1" style={{ containerType: 'size' }}>
+                               <div className="font-black italic tracking-tighter text-blue-500/20 dark:text-blue-500/15 whitespace-nowrap transition-all uppercase leading-none" style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)', fontSize: `min(50px, 80cqw, ${(90 / Math.max(1, matchForDay.opponent.length * 0.65)).toFixed(2)}cqh)` }}>
                                   {matchForDay.opponent}
                                 </div>
                             </div>

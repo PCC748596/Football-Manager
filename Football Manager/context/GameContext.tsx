@@ -1595,7 +1595,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (meuLado === 'casa') nf.subsUsedHome = (f.subsUsedHome || 0) + 1; else nf.subsUsedAway = (f.subsUsedAway || 0) + 1;
           const nome = (id: string | null) => (id ? players.find(p => p.id === id)?.name.split(' ').pop() || '' : '');
           const minuto = typeof w.motor3dMinuto === 'number' && w.motor3dMinuto !== 999 ? w.motor3dMinuto : gameState.matchMinute;
-          nf.events = [...(f.events || []), { minute: minuto, type: 'SUB', description: `🔻 ${nome(r.sai)}   🔼 ${nome(r.entra)}`, teamId: meu.id, playerId: r.entra || undefined }];
+          nf.events = [...(f.events || []), { minute: minuto, type: 'SUB', description: `🔻 ${nome(r.sai)}   🔼 ${nome(r.entra)}`, teamId: meu.id, playerId: r.entra || undefined, subbedOutId: r.sai || undefined }];
         }
         return nf;
       }));
@@ -2025,7 +2025,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     type: 'SUB',
                     description: outName ? `🔻 ${outName}   🔼 ${inName}` : `🔼 ${inName}`,
                     teamId: teamId,
-                    playerId: pid
+                    playerId: pid,
+                    subbedOutId: outPid || undefined
                   });
                 });
                 updatedFixture.events = updatedEvents;

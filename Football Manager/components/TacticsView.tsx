@@ -188,9 +188,12 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   const jogoDaVez = currentMatch || fixtures.filter(x => !x.played && x.date >= gameState.currentDate && (x.homeTeamId === userTeam.id || x.awayTeamId === userTeam.id)).sort((a, b) => a.date.localeCompare(b.date))[0];
   const chaveJogo = chaveCompeticao(jogoDaVez, comps);
   const suspensoNoJogo = (playerId: string) => estaSuspenso(players.find(p => p.id === playerId), chaveJogo);
+  // Quem ja foi substituido neste jogo nao volta a entrar.
+  const foiSubstituido = (playerId: string) =>
+    !!currentMatch && !currentMatch.played && (currentMatch.events || []).some(e => e.type === 'SUB' && e.subbedOutId === playerId);
   const indisponivelParaReserva = (playerId: string) => {
     const st = getPlayerMatchStatus(playerId);
-    return !!st.red || !!st.injury || suspensoNoJogo(playerId);
+    return !!st.red || !!st.injury || suspensoNoJogo(playerId) || foiSubstituido(playerId);
   };
   // O PLAYING STYLE do jogador, pela mesma ordem do PlayerDetailModal: ajuste manual, o definido no jogador, o da base e, por fim, o primeiro que serve a posicao dele.
   const estiloDoJogador = (p: Player): string => (
@@ -289,6 +292,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     } else if (existingBenchIndex !== -1) {
       // Substitution from bench
       if (isMatchOngoing && subsRemaining <= 0) return;
+      if (foiSubstituido(playerId)) return;
       
       const playerAlreadyAtSlot = newLineup[index];
       newLineup[index] = playerId;
@@ -340,6 +344,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     const sB = newBench.indexOf(sourceId);
     const tB = newBench.indexOf(targetId);
     if (tB === -1) return;
+    if (foiSubstituido(sourceId) || foiSubstituido(targetId)) return;
     if (sB === -1 && indisponivelParaReserva(sourceId)) return;
     // Com o jogo iniciado o plantel nao troca com o banco: so se reordena o banco ou se faz a SUBSTITUICAO (titular <-> banco, arrastando o titular para o card do suplente).
     if (jogoIniciado && sB === -1 && sL === -1) return;
@@ -769,7 +774,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                              } else benchColor = getPosColor(p.position);
                             const status = getPlayerMatchStatus(p.id);
                             return (
-                                <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.stopPropagation(); handleBenchSwap(e.dataTransfer.getData("playerId"), p.id); }} onClick={(e) => { e.stopPropagation(); tocarNoBanco(p.id); }} title={indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1.5 flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
+                                <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.stopPropagation(); handleBenchSwap(e.dataTransfer.getData("playerId"), p.id); }} onClick={(e) => { e.stopPropagation(); tocarNoBanco(p.id); }} title={foiSubstituido(p.id) ? "Already substituted: cannot re-enter" : indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1.5 flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
                                     {!jogoIniciado && <button onClick={(e) => { e.stopPropagation(); removeFromSquad(p.id); }} title="Remove from bench" className="absolute bottom-1 right-1 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>}
                                     <div className={`relative mt-[2px] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
                                         <ShirtIcon 
@@ -863,7 +868,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                 const status = getPlayerMatchStatus(p.id);
 
                                 return (
-                                    <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onClick={(e) => { e.stopPropagation(); tocarNoPool(p.id); }} title={indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1.5 py-[5px] flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
+                                    <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onClick={(e) => { e.stopPropagation(); tocarNoPool(p.id); }} title={foiSubstituido(p.id) ? "Already substituted: cannot re-enter" : indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1.5 py-[5px] flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
                                         <div className={`relative mt-[2px] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
                                             <ShirtIcon 
                                                 color={d.c1} 

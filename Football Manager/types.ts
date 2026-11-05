@@ -861,6 +861,8 @@ export interface MatchEvent {
   injuryName?: string;
   shooterId?: string;
   injuryDaysOut?: number;
+  /** Só em eventos SUB: o jogador que saiu (não pode voltar a entrar). */
+  subbedOutId?: string;
 }
 
 export interface Fixture {
