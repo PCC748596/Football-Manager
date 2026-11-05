@@ -5676,8 +5676,8 @@ a ancora, espera ~2 s, e repete. Substitui o passo em direccao aleatoria, que co
 Devolve o ponto para onde ir agora (a ancora, quando esta parado em casa).
 */
 const PasseioDeEspera = { passo: 0.75, passosMin: 1, passosMax: 3, esperaMin: 1.6, esperaMax: 2.4, velocidade: 1.3, chegou: 0.15 };
-function passeioDeEspera(p, ancora, bola, dt, minDistBola) {
-    const K = PasseioDeEspera;
+function passeioDeEspera(p, ancora, bola, dt, minDistBola, cfg) {
+    const K = cfg ? Object.assign({}, PasseioDeEspera, cfg) : PasseioDeEspera;
     let w = p._pw;
     if (!w || w.ax !== ancora.x || w.az !== ancora.z) {
         // Arranque desfasado por jogador: ninguem anda em sincronia.

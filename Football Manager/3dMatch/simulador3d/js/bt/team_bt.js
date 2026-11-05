@@ -2205,6 +2205,16 @@ function aplicarInquietacao(p, bb, targetX, targetZ) {
     }
 
     const dt = (typeof Match !== 'undefined' && Match.delta) ? Match.delta : 0.016;
+
+    /*
+    EM JOGO CORRIDO TAMBEM: nos postos finais ninguem fica estatua (pedido: *"uns passos para a frente e para tras, so para nao ficar parado"*). O mesmo vai-e-vem das bolas paradas, mais curto
+    e com esperas mais curtas: 1 a 2 passos em direccao a bola, ~1-2 s, e de volta ao posto. A ancora so se actualiza quando o alvo anda mais de 1.5 m (o bloco desliza com a bola).
+    */
+    if (typeof Match !== 'undefined' && Match.state === 'PLAY' && Match.ball && typeof passeioDeEspera === 'function') {
+        if (!p._inqAncora || Math.hypot(p._inqAncora.x - targetX, p._inqAncora.z - targetZ) > 1.5) p._inqAncora = { x: targetX, z: targetZ };
+        return passeioDeEspera(p, p._inqAncora, Match.ball.position, dt, undefined,
+            { passosMin: 1, passosMax: 2, esperaMin: 1.0, esperaMax: 2.2 });
+    }
     p.inqTimer = (p.inqTimer || 0) + dt;
 
     if (!p.inqIntervalo || p.inqTimer >= p.inqIntervalo) {

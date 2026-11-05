@@ -350,6 +350,9 @@ const Abertura = {
         if (!s || !s.spawned) { p.velocity.set(0, 0, 0); return; }
         if (this.modo === 'intervalo' && s.cmdParado) { p.velocity.set(0, 0, 0); p.animateBones(dt); return; }
         const pos = p.model.position;
+        // Sempre no chao: quem sai (ou entra) de campo vinha de um salto/cabeceio/festa com o `y` ainda no ar, e corria a flutuar (a sombra ficava la em baixo).
+        if (typeof ALTURA_BASE_Y === 'number') pos.y = ALTURA_BASE_Y;
+        p.jumpTimer = 0;
         const T = TunelJogadores;
         let yawAlvo = (this.modo === 'segundo' || this.modo === 'intervalo') ? s.yaw : Math.PI / 2 * (-T.lado);
         if (s.i < s.wps.length) {
