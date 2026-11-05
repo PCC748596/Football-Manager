@@ -8,6 +8,7 @@ import { estrelasDoJogador, potencialVisivel } from '../textSim/youth';
 import { potencialParaValor, anosRestantes } from '../textSim/valuation';
 import { CONFIG_MERCADO, ESTADOS_ATIVOS, NegociacaoTransf, grupoDe, janelaAberta, diasParaFecharJanela, proximaAberturaJanela } from '../textSim/transferencias';
 import { estadoDoContrato } from '../textSim/contracts';
+import { orcamentoDaTemporada, folhaAnual } from '../textSim/orcamento';
 
 type Aba = 'MARKET' | 'SHORTLIST' | 'NEGOTIATIONS' | 'MY_PLAYERS' | 'FINANCES';
 interface Linha { p: Player; origem: 'ELENCO' | 'BASE' | 'LIVRE'; clube?: Team; estrelas: number; meses: number; }
@@ -149,10 +150,10 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const NOME_ATTR: Record<string, string> = { tec: 'Technique', tac: 'Tactical', men: 'Mental', fis: 'Physical' };
 
   const mercadoAba = (
-    <div className="flex-1 grid grid-cols-1 xl:grid-cols-[250px_1fr_300px] gap-5 min-h-0">
+    <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_300px] lg:grid-rows-[auto_minmax(0,1fr)] xl:grid-cols-[250px_1fr_300px] xl:grid-rows-1 gap-5 min-h-0">
       {/* FILTROS */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0b1324] p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4" onKeyDown={e => { if (e.key === 'Enter') aplicar(); }}>
-        <div className="text-[12px] font-black uppercase tracking-widest text-slate-500">Search filters</div>
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0b1324] p-4 overflow-y-auto custom-scrollbar grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-3 lg:col-span-2 xl:col-span-1 xl:flex xl:flex-col xl:gap-4" onKeyDown={e => { if (e.key === 'Enter') aplicar(); }}>
+        <div className="col-span-full xl:col-auto text-[12px] font-black uppercase tracking-widest text-slate-500">Search filters</div>
         <div><label className={rotulo}>Player name</label><input className={campo} value={nome} onChange={e => setNome(e.target.value)} placeholder="Search by name" /></div>
         <div><label className={rotulo}>Position</label>
           <div className="rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/70 overflow-hidden">
@@ -168,16 +169,16 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
             {[...teams].filter(t => t.id !== meuId).sort((a, b) => a.name.localeCompare(b.name)).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
-        <div className="flex flex-col gap-1.5"><label className={rotulo}>Status</label>
+        <div className="flex flex-col gap-1.5 col-span-2 md:col-span-2 xl:col-auto"><label className={rotulo}>Status</label>
           <button onClick={() => { setSoListados(!soListados); setFiltros(f => ({ ...f, soListados: !soListados })); }} className={botaoStatus(soListados)}>Transfer listed</button>
           <button onClick={() => { setSoLivres(!soLivres); setFiltros(f => ({ ...f, soLivres: !soLivres })); }} className={botaoStatus(soLivres)}>Free agents</button>
           <button onClick={() => { setSoContrato(!soContrato); setFiltros(f => ({ ...f, soContrato: !soContrato })); }} className={botaoStatus(soContrato)}>Contract ≤ 12 months</button>
           <button onClick={() => { setSoBase(!soBase); setFiltros(f => ({ ...f, soBase: !soBase })); }} className={botaoStatus(soBase)}>Sub-20 (18+)</button>
           {aba !== 'SHORTLIST' && <button onClick={() => { setSoShortlist(!soShortlist); setFiltros(f => ({ ...f, soShortlist: !soShortlist })); }} className={botaoStatus(soShortlist)}>Shortlist ({shortlistN})</button>}
         </div>
-        <div className="mt-auto flex flex-col gap-2">
-          <button onClick={aplicar} className="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded text-xs uppercase tracking-widest shadow-lg">Apply filters</button>
-          <button onClick={limpar} className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-black py-3 rounded text-xs uppercase tracking-widest">Reset</button>
+        <div className="col-span-full xl:col-auto mt-auto flex flex-row xl:flex-col gap-2">
+          <button onClick={aplicar} className="flex-1 xl:flex-none bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded text-xs uppercase tracking-widest shadow-lg">Apply filters</button>
+          <button onClick={limpar} className="flex-1 xl:flex-none bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-black py-3 rounded text-xs uppercase tracking-widest">Reset</button>
         </div>
       </div>
 
@@ -241,9 +242,18 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
                 <div className="flex items-center gap-2 mt-2">{sel.clube ? <TeamShield team={sel.clube} className="w-9 h-11" /> : null}<div><div className="text-sm font-black uppercase text-slate-700 dark:text-slate-100">{sel.clube?.name || 'Free agent'}</div><div className="text-xs font-bold uppercase text-slate-500">{p.position} • {p.age} years</div></div></div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-center">
-                {[['Value', sel.origem === 'LIVRE' ? 'FREE' : formatCurrencyShort(p.value)], ['Wage', formatCurrencyShort(p.salary) + '/w'], ['Contract', p.contract ? p.contract.end.slice(0, 4) : '-'], ['Potential', '★'.repeat(sel.estrelas) + '☆'.repeat(5 - sel.estrelas)]].map(([k, v]) => (
-                  <div key={k} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-[#0e182c] p-2"><div className="text-[10px] font-bold uppercase text-slate-400">{k}</div><div className="text-base font-black text-slate-800 dark:text-white">{v}</div></div>
-                ))}
+                {[['Value', sel.origem === 'LIVRE' ? 'FREE' : formatCurrencyShort(p.value)], ['Wage', formatCurrencyShort(p.salary) + '/w'], ['Contract', p.contract ? p.contract.end.slice(0, 4) : '-'], ['Potential', '★'.repeat(sel.estrelas) + '☆'.repeat(5 - sel.estrelas)]].map(([k, v]) => {
+                  // VALUE e WAGE a verde (o meu clube pode pagar) ou vermelho (nao pode): o valor contra o menor entre o caixa e o transfer budget; o salario contra o que sobra da parte dos salarios do orcamento (orcamento - compras - folha anual).
+                  let corV = 'text-slate-800 dark:text-white';
+                  if (userTeam && k === 'Value' && sel.origem !== 'LIVRE') corV = p.value <= Math.min(userTeam.cash, userTeam.transferBudget ?? 0) ? 'text-emerald-500' : 'text-rose-500';
+                  if (userTeam && k === 'Wage') {
+                    const folga = orcamentoDaTemporada(userTeam) - (userTeam.initialTransfer || 0) - folhaAnual(players.filter(q => q.teamId === meuId).map(q => q.salary));
+                    corV = p.salary * 52 <= folga ? 'text-emerald-500' : 'text-rose-500';
+                  }
+                  return (
+                  <div key={k} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-[#0e182c] p-2"><div className="text-[10px] font-bold uppercase text-slate-400">{k}</div><div className={`text-base font-black ${corV}`}>{v}</div></div>
+                  );
+                })}
               </div>
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-[#0e182c] p-3 flex items-center gap-3">
                 <Donut p={p} />
@@ -276,37 +286,65 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
     const compro = n.compradorId === meuId;
     const resp = precisaResposta(n);
     const valorInput = contraValor[n.id] ?? String(n.valor);
+    const jog = linhas.find(l => l.p.id === n.playerId)?.p || players.find(p => p.id === n.playerId) || base?.jogadores.find(p => p.id === n.playerId);
+    const outroClube = porId.get(compro ? n.vendedorId : n.compradorId);
+    // Bid = a ultima oferta do comprador; Ask = o ultimo pedido do vendedor (sem historico, o valor actual).
+    const ultimo = (de: 'COMPRADOR' | 'VENDEDOR') => { const h = n.historico.filter(x => x.de === de); return h.length ? h[h.length - 1].valor : undefined; };
+    const bid = ultimo('COMPRADOR') ?? n.valor, ask = ultimo('VENDEDOR');
+    const btn = 'font-black px-4 py-2 rounded text-xs uppercase tracking-wider flex items-center gap-1.5';
+    const btnCinza = `${btn} bg-slate-700 hover:bg-rose-600 text-white`;
+    const check = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>;
+    const seta = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>;
+    const xis = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>;
     return (
-      <div className={`rounded-lg border p-4 ${resp ? 'border-amber-500/50 bg-amber-500/5' : 'border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/40'}`}>
-        <div className="flex flex-wrap justify-between gap-2 items-start">
-          <div>
-            <div className="text-lg font-black text-slate-900 dark:text-white">{nomeJogador(n.playerId)} {n.origem === 'BASE' && <span className="text-[10px] font-black bg-violet-600 text-white px-1.5 rounded align-middle">U20</span>}</div>
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-500">{compro ? `Buying from ${nomeClube(n.vendedorId)}` : `${nomeClube(n.compradorId)} wants to buy`} • {formatCurrency(n.valor)} • round {n.rodadas}/{CONFIG_MERCADO.maxRodadas}</div>
+      <div className={`rounded-xl border p-3 flex flex-wrap items-center gap-x-5 gap-y-3 ${resp ? 'border-amber-500/60 bg-slate-100/50 dark:bg-[#0e182c]' : 'border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0e182c]'}`}>
+        {/* Esquerda: foto, escudo, nome e clube, valor de mercado, rodada */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-[72px] h-[72px] rounded-lg overflow-hidden bg-slate-800 shrink-0 border border-slate-700">{jog ? <PlayerFace playerId={jog.id} camisa={outroClube?.primaryColor} className="w-full h-full" /> : null}</div>
+          {outroClube ? <TeamShield team={outroClube} className="w-12 h-14 shrink-0" /> : null}
+          <div className="min-w-0">
+            <div className="text-xl font-black text-slate-900 dark:text-white leading-tight truncate">{nomeJogador(n.playerId)} {n.origem === 'BASE' && <span className="text-[10px] font-black bg-violet-600 text-white px-1.5 rounded align-middle">U20</span>}</div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">{compro ? `Buying from ${nomeClube(n.vendedorId)}` : `${nomeClube(n.compradorId)} wants to buy`}</div>
+            <div className="mt-2 flex items-end gap-6">
+              <div><div className="text-[10px] font-bold uppercase text-slate-500">Market value</div><div className="text-base font-black text-slate-900 dark:text-white">{jog ? formatCurrency(jog.value) : '-'}</div></div>
+              <div><div className="text-[10px] font-bold uppercase text-slate-500">Round {n.rodadas}/{CONFIG_MERCADO.maxRodadas}</div>
+                <div className="flex gap-1.5 mt-1.5">{Array.from({ length: CONFIG_MERCADO.maxRodadas }).map((_, i) => <span key={i} className={`w-2.5 h-2.5 rounded-full ${i < n.rodadas ? 'bg-slate-900 dark:bg-white' : 'bg-slate-400 dark:bg-slate-600'}`} />)}</div></div>
+            </div>
           </div>
-          <span className={`text-[11px] font-black uppercase border px-2 py-0.5 rounded ${ESTADO_COR[n.estado]}`}>{ESTADO_ROTULO[n.estado]}</span>
         </div>
-        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-          {n.historico.map(h => <span key={h.n}>{h.de === 'COMPRADOR' ? 'Bid' : 'Ask'} <b className="text-slate-700 dark:text-slate-200">{formatCurrencyShort(h.valor)}</b> <span className="opacity-60">({dataCurta(h.data)})</span></span>)}
-        </div>
-        {n.motivo && !ESTADOS_ATIVOS.includes(n.estado) && <div className="mt-1 text-xs text-slate-400">Reason: {n.motivo}</div>}
-        {ESTADOS_ATIVOS.includes(n.estado) && <div className="mt-1 text-[11px] text-slate-400">Expires {dataCurta(n.expira)}{n.respondeEm && n.estado === 'ENVIADA' ? ` • answer expected ${dataCurta(n.respondeEm)}` : ''}</div>}
-        <div className="mt-3 flex flex-wrap gap-2 items-center">
-          {n.vendedorId === meuId && n.estado === 'RECEBIDA' && <>
-            <button onClick={() => mostrar(responderNegociacao(n.id, 'ACEITAR'), 'Offer accepted')} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2 rounded text-xs uppercase tracking-wider">Accept</button>
-            <input type="number" value={valorInput} onChange={e => setContraValor(c => ({ ...c, [n.id]: e.target.value }))} className="w-32 bg-slate-900 border border-slate-700 rounded px-2 py-2 text-sm font-bold text-white" />
-            <button onClick={() => mostrar(responderNegociacao(n.id, 'CONTRA', Number(valorInput)), 'Counter-offer sent')} className="bg-violet-600 hover:bg-violet-500 text-white font-black px-4 py-2 rounded text-xs uppercase tracking-wider">Counter</button>
-            <button onClick={() => mostrar(responderNegociacao(n.id, 'RECUSAR'), 'Offer refused')} className="bg-slate-700 hover:bg-rose-600 text-white font-black px-4 py-2 rounded text-xs uppercase tracking-wider">Refuse</button>
-          </>}
-          {compro && n.estado === 'CONTRAPROPOSTA' && <>
-            <button onClick={() => mostrar(responderNegociacao(n.id, 'ACEITAR'), 'Counter-offer accepted')} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2 rounded text-xs uppercase tracking-wider">Accept {formatCurrencyShort(n.valor)}</button>
-            {n.rodadas < CONFIG_MERCADO.maxRodadas && <>
-              <input type="number" value={contraValor[n.id] ?? String(Math.round(n.valor * 0.95))} onChange={e => setContraValor(c => ({ ...c, [n.id]: e.target.value }))} className="w-32 bg-slate-900 border border-slate-700 rounded px-2 py-2 text-sm font-bold text-white" />
-              <button onClick={() => mostrar(responderNegociacao(n.id, 'NOVA_OFERTA', Number(contraValor[n.id] ?? Math.round(n.valor * 0.95))), 'New offer sent')} className="bg-blue-600 hover:bg-blue-500 text-white font-black px-4 py-2 rounded text-xs uppercase tracking-wider">New offer</button>
+        <div className="hidden lg:block self-stretch w-px bg-slate-700/60" />
+        {/* Direita: estado em cima, Bid / Ask, validade e botoes */}
+        <div className="flex-1 min-w-[280px] flex flex-col gap-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-baseline gap-5 text-sm font-bold text-slate-500">
+                <span>Bid: <b className="text-emerald-400 text-lg">{formatCurrencyShort(bid)}</b></span>
+                {ask !== undefined && <span>Ask: <b className="text-rose-400 text-lg">{formatCurrencyShort(ask)}</b></span>}
+              </div>
+              {ESTADOS_ATIVOS.includes(n.estado)
+                ? <div className="mt-0.5 text-[11px] text-slate-400 flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Expires {dataCurta(n.expira)}{n.respondeEm && n.estado === 'ENVIADA' ? ` • answer expected ${dataCurta(n.respondeEm)}` : ''}</div>
+                : (n.motivo && <div className="mt-0.5 text-[11px] text-slate-400">Reason: {n.motivo}</div>)}
+            </div>
+            <span className={`text-[11px] font-black uppercase border px-2.5 py-1 rounded-md shrink-0 ${ESTADO_COR[n.estado]}`}>{ESTADO_ROTULO[n.estado]}</span>
+          </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            {n.vendedorId === meuId && n.estado === 'RECEBIDA' && <>
+              <button onClick={() => mostrar(responderNegociacao(n.id, 'ACEITAR'), 'Offer accepted')} className={`${btn} bg-emerald-600 hover:bg-emerald-500 text-white`}>{check}Accept {formatCurrencyShort(n.valor)}</button>
+              <input type="number" value={valorInput} onChange={e => setContraValor(c => ({ ...c, [n.id]: e.target.value }))} className="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-2 text-sm font-bold text-white" />
+              <button onClick={() => mostrar(responderNegociacao(n.id, 'CONTRA', Number(valorInput)), 'Counter-offer sent')} className={`${btn} bg-violet-600 hover:bg-violet-500 text-white`}>{seta}Counter</button>
+              <button onClick={() => mostrar(responderNegociacao(n.id, 'RECUSAR'), 'Offer refused')} className={btnCinza}>{xis}Refuse</button>
             </>}
-            <button onClick={() => mostrar(responderNegociacao(n.id, 'RECUSAR'), 'Negotiation closed')} className="bg-slate-700 hover:bg-rose-600 text-white font-black px-4 py-2 rounded text-xs uppercase tracking-wider">Refuse</button>
-          </>}
-          {compro && n.estado === 'ENVIADA' && <button onClick={() => mostrar(retirarProposta(n.id), 'Offer withdrawn')} className="bg-slate-700 hover:bg-rose-600 text-white font-black px-4 py-2 rounded text-xs uppercase tracking-wider">Withdraw</button>}
-          {n.estado === 'ACEITA' && <button onClick={() => mostrar(tentarConcluir(n.id), 'Transfer completed')} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2 rounded text-xs uppercase tracking-wider">Try to complete</button>}
+            {compro && n.estado === 'CONTRAPROPOSTA' && <>
+              <button onClick={() => mostrar(responderNegociacao(n.id, 'ACEITAR'), 'Counter-offer accepted')} className={`${btn} bg-emerald-600 hover:bg-emerald-500 text-white`}>{check}Accept {formatCurrencyShort(n.valor)}</button>
+              {n.rodadas < CONFIG_MERCADO.maxRodadas && <>
+                <input type="number" value={contraValor[n.id] ?? String(Math.round(n.valor * 0.95))} onChange={e => setContraValor(c => ({ ...c, [n.id]: e.target.value }))} className="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-2 text-sm font-bold text-white" />
+                <button onClick={() => mostrar(responderNegociacao(n.id, 'NOVA_OFERTA', Number(contraValor[n.id] ?? Math.round(n.valor * 0.95))), 'New offer sent')} className={`${btn} bg-blue-600 hover:bg-blue-500 text-white`}>{seta}New offer</button>
+              </>}
+              <button onClick={() => mostrar(responderNegociacao(n.id, 'RECUSAR'), 'Negotiation closed')} className={btnCinza}>{xis}Refuse</button>
+            </>}
+            {compro && n.estado === 'ENVIADA' && <button onClick={() => mostrar(retirarProposta(n.id), 'Offer withdrawn')} className={btnCinza}>Withdraw</button>}
+            {n.estado === 'ACEITA' && <button onClick={() => mostrar(tentarConcluir(n.id), 'Transfer completed')} className={`${btn} bg-emerald-600 hover:bg-emerald-500 text-white`}>{check}Try to complete</button>}
+          </div>
         </div>
       </div>
     );
@@ -453,7 +491,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   return (
     <div className="h-full flex flex-col gap-4 animate-fade-in min-h-0">
       <div>
-        <button onClick={() => setView('DASHBOARD')} className="text-slate-500 hover:text-white text-xs font-black uppercase tracking-widest mb-1">‹ Back to menu</button>
+        <button onClick={() => setView('DASHBOARD')} className="hidden xl:block text-slate-500 hover:text-white text-xs font-black uppercase tracking-widest mb-1">‹ Back to menu</button>
         <h2 className="text-5xl font-black uppercase tracking-tight italic leading-none"><span className="text-slate-900 dark:text-white">TRANSFER</span> <span className="text-blue-500">MARKET</span></h2>
         <p className="text-slate-400 dark:text-slate-500 font-bold text-[11px] uppercase tracking-widest mt-2 opacity-70">Player search and transactions • window {janela ? <span className="text-emerald-500">open{fecha !== null ? ` (${fecha} days left)` : ''}</span> : <span className="text-rose-400">closed{abre !== null ? ` (opens in ${abre} days)` : ''}</span>}</p>
       </div>
