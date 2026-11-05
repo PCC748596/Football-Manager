@@ -18,7 +18,7 @@ interface Props {
   kitGkFora?: any;
   trajeArbitro?: { camisa: string; calcao: string; gola?: string } | null;
   competicao?: string;
-  periodo?: 'dia' | 'noite';   // a hora do jogo (textSim/clima.ts, horaDoJogo): meio de semana e noite; fim de semana manha, tarde ou noite
+  periodo?: 'dia' | 'crepusculo' | 'noite';   // a hora do jogo (textSim/clima.ts, horaDoJogo): meio de semana e noite; fim de semana manha, tarde ou noite
   clima?: string;   // 'limpo' | 'nublado' | 'encoberto' | 'chuva' | 'neve': o mesmo tempo do Next match (textSim/clima.ts)
   amistoso?: boolean;   // jogo amigavel: o treinador da CPU nao tem limite de substituicoes
   tabela?: { casa: { posicao: number; total: number }; fora: { posicao: number; total: number } };   // a posicao dos dois na tabela do campeonato (o treinador da CPU, 3D)         // nome da competicao: a placa fixa do 3D

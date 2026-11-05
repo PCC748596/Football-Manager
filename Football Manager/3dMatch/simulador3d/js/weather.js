@@ -265,7 +265,7 @@ const Weather = {
                 ambienteColor: 0x1a2638,
                 ambienteIntensidade: 0.18,
                 holofotes: true,
-                holofotesIntensidade: 0.7, // Holofotes bem mais fortes de noite
+                holofotesIntensidade: 0.65, // Holofotes bem mais fortes de noite
                 nuvensVisiveis: true,
                 nuvensOpacidade: 0.20,
                 nuvensCor: 0x1f2b3e,
@@ -286,7 +286,7 @@ const Weather = {
                 ambienteColor: 0x162030,
                 ambienteIntensidade: 0.16,
                 holofotes: true,
-                holofotesIntensidade: 0.7,
+                holofotesIntensidade: 0.65,
                 nuvensVisiveis: true,
                 nuvensOpacidade: 0.45,
                 nuvensCor: 0x1c2738,
@@ -304,7 +304,7 @@ const Weather = {
                 ambienteColor: 0x121824,
                 ambienteIntensidade: 0.14,
                 holofotes: true,
-                holofotesIntensidade: 0.7,
+                holofotesIntensidade: 0.65,
                 nuvensVisiveis: true,
                 nuvensOpacidade: 0.75,
                 nuvensCor: 0x151b26,
@@ -322,7 +322,7 @@ const Weather = {
                 ambienteColor: 0x182231,
                 ambienteIntensidade: 0.16,
                 holofotes: true,
-                holofotesIntensidade: 0.7,
+                holofotesIntensidade: 0.65,
                 nuvensVisiveis: true,
                 nuvensOpacidade: 0.70,
                 nuvensCor: 0x1c2531,
@@ -341,7 +341,7 @@ const Weather = {
                 ambienteColor: 0x0d131d,
                 ambienteIntensidade: 0.12,
                 holofotes: true,
-                holofotesIntensidade: 0.75,
+                holofotesIntensidade: 0.70,
                 nuvensVisiveis: true,
                 nuvensOpacidade: 0.95,
                 nuvensCor: 0x0f141e,
@@ -457,6 +457,11 @@ const Weather = {
                 HF.matLuzSob.emissive.setHex(ligarSob ? 0xfff1d0 : 0x000000);
                 HF.matLuzSob.emissiveIntensity = ligarSob ? 1.8 : 0;
             }
+
+            // As luzes so contam `visible` com intensidade > 0 (ver sincronizarLuzesDoEstadio, main.js): sem isto a noite posta pelo manager (setTempo) deixava os holofotes acesos mas invisiveis
+            // para o Three, e o campo ficava escuro, so com a torcida (sprites, sem luz) iluminada.
+            if (typeof sincronizarLuzesDoEstadio === 'function') sincronizarLuzesDoEstadio();
+            if (window.ledsEstadio && window.ledsEstadio.definir) window.ledsEstadio.definir(!!window.jogoNoturno, !!ligarHolofotes);
 
 
         }
@@ -1361,7 +1366,7 @@ céu do dia, só mais escuro e mais quente.
             ceu, fogColor: ceu,
             solColor: mix(0xff9a52, d.solColor, k), solIntensidade: d.solIntensidade * 0.62, solPos: [100, 24, 40],
             ambienteColor: mix(0xffc4a0, d.ambienteColor, k), ambienteIntensidade: d.ambienteIntensidade * 0.7,
-            holofotes: true, holofotesIntensidade: Math.max(0.35, d.holofotesIntensidade || 0),
+            holofotes: true, holofotesIntensidade: 0.4,   // o crepusculo aciona os holofotes a 0.4 (pedido)
             nuvensCor: mix(0xffa77a, d.nuvensCor, k)
         });
     }

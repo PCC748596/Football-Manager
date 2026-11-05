@@ -83,15 +83,15 @@ export const condicaoDoClima = (icon: string): 'limpo' | 'nublado' | 'encoberto'
 
 /**
  * A HORA DO JOGO: os jogos de meio de semana (segunda a sexta) sao a noite; os de fim de semana (sabado e domingo) sao de manha, a tarde ou a noite, sorteados de forma determinista pelo
- * id do jogo. `periodo` e o do 3D (Weather.periodo): manha e tarde sao 'dia'; noite e 'noite'.
+ * id do jogo. `periodo` e o do 3D (Weather.periodo): manha e 'dia', tarde e 'crepusculo' (holofotes a 0.4), noite e 'noite'.
  */
-export const horaDoJogo = (dateStr: string, matchId: string): { faixa: 'manha' | 'tarde' | 'noite'; periodo: 'dia' | 'noite'; rotulo: string } => {
+export const horaDoJogo = (dateStr: string, matchId: string): { faixa: 'manha' | 'tarde' | 'noite'; periodo: 'dia' | 'crepusculo' | 'noite'; rotulo: string } => {
   const dow = new Date(dateStr + 'T12:00:00').getDay();   // 0 domingo ... 6 sabado
   const fimDeSemana = dow === 0 || dow === 6;
   if (!fimDeSemana) return { faixa: 'noite', periodo: 'noite', rotulo: 'Night' };
   const seed = matchId.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
   const x = Math.sin(seed * 7 + 3) * 10000, r = x - Math.floor(x);
   if (r < 1 / 3) return { faixa: 'manha', periodo: 'dia', rotulo: 'Morning' };
-  if (r < 2 / 3) return { faixa: 'tarde', periodo: 'dia', rotulo: 'Afternoon' };
+  if (r < 2 / 3) return { faixa: 'tarde', periodo: 'crepusculo', rotulo: 'Afternoon' };
   return { faixa: 'noite', periodo: 'noite', rotulo: 'Night' };
 };
