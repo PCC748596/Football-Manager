@@ -62,6 +62,20 @@ function bonusDoPassadorPorEstilo(p, opt, optPos) {
     const dGolP = Math.hypot(px, gz - pz);
     const dGolO = Math.hypot(optPos.x, gz - optPos.z);
     const lista = (p.team === 'TeamA') ? Match.opponents : Match.players;
+    /*
+    OS BONUS DO ESTILO SO VALEM COM A LINHA DO PASSE LIVRE: sem isto um +200 / +260 sobrepunha-se a qualquer penalidade e o passe saia por cima de um adversario (relato: *"os passes passam pelos
+    adversarios como se eles nao estivessem la"*). Livre = nenhum adversario de campo a menos de 1.4 m do segmento passador -> alvo (os 3 m junto ao passador nao contam: e o marcador colado).
+    */
+    {
+        const ax = px, az = pz, bx = optPos.x, bz = optPos.z;
+        const abx = bx - ax, abz = bz - az, ab2 = abx * abx + abz * abz || 1, len = Math.sqrt(ab2);
+        for (const o of lista) {
+            if (!o || !o.model || o.role === 'gk') continue;
+            const u = Math.max(0, Math.min(1, ((o.model.position.x - ax) * abx + (o.model.position.z - az) * abz) / ab2));
+            if (u * len < 3.0) continue;
+            if (Math.hypot(o.model.position.x - (ax + abx * u), o.model.position.z - (az + abz * u)) < 1.4) return 0;
+        }
+    }
     const marcadorColado = () => {
         for (const o of lista) {
             if (!o || !o.model || o.role === 'gk') continue;
