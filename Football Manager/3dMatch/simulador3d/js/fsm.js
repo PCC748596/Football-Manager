@@ -1572,7 +1572,7 @@ class PlayerFSM {
                 const esperaCobranca = (Match.state === 'CORNER_KICK' &&
                     typeof ESPERA_COBRANCA_CANTO === 'number')
                     ? ESPERA_COBRANCA_CANTO : ESPERA_APOS_REPOSICAO;
-                if (Match.setPieceTimer > esperaCobranca && !Match.cantoBolaAlvo && !p.actionState) {
+                if (Match.setPieceTimer > esperaCobranca && !Match.cantoBolaAlvo && !p.actionState && !Match._seguraCobranca) {
                     if (Match.state === 'CORNER_KICK') {
                         const lado = Math.sign(Match.ball.position.x) || 1;
                         const teammates = (p.team === 'TeamA') ? Match.players : Match.opponents;

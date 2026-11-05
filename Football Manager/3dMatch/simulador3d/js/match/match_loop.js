@@ -303,15 +303,13 @@ Object.assign(Match, {
             if (this.tickSubstituicoes) this.tickSubstituicoes(dt);
             if (typeof TreinadorCPU !== 'undefined') TreinadorCPU.tick(dt);   // o treinador da CPU: tatica e substituicoes (js/treinador_cpu.js)
         }
-        // Enquanto a troca dura o jogo ESPERA: so os jogadores andam (os que ja iam para o lugar da parada) — ver js/match/match_substituicoes.js.
-        if ((this.subsEmCurso || this._aguardaEntrantes(dt) || this._aguardaGoleiro(dt)) && this._paradaParaSubstituir()) {
-            this.correrPausaDeJogo(dt);
-            if (typeof Officials !== 'undefined') Officials.update(dt);
-            if (typeof Bancos !== 'undefined') Bancos.update(dt);
-            if (typeof Staff !== 'undefined' && Staff.update) Staff.update(dt);   // a cabeca da imprensa segue a bola
-            this.somDoEstadio(dt);
-            return;
-        }
+        /*
+        ENQUANTO A TROCA DURA SO A COBRANCA ESPERA — o lance NAO congela. Antes, com uma substituicao pendente, o jogo parava no instante em que a bola saia (so os jogadores andavam): a bola
+        ficava parada no ar e o goleiro imovel (relato). Agora o `update` corre inteiro — a bola segue ate ao sitio da reposicao, o lateral vai buscar a bola, o goleiro vai para a pequena
+        area, o canto e a falta montam-se — e `_seguraCobranca` so impede o ARRANQUE da cobranca (os contadores de espera e o relogio da parada ficam parados). Acabadas as trocas o
+        jogo recomeca da cobranca. Ver js/match/match_substituicoes.js.
+        */
+        this._seguraCobranca = !!((this.subsEmCurso || this._aguardaEntrantes(dt) || this._aguardaGoleiro(dt)) && this._paradaParaSubstituir());
 
         // Intervalo e apito final: o relogio para, a bola fica no sitio.
         if (this.state === 'INTERVALO' || this.state === 'FIM_DE_JOGO') {
@@ -415,7 +413,7 @@ Object.assign(Match, {
         }
 
         if (this.state === 'CORNER_KICK') {
-            this.setPieceTimer += dt;
+            this.setPieceTimer += this._seguraCobranca ? 0 : dt;
 
             /*
             Bola ainda "a sair": segue o movimento até tocar no relvado, espera
@@ -475,9 +473,9 @@ Object.assign(Match, {
         if (this.rotinaPlano) { this.correrAgendaDaFalta(dt); this.correrRotinaDaFalta(dt); }
 
         if (this.state === 'FREE_KICK') {
-            this.setPieceTimer += dt;
+            this.setPieceTimer += this._seguraCobranca ? 0 : dt;
             if (this.faltaPendente) {
-                this.faltaAtraso -= dt;
+                if (!this._seguraCobranca) this.faltaAtraso -= dt;
                 // A espera pelo caído: ver `algumCaidoDaFalta`.
                 // Quem vai a caminho so segura a cobranca nos primeiros `esperaCaminhantes` s: depois larga-se (continuam a andar ate ao jogo recomecar).
                 const FKE = (typeof FreeKickModel !== 'undefined') ? FreeKickModel : null;
@@ -603,7 +601,7 @@ Object.assign(Match, {
                 */
                 if (this.faltaAtraso <= 0 && takerFalta && takerFalta.lugarBolaParada) this.faltaAtraso = 0.05;
 
-                if (this.faltaAtraso <= 0) {
+                if (this.faltaAtraso <= 0 && !this._seguraCobranca) {
                     this.faltaPendente = false;
                     const t = this.setPieceTaker;
                     /*
@@ -632,7 +630,7 @@ Object.assign(Match, {
         }
 
         if (this.state === 'PENALTY') {
-            this.setPieceTimer += dt;
+            this.setPieceTimer += this._seguraCobranca ? 0 : dt;
             if (this.penaltiPendente) {
                 this.penaltiAtraso -= dt;
                 // A DISPUTA espera `penaltiEspera` s parada antes de a corrida comecar (a espera do penalti em jogo, e o plano da corrida, contam so depois).
@@ -1039,7 +1037,7 @@ Object.assign(Match, {
         }
 
         if (this.state === 'THROW_IN') {
-            this.setPieceTimer += dt;
+            this.setPieceTimer += this._seguraCobranca ? 0 : dt;
 
             /*
             Espera de ESPERA_APOS_REPOSICAO (a mesma de todas as reposições) e
@@ -1047,7 +1045,7 @@ Object.assign(Match, {
             contactTime do clip — ver ThrowInClip e o case LATERAL da FSM.
             */
             if (this.lateralPendente) {
-                this.lateralAtraso -= dt;
+                if (!this._seguraCobranca) this.lateralAtraso -= dt;
                 const LF = (typeof LateralFinta !== 'undefined') ? LateralFinta : null;
                 const tp = this.setPieceTaker;
                 const emLateral = !!(tp && tp.fsm.currentState === 'LATERAL');
@@ -1065,7 +1063,7 @@ Object.assign(Match, {
                     const virado = Math.abs((tp.lateralGiroCorpo || 0) - (tp.lateralGiroCorpoActual || 0)) < 0.06;
                     esperaCorpo = (!virado || tp.lateralFinta) && this.lateralEsperaExtra < LF.esperaMax;
                 }
-                if (this.lateralAtraso <= 0 && !esperaCorpo) {
+                if (this.lateralAtraso <= 0 && !esperaCorpo && !this._seguraCobranca) {
                     this.lateralPendente = false;
                     this.lateralEsperaExtra = 0;
                     const t = this.setPieceTaker;
@@ -1105,7 +1103,7 @@ Object.assign(Match, {
         para sempre. O gesto inteiro leva ~8 s no pior caso.
         */
         if (this.state === 'GOAL_KICK') {
-            this.setPieceTimer += dt;
+            this.setPieceTimer += this._seguraCobranca ? 0 : dt;
 
             /*
             Bola ainda a "sair" — pedido explícito: continua o movimento até
@@ -1200,9 +1198,9 @@ Object.assign(Match, {
                 bola (tests/saida_de_bola_ritmo.test.js).
                 */
                 if (!(gkEspera && gkEspera.gkTiroMetaPendente) && equipaNoLugar) {
-                    this.golKickAtrasoInicio -= dt;
+                    if (!this._seguraCobranca) this.golKickAtrasoInicio -= dt;
                 }
-                if (this.golKickAtrasoInicio <= 0) {
+                if (this.golKickAtrasoInicio <= 0 && !this._seguraCobranca) {
                     this.golKickPendente = false;
                     const gkTM = this.setPieceTaker;
                     if (gkTM && gkTM.role === 'gk' && gkTM.gkEstado === 'tiro_meta_espera') {
