@@ -3516,6 +3516,9 @@ class FootballPlayer {
                 }
             }
 
+            // O que o estilo de QUEM PASSA pede (tabela, entrada da área, lançamento a quem rompe).
+            if (typeof bonusDoPassadorPorEstilo === 'function') score += bonusDoPassadorPorEstilo(this, opt, optPos);
+
             // Multiplicador do Playing Style DO ALVO
             // Aplicado no final para agir sobre a nota total balanceada
             if (Config.usePlayingStyles && typeof estiloAtivoDe === 'function') {
@@ -4438,8 +4441,11 @@ class FootballPlayer {
         (24 m em Z, 16 m em X) deixavam cabecear ao golo de 27 m em diagonal.
         Ver HeaderModel.raioRemateCabeca.
         */
-        const raioRemate = (typeof HeaderModel !== 'undefined' && HeaderModel.raioRemateCabeca)
-            ? HeaderModel.raioRemateCabeca : 11.0;
+        // `cabeceio` do estilo (Fox in the Box, Target Man): cabeceia mais — alcance um pouco maior e aceita marcador mais perto.
+        const pesoCabeceio = (typeof estiloDe === 'function' && this.playingStyle && !this.playingStyleDesligado)
+            ? (estiloDe(this).cabeceio || 1.0) : 1.0;
+        const raioRemate = ((typeof HeaderModel !== 'undefined' && HeaderModel.raioRemateCabeca)
+            ? HeaderModel.raioRemateCabeca : 11.0) * Math.min(1.15, pesoCabeceio);
         const distToGoal = Math.hypot(this.model.position.x,
             this.targetGoalZ - this.model.position.z);
         const viradoParaLa = (this.targetGoalZ - this.model.position.z) * this.dirZ > 0;
@@ -4454,7 +4460,7 @@ class FootballPlayer {
         for (const opp of opponentsHead) {
             if (opp.role === 'gk') continue;
             const d = opp.model.position.distanceTo(this.model.position);
-            if (d < 2.2 && d < distMarc) { distMarc = d; marcador = opp; }
+            if (d < 2.2 / pesoCabeceio && d < distMarc) { distMarc = d; marcador = opp; }
         }
 
         /*

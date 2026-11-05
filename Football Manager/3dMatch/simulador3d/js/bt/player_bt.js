@@ -1897,13 +1897,27 @@ function actPass(ctx) {
     p.initiatePass(ctx.passTarget);
 }
 
+/*
+Peso numerico de um campo do Playing Style de `p` (driblar, lancar, conduzir...), 1 sem estilo ou com estilos desligados.
+*/
+function pesoDoEstilo(p, campo) {
+    if (!p || !p.playingStyle || p.playingStyleDesligado || typeof estiloDe !== 'function') return 1.0;
+    if (typeof Config !== 'undefined' && Config.usePlayingStyles === false) return 1.0;
+    const v = estiloDe(p)[campo];
+    return (typeof v === 'number' && v > 0) ? v : 1.0;
+}
+
 function podeDriblar(ctx) {
     const p = ctx.p;
     if (p.role === 'gk') return false;
 
     // Posição E jogador (ver tendenciaDeAccao, config/physics.js).
-    const mult = (typeof tendenciaDeAccao === 'function') ? tendenciaDeAccao(p, 'dribble')
+    let mult = (typeof tendenciaDeAccao === 'function') ? tendenciaDeAccao(p, 'dribble')
         : (typeof getPositionalTendency === 'function' ? getPositionalTendency(p.pos, 'dribble') : 1.0);
+
+    // Peso `driblar` do Playing Style (Prolific Winger 1.5, Fox in the Box 0.4...). Sem `estiloAtivoDe`: o portador tem o estilo sempre.
+    const multEstilo = pesoDoEstilo(p, 'driblar');
+    mult *= multEstilo;
 
     // Se a tendência for menor que 1.0, o jogador pode "desistir" da ideia do drible por mentalidade
     if (mult < 1.0 && Math.random() > mult) return false;
@@ -2111,14 +2125,16 @@ function findBestPassAnywhere(ctx) {
                     receptorEmRuptura: !!(tb.mate && tb.mate.fsm &&
                         tb.mate.fsm.currentState === 'RUN_INTO_SPACE'),
                     receptorLivre: !!tb.receptorLivre,
-                    agressao: bb ? bb.aggression : 0.5,
+                    agressao: Math.min(1, (bb ? bb.aggression : 0.5) * pesoDoEstilo(p, 'lancar')),
                     // O terço próprio, e não a metade: sair a jogar acaba
                     // quando a bola passa a linha do terço, não a do meio.
                     defesaNoProprioTerco: (p.role === 'def' &&
                         p.model.position.z * p.dirZ < -(CAMPO_COMP / 6))
                 })
                 : true;
-            if (aceita) {
+            // Quem lanca pouco (`lancar` < 1) deixa cair parte dos lancamentos aceites.
+            const pesoLancar = pesoDoEstilo(p, 'lancar');
+            if (aceita && (pesoLancar >= 1.0 || Math.random() < pesoLancar)) {
                 ctx._bestPass = { type: 'through', data: tb };
                 return ctx._bestPass;
             }
@@ -2395,6 +2411,8 @@ function actCarry(ctx) {
         const skill = (typeof ctx.skillSpeed === 'number') ? ctx.skillSpeed : 50;
         let vel = C.velocidadeBase + ((skill - 50) / 50) * C.velocidadePorSkill;
         if (p.carryRecuo) vel *= C.recuoMult;
+        // `conduzir` do estilo: suave (30% do desvio), senao 0.5 parava o jogador.
+        if (typeof pesoDoEstilo === 'function') vel *= 1 + (pesoDoEstilo(p, 'conduzir') - 1) * 0.3;
         if (typeof Match !== 'undefined' && Match.counterAttackTeam === p.team) {
             vel *= (typeof velContraAtaque === 'function') ? velContraAtaque(C.contraAtaqueMult, p.team) : C.contraAtaqueMult;
         }
@@ -3255,8 +3273,11 @@ function podeInfiltrar(ctx) {
     const p = ctx.p;
     if (p.role === 'gk' || p.pos === 'CB' || p.role === 'def') return false;
     // O Creative Playmaker não corre em profundidade: ocupa o vão (ver podeEntreEspacos).
-    if (typeof estiloAtivoDe === 'function' && estiloAtivoDe(p).entreLinhas) return false;
+    // O Creative Playmaker ocupa o vao; so infiltra quando ha espaco livre (a corrida abaixo ja o exige) e com menos frequencia.
+    const entreLinhasInf = typeof estiloAtivoDe === 'function' && estiloAtivoDe(p).entreLinhas;
     if (p === Match.ballCarrier) return false;
+    // O Classic No. 10 e estatico (ver o gatilho em playing_styles.js): ocupa o quadrado dele, nao rompe.
+    if (p.playingStyle === 'classic_no10' && !p.playingStyleDesligado) return false;
 
     // Se já está a infiltrar, mantém a corrida enquanto tiver timer
     if (p.fsm.currentState === 'RUN_INTO_SPACE' && p.runTimer > 0) return true;
@@ -3351,6 +3372,8 @@ function podeInfiltrar(ctx) {
 
     // Os alas com rota (Roaming Flank / Prolific Winger / Cross Specialist) rompem mais quando há vão nas costas da defesa.
     if (typeof rotaDeAla === 'function' && rotaDeAla(p)) chance *= 2.0;
+    if (entreLinhasInf) chance *= 0.6;
+    if (p.playingStyle === 'hole_player' && !p.playingStyleDesligado) chance *= 1.5;
 
     if (Math.random() < chance) return true;
 
@@ -3610,6 +3633,13 @@ function actInfiltrar(ctx) {
         'meio': na ponta, com vão no meio nas costas dos defensores, entra pelo meio (senão, pelo menos fecha em direcção ao eixo).
         'fundo'/'ponta': corre pela ponta na direcção da linha de fundo, sem fechar — o ponto livre do meio não lhe serve.
         */
+        // Hole Player: a corrida acaba DENTRO da area (ate 8 m da linha de fundo, e no maximo 9 m de cada lado do eixo).
+        if (p.playingStyle === 'hole_player' && !p.playingStyleDesligado && typeof PlayingStyles !== 'undefined' &&
+            PlayingStyles.hole_player && PlayingStyles.hole_player.entraNaArea) {
+            targetX = Math.max(-9, Math.min(9, targetX));
+            avancoFinal = Math.min(Math.max(avancoFinal, avancoDestino), CAMPO_COMP / 2 - 8);
+            p.runEspaco = false;
+        }
         const rotaInf = (typeof rotaDeAla === 'function') ? rotaDeAla(p) : null;
         if (rotaInf) {
             const lado = Math.sign(p.model.position.x) || 1;
@@ -3659,6 +3689,10 @@ function actApoioInversao(ctx) {
 function actApoioCirculacao(ctx) {
     const p = ctx.p;
     p.dynamicTarget.set(p.apoioPonto.x, ALTURA_BASE_Y, p.apoioPonto.z);
+    // Os estilos com faixa de jogo (Classic No. 10, Orchestrator, Anchor Man) tambem respeitam a faixa ao oferecer-se para o passe.
+    if (p.playingStyle && typeof aplicarFaixaDeJogo === 'function' && typeof TeamAI !== 'undefined') {
+        p.dynamicTarget.z = aplicarFaixaDeJogo(p, p.dynamicTarget.z, TeamAI.get(p.team));
+    }
     // Ritmo de quem se desmarca: mais do que posicionar-se, menos do que
     // atacar o espaco (ver actRunIntoSpace).
     p.speedMult = (6.2 + ((ctx.skillSpeed - 50) / 50) * 1.3) * 1.25 * 0.9;

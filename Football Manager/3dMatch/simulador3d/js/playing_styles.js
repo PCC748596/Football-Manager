@@ -46,6 +46,66 @@ function estiloDe(p) {
 }
 
 /*
+O QUE O ESTILO DE QUEM TEM A BOLA PEDE AO PASSE — soma-se à nota de cada alvo `opt` em `findPassTarget` (player.js).
+Não usa `estiloAtivoDe`: o portador tem de ter o estilo sempre. Devolve pontos (0 = nada a dizer).
+    goal_poacher / target_man  TABELA: com marcador colado, devolve a quem lhe deu a bola (o outro corre nas costas, ver arrancaAposPasse);
+                               o Target Man também solta para quem chega em corrida (distribui e corre para a área).
+    dummy_runner               longe da baliza: passe para a entrada da área ou para a ponta (cruzamento).
+    creative_playmaker         lançamento a quem rompe (RUN_INTO_SPACE).
+*/
+function bonusDoPassadorPorEstilo(p, opt, optPos) {
+    if (!p || !p.playingStyle || p.playingStyleDesligado || !opt || !optPos) return 0;
+    if (typeof Config !== 'undefined' && Config.usePlayingStyles === false) return 0;
+    const gz = p.targetGoalZ;
+    if (typeof gz !== 'number') return 0;
+    const px = p.model.position.x, pz = p.model.position.z;
+    const dGolP = Math.hypot(px, gz - pz);
+    const dGolO = Math.hypot(optPos.x, gz - optPos.z);
+    const lista = (p.team === 'TeamA') ? Match.opponents : Match.players;
+    const marcadorColado = () => {
+        for (const o of lista) {
+            if (!o || !o.model || o.role === 'gk') continue;
+            if (Math.hypot(o.model.position.x - px, o.model.position.z - pz) < 3.0) return true;
+        }
+        return false;
+    };
+    switch (p.playingStyle) {
+        case 'goal_poacher':
+        case 'target_man': {
+            let b = 0;
+            if (dGolP < 38 && marcadorColado() && Match.ultimoPassador === opt && Match.ultimoPassadorTimer > 0) b += 260;
+            if (p.playingStyle === 'target_man' && opt.fsm && opt.fsm.currentState === 'RUN_INTO_SPACE') b += 150;
+            return b;
+        }
+        case 'dummy_runner': {
+            if (dGolP < 24) return 0;   // perto da baliza: o remate decide
+            let b = 0;
+            if (dGolO >= 12 && dGolO <= 24 && Math.abs(optPos.x) < 14) b += 200;                  // entrada da área
+            if (Math.abs(optPos.x) > 15 && dGolO < 30) b += 120;                                  // ponta, para cruzar
+            return b;
+        }
+        case 'orchestrator': {
+            // Lancamento longo, mas para quem esta LIVRE: virada de jogo e profundidade nas pontas.
+            let livre = 99;
+            for (const o of lista) {
+                if (!o || !o.model || o.role === 'gk') continue;
+                const d = Math.hypot(o.model.position.x - optPos.x, o.model.position.z - optPos.z);
+                if (d < livre) livre = d;
+            }
+            const longo = Math.hypot(optPos.x - px, optPos.z - pz) > 25;
+            if (!longo || livre < 7) return 0;
+            let b = 120;
+            if (Math.abs(optPos.x) > 18) b += 100;   // ponta: virada ou profundidade
+            return b;
+        }
+        case 'creative_playmaker':
+            return (opt.fsm && opt.fsm.currentState === 'RUN_INTO_SPACE') ? 180 : 0;
+        default:
+            return 0;
+    }
+}
+
+/*
 ROTA DO ALA (Roaming Flank / Prolific Winger / Cross Specialist) — o que fazer com a bola no pé
 depois de passar os defensores, e para onde infiltrar. Vem de `rotaAla` no estilo:
     'meio'  Roaming Flank: livre à frente, vai para o GOL; na ponta com espaço no meio nas costas da defesa, infiltra pelo meio.
@@ -57,7 +117,7 @@ Só no meio-campo de ataque e nunca em recuo.
 function rotaDeAla(p) {
     if (!p || !p.model || p.playingStyleDesligado || !p.playingStyle || p.carryRecuo) return null;
     if (typeof Config !== 'undefined' && Config.usePlayingStyles === false) return null;
-    if (p.pos !== 'LW' && p.pos !== 'RW' && p.pos !== 'LM' && p.pos !== 'RM') return null;
+    if (['LW', 'RW', 'LM', 'RM', 'LB', 'RB'].indexOf(p.pos) < 0) return null;
     if (p.model.position.z * p.dirZ <= 0) return null;
     return estiloDe(p).rotaAla || null;
 }
@@ -1183,7 +1243,17 @@ function aplicarFaixaDeJogo(p, targetZ, bb) {
     (PlayingStyles.orchestrator.faixaDeJogo). Pela configuracao e nao pelo `estiloAtivoDe`: o gatilho dele
     (`bolaAvanco < 10`) desliga-o quando a equipa sobe, que e justamente quando ele ia longe de mais.
     */
-    if (p && (p.playingStyle === 'orchestrator' || p.playingStyle === 'anchor_man') && !p.playingStyleDesligado &&
+    // Anchor Man PROTEGE A ENTRADA DA AREA: com o adversario a atacar fundo (portador no nosso terco), planta-se logo a frente da linha da grande area (-36.5 no referencial de ataque).
+    if (p && p.playingStyle === 'anchor_man' && !p.playingStyleDesligado && bb && !bb.isAttacking && bb.oppCarrier && bb.oppCarrier.model &&
+        !(typeof Config !== 'undefined' && Config.usePlayingStyles === false)) {
+        const zc = bb.oppCarrier.model.position.z * p.dirZ;
+        if (zc < -14) return -34.0 * p.dirZ;
+    }
+    // Classic No. 10: o quadrado so vale com a equipa a atacar (a defender ele recua com os outros).
+    // ...e com a bola do meio-campo para a frente (em saida de bola ele fica com os medios).
+    if (p && p.playingStyle === 'classic_no10' && !(bb && bb.isAttacking &&
+        (typeof bb.bolaZSuave === 'number' ? bb.bolaZSuave * bb.dir : -99) > -8)) return targetZ;
+    if (p && (p.playingStyle === 'orchestrator' || p.playingStyle === 'anchor_man' || p.playingStyle === 'classic_no10') && !p.playingStyleDesligado &&
         !(typeof Config !== 'undefined' && Config.usePlayingStyles === false)) {
         const FJ = PlayingStyles[p.playingStyle] && PlayingStyles[p.playingStyle].faixaDeJogo;
         if (FJ) {

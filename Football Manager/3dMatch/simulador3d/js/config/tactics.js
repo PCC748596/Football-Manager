@@ -1439,7 +1439,11 @@ const EstiloBase = {
     juntaSeAoAtaque: false,
     // Rota do ala depois de passar os defensores / ao infiltrar (ver rotaDeAla, playing_styles.js):
     // 'meio' = para o gol; 'fundo' = linha de fundo para cruzar; 'ponta' = a ponta, colado à linha, para cruzar.
-    rotaAla: null
+    rotaAla: null,
+    // Peso do estilo na decisao de cabecear a baliza (>1: cabeceia mais, mesmo com marcador perto).
+    cabeceio: 1.0,
+    // driblar: peso na decisao de driblar; lancar: peso na decisao de lancar em profundidade (ver podeDriblar / findBestPassAnywhere em player_bt.js).
+    driblar: 1.0, lancar: 1.0
 };
 
 const PlayingStyles = {
@@ -1447,23 +1451,27 @@ const PlayingStyles = {
     goal_poacher: {
         nome: 'Goal Poacher', posicoes: ['CF', 'SS'],
         avancoComBola: 4, remate: 1.35, conduzir: 0.7, cadencia: 0.7,
+        // Cola no ultimo defensor; tabela: devolve a quem lhe deu a bola e corre nas costas do marcador (ver bonusDoPassadorPorEstilo).
+        tabela: 1.5,
         ombroDefesa: true
     },
     dummy_runner: {
         nome: 'Dummy Runner', posicoes: ['CF', 'SS', 'AM'],
-        avancoComBola: 6, largura: 5, passe: 1.3, remate: 0.9,
+        // Com bola: perto da baliza finaliza (remate), longe procura a entrada da area ou o cruzamento (bonusDoPassadorPorEstilo).
+        avancoComBola: 6, largura: 5, passe: 1.3, remate: 1.2, cruzar: 1.3,
         atraiDefesa: true
     },
     fox_in_the_box: {
         nome: 'Fox in the Box', posicoes: ['CF'],
         driblar: 0.4,
         avancoComBola: 6, remate: 1.5, conduzir: 0.5, lancar: 0.6, cadencia: 0.6,
+        cabeceio: 1.6,
         dentroArea: true
     },
     target_man: {
         nome: 'Target Man', posicoes: ['CF'],
         driblar: 0.5,
-        passe: 1.25, conduzir: 0.6, cadencia: 1.6,
+        passe: 1.25, conduzir: 0.6, cadencia: 1.6, remate: 1.3, tabela: 1.3, cabeceio: 1.3,
         seguraBola: true,
         // Pivô com a bola atrás, rompe com a bola perto — ver
         // PlayingStyleTuning.targetMan e `pivo` em aplicarEstiloPosicional.
@@ -1481,12 +1489,17 @@ const PlayingStyles = {
     },
     classic_no10: {
         nome: 'Classic No. 10', posicoes: ['SS', 'AM', 'CM'],
-        avanco: -3, passe: 1.4, lancar: 1.35, conduzir: 0.55, cadencia: 1.3,
-        amplitudeZ: 0.7
+        // cadencia baixa = toca de primeira (menos tempo a dominar).
+        avanco: -3, passe: 1.4, lancar: 1.35, conduzir: 0.55, cadencia: 0.6,
+        amplitudeZ: 0.7,
+        // O quadrado dele, com a equipa a atacar (referencial de ataque, m): da linha da grande area (53 - 16.5 = 36.5) ao topo do circulo central do ataque (9.15).
+        faixaDeJogo: { min: 9.15, max: 36.5 }
     },
     hole_player: {
         nome: 'Hole Player', posicoes: ['SS', 'AM', 'LM', 'RM', 'CM'],
-        avancoComBola: 9, remate: 1.2, amplitudeZ: 1.3
+        avancoComBola: 9, remate: 1.2, amplitudeZ: 1.3, cabeceio: 1.2,
+        // Infiltra para dentro da area (ver actInfiltrar).
+        entraNaArea: true
     },
 
     /* --- Alas ------------------------------------------------------------ */
@@ -1540,7 +1553,8 @@ limitado por `MarkingModel.distanciaMinimaEstilo`.
     /* --- Meio-campo ------------------------------------------------------ */
     box_to_box: {
         nome: 'Box-to-Box', posicoes: ['AM', 'LM', 'RM', 'CM', 'DM'],
-        amplitudeZ: 1.5, avancoComBola: 5, pressao: 1.2,
+        // Com bola avanca ate a entrada da area adversaria (a conducao nao passa dela, ver `limiteConducao`).
+        amplitudeZ: 1.5, avancoComBola: 12, pressao: 1.2, limiteConducao: 36.5,
 
         /*
         A LINHA DA BOLA É A ÂNCORA DELE — pedido explícito: "deve acompanhar a
@@ -1646,14 +1660,18 @@ limitado por `MarkingModel.distanciaMinimaEstilo`.
         // defensive_fullback.
         // Busca tabelas e infiltra-se pela lateral para receber e cruzar, só com
         // a bola do seu lado. `cruzar` 1.4: tenta mais cruzamentos que os outros.
-        avanco: 4, avancoComBola: 12, cruzar: 1.4, tabela: 1.5, colaNaLinha: true
+        avanco: 4, avancoComBola: 12, cruzar: 1.4, tabela: 1.5, colaNaLinha: true,
+        // Com a bola e livre a frente segue pela lateral ate a linha de fundo e cruza (ver rotaDeAla).
+        rotaAla: 'fundo'
     },
     fullback_finisher: {
         nome: 'Full-back Finisher', posicoes: ['LB', 'RB'],
         // Tabela e entra pelo centro da área para finalizar de primeira, só com a
         // bola do seu lado. `remate` 1.3: chuta mais que o offensive.
         avanco: 4, avancoComBola: 12, largura: -5, remate: 1.3, cruzar: 0.8, tabela: 1.5,
-        cortaParaDentro: true
+        cortaParaDentro: true,
+        // Com espaco corta para dentro, em direccao ao gol, e finaliza (ver rotaDeAla).
+        rotaAla: 'meio'
     },
     defensive_fullback: {
         nome: 'Defensive Full-back', posicoes: ['LB', 'RB'],

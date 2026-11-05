@@ -2056,6 +2056,12 @@ class PlayerFSM {
                             const tx = px + (eixo.bx * cosA + eixo.bz * sinA) * visDist;
                             let tz = pz + (eixo.bz * cosA - eixo.bx * sinA) * visDist;
                             if (tz * sentido > avancoMax) tz = avancoMax * sentido;
+                            // Box-to-Box: conduz ate a entrada da area adversaria, nao alem (PlayingStyles.box_to_box.limiteConducao).
+                            if (p.playingStyle === 'box_to_box' && !p.playingStyleDesligado && !p.carryRecuo &&
+                                PlayingStyles.box_to_box && typeof PlayingStyles.box_to_box.limiteConducao === 'number' &&
+                                tz * sentido > PlayingStyles.box_to_box.limiteConducao) {
+                                tz = Math.max(pz * sentido, PlayingStyles.box_to_box.limiteConducao) * sentido;
+                            }
                             if (Math.abs(tx) > 31 || Math.abs(tz) > 51) continue;
 
                             let maisPerto = 999;
