@@ -77,7 +77,10 @@ const FaltaRotinas = {
     // Quem marca fica deste lado do atacante, em direccao a baliza (m).
     folgaMarcacao: 1.1,
     // So se marcam os atacantes a menos disto da linha de fundo (m).
-    marcaAteZ: 24.0,
+    // Marca-se TODO o atacante da rotina (pedido: o 2 e o 7 nao ficam sozinhos; os avancados recuam para marcar): antes eram so os a menos de 24 m e sobravam defensores parados a frente.
+    marcaAteZ: 70.0,
+    // Os defensores que sobram (mais que atacantes) fazem de sobra: ficam na area, do lado da baliza, a esta distancia da linha de fundo (m).
+    sobraDist: 7.0,
     // Prazo de cada passo da cadeia (s): se a bola nao chega, a rotina acaba.
     prazoPasso: 5.0,
     // O grupo de posicao preferido de cada numero (por ordem).

@@ -93,7 +93,8 @@ Object.assign(Match, {
         const goalZ = plano.attDir * CAMPO_COMP / 2;
         const livres = defensores.filter(d => d && d.role !== 'gk' && !d.naBarreiraFalta && d.model && !d.expulso);
         const alvos = plano.lugares
-            .map(l => ({ n: l.n, p: l.p, x: l.x, z: l.z, zd: (goalZ - l.z) * plano.attDir }))
+            // O ATAQUE POSICIONA-SE PRIMEIRO e a defesa marca depois: le-se onde cada atacante FICOU (apos os ajustes de corredor e dos 9.15 m), nao o lugar do diagrama.
+            .map(l => { const q = (l.p && l.p.model) ? l.p.model.position : l; return { n: l.n, p: l.p, x: q.x, z: q.z, zd: (goalZ - q.z) * plano.attDir }; })
             .filter(a => a.zd <= FR.marcaAteZ)
             .sort((a, b) => a.zd - b.zd);
         const aoLado = (x, z) => {
@@ -126,6 +127,18 @@ Object.assign(Match, {
             let mc = null;
             if (corrida) mc = aoLado(corrida.x, corrida.z);
             plano.marcadores.push({ d: marcador, atacante: a.p, corrida: mc });
+        }
+        // Os que sobram de marcar (ha mais defensores que atacantes) recuam para a area como sobra: nunca ficam parados a frente.
+        let i = 0;
+        for (const d of livres.splice(0)) {
+            const sx = (i % 2 ? 1 : -1) * (2 + Math.floor(i / 2) * 3);
+            const sz = goalZ - plano.attDir * FR.sobraDist;
+            i++;
+            d.model.position.set(sx, ALTURA_BASE_Y, sz);
+            d.velocity.set(0, 0, 0);
+            if (d.dynamicTarget) d.dynamicTarget.set(sx, ALTURA_BASE_Y, sz);
+            lookAtBola(d.model, bolaFK);
+            d.fsm.changeState('SET_PIECE_WAIT');
         }
     },
 

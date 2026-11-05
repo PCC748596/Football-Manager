@@ -12,7 +12,7 @@ import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { estiloPorPosicao, estiloValidoDoJogador } from '../textSim/playStyleFallback';
 import { atributos3d, campo3d, paisDoJogador } from '../textSim/atributos3d';
 import { peBomDe } from '../textSim/peBom';
-import { potencialVisivel, estrelasDoJogador } from '../textSim/youth';
+import { estrelasDoJogador } from '../textSim/youth';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
 import { PLAYSTYLE_AJUSTES } from '../textSim/playStylesAjustes';
 import { PLAYSTYLE_POSITIONS, PLAYSTYLE_DESCRICAO, PlayStyle } from '../types';
@@ -200,7 +200,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
     { rotulo: 'Passing', valor: campo3d(player, ['passing', 'longPassing', 'vision', 'crossing']) },
     { rotulo: 'Dribbling', valor: campo3d(player, ['dribbling', 'ballControl', 'agility', 'balance']) },
     { rotulo: 'Defending', valor: campo3d(player, ['tackleStanding', 'tackleSliding', 'manMarking', 'posDefense']) },
-    { rotulo: 'Physical', valor: campo3d(player, ['strength', 'stamina', 'jumping', 'aggression']) }
+    { rotulo: 'Physical', valor: attr3d.fis }
   ];
   const corDaBarra = (v: number) => (v >= 80 ? '#10b981' : v >= 70 ? '#60a5fa' : v >= 60 ? '#eab308' : '#f43f5e');
 
@@ -232,22 +232,21 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
             <span className="text-xs font-black text-white uppercase tracking-widest">Squad</span>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{team?.name}</span>
           </div>
-          <div className="grid grid-cols-[34px_38px_1fr_34px_40px_40px] gap-1 px-3 py-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800">
-            <span>Pos</span><span></span><span>Name</span><span className="text-center">Age</span><span className="text-center">OVR</span><span className="text-center">Form</span>
+          <div className="grid grid-cols-[34px_38px_1fr_34px_40px] gap-1 px-3 py-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800">
+            <span>Pos</span><span></span><span>Name</span><span className="text-center">Age</span><span className="text-center">OVR</span>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
             {teamPlayers.map(p => (
               <button
                 key={p.id}
                 onClick={() => setActivePlayerId(p.id)}
-                className={`grid grid-cols-[34px_38px_1fr_34px_40px_40px] gap-1 items-center px-3 py-1.5 text-left border-b border-slate-800/60 transition-colors ${p.id === player.id ? 'bg-slate-700/60 ring-1 ring-inset ring-blue-500/60' : 'hover:bg-slate-800/60'}`}
+                className={`grid grid-cols-[34px_38px_1fr_34px_40px] gap-1 items-center px-3 py-1.5 text-left border-b border-slate-800/60 transition-colors ${p.id === player.id ? 'bg-slate-700/60 ring-1 ring-inset ring-blue-500/60' : 'hover:bg-slate-800/60'}`}
               >
                 <span className="text-[10px] font-black text-slate-400">{p.position}</span>
                 <span className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 overflow-hidden block"><PlayerFace playerId={p.id} camisa={team?.primaryColor} className="w-full h-full" /></span>
                 <span className={`text-xs font-bold truncate ${p.id === player.id ? 'text-white' : 'text-slate-300'}`}>{p.name}</span>
                 <span className="text-[11px] text-slate-400 text-center">{p.age}</span>
                 <span className={`text-xs font-black text-center ${getColorClass(p.skill)}`}>{Math.round(p.skill)}</span>
-                <span className={`text-[11px] font-black text-center ${p.fitness >= 80 ? 'text-emerald-400' : p.fitness >= 60 ? 'text-amber-400' : 'text-rose-400'}`}>{p.fitness >= 80 ? '▲' : p.fitness >= 60 ? '▶' : '▼'}</span>
               </button>
             ))}
           </div>
@@ -310,24 +309,14 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
               </div>
             </div>
 
-            {/* DEVELOPMENT: OVR actual contra o potencial estimado */}
+            {/* CONDITION: so o estado de jogo (fitness e moral); os atributos vivem em 3D Match Attributes */}
             <div className="flex flex-col gap-5">
               <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-                <div className="text-sm font-bold text-white mb-2">Player Development</div>
+                <div className="text-sm font-bold text-white mb-2">Condition</div>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
-                  <span className="text-slate-500">Weekly growth</span><span className={`font-black text-right ${player.weeklyGrowth > 0 ? 'text-emerald-400' : 'text-slate-300'}`}>{player.weeklyGrowth > 0 ? '+' : ''}{player.weeklyGrowth}</span>
                   <span className="text-slate-500">Fitness</span><span className="font-black text-right text-slate-200">{Math.round(player.fitness)}%</span>
                   <span className="text-slate-500">Morale</span><span className="font-black text-right text-slate-200">{Math.round(player.morale)}</span>
                 </div>
-                <div className="mt-3 flex items-center gap-3">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Progress</span>
-                  <span className="text-sm font-black text-white">{Math.round(player.skill)}</span>
-                  <div className="flex-1 h-2 bg-slate-800 rounded overflow-hidden relative">
-                    <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, Math.max(0, (player.skill / Math.max(player.skill, potencialVisivel(player))) * 100))}%` }} />
-                  </div>
-                  <span className="text-sm font-black text-slate-300">{Math.max(Math.round(player.skill), potencialVisivel(player))}</span>
-                </div>
-                <div className="text-[9px] text-slate-500 mt-1">The right-hand number is the scout's potential estimate.</div>
               </div>
               <ContractPanel player={player} />
               {userTeam && player.teamId === userTeam.id && (

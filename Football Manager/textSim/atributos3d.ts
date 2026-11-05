@@ -21,7 +21,7 @@ import { GRUPOS, ATRIBUTOS_GK, gerarAtributos, limitarAtributo, curvaFisica, cal
 O TREINO MEXE NOS ATRIBUTOS DO 3D, um a um: cada sessao (textSim/trainingService.ts) da pontos aos atributos que treina (`Player.treino3d`, campo -> pontos) e PONTOS_POR_ATRIBUTO (trainingService.ts) pontos = +1 no atributo.
 O DEF/PAS/DRB/SHT antigos continuam a subir por baixo (OVR e valor de mercado), mas ja nao entram nos atributos do 3D (senao o mesmo treino contaria duas vezes).
 */
-const BASE: Map<string, { def: number; pas: number; drb: number; sht: number; idade: number; attrs3d?: Record<string, number> }> = new Map();
+const BASE: Map<string, { def: number; pas: number; drb: number; sht: number; idade: number; attrs3d?: Record<string, number>; editado?: boolean }> = new Map();
 let baseFeita = false;
 const baseDe = (id: string) => {
   // Jogador dos dados locais (CountryData<N>.json): vem com os atributos e fica fora da base (nunca e gravado).
@@ -31,7 +31,7 @@ const baseDe = (id: string) => {
     baseFeita = true;
     for (const r of REAL_PLAYERS_JSON as any[]) {
       if (!r.idPlayer) continue;
-      BASE.set(String(r.idPlayer), { def: Math.max(NIVEL_MINIMO, r.defPlayer), pas: Math.max(NIVEL_MINIMO, r.pasPlayer), drb: Math.max(NIVEL_MINIMO, r.drbplayer), sht: Math.max(NIVEL_MINIMO, r.shtPlayer), idade: r.agePlayer || 0, attrs3d: r.attrs3d });
+      BASE.set(String(r.idPlayer), { def: Math.max(NIVEL_MINIMO, r.defPlayer), pas: Math.max(NIVEL_MINIMO, r.pasPlayer), drb: Math.max(NIVEL_MINIMO, r.drbplayer), sht: Math.max(NIVEL_MINIMO, r.shtPlayer), idade: r.agePlayer || 0, attrs3d: r.attrs3d, editado: !!r.attrs3d });
     }
   }
   return BASE.get(id);
@@ -78,6 +78,14 @@ const bonusTreino = (p: Player, campo: string): number => Math.floor(((p.treino3
 /** Entra na chave do cache: o treino muda os atributos. */
 const assinaturaTreino = (p: Player): string => (p.treino3d ? Object.keys(p.treino3d).map(c => c + bonusTreino(p, c)).join(',') : '');
 
+/*
+O FISICO NO INICIO DA TEMPORADA: os dados de origem (3D e CountryData) trazem FIS medio ~62-66, baixo demais para atletas profissionais. A leitura sobe os sete campos fisicos (+FIS_SUBIDA, com
+compressao acima de FIS_TETO_SOFT) para uma media de ~80-85; os dados originais nao sao alterados. Atributos gravados no editor (REAL_PLAYERS_JSON.attrs3d) e os GERADOS ja nascem no nivel certo e ficam de fora.
+A RESISTENCIA (stamina) fica limitada ao FIS: nunca passa a media dos outros seis campos fisicos + FIS_FOLGA_STAMINA.
+*/
+const FIS_SUBIDA = 18, FIS_TETO_SOFT = 85, FIS_FOLGA_STAMINA = 3;
+const subirFis = (v: number): number => { const x = v + FIS_SUBIDA; return x > FIS_TETO_SOFT ? FIS_TETO_SOFT + (x - FIS_TETO_SOFT) * 0.6 : x; };
+
 export const atributos3d = (p: Player): Atributos3D => {
   const id = String(p.id).replace(/^p-/, '');
   const linha = D.jogadores[id];
@@ -101,6 +109,14 @@ export const atributos3d = (p: Player): Atributos3D => {
       valores[campo] = valor;
       return { campo, nome: NOME_DO_CAMPO[campo] || campo, valor };
     });
+  }
+  // Fisico: sobe os dados de origem e limita a stamina ao FIS (ver FIS_SUBIDA).
+  if (!gerado && !(b && b.editado)) for (const x of detalhe.FIS) { x.valor = limitarAtributo(subirFis(x.valor)); valores[x.campo] = x.valor; }
+  const stam = detalhe.FIS.find(x => x.campo === 'stamina');
+  const outros = detalhe.FIS.filter(x => x.campo !== 'stamina');
+  if (stam && outros.length) {
+    const teto = Math.round(outros.reduce((s, x) => s + x.valor, 0) / outros.length) + FIS_FOLGA_STAMINA;
+    if (stam.valor > teto) { stam.valor = limitarAtributo(teto); valores.stamina = stam.valor; }
   }
   // O goleiro leva tambem os atributos de baliza (50 a 99).
   let gkMedia: number | undefined;

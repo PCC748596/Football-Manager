@@ -1065,15 +1065,30 @@ function lugaresDaFalta(bolaX, bolaZ, attDir, jogadores, setor, desenhoDado) {
             let x, z;
 
             if (cfg.modo === 'baliza') {
+                /*
+                OS LUGARES POR ORDEM DE X, como os jogadores (`lista` ja vem por x crescente). Era `cfg.slots[i]` na ordem do desenho, onde o 1.o lugar e o de relX POSITIVO: com a
+                bola do lado +X (`lado` = +1) o jogador mais a esquerda ia para o lugar da direita e o da direita para o da esquerda — os alas trocavam de lado a cada falta batida desse lado.
+                Grupo incompleto: cada um fica com o lugar livre mais perto de onde ja esta.
+                */
                 const n = cfg.slots.length;
-                const slot = cfg.slots[Math.min(i, n - 1)];
+                const ordenados = cfg.slots.map(sl => ({ sl: sl, x: lado * sl.relX })).sort((a, b) => a.x - b.x);
+                let slot;
+                if (lista.length >= n) {
+                    slot = ordenados[Math.min(i, n - 1)].sl;
+                } else {
+                    if (!lista._livres) lista._livres = ordenados.slice();
+                    let k = 0, melhorD = Infinity;
+                    lista._livres.forEach((o, pos) => { const d = Math.abs(o.x - p.model.position.x); if (d < melhorD) { melhorD = d; k = pos; } });
+                    slot = lista._livres.splice(k, 1)[0].sl;
+                }
                 const sobra = Math.max(0, i - (n - 1));
                 x = lado * slot.relX + sobra * extra * (i % 2 ? 1 : -1);
                 z = linhaFundo - attDir * (slot.dist + sobra * 1.5);
 
             } else if (cfg.modo === 'apoio') {
-                // Junto à bola: para o lado de onde ela está, e `dz` à frente.
-                const sinal = (i % 2 === 0) ? -lado : lado;
+                // Junto à bola: cada um do lado da bola em que JA esta (o mais a esquerda fica a esquerda dela), e `dz` à frente. Era `i % 2 ? lado : -lado`, que com a bola na esquerda trocava os dois de lado.
+                let sinal = (i % 2 === 0) ? -1 : 1;
+                if (lista.length === 1) sinal = Math.sign(p.model.position.x - bolaX) || -lado;
                 x = bolaX + sinal * (cfg.dx + Math.floor(i / 2) * extra);
                 z = bolaZ + attDir * cfg.dz;
 

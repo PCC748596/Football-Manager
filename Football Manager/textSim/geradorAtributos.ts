@@ -176,7 +176,7 @@ export const gerarAtributos = (posicao: Position | string, estilo: PlayStyle | s
   const nivel = Math.max(ATTR_MIN, Math.min(ATTR_MAX, nivelAlvo));
   const P = PARAMETROS;
   const idade = opcoes.idade ?? 26;
-  const fisIdade = 74 + curvaFisica(idade);   // o fisico acompanha a idade, nao a qualidade
+  const fisIdade = 86 + curvaFisica(idade);   // o fisico acompanha a idade, nao a qualidade
   const a: Record<string, number> = {};
 
   // pontos fortes e limitacoes individuais (fora do perfil rigido): poucos atributos sobem ou descem, para nao haver jogadores "completos" nem planos
