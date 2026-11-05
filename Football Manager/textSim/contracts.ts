@@ -38,6 +38,16 @@ export const somarMeses = (data: string, meses: number): string => {
 };
 export const somarAnos = (data: string, anos: number): string => somarMeses(data, anos * 12);
 
+/**
+ * DIA DE FIM DOS CONTRATOS POR REGIAO: na America Latina o contrato acaba sempre em 31/12 ('12-31'); na Europa, no fim da temporada, 30/06 ('06-30' — junho so tem 30 dias).
+ * `ajustarFim` leva uma data para o PRIMEIRO desses dias que nao seja anterior a ela (um contrato nunca encurta).
+ */
+export type FimContrato = '12-31' | '06-30';
+export const ajustarFim = (data: string, fim: FimContrato): string => {
+  const [y] = partes(data), candidato = `${String(y).padStart(4, '0')}-${fim}`;
+  return candidato >= data ? candidato : `${String(y + 1).padStart(4, '0')}-${fim}`;
+};
+
 /** Anos completos entre `nascimento` e `hoje` (a idade). */
 export const idadeEm = (nascimento: string, hoje: string): number => {
   const [by, bm, bd] = partes(nascimento), [y, m, d] = partes(hoje);
@@ -76,30 +86,31 @@ export const estadoDoContrato = (c: Contract | undefined, hoje: string): EstadoC
 };
 
 /** Um contrato assinado em `hoje` por um jogador com `idade` nessa data. */
-export const novoContrato = (idade: number, hoje: string, rnd: Rnd = Math.random): Contract => {
-  const years = sortearDuracao(idade, rnd);
-  return { start: hoje, end: somarAnos(hoje, years), years };
+export const novoContrato = (idade: number, hoje: string, rnd: Rnd = Math.random, fim?: FimContrato): Contract => {
+  const years = sortearDuracao(idade, rnd), end = somarAnos(hoje, years);
+  return { start: hoje, end: fim ? ajustarFim(end, fim) : end, years };
 };
 
 /**
  * O contrato de um jogador que ja existia quando o jogo comecou: assinou no passado (ate 5 anos antes) com a duracao da idade que tinha entao, e ainda tem pelo
  * menos 1 mes pela frente. Nao e um sorteio de "tempo restante": e uma assinatura passada coerente com as faixas.
  */
-export const contratoInicial = (idadeHoje: number, hoje: string, rnd: Rnd = Math.random): Contract => {
+export const contratoInicial = (idadeHoje: number, hoje: string, rnd: Rnd = Math.random, fim?: FimContrato): Contract => {
   for (let t = 0; t < 20; t++) {
     const passados = Math.floor(rnd() * 60);                       // meses desde a assinatura
     const idadeAssinatura = Math.max(15, idadeHoje - Math.floor(passados / 12));
     const years = sortearDuracao(idadeAssinatura, rnd);
     if (years * 12 - passados >= 1) {
       const start = somarMeses(hoje, -passados);
-      return { start, end: somarAnos(start, years), years };
+      const end = somarAnos(start, years);
+      return { start, end: fim ? ajustarFim(end, fim) : end, years };
     }
   }
-  return novoContrato(idadeHoje, hoje, rnd);   // improvavel: assina hoje
+  return novoContrato(idadeHoje, hoje, rnd, fim);   // improvavel: assina hoje
 };
 
 /** Renovacao: um contrato novo a partir de `hoje`, com a duracao da idade de hoje (o antigo nao e alterado, e substituido). */
-export const renovarContrato = (idadeHoje: number, hoje: string, rnd: Rnd = Math.random): Contract => novoContrato(idadeHoje, hoje, rnd);
+export const renovarContrato = (idadeHoje: number, hoje: string, rnd: Rnd = Math.random, fim?: FimContrato): Contract => novoContrato(idadeHoje, hoje, rnd, fim);
 
 /** Gerador pseudo-aleatorio com semente (mulberry32): calendarios e bases reproduziveis entre aberturas do jogo. */
 export const criarRng = (semente: string): Rnd => {
@@ -119,17 +130,19 @@ export const criarRng = (semente: string): Rnd => {
  * O processamento diario dos contratos dos profissionais (puro). Quem ainda nao tem contrato recebe um coerente com as faixas; a idade acompanha o nascimento (quem veio da base);
  * no dia do vencimento o jogador do utilizador fica livre (`MARKET`) e os da CPU renovam (contrato novo a partir de hoje: o passado nao muda). Devolve a MESMA lista se nada mudou.
  */
-export const processarContratos = (jogadores: Player[], hoje: string, donoId: string): { jogadores: Player[]; liberados: string[] } => {
+export const processarContratos = (jogadores: Player[], hoje: string, donoId: string, fimDoTime?: (teamId: string) => FimContrato | undefined): { jogadores: Player[]; liberados: string[] } => {
   let mudou = false;
   const liberados: string[] = [];
   const out = jogadores.map(p => {
     let q = p;
     if (/^Player \d+$/.test(q.name)) q = { ...q, name: nomeAleatorio(criarRng('nome|' + q.id)) };   // os jogadores tapa-buraco antigos ganham um nome de verdade
-    if (!q.contract) q = { ...q, contract: contratoInicial(q.age, hoje, criarRng('contrato|' + q.id)) };
+    const fim = fimDoTime && q.teamId !== 'MARKET' ? fimDoTime(q.teamId) : undefined;
+    if (!q.contract) q = { ...q, contract: contratoInicial(q.age, hoje, criarRng('contrato|' + q.id), fim) };
+    else if (fim && q.contract.end.slice(5) !== fim) q = { ...q, contract: { ...q.contract, end: ajustarFim(q.contract.end, fim) } };   // contrato antigo: o fim vai para o dia da regiao
     if (q.birthDate) { const idade = idadeEm(q.birthDate, hoje); if (idade !== q.age) q = { ...q, age: idade }; }
     if (q.teamId !== 'MARKET' && q.contract && hoje >= q.contract.end) {
       if (q.teamId === donoId) { liberados.push(q.id); q = { ...q, teamId: 'MARKET' }; }
-      else q = { ...q, contract: renovarContrato(q.age, hoje, criarRng('renova|' + q.id + '|' + hoje)) };
+      else q = { ...q, contract: renovarContrato(q.age, hoje, criarRng('renova|' + q.id + '|' + hoje), fim) };
     }
     if (q !== p) mudou = true;
     return q;

@@ -223,7 +223,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
       )}
 
       <main className="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900/30 transition-colors duration-300">
-        <div className={`flex-1 overflow-y-auto custom-scrollbar p-5 lg:p-10 ${currentView === 'MATCH' ? 'pt-0' : ''}`}>
+        <div className={`flex-1 overflow-y-auto custom-scrollbar p-5 lg:p-10 ${currentView === 'MATCH' ? 'pt-0' : 'lg:pt-6 lg:pb-6'}`}>{/* lg:pt-6 = o mesmo recuo do topo do logo FOOT MANAGER na barra lateral (p-6): o titulo de cada pagina alinha com ele */}
           {children}
         </div>
       </main>

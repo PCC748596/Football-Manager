@@ -9,6 +9,7 @@ import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disput
 import { calcularVirada, aplicarDivisoes, divisoesAtuais, paisDaLiga, Divisoes } from '../textSim/virada';
 import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
+import { fimDoClube, fimDaLiga } from '../textSim/contratoRegiao';
 import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, avisoDeBonusPatrocinio } from '../textSim/inbox';
 import { salarioDeMercadoDaLiga, ajustarSalariosDaBase } from '../textSim/salarios';
 import { aplicarDivisao, aplicarDificuldade, dificuldadeEscolhida, folhaAnual, PADRAO_COMPRAS } from '../textSim/orcamento';
@@ -709,9 +710,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!players.length || !gameState.userTeamId) return;
     const hoje = gameState.currentDate, dono = gameState.userTeamId;
-    const expirados = new Set(processarContratos(players, hoje, dono).liberados);
+    const expirados = new Set(processarContratos(players, hoje, dono, fimDoClube(teams)).liberados);
     if (expirados.size) empurrarInbox(avisoDeLiberados(hoje, gameState.language, players.filter(p => expirados.has(p.id))));
-    setPlayers(prev => processarContratos(prev, hoje, dono).jogadores);
+    setPlayers(prev => processarContratos(prev, hoje, dono, fimDoClube(teams)).jogadores);
     if (expirados.size) setTeams(prev => prev.map(t => t.id === dono
       ? { ...t, lineup: t.lineup.map(id => (expirados.has(id) ? '' : id)), bench: (t.bench || []).map(id => (expirados.has(id) ? '' : id)) } : t));
   }, [gameState.currentDate, players.length, gameState.userTeamId, loadId]);
@@ -724,7 +725,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!alvo || negociacoes.some(n => n.playerId === playerId)) return 'BLOQUEADO';
     const hoje = gameState.currentDate, pedido = propostaDoJogador(alvo, hoje, salarioDeMercadoDaLiga(alvo, teams, players));
     if (chanceDeAceitar(alvo, oferta, pedido) === 1) {
-      const novo = assinar(alvo, oferta, hoje);
+      const novo = assinar(alvo, oferta, hoje, fimDaLiga(userTeam.leagueId));
       setPlayers(prev => prev.map(p => (p.id === playerId ? novo : p)));
       empurrarInbox([avisoDeRenovacao(hoje, gameState.language, novo)]);
       return 'ASSINADO';
@@ -739,10 +740,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!userTeam || !negociacoes.length) return;
     const hoje = gameState.currentDate;
-    const r = resolverNegociacoes(negociacoes, players, hoje, userTeam.id);
+    const r = resolverNegociacoes(negociacoes, players, hoje, userTeam.id, fimDaLiga(userTeam.leagueId));
     if (r.negociacoes === negociacoes) return;
     setNegociacoes(r.negociacoes);
-    setPlayers(prev => resolverNegociacoes(negociacoes, prev, hoje, userTeam.id).jogadores);
+    setPlayers(prev => resolverNegociacoes(negociacoes, prev, hoje, userTeam.id, fimDaLiga(userTeam.leagueId)).jogadores);
     empurrarInbox(r.respostas.map(x => avisoDeRespostaRenovacao(hoje, gameState.language, x.jogador, x.aceitou, formatCurrency(x.negociacao.oferta.salario), x.negociacao.oferta.anos)));
   }, [gameState.currentDate]);
 
@@ -2078,7 +2079,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (players.filter(p => p.teamId === userTeam.id).length >= 33) return;   // maximo de 33 jogadores por time
 
     setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash - player.value } : t));
-    const contratado: Player = { ...player, teamId: userTeam.id, shirtNumber: 25 + Math.floor(Math.random() * 50), contract: novoContrato(player.age, gameState.currentDate) };
+    const contratado: Player = { ...player, teamId: userTeam.id, shirtNumber: 25 + Math.floor(Math.random() * 50), contract: novoContrato(player.age, gameState.currentDate, Math.random, fimDaLiga(userTeam.leagueId)) };
     setPlayers(prev => prev.map(p => p.id === player.id ? contratado : p));
     empurrarInbox([avisoDeContratacao(gameState.currentDate, gameState.language, contratado, formatCurrency(player.value))]);
   };

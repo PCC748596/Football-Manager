@@ -8,6 +8,7 @@ import { ContractChip } from './ContractPanel';
 import { estadoDoContrato } from '../textSim/contracts';
 import PlayerDetailModal from './PlayerDetailModal';
 import SponsorsTab from './SponsorsTab';
+import FinanceMonthlyChart from './FinanceMonthlyChart';
 import { orcamentoDaTemporada, maxCompras, folhaAnual, PADRAO_COMPRAS, PASSO_COMPRAS } from '../textSim/orcamento';
 
 const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => {
@@ -59,6 +60,27 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
   const pctEfetivo = userTeam ? Math.min(userTeam.transferPct ?? PADRAO_COMPRAS, maxCompras(userTeam, folhaAnual(players.filter(p => p.teamId === userTeam.id).map(p => p.salary)))) : 0;
   const compraEsperada = userTeam ? Math.round(orcamentoDaTemporada(userTeam) * Math.round(pctEfetivo * 20) / 20) : 0;
   React.useEffect(() => { if (userTeam && (userTeam.initialTransfer ?? 0) !== compraEsperada) definirDivisaoOrcamento(pctEfetivo); }, [userTeam?.initialTransfer, compraEsperada]);
+
+  // A LISTA DA FOLHA nunca corta uma linha na base: a altura visivel e cabecalho + um numero inteiro de linhas (o resto fica vazio dentro do cartao).
+  const listaRef = React.useRef<HTMLDivElement>(null);
+  const ajustarLista = React.useRef<() => void>(() => {});
+  ajustarLista.current = () => {
+    const el = listaRef.current, caixa = el?.parentElement;
+    if (!el || !caixa) return;
+    el.style.flex = '1 1 0%'; el.style.height = '';
+    const cab = el.querySelector('thead')?.getBoundingClientRect().height || 0, linha = el.querySelector('tbody tr')?.getBoundingClientRect().height || 0;
+    if (!linha) return;
+    const n = Math.max(1, Math.floor((el.clientHeight - cab) / linha));
+    el.style.flex = 'none'; el.style.height = `${Math.ceil(cab + n * linha)}px`;
+  };
+  React.useEffect(() => {
+    const caixa = listaRef.current?.parentElement;
+    if (!caixa || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => ajustarLista.current());
+    ro.observe(caixa);
+    return () => ro.disconnect();
+  }, [marketPhase]);
+  React.useEffect(() => { ajustarLista.current(); });
 
   if (!userTeam) return null;
 
@@ -125,6 +147,22 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
             {t('fin_subtitle')}
           </p>
         </div>
+      {(() => {
+        const comEstado = teamPlayers.map(p => ({ p, estado: estadoDoContrato(p.contract, gameState.currentDate) }));
+        const criticos = comEstado.filter(x => x.estado === 'CRITICO').map(x => x.p);
+        const atencao = comEstado.filter(x => x.estado === 'ATENCAO').map(x => x.p);
+        if (!criticos.length && !atencao.length) return null;
+        const lista = [...criticos, ...atencao].map(p => p.name).join(', ');
+        // Uma linha so, na mesma faixa do titulo (antes era uma faixa propria que empurrava a pagina para baixo); a lista completa fica no tooltip.
+        return (
+          <div title={`Critical (6 months or less): ${criticos.map(p => p.name).join(', ') || '-'}
+Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
+            className={`flex-1 min-w-0 mx-6 rounded-lg border px-3 py-1.5 text-xs font-bold flex items-center gap-2 ${criticos.length ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-300 dark:border-rose-500/40 text-rose-600 dark:text-rose-400' : 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/40 text-amber-600 dark:text-amber-400'}`}>
+            <span className="font-black uppercase tracking-widest shrink-0">⚠ Contracts {criticos.length}/{atencao.length}</span>
+            <span className="truncate">{lista}</span>
+          </div>
+        );
+      })()}
         <div className="flex gap-2">
            <button 
              onClick={() => setMarketPhase('OVERVIEW')}
@@ -146,25 +184,9 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
            </button>
         </div>
       </div>
-      {/* Os contratos que pedem decisao (antes no Squad): critico = 6 meses ou menos; atencao = 12 meses ou menos. */}
-      {(() => {
-        const comEstado = teamPlayers.map(p => ({ p, estado: estadoDoContrato(p.contract, gameState.currentDate) }));
-        const criticos = comEstado.filter(x => x.estado === 'CRITICO').map(x => x.p);
-        const atencao = comEstado.filter(x => x.estado === 'ATENCAO').map(x => x.p);
-        if (!criticos.length && !atencao.length) return null;
-        return (
-          <div className={`rounded-lg border px-4 py-2.5 text-sm font-bold flex flex-wrap items-center gap-x-4 gap-y-1 ${criticos.length ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-300 dark:border-rose-500/40 text-rose-600 dark:text-rose-400' : 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/40 text-amber-600 dark:text-amber-400'}`}>
-            <span className="font-black uppercase tracking-widest">⚠ Contracts</span>
-            {criticos.length > 0 && <span>Critical (6 months or less): {criticos.map(p => p.name).join(', ')}</span>}
-            {atencao.length > 0 && <span>Attention (12 months or less): {atencao.map(p => p.name).join(', ')}</span>}
-            <span className="opacity-80">Negotiate a renewal or sell.</span>
-          </div>
-        );
-      })()}
-
       <div className="flex-1 min-h-0">
         {marketPhase === 'SPONSORS' ? <SponsorsTab /> : marketPhase === 'OVERVIEW' ? (
-          <div className="grid grid-cols-12 gap-6 h-full content-start">   {/* content-start: as linhas nao esticam para a altura toda */}
+          <div className="grid grid-cols-12 grid-rows-[auto_minmax(0,1fr)] gap-6 h-full">   {/* content-start: as linhas nao esticam para a altura toda */}
             <div className="col-span-12 grid grid-cols-5 gap-4">
                <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-2.5 shadow-xl transition-colors">
                   <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{t('dash_avail_balance')}</div>
@@ -189,11 +211,11 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                </div>
             </div>
 
-            <div className="col-span-8 bg-white/80 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col transition-colors shadow-lg h-full">
+            <div className="col-span-8 bg-white/80 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col transition-colors shadow-lg min-h-0">
               <div className="bg-slate-50 dark:bg-slate-950/60 px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center transition-colors">
                  <h3 className="text-xs font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">{t('fin_squad_payroll')}</h3>
               </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <div ref={listaRef} className="flex-1 overflow-y-auto custom-scrollbar">
                 <table className="w-full text-left">
                   <thead className="sticky top-0 z-10 shadow-sm">
                     <tr className="bg-slate-50 dark:bg-slate-900 text-[13px] tracking-wide text-slate-400 dark:text-slate-300 uppercase font-black">
@@ -220,16 +242,16 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                     {sortedTeamPlayers.map(p => (
                       <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
-                        <td className="px-6 py-2 font-bold text-sm text-slate-700 dark:text-slate-200"><span className="inline-block w-9 mr-2 text-center text-[10px] font-black text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded px-1 py-0.5 align-middle">{p.position}</span><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview" className="text-left hover:text-blue-500 dark:hover:text-blue-400 hover:underline transition-colors">{p.name}</button></td>
-                        <td className="px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400">{p.age}</td>
-                        <td className="px-4 py-2 text-center text-xs font-black text-blue-600 dark:text-blue-400">{p.skill}</td>
-                        <td className="px-4 py-2 text-right text-rose-500 text-sm font-mono">{formatWage(p.salary)}</td>
-                        <td className="px-4 py-2 text-center"><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview (contract)" className="cursor-pointer hover:brightness-125 transition"><ContractChip player={p} hoje={gameState.currentDate} /></button></td>
-                        <td className="px-6 py-2 text-right font-black text-sm text-slate-900 dark:text-white">
-                           <div className="flex flex-col items-end">
+                        <td className="px-6 py-1 font-bold text-sm text-slate-700 dark:text-slate-200"><span className="inline-block w-9 mr-2 text-center text-[10px] font-black text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded px-1 py-0.5 align-middle">{p.position}</span><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview" className="text-left hover:text-blue-500 dark:hover:text-blue-400 hover:underline transition-colors">{p.name}</button></td>
+                        <td className="px-4 py-1 text-center text-xs font-bold text-slate-500 dark:text-slate-400">{p.age}</td>
+                        <td className="px-4 py-1 text-center text-xs font-black text-blue-600 dark:text-blue-400">{p.skill}</td>
+                        <td className="px-4 py-1 text-right text-rose-500 text-sm font-mono">{formatWage(p.salary)}</td>
+                        <td className="px-4 py-1 text-center"><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview (contract)" className="cursor-pointer hover:brightness-125 transition"><ContractChip player={p} hoje={gameState.currentDate} /></button></td>
+                        <td className="px-6 py-1 text-right font-black text-sm text-slate-900 dark:text-white">
+                           <div className="relative flex flex-col items-end">
                               {formatCurrency(p.value)}
                               {windowOpen && (
-                                <button onClick={() => sellPlayer(p.id)} className="text-[8px] text-rose-600 uppercase mt-0.5 opacity-0 group-hover:opacity-100 font-bold hover:underline">{t('fin_sell')}</button>
+                                <button onClick={() => sellPlayer(p.id)} className="absolute -bottom-2 right-0 text-[8px] text-rose-600 uppercase opacity-0 group-hover:opacity-100 font-bold hover:underline">{t('fin_sell')}</button>
                               )}
                            </div>
                         </td>
@@ -240,7 +262,7 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
               </div>
             </div>
             
-            <div className="col-span-4 bg-white/80 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 p-6 flex flex-col gap-4 shadow-lg h-full">
+            <div className="col-span-4 bg-white/80 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 p-6 flex flex-col gap-4 shadow-lg min-h-0 overflow-y-auto custom-scrollbar">
                  <h3 className="text-xs font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest">{t('fin_summary')}</h3>
                  <div className="space-y-4">
                     <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800">
@@ -248,14 +270,14 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                         <div className="text-xl font-black text-slate-800 dark:text-white mt-1">{formatCurrency(orcamentoDaTemporada(userTeam))}</div>
                         {!!userTeam.sponsorContract && <div className="text-[9px] text-slate-400 mt-1">{formatCurrency(userTeam.initialCapital || 0)} + {t('fin_sponsor')} {formatCurrency(userTeam.sponsorContract.valorAnualUSD)}</div>}
                     </div>
-                     <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800">
+                     <div className="px-4 py-[6px] bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">{t('fin_transfer_budget')}</div>
                         {(() => {
                           const pool = orcamentoDaTemporada(userTeam), folha = folhaAnual(teamPlayers.map(p => p.salary));
                           const maxPct = Math.round(maxCompras(userTeam, folha) * 100), folhaPct = pool > 0 ? Math.min(100, (folha / pool) * 100) : 100;
                           const pct = Math.min(Math.round((userTeam.transferPct ?? PADRAO_COMPRAS) * 100), maxPct), pt = gameState.language === 'PT';
                           return (
-                            <div className="mt-3">
+                            <div className="mt-[7px]">
                               <div className="flex justify-between text-base font-black uppercase tracking-wide">
                                 <span className="text-emerald-600">{pt ? 'Compras' : 'Transfers'} {pct}% · {formatCurrency(userTeam.initialTransfer || 0)}</span>
                                 <span className="text-rose-500">{pt ? 'Salários' : 'Wages'} {100 - pct}% · {formatCurrency(orcamentoDaTemporada(userTeam) - (userTeam.initialTransfer || 0))}</span>
@@ -271,11 +293,17 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
                           );
                         })()}
                     </div>
-                    <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800">
+                    <div className="px-4 py-[6px] bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">{t('fin_avg_att')}</div>
                         <div className="text-xl font-black text-blue-600 mt-1">{formatNumber(userTeam.avrAttendance || 0)}</div>
                         <div className="text-[9px] text-slate-400 mt-1">Stadium capacity: {formatNumber(userTeam.stadiumCapacity || 0)}</div>
                     </div>
+                    <div className="px-4 py-[6px] bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">{gameState.language === 'PT' ? 'Arrecadação com ingressos' : 'Ticket sales revenue'}</div>
+                        <div className="text-xl font-black text-emerald-500 mt-1">{formatCurrency(userTeam.gateRevenue || 0)}</div>
+                        <div className="text-[9px] text-slate-400 mt-1">{gameState.language === 'PT' ? 'Custo do estádio' : 'Stadium cost'} {formatCurrency(userTeam.stadiumCosts || 0)} · {gameState.language === 'PT' ? 'Líquido' : 'Net'} {formatCurrency((userTeam.gateRevenue || 0) - (userTeam.stadiumCosts || 0))}</div>
+                    </div>
+                    <FinanceMonthlyChart salarioSemanalTotal={totalSalaries} />
                  </div>
             </div>
           </div>

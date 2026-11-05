@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Player } from '../types';
 import { useGame } from '../context/GameContext';
-import { EstadoContrato, diasRestantes, estadoDoContrato, faixaDeContrato, mesesRestantes, somarAnos } from '../textSim/contracts';
+import { EstadoContrato, diasRestantes, estadoDoContrato, faixaDeContrato, mesesRestantes, somarAnos, ajustarFim } from '../textSim/contracts';
+import { fimDaLiga } from '../textSim/contratoRegiao';
 import { salarioDeMercadoDaLiga } from '../textSim/salarios';
 import { ANOS_MAX, ANOS_MIN, chanceDeAceitar, humorDaOferta, propostaDoJogador } from '../textSim/negociacao';
 
@@ -49,6 +50,7 @@ const RenovarModal: React.FC<{ player: Player; hoje: string; onClose: () => void
   const [anos, setAnos] = useState(pedido.anos);
   const [resultado, setResultado] = useState<'ASSINADO' | 'EM_ANALISE' | null>(null);
   const pendente = negociacoes.find(n => n.playerId === player.id);
+  const fimDoContrato = (n: number) => { const fim = fimDaLiga(teams.find(t => t.id === player.teamId)?.leagueId), e = somarAnos(hoje, n); return fim ? ajustarFim(e, fim) : e; };   // 31/12 na America Latina, 30/06 na Europa
   const atual = player.contract;
   const chance = chanceDeAceitar(player, { salario, anos }, pedido);
   const humor = humorDaOferta(chance);
@@ -108,7 +110,7 @@ const RenovarModal: React.FC<{ player: Player; hoje: string; onClose: () => void
               </div>
               <div className="bg-amber-950/20 border border-amber-700/40 rounded-lg p-3">
                 <div className="text-[11px] font-black uppercase tracking-widest text-amber-400 mb-1">Player asks</div>
-                {linha('Wage / week', formatCurrency(pedido.salario), true)}{linha('vs current', variacao(pedido.salario, player.salary))}{linha('Length', `${pedido.anos} yr`, true)}{linha('Starts', dataCurta(hoje))}{linha('Expires', dataCurta(somarAnos(hoje, pedido.anos)))}
+                {linha('Wage / week', formatCurrency(pedido.salario), true)}{linha('vs current', variacao(pedido.salario, player.salary))}{linha('Length', `${pedido.anos} yr`, true)}{linha('Starts', dataCurta(hoje))}{linha('Expires', dataCurta(fimDoContrato(pedido.anos)))}
               </div>
               <div className="bg-emerald-950/30 border border-emerald-700/40 rounded-lg p-3 flex flex-col">
                 <div className="text-[11px] font-black uppercase tracking-widest text-emerald-400 mb-2">Your offer</div>
@@ -121,7 +123,7 @@ const RenovarModal: React.FC<{ player: Player; hoje: string; onClose: () => void
                   <div className="flex-1 text-center text-xl font-black text-white">{anos}</div>
                   <button onClick={() => setAnos(a => Math.min(ANOS_MAX, a + 1))} className="w-9 h-9 rounded bg-slate-800 hover:bg-slate-700 text-white font-black">+</button>
                 </div>
-                <div className="mt-3 text-xs text-slate-500">Ends {dataCurta(somarAnos(hoje, anos))} • {variacao(salario, pedido.salario)} vs his ask</div>
+                <div className="mt-3 text-xs text-slate-500">Ends {dataCurta(fimDoContrato(anos))} • {variacao(salario, pedido.salario)} vs his ask</div>
                 <button onClick={() => { setSalario(pedido.salario); setAnos(pedido.anos); }} className="mt-auto pt-3 text-left text-[11px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300">Use the ask</button>
               </div>
             </div>

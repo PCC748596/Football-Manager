@@ -6,7 +6,7 @@ muda no contrato e a moral cai. Tudo aqui e puro: o contexto do jogo guarda as n
 O sorteio da decisao tem semente (jogador + dia da decisao): recarregar o jogo nao muda a resposta.
 */
 import type { Contract, Player } from '../types';
-import { Rnd, criarRng, sortearDuracao, somarAnos } from './contracts';
+import { Rnd, criarRng, sortearDuracao, somarAnos, ajustarFim, FimContrato } from './contracts';
 
 export const MORAL_AO_ACEITAR = 8;
 export const MORAL_AO_RECUSAR = -15;
@@ -68,10 +68,10 @@ export const abrirNegociacao = (p: Player, oferta: Oferta, pedido: Oferta, hoje:
 });
 
 /** O contrato assinado com a oferta (comeca hoje). */
-export const contratoDaOferta = (oferta: Oferta, hoje: string): Contract => ({ start: hoje, end: somarAnos(hoje, oferta.anos), years: oferta.anos });
+export const contratoDaOferta = (oferta: Oferta, hoje: string, fim?: FimContrato): Contract => ({ start: hoje, end: fim ? ajustarFim(somarAnos(hoje, oferta.anos), fim) : somarAnos(hoje, oferta.anos), years: oferta.anos });
 
 /** Assina na hora (o treinador aceitou a proposta do jogador): contrato novo, salario novo, moral em alta. */
-export const assinar = (p: Player, oferta: Oferta, hoje: string): Player => ({ ...p, contract: contratoDaOferta(oferta, hoje), salary: oferta.salario, morale: moral((p.morale ?? 50) + MORAL_AO_ACEITAR) });
+export const assinar = (p: Player, oferta: Oferta, hoje: string, fim?: FimContrato): Player => ({ ...p, contract: contratoDaOferta(oferta, hoje, fim), salary: oferta.salario, morale: moral((p.morale ?? 50) + MORAL_AO_ACEITAR) });
 
 export interface Resposta { negociacao: Negociacao; aceitou: boolean; jogador: Player; chance: number; }
 
@@ -79,7 +79,7 @@ export interface Resposta { negociacao: Negociacao; aceitou: boolean; jogador: P
  * Resolve as negociacoes cujo dia chegou. Quem ja nao esta no clube do utilizador (vendido, contrato acabado) cancela sem resposta. Devolve as negociacoes que continuam,
  * os jogadores atualizados (contrato e salario novos e moral mais alta; ou so a moral mais baixa) e as respostas (para a Inbox).
  */
-export const resolverNegociacoes = (negociacoes: Negociacao[], jogadores: Player[], hoje: string, donoId: string):
+export const resolverNegociacoes = (negociacoes: Negociacao[], jogadores: Player[], hoje: string, donoId: string, fim?: FimContrato):
   { negociacoes: Negociacao[]; jogadores: Player[]; respostas: Resposta[] } => {
   if (!negociacoes.some(n => hoje >= n.decide)) return { negociacoes, jogadores, respostas: [] };
   const respostas: Resposta[] = [];
@@ -92,7 +92,7 @@ export const resolverNegociacoes = (negociacoes: Negociacao[], jogadores: Player
     const chance = chanceDeAceitar(p, n.oferta, n.pedido);
     const aceitou = criarRng(`decide|${n.id}|${n.decide}`)() < chance;
     const novo: Player = aceitou
-      ? { ...p, contract: contratoDaOferta(n.oferta, hoje), salary: n.oferta.salario, morale: moral((p.morale ?? 50) + MORAL_AO_ACEITAR) }
+      ? { ...p, contract: contratoDaOferta(n.oferta, hoje, fim), salary: n.oferta.salario, morale: moral((p.morale ?? 50) + MORAL_AO_ACEITAR) }
       : { ...p, morale: moral((p.morale ?? 50) + MORAL_AO_RECUSAR) };
     lista = lista.map(x => (x.id === p.id ? novo : x));
     respostas.push({ negociacao: n, aceitou, jogador: novo, chance });

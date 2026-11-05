@@ -724,7 +724,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
             ) : (
               <div className="grid grid-cols-4 gap-3">
                 {resultadosRecentes.map(({ f, casa, fora, res }) => (
-                  <div key={f.id} className={`relative overflow-hidden rounded-lg border h-[76px] flex flex-col items-center justify-center ${res === 'V' ? 'border-emerald-500/50 bg-emerald-500/10' : res === 'D' ? 'border-rose-500/50 bg-rose-500/10' : 'border-amber-400/50 bg-amber-400/10'}`}>
+                  <div key={f.id} className={`relative overflow-hidden rounded-lg border h-[76px] flex flex-col items-center justify-center ${res === 'V' ? 'border-emerald-900 bg-emerald-950' : res === 'D' ? 'border-rose-500/50 bg-rose-500/10' : 'border-amber-400/50 bg-amber-400/10'}`}>
                     <div className="absolute -left-12 top-1/2 -translate-y-1/2 w-[100px] h-[120px] opacity-90 pointer-events-none"><TeamShield team={casa} className="w-full h-full" /></div>
                     <div className="absolute -right-12 top-1/2 -translate-y-1/2 w-[100px] h-[120px] opacity-90 pointer-events-none"><TeamShield team={fora} className="w-full h-full" /></div>
                     <div className="text-xl font-black italic text-slate-800 dark:text-white leading-none">{f.homeScore} - {f.awayScore}</div>
