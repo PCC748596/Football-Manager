@@ -46,6 +46,60 @@ function estiloDe(p) {
 }
 
 /*
+ROTA DO ALA (Roaming Flank / Prolific Winger / Cross Specialist) — o que fazer com a bola no pé
+depois de passar os defensores, e para onde infiltrar. Vem de `rotaAla` no estilo:
+    'meio'  Roaming Flank: livre à frente, vai para o GOL; na ponta com espaço no meio nas costas da defesa, infiltra pelo meio.
+    'fundo' Prolific Winger: livre à frente, segue para a LINHA DE FUNDO (e cruza); infiltra na direcção da linha de fundo.
+    'ponta' Cross Specialist: vai para a PONTA, colado à linha, para cruzar.
+Não usa `estiloAtivoDe`: o `avaliarEstilo` desliga o estilo conforme o lado da bola, e o portador tem de ter a rota sempre.
+Só no meio-campo de ataque e nunca em recuo.
+*/
+function rotaDeAla(p) {
+    if (!p || !p.model || p.playingStyleDesligado || !p.playingStyle || p.carryRecuo) return null;
+    if (typeof Config !== 'undefined' && Config.usePlayingStyles === false) return null;
+    if (p.pos !== 'LW' && p.pos !== 'RW' && p.pos !== 'LM' && p.pos !== 'RM') return null;
+    if (p.model.position.z * p.dirZ <= 0) return null;
+    return estiloDe(p).rotaAla || null;
+}
+
+// Sem nenhum adversário de campo à frente (até `alcance` m, a menos de `lado` m de largura): os defensores já ficaram para trás.
+function alaLivreAFrente(p, alcance, lado) {
+    const lista = (p.team === 'TeamA') ? Match.opponents : Match.players;
+    const px = p.model.position.x, pz = p.model.position.z;
+    for (const o of lista) {
+        if (!o || !o.model || o.role === 'gk' || o.expulso) continue;
+        const dz = (o.model.position.z - pz) * p.dirZ;
+        if (dz > 0 && dz < alcance && Math.abs(o.model.position.x - px) < lado) return false;
+    }
+    return true;
+}
+
+/*
+Progresso (0..1) de um candidato de condução (px,pz -> tx,tz) para quem tem rota de ala; `null` = não se aplica (fica o cálculo normal).
+*/
+function progressoDeAla(p, rota, px, pz, tx, tz, visDist, golZ) {
+    const lado = Math.sign(px) || 1;
+    if (rota === 'meio') {
+        if (typeof golZ !== 'number') return null;
+        const dA = Math.hypot(px, golZ - pz), dB = Math.hypot(tx, golZ - tz);
+        return Math.max(0, Math.min(1, (dA - dB) / visDist));
+    }
+    const prof = Math.max(0, ((tz - pz) * p.dirZ) / visDist);
+    if (rota === 'fundo') {
+        // Para a linha de fundo, sem cortar para dentro.
+        const paraDentro = Math.max(0, (Math.abs(px) - Math.abs(tx)) / visDist);
+        return Math.max(0, Math.min(1, prof - paraDentro));
+    }
+    if (rota === 'ponta') {
+        // Para a ponta: premeia ficar/ir para a linha lateral além de avançar.
+        const alaX = (typeof CrossModel !== 'undefined' && CrossModel.alaX) || 14;
+        const fora = Math.max(0, Math.min(1, (Math.abs(tx) - Math.abs(px)) / visDist + (Math.abs(tx) >= alaX ? 0.3 : 0)));
+        return Math.max(0, Math.min(1, 0.6 * prof + 0.4 * fora));
+    }
+    return null;
+}
+
+/*
 O estilo EM VIGOR neste frame.
 
 É esta a função que as folhas de posicionamento e de decisão devem usar. Um

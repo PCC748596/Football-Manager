@@ -778,7 +778,9 @@ const PassModel = {
         folgaTempo: 0.35,
         desvioDirecto: 1.0,
         distIniciaMovimento: 2.5,
-        velMinDirecto: 1.5
+        velMinDirecto: 4.0,
+        // Bola mais lenta que isto (m/s): ninguém espera parado, vai buscá-la.
+        velBolaLenta: 4.0
     },
 
     /*

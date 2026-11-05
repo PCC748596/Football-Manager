@@ -2041,6 +2041,10 @@ class PlayerFSM {
                         const distBalizaAgora = (alvoBalizaZ !== null)
                             ? Math.hypot(px, alvoBalizaZ - pz) : Infinity;
 
+                        // Ala (Roaming Flank / Prolific Winger / Cross Specialist) livre dos defensores: a rota do estilo manda no progresso (ver rotaDeAla).
+                        const rotaAla = (typeof rotaDeAla === 'function') ? rotaDeAla(p) : null;
+                        const alaLivre = !!rotaAla && alaLivreAFrente(p, 6.0, 4.0);
+
                         // Gera ângulos dinamicamente dentro do cone de visão do jogador
                         const passos = 9;
                         for (let k = 0; k < passos; k++) {
@@ -2125,6 +2129,10 @@ class PlayerFSM {
                                 progressoNorm = 0.5 * ganhoDist + 0.5 * ganhoAng;
                             } else {
                                 progressoNorm = Math.max(0, Math.min(1, ((tz - pz) * sentido) / visDist));
+                            }
+                            if (alaLivre) {
+                                const pa = progressoDeAla(p, rotaAla, px, pz, tx, tz, visDist, alvoBalizaZ);
+                                if (pa !== null) progressoNorm = pa;
                             }
                             // Se estiver na defesa com adversários perto à frente, reduz drasticamente o valor do avanço frontal
                             if ((pz * p.dirZ < 0 || p.role === 'def') && maisPerto < 16.0) {

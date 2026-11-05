@@ -1436,7 +1436,10 @@ const EstiloBase = {
     pressao: 1.0, cadencia: 1.0, tabela: 1.0,
     ombroDefesa: false, dentroArea: false, seguraBola: false,
     atraiDefesa: false, cortaParaDentro: false, colaNaLinha: false,
-    juntaSeAoAtaque: false
+    juntaSeAoAtaque: false,
+    // Rota do ala depois de passar os defensores / ao infiltrar (ver rotaDeAla, playing_styles.js):
+    // 'meio' = para o gol; 'fundo' = linha de fundo para cruzar; 'ponta' = a ponta, colado à linha, para cruzar.
+    rotaAla: null
 };
 
 const PlayingStyles = {
@@ -1494,7 +1497,8 @@ const PlayingStyles = {
         // mais aberto na ponta esperando a bola para poder cruzar" — nunca
         // fecha, cola na linha (mesmo mecanismo do Cross Specialist).
         largura: 4, remate: 1.2, cruzar: 1.1,
-        colaNaLinha: true
+        colaNaLinha: true,
+        rotaAla: 'fundo'
     },
     roaming_flank: {
         nome: 'Roaming Flank', posicoes: ['LW', 'RW', 'LM', 'RM'],
@@ -1502,12 +1506,14 @@ const PlayingStyles = {
         // "abre pelas pontas, mas se o jogo vai para o meio ele fecha mais
         // para dar opção de passe" — fecha com a bola CENTRAL, não fundo.
         largura: -4, passe: 1.15, conduzir: 1.2,
-        fechaComBolaCentral: true
+        fechaComBolaCentral: true,
+        rotaAla: 'meio'
     },
     cross_specialist: {
         nome: 'Cross Specialist', posicoes: ['LW', 'RW', 'LM', 'RM'],
         largura: 7, cruzar: 1.6, conduzir: 0.9, remate: 0.7,
-        colaNaLinha: true
+        colaNaLinha: true,
+        rotaAla: 'ponta'
     },
 
 

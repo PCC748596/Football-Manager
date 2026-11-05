@@ -76,7 +76,7 @@ const CrowdModel = {
     A camisa e o meia vermelhos do atlas sao trocados no shader pela cor da claque (`aCor`, ver `recolorir`); pele, cabelo e calcao ficam como estao no desenho.
     */
     sprites: {
-        ativo: 'tablet',
+        ativo: true,                  // sprite tambem no PC (pedido: gostou da torcida do tablet). 'tablet' = so ecra de toque; `?torcida=3d` forca o 3D
         cols: 5, rows: 4,
         celulaW: 168, celulaH: 235,   // px de uma celula do atlas
         pxPorMetro: 120,              // escala: o boneco de pe tem ~1.75 m (210 px)

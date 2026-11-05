@@ -3091,8 +3091,15 @@ function actReceivePass(ctx) {
         e ir ao encontro da bola continua a ser o certo.
         */
         const R = (typeof PassModel !== 'undefined') ? PassModel.recepcao : null;
+        /*
+        BOLA LENTA: VAI-SE BUSCÁ-LA. Abaixo de `velBolaLenta` (4 m/s) ela não
+        chega sozinha em tempo útil; esperar parado não existe no futebol.
+        Sem ponto do espaço, sem histerese de espera: corre à bola.
+        */
+        const velBolaH = Math.hypot(Match.ballVel.x, Match.ballVel.z);
+        const bolaLenta = velBolaH < ((R && R.velBolaLenta) || 4.0);
         let alvoDoEspaco = null;
-        if (R && Match.passTargetPos && Match.intendedReceiver === p &&
+        if (!bolaLenta && R && Match.passTargetPos && Match.intendedReceiver === p &&
             typeof tempoDoJogadorAte === 'function') {
             const ax = Match.passTargetPos.x, az = Match.passTargetPos.z;
             const dx = ax - p.model.position.x, dz = az - p.model.position.z;
@@ -3122,7 +3129,16 @@ function actReceivePass(ctx) {
             }
         }
 
-        if (alvoDoEspaco) {
+        if (bolaLenta) {
+            p.speedMult = (5.8 + ((ctx.skillSpeed - 50) / 50) * 1.5) * 1.25 * 0.9;
+            if (bb && bb.interceptionPoint) {
+                p.dynamicTarget.set(bb.interceptionPoint.x, ALTURA_BASE_Y, bb.interceptionPoint.z);
+            } else {
+                p.dynamicTarget.copy(bola);
+            }
+            p.fsm.changeState('MOVE_TO_POS');
+            return;
+        } else if (alvoDoEspaco) {
             p.dynamicTarget.set(alvoDoEspaco.x, ALTURA_BASE_Y, alvoDoEspaco.z);
         } else if (bb && bb.interceptionPoint) {
             p.dynamicTarget.set(bb.interceptionPoint.x, ALTURA_BASE_Y, bb.interceptionPoint.z);
@@ -3332,6 +3348,9 @@ function podeInfiltrar(ctx) {
         }
         if (ee.afinidade && p.playingStyle && ee.afinidade[p.playingStyle] && !p.playingStyleDesligado) chance *= 1.5;
     }
+
+    // Os alas com rota (Roaming Flank / Prolific Winger / Cross Specialist) rompem mais quando há vão nas costas da defesa.
+    if (typeof rotaDeAla === 'function' && rotaDeAla(p)) chance *= 2.0;
 
     if (Math.random() < chance) return true;
 
@@ -3586,7 +3605,28 @@ function actInfiltrar(ctx) {
             }
         }
 
-        p.runTimer = (typeof RunIntoSpaceModel !== 'undefined' && RunIntoSpaceModel.duracaoCorrida) || 6.0; // corre durante uns segundos
+        /*
+        ROTA DO ALA NA INFILTRAÇÃO (rotaDeAla, playing_styles.js).
+        'meio': na ponta, com vão no meio nas costas dos defensores, entra pelo meio (senão, pelo menos fecha em direcção ao eixo).
+        'fundo'/'ponta': corre pela ponta na direcção da linha de fundo, sem fechar — o ponto livre do meio não lhe serve.
+        */
+        const rotaInf = (typeof rotaDeAla === 'function') ? rotaDeAla(p) : null;
+        if (rotaInf) {
+            const lado = Math.sign(p.model.position.x) || 1;
+            if (rotaInf === 'meio') {
+                if (!(p.runEspaco && Math.abs(targetX) < Math.abs(p.model.position.x) * 0.6)) {
+                    targetX = p.model.position.x * 0.3;
+                    p.runEspaco = false;
+                }
+            } else {
+                const alaX = (typeof CrossModel !== 'undefined' && CrossModel.alaX) || 14;
+                targetX = lado * Math.max(Math.abs(p.model.position.x), alaX);
+                avancoFinal = avancoDestino;
+                p.runEspaco = false;
+            }
+        }
+
+        p.runTimer =(typeof RunIntoSpaceModel !== 'undefined' && RunIntoSpaceModel.duracaoCorrida) || 6.0; // corre durante uns segundos
         p.runCarrier = Match.ballCarrier;
         // Guardado para ser REESCRITO em cada frame da corrida (ver o topo).
         p.runAlvo = { x: targetX, z: avancoFinal * p.dirZ };
