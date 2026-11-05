@@ -2,11 +2,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import basicSsl from '@vitejs/plugin-basic-ssl';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 import fs from 'fs';
+import http from 'http';
 import { createRequire } from 'module';
 const require_ = createRequire(import.meta.url);
 
@@ -227,18 +229,43 @@ self.addEventListener('fetch', (e) => {
   };
 }
 
+// Certificado proprio com o IP da rede (.certs/, ver .certs/san.cnf): o do basicSsl so vale para localhost e o Safari do iPad aborta a ligacao por IP. Sem os ficheiros, cai no basicSsl.
+const certProprio = fs.existsSync(path.resolve(__dirname, '.certs/dev-cert.pem')) && fs.existsSync(path.resolve(__dirname, '.certs/dev-key.pem'))
+  ? { cert: fs.readFileSync(path.resolve(__dirname, '.certs/dev-cert.pem')), key: fs.readFileSync(path.resolve(__dirname, '.certs/dev-key.pem')) }
+  : null;
+
+// Serve o certificado de desenvolvimento por HTTP simples (porta 3001) para o iPad o instalar (Ajustes > Perfil transferido) e o Safari / o atalho da tela inicial passarem a confiar no https do dev.
+function certDevPlugin() {
+  return {
+    name: 'cert-dev',
+    apply: 'serve' as const,
+    configureServer(server: any) {
+      if (!certProprio) return;
+      const srv = http.createServer((req, res) => {
+        res.writeHead(200, { 'Content-Type': 'application/x-x509-ca-cert', 'Content-Disposition': 'attachment; filename="footmanager-dev.crt"' });
+        res.end(fs.readFileSync(path.resolve(__dirname, '.certs/dev-cert.pem')));
+      });
+      srv.on('error', () => { /* porta ocupada: ignora */ });
+      srv.listen(3001, '0.0.0.0');
+      server.httpServer?.once('close', () => srv.close());
+    }
+  };
+}
+
 export default defineConfig(() => {
     return {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        ...(certProprio ? { https: certProprio } : {}),
       },
       // O build servido (npm run preview) tambem na rede de casa: sem isto o Vite so escuta no proprio PC.
       preview: {
         port: 4173,
         host: '0.0.0.0',
+        ...(certProprio ? { https: certProprio } : {}),
       },
-      plugins: [react(), countryDataPlugin(), databaseSaverPlugin(), facesSaverPlugin(), saveGameLocalPlugin(), simulador3dPlugin(), pwaOfflinePlugin()],
+      plugins: [...(certProprio ? [] : [basicSsl()]), certDevPlugin(), react(), countryDataPlugin(), databaseSaverPlugin(), facesSaverPlugin(), saveGameLocalPlugin(), simulador3dPlugin(), pwaOfflinePlugin()],
       // Caminhos relativos no build: o jogo instalado (PWA) abre de qualquer pasta / sub-caminho.
       base: './',
       resolve: {
