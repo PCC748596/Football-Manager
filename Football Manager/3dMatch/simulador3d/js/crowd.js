@@ -68,6 +68,29 @@ const CrowdModel = {
     // Em tablet/telemovel as fatias sao mais pequenas: o corte tira o que esta fora do ecra POR FATIA, e com 9 fatias de 600 desenhavam-se 4 a 5 (medido num iPad: ~2 M de triangulos, 25 fps).
     // Fatias de 200 (a esfera de cada uma e mais justa) cortam bem mais da torcida fora do ecra, ao custo de mais malhas por fatia.
     tamanhoDaFatiaTablet: 200,
+    /*
+    ADEPTOS EM SPRITE (pedido: encher o estadio no tablet, onde o 3D de 304 triangulos por adepto da fps baixo): cada adepto e UM quad (2 triangulos) com um boneco de pixel art tirado do atlas
+    `assets/torcida_atlas.js` (gerado por tools/sprites/gerar_atlas_torcida.py a partir do spritesheet). O quad fica virado para o campo como o adepto 3D (rotY do lugar), nao segue a camara.
+    `ativo`: false = sempre 3D; true = sempre sprite; 'tablet' = sprite so em ecra de toque. `?torcida=sprite` / `?torcida=3d` na URL forcam um dos dois (para comparar no PC).
+    Poses (celula = linha*5 + coluna do atlas): sentado 10, sentado a bater palmas 19, de pe parado `deParado` (um por adepto), de pe a bater palmas 9, a festejar `festejo` (um por adepto).
+    A camisa e o meia vermelhos do atlas sao trocados no shader pela cor da claque (`aCor`, ver `recolorir`); pele, cabelo e calcao ficam como estao no desenho.
+    */
+    sprites: {
+        ativo: 'tablet',
+        cols: 5, rows: 4,
+        celulaW: 168, celulaH: 235,   // px de uma celula do atlas
+        pxPorMetro: 120,              // escala: o boneco de pe tem ~1.75 m (210 px)
+        folgaBase: 4,                 // px entre os pes e o fundo da celula
+        escalaSentado: 0.88,          // o boneco sentado e desenhado com os pes ao nivel do de pe; encolhe-se um pouco
+        fatia: 800,                   // adeptos por malha (2 triangulos cada: pode ser bem maior que a do 3D)
+        brilho: 0.95,
+        // Profundidade: cada adepto e DOIS quads cruzados a 90 graus (4 triangulos), para nao sumir visto de lado (o quad unico fica de perfil).
+        cruzado: true,
+        // Fracao dos adeptos (os dos lugares mais baixos, as fileiras da frente, mais perto do campo e das cameras) que continua com o modelo 3D completo no tablet. 0 = todos em sprite.
+        fracao3d: 0.10,
+        deParado: [[8, 0.7], [3, 0.3]],           // [celula, peso]
+        festejo: [[1, 0.3], [2, 0.25], [6, 0.2], [5, 0.15], [4, 0.10]]
+    },
     detalheAte: 60,        // metros: mais longe que isto a fatia usa o shader simplificado (sem aplausos nem cabecas a virar)
     viewportCull: 0.9,     // so se desenha o que cai nos 90% centrais do ecra (pedido; era 1.2x)
     total: 10000,
@@ -951,6 +974,145 @@ void crowdPesos(out float dePe, out float w1, out float w2,
     },
 
     /*
+    ADEPTOS EM SPRITE (ver `CrowdModel.sprites`). Decide se esta construcao da torcida usa o atlas em vez do modelo 3D.
+    */
+    _usarSprites(emToque) {
+        const S = CrowdModel.sprites;
+        if (!S || typeof window === 'undefined' || !window.TORCIDA_ATLAS || typeof Image === 'undefined') return false;
+        let q = null;
+        try { q = new URLSearchParams(window.location.search).get('torcida'); } catch (e) { /* sem URL */ }
+        if (q === 'sprite') return true;
+        if (q === '3d') return false;
+        return S.ativo === true || (S.ativo === 'tablet' && !!emToque);
+    },
+
+    // A textura do atlas, carregada UMA vez e partilhada por todas as fatias (e pelas reconstrucoes).
+    _texturaAtlas() {
+        if (this._atlasTex) return this._atlasTex;
+        const img = new Image();
+        const tex = new THREE.Texture(img);
+        tex.magFilter = THREE.NearestFilter;                  // pixel art nitido de perto
+        tex.minFilter = THREE.LinearMipmapLinearFilter;       // sem cintilar de longe
+        tex.generateMipmaps = true;
+        tex.flipY = true;
+        img.onload = () => { tex.needsUpdate = true; };
+        img.src = window.TORCIDA_ATLAS;
+        return (this._atlasTex = tex);
+    },
+
+    // Escolhe uma celula de uma lista [[celula, peso], ...] com um numero em 0..1.
+    _escolherCelula(lista, r) {
+        let soma = 0; for (const it of lista) soma += it[1];
+        let x = r * soma;
+        for (const it of lista) { x -= it[1]; if (x < 0) return it[0]; }
+        return lista[lista.length - 1][0];
+    },
+
+    /*
+    O material dos sprites: MeshBasicMaterial (fog e tone mapping de graca) com o vertex shader trocado pelo do quad. O estado do adepto sai dos MESMOS uniforms e da mesma comparacao com o
+    limiar que o 3D usa (`crowdPesos`): sentado, de pe, a festejar, a bater palmas — so que aqui cada estado e UMA celula do atlas em vez de um morph.
+    Atributos por instancia: aAdepto (limiar, fase, ritmo, claque), aVar (celula de pe parado, celula de festejo, brilho), aCor (cor da camisa). O GLSL e ASCII (ver _aplicarShader).
+    */
+    _materialSprites(uniforms) {
+        const S = CrowdModel.sprites;
+        const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });   // DoubleSide: o quad cruzado ve-se dos dois lados
+        mat.userData.uDetalhe = { value: 1 };
+        mat.onBeforeCompile = (shader) => {
+            for (const k in uniforms) shader.uniforms[k] = uniforms[k];
+            const quadW = S.celulaW / S.pxPorMetro, quadH = S.celulaH / S.pxPorMetro;
+            shader.uniforms.uAtlas = { value: this._texturaAtlas() };
+            shader.uniforms.uSpr = { value: new THREE.Vector4(S.cols, S.rows, quadW, quadH) };
+            shader.uniforms.uSprAjuste = { value: new THREE.Vector3(S.folgaBase / S.pxPorMetro, S.escalaSentado, S.brilho) };
+            const prefixoV = `
+attribute vec4 aAdepto;
+attribute vec4 aVar;
+attribute vec3 aCor;
+uniform float uTempo;
+uniform float uSobeDePe;
+uniform float uDurTransicao;
+uniform float uBobDePe;
+uniform float uSalto;
+uniform float uRitmoSalto;
+uniform vec2 uFracSalto;
+uniform vec2 uFracAnt;
+uniform vec2 uFracNova;
+uniform vec2 uTempoTroca;
+uniform vec2 uFesta;
+uniform float uEspalhar;
+uniform float uAplauso;
+uniform vec2 uFracPalmas;
+uniform float uPalmasFirme;
+uniform vec4 uSpr;
+uniform vec3 uSprAjuste;
+varying vec2 vUvS;
+varying vec3 vCor;
+varying float vTint;
+`;
+            const corpoV = `
+    bool claqueA = aAdepto.w < 0.5;
+    float fAnt = claqueA ? uFracAnt.x : uFracAnt.y;
+    float fNova = claqueA ? uFracNova.x : uFracNova.y;
+    float tTroca = claqueA ? uTempoTroca.x : uTempoTroca.y;
+    float festa = claqueA ? uFesta.x : uFesta.y;
+    float antes = step(aAdepto.x, fAnt);
+    float depois = step(aAdepto.x, fNova);
+    float atraso = fract(aAdepto.y * 0.15915 + aAdepto.x * 3.7) * uEspalhar;
+    float durA = uDurTransicao * (0.6 + 0.8 * fract(aAdepto.z * 57.3 + aAdepto.x * 5.1));
+    float k = clamp((uTempo - tTroca - atraso) / max(durA, 0.0001), 0.0, 1.0);
+    float dePe = mix(antes, depois, smoothstep(0.0, 1.0, k));
+    float fSalto = claqueA ? uFracSalto.x : uFracSalto.y;
+    float ultra = step(fract(aAdepto.x * 7.3), fSalto);
+    dePe = max(dePe, ultra);
+    festa = max(festa, ultra);
+    bool de = dePe > 0.5;
+    bool fest = de && festa > 0.5;
+    // palmas em rajadas, sentado ou de pe (nao durante a festa)
+    float quem = step(fract(aAdepto.x * 37.1), claqueA ? uFracPalmas.x : uFracPalmas.y);
+    float rajada = mix(smoothstep(0.1, 0.5, sin(uTempo * 0.4 * aAdepto.z + aAdepto.y * 1.7)), 1.0, uPalmasFirme);
+    bool palmas = (quem * rajada * uAplauso > 0.5) && !fest;
+    float cel = fest ? aVar.y : (palmas ? (de ? 9.0 : 19.0) : (de ? aVar.x : 10.0));
+    float cc = mod(cel, uSpr.x);
+    float rr = floor(cel / uSpr.x);
+    vUvS = vec2((cc + position.x + 0.5) / uSpr.x, 1.0 - (rr + 1.0 - position.y) / uSpr.y);
+    vCor = aCor;
+    vTint = aVar.z * uSprAjuste.z;
+    float esc = de ? 1.0 : uSprAjuste.y;
+    vec3 transformed = vec3(position.x * uSpr.z * esc, position.y * uSpr.w * esc - uSprAjuste.x * esc, 0.0);
+    // o segundo quad (position.z = 1): o mesmo desenho rodado 90 graus em torno do eixo vertical
+    if (position.z > 0.5) { transformed.z = transformed.x; transformed.x = 0.0; }
+    float osc = 0.5 + 0.5 * sin(uTempo * 1.6 * aAdepto.z + aAdepto.y);
+    transformed.y += uSobeDePe * (de ? 1.0 : 0.0);
+    transformed.y += uBobDePe * (de && !fest ? 1.0 : 0.0) * (osc - 0.5);
+    transformed.y += uSalto * (fest ? 1.0 : 0.0) * abs(sin(uTempo * uRitmoSalto * aAdepto.z + aAdepto.y));
+`;
+            const prefixoF = `
+uniform sampler2D uAtlas;
+varying vec2 vUvS;
+varying vec3 vCor;
+varying float vTint;
+`;
+            const corpoF = `
+    vec4 sp = texture2D(uAtlas, vUvS);
+    if (sp.a < 0.5) discard;
+    vec3 sc = sp.rgb;
+    // camisa e meias (o vermelho do desenho) -> a cor da claque, mantendo o sombreado do pixel art
+    float vermelho = smoothstep(0.18, 0.34, sc.r - max(sc.g, sc.b));
+    float lum = dot(sc, vec3(0.30, 0.59, 0.11));
+    sc = mix(sc, vCor * (lum / 0.33), vermelho);
+    diffuseColor.rgb = sc * vTint;
+`;
+            const v0 = shader.vertexShader, f0 = shader.fragmentShader;
+            shader.vertexShader = prefixoV + v0.replace('#include <begin_vertex>', corpoV);
+            shader.fragmentShader = prefixoF + f0.replace('#include <map_fragment>', corpoF);
+            if (shader.vertexShader.indexOf('vUvS = vec2') === -1 || shader.fragmentShader.indexOf('uAtlas, vUvS') === -1) {
+                console.warn('Crowd (sprites): o patch dos shaders nao pegou — os chunks begin_vertex/map_fragment mudaram?');
+            }
+        };
+        mat.needsUpdate = true;
+        return mat;
+    },
+
+    /*
     AS CORES DOS ADEPTOS A PARTIR DAS EQUIPAS EM CAMPO. `cores` = { A: {principal, cor1, cor2, calcao},
     B: {...} } (ver `coresDaEquipa`). Cada adepto veste a camisa do clube (50%), a cor 1 (25%) ou a
     cor 2 (25%); calcas compridas ou o calcao do clube; bone na cor 1 ou 2. Chama-se depois de
@@ -969,6 +1131,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                 const K = eq.kits;
                 const kit = K ? (f.cam === 0 ? K.atual : f.cam === 1 ? (K.outras.length ? K.outras[Math.min(K.outras.length - 1, Math.floor(f.sub * K.outras.length))] : K.atual) : f.cam === 2 ? K.cor : (K.gk || K.cor)) : null;
                 const camHex = kit ? kit.principal : (f.cam === 0 ? eq.principal : (f.cam === 1 ? eq.cor1 : eq.cor2));
+                if (g.sprite) { c.set(camHex); g.sprite.geometry.attributes.aCor.setXYZ(f.i, c.r, c.g, c.b); }
                 if (g.camisa) g.camisa.setColorAt(f.i, tom(camHex, f.k));
                 if (g.peito) g.peito.setColorAt(f.i, tom(camHex, f.k));
                 // A camisa do GOLEIRO leva manga comprida: o braco (sem a mao) na cor da camisa; os outros adeptos, pele.
@@ -994,6 +1157,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                     }
                 }
             }
+            if (g.sprite) g.sprite.geometry.attributes.aCor.needsUpdate = true;
             for (const n of ['camisa', 'peito', 'antebraco', 'calcao', 'perna', 'bone', 'listraV', 'listraH']) {
                 if (g[n] && g[n].instanceColor) g[n].instanceColor.needsUpdate = true;
                 if (g[n] && (n === 'listraV' || n === 'listraH')) g[n].instanceMatrix.needsUpdate = true;
@@ -1358,8 +1522,10 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         this._cena = scene;
         this._lugares = lugares;
 
-        const geos = this.geometrias();
-        const canais = Object.keys(geos);
+        // As geometrias 3D so se constroem se a torcida for 3D: em sprite (ver `_usarSprites`, mais abaixo) nao ha canais de cor.
+        let geos = {};
+        let canais = [];
+        let sprite = false;
         
         let crowdLimit = CrowdModel.total;
         let emTablet = false;
@@ -1372,6 +1538,11 @@ void crowdPesos(out float dePe, out float w1, out float w2,
             // SEM TETO NO TABLET (pedido): a torcida e a de qualquer ecra (so as fatias menores, `tamanhoDaFatiaTablet`, para o corte do que esta fora do ecra).
             emTablet = isTabletOrMobile;
         }
+        sprite = this._usarSprites(emTablet);
+        // No tablet (sprite) uma fracao dos adeptos (`sprites.fracao3d`) continua em 3D completo: as geometrias 3D constroem-se tambem.
+        const fracao3d = (sprite && CrowdModel.sprites && CrowdModel.sprites.fracao3d > 0) ? CrowdModel.sprites.fracao3d : 0;
+        if (!sprite || fracao3d > 0) { geos = this.geometrias(); canais = Object.keys(geos); }
+        this._modoSprite = sprite;
         
         /*
         A TORCIDA E UMA FRACAO DOS LUGARES do estadio (Qualidade.cfg().adeptos: HIGH 100%, MEDIUM 50%, LOW 25%), seja qual for o estadio; sem `Qualidade` vale o
@@ -1560,21 +1731,35 @@ void crowdPesos(out float dePe, out float w1, out float w2,
 
         // 4 InstancedMesh (um por canal de cor) para o total de adeptos
         // Fatias de ~1500 adeptos (por angulo, em volta do estadio): permitem NAO desenhar o que esta fora do ecra (ver `cullar`). Uma fatia so (`nTotal`) desenhava a torcida toda sempre.
-        const TAMANHO_CHUNK = Math.max(1, (emTablet ? CrowdModel.tamanhoDaFatiaTablet : CrowdModel.tamanhoDaFatia) || nTotal);
+        const matSprite = sprite ? this._materialSprites(uniforms) : null;
         this._esferas = [];
-        const numChunks = Math.ceil(nTotal / TAMANHO_CHUNK);
         this._grupos = [];
         this._fansPorGrupo = [];
+        let numChunks = 0;
 
-        for (let c = 0; c < numChunks; c++) {
+        // A lista de lugares de cada modo: no tablet os `fracao3d` mais baixos (as fileiras da frente) ficam em 3D completo, o resto em sprite.
+        let listaSprite = lugaresEscolhidos, lista3d = [];
+        if (sprite && fracao3d > 0 && lugaresEscolhidos.length) {
+            const nFrente = Math.round(lugaresEscolhidos.length * fracao3d);
+            const frente = new Set(lugaresEscolhidos.slice().sort((x, y) => x.y - y.y).slice(0, nFrente));
+            listaSprite = lugaresEscolhidos.filter(l => !frente.has(l));
+            lista3d = lugaresEscolhidos.filter(l => frente.has(l));
+        }
+
+        const montarFatias = (lista, modoSprite) => {
+        const canaisModo = modoSprite ? [] : canais;
+        const TAMANHO_CHUNK = Math.max(1, (modoSprite ? CrowdModel.sprites.fatia : (emTablet ? CrowdModel.tamanhoDaFatiaTablet : CrowdModel.tamanhoDaFatia)) || lista.length);
+        const nChunks = Math.ceil(lista.length / TAMANHO_CHUNK);
+        numChunks += nChunks;
+        for (let c = 0; c < nChunks; c++) {
             const inicio = c * TAMANHO_CHUNK;
-            const fim = Math.min(inicio + TAMANHO_CHUNK, nTotal);
+            const fim = Math.min(inicio + TAMANHO_CHUNK, lista.length);
             const nChunk = fim - inicio;
 
             // Calcular bounding sphere real do chunk
             const chunkBox = new THREE.Box3();
             for (let i = 0; i < nChunk; i++) {
-                const l = lugaresEscolhidos[inicio + i];
+                const l = lista[inicio + i];
                 chunkBox.expandByPoint(new THREE.Vector3(l.x, l.y, l.z));
             }
             const chunkSphere = new THREE.Sphere();
@@ -1582,10 +1767,12 @@ void crowdPesos(out float dePe, out float w1, out float w2,
             chunkSphere.radius += 3.0; // Dar folga para quando se levantam/festejam
 
             const aAdepto = new Float32Array(nChunk * 4);
+            const aVar = modoSprite ? new Float32Array(nChunk * 4) : null;
+            const aCor = modoSprite ? new Float32Array(nChunk * 3) : null;
             const meshes = {};
             const fans = [];
 
-            for (const canal of canais) {
+            for (const canal of canaisModo) {
                 // CLONAR A GEOMETRIA POR CHUNK!
                 // Se não clonarmos, o aAdepto atributo partilhado vai sobescrever-se a cada loop, e só o último chunk é que desenha.
                 const geoChunk = geos[canal].clone();
@@ -1607,7 +1794,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
             }
 
             for (let i = 0; i < nChunk; i++) {
-                const l = lugaresEscolhidos[inicio + i];
+                const l = lista[inicio + i];
                 const t = (l.z - zMin) / spanZ;
                 const claque = this.claqueEm(t, rnd, (l.x - xMin) / spanX);
                 const eq = CrowdModel.equipas[claque];
@@ -1636,7 +1823,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                 fans.push(fan);
 
                 fan.m = dummy.matrix.clone();
-                for (const canal of canais) {
+                for (const canal of canaisModo) {
                     if (canal === 'listraV' || canal === 'listraH') {
                         dummy.scale.set(0, 0, 0); dummy.updateMatrix();
                         meshes[canal].setMatrixAt(i, dummy.matrix);
@@ -1654,6 +1841,14 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                 aAdepto[i * 4 + 2] = 0.85 + rnd() * 0.30;
                 aAdepto[i * 4 + 3] = (claque === 'A') ? 0 : 1;
                 fan.a = [aAdepto[i * 4], aAdepto[i * 4 + 1], aAdepto[i * 4 + 2], aAdepto[i * 4 + 3]];
+                if (modoSprite) {
+                    // Sem sortear nada novo (a sequencia dos lugares/claques nao muda): as variantes saem de hashes do que ja foi sorteado.
+                    const SP = CrowdModel.sprites, h1 = (aAdepto[i * 4] * 91.3 + aAdepto[i * 4 + 1] * 7.7) % 1, h2 = (aAdepto[i * 4 + 2] * 531.7 + aAdepto[i * 4] * 13.1) % 1;
+                    aVar[i * 4] = this._escolherCelula(SP.deParado, h1);
+                    aVar[i * 4 + 1] = this._escolherCelula(SP.festejo, h2);
+                    aVar[i * 4 + 2] = fan.k;
+                    cor.set(eq.camisa); aCor[i * 3] = cor.r; aCor[i * 3 + 1] = cor.g; aCor[i * 3 + 2] = cor.b;
+                }
 
                 meshes.camisa && meshes.camisa.setColorAt(i, variar(eq.camisa));
                 meshes.peito && meshes.peito.setColorAt(i, variar(eq.camisa));
@@ -1668,7 +1863,35 @@ void crowdPesos(out float dePe, out float w1, out float w2,
                 meshes.cabelo && meshes.cabelo.setColorAt(i, variar(CrowdModel.cabelos[Math.floor(rnd() * CrowdModel.cabelos.length)]));
             }
 
-            for (const canal of canais) {
+            if (modoSprite) {
+                // UM quad por adepto (2 triangulos), com a matriz do lugar; o resto vive no shader (`_materialSprites`).
+                // 1 quad (2 triangulos) ou 2 quads cruzados (4 triangulos, `sprites.cruzado`): x de -0.5 a 0.5, y de 0 a 1; o 2.o leva position.z = 1 (o shader roda-o 90 graus).
+                const nQuads = CrowdModel.sprites.cruzado ? 2 : 1;
+                const geoQ = new THREE.BufferGeometry();
+                {
+                    const qp = [], qi = [];
+                    for (let qd = 0; qd < nQuads; qd++) {
+                        const b = qd * 4;
+                        qp.push(-0.5, 0, qd, 0.5, 0, qd, 0.5, 1, qd, -0.5, 1, qd);
+                        qi.push(b, b + 1, b + 2, b, b + 2, b + 3);
+                    }
+                    geoQ.setAttribute('position', new THREE.Float32BufferAttribute(qp, 3));
+                    geoQ.setIndex(qi);
+                }
+                geoQ.boundingSphere = chunkSphere;
+                geoQ.setAttribute('aAdepto', new THREE.InstancedBufferAttribute(aAdepto, 4));
+                geoQ.setAttribute('aVar', new THREE.InstancedBufferAttribute(aVar, 4));
+                geoQ.setAttribute('aCor', new THREE.InstancedBufferAttribute(aCor, 3));
+                const q = new THREE.InstancedMesh(geoQ, matSprite, nChunk);
+                q.castShadow = false; q.receiveShadow = false; q.frustumCulled = false;   // corte nosso: `cullar`
+                q.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+                for (let i = 0; i < nChunk; i++) q.setMatrixAt(i, fans[i].m);
+                q.instanceMatrix.needsUpdate = true;
+                q.count = nChunk;
+                scene.add(q);
+                meshes.sprite = q;
+            }
+            for (const canal of canaisModo) {
                 meshes[canal].instanceMatrix.needsUpdate = true;
                 if (meshes[canal].instanceColor) meshes[canal].instanceColor.needsUpdate = true;
                 meshes[canal].geometry.attributes.aAdepto.needsUpdate = true;
@@ -1680,6 +1903,10 @@ void crowdPesos(out float dePe, out float w1, out float w2,
             this._fansPorGrupo.push(fans);
             this._grupos.push(meshes);
         }
+
+        };
+        if (sprite) { montarFatias(listaSprite, true); if (lista3d.length) montarFatias(lista3d, false); }
+        else montarFatias(lugaresEscolhidos, false);
 
         if (typeof console !== 'undefined' && console.log) {
             console.log(`Crowd: ${nTotal} adeptos em ${lugares.length} lugares particionados em ${numChunks} chunks com frustum culling ativo!`);
