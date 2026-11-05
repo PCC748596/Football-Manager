@@ -491,7 +491,6 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   return (
     <div className="h-full flex flex-col gap-4 animate-fade-in min-h-0">
       <div>
-        <button onClick={() => setView('DASHBOARD')} className="text-slate-500 hover:text-white text-xs font-black uppercase tracking-widest mb-1">‹ Back to menu</button>
         <h2 className="text-5xl font-black uppercase tracking-tight italic leading-none"><span className="text-slate-900 dark:text-white">TRANSFER</span> <span className="text-blue-500">MARKET</span></h2>
         <p className="text-slate-400 dark:text-slate-500 font-bold text-[11px] uppercase tracking-widest mt-2 opacity-70">Player search and transactions • window {janela ? <span className="text-emerald-500">open{fecha !== null ? ` (${fecha} days left)` : ''}</span> : <span className="text-rose-400">closed{abre !== null ? ` (opens in ${abre} days)` : ''}</span>}</p>
       </div>
