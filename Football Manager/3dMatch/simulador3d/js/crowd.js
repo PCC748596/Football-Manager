@@ -1021,12 +1021,18 @@ void crowdPesos(out float dePe, out float w1, out float w2,
             for (const k in uniforms) shader.uniforms[k] = uniforms[k];
             const quadW = S.celulaW / S.pxPorMetro, quadH = S.celulaH / S.pxPorMetro;
             shader.uniforms.uAtlas = { value: this._texturaAtlas() };
+            shader.uniforms.uKits = { value: this._texturaKits() };
             shader.uniforms.uSpr = { value: new THREE.Vector4(S.cols, S.rows, quadW, quadH) };
             shader.uniforms.uSprAjuste = { value: new THREE.Vector3(S.folgaBase / S.pxPorMetro, S.escalaSentado, S.brilho) };
             const prefixoV = `
 attribute vec4 aAdepto;
 attribute vec4 aVar;
 attribute vec3 aCor;
+attribute vec4 aCor2;
+attribute vec4 aCalcao;
+attribute vec3 aPele;
+attribute vec3 aCabelo;
+attribute float aKit;
 uniform float uTempo;
 uniform float uSobeDePe;
 uniform float uDurTransicao;
@@ -1046,6 +1052,12 @@ uniform vec4 uSpr;
 uniform vec3 uSprAjuste;
 varying vec2 vUvS;
 varying vec3 vCor;
+varying vec4 vCor2;
+varying vec4 vCalcao;
+varying vec3 vPele;
+varying vec3 vCabelo;
+varying vec2 vLoc;
+varying float vKit;
 varying float vTint;
 `;
             const corpoV = `
@@ -1075,6 +1087,12 @@ varying float vTint;
     float rr = floor(cel / uSpr.x);
     vUvS = vec2((cc + position.x + 0.5) / uSpr.x, 1.0 - (rr + 1.0 - position.y) / uSpr.y);
     vCor = aCor;
+    vCor2 = aCor2;
+    vCalcao = aCalcao;
+    vPele = aPele;
+    vCabelo = aCabelo;
+    vLoc = vec2(position.x + 0.5, position.y);
+    vKit = aKit;
     vTint = aVar.z * uSprAjuste.z;
     float esc = de ? 1.0 : uSprAjuste.y;
     vec3 transformed = vec3(position.x * uSpr.z * esc, position.y * uSpr.w * esc - uSprAjuste.x * esc, 0.0);
@@ -1089,7 +1107,14 @@ varying float vTint;
 uniform sampler2D uAtlas;
 varying vec2 vUvS;
 varying vec3 vCor;
+varying vec4 vCor2;
+varying vec4 vCalcao;
+varying vec3 vPele;
+varying vec3 vCabelo;
+varying vec2 vLoc;
+varying float vKit;
 varying float vTint;
+uniform sampler2D uKits;
 `;
             const corpoF = `
     vec4 sp = texture2D(uAtlas, vUvS);
@@ -1098,7 +1123,33 @@ varying float vTint;
     // camisa e meias (o vermelho do desenho) -> a cor da claque, mantendo o sombreado do pixel art
     float vermelho = smoothstep(0.18, 0.34, sc.r - max(sc.g, sc.b));
     float lum = dot(sc, vec3(0.30, 0.59, 0.11));
-    sc = mix(sc, vCor * (lum / 0.33), vermelho);
+    float sat = max(sc.r, max(sc.g, sc.b)) - min(sc.r, min(sc.g, sc.b));
+    float gb = sc.g - sc.b;
+    // pele (laranja claro) e cabelo (louro, mais saturado) do desenho -> o tom de cada adepto
+    float pele = (1.0 - vermelho) * step(0.07, gb) * (1.0 - step(0.23, gb)) * step(sc.g, sc.r) * step(0.45, lum);
+    float cabelo = (1.0 - vermelho) * step(0.23, gb) * step(0.4, lum);
+    sc = mix(sc, vPele * (lum / 0.72), pele);
+    sc = mix(sc, vCabelo * (lum / 0.62), cabelo);
+    // camisa: so acima da cintura (y > 0.44) leva o desenho; as meias (abaixo) ficam na cor do clube
+    vec3 camisa = vCor * (lum / 0.33);
+    float desenho = vCor2.w;
+    float lis = (desenho > 0.5 && desenho < 1.5) ? step(0.5, fract(vLoc.x * 6.0)) : ((desenho > 1.5) ? step(0.5, fract(vLoc.y * 8.0)) : 0.0);
+    lis *= step(0.44, vLoc.y);
+    vec3 camisaD = mix(camisa, vCor2.rgb * (lum / 0.33), lis);
+    if (vKit > -0.5) {
+        // o kit real (a frente da camisa do jogador): a casa do atlas esticada sobre o tronco do sprite
+        vec2 t = clamp((vLoc - vec2(0.25, 0.44)) / vec2(0.5, 0.34), 0.03, 0.97);
+        float kc = floor(vKit + 0.5);
+        vec2 q = vec2(mod(kc, 4.0), floor(kc / 4.0));
+        vec2 uvk = vec2((q.x + t.x) / 4.0, 1.0 - (q.y + 1.0 - t.y) / 4.0);
+        camisaD = texture2D(uKits, uvk).rgb * clamp(lum / 0.33, 0.45, 1.25);
+    }
+    sc = mix(sc, camisaD, vermelho);
+    // calcao (branco do desenho, na faixa da cintura) ou calca comprida (cobre tambem as meias e as chuteiras)
+    float branco = step(0.62, lum) * (1.0 - step(0.16, sat)) * step(0.24, vLoc.y) * (1.0 - step(0.50, vLoc.y));
+    sc = mix(sc, vCalcao.rgb * min(1.0, lum / 0.82), branco);
+    float perna = vCalcao.w * (1.0 - step(0.47, vLoc.y)) * max(vermelho, branco);
+    sc = mix(sc, vCalcao.rgb * min(1.0, 0.55 + lum * 0.6), perna);
     diffuseColor.rgb = sc * vTint;
 `;
             const v0 = shader.vertexShader, f0 = shader.fragmentShader;
@@ -1113,6 +1164,52 @@ varying float vTint;
     },
 
     /*
+    OS UNIFORMES REAIS NO SPRITE. A camisa do adepto 3D usa a textura da frente do kit do jogador (desenho, gola, escudo: `_texturasDoKit`). O sprite usa a MESMA textura: junta-se a frente de cada kit
+    das duas claques num atlas de 4x4 casas de 256 px (A nas casas 0-7, B nas 8-15) e o shader estica a casa do kit do adepto sobre a camisa do sprite (`aKit` = a casa; -1 = cor lisa).
+    */
+    _texturaKits() {
+        if (this._kitTex) return this._kitTex;
+        if (typeof document === 'undefined') return (this._kitTex = new THREE.Texture());
+        const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 1024;
+        const tex = new THREE.CanvasTexture(cv);
+        tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
+        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+        this._kitCanvas = cv;
+        return (this._kitTex = tex);
+    },
+
+    _montarKitsSprite(cores) {
+        this._kitsSprite = {};
+        if (typeof document === 'undefined' || !cores) return;
+        const tex = this._texturaKits(), cv = this._kitCanvas, ctx = cv.getContext('2d');
+        ctx.clearRect(0, 0, cv.width, cv.height);
+        let base = 0;
+        for (const lado of ['A', 'B']) {
+            const eq = cores[lado], K = eq && eq.kits;
+            const pc = { base, ok: [], nOutras: 0, idxCor: 0, idxGK: 0 };
+            base += 8;
+            this._kitsSprite[lado] = pc;
+            if (!K) continue;
+            const outras = (K.outras || []).slice(0, 5);
+            const lista = [K.atual].concat(outras);
+            pc.nOutras = outras.length; pc.idxCor = lista.length; lista.push(K.cor);
+            pc.idxGK = lista.length; lista.push(K.gk || K.cor);
+            lista.forEach((k, vi) => {
+                if (!k || vi > 7) return;
+                try {
+                    const t = this._texturasDoKit(k.uniforme, k.principal, k.corCalcao);
+                    const img = t && t.frente && t.frente.image;
+                    if (!img) return;
+                    const q = pc.base + vi;
+                    ctx.drawImage(img, (q % 4) * 256, Math.floor(q / 4) * 256, 256, 256);
+                    pc.ok[vi] = true;
+                } catch (e) { /* esse kit fica em cor lisa */ }
+            });
+        }
+        tex.needsUpdate = true;
+    },
+
+    /*
     AS CORES DOS ADEPTOS A PARTIR DAS EQUIPAS EM CAMPO. `cores` = { A: {principal, cor1, cor2, calcao},
     B: {...} } (ver `coresDaEquipa`). Cada adepto veste a camisa do clube (50%), a cor 1 (25%) ou a
     cor 2 (25%); calcas compridas ou o calcao do clube; bone na cor 1 ou 2. Chama-se depois de
@@ -1122,6 +1219,7 @@ varying float vTint;
         if (!this._grupos || !cores) return;
         const c = new THREE.Color();
         const tom = (hex, k) => { c.set(hex); c.multiplyScalar(k); return c; };
+        if (this._grupos.some(g => g.sprite)) { try { this._montarKitsSprite(cores); } catch (e) { if (typeof console !== 'undefined') console.warn('Crowd: kits dos sprites nao montados', e && e.message); } }
         for (let gi = 0; gi < this._grupos.length; gi++) {
             const g = this._grupos[gi];
             for (const f of (this._fansPorGrupo[gi] || [])) {
@@ -1131,7 +1229,6 @@ varying float vTint;
                 const K = eq.kits;
                 const kit = K ? (f.cam === 0 ? K.atual : f.cam === 1 ? (K.outras.length ? K.outras[Math.min(K.outras.length - 1, Math.floor(f.sub * K.outras.length))] : K.atual) : f.cam === 2 ? K.cor : (K.gk || K.cor)) : null;
                 const camHex = kit ? kit.principal : (f.cam === 0 ? eq.principal : (f.cam === 1 ? eq.cor1 : eq.cor2));
-                if (g.sprite) { c.set(camHex); g.sprite.geometry.attributes.aCor.setXYZ(f.i, c.r, c.g, c.b); }
                 if (g.camisa) g.camisa.setColorAt(f.i, tom(camHex, f.k));
                 if (g.peito) g.peito.setColorAt(f.i, tom(camHex, f.k));
                 // A camisa do GOLEIRO leva manga comprida: o braco (sem a mao) na cor da camisa; os outros adeptos, pele.
@@ -1146,6 +1243,21 @@ varying float vTint;
                 const padraoDoKit = kit ? kit.padrao : (f.cam === 0 ? eq.padrao : null);
                 const listraDoKit = kit ? kit.listra : eq.listra;
                 const comDesenho = !!padraoDoKit;
+                if (g.sprite) {
+                    // O UNIFORME NO SPRITE: camisa do kit (principal), listras/faixas na segunda cor, calcao do clube ou calca comprida (a mesma sorteada no 3D).
+                    const A = g.sprite.geometry.attributes;
+                    c.set(camHex); A.aCor.setXYZ(f.i, c.r, c.g, c.b);
+                    c.set(listraDoKit || camHex); A.aCor2.setXYZW(f.i, c.r, c.g, c.b, padraoDoKit === 'listras' ? 1 : (padraoDoKit === 'faixas' ? 2 : 0));
+                    c.set(f.longa ? f.calcaHex : (kit && kit.corCalcao) || eq.calcao); A.aCalcao.setXYZW(f.i, c.r, c.g, c.b, f.longa ? 1 : 0);
+                    // A casa do atlas de kits com o MESMO kit que o 3D daria a este adepto (ver `_montarCamisas`); -1 = sem textura, fica a cor lisa/listras
+                    const pc = this._kitsSprite && this._kitsSprite[f.claque];
+                    let tile = -1;
+                    if (pc && K) {
+                        const vi = f.cam === 0 ? 0 : f.cam === 1 ? (pc.nOutras ? 1 + Math.min(pc.nOutras - 1, Math.floor(f.sub * pc.nOutras)) : 0) : f.cam === 2 ? pc.idxCor : pc.idxGK;
+                        tile = pc.ok[vi] ? pc.base + vi : (pc.ok[0] ? pc.base : -1);
+                    }
+                    A.aKit.setX(f.i, tile);
+                }
                 for (const [canal, padrao] of [['listraV', 'listras'], ['listraH', 'faixas']]) {
                     if (!g[canal]) continue;
                     if (comDesenho && padraoDoKit === padrao) {
@@ -1157,7 +1269,7 @@ varying float vTint;
                     }
                 }
             }
-            if (g.sprite) g.sprite.geometry.attributes.aCor.needsUpdate = true;
+            if (g.sprite) for (const n of ['aCor', 'aCor2', 'aCalcao', 'aKit']) g.sprite.geometry.attributes[n].needsUpdate = true;
             for (const n of ['camisa', 'peito', 'antebraco', 'calcao', 'perna', 'bone', 'listraV', 'listraH']) {
                 if (g[n] && g[n].instanceColor) g[n].instanceColor.needsUpdate = true;
                 if (g[n] && (n === 'listraV' || n === 'listraH')) g[n].instanceMatrix.needsUpdate = true;
@@ -1769,6 +1881,11 @@ varying float vTint;
             const aAdepto = new Float32Array(nChunk * 4);
             const aVar = modoSprite ? new Float32Array(nChunk * 4) : null;
             const aCor = modoSprite ? new Float32Array(nChunk * 3) : null;
+            const aCor2 = modoSprite ? new Float32Array(nChunk * 4) : null;      // cor das listras (rgb) + desenho da camisa (0 liso, 1 listras, 2 faixas)
+            const aCalcao = modoSprite ? new Float32Array(nChunk * 4) : null;    // calcao ou calca (rgb) + w = 1 se for calca comprida
+            const aPele = modoSprite ? new Float32Array(nChunk * 3) : null;
+            const aKit = modoSprite ? new Float32Array(nChunk).fill(-1) : null;
+            const aCabelo = modoSprite ? new Float32Array(nChunk * 3) : null;
             const meshes = {};
             const fans = [];
 
@@ -1848,6 +1965,10 @@ varying float vTint;
                     aVar[i * 4 + 1] = this._escolherCelula(SP.festejo, h2);
                     aVar[i * 4 + 2] = fan.k;
                     cor.set(eq.camisa); aCor[i * 3] = cor.r; aCor[i * 3 + 1] = cor.g; aCor[i * 3 + 2] = cor.b;
+                    aCor2[i * 4] = cor.r; aCor2[i * 4 + 1] = cor.g; aCor2[i * 4 + 2] = cor.b; aCor2[i * 4 + 3] = 0;
+                    cor.set(fan.longa ? fan.calcaHex : eq.calcao); aCalcao[i * 4] = cor.r; aCalcao[i * 4 + 1] = cor.g; aCalcao[i * 4 + 2] = cor.b; aCalcao[i * 4 + 3] = fan.longa ? 1 : 0;
+                    cor.set(fan.pele); aPele[i * 3] = cor.r; aPele[i * 3 + 1] = cor.g; aPele[i * 3 + 2] = cor.b;
+                    cor.set(CrowdModel.cabelos[Math.floor(h2 * CrowdModel.cabelos.length) % CrowdModel.cabelos.length]); aCabelo[i * 3] = cor.r; aCabelo[i * 3 + 1] = cor.g; aCabelo[i * 3 + 2] = cor.b;
                 }
 
                 meshes.camisa && meshes.camisa.setColorAt(i, variar(eq.camisa));
@@ -1882,6 +2003,11 @@ varying float vTint;
                 geoQ.setAttribute('aAdepto', new THREE.InstancedBufferAttribute(aAdepto, 4));
                 geoQ.setAttribute('aVar', new THREE.InstancedBufferAttribute(aVar, 4));
                 geoQ.setAttribute('aCor', new THREE.InstancedBufferAttribute(aCor, 3));
+                geoQ.setAttribute('aCor2', new THREE.InstancedBufferAttribute(aCor2, 4));
+                geoQ.setAttribute('aCalcao', new THREE.InstancedBufferAttribute(aCalcao, 4));
+                geoQ.setAttribute('aPele', new THREE.InstancedBufferAttribute(aPele, 3));
+                geoQ.setAttribute('aKit', new THREE.InstancedBufferAttribute(aKit, 1));
+                geoQ.setAttribute('aCabelo', new THREE.InstancedBufferAttribute(aCabelo, 3));
                 const q = new THREE.InstancedMesh(geoQ, matSprite, nChunk);
                 q.castShadow = false; q.receiveShadow = false; q.frustumCulled = false;   // corte nosso: `cullar`
                 q.instanceMatrix.setUsage(THREE.StaticDrawUsage);

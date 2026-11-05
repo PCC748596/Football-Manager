@@ -38,6 +38,7 @@ label { margin-right:14px; cursor:pointer; }
 <script src="js/config/player_behavior.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/pose.js"></script>
+<script src="assets/torcida_atlas.js"></script>
 <script>
 (function () {
     const cv = document.getElementById('c');
@@ -66,6 +67,34 @@ label { margin-right:14px; cursor:pointer; }
         d.innerHTML = '<b>' + NOMES[i] + '</b>' + Math.round(tri).toLocaleString('pt-PT') + ' triangulos<br><span>' + malhas + ' malhas · ' + Math.round(tri / 888 * 100) + '% do usado no jogo</span>';
         info.appendChild(d);
     });
+
+    /*
+    O TORCEDOR EM SPRITE DO TABLET (js/crowd.js, `CrowdModel.sprites`): o desenho do atlas num quad, e o mesmo quad rodado 90 graus (`cruzado`, a profundidade): 4 triangulos. Roda a camara para ver que
+    de lado nunca desaparece. Celula 8 = de pe parado. A celula e as medidas (168 x 235 px, 120 px/m) sao as de CrowdModel.sprites.
+    */
+    if (window.TORCIDA_ATLAS) {
+        const COLS = 5, ROWS = 4, CEL = 8, W = 168 / 120, H = 235 / 120;
+        const img = new Image(), tex = new THREE.Texture(img);
+        tex.magFilter = THREE.NearestFilter; tex.flipY = true;
+        img.onload = () => { tex.needsUpdate = true; }; img.src = window.TORCIDA_ATLAS;
+        const mat = new THREE.MeshBasicMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide });
+        const g = new THREE.BufferGeometry(), pos = [], uv = [], idx = [];
+        const cc = CEL % COLS, rr = Math.floor(CEL / COLS);
+        for (let q = 0; q < 2; q++) {
+            const b = q * 4;
+            for (const [x, y] of [[-0.5, 0], [0.5, 0], [0.5, 1], [-0.5, 1]]) {
+                if (q === 0) pos.push(x * W, y * H, 0); else pos.push(0, y * H, x * W);   // o 2.o quad: rodado 90 graus em torno do eixo vertical
+                uv.push((cc + x + 0.5) / COLS, 1 - (rr + 1 - y) / ROWS);
+            }
+            idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
+        }
+        g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
+        const m = new THREE.Mesh(g, mat); m.position.set(2.6 * 1.5, 0, 0); scene.add(m);
+        corpos.push(m);
+        const d = document.createElement('div');
+        d.innerHTML = '<b>SPRITE CRUZADO (tablet)</b>4 triangulos<br><span>2 quads a 90 graus · nunca some de lado</span>';
+        info.appendChild(d);
+    }
 
     document.getElementById('fio').addEventListener('change', (e) => {
         corpos.forEach(c => c.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.wireframe = e.target.checked; }); }));
