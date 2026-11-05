@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useRef, useEffect, useMemo 
 import { assetUrl } from '../textSim/assetUrl';
 import { Team, Player, Contract, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador, PontoFinanceiro } from '../types';
 import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/dataGenerator';
-import { gruposDaSerieD } from '../textSim/competitions';
+import { gruposDaSerieD, arquivarCampeoes, HistoricoDeCopas } from '../textSim/competitions';
 import { espacarCalendario, comDatasDeCopa } from '../textSim/calendario';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, buildTable } from '../textSim/world';
 import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disputaPendente, prepararCopas, ligaIdDoClube, teamKey, ehDoPaulista, noAno, ANO_BASE } from '../textSim/competitions';
@@ -260,6 +260,8 @@ interface GameContextType {
   world: WorldLeague[] | null;
   /** Libertadores, Sul-Americana e Copa do Brasil (aba WORLD COMPETITIONS); null ate a aba abrir. */
   comps: Competition[] | null;
+  /** Campeoes e vice-campeoes de cada copa, temporada a temporada (guardado no save). */
+  historicoCopas: HistoricoDeCopas;
   openWorld: () => void;
   setThemeMode: (mode: ThemeMode) => void;
   updateSettings: (settings: Partial<Pick<GameState, 'language' | 'currency' | 'wageFrequency' | 'themeMode' | 'matchDuration' | 'simulationSpeed' | 'graphicsQuality'>>) => void;
@@ -301,6 +303,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [managerState, setManagerState] = useState<ManagerState | null>(null);
   const recusarOferta = (id: string) => setManagerState(prev => (prev ? declinarOferta(prev, id) : prev));
   const [comps, setComps] = useState<Competition[] | null>(null);
+  const [historicoCopas, setHistoricoCopas] = useState<HistoricoDeCopas>({});
   // As categorias de base (Sub-20) de todos os clubes: lista a parte (mesmo tipo `Player`), para nao entrar nas contas do elenco, da folha e do motor de partidas.
   const [base, setBase] = useState<BaseState | null>(null);
   // A caixa de entrada (Inbox): e-mails de boas-vindas e avisos de todos os setores (textSim/inbox.ts). Vai no save.
@@ -439,6 +442,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setFixtures(r.fixtures);
     setComps(prev => comDatasDeCopa(prev, r.mudancas));
   }, [fixtures, loadId, gameState.currentDate, gameState.userTeamId]);
+  // O HISTORICO DE CAMPEOES: cada copa que acaba (campeao e vice) fica arquivada antes de a temporada seguinte as substituir.
+  useEffect(() => {
+    if (!comps || !world) return;
+    const nomeDe = (k: string) => { const [lid, id] = k.split('|'); return world.find(l => l.leagueId === lid)?.teams.find(t => t.id === id)?.name || teams.find(t => t.id === id)?.name || id; };
+    setHistoricoCopas(h => arquivarCampeoes(h, comps, nomeDe));
+  }, [comps]);
   const cupSig = fixtures.reduce((n, f) => n + (f.type === 'CUP' && f.played ? 1 : 0), 0);   // muda quando um jogo de copa do utilizador acaba
   useEffect(() => {
     if (!world) return;
@@ -832,7 +841,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   /** `continuacao`: a VIRADA de temporada. Os clubes e jogadores que ja estao no jogo ficam (com as tabelas a zero) e so entram os que chegam (promovidos/rebaixados); o resto
    (calendario, mundo e copas do ano `ano`) refaz-se como num jogo novo, mas inbox, base, mercado e negociacoes continuam. */
   const startGame = (teamId: string, managerName: string, countryId: string, leagueId: string = 'bra_serie_a', continuacao?: { teams: Team[]; players: Player[]; ano: number }) => {
-    if (!continuacao) aplicarDivisoes(DIVISOES_ORIGINAIS);   // um jogo novo parte das divisoes originais
+    if (!continuacao) { aplicarDivisoes(DIVISOES_ORIGINAIS); setHistoricoCopas({}); }   // um jogo novo parte das divisoes originais e sem historico de copas
     const ano = continuacao ? continuacao.ano : ANO_BASE;
     let { teams: initTeams, players: initPlayers } = generateLeagueData(countryId, leagueId);
     if (continuacao) {
@@ -903,7 +912,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // O MUNDO e as COPAS: criam-se agora, para os jogos de copa do utilizador entrarem no calendario desde o primeiro dia.
     const mundo = createWorld(leagueId, `${ano}-01-01`, null, ano);
-    const copas = prepararCopas({ world: mundo, userTeamId: teamId, teams: initTeams, players: initPlayers, fixtures: initFixtures, date: `${ano}-01-01`, comps: null });
+    const copas = prepararCopas({ world: mundo, userTeamId: teamId, teams: initTeams, players: initPlayers, fixtures: initFixtures, date: `${ano}-01-01`, comps: null, historico: continuacao ? historicoCopas : undefined });
     worldSaved.current = null; compsSaved.current = null;
     setWorld(mundo);
     if (copas) {
@@ -2233,6 +2242,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       worldResults: worldResults(world),
       temporada: { ano: anoTemporada, divisoes: divisoesAtuais() },   // as divisoes depois dos acessos/descensos e o ano da temporada
       comps,
+      historicoCopas,
       base,
       inbox,
       inboxVistas: Array.from(vistasRef.current),
@@ -2319,7 +2329,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const donoId = data.gameState.userTeamId, dono = patchedTeams.find((t: Team) => t.id === donoId);
         if (dono) {
           const mundo = createWorld(ligaIdDoClube(dono), data.gameState.currentDate, data.worldResults || null, ano);
-          const copas = prepararCopas({ world: mundo, userTeamId: donoId, teams: patchedTeams, players: data.players, fixtures: data.fixtures, date: data.gameState.currentDate, comps: data.comps || null });
+          const copas = prepararCopas({ world: mundo, userTeamId: donoId, teams: patchedTeams, players: data.players, fixtures: data.fixtures, date: data.gameState.currentDate, comps: data.comps || null, historico: data.historicoCopas || {} });
+          setHistoricoCopas(data.historicoCopas || {});
           worldSaved.current = null; compsSaved.current = null;
           setWorld(mundo);
           if (copas) {
@@ -2354,7 +2365,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <GameContext.Provider value={{
-      managerState, recusarOferta, teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
+      historicoCopas, managerState, recusarOferta, teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
       hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, proporPatrocinio, reputacaoClube, definirDivisaoOrcamento, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, decisaoDoJogoDeHoje, guardarPenaltis3d, scheduleActivity, saveGame, importGameData, loadId, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, avisoGoleiro, avisoGoleiroMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal, reportMatchEvent,

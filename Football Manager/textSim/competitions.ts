@@ -1075,7 +1075,31 @@ export const fixturesDoUtilizador = (comps: Competition[], userKey: string): imp
   return out;
 };
 
-export interface EntradaCopas { world: WorldLeague[]; userTeamId: string; teams: Team[]; players: import('../types').Player[]; fixtures: import('../types').Fixture[]; date: string; comps?: Competition[] | null; }
+/**
+ * O HISTORICO DE CAMPEOES E VICE-CAMPEOES (guardado no save): por competicao (`Competition['id']`), uma entrada por temporada com os NOMES dos clubes (as chaves `liga|id` mudam entre temporadas).
+ * `arquivarCampeoes` acrescenta o que ainda nao esta (uma copa acabada, ano a ano) e devolve o MESMO objeto se nada mudou; o campeao da Carabao Cup do ano anterior da a vaga na Europa League.
+ */
+export interface RegistoCopa { ano: number; campeao: string; vice?: string }
+export type HistoricoDeCopas = Record<string, RegistoCopa[]>;
+export const arquivarCampeoes = (h: HistoricoDeCopas, comps: Competition[] | null, nomeDe: (chave: string) => string): HistoricoDeCopas => {
+  if (!comps) return h;
+  let novo: HistoricoDeCopas | null = null;
+  for (const c of comps) {
+    if (!c.champion) continue;
+    const ano = c.ano ?? ANO_BASE;
+    if ((h[c.id] || []).some(r => r.ano === ano)) continue;
+    const final = c.matches.find(m => m.stage === 'F');
+    const vice = c.vice || (final ? (final.homeKey === c.champion ? final.awayKey : final.homeKey) : undefined);
+    if (!novo) novo = { ...h };
+    novo[c.id] = [...(novo[c.id] || []), { ano, campeao: nomeDe(c.champion), ...(vice ? { vice: nomeDe(vice) } : {}) }].sort((a, b) => a.ano - b.ano);
+  }
+  return novo || h;
+};
+/** O campeao (nome) da edicao mais recente anterior a `ano`; undefined se nao ha. */
+export const campeaoAnterior = (h: HistoricoDeCopas | undefined, compId: string, ano: number): string | undefined =>
+  ((h && h[compId]) || []).filter(r => r.ano < ano).sort((a, b) => b.ano - a.ano)[0]?.campeao;
+
+export interface EntradaCopas { world: WorldLeague[]; userTeamId: string; teams: Team[]; players: import('../types').Player[]; fixtures: import('../types').Fixture[]; date: string; comps?: Competition[] | null; historico?: HistoricoDeCopas; }
 export interface SaidaCopas { comps: Competition[]; mudouComps: boolean; fixtures: import('../types').Fixture[]; teams: Team[]; players: import('../types').Player[]; }
 
 /**
@@ -1094,32 +1118,33 @@ export const prepararCopas = (a: EntradaCopas): SaidaCopas | null => {
   const todas = a.world.some(l => l.leagueId === minha.leagueId) ? a.world.slice() : [minha, ...a.world];
   const uk = teamKey(minha.leagueId, user.id);
   const anoDaData = Number(a.date.slice(0, 4)) || ANO_BASE;   // as copas novas nascem no ano da data de hoje
+  const hist: HistoricoCopas = { carabao: campeaoAnterior(a.historico, 'CARABAO', anoDaData) };   // o campeao da Carabao do ano anterior vai a Europa League
   let base = a.comps ? a.comps.map(c => sincronizarResultados(c, a.fixtures)) : null;
   let oc = ocupacaoDe([...todas, minha], base || []);
   // Um save de antes das Series C e D: cria so as que faltam.
   if (base && !base.some(c => c.id === 'SERIE_C') && todas.some(l => l.leagueId === 'bra_serie_c')) {
-    const novas = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData).filter(c => !base!.some(b => b.id === c.id));
+    const novas = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData, hist).filter(c => !base!.some(b => b.id === c.id));
     if (novas.length) base = [...base, ...novas];
   }
   // Um save de antes do Campeonato Paulista: cria so ele (se ainda nao passou da final).
   if (base && !base.some(c => c.id === 'PAULISTA') && a.date <= noAno('2026-03-21', anoDaData) && todas.some(l => l.leagueId === 'bra_serie_a')) {
-    const nova = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData).filter(c => c.id === 'PAULISTA');
+    const nova = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData, hist).filter(c => c.id === 'PAULISTA');
     if (nova.length) base = [...base, ...nova];
   }
   // Um save de antes da Champions League: cria so ela.
   if (base && !base.some(c => c.id === 'UCL') && todas.some(l => l.leagueId === 'esp_laliga')) {
-    const nova = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData).filter(c => c.id === 'UCL');
+    const nova = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData, hist).filter(c => c.id === 'UCL');
     if (nova.length) base = [...base, ...nova];
   }
   // Um save de antes da Europa League, da Conference e da Carabao Cup: cria so as que faltam (se a fase de liga ainda nao comecou / a Carabao ainda nao passou da final).
   if (base) {
     const faltam = (id: Competition['id']) => !base!.some(c => c.id === id);
     if (faltam('UEL') || faltam('UECL') || faltam('CARABAO')) {
-      const novas = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData).filter(c => (c.id === 'UEL' || c.id === 'UECL' || c.id === 'CARABAO') && faltam(c.id));
+      const novas = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData, hist).filter(c => (c.id === 'UEL' || c.id === 'UECL' || c.id === 'CARABAO') && faltam(c.id));
       if (novas.length) base = [...base, ...novas];
     }
   }
-  let cs = base || criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData);
+  let cs = base || criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData, hist);
   const mapa = mapaDeClubes(todas);
   // Serie C / D com o utilizador: a 1.a fase (C) ou o grupo (D) e a liga do jogo; quando acaba, a classificacao dela alimenta a competicao.
   const ligaAcabou = minha.fixtures.length > 0 && minha.fixtures.every(f => f.played);

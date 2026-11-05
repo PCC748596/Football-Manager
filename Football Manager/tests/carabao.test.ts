@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createWorld } from '../textSim/world';
-import { criarCopas, decisaoDoConfronto, avancarCompeticao, mapaDeClubes, ocupacaoDe, somarDias, Competition } from '../textSim/competitions';
+import { criarCopas, decisaoDoConfronto, arquivarCampeoes, campeaoAnterior, avancarCompeticao, mapaDeClubes, ocupacaoDe, somarDias, Competition } from '../textSim/competitions';
 
 const mundo = () => createWorld('bra_serie_a', '2026-01-01', null);
 
@@ -68,4 +68,23 @@ test('decisaoDoConfronto manda prorrogacao na final e no 2.o jogo das meias, nao
   assert.equal(decisaoDoConfronto([comp], 'fix-cup-CARABAO-SF-1'), null);
   assert.equal(decisaoDoConfronto([comp], 'fix-cup-CARABAO-SF-2')?.prorrogacao, true);
   assert.equal(decisaoDoConfronto([comp], 'fix-cup-CARABAO-F-0')?.prorrogacao, true);
+});
+
+test('historico de campeoes: arquiva campeao e vice uma vez por ano e devolve o mesmo objeto sem mudancas', () => {
+  const nomes: Record<string, string> = { 'a|1': 'Alfa', 'b|2': 'Beta' };
+  const comp = { id: 'CARABAO', name: 'Carabao Cup', teamKeys: [], matches: [{ id: 'F', stage: 'F', tie: 'F-0', date: '2026-11-29', homeKey: 'a|1', awayKey: 'b|2', homeScore: 1, awayScore: 0, played: true }], champion: 'a|1', ano: 2026 } as any;
+  const h1 = arquivarCampeoes({}, [comp], k => nomes[k]);
+  assert.deepEqual(h1, { CARABAO: [{ ano: 2026, campeao: 'Alfa', vice: 'Beta' }] });
+  assert.equal(arquivarCampeoes(h1, [comp], k => nomes[k]), h1, 'sem mudancas: o mesmo objeto');
+  assert.equal(campeaoAnterior(h1, 'CARABAO', 2027), 'Alfa');
+  assert.equal(campeaoAnterior(h1, 'CARABAO', 2026), undefined, 'so conta edicoes anteriores');
+});
+
+test('prepararCopas usa o historico: o campeao da Carabao do ano anterior entra na Europa League', () => {
+  const w = mundo();
+  const eng = w.find(l => l.leagueId === 'eng_prem')!;
+  const base = criarCopas(w, undefined, ocupacaoDe(w, []), null, 'bra_serie_a');
+  const fora = eng.teams.find(t => !base.some(b => ['UCL', 'UEL', 'UECL'].includes(b.id) && b.teamKeys.includes('eng_prem|' + t.id)))!;
+  const com = criarCopas(w, undefined, ocupacaoDe(w, []), null, 'bra_serie_a', 2027, { carabao: campeaoAnterior({ CARABAO: [{ ano: 2026, campeao: fora.name }] }, 'CARABAO', 2027) });
+  assert.ok((com.find(x => x.id === 'UEL') as Competition).teamKeys.includes('eng_prem|' + fora.id));
 });
