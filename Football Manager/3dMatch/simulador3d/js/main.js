@@ -957,6 +957,8 @@ function mostrarModalIntervalo(ligar, titulo) {
             '<div class="mi-barra"><span style="width:' + pe + '%;background:' + cE + '"></span><span style="width:' + (100 - pe) + '%;background:' + cD + '"></span></div></div>';
     }).join('');
     el.classList.remove('oculto');
+    // As notas ja recebidas aparecem logo (botao Statistics a meio do jogo); as novas, pedidas acima ao manager, substituem-nas quando chegarem.
+    if (window._notasIntervalo && typeof mostrarNotasIntervalo === 'function') mostrarNotasIntervalo(window._notasIntervalo);
 }
 
 /*
@@ -993,6 +995,7 @@ function mostrarNotasIntervalo(dados) {
     const el = document.getElementById('modal-notas');
     const stats = document.getElementById('modal-intervalo');
     if (!el || !dados || !dados.casa || !dados.fora) return;
+    window._notasIntervalo = dados;
     if (!stats || stats.classList.contains('oculto')) return;
     const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     /*
