@@ -150,10 +150,10 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const NOME_ATTR: Record<string, string> = { tec: 'Technique', tac: 'Tactical', men: 'Mental', fis: 'Physical' };
 
   const mercadoAba = (
-    <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_300px] lg:grid-rows-[auto_minmax(0,1fr)] xl:grid-cols-[250px_1fr_300px] xl:grid-rows-1 gap-5 min-h-0">
+    <div className="flex-1 grid grid-cols-1 lg:grid-cols-[250px_1fr_300px] gap-5 min-h-0">
       {/* FILTROS */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0b1324] p-4 overflow-y-auto custom-scrollbar grid grid-cols-4 gap-x-3 gap-y-3 lg:col-span-2 xl:col-span-1 xl:flex xl:flex-col xl:gap-4" onKeyDown={e => { if (e.key === 'Enter') aplicar(); }}>
-        <div className="col-span-full xl:col-auto text-[12px] font-black uppercase tracking-widest text-slate-500">Search filters</div>
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0b1324] p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4" onKeyDown={e => { if (e.key === 'Enter') aplicar(); }}>
+        <div className="text-[12px] font-black uppercase tracking-widest text-slate-500">Search filters</div>
         <div><label className={rotulo}>Player name</label><input className={campo} value={nome} onChange={e => setNome(e.target.value)} placeholder="Search by name" /></div>
         <div><label className={rotulo}>Position</label>
           <div className="rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/70 overflow-hidden">
@@ -169,16 +169,16 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
             {[...teams].filter(t => t.id !== meuId).sort((a, b) => a.name.localeCompare(b.name)).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
-        <div className="flex flex-col gap-1.5 col-span-2 xl:col-auto"><label className={rotulo}>Status</label>
+        <div className="flex flex-col gap-1.5"><label className={rotulo}>Status</label>
           <button onClick={() => { setSoListados(!soListados); setFiltros(f => ({ ...f, soListados: !soListados })); }} className={botaoStatus(soListados)}>Transfer listed</button>
           <button onClick={() => { setSoLivres(!soLivres); setFiltros(f => ({ ...f, soLivres: !soLivres })); }} className={botaoStatus(soLivres)}>Free agents</button>
           <button onClick={() => { setSoContrato(!soContrato); setFiltros(f => ({ ...f, soContrato: !soContrato })); }} className={botaoStatus(soContrato)}>Contract ≤ 12 months</button>
           <button onClick={() => { setSoBase(!soBase); setFiltros(f => ({ ...f, soBase: !soBase })); }} className={botaoStatus(soBase)}>Sub-20 (18+)</button>
           {aba !== 'SHORTLIST' && <button onClick={() => { setSoShortlist(!soShortlist); setFiltros(f => ({ ...f, soShortlist: !soShortlist })); }} className={botaoStatus(soShortlist)}>Shortlist ({shortlistN})</button>}
         </div>
-        <div className="col-span-full xl:col-auto mt-auto flex flex-row xl:flex-col gap-2">
-          <button onClick={aplicar} className="flex-1 xl:flex-none bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded text-xs uppercase tracking-widest shadow-lg">Apply filters</button>
-          <button onClick={limpar} className="flex-1 xl:flex-none bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-black py-3 rounded text-xs uppercase tracking-widest">Reset</button>
+        <div className="mt-auto flex flex-col gap-2">
+          <button onClick={aplicar} className="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded text-xs uppercase tracking-widest shadow-lg">Apply filters</button>
+          <button onClick={limpar} className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-black py-3 rounded text-xs uppercase tracking-widest">Reset</button>
         </div>
       </div>
 
@@ -491,7 +491,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   return (
     <div className="h-full flex flex-col gap-4 animate-fade-in min-h-0">
       <div>
-        <button onClick={() => setView('DASHBOARD')} className="hidden xl:block text-slate-500 hover:text-white text-xs font-black uppercase tracking-widest mb-1">‹ Back to menu</button>
+        <button onClick={() => setView('DASHBOARD')} className="text-slate-500 hover:text-white text-xs font-black uppercase tracking-widest mb-1">‹ Back to menu</button>
         <h2 className="text-5xl font-black uppercase tracking-tight italic leading-none"><span className="text-slate-900 dark:text-white">TRANSFER</span> <span className="text-blue-500">MARKET</span></h2>
         <p className="text-slate-400 dark:text-slate-500 font-bold text-[11px] uppercase tracking-widest mt-2 opacity-70">Player search and transactions • window {janela ? <span className="text-emerald-500">open{fecha !== null ? ` (${fecha} days left)` : ''}</span> : <span className="text-rose-400">closed{abre !== null ? ` (opens in ${abre} days)` : ''}</span>}</p>
       </div>
