@@ -14,7 +14,7 @@ import { estrelasDoJogador, potencialVisivel } from '../textSim/youth';
 import { atributos3d } from '../textSim/atributos3d';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
-import { estiloPorPosicao } from '../textSim/playStyleFallback';
+import { estiloPorPosicao, estiloValidoDoJogador } from '../textSim/playStyleFallback';
 import { PLAYSTYLE_AJUSTES } from '../textSim/playStylesAjustes';
 
 const MoraleArrow = ({ morale }: { morale: number }) => {
@@ -99,13 +99,8 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
   const myPlayers = players.filter(p => p.teamId === userTeam.id);
 
   // O PLAYING STYLE do jogador, pela mesma ordem do TacticsView: ajuste manual, o definido no jogador, o da base e, por fim, o primeiro que serve a posicao dele.
-  const estiloDoJogador = (p: Player): string => (
-    PLAYSTYLE_AJUSTES[`${userTeam.name}|${p.name}`]
-    || (p.playStyle && p.playStyle !== 'None' ? p.playStyle : undefined)
-    || PLAYSTYLE_DA_BASE[p.id]
-    || estiloPorPosicao(p)
-    || 'Creative Playmaker'
-  );
+  const estiloDoJogador = (p: Player): string => estiloValidoDoJogador(p,
+    PLAYSTYLE_AJUSTES[`${userTeam.name}|${p.name}`], p.playStyle, PLAYSTYLE_DA_BASE[p.id]);
 
   // (a coluna `pos` ordena por ORDEM_POS: goleiro, defesa, meio-campo, ataque — nao alfabetica)
   const VALOR_DA_COLUNA: Record<string, (p: Player) => number | string> = {

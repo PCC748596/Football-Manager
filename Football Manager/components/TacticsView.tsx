@@ -25,7 +25,7 @@ import { slotsVazios } from '../textSim/escalacao';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
-import { estiloPorPosicao } from '../textSim/playStyleFallback';
+import { estiloPorPosicao, estiloValidoDoJogador } from '../textSim/playStyleFallback';
 import { PLAYSTYLE_AJUSTES } from '../textSim/playStylesAjustes';
 import { FaseZona, ZONAS, postosEfetivos, espelharFase, espelharZona, zonaEspelhada, repor, moverPosto, formacaoTemTabela, temAjustes } from '../textSim/formacoesZonas';
 
@@ -196,13 +196,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     return !!st.red || !!st.injury || suspensoNoJogo(playerId) || foiSubstituido(playerId);
   };
   // O PLAYING STYLE do jogador, pela mesma ordem do PlayerDetailModal: ajuste manual, o definido no jogador, o da base e, por fim, o primeiro que serve a posicao dele.
-  const estiloDoJogador = (p: Player): string => (
-    PLAYSTYLE_AJUSTES[`${userTeam.name}|${p.name}`]
-    || (p.playStyle && p.playStyle !== 'None' ? p.playStyle : undefined)
-    || PLAYSTYLE_DA_BASE[p.id]
-    || estiloPorPosicao(p)
-    || 'Creative Playmaker'
-  );
+  const estiloDoJogador = (p: Player): string => estiloValidoDoJogador(p,
+    PLAYSTYLE_AJUSTES[`${userTeam.name}|${p.name}`], p.playStyle, PLAYSTYLE_DA_BASE[p.id]);
   // O icone do Playing Style nos cards do banco e do squad pool (so com o botao Playing Styles ligado).
   const iconeDoEstilo = (p: Player) => userTeam.tactics.playingStylesOn === false ? null : (
     <IconeEstilo estilo={estiloDoJogador(p)} tam={24} />

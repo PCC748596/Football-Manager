@@ -176,8 +176,9 @@ const garantirIframe = (chave: string, estadio?: string, mandante?: string, comp
 };
 
 // A ocupacao do estadio neste jogo (0..1): a base do mandante mais o bonus do jogo (classico). O 3D desenha a torcida com ela.
-const ocupacaoDoJogo = (casa: Team, fora: Team): number => {
-  try { return settleMatch(casa, fora, { id: '', week: 0, date: '', homeTeamId: casa.id, awayTeamId: fora.id, homeScore: 0, awayScore: 0 } as any, 'USD').occupancy; } catch { return 1; }
+// `amistoso` entra no multiplicador da competicao (x0.7): sem ele a torcida do 3D saia mais cheia do que o publico estimado do Dashboard.
+const ocupacaoDoJogo = (casa: Team, fora: Team, amistoso?: boolean): number => {
+  try { return settleMatch(casa, fora, { id: '', week: 0, date: '', homeTeamId: casa.id, awayTeamId: fora.id, homeScore: 0, awayScore: 0, isFriendly: !!amistoso } as any, 'USD').occupancy; } catch { return 1; }
 };
 
 // A ocupacao do setor visitante: a base do clube visitante (60% no inicio, muda com os resultados dele).
@@ -196,7 +197,7 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
     const d = dados.current;
     if (iniciarRef.current) {
       sessao.arrancou = true;
-      enviar({ ...montarPayload(d.casa, d.fora, d.players, d.userTeamId, { modo: 'visivel', velocidade: velocidadeDoJogo, fimEmMinutos: 90, ocupacao: ocupacaoDoJogo(d.casa, d.fora), ocupacaoVisitante: ocupacaoVisitanteDoJogo(d.fora), tabela: d.tabela, amistoso: d.amistoso, ...(d.decisao ? { decisao: d.decisao } : {}) }, d.kits), ...(d.retomar ? { retomar: d.retomar } : {}) });
+      enviar({ ...montarPayload(d.casa, d.fora, d.players, d.userTeamId, { modo: 'visivel', velocidade: velocidadeDoJogo, fimEmMinutos: 90, ocupacao: ocupacaoDoJogo(d.casa, d.fora, d.amistoso), ocupacaoVisitante: ocupacaoVisitanteDoJogo(d.fora), tabela: d.tabela, amistoso: d.amistoso, ...(d.decisao ? { decisao: d.decisao } : {}) }, d.kits), ...(d.retomar ? { retomar: d.retomar } : {}) });
     } else {
       // A entrada dos times so comeca depois de os uniformes escolhidos (o modal de kits ainda aberto = kits indefinidos).
       if (d.kits.casa === undefined || d.kits.fora === undefined) return;
@@ -204,7 +205,7 @@ const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, cha
       const chaveKits = JSON.stringify(d.kits);
       if (sessao.preparadoCom === chaveKits) return;
       sessao.preparadoCom = chaveKits;
-      enviar({ ...montarPayload(d.casa, d.fora, d.players, d.userTeamId, { ocupacao: ocupacaoDoJogo(d.casa, d.fora), ocupacaoVisitante: ocupacaoVisitanteDoJogo(d.fora), tabela: d.tabela, amistoso: d.amistoso }, d.kits), ...(d.retomar ? { retomar: d.retomar } : {}), tipo: 'preparar' });
+      enviar({ ...montarPayload(d.casa, d.fora, d.players, d.userTeamId, { ocupacao: ocupacaoDoJogo(d.casa, d.fora, d.amistoso), ocupacaoVisitante: ocupacaoVisitanteDoJogo(d.fora), tabela: d.tabela, amistoso: d.amistoso }, d.kits), ...(d.retomar ? { retomar: d.retomar } : {}), tipo: 'preparar' });
     }
   };
 

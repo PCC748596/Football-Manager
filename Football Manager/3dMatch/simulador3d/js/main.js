@@ -913,6 +913,26 @@ function estatisticasLinhas() {
 }
 if (typeof window !== 'undefined') window.estatisticasLinhas = estatisticasLinhas;
 
+/*
+AS CAIXAS DO INTERVALO CABEM NA AREA VISIVEL DO 3D (largura E altura da janela do iframe, que no manager e bem mais pequena que o ecra). Corre sempre que uma das tres caixas (estatisticas,
+classificacao, notas) aparece ou muda: a escala era so calculada ao chegarem as notas, e a classificacao, que chega depois, alargava o conjunto e deixava-o cortado. A escala de base e a de sempre
+(1.3; 1.04 no tablet).
+*/
+function ajustarEscalaIntervalo() {
+    const par = document.getElementById('intervalo-par');
+    if (!par) return;
+    const base = (document.body.classList.contains('toque') || window.innerWidth < 1280) ? 1.04 : 1.3;
+    par.style.transform = 'translate(-50%, -50%) scale(' + base + ')';
+    const r = par.getBoundingClientRect();
+    const w = r.width / base, h = r.height / base;
+    const s = Math.min(base, (window.innerWidth * 0.97) / Math.max(1, w), (window.innerHeight * 0.94) / Math.max(1, h));
+    par.style.transform = 'translate(-50%, -50%) scale(' + s.toFixed(3) + ')';
+}
+if (typeof window !== 'undefined') window.addEventListener('resize', () => {
+    const m = document.getElementById('modal-intervalo');
+    if (m && !m.classList.contains('oculto')) ajustarEscalaIntervalo();
+});
+
 function mostrarModalIntervalo(ligar, titulo) {
     const el = document.getElementById('modal-intervalo');
     if (!el) return;
@@ -959,6 +979,7 @@ function mostrarModalIntervalo(ligar, titulo) {
     el.classList.remove('oculto');
     // As notas ja recebidas aparecem logo (botao Statistics a meio do jogo); as novas, pedidas acima ao manager, substituem-nas quando chegarem.
     if (window._notasIntervalo && typeof mostrarNotasIntervalo === 'function') mostrarNotasIntervalo(window._notasIntervalo);
+    ajustarEscalaIntervalo();
 }
 
 /*
@@ -988,6 +1009,7 @@ function mostrarClassificacaoIntervalo(linhas, emCurso) {
     const nota = document.getElementById('mc-nota');
     if (nota) nota.textContent = (typeof emCurso === 'number') ? ('inclui ' + emCurso + ' jogos em curso') : '';
     el.classList.remove('oculto');
+    ajustarEscalaIntervalo();
 }
 
 // AS NOTAS DOS JOGADORES no ecra das estatisticas (intervalo e fim): `dados` = { casa: { nome, jogadores: [{ nome, nota }] }, fora: ... }, do manager.
@@ -1024,16 +1046,7 @@ function mostrarNotasIntervalo(dados) {
     // Clicar numa linha com detalhe abre/fecha as 4 categorias (o bloco logo a seguir).
     el.querySelectorAll('.mn-linha.clicavel').forEach(l => { l.onclick = () => l.nextElementSibling.classList.toggle('aberto'); });
     el.classList.remove('oculto');
-    // As tres caixas lado a lado cabem no ecra: reduz a escala (a de sempre e 1.3) se for preciso.
-    const par = document.getElementById('intervalo-par');
-    if (par) {
-        // No tablet (toque ou < 1280 px) a escala de base e 20% menor (1.04 em vez de 1.3).
-        const base = (document.body.classList.contains('toque') || window.innerWidth < 1280) ? 1.04 : 1.3;
-        par.style.transform = 'translate(-50%, -50%) scale(' + base + ')';
-        const w = par.getBoundingClientRect().width / base;
-        const s = Math.min(base, (window.innerWidth * 0.97) / Math.max(1, w));
-        par.style.transform = 'translate(-50%, -50%) scale(' + s.toFixed(3) + ')';
-    }
+    ajustarEscalaIntervalo();
 }
 
 // O ESCUDO do time num elemento `.hud-jog-logo`: a imagem do clube, ou 3 barras verticais com as cores dele (como o TeamShield do manager); sem nada, a cor da equipa.

@@ -3,7 +3,7 @@ import { Player, Position, PlayStyle, PLAYSTYLE_DESCRICAO } from '../types';
 import { atributos3d, campo3d } from '../textSim/atributos3d';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
 import { PLAYSTYLE_AJUSTES } from '../textSim/playStylesAjustes';
-import { estiloPorPosicao } from '../textSim/playStyleFallback';
+import { estiloPorPosicao, estiloValidoDoJogador } from '../textSim/playStyleFallback';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 
 /*
@@ -72,11 +72,9 @@ const resumoDe = (player: Player) => player.position === Position.GK ? [
 
 /** O Summary (as seis medidas) e, por baixo, o PlayStyle do jogador com o icone e a descricao. */
 export const PlayerSummary: React.FC<{ player: Player; nomeDoClube?: string }> = ({ player, nomeDoClube }) => {
-  const estilo = (nomeDoClube ? PLAYSTYLE_AJUSTES[`${nomeDoClube}|${player.name}`] : undefined)
-    || (player.playStyle && player.playStyle !== 'None' ? player.playStyle : undefined)
-    || PLAYSTYLE_DA_BASE[player.id]
-    || estiloPorPosicao(player)
-    || 'Creative Playmaker';
+  const estilo = estiloValidoDoJogador(player,
+    nomeDoClube ? PLAYSTYLE_AJUSTES[`${nomeDoClube}|${player.name}`] : undefined,
+    player.playStyle, PLAYSTYLE_DA_BASE[player.id]);
   const descricao = PLAYSTYLE_DESCRICAO[estilo as PlayStyle] || '';
   return (
     <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 text-white">

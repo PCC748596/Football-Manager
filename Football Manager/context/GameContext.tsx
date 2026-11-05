@@ -1617,6 +1617,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // As notas do proprio 3D (js/ratings) quando vieram; senao o calculo antigo, por eventos.
         const dm = m.notas && Object.keys(m.notas).length ? notasDoMotor(m.notas, casa, fora, players) : null;
         const doMotor = dm ? dm.playerRatings : null;
+        // As MESMAS notas do 3D passam para o jogo: a tela MATCH STATISTICS do manager (fora da tela cheia) mostrava as do calculo por eventos, com valores e ordem diferentes.
+        if (dm) setFixtures(prev => prev.map(f => (f.id === uf.id ? { ...f, playerRatings: dm.playerRatings, ratingDetalhes: dm.ratingDetalhes, ...(dm.motm ? { motm: dm.motm } : {}) } : f)));
         const notas = doMotor || calculateMatchRatings(uf.events || [], casa, fora, uf.homeScore || 0, uf.awayScore || 0, uf.homeLineup, uf.awayLineup, players);
         const lado = (t: Team) => Object.entries(notas)
           .map(([id, nota]) => ({ p: players.find(x => x.id === id), nota: nota as number }))

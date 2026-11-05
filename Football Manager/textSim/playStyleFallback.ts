@@ -11,3 +11,16 @@ export const estiloPorPosicao = (p: Pick<Player, 'id' | 'position'>): PlayStyle 
   for (const c of String(p.id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return candidatos[h % candidatos.length];
 };
+
+/**
+ * O PlayStyle a MOSTRAR de um jogador: o primeiro dos candidatos (ajuste manual, o do jogador, o da base, por esta ordem) que SERVE a posicao dele
+ * (PLAYSTYLE_POSITIONS); senao o que serve pelo id. Antes mostrava-se o primeiro que existisse, e saia Target Man num RW.
+ */
+export const estiloValidoDoJogador = (p: Pick<Player, 'id' | 'position'>, ...candidatos: (string | undefined)[]): PlayStyle | string => {
+  for (const c of candidatos) {
+    if (!c || c === 'None') continue;
+    const lista = PLAYSTYLE_POSITIONS[c as PlayStyle];
+    if (lista && lista.includes(p.position)) return c;
+  }
+  return estiloPorPosicao(p) || 'Creative Playmaker';
+};
