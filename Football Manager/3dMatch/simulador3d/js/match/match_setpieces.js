@@ -912,14 +912,11 @@ Object.assign(Match, {
                 meio-campo não há ninguém em cima deles para disputar, e o
                 passo-à-volta-da-âncora lia-se como indecisão.
                 */
-                if (setorFK === 'ataque_lateral' || setorFK === 'ataque_entrada') {
-                    p.jostleAncora = { x: l.x, z: l.z };
-                    p.jostleAngulo = Math.random() * Math.PI * 2;
-                    p.jostleRaio = Math.random() * SetPieceJostle.raio;
-                    p.jostleTimer = Math.random() * SetPieceJostle.intervaloMax;
-                } else {
-                    p.jostleAncora = null;
-                }
+                // Todos os que nao estao na barreira nem batem andam 1-3 passos e esperam (passeioDeEspera, utils.js): nenhum fica estatua.
+                p.jostleAncora = { x: l.x, z: l.z };
+                p.jostleAngulo = Math.random() * Math.PI * 2;
+                p.jostleRaio = Math.random() * SetPieceJostle.raio;
+                p.jostleTimer = Math.random() * SetPieceJostle.intervaloMax;
                 p.fsm.changeState('SET_PIECE_WAIT');
                 lookAtBola(p.model, bolaFK);
             });

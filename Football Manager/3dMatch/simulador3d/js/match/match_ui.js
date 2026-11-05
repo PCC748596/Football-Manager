@@ -556,7 +556,13 @@ Object.assign(Match, {
                     const halfVg = halfV / elev * 0.65;   // a meia-altura da imagem, medida no chao (0.65: a perspectiva encurta a profundidade; calibrado a ~3/4)
                     const Lx = CB.fracao * (Math.abs(rx) * halfH + Math.abs(gx) * halfVg);
                     const Lz = CB.fracao * (Math.abs(rz) * halfH + Math.abs(gz) * halfVg);
-                    const sx = -Math.sign(bola.x) * pX * Lx, sz = -Math.sign(bola.z) * pZ * Lz;
+                    /*
+                    BOLA NA LATERAL DA CAMERA (corner e lateral do lado dela): empurrar o enquadramento para o centro em X (a profundidade, para estas vistas) poe a bola no 3/4 de BAIXO
+                    da imagem, que ja e onde ela fica por estar perto da camera — e o corner saia do quadro. So se desloca em X com a bola do lado OPOSTO a camera (aí sobe na imagem).
+                    O deslocamento ao longo de Z (lateral na imagem) mantem-se.
+                    */
+                    const mesmoLadoDaCamera = window.cameraMode !== 'grua' && Math.sign(bola.x) === Math.sign(targetPos.x) && Math.abs(targetPos.x) > 20;
+                    const sx = mesmoLadoDaCamera ? 0 : -Math.sign(bola.x) * pX * Lx, sz = -Math.sign(bola.z) * pZ * Lz;
                     targetPos.x += sx; lookTarget.x += sx;
                     targetPos.z += sz; lookTarget.z += sz;
                 }

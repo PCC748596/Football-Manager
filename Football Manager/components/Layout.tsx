@@ -115,7 +115,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
           {isMatchDay && (
             <>
               {(gameState.matchMinute === 0 || activeMatchView === 'TRAINING') && (
-                <div onClick={() => { localStorage.setItem('activeMatchView', 'TRAINING'); handleNavClick('TRAINING'); }} className={navItemClass('TRAINING')}>
+                <div title="Simulate Round desativado: so o modo 3D (Match Day)" className={navItemClass('TRAINING') + ' opacity-40 pointer-events-none cursor-not-allowed'}>
                   <IconBall /> <span className="hidden lg:inline">{gameState.matchMinute > 0 ? 'RESUME SIM' : t('nav_sim_round')}</span>
                 </div>
               )}

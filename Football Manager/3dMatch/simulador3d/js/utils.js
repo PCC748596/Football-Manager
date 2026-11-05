@@ -4501,6 +4501,18 @@ function tipoDeRemate(o) {
     */
     let acc = 0;
 
+    /*
+    GOAL POACHER, cara a cara: tem as quatro saidas e escolhe entre elas — forte, colocado ao canto, rasteiro na saida do guarda-redes, ou
+    cavadinha (chapeu) se o guarda-redes saiu. (O drible no guarda-redes e o ramo `podeDriblarGuardaRedes`, que corre antes do remate.)
+    */
+    if (o.poacher && o.frenteAFrente) {
+        const u = r * 4;
+        if (u < 1) return 'forca';
+        if (u < 2) return 'colocado';
+        if (u < 3) return 'rasteiro';
+        return gkAdiantado >= 1.5 ? 'chapeu' : 'colocado';
+    }
+
     // Chapéu: só com o guarda-redes fora da linha, e a uma distância que dê
     // para o passar por cima e ainda descer a tempo.
     if (gkAdiantado >= E.chapeuGkAdiantado &&
@@ -5624,6 +5636,47 @@ function rotuloDaPosicao(pos) {
 
 function offsetInquietacao(angulo, raio) {
     return { x: Math.cos(angulo) * raio, z: Math.sin(angulo) * raio };
+}
+
+/*
+PASSEIO DE ESPERA nas bolas paradas (falta, canto, tiro de meta) — para quem NAO esta na barreira e nao bate: 1 a 3 passos EM DIRECCAO A BOLA, espera ~2 s, 1 a 3 passos de volta
+a ancora, espera ~2 s, e repete. Substitui o passo em direccao aleatoria, que com o corpo virado para a bola se lia como girar.
+
+`ancora` {x,z}; `bola` {x,z}; `minDistBola`: quem defende nao pode ficar a menos disto da bola (9.15 m numa falta/canto). O estado vive em `p._pw`.
+Devolve o ponto para onde ir agora (a ancora, quando esta parado em casa).
+*/
+const PasseioDeEspera = { passo: 0.75, passosMin: 1, passosMax: 3, esperaMin: 1.6, esperaMax: 2.4, velocidade: 1.3, chegou: 0.15 };
+function passeioDeEspera(p, ancora, bola, dt, minDistBola) {
+    const K = PasseioDeEspera;
+    let w = p._pw;
+    if (!w || w.ax !== ancora.x || w.az !== ancora.z) {
+        // Arranque desfasado por jogador: ninguem anda em sincronia.
+        w = p._pw = { ax: ancora.x, az: ancora.z, fase: 'casa', t: Math.random() * K.esperaMax, d: 0 };
+    }
+    w.t -= dt;
+    const dx = bola.x - ancora.x, dz = bola.z - ancora.z;
+    const dB = Math.hypot(dx, dz) || 1;
+    const ux = dx / dB, uz = dz / dB;
+    let d = w.d;
+    if (typeof minDistBola === 'number') d = Math.min(d, Math.max(0, dB - minDistBola));
+    const frente = { x: ancora.x + ux * d, z: ancora.z + uz * d };
+    const casa = { x: ancora.x, z: ancora.z };
+    const pos = p.model.position;
+    const espera = () => K.esperaMin + Math.random() * (K.esperaMax - K.esperaMin);
+    switch (w.fase) {
+        case 'casa':      // parado na ancora
+            if (w.t <= 0) { w.d = (K.passosMin + Math.random() * (K.passosMax - K.passosMin)) * K.passo; w.fase = 'ida'; w.t = 3.0; }
+            return casa;
+        case 'ida':       // 1 a 3 passos a frente
+            if (Math.hypot(pos.x - frente.x, pos.z - frente.z) < K.chegou || w.t <= 0) { w.fase = 'fora'; w.t = espera(); }
+            return frente;
+        case 'fora':      // parado la, ~2 s
+            if (w.t <= 0) { w.fase = 'volta'; w.t = 3.0; }
+            return frente;
+        default:          // 'volta': 1 a 3 passos para tras
+            if (Math.hypot(pos.x - casa.x, pos.z - casa.z) < K.chegou || w.t <= 0) { w.fase = 'casa'; w.t = espera(); }
+            return casa;
+    }
 }
 
 function coneVisao(tec) {

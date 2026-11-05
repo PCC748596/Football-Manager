@@ -318,8 +318,8 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                      <>
                         {showSimulate && (
                            <button 
-                             onClick={() => { localStorage.setItem('activeMatchView', 'TRAINING'); onGoToRoundSimulation?.(); }}
-                             className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-6 py-2.5 rounded text-[10px] uppercase tracking-widest shadow-xl transition-all active:scale-95 flex items-center gap-2 border-b-4 border-emerald-800 h-full"
+                             disabled title="Simulate Round desativado: so o modo 3D (Match Day)"
+                             className="bg-slate-500 text-slate-300 opacity-40 cursor-not-allowed font-black px-6 py-2.5 rounded text-[10px] uppercase tracking-widest shadow-xl transition-all flex items-center gap-2 border-b-4 border-emerald-800 h-full"
                            >
                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="10"/></svg>
                              {gameState.matchMinute > 0 ? 'RESUME SIM' : t('dash_simulate')}

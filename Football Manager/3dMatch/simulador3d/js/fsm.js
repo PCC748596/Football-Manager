@@ -817,7 +817,8 @@ function executeShotGameplay(p) {
             gkAdiantado: gkAdiantado,
             // Posto pelo `podeRematar` no frame da decisão: chegou ao ponto do
             // frente-a-frente, portanto toca ao canto em vez de bater.
-            frenteAFrente: !!p.frenteAFrente
+            frenteAFrente: !!p.frenteAFrente,
+            poacher: p.playingStyle === 'goal_poacher' && !p.playingStyleDesligado
         });
 
         // O DUELO DE DADOS, como no penalti: (TEC + d10) - (GK + d10). Quem o ganha tira mais ao guarda-redes (canto mais perto do poste e de cima: ver miraDeRemate).
@@ -1401,7 +1402,18 @@ class PlayerFSM {
                 frente, atrás ou para o lado à volta da âncora do slot (ver
                 SetPieceJostle). Nas outras bolas paradas continua parado.
                 */
-                if (Match.state === 'CORNER_KICK' && p.jostleAncora &&
+                if ((Match.state === 'CORNER_KICK' || Match.state === 'FREE_KICK') && p.jostleAncora && Match.ball &&
+                    typeof passeioDeEspera === 'function') {
+                    /*
+                    NAO PARADO NA BOLA PARADA (pedido): 1 a 3 passos em direccao a bola, espera ~2 s, 1 a 3 passos para tras (ver passeioDeEspera, utils.js). O corpo fica virado para a bola
+                    (lookAtBola abaixo) e nao roda. Quem defende nao se aproxima a menos de 9.15 m da bola.
+                    */
+                    const taker = Match.setPieceTaker;
+                    const defende = !!taker && taker.team !== p.team;
+                    const alvoP = passeioDeEspera(p, p.jostleAncora, Match.ball.position, dt, defende ? 9.5 : undefined);
+                    _v1.set(alvoP.x, ALTURA_BASE_Y, alvoP.z);
+                    p.velocity = p.steerArrive(_v1, PasseioDeEspera.velocidade, 0);
+                } else if (Match.state === 'CORNER_KICK' && p.jostleAncora &&
                     typeof SetPieceJostle !== 'undefined') {
                     const J = SetPieceJostle;
                     p.jostleTimer = (p.jostleTimer || 0) - dt;

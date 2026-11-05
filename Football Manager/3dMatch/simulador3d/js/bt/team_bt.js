@@ -1837,7 +1837,9 @@ function updateGkStyle(bb) {
     }
 
     let offensive = false;
-    const opp = bb.oppCarrier;
+    // Atento ao passe nas costas da defesa: o destinatario adversario conta como portador (o Goal Poacher que devolve e dispara).
+    const dest = (typeof Match !== 'undefined') ? Match.intendedReceiver : null;
+    const opp = bb.oppCarrier || ((dest && dest.model && dest.team !== gk.team && dest.role !== 'gk') ? dest : null);
     if (opp && Math.abs(opp.model.position.x) < 8) {
         const oppAvanco = opp.model.position.z * bb.dir;
         const temDefensorPelaFrente = bb.outfield.some(d =>
@@ -2192,6 +2194,14 @@ function aplicarInquietacao(p, bb, targetX, targetZ) {
     const pos = p.model.position;
     if (Math.hypot(pos.x - targetX, pos.z - targetZ) > R.limiarChegada) {
         return { x: targetX, z: targetZ };
+    }
+
+    // TIRO DE META: nao ha passo aleatorio (que se lia como girar) — 1 a 3 passos em direccao a bola, espera ~2 s, 1 a 3 passos para tras (passeioDeEspera, utils.js).
+    if (typeof Match !== 'undefined' && Match.state === 'GOAL_KICK' && Match.ball && typeof passeioDeEspera === 'function') {
+        const dtG = Match.delta || 0.016;
+        const ancoraG = (p._pw && p._pw.ax !== undefined && Math.hypot(p._pw.ax - targetX, p._pw.az - targetZ) < 1.0) ? { x: p._pw.ax, z: p._pw.az } : { x: targetX, z: targetZ };
+        const taker = Match.setPieceTaker;
+        return passeioDeEspera(p, ancoraG, Match.ball.position, dtG, (taker && taker.team !== p.team) ? 9.5 : undefined);
     }
 
     const dt = (typeof Match !== 'undefined' && Match.delta) ? Match.delta : 0.016;
