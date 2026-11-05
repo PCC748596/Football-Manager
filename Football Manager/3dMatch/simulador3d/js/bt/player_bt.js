@@ -4215,7 +4215,12 @@ function emZonaDeRemate(ctx) {
     if (PE && typeof semMarcacaoAFrente === 'function') {
         _v1.set(0, 0, p.targetGoalZ);
         const distBaliza = p.model.position.distanceTo(_v1);
-        if (distBaliza > PE.distMin &&
+        // A distancia a partir da qual conduz em vez de chutar depende do jogador: mais TEC e leitura de jogo (tacticknow) -> avanca e chuta de mais perto; menos -> chuta de mais longe.
+        const notaTecMental = ((p.skillFor ? p.skillFor('TEC') : 50) + (p.skillFor ? p.skillFor('tacticknow') : 50)) / 2;
+        const distMinJog = THREE.MathUtils.clamp(
+            PE.distMin - ((notaTecMental - 75) / 25) * (PE.variacaoPorSkill || 0),   // os skills vao de 50 a 100: 75 e o meio
+            PE.distMinMin || 0, PE.distMinMax || 99);
+        if (distBaliza > distMinJog &&
             semMarcacaoAFrente(p, ctx.opponents, PE.alcanceCone, PE.anguloCone)) {
             return false;
         }

@@ -4658,7 +4658,8 @@ class FootballPlayer {
             espaco a frente, que foi o motivo do lancamento"*. O `findPassTarget('mid')` abaixo e um colega ATRAS dele. Sem marcador colado, fora do alivio defensivo e com o corredor a frente livre,
             a cabecada amortece-se a frente: um toque curto na direccao em que ele vinha (a baliza), para correr para ela.
             */
-            const livreParaAvancar = !ehAlivioDefensivo && !marcador &&
+            // O motivo de avancar e o PASSE: bola para o espaco (lancamento / passe no espaco) — ele ja viu o espaco ao arrancar, e nao precisa de o ver na recepcao (de costas para ele). O cone livre fica so como veto.
+            const livreParaAvancar = !!Match.passeEmEspaco && !ehAlivioDefensivo && !marcador &&
                 (this.targetGoalZ - this.model.position.z) * this.dirZ > 10.0 &&
                 (typeof semMarcacaoAFrente === 'function') && semMarcacaoAFrente(this, opponentsHead, 14.0, 50.0);
             const target = livreParaAvancar ? null : (this.findPassTarget('mid') || this.findPassTarget('atk') ||

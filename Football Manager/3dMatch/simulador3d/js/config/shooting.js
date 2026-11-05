@@ -100,7 +100,12 @@ const ShootingModel = {
     entra no caminho â€” aÃ­ o remate volta a ser a melhor opÃ§Ã£o que resta.
     */
     progredirComEspaco: {
-        distMin: 25.0,
+        // 13.75 m para quem tem TEC e tacticknow medios (nota 75: os skills vao de 50 a 100) (era 25): com o caminho livre conduz-se ate perto da area em vez de chutar de 22-24 m; so remata de fora com alguem no cone.
+        // O valor DEPENDE DO JOGADOR: nota = (TEC + tacticknow) / 2; acima de 75 encurta `distMin` (avanca mais, chuta de mais perto) e abaixo alonga-o (chuta de mais longe): nota 50 = 16.5 m (a linha da grande area), 100 = 11 m.
+        distMin: 13.75,
+        variacaoPorSkill: 2.75,   // metros a mais/menos por cada 25 pontos de nota em relacao a 75
+        distMinMin: 11.0,
+        distMinMax: 16.5,
         // O mesmo cone do `livreAFrente10m20g` da conduÃ§Ã£o: 20 m Ã  frente,
         // 45 graus de abertura.
         alcanceCone: 20.0,

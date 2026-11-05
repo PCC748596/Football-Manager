@@ -44,6 +44,8 @@ function executePassGameplay(p) {
     `isThroughBall` e LANCAMENTO — o passe no espaco tem etiqueta e
     contabilidade proprias. Ver aplicarMiraDoPasse (player_bt.js).
     */
+    // Guarda que ESTA bola e um passe para o espaco (a bandeira do passador morre no contacto): quem a recebe correu para la a olhar o espaco, mesmo que na recepcao esteja virado para trás.
+    if (typeof Match !== 'undefined') Match.passeEmEspaco = !!((p.isThroughBall || p.isPasseEspaco) && p.throughBallTarget);
     if ((p.isThroughBall || p.isPasseEspaco) && p.throughBallTarget) {
         ehLancamento = !!p.isThroughBall;
         p.isThroughBall = false;
