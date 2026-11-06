@@ -2390,6 +2390,7 @@ Object.assign(Match, {
         const onzeB = equipaB ? this.escolherOnze(semSuspensos(equipaB.plantel, this.suspensos && this.suspensos.B), Tatics.formacaoB || '442') : null;
         this.equipaInfoA = onzeA ? equipaA : null;
         this.equipaInfoB = onzeB ? equipaB : null;
+        if (typeof MatchInjuries !== 'undefined') MatchInjuries.reiniciar();   // as lesoes e os medicos do jogo anterior nao passam para este
 
         const skillsA = onzeA || ((typeof PlayerSkillsData !== 'undefined') ? PlayerSkillsData.teamA : null);
         const skillsB = onzeB || ((typeof PlayerSkillsData !== 'undefined') ? PlayerSkillsData.teamB : null);

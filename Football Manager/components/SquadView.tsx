@@ -224,7 +224,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                      <td className="px-4 py-[6.5px] font-bold text-slate-700 dark:text-slate-200 text-sm truncate max-w-[140px] transition-colors group-hover:text-blue-500">
                         <div className="flex items-center gap-1.5">
                            {p.name}
-                           {p.injury && <span className={`text-[11px] ${getInjuryColorClass(p.injury)} font-black cursor-help drop-shadow-sm leading-none`} title={typeof p.injury === 'object' ? `${p.injury.type} (${p.injury.daysOut} dias)` : 'Contundido'}>✚</span>}
+                           {p.injury && <span className={`text-[11px] ${getInjuryColorClass(p.injury)} font-black cursor-help drop-shadow-sm leading-none`} title={typeof p.injury === 'object' ? `${p.injury.type} (${p.injury.estimativa || `${p.injury.daysOut} dias`})${p.injury.boletim ? ` — ${p.injury.boletim}` : ''}` : 'Contundido'}>✚</span>}
                         </div>
                      </td>
                      

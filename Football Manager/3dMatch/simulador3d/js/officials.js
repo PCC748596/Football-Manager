@@ -3118,6 +3118,8 @@ const Officials = {
             Math.random() < MandoModel.arbitroCasa) return;
 
         const gravidade = this.gravidadeDaFalta(dados);
+        // LESOES (js/injuries/injury_match.js): quem sofre a falta pode se machucar.
+        if (typeof MatchInjuries !== 'undefined') MatchInjuries.aoContato(vitima, gravidade);
 
         if (typeof MatchStats !== 'undefined') {
             MatchStats[infractor.team].faltas.cometidas++;

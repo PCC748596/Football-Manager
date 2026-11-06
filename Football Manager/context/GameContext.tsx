@@ -24,6 +24,7 @@ import { registrarLigas, escalaDaLiga } from '../textSim/economia';
 import { Negociacao, Oferta, abrirNegociacao, assinar, chanceDeAceitar, propostaDoJogador, resolverNegociacoes } from '../textSim/negociacao';
 import { rotuloDaFase } from '../textSim/competitions';
 import { slotsVazios, jogoEmAndamento } from '../textSim/escalacao';
+import { medicoDoTime, boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis } from '../textSim/medico';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO } from '../textSim/trainingService';
@@ -987,7 +988,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         let moraleBoost = 0;
 
         if (p.injury) {
-          dailyRecovery = 15;
+          // Lesao do 3D: o FIS cai `quedaFisPorDia`; as antigas recuperam 15/dia como sempre.
+          dailyRecovery = variacaoDiariaDeFis(p.injury) ?? 15;
         } else if (p.teamId === gameState.userTeamId) {
           // User team follows training schedule (respecting group)
           const gIdx = p.trainingGroupId || 0;
@@ -1017,11 +1019,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (plano.treina) { p = { ...p, trainingAccumulated: p.trainingAccumulated ? { ...p.trainingAccumulated } : undefined } as Player; cpuAplicarTreino(p); }
         }
 
+        // Segunda-feira: boletim medico das lesoes complexas (evolucao excelente ou recaida mexem no prazo real).
+        let lesao = p.injury;
+        if (lesao && dayIdx === 0 && lesao.tipoLesao === 'Complexa') {
+          const b = boletimSemanal(lesao, medicoDoTime(p.teamId));
+          lesao = { ...b.lesao, boletim: b.boletim };
+        }
         return {
           ...p,
           fitness: Math.min(100, Math.max(0, p.fitness + dailyRecovery)),
           morale: Math.min(100, Math.max(0, (p.morale || 50) + moraleBoost)),
-          injury: p.injury ? (p.injury.daysOut > 1 ? { ...p.injury, daysOut: p.injury.daysOut - 1 } : undefined) : undefined
+          injury: lesao ? (lesao.daysOut > 1 ? { ...lesao, daysOut: lesao.daysOut - 1 } : undefined) : undefined
         };
       });
     });
@@ -1209,8 +1217,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (e.type === 'INJURY' && e.playerId && e.injuryName && e.injuryDaysOut && e.injurySeverity) {
             const p = newPlayers.find(pl => pl.id === e.playerId);
             if (p) {
-              p.injury = { type: e.injuryName, daysOut: e.injuryDaysOut, severity: e.injurySeverity };
-              if (e.injurySeverity === 'LIGHT' || e.injurySeverity === 'LEVE') {
+              p.injury = { type: e.injuryName, daysOut: e.injuryDaysOut, severity: e.injurySeverity,
+                ...(e.injuryTipo ? { tipoLesao: e.injuryTipo, estimativa: e.injuryEstimate, quedaFisPorDia: e.injuryFisDrop, idLesao: e.injuryId } : {}) };
+              if (e.injuryTipo) {
+                // Lesao do 3D: o FIS cai por dia (variacaoDiariaDeFis), sem o tombo de uma vez do motor de texto.
+              } else if (e.injurySeverity === 'LIGHT' || e.injurySeverity === 'LEVE') {
                 p.fitness = Math.max(0, (p.fitness || 100) - 15);
               } else {
                 p.fitness = 80 - (e.injuryDaysOut * 15);
@@ -1574,6 +1585,24 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         novos.forEach(e => { if (e.type === 'GOAL') { if (e.teamId === f.homeTeamId) h++; else a++; } });
         return { ...f, events: [...(f.events || []), ...novos], homeScore: h, awayScore: a };
       }));
+    } else if (m.tipo === 'lesao') {
+      /*
+      Lesao sofrida no 3D (js/injuries/injury_match.js), de qualquer dos dois times: vira um evento INJURY do jogo, e o fecho do dia (o bloco dos eventos INJURY) a grava no jogador. `dias` e o
+      prazo REAL (ja com o tratamento do medico do clube), `estimativa` o que o medico diz ao manager. Mesmo jogador, uma segunda lesao (agravamento) substitui a primeira.
+      */
+      const time = m.lado === 'casa' ? casa : fora;
+      const real = Number(m.jogador);
+      const jog = players.find(p => p.teamId === time.id && (/(\d+)$/.exec(String(p.id)) || [])[1] === String(real));
+      if (!jog) return;
+      const minuto = typeof m.minuto === 'number' ? m.minuto : (w.motor3dMinuto || 0);
+      const gravidade = severidadeDaLesao(m.tipo === 'Complexa' ? 'Complexa' : 'Simples', m.dias);
+      const ev: MatchEvent = {
+        minute: minuto, type: 'INJURY', teamId: time.id, playerId: jog.id,
+        description: `✚ ${jog.name.split(' ').pop()}: ${m.nome}`,
+        injurySeverity: gravidade, injuryName: m.nome, injuryDaysOut: m.dias, injuryTipo: m.tipo === 'Complexa' ? 'Complexa' : 'Simples',
+        injuryEstimate: m.estimativa, injuryFisDrop: m.quedaFisPorDia || 0, injuryId: m.idLesao
+      };
+      setFixtures(prev => prev.map(f => (f.id !== uf.id ? f : { ...f, events: [...(f.events || []).filter(e => !(e.type === 'INJURY' && e.playerId === jog.id)), ev] })));
     } else if (m.tipo === 'substituicao_feita') {
       /*
       Uma troca que o 3D fez sozinho no time do UTILIZADOR (goleiro expulso: o reserva depois da espera, ou o pedido do manager com o goleiro expulso a sair, que o 3D corrigiu):

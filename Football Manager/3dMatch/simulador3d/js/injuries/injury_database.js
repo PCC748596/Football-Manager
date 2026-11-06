@@ -1,4 +1,4 @@
-export const INJURY_DATABASE = [
+const INJURY_DATABASE = [
     // --- LESÕES SIMPLES ---
     {
         id: 'SIM01', nome: 'Tostão na Coxa (Pancada)', tipo: 'Simples', parteCorpo: 'Coxa',
@@ -83,3 +83,4 @@ export const INJURY_DATABASE = [
         baseDiasMin: 25, baseDiasMax: 50, estadosPossiveisInMatch: { Forced: 80, Requested: 20, Hurt: 0 }, quedaFisPorDia: 1.0
     }
 ];
+if (typeof window !== "undefined") { window.INJURY_DATABASE = INJURY_DATABASE; }

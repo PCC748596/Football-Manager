@@ -395,7 +395,7 @@ class FootballPlayer {
     factorCansaco() {
         const S = (typeof StaminaModel !== 'undefined') ? StaminaModel : null;
         if (!S || !S.ligada) return 1;
-        return 1 - S.quedaVelocidade * (1 - this.energia);
+        return (1 - S.quedaVelocidade * (1 - this.energia)) * (this.lesaoFator || 1);
     }
 
     /*

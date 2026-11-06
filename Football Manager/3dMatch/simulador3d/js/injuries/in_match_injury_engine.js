@@ -1,6 +1,5 @@
-import { INJURY_DATABASE } from './injury_database.js';
 
-export class InMatchInjuryEngine {
+class InMatchInjuryEngine {
     /**
      * Calcula se o jogador se machucou baseado numa dividida/falta.
      * Deve ser chamado quando ocorre um desarme, falta ou impacto aéreo no match_physics.js
@@ -10,7 +9,7 @@ export class InMatchInjuryEngine {
      */
     static calcularGatilhoLesaoContato(gravidadeImpacto, injuryProneness) {
         // Multiplicador base para lesões de contato
-        const CHANCE_BASE = 0.05;
+        const CHANCE_BASE = 0.08;   // ~25 faltas/jogo x gravidade ~0.5 x propensao ~0.5 => ~0.5 lesoes de contato por jogo
         const chanceLesao = gravidadeImpacto * injuryProneness * CHANCE_BASE;
 
         if (Math.random() < chanceLesao) {
@@ -32,12 +31,13 @@ export class InMatchInjuryEngine {
      * Calcula se o jogador se machucou sozinho (arrancada, fadiga, distensão)
      * Deve ser chamado periodicamente para jogadores em alta velocidade
      * 
-     * @param {number} esforcoAtual - Medida do esforço (ex: % de stamina perdida ou velocidade alta)
+     * Chamado uma vez por SEGUNDO DE JOGO por jogador em corrida (ver MatchInjuries.tick), nao por frame.
+     * @param {number} esforcoAtual - Medida do esforço (0..1: velocidade/cansaco)
      * @param {number} injuryProneness - Propensão a lesão (0.0 a 1.0)
      */
     static calcularGatilhoLesaoSemContato(esforcoAtual, injuryProneness) {
         // Chance muito baixa, pois roda frequentemente enquanto o jogador corre
-        const CHANCE_BASE = 0.0001;
+        const CHANCE_BASE = 0.00007;   // por segundo de corrida: ~0.4 lesoes sem contato por jogo
         const chanceLesao = esforcoAtual * injuryProneness * CHANCE_BASE;
 
         if (Math.random() < chanceLesao) {
@@ -69,21 +69,13 @@ export class InMatchInjuryEngine {
      * Aplica um debuff imediato nos atributos do jogador caso ele continue jogando 'Baleado' (Hurt)
      * @param {Object} jogador 
      */
-    static aplicarDebuffBaleado(jogador) {
+    static aplicarDebuffBaleado(jogador, fator = 0.80) {
+        // `lesaoFator` multiplica a velocidade maxima (FootballPlayer.factorCansaco). 1 = sao.
         if (!jogador.isBaleado) {
             jogador.isBaleado = true;
             jogador.minutosBaleado = 0;
-            jogador.atributosOriginais = {
-                velocidade: jogador.velocidade,
-                aceleracao: jogador.aceleracao,
-                agilidade: jogador.agilidade
-            };
-
-            // Perde 20% das capacidades físicas
-            jogador.velocidade *= 0.80;
-            jogador.aceleracao *= 0.80;
-            jogador.agilidade *= 0.80;
         }
+        jogador.lesaoFator = fator;
     }
 
     /**

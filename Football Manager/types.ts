@@ -205,6 +205,13 @@ export interface Player {
     type: string;
     daysOut: number;
     severity: 'LIGHT' | 'MEDIUM' | 'SEVERE' | 'LEVE' | 'MÉDIA' | 'GRAVE';
+    /** Lesoes do 3D (js/injuries): `daysOut` e o prazo REAL (oculto), `estimativa` o que o medico diz ao manager. */
+    tipoLesao?: 'Simples' | 'Complexa';
+    estimativa?: string;
+    quedaFisPorDia?: number;
+    idLesao?: string;
+    /** Ultimo boletim semanal (textSim/medico.ts). */
+    boletim?: string;
   };
   /** Cartoes amarelos acumulados por competicao ('LEAGUE' ou o id da copa): ver textSim/suspensoes.ts. */
   amarelos?: Record<string, number>;
@@ -861,6 +868,11 @@ export interface MatchEvent {
   injuryName?: string;
   shooterId?: string;
   injuryDaysOut?: number;
+  /** Lesoes do 3D: tipo, estimativa do medico, queda de FIS por dia e id no banco de lesoes. */
+  injuryTipo?: 'Simples' | 'Complexa';
+  injuryEstimate?: string;
+  injuryFisDrop?: number;
+  injuryId?: string;
   /** Só em eventos SUB: o jogador que saiu (não pode voltar a entrar). */
   subbedOutId?: string;
 }

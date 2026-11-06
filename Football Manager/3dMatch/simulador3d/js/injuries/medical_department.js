@@ -1,6 +1,5 @@
-import { INJURY_DATABASE } from './injury_database.js';
 
-export class MedicalDepartment {
+class MedicalDepartment {
     /**
      * Gera os atributos do médico baseando-se no "peso" da liga do clube.
      * @param {number} pesoLiga - Ex: Premier League = 85, Série B Brasil = 60, Série D = 45

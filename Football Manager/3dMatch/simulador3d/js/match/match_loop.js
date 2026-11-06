@@ -302,6 +302,7 @@ Object.assign(Match, {
         if (!this.disputa) {
             if (this.tickSubstituicoes) this.tickSubstituicoes(dt);
             if (typeof TreinadorCPU !== 'undefined') TreinadorCPU.tick(dt);   // o treinador da CPU: tatica e substituicoes (js/treinador_cpu.js)
+            if (typeof MatchInjuries !== 'undefined') MatchInjuries.tick(dt);   // as lesoes: sem contato, agravamento e trocas forcadas (js/injuries/injury_match.js)
         }
         /*
         ENQUANTO A TROCA DURA SO A COBRANCA ESPERA — o lance NAO congela. Antes, com uma substituicao pendente, o jogo parava no instante em que a bola saia (so os jogadores andavam): a bola
