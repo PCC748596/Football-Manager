@@ -22,7 +22,7 @@ export const urlSimulador = (): string => {
 };
 
 export interface LadoPayload {
-  equipa: { id: string; name: string; city?: string; logoUrl?: string; cores?: string[]; lineup: string[]; bench: string[]; tactics: any; cobradores?: any };
+  equipa: { id: string; name: string; city?: string; logoUrl?: string; cores?: string[]; lineup: string[]; bench: string[]; tactics: any; cobradores?: any; medico?: { nome: string; precisao: number; tempo: number; eficacia: number } | null };
   jogadoresPorId: Record<string, any>;
   /** A tatica propria do clube (nomes do motor) e o conhecimento tatico do treinador: servem ao treinador da CPU no 3D (js/treinador_cpu.js). */
   tatica?: any;
@@ -91,7 +91,7 @@ const ladoDe = (team: Team, players: Player[]): LadoPayload => {
   }
   const formacao = team.tactics?.formation || '4-4-2';
   return {
-    equipa: { id: team.id, name: team.name, city: (team as any).city, logoUrl: (team as any).logoUrl, cores: [team.primaryColor, team.secondaryColor, team.tertiaryColor], lineup: team.lineup, bench: (team as any).bench || [], tactics: team.tactics, cobradores: resolveSetPieceTakers(team, players) },
+    equipa: { id: team.id, name: team.name, city: (team as any).city, logoUrl: (team as any).logoUrl, cores: [team.primaryColor, team.secondaryColor, team.tertiaryColor], lineup: team.lineup, bench: (team as any).bench || [], tactics: team.tactics, cobradores: resolveSetPieceTakers(team, players), medico: (team as any).medico || null },
     jogadoresPorId: porId,
     tatica: team.tactics ? taticaParaMotor({ ...team.tactics, focusSectors: setoresPadraoDaFormacao(team.tactics.formation) || team.tactics.focusSectors }) : undefined,
     conhecimentoTatico: (team as any).managerTactics ?? 70,

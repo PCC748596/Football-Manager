@@ -10,6 +10,7 @@ import { Position, Player } from '../types';
 import { ACTIVITIES, TrainingActivity, Impact } from '../textSim/trainingService';
 import { AttributeGrowthArrow } from './SquadView';
 import FitnessBar from './FitnessBar';
+import { MedicalDepartmentPanel } from './MedicalDepartmentPanel';
 import TrainingIcon, { COR_DO_TREINO } from './TrainingIcon';
 
 const PLANE_ICON = (
@@ -39,6 +40,8 @@ const ICONE_MOR = <Ico><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 
 const TrainingView: React.FC = () => {
   const { gameState, userTeam, teams, fixtures, players, setTrainingSchedules, unlockTrainingGroup, updatePlayerTrainingGroup, advanceDay, formatCurrency, formatCurrencyShort, t } = useGame();
   const [activeCategory, setActiveCategory] = useState<TrainingActivity['category']>('TECHNIQUE');
+  // 0..2 = G1..G3; 3 = Medical Department (os lesionados, que nao treinam).
+  const GRUPO_MED = 3;
   const [selectedGroup, setSelectedGroup] = useState<number>(0);
   // Toque (iPad): escolhe-se o treino e depois o slot, como na substituicao de jogadores; arrastar continua a funcionar.
   const [selActivity, setSelActivity] = useState<string | null>(null);
@@ -46,6 +49,7 @@ const TrainingView: React.FC = () => {
   
   // Use gameState schedule directly
   const program = gameState.trainingSchedules?.[selectedGroup] || gameState.trainingSchedule;
+  const lesionadosDoClube = players.filter(p => p.teamId === userTeam?.id && p.injury).length;
 
   const weekInfo = useMemo(() => {
     const days = [];
@@ -244,9 +248,16 @@ const TrainingView: React.FC = () => {
                           G{grp + 1}
                        </button>
                     ))}
+                    <button
+                      onClick={() => setSelectedGroup(GRUPO_MED)}
+                      title="Medical Department"
+                      className={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-1 ${selectedGroup === GRUPO_MED ? 'bg-rose-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 hover:bg-slate-300 dark:hover:bg-slate-700'}`}
+                    >
+                      ✚ MED{lesionadosDoClube > 0 ? ` (${lesionadosDoClube})` : ''}
+                    </button>
                  </div>
                  <button 
-                   disabled={selectedGroup >= (gameState.unlockedTrainingGroups || 1)}
+                   disabled={selectedGroup === GRUPO_MED || selectedGroup >= (gameState.unlockedTrainingGroups || 1)}
                    onClick={() => {
                      const newSchedules = (gameState.trainingSchedules || [gameState.trainingSchedule, Array(7).fill(null).map(() => Array(4).fill(null)), Array(7).fill(null).map(() => Array(4).fill(null))]).map(g => g.map(d => [...d]));
                      newSchedules[selectedGroup] = Array(7).fill(null).map(() => Array(4).fill(null));
@@ -258,7 +269,9 @@ const TrainingView: React.FC = () => {
                  </button>
               </div>
               
-              {selectedGroup >= (gameState.unlockedTrainingGroups || 1) ? (
+              {selectedGroup === GRUPO_MED ? (
+                 <MedicalDepartmentPanel />
+              ) : selectedGroup >= (gameState.unlockedTrainingGroups || 1) ? (
                  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-slate-50 dark:bg-slate-900/30">
                     <span className="text-5xl mb-4 drop-shadow-sm filter grayscale opacity-80">🔒</span>
                     <h3 className="text-lg font-black text-slate-700 dark:text-white uppercase tracking-tight mb-2">Group Locked</h3>
@@ -538,6 +551,9 @@ const TrainingView: React.FC = () => {
 
                                   {/* COL 5: GROUPS */}
                                   <div className="col-span-3 flex justify-end">
+                                      {p.injury ? (
+                                          <button onClick={() => setSelectedGroup(GRUPO_MED)} title={`${p.injury.type} — Medical Department`} className="px-3 py-3 text-[12px] font-black rounded bg-rose-600 text-white shadow-sm">✚ MED</button>
+                                      ) : (
                                       <div className="flex gap-0.5 shadow-sm border border-slate-200 dark:border-slate-700/50 rounded overflow-hidden">
                                           {[0, 1, 2].map(grp => {
                                               const isLocked = grp >= (gameState.unlockedTrainingGroups || 1);
@@ -554,6 +570,7 @@ const TrainingView: React.FC = () => {
                                               );
                                           })}
                                       </div>
+                                      )}
                                   </div>
                               </div>
                           </div>

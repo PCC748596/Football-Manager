@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useMemo } from 'react';
 import { assetUrl } from '../textSim/assetUrl';
 import { Team, Player, Contract, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador, PontoFinanceiro } from '../types';
-import { generateLeagueData, generateFixtures, COUNTRIES } from '../textSim/dataGenerator';
+import { generateLeagueData, generateFixtures, COUNTRIES, faixaDoClube } from '../textSim/dataGenerator';
 import { gruposDaSerieD, arquivarCampeoes, HistoricoDeCopas } from '../textSim/competitions';
 import { espacarCalendario, comDatasDeCopa } from '../textSim/calendario';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, buildTable } from '../textSim/world';
@@ -24,7 +24,7 @@ import { registrarLigas, escalaDaLiga } from '../textSim/economia';
 import { Negociacao, Oferta, abrirNegociacao, assinar, chanceDeAceitar, propostaDoJogador, resolverNegociacoes } from '../textSim/negociacao';
 import { rotuloDaFase } from '../textSim/competitions';
 import { slotsVazios, jogoEmAndamento } from '../textSim/escalacao';
-import { medicoDoTime, boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis } from '../textSim/medico';
+import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico, gerarMedico } from '../textSim/medico';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO } from '../textSim/trainingService';
@@ -1022,7 +1022,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Segunda-feira: boletim medico das lesoes complexas (evolucao excelente ou recaida mexem no prazo real).
         let lesao = p.injury;
         if (lesao && dayIdx === 0 && lesao.tipoLesao === 'Complexa') {
-          const b = boletimSemanal(lesao, medicoDoTime(p.teamId));
+          const b = boletimSemanal(lesao, teams.find(t => t.id === p.teamId)?.medico || gerarMedico(p.teamId));
           lesao = { ...b.lesao, boletim: b.boletim };
         }
         return {
@@ -1566,6 +1566,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   // Outro dia / outro jogo: o aviso de um jogo que acabou sem `fim` (ex.: a simulacao instantanea) nao fica preso.
   useEffect(() => { setAvisoGoleiro(false); }, [gameState.currentDate]);
+  // O departamento medico e do clube e vai no save: saves antigos (sem `medico`) o recebem aqui, uma vez, no nivel da divisao do clube.
+  useEffect(() => { if (teams.some(t => !t.medico)) setTeams(prev => prev.map(t => garantirMedico(t, faixaDoClube(t)))); }, [teams]);
 
   // Modo 3D: o motor corre ao vivo no iframe; aqui chegam os eventos dele. O relogio do manager espera por window.motor3dMinuto.
   const motor3dMensagem = (m: any) => {

@@ -8,6 +8,7 @@ import { ECONOMIA_ESTADIO } from './stadiumEconomy';
 import { calcularSkill } from './overall';
 import { nomeDoClube } from './nomes';
 import { criarRng } from './contracts';
+import { gerarMedico } from './medico';
 import { TREINADORES, sortearConhecimento } from './treinadores';
 import { REAL_TEAMS_JSON, REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 import { jogadoresLocaisDoClube } from './dadosLocais';
@@ -486,6 +487,13 @@ export const FAIXA_OVR_AMERICA_DO_SUL: Record<number, [number, number]> = { 1: [
 export const FAIXA_OVR_EUROPA: Record<number, [number, number]> = { 1: [80, 75], 2: [75, 70], 3: [70, 65], 4: [65, 65] };
 export const FAIXA_OVR_LIGA_OCULTA: [number, number] = [75, 70];
 
+/** A faixa de OVR da divisao de um clube ja criado (para o medico de saves antigos): procura a liga dele nos paises do jogo. */
+export const faixaDoClube = (team: { country: string; leagueId?: string }): [number, number] | null => {
+  const pais: any = COUNTRIES.find((c: any) => c.id === team.country);
+  const liga = pais?.leagues?.find((l: any) => l.id === team.leagueId);
+  return faixaDeOvr(team.country, liga);
+};
+
 export const faixaDeOvr = (countryId: string, league: any): [number, number] | null => {
   if (!league) return null;
   // Os clubes gerados da liga oculta do Brasil (ex.: Capivariano, do Paulistao) saem no nivel da Serie C.
@@ -606,6 +614,8 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
       stadiumCapacity: t.stadiumCapacity || ((t.teamStadiumName === 'Maracanã' || t.teamStadiumName === 'Estádio do Maracanã') ? 78838 : (Math.floor((t.fanBase || 10000) * 0.45) + 15000)),
       foundedYear: t.yearOfFoundation || 1900,
       strength: 0,
+      // O departamento medico: o nivel da divisao do clube (mesma faixa de OVR dos clubes, `faixaDeOvr`).
+      medico: gerarMedico(t.teamID.toString(), faixaDeOvr(countryId, league)),
       chemistry: randomInt(10, 25),
       chemistryTrainingCounter: 0,
       cash: seasonBudget, // Current available funds starts as Season Budget

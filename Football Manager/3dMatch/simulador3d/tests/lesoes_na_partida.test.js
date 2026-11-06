@@ -78,4 +78,14 @@ const gk = Match.opponents.find(q => q.role === 'gk');
 Math.random = () => 0; MatchInjuries.aoContato(gk, 2); Math.random = rnd;
 verifica(!gk.lesao, 'goleiro nao se machuca por falta', 'goleiro lesionado');
 
+console.log('7 — o medico e o do clube (Team.medico via equipaInfo)');
+novoJogo();
+Match.equipaInfoB.medico = { nome: 'Dr. Teste', precisao: 100, tempo: 100, eficacia: 100 };
+p = Match.opponents.find(q => q.role === 'mid');
+Math.random = () => 0;
+MatchInjuries.aplicar(p, lesao('COM01'), 'Forced', 'contato');
+Math.random = rnd;
+// tempo 100 => -20% no prazo (180 dias minimos -> 144); precisao 100 => estimativa exata.
+verifica(p.lesao.reg.diasRestantesReais === 144 && p.lesao.reg.estimativaManager === 'Entre 144 e 144 dias', 'prazo 144 e estimativa exata com o medico 100', 'medico do clube nao usado: ' + JSON.stringify(p.lesao.reg));
+
 if (falhas) { console.log('FALHOU: ' + falhas); process.exit(1); } else console.log('OK');

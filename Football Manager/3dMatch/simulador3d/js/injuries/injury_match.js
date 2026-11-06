@@ -10,7 +10,7 @@ LESOES NA PARTIDA (liga os modulos de js/injuries ao jogo 3D).
   . A troca usa Match.pedirSubstituicao com `_reportar`, o mesmo caminho do goleiro expulso: o manager espelha escalacao, banco e contador.
     Sem reserva do mesmo papel, ou com 5 trocas feitas, quem saiu fica em campo baleado (Forced = -60%).
   . Ao manager vai a mensagem `lesao` (ver GameContext.motor3dMensagem): dias reais e estimativa do medico ja calculados aqui.
-  . O medico do clube sai de `equipaInfo.pesoLiga` (default 65): ver MedicalDepartment.gerarMedicoProcedural.
+  . O medico do clube e o `Team.medico` do manager (`equipaInfo.medico`, via adaptador_manager); sem ele, MedicalDepartment.gerarMedicoProcedural(65).
 */
 const MatchInjuries = {
     ligada: true,
@@ -30,7 +30,8 @@ const MatchInjuries = {
 
     _medico: function (p) {
         const info = p.team === 'TeamA' ? Match.equipaInfoA : Match.equipaInfoB;
-        if (!this._medicos[p.team]) this._medicos[p.team] = MedicalDepartment.gerarMedicoProcedural((info && info.pesoLiga) || 65);
+        // O medico do clube vem do manager (Team.medico); sem ele (simulacoes, 3D solto) sai um de nivel medio.
+        if (!this._medicos[p.team]) this._medicos[p.team] = (info && info.medico) || MedicalDepartment.gerarMedicoProcedural(65);
         return this._medicos[p.team];
     },
 

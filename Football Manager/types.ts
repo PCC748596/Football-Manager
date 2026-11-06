@@ -245,7 +245,12 @@ export interface Tactics {
 
 export type ZoneOverrides = { com?: Record<string, Record<string, [number, number]>>; sem?: Record<string, Record<string, [number, number]>> };
 
+/** O medico do clube (nota 50-100 em cada skill): precisao da estimativa, tempo de recuperacao e eficacia do boletim semanal. Ver textSim/medico.ts. */
+export interface Medico { nome: string; precisao: number; tempo: number; eficacia: number }
+
 export interface Team {
+  /** Departamento medico: gerado na criacao do clube (ou na primeira vez que o save o pede, `garantirMedico`). */
+  medico?: Medico;
   id: string;
   name: string;
   managerName: string; 

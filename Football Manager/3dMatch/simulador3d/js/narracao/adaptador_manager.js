@@ -178,6 +178,8 @@ const AdaptadorManager = {
         }).filter(Boolean);
         return {
             reservas: reservas,
+            // O medico do clube (Team.medico do manager): o 3D usa o dele nas lesoes (js/injuries/injury_match.js).
+            medico: equipaMgr.medico || null,
             banco: banco,
             // O ESCUDO (HUD do portador, main.js): a imagem do clube ou, sem ela, as tres cores em barras verticais (a mesma do TeamShield do manager).
             escudo: { logo: equipaMgr.logoUrl || null, cores: equipaMgr.cores || null },
