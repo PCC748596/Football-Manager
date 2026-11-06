@@ -13,7 +13,66 @@ Consulta este ficheiro para saber **onde** mexer antes de abrir o código.
 - **Build:** `npm run build` copia a pasta para `dist/simulador3d/` sem `tests`, `tools`, `docs`, `*.md`, `package.json` nem as páginas de editor.
 - Os caminhos citados mais abaixo neste ficheiro (`js/...`, `tests/...`, `tools/...`) são relativos a esta pasta.
 
-## Últimas Actualizações (Outubro 2026)
+## Últimas Actualizações (Outubro e Novembro 2026)
+
+### 5 e 6 de Novembro de 2026 — recepção, estilos de jogo, bola parada, clima e hora do jogo
+
+**Recepção do passe e da bola (`js/bt/player_bt.js`, `js/config/passing.js`, `js/player.js`, `js/fsm.js`)**
+- **Bola lenta vai-se buscar.** `PassModel.recepcao.velBolaLenta` = 4 m/s e `velMinDirecto` = 4: abaixo disso `actReceivePass` não espera parado nem no ponto do passe; vai ao ponto de intercepção (ou à bola). O ramo "espera quieto de frente para a bola" só vale com a bola a 4 m/s ou mais.
+- **Lançamento cabeceado já não é escorado para trás.** No `else` do cabeceio (player.js, "fora da zona de remate") a bola é amortecida 6.5 m para a frente quando: `Match.passeEmEspaco` (a bola veio de um lançamento ou passe no espaço, marcado em fsm.js no instante do chute), sem marcador colado, fora do alívio defensivo, a mais de 10 m do gol, e o cone à frente livre (`semMarcacaoAFrente`, só como veto). A decisão vem do passe porque o jogador pode estar virado para o passador.
+- **Chute de primeira na grande área** (`js/match/match_physics.js`, em `resolveBallContact`): bola que chega a quem está na área adversária, a menos de 20 m do gol, virado para ele, com a bola a 3 m/s ou mais e não adiantada por ele: `jogarDePrimeira` com chance 0.45 + 0.40 × TEC/100. A árvore chuta se puder.
+
+**Rotas dos pontas e laterais (`js/playing_styles.js`, `js/config/tactics.js`, `js/fsm.js`, `js/bt/player_bt.js`)**
+- Campo novo `rotaAla` no estilo (`EstiloBase.rotaAla = null`): `'meio'` (Roaming Flank, Full-back Finisher), `'fundo'` (Prolific Winger, Offensive Full-back), `'ponta'` (Cross Specialist).
+- `rotaDeAla(p)`: só LW/RW/LM/RM/LB/RB, no meio-campo de ataque, nunca em recuo; não usa `estiloAtivoDe` (o portador tem de ter a rota sempre). `alaLivreAFrente` (ninguém a 6 m à frente, 4 m de largura) e `progressoDeAla` dão o progresso por candidato no leque de condução do CARRY (fsm.js): 'meio' = ganho de distância ao gol, 'fundo' = profundidade sem cortar para dentro, 'ponta' = profundidade mais ir à linha.
+- **Infiltração** (`actInfiltrar`): 'meio' entra pelo meio se há vão no centro (senão fecha a 30% do x); 'fundo'/'ponta' correm pela ponta (`CrossModel.alaX`) até ao limite do impedimento. `podeInfiltrar` dobra a chance de quem tem rota.
+
+**Playing Styles — comportamento com e sem bola**
+- **Campos que não eram lidos por ninguém e agora são** (`pesoDoEstilo(p, campo)`, player_bt.js): `driblar` (em `podeDriblar`), `lancar` (aceitação do lançamento em `findBestPassAnywhere`: >1 aceita mais, <1 descarta por sorteio) e `conduzir` (velocidade de `actCarry`, 30% do desvio). Novos em `EstiloBase`: `driblar`, `lancar`, `cabeceio`.
+- **`cabeceio`** (player.js): Fox in the Box 1.6, Target Man 1.3, Hole Player 1.2 — alcance do cabeceio a gol até +15% e aceita marcador mais perto (raio de marcação dividido por `cabeceio`).
+- **`bonusDoPassadorPorEstilo(p, opt, optPos)`** (playing_styles.js, chamado em `findPassTarget` antes do multiplicador do alvo): Goal Poacher e Target Man com marcador colado devolvem a quem passou (+260; Target Man +150 para quem rompe); Dummy Runner longe do gol pontua a entrada da área (+200) e a ponta (+120); Creative Playmaker +180 para quem rompe; Orchestrator +120 (+100 na ponta) para lançamento longo a quem está livre (a 7 m ou mais de qualquer adversário). **Só vale com a linha do passe livre** (nenhum adversário a menos de 1.4 m do trajeto, ignorando os 3 m junto ao passador).
+- **Classic No. 10**: `faixaDeJogo { min: 9.15, max: 36.5 }`, só com a equipa a atacar e a bola do meio-campo para a frente; `cadencia` 0.6 (toca de primeira); não infiltra. O apoio de circulação (`actApoioCirculacao`) respeita a faixa.
+- **Hole Player**: `entraNaArea` — a infiltração acaba dentro da área (até 8 m da linha de fundo, ±9 m do eixo). Creative Playmaker infiltra com 60% da chance, só com espaço. Box-to-Box: `limiteConducao` 36.5 (a condução não passa da entrada da área). Anchor Man com o adversário a atacar fundo planta-se a z −34.
+- **Cara a cara do Goal Poacher** (`tipoDeRemate`, utils.js, `o.poacher`): forte / colocado / rasteiro / cavadinha (se o goleiro está a 1.5 m ou mais adiantado) com a mesma chance. O goleiro ofensivo (`updateGkStyle`, team_bt.js) conta o destinatário adversário do passe como portador.
+- **Posição válida do estilo** (manager): `estiloValidoDoJogador` (textSim/playStyleFallback.ts) escolhe o primeiro estilo candidato que serve à posição (`PLAYSTYLE_POSITIONS`); usado em TacticsView, SquadView, PlayerDetailModal e PlayerOverviewParts.
+
+**Chute: conduzir ou chutar (`js/config/shooting.js`, `js/bt/player_bt.js`, `js/utils.js`)**
+- `ShootingModel.progredirComEspaco`: `distMin` 13.75 (nota 75), `variacaoPorSkill` 2.75 por 25 pontos, limites 11 a 16.5. A distância depende do jogador: nota = (TEC + `tacticknow`) / 2; os skills vão de 50 a 100, portanto 50 = 16.5 m, 100 = 11 m. Com o caminho livre (cone de 20 m, 45°) e a mais de `distMinJog`, conduz em vez de chutar.
+- **`emZonaDeFinalizacao`** (utils.js) usa a mesma conta: fora da área, com caminho livre e ainda longe, a bola já não fica "no pé" sem toque (era o jogador parado 3 s na linha da grande área).
+
+**Goleiro de perto (`js/config/goalkeeper.js`, `js/utils.js`, `js/gk_dive.js`, `js/player.js`, `js/narracao/adaptador_manager.js`)**
+- `GkCatchModel.semAgarrar.perto = { dist: 5, velBase: 15, variacaoPorGK: 3 }`: a menos de 5 m, a bola a `velBase` m/s ou mais não se encaixa (espalma). O limite sobe e desce com o atributo **Reflexes** (50..99; 12 m/s com 50, 18 com 100). O `reflexes` bruto vem do manager (`registoDe31(...).reflexes`) e fica em `p.skills.reflexes`; sem ele usa a skill `gk`. A regra antiga (6 m, 22 m/s) mantém-se.
+
+**Bola parada**
+- **Passeio de espera** (`passeioDeEspera`, `PasseioDeEspera`, utils.js): 1 a 3 passos em direcção à bola, ~2 s, 1 a 3 passos de volta à âncora, e repete; quem defende fica a 9.5 m ou mais da bola. Usado em falta e canto (`SET_PIECE_WAIT`, fsm.js), no tiro de meta e **em jogo corrido** (`aplicarInquietacao`, team_bt.js, 1 a 2 passos, esperas de 1 a 2.2 s, âncora que só muda se o alvo andar mais de 1.5 m).
+- **Os alas da falta já não trocam de lado** (`lugaresDaFalta`, utils.js): no modo `baliza` os lugares são ordenados por x; no `apoio` cada um fica do lado da bola em que já está.
+- **Defesa de uma falta, pela ordem:** atacantes (`lugares`), barreira, e só depois os restantes defensores marcam os atacantes soltos (match_setpieces.js): do atacante mais perto da baliza para o mais longe, cada um recebe o defensor livre mais perto, a 1.8 m do lado da própria baliza. Corre depois dos 9.15 m e do corte do fora-de-jogo, e há uma passagem final dos 9.15 m para todos os defensores (o teste `falta_barreira_remate` exige-o).
+- **Substituição pendente já não congela o lance** (match_loop.js): o `update` corre inteiro; `Match._seguraCobranca` só impede o arranque da cobrança (contadores `faltaAtraso`, `lateralAtraso`, `golKickAtrasoInicio`, o `setPieceTimer` e a condição de arranque do canto em fsm.js). A bola vai até ao sítio, o lateral vai buscá-la, o goleiro vai para a pequena área; acabadas as trocas, o jogo recomeça da cobrança.
+- **Saída de campo** (`passoDoJogador`, abertura.js): põe sempre o jogador no chão (`y = ALTURA_BASE_Y`, `jumpTimer = 0`); corria a flutuar.
+
+**Replay do gol (`js/match/match_replay.js`)**: com um gol marcado o gravador pára quando sobram só os 9 s de antes do gol mais 1 s (`framesAposGolo`); uma comemoração longa escrevia por cima do gol. Volta a gravar quando a repetição acaba ou o jogo já está em PLAY.
+
+**Câmara (`js/match/match_ui.js`)**: o enquadramento a 3/4 (`CameraBolaNaBorda`) já não desloca o X com a bola do lado da câmara — o corner junto à câmara saía do quadro.
+
+**Interface do 3D**
+- Botão **Statistics** entre Replay e Tactics (`js/narracao/ponte.js`): liga e desliga o painel do intervalo; as últimas notas aparecem logo (`window._notasIntervalo`).
+- `ajustarEscalaIntervalo` (main.js): as caixas do intervalo cabem na largura e na altura da janela do 3D, e recalcula ao chegar a classificação ou ao redimensionar.
+- Os avisos grandes: `#alerta-golo` mais acima (22%), 100 px (+25%), branco e a **piscar** (CSS `pisca-gol`); `#alerta-jogo` (FOUL, CORNER...) a 96 px do topo, logo abaixo do placar.
+- Amistosos: o manager não manda a classificação (GameContext); intervalo, fim e botão Statistics só levam estatísticas e notas.
+- As notas do intervalo são gravadas no jogo (`playerRatings`, `ratingDetalhes`, `motm`), por isso a tela MATCH STATISTICS do manager mostra as mesmas do 3D.
+- **Torcida em sprites também no PC** (`CrowdModel.sprites.ativo: true`; `?torcida=3d` volta ao 3D).
+- **Cruzamento usa o clipe de lançamento** (`passeLancamento` inclui `isCross`, `passeComClip` fica `true`): antes não tinha gesto de chute.
+
+**Clima e hora do jogo (manager → 3D)**
+- `textSim/clima.ts`: `getWeatherForMatch` (a única fonte, antes só no Dashboard), `condicaoDoClima` (ícone → `limpo | nublado | encoberto | chuva | neve`) e `horaDoJogo`: segunda a sexta = noite; sábado e domingo = manhã, tarde ou noite (sorteado pelo id do jogo). Manhã = `dia`, tarde = `crepusculo`, noite = `noite`.
+- O manager envia `clima` e `periodo` nas mensagens `preparar` e `iniciar` (MatchDay.tsx → `Simulador3DView.tsx`); `ponte.js` aplica `Weather.setTempo(periodo, clima)`. O Dashboard mostra "clima • hora" no Next match.
+- **`Weather.apply` chama `sincronizarLuzesDoEstadio()`** e actualiza os LEDs do estádio oval: sem isso a noite posta pelo manager deixava os holofotes acesos mas invisíveis para o Three (campo escuro, torcida em sprites iluminada).
+- Holofotes: crepúsculo a **0.4** fixo; noite −0.05 (0.65 limpo/nublado/encoberto/neve, 0.70 chuva).
+- A ocupação da torcida do 3D conta o amistoso (×0.7), como o público estimado do Dashboard (`ocupacaoDoJogo`, Simulador3DView.tsx).
+
+**Manager (fora do 3D)**: formações `4-4-2 D`, `4-4-2 ATA` e `3-5-2 ATA` ganharam tabela por zona (copiadas do 3D para `textSim/formacoesZonasBase.json`; sem isso não aceitavam os quadrantes); FIT → FIS no treino (`trainingService.ts`, GameContext, `tools/auditoriaTreino.ts`); caixa PHYSICAL na barra do Training; card de negociação e cores de Value/Wage no Transfer Market; margem de baixo do campo na aba Tactics; arrastar um posto no tablet já não selecciona a zona onde o dedo pousa; Simulate Round desactivado (só o modo 3D); jogador substituído não volta a entrar (`subbedOutId` no evento SUB).
+
+**Testes que já falhavam antes destas alterações** (confirmado com `git stash`): `bandeira_canto_45`, `camera_falta_suave`, `faltas_cartoes`, `faltas_reincidencia`, `guarda_redes_tiro_de_meta`, `tiro_de_meta_forma`, `tiro_de_meta_linhas`, `impedimento_montagem`, `remate_zona`, `remate_tipo_mira`, `estilos_tres_pedidos`, `gk_lancamento_mao`, `lancamento_nao_e_automatico`, `lancamento_vs_espaco`, `guarda_redes_espalmada`, `gk_agarra_com_a_mao`, `assistentes_na_saida_de_bola`, `saida_a_pe`, `saida_de_bola_posicoes`.
 
 ### 31 de Outubro de 2026 — o desfecho da cobrança, o goleiro no meio-campo e −25% de defesas
 
