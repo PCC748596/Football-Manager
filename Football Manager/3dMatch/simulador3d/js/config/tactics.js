@@ -322,6 +322,12 @@ const CameraZoom = {
     movelMin: 10.0,         // Câmara Móvel (5): distância à bola, mínima (m)
     movelMax: 30.0,         // ... e máxima: o zoom só anda entre as duas
     /*
+    TV SIDELINE (lateraltv, tecla 7): distância da câmara à bola, entre `tvLateralMin` e `tvLateralMax` (m). Com a bola perto da câmara ela fica nos 15 m (recua); à medida que a bola se afasta a câmara
+    vai atrás dela, e nunca passa dos 30 m. Regulável em Settings (Graphics > TV Sideline camera): vem no URL do iframe (`ctmin`/`ctmax`) e na mensagem `camera_tv`.
+    */
+    tvLateralMin: 15.0,
+    tvLateralMax: 30.0,
+    /*
     FALTA DIRECTA: a camara enquadra o PONTO MEDIO entre a bola e a baliza que
     se ataca (pedido: "o enquadramento fica bem melhor"). So conta quando a
     baliza esta a menos de `faltaDirectaDist` metros — mais longe a falta e um
@@ -333,6 +339,15 @@ const CameraZoom = {
     faltaCamSaida: 2.5,
     passoRoda: 0.001        // por unidade de `deltaY` da roda do rato
 };
+// A regulagem do manager (Settings) chega no URL do iframe: ?ctmin=15&ctmax=30.
+CameraZoom.definirTvLateral = function (min, max) {
+    const n = (v, d) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : d);
+    let a = n(min, 15), b = n(max, 30);
+    a = Math.max(this.distanciaMinima, a);
+    if (b < a) b = a;
+    this.tvLateralMin = a; this.tvLateralMax = b;
+};
+try { const _q = new URLSearchParams(window.location.search); if (_q.get('ctmin') || _q.get('ctmax')) CameraZoom.definirTvLateral(_q.get('ctmin'), _q.get('ctmax')); } catch (e) { /* sem URL */ }
 if (typeof window !== 'undefined') window.CameraZoom = CameraZoom;
 /*
 Arranca EM PAUSA (pedido): o jogo abre parado e só corre quando se carrega

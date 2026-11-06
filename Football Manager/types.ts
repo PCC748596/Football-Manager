@@ -1006,6 +1006,9 @@ export interface GameState {
   matchDuration: MatchDuration;
   matchMode: MatchMode;
   simulationSpeed?: 1 | 2 | 3;
+  /** Camara TV Sideline do 3D: distancia a bola, minima e maxima em metros (Settings > Graphics). Sem valor: 15 e 30. */
+  cameraTvMin?: number;
+  cameraTvMax?: number;
   graphicsQuality?: 'HIGH' | 'MEDIUM' | 'LOW';   // Game Settings > Graphics; sem valor vale LOW
   view: 'DASHBOARD' | 'SQUAD' | 'LEAGUE' | 'MATCH' | 'FINANCES' | 'STATISTICS' | 'MANAGER' | 'TACTICS' | 'FIXTURES' | 'TRAINING' | 'TRAINING_VIEW' | 'SETTINGS' | 'WORLD' | 'INBOX' | 'TRANSFERS';
   activities: CalendarActivity[];

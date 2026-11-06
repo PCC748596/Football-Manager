@@ -266,7 +266,7 @@ interface GameContextType {
   historicoCopas: HistoricoDeCopas;
   openWorld: () => void;
   setThemeMode: (mode: ThemeMode) => void;
-  updateSettings: (settings: Partial<Pick<GameState, 'language' | 'currency' | 'wageFrequency' | 'themeMode' | 'matchDuration' | 'simulationSpeed' | 'graphicsQuality'>>) => void;
+  updateSettings: (settings: Partial<Pick<GameState, 'language' | 'currency' | 'wageFrequency' | 'themeMode' | 'matchDuration' | 'simulationSpeed' | 'graphicsQuality' | 'cameraTvMin' | 'cameraTvMax'>>) => void;
   isTransferWindowOpen: () => boolean;
   /** As taxas de cambio (unidades por dolar) e como as mudar/restaurar (Settings). */
   taxasDeCambio: Record<MoedaCambio, number>;
@@ -787,7 +787,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const setThemeMode = (mode: ThemeMode) => setGameState(prev => ({ ...prev, themeMode: mode }));
 
-  const updateSettings = (settings: Partial<Pick<GameState, 'language' | 'currency' | 'wageFrequency' | 'themeMode' | 'matchDuration' | 'simulationSpeed' | 'graphicsQuality'>>) => {
+  const updateSettings = (settings: Partial<Pick<GameState, 'language' | 'currency' | 'wageFrequency' | 'themeMode' | 'matchDuration' | 'simulationSpeed' | 'graphicsQuality' | 'cameraTvMin' | 'cameraTvMax'>>) => {
     if (settings.language) localStorage.setItem('fm_lang', settings.language);
     setGameState(prev => ({ ...prev, ...settings }));
   };

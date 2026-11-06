@@ -22,6 +22,7 @@ interface Props {
   clima?: string;   // 'limpo' | 'nublado' | 'encoberto' | 'chuva' | 'neve': o mesmo tempo do Next match (textSim/clima.ts)
   amistoso?: boolean;   // jogo amigavel: o treinador da CPU nao tem limite de substituicoes
   tabela?: { casa: { posicao: number; total: number }; fora: { posicao: number; total: number } };   // a posicao dos dois na tabela do campeonato (o treinador da CPU, 3D)         // nome da competicao: a placa fixa do 3D
+  cameraTvMin?: number; cameraTvMax?: number;   // Game Settings > Graphics > TV Sideline camera
   qualidade?: 'HIGH' | 'MEDIUM' | 'LOW';   // Game Settings > Graphics
   /** Se este jogo fecha um confronto de copa: o agregado anterior (ver decisaoDoConfronto). O 3D, se terminar empatado no agregado, encena a disputa de penaltis. */
   decisao?: DecisaoDoJogo | null;
@@ -43,6 +44,15 @@ export const simulador3dQualidade = (q?: 'HIGH' | 'MEDIUM' | 'LOW') => {
   if (nova === qualidadeGrafica) return;
   qualidadeGrafica = nova;
   sessao.iframe?.contentWindow?.postMessage({ para: 'simulador3d', tipo: 'qualidade', nivel: nova }, '*');
+};
+
+// A camara TV Sideline (Settings > Graphics): distancia minima e maxima a bola, em metros. Vai no URL do iframe ao criar e na mensagem `camera_tv` depois.
+let cameraTvMin = 15, cameraTvMax = 30;
+export const simulador3dCameraTv = (min?: number, max?: number) => {
+  const a = Math.max(5, min ?? 15), b = Math.max(a, max ?? 30);
+  if (a === cameraTvMin && b === cameraTvMax) return;
+  cameraTvMin = a; cameraTvMax = b;
+  sessao.iframe?.contentWindow?.postMessage({ para: 'simulador3d', tipo: 'camera_tv', min: a, max: b }, '*');
 };
 
 const sessao: { iframe: HTMLIFrameElement | null; chave: string; pronto: boolean; arrancou: boolean; preparadoCom: string; cb: (m: any) => void; ouvinte: boolean; terminou: boolean } =
@@ -159,7 +169,7 @@ const garantirIframe = (chave: string, estadio?: string, mandante?: string, comp
   if (sessao.iframe && sessao.chave === chave) return;
   if (sessao.iframe) { enviar({ para: 'simulador3d', tipo: 'parar' }); sessao.iframe.remove(); }
   const f = document.createElement('iframe');
-  f.src = urlSimulador() + '?embutido=1&q=' + qualidadeGrafica + (estadio ? '&estadio=' + encodeURIComponent(estadio) : '') + (mandante ? '&mandante=' + encodeURIComponent(mandante) : '') + (competicao ? '&competicao=' + encodeURIComponent(competicao) : '') + (capacidade ? '&capacidade=' + Math.round(capacidade) : '') + (cidadePequena ? '&cidade=pequena' : '') + (/[?&]perf=1/.test(location.search) ? '&perf=1' : '');   // ?perf=1 no URL do manager liga o painel de performance do 3D
+  f.src = urlSimulador() + '?embutido=1&q=' + qualidadeGrafica + '&ctmin=' + cameraTvMin + '&ctmax=' + cameraTvMax + (estadio ? '&estadio=' + encodeURIComponent(estadio) : '') + (mandante ? '&mandante=' + encodeURIComponent(mandante) : '') + (competicao ? '&competicao=' + encodeURIComponent(competicao) : '') + (capacidade ? '&capacidade=' + Math.round(capacidade) : '') + (cidadePequena ? '&cidade=pequena' : '') + (/[?&]perf=1/.test(location.search) ? '&perf=1' : '');   // ?perf=1 no URL do manager liga o painel de performance do 3D
   f.title = 'Simulador 3D';
   f.allow = 'autoplay; fullscreen';
   f.style.cssText = 'position:fixed;border:0;background:#000;z-index:5;visibility:hidden;left:0;top:0;width:0;height:0';
@@ -186,7 +196,8 @@ const ocupacaoDoJogo = (casa: Team, fora: Team, amistoso?: boolean): number => {
 // A ocupacao do setor visitante: a base do clube visitante (60% no inicio, muda com os resultados dele).
 const ocupacaoVisitanteDoJogo = (fora: Team): number => (fora as any).stadiumOccupancy ?? ECONOMIA_ESTADIO.ocupacaoInicial;
 
-const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, chave, iniciar, pausado, kitCasa, kitFora, kitGkCasa, kitGkFora, trajeArbitro, competicao, tabela, amistoso, clima, periodo, qualidade, decisao, aoMensagem, aoPronto, retomar }) => {
+const Simulador3DView: React.FC<Props> = ({ casa, fora, players, userTeamId, chave, iniciar, pausado, kitCasa, kitFora, kitGkCasa, kitGkFora, trajeArbitro, competicao, tabela, amistoso, clima, periodo, qualidade, cameraTvMin: ctMin, cameraTvMax: ctMax, decisao, aoMensagem, aoPronto, retomar }) => {
+  simulador3dCameraTv(ctMin, ctMax);
   simulador3dQualidade(qualidade);   // antes de o iframe ser criado (useLayoutEffect) para entrar no URL
   const caixa = useRef<HTMLDivElement>(null);
   const dados = useRef<any>({});

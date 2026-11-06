@@ -405,6 +405,26 @@ Object.assign(Match, {
                     }
                 }
             }
+            /*
+            ENTRE 15 E 30 M DA BOLA (pedido; Settings > TV Sideline camera, CameraZoom.tvLateralMin/Max). Depois de tudo acima, a distancia camara-bola e cortada: com a bola perto da camara fica nos 15 m
+            (a camara recua ao longo da mesma direcao); a medida que a bola se afasta a camara vai atras dela e nunca passa dos 30 m.
+            */
+            {
+                const ZT = (typeof CameraZoom !== 'undefined') ? CameraZoom : null;
+                const tvMin = (ZT && typeof ZT.tvLateralMin === 'number') ? ZT.tvLateralMin : 15.0;
+                const tvMax = Math.max(tvMin, (ZT && typeof ZT.tvLateralMax === 'number') ? ZT.tvLateralMax : 30.0);
+                this._cFwd.subVectors(targetPos, foco);
+                const dTv = this._cFwd.length();
+                if (dTv > 1e-6) {
+                    const distDaLateral = 34 - foco.x;
+                    const pct = THREE.MathUtils.clamp((distDaLateral - 10) / 30, 0, 1);
+                    let dFinal = tvMin + (tvMax - tvMin) * pct;
+                    dFinal = THREE.MathUtils.clamp(dFinal * zoom, tvMin, tvMax);
+                    
+                    this._cFwd.multiplyScalar(dFinal / dTv);
+                    targetPos.copy(foco).add(this._cFwd);
+                }
+            }
         } else if (window.cameraMode === 'grua') {
             /*
             A CÂMARA DA GRUA (tecla 8). O ponto de vista é a cabeça da jib

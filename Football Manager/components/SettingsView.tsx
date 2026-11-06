@@ -124,6 +124,24 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                   </div>
                   <p className="text-xs text-slate-400">HIGH (default): everything, 100% crowd. MEDIUM: shadows, 50% crowd. LOW: no shadows, light player model, 25% of the stadium seats filled. Crowd size applies from the next match.</p>
               </div>
+              <div className="space-y-2 pt-2">
+                  <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">TV Sideline camera</label>
+                  <div className="grid grid-cols-2 gap-4 items-end">
+                      <div className="space-y-1">
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Min Distance (m)</span>
+                          <input type="number" step="1" min="5" value={gameState.cameraTvMin ?? 15}
+                              onChange={e => { const v = parseInt(e.target.value); if (v >= 5) updateSettings({ cameraTvMin: v }); }}
+                              className="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-sm border border-slate-200 dark:border-slate-700" />
+                      </div>
+                      <div className="space-y-1">
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Max Distance (m)</span>
+                          <input type="number" step="1" min="5" value={gameState.cameraTvMax ?? 30}
+                              onChange={e => { const v = parseInt(e.target.value); if (v >= 5) updateSettings({ cameraTvMax: v }); }}
+                              className="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-sm border border-slate-200 dark:border-slate-700" />
+                      </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400">Controls how close or far the camera gets from the ball (default 15 to 30).</p>
+              </div>
           </section>
 
           {/* Financial Section */}
