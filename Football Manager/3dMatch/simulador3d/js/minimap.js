@@ -186,7 +186,10 @@ const Minimap = {
                 if (p.model.visible === false) continue;
                 // A cor sai do CALCAO (pedido: "a cor do short dos jogadores"); sem
                 // `corCalcao`, da camisola, e por fim do fallback.
-                const c = p.corCalcao || p.corCamisa || ((p.role === 'gk') ? this.cores.gk : corFallback);
+                // O GOLEIRO usa a cor da CAMISA dele (pedido): o short dele e quase sempre preto e nao o distingue.
+                const c = (p.role === 'gk')
+                    ? (p.corCamisa || p.corCalcao || this.cores.gk)
+                    : (p.corCalcao || p.corCamisa || corFallback);
                 this._ponto(ctx, p.model.position.x, p.model.position.z,
                     this.raioJogador, c,
                     (p === portador) ? this.cores.portador : contorno,

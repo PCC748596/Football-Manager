@@ -1611,7 +1611,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const gravidade = severidadeDaLesao(m.tipo === 'Complexa' ? 'Complexa' : 'Simples', m.dias);
       const ev: MatchEvent = {
         minute: minuto, type: 'INJURY', teamId: time.id, playerId: jog.id,
-        description: `✚ ${jog.name.split(' ').pop()}: ${m.nome}`,
+        description: `✚ ${jog.name.split(' ').pop()}: ${m.nome}${m.estado !== 'Hurt' && time.id === gameState.userTeamId ? ' — precisa ser substituído' : ''}`,
         injurySeverity: gravidade, injuryName: m.nome, injuryDaysOut: m.dias, injuryTipo: m.tipo === 'Complexa' ? 'Complexa' : 'Simples',
         injuryEstimate: m.estimativa, injuryFisDrop: m.quedaFisPorDia || 0, injuryId: m.idLesao
       };

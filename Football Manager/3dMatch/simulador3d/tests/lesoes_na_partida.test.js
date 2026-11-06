@@ -88,4 +88,13 @@ Math.random = rnd;
 // tempo 100 => -20% no prazo (180 dias minimos -> 144); precisao 100 => estimativa exata.
 verifica(p.lesao.reg.diasRestantesReais === 144 && p.lesao.reg.estimativaManager === 'Entre 144 e 144 dias', 'prazo 144 e estimativa exata com o medico 100', 'medico do clube nao usado: ' + JSON.stringify(p.lesao.reg));
 
+console.log('8 — time do utilizador: nao troca sozinho, so avisa');
+novoJogo();
+Match.ladoDoUtilizador = 'fora';
+p = Match.opponents.find(q => q.role === 'mid');
+MatchInjuries.aplicar(p, lesao('COM01'), 'Forced', 'contato');
+verifica(!Match.subsPendentes.length && p.lesao.troca === 'manual' && Match.opponents.includes(p), 'sem troca automatica no time do utilizador', 'trocou o jogador do utilizador sozinho');
+verifica(enviadas.some(m => m.tipo === 'lesao' && m.dados.estado === 'Forced'), 'o aviso (lesao) segue ao manager', 'sem aviso');
+Match.ladoDoUtilizador = null;
+
 if (falhas) { console.log('FALHOU: ' + falhas); process.exit(1); } else console.log('OK');

@@ -7,6 +7,7 @@ LESOES NA PARTIDA (liga os modulos de js/injuries ao jogo 3D).
       Forced    sai de qualquer jeito: debuff forte e troca pedida (feita na proxima parada).
       Requested o jogador pede para sair: troca pedida, sem debuff extra.
       Hurt      continua baleado (-20% de velocidade) e a cada minuto pode agravar (vira Complexa + Forced).
+  . Time do UTILIZADOR (Match.ladoDoUtilizador): nao troca sozinho, so avisa (`lesao`); o jogador fica baleado ate o utilizador trocar. Time da CPU: troca sozinho como abaixo.
   . A troca usa Match.pedirSubstituicao com `_reportar`, o mesmo caminho do goleiro expulso: o manager espelha escalacao, banco e contador.
     Sem reserva do mesmo papel, ou com 5 trocas feitas, quem saiu fica em campo baleado (Forced = -60%).
   . Ao manager vai a mensagem `lesao` (ver GameContext.motor3dMensagem): dias reais e estimativa do medico ja calculados aqui.
@@ -114,6 +115,8 @@ const MatchInjuries = {
     _pedirTroca: function (p) {
         if (!p.lesao || p.lesao.troca || typeof TreinadorCPU === 'undefined') return;
         const lado = p.lesao.lado;
+        // O TIME DO UTILIZADOR NAO TROCA SOZINHO (pedido): o jogador lesionado fica em campo, baleado, e o manager recebe o aviso (`lesao`); quem entra e escolha do utilizador (aba Tactics).
+        if (lado === Match.ladoDoUtilizador) { p.lesao.troca = 'manual'; return; }
         if (this._trocasDoLado(lado) >= this.maxTrocas) { p.lesao.troca = 'sem_trocas'; return; }
         const reserva = TreinadorCPU.escolherReserva(p.team, p.role, p) || TreinadorCPU.escolherReserva(p.team, p.role === 'def' ? 'mid' : 'def', p);
         if (!reserva) { p.lesao.troca = 'sem_reserva'; return; }

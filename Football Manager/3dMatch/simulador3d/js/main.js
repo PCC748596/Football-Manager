@@ -1158,6 +1158,14 @@ function preencherHudJogador(elId, p) {
     el.querySelector('.hud-jog-nome').textContent = [p.skills.nome, numero, rotuloDaPosicao(p.pos)].filter(x => x !== undefined && x !== null && x !== '').join(' | ');
     // Quem tem cartao AMARELO leva o nome em amarelo no cartao (pedido).
     el.querySelector('.hud-jog-nome').style.color = p.temAmarelo ? '#facc15' : '';
+    // LESIONADO (js/injuries/injury_match.js): uma cruz verde no cartao, a seguir ao nome.
+    if (p.lesao && p.lesao.reg) {
+        const cruz = document.createElement('span');
+        cruz.textContent = ' ✚';
+        cruz.style.color = '#22c55e';
+        cruz.title = p.lesao.reg.nomeLesao;
+        el.querySelector('.hud-jog-nome').appendChild(cruz);
+    }
 
     /*
     Barra em 5 segmentos de 20 pontos, TODOS acesos na mesma cor — a cor
