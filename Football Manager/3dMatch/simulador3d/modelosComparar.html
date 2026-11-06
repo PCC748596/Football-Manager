@@ -21,7 +21,8 @@ label { margin-right:14px; cursor:pointer; }
 <body>
 <canvas id="c"></canvas>
 <div id="topo">Arrasta para rodar · roda do rato para aproximar &nbsp;
-    <label><input type="checkbox" id="fio"> ver malha (wireframe)</label></div>
+    <label><input type="checkbox" id="fio"> ver malha (wireframe)</label>
+    <label><input type="checkbox" id="v2"> atlas NOVO dos adeptos (21 poses, sprite cruzado)</label></div>
 <div id="info"></div>
 
 <script src="js/vendor/three.r128.min.js"></script>
@@ -39,6 +40,7 @@ label { margin-right:14px; cursor:pointer; }
 <script src="js/utils.js"></script>
 <script src="js/pose.js"></script>
 <script src="assets/torcida_atlas.js"></script>
+<script src="assets/torcida_atlas_v2.js"></script>
 <script>
 (function () {
     const cv = document.getElementById('c');
@@ -95,6 +97,44 @@ label { margin-right:14px; cursor:pointer; }
         d.innerHTML = '<b>SPRITE CRUZADO (tablet)</b>4 triangulos<br><span>2 quads a 90 graus · nunca some de lado</span>';
         info.appendChild(d);
     }
+
+    /*
+    ATLAS NOVO (assets/torcida_atlas_v2.js, de tools/sprites/gerar_atlas_torcida_v2.py): as 21 poses do spritesheet de fundo branco, cada uma como o sprite cruzado (2 quads a 90 graus), em linhas como no desenho
+    (6 + 5 + 5 + 5). Escala `pxPorMetro` 240: o boneco de pe tem ~1.75 m. Ainda NAO esta ligado ao jogo (as poses sao outras: falta o mapa de estados em crowd.js).
+    */
+    const grupoV2 = new THREE.Group(); grupoV2.visible = false; scene.add(grupoV2);
+    if (window.TORCIDA_ATLAS_V2) {
+        const A = window.TORCIDA_ATLAS_V2, img = new Image(), tex = new THREE.Texture(img);
+        tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.flipY = true;
+        img.onload = () => { tex.needsUpdate = true; }; img.src = A.src;
+        const mat = new THREE.MeshBasicMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide });
+        const W = A.celulaW / A.pxPorMetro, H = A.celulaH / A.pxPorMetro, COLS = A.colunas, ROWS = A.linhas;
+        const porLinha = {};
+        A.caixas.forEach(b => { if (b) (porLinha[b.r] = porLinha[b.r] || []).push(b); });
+        Object.keys(porLinha).forEach(r => {
+            const l = porLinha[r];
+            l.forEach((b, k) => {
+                const g = new THREE.BufferGeometry(), pos = [], uv = [], idx = [];
+                for (let q = 0; q < 2; q++) {
+                    const o = q * 4;
+                    for (const [x, y] of [[-0.5, 0], [0.5, 0], [0.5, 1], [-0.5, 1]]) {
+                        if (q === 0) pos.push(x * W, y * H, 0); else pos.push(0, y * H, x * W);
+                        uv.push((b.c + x + 0.5) / COLS, 1 - (b.r + 1 - y) / ROWS);
+                    }
+                    idx.push(o, o + 1, o + 2, o, o + 2, o + 3);
+                }
+                g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
+                const m = new THREE.Mesh(g, mat);
+                m.position.set((k - (l.length - 1) / 2) * 1.5, 0, (Number(r) - 1.5) * 1.5);
+                grupoV2.add(m);
+            });
+        });
+    }
+    document.getElementById('v2').addEventListener('change', (e) => {
+        grupoV2.visible = e.target.checked;
+        corpos.forEach(c => { c.visible = !e.target.checked; });
+        if (e.target.checked) { r = 11; el = 0.45; colocar(); }
+    });
 
     document.getElementById('fio').addEventListener('change', (e) => {
         corpos.forEach(c => c.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.wireframe = e.target.checked; }); }));

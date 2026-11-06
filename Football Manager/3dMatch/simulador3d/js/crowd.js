@@ -89,7 +89,13 @@ const CrowdModel = {
         // Fracao dos adeptos (os dos lugares mais baixos, as fileiras da frente, mais perto do campo e das cameras) que continua com o modelo 3D completo no tablet. 0 = todos em sprite.
         fracao3d: 0.10,
         deParado: [[8, 0.7], [3, 0.3]],           // [celula, peso]
-        festejo: [[1, 0.3], [2, 0.25], [6, 0.2], [5, 0.15], [4, 0.10]]
+        festejo: [[1, 0.3], [2, 0.25], [6, 0.2], [5, 0.15], [4, 0.10]],
+        // Sentado (um por adepto), sentado a bater palmas (um de dois por adepto) e de pe a bater palmas: as celulas do atlas. O atlas novo (`TORCIDA_ATLAS_V2`) troca estas e as de cima: ver o fim do ficheiro.
+        sentado: [[10, 1]],
+        sentadoPalmas: [19, 19],
+        dePalmas: 9,
+        avancoSentado: 0,             // m para a frente (para o campo) dos adeptos sentados
+        suave: false                  // true = textura com filtro linear (desenho em alta resolucao); false = pixel art nitido
     },
     detalheAte: 60,        // metros: mais longe que isto a fatia usa o shader simplificado (sem aplausos nem cabecas a virar)
     viewportCull: 0.9,     // so se desenha o que cai nos 90% centrais do ecra (pedido; era 1.2x)
@@ -991,7 +997,7 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         if (this._atlasTex) return this._atlasTex;
         const img = new Image();
         const tex = new THREE.Texture(img);
-        tex.magFilter = THREE.NearestFilter;                  // pixel art nitido de perto
+        tex.magFilter = CrowdModel.sprites.suave ? THREE.LinearFilter : THREE.NearestFilter;   // pixel art nitido de perto; o desenho em alta resolucao leva filtro linear
         tex.minFilter = THREE.LinearMipmapLinearFilter;       // sem cintilar de longe
         tex.generateMipmaps = true;
         tex.flipY = true;
@@ -1082,7 +1088,7 @@ varying float vTint;
     float quem = step(fract(aAdepto.x * 37.1), claqueA ? uFracPalmas.x : uFracPalmas.y);
     float rajada = mix(smoothstep(0.1, 0.5, sin(uTempo * 0.4 * aAdepto.z + aAdepto.y * 1.7)), 1.0, uPalmasFirme);
     bool palmas = (quem * rajada * uAplauso > 0.5) && !fest;
-    float cel = fest ? aVar.y : (palmas ? (de ? 9.0 : 19.0) : (de ? aVar.x : 10.0));
+    float cel = fest ? aVar.y : (palmas ? (de ? ${S.dePalmas.toFixed(1)} : (fract(aAdepto.x * 13.7) > 0.5 ? ${S.sentadoPalmas[0].toFixed(1)} : ${S.sentadoPalmas[1].toFixed(1)})) : (de ? aVar.x : aVar.w));
     float cc = mod(cel, uSpr.x);
     float rr = floor(cel / uSpr.x);
     vUvS = vec2((cc + position.x + 0.5) / uSpr.x, 1.0 - (rr + 1.0 - position.y) / uSpr.y);
@@ -1098,6 +1104,8 @@ varying float vTint;
     vec3 transformed = vec3(position.x * uSpr.z * esc, position.y * uSpr.w * esc - uSprAjuste.x * esc, 0.0);
     // o segundo quad (position.z = 1): o mesmo desenho rodado 90 graus em torno do eixo vertical
     if (position.z > 0.5) { transformed.z = transformed.x; transformed.x = 0.0; }
+    // o sentado avanca ${S.avancoSentado.toFixed(2)} m para o campo (o desenho novo senta-o mais atras no lugar); de pe fica onde esta
+    if (!de) transformed.z += ${S.avancoSentado.toFixed(3)};
     float osc = 0.5 + 0.5 * sin(uTempo * 1.6 * aAdepto.z + aAdepto.y);
     transformed.y += uSobeDePe * (de ? 1.0 : 0.0);
     transformed.y += uBobDePe * (de && !fest ? 1.0 : 0.0) * (osc - 0.5);
@@ -1126,10 +1134,15 @@ uniform sampler2D uKits;
     float sat = max(sc.r, max(sc.g, sc.b)) - min(sc.r, min(sc.g, sc.b));
     float gb = sc.g - sc.b;
     // pele (laranja claro) e cabelo (louro, mais saturado) do desenho -> o tom de cada adepto
+${S.suave ? `
+    // desenho em alta resolucao: mascara SUAVE (a pele tem sombreado e o contorno escuro anti-aliasado: os degraus secos deixavam manchas) e tom relativo ao da pele do desenho (~0.80)
+    float pele = (1.0 - vermelho) * smoothstep(0.04, 0.09, gb) * (1.0 - smoothstep(0.17, 0.25, gb)) * smoothstep(0.34, 0.46, lum) * smoothstep(0.0, 0.04, sc.r - sc.g) * smoothstep(0.55, 0.68, sc.r);
+    float cabelo = 0.0;
+    sc = mix(sc, vPele * clamp(lum / 0.80, 0.0, 1.15), pele);` : `
     float pele = (1.0 - vermelho) * step(0.07, gb) * (1.0 - step(0.23, gb)) * step(sc.g, sc.r) * step(0.45, lum);
     float cabelo = (1.0 - vermelho) * step(0.23, gb) * step(0.4, lum);
     sc = mix(sc, vPele * (lum / 0.72), pele);
-    sc = mix(sc, vCabelo * (lum / 0.62), cabelo);
+    sc = mix(sc, vCabelo * (lum / 0.62), cabelo);`}
     // camisa: so acima da cintura (y > 0.44) leva o desenho; as meias (abaixo) ficam na cor do clube
     vec3 camisa = vCor * (lum / 0.33);
     float desenho = vCor2.w;
@@ -1146,10 +1159,12 @@ uniform sampler2D uKits;
     }
     sc = mix(sc, camisaD, vermelho);
     // calcao (branco do desenho, na faixa da cintura) ou calca comprida (cobre tambem as meias e as chuteiras)
+${S.suave ? `
+    // o desenho novo ja traz calca de ganga e sapatos: sem calcao nem calca por cima (o recolor do calcao pintava a barriga e o colo)` : `
     float branco = step(0.62, lum) * (1.0 - step(0.16, sat)) * step(0.24, vLoc.y) * (1.0 - step(0.50, vLoc.y));
     sc = mix(sc, vCalcao.rgb * min(1.0, lum / 0.82), branco);
     float perna = vCalcao.w * (1.0 - step(0.47, vLoc.y)) * max(vermelho, branco);
-    sc = mix(sc, vCalcao.rgb * min(1.0, 0.55 + lum * 0.6), perna);
+    sc = mix(sc, vCalcao.rgb * min(1.0, 0.55 + lum * 0.6), perna);`}
     diffuseColor.rgb = sc * vTint;
 `;
             const v0 = shader.vertexShader, f0 = shader.fragmentShader;
@@ -1963,6 +1978,7 @@ uniform sampler2D uKits;
                     const SP = CrowdModel.sprites, h1 = (aAdepto[i * 4] * 91.3 + aAdepto[i * 4 + 1] * 7.7) % 1, h2 = (aAdepto[i * 4 + 2] * 531.7 + aAdepto[i * 4] * 13.1) % 1;
                     aVar[i * 4] = this._escolherCelula(SP.deParado, h1);
                     aVar[i * 4 + 1] = this._escolherCelula(SP.festejo, h2);
+                    aVar[i * 4 + 3] = this._escolherCelula(SP.sentado, (h1 * 7.31 + h2 * 3.77) % 1);   // a celula do adepto sentado
                     aVar[i * 4 + 2] = fan.k;
                     cor.set(eq.camisa); aCor[i * 3] = cor.r; aCor[i * 3 + 1] = cor.g; aCor[i * 3 + 2] = cor.b;
                     aCor2[i * 4] = cor.r; aCor2[i * 4 + 1] = cor.g; aCor2[i * 4 + 2] = cor.b; aCor2[i * 4 + 3] = 0;
@@ -2149,3 +2165,27 @@ uniform sampler2D uKits;
         }
     }
 };
+
+/*
+O ATLAS NOVO DOS ADEPTOS (assets/torcida_atlas_v2.js, de tools/sprites/gerar_atlas_torcida_v2.py): desenho em alta resolucao, 21 poses em 6 colunas x 4 linhas (celula = linha*6 + coluna). Quando o ficheiro esta
+carregado, substitui o atlas de pixel art: a grelha, a escala e o mapa de poses mudam aqui; o resto (shader, recolor, kits) e o mesmo.
+  linha 0 (0-5)    de pe parado (0 e 1 de frente, 2 e 3 de casaco e bone, 4 e 5 de lado)
+  linha 1 (6-10)   sentados (6, 7, 8) e sentados a bater palmas (9, 10)
+  linha 2 (12-16)  de pe e sentados variados (12, 15), a camisa rosa (13, 14: ficam de fora, o recolor pegava-lhe) e de pe a bater palmas (16)
+  linha 3 (18-22)  a festejar (bracos no ar)
+Os casacos azuis e a camisa rosa nao entram na cor da claque (so o vermelho do desenho muda).
+*/
+(function () {
+    if (typeof window === 'undefined' || !window.TORCIDA_ATLAS_V2 || typeof CrowdModel === 'undefined') return;
+    const A = window.TORCIDA_ATLAS_V2;
+    window.TORCIDA_ATLAS = A.src;
+    Object.assign(CrowdModel.sprites, {
+        cols: A.colunas, rows: A.linhas, celulaW: A.celulaW, celulaH: A.celulaH, pxPorMetro: A.pxPorMetro,
+        folgaBase: 4, escalaSentado: 1.0, suave: true, avancoSentado: 0.30,
+        deParado: [[0, 0.2], [1, 0.2], [2, 0.12], [3, 0.12], [4, 0.1], [5, 0.06], [12, 0.2]],
+        sentado: [[6, 0.3], [7, 0.3], [8, 0.2], [15, 0.2]],
+        sentadoPalmas: [9, 10],
+        dePalmas: 16,
+        festejo: [[18, 0.25], [19, 0.25], [20, 0.2], [21, 0.2], [22, 0.1]]
+    });
+})();
