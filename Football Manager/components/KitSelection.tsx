@@ -124,9 +124,9 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
                 <div className="flex gap-4 justify-center">
                     {renderKitPreview(homeTeam, homeIdx, false)}
                     <div
-                        className={isUserHome ? 'cursor-pointer' : ''}
-                        title={isUserHome ? 'Click to change the goalkeeper color' : undefined}
-                        onClick={() => isUserHome && setGkHomeOpt(i => rodar(i, gkHomeOpcoes.length))}
+                        className="cursor-pointer"
+                        title="Click to change the goalkeeper color"
+                        onClick={() => setGkHomeOpt(i => rodar(i, gkHomeOpcoes.length))}
                     >
                         {renderKitPreview(homeTeam, homeIdx, true, gkHomeOpcoes[gkHomeOpt].details)}
                         <span className="block text-center text-[8px] font-bold text-slate-500">{gkHomeOpcoes[gkHomeOpt].nome} {gkHomeOpt + 1}/{gkHomeOpcoes.length}</span>
@@ -156,9 +156,9 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
                 <div className="flex gap-4 justify-center">
                     {renderKitPreview(awayTeam, awayIdx, false)}
                     <div
-                        className={(isUserHome || isUserAway) ? 'cursor-pointer' : ''}
-                        title={(isUserHome || isUserAway) ? 'Click to change the goalkeeper color' : undefined}
-                        onClick={() => (isUserHome || isUserAway) && setGkAwayOpt(i => rodar(i, gkAwayOpcoes.length))}
+                        className="cursor-pointer"
+                        title="Click to change the goalkeeper color"
+                        onClick={() => setGkAwayOpt(i => rodar(i, gkAwayOpcoes.length))}
                     >
                         {renderKitPreview(awayTeam, awayIdx, true, gkAwayOpcoes[gkAwayOpt].details)}
                         <span className="block text-center text-[8px] font-bold text-slate-500">{gkAwayOpcoes[gkAwayOpt].nome} {gkAwayOpt + 1}/{gkAwayOpcoes.length}</span>
@@ -170,7 +170,6 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
                     {[0, 1, 2].map(idx => (
                         <button
                             key={idx}
-                            disabled={!isUserHome}
                             onClick={() => setHomeIdx(idx)}
                             className={`px-4 py-2 rounded-lg text-[10px] font-black transition-all ${
                                 homeIdx === idx
@@ -187,7 +186,6 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
                     {[0, 1, 2].map(idx => (
                         <button
                             key={idx}
-                            disabled={!isUserHome && !isUserAway}
                             onClick={() => setAwayIdx(idx)}
                             className={`px-4 py-2 rounded-lg text-[10px] font-black transition-all ${
                                 awayIdx === idx
@@ -202,14 +200,9 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
             </div>
 
             <div className="mt-4 pt-6 border-t border-slate-800 flex flex-col items-center gap-4">
-                {isUserHome && (
+                {(isUserHome || isUserAway) && (
                     <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest animate-pulse">
-                        You are at home. Choose uniforms for both teams.
-                    </p>
-                )}
-                {!isUserHome && isUserAway && (
-                    <p className="text-[10px] text-amber-500 font-bold uppercase tracking-widest">
-                        Home team picked Uniform 1. Choose your colors.
+                        Choose uniforms and goalkeeper colors for both teams.
                     </p>
                 )}
                 <button

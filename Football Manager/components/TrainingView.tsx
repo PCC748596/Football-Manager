@@ -251,7 +251,7 @@ const TrainingView: React.FC = () => {
                     <button
                       onClick={() => setSelectedGroup(GRUPO_MED)}
                       title="Medical Department"
-                      className={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-1 ${selectedGroup === GRUPO_MED ? 'bg-rose-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 hover:bg-slate-300 dark:hover:bg-slate-700'}`}
+                      className={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-1 ${selectedGroup === GRUPO_MED ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 hover:bg-slate-300 dark:hover:bg-slate-700'}`}
                     >
                       ✚ MED{lesionadosDoClube > 0 ? ` (${lesionadosDoClube})` : ''}
                     </button>
@@ -552,7 +552,7 @@ const TrainingView: React.FC = () => {
                                   {/* COL 5: GROUPS */}
                                   <div className="col-span-3 flex justify-end">
                                       {p.injury ? (
-                                          <button onClick={() => setSelectedGroup(GRUPO_MED)} title={`${p.injury.type} — Medical Department`} className="px-3 py-3 text-[12px] font-black rounded bg-rose-600 text-white shadow-sm">✚ MED</button>
+                                          <button onClick={() => setSelectedGroup(GRUPO_MED)} title={`${p.injury.type} — Medical Department`} className="px-3 py-3 text-[12px] font-black rounded bg-emerald-600 text-white shadow-sm">✚ MED</button>
                                       ) : (
                                       <div className="flex gap-0.5 shadow-sm border border-slate-200 dark:border-slate-700/50 rounded overflow-hidden">
                                           {[0, 1, 2].map(grp => {

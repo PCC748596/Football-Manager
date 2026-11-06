@@ -1146,6 +1146,9 @@ function preencherHudJogador(elId, p) {
     const el = document.getElementById(elId);
     if (!el) return;
     if (!p || !p.skills) { el.classList.add('oculto'); return; }
+    // Sem as equipas do manager (a cena de demonstracao por tras da escolha de uniformes, antes do `preparar`) nao ha escudo para mostrar: so a cor padrao. O cartao espera pelos times reais.
+    // So dentro do manager (iframe): o 3D solto continua a mostrar o cartao com a cor padrao.
+    if (window.parent !== window && !((p.team === 'TeamA') ? Match.equipaInfoA : Match.equipaInfoB)) { el.classList.add('oculto'); return; }
 
     const cor = (p.team === 'TeamA') ? '#3498db' : '#e74c3c';
     preencherEscudoHud(el.querySelector('.hud-jog-logo'), el.id, p.team);

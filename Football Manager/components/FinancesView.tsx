@@ -3,16 +3,18 @@ import React, { useState, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { generatePlayer } from '../textSim/dataGenerator';
 import { Position, Player } from '../types';
+import { ordemDaPosicao } from '../3dMatch/simulador3dCliente';
 import { settleMatch, type CurrencyCode } from '../textSim/stadiumEconomy';
 import { ContractChip } from './ContractPanel';
 import { estadoDoContrato } from '../textSim/contracts';
+import { pedidoDeAba } from './TransferMarketView';
 import PlayerDetailModal from './PlayerDetailModal';
 import SponsorsTab from './SponsorsTab';
 import FinanceMonthlyChart from './FinanceMonthlyChart';
 import { orcamentoDaTemporada, maxCompras, folhaAnual, PADRAO_COMPRAS, PASSO_COMPRAS } from '../textSim/orcamento';
 
 const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => {
-  const { definirDivisaoOrcamento, userTeam, players, hirePlayer, sellPlayer, gameState, isTransferWindowOpen, formatCurrency, formatWage, t } = useGame();
+  const { mercado, definirDivisaoOrcamento, userTeam, players, hirePlayer, listarParaVenda, gameState, isTransferWindowOpen, formatCurrency, formatWage, t } = useGame();
   const [marketPhase, setMarketPhase] = useState<'OVERVIEW' | 'MARKET' | 'SPONSORS'>('OVERVIEW');
   const [jogadorAberto, setJogadorAberto] = useState<Player | null>(null);   // o Overview do jogador (o mesmo modal do Squad), aberto pelo nome na folha salarial
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
@@ -100,14 +102,21 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
 
   const windowOpen = isTransferWindowOpen();
 
+  // A oferta recebida (RECEBIDA, o vendedor e o utilizador) que cada jogador tem a espera de resposta: id do jogador -> valor.
+  const ofertaPorJogador = useMemo(() => {
+    const m = new Map<string, number>();
+    mercado.negociacoes.forEach(n => { if (n.vendedorId === userTeam?.id && n.estado === 'RECEBIDA') m.set(n.playerId, Math.max(m.get(n.playerId) || 0, n.valor)); });
+    return m;
+  }, [mercado.negociacoes, userTeam?.id]);
+
   const sortedTeamPlayers = useMemo(() => {
     let sortablePlayers = [...teamPlayers];
     if (sortConfig !== null) {
       sortablePlayers.sort((a, b) => {
         // @ts-ignore
-        let aValue = sortConfig.key === 'contract' ? ((a as any).contract ? (a as any).contract.end : '9999-99-99') : a[sortConfig.key];   // o que vence primeiro vem primeiro
+        let aValue = sortConfig.key === 'pos' ? ordemDaPosicao(a) : sortConfig.key === 'offer' ? (ofertaPorJogador.get(a.id) || 0) : sortConfig.key === 'contract' ? ((a as any).contract ? (a as any).contract.end : '9999-99-99') : a[sortConfig.key];   // o que vence primeiro vem primeiro
         // @ts-ignore
-        let bValue = sortConfig.key === 'contract' ? ((b as any).contract ? (b as any).contract.end : '9999-99-99') : b[sortConfig.key];
+        let bValue = sortConfig.key === 'pos' ? ordemDaPosicao(b) : sortConfig.key === 'offer' ? (ofertaPorJogador.get(b.id) || 0) : sortConfig.key === 'contract' ? ((b as any).contract ? (b as any).contract.end : '9999-99-99') : b[sortConfig.key];
         
         if (aValue < bValue) {
           return sortConfig.direction === 'asc' ? -1 : 1;
@@ -121,7 +130,7 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
       return sortablePlayers.sort((a,b) => b.salary - a.salary);
     }
     return sortablePlayers;
-  }, [teamPlayers, sortConfig]);
+  }, [teamPlayers, sortConfig, ofertaPorJogador]);
 
   const requestSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -219,8 +228,10 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                 <table className="w-full text-left">
                   <thead className="sticky top-0 z-10 shadow-sm">
                     <tr className="bg-slate-50 dark:bg-slate-900 text-[13px] tracking-wide text-slate-400 dark:text-slate-300 uppercase font-black">
-                      <th className="px-6 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('name')}>
-                        Player {getSortIcon('name')}
+                      <th className="px-6 py-3">
+                        <span className="cursor-pointer hover:text-blue-500 transition-colors" onClick={() => requestSort('pos')} title="Sort by position (GK, defenders, midfielders, forwards)">Pos {getSortIcon('pos')}</span>
+                        <span className="mx-2 opacity-30">|</span>
+                        <span className="cursor-pointer hover:text-blue-500 transition-colors" onClick={() => requestSort('name')}>Player {getSortIcon('name')}</span>
                       </th>
                       <th className="px-4 py-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('age')}>
                         Age {getSortIcon('age')}
@@ -234,9 +245,13 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                       <th className="px-4 py-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('contract')}>
                         Contract {getSortIcon('contract')}
                       </th>
+                      <th className="px-4 py-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('offer')}>
+                        Offer {getSortIcon('offer')}
+                      </th>
                       <th className="px-6 py-3 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('value')}>
                         Market Value {getSortIcon('value')}
                       </th>
+                      <th className="px-4 py-3 text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
@@ -247,13 +262,27 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                         <td className="px-4 py-1 text-center text-xs font-black text-blue-600 dark:text-blue-400">{p.skill}</td>
                         <td className="px-4 py-1 text-right text-rose-500 text-sm font-mono">{formatWage(p.salary)}</td>
                         <td className="px-4 py-1 text-center"><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview (contract)" className="cursor-pointer hover:brightness-125 transition"><ContractChip player={p} hoje={gameState.currentDate} /></button></td>
+                        <td className="px-4 py-1 text-center">
+                          {ofertaPorJogador.has(p.id) && (
+                            <button type="button" onClick={() => { pedidoDeAba.aba = 'NEGOTIATIONS'; if (setView) setView('TRANSFERS'); else setMarketPhase('MARKET'); }} title={`Offer: ${formatCurrency(ofertaPorJogador.get(p.id) || 0)} — open Negotiations`}
+                              className="text-[10px] font-black uppercase tracking-wider border border-amber-500/50 bg-amber-500/15 text-amber-500 hover:brightness-125 px-2 py-1 rounded-md whitespace-nowrap transition">
+                              Offer received
+                            </button>
+                          )}
+                        </td>
                         <td className="px-6 py-1 text-right font-black text-sm text-slate-900 dark:text-white">
-                           <div className="relative flex flex-col items-end">
-                              {formatCurrency(p.value)}
-                              {windowOpen && (
-                                <button onClick={() => sellPlayer(p.id)} className="absolute -bottom-2 right-0 text-[8px] text-rose-600 uppercase opacity-0 group-hover:opacity-100 font-bold hover:underline">{t('fin_sell')}</button>
-                              )}
-                           </div>
+                           {formatCurrency(p.value)}
+                        </td>
+                        <td className="px-4 py-1 text-center">
+                          {/* Nao vende direto: poe o jogador na LISTA DE VENDA (as ofertas chegam em Negotiations); clicar de novo tira da lista. */}
+                          {(windowOpen || p.listedForSale) && (
+                            <button onClick={() => listarParaVenda(p.id, !p.listedForSale)} title={p.listedForSale ? 'Listed for sale — click to remove from the list' : 'Put on the transfer list: offers arrive in Negotiations'}
+                              className={p.listedForSale
+                                ? 'text-[10px] uppercase font-black tracking-wider border border-emerald-500/50 bg-emerald-500/15 text-emerald-500 hover:brightness-125 px-2 py-1 rounded-md whitespace-nowrap transition'
+                                : 'text-[10px] text-rose-600 uppercase opacity-0 group-hover:opacity-100 font-black tracking-wider border border-rose-500/40 hover:bg-rose-500/10 px-2 py-1 rounded-md whitespace-nowrap transition'}>
+                              {p.listedForSale ? 'Listed ✓' : t('fin_sell')}
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}

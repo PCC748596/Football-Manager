@@ -11,6 +11,9 @@ import { estadoDoContrato } from '../textSim/contracts';
 import { orcamentoDaTemporada, folhaAnual } from '../textSim/orcamento';
 
 type Aba = 'MARKET' | 'SHORTLIST' | 'NEGOTIATIONS' | 'MY_PLAYERS' | 'FINANCES';
+
+/** Quem navega para as Transfers de outra tela (ex.: a tag OFFER RECEIVED do Squad Payroll) pede a aba aqui; a view a le ao montar e limpa. */
+export const pedidoDeAba: { aba: Aba | null } = { aba: null };
 interface Linha { p: Player; origem: 'ELENCO' | 'BASE' | 'LIVRE'; clube?: Team; estrelas: number; meses: number; }
 const POR_PAGINA = 40;
 const GRUPOS = ['ANY', 'GK', 'DEF', 'MID', 'ATT'] as const;
@@ -33,7 +36,7 @@ const Estrelas: React.FC<{ n: number }> = ({ n }) => (
 const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }) => {
   const { players, base, teams, userTeam, gameState, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, formatCurrency, formatCurrencyShort } = useGame();
   const hoje = gameState.currentDate;
-  const [aba, setAba] = useState<Aba>('MARKET');
+  const [aba, setAba] = useState<Aba>(() => { const a = pedidoDeAba.aba; pedidoDeAba.aba = null; return a || 'MARKET'; });
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
 
   // filtros
@@ -44,12 +47,10 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const [valorMax, setValorMax] = useState<number>(Infinity);
   const [clubeId, setClubeId] = useState('');
   const [soLivres, setSoLivres] = useState(false), [soListados, setSoListados] = useState(true), [soContrato, setSoContrato] = useState(false), [soBase, setSoBase] = useState(false), [soShortlist, setSoShortlist] = useState(false);
-  // Os filtros so valem ao carregar em APPLY FILTERS (ou Enter): os campos acima sao o rascunho.
-  const rascunho = { nome, grupo, idadeMin, idadeMax, ovrMin, ovrMax, valorMax, clubeId, soLivres, soListados, soContrato, soBase, soShortlist };
-  const [filtros, setFiltros] = useState(rascunho);
-  const aplicar = () => setFiltros(rascunho);
-  const limpar = () => { setNome(''); setGrupo('ANY'); setIdadeMin(15); setIdadeMax(42); setOvrMin(50); setOvrMax(99); setValorMax(Infinity); setClubeId(''); setSoLivres(false); setSoListados(true); setSoContrato(false); setSoBase(false); setSoShortlist(false);
-    setFiltros({ nome: '', grupo: 'ANY', idadeMin: 15, idadeMax: 42, ovrMin: 50, ovrMax: 99, valorMax: Infinity, clubeId: '', soLivres: false, soListados: true, soContrato: false, soBase: false, soShortlist: false }); };
+  // Os filtros valem na hora (sem botao de aplicar): cada campo ja atualiza a lista. O objeto so muda quando um filtro muda (a pagina volta a 0 por isso).
+  const filtros = useMemo(() => ({ nome, grupo, idadeMin, idadeMax, ovrMin, ovrMax, valorMax, clubeId, soLivres, soListados, soContrato, soBase, soShortlist }),
+    [nome, grupo, idadeMin, idadeMax, ovrMin, ovrMax, valorMax, clubeId, soLivres, soListados, soContrato, soBase, soShortlist]);
+  const limpar = () => { setNome(''); setGrupo('ANY'); setIdadeMin(15); setIdadeMax(42); setOvrMin(50); setOvrMax(99); setValorMax(Infinity); setClubeId(''); setSoLivres(false); setSoListados(true); setSoContrato(false); setSoBase(false); setSoShortlist(false); };
   // A lista de interesse (shortlist): guardada no navegador (so uma conveniencia de quem joga).
   const [shortlist, setShortlist] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem('fm_shortlist') || '[]'); } catch { return []; } });
   const alternarShortlist = (id: string) => setShortlist(l => { const n = l.includes(id) ? l.filter(x => x !== id) : [...l, id]; try { localStorage.setItem('fm_shortlist', JSON.stringify(n)); } catch { /* sem armazenamento */ } return n; });
@@ -152,17 +153,17 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const mercadoAba = (
     <div className="flex-1 grid grid-cols-1 lg:grid-cols-[250px_1fr_300px] gap-5 min-h-0">
       {/* FILTROS */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0b1324] p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4" onKeyDown={e => { if (e.key === 'Enter') aplicar(); }}>
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0b1324] p-4 overflow-y-auto custom-scrollbar flex flex-col gap-2">
         <div className="text-[12px] font-black uppercase tracking-widest text-slate-500">Search filters</div>
         <div><label className={rotulo}>Player name</label><input className={campo} value={nome} onChange={e => setNome(e.target.value)} placeholder="Search by name" /></div>
         <div><label className={rotulo}>Position</label>
           <div className="rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/70 overflow-hidden">
-            {GRUPOS.map(g => <button key={g} onClick={() => { setGrupo(g); setFiltros({ ...rascunho, grupo: g }); }} className={`w-full text-left px-3 py-1.5 text-xs font-black uppercase tracking-wider ${grupo === g ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'}`}>{GRUPO_ROTULO[g]}</button>)}
+            {GRUPOS.map(g => <button key={g} onClick={() => { setGrupo(g); }} className={`w-full text-left px-3 py-1.5 text-xs font-black uppercase tracking-wider ${grupo === g ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'}`}>{GRUPO_ROTULO[g]}</button>)}
           </div>
         </div>
         <div><label className={rotulo}>Age</label><div className="flex gap-2 items-center"><input type="number" className={campo} value={idadeMin} min={15} max={45} onChange={e => setIdadeMin(Number(e.target.value) || 15)} /><span className="text-slate-400">–</span><input type="number" className={campo} value={idadeMax} min={15} max={45} onChange={e => setIdadeMax(Number(e.target.value) || 45)} /></div></div>
         <div><label className={rotulo}>Overall</label><div className="flex gap-2 items-center"><input type="number" className={campo} value={ovrMin} min={50} max={99} onChange={e => setOvrMin(Math.max(50, Number(e.target.value) || 50))} /><span className="text-slate-400">–</span><input type="number" className={campo} value={ovrMax} min={0} max={99} onChange={e => setOvrMax(Number(e.target.value) || 99)} /></div></div>
-        <div><label className={rotulo}>Value (max)</label><div className="flex flex-wrap gap-1.5">{VALORES.map(([r, v]) => <button key={r} onClick={() => { setValorMax(v); setFiltros({ ...rascunho, valorMax: v }); }} className={chip(valorMax === v)}>{r}</button>)}</div></div>
+        <div><label className={rotulo}>Value (max)</label><div className="flex flex-wrap gap-1.5">{VALORES.map(([r, v]) => <button key={r} onClick={() => { setValorMax(v); }} className={chip(valorMax === v)}>{r}</button>)}</div></div>
         <div><label className={rotulo}>Club</label>
           <select className={campo} value={clubeId} onChange={e => setClubeId(e.target.value)}>
             <option value="">All clubs</option>
@@ -170,14 +171,13 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
           </select>
         </div>
         <div className="flex flex-col gap-1.5"><label className={rotulo}>Status</label>
-          <button onClick={() => { setSoListados(!soListados); setFiltros(f => ({ ...f, soListados: !soListados })); }} className={botaoStatus(soListados)}>Transfer listed</button>
-          <button onClick={() => { setSoLivres(!soLivres); setFiltros(f => ({ ...f, soLivres: !soLivres })); }} className={botaoStatus(soLivres)}>Free agents</button>
-          <button onClick={() => { setSoContrato(!soContrato); setFiltros(f => ({ ...f, soContrato: !soContrato })); }} className={botaoStatus(soContrato)}>Contract ≤ 12 months</button>
-          <button onClick={() => { setSoBase(!soBase); setFiltros(f => ({ ...f, soBase: !soBase })); }} className={botaoStatus(soBase)}>Sub-20 (18+)</button>
-          {aba !== 'SHORTLIST' && <button onClick={() => { setSoShortlist(!soShortlist); setFiltros(f => ({ ...f, soShortlist: !soShortlist })); }} className={botaoStatus(soShortlist)}>Shortlist ({shortlistN})</button>}
+          <button onClick={() => { setSoListados(!soListados); }} className={botaoStatus(soListados)}>Transfer listed</button>
+          <button onClick={() => { setSoLivres(!soLivres); }} className={botaoStatus(soLivres)}>Free agents</button>
+          <button onClick={() => { setSoContrato(!soContrato); }} className={botaoStatus(soContrato)}>Contract ≤ 12 months</button>
+          <button onClick={() => { setSoBase(!soBase); }} className={botaoStatus(soBase)}>Sub-20 (18+)</button>
+          {aba !== 'SHORTLIST' && <button onClick={() => { setSoShortlist(!soShortlist); }} className={botaoStatus(soShortlist)}>Shortlist ({shortlistN})</button>}
         </div>
         <div className="mt-auto flex flex-col gap-2">
-          <button onClick={aplicar} className="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded text-xs uppercase tracking-widest shadow-lg">Apply filters</button>
           <button onClick={limpar} className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-black py-3 rounded text-xs uppercase tracking-widest">Reset</button>
         </div>
       </div>
@@ -200,7 +200,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
             const p = l.p, neg = negDe(p.id), ativo = selId === p.id;
             return (
               <div key={p.id} onClick={() => setSelId(p.id)}
-                className={`grid ${COLS} gap-3 items-center px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${ativo ? 'border-blue-500 bg-blue-500/10' : 'border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-[#0e182c] hover:border-slate-400 dark:hover:border-slate-600'}`}>
+                className={`grid ${COLS} gap-3 items-center px-4 py-[4px] rounded-lg border cursor-pointer transition-colors ${ativo ? 'border-blue-500 bg-blue-500/10' : 'border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-[#0e182c] hover:border-slate-400 dark:hover:border-slate-600'}`}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-[50px] h-[50px] rounded-full overflow-hidden bg-slate-800 shrink-0 border border-slate-700"><PlayerFace playerId={p.id} camisa={l.clube?.primaryColor} className="w-full h-full" /></div>
                   <div className="min-w-0"><div className="font-black text-base text-slate-800 dark:text-slate-100 truncate">{p.name}</div>
@@ -498,18 +498,18 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
         {([['MARKET', 'Market'], ['SHORTLIST', `Shortlist (${shortlistN})`], ['NEGOTIATIONS', `Negotiations${pendentes ? ` (${pendentes})` : ''}`], ['MY_PLAYERS', 'My players / for sale'], ['FINANCES', 'Transfer finances']] as const).map(([id, r]) => (
           <button key={id} onClick={() => setAba(id)} className={`px-5 py-2 rounded text-xs font-black uppercase tracking-widest transition-colors ${aba === id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-800 dark:hover:text-white'}`}>{r}</button>
         ))}
-        {aviso && <div className={`ml-auto px-4 py-2 rounded text-xs font-black uppercase tracking-wider cursor-pointer ${aviso.tipo === 'ok' ? 'bg-emerald-600/15 text-emerald-400 border border-emerald-600/40' : 'bg-rose-600/15 text-rose-400 border border-rose-600/40'}`} onClick={() => setAviso(null)}>{aviso.texto} ✕</div>}
+        <div className="ml-auto flex gap-8 text-xs font-black uppercase tracking-widest text-slate-500">
+        <span>Transfer budget: <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(userTeam.transferBudget ?? 0)}</b></span>
+        <span>Cash: <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(userTeam.cash)}</b></span>
+        <span>Wage bill: <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(players.filter(p => p.teamId === meuId).reduce((a, p) => a + p.salary, 0))}/w</b></span>
+      </div>
+        {aviso && <div className={`px-4 py-2 rounded text-xs font-black uppercase tracking-wider cursor-pointer ${aviso.tipo === 'ok' ? 'bg-emerald-600/15 text-emerald-400 border border-emerald-600/40' : 'bg-rose-600/15 text-rose-400 border border-rose-600/40'}`} onClick={() => setAviso(null)}>{aviso.texto} ✕</div>}
       </div>
       {(aba === 'MARKET' || aba === 'SHORTLIST') && mercadoAba}
       {aba === 'NEGOTIATIONS' && negociacoesAba}
       {aba === 'MY_PLAYERS' && meusAba}
       {aba === 'FINANCES' && financasAba}
       {ofertando && modalOferta(ofertando)}
-      <div className="flex justify-end gap-8 pt-1 text-xs font-black uppercase tracking-widest text-slate-500">
-        <span>Transfer budget: <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(userTeam.transferBudget ?? 0)}</b></span>
-        <span>Cash: <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(userTeam.cash)}</b></span>
-        <span>Wage bill: <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(players.filter(p => p.teamId === meuId).reduce((a, p) => a + p.salary, 0))}/w</b></span>
-      </div>
     </div>
   );
 };
