@@ -357,6 +357,17 @@ class FootballPlayer {
     JOGO com o `timeScale`, senao mexer no GAME_SPEED mudava o cansaco sem
     ninguem pedir.
     */
+    /*
+    O deposito com que o jogador entra em campo: a stamina (`fitness`) que o manager tem dele (`skills.energiaInicial`, 0..1; ver AdaptadorManager.jogador), entre o `minimo` e 1.
+    Sem o dado (3D solto, simulacoes), fica 1 como sempre.
+    */
+    aplicarEnergiaInicial() {
+        const S = (typeof StaminaModel !== 'undefined') ? StaminaModel : null;
+        const e0 = this.skills && this.skills.energiaInicial;
+        if (!S || !S.ligada || typeof e0 !== 'number') return;
+        this.energia = Math.max(S.minimo, Math.min(1, e0));
+    }
+
     actualizarEnergia(dt) {
         const S = (typeof StaminaModel !== 'undefined') ? StaminaModel : null;
         if (!S || !S.ligada) { this.energia = 1; return; }

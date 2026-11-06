@@ -153,7 +153,9 @@ const AdaptadorManager = {
             atr: por31 ? mp.atributos : null,
             // O atributo REFLEXES do manager (50..99), tal e qual: o encaixe de perto do goleiro depende dele (utils.js, resolverDefesaGK), e a skill `gk` do motor e uma media de cinco campos.
             reflexes: (por31 && typeof registoDe31 === 'function') ? registoDe31(mp.atributos, mp.extrasGK).reflexes : undefined,
-            pe: (mp.peBom === 'e' || mp.peBom === 'd') ? mp.peBom : undefined   // o pe bom do manager manda sobre o sorteio do motor (pePreferido)
+            pe: (mp.peBom === 'e' || mp.peBom === 'd') ? mp.peBom : undefined,   // o pe bom do manager manda sobre o sorteio do motor (pePreferido)
+            // A STAMINA DO MANAGER (`fitness`, 0-100) e o deposito com que o jogador ENTRA (FootballPlayer.energiaInicial): o cartao do 3D e as barras do Tactics partem do mesmo numero.
+            energiaInicial: forma / 100
         }, base);
     },
 

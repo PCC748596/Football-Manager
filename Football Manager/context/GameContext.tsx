@@ -1587,6 +1587,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         novos.forEach(e => { if (e.type === 'GOAL') { if (e.teamId === f.homeTeamId) h++; else a++; } });
         return { ...f, events: [...(f.events || []), ...novos], homeScore: h, awayScore: a };
       }));
+    } else if (m.tipo === 'energia') {
+      /*
+      A stamina do 3D (o deposito de cada jogador, de minuto a minuto e no fim) passa a ser a `fitness` do manager: o cartao do 3D, as barras do Tactics e o resto leem o mesmo numero. O jogo comeca
+      com o deposito = fitness do manager (AdaptadorManager.jogador -> energiaInicial). `mapa`: id real do motor (digitos de 'p-269063') -> %.
+      */
+      const mapa: Record<string, number> = m.mapa || {};
+      setPlayers(prev => prev.map(p => {
+        const d = (/(\d+)$/.exec(String(p.id)) || [])[1];
+        const e = d !== undefined ? mapa[d] : undefined;
+        return (typeof e === 'number' && e !== p.fitness) ? { ...p, fitness: Math.max(0, Math.min(100, e)) } : p;
+      }));
     } else if (m.tipo === 'lesao') {
       /*
       Lesao sofrida no 3D (js/injuries/injury_match.js), de qualquer dos dois times: vira um evento INJURY do jogo, e o fecho do dia (o bloco dos eventos INJURY) a grava no jogador. `dias` e o
@@ -1794,8 +1805,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (aT) aT.lineup.forEach(id => { if (id) starters.add(id); });
           });
 
+          // Jogo em 3D ao vivo: a stamina vem do deposito do 3D (mensagem `energia`), nao da formula por minuto.
+          const ufId = fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId))?.id;
+          const em3d = typeof (window as any).motor3dMinuto === 'number' && (window as any).motor3dMinuto !== 999 ? todays.find(f => f.id === ufId) : undefined;
           return prevPlayers.map(p => {
             if (!starters.has(p.id)) return p;
+            if (em3d && (p.teamId === em3d.homeTeamId || p.teamId === em3d.awayTeamId)) return p;
             const team = teams.find(t => t.id === p.teamId);
             const tactics = team?.tactics;
             // Mesma fórmula usada pelo motor: assistir e simular a partida

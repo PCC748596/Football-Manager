@@ -287,14 +287,15 @@ Object.assign(Match, {
 
             // Fora do campo é sempre a escura. As duas cores vivem no config:
             // ver RelvaCores (config/physics.js).
-            ctxR.fillStyle = RelvaCores.escura;
+            const noCampo = (i >= 3 && i < 23);
+            // O desvio de tom por faixa (RelvaCores.tomDaFaixa) so vale dentro do campo: o run-off das pontas fica no tom base.
+            ctxR.fillStyle = (noCampo && i % 2 !== 0) ? RelvaCores.tomDaFaixa(RelvaCores.escura, i) : RelvaCores.escura;
             ctxR.fillRect(0, yStartPix, 256, altura);
 
             // E dentro, a faixa do corte — menos nas três de cada ponta, que
             // são o run-off atrás das balizas.
-            const noCampo = (i >= 3 && i < 23);
             if (noCampo && (i % 2 === 0)) {
-                ctxR.fillStyle = RelvaCores.clara;
+                ctxR.fillStyle = RelvaCores.tomDaFaixa(RelvaCores.clara, i);
                 ctxR.fillRect(xDentroIni, yStartPix, xDentroFim - xDentroIni, altura);
             }
             currentY = nextY;
@@ -2442,6 +2443,7 @@ Object.assign(Match, {
             let p = new FootballPlayer(i, corCamisa, corCalcao, 'TeamA',
                 (i === 0) ? uniGKcomLuvas(this.uniformeGKA) : uniA, skillsA && skillsA[i] ? skillsA[i].id : null);
             p.skills = skillsA ? skillsA[i] : null;
+            p.aplicarEnergiaInicial();
             if (p.skills && p.skills.pe) p.pe = p.skills.pe;   // o pe bom que o manager mostra (textSim/peBom.ts)
             // O estilo que o jogador traz nos dados manda sobre o estilo por
             // omissão da posição — ver aplicarPlayingStyle.
@@ -2456,6 +2458,7 @@ Object.assign(Match, {
             let p = new FootballPlayer(i + 20, corCamisa, corCalcao, 'TeamB',
                 (i === 0) ? uniGKcomLuvas(this.uniformeGKB) : uniB, skillsB && skillsB[i] ? skillsB[i].id : null);
             p.skills = skillsB ? skillsB[i] : null;
+            p.aplicarEnergiaInicial();
             if (p.skills && p.skills.pe) p.pe = p.skills.pe;
             p.playingStyleFixo = (p.skills && p.skills.estilo) ? p.skills.estilo : null;
             this.opponents.push(p);

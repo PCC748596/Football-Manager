@@ -719,10 +719,22 @@ const Ponte = {
     // Um evento so com dados simples (sem referencias ao motor), para viajar por mensagem.
     _limpar(ev) { return JSON.parse(JSON.stringify(ev, (k, v) => (k === '_idade' ? undefined : v))); },
 
+    /*
+    A STAMINA DOS JOGADORES para o manager: id real (`skills.id`) -> deposito em % (0-100). Inclui quem ja saiu (substituido ou expulso): fica com o que tinha ao sair. O manager grava-o em
+    `Player.fitness` (GameContext.motor3dMensagem, `energia`), para as barras do Tactics/Dashboard mostrarem o mesmo que o cartao do 3D.
+    */
+    _energias() {
+        const mapa = {};
+        const lista = [].concat((Match.subsFeitas || []).map(s => s.sai), Match.expulsos || [], Match.goleirosExpulsos || [], Match.players || [], Match.opponents || []);
+        for (const p of lista) if (p && p.skills && p.skills.id !== undefined && typeof p.energia === 'number') mapa[p.skills.id] = Math.round(p.energia * 100);
+        return mapa;
+    },
+
     _estadoPeriodico() {
         const min = Math.floor(Match.tempoDeJogo / 60);
         if (min === this._ultimoEstado) return;
         this._ultimoEstado = min;
+        this.enviar('energia', { mapa: this._energias() });
         const posseA = MatchStats.TeamA.posseSegundos || 0, posseB = MatchStats.TeamB.posseSegundos || 0;
         this.enviar('estado', { minuto: Math.floor(Match.tempoDeJogo / 60) + 1, placar: { casa: Match.placarA, fora: Match.placarB },
             posse: { casa: posseA + posseB > 0 ? posseA / (posseA + posseB) : 0.5 } });
@@ -730,6 +742,7 @@ const Ponte = {
 
     _terminar() {
         if (this.estado === 'terminado') return;
+        this.enviar('energia', { mapa: this._energias() });   // a stamina final, antes do `fim`
         this.parar();
         this.estado = 'terminado';
         Eventos.registar('FIM', { placar: { A: Match.placarA, B: Match.placarB } });

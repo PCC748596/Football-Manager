@@ -599,6 +599,7 @@ Object.assign(Match, {
         const uni = (base.role === 'gk') ? base.uniforme : ((typeof uniformeDe === 'function' && info) ? uniformeDe(info.nome) : base.uniforme);
         const N = new FootballPlayer(P.id, base.corCamisa, base.corCalcao, P.team, uni, sk.id);
         N.skills = sk;
+        N.aplicarEnergiaInicial();   // quem entra do banco vem com a stamina que o manager tem dele
         if (sk && sk.pe) N.pe = sk.pe;
         N.playingStyleFixo = sk.estilo || null;
         // O POSTO do que sai (ou, na troca obrigatoria, o do goleiro expulso).

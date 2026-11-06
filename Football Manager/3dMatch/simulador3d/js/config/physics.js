@@ -864,7 +864,25 @@ const RelvaCores = {
     pedido: o tom continuava amarelo, só mais escuro.
     */
     clara: '#5A9638',    // a faixa a favor do corte
-    escura: '#4E8F3C'    // a do sentido contrário
+    escura: '#4E8F3C',   // a do sentido contrário
+    /*
+    VARIAÇÃO SUTIL POR FAIXA (pedido: um "hachurado" feito nas cores, não no desenho): cada faixa do campo leva um desvio pequeno e FIXO (o mesmo em todos os jogos) do tom base — brilho até
+    ±`brilho` e um desvio de matiz (vermelho) até ±`matiz`, como relva real mal aparada. O claro-escuro de base mantém-se: o desvio nunca troca a ordem entre uma faixa clara e a escura vizinha.
+    `brilho: 0` desliga.
+    */
+    brilho: 0.025,
+    matiz: 0.02
+};
+/*
+O tom de uma faixa: a cor base com o desvio fixo da faixa `i` (hash determinista, sem sortear nada: o relvado e igual em todos os jogos). Devolve '#rrggbb'.
+*/
+RelvaCores.tomDaFaixa = function (base, i) {
+    if (!this.brilho && !this.matiz) return base;
+    const h = (k) => { const x = Math.sin((i + 1) * 12.9898 + k * 78.233) * 43758.5453; return (x - Math.floor(x)) * 2 - 1; };   // -1..1
+    const c = parseInt(base.slice(1), 16), m = 1 + this.brilho * h(1), dr = 1 + this.matiz * h(2);
+    const f = (v, mult) => Math.max(0, Math.min(255, Math.round(v * mult)));
+    const r = f((c >> 16) & 255, m * dr), g = f((c >> 8) & 255, m), b = f(c & 255, m);
+    return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
 };
 if (typeof window !== 'undefined') window.RelvaCores = RelvaCores;
 
