@@ -262,6 +262,19 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                 <span className={`text-6xl font-black italic leading-none ${getColorClass(player.skill)}`}>{Math.round(player.skill)}</span>
                 <span className="text-sm font-black text-slate-300 uppercase tracking-widest">{player.position}{playStyles[0] ? ` · ${playStyles[0].name}` : ''}</span>
               </div>
+              <div className="mt-2 flex items-center gap-2 text-xs font-black">
+                {[{ label: 'TEC', val: attr3d.tec }, { label: 'TAC', val: attr3d.tac }, { label: 'MEN', val: attr3d.men }, { label: 'FIS', val: attr3d.fis }].map(({ label, val }) => {
+                  const start = player.treino3dSeasonStart ? player.treino3dSeasonStart[label.toLowerCase()] ?? val : val;
+                  const delta = val - start;
+                  return (
+                    <div key={label} className="flex items-center gap-1">
+                      <span className="text-slate-500">{label}</span>
+                      <span className={getColorClass(val)}>{val}</span>
+                      {delta !== 0 && <span className={delta > 0 ? 'text-emerald-500' : 'text-red-500'}>{delta > 0 ? '+' : ''}{delta}</span>}
+                    </div>
+                  );
+                })}
+              </div>
               <div className="mt-2 flex items-center gap-3">
                 <img src={assetUrl(`/Assets/Bandeiras/${paisDoJogador(player, (team as any)?.country) || 'x'}.png`)} alt="" title="Nationality" className="w-10 h-7 object-cover rounded-sm border border-slate-700" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                 <div className="min-w-0">
