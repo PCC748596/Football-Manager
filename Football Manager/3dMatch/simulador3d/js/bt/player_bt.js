@@ -2006,6 +2006,37 @@ function podeDriblar(ctx) {
 }
 
 /*
+DRIBLE COM MARCADOR DENTRO DA AREA (pedido): com a bola dominada na grande area e um adversario colado
+(ctx.underPressure), quem tem `dribbling` e `consistency` acima de `min` tenta o drible em `chance` das
+chances; nas restantes remata como sempre. Uma "chance" = uma situacao seguida (a bandeira so volta a
+armar quando o jogador sai da area ou deixa de ser marcado), senao o sorteio repetia-se a cada decisao.
+*/
+const DribleNaArea = { activo: true, min: 75, chance: 0.30, distEngajar: 5.5 };
+function podeDriblarMarcadoNaArea(ctx) {
+    const p = ctx.p, D = DribleNaArea, A = (typeof ShootingModel !== 'undefined') ? ShootingModel.dentroDaArea : null;
+    if (!D.activo || !A || p.role === 'gk' || !ctx.underPressure) { p._dribleAreaRolou = false; return false; }
+    if (Math.abs(p.targetGoalZ - p.model.position.z) > A.profundidade || Math.abs(p.model.position.x) > A.meiaLargura) {
+        p._dribleAreaRolou = false; return false;
+    }
+    if (p._dribleAreaRolou || (p.fsm && p.fsm.currentState === 'DRIBBLE')) return false;
+    const atr = p.skills && p.skills.atr;
+    if (!atr || !(atr.dribbling > D.min) || !(atr.consistency > D.min)) return false;
+    // O marcador: o adversario de campo mais perto, a frente ou ao lado.
+    let alvo = null, menor = Infinity;
+    for (const o of ctx.opponents) {
+        if (!o || o.role === 'gk' || !o.model) continue;
+        const d = p.model.position.distanceTo(o.model.position);
+        const dz = (o.model.position.z - p.model.position.z) * p.dirZ;
+        if (d >= 0.8 && d <= D.distEngajar && dz > -0.5 && d < menor) { menor = d; alvo = o; }
+    }
+    if (!alvo) return false;
+    p._dribleAreaRolou = true;
+    if (Math.random() >= D.chance) return false;
+    ctx.dribbleOpponent = alvo;
+    return true;
+}
+
+/*
 DRIBLAR O GUARDA-REDES — ver DribbleModel.aoGuardaRedes (player_behavior.js),
 que traz os números e o pedido que os motivou.
 
@@ -4184,7 +4215,17 @@ function emZonaDeRemate(ctx) {
                 }
             }
         }
-        if (!gkEmCima && !gkSaiuDaBaliza && ff.livre && ff.dist > FF.distanciaIdeal && ff.dist <= FF.distanciaMax) {
+        /*
+        MARCADO DENTRO DA AREA, NAO SE CONDUZ ATE A MARCA DO PENALTI (pedido): com um adversario
+        a menos de 3.5 m (ctx.underPressure) o corredor do `frenteAFrenteComGk` pode estar limpo
+        (o marcador esta ao lado ou atras), mas conduzir ali e dar-lhe a bola. Decide-se ja: remata-se
+        (ou o ramo de drible actua). So sem marcacao e que se aproxima do guarda-redes.
+        */
+        const A0 = ShootingModel.dentroDaArea;
+        const marcadoNaArea = !!(A0 && ctx.underPressure &&
+            Math.abs(p.targetGoalZ - p.model.position.z) <= A0.profundidade &&
+            Math.abs(p.model.position.x) <= A0.meiaLargura);
+        if (!marcadoNaArea && !gkEmCima && !gkSaiuDaBaliza && ff.livre && ff.dist > FF.distanciaIdeal && ff.dist <= FF.distanciaMax) {
             p.frenteAFrente = false;
             return false;
         }
@@ -5023,6 +5064,12 @@ const PlayerBT = sel('PlayerRoot',
                     return distanciaAoProprioFundo(ctx.p) <= C.zonaPerigo;
                 }),
                 act('aliviarDoPerigo', actClearance)
+            ),
+
+            // 0b. MARCADO DENTRO DA AREA: quem tem drible e consistency acima de 75 tenta o drible em 30% das chances (pedido); nas outras 70% segue o chute.
+            seq('DriblarNaArea',
+                cond('driblaMarcadoNaArea', podeDriblarMarcadoNaArea),
+                act('driblarNaArea', actDribble)
             ),
 
             // 1. Verificar chute - chutar

@@ -32,7 +32,13 @@ const ABA_ROTULO: Record<string, { en: string; pt: string }> = {
   STATISTICS: { en: 'Statistics', pt: 'Estatísticas' }, TACTICS: { en: 'Tactics', pt: 'Tática' }, FIXTURES: { en: 'Fixtures', pt: 'Jogos' }, TRAINING_VIEW: { en: 'Training', pt: 'Treino' }, WORLD: { en: 'World', pt: 'Mundo' }
 };
 
-const dataCurta = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+// Mensagens de lesao (chave `injury|...`) levam a cruz medica no lugar do icone da categoria.
+const ICONE_LESAO = ic(<path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" />);
+const ehLesao = (m: MensagemInbox) => m.keys.some(k => k.startsWith('injury|'));
+const iconeDe = (m: MensagemInbox) => (ehLesao(m) ? ICONE_LESAO : CATEGORIAS[m.categoria].icone);
+const corDe = (m: MensagemInbox) => (ehLesao(m) ? 'text-rose-500' : CATEGORIAS[m.categoria].cor);
+
+const dataCurta =(iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 
 // A renovacao de contratos fica nas Financas: as mensagens de contrato ja gravadas num save (com destino Squad) tambem levam para la.
 const destinoDe = (m: MensagemInbox) => (m.categoria === 'CONTRACT' && m.ir === 'SQUAD') ? 'FINANCES' : m.ir;
@@ -94,7 +100,7 @@ const InboxView: React.FC<Props> = ({ setView }) => {
           {lista.map(m => (
             <div key={m.id} role="button" tabIndex={0} onClick={() => setSelId(m.id)} onKeyDown={e => { if (e.key === 'Enter') setSelId(m.id); }}
               className={`group w-full text-left px-4 py-3 border-b border-slate-200 dark:border-slate-800/60 border-l-4 flex gap-3 items-start transition-colors cursor-pointer ${m.lida ? 'border-l-transparent opacity-60 hover:opacity-100' : 'border-l-blue-500 bg-blue-500/10'} ${selId === m.id ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
-              <div className={`text-2xl leading-none mt-0.5 ${m.lida ? 'text-slate-500' : CATEGORIAS[m.categoria].cor}`}>{CATEGORIAS[m.categoria].icone}</div>
+              <div className={`text-2xl leading-none mt-0.5 ${m.lida ? 'text-slate-500' : corDe(m)}`}>{iconeDe(m)}</div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   {!m.lida && <span className="text-[9px] font-black uppercase tracking-wider bg-blue-500 text-white px-1.5 py-0.5 rounded shrink-0">{pt ? 'Nova' : 'New'}</span>}
@@ -120,7 +126,7 @@ const InboxView: React.FC<Props> = ({ setView }) => {
         <div className="bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl p-6 overflow-y-auto custom-scrollbar flex flex-col">
           {!sel ? <div className="m-auto text-slate-400 text-sm font-bold uppercase tracking-widest">{pt ? 'Selecione uma mensagem' : 'Select a message'}</div> : (
             <>
-              <div className={`text-xs font-black uppercase tracking-widest ${CATEGORIAS[sel.categoria].cor}`}>{CATEGORIAS[sel.categoria].icone} {rotuloCat(sel.categoria)}</div>
+              <div className={`text-xs font-black uppercase tracking-widest ${corDe(sel)}`}>{iconeDe(sel)} {rotuloCat(sel.categoria)}</div>
               <h3 className="text-2xl font-black text-slate-900 dark:text-white leading-tight mt-1">{sel.assunto}</h3>
               <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-2 pb-4 border-b border-slate-200 dark:border-slate-800">
                 {pt ? 'De' : 'From'}: {sel.de} • {dataCurta(sel.date)}
