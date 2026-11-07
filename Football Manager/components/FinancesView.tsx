@@ -6,6 +6,8 @@ import { Position, Player } from '../types';
 import { ordemDaPosicao } from '../3dMatch/simulador3dCliente';
 import { settleMatch, type CurrencyCode } from '../textSim/stadiumEconomy';
 import { ContractChip } from './ContractPanel';
+import { getStarCount } from './SquadView';
+import { estrelasDoJogador } from '../textSim/youth';
 import { estadoDoContrato } from '../textSim/contracts';
 import { pedidoDeAba } from './TransferMarketView';
 import PlayerDetailModal from './PlayerDetailModal';
@@ -236,8 +238,9 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                       <th className="px-4 py-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('age')}>
                         Age {getSortIcon('age')}
                       </th>
+                      <th className="px-4 py-3 text-center">Stars</th>
                       <th className="px-4 py-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('skill')}>
-                        Skill {getSortIcon('skill')}
+                        OVR {getSortIcon('skill')}
                       </th>
                       <th className="px-4 py-3 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('salary')}>
                         Wage {getSortIcon('salary')}
@@ -248,7 +251,7 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                       <th className="px-4 py-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('offer')}>
                         Offer {getSortIcon('offer')}
                       </th>
-                      <th className="px-6 py-3 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('value')}>
+                      <th className="w-[1%] whitespace-nowrap px-4 py-3 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('value')}>
                         Market Value {getSortIcon('value')}
                       </th>
                       <th className="px-4 py-3 text-center">Action</th>
@@ -257,9 +260,13 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                     {sortedTeamPlayers.map(p => (
                       <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
-                        <td className="px-6 py-1 font-bold text-sm text-slate-700 dark:text-slate-200"><span className="inline-block w-9 mr-2 text-center text-[10px] font-black text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded px-1 py-0.5 align-middle">{p.position}</span><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview" className="text-left hover:text-blue-500 dark:hover:text-blue-400 hover:underline transition-colors">{p.name}</button></td>
+                        <td className="px-6 py-1 font-bold text-sm whitespace-nowrap text-slate-700 dark:text-slate-200"><span className="inline-block w-9 mr-2 text-center text-[10px] font-black text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded px-1 py-0.5 align-middle">{p.position}</span><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview" className="text-left hover:text-blue-500 dark:hover:text-blue-400 hover:underline transition-colors">{p.name}</button></td>
                         <td className="px-4 py-1 text-center text-xs font-bold text-slate-500 dark:text-slate-400">{p.age}</td>
-                        <td className="px-4 py-1 text-center text-xs font-black text-blue-600 dark:text-blue-400">{p.skill}</td>
+                        {/* As mesmas estrelas do Squad: douradas = o nivel atual (OVR); cinzentas = ate ao potencial; apagadas = acima do potencial. */}
+                        <td className="px-4 py-1 text-center whitespace-nowrap text-sm leading-none">
+                          {Array.from({ length: 5 }, (_, i) => <span key={i} className={i < getStarCount(p.skill) ? 'text-yellow-400' : i < estrelasDoJogador(p) ? 'text-slate-400' : 'text-slate-200 dark:text-slate-700'}>★</span>)}
+                        </td>
+                        <td className="px-4 py-1 text-center text-xs font-black text-blue-600 dark:text-blue-400">{Math.round(p.skill)}</td>
                         <td className="px-4 py-1 text-right text-rose-500 text-sm font-mono">{formatWage(p.salary)}</td>
                         <td className="px-4 py-1 text-center"><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview (contract)" className="cursor-pointer hover:brightness-125 transition"><ContractChip player={p} hoje={gameState.currentDate} /></button></td>
                         <td className="px-4 py-1 text-center">
@@ -270,7 +277,7 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                             </button>
                           )}
                         </td>
-                        <td className="px-6 py-1 text-right font-black text-sm text-slate-900 dark:text-white">
+                        <td className="w-[1%] whitespace-nowrap px-4 py-1 text-right font-black text-sm text-slate-900 dark:text-white">
                            {formatCurrency(p.value)}
                         </td>
                         <td className="px-4 py-1 text-center">
