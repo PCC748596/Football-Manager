@@ -1072,7 +1072,7 @@ Object.assign(Match, {
         } else {
             const dificuldade = THREE.MathUtils.clamp(
                 (speed - limiarFacil) / (BallControl.hardSpeed - limiarFacil), 0, 1);
-            let hipotese = (best.skillFor('TEC') / 100) * (1 - dificuldade);
+            let hipotese = (best.atributoDe('ballControl', 'TEC') / 100) * (1 - dificuldade);
             if (best === this.intendedReceiver) hipotese += BallControl.receiverBonus;
 
             /*
@@ -1089,7 +1089,7 @@ Object.assign(Match, {
             }
             if (marcadorBest && distMarcBest < 3.0) {
                 const fatorMarc = THREE.MathUtils.clamp(
-                    1 - (marcadorBest.skillFor('MARKING') - best.skillFor('TEC')) / 300, 0.6, 1.15);
+                    1 - (marcadorBest.atributoDe('tackleStanding', 'MARKING') - best.atributoDe('ballControl', 'TEC')) / 300, 0.6, 1.15);
                 hipotese *= fatorMarc;
             }
 
@@ -1154,7 +1154,7 @@ Object.assign(Match, {
                     best.model.position.z - o.model.position.z);
                 if (d < distAdv) distAdv = d;
             }
-            best.jogarDePrimeira = jogaDePrimeira(best.skillFor('TEC'), distAdv);
+            best.jogarDePrimeira = jogaDePrimeira(best.atributoDe('reactions', 'TEC'), distAdv);
             // TABELA E CHUTE: quem arrancou para o espaco da devolucao chuta de primeira ao receber (ver JogadasCombinadas.tabelaChute).
             if (best.esperarDevolucao && best.esperarDevolucao.chute && best.esperarDevolucao.timer > 0) {
                 best.jogarDePrimeira = true;
@@ -1180,7 +1180,7 @@ Object.assign(Match, {
                 const naAreaAdv = Math.abs(best.model.position.x) < Area.meiaLargura && typeof gz === 'number' && Math.abs(gz - best.model.position.z) < Area.profundidade;
                 const velBola = Math.hypot(this.ballVel.x, this.ballVel.z);
                 if (viradoPraBaliza && naAreaAdv && dGol <= AP.dist && !bolaAdiantadaPorEle && velBola >= AP.velMin) {
-                    const chance = AP.chanceBase + AP.chanceTec * Math.max(0, Math.min(1, best.skillFor('TEC') / 100));
+                    const chance = AP.chanceBase + AP.chanceTec * Math.max(0, Math.min(1, best.atributoDe(['finishing', 'reactions'], 'TEC') / 100));
                     if (Math.random() < chance) best.jogarDePrimeira = true;
                 }
             }

@@ -2671,7 +2671,7 @@ function emZonaDeFinalizacao(p) {
     // Aqui a bola ficava no pe (sem toque a frente) e la ele nao rematava: o portador parava na linha da grande area uns 3 s (relato). Mesma conta, os dois lados.
     const PE = ShootingModel.progredirComEspaco;
     if (PE && typeof semMarcacaoAFrente === 'function' && typeof Match !== 'undefined') {
-        const nota = ((p.skillFor ? p.skillFor('TEC') : 50) + (p.skillFor ? p.skillFor('tacticknow') : 50)) / 2;
+        const nota = p.atributoDe ? p.atributoDe(['posOffense', 'vision'], 'TEC') : 50;   // (Attacking Positioning + Vision) / 2, igual ao podeRematar
         const dMin = Math.max(PE.distMinMin || 0, Math.min(PE.distMinMax || 99, PE.distMin - ((nota - 75) / 25) * (PE.variacaoPorSkill || 0)));
         const advs = (p.team === 'TeamA') ? Match.opponents : Match.players;
         if (dist > dMin && semMarcacaoAFrente(p, advs, PE.alcanceCone, PE.anguloCone)) return false;

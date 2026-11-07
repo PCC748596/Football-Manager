@@ -783,7 +783,7 @@ function executeShotGameplay(p) {
         // motivou. Aplica-se nos DOIS sitios que compoem a potencia.
         const potenciaDoRemate = forcaDoRemate(Math.max(ShotModel.potenciaMin,
             ShotModel.potenciaBase
-            + ((p.skillFor('TEC') - 50) / 50) * ShotModel.potenciaPorSkill));
+            + ((p.atributoDe('shotPower', 'TEC') - 50) / 50) * ShotModel.potenciaPorSkill));
         desvioBloqueio = desvioDeBloqueio({
             dirX: -Match.ball.position.x,
             dirZ: p.targetGoalZ - Match.ball.position.z,
@@ -814,7 +814,7 @@ function executeShotGameplay(p) {
 
         const tipoRemate = tipoDeRemate({
             dist: distBaliza,
-            tec: p.skillFor('TEC'),
+            tec: p.atributoDe('finishing', 'TEC'),
             distAdversario: Math.min(distBloqueio, distPressaoRemate),
             gkAdiantado: gkAdiantado,
             // Posto pelo `podeRematar` no frame da decisão: chegou ao ponto do
@@ -824,7 +824,7 @@ function executeShotGameplay(p) {
         });
 
         // O DUELO DE DADOS, como no penalti: (TEC + d10) - (GK + d10). Quem o ganha tira mais ao guarda-redes (canto mais perto do poste e de cima: ver miraDeRemate).
-        const diffDuelo = (p.skillFor('TEC') + Math.floor(Math.random() * 10) + 1) - ((gkDef ? gkDef.skillFor('GK') : 50) + Math.floor(Math.random() * 10) + 1);
+        const diffDuelo = (p.atributoDe('finishing', 'TEC') + Math.floor(Math.random() * 10) + 1) - ((gkDef ? gkDef.skillFor('GK') : 50) + Math.floor(Math.random() * 10) + 1);
         const mira = miraDeRemate({
             tipo: tipoRemate,
             gkX: gkDef ? gkDef.model.position.x : 0,
@@ -833,7 +833,7 @@ function executeShotGameplay(p) {
 
         const sigma = sigmaDeRemate({
             dist: distBaliza,
-            tec: p.skillFor('TEC'),
+            tec: p.atributoDe('finishing', 'TEC'),
             distAdversario: Math.min(distBloqueio, distPressaoRemate),
             angulo: anguloBaliza,
             tipo: tipoRemate
@@ -858,7 +858,7 @@ function executeShotGameplay(p) {
         alto passar na mesma.
         */
         pow = forcaDoRemate(Math.max(ShotModel.potenciaMin,
-            ShotModel.potenciaBase + ((p.skillFor('TEC') - 50) / 50) * ShotModel.potenciaPorSkill)
+            ShotModel.potenciaBase + ((p.atributoDe('shotPower', 'TEC') - 50) / 50) * ShotModel.potenciaPorSkill)
             * ShotModel.tipos[tipoRemate].potencia);
 
         /*
@@ -2036,7 +2036,7 @@ class PlayerFSM {
 
                         // Visão de jogo baseada na técnica — ver VisionModel
                         // em config.js, que é onde os números vivem agora.
-                        const tec = p.skillFor ? p.skillFor('TEC') : 50;
+                        const tec = p.atributoDe ? p.atributoDe('vision', 'TEC') : 50;
                         const visDist = alcanceVisao(tec);
                         const maxAngRad = coneVisao(tec);
 
@@ -2228,7 +2228,7 @@ class PlayerFSM {
                     let allOpps = (p.team === 'TeamA') ? Match.opponents : Match.players;
 
                     // Adversário mais perto no cone frontal de visão (VisionModel).
-                    const tec = p.skillFor ? p.skillFor('TEC') : 50;
+                    const tec = p.atributoDe ? p.atributoDe('vision', 'TEC') : 50;
                     const maxVisionAngleRad = coneVisao(tec);
                     const minDot = Math.cos(maxVisionAngleRad);
                     const visionRange = alcanceVisao(tec, 14.0);
@@ -3021,8 +3021,8 @@ class PlayerFSM {
                             iguais. Só possível se o defensor estiver num
                             ângulo <=90° da frente do portador.
                             */
-                            const forcaDef = (p.skillFor('SPEED') + p.skillFor('STRENGTH')) / 2;
-                            const forcaAtk = (carrier.skillFor('SPEED') + carrier.skillFor('STRENGTH')) / 2;
+                            const forcaDef = p.atributoDe('strength', 'STRENGTH');   // Dribbling (portador) x Strength (defensor), pedido
+                            const forcaAtk = carrier.atributoDe('dribbling', 'TEC');
                             /*
                             O ÂNGULO, OUTRA VEZ, NO INSTANTE DO CONTACTO.
 
@@ -3153,7 +3153,7 @@ class PlayerFSM {
                         ligeiramente favorito mesmo a skills iguais.
                         Só possível se o defensor estiver na frente/lado (<=90°).
                         */
-                        const venceu = alvoValido && slideAngleOk && venceuDuelo(p.skillFor('MARKING'), carrierSlide.skillFor('TEC'), 0.45);
+                        const venceu = alvoValido && slideAngleOk && venceuDuelo(p.atributoDe('tackleSliding', 'MARKING'), carrierSlide.atributoDe('dribbling', 'TEC'), 0.45);
 
                         /*
                         Carrinho FALHADO sobre um alvo valido: e a fonte de

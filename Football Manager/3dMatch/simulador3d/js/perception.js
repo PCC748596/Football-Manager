@@ -309,7 +309,7 @@ const Perception = {
     claimScore: function (p) {
         const bb = p.blackboard.ball;
         if (!bb.interceptable) return -Infinity;
-        const skill = (p.skillFor ? p.skillFor('TEC') : 50) / 100;
+        const skill = (p.atributoDe ? p.atributoDe('tacticalAwa', 'tacticknow') : 50) / 100;
         return 100 - bb.timeToIntercept * 20 + bb.confidence * 10 + skill * 5;
     }
 };

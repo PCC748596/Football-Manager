@@ -440,6 +440,20 @@ class FootballPlayer {
         return Math.max(1, Math.min(100, base + (soma / n - baseAtr) * f));
     }
 
+    /*
+    O ATRIBUTO ESPECIFICO DA ACAO (e nao a skill agregada TEC/TAC/FIS): `campos` e um atributo (`'finishing'`) ou uma lista (`['posOffense', 'vision']`, usa-se a media).
+    Vem de `skills.atr` (os 31 atributos, 50..99) e leva o MESMO desconto de cansaco e o mesmo mando de campo do `skillFor`, para a troca nao mudar mais nada.
+    Sem os 31 (jogador de dados antigos) devolve `skillFor(chaveBase)`, a skill de sempre.
+    */
+    atributoDe(campos, chaveBase) {
+        const lista = Array.isArray(campos) ? campos : [campos];
+        const atr = this.skills && this.skills.atr;
+        let soma = 0, n = 0;
+        if (atr) for (const c of lista) { if (typeof atr[c] === 'number') { soma += atr[c]; n++; } }
+        if (!n) return this.skillFor(chaveBase);
+        return this._ajustarSkill(soma / n, String(chaveBase).toLowerCase());
+    }
+
     skillFor(campo) {
         const chave = String(campo).toLowerCase();
         let base = null;
@@ -448,7 +462,11 @@ class FootballPlayer {
             if (typeof v === 'number') base = v;
         }
         if (base === null) base = this.getSkill();
+        return this._ajustarSkill(base, chave);
+    }
 
+    // Cansaco (so nos campos cansaveis) e mando de campo, comuns a `skillFor` e `atributoDe`.
+    _ajustarSkill(base, chave) {
         const S = (typeof StaminaModel !== 'undefined') ? StaminaModel : null;
         if (S && S.ligada && S.quedaSkill && CAMPOS_CANSAVEIS[chave]) {
             base = Math.max(1, base - S.quedaSkill * (1 - this.energia));
@@ -2761,7 +2779,7 @@ class FootballPlayer {
     */
     controlarNoPeito(altura) {
         const B = BallControl;
-        const bom = venceuDuelo(this.skillFor('TEC'), 50, B.peitoBase);
+        const bom = venceuDuelo(this.atributoDe('consistency', 'TEC'), 50, B.peitoBase);
 
         // De FRENTE para a bola, não de lado — sem isto ficava com a
         // orientação de quem quer que fosse a última corrida, muitas vezes
@@ -2815,7 +2833,7 @@ class FootballPlayer {
     escolherSaidaDoPeito() {
         const C = BallControl.peitoLado;
         if (!C || !C.activo || this.role === 'gk') return null;
-        const tec = this.skillFor('TEC');
+        const tec = this.atributoDe('volleys', 'TEC');
         if (Math.random() > C.chance * (0.5 + tec / 100)) return null;
         const rivais = (this.team === 'TeamA') ? Match.opponents : Match.players;
         const p0 = this.model.position;
@@ -2873,7 +2891,7 @@ class FootballPlayer {
     largarDoPeito() {
         const B = BallControl;
         const g = BallPhysics.gravidade;
-        const tec = this.skillFor('TEC');
+        const tec = this.atributoDe('consistency', 'TEC');
         const saida = this.peitoSaida || null;   // matada com toque para o lado (escolherSaidaDoPeito)
         const dist = saida ? B.peitoLado.dist : quedaNoPeito(tec, amostraGaussiana(Math.random));
 

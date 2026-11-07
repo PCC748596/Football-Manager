@@ -124,7 +124,7 @@ class PlayerContext {
             p.tempoPertoDoPortador = 0;
         }
 
-        const tec = p.skillFor ? p.skillFor('TEC') : 50;
+        const tec = p.atributoDe ? p.atributoDe('vision', 'TEC') : 50;
         /*
         O ALCANCE vem da visao — ate onde ele le o campo. A ABERTURA do
         corredor nao: e fixa, e quem esta no caminho nao depende da tecnica de
@@ -1946,7 +1946,7 @@ function podeDriblar(ctx) {
     // Regra 4: Adversário próximo, espaço atrás do adversário - Driblar
     // No último terço a barreira técnica necessária é mais baixa.
     let baseTec = (noUltimoTerco ? UT.tecMin : 72) / Math.max(0.5, mult * bonusUltimoTerco);
-    const tec = p.skillFor ? p.skillFor('TEC') : ctx.skillTec;
+    const tec = p.atributoDe ? p.atributoDe('dribbling', 'TEC') : ctx.skillTec;
     if (tec < baseTec) return false;
 
     if (p.fsm.currentState === 'DRIBBLE') return false;
@@ -2069,7 +2069,7 @@ function podeDriblarGuardaRedes(ctx) {
     const D = (typeof DribbleModel !== 'undefined') ? DribbleModel.aoGuardaRedes : null;
     if (!D) return false;
 
-    const tec = p.skillFor ? p.skillFor('TEC') : ctx.skillTec;
+    const tec = p.atributoDe ? p.atributoDe(['dribbling', 'reactions'], 'TEC') : ctx.skillTec;
     if (tec < D.tecMin) return false;
 
     const gk = (ctx.opponents || []).find(o => o && o.role === 'gk' && o.model);
@@ -4265,7 +4265,7 @@ function emZonaDeRemate(ctx) {
         _v1.set(0, 0, p.targetGoalZ);
         const distBaliza = p.model.position.distanceTo(_v1);
         // A distancia a partir da qual conduz em vez de chutar depende do jogador: mais TEC e leitura de jogo (tacticknow) -> avanca e chuta de mais perto; menos -> chuta de mais longe.
-        const notaTecMental = ((p.skillFor ? p.skillFor('TEC') : 50) + (p.skillFor ? p.skillFor('tacticknow') : 50)) / 2;
+        const notaTecMental = p.atributoDe ? p.atributoDe(['posOffense', 'vision'], 'TEC') : 50;
         const distMinJog = THREE.MathUtils.clamp(
             PE.distMin - ((notaTecMental - 75) / 25) * (PE.variacaoPorSkill || 0),   // os skills vao de 50 a 100: 75 e o meio
             PE.distMinMin || 0, PE.distMinMax || 99);
