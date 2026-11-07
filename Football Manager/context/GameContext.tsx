@@ -28,7 +28,7 @@ import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico,
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, drainMultiplier, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
-import { campo3d } from '../textSim/atributos3d';
+import { campo3d, atributos3d } from '../textSim/atributos3d';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
@@ -924,7 +924,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else setComps(null);
 
     setTeams(copas ? [...initTeams, ...copas.teams] : initTeams);
-    setPlayers((copas ? [...initPlayers, ...copas.players] : initPlayers).map(p => ({ ...p, treino3dSeasonStart: { ...(p.treino3d || {}) } })));
+    setPlayers((copas ? [...initPlayers, ...copas.players] : initPlayers).map(p => ({ ...p, treino3dSeasonStart: undefined })));   // o snapshot de inicio de temporada (tec/tac/men/fis) e gravado pelo efeito abaixo
     if (!continuacao) {
       setBase(null);   // a base nasce no motor (efeito acima), com a data do jogo
       vistasRef.current = new Set<string>(); setInboxVistas([]);
@@ -947,6 +947,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       matchVisual: undefined
     }));
   };
+
+  // O SNAPSHOT DE INICIO DE TEMPORADA (TEC/TAC/MEN/FIS do Squad e da ficha mostram o ganho do treino desde aqui): grava-se para quem ainda nao o tem (inicio, virada, contratacoes).
+  useEffect(() => {
+    if (!userTeam) return;
+    if (!players.some(p => p.teamId === userTeam.id && !p.treino3dSeasonStart)) return;
+    setPlayers(prev => prev.map(p => {
+      if (p.teamId !== userTeam.id || p.treino3dSeasonStart) return p;
+      const a = atributos3d(p);
+      return { ...p, treino3dSeasonStart: { tec: a.tec, tac: a.tac, men: a.men, fis: a.fis } };
+    }));
+  }, [players, userTeam?.id]);
 
   // A VIRADA DE TEMPORADA (textSim/virada.ts): no 1.o de janeiro do ano seguinte aplicam-se os acessos e descensos e comeca a temporada nova (idade, contratos e base ja andam com a data).
   useEffect(() => {
@@ -1189,7 +1200,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const homeTeam = teams.find(t => t.id === f.homeTeamId);
         const awayTeam = teams.find(t => t.id === f.awayTeamId);
         // Amistoso não conta jogo, gol nem assistência para a temporada.
-        const official = countsForLeague(f);
+        // Copas contam para as estatisticas da temporada (jogos, golos, assistencias); so o amistoso fica de fora.
+        const official = !f.isFriendly;
 
         if (official) {
           // Usa a escalação da partida (inclui quem entrou pelo banco),

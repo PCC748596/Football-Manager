@@ -47,7 +47,7 @@ const ORDEM_POS: Record<string, number> = { GK: 0, LB: 1, CB: 2, RB: 3, DM: 4, L
 
 // Helper to calculate star count based on OVR
 // Logic: <60=1 (nunca fica sem estrela), 60-69=2, 70-79=3, 80-89=4, 90+=5
-const getStarCount = (skill: number) => {
+export const getStarCount = (skill: number) => {
   return Math.max(1, Math.min(5, Math.floor((skill - 40) / 10)));
 };
 

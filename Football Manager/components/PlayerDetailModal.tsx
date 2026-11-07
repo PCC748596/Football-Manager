@@ -1,13 +1,11 @@
 
 import { assetUrl } from '../textSim/assetUrl';
 import React, { useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import { Player, Position, Team } from '../types';
 import { useGame } from '../context/GameContext';
 import { TeamShield } from './TeamShield';
-import { AttributeGrowthArrow } from './SquadView';
+import { AttributeGrowthArrow, getStarCount } from './SquadView';
 import { PlayerFace } from './PlayerFace';
-import { ContractPanel } from './ContractPanel';
 import EnergyBar, { energiaDe, matchFormDe, MatchFormBar } from './EnergyBar';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { estiloPorPosicao, estiloValidoDoJogador } from '../textSim/playStyleFallback';
@@ -28,6 +26,11 @@ const getCoordinatesForAngle = (angle: number, value: number, center: number, ra
   const x = center + (value / 100) * radius * Math.cos(angle);
   const y = center + (value / 100) * radius * Math.sin(angle);
   return { x, y };
+};
+
+// A posicao no campo (x = 0 baliza propria ... 100 baliza adversaria; y = 0 lado direito ... 100 lado esquerdo), em %.
+const POS_CAMPO: Record<string, [number, number]> = {
+  GK: [5, 50], LB: [22, 86], CB: [20, 50], RB: [22, 14], DM: [35, 50], LM: [50, 86], CM: [50, 50], RM: [50, 14], AM: [64, 50], LW: [78, 86], RW: [78, 14], SS: [78, 50], ST: [88, 50]
 };
 
 const RadarChart = ({ stats }: { stats: Record<string, number> }) => {
@@ -108,16 +111,14 @@ const RadarChart = ({ stats }: { stats: Record<string, number> }) => {
 
 const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) => {
   const [activePlayerId, setActivePlayerId] = React.useState(initialPlayer.id);
-  const { teams, players, userTeam, listarParaVenda, listarParaEmprestimo, dispensarJogador } = useGame();
-  const [aviso, setAviso] = React.useState<string | null>(null);
-  const [dispensando, setDispensando] = React.useState(false);   // modal de confirmacao da dispensa
+  const { teams, players, formatCurrency } = useGame();
 
   // ESC fecha o Overview (se o modal de renovacao estiver aberto, o ESC fecha primeiro esse: ele escuta na fase de captura e para o evento).
   React.useEffect(() => {
-    const aoTeclar = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (dispensando) setDispensando(false); else onClose(); } };
+    const aoTeclar = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
-  }, [onClose, dispensando]);
+  }, [onClose]);
 
   React.useEffect(() => {
     setActivePlayerId(initialPlayer.id);
@@ -126,6 +127,25 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
   const player = useMemo(() => players.find(p => p.id === activePlayerId) || initialPlayer, [activePlayerId, players, initialPlayer]);
   const team = teams.find(t => t.id === player.teamId);
   const teamPlayers = useMemo(() => players.filter(p => p.teamId === player.teamId).sort((a, b) => b.skill - a.skill), [players, player.teamId]);
+
+  // Navegacao pelo plantel por OVR: ▲ o jogador logo acima (OVR maior), ▼ o logo abaixo.
+  const idxNoElenco = teamPlayers.findIndex(p => p.id === player.id);
+  const anterior = idxNoElenco > 0 ? teamPlayers[idxNoElenco - 1] : undefined;
+  const proximo = idxNoElenco >= 0 && idxNoElenco < teamPlayers.length - 1 ? teamPlayers[idxNoElenco + 1] : undefined;
+
+  // As setas do teclado fazem o mesmo que os botoes: ↑ o jogador logo acima, ↓ o logo abaixo.
+  React.useEffect(() => {
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      const alvo = e.target as HTMLElement | null;
+      if (alvo && (alvo.tagName === 'INPUT' || alvo.tagName === 'TEXTAREA' || alvo.tagName === 'SELECT' || alvo.isContentEditable)) return;
+      const novo = e.key === 'ArrowUp' ? anterior : proximo;
+      e.preventDefault();
+      if (novo) setActivePlayerId(novo.id);
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, [anterior?.id, proximo?.id]);
 
   // Derive detailed stats from the basic 4 attributes to populate the UI realistically
   const detailedStats = useMemo(() => {
@@ -205,11 +225,45 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
   ];
   const corDaBarra = (v: number) => (v >= 80 ? '#10b981' : v >= 70 ? '#60a5fa' : v >= 60 ? '#eab308' : '#f43f5e');
 
-  const stars = (count: number) => {
+  // Um bloco de atributos (Technical, Tactical, Mental, Physical, Goalkeeping): titulo com a media e o ganho do treino da temporada, e a lista de campos.
+  const blocoAtributos = (g: 'TEC' | 'TAC' | 'MEN' | 'FIS' | 'GK') => {
+    const lista = ((attr3d.detalhe as any)[g] || []) as { campo: string; nome: string; valor: number }[];
+    const media = g === 'TEC' ? attr3d.tec : g === 'TAC' ? attr3d.tac : g === 'MEN' ? attr3d.men : g === 'FIS' ? attr3d.fis : (attr3d.gk || 0);
+    const nomeG = g === 'TEC' ? 'Technical' : g === 'TAC' ? 'Tactical' : g === 'MEN' ? 'Mental' : g === 'FIS' ? 'Physical' : 'Goalkeeping';
+    const inicio = g === 'GK' ? undefined : player.treino3dSeasonStart?.[g.toLowerCase()];
+    const delta = inicio === undefined ? 0 : media - inicio;
+    return (
+      // Cada linha (titulo ou campo) e uma celula da grelha da coluna: todas as colunas tem o mesmo passo entre linhas.
+      <React.Fragment key={g}>
+        <div className="flex items-baseline justify-between">
+          <span className="text-lg font-black text-slate-300 uppercase tracking-wide">{nomeG}</span>
+          <span className="flex items-baseline gap-1">
+            <span className={`text-lg font-black ${getColorClass(media)}`}>{media}</span>
+            {delta !== 0 && <span className={`text-xs font-black ${delta > 0 ? 'text-emerald-500' : 'text-red-500'}`}>{delta > 0 ? '+' : ''}{delta}</span>}
+          </span>
+        </div>
+        {lista.map(x => (
+          <div key={x.campo} className="flex items-center justify-between text-sm">
+            <span className="text-slate-300">{x.nome}</span>
+            <span className={`font-black ${getColorClass(x.valor)}`}>{x.valor}</span>
+          </div>
+        ))}
+      </React.Fragment>
+    );
+  };
+  const nLinhas = (g: 'TEC' | 'TAC' | 'MEN' | 'FIS' | 'GK') => 1 + (((attr3d.detalhe as any)[g] || []) as unknown[]).length;
+  const temGK = !!(attr3d.detalhe && attr3d.detalhe.GK);
+  // O PADRAO DO GOLEIRO: o goleiro tem mais linhas (Physical + Goalkeeping = 1 + 7 + 1 + 6). Todos os jogadores usam essa grelha (linha minima fixa), assim o modal tem sempre a mesma altura ao trocar de jogador.
+  const LINHAS_DO_GOLEIRO = 15, ALTURA_MIN_LINHA = 22;
+  const totalLinhas = Math.max(LINHAS_DO_GOLEIRO, nLinhas('TEC'), nLinhas('TAC') + nLinhas('MEN'), nLinhas('FIS') + (temGK ? nLinhas('GK') : 0));
+  const grelhaColuna: React.CSSProperties = { gridTemplateRows: `repeat(${totalLinhas}, minmax(${ALTURA_MIN_LINHA}px, 1fr))` };
+
+  // As mesmas estrelas do Squad: douradas = o nivel atual (pelo OVR); cinzentas = o que falta ate ao potencial; apagadas (pretas) = acima do potencial.
+  const stars = (atual: number, potencial: number) => {
     return (
       <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map(i => (
-          <span key={i} className={`text-xs ${i <= count ? 'text-yellow-400' : 'text-slate-700'}`}>★</span>
+          <span key={i} className={`text-2xl leading-none ${i <= atual ? 'text-yellow-400' : i <= potencial ? 'text-slate-400' : 'text-slate-700'}`}>★</span>
         ))}
       </div>
     )
@@ -218,7 +272,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div
-        className="w-full max-w-6xl h-[92vh] max-h-[900px] bg-slate-950 rounded-xl overflow-hidden flex border border-slate-800 shadow-2xl relative"
+        className="w-[80vw] max-w-[1100px] max-h-[80vh] bg-slate-950 rounded-xl overflow-hidden flex border border-slate-800 shadow-2xl relative"
         onClick={e => e.stopPropagation()}
       >
         {/* Background Art */}
@@ -227,170 +281,72 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/4"></div>
         </div>
 
-        {/* LEFT PANEL: o plantel em tabela (Pos, Name, Age, OVR, Form) */}
-        <div className="w-[380px] bg-slate-900/60 border-r border-slate-800 hidden md:flex flex-col">
-          <div className="px-4 py-3 border-b border-slate-800 flex items-center gap-3">
-            <span className="text-xs font-black text-white uppercase tracking-widest">Squad</span>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{team?.name}</span>
-          </div>
-          <div className="grid grid-cols-[34px_38px_1fr_34px_40px] gap-1 px-3 py-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800">
-            <span>Pos</span><span></span><span>Name</span><span className="text-center">Age</span><span className="text-center">OVR</span>
-          </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
-            {teamPlayers.map(p => (
-              <button
-                key={p.id}
-                onClick={() => setActivePlayerId(p.id)}
-                className={`grid grid-cols-[34px_38px_1fr_34px_40px] gap-1 items-center px-3 py-1.5 text-left border-b border-slate-800/60 transition-colors ${p.id === player.id ? 'bg-slate-700/60 ring-1 ring-inset ring-blue-500/60' : 'hover:bg-slate-800/60'}`}
-              >
-                <span className="text-[10px] font-black text-slate-400">{p.position}</span>
-                <span className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 overflow-hidden block"><PlayerFace playerId={p.id} camisa={team?.primaryColor} className="w-full h-full" /></span>
-                <span className={`text-xs font-bold truncate ${p.id === player.id ? 'text-white' : 'text-slate-300'}`}>{p.name}</span>
-                <span className="text-[11px] text-slate-400 text-center">{p.age}</span>
-                <span className={`text-xs font-black text-center ${getColorClass(p.skill)}`}>{Math.round(p.skill)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* RIGHT PANEL: o cartao do jogador */}
-        <div className="flex-1 flex flex-col relative z-10 min-h-0 min-w-0 overflow-y-auto custom-scrollbar">
-          {/* HERO: OVR e posicao, nome, dados, rosto */}
-          <div className="p-6 pb-3 flex items-stretch gap-6">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-3">
-                <span className={`text-6xl font-black italic leading-none ${getColorClass(player.skill)}`}>{Math.round(player.skill)}</span>
-                <span className="text-sm font-black text-slate-300 uppercase tracking-widest">{player.position}{playStyles[0] ? ` · ${playStyles[0].name}` : ''}</span>
-              </div>
-              <div className="mt-2 flex items-center gap-2 text-xs font-black">
-                {[{ label: 'TEC', val: attr3d.tec }, { label: 'TAC', val: attr3d.tac }, { label: 'MEN', val: attr3d.men }, { label: 'FIS', val: attr3d.fis }].map(({ label, val }) => {
-                  const start = player.treino3dSeasonStart ? player.treino3dSeasonStart[label.toLowerCase()] ?? val : val;
-                  const delta = val - start;
-                  return (
-                    <div key={label} className="flex items-center gap-1">
-                      <span className="text-slate-500">{label}</span>
-                      <span className={getColorClass(val)}>{val}</span>
-                      {delta !== 0 && <span className={delta > 0 ? 'text-emerald-500' : 'text-red-500'}>{delta > 0 ? '+' : ''}{delta}</span>}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-2 flex items-center gap-3">
-                <img src={assetUrl(`/Assets/Bandeiras/${paisDoJogador(player, (team as any)?.country) || 'x'}.png`)} alt="" title="Nationality" className="w-10 h-7 object-cover rounded-sm border border-slate-700" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        {/* RIGHT PANEL: o cartao do jogador (cabecalho, atributos em tres colunas, radar, campo e contrato) */}
+        <div className="flex-1 flex flex-col relative z-10 min-h-0 min-w-0 overflow-y-auto custom-scrollbar p-4 gap-3">
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-x-10 gap-y-6 items-stretch">
+            <div className="min-w-0 flex flex-col gap-4">
+              {/* CABECALHO: rosto, nome, escudo + posicao + OVR, dados */}
+              <div className="flex items-center gap-5 pr-10">
+                <div className="w-28 h-28 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 overflow-hidden shrink-0">
+                  <PlayerFace playerId={player.id} camisa={team?.primaryColor} className="w-full h-full" />
+                </div>
                 <div className="min-w-0">
-                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-none">{player.name.split(' ').slice(0, -1).join(' ') || team?.name}</div>
-                  <h2 className="text-3xl font-black text-white uppercase tracking-tight leading-tight truncate">{player.name.split(' ').slice(-1)[0]}</h2>
-                </div>
-              </div>
-              <div className="mt-3 grid grid-cols-4 gap-2 max-w-xl">
-                <div className="bg-slate-900/60 border border-slate-800 rounded px-3 py-1.5"><div className="text-[9px] font-bold text-slate-500 uppercase">Age</div><div className="text-sm font-black text-white">{player.age}</div></div>
-                <div className="bg-slate-900/60 border border-slate-800 rounded px-3 py-1.5"><div className="text-[9px] font-bold text-slate-500 uppercase">Height / Weight</div><div className="text-sm font-black text-white">{attr3d.altura ? `${attr3d.altura} cm / ${attr3d.peso || '-'} kg` : '-'}</div></div>
-                <div className="bg-slate-900/60 border border-slate-800 rounded px-3 py-1.5"><div className="text-[9px] font-bold text-slate-500 uppercase">Potential</div><div>{stars(estrelasDoJogador(player))}</div></div>
-                <div className="bg-slate-900/60 border border-slate-800 rounded px-3 py-1.5"><div className="text-[9px] font-bold text-slate-500 uppercase">Preferred foot</div><div className="text-sm font-black text-white">{peBomDe(player) === 'e' ? 'Left' : 'Right'}</div></div>
-              </div>
-            </div>
-            <div className="w-40 h-40 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 overflow-hidden shrink-0 mr-10">
-              <PlayerFace playerId={player.id} camisa={team?.primaryColor} className="w-full h-full" />
-            </div>
-          </div>
-
-          <div className="px-6 pb-6 grid grid-cols-2 gap-5 items-start">
-            {/* SUMMARY: as seis medidas de resumo, tiradas dos atributos do 3D */}
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-              <div className="text-sm font-bold text-white mb-2">Summary</div>
-              <div className="flex flex-col gap-1">
-                {resumo.map(r => (
-                  <div key={r.rotulo} className="flex items-center gap-3 px-2 py-1 rounded bg-slate-950/40">
-                    <span className="text-xs font-bold text-slate-300 w-24">{r.rotulo}</span>
-                    <div className="flex-1 h-1.5 bg-slate-800 rounded overflow-hidden"><div className="h-full rounded" style={{ width: `${Math.max(0, (r.valor - 50) / 49 * 100)}%`, background: corDaBarra(r.valor) }} /></div>
-                    <span className={`text-base font-black w-8 text-right ${getColorClass(r.valor)}`}>{r.valor}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 text-sm font-bold text-white mb-2">PlayStyle</div>
-              <div className="flex gap-4 items-start">
-                {playStyles.map((style, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div title={(style as any).descricao || style.name} className="w-11 h-11 bg-slate-800 rounded rotate-45 border border-slate-600 flex items-center justify-center shadow-lg shrink-0">
-                      <span className="-rotate-45 text-xl">{style.icon}</span>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[11px] font-black text-slate-200 uppercase tracking-widest">{style.name}</div>
-                      {(style as any).descricao && <div className="text-[10px] leading-snug text-slate-500">{(style as any).descricao}</div>}
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-4xl xl:text-5xl font-black text-white uppercase tracking-tight leading-none truncate">{player.name}</h2>
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <button onClick={() => anterior && setActivePlayerId(anterior.id)} disabled={!anterior} title={anterior ? `${anterior.name} (${Math.round(anterior.skill)})` : ''} className="w-8 h-6 flex items-center justify-center rounded bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed">▲</button>
+                      <button onClick={() => proximo && setActivePlayerId(proximo.id)} disabled={!proximo} title={proximo ? `${proximo.name} (${Math.round(proximo.skill)})` : ''} className="w-8 h-6 flex items-center justify-center rounded bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed">▼</button>
                     </div>
                   </div>
-                ))}
+                  <div className="mt-3 flex items-center gap-3">
+                    {team && <TeamShield team={team} className="w-8 h-10" />}
+                    <span className="text-2xl font-bold text-slate-400 uppercase">{player.position}</span>
+                    <span className="w-px h-9 bg-slate-700" />
+                    <span className={`text-4xl font-black ${getColorClass(player.skill)}`}>{Math.round(player.skill)}</span>
+                    <span className="ml-2">{stars(getStarCount(player.skill), estrelasDoJogador(player))}</span>
+                  </div>
+                  <div className="mt-2 flex items-center flex-wrap gap-x-2 text-sm text-slate-400 font-medium">
+                    <span>{player.age} years</span><span>•</span>
+                    <img src={assetUrl(`/Assets/Bandeiras/${paisDoJogador(player, (team as any)?.country) || 'x'}.png`)} alt="" title="Nationality" className="w-6 h-4 object-cover rounded-sm border border-slate-700" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    <span>•</span><span>{peBomDe(player) === 'e' ? 'Left foot' : 'Right foot'}</span>
+                    {attr3d.altura ? <><span>•</span><span>{attr3d.altura} cm / {attr3d.peso || '-'} kg</span></> : null}
+                    {playStyles[0] ? <><span>•</span><span title={(playStyles[0] as any).descricao || ''}>{playStyles[0].icon} {playStyles[0].name}</span></> : null}
+                  </div>
+                </div>
+              </div>
+
+              {/* ATRIBUTOS: Technical | Tactical + Mental | Physical (+ Goalkeeping) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-3 flex-1">
+                <div className="grid" style={grelhaColuna}>{blocoAtributos('TEC')}</div>
+                <div className="grid" style={grelhaColuna}>{blocoAtributos('TAC')}{blocoAtributos('MEN')}</div>
+                <div className="grid" style={grelhaColuna}>{blocoAtributos('FIS')}{temGK ? blocoAtributos('GK') : null}</div>
               </div>
             </div>
 
-            {/* CONDITION: so o estado de jogo (energia, match form e moral); os atributos vivem em 3D Match Attributes */}
-            <div className="flex flex-col gap-5">
-              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-                <div className="text-sm font-bold text-white mb-2">Condition</div>
-                <div className="flex flex-col gap-2 mb-2">
-                  <div title="Daily energy (0-100%): spent in training and matches, recovered with rest">
-                    <div className="flex justify-between text-xs mb-1"><span className="text-slate-500">Energy</span><span className="font-black text-slate-200">{Math.round(energiaDe(player))}%</span></div>
-                    <EnergyBar energy={energiaDe(player)} className="w-full h-2" />
-                  </div>
-                  <div title="Match Form (0-100): match rhythm, grows with minutes played">
-                    <div className="flex justify-between text-xs mb-1"><span className="text-slate-500">Match Form</span><span className="font-black text-slate-200">{Math.round(matchFormDe(player))}</span></div>
-                    <MatchFormBar matchForm={matchFormDe(player)} className="w-full h-2" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
-                  <span className="text-slate-500">Morale</span><span className="font-black text-right text-slate-200">{Math.round(player.morale)}</span>
-                </div>
-              </div>
-              <ContractPanel player={player} />
-              {userTeam && player.teamId === userTeam.id && (
-                <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 flex flex-col gap-2">
-                  <div className="flex gap-2">
-                    <button onClick={() => { const r = listarParaVenda(player.id, !player.listedForSale); setAviso(r.ok ? (player.listedForSale ? 'Removido da lista de venda' : 'Listado para venda (moral -8)') : (r.motivo || 'Nao foi possivel')); }}
-                      className={`flex-1 text-[10px] font-black uppercase py-2 rounded border ${player.listedForSale ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'}`}>
-                      {player.listedForSale ? 'Na lista de venda (retirar)' : 'Colocar a venda'}
-                    </button>
-                    <button onClick={() => { const r = listarParaEmprestimo(player.id, !player.listedForLoan); setAviso(r.ok ? (player.listedForLoan ? 'Removido da lista de emprestimo' : 'Listado para emprestimo (moral -5)') : (r.motivo || 'Nao foi possivel')); }}
-                      className={`flex-1 text-[10px] font-black uppercase py-2 rounded border ${player.listedForLoan ? 'bg-sky-600 text-white border-sky-500' : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'}`}>
-                      {player.listedForLoan ? 'Na lista de emprestimo (retirar)' : 'Colocar para emprestimo'}
-                    </button>
-                  </div>
-                  <button onClick={() => setDispensando(true)} className="text-[10px] font-black uppercase py-2 rounded border border-rose-700 text-rose-400 hover:bg-rose-900/40">Dispensar</button>
-                  <div className="text-[9px] text-slate-500">Listar para venda reduz a moral em 8; para emprestimo, em 5.</div>
-                  {aviso && <div className="text-[10px] text-amber-400 font-bold">{aviso}</div>}
-                </div>
-              )}
-            </div>
-
-            {/* 3D MATCH ATTRIBUTES: todos os atributos, por grupo (o goleiro leva tambem os de baliza) */}
-            <div className="col-span-2 bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-              <div className="text-sm font-bold text-white mb-3">3D Match Attributes</div>
-              <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-                {(['TEC', 'TAC', 'MEN', 'FIS', ...(attr3d.detalhe && attr3d.detalhe.GK ? ['GK'] : [])] as const).map((g: any) => {
-                  const lista = (attr3d.detalhe as any)[g] as { campo: string; nome: string; valor: number }[];
-                  const media = g === 'TEC' ? attr3d.tec : g === 'TAC' ? attr3d.tac : g === 'MEN' ? attr3d.men : g === 'FIS' ? attr3d.fis : (attr3d.gk || 0);
-                  const nomeG = g === 'TEC' ? 'Technique' : g === 'TAC' ? 'Tactical' : g === 'MEN' ? 'Mental' : g === 'FIS' ? 'Physical' : 'Goalkeeping';
+            {/* COLUNA DIREITA: radar, posicao no campo, contrato / valor / condicao */}
+            <div className="flex flex-col gap-3 items-stretch">
+              <div className="flex items-center justify-center py-0 -my-6 scale-90"><RadarChart stats={detailedStats.radarData} /></div>
+              <div className="relative w-full aspect-[105/68] border border-slate-600 rounded-sm bg-slate-900/40" title={`Position: ${player.position}`}>
+                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-600" />
+                <div className="absolute left-1/2 top-1/2 w-12 h-12 -translate-x-1/2 -translate-y-1/2 rounded-full border border-slate-600" />
+                <div className="absolute left-0 top-1/4 bottom-1/4 w-[14%] border border-l-0 border-slate-600" />
+                <div className="absolute right-0 top-1/4 bottom-1/4 w-[14%] border border-r-0 border-slate-600" />
+                {Object.entries(POS_CAMPO).map(([pos, [x, y]]) => {
+                  const ativa = pos === player.position;
                   return (
-                    <div key={g} className="bg-slate-950/40 px-3 py-2 rounded border border-slate-800/60">
-                      <div className="flex justify-between items-center border-b border-slate-800 pb-1 mb-1">
-                        <span className="text-xs font-black text-white uppercase tracking-widest">{g} <span className="text-slate-500 font-bold normal-case tracking-normal">{nomeG}</span></span>
-                        <span className={`text-lg font-black ${getColorClass(media)}`}>{media}</span>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        {lista.map(x => (
-                          <div key={x.campo} className="flex justify-between text-[11px]">
-                            <span className="text-slate-400">{x.nome}</span>
-                            <span className={`font-black ${getColorClass(x.valor)}`}>{x.valor}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <span key={pos} title={pos} className={`absolute w-6 h-5 flex items-center justify-center rounded-md border text-[9px] font-black leading-none -translate-x-1/2 -translate-y-1/2 ${ativa ? 'z-10 bg-emerald-400 border-emerald-300 text-slate-900 shadow-[0_0_10px_rgba(52,211,153,0.9)]' : 'bg-slate-800/60 border-slate-600/70 text-slate-500'}`} style={{ left: `${x}%`, top: `${y}%` }}>
+                      {pos}
+                    </span>
                   );
                 })}
               </div>
-            </div>
-
-            <div className="col-span-2 flex items-center justify-center">
-              <RadarChart stats={detailedStats.radarData} />
+              <div className="flex flex-col gap-0.5 text-sm leading-tight">
+                <div className="flex justify-between"><span className="text-slate-400">Contract</span><span className="font-black text-white">{player.contract?.end ? player.contract.end.split('-').reverse().join('/') : '-'}</span></div>
+                <div className="flex justify-between"><span className="text-slate-400">Value</span><span className="font-black text-white">{formatCurrency(player.value)}</span></div>
+                <div className="flex justify-between"><span className="text-slate-400">Condition</span><span className="font-black text-white">{Math.round(energiaDe(player))}%</span></div>
+                <div className="flex justify-between"><span className="text-slate-400">Match Form</span><span className="font-black text-white">{Math.round(matchFormDe(player))}</span></div>
+                <div className="flex justify-between"><span className="text-slate-400">Morale</span><span className="font-black text-white">{Math.round(player.morale)}</span></div>
+              </div>
             </div>
           </div>
         </div>
@@ -403,27 +359,6 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
           ✕
         </button>
       </div>
-      {dispensando && createPortal(
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={e => { e.stopPropagation(); setDispensando(false); }}>
-          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
-            <div className="text-[10px] font-black uppercase tracking-widest text-rose-400">Release player</div>
-            <div className="flex items-center gap-4">
-              <div className="text-5xl font-black italic text-blue-400">{player.skill}</div>
-              <div className="min-w-0">
-                <div className="text-lg font-black text-white truncate">{player.name}</div>
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">{player.position} • {player.age} years</div>
-              </div>
-            </div>
-            <div className="text-xs text-slate-300 leading-relaxed">
-              The contract is terminated and {player.name} becomes a free agent. You receive no transfer fee. This cannot be undone.
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setDispensando(false)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-black py-2.5 rounded text-xs uppercase tracking-widest">Cancel</button>
-              <button onClick={() => { const r = dispensarJogador(player.id); setDispensando(false); if (r.ok) onClose(); else setAviso(r.motivo || 'Nao foi possivel'); }} className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-black py-2.5 rounded text-xs uppercase tracking-widest">Release</button>
-            </div>
-          </div>
-        </div>
-      , document.body)}
     </div>
   );
 };
