@@ -384,7 +384,10 @@ Object.assign(Match, {
         const p = o.model.position;
         if (o.velocity && dt > 0) o.velocity.set((p.x - x0) / dt, 0, (p.z - z0) / dt);
         o.jumpTimer = 0; o.peitoHopTimer = 0;
+        // A corrida da troca e coreografada e sem fase de voo (relato: *"apoia o pe no ar e depois ele desce para a grama"*): a sola assenta sempre, sem a rampa nem o limite de descida da corrida de jogo.
+        o._assentoTotal = true;
         for (let k = 0; k < 3; k++) { if (o.assentarNoChao) o.assentarNoChao(); }   // varias passagens: a correccao e suavizada e o corpo parte de cima
+        o._assentoTotal = false;
     },
 
     /*

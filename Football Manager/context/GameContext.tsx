@@ -768,7 +768,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const promoteYouth = (playerId: string): boolean => {
     if (!base || !userTeam) return false;
     const r = promoverJovem(base, playerId, gameState.currentDate);
-    if (players.filter(p => p.teamId === userTeam.id).length >= 33) return false;   // maximo de 33 jogadores por time
+    if (players.filter(p => p.teamId === userTeam.id).length >= 34) return false;   // maximo de 34 jogadores por time
     if (!r || r.jogador.teamId !== userTeam.id) return false;
     const usados = new Set(players.filter(p => p.teamId === userTeam.id).map(p => p.shirtNumber));
     let numero = r.jogador.shirtNumber; if (usados.has(numero)) { numero = 1; while (usados.has(numero) && numero < 99) numero++; }
@@ -2231,7 +2231,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const hirePlayer = (player: Player) => {
     if (!userTeam || userTeam.cash < player.value) return;
-    if (players.filter(p => p.teamId === userTeam.id).length >= 33) return;   // maximo de 33 jogadores por time
+    if (players.filter(p => p.teamId === userTeam.id).length >= 34) return;   // maximo de 34 jogadores por time
 
     setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash - player.value } : t));
     const contratado: Player = { ...player, teamId: userTeam.id, shirtNumber: 25 + Math.floor(Math.random() * 50), contract: novoContrato(player.age, gameState.currentDate, Math.random, fimDaLiga(userTeam.leagueId)) };

@@ -50,7 +50,7 @@ export const CONFIG_MERCADO = {
   ia: {
     clubesPorDia: 14, maxNegociacoesAtivasPorClube: 2, maxConclusoesPorDia: 10, maxPropostasNovasPorDia: 12,
     desejado: { GK: 3, DEF: 9, MID: 9, ATT: 6 } as Record<Grupo, number>,
-    margemUpgrade: 4, maxElenco: 33, probOfertaAoHumano: 0.12, bonusListado: 0.35,
+    margemUpgrade: 4, maxElenco: 34, probOfertaAoHumano: 0.12, bonusListado: 0.35,
     orcamentoMaxPorOferta: 0.75, apetite: [0.85, 1.05] as [number, number], toleranciaContra: 1.08,
     diasParaDispensar: 21, diasAgenteLivre: 240
   },

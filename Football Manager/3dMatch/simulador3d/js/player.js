@@ -706,7 +706,7 @@ class FootballPlayer {
         peso sobe de 0 (bota a `corridaAssentaAte` do relvado) a 1 (a `corridaRampa` m mais perto), e a correccao e multiplicada por ele.
         */
         let pesoCorrida = 1;
-        if (soASubir && chao >= 0) {
+        if (soASubir && chao >= 0 && !this._assentoTotal) {   // _assentoTotal: corrida coreografada (troca) sem fase de voo, a sola assenta sempre
             const lim = A.corridaAssentaAte || 0;
             pesoCorrida = lim > 0 ? THREE.MathUtils.clamp((lim - chao) / (A.corridaRampa || 0.06), 0, 1) : 0;
             if (pesoCorrida <= 0) return;
@@ -726,7 +726,7 @@ class FootballPlayer {
         "tranco para baixo". A altura final DESCE no maximo `corridaVelMax` m/s (por frame: x dt) em relacao a do frame anterior (a subida nao se limita); a queda de 6 cm
         leva dois ou tres frames em vez de um. So acima da `velMax` (a andar manda o filtro de baixo) e nunca para saltos grandes (> 0.3 m).
         */
-        if (soASubir && A.corridaVelMax > 0) {
+        if (soASubir && A.corridaVelMax > 0 && !this._assentoTotal) {
             const dtc = (typeof Match !== 'undefined' && Match.delta) ? Match.delta : 1 / 60;
             const yAlvo = this.model.position.y;
             if (typeof this._yCorrida === 'number' && Math.abs(this._yCorrida - yAlvo) <= 0.3) {
