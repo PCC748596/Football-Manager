@@ -2439,13 +2439,14 @@ class PlayerFSM {
                         // Toque lateral (30-45°) para o lado oposto
                         // Toque a um angulo sorteado entre 35 e 50 graus (DribbleModel.anguloMin/MaxGraus): bem mais aberto que uma conducao a sair de lado.
                         const grausToque = (DribbleModel.anguloMinGraus || 35) + Math.random() * ((DribbleModel.anguloMaxGraus || 50) - (DribbleModel.anguloMinGraus || 35));
-                        let angle = (grausToque * Math.PI / 180) * escapeSide;
-                        let cosA = Math.cos(angle), sinA = Math.sin(angle);
-                        let pushDir = _v4.set(
-                            forward.x * cosA - forward.z * sinA,
-                            0,
-                            forward.x * sinA + forward.z * cosA
-                        ).normalize();
+                        /*
+                        DRIBLE EM DOIS CORTES (pedido): um corte de 60 graus para um lado e logo o corte de 60 graus para o OPOSTO (em relacao a frente dele), sem adiantar a bola — so o primeiro corte
+                        a empurra um pouco. `corteGraus` (DribbleModel) e o angulo de cada corte; o primeiro vai para o lado de fuga e o segundo para o lado contrario.
+                        */
+                        const corteRad = ((DribbleModel.corteGraus || 60) * Math.PI / 180);
+                        const rodar = (ang) => { const c = Math.cos(ang), sn = Math.sin(ang); return { x: forward.x * c - forward.z * sn, z: forward.x * sn + forward.z * c }; };
+                        const d1 = rodar(corteRad * escapeSide), d2 = rodar(-corteRad * escapeSide);
+                        let pushDir = _v4.set(d2.x, 0, d2.z).normalize();   // a saida do drible: o 2.o corte
 
                         // Chance de sucesso: ir para o lado dá bónus
                         let successChance = DribbleModel.successBase + DribbleModel.successSideBonus;
@@ -2456,7 +2457,10 @@ class PlayerFSM {
                         p.driblePlano = {
                             t: 0,
                             sucesso: (Math.random() < successChance),
-                            dir: { x: pushDir.x, z: pushDir.z },
+                            dir: { x: d1.x, z: d1.z },     // o 1.o corte; o `dir` passa ao 2.o a meio do gesto
+                            dir1: { x: d1.x, z: d1.z },
+                            dir2: { x: pushDir.x, z: pushDir.z },
+                            fase: 1, tocou1: false,
                             frente: { x: forward.x, z: forward.z }
                         };
                     }
@@ -2470,6 +2474,11 @@ class PlayerFSM {
                     mesma de sempre) e o `speedMult` que lhe dá o arranque.
                     */
                     p.speedMult = DribbleModel.sprintBoost;
+                    // A meio do gesto vem o 2.o corte (o lado oposto); no 1.o corte a bola so e empurrada um pouco (so o primeiro nivel adianta).
+                    if (plano.fase === 1 && plano.t >= DribbleModel.duracaoGesto * 0.5) {
+                        plano.fase = 2; plano.dir = plano.dir2;
+                        if (!plano.tocou1 && Match.ballVel) { plano.tocou1 = true; Match.ballVel.set(plano.dir1.x, 0, plano.dir1.z).multiplyScalar(Math.max(3.0, p.velocity.length() * 0.8)); }
+                    }
                     p.dynamicTarget.set(
                         p.model.position.x + plano.dir.x * DribbleModel.alcanceGesto,
                         ALTURA_BASE_Y,
@@ -2495,7 +2504,7 @@ class PlayerFSM {
                         p.carryTouchGrace = 1.2;
                         Match.ballCarrier = null;
                         Match.intendedReceiver = p;
-                        Match.ballVel.copy(dirFuga).multiplyScalar(Math.max(6.0, p.velocity.length() + 3.5));
+                        Match.ballVel.copy(dirFuga).multiplyScalar(Math.max(3.5, p.velocity.length() + 0.3));   // sem adiantar a bola: ela sai a velocidade dele
                         Match.ballVel.y = 0;
                         Match.lastTouchedTeam = p.team;
                         Match.lastTouchedPlayer = p;

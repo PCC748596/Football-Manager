@@ -226,10 +226,12 @@ const SaltoCabeceio = {
     deLado: {
         anguloMin: 45 * Math.PI / 180,
         anguloCheio: 80 * Math.PI / 180,
-        torcaoTronco: 0.60,
-        torcaoPescoco: 0.85,
-        preparacao: 0.45,
-        inclinacao: 0.30
+        // BUG do giro de ~180 no ar (captura: *"girou para a direita e cabeceou para a esquerda"*): a torcao armava para o lado CONTRARIO na subida (`preparacao`) e disparava no contacto, somada ao
+        // giro do corpo. Agora nao arma ao contrario (0) e a torcao e curta: o corpo fica virado para a bola e so a cabeca/o tronco acompanham ate ~35 graus.
+        torcaoTronco: 0.30,
+        torcaoPescoco: 0.50,
+        preparacao: 0.0,
+        inclinacao: 0.20
     }
 };
 

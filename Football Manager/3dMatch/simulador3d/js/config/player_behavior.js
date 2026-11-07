@@ -678,6 +678,7 @@ const DribbleModel = {
     velocidade durante `marcadorDur` s: ele foi batido, e o portador passa por ele.
     */
     anguloMinGraus: 35, anguloMaxGraus: 50,
+    corteGraus: 60,       // o drible em dois cortes: 60 graus para um lado e 60 para o oposto (ver DRIBBLE em fsm.js)
     marcadorDur: 1.1, marcadorFator: 0.18,
 
     /*
@@ -818,7 +819,7 @@ const DribbleModel = {
     durante esse tempo. A decisao continua a ser tomada no primeiro frame — o
     que mudou foi o tempo entre decidir e executar.
     */
-    duracaoGesto: 0.55,   // segundos de gesto antes do toque
+    duracaoGesto: 0.8,     // segundos de gesto antes do toque
     alcanceGesto: 6.0     // metros a frente, no lado de fuga
 };
 

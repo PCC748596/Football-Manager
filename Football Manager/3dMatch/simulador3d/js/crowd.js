@@ -989,6 +989,8 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         try { q = new URLSearchParams(window.location.search).get('torcida'); } catch (e) { /* sem URL */ }
         if (q === 'sprite') return true;
         if (q === '3d') return false;
+        // PC no HIGH: torcida toda em 3D completo (pedido). Em MEDIUM/LOW, e no tablet, continua o sprite.
+        if (!emToque && typeof Qualidade !== 'undefined' && Qualidade.nivel === 'HIGH') return false;
         return S.ativo === true || (S.ativo === 'tablet' && !!emToque);
     },
 
