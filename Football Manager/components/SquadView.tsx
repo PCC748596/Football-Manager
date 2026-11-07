@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { Position, Player, PLAYSTYLE_POSITIONS, PlayStyle } from '../types';
 import PlayerDetailModal from './PlayerDetailModal';
-import FitnessBar from './FitnessBar';
+import EnergyBar, { energiaDe, matchFormDe, MatchFormBar } from './EnergyBar';
 import { ShirtIcon } from './ShirtIcon';
 import { getKitDetails, getGKKitDetails } from '../types';
 import YouthView from './YouthView';
@@ -104,7 +104,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
 
   // (a coluna `pos` ordena por ORDEM_POS: goleiro, defesa, meio-campo, ataque — nao alfabetica)
   const VALOR_DA_COLUNA: Record<string, (p: Player) => number | string> = {
-    num: p => p.shirtNumber, pos: p => ORDEM_POS[p.position] ?? 99, name: p => p.name, age: p => p.age, ovr: p => p.skill, pot: p => potencialVisivel(p), fit: p => p.fitness, mor: p => p.morale,
+    num: p => p.shirtNumber, pos: p => ORDEM_POS[p.position] ?? 99, name: p => p.name, age: p => p.age, ovr: p => p.skill, pot: p => potencialVisivel(p), fit: p => energiaDe(p), form: p => matchFormDe(p), mor: p => p.morale,
     def: p => atributos3d(p).tec, pas: p => atributos3d(p).tac, drb: p => atributos3d(p).men, sht: p => atributos3d(p).fis, style: p => estiloDoJogador(p),
     contract: p => (p.contract ? p.contract.end : '9999-99-99')   // o que vence primeiro vem primeiro
   };
@@ -181,7 +181,8 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('age')}>Age{seta('age')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('ovr')}>OVR{seta('ovr')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pot')}>Pot{seta('pot')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('fit')}>Fit{seta('fit')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('fit')} title="Energy: daily energy (0-100%), spent in training and matches, recovered with rest">Enr{seta('fit')}</th>
+                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('form')} title="Match Form (0-100): match rhythm, grows with minutes played">Form{seta('form')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('mor')}>Mor{seta('mor')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('def')} title="Technique: ball control, dribbling, finishing, passing, crossing... (3D engine attributes)">TEC{seta('def')}</th>
                    <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pas')} title="Tactical: tackling, marking, positioning, vision, tactical awareness">TAC{seta('pas')}</th>
@@ -240,8 +241,14 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                      </td>
                      <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-400 font-medium transition-colors">
                         <div className="flex flex-col items-center gap-1">
-                           <FitnessBar fitness={p.fitness} className="w-12 h-1.5" />
-                           <span>{Math.round(p.fitness)}%</span>
+                           <EnergyBar energy={energiaDe(p)} className="w-12 h-1.5" />
+                           <span>{Math.round(energiaDe(p))}%</span>
+                        </div>
+                     </td>
+                     <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-400 font-medium transition-colors">
+                        <div className="flex flex-col items-center gap-1">
+                           <MatchFormBar matchForm={matchFormDe(p)} className="w-12 h-1.5" />
+                           <span>{Math.round(matchFormDe(p))}</span>
                         </div>
                      </td>
                      <td className="px-2 py-[6.5px] text-center text-xs font-medium transition-colors">

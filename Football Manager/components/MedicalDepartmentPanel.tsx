@@ -2,7 +2,7 @@ import React from 'react';
 import { useGame } from '../context/GameContext';
 import { Player } from '../types';
 import { PlayerFace } from './PlayerFace';
-import FitnessBar from './FitnessBar';
+import EnergyBar, { energiaDe } from './EnergyBar';
 import { gerarMedico } from '../textSim/medico';
 
 const COR_GRAVIDADE: Record<string, string> = { LIGHT: 'text-emerald-500 border-emerald-500/50', LEVE: 'text-emerald-500 border-emerald-500/50', MEDIUM: 'text-amber-500 border-amber-500/50', 'MÉDIA': 'text-amber-500 border-amber-500/50', SEVERE: 'text-rose-500 border-rose-500/50', GRAVE: 'text-rose-500 border-rose-500/50' };
@@ -17,7 +17,7 @@ const Nota: React.FC<{ rotulo: string; dica: string; valor: number }> = ({ rotul
   </div>
 );
 
-/** O card de um lesionado, no desenho dos cards do Transfer Market: foto, nome, a lesao, a estimativa do medico, o FIS e o ultimo boletim. */
+/** O card de um lesionado, no desenho dos cards do Transfer Market: foto, nome, a lesao, a estimativa do medico, a energia e o ultimo boletim. */
 const CardLesao: React.FC<{ p: Player; cor?: string }> = ({ p, cor }) => {
   const l = p.injury!;
   const grav = l.severity;
@@ -34,7 +34,7 @@ const CardLesao: React.FC<{ p: Player; cor?: string }> = ({ p, cor }) => {
       <div className="text-sm font-black text-slate-800 dark:text-slate-100">✚ {l.type}</div>
       <div className="flex items-end gap-6">
         <div><div className="text-[10px] font-bold uppercase text-slate-500">Estimated return</div><div className="text-base font-black text-slate-900 dark:text-white">{l.estimativa || `~${l.daysOut} days`}</div></div>
-        <div className="flex-1 min-w-[80px]"><div className="text-[10px] font-bold uppercase text-slate-500 mb-1">FIS {Math.round(p.fitness)}%</div><FitnessBar fitness={p.fitness} className="w-full h-2" /></div>
+        <div className="flex-1 min-w-[80px]"><div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Energy {Math.round(energiaDe(p))}%</div><EnergyBar energy={energiaDe(p)} className="w-full h-2" /></div>
       </div>
       <div className="text-[11px] text-slate-500 italic min-h-[16px]">{l.boletim ? `🩺 ${l.boletim}` : 'Awaiting first medical report.'}</div>
     </div>

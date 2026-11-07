@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import { Tactics, Position, Player, Team, SetPieceRole, getEffectiveSkill, resolveSetPieceTakers, FORMATIONS, POSITION_ORDER, getKitDetails, getGKKitDetails, KitDetails, PLAYSTYLE_POSITIONS, PlayStyle } from '../types';
 import { TeamKit } from './TeamKit';
-import FitnessBar from './FitnessBar';
+import EnergyBar, { energiaDe } from './EnergyBar';
 import { getMatchEndMinute } from '../textSim/matchEngine';
 import { chaveCompeticao, estaSuspenso, AMARELOS_PARA_SUSPENSAO } from '../textSim/suspensoes';
 
@@ -714,7 +714,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                     {player && userTeam.tactics.playingStylesOn !== false && <IconeEstilo estilo={estiloDoJogador(player)} tam={34} className={`absolute -left-11 top-1/2 -translate-y-1/2 ${['AM', 'LW', 'RW', 'CB'].includes(pos.label) ? '-mt-[10px]' : ''}`} />}
                                     {player && (
                                         <div className="absolute -top-[12px] left-1/2 -translate-x-1/2 w-14">
-                                            <FitnessBar fitness={player.fitness} className="h-2" />
+                                            <EnergyBar energy={energiaDe(player)} className="h-2" />
                                         </div>
                                     )}
                                     <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase truncate block text-center mt-[2px]">{player ? player.name.split(' ').pop() : '---'}</span>
@@ -807,7 +807,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                         <span className="flex items-center gap-1">{iconeDoEstilo(p)}<MoraleArrow morale={p.morale} /></span>
                                     </div>
                                         <div className={`${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
-                                            <FitnessBar fitness={p.fitness} className="h-1.5" />
+                                            <EnergyBar energy={energiaDe(p)} className="h-1.5" />
                                         </div>
                                         <div className={`flex flex-col items-start justify-start leading-[1.1] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
                                             {doisNomes(p.name).map((part, index) => (
@@ -902,7 +902,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                             <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400 text-[14px]">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span>{mediaNotas(p) && <> <span className="text-slate-500">|</span> <span className="text-amber-400">{mediaNotas(p)}</span></>}</span>
                                             <span className="flex items-center gap-1"><MoraleArrow morale={p.morale} /></span>
                                         </div>
-                                            <div className={`-mt-1 mb-1 ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}><FitnessBar fitness={p.fitness} className="h-1.5" /></div>
+                                            <div className={`-mt-1 mb-1 ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}><EnergyBar energy={energiaDe(p)} className="h-1.5" /></div>
                                             <div className={`flex flex-col items-start justify-start leading-[1.1] min-h-[20px] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
                                                 {doisNomes(p.name).map((part, index) => (
                                                     <span key={index} className="text-[9px] font-black text-slate-400 uppercase truncate max-w-full">

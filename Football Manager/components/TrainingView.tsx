@@ -9,7 +9,7 @@ import { Position, Player } from '../types';
 
 import { ACTIVITIES, TrainingActivity, Impact } from '../textSim/trainingService';
 import { AttributeGrowthArrow } from './SquadView';
-import FitnessBar from './FitnessBar';
+import EnergyBar, { energiaDe } from './EnergyBar';
 import { MedicalDepartmentPanel } from './MedicalDepartmentPanel';
 import TrainingIcon, { COR_DO_TREINO } from './TrainingIcon';
 
@@ -45,7 +45,7 @@ const TrainingView: React.FC = () => {
   const [selectedGroup, setSelectedGroup] = useState<number>(0);
   // Toque (iPad): escolhe-se o treino e depois o slot, como na substituicao de jogadores; arrastar continua a funcionar.
   const [selActivity, setSelActivity] = useState<string | null>(null);
-  const [squadSortBy, setSquadSortBy] = useState<'growth' | 'fitness'>('growth');
+  const [squadSortBy, setSquadSortBy] = useState<'growth' | 'energy'>('growth');
   
   // Use gameState schedule directly
   const program = gameState.trainingSchedules?.[selectedGroup] || gameState.trainingSchedule;
@@ -150,7 +150,7 @@ const TrainingView: React.FC = () => {
     const media = (k: 'tec' | 'tac' | 'men' | 'fis') => (ps.length ? Math.round(ps.reduce((acc, p) => acc + atributos3d(p)[k], 0) / ps.length) : 0);
     return { tec: media('tec'), tac: media('tac'), men: media('men'), fis: media('fis') };
   }, [players, userTeam]);
-  const avgFit = useMemo(() => getTeamAvg('fitness'), [players, userTeam]);
+  const avgFit = useMemo(() => { const ps = players.filter(p => p.teamId === userTeam?.id); return ps.length ? Math.round(ps.reduce((acc, p) => acc + energiaDe(p), 0) / ps.length) : 0; }, [players, userTeam]);
   const avgMor = useMemo(() => getTeamAvg('morale'), [players, userTeam]);
   // CHE: o mesmo Chemistry da aba Tactics (textSim/quimica.ts), com a escalacao salva do time.
   const teamChe = useMemo(() => {
@@ -161,8 +161,8 @@ const TrainingView: React.FC = () => {
 
   const squadPlayers = useMemo(() => {
     const list = players.filter(p => p.teamId === userTeam?.id);
-    if (squadSortBy === 'fitness') {
-        return [...list].sort((a, b) => a.fitness - b.fitness); // Tired first
+    if (squadSortBy === 'energy') {
+        return [...list].sort((a, b) => energiaDe(a) - energiaDe(b)); // Tired first
     }
     return [...list].sort((a, b) => b.weeklyGrowth - a.weeklyGrowth); // Growing first
   }, [players, userTeam, squadSortBy]);
@@ -379,7 +379,7 @@ const TrainingView: React.FC = () => {
               <StatBox icon={ICONE_TAC} label="TACTICS" value={media3d.tac} color={corDaNota(media3d.tac)} />
               <StatBox icon={ICONE_MEN} label="MENTAL" value={media3d.men} color={corDaNota(media3d.men)} />
               <StatBox icon={ICONE_FIS} label="PHYSICAL" value={media3d.fis} color={corDaNota(media3d.fis)} />
-              <StatBox icon={ICONE_STA} label="STAMINA" value={avgFit} color="text-emerald-500" />
+              <StatBox icon={ICONE_STA} label="ENERGY" value={avgFit} color="text-emerald-500" />
               <StatBox icon={ICONE_CHE} label="CHEMISTRY" value={teamChe} color="text-blue-500" />
               <StatBox icon={ICONE_MOR} label="MORALE" value={avgMor} color="text-amber-500" />
            </div>
@@ -499,10 +499,10 @@ const TrainingView: React.FC = () => {
                           </button>
                           <span className="text-slate-200 dark:text-slate-800">|</span>
                           <button 
-                            onClick={() => setSquadSortBy('fitness')}
-                            className={`text-[11px] px-2 py-1 font-black uppercase tracking-widest transition-colors ${squadSortBy === 'fitness' ? 'text-emerald-500' : 'text-slate-400 hover:text-slate-600'}`}
+                            onClick={() => setSquadSortBy('energy')}
+                            className={`text-[11px] px-2 py-1 font-black uppercase tracking-widest transition-colors ${squadSortBy === 'energy' ? 'text-emerald-500' : 'text-slate-400 hover:text-slate-600'}`}
                           >
-                            Fit
+                            Energy
                           </button>
                       </div>
                   </div>
@@ -534,11 +534,11 @@ const TrainingView: React.FC = () => {
                                   <div className="col-span-2 flex flex-col items-center gap-1">
                                       <div className="flex items-center gap-1.5">
                                           <span className="text-[10px] font-black text-slate-400 uppercase leading-none">CAN:</span>
-                                          <span className={`text-[14px] font-black leading-none ${p.fitness < 70 ? 'text-rose-500' : (p.fitness < 90 ? 'text-amber-500' : 'text-emerald-500')}`}>
-                                              {Math.round(100 - p.fitness)}%
+                                          <span className={`text-[14px] font-black leading-none ${energiaDe(p) < 70 ? 'text-rose-500' : (energiaDe(p) < 90 ? 'text-amber-500' : 'text-emerald-500')}`}>
+                                              {Math.round(100 - energiaDe(p))}%
                                           </span>
                                       </div>
-                                      <FitnessBar fitness={p.fitness} className="w-full h-2 max-w-[80px]" />
+                                      <EnergyBar energy={energiaDe(p)} className="w-full h-2 max-w-[80px]" />
                                   </div>
 
                                   {/* COL 4: WEEKLY GROWTH */}
