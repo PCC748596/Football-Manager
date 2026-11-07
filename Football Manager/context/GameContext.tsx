@@ -27,7 +27,7 @@ import { slotsVazios, jogoEmAndamento } from '../textSim/escalacao';
 import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico, gerarMedico } from '../textSim/medico';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
-import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, drainMultiplier } from '../textSim/trainingService';
+import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, drainMultiplier, exaustaoMultiplier } from '../textSim/trainingService';
 import { campo3d } from '../textSim/atributos3d';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
@@ -1342,7 +1342,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const attrKey = attr as 'def' | 'pas' | 'drb' | 'sht';
 
           // Add points to accumulation buffer (100 points = +1 attribute)
-          const points = (gains[key] || 0) * ageFactor;
+          // Exaustao penalty applies only to the user's players (CPU training untouched)
+          const exaustaoMult = isUserPlayer ? exaustaoMultiplier(p.energia ?? 100) : 1;
+          const points = (gains[key] || 0) * ageFactor * exaustaoMult;
           p.trainingAccumulated![key] += points;
 
           // Visual arrows: 1 arrow per 1.5 points of intensity in this block
