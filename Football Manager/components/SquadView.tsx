@@ -176,19 +176,19 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                <thead className="bg-slate-200/40 dark:bg-slate-950/60 text-[13px] text-slate-400 dark:text-slate-500 font-black uppercase sticky top-0 z-10 transition-colors">
                  <tr>
                    <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 w-12 text-center cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('num')}>#{seta('num')}</th>
-                   <th className="px-2 py-2 border-b border-slate-200 dark:border-slate-800 text-center w-12 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pos')}>Pos{seta('pos')}</th>
+                   <th className="px-1 py-2 border-b border-slate-200 dark:border-slate-800 text-center w-12 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pos')}>Pos{seta('pos')}</th>
                    <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('name')}>Name{seta('name')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('age')}>Age{seta('age')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('ovr')}>OVR{seta('ovr')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pot')}>Pot{seta('pot')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('fit')} title="Energy: daily energy (0-100%), spent in training and matches, recovered with rest">Enr{seta('fit')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('form')} title="Match Form (0-100): match rhythm, grows with minutes played">Form{seta('form')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('mor')}>Mor{seta('mor')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('def')} title="Technique: ball control, dribbling, finishing, passing, crossing... (3D engine attributes)">TEC{seta('def')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pas')} title="Tactical: tackling, marking, positioning, vision, tactical awareness">TAC{seta('pas')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('drb')} title="Mental: aggression, reactions, composure, consistency">MEN{seta('drb')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('sht')} title="Physical: pace, acceleration, agility, jumping, strength, stamina, balance">FIS{seta('sht')}</th>
-                   <th className="px-2 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('style')}>Style{seta('style')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('age')}>Age{seta('age')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('ovr')}>OVR{seta('ovr')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pot')}>Pot{seta('pot')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('form')} title="Match Form (0-100): match rhythm, grows with minutes played">Form{seta('form')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('fit')} title="Energy: daily energy (0-100%), spent in training and matches, recovered with rest">Enr{seta('fit')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('mor')}>Mor{seta('mor')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('def')} title="Technique: ball control, dribbling, finishing, passing, crossing... (3D engine attributes)">TEC{seta('def')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pas')} title="Tactical: tackling, marking, positioning, vision, tactical awareness">TAC{seta('pas')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('drb')} title="Mental: aggression, reactions, composure, consistency">MEN{seta('drb')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('sht')} title="Physical: pace, acceleration, agility, jumping, strength, stamina, balance">FIS{seta('sht')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('style')}>Style{seta('style')}</th>
                  </tr>
                </thead>
                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30 transition-colors">
@@ -217,7 +217,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                             </div>
                         </div>
                      </td>
-                     <td className="px-2 py-[6.5px] text-center">
+                     <td className="px-1 py-[6.5px] text-center">
                        <span className="text-[11px] font-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded uppercase bg-slate-50 dark:bg-slate-900/40">
                          {p.position}
                        </span>
@@ -229,44 +229,44 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                         </div>
                      </td>
                      
-                     <td className="px-2 py-[6.5px] text-center text-xs text-slate-400 dark:text-slate-500 font-medium transition-colors">{p.age}</td>
-                     <td className="px-2 py-[6.5px] text-center">
+                     <td className="px-1 py-[6.5px] text-center text-xs text-slate-400 dark:text-slate-500 font-medium transition-colors">{p.age}</td>
+                     <td className="px-1 py-[6.5px] text-center">
                        <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 px-1.5 py-0.5 rounded shadow-sm transition-colors">
                          {Math.round(p.skill)}
                        </span>
                      </td>
-                     <td className="px-2 py-[6.5px] text-center whitespace-nowrap text-lg leading-none tracking-tighter" title="Current level (gold) and estimated potential (grey, scout estimate)">
+                     <td className="px-1 py-[6.5px] text-center whitespace-nowrap text-lg leading-none tracking-tighter" title="Current level (gold) and estimated potential (grey, scout estimate)">
                        {/* Uma linha de 5 estrelas so: douradas = o nivel atual; cinzentas = o que falta ate ao potencial; apagadas = acima do potencial. */}
                        {Array.from({ length: 5 }, (_, i) => <span key={i} className={i < starCount ? 'text-yellow-400' : i < estrelasDoJogador(p) ? 'text-slate-400 dark:text-slate-400' : 'text-slate-200 dark:text-slate-700'}>★</span>)}
                      </td>
-                     <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-400 font-medium transition-colors">
-                        <div className="flex flex-col items-center gap-1">
-                           <EnergyBar energy={energiaDe(p)} className="w-12 h-1.5" />
-                           <span>{Math.round(energiaDe(p))}%</span>
-                        </div>
-                     </td>
-                     <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-400 font-medium transition-colors">
+                     <td className="px-1 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-400 font-medium transition-colors">
                         <div className="flex flex-col items-center gap-1">
                            <MatchFormBar matchForm={matchFormDe(p)} className="w-12 h-1.5" />
                            <span>{Math.round(matchFormDe(p))}</span>
                         </div>
                      </td>
-                     <td className="px-2 py-[6.5px] text-center text-xs font-medium transition-colors">
+                     <td className="px-1 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-400 font-medium transition-colors">
+                        <div className="flex flex-col items-center gap-1">
+                           <EnergyBar energy={energiaDe(p)} className="w-12 h-1.5" />
+                           <span>{Math.round(energiaDe(p))}%</span>
+                        </div>
+                     </td>
+                     <td className="px-1 py-[6.5px] text-center text-xs font-medium transition-colors">
                         <MoraleArrow morale={Math.round(p.morale)} />
                      </td>
-                      <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
+                      <td className="px-1 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         {(() => { const now = atributos3d(p).tec, start = p.treino3dSeasonStart?.tec ?? now, delta = now - start; return <div className="flex items-center justify-center gap-1"><span>{now}</span>{delta !== 0 && <span className={delta > 0 ? 'text-emerald-500' : 'text-red-500'}>{delta > 0 ? '+' : ''}{delta}</span>}</div>; })()}
                       </td>
-                      <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
+                      <td className="px-1 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         {(() => { const now = atributos3d(p).tac, start = p.treino3dSeasonStart?.tac ?? now, delta = now - start; return <div className="flex items-center justify-center gap-1"><span>{now}</span>{delta !== 0 && <span className={delta > 0 ? 'text-emerald-500' : 'text-red-500'}>{delta > 0 ? '+' : ''}{delta}</span>}</div>; })()}
                       </td>
-                      <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
+                      <td className="px-1 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         {(() => { const now = atributos3d(p).men, start = p.treino3dSeasonStart?.men ?? now, delta = now - start; return <div className="flex items-center justify-center gap-1"><span>{now}</span>{delta !== 0 && <span className={delta > 0 ? 'text-emerald-500' : 'text-red-500'}>{delta > 0 ? '+' : ''}{delta}</span>}</div>; })()}
                       </td>
-                      <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
+                      <td className="px-1 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         {(() => { const now = atributos3d(p).fis, start = p.treino3dSeasonStart?.fis ?? now, delta = now - start; return <div className="flex items-center justify-center gap-1"><span>{now}</span>{delta !== 0 && <span className={delta > 0 ? 'text-emerald-500' : 'text-red-500'}>{delta > 0 ? '+' : ''}{delta}</span>}</div>; })()}
                       </td>
-                     <td className="px-2 py-[6.5px] text-center text-xs font-bold transition-colors">
+                     <td className="px-1 py-[6.5px] text-center text-xs font-bold transition-colors">
                         <span title={'Playing Style: ' + estiloDoJogador(p)} className="inline-flex items-center justify-center" style={{ width: 24, height: 24 }}><IconePlayStyleSvg estilo={estiloDoJogador(p)} tam={24} /></span>
                      </td>
                    </tr>
