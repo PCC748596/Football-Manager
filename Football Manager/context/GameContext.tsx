@@ -27,7 +27,8 @@ import { slotsVazios, jogoEmAndamento } from '../textSim/escalacao';
 import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico, gerarMedico } from '../textSim/medico';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
-import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO } from '../textSim/trainingService';
+import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO, ENERGY_COST_BASE, drainMultiplier } from '../textSim/trainingService';
+import { campo3d } from '../textSim/atributos3d';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
@@ -1004,8 +1005,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (actId && actId !== 'recovery') {
               const act = ACTIVITIES.find(a => a.id === actId);
               const fitBonus = act?.impacts.find(imp => imp.label === 'FIS')?.value || 0;
-              const stmCost = act?.impacts.find(imp => imp.label === 'STM')?.value || 0;
-              dailyRecovery += (fitBonus + stmCost); // Sum bonus and cost
+              // Dreno real = custo base x (100/stamina); substitui o STM fixo (nao soma os dois).
+              const realCost = (ENERGY_COST_BASE[actId] ?? 0) * drainMultiplier(campo3d(p, ['stamina']));
+              dailyRecovery += fitBonus - realCost;
             }
           }
           if (isTrainingCamp) {

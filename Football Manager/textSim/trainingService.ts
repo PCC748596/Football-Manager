@@ -39,6 +39,16 @@ export const drainMultiplier = (stamina: number): number => {
   return 100 / Math.max(50, Math.min(100, stamina));
 };
 
+/** Custo base de energia (0-100%) por sessao de treino, antes do multiplicador de stamina. 'recovery' e negativo (devolve energia, fixo). Atividades sem custo (video, teambuilding) ficam fora = 0. */
+export const ENERGY_COST_BASE: Record<string, number> = {
+  passing: 15, longpass: 15, control: 15, crossing: 15, shooting: 15, setpieces: 15, penalties: 15,
+  tackling: 15, def_pos: 15, positioning: 15, agility: 15, balance: 15, reactions: 15, composure: 15, consistency: 15, shadow: 15, focus: 15,
+  wingplay: 20, longshots: 20, finishing: 20, volleys: 20, aerial: 20, sliding: 20, marking: 20, vision: 20, playmaking: 20, transition: 20,
+  cardio: 20, acceleration: 20, jumping: 20, strength: 20, aggression: 20,
+  pressing: 25, sprints: 25,
+  recovery: -30
+};
+
 /** TAC XP multiplier based on match rating. Rating 8.0 = 1.2x, rating 4.0 = 0.5x, neutral 6.0 = 1.0x. */
 export const ratingToTacMultiplier = (rating: number): number => {
   if (rating <= 4) return 0.3 + (rating / 4) * 0.2;
