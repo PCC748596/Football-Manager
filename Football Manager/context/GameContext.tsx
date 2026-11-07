@@ -27,7 +27,7 @@ import { slotsVazios, jogoEmAndamento } from '../textSim/escalacao';
 import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico, gerarMedico } from '../textSim/medico';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
-import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, drainMultiplier, recoveryMultiplier, matchFormPiso, SEM_GRUPO, ENERGIA_DESCANSO_SEM_GRUPO, SEMANAS_SEM_JOGO_PENALIDADE, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
+import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, drainMultiplier, recoveryMultiplier, matchFormPiso, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
 import { campo3d, atributos3d, regredirPorIdade } from '../textSim/atributos3d';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
@@ -972,7 +972,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const treino3d = regredirPorIdade(p);
       const q = treino3d ? { ...p, treino3d } : p;
       const mf = Math.max(30, matchFormPiso(atributos3d(q).fis));
-      return { ...q, matchForm: mf, minutosSemana: 0, semanasSemJogo: 0, energia: Math.min(q.energia ?? 100, mf), fitness: Math.min(q.energia ?? 100, mf) };
+      return { ...q, matchForm: mf, minutosSemana: 0, energia: Math.min(q.energia ?? 100, mf), fitness: Math.min(q.energia ?? 100, mf) };
     }));
   }, [gameState.currentDate]);
 
@@ -1015,9 +1015,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (p.injury) {
           // Lesao do 3D: o FIS cai `quedaFisPorDia`; as antigas recuperam 15/dia como sempre.
           dailyRecovery = variacaoDiariaDeFis(p.injury) ?? 15;
-        } else if (p.teamId === gameState.userTeamId && p.trainingGroupId === SEM_GRUPO) {
-          // Sem grupo: Descanso. 0 XP (ver o ganho de treino em advanceDay) e recupera 25% * Stamina/100 por dia.
-          dailyRecovery = ENERGIA_DESCANSO_SEM_GRUPO * recoveryMultiplier(campo3d(p, ['stamina']));
         } else if (p.teamId === gameState.userTeamId) {
           // User team follows training schedule (respecting group)
           const gIdx = p.trainingGroupId || 0;
@@ -1064,14 +1061,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const fisPiso = matchFormPiso(atributos3d(p).fis);
         let matchForm = p.matchForm ?? 50;
         let minutosSemana = p.minutosSemana ?? 0;
-        let semanasSemJogo = p.semanasSemJogo ?? 0;
         if (dayIdx === 6) {
           const decay = p.injury ? 10 : (minutosSemana < 15 ? 5 : 0);
           if (decay > 0) matchForm = Math.max(Math.min(matchForm, fisPiso), matchForm - decay);
-          // Sem grupo e sem jogar: conta as semanas; a partir de 3 o Moral perde 1 por semana (penalidade oculta de falta de tempo de jogo).
-          const semGrupo = p.teamId === gameState.userTeamId && p.trainingGroupId === SEM_GRUPO && !p.injury;
-          semanasSemJogo = semGrupo && minutosSemana === 0 ? semanasSemJogo + 1 : 0;
-          if (semanasSemJogo >= SEMANAS_SEM_JOGO_PENALIDADE) moraleBoost -= 1;
           minutosSemana = 0;
         }
         // Alta medica: volta com Energia 25% e MF = max(40, piso), sem ritmo.
@@ -1084,7 +1076,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...p,
           matchForm,
           minutosSemana,
-          semanasSemJogo,
           energia: energiaFinal,
           fitness: energiaFinal, // espelho legado ate a Task 8
           morale: Math.min(100, Math.max(0, (p.morale || 50) + moraleBoost)),
@@ -1117,7 +1108,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const diaDaSemana = (new Date(gameState.currentDate + 'T12:00:00').getDay() + 6) % 7;   // segunda = 0
       const agendas = gameState.trainingSchedules || [gameState.trainingSchedule, [], []];
       const porGrupo = new Map<number, string[]>();
-      players.filter(p => p.teamId === gameState.userTeamId && !p.injury && p.trainingGroupId !== SEM_GRUPO).forEach(p => { const g = p.trainingGroupId || 0; porGrupo.set(g, [...(porGrupo.get(g) || []), p.id]); });
+      players.filter(p => p.teamId === gameState.userTeamId && !p.injury).forEach(p => { const g = p.trainingGroupId || 0; porGrupo.set(g, [...(porGrupo.get(g) || []), p.id]); });
       const ganhos: [string[], number][] = [];
       porGrupo.forEach((ids, g) => {
         const agenda = agendas[g] || gameState.trainingSchedule;
@@ -1365,8 +1356,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (p.energia === undefined) p.energia = 100;
 
         const pGroup = p.trainingGroupId || 0;
-        // Sem grupo (Descanso): 0 de treino.
-        const gains = isUserPlayer ? (groupGains[pGroup] || { def: 0, pas: 0, drb: 0, sht: 0, mor: 0, skl: {} as Record<string, number> }) : {
+        const gains = isUserPlayer ? groupGains[pGroup] : {
           def: Math.random() * 8,
           pas: Math.random() * 8,
           drb: Math.random() * 8,

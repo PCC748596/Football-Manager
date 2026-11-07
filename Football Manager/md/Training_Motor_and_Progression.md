@@ -14,14 +14,14 @@ O jogo usa **pontos de treino por atributo** (`Player.treino3d`, em `textSim/tra
 - Idade, Estrelas (0.6x a 1.4x) e Exaustão multiplicam os pontos de DEF/PAS/DRB/SHT e dos atributos do 3D (`treino3d`). A Exaustão usa a Energia do início do dia.
 - Match Form inicial de jogador novo (gerador e base): `max(30, skill / 2)`, e a Energia começa igual ao MF. O gerador usa `skill` como aproximação do FIS.
 - Curva de nota TAC (código): 4.0 = 0.5x, 6.0 = 1.0x, 8.0 = 1.2x. `BASE_TAC_XP = 5` pontos em `tacticalAwa`. Os valores `MATCH_BASE_XP_TAC = 40` e a curva linear da seção 5.1 **não** estão implementados.
-- Sem grupo: `trainingGroupId === SEM_GRUPO (-1)`. 0 de treino, Energia `+25 * Stamina/100` por dia (limitada pelo MF). Contador `semanasSemJogo`: a partir de 3 semanas sem jogar, Moral -1 por semana (oculto). `trainingGroupId` ausente continua valendo G1. **A UI de treino ainda não tem como atribuir "sem grupo".**
+- Jogador sem grupo: **entra no G1** (decisão final). `trainingGroupId` ausente vale G1 (`|| 0`). Não existe o estado "Descanso" nem a penalidade de Moral por falta de tempo de jogo.
 - Lesão por evento: 1% (Energia >= 25%) ou 3% (< 25%), rolada para cada slot de treino que gasta energia (Recovery, Analysis e Team Dinner não rolam) e uma vez por dia de treino da CPU. Lesão de treino = leve, 3 a 10 dias. As lesões de jogo continuam vindo do motor da partida, sem rolo extra.
 - Regressão por idade (`OnSeasonEnd`, na virada): `regredirPorIdade` subtrai níveis de cada atributo do grupo (TEC/TAC/MEN/FIS pelos grupos do código; stamina à parte), nunca abaixo de 50, e zera os pontos parciais do atributo que caiu. Atributos de goleiro não regridem.
 - Consumo no jogo usa `matchFatiguePerMinute(tática, posição)`, e não `1%/min * (100/Stamina)`.
 
 Já alinhado com a spec: faixas de Exaustão com `>=`, recovery com `Stamina/100`, Energia limitada pelo Match Form, ganho de MF `min(min, 60) * 0.5`, decay semanal com piso, reset de MF na virada e alta médica (Energia 25%, MF `max(40, piso)`).
 
-Ainda não implementado: XP/GROWTH/teto por estrelas, rolo de lesão ao fim do jogo, UI para "sem grupo".
+Ainda não implementado: XP/GROWTH/teto por estrelas, rolo de lesão ao fim do jogo.
 
 Atenção: o FIS já envelhece sozinho em `atributos3d` (`curvaFisica`: -1.8 por ano acima de 29 anos, em relação à idade dos dados de origem). A regressão por idade soma-se a essa queda.
 
@@ -99,7 +99,7 @@ Para cada jogador não lesionado, no fim do dia:
 
 ### Jogador sem Grupo
 
-Se não estiver em G1, G2 ou G3, entra em **Descanso**: 0 XP e Energia `+= 20 * (Stamina / 100)` (respeitando o teto do MF).
+Se não estiver atribuído a nenhum grupo, o jogador entra no **G1** e segue o treino dele normalmente.
 
 ### Passo 1: Ler Energia do início do dia
 

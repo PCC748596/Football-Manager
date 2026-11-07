@@ -42,13 +42,6 @@ export const recoveryMultiplier = (stamina: number): number => {
 /** Piso do Match Form: o decay nunca baixa o MF abaixo de Media_FIS / 2. Tambem e o minimo do reset de temporada e da alta medica. */
 export const matchFormPiso = (fisMedio: number): number => fisMedio / 2;
 
-/** `Player.trainingGroupId` de quem nao esta em G1/G2/G3: entra em Descanso (0 XP, recupera 25% * Stamina/100 por dia, ver GameContext.advanceDay). */
-export const SEM_GRUPO = -1;
-/** Energia recuperada por dia no Descanso (sem grupo), antes do multiplicador de Stamina. */
-export const ENERGIA_DESCANSO_SEM_GRUPO = 25;
-/** Semanas seguidas sem jogar, em Descanso, a partir das quais o Moral sofre a penalidade oculta de falta de tempo de jogo. */
-export const SEMANAS_SEM_JOGO_PENALIDADE = 3;
-
 /** Chance (%) de lesao por evento (jogo ou sessao de treino com custo de energia): 3% com Energia < 25%, senao 1%. */
 export const chanceLesao = (energia: number): number => (energia < 25 ? 3 : 1);
 /** Rola o dado de lesao (1 a 100): lesiona se o rolo <= chance. `rolo` e injetavel para os testes. */

@@ -153,8 +153,6 @@ export interface Player {
   matchForm: number;
   /** Minutos jogados na semana corrente (zera no domingo, quando o decay semanal do Match Form e verificado). */
   minutosSemana?: number;
-  /** Semanas seguidas em Descanso (sem grupo) sem jogar: a partir de 3 o Moral sofre a penalidade oculta de falta de tempo de jogo. */
-  semanasSemJogo?: number;
   /** Daily Energy (0-100%): consumed by training/matches, recovered with rest. Default 100. */
   energia?: number;
   fitness: number;
