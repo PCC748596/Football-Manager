@@ -39,15 +39,18 @@ export const drainMultiplier = (stamina: number): number => {
   return 100 / Math.max(50, Math.min(100, stamina));
 };
 
-/** Custo base de energia (0-100%) por sessao de treino, antes do multiplicador de stamina. 'recovery' e negativo (devolve energia, fixo). Atividades sem custo (video, teambuilding) ficam fora = 0. */
+/** Custo base de energia (0-100%) por sessao de treino, antes do multiplicador de stamina. Tabela canonica = plano 2026-01-07-energy-matchform-system.md (Task 4).
+ *  'recovery' e negativo: devolve -recovery (= +30) por periodo, fixo, sem multiplicador. Periodo vazio devolve o mesmo (ENERGIA_POR_PERIODO_LIVRE). */
 export const ENERGY_COST_BASE: Record<string, number> = {
-  passing: 15, longpass: 15, control: 15, crossing: 15, shooting: 15, setpieces: 15, penalties: 15,
-  tackling: 15, def_pos: 15, positioning: 15, agility: 15, balance: 15, reactions: 15, composure: 15, consistency: 15, shadow: 15, focus: 15,
-  wingplay: 20, longshots: 20, finishing: 20, volleys: 20, aerial: 20, sliding: 20, marking: 20, vision: 20, playmaking: 20, transition: 20,
-  cardio: 20, acceleration: 20, jumping: 20, strength: 20, aggression: 20,
-  pressing: 25, sprints: 25,
-  recovery: -30
+  passing: 15, longpass: 15, control: 15, wingplay: 20, crossing: 15, shooting: 15, longshots: 20, finishing: 20, volleys: 20, aerial: 20, setpieces: 15, penalties: 15,
+  tackling: 18, sliding: 25, marking: 22, def_pos: 15, positioning: 15, vision: 18, pressing: 30, playmaking: 20, transition: 20,
+  cardio: 25, sprints: 30, acceleration: 25, agility: 20, jumping: 22, strength: 28, balance: 20,
+  recovery: -30,
+  aggression: 15, reactions: 12, composure: 12, consistency: 12, video: 5, teambuilding: 10, shadow: 15, focus: 12
 };
+
+/** Energia devolvida por um periodo vazio ou uma sessao 'recovery' (por periodo, 4 periodos/dia). */
+export const ENERGIA_POR_PERIODO_LIVRE = -ENERGY_COST_BASE.recovery;
 
 /** TAC XP multiplier based on match rating. Rating 8.0 = 1.2x, rating 4.0 = 0.5x, neutral 6.0 = 1.0x. */
 export const ratingToTacMultiplier = (rating: number): number => {
@@ -125,7 +128,8 @@ export const cpuPlanoDoDia = (elenco: Player[], diasParaOJogo: number): { recupe
   const aptos = elenco.filter(p => !p.injury);
   const media = aptos.length ? aptos.reduce((s, p) => s + (p.energia ?? 100), 0) / aptos.length : 100;
   const descansa = diasParaOJogo <= 1 || media < 82 || aptos.some(p => (p.energia ?? 100) < 30);
-  return { recuperacao: descansa ? 15 : 10, treina: !descansa };
+  // Escala nova (Task 4): descanso = um periodo livre (+30); dia de treino = +10 liquido (o utilizador com 2 sessoes + 2 livres fica ~+20).
+  return { recuperacao: descansa ? ENERGIA_POR_PERIODO_LIVRE : 10, treina: !descansa };
 };
 
 /** Um dia de treino de um jogador da CPU: pontos no atributo da posicao (100 pontos = +1). Muda o proprio objecto. */

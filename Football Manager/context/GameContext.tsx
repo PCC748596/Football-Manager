@@ -27,7 +27,7 @@ import { slotsVazios, jogoEmAndamento } from '../textSim/escalacao';
 import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico, gerarMedico } from '../textSim/medico';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
-import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO, ENERGY_COST_BASE, drainMultiplier } from '../textSim/trainingService';
+import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, drainMultiplier } from '../textSim/trainingService';
 import { campo3d } from '../textSim/atributos3d';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
@@ -1000,7 +1000,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           for (let slot = 0; slot < 4; slot++) {
             const actId = groupSchedule[dayIdx] ? groupSchedule[dayIdx][slot] : null;
             if (!actId || actId === 'recovery') {
-              dailyRecovery += 4; // 4 points per empty period or recovery session
+              dailyRecovery += ENERGIA_POR_PERIODO_LIVRE; // +30 por periodo vazio ou sessao de recovery (= -ENERGY_COST_BASE.recovery)
             }
             if (actId && actId !== 'recovery') {
               const act = ACTIVITIES.find(a => a.id === actId);
@@ -1016,7 +1016,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } else {
           // Outros times: o plano do treinador da CPU (descanso ou treino do dia)
-          const plano = planosCpu.get(p.teamId) || { recuperacao: 15, treina: false };
+          const plano = planosCpu.get(p.teamId) || { recuperacao: ENERGIA_POR_PERIODO_LIVRE, treina: false };
           dailyRecovery = plano.recuperacao;
           if (plano.treina) { p = { ...p, trainingAccumulated: p.trainingAccumulated ? { ...p.trainingAccumulated } : undefined } as Player; cpuAplicarTreino(p); }
         }
