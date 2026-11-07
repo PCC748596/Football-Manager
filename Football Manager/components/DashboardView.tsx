@@ -347,14 +347,29 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
     return { ...getWeatherForMatch(nextMatch.date, nextMatch.id, homeTeam.country), hora: horaDoJogo(nextMatch.date, nextMatch.id).rotulo };
   }, [nextMatch, teams]);
 
-  // Sort: Points DESC, but if all 0 played, then alphabetical
-  const sortedTeams = teams.filter(t => naLigaDoUtilizador(t, userTeam)).sort((a, b) => {
+  // Determine standings league: use next official match's league, skip friendlies
+  const nextOfficialMatch = useMemo(() => {
+    const relevant = fixtures.filter(f =>
+      !f.played &&
+      f.date >= gameState.currentDate &&
+      !f.isFriendly &&
+      (f.homeTeamId === userTeam.id || f.awayTeamId === userTeam.id)
+    );
+    return relevant.sort((a, b) => a.date.localeCompare(b.date))[0];
+  }, [fixtures, gameState.currentDate, userTeam.id]);
+
+  // Sort: Points DESC, but if all 0 played, then alphabetical. Filter by next official match competition or user league.
+  const standingsCompetition = nextOfficialMatch ? competicaoDoJogo(nextOfficialMatch as any) : null;
+  const sortedTeams = teams.filter(t => {
+    if (standingsCompetition) return t.leagueId === userTeam.leagueId && t.groupId === userTeam.groupId;
+    return naLigaDoUtilizador(t, userTeam);
+  }).sort((a, b) => {
     if (a.played === 0 && b.played === 0) {
         return a.name.localeCompare(b.name);
     }
     return b.points - a.points;
   });
-  
+
   const userPos = sortedTeams.findIndex(t => t.id === userTeam.id) + 1;
   const top20 = sortedTeams.slice(0, 20);
   // OS ULTIMOS RESULTADOS do time (jogos ja disputados, do mais recente para o mais antigo): o painel de noticias do Home.
