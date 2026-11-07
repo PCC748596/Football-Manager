@@ -1253,9 +1253,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (det && !(p.ratingHistory || []).some(h => h.fixtureId === f.id)) {
                 p.ratingHistory = [...(p.ratingHistory || []), { fixtureId: f.id, nota: rating, minutos: det.minutos, motm: f.motm === pid }];
               }
-              // Bonus TAC pos-jogo: pontos de treino em tacticalAwa escalados pela nota (BASE_TAC_XP * ratingToTacMultiplier).
+              // Bonus TAC pos-jogo: pontos de treino em tacticalAwa escalados pela nota (BASE_TAC_XP * ratingToTacMultiplier) e pela exaustão.
               const t3 = { ...(p.treino3d || {}) };
-              t3.tacticalAwa = Math.min(TETO_PONTOS_TREINO, (t3.tacticalAwa || 0) + tacBonusDaNota(rating));
+              t3.tacticalAwa = Math.min(TETO_PONTOS_TREINO, (t3.tacticalAwa || 0) + tacBonusDaNota(rating) * exaustaoMultiplier(p.energia ?? 100));
               p.treino3d = t3;
               // Ajusta moral baseado na nota
               if (rating >= 8.5) p.morale = Math.min(100, p.morale + 10);
