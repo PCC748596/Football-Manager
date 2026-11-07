@@ -530,12 +530,12 @@ const TrainingView: React.FC = () => {
                                       ))}
                                   </div>
 
-                                  {/* COL 3: CANSAÇO */}
+                                  {/* COL 3: ENERGY */}
                                   <div className="col-span-2 flex flex-col items-center gap-1">
                                       <div className="flex items-center gap-1.5">
-                                          <span className="text-[10px] font-black text-slate-400 uppercase leading-none">CAN:</span>
+                                          <span className="text-[10px] font-black text-slate-400 uppercase leading-none">ENR:</span>
                                           <span className={`text-[14px] font-black leading-none ${energiaDe(p) < 70 ? 'text-rose-500' : (energiaDe(p) < 90 ? 'text-amber-500' : 'text-emerald-500')}`}>
-                                              {Math.round(100 - energiaDe(p))}%
+                                              {Math.round(energiaDe(p))}%
                                           </span>
                                       </div>
                                       <EnergyBar energy={energiaDe(p)} className="w-full h-2 max-w-[80px]" />
