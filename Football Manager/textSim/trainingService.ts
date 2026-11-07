@@ -105,7 +105,7 @@ export const ACTIVITIES: TrainingActivity[] = [
 ];
 
 // =====================================================================
-// TREINO DA CPU — antes os times da CPU nao treinavam: recuperavam +15 de fitness por dia, sempre, e o elenco nunca evoluia.
+// TREINO DA CPU — antes os times da CPU nao treinavam: recuperavam +15 de energia por dia, sempre, e o elenco nunca evoluia.
 // Agora o treinador da CPU gere a semana: descansa na vespera do jogo e quando o grupo esta cansado (media < 82), e nos outros dias treina (recupera menos e
 // acumula pontos nos atributos da posicao, mais depressa nos jovens e nada nos veteranos), como o treino do utilizador.
 // =====================================================================

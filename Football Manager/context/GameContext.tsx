@@ -966,7 +966,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { ...prev, currentDate: d.toISOString().split('T')[0] };
     });
 
-    // Daily fitness recovery based on training schedule
+    // Daily energy recovery based on training schedule
     setPlayers(prevPlayers => {
       const d = new Date(gameState.currentDate + 'T12:00:00');
       const dayIdx = (d.getDay() + 6) % 7; // Monday = 0, Sunday = 6
@@ -1226,7 +1226,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 p.energia = Math.max(0, (p.energia ?? 100) - 15);
                 p.fitness = p.energia;
               } else {
-                p.energia = 80 - (e.injuryDaysOut * 15);
+                p.energia = Math.max(0, 80 - (e.injuryDaysOut * 15));
                 p.fitness = p.energia;
               }
               updated = true;
@@ -1363,7 +1363,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         });
 
-        // Update morale and fitness
+        // Update morale and energy
         const oldMorale = p.morale;
         p.morale = Math.min(100, Math.max(0, p.morale + gains.mor));
         if (p.morale !== oldMorale) updated = true;
@@ -1464,7 +1464,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPlayers(prev => prev.map(p => {
         if (p.id === event.playerId) {
           const isLight = event.injurySeverity === 'LIGHT';
-          const newFit = isLight ? (p.energia ?? 100) : (80 - (event.injuryDaysOut! * 15));
+          const newFit = isLight ? (p.energia ?? 100) : Math.max(0, 80 - (event.injuryDaysOut! * 15));
           return {
             ...p,
             energia: newFit,
@@ -1594,8 +1594,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }));
     } else if (m.tipo === 'energia') {
       /*
-      A stamina do 3D (o deposito de cada jogador, de minuto a minuto e no fim) passa a ser a `fitness` do manager: o cartao do 3D, as barras do Tactics e o resto leem o mesmo numero. O jogo comeca
-      com o deposito = fitness do manager (AdaptadorManager.jogador -> energiaInicial). `mapa`: id real do motor (digitos de 'p-269063') -> %.
+      A stamina do 3D (o deposito de cada jogador, de minuto a minuto e no fim) passa a ser a `energia` do manager: o cartao do 3D, as barras do Tactics e o resto leem o mesmo numero. O jogo comeca
+      com o deposito = energia do manager (AdaptadorManager.jogador -> energiaInicial). `mapa`: id real do motor (digitos de 'p-269063') -> %.
       */
       const mapa: Record<string, number> = m.mapa || {};
       setPlayers(prev => prev.map(p => {
