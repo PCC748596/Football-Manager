@@ -12,7 +12,8 @@ O jogo usa **pontos de treino por atributo** (`Player.treino3d`, em `textSim/tra
 
 - `PONTOS_POR_ATRIBUTO = 25` pontos = +1 no atributo, com teto de +15 (`TETO_PONTOS_TREINO`). Não há teto por estrelas nem custo crescente.
 - Idade, Estrelas (0.6x a 1.4x) e Exaustão multiplicam os pontos de DEF/PAS/DRB/SHT e dos atributos do 3D (`treino3d`). A Exaustão usa a Energia do início do dia.
-- Match Form inicial de jogador novo (gerador e base): `max(30, skill / 2)`, e a Energia começa igual ao MF. O gerador usa `skill` como aproximação do FIS.
+- Match Form inicial de jogador novo (jogo novo, base, contratação ou save antigo): **igual ao FIS médio** (mínimo 30), calculado uma vez (`mfIniciado`) pelo `GameContext`. A Energia é limitada a ele. Depois o MF sobe com os jogos e decai sem jogar. Um save antigo tem o MF refeito uma vez.
+- Reset de temporada (`max(30, FIS/2)`), alta médica (`max(40, FIS/2)`) e piso do decay (`FIS/2`) continuam em metade do FIS: o início do jogo parte do FIS cheio, mas as férias e a lesão custam ritmo.
 - Curva de nota TAC (código): 4.0 = 0.5x, 6.0 = 1.0x, 8.0 = 1.2x. `BASE_TAC_XP = 5` pontos em `tacticalAwa`. Os valores `MATCH_BASE_XP_TAC = 40` e a curva linear da seção 5.1 **não** estão implementados.
 - Jogador sem grupo: **entra no G1** (decisão final). `trainingGroupId` ausente vale G1 (`|| 0`). Não existe o estado "Descanso" nem a penalidade de Moral por falta de tempo de jogo.
 - Lesão por evento: 1% (Energia >= 25%) ou 3% (< 25%), rolada para cada slot de treino que gasta energia (Recovery, Analysis e Team Dinner não rolam) e uma vez por dia de treino da CPU. Lesão de treino = leve, 3 a 10 dias. As lesões de jogo continuam vindo do motor da partida, sem rolo extra.

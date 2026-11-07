@@ -9,9 +9,10 @@ import { Position, Player } from '../types';
 
 import { ACTIVITIES, TrainingActivity, Impact } from '../textSim/trainingService';
 import { AttributeGrowthArrow } from './SquadView';
-import EnergyBar, { energiaDe } from './EnergyBar';
+import EnergyBar, { energiaDe, matchFormDe, MatchFormBar } from './EnergyBar';
 import { MedicalDepartmentPanel } from './MedicalDepartmentPanel';
 import TrainingIcon, { COR_DO_TREINO } from './TrainingIcon';
+import PlayerDetailModal from './PlayerDetailModal';
 
 const PLANE_ICON = (
   <div className="flex flex-col items-center justify-center opacity-30 select-none pointer-events-none">
@@ -43,6 +44,8 @@ const TrainingView: React.FC = () => {
   // 0..2 = G1..G3; 3 = Medical Department (os lesionados, que nao treinam).
   const GRUPO_MED = 3;
   const [selectedGroup, setSelectedGroup] = useState<number>(0);
+  // Clicar num jogador de Squad Assignments abre o overview dele (o mesmo modal do Squad).
+  const [jogadorAberto, setJogadorAberto] = useState<Player | null>(null);
   // Toque (iPad): escolhe-se o treino e depois o slot, como na substituicao de jogadores; arrastar continua a funcionar.
   const [selActivity, setSelActivity] = useState<string | null>(null);
   const [squadSortBy, setSquadSortBy] = useState<'growth' | 'energy'>('growth');
@@ -313,7 +316,16 @@ const TrainingView: React.FC = () => {
                                      <div className="w-full h-full bg-emerald-500/20 rounded-full blur-[2px]"></div>
                                  </div>
                              )}
-                            {[0,1,2,3].map((slotIdx) => {
+                            {/* 5 linhas de altura igual: 2 slots da manha, ALMOCO (sem treino) e 2 slots da tarde. */}
+                            {([0, 1, 'lunch', 2, 3] as const).map((slotIdx) => {
+                              if (slotIdx === 'lunch') {
+                                return (
+                                  <div key="lunch" className="flex-1 basis-0 min-h-0 rounded border border-slate-200 dark:border-slate-800/60 bg-slate-100/60 dark:bg-slate-900/40 relative overflow-hidden flex flex-col items-center justify-center gap-1 pointer-events-none select-none">
+                                    <span className="text-3xl leading-none opacity-30 grayscale">🍽️</span>
+                                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest leading-none">Lunch time</span>
+                                  </div>
+                                );
+                              }
                               const act = getActivity(program[dIdx][slotIdx]);
                               const isLastSlot = slotIdx === 3;
                               const isBlocked = isLastSlot && travel;
@@ -328,7 +340,7 @@ const TrainingView: React.FC = () => {
                                     const id = e.dataTransfer.getData("activityId");
                                     if (id) handleSlotUpdate(dIdx, slotIdx, id);
                                   }}
-                                  className={`flex-1 rounded border transition-all relative group overflow-hidden ${
+                                  className={`flex-1 basis-0 min-h-0 rounded border transition-all relative group overflow-hidden ${
                                     isBlocked ? 'border-amber-200/50 dark:border-amber-500/20 bg-amber-500/5 cursor-not-allowed' :
                                     day.isTrainingCamp ? 'border-emerald-300 dark:border-emerald-500/30 bg-emerald-500/5' :
                                     act ? 'border-blue-300 dark:border-blue-500/50 bg-blue-50 dark:bg-blue-600/10 shadow-[inset_0_0_10px_rgba(59,130,246,0.1)]' : 'border-dashed border-slate-300 dark:border-slate-800 hover:border-blue-300 dark:hover:border-slate-700 bg-slate-50 dark:bg-slate-900/20 cursor-pointer'
@@ -509,21 +521,27 @@ const TrainingView: React.FC = () => {
                   <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
                       {squadPlayers.map((p, idx) => {
                           return (
-                          <div key={p.id} className="flex flex-col px-3 py-4 rounded bg-white dark:bg-slate-800/30 border border-slate-100 dark:border-slate-700/50 hover:border-blue-500/30 transition-all group">
+                          <div key={p.id} onClick={() => setJogadorAberto(p)} className="flex flex-col px-3 py-4 rounded bg-white dark:bg-slate-800/30 border border-slate-100 dark:border-slate-700/50 hover:border-blue-500/30 transition-all group cursor-pointer">
                               <div className="grid grid-cols-12 items-center gap-3">
                                   {/* COL 1: PLAYER INFO */}
                                   <div className="col-span-3 flex flex-col min-w-0">
-                                      <span className="text-[13px] font-black text-slate-700 dark:text-slate-200 uppercase truncate leading-tight">{doisNomes(p.name).join(' ')}</span>
+                                      <div className="flex flex-col min-w-0">
+                                          {doisNomes(p.name).map((nome, i) => (
+                                              <span key={i} className="text-[13px] font-black text-slate-700 dark:text-slate-200 uppercase truncate leading-tight">{nome}</span>
+                                          ))}
+                                      </div>
                                       <span className="text-[12px] text-slate-400 font-bold uppercase truncate">{p.position} • Age {p.age}</span>
                                   </div>
 
                                   {/* COL 2: TRAINING CATEGORIES */}
-                                  <div className="col-span-2 flex justify-center gap-2.5">
+                                  <div className="col-span-3 flex justify-center items-center gap-2">
                                       {[
                                           { label: 'TEC', val: (p.lastGrowth?.drb || 0) + (p.lastGrowth?.sht || 0) + (p.lastGrowth?.pas || 0) },
-                                          { label: 'TAC', val: p.lastGrowth?.def || 0 }
+                                          { label: 'TAC', val: p.lastGrowth?.def || 0 },
+                                          { label: 'MEN', val: p.lastGrowth?.men || 0 },
+                                          { label: 'PHY', val: p.lastGrowth?.fis || 0 }
                                       ].map(stat => (
-                                          <div key={stat.label} className="flex flex-col items-center min-w-[28px]">
+                                          <div key={stat.label} className="flex flex-col items-center justify-start min-w-[28px] h-10">
                                               <div className="text-[10px] font-black text-slate-400 uppercase mb-1 leading-none">{stat.label}</div>
                                               <AttributeGrowthArrow val={stat.val || 0} />
                                           </div>
@@ -531,18 +549,25 @@ const TrainingView: React.FC = () => {
                                   </div>
 
                                   {/* COL 3: ENERGY */}
-                                  <div className="col-span-2 flex flex-col items-center gap-1">
+                                  <div className="col-span-2 flex justify-center">
+                                    <div className="flex flex-col items-start gap-1 w-[80px]">
+                                      <div className="flex items-center gap-1.5">
+                                          <span className="text-[10px] font-black text-slate-400 uppercase leading-none">FORM:</span>
+                                          <span className="text-[14px] font-black leading-none text-sky-500">{Math.round(matchFormDe(p))}%</span>
+                                      </div>
+                                      <MatchFormBar matchForm={matchFormDe(p)} className="w-full h-2 mb-1" />
                                       <div className="flex items-center gap-1.5">
                                           <span className="text-[10px] font-black text-slate-400 uppercase leading-none">ENR:</span>
                                           <span className={`text-[14px] font-black leading-none ${energiaDe(p) < 70 ? 'text-rose-500' : (energiaDe(p) < 90 ? 'text-amber-500' : 'text-emerald-500')}`}>
                                               {Math.round(energiaDe(p))}%
                                           </span>
                                       </div>
-                                      <EnergyBar energy={energiaDe(p)} className="w-full h-2 max-w-[80px]" />
+                                      <EnergyBar energy={energiaDe(p)} className="w-full h-2" />
+                                    </div>
                                   </div>
 
                                   {/* COL 4: WEEKLY GROWTH */}
-                                  <div className="col-span-2 flex flex-col items-center">
+                                  <div className="col-span-1 flex flex-col items-center">
                                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5">GROWTH</span>
                                       <div className={`text-[20px] font-black leading-none ${p.weeklyGrowth > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
                                           {p.weeklyGrowth > 0 ? `+${p.weeklyGrowth}` : p.weeklyGrowth}
@@ -550,7 +575,7 @@ const TrainingView: React.FC = () => {
                                   </div>
 
                                   {/* COL 5: GROUPS */}
-                                  <div className="col-span-3 flex justify-end">
+                                  <div className="col-span-3 flex justify-end" onClick={e => e.stopPropagation()}>
                                       {p.injury ? (
                                           <button onClick={() => setSelectedGroup(GRUPO_MED)} title={`${p.injury.type} — Medical Department`} className="px-3 py-3 text-[12px] font-black rounded bg-emerald-600 text-white shadow-sm">✚ MED</button>
                                       ) : (
@@ -597,6 +622,7 @@ const TrainingView: React.FC = () => {
            </div>
         </div>
       </div>
+      {jogadorAberto && <PlayerDetailModal player={players.find(x => x.id === jogadorAberto.id) || jogadorAberto} onClose={() => setJogadorAberto(null)} />}
     </div>
   );
 };

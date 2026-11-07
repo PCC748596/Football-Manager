@@ -153,6 +153,8 @@ export interface Player {
   matchForm: number;
   /** Minutos jogados na semana corrente (zera no domingo, quando o decay semanal do Match Form e verificado). */
   minutosSemana?: number;
+  /** true quando o Match Form inicial (= FIS medio) ja foi calculado; um save antigo ou um jogador novo ainda nao o tem. */
+  mfIniciado?: boolean;
   /** Daily Energy (0-100%): consumed by training/matches, recovered with rest. Default 100. */
   energia?: number;
   fitness: number;
@@ -200,6 +202,9 @@ export interface Player {
     pas: number;
     drb: number;
     sht: number;
+    /** Setas do MEN e do FIS (PHY): os atributos mentais e fisicos treinados no bloco (`treino3d`). */
+    men?: number;
+    fis?: number;
   };
   /** Pontos de treino por atributo do 3D (campo -> pontos; 100 pontos = +1 no atributo), somados em textSim/atributos3d.ts. */
   treino3d?: Record<string, number>;

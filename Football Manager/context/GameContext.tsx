@@ -27,8 +27,9 @@ import { slotsVazios, jogoEmAndamento } from '../textSim/escalacao';
 import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico, gerarMedico } from '../textSim/medico';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
-import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, drainMultiplier, recoveryMultiplier, matchFormPiso, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
+import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, ENERGIA_SLOT_VAZIO, drainMultiplier, recoveryMultiplier, matchFormPiso, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
 import { campo3d, atributos3d, regredirPorIdade } from '../textSim/atributos3d';
+import { GRUPOS } from '../textSim/geradorAtributos';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
@@ -948,6 +949,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
+  // O MATCH FORM INICIAL = o FIS medio do jogador (50-99); depois sobe com os jogos e decai sem jogar. Roda uma vez por jogador (jogo novo, base, contratacao, save antigo) e ja aplica o teto: Energia <= Match Form.
+  useEffect(() => {
+    if (!players.some(p => !p.mfIniciado)) return;
+    setPlayers(prev => prev.map(p => {
+      if (p.mfIniciado) return p;
+      const mf = Math.max(30, Math.min(100, Math.round(atributos3d(p).fis)));
+      const en = Math.min(p.energia ?? 100, mf);
+      return { ...p, matchForm: mf, energia: en, fitness: en, mfIniciado: true };
+    }));
+  }, [players]);
+
   // O SNAPSHOT DE INICIO DE TEMPORADA (TEC/TAC/MEN/FIS do Squad e da ficha mostram o ganho do treino desde aqui): grava-se para quem ainda nao o tem (inicio, virada, contratacoes).
   useEffect(() => {
     if (!userTeam) return;
@@ -1026,18 +1038,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const actId = groupSchedule[dayIdx] ? groupSchedule[dayIdx][slot] : null;
             // Rolo de lesao: so sessoes que gastam energia (nao Recovery/Analysis), com a Energia do inicio do evento.
             if (actId && sessaoRolaLesao(actId)) rolarLesaoTreino(energiaNoSlot);
+            // Slot vazio: +4. Sessao Recovery: +8. Os dois x Stamina/100.
+            const ganhoLivre = actId === 'recovery' ? ENERGIA_POR_PERIODO_LIVRE : ENERGIA_SLOT_VAZIO;
             if (!actId || actId === 'recovery') {
-              dailyRecovery += ENERGIA_POR_PERIODO_LIVRE * recoveryMultiplier(campo3d(p, ['stamina'])); // +7.5 por periodo vazio ou sessao de recovery, x Stamina/100
+              dailyRecovery += ganhoLivre * recoveryMultiplier(campo3d(p, ['stamina']));
             }
             if (actId && actId !== 'recovery') {
               const act = ACTIVITIES.find(a => a.id === actId);
               const fitBonus = act?.impacts.find(imp => imp.label === 'FIS')?.value || 0;
-              // Dreno real = custo base x (100/stamina); substitui o STM fixo (nao soma os dois).
+              // Dreno real = custo base x (100/stamina); o chip ENR do cartao mostra o custo base.
               const realCost = (ENERGY_COST_BASE[actId] ?? 0) * drainMultiplier(campo3d(p, ['stamina']));
               dailyRecovery += fitBonus - realCost;
               energiaNoSlot = Math.max(0, energiaNoSlot + fitBonus - realCost);
             } else {
-              energiaNoSlot = energiaNoSlot + ENERGIA_POR_PERIODO_LIVRE * recoveryMultiplier(campo3d(p, ['stamina']));
+              energiaNoSlot = energiaNoSlot + ganhoLivre * recoveryMultiplier(campo3d(p, ['stamina']));
             }
           }
           if (isTrainingCamp) {
@@ -1059,7 +1073,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         // Match Form: o decay e verificado no domingo (fim da semana). < 15 min na semana = -5; lesionado = -10; nunca abaixo do piso (Media_FIS / 2).
         const fisPiso = matchFormPiso(atributos3d(p).fis);
-        let matchForm = p.matchForm ?? 50;
+        // O MF nunca fica abaixo do piso (FIS/2), nem invalido: um save antigo com MF baixo travaria a Energia no teto (ex.: ENR 1%).
+        let matchForm = Number.isFinite(p.matchForm) ? Math.max(p.matchForm, fisPiso) : Math.max(30, fisPiso);
         let minutosSemana = p.minutosSemana ?? 0;
         if (dayIdx === 6) {
           const decay = p.injury ? 10 : (minutosSemana < 15 ? 5 : 0);
@@ -1373,7 +1388,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // Calculate arrows based on training focus (points) for this simulation block
-        p.lastGrowth = { def: 0, pas: 0, drb: 0, sht: 0 };
+        p.lastGrowth = { def: 0, pas: 0, drb: 0, sht: 0, men: 0, fis: 0 };
 
         // Ensure robust initialization of tracking objects
         if (!p.trainingAccumulated) p.trainingAccumulated = { def: 0, pas: 0, drb: 0, sht: 0, mor: 0 };
@@ -1388,6 +1403,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const multSkl = ageFactor * STAR_MULTIPLIERS[starsFromPotential(p.potential)] * exaustaoMultiplier(p.energia ?? 100);
           for (const campo of Object.keys(gains.skl)) t3[campo] = Math.min(TETO_PONTOS_TREINO, (t3[campo] || 0) + gains.skl[campo] * multSkl);
           p.treino3d = t3;
+          // Setas do MEN e do PHY (as do TEC/TAC vem do DEF/PAS/DRB/SHT): 1 seta por 1.5 pontos de foco nos atributos do grupo.
+          const pontosGrupo = (campos: string[]) => campos.reduce((sum, c) => sum + (gains.skl[c] || 0) * multSkl, 0);
+          const setas = (pts: number) => (pts > 0 ? Math.min(3, Math.max(1, Math.floor(pts / 1.5))) : 0);
+          p.lastGrowth = { ...p.lastGrowth!, men: setas(pontosGrupo(GRUPOS.MEN)), fis: setas(pontosGrupo(GRUPOS.FIS)) };
           updated = true;
         }
 

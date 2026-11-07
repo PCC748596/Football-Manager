@@ -231,6 +231,24 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
   ];
   const corDaBarra = (v: number) => (v >= 80 ? '#10b981' : v >= 70 ? '#60a5fa' : v >= 60 ? '#eab308' : '#f43f5e');
 
+  // Os 2 atributos mais importantes da posicao em cada bloco (marcados com hachura). Mental nao leva marca; Goalkeeping so o goleiro.
+  const CHAVES_POR_POSICAO: Record<string, Partial<Record<'TEC' | 'TAC' | 'FIS' | 'GK', string[]>>> = {
+    GK: { TEC: ['passing', 'longPassing'], TAC: ['posDefense', 'tacticalAwa'], FIS: ['jumping', 'agility'], GK: ['reflexes', 'diving'] },
+    CB: { TEC: ['headAccurancy', 'passing'], TAC: ['tackleStanding', 'manMarking'], FIS: ['strength', 'jumping'] },
+    LB: { TEC: ['crossing', 'passing'], TAC: ['tackleStanding', 'posDefense'], FIS: ['speed', 'stamina'] },
+    RB: { TEC: ['crossing', 'passing'], TAC: ['tackleStanding', 'posDefense'], FIS: ['speed', 'stamina'] },
+    DM: { TEC: ['passing', 'ballControl'], TAC: ['tackleStanding', 'posDefense'], FIS: ['stamina', 'strength'] },
+    CM: { TEC: ['passing', 'ballControl'], TAC: ['vision', 'tacticalAwa'], FIS: ['stamina', 'balance'] },
+    LM: { TEC: ['crossing', 'dribbling'], TAC: ['posOffense', 'vision'], FIS: ['speed', 'stamina'] },
+    RM: { TEC: ['crossing', 'dribbling'], TAC: ['posOffense', 'vision'], FIS: ['speed', 'stamina'] },
+    AM: { TEC: ['passing', 'dribbling'], TAC: ['vision', 'posOffense'], FIS: ['agility', 'balance'] },
+    LW: { TEC: ['dribbling', 'crossing'], TAC: ['posOffense', 'vision'], FIS: ['speed', 'acceleration'] },
+    RW: { TEC: ['dribbling', 'crossing'], TAC: ['posOffense', 'vision'], FIS: ['speed', 'acceleration'] },
+    SS: { TEC: ['finishing', 'dribbling'], TAC: ['posOffense', 'vision'], FIS: ['acceleration', 'agility'] },
+    ST: { TEC: ['finishing', 'shotPower'], TAC: ['posOffense', 'tacticalAwa'], FIS: ['strength', 'acceleration'] }
+  };
+  const HACHURA: React.CSSProperties = { backgroundImage: 'repeating-linear-gradient(135deg, rgba(148,163,184,0.28) 0, rgba(148,163,184,0.28) 2px, transparent 2px, transparent 6px)', borderRadius: 4 };
+
   // Um bloco de atributos (Technical, Tactical, Mental, Physical, Goalkeeping): titulo com a media e o ganho do treino da temporada, e a lista de campos.
   const blocoAtributos = (g: 'TEC' | 'TAC' | 'MEN' | 'FIS' | 'GK') => {
     const lista = ((attr3d.detalhe as any)[g] || []) as { campo: string; nome: string; valor: number }[];
@@ -249,7 +267,8 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
           </span>
         </div>
         {lista.map(x => (
-          <div key={x.campo} className="flex items-center justify-between text-sm">
+          <div key={x.campo} className="flex items-center justify-between text-sm px-1 -mx-1"
+            style={((CHAVES_POR_POSICAO[player.position] as any)?.[g] || []).includes(x.campo) ? HACHURA : undefined}>
             <span className="text-slate-300">{x.nome}</span>
             <span className={`font-black ${getColorClass(x.valor)}`}>{x.valor}</span>
           </div>

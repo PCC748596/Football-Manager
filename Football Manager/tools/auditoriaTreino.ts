@@ -42,7 +42,7 @@ L('=== 2. SESSOES: efeito no fitness por periodo (FIT + STM; um periodo vazio va
 for (const cat of Object.keys(LIMITE_ABA)) {
   const lista = ACTIVITIES.filter(a => a.category === cat);
   L(`${cat} (${lista.length} sessoes, teto ${LIMITE_ABA[cat]} periodos/semana)`);
-  L('  ' + lista.map(a => `${a.id}:${(val(a.id, 'FIS') + val(a.id, 'STM')).toFixed(0)}`).join('  '));
+  L('  ' + lista.map(a => `${a.id}:${(val(a.id, 'ENR')).toFixed(0)}`).join('  '));
 }
 L();
 
@@ -102,7 +102,7 @@ const simular = (plano: Plano, idade: number) => {
       if (!id || id === 'recovery') { rec += 4; vazios++; energia = Math.min(100, energia + ENERGIA_POR_PERIODO_LIVRE); }
       if (id && id !== 'recovery') {
         usados++;
-        rec += val(id, 'FIS') + val(id, 'STM');
+        rec += val(id, 'ENR');
         // Apply energy drain using drainMultiplier based on stamina
         const stamina = campo3d(p, ['stamina']);
         const drainMult = drainMultiplier(stamina);

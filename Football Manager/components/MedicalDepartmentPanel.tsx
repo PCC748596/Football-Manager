@@ -22,21 +22,19 @@ const CardLesao: React.FC<{ p: Player; cor?: string }> = ({ p, cor }) => {
   const l = p.injury!;
   const grav = l.severity;
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0e182c] p-3 flex flex-col gap-3">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="w-[72px] h-[72px] rounded-lg overflow-hidden bg-slate-800 shrink-0 border border-slate-700"><PlayerFace playerId={p.id} camisa={cor} className="w-full h-full" /></div>
-        <div className="min-w-0 flex-1">
-          <div className="text-lg font-black text-slate-900 dark:text-white leading-tight truncate">{p.name}</div>
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">{p.position} • Age {p.age}</div>
-          <div className={`mt-1 inline-block text-[10px] font-black uppercase border px-2 py-0.5 rounded-md ${COR_GRAVIDADE[grav] || COR_GRAVIDADE.LIGHT}`}>{ROTULO_GRAVIDADE[grav] || 'Light'}{l.tipoLesao ? ` • ${l.tipoLesao === 'Complexa' ? 'Complex' : 'Simple'}` : ''}</div>
+    <div className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0e182c] px-3 py-2 flex flex-wrap items-center gap-x-5 gap-y-2">
+      <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-800 shrink-0 border border-slate-700"><PlayerFace playerId={p.id} camisa={cor} className="w-full h-full" /></div>
+      <div className="min-w-[150px] flex-1">
+        <div className="text-base font-black text-slate-900 dark:text-white leading-tight truncate">{p.name}</div>
+        <div className="flex items-center">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">{p.position} • Age {p.age}</span>
+          <div className={`ml-2 inline-block text-[10px] font-black uppercase border px-2 py-0.5 rounded-md ${COR_GRAVIDADE[grav] || COR_GRAVIDADE.LIGHT}`}>{ROTULO_GRAVIDADE[grav] || 'Light'}{l.tipoLesao ? ` • ${l.tipoLesao === 'Complexa' ? 'Complex' : 'Simple'}` : ''}</div>
         </div>
       </div>
-      <div className="text-sm font-black text-slate-800 dark:text-slate-100">✚ {l.type}</div>
-      <div className="flex items-end gap-6">
-        <div><div className="text-[10px] font-bold uppercase text-slate-500">Estimated return</div><div className="text-base font-black text-slate-900 dark:text-white">{l.estimativa || `~${l.daysOut} days`}</div></div>
-        <div className="flex-1 min-w-[80px]"><div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Energy {Math.round(energiaDe(p))}%</div><EnergyBar energy={energiaDe(p)} className="w-full h-2" /></div>
-      </div>
-      <div className="text-[11px] text-slate-500 italic min-h-[16px]">{l.boletim ? `🩺 ${l.boletim}` : 'Awaiting first medical report.'}</div>
+      <div className="text-sm font-black text-slate-800 dark:text-slate-100 min-w-[130px]">✚ {l.type}</div>
+      <div><div className="text-[10px] font-bold uppercase text-slate-500">Estimated return</div><div className="text-sm font-black text-slate-900 dark:text-white">{l.estimativa || `~${l.daysOut} days`}</div></div>
+      <div className="w-[140px]"><div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Energy {Math.round(energiaDe(p))}%</div><EnergyBar energy={energiaDe(p)} className="w-full h-2" /></div>
+      <div className="basis-full text-[11px] text-slate-500 italic">{l.boletim ? `🩺 ${l.boletim}` : 'Awaiting first medical report.'}</div>
     </div>
   );
 };
@@ -66,7 +64,7 @@ export const MedicalDepartmentPanel: React.FC = () => {
       <div className="text-[11px] font-black uppercase tracking-widest text-slate-500">Injured players ({lesionados.length})</div>
       {lesionados.length === 0
         ? <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-400 py-10"><span className="text-4xl mb-2 opacity-70">✚</span><div className="text-xs font-bold uppercase tracking-widest">No injured players</div></div>
-        : <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">{lesionados.map(p => <CardLesao key={p.id} p={p} cor={userTeam.primaryColor} />)}</div>}
+        : <div className="flex flex-col gap-2">{lesionados.map(p => <CardLesao key={p.id} p={p} cor={userTeam.primaryColor} />)}</div>}
     </div>
   );
 };
