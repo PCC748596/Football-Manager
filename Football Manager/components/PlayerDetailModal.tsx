@@ -10,6 +10,7 @@ import { RenovarModal } from './ContractPanel';
 import { PlayerFace } from './PlayerFace';
 import EnergyBar, { energiaDe, matchFormDe, MatchFormBar } from './EnergyBar';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
+import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 import { estiloPorPosicao, estiloValidoDoJogador } from '../textSim/playStyleFallback';
 import { atributos3d, campo3d, paisDoJogador } from '../textSim/atributos3d';
 import { peBomDe } from '../textSim/peBom';
@@ -315,7 +316,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                     <img src={assetUrl(`/Assets/Bandeiras/${paisDoJogador(player, (team as any)?.country) || 'x'}.png`)} alt="" title="Nationality" className="w-6 h-4 object-cover rounded-sm border border-slate-700" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                     <span>•</span><span>{peBomDe(player) === 'e' ? 'Left foot' : 'Right foot'}</span>
                     {attr3d.altura ? <><span>•</span><span>{attr3d.altura} cm / {attr3d.peso || '-'} kg</span></> : null}
-                    {playStyles[0] ? <><span>•</span><span title={(playStyles[0] as any).descricao || ''}>{playStyles[0].icon} {playStyles[0].name}</span></> : null}
+                    {playStyles[0] ? <><span>•</span><span className="inline-flex items-center gap-1.5" title={(playStyles[0] as any).descricao || ''}><IconePlayStyleSvg estilo={playStyles[0].name} tam={18} />{playStyles[0].name}</span></> : null}
                   </div>
                 </div>
               </div>

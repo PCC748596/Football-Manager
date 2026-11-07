@@ -13,6 +13,7 @@ import { TREINADORES, sortearConhecimento } from './treinadores';
 import { REAL_TEAMS_JSON, REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 import { jogadoresLocaisDoClube } from './dadosLocais';
 import { sortearPlayStyle } from './youth';
+import { matchFormInicial } from './trainingService';
 import { PLAYSTYLE_DA_BASE } from './playStylesDatabase';
 
 const DEFAULT_TACTICS: Tactics = {
@@ -86,9 +87,9 @@ export const generatePlayer = (teamId: string, position: Position, idCounter: nu
     age,
     position,
     skill: finalSkill,
-    matchForm: 50,
-    energia: 100,
-    fitness: 100,
+    matchForm: matchFormInicial(finalSkill),
+    energia: matchFormInicial(finalSkill),   // a Energia nunca passa do Match Form
+    fitness: matchFormInicial(finalSkill),
     morale: randomInt(40, 60),
     goalsScored: 0,
     assists: 0,
@@ -667,9 +668,9 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
           position: mapPosString(p.posPlayer),
           ...(p.birthDate ? { birthDate: p.birthDate } : {}),
           skill: Math.max(NIVEL_MINIMO, p.ovrPlayer),
-          matchForm: 50,
-          energia: 100,
-          fitness: 100,
+          matchForm: matchFormInicial(Math.max(NIVEL_MINIMO, p.ovrPlayer)),
+          energia: matchFormInicial(Math.max(NIVEL_MINIMO, p.ovrPlayer)),   // a Energia nunca passa do Match Form
+          fitness: matchFormInicial(Math.max(NIVEL_MINIMO, p.ovrPlayer)),
           morale: randomInt(40, 60), // Everyone starts at 4-6 morale in preseason
           goalsScored: 0,
           assists: 0,

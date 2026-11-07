@@ -10,7 +10,7 @@ TEC, TAC e MEN seguem a QUALIDADE do jogador; o FIS e parecido num craque e num 
 */
 import dados from './atributos3d.json';
 import type { Player } from '../types';
-import { PONTOS_POR_ATRIBUTO } from './trainingService';
+import { PONTOS_POR_ATRIBUTO, regressaoPorIdade } from './trainingService';
 import { REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 import { PLAYSTYLE_DA_BASE } from './playStylesDatabase';
 import { NIVEL_MINIMO } from './dataGenerator';
@@ -168,4 +168,28 @@ export const paisDoJogador = (p: Player, paisDoClube?: string | number): string 
   const porId = (REAL_COUNTRIES_JSON as any[]).find(x => String(x.id) === c);
   const porNome = (REAL_COUNTRIES_JSON as any[]).find(x => String(x.name).toLowerCase() === c.toLowerCase());
   return String((porId || porNome)?.id ?? '') || null;
+};
+
+/**
+ * REGRESSAO POR IDADE (OnSeasonEnd): devolve o `treino3d` novo do jogador depois de perder niveis inteiros, segundo `regressaoPorIdade` (idade inteira).
+ * A perda vale para cada atributo do grupo (TEC/TAC/MEN/FIS; a stamina tem a sua propria queda) e nunca leva um atributo abaixo de 50.
+ * Cada atributo que cai perde tambem os pontos de treino parciais (o "banco de GROWTH" zera). Devolve `undefined` se nada mudou.
+ * Nota: o FIS dos dados de origem passa por `subirFis` (compressao acima de 85) e a stamina e limitada ao FIS, por isso a queda mostrada pode ser menor que a pedida.
+ */
+export const regredirPorIdade = (p: Player): Record<string, number> | undefined => {
+  const q = regressaoPorIdade(Math.floor(p.age));
+  if (!q.FIS && !q.STAMINA && !q.TEC && !q.TAC && !q.MEN) return undefined;
+  const a = atributos3d(p);
+  const t3: Record<string, number> = { ...(p.treino3d || {}) };
+  let mudou = false;
+  for (const k of ORDEM_GRUPOS) {
+    for (const x of a.detalhe![k]) {
+      const queda = x.campo === 'stamina' ? q.STAMINA : q[k];
+      const perda = Math.min(queda, Math.max(0, x.valor - 50));
+      if (perda <= 0) continue;
+      t3[x.campo] = Math.floor((t3[x.campo] || 0) / PONTOS_POR_ATRIBUTO) * PONTOS_POR_ATRIBUTO - perda * PONTOS_POR_ATRIBUTO;
+      mudou = true;
+    }
+  }
+  return mudou ? t3 : undefined;
 };

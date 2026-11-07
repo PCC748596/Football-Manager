@@ -28,11 +28,49 @@ export const starsFromPotential = (potential?: number): number => {
 
 /** XP penalty for low energy. Energia > 75%: 1.0x, 50-74%: 0.8x, 25-49%: 0.5x, < 25%: 0.1x. */
 export const exaustaoMultiplier = (energia: number): number => {
-  if (energia > 75) return 1.0;
-  if (energia > 49) return 0.8;
-  if (energia > 24) return 0.5;
+  if (energia >= 75) return 1.0;
+  if (energia >= 50) return 0.8;
+  if (energia >= 25) return 0.5;
   return 0.1;
 };
+
+/** Multiplicador de RECUPERACAO de energia pela stamina: Stamina 50 recupera metade do que um atleta com 100. Formula: stamina / 100. */
+export const recoveryMultiplier = (stamina: number): number => {
+  return Math.max(50, Math.min(100, stamina)) / 100;
+};
+
+/** Piso do Match Form: o decay nunca baixa o MF abaixo de Media_FIS / 2. Tambem e o minimo do reset de temporada e da alta medica. */
+export const matchFormPiso = (fisMedio: number): number => fisMedio / 2;
+
+/** `Player.trainingGroupId` de quem nao esta em G1/G2/G3: entra em Descanso (0 XP, recupera 25% * Stamina/100 por dia, ver GameContext.advanceDay). */
+export const SEM_GRUPO = -1;
+/** Energia recuperada por dia no Descanso (sem grupo), antes do multiplicador de Stamina. */
+export const ENERGIA_DESCANSO_SEM_GRUPO = 25;
+/** Semanas seguidas sem jogar, em Descanso, a partir das quais o Moral sofre a penalidade oculta de falta de tempo de jogo. */
+export const SEMANAS_SEM_JOGO_PENALIDADE = 3;
+
+/** Chance (%) de lesao por evento (jogo ou sessao de treino com custo de energia): 3% com Energia < 25%, senao 1%. */
+export const chanceLesao = (energia: number): number => (energia < 25 ? 3 : 1);
+/** Rola o dado de lesao (1 a 100): lesiona se o rolo <= chance. `rolo` e injetavel para os testes. */
+export const rolouLesao = (energia: number, rolo: number = 1 + Math.floor(Math.random() * 100)): boolean => rolo <= chanceLesao(energia);
+/** Sessoes que nao disparam o rolo de lesao: Recovery e as que so mexem em Chemistry/Moral (Analysis, Team Dinner). */
+export const sessaoRolaLesao = (actId: string): boolean => {
+  if (actId === 'recovery') return false;
+  const act = ACTIVITIES.find(a => a.id === actId);
+  if (!act || act.impacts.some(i => i.label === 'CHE')) return false;
+  return (ENERGY_COST_BASE[actId] ?? 0) > 0;
+};
+
+/** Regressao por idade no fim da temporada (idade INTEIRA): niveis perdidos por categoria. TEC/TAC/MEN/FIS aplicam-se a cada atributo do grupo (FIS sem a stamina); a stamina e a parte. */
+export const regressaoPorIdade = (idade: number): { FIS: number; STAMINA: number; TEC: number; TAC: number; MEN: number } => {
+  if (idade >= 35) return { FIS: 5, STAMINA: 4, TEC: 2, TAC: 1, MEN: 1 };
+  if (idade >= 32) return { FIS: 3, STAMINA: 2, TEC: 1, TAC: 0, MEN: 0 };
+  if (idade >= 30) return { FIS: 1, STAMINA: 1, TEC: 0, TAC: 0, MEN: 0 };
+  return { FIS: 0, STAMINA: 0, TEC: 0, TAC: 0, MEN: 0 };
+};
+
+/** Match Form de um jogador novo (gerador, base): max(30, FIS / 2). O gerador nao tem o FIS real ainda, entao usa o nivel (`skill`) como aproximacao. */
+export const matchFormInicial = (fisAprox: number): number => Math.max(30, Math.round(matchFormPiso(fisAprox)));
 
 /** Drain multiplier based on player stamina. Higher stamina = lower drain. Formula: 100 / stamina. */
 export const drainMultiplier = (stamina: number): number => {

@@ -149,8 +149,12 @@ export interface Player {
   age: number;
   position: Position;
   skill: number;
-  /** Match Form / Tank (0-100): size of the tank, grows with match minutes (>15min: +0.5/min). */
+  /** Match Form / Tank (0-100): ritmo de jogo e TETO da Energia. Ganha min(minutos, 60) * 0.5 por jogo; decai por semana sem jogar (ver Training_Motor_and_Progression.md). */
   matchForm: number;
+  /** Minutos jogados na semana corrente (zera no domingo, quando o decay semanal do Match Form e verificado). */
+  minutosSemana?: number;
+  /** Semanas seguidas em Descanso (sem grupo) sem jogar: a partir de 3 o Moral sofre a penalidade oculta de falta de tempo de jogo. */
+  semanasSemJogo?: number;
   /** Daily Energy (0-100%): consumed by training/matches, recovered with rest. Default 100. */
   energia?: number;
   fitness: number;
