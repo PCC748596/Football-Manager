@@ -1027,7 +1027,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return {
           ...p,
-          fitness: Math.min(100, Math.max(0, p.fitness + dailyRecovery)),
+          energia: Math.min(100, Math.max(0, (p.energia ?? 100) + dailyRecovery)),
+          fitness: Math.min(100, Math.max(0, (p.energia ?? 100) + dailyRecovery)), // espelho legado ate a Task 8
           morale: Math.min(100, Math.max(0, (p.morale || 50) + moraleBoost)),
           injury: lesao ? (lesao.daysOut > 1 ? { ...lesao, daysOut: lesao.daysOut - 1 } : undefined) : undefined
         };
@@ -1222,9 +1223,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (e.injuryTipo) {
                 // Lesao do 3D: o FIS cai por dia (variacaoDiariaDeFis), sem o tombo de uma vez do motor de texto.
               } else if (e.injurySeverity === 'LIGHT' || e.injurySeverity === 'LEVE') {
-                p.fitness = Math.max(0, (p.fitness || 100) - 15);
+                p.energia = Math.max(0, (p.energia ?? 100) - 15);
+                p.fitness = p.energia;
               } else {
-                p.fitness = 80 - (e.injuryDaysOut * 15);
+                p.energia = 80 - (e.injuryDaysOut * 15);
+                p.fitness = p.energia;
               }
               updated = true;
             }
@@ -1296,6 +1299,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!p.trainingAccumulated) {
           p.trainingAccumulated = { def: 0, pas: 0, drb: 0, sht: 0, mor: 0 };
         }
+        if (p.energia === undefined) p.energia = 100;
 
         const pGroup = p.trainingGroupId || 0;
         const gains = isUserPlayer ? groupGains[pGroup] : {
@@ -1460,9 +1464,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPlayers(prev => prev.map(p => {
         if (p.id === event.playerId) {
           const isLight = event.injurySeverity === 'LIGHT';
-          const newFit = isLight ? p.fitness : (80 - (event.injuryDaysOut! * 15));
+          const newFit = isLight ? (p.energia ?? 100) : (80 - (event.injuryDaysOut! * 15));
           return {
             ...p,
+            energia: newFit,
             fitness: newFit,
             injury: { type: event.injuryName!, daysOut: event.injuryDaysOut!, severity: event.injurySeverity! }
           };
@@ -1596,7 +1601,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPlayers(prev => prev.map(p => {
         const d = (/(\d+)$/.exec(String(p.id)) || [])[1];
         const e = d !== undefined ? mapa[d] : undefined;
-        return (typeof e === 'number' && e !== p.fitness) ? { ...p, fitness: Math.max(0, Math.min(100, e)) } : p;
+        return (typeof e === 'number' && e !== p.energia) ? { ...p, energia: Math.max(0, Math.min(100, e)), fitness: Math.max(0, Math.min(100, e)) } : p;
       }));
     } else if (m.tipo === 'lesao') {
       /*
@@ -1828,9 +1833,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             }
 
-            let newFit = p.fitness - (perMinute * injuryMultiplier);
+            let newFit = (p.energia ?? 100) - (perMinute * injuryMultiplier);
             if (min === 45) newFit = Math.min(100, newFit + 3);
-            return { ...p, fitness: Math.max(0, newFit) };
+            return { ...p, energia: Math.max(0, newFit), fitness: Math.max(0, newFit) };
           });
         });
       }
@@ -1987,13 +1992,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
 
-          let newFitness = p.fitness - (perMinute * minutesPlayed) - injuryDrop;
+          let newFitness = (p.energia ?? 100) - (perMinute * minutesPlayed) - injuryDrop;
           // Halftime bonus if we cross the HT mark during this jump
           if (gameState.matchMinute < maxHTDurationRef.current && globalTargetMinute >= maxHTDurationRef.current) {
             newFitness += 3;
           }
 
-          return { ...p, fitness: Math.min(100, Math.max(0, newFitness)) };
+          const finalEn = Math.min(100, Math.max(0, newFitness));
+          return { ...p, energia: finalEn, fitness: finalEn };
         });
       });
     }

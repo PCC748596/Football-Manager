@@ -113,8 +113,8 @@ import type { Player } from '../types';
 
 export const cpuPlanoDoDia = (elenco: Player[], diasParaOJogo: number): { recuperacao: number; treina: boolean } => {
   const aptos = elenco.filter(p => !p.injury);
-  const media = aptos.length ? aptos.reduce((s, p) => s + p.fitness, 0) / aptos.length : 100;
-  const descansa = diasParaOJogo <= 1 || media < 82;
+  const media = aptos.length ? aptos.reduce((s, p) => s + (p.energia ?? 100), 0) / aptos.length : 100;
+  const descansa = diasParaOJogo <= 1 || media < 82 || aptos.some(p => (p.energia ?? 100) < 30);
   return { recuperacao: descansa ? 15 : 10, treina: !descansa };
 };
 
