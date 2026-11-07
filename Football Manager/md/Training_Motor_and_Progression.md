@@ -13,14 +13,14 @@ O jogo usa **pontos de treino por atributo** (`Player.treino3d`, em `textSim/tra
 - `PONTOS_POR_ATRIBUTO = 25` pontos = +1 no atributo, com teto de +15 (`TETO_PONTOS_TREINO`). Não há teto por estrelas nem custo crescente.
 - Idade, Estrelas (0.6x a 1.4x) e Exaustão multiplicam os pontos de DEF/PAS/DRB/SHT e dos atributos do 3D (`treino3d`). A Exaustão usa a Energia do início do dia.
 - Match Form inicial de jogador novo (jogo novo, base, contratação ou save antigo): **igual ao FIS médio** (mínimo 30), calculado uma vez (`mfIniciado`) pelo `GameContext`. A Energia é limitada a ele. Depois o MF sobe com os jogos e decai sem jogar. Um save antigo tem o MF refeito uma vez.
-- Reset de temporada (`max(30, FIS/2)`), alta médica (`max(40, FIS/2)`) e piso do decay (`FIS/2`) continuam em metade do FIS: o início do jogo parte do FIS cheio, mas as férias e a lesão custam ritmo.
+- O FORM é o FIS mais o que se ganha jogando (teto 100). O piso do decay e o reset de temporada são o próprio FIS (nunca a metade). O FIS não se corta; só cai com a idade (regressão) ou numa lesão muito séria. A metade do FIS vale para a **Energia**: na volta das férias (virada) e na alta de uma lesão a Energia cai para uma fração do FIS: `FIS/2` (grave), `FIS/3` (média) ou `FIS/4` (leve); fora disso ela pode cair menos.
 - Curva de nota TAC (código): 4.0 = 0.5x, 6.0 = 1.0x, 8.0 = 1.2x. `BASE_TAC_XP = 5` pontos em `tacticalAwa`. Os valores `MATCH_BASE_XP_TAC = 40` e a curva linear da seção 5.1 **não** estão implementados.
 - Jogador sem grupo: **entra no G1** (decisão final). `trainingGroupId` ausente vale G1 (`|| 0`). Não existe o estado "Descanso" nem a penalidade de Moral por falta de tempo de jogo.
 - Lesão por evento: 1% (Energia >= 25%) ou 3% (< 25%), rolada para cada slot de treino que gasta energia (Recovery, Analysis e Team Dinner não rolam) e uma vez por dia de treino da CPU. Lesão de treino = leve, 3 a 10 dias. As lesões de jogo continuam vindo do motor da partida, sem rolo extra.
 - Regressão por idade (`OnSeasonEnd`, na virada): `regredirPorIdade` subtrai níveis de cada atributo do grupo (TEC/TAC/MEN/FIS pelos grupos do código; stamina à parte), nunca abaixo de 50, e zera os pontos parciais do atributo que caiu. Atributos de goleiro não regridem.
 - Consumo no jogo usa `matchFatiguePerMinute(tática, posição)`, e não `1%/min * (100/Stamina)`.
 
-Já alinhado com a spec: faixas de Exaustão com `>=`, recovery com `Stamina/100`, Energia limitada pelo Match Form, ganho de MF `min(min, 60) * 0.5`, decay semanal com piso, reset de MF na virada e alta médica (Energia 25%, MF `max(40, piso)`).
+Já alinhado com a spec: faixas de Exaustão com `>=`, recovery com `Stamina/100`, Energia limitada pelo Match Form, ganho de MF `min(min, 60) * 0.5`, decay semanal com piso, reset de MF na virada e alta de lesão (Energia `FIS/2`, `FIS/3` ou `FIS/4` por gravidade; só a grave tira o ritmo, MF volta ao FIS).
 
 Ainda não implementado: XP/GROWTH/teto por estrelas, rolo de lesão ao fim do jogo.
 
@@ -145,8 +145,8 @@ Cada jogo ou slot de treino com custo negativo tem **1%** de chance de lesão. S
 - **Match Form (MF):**
   - Ganho no jogo: `min(Minutos, 60) * 0.5` (máximo +30; 60 ou 90 min dão o mesmo).
   - Decay semanal (verificado no fim da semana): atuou < 15 min na semana = -5 MF; lesionado no DM = -10 MF.
-  - Piso: o decay nunca baixa o MF abaixo de `Média_dos_Atributos_FIS / 2`.
-  - Virada de temporada: o MF de todo o plantel é resetado para `max(30, Média_FIS / 2)`.
+  - Piso: o decay só tira o que veio dos jogos; o MF nunca baixa do FIS.
+  - Virada de temporada: o MF de todo o plantel volta ao FIS e a Energia cai para `FIS/2`.
 - **TAC:** para quem jogou mais de 15 min, `XP = MATCH_BASE_XP_TAC (40) * Mult(Nota)`, com `Mult(Nota) = clamp(0.5 + (Nota - 4.0) * 0.25, 0.1, 2.0)`.
 - **Chemistry (0 a 100%):** o núcleo ganha +1.0 a cada 10 min jogados simultaneamente (máximo +9.0 por jogo). Um time titular novo leva cerca de 11 a 12 jogos para chegar a 100%. Já existe no sistema (UI de Chemistry entre jogadores).
 - **Morale:** Vitória +10, Empate 0, Derrota -10, sem histórico de resultados. Bônus/punição individual de ±5 se a nota for >= 8.0 ou <= 4.0, e vale também no empate.
@@ -154,7 +154,7 @@ Cada jogo ou slot de treino com custo negativo tem **1%** de chance de lesão. S
 ### 5.2. Departamento Médico
 
 - **Na lesão:** congelar a injeção de GROWTH e retirar o jogador do Grupo.
-- **Na alta:** devolver ao grupo original, Energia = 25% e **MF = `max(40, Média_FIS / 2)`** (atrofia de ritmo, sem violar o piso físico do atleta). O jogador precisa de Recovery antes de treinar normal ou jogar.
+- **Na alta:** devolver ao grupo original. A **Energia cai** para `FIS/2` (grave), `FIS/3` (média) ou `FIS/4` (leve); só na grave o **MF volta ao FIS** (perde o ritmo de jogo). Precisa de Recovery antes de treinar normal ou jogar.
 
 ## 6. PONTOS ABERTOS (TODO)
 

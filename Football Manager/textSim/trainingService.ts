@@ -39,8 +39,15 @@ export const recoveryMultiplier = (stamina: number): number => {
   return Math.max(50, Math.min(100, stamina)) / 100;
 };
 
-/** Piso do Match Form: o decay nunca baixa o MF abaixo de Media_FIS / 2. Tambem e o minimo do reset de temporada e da alta medica. */
-export const matchFormPiso = (fisMedio: number): number => fisMedio / 2;
+/** Piso do Match Form: o FORM e o FIS (media dos atributos fisicos) mais o que se ganha jogando, teto 100. O decay so tira o que veio dos jogos: nunca baixa do FIS. O FIS nao se corta pela metade. */
+export const matchFormPiso = (fisMedio: number): number => fisMedio;
+/** A Energia cai para metade do FIS na volta das ferias (virada) ou apos uma lesao muito seria; fora disso pode cair menos. */
+export const energiaPosRetorno = (fisMedio: number): number => fisMedio / 2;
+/** Energia na alta medica, como fracao do FIS: grave 1/2, media 1/3, leve 1/4 (a Energia nunca sobe por isto, so cai ate la). */
+export const energiaPosLesao = (fisMedio: number, severity?: string): number =>
+  fisMedio * (lesaoMuitoSeria(severity) ? 1 / 2 : (severity === 'MEDIUM' || severity === 'MÉDIA') ? 1 / 3 : 1 / 4);
+/** Lesao muito seria: so a gravidade maxima (SEVERE / GRAVE). */
+export const lesaoMuitoSeria = (severity?: string): boolean => severity === 'SEVERE' || severity === 'GRAVE';
 
 /** Chance (%) de lesao por evento (jogo ou sessao de treino com custo de energia): 3% com Energia < 25%, senao 1%. */
 export const chanceLesao = (energia: number): number => (energia < 25 ? 3 : 1);

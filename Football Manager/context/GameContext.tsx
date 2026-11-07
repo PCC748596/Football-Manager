@@ -27,7 +27,7 @@ import { slotsVazios, jogoEmAndamento } from '../textSim/escalacao';
 import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico, gerarMedico } from '../textSim/medico';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
-import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, ENERGIA_SLOT_VAZIO, drainMultiplier, recoveryMultiplier, matchFormPiso, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
+import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, ENERGIA_SLOT_VAZIO, drainMultiplier, recoveryMultiplier, matchFormPiso, energiaPosRetorno, energiaPosLesao, lesaoMuitoSeria, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
 import { campo3d, atributos3d, regredirPorIdade } from '../textSim/atributos3d';
 import { GRUPOS } from '../textSim/geradorAtributos';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
@@ -983,12 +983,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const r = calcularVirada({ teams: doClube, fixtures, userLeagueId: ligaId, userTeamId: userTeam.id, world, comps });
     aplicarDivisoes(r.divisoes);
     startGame(userTeam.id, gameState.managerName, paisDaLiga(r.ligaDoUtilizador) || userTeam.country, r.ligaDoUtilizador, { teams: doClube, players, ano: Number(gameState.currentDate.slice(0, 4)) });
-    // Virada (OnSeasonEnd): 1) regressao por idade (niveis inteiros, idade inteira); 2) o Match Form de todo o plantel volta a max(30, Media_FIS / 2) (ritmo de ferias), ja com o FIS novo.
+    // Virada (OnSeasonEnd): 1) regressao por idade (niveis inteiros, idade inteira); 2) o Match Form de todo o plantel volta ao FIS (perde o que veio dos jogos) e a Energia cai para metade do FIS (volta das ferias), ja com o FIS novo.
     setPlayers(prev => prev.map(p => {
       const treino3d = regredirPorIdade(p);
       const q = treino3d ? { ...p, treino3d } : p;
-      const mf = Math.max(30, matchFormPiso(atributos3d(q).fis));
-      return { ...q, matchForm: mf, minutosSemana: 0, energia: Math.min(q.energia ?? 100, mf), fitness: Math.min(q.energia ?? 100, mf) };
+      const fisQ = atributos3d(q).fis;
+      const mf = Math.min(100, Math.max(30, Math.round(matchFormPiso(fisQ))));
+      const en = Math.min(q.energia ?? 100, mf, energiaPosRetorno(fisQ));
+      return { ...q, matchForm: mf, minutosSemana: 0, energia: en, fitness: en };
     }));
   }, [gameState.currentDate]);
 
@@ -1075,9 +1077,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const b = boletimSemanal(lesao, teams.find(t => t.id === p.teamId)?.medico || gerarMedico(p.teamId));
           lesao = { ...b.lesao, boletim: b.boletim };
         }
-        // Match Form: o decay e verificado no domingo (fim da semana). < 15 min na semana = -5; lesionado = -10; nunca abaixo do piso (Media_FIS / 2).
+        // Match Form: o decay e verificado no domingo (fim da semana). < 15 min na semana = -5; lesionado = -10; nunca abaixo do piso (o proprio FIS).
         const fisPiso = matchFormPiso(atributos3d(p).fis);
-        // O MF nunca fica abaixo do piso (FIS/2), nem invalido: um save antigo com MF baixo travaria a Energia no teto (ex.: ENR 1%).
+        // O MF nunca fica abaixo do piso (o FIS), nem invalido: um save antigo com MF baixo travaria a Energia no teto (ex.: ENR 1%).
         let matchForm = Number.isFinite(p.matchForm) ? Math.max(p.matchForm, fisPiso) : Math.max(30, fisPiso);
         let minutosSemana = p.minutosSemana ?? 0;
         if (dayIdx === 6) {
@@ -1085,10 +1087,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (decay > 0) matchForm = Math.max(Math.min(matchForm, fisPiso), matchForm - decay);
           minutosSemana = 0;
         }
-        // Alta medica: volta com Energia 25% e MF = max(40, piso), sem ritmo.
+        // Alta medica: so a lesao MUITO seria tira o ritmo (MF volta ao FIS). A Energia cai a 1/2 do FIS (grave), 1/3 (media) ou 1/4 (leve).
         const teveAlta = !!lesao && lesao.daysOut <= 1;
-        if (teveAlta) matchForm = Math.max(40, fisPiso);
-        const energiaBase = teveAlta ? 25 : (p.energia ?? 100) + dailyRecovery;
+        const altaSeria = teveAlta && lesaoMuitoSeria(lesao?.severity);
+        if (altaSeria) matchForm = fisPiso;
+        const energiaSoma = (p.energia ?? 100) + dailyRecovery;
+        const energiaBase = teveAlta ? Math.min(energiaSoma, energiaPosLesao(atributos3d(p).fis, lesao?.severity)) : energiaSoma;
         // A Energia nunca passa do Match Form.
         const energiaFinal = Math.min(matchForm, Math.max(0, energiaBase));
         return {
