@@ -88,12 +88,17 @@ const TrainingView: React.FC = () => {
       (f.homeTeamId === userTeam.id || f.awayTeamId === userTeam.id)
     );
     
-    return userMatches.map(userMatch => {
+    const jogos = userMatches.map(userMatch => {
       const dIndex = weekDates.indexOf(userMatch.date);
       const opponentId = userMatch.homeTeamId === userTeam.id ? userMatch.awayTeamId : userMatch.homeTeamId;
       const opponent = teams.find(t => t.id === opponentId);
       return { index: dIndex, opponent: (opponent?.name || 'Opponent').toUpperCase() };
     });
+    // Amistoso marcado no calendario: o dia fica bloqueado com o jogo mesmo que o fixture nao esteja na lista (o label da atividade e o adversario).
+    weekInfo.days.forEach((d, i) => {
+      if (d.activity?.type === 'FRIENDLY' && !jogos.some(j => j.index === i)) jogos.push({ index: i, opponent: (d.activity.label || 'Friendly').toUpperCase() });
+    });
+    return jogos;
   }, [weekInfo, userTeam, fixtures, teams]);
 
   const isTravelDay = (dIdx: number) => {

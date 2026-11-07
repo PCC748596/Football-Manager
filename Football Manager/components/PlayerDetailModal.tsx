@@ -231,23 +231,23 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
   ];
   const corDaBarra = (v: number) => (v >= 80 ? '#10b981' : v >= 70 ? '#60a5fa' : v >= 60 ? '#eab308' : '#f43f5e');
 
-  // Os 2 atributos mais importantes da posicao em cada bloco (marcados com hachura). Mental nao leva marca; Goalkeeping so o goleiro.
-  const CHAVES_POR_POSICAO: Record<string, Partial<Record<'TEC' | 'TAC' | 'FIS' | 'GK', string[]>>> = {
-    GK: { TEC: ['passing', 'longPassing'], TAC: ['posDefense', 'tacticalAwa'], FIS: ['jumping', 'agility'], GK: ['reflexes', 'diving'] },
-    CB: { TEC: ['headAccurancy', 'passing'], TAC: ['tackleStanding', 'manMarking'], FIS: ['strength', 'jumping'] },
-    LB: { TEC: ['crossing', 'passing'], TAC: ['tackleStanding', 'posDefense'], FIS: ['speed', 'stamina'] },
-    RB: { TEC: ['crossing', 'passing'], TAC: ['tackleStanding', 'posDefense'], FIS: ['speed', 'stamina'] },
-    DM: { TEC: ['passing', 'ballControl'], TAC: ['tackleStanding', 'posDefense'], FIS: ['stamina', 'strength'] },
-    CM: { TEC: ['passing', 'ballControl'], TAC: ['vision', 'tacticalAwa'], FIS: ['stamina', 'balance'] },
-    LM: { TEC: ['crossing', 'dribbling'], TAC: ['posOffense', 'vision'], FIS: ['speed', 'stamina'] },
-    RM: { TEC: ['crossing', 'dribbling'], TAC: ['posOffense', 'vision'], FIS: ['speed', 'stamina'] },
-    AM: { TEC: ['passing', 'dribbling'], TAC: ['vision', 'posOffense'], FIS: ['agility', 'balance'] },
-    LW: { TEC: ['dribbling', 'crossing'], TAC: ['posOffense', 'vision'], FIS: ['speed', 'acceleration'] },
-    RW: { TEC: ['dribbling', 'crossing'], TAC: ['posOffense', 'vision'], FIS: ['speed', 'acceleration'] },
-    SS: { TEC: ['finishing', 'dribbling'], TAC: ['posOffense', 'vision'], FIS: ['acceleration', 'agility'] },
-    ST: { TEC: ['finishing', 'shotPower'], TAC: ['posOffense', 'tacticalAwa'], FIS: ['strength', 'acceleration'] }
+  // Os atributos mais importantes da posicao (3 em Technical/Tactical/Physical/Goalkeeping, 2 em Mental), marcados com hachura. Goalkeeping so o goleiro.
+  const CHAVES_POR_POSICAO: Record<string, Partial<Record<'TEC' | 'TAC' | 'MEN' | 'FIS' | 'GK', string[]>>> = {
+    GK: { TEC: ['passing', 'longPassing', 'ballControl'], TAC: ['posDefense', 'tacticalAwa', 'vision'], MEN: ['reactions', 'composure'], FIS: ['jumping', 'agility', 'balance'], GK: ['reflexes', 'diving', 'handling'] },
+    CB: { TEC: ['headAccurancy', 'passing', 'ballControl'], TAC: ['tackleStanding', 'manMarking', 'posDefense'], MEN: ['aggression', 'composure'], FIS: ['strength', 'jumping', 'speed'] },
+    LB: { TEC: ['crossing', 'passing', 'dribbling'], TAC: ['tackleStanding', 'posDefense', 'manMarking'], MEN: ['consistency', 'reactions'], FIS: ['speed', 'stamina', 'acceleration'] },
+    RB: { TEC: ['crossing', 'passing', 'dribbling'], TAC: ['tackleStanding', 'posDefense', 'manMarking'], MEN: ['consistency', 'reactions'], FIS: ['speed', 'stamina', 'acceleration'] },
+    DM: { TEC: ['passing', 'ballControl', 'longPassing'], TAC: ['tackleStanding', 'posDefense', 'tacticalAwa'], MEN: ['aggression', 'composure'], FIS: ['stamina', 'strength', 'balance'] },
+    CM: { TEC: ['passing', 'ballControl', 'longPassing'], TAC: ['vision', 'tacticalAwa', 'posDefense'], MEN: ['consistency', 'composure'], FIS: ['stamina', 'balance', 'agility'] },
+    LM: { TEC: ['crossing', 'dribbling', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['consistency', 'composure'], FIS: ['speed', 'stamina', 'acceleration'] },
+    RM: { TEC: ['crossing', 'dribbling', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['consistency', 'composure'], FIS: ['speed', 'stamina', 'acceleration'] },
+    AM: { TEC: ['passing', 'dribbling', 'ballControl'], TAC: ['vision', 'posOffense', 'tacticalAwa'], MEN: ['composure', 'reactions'], FIS: ['agility', 'balance', 'acceleration'] },
+    LW: { TEC: ['dribbling', 'crossing', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['composure', 'reactions'], FIS: ['speed', 'acceleration', 'agility'] },
+    RW: { TEC: ['dribbling', 'crossing', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['composure', 'reactions'], FIS: ['speed', 'acceleration', 'agility'] },
+    SS: { TEC: ['finishing', 'dribbling', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['composure', 'reactions'], FIS: ['acceleration', 'agility', 'speed'] },
+    ST: { TEC: ['finishing', 'shotPower', 'headAccurancy'], TAC: ['posOffense', 'tacticalAwa', 'vision'], MEN: ['composure', 'reactions'], FIS: ['strength', 'acceleration', 'speed'] }
   };
-  const HACHURA: React.CSSProperties = { backgroundImage: 'repeating-linear-gradient(135deg, rgba(148,163,184,0.28) 0, rgba(148,163,184,0.28) 2px, transparent 2px, transparent 6px)', borderRadius: 4 };
+  const HACHURA: React.CSSProperties = { backgroundImage: 'repeating-linear-gradient(135deg, rgba(0,0,0,0.65) 0, rgba(0,0,0,0.65) 1.5px, rgba(100,116,139,0.45) 1.5px, rgba(100,116,139,0.45) 3px)', borderRadius: 4 };
 
   // Um bloco de atributos (Technical, Tactical, Mental, Physical, Goalkeeping): titulo com a media e o ganho do treino da temporada, e a lista de campos.
   const blocoAtributos = (g: 'TEC' | 'TAC' | 'MEN' | 'FIS' | 'GK') => {
@@ -356,10 +356,25 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                 <div className="absolute left-1/2 top-1/2 w-12 h-12 -translate-x-1/2 -translate-y-1/2 rounded-full border border-slate-600" />
                 <div className="absolute left-0 top-1/4 bottom-1/4 w-[14%] border border-l-0 border-slate-600" />
                 <div className="absolute right-0 top-1/4 bottom-1/4 w-[14%] border border-r-0 border-slate-600" />
-                {Object.entries(POS_CAMPO).map(([pos, [x, y]]) => {
-                  const ativa = pos === player.position;
+                <div className="absolute left-0 top-[38%] bottom-[38%] w-[5%] border border-l-0 border-slate-600" />
+                <div className="absolute right-0 top-[38%] bottom-[38%] w-[5%] border border-r-0 border-slate-600" />
+                <div className="absolute left-[14%] top-[36%] bottom-[36%] w-[6%] border border-l-0 border-slate-600" style={{ borderRadius: '0 999px 999px 0' }} />
+                <div className="absolute right-[14%] top-[36%] bottom-[36%] w-[6%] border border-r-0 border-slate-600" style={{ borderRadius: '999px 0 0 999px' }} />
+                {(() => {
+                  // As posicoes centrais (CB, DM, CM, AM) ganham uma vaga de cada lado (y maior = esquerda). O destro acende a central e a da direita; o canhoto, a central e a da esquerda.
+                  const lado = peBomDe(player) === 'e' ? 'e' : 'd';
+                  const itens: { id: string; pos: string; x: number; y: number; ativa: boolean }[] = [];
+                  Object.entries(POS_CAMPO).forEach(([pos, [x, y]]) => {
+                    itens.push({ id: pos, pos, x, y, ativa: pos === player.position });
+                    if (['CB', 'DM', 'CM', 'AM', 'SS', 'ST'].includes(pos)) {
+                      itens.push({ id: pos + 'e', pos, x, y: y - 16, ativa: pos === player.position && lado === 'e' });
+                      itens.push({ id: pos + 'd', pos, x, y: y + 16, ativa: pos === player.position && lado === 'd' });
+                    }
+                  });
+                  return itens;
+                })().map(({ id: key, pos, x, y, ativa }) => {
                   return (
-                    <span key={pos} title={pos} className={`absolute w-6 h-5 flex items-center justify-center rounded-md border text-[9px] font-black leading-none -translate-x-1/2 -translate-y-1/2 ${ativa ? 'z-10 bg-emerald-400 border-emerald-300 text-slate-900 shadow-[0_0_10px_rgba(52,211,153,0.9)]' : 'bg-slate-800/60 border-slate-600/70 text-slate-500'}`} style={{ left: `${x}%`, top: `${y}%` }}>
+                    <span key={key} title={pos} className={`absolute w-6 h-5 flex items-center justify-center rounded-md border text-[9px] font-black leading-none -translate-x-1/2 -translate-y-1/2 ${ativa ? 'z-10 bg-emerald-400 border-emerald-300 text-slate-900 shadow-[0_0_10px_rgba(52,211,153,0.9)]' : 'bg-slate-800/60 border-slate-600/70 text-slate-500'}`} style={{ left: `${x}%`, top: `${y}%` }}>
                       {pos}
                     </span>
                   );
