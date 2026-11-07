@@ -43,7 +43,7 @@ export const ContractChip: React.FC<{ player: Player; hoje: string }> = ({ playe
  * O modal da renovacao (negociacao). O jogador mostra o que pede (salario e anos); o treinador pode aceitar como esta (assina na hora, moral em alta) ou mudar o salario e/ou
  * os anos: ai o jogador analisa 2 ou 3 dias e responde (aceita: moral em alta; recusa: moral em baixa e o contrato fica como estava).
  */
-const RenovarModal: React.FC<{ player: Player; hoje: string; onClose: () => void }> = ({ player, hoje, onClose }) => {
+export const RenovarModal: React.FC<{ player: Player; hoje: string; onClose: () => void }> = ({ player, hoje, onClose }) => {
   const { proporRenovacao, negociacoes, formatCurrency, teams, players } = useGame();
   const pedido = useMemo(() => propostaDoJogador(player, hoje, salarioDeMercadoDaLiga(player, teams, players)), [player.id, hoje.slice(0, 7)]);
   const [salario, setSalario] = useState(pedido.salario);

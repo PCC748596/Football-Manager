@@ -5,6 +5,8 @@ import { Player, Position, Team } from '../types';
 import { useGame } from '../context/GameContext';
 import { TeamShield } from './TeamShield';
 import { AttributeGrowthArrow, getStarCount } from './SquadView';
+import { createPortal } from 'react-dom';
+import { RenovarModal } from './ContractPanel';
 import { PlayerFace } from './PlayerFace';
 import EnergyBar, { energiaDe, matchFormDe, MatchFormBar } from './EnergyBar';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
@@ -111,14 +113,17 @@ const RadarChart = ({ stats }: { stats: Record<string, number> }) => {
 
 const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) => {
   const [activePlayerId, setActivePlayerId] = React.useState(initialPlayer.id);
-  const { teams, players, formatCurrency } = useGame();
+  const { teams, players, formatCurrency, userTeam, gameState, negociacoes, listarParaEmprestimo, dispensarJogador } = useGame();
+  const [aviso, setAviso] = React.useState<string | null>(null);
+  const [renovando, setRenovando] = React.useState(false);     // modal da renovacao (ContractPanel.RenovarModal)
+  const [dispensando, setDispensando] = React.useState(false); // modal de confirmacao da dispensa
 
   // ESC fecha o Overview (se o modal de renovacao estiver aberto, o ESC fecha primeiro esse: ele escuta na fase de captura e para o evento).
   React.useEffect(() => {
-    const aoTeclar = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const aoTeclar = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (dispensando) setDispensando(false); else if (!renovando) onClose(); } };   // o modal da renovacao trata o proprio ESC (fase de captura)
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
-  }, [onClose]);
+  }, [onClose, dispensando, renovando]);
 
   React.useEffect(() => {
     setActivePlayerId(initialPlayer.id);
@@ -347,6 +352,20 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                 <div className="flex justify-between"><span className="text-slate-400">Match Form</span><span className="font-black text-white">{Math.round(matchFormDe(player))}</span></div>
                 <div className="flex justify-between"><span className="text-slate-400">Morale</span><span className="font-black text-white">{Math.round(player.morale)}</span></div>
               </div>
+              {userTeam && player.teamId === userTeam.id && (
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  <button onClick={() => setRenovando(true)} title={negociacoes.some(n => n.playerId === player.id) ? 'Negotiation in progress' : 'Renew contract'} className="min-w-0 text-[10px] font-black uppercase tracking-wider leading-tight py-2 px-1 rounded border bg-blue-600 hover:bg-blue-500 text-white border-blue-500">
+                    {negociacoes.some(n => n.playerId === player.id) ? 'Negotiating' : 'Renew'}
+                  </button>
+                  <button onClick={() => { const r = listarParaEmprestimo(player.id, !player.listedForLoan); setAviso(r.ok ? (player.listedForLoan ? 'Removed from the loan list' : 'Listed for loan (morale -5)') : (r.motivo || 'Not possible')); }}
+                    title={player.listedForLoan ? 'Listed for loan (click to remove)' : 'Put on the loan list'}
+                    className={`min-w-0 text-[10px] font-black uppercase tracking-wider leading-tight py-2 px-1 rounded border ${player.listedForLoan ? 'bg-sky-600 text-white border-sky-500' : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'}`}>
+                    {player.listedForLoan ? 'On loan list' : 'Loan'}
+                  </button>
+                  <button onClick={() => setDispensando(true)} title="Release player" className="min-w-0 text-[10px] font-black uppercase tracking-wider leading-tight py-2 px-1 rounded border border-rose-700 text-rose-400 hover:bg-rose-900/40">Release</button>
+                  {aviso && <div className="col-span-3 text-[11px] text-amber-400 font-bold">{aviso}</div>}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -359,6 +378,28 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
           ✕
         </button>
       </div>
+      {renovando && <RenovarModal player={player} hoje={gameState.currentDate} onClose={() => setRenovando(false)} />}
+      {dispensando && createPortal(
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={e => { e.stopPropagation(); setDispensando(false); }}>
+          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+            <div className="text-[10px] font-black uppercase tracking-widest text-rose-400">Release player</div>
+            <div className="flex items-center gap-4">
+              <div className="text-5xl font-black italic text-blue-400">{Math.round(player.skill)}</div>
+              <div className="min-w-0">
+                <div className="text-lg font-black text-white truncate">{player.name}</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">{player.position} • {player.age} years</div>
+              </div>
+            </div>
+            <div className="text-xs text-slate-300 leading-relaxed">
+              The contract is terminated and {player.name} becomes a free agent. You receive no transfer fee. This cannot be undone.
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setDispensando(false)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-black py-2.5 rounded text-xs uppercase tracking-widest">Cancel</button>
+              <button onClick={() => { const r = dispensarJogador(player.id); setDispensando(false); if (r.ok) onClose(); else setAviso(r.motivo || 'Not possible'); }} className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-black py-2.5 rounded text-xs uppercase tracking-widest">Release</button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
     </div>
   );
 };
