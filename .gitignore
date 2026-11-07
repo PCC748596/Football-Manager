@@ -1,0 +1,13 @@
+# Worktrees
+.worktrees/
+worktrees/
+
+# Dependencies
+node_modules/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+*.log
