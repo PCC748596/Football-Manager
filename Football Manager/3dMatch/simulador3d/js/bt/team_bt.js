@@ -1236,6 +1236,22 @@ function computeBlock(bb) {
         if (x0 < -maxX) x0 = -maxX;
     }
 
+    /*
+    COM AS TABELAS POR ZONA, O RECTANGULO E O DAS TABELAS.
+
+    O rectangulo acima sai da Tactica (compactness, length, linha defensiva, mentalidade): descrevia a forma da equipa quando
+    cada jogador era posto nele por percentagem. Agora quem manda e a tabela por zona, com e sem bola (`posicaoPorZona`), e o
+    treinador mexe nos postos um a um no Match Tactics — o rectangulo da Tactica deixou de ter relacao com o que se ve, e ainda
+    cortava o posto (`limiteFrenteDoBlocoSemBola`). Por isso, com as tabelas activas, o rectangulo passa a ser a CAIXA dos postos
+    que a tabela da hoje (os dez de campo, na fase e na zona da bola), e o da Tactica guarda-se em `bloco.tatico`.
+    */
+    let tatico = null;
+    const dosPostos = retanguloDosPostos(bb);
+    if (dosPostos) {
+        tatico = { x0: x0, x1: x1, z0: z0, z1: z1 };
+        x0 = dosPostos.x0; x1 = dosPostos.x1; z0 = dosPostos.z0; z1 = dosPostos.z1;
+    }
+
     const L = (typeof BlockShape !== 'undefined' && BlockShape.linhas)
         ? BlockShape.linhas : { defesa: 0.0, meio: 0.5, ataque: 1.0 };
 
@@ -1244,13 +1260,14 @@ function computeBlock(bb) {
         x1: x1,
         z0: z0,
         z1: z1,
+        tatico: tatico,
         /*
         AS TRÊS LINHAS. Fracções em BlockShape.linhas — ver a nota lá, com a
         medição. O ataque era `z0 + 2/3 da profundidade`, e isso deixava o
         terço da frente do bloco vazio por construção: o avançado (v = 1.0)
         parava a dois terços e arrastava a formação toda com ele.
         */
-        profBase: profundidade,   // a profundidade sem o esticamento das formacoes de 4+ linhas
+        profBase: dosPostos ? (z1 - z0) : profundidade,   // a profundidade sem o esticamento das formacoes de 4+ linhas (com as tabelas, a dos postos)
         esticao: esticaoBloco,
         nLinhas: nLinhasK,
         zDef: z0 + (z1 - z0) * L.defesa,
@@ -1450,6 +1467,28 @@ function posicaoPorZona(p, bb) {
     const m = FormacoesZonasLib.emMetros(FormacoesZonas, cache.lista[p.idxFormacao]);
     const maxX = CAMPO_LARG / 2 - Z.margemX, maxZ = CAMPO_COMP / 2 - Z.margemZ;
     return { x: THREE.MathUtils.clamp(m.x * dir, -maxX, maxX), z: THREE.MathUtils.clamp(m.z * dir, -maxZ, maxZ) };
+}
+
+/*
+O RECTANGULO DOS POSTOS: a caixa (x0/x1 no mundo; z0/z1 no referencial de ataque da equipa, como o `bloco`) dos postos que a tabela por zona da aos dez jogadores de campo neste
+momento (fase com/sem bola, mistura da transicao e zona da bola incluidas: sai da mesma `posicaoPorZona`, e por isso da mesma cache). null sem tabelas (ZonasModel.activo falso, formacao
+sem tabela) ou com menos de dois postos: ai vale o rectangulo da Tactica.
+*/
+function retanguloDosPostos(bb) {
+    if (!bb || !bb.own) return null;
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity, n = 0;
+    for (const p of bb.own) {
+        if (!p || p.role === 'gk' || p.expulso) continue;
+        const s = posicaoPorZona(p, bb);
+        if (!s) return null;
+        const zDir = s.z * (p.dirZ || bb.dir || 1);
+        if (s.x < x0) x0 = s.x;
+        if (s.x > x1) x1 = s.x;
+        if (zDir < z0) z0 = zDir;
+        if (zDir > z1) z1 = zDir;
+        n++;
+    }
+    return n >= 2 ? { x0: x0, x1: x1, z0: z0, z1: z1 } : null;
 }
 
 /*
