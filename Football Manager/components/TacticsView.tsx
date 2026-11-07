@@ -75,7 +75,9 @@ interface TacticsViewProps {
 }
 
 const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
-  const { userTeam, players, updateTactics, updateSetPieceTakers, gameState, fixtures, teams, comps, avisoGoleiro } = useGame();
+  const { userTeam, players, updateTactics, updateSetPieceTakers, gameState, fixtures, teams, comps, avisoGoleiro, limparAvisoLesao } = useGame();
+  // Abrir o Tactics e a unica coisa que apaga o aviso de lesao do card do MatchDay.
+  useEffect(() => { limparAvisoLesao(); }, []);
   const [localLineup, setLocalLineup] = useState<string[]>([]);
   const [localBench, setLocalBench] = useState<string[]>([]);
   const [isOverBench, setIsOverBench] = useState(false);
@@ -696,7 +698,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                             <div className="absolute top-0 -right-4 flex flex-col gap-1 items-center">
                                                 {status.yellow && <div className="w-3 h-4 bg-yellow-400 border border-yellow-600 rounded-[1px] shadow-sm" />}
                                                 {status.red && <div className="w-5 h-7 bg-red-600 border border-gray-950 rounded-sm shadow-xl flex items-center justify-center transform rotate-12 -mr-2"><span className="text-[10px] text-white">🟥</span></div>}
-                                                {status.injury && <div className={`text-[18px] ${getInjuryColorClass(status.injury)} font-black drop-shadow-md leading-none mt-1 cursor-help`} title={typeof status.injury === 'object' ? `${status.injury.type} (${status.injury.daysOut} dias)` : 'Contundido na partida'}>✚</div>}
+                                                {status.injury && <div className={`text-[22.5px] ${getInjuryColorClass(status.injury)} font-black drop-shadow-md leading-none -mt-3 cursor-help`} title={typeof status.injury === 'object' ? `${status.injury.type} (${status.injury.daysOut} dias)` : 'Contundido na partida'}>✚</div>}
                                             </div>
                                         )}
                                     </div>

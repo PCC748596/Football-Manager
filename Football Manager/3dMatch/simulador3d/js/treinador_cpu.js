@@ -12,6 +12,8 @@ COMO FUNCIONA
     (ver `taticaDe`, config/tactics.js).
   . O CONHECIMENTO manda em tres coisas: o minuto efetivo da leitura (cada ponto acima de 70 adianta 0,3 min: um 94 reage ~7 min antes, um 50 ~6 min depois), a demora de reaccao (`demoraS`) e o
     risco de NAO ler o jogo (abaixo de 60 ha a probabilidade (60 - k)/100 de ficar na tatica base).
+  . PRESSURE x AGGRESSION (novo): a `pressaoDefensiva` do treinador so MOVE o time sem a bola (low recua ~6 m, balanced fica, high avanca ~8 m; ver `deslocamentoPorPressao`); a MENTALIDADE (`estilo`) desloca o time
+    inteiro (-8..+10 m); e a `agressividade` e que decide a marcacao colada, o desarme e as faltas. Por isso os cartoes limitam so a agressividade.
   . SUBSTITUICOES por cartoes: com amarelo, defesas e medios saem a partir de `minutoAmarelo` (mais cedo com mais conhecimento); com vermelho, o treinador tira o avancado mais adiantado e mete um defesa
     (se nao estiver a perder por 2+). Um reserva do mesmo papel entra pelo caminho de sempre (`Match.pedirSubstituicao`: nas simulacoes em lote e instantaneo; no jogo visivel passa pelo aquecimento e pela placa).
 =============================================================================
@@ -48,8 +50,8 @@ const TreinadorCPU = {
         if (!T.tabela || !(T.tabela.posicaoAdv > 0) || T.conhecimento < 60) return t;
         const d = T.tabela.posicaoAdv - T.tabela.posicao;          // > 0: o adversario esta pior classificado
         const limiar = Math.max(4, Math.round(T.tabela.total * 0.3));
-        if (d >= limiar) { if (t.estilo === 'balanceado' || t.estilo === 'defesa') t.estilo = 'ataque'; t.pressaoDefensiva = 'balanced'; }
-        else if (d <= -limiar && T.objetivo !== 'TITULO') { if (t.estilo === 'balanceado' || t.estilo === 'ataque') t.estilo = 'defesa'; t.pressaoDefensiva = 'low'; t.linhaDefensiva = 'low'; }
+        if (d >= limiar) { if (t.estilo === 'balanceado' || t.estilo === 'defesa') t.estilo = 'ataque'; this.pressao(t, 50); }
+        else if (d <= -limiar && T.objetivo !== 'TITULO') { if (t.estilo === 'balanceado' || t.estilo === 'ataque') t.estilo = 'defesa'; this.pressao(t, 35); t.linhaDefensiva = 'low'; }
         return t;
     },
 
@@ -70,13 +72,10 @@ const TreinadorCPU = {
         return n;
     },
 
-    // A PRESSAO NAO PODE SER ALTA COM AMARELOS: um jogador amarelado que pressiona arrisca a expulsao. Com amarelos o treinador baixa a pressao da equipa (e, mais tarde, troca-os: ver `substituicoesPorCartoes`).
+    // A AGRESSIVIDADE NAO PODE SER ALTA COM AMARELOS: um jogador amarelado que disputa bolas arrisca a expulsao. A PRESSURE so move o time (avanca/recua sem bola) e nao gera faltas, por isso ja nao se limita aqui:
+    // quem manda nos duelos, na marcacao colada e nas faltas e o AGGRESSION. Com amarelos o treinador baixa-o (e, mais tarde, troca-os: ver `substituicoesPorCartoes`).
     limitarPorAmarelos(tatica, amarelos) {
         const t = Object.assign({}, tatica);
-        const ordem = { low: 0, balanced: 1, high: 2 };
-        const teto = amarelos >= 3 ? 'low' : amarelos >= 1 ? 'balanced' : 'high';
-        if (ordem[t.pressaoDefensiva] > ordem[teto]) t.pressaoDefensiva = teto;
-        // E a agressividade tambem: com amarelos o treinador manda ter cuidado nos duelos.
         const agr = { muito_passiva: 0, passiva: 1, balanceada: 2, agressiva: 3, muito_agressiva: 4 };
         const tetoAgr = amarelos >= 3 ? 'passiva' : amarelos >= 1 ? 'balanceada' : null;
         if (tetoAgr && agr[t.agressividade] > agr[tetoAgr]) t.agressividade = tetoAgr;
@@ -144,7 +143,7 @@ const TreinadorCPU = {
             // [dificuldade, texto, aplica]
             [0.25, 'pressao alta: sai por cima dela (bola direta)', () => pres === 'high', () => { t.teamPlayStyle = 'direct'; }],
             [0.25, 'linha alta: ataca as costas (contra-ataque)', () => linha === 'high', () => { t.teamPlayStyle = 'counter_attack'; }],
-            [0.40, 'posse de bola: pressiona mais alto', () => ofens === 'possession' && normal, () => { t.pressaoDefensiva = 'high'; }],
+            [0.40, 'posse de bola: sobe o time sem bola para pressionar (Pressure alta, sem mexer no Aggression)', () => ofens === 'possession' && normal, () => { this.pressao(t, 75); }],
             [0.40, 'jogo direto / contra-ataque: baixa a linha e fecha a profundidade', () => (ofens === 'direct' || ofens === 'counter_attack') && normal, () => { if (t.linhaDefensiva === 'high') t.linhaDefensiva = 'medium'; t.lengthCompactness = 'short'; }],
             [0.50, 'jogo pelas alas: fecha a largura do bloco', () => ofens === 'wing_play', () => { t.compactness = 'short'; }],
             [0.60, 'adversario muito ofensivo: segura-o e sai no contra-ataque', () => (mental === 'ataque' || mental === 'muito_ofensiva') && normal, () => { t.teamPlayStyle = 'counter_attack'; if (t.estilo === 'ataque' || t.estilo === 'muito_ofensiva') t.estilo = 'balanceado'; }],
@@ -157,13 +156,40 @@ const TreinadorCPU = {
         return t;
     },
 
-    // A tatica propria que corresponde a intencao (sobre a base da equipa).
-    taticaDeIntencao(base, intencao) {
+    // A PRESSURE em percentagem (a escala do manager): grava o valor e o nivel que lhe corresponde (o motor so usa o valor se os dois coincidirem; ver `pressaoValorDe`).
+    pressao(t, v) { t.pressaoValor = v; t.pressaoDefensiva = (typeof nivelDaPressao === 'function') ? nivelDaPressao(v) : (v < 34 ? 'low' : v < 67 ? 'balanced' : 'high'); },
+
+    /*
+    A tatica propria que corresponde a intencao (sobre a base da equipa), usando TODOS os ajustes do manager:
+      . MENTALIDADE: desloca o time inteiro (U-DEF -8 m, DEF -4, BAL 0, OFF +5, U-OFF +10).
+      . PRESSURE (so move o time sem bola): 90% +10 m, 75% +5 m, 50% parado, 45% -3 m, 30% -6 m.
+      . AGGRESSION: marcacao colada, desarme e faltas (muito passiva .. muito agressiva).
+    `e` (placar, vermelhos) e `m` (minuto efetivo) graduam a urgencia: perder tarde ou com mais um = tudo ou nada; proteger 1-0 no fim ou jogar com menos um = bloco baixo ao maximo.
+    */
+    taticaDeIntencao(base, intencao, e, m) {
         const t = Object.assign({}, base);
+        const dif = e ? e.dif : 0, tarde = (m || 0) >= 80;
         switch (intencao) {
-            case 'ATTACK': t.estilo = (base.estilo === 'muito_ofensiva') ? 'muito_ofensiva' : 'ataque'; t.pressaoDefensiva = 'balanced'; t.linhaDefensiva = 'high'; break;   // a pressao ALTA subia faltas e cartoes (23 faltas e 8 amarelos por jogo): ataca com a linha alta mas pressiona de forma equilibrada
-            case 'RETREAT': t.estilo = 'muito_defensiva'; t.pressaoDefensiva = 'low'; t.linhaDefensiva = 'low'; break;
-            case 'POSSESS': t.estilo = 'balanceado'; t.pressaoDefensiva = 'low'; t.linhaDefensiva = 'medium'; break;
+            case 'ATTACK': {
+                const desesperado = dif <= -2 || (dif < 0 && tarde);
+                t.estilo = desesperado ? 'muito_ofensiva' : (base.estilo === 'muito_ofensiva' ? 'muito_ofensiva' : 'ataque');
+                this.pressao(t, desesperado ? 90 : 75);
+                t.linhaDefensiva = 'high';
+                // Aggression: normal = equilibrado (evita faltas e cartoes); desesperado = vai buscar a bola (os amarelos limitam depois).
+                t.agressividade = desesperado ? 'agressiva' : 'balanceada';
+                break;
+            }
+            case 'RETREAT': {
+                const total = (dif >= 1 && tarde) || (e && e.vermelhosMeus > e.vermelhosDeles);
+                t.estilo = total ? 'muito_defensiva' : 'defesa';
+                this.pressao(t, total ? 30 : 45);
+                t.linhaDefensiva = 'low';
+                t.agressividade = 'balanceada';
+                break;
+            }
+            case 'POSSESS':
+                t.estilo = 'balanceado'; this.pressao(t, 45); t.linhaDefensiva = 'medium'; t.agressividade = 'passiva';
+                break;
             default: break;
         }
         return t;
@@ -193,9 +219,9 @@ const TreinadorCPU = {
             T.reagirEm = null;
             const intencao = this.decidirIntencao(T, e, min);
             // A tatica da intencao, com a pressao limitada pelos amarelos.
-            const tatica = this.limitarPorAmarelos(this.contrapor(this.taticaDeIntencao(T.base, intencao), T, team, intencao), amarelos);
+            const tatica = this.limitarPorAmarelos(this.contrapor(this.taticaDeIntencao(T.base, intencao, e, min + (T.conhecimento - 70) * 0.3), T, team, intencao), amarelos);
             const atual = Tatics.porEquipa[team];
-            const mudou = intencao !== T.intencao || !atual || atual.pressaoDefensiva !== tatica.pressaoDefensiva || atual.estilo !== tatica.estilo || atual.linhaDefensiva !== tatica.linhaDefensiva || atual.teamPlayStyle !== tatica.teamPlayStyle || atual.compactness !== tatica.compactness || atual.lengthCompactness !== tatica.lengthCompactness || atual.agressividade !== tatica.agressividade;
+            const mudou = intencao !== T.intencao || !atual || atual.pressaoDefensiva !== tatica.pressaoDefensiva || atual.pressaoValor !== tatica.pressaoValor || atual.estilo !== tatica.estilo || atual.linhaDefensiva !== tatica.linhaDefensiva || atual.teamPlayStyle !== tatica.teamPlayStyle || atual.compactness !== tatica.compactness || atual.lengthCompactness !== tatica.lengthCompactness || atual.agressividade !== tatica.agressividade;
             if (mudou) {
                 this._log.push({ min: Math.floor(min), team, intencao, dif: e.dif, k: T.conhecimento, pressao: tatica.pressaoDefensiva, estiloOfensivo: tatica.teamPlayStyle, contras: tatica._contras || 0, amarelos: amarelos });
                 T.intencao = intencao;

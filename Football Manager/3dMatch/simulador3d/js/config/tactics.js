@@ -1738,7 +1738,7 @@ const MentalidadeModel = {
     vem do painel e tem a última palavra, e o `blocoZ` só movia o centro do
     rectângulo.
     */
-    pesoNaLinha: 0.5,
+    pesoNaLinha: 1.0,
 
     /*
     `tectoBloco` JÁ NÃO É LIDO pelo computeBlock: corria no fim e desfazia o
@@ -1773,14 +1773,14 @@ const MentalidadeModel = {
     */
     muito_defensiva: {
         agressao: 0.20,
-        blocoZ: -10.0,
+        blocoZ: -8.0,
         tectoBloco: -(CAMPO_COMP / 2) / 3,
         profundidade: 'short',
         pressao: 'low'
     },
     defesa: {
         agressao: 0.35,
-        blocoZ: -5.0,
+        blocoZ: -4.0,
         tectoBloco: -(CAMPO_COMP / 2) / 6,
         profundidade: 'short',
         pressao: 'low'
@@ -1793,12 +1793,12 @@ const MentalidadeModel = {
     },
     ataque: {
         agressao: 0.65,
-        blocoZ: 7.0,
+        blocoZ: 5.0,
         tectoBloco: (CAMPO_COMP / 2) / 3
     },
     muito_ofensiva: {
         agressao: 0.80,
-        blocoZ: 12.0,
+        blocoZ: 10.0,
         tectoBloco: (CAMPO_COMP / 2) * 2 / 3
     }
 };
@@ -1981,6 +1981,34 @@ function valorPorPressao(tabela, team) {
     const t = (v - PRESSAO_PONTOS.balanced) / (PRESSAO_PONTOS.high - PRESSAO_PONTOS.balanced);
     return tabela.balanced + (tabela.high - tabela.balanced) * t;
 }
+/*
+A AGRESSIVIDADE DA MARCACAO E DO DESARME e do AGGRESSION (pedido), nao da Pressure: a Pressure so move o time (ver deslocamentoPorPressao). `valorDeAgressao(team)` e a agressividade em 20..85
+(muito passiva 20, passiva 30, balanceada 50, agressiva 70, muito agressiva 85); `nivelDeAgressao` da low / balanced / high (os interruptores: so `high` pressiona no campo adversario);
+`valorPorAgressao(tabela, team)` interpola uma tabela { low, balanced, high } entre 20 / 50 / 85, como a antiga valorPorPressao.
+*/
+const AGRESSAO_PONTOS = { muito_passiva: 20, passiva: 30, balanceada: 50, agressiva: 70, muito_agressiva: 85 };
+function valorDeAgressao(team) { const v = AGRESSAO_PONTOS[taticaDe(team, 'agressividade')]; return v === undefined ? 50 : v; }
+function nivelDeAgressao(team) { return nivelDaPressao(valorDeAgressao(team)); }
+function valorPorAgressao(tabela, team) {
+    const v = Math.max(PRESSAO_PONTOS.low, Math.min(PRESSAO_PONTOS.high, valorDeAgressao(team)));
+    if (v <= PRESSAO_PONTOS.balanced) return tabela.low + (tabela.balanced - tabela.low) * (v - PRESSAO_PONTOS.low) / (PRESSAO_PONTOS.balanced - PRESSAO_PONTOS.low);
+    return tabela.balanced + (tabela.high - tabela.balanced) * (v - PRESSAO_PONTOS.balanced) / (PRESSAO_PONTOS.high - PRESSAO_PONTOS.balanced);
+}
+if (typeof window !== 'undefined') { window.valorPorAgressao = valorPorAgressao; window.nivelDeAgressao = nivelDeAgressao; window.valorDeAgressao = valorDeAgressao; }
+/*
+A PRESSAO MOVE O TIME SEM A BOLA (pedido): 50% mantem; 75% avanca 5 m; 90% avanca 10 m; 45% recua 3 m; 30% recua 6 m (linear entre os pontos, preso nos extremos).
+`deslocamentoPorPressao(team)` devolve os metros (+ = avanca, - = recua) no referencial de ataque. O recuo continua limitado pela Linha Defensiva; o avanco sobe o seu tecto.
+*/
+const PRESSAO_DESLOCAMENTO = [[30, -6], [45, -3], [50, 0], [75, 5], [90, 10]];
+function deslocamentoPorPressao(team) {
+    const v = pressaoValorDe(team), T = PRESSAO_DESLOCAMENTO;
+    if (v <= T[0][0]) return T[0][1];
+    for (let i = 1; i < T.length; i++) {
+        if (v <= T[i][0]) return T[i - 1][1] + (T[i][1] - T[i - 1][1]) * (v - T[i - 1][0]) / (T[i][0] - T[i - 1][0]);
+    }
+    return T[T.length - 1][1];
+}
+if (typeof window !== 'undefined') window.deslocamentoPorPressao = deslocamentoPorPressao;
 /*
 A LINHA DEFENSIVA EM PERCENTAGEM (manager 30-100; o motor tem low / medium / high). Mesma ideia da pressao: `linhaValorDe(team)` e o numero do manager
 (`linhaValor`, desde que caia no nivel em uso) e `valorPorLinha(tabela, team)` interpola { low, medium, high } entre 40 / 65 / 90, os valores tipicos de cada nivel.
@@ -2165,11 +2193,7 @@ const Tatics = {
                 const el = document.getElementById('t-length-compactness');
                 if (el) el.value = mental.profundidade;
             }
-            if (mental.pressao) {
-                this.pressaoDefensiva = mental.pressao;
-                const el = document.getElementById('t-pressao-def');
-                if (el) el.value = mental.pressao;
-            }
+            // A Mentalidade ja nao mexe na Pressure: so a Pressure a move (e o Aggression manda na agressividade).
         }
 
         Match.assignFormations();

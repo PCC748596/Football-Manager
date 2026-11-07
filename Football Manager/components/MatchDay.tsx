@@ -23,8 +23,10 @@ interface MatchDayProps {
 // Os rotulos das linhas de `Fixture.estat3d` (as mesmas do modal do intervalo do 3D).
 const ROTULO_ESTAT3D: Record<string, string> = { posse: 'POSSESSION %', finalizacoes: 'SHOTS', passes: 'PASSING ACCURACY %', amarelos: 'YELLOW CARDS', vermelhos: 'RED CARDS', corners: 'CORNERS', faltas: 'FOULS', impedimentos: 'OFFSIDES', defesas: 'GOALKEEPER SAVES' };
 
+const avisosDeLesionadosDados = new Set<string>();
+
 const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
-  const { gameState, fixtures, teams, players, playMatchDay, pauseMatch, resetMatchDay, advanceWeek, updateMatchVisualState, motor3dMensagem, avisoGoleiroMensagem, updateTactics, comps, decisaoDoJogoDeHoje, definirOrdemPenaltis, t } = useGame();
+  const { gameState, fixtures, teams, players, avisoLesao, playMatchDay, pauseMatch, resetMatchDay, advanceWeek, updateMatchVisualState, motor3dMensagem, avisoGoleiroMensagem, updateTactics, comps, decisaoDoJogoDeHoje, definirOrdemPenaltis, t } = useGame();
   
   const match = fixtures.find(f => f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId));
   const homeTeam = teams.find(t => t.id === match?.homeTeamId);
@@ -61,6 +63,10 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   // Os times estao a entrar em campo: o botao principal diz PULAR (ver Ponte.pularDisponivel).
   const [podePular, setPodePular] = useState(false);
   const userTeam = teams.find(t => t.id === gameState.userTeamId);
+  // Reservas lesionados: avisa uma vez ao entrar no jogo (o Set vive fora do componente, para voltar do Tactics nao repetir o aviso).
+  const lesionadosNoBanco = useMemo(() => (userTeam?.bench || []).map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p && !!p.injury), [userTeam, players]);
+  const [avisoLesionadosFechado, setAvisoLesionadosFechado] = useState(() => avisosDeLesionadosDados.has(chave3d) || !!gameState.matchVisual?.visualStatus && gameState.matchVisual.visualStatus !== 'PRE_MATCH');
+  const fecharAvisoLesionados = () => { avisosDeLesionadosDados.add(chave3d); setAvisoLesionadosFechado(true); };
   const taticaJson = userTeam ? JSON.stringify(taticaParaMotor(userTeam.tactics)) : '';
   // Tatica do manager -> painel do 3D: ao carregar e sempre que o utilizador a muda na aba Tactics.
   useEffect(() => { if (pronto3d && taticaJson) simulador3dEnviar({ tipo: 'tatica', ...JSON.parse(taticaJson) }); }, [pronto3d, taticaJson]);
@@ -330,6 +336,9 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                                  <h4 className="text-[10px] font-black text-center uppercase tracking-widest text-slate-500 mb-2">
                                      {gameState.matchMinute >= 90 ? "FULL TIME STATS" : "MATCH STATS"}
                                  </h4>
+                                 {avisoLesao.map(nome => (
+                                     <div key={nome} className="mb-2 px-3 py-2 rounded border border-red-500 bg-red-600/25 text-red-300 text-xs font-black uppercase tracking-wide text-center animate-pulse">✚ {nome} está sentindo uma lesão</div>
+                                 ))}
                                  {(match.estat3d ? [
                                    { label: 'GOALS', h: match.homeScore || 0, a: match.awayScore || 0 },
                                    ...match.estat3d.map(l => ({ label: ROTULO_ESTAT3D[l.id] || l.id.toUpperCase(), h: `${l.e}${l.sufixo || ''}`, a: `${l.d}${l.sufixo || ''}` })),
@@ -458,6 +467,25 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                   aoConfirmar={confirmarOrdem3d}
                 />
               </div>
+            )}
+
+            {/* Aviso: reservas lesionados ao entrar no match day (uma vez por jogo) */}
+            {lesionadosNoBanco.length > 0 && !avisoLesionadosFechado && (
+                <div className="absolute inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-8">
+                    <div className="bg-slate-900 border border-red-500/60 rounded-xl p-6 max-w-md w-full shadow-2xl">
+                        <h3 className="text-lg font-black text-red-400 uppercase tracking-wide mb-2">Injured players on the bench</h3>
+                        <p className="text-sm text-slate-300 mb-3">These substitutes are injured and should not be used:</p>
+                        <ul className="mb-4 space-y-1">
+                            {lesionadosNoBanco.map(p => (
+                                <li key={p.id} className="flex justify-between text-sm text-white"><span className="font-bold">{p.name} <span className="text-slate-400 font-normal">({p.position})</span></span><span className="text-red-400">{p.injury?.type || 'Injured'}</span></li>
+                            ))}
+                        </ul>
+                        <div className="flex gap-2">
+                            <button onClick={fecharAvisoLesionados} className="flex-1 py-2 rounded bg-slate-700 hover:bg-slate-600 text-white text-xs font-black uppercase">Continue</button>
+                            <button onClick={() => { fecharAvisoLesionados(); setView?.('TACTICS'); }} className="flex-1 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase">Edit Tactics</button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Kit Selection Overlay */}

@@ -5312,7 +5312,7 @@ const PlayerBT = sel('PlayerRoot',
                     // No campo de ataque (carrierZ * dirZ > 0), a equipa marca à distância e não faz roubo de bola,
                     // a não ser que a pressão defensiva esteja configurada como High ('high').
                     const carrierZInAtk = carrier.model.position.z * ctx.p.dirZ;
-                    if (typeof Tatics !== 'undefined' && taticaDe(ctx.p.team, 'pressaoDefensiva') !== 'high' && carrierZInAtk > 0) {
+                    if (typeof Tatics !== 'undefined' && nivelDeAgressao(ctx.p.team) !== 'high' && carrierZInAtk > 0) {
                         return false;
                     }
                     

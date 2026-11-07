@@ -451,13 +451,13 @@ function pickChaser(bb) {
         }
     }
     const M = (typeof MarkingModel !== 'undefined') ? MarkingModel : null;
-    const pressao = (typeof Tatics !== 'undefined' && taticaDe(bb && bb.team, 'pressaoDefensiva')) || 'balanced';
+    const pressao = (typeof Tatics !== 'undefined' && nivelDeAgressao(bb && bb.team)) || 'balanced';
     // Em percentagem: interpola low/balanced (5 -> 8 m) e, abaixo do nivel high, ate 30 m; no high e sem limite.
     let raioAccionamento = (M && M.raioDeAccionamento &&
         M.raioDeAccionamento[pressao] !== undefined)
         ? M.raioDeAccionamento[pressao] : undefined;
-    if (raioAccionamento !== undefined && pressao !== 'high' && typeof valorPorPressao === 'function') {
-        raioAccionamento = valorPorPressao({ low: M.raioDeAccionamento.low, balanced: M.raioDeAccionamento.balanced, high: 30 }, bb && bb.team);
+    if (raioAccionamento !== undefined && pressao !== 'high' && typeof valorPorAgressao === 'function') {
+        raioAccionamento = valorPorAgressao({ low: M.raioDeAccionamento.low, balanced: M.raioDeAccionamento.balanced, high: 30 }, bb && bb.team);
     }
 
     /*
@@ -509,7 +509,7 @@ function pickChaser(bb) {
         jaVaiABola: !!bb.chaser,
         bolaZ: ballPos.z,
         dir: bb.dir,
-        pressaoAlta: (typeof Tatics !== 'undefined' && taticaDe(bb && bb.team, 'pressaoDefensiva') === 'high'),
+        pressaoAlta: (typeof Tatics !== 'undefined' && nivelDeAgressao(bb && bb.team) === 'high'),
         gkTemBola: (bb.oppCarrier && bb.oppCarrier.role === 'gk') ||
             (bb.carrier && bb.carrier.role === 'gk') ||
             // Bola na mão de um guarda-redes (de qualquer equipa): é intocável, ninguém a persegue.
@@ -1074,7 +1074,9 @@ function computeBlock(bb) {
 
     const bolaZDir = bb.bolaZSuave * bb.dir;
     // `avancoDoRetangulo`: o rectângulo inteiro 3 m à frente do que o resto da conta dá (pedido). Os limites abaixo continuam a valer.
-    let centroZ = bolaZDir + bb.blocoZSuave + mentalBloco + (B.avancoDoRetangulo || 0);
+    // A PRESSAO move o time inteiro SEM a bola (+ avanca, - recua); com a bola nao mexe.
+    const pressaoDesloc = (!bb.isAttacking && typeof deslocamentoPorPressao === 'function') ? deslocamentoPorPressao(bb && bb.team) : 0;
+    let centroZ = bolaZDir + bb.blocoZSuave + mentalBloco + pressaoDesloc + (B.avancoDoRetangulo || 0);
 
     let z0 = centroZ - (profundidade / 2);
     let z1 = centroZ + (profundidade / 2);
@@ -1153,7 +1155,7 @@ function computeBlock(bb) {
         resposta ao momento. Somam-se.
         */
         // O tecto sobe com o avanço do rectângulo, senão o `recuoDaUltimaLinha` desfazia os 3 m a defender.
-        const capLinha = capBase + mentalBloco * pesoMental + avancoMeio + (B.avancoDoRetangulo || 0);
+        const capLinha = capBase + mentalBloco * pesoMental + avancoMeio + Math.max(0, pressaoDesloc) + (B.avancoDoRetangulo || 0);   // a pressao so sobe o tecto ao avancar: no recuo a Linha Defensiva continua a limitar
 
         let maisRecuadoDir = null, pisoDir = null;
         if (bb.opp && bb.opp.length) {
@@ -1170,7 +1172,7 @@ function computeBlock(bb) {
 
         const M = (typeof MarkingModel !== 'undefined') ? MarkingModel : null;
         const distancia = (M && M.distanciaPorPressao)
-            ? (typeof valorPorPressao === 'function' ? valorPorPressao(M.distanciaPorPressao, bb && bb.team) : (M.distanciaPorPressao[taticaDe(bb && bb.team, 'pressaoDefensiva')] ?? M.distanciaPorPressao.balanced))
+            ? (typeof valorPorAgressao === 'function' ? valorPorAgressao(M.distanciaPorPressao, bb && bb.team) : (M.distanciaPorPressao[nivelDeAgressao(bb && bb.team)] ?? M.distanciaPorPressao.balanced))
             : 3.0;
 
         let lastLine = recuoDaUltimaLinha(z0, maisRecuadoDir, distancia, pisoDir, capLinha);
@@ -1429,7 +1431,7 @@ function limiteDeRecuoDaLinha(bb) {
     if (gk) pisoDir = gk.model.position.z * bb.dir + 1.0;
     const M = (typeof MarkingModel !== 'undefined') ? MarkingModel : null;
     const distancia = (M && M.distanciaPorPressao)
-        ? (typeof valorPorPressao === 'function' ? valorPorPressao(M.distanciaPorPressao, bb.team) : (M.distanciaPorPressao[taticaDe(bb.team, 'pressaoDefensiva')] ?? M.distanciaPorPressao.balanced))
+        ? (typeof valorPorAgressao === 'function' ? valorPorAgressao(M.distanciaPorPressao, bb.team) : (M.distanciaPorPressao[nivelDeAgressao(bb.team)] ?? M.distanciaPorPressao.balanced))
         : 3.0;
     // Sem tecto: o painel e o LIMITE DE RECUO; so as regras da linha de impedimento (o adversario atras da linha, a baliza) o baixam.
     return recuoDaUltimaLinha(base, maisAvancado, distancia, pisoDir, null);
@@ -1946,7 +1948,7 @@ const TeamBT = sel('TeamRoot',
                 // um dos dois (ex: Ataque + Balanced) não basta pra pressionar
                 // no campo do adversário o jogo inteiro.
                 cond('pressionamosAlto', (bb) =>
-                    (taticaDe(bb && bb.team, 'estilo') === 'ataque' || taticaDe(bb && bb.team, 'estilo') === 'muito_ofensiva') && taticaDe(bb && bb.team, 'pressaoDefensiva') === 'high' && bb.ballZ * bb.dir > 0),
+                    (taticaDe(bb && bb.team, 'estilo') === 'ataque' || taticaDe(bb && bb.team, 'estilo') === 'muito_ofensiva') && nivelDeAgressao(bb && bb.team) === 'high' && bb.ballZ * bb.dir > 0),
                 setPosture(TeamPosture.HIGH_PRESS)
             ),
             setPosture(TeamPosture.MID_BLOCK)
@@ -2053,9 +2055,9 @@ function aplicarMarcacaoPosicional(p, bb, targetX, targetZ) {
     }
 
     const M = MarkingModel;
-    let distancia = (typeof valorPorPressao === 'function')
-        ? valorPorPressao(M.distanciaPorPressao, bb && bb.team)
-        : (M.distanciaPorPressao[taticaDe(bb && bb.team, 'pressaoDefensiva')] ?? M.distanciaPorPressao.balanced);
+    let distancia = (typeof valorPorAgressao === 'function')
+        ? valorPorAgressao(M.distanciaPorPressao, bb && bb.team)
+        : (M.distanciaPorPressao[nivelDeAgressao(bb && bb.team)] ?? M.distanciaPorPressao.balanced);
 
     /*
     A METADE DEFENSIVA DO ESTILO aperta ou alivia esta distância — ver
@@ -2072,7 +2074,7 @@ function aplicarMarcacaoPosicional(p, bb, targetX, targetZ) {
 
     // No campo de ataque com pressão não-High, a marcação é feita a distância acompanhando a jogada
     const isAtkHalf = (targetZ * p.dirZ > 0);
-    if (typeof Tatics !== 'undefined' && taticaDe(bb && bb.team, 'pressaoDefensiva') !== 'high' && isAtkHalf) {
+    if (typeof Tatics !== 'undefined' && nivelDeAgressao(bb && bb.team) !== 'high' && isAtkHalf) {
         distancia = Math.max(distancia, 4.5);
         biasMax = Math.min(biasMax, 3.0);
     }
