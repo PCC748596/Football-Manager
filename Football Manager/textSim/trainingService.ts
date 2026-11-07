@@ -60,6 +60,12 @@ export const ratingToTacMultiplier = (rating: number): number => {
   return 1.2 + ((rating - 8) / 2) * 0.1;
 };
 
+/** Pontos de treino base em tacticalAwa (Player.treino3d) ganhos por partida, escalados por ratingToTacMultiplier(nota). Nota 8.0 = +6, nota 4.0 = +2.5. */
+export const BASE_TAC_XP = 5;
+
+/** Bonus TAC pos-jogo (pontos de treino em tacticalAwa) para uma nota 0-10. */
+export const tacBonusDaNota = (nota: number): number => BASE_TAC_XP * ratingToTacMultiplier(nota);
+
 export interface Impact {
   label: string;
   value: number;
