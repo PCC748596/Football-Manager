@@ -9,6 +9,7 @@ import { PlayerFace } from './PlayerFace';
 import { ShirtIcon } from './ShirtIcon';
 import EnergyBar, { energiaDe } from './EnergyBar';
 import BoardConfidenceCard from './BoardConfidenceCard';
+import { ligaDoUtilizador, mapaDeClubes, tabelaDoGrupo, NOMES_FASES, rotuloDaFase, teamKey } from '../textSim/competitions';
 import { settleMatch, ECONOMIA_ESTADIO, competicaoDoJogo, type CurrencyCode } from '../textSim/stadiumEconomy';
 
 interface Props {
@@ -288,8 +289,11 @@ const BarrasDe6Meses: React.FC<{ meses: string[]; valores: (number | null)[]; co
   );
 };
 
+// O clube do utilizador nas tabelas: fundo hachurado (listras diagonais azuis), igual ao WorldView.
+const HACHURA: React.CSSProperties = { backgroundImage: 'repeating-linear-gradient(135deg, rgba(37,99,235,0.20) 0, rgba(37,99,235,0.20) 2px, rgba(15,23,42,0.35) 2px, rgba(15,23,42,0.35) 4px)' };
+
 const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay }) => {
-  const { userTeam, players, teams, fixtures, gameState, advanceDay, scheduleActivity, formatCurrency, t, registrarFinanceiro } = useGame();
+  const { userTeam, players, teams, fixtures, gameState, advanceDay, scheduleActivity, formatCurrency, t, registrarFinanceiro, comps, world } = useGame();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [viewOpponent, setViewOpponent] = useState<Team | null>(null);
   
@@ -357,6 +361,25 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
     );
     return relevant.sort((a, b) => a.date.localeCompare(b.date))[0];
   }, [fixtures, gameState.currentDate, userTeam.id]);
+
+  // COPA: se o proximo jogo oficial for de copa, o painel mostra a tabela do grupo (ou os jogos da fase) dessa copa.
+  const copaInfo = useMemo(() => {
+    if (!nextOfficialMatch || !comps) return null;
+    const id = String(nextOfficialMatch.id);
+    if (!(nextOfficialMatch.type === 'CUP' || id.startsWith('fix-cup-'))) return null;
+    const comp = comps.find(c => c.matches.some(m => 'fix-cup-' + m.id === id));
+    const jogo = comp?.matches.find(m => 'fix-cup-' + m.id === id);
+    if (!comp || !jogo) return null;
+    const ligas = [ligaDoUtilizador(userTeam, teams.filter(t => naLigaDoUtilizador(t, userTeam)), fixtures), ...(world || [])].filter(Boolean) as any[];
+    const mapa = mapaDeClubes(ligas);
+    const meuKey = teamKey(userTeam.leagueId, userTeam.id);
+    const fase = NOMES_FASES[jogo.stage] || jogo.stage;
+    if (jogo.group && comp.groups?.[jogo.group]) {
+      return { comp, fase, grupo: jogo.group, tabela: tabelaDoGrupo(comp, jogo.group, mapa), jogos: [] as any[], mapa, meuKey };
+    }
+    const jogos = comp.matches.filter(m => m.stage === jogo.stage).sort((a, b) => a.date.localeCompare(b.date));
+    return { comp, fase, grupo: null as string | null, tabela: [] as any[], jogos, mapa, meuKey };
+  }, [nextOfficialMatch, comps, world, teams, fixtures, userTeam]);
 
   // Sort: Points DESC, but if all 0 played, then alphabetical. Filter by next official match competition or user league.
   const standingsCompetition = nextOfficialMatch ? competicaoDoJogo(nextOfficialMatch as any) : null;
@@ -449,7 +472,11 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
           const oppId = match.homeTeamId === userTeam.id ? match.awayTeamId : match.homeTeamId;
           opponentTeam = teams.find(t => t.id === oppId);
       }
-      
+      // Amistoso sem fixture resolvivel: o label da atividade e o nome do adversario.
+      if (!opponentTeam && activity?.type === 'FRIENDLY') {
+          opponentTeam = teams.find(t => t.name === activity.label);
+      }
+
       const monthIndex = d.getMonth();
       // Market open: Jan (0), Feb (1), Jul (6), Aug (7)
       const isTransferWindow = [0, 1, 6, 7].includes(monthIndex);
@@ -458,7 +485,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
         date: dStr,
         dayName: dayNames[d.getDay()],
         dayNum: d.getDate(),
-        isMatch: !!match,
+        isMatch: !!match || !!opponentTeam,
         opponentTeam,
         activity: activity,
         isToday: dStr === gameState.currentDate,
@@ -717,10 +744,10 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                                     <span className="text-base font-bold text-slate-700 dark:text-slate-300 uppercase truncate">{p.name}</span>
                                 </div>
                                 <span className="text-base font-black text-slate-700 dark:text-slate-300 w-12 text-center">{p.appearances || 0}</span>
-                                <span className="text-base font-black text-slate-700 dark:text-slate-300 w-12 text-center">{p.goalsScored}</span>
-                                <span className="text-base font-black text-slate-700 dark:text-slate-300 w-12 text-center">{p.assists}</span>
+                                <span className="text-base font-black text-slate-700 dark:text-slate-300 w-12 text-center">{p.goalsScored || 0}</span>
+                                <span className="text-base font-black text-slate-700 dark:text-slate-300 w-12 text-center">{p.assists || 0}</span>
                                 <div className="w-10 text-right">
-                                    <span className="text-base font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">{p.skill}</span>
+                                    <span className="text-base font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">{Math.round(p.skill)}</span>
                                 </div>
                             </div>
                         ))}
@@ -763,10 +790,54 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
 
         <div className="xl:col-span-4 min-h-[420px] xl:min-h-0 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col overflow-hidden shadow-xl transition-colors">
           <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-950 transition-colors shadow-sm">
-            <h3 className="text-xs xl:text-base font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest transition-colors">{t('dash_standings')}</h3>
-            <span className="text-[10px] font-black bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded italic border border-blue-200 dark:border-blue-500/30 transition-colors">Pos: {userPos}º</span>
+            <h3 className="text-xs xl:text-base font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest transition-colors">{copaInfo ? copaInfo.comp.name : t('dash_standings')}</h3>
+            <span className={`font-black bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded italic border border-blue-200 dark:border-blue-500/30 transition-colors ${copaInfo ? 'text-xs xl:text-base px-3 py-1' : 'text-[10px] px-2 py-0.5'}`}>{copaInfo ? `${copaInfo.fase}${copaInfo.grupo ? ' · ' + copaInfo.grupo : ''}` : `Pos: ${userPos}º`}</span>
           </div>
           <div className="flex-1 bg-white dark:bg-transparent transition-colors overflow-y-auto custom-scrollbar">
+            {copaInfo && copaInfo.grupo ? (
+              <table className="w-full">
+                <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
+                  <tr className="text-[8px] xl:text-[11px] font-black text-slate-900 dark:text-slate-600 uppercase">
+                    <th className="px-4 py-2 text-left w-12 tracking-widest">Pos</th>
+                    <th className="px-2 py-2 text-left tracking-widest">Team</th>
+                    <th className="px-2 py-2 text-center tracking-widest">P</th>
+                    <th className="px-2 py-2 text-center tracking-widest">SG</th>
+                    <th className="px-4 py-2 text-right tracking-widest">Pts</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30">
+                  {copaInfo.tabela.map((r: any, i: number) => (
+                    <tr key={r.key} style={r.key === copaInfo.meuKey ? HACHURA : undefined}>
+                      <td className="px-4 py-0.5 xl:py-2 font-black text-slate-300 dark:text-slate-500 text-xs xl:text-base">{i + 1}</td>
+                      <td className="px-2 py-0.5 xl:py-2">
+                        <div className="flex items-center gap-2 xl:gap-3">
+                          <TeamShield team={r.team} className="w-6 h-[29.5px] xl:w-8 xl:h-10" />
+                          <span className="text-xs xl:text-base font-bold text-slate-900 dark:text-slate-400 uppercase truncate max-w-[120px] xl:max-w-[200px]">{r.team?.name || '?'}</span>
+                        </div>
+                      </td>
+                      <td className="px-2 py-0.5 xl:py-2 text-center font-bold text-slate-500 text-xs xl:text-base">{r.played}</td>
+                      <td className="px-2 py-0.5 xl:py-2 text-center font-bold text-slate-500 text-xs xl:text-base">{r.gf - r.ga}</td>
+                      <td className="px-4 py-0.5 xl:py-2 text-right font-black text-slate-800 dark:text-slate-200 text-xs xl:text-base">{r.points}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : copaInfo ? (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/30">
+                {copaInfo.jogos.map((m: any) => {
+                  const h = copaInfo.mapa.get(m.homeKey), a = copaInfo.mapa.get(m.awayKey);
+                  const meu = m.homeKey === copaInfo.meuKey || m.awayKey === copaInfo.meuKey;
+                  return (
+                    <div key={m.id} style={meu ? HACHURA : undefined} className="flex items-center gap-2 px-3 py-1.5">
+                      <span className="w-10 text-[10px] font-black text-slate-400">{m.date.slice(8, 10)}/{m.date.slice(5, 7)}</span>
+                      <span className="flex-1 flex items-center justify-end gap-2 min-w-0"><span className="text-xs xl:text-sm font-bold uppercase truncate text-slate-800 dark:text-slate-300">{h?.name || '?'}</span><TeamShield team={h} className="w-5 h-6 shrink-0" /></span>
+                      <span className="w-12 text-center text-xs xl:text-sm font-black text-slate-800 dark:text-slate-200">{m.played ? `${m.homeScore}-${m.awayScore}` : 'x'}</span>
+                      <span className="flex-1 flex items-center gap-2 min-w-0"><TeamShield team={a} className="w-5 h-6 shrink-0" /><span className="text-xs xl:text-sm font-bold uppercase truncate text-slate-800 dark:text-slate-300">{a?.name || '?'}</span></span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
             <table className="w-full">
               <thead className="bg-slate-50 dark:bg-slate-900/50 transition-colors border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
                 <tr className="text-[8px] xl:text-[11px] font-black text-slate-900 dark:text-slate-600 uppercase transition-colors">
@@ -778,7 +849,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30 transition-colors">
                 {top20.map((t, i) => (
-                  <tr key={t.id} className={`group ${t.id === userTeam.id ? 'bg-blue-50 dark:bg-blue-600/10' : ''} transition-colors`}>
+                  <tr key={t.id} style={t.id === userTeam.id ? HACHURA : undefined} className="group transition-colors">
                     <td className="px-4 py-0.5 xl:py-2 font-black text-slate-300 dark:text-slate-500 text-xs xl:text-base transition-colors">{i + 1}</td>
                     <td className="px-2 py-0.5 xl:py-2">
                       <div className="flex items-center gap-2 xl:gap-3">
@@ -799,6 +870,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                 ))}
               </tbody>
             </table>
+            )}
           </div>
         </div>
       </div>
