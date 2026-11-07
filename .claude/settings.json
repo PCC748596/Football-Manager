@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"Z:\\\\\\\\OneDrive_LEVU_TEMP\\\\\\\\APPs\\\\\\\\Football Manager\\\\\\\\.superpowers\\\\\\\\sdd\\\\\\\\\")",
+      "Bash(git checkout *)",
+      "Bash(git pull *)",
+      "Bash(git branch *)"
+    ]
+  }
+}
