@@ -133,7 +133,8 @@ import type { Player } from '../types';
 export const cpuPlanoDoDia = (elenco: Player[], diasParaOJogo: number): { recuperacao: number; treina: boolean } => {
   const aptos = elenco.filter(p => !p.injury);
   const media = aptos.length ? aptos.reduce((s, p) => s + (p.energia ?? 100), 0) / aptos.length : 100;
-  const descansa = diasParaOJogo <= 1 || media < 82 || aptos.some(p => (p.energia ?? 100) < 30);
+  const mediaEnergia = aptos.length ? aptos.reduce((s, p) => s + (p.energia ?? 100), 0) / aptos.length : 100;
+  const descansa = diasParaOJogo <= 1 || media < 82 || mediaEnergia < 30;
   // Escala nova (Task 4): descanso = 4 periodos livres (+30/dia); dia de treino = +10 liquido (o utilizador com 2 sessoes + 2 livres fica ~+20).
   return { recuperacao: descansa ? 4 * ENERGIA_POR_PERIODO_LIVRE : 10, treina: !descansa };
 };
@@ -147,6 +148,7 @@ export const cpuAplicarTreino = (p: Player): void => {
   const attr: 'def' | 'pas' | 'drb' | 'sht' =
     ['CB', 'LB', 'RB', 'DM', 'GK'].includes(pos) ? 'def' : ['CM', 'LM', 'RM', 'AM'].includes(pos) ? 'pas' : ['LW', 'RW'].includes(pos) ? 'drb' : 'sht';
   const acc = p.trainingAccumulated || (p.trainingAccumulated = { def: 0, pas: 0, drb: 0, sht: 0 } as any);
-  (acc as any)[attr] += 3 * fator;
+  const starsMult = STAR_MULTIPLIERS[starsFromPotential(p.potential)];
+  (acc as any)[attr] += 3 * fator * starsMult;
   while ((acc as any)[attr] >= 100) { (acc as any)[attr] -= 100; (p as any)[attr] = Math.min(99, (p as any)[attr] + 1); }
 };
