@@ -201,6 +201,8 @@ export interface Player {
   };
   /** Pontos de treino por atributo do 3D (campo -> pontos; 100 pontos = +1 no atributo), somados em textSim/atributos3d.ts. */
   treino3d?: Record<string, number>;
+  /** Season-start attribute values (treino3d snapshot at season start for delta display). */
+  treino3dSeasonStart?: Record<string, number>;
   lastRating?: number;
   ratingHistory?: RatingHistorico[]; // notas por partida (so jogos 3D): base das medias, ranking e evolucao
   playStyle?: PlayStyle;

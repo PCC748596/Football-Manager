@@ -924,7 +924,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else setComps(null);
 
     setTeams(copas ? [...initTeams, ...copas.teams] : initTeams);
-    setPlayers(copas ? [...initPlayers, ...copas.players] : initPlayers);
+    setPlayers((copas ? [...initPlayers, ...copas.players] : initPlayers).map(p => ({ ...p, treino3dSeasonStart: { ...(p.treino3d || {}) } })));
     if (!continuacao) {
       setBase(null);   // a base nasce no motor (efeito acima), com a data do jogo
       vistasRef.current = new Set<string>(); setInboxVistas([]);

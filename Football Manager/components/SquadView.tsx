@@ -255,28 +255,16 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                         <MoraleArrow morale={Math.round(p.morale)} />
                      </td>
                       <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
-                        <div className="flex items-center justify-center gap-1">
-                          <span>{atributos3d(p).tec}</span>
-                          <AttributeGrowthArrow val={(p.lastGrowth?.drb || 0) + (p.lastGrowth?.sht || 0) + (p.lastGrowth?.pas || 0)} />
-                        </div>
+                        {(() => { const now = atributos3d(p).tec, start = p.treino3dSeasonStart?.tec ?? now, delta = now - start; return <div className="flex items-center justify-center gap-1"><span>{now}</span>{delta !== 0 && <span className={delta > 0 ? 'text-emerald-500' : 'text-red-500'}>{delta > 0 ? '+' : ''}{delta}</span>}</div>; })()}
                       </td>
                       <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
-                        <div className="flex items-center justify-center gap-1">
-                          <span>{atributos3d(p).tac}</span>
-                          <AttributeGrowthArrow val={(p.lastGrowth?.def || 0)} />
-                        </div>
+                        {(() => { const now = atributos3d(p).tac, start = p.treino3dSeasonStart?.tac ?? now, delta = now - start; return <div className="flex items-center justify-center gap-1"><span>{now}</span>{delta !== 0 && <span className={delta > 0 ? 'text-emerald-500' : 'text-red-500'}>{delta > 0 ? '+' : ''}{delta}</span>}</div>; })()}
                       </td>
                       <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
-                        <div className="flex items-center justify-center gap-1">
-                          <span>{atributos3d(p).men}</span>
-                          <AttributeGrowthArrow val={0} />
-                        </div>
+                        {(() => { const now = atributos3d(p).men, start = p.treino3dSeasonStart?.men ?? now, delta = now - start; return <div className="flex items-center justify-center gap-1"><span>{now}</span>{delta !== 0 && <span className={delta > 0 ? 'text-emerald-500' : 'text-red-500'}>{delta > 0 ? '+' : ''}{delta}</span>}</div>; })()}
                       </td>
                       <td className="px-2 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
-                        <div className="flex items-center justify-center gap-1">
-                          <span>{atributos3d(p).fis}</span>
-                          <AttributeGrowthArrow val={0} />
-                        </div>
+                        {(() => { const now = atributos3d(p).fis, start = p.treino3dSeasonStart?.fis ?? now, delta = now - start; return <div className="flex items-center justify-center gap-1"><span>{now}</span>{delta !== 0 && <span className={delta > 0 ? 'text-emerald-500' : 'text-red-500'}>{delta > 0 ? '+' : ''}{delta}</span>}</div>; })()}
                       </td>
                      <td className="px-2 py-[6.5px] text-center text-xs font-bold transition-colors">
                         <span title={'Playing Style: ' + estiloDoJogador(p)} className="inline-flex items-center justify-center" style={{ width: 24, height: 24 }}><IconePlayStyleSvg estilo={estiloDoJogador(p)} tam={24} /></span>
