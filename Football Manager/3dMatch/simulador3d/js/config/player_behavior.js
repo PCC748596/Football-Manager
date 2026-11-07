@@ -2444,12 +2444,12 @@ const StaminaModel = {
     sensibilidadeStamina: 0.5,  // stamina 100 gasta metade; stamina 0, metade a mais
 
     limiarDescanso: 2.0,        // m/s abaixo do qual recupera
-    recuperaPorSegundo: 0.00016,
+    recuperaPorSegundo: 0,        // sem recuperacao em jogo (pedido: a energia so cai); so o intervalo repoe (`recuperaNoIntervalo`)
     sensibilidadeFitness: 0.5,
 
-    minimo: 0.50,               // chao do deposito: ninguem anda a metade do passo
-    quedaVelocidade: 0.15,      // -15% de velocidade maxima com o deposito vazio
-    quedaSkill: 8,              // pontos de atributo perdidos com o deposito vazio
+    minimo: 0.0,                // chao do deposito. Era 0.50: a energia parava de cair nos 50% (o manager mostra este deposito). A queda de velocidade/skill ja e proporcional ao que falta
+    quedaVelocidade: 0.10,      // -10% de velocidade maxima com o deposito vazio
+    quedaSkill: 3,              // pontos de atributo perdidos com o deposito vazio
 
     /*
     O INTERVALO REPOE UM POUCO DO DEPOSITO. `recuperaNoIntervalo` e a fraccao do
@@ -2457,5 +2457,5 @@ const StaminaModel = {
     como escala a recuperacao em jogo. Nao enche: 15 minutos de pausa nao
     apagam 45 de jogo.
     */
-    recuperaNoIntervalo: 0.20
+    recuperaNoIntervalo: 0.10
 };

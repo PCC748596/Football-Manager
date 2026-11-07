@@ -280,8 +280,11 @@ Aproveita o `defLineDir` que o nível 1 do adversário já calcula.
 */
 const emRupturaDe = (m) => !!(m && m.fsm && m.fsm.currentState === 'RUN_INTO_SPACE');
 
+// DIAGNOSTICO (tools/headless/lancamentos_porque.js): conta por que o findThroughBall recusa. Sem `__tbDiag` nao faz nada.
+const _tb = (k) => { const D = (typeof globalThis !== 'undefined') ? globalThis.__tbDiag : null; if (D) D[k] = (D[k] || 0) + 1; };
 function findThroughBall(ctx) {
     if (ctx._throughBall !== undefined) return ctx._throughBall;
+    _tb('chamadas');
     const p = ctx.p;
 
     // Um defesa a lançar é o jogo directo que se quer evitar: a bola tem de
@@ -302,20 +305,21 @@ function findThroughBall(ctx) {
     // No contra-ataque a bola nas costas procura-se ainda mais (TeamPlayStyles.contra).
     if (eeL && eeL.contra && typeof Match !== 'undefined' && Match.counterAttackTeam === p.team) chanceLanc *= 1.6;
     if (Math.random() > chanceLanc) {
+        _tb('sorteioChance');
         ctx._throughBall = null;
         return null;
     }
 
     const linhaAdv = ctx.oppBB.defLineDir;      // no referencial de ataque DELES
-    if (linhaAdv === undefined || linhaAdv === null) { ctx._throughBall = null; return null; }
+    if (linhaAdv === undefined || linhaAdv === null) { _tb('semLinha'); ctx._throughBall = null; return null; }
 
     // A mesma linha, no nosso referencial de ataque.
     const linhaNoNosso = -linhaAdv;
     const meuZ = p.model.position.z * p.dirZ;
 
     // Só faz sentido lançar de trás da linha e com campo para correr.
-    if (meuZ > linhaNoNosso - 4) { ctx._throughBall = null; return null; }
-    if (linhaNoNosso > 44) { ctx._throughBall = null; return null; }
+    if (meuZ > linhaNoNosso - 4) { _tb('portadorColadoALinha'); ctx._throughBall = null; return null; }
+    if (linhaNoNosso > 44) { _tb('linhaMuitoAlta'); ctx._throughBall = null; return null; }
 
     let melhor = null;
     let melhorNota = -Infinity;
@@ -324,7 +328,8 @@ function findThroughBall(ctx) {
         if (mate === p || mate.role === 'gk') continue;
         if (mate.role === 'def') continue;              // defesas não fazem desmarcações
         const emRuptura = !!(mate.fsm && mate.fsm.currentState === 'RUN_INTO_SPACE');
-        if (soParaRuptura && !emRuptura) continue;
+        if (soParaRuptura && !emRuptura) { _tb('mate:defSoRuptura'); continue; }
+        _tb('mate:candidatos');
 
         // Alvo do PositionBT, não a posição actual — ver alvoDePasse().
         const mateAlvo = alvoDePasse(mate);
@@ -342,10 +347,10 @@ function findThroughBall(ctx) {
         
         // Verificação de fora-de-jogo DEVE usar a posição ACTUAL do jogador, não a projetada,
         // senão jogadores em sprint (infiltrações) são rejeitados injustamente por parecerem estar offside!
-        if (mateZ_current > linhaNoNosso + 0.5) continue; 
+        if (mateZ_current > linhaNoNosso + 0.5) { _tb('mate:impedido'); continue; }
         
         // A folga avalia se o jogador já está razoavelmente perto da última linha para a conseguir romper.
-        if (!receptorLivre && mateZ_current < linhaNoNosso - (emRuptura ? (PassModel.throughBallGapRuptura || PassModel.throughBallGap) : PassModel.throughBallGap)) continue;
+        if (!receptorLivre && mateZ_current < linhaNoNosso - (emRuptura ? (PassModel.throughBallGapRuptura || PassModel.throughBallGap) : PassModel.throughBallGap)) { _tb('mate:longeDaLinha'); continue; }
         
         // Bónus especial se ele já estiver em movimento de ruptura
         let sprintBonus = 0;
@@ -356,7 +361,8 @@ function findThroughBall(ctx) {
         // Lançamento é bola longa: abaixo de distMinLonga é passe normal.
         const distMinBase = emRuptura ? (PassModel.distMinRuptura || PassModel.distMinLonga) : PassModel.distMinLonga;
         const distMin = receptorLivre ? Math.min(distMinBase, PassModel.distMinLivre || 16.0) : distMinBase;
-        if (dist < distMin || dist > PassModel.throughBallMaxDist) continue;
+        if (dist < distMin) { _tb('mate:distCurta'); continue; }
+        if (dist > PassModel.throughBallMaxDist) { _tb('mate:distLonga'); continue; }
 
         /*
         E TEM DE RASGAR A LINHA. Longo nao chega: um lancamento sai por
@@ -370,7 +376,7 @@ function findThroughBall(ctx) {
             }
             if (!passaEntreAdversarios(p.model.position.x, p.model.position.z,
                 mateAlvo.x, mateAlvo.z, advPontos,
-                PassModel.throughBallCorredorLargura, PassModel.throughBallVaoMax)) continue;
+                PassModel.throughBallCorredorLargura, PassModel.throughBallVaoMax)) { _tb('mate:naoRasgaLinha'); continue; }
         }
 
         // Calcula o alvo baseado na velocidade relativa (bola ~15m/s, jogador ~7m/s)
@@ -395,8 +401,8 @@ function findThroughBall(ctx) {
 
         if (typeof SpatialGrid !== 'undefined' && SpatialGrid.cells) {
             const livreSpot = SpatialGrid.findFreeSpace(alvoX, alvoZ, 6, oppTeamKey);
-            if (!livreSpot) continue;
-            if (SpatialGrid.occupancy(livreSpot.x, livreSpot.z, 1, oppTeamKey) > 0) continue;
+            if (!livreSpot) { _tb('mate:semEspacoLivre'); continue; }
+            if (SpatialGrid.occupancy(livreSpot.x, livreSpot.z, 1, oppTeamKey) > 0) { _tb('mate:espacoOcupado'); continue; }
             alvoX = livreSpot.x; alvoZ = livreSpot.z;
         } else {
             _v1.set(alvoX, 0, alvoZ);
@@ -438,6 +444,7 @@ function findThroughBall(ctx) {
 
         if (window.showPlayerPoints) { mate.debugPoints = mate.debugPoints || {}; mate.debugPoints['Lanç'] = Math.round(nota); }
         if (receptorLivre) nota += (PassModel.bonusReceptorLivre || 60);   // o livre vale mais do que um marcado que se rasga
+        _tb('mate:valido');
         if (nota > melhorNota) { melhorNota = nota; melhor = { mate: mate, alvoX: alvoX, alvoZ: alvoZ, receptorLivre: receptorLivre }; }
     }
 
@@ -460,6 +467,7 @@ function findThroughBall(ctx) {
         }
         melhor.alto = naLinha > 0;
     }
+    _tb(melhor ? 'resultado:encontrado' : 'resultado:nenhum');
     ctx._throughBall = melhor;
     return melhor;
 }

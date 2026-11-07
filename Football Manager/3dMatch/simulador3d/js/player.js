@@ -1798,7 +1798,7 @@ class FootballPlayer {
         const lf = (typeof melhorIntencaoDeLancamento === 'function') ? melhorIntencaoDeLancamento(this, meus, advs) : null;
         if (lf) { this._faltaPre = { lf: lf }; return { x: lf.alvoX, z: lf.alvoZ }; }
         const alvo = this.findPassTarget('frente') || this.findPassTarget() || this.findPassTargetRelaxed('frente');
-        if (alvo) {
+        if (alvo && alvo !== this) {
             this._faltaPre = { alvo: alvo };
             const pt = alvoDePasse(alvo);
             return { x: pt.x, z: pt.z };
@@ -2159,8 +2159,9 @@ class FootballPlayer {
 
         const preA = this._faltaPre;
         this._faltaPre = null;
-        const alvo = (preA && preA.alvo) ? preA.alvo : (this.findPassTarget('frente') || this.findPassTarget() ||
+        let alvo = (preA && preA.alvo) ? preA.alvo : (this.findPassTarget('frente') || this.findPassTarget() ||
             this.findPassTargetRelaxed('frente'));
+        if (alvo === this) alvo = null;   // nunca bate a falta para si mesmo
         if (alvo) {
             this.passTarget = alvo;
             const pt = alvoDePasse(alvo);

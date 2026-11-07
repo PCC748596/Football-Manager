@@ -393,16 +393,16 @@ const PassModel = {
     bloqueioDist: 14.0,         // até que distância à frente conta
     bloqueioLargura: 6.0,       // meia-largura do corredor
 
-    throughBallGap: 18.0,       // quão atrás da linha o colega pode estar
+    throughBallGap: 26.0,       // quão atrás da linha o colega pode estar
     throughBallDepth: 9.0,      // metros além da linha onde se põe a bola
     /*
     Baixou de 45: com o alvo posto `throughBallDepth` ALÉM do companheiro, um
     limite de 45 m dava lançamentos medidos de 58 m — distância de pontapé de
     baliza, não de passe em profundidade.
     */
-    throughBallMaxDist: 38.0,
+    throughBallMaxDist: 46.0,
     // Nem sempre que há espaço se lança: senão o jogo torna-se todo directo.
-    throughBallChance: 0.675, // 0.30 -> 0.45 -> 0.675 (+50% duas vezes)
+    throughBallChance: 0.9,   // 0.30 -> 0.45 -> 0.675 (+50% duas vezes)
 
     /*
     Conversão de distância em força — OBSOLETA. Vinha do modelo de arrasto
@@ -458,7 +458,7 @@ const PassModel = {
     lancarLivre: true,         // false desliga o lancamento ao companheiro totalmente livre (comparar antes/depois)
     distMinLivre: 16.0,        // o lancamento para um companheiro TOTALMENTE livre vale a partir daqui (ver findThroughBall)
     bonusReceptorLivre: 60,    // e leva este bonus na nota do lancamento
-    distMinLonga: 24.0,        // 30 -> 24: o lancamento em profundidade (pedido: havia pouco), ver tambem PasseParaOLivre.bonusProfundo
+    distMinLonga: 20.0,        // 30 -> 24: o lancamento em profundidade (pedido: havia pouco), ver tambem PasseParaOLivre.bonusProfundo
     throughBallCorredorLargura: 7.0,
     throughBallVaoMax: 13.0,
     distAereo: 30.0,
@@ -1811,7 +1811,7 @@ comprida perdida à entrada do meio-campo devolve a posse no pior sítio.
 =============================================================================
 */
 const LancamentoDecisao = {
-    agressaoMinima: 0.60,
+    agressaoMinima: 0.50,   // 0.60 -> 0.50: a mentalidade balanceada (0.50) tambem lanca com passe curto disponivel (havia oportunidades de profundidade perdidas)
 
     /*
     `estado` é o que o ramo sabe no instante da decisão:

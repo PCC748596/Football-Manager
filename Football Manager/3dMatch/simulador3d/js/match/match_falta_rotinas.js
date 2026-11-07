@@ -204,6 +204,7 @@ Object.assign(Match, {
 
         const g = BallPhysics.gravidade;
         const receptor = st.para ? plano.jogadores[st.para] : null;
+        if (receptor && receptor === de) return false;   // nunca passa a si mesmo (a rotina acaba e a falta sai pelo caminho normal)
         let saiu = false;
 
         if (st.tipo === 'passe' && receptor && st.alvo) {

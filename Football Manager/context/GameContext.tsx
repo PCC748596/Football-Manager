@@ -1681,10 +1681,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       com o deposito = energia do manager (AdaptadorManager.jogador -> energiaInicial). `mapa`: id real do motor (digitos de 'p-269063') -> %.
       */
       const mapa: Record<string, number> = m.mapa || {};
+      // O MATCH FORM sobe durante o jogo: +0.5 por minuto jogado ate aos 60 min (depois nao ganha mais). So a energia cai (a do 3D); a forma e o teto dela.
+      const minAgora = Math.min(60, typeof w.motor3dMinuto === 'number' && w.motor3dMinuto !== 999 ? w.motor3dMinuto : 0);
+      if (typeof w.__formMin !== 'number' || minAgora < w.__formMin) w.__formMin = 0;
+      const ganhoForma = Math.max(0, minAgora - w.__formMin) * 0.5;
+      w.__formMin = minAgora;
       setPlayers(prev => prev.map(p => {
         const d = (/(\d+)$/.exec(String(p.id)) || [])[1];
         const e = d !== undefined ? mapa[d] : undefined;
-        return (typeof e === 'number' && e !== p.energia) ? { ...p, energia: Math.max(0, Math.min(100, e)), fitness: Math.max(0, Math.min(100, e)) } : p;
+        if (typeof e !== 'number') return p;
+        const mf = ganhoForma > 0 ? Math.min(100, (p.matchForm ?? 50) + ganhoForma) : p.matchForm;
+        const en = Math.max(0, Math.min(100, e));
+        return (en !== p.energia || mf !== p.matchForm) ? { ...p, energia: en, fitness: en, matchForm: mf } : p;
       }));
     } else if (m.tipo === 'lesao') {
       /*
