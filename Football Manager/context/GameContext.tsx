@@ -1000,7 +1000,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           for (let slot = 0; slot < 4; slot++) {
             const actId = groupSchedule[dayIdx] ? groupSchedule[dayIdx][slot] : null;
             if (!actId || actId === 'recovery') {
-              dailyRecovery += ENERGIA_POR_PERIODO_LIVRE; // +30 por periodo vazio ou sessao de recovery (= -ENERGY_COST_BASE.recovery)
+              dailyRecovery += ENERGIA_POR_PERIODO_LIVRE; // +7.5 por periodo vazio ou sessao de recovery (= -ENERGY_COST_BASE.recovery)
             }
             if (actId && actId !== 'recovery') {
               const act = ACTIVITIES.find(a => a.id === actId);
@@ -1016,7 +1016,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } else {
           // Outros times: o plano do treinador da CPU (descanso ou treino do dia)
-          const plano = planosCpu.get(p.teamId) || { recuperacao: ENERGIA_POR_PERIODO_LIVRE, treina: false };
+          const plano = planosCpu.get(p.teamId) || { recuperacao: 4 * ENERGIA_POR_PERIODO_LIVRE, treina: false };
           dailyRecovery = plano.recuperacao;
           if (plano.treina) { p = { ...p, trainingAccumulated: p.trainingAccumulated ? { ...p.trainingAccumulated } : undefined } as Player; cpuAplicarTreino(p); }
         }

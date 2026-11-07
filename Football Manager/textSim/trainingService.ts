@@ -40,12 +40,12 @@ export const drainMultiplier = (stamina: number): number => {
 };
 
 /** Custo base de energia (0-100%) por sessao de treino, antes do multiplicador de stamina. Tabela canonica = plano 2026-01-07-energy-matchform-system.md (Task 4).
- *  'recovery' e negativo: devolve -recovery (= +30) por periodo, fixo, sem multiplicador. Periodo vazio devolve o mesmo (ENERGIA_POR_PERIODO_LIVRE). */
+ *  'recovery' e negativo: devolve -recovery (= +7.5) por periodo (4 periodos = +30/dia), fixo, sem multiplicador. Periodo vazio devolve o mesmo (ENERGIA_POR_PERIODO_LIVRE). */
 export const ENERGY_COST_BASE: Record<string, number> = {
   passing: 15, longpass: 15, control: 15, wingplay: 20, crossing: 15, shooting: 15, longshots: 20, finishing: 20, volleys: 20, aerial: 20, setpieces: 15, penalties: 15,
   tackling: 18, sliding: 25, marking: 22, def_pos: 15, positioning: 15, vision: 18, pressing: 30, playmaking: 20, transition: 20,
   cardio: 25, sprints: 30, acceleration: 25, agility: 20, jumping: 22, strength: 28, balance: 20,
-  recovery: -30,
+  recovery: -7.5,
   aggression: 15, reactions: 12, composure: 12, consistency: 12, video: 5, teambuilding: 10, shadow: 15, focus: 12
 };
 
@@ -128,8 +128,8 @@ export const cpuPlanoDoDia = (elenco: Player[], diasParaOJogo: number): { recupe
   const aptos = elenco.filter(p => !p.injury);
   const media = aptos.length ? aptos.reduce((s, p) => s + (p.energia ?? 100), 0) / aptos.length : 100;
   const descansa = diasParaOJogo <= 1 || media < 82 || aptos.some(p => (p.energia ?? 100) < 30);
-  // Escala nova (Task 4): descanso = um periodo livre (+30); dia de treino = +10 liquido (o utilizador com 2 sessoes + 2 livres fica ~+20).
-  return { recuperacao: descansa ? ENERGIA_POR_PERIODO_LIVRE : 10, treina: !descansa };
+  // Escala nova (Task 4): descanso = 4 periodos livres (+30/dia); dia de treino = +10 liquido (o utilizador com 2 sessoes + 2 livres fica ~+20).
+  return { recuperacao: descansa ? 4 * ENERGIA_POR_PERIODO_LIVRE : 10, treina: !descansa };
 };
 
 /** Um dia de treino de um jogador da CPU: pontos no atributo da posicao (100 pontos = +1). Muda o proprio objecto. */
