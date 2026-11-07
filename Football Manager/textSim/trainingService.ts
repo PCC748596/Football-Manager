@@ -7,6 +7,46 @@ export const PONTOS_POR_ATRIBUTO = 25;
 /** Teto de pontos de treino por atributo (+15 no atributo). */
 export const TETO_PONTOS_TREINO = 15 * PONTOS_POR_ATRIBUTO;
 
+/** Stars (1-5) → XP multiplier. Derived from Player.potential or .potentialEstimate. */
+export const STAR_MULTIPLIERS = {
+  1: 0.6,   // ⭐
+  2: 0.8,   // ⭐⭐
+  3: 1.0,   // ⭐⭐⭐
+  4: 1.2,   // ⭐⭐⭐⭐
+  5: 1.4    // ⭐⭐⭐⭐⭐
+};
+
+/** Stars from potential (50-99): convert potential to 1-5 stars. */
+export const starsFromPotential = (potential?: number): number => {
+  if (!potential) return 3;
+  if (potential <= 55) return 1;
+  if (potential <= 65) return 2;
+  if (potential <= 80) return 3;
+  if (potential <= 90) return 4;
+  return 5;
+};
+
+/** XP penalty for low energy. Energia > 75%: 1.0x, 50-74%: 0.8x, 25-49%: 0.5x, < 25%: 0.1x. */
+export const exaustaoMultiplier = (energia: number): number => {
+  if (energia > 75) return 1.0;
+  if (energia > 49) return 0.8;
+  if (energia > 24) return 0.5;
+  return 0.1;
+};
+
+/** Drain multiplier based on player stamina. Higher stamina = lower drain. Formula: 100 / stamina. */
+export const drainMultiplier = (stamina: number): number => {
+  return 100 / Math.max(50, Math.min(100, stamina));
+};
+
+/** TAC XP multiplier based on match rating. Rating 8.0 = 1.2x, rating 4.0 = 0.5x, neutral 6.0 = 1.0x. */
+export const ratingToTacMultiplier = (rating: number): number => {
+  if (rating <= 4) return 0.3 + (rating / 4) * 0.2;
+  if (rating <= 6) return 0.5 + ((rating - 4) / 2) * 0.5;
+  if (rating <= 8) return 1.0 + ((rating - 6) / 2) * 0.2;
+  return 1.2 + ((rating - 8) / 2) * 0.1;
+};
+
 export interface Impact {
   label: string;
   value: number;
