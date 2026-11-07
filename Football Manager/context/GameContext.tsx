@@ -2004,7 +2004,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           const finalEn = Math.min(100, Math.max(0, newFitness));
-          return { ...p, energia: finalEn, fitness: finalEn };
+          // Match form tank: +0.5 per minute played (only if > 15 min)
+          const matchFormGain = minutesPlayed > 15 ? minutesPlayed * 0.5 : 0;
+          const newMatchForm = Math.min(100, (p.matchForm || 50) + matchFormGain);
+          return { ...p, energia: finalEn, fitness: finalEn, matchForm: newMatchForm };
         });
       });
     }
