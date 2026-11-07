@@ -1,0 +1,125 @@
+DOCUMENTO DE ESPECIFICAÇÃO: MOTOR DE TREINO E PROGRESSÃO (V. FINAL)
+Contexto Geral:
+Sistema de progressão para um jogo de Football Manager. A evolução de atributos (escala 50-100) utiliza uma curva quadrática de custo, multiplicadores de idade (Lerp) e multiplicadores de potencial (Estrelas). O sistema elimina o microgerenciamento através de Grupos de Treino (G1, G2, G3), exigindo do jogador uma gestão estratégica do calendário baseada num sistema físico de três pilares: Ritmo de Jogo (Match Form), Energia (Combustível) e Stamina (Eficiência).
+
+1. PILARES DO SISTEMA FÍSICO E NOMENCLATURA
+Match Form / Ritmo (0 a 100): Representa o "Tamanho do Tanque" e a adaptação ao futebol profissional. Sobe ao acumular minutos em jogos oficiais. Determina a capacidade base do atleta.
+
+Energia / Combustível (0 a 100%): Variável diária gerida pelo utilizador. Começa em 100% e é consumida pelos treinos e jogos. É restaurada com descanso e sessões de Recovery.
+
+Stamina / Eficiência (50 a 100): Atributo técnico estático que dita a velocidade de consumo da Energia (Drain Rate). Maior Stamina = menor perda de Energia por minuto de treino/jogo.
+
+2. CONSTANTES E MULTIPLICADORES GLOBAIS
+2.1. Constantes do Sistema de XP:
+
+BASE_XP_PER_POINT: 15 (Valor em XP que equivale a um "+1" visual na UI de treinos).
+
+MAX_DAILY_SLOTS: 4
+
+COST_FORMULA: (Nível Atual - 40)^2 (Ex: Passar do nível 60 para 61 custa 400 XP).
+
+2.2. Multiplicadores de Idade (Tabela LERP):(Interpolar linearmente com base na idade exata do atleta)
+
+16 anos: { FIS: 2.0, TEC: 1.5, TAC: 0.5, MEN: 0.5 }
+
+21 anos: { FIS: 1.2, TEC: 1.2, TAC: 1.0, MEN: 0.8 }
+
+26 anos: { FIS: 0.8, TEC: 1.0, TAC: 1.2, MEN: 1.2 }
+
+32+ anos: { FIS: 0.1, TEC: 0.8, TAC: 1.5, MEN: 1.5 }
+
+2.3. Multiplicadores de Potencial (Talento Bruto):
+
+⭐⭐⭐⭐⭐: 1.4x
+
+⭐⭐⭐⭐: 1.2x
+
+⭐⭐⭐: 1.0x
+
+⭐⭐: 0.8x
+
+⭐: 0.6x
+
+2.4. Modificador de Exaustão (Penalty de Energia):
+
+Energia > 75%: 1.0x (Ganha 100% do XP diário)
+
+Energia de 50% a 74%: 0.8x (Ganha 80% do XP diário)
+
+Energia de 25% a 49%: 0.5x (Ganha 50% do XP diário)
+
+Energia < 25%: 0.1x (Risco triplicado de lesão e estagnação no treino)
+
+3. MODELAGEM DOS PACOTES DE TREINO (DRILLS)
+Cada sessão de treino (ex: Gym Work, Analysis) deve conter:
+
+WeeklyLimit: Limite de vezes que o grupo pode usar esta sessão na semana (ex: [0/2]).
+
+EnergyCost_Base: Custo base na barra de Energia (Ex: Treino pesado = -20%; Recovery = +30%).
+
+Rewards: Array de ganhos com alvo e valor visual na UI (Ex: [{target: "Finishing", value: 1.0}]).
+
+4. ALGORITMO DO LOOP DIÁRIO (TICK DO MOTOR DE TREINO)
+Para cada jogador (não lesionado), executar no fim do dia:
+
+Passo 1: Consumo de Energia (O Redutor de Stamina)
+
+Ler as 4 sessões realizadas pelo Grupo (G1/G2/G3).
+
+Calcular Multiplicador de Consumo: Drain_Multiplier = (100 / Stamina_Atual).
+
+Calcular Custo Real de cada sessão: Custo_Energia_Real = EnergyCost_Base * Drain_Multiplier.
+
+Somar/Subtrair o custo real na Energia do jogador (Min: 0%, Max: 100%). Sessões de ganho de moral/química são aplicadas diretamente.
+
+Passo 2: Injeção de XP (GROWTH)
+Para cada atributo técnico/tático/físico trabalhado nas sessões:
+
+XP Bruto = (Valor Visual da UI) * BASE_XP_PER_POINT.
+
+XP Final = XP Bruto * Modificador(Idade) * Modificador(Estrelas) * Modificador(Energia_Atual).
+
+Injetar XP Final no banco GROWTH do atributo.
+
+Passo 3: Verificação de Evolução (Level Up)
+
+Calcular Custo do Próximo Nível: (Nível Atual - 40)^2.
+
+Se GROWTH >= Custo E Nível Atual < Teto de Potencial:
+
+Deduzir custo do GROWTH e somar +1 ao Nível Atual.
+
+5. INTEGRAÇÕES OBRIGATÓRIAS (MATCH ENGINE & DEPARTAMENTO MÉDICO)
+5.1. Regras Pós-Jogo (Match Engine):
+
+Consumo de Energia no Jogo:
+
+Custo Base (ajustável): 1.0% Energia / minuto.
+
+Consumo Real do Jogador: Custo Base * (100 / Stamina_Atual). (Subtrair este valor da Energia do jogador).
+
+Ritmo de Jogo (Match Form):
+
+Qualquer jogador que atue > 15 minutos recebe um ganho positivo na variável Match Form (aumentando a sua capacidade base e ritmo).
+
+Recompensas Táticas (TAC):
+
+Injetar MATCH_BASE_XP_TAC para quem jogou.
+
+Multiplicar esse XP pela Nota da Partida (Ex: Nota 8.0 = 1.2x | Nota 4.0 = 0.5x).
+
+Mental e Entrosamento (Morale & Chemistry):
+
+Chemistry: Sobe proporcionalmente aos minutos que o núcleo atuou simultaneamente em campo.
+
+Morale: Varia pelo resultado da equipa (Vitória +10, Derrota -10), com bônus/punições (+5/-5) se a nota individual for excecional (>= 8.0) ou péssima (<= 4.0).
+
+5.2. Regras de Departamento Médico:
+
+Na Lesão: Congelar a injeção de GROWTH; retirar jogador do Grupo (G1/G2/G3).
+
+Na Alta Médica:
+
+Devolver o jogador ao Grupo original.
+
+Forçar a variável Energia para 20-30% e baixar o Match Form (Tanque) drasticamente. Isto simula o regresso sem ritmo e obriga o treinador a alocá-lo em sessões de Recovery antes de treinos normais ou jogos.
