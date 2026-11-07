@@ -86,7 +86,9 @@ export const generatePlayer = (teamId: string, position: Position, idCounter: nu
     age,
     position,
     skill: finalSkill,
-    fitness: randomInt(45, 55),
+    matchForm: 50,
+    energia: 100,
+    fitness: 100,
     morale: randomInt(40, 60),
     goalsScored: 0,
     assists: 0,
@@ -665,7 +667,9 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
           position: mapPosString(p.posPlayer),
           ...(p.birthDate ? { birthDate: p.birthDate } : {}),
           skill: Math.max(NIVEL_MINIMO, p.ovrPlayer),
-          fitness: randomInt(45, 55), // Everyone starts at 45-55% in preseason
+          matchForm: 50,
+          energia: 100,
+          fitness: 100,
           morale: randomInt(40, 60), // Everyone starts at 4-6 morale in preseason
           goalsScored: 0,
           assists: 0,

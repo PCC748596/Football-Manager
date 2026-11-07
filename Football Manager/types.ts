@@ -149,6 +149,10 @@ export interface Player {
   age: number;
   position: Position;
   skill: number;
+  /** Match Form / Tank (0-100): size of the tank, grows with match minutes (>15min: +0.5/min). */
+  matchForm: number;
+  /** Daily Energy (0-100%): consumed by training/matches, recovered with rest. Default 100. */
+  energia?: number;
   fitness: number;
   morale: number;
   goalsScored: number;

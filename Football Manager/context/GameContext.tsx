@@ -27,7 +27,8 @@ import { slotsVazios, jogoEmAndamento } from '../textSim/escalacao';
 import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico, gerarMedico } from '../textSim/medico';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
-import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO } from '../textSim/trainingService';
+import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, drainMultiplier, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
+import { campo3d } from '../textSim/atributos3d';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
@@ -966,7 +967,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { ...prev, currentDate: d.toISOString().split('T')[0] };
     });
 
-    // Daily fitness recovery based on training schedule
+    // Daily energy recovery based on training schedule
     setPlayers(prevPlayers => {
       const d = new Date(gameState.currentDate + 'T12:00:00');
       const dayIdx = (d.getDay() + 6) % 7; // Monday = 0, Sunday = 6
@@ -999,13 +1000,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           for (let slot = 0; slot < 4; slot++) {
             const actId = groupSchedule[dayIdx] ? groupSchedule[dayIdx][slot] : null;
             if (!actId || actId === 'recovery') {
-              dailyRecovery += 4; // 4 points per empty period or recovery session
+              dailyRecovery += ENERGIA_POR_PERIODO_LIVRE; // +7.5 por periodo vazio ou sessao de recovery (= -ENERGY_COST_BASE.recovery)
             }
             if (actId && actId !== 'recovery') {
               const act = ACTIVITIES.find(a => a.id === actId);
               const fitBonus = act?.impacts.find(imp => imp.label === 'FIS')?.value || 0;
-              const stmCost = act?.impacts.find(imp => imp.label === 'STM')?.value || 0;
-              dailyRecovery += (fitBonus + stmCost); // Sum bonus and cost
+              // Dreno real = custo base x (100/stamina); substitui o STM fixo (nao soma os dois).
+              const realCost = (ENERGY_COST_BASE[actId] ?? 0) * drainMultiplier(campo3d(p, ['stamina']));
+              dailyRecovery += fitBonus - realCost;
             }
           }
           if (isTrainingCamp) {
@@ -1014,7 +1016,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } else {
           // Outros times: o plano do treinador da CPU (descanso ou treino do dia)
-          const plano = planosCpu.get(p.teamId) || { recuperacao: 15, treina: false };
+          const plano = planosCpu.get(p.teamId) || { recuperacao: 4 * ENERGIA_POR_PERIODO_LIVRE, treina: false };
           dailyRecovery = plano.recuperacao;
           if (plano.treina) { p = { ...p, trainingAccumulated: p.trainingAccumulated ? { ...p.trainingAccumulated } : undefined } as Player; cpuAplicarTreino(p); }
         }
@@ -1027,7 +1029,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return {
           ...p,
-          fitness: Math.min(100, Math.max(0, p.fitness + dailyRecovery)),
+          energia: Math.min(100, Math.max(0, (p.energia ?? 100) + dailyRecovery)),
+          fitness: Math.min(100, Math.max(0, (p.energia ?? 100) + dailyRecovery)), // espelho legado ate a Task 8
           morale: Math.min(100, Math.max(0, (p.morale || 50) + moraleBoost)),
           injury: lesao ? (lesao.daysOut > 1 ? { ...lesao, daysOut: lesao.daysOut - 1 } : undefined) : undefined
         };
@@ -1222,9 +1225,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (e.injuryTipo) {
                 // Lesao do 3D: o FIS cai por dia (variacaoDiariaDeFis), sem o tombo de uma vez do motor de texto.
               } else if (e.injurySeverity === 'LIGHT' || e.injurySeverity === 'LEVE') {
-                p.fitness = Math.max(0, (p.fitness || 100) - 15);
+                p.energia = Math.max(0, (p.energia ?? 100) - 15);
+                p.fitness = p.energia;
               } else {
-                p.fitness = 80 - (e.injuryDaysOut * 15);
+                p.energia = Math.max(0, 80 - (e.injuryDaysOut * 15));
+                p.fitness = p.energia;
               }
               updated = true;
             }
@@ -1248,6 +1253,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (det && !(p.ratingHistory || []).some(h => h.fixtureId === f.id)) {
                 p.ratingHistory = [...(p.ratingHistory || []), { fixtureId: f.id, nota: rating, minutos: det.minutos, motm: f.motm === pid }];
               }
+              // Bonus TAC pos-jogo: pontos de treino em tacticalAwa escalados pela nota (BASE_TAC_XP * ratingToTacMultiplier) e pela exaustão.
+              const t3 = { ...(p.treino3d || {}) };
+              t3.tacticalAwa = Math.min(TETO_PONTOS_TREINO, (t3.tacticalAwa || 0) + tacBonusDaNota(rating) * exaustaoMultiplier(p.energia ?? 100));
+              p.treino3d = t3;
               // Ajusta moral baseado na nota
               if (rating >= 8.5) p.morale = Math.min(100, p.morale + 10);
               else if (rating >= 7.5) p.morale = Math.min(100, p.morale + 5);
@@ -1296,6 +1305,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!p.trainingAccumulated) {
           p.trainingAccumulated = { def: 0, pas: 0, drb: 0, sht: 0, mor: 0 };
         }
+        if (p.energia === undefined) p.energia = 100;
 
         const pGroup = p.trainingGroupId || 0;
         const gains = isUserPlayer ? groupGains[pGroup] : {
@@ -1336,7 +1346,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const attrKey = attr as 'def' | 'pas' | 'drb' | 'sht';
 
           // Add points to accumulation buffer (100 points = +1 attribute)
-          const points = (gains[key] || 0) * ageFactor;
+          // Exaustao penalty applies only to the user's players (CPU training untouched)
+          const exaustaoMult = isUserPlayer ? exaustaoMultiplier(p.energia ?? 100) : 1;
+          const starsMultiplier = STAR_MULTIPLIERS[starsFromPotential(p.potential)];
+          const points = (gains[key] || 0) * ageFactor * starsMultiplier * exaustaoMult;
           p.trainingAccumulated![key] += points;
 
           // Visual arrows: 1 arrow per 1.5 points of intensity in this block
@@ -1359,7 +1372,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         });
 
-        // Update morale and fitness
+        // Update morale and energy
         const oldMorale = p.morale;
         p.morale = Math.min(100, Math.max(0, p.morale + gains.mor));
         if (p.morale !== oldMorale) updated = true;
@@ -1460,9 +1473,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPlayers(prev => prev.map(p => {
         if (p.id === event.playerId) {
           const isLight = event.injurySeverity === 'LIGHT';
-          const newFit = isLight ? p.fitness : (80 - (event.injuryDaysOut! * 15));
+          const newFit = isLight ? (p.energia ?? 100) : Math.max(0, 80 - (event.injuryDaysOut! * 15));
           return {
             ...p,
+            energia: newFit,
             fitness: newFit,
             injury: { type: event.injuryName!, daysOut: event.injuryDaysOut!, severity: event.injurySeverity! }
           };
@@ -1589,14 +1603,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }));
     } else if (m.tipo === 'energia') {
       /*
-      A stamina do 3D (o deposito de cada jogador, de minuto a minuto e no fim) passa a ser a `fitness` do manager: o cartao do 3D, as barras do Tactics e o resto leem o mesmo numero. O jogo comeca
-      com o deposito = fitness do manager (AdaptadorManager.jogador -> energiaInicial). `mapa`: id real do motor (digitos de 'p-269063') -> %.
+      A stamina do 3D (o deposito de cada jogador, de minuto a minuto e no fim) passa a ser a `energia` do manager: o cartao do 3D, as barras do Tactics e o resto leem o mesmo numero. O jogo comeca
+      com o deposito = energia do manager (AdaptadorManager.jogador -> energiaInicial). `mapa`: id real do motor (digitos de 'p-269063') -> %.
       */
       const mapa: Record<string, number> = m.mapa || {};
       setPlayers(prev => prev.map(p => {
         const d = (/(\d+)$/.exec(String(p.id)) || [])[1];
         const e = d !== undefined ? mapa[d] : undefined;
-        return (typeof e === 'number' && e !== p.fitness) ? { ...p, fitness: Math.max(0, Math.min(100, e)) } : p;
+        return (typeof e === 'number' && e !== p.energia) ? { ...p, energia: Math.max(0, Math.min(100, e)), fitness: Math.max(0, Math.min(100, e)) } : p;
       }));
     } else if (m.tipo === 'lesao') {
       /*
@@ -1828,9 +1842,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             }
 
-            let newFit = p.fitness - (perMinute * injuryMultiplier);
+            let newFit = (p.energia ?? 100) - (perMinute * injuryMultiplier);
             if (min === 45) newFit = Math.min(100, newFit + 3);
-            return { ...p, fitness: Math.max(0, newFit) };
+            return { ...p, energia: Math.max(0, newFit), fitness: Math.max(0, newFit) };
           });
         });
       }
@@ -1987,13 +2001,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
 
-          let newFitness = p.fitness - (perMinute * minutesPlayed) - injuryDrop;
+          let newFitness = (p.energia ?? 100) - (perMinute * minutesPlayed) - injuryDrop;
           // Halftime bonus if we cross the HT mark during this jump
           if (gameState.matchMinute < maxHTDurationRef.current && globalTargetMinute >= maxHTDurationRef.current) {
             newFitness += 3;
           }
 
-          return { ...p, fitness: Math.min(100, Math.max(0, newFitness)) };
+          const finalEn = Math.min(100, Math.max(0, newFitness));
+          // Match form tank: +0.5 per minute played (only if > 15 min)
+          const matchFormGain = minutesPlayed > 15 ? minutesPlayed * 0.5 : 0;
+          const newMatchForm = Math.min(100, (p.matchForm || 50) + matchFormGain);
+          return { ...p, energia: finalEn, fitness: finalEn, matchForm: newMatchForm };
         });
       });
     }

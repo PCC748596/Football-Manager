@@ -4,8 +4,8 @@ Uso: npx tsx tools/auditoriaTreino.ts
 Reproduz as contas do GameContext.advanceDay (recuperacao diaria: +4 por periodo vazio, FIT + STM por sessao; pontos por atributo x fator de idade; PONTOS_POR_ATRIBUTO = +1)
 e os limites do TrainingView (2 usos por sessao e o teto por aba). Se mudar uma dessas contas la, mude aqui.
 */
-import { ACTIVITIES, TETO_PONTOS_TREINO } from '../textSim/trainingService';
-import { atributos3d, NOME_DO_CAMPO } from '../textSim/atributos3d';
+import { ACTIVITIES, TETO_PONTOS_TREINO, STAR_MULTIPLIERS, starsFromPotential, ENERGY_COST_BASE, drainMultiplier, ENERGIA_POR_PERIODO_LIVRE } from '../textSim/trainingService';
+import { atributos3d, NOME_DO_CAMPO, campo3d } from '../textSim/atributos3d';
 import { GRUPOS } from '../textSim/geradorAtributos';
 import { generateLeagueData } from '../textSim/dataGenerator';
 
@@ -92,19 +92,28 @@ const simular = (plano: Plano, idade: number) => {
   const ant: Record<string, number> = {};
   for (const g of ['TEC', 'TAC', 'MEN', 'FIS'] as const) for (const x of antes.detalhe![g]) ant[x.campo] = x.valor;
   p.treino3d = {};
-  let fit = 100, minFit = 100, somaKick = 0, jogos = 0, vazios = 0, usados = 0, abaixo70 = 0;
+  let fit = 100, minFit = 100, energia = 100, minEnergia = 100, somaKick = 0, jogos = 0, vazios = 0, usados = 0, abaixo70 = 0, abaixo70Energy = 0;
   const pts: Record<string, number> = {};
   for (let w = 0; w < SEMANAS; w++) for (let d = 0; d < 7; d++) {
-    if (d === DIA_DO_JOGO) { somaKick += fit; jogos++; if (fit < 70) abaixo70++; fit = Math.max(0, fit - CUSTO_DO_JOGO); }
+    if (d === DIA_DO_JOGO) { somaKick += fit; jogos++; if (fit < 70) abaixo70++; fit = Math.max(0, fit - CUSTO_DO_JOGO); if (energia < 70) abaixo70Energy++; energia = Math.max(0, energia - CUSTO_DO_JOGO); minEnergia = Math.min(minEnergia, energia); }
     let rec = 0;
     for (let s = 0; s < 4; s++) {
       const id = plano[d][s];
-      if (!id || id === 'recovery') { rec += 4; vazios++; }
+      if (!id || id === 'recovery') { rec += 4; vazios++; energia = Math.min(100, energia + ENERGIA_POR_PERIODO_LIVRE); }
       if (id && id !== 'recovery') {
         usados++;
         rec += val(id, 'FIS') + val(id, 'STM');
+        // Apply energy drain using drainMultiplier based on stamina
+        const stamina = campo3d(p, ['stamina']);
+        const drainMult = drainMultiplier(stamina);
+        const realEnergyCost = (ENERGY_COST_BASE[id] ?? 0) * drainMult;
+        energia = Math.max(0, energia - realEnergyCost);
+        minEnergia = Math.min(minEnergia, energia);
+        // Apply stars multiplier to XP
+        const starsMult = STAR_MULTIPLIERS[starsFromPotential(p.potential)];
         for (const i of ACTIVITIES.find(a => a.id === id)!.impacts) if (i.label === 'SKL' && i.campo) {
-          p.treino3d[i.campo] = Math.min(TETO_PONTOS_TREINO, (p.treino3d[i.campo] || 0) + i.value * FATOR_IDADE(p.age));
+          const xpFinal = i.value * FATOR_IDADE(p.age) * starsMult;
+          p.treino3d[i.campo] = Math.min(TETO_PONTOS_TREINO, (p.treino3d[i.campo] || 0) + xpFinal);
           pts[i.campo] = (pts[i.campo] || 0) + i.value;
         }
       }
@@ -115,7 +124,7 @@ const simular = (plano: Plano, idade: number) => {
   const depois = atributos3d(p);
   const ganhos: { campo: string; antes: number; depois: number }[] = [];
   for (const g of ['TEC', 'TAC', 'MEN', 'FIS'] as const) for (const x of depois.detalhe![g]) if (x.valor !== ant[x.campo]) ganhos.push({ campo: x.campo, antes: ant[x.campo], depois: x.valor });
-  return { p, antes, depois, ganhos, kick: somaKick / jogos, minFit, abaixo70, jogos, vazios, usados };
+  return { p, antes, depois, ganhos, kick: somaKick / jogos, minFit, minEnergia, abaixo70, abaixo70Energy, jogos, vazios, usados };
 };
 
 L('=== 3. UMA TEMPORADA DE TREINO (38 semanas, jogo no sabado, sem treino no domingo) ===');
@@ -124,7 +133,7 @@ for (const [nome, plano] of Object.entries(CALENDARIOS)) {
   for (const idade of [19, 26, 34]) {
     const r = simular(plano, idade);
     const g = (k: 'tec' | 'tac' | 'men' | 'fis') => `${r.antes[k]}->${r.depois[k]}`;
-    L(`  idade ${r.p.age}: TEC ${g('tec')}  TAC ${g('tac')}  MEN ${g('men')}  FIS ${g('fis')} | fitness no jogo ${r.kick.toFixed(0)} (min ${r.minFit.toFixed(0)}, ${r.abaixo70}/${r.jogos} jogos abaixo de 70) | atributos que subiram: ${r.ganhos.length}`);
+    L(`  idade ${r.p.age}: TEC ${g('tec')}  TAC ${g('tac')}  MEN ${g('men')}  FIS ${g('fis')} | fitness no jogo ${r.kick.toFixed(0)} (min ${r.minFit.toFixed(0)}, ${r.abaixo70}/${r.jogos} jogos abaixo de 70) | energia (min ${r.minEnergia.toFixed(0)}, ${r.abaixo70Energy}/${r.jogos} jogos abaixo de 70) | atributos que subiram: ${r.ganhos.length}`);
   }
 }
 L();

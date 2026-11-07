@@ -8,6 +8,7 @@ import { TeamShield } from './TeamShield';
 import { AttributeGrowthArrow } from './SquadView';
 import { PlayerFace } from './PlayerFace';
 import { ContractPanel } from './ContractPanel';
+import EnergyBar, { energiaDe, matchFormDe, MatchFormBar } from './EnergyBar';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { estiloPorPosicao, estiloValidoDoJogador } from '../textSim/playStyleFallback';
 import { atributos3d, campo3d, paisDoJogador } from '../textSim/atributos3d';
@@ -138,7 +139,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
     const pas = player.pas;
     const drb = player.drb;
     const sht = player.sht;
-    const phy = Math.round((player.fitness + (isDef ? def : 60)) / 2); // Approximation for Physical
+    const phy = Math.round((energiaDe(player) +(isDef ? def : 60)) / 2); // Approximation for Physical
     const spd = Math.round((drb + (isMid ? pas : sht)) / 2); // Approximation for Pace/Speed
 
     // O radar usa SO os atributos do 3D (textSim/atributos3d.ts): as quatro medias e quatro habilidades tiradas dos campos.
@@ -309,12 +310,21 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
               </div>
             </div>
 
-            {/* CONDITION: so o estado de jogo (fitness e moral); os atributos vivem em 3D Match Attributes */}
+            {/* CONDITION: so o estado de jogo (energia, match form e moral); os atributos vivem em 3D Match Attributes */}
             <div className="flex flex-col gap-5">
               <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
                 <div className="text-sm font-bold text-white mb-2">Condition</div>
+                <div className="flex flex-col gap-2 mb-2">
+                  <div title="Daily energy (0-100%): spent in training and matches, recovered with rest">
+                    <div className="flex justify-between text-xs mb-1"><span className="text-slate-500">Energy</span><span className="font-black text-slate-200">{Math.round(energiaDe(player))}%</span></div>
+                    <EnergyBar energy={energiaDe(player)} className="w-full h-2" />
+                  </div>
+                  <div title="Match Form (0-100): match rhythm, grows with minutes played">
+                    <div className="flex justify-between text-xs mb-1"><span className="text-slate-500">Match Form</span><span className="font-black text-slate-200">{Math.round(matchFormDe(player))}</span></div>
+                    <MatchFormBar matchForm={matchFormDe(player)} className="w-full h-2" />
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
-                  <span className="text-slate-500">Fitness</span><span className="font-black text-right text-slate-200">{Math.round(player.fitness)}%</span>
                   <span className="text-slate-500">Morale</span><span className="font-black text-right text-slate-200">{Math.round(player.morale)}</span>
                 </div>
               </div>

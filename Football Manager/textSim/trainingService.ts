@@ -7,6 +7,65 @@ export const PONTOS_POR_ATRIBUTO = 25;
 /** Teto de pontos de treino por atributo (+15 no atributo). */
 export const TETO_PONTOS_TREINO = 15 * PONTOS_POR_ATRIBUTO;
 
+/** Stars (1-5) → XP multiplier. Derived from Player.potential or .potentialEstimate. */
+export const STAR_MULTIPLIERS = {
+  1: 0.6,   // ⭐
+  2: 0.8,   // ⭐⭐
+  3: 1.0,   // ⭐⭐⭐
+  4: 1.2,   // ⭐⭐⭐⭐
+  5: 1.4    // ⭐⭐⭐⭐⭐
+};
+
+/** Stars from potential (50-99): convert potential to 1-5 stars. */
+export const starsFromPotential = (potential?: number): number => {
+  if (!potential) return 3;
+  if (potential <= 55) return 1;
+  if (potential <= 65) return 2;
+  if (potential <= 80) return 3;
+  if (potential <= 90) return 4;
+  return 5;
+};
+
+/** XP penalty for low energy. Energia > 75%: 1.0x, 50-74%: 0.8x, 25-49%: 0.5x, < 25%: 0.1x. */
+export const exaustaoMultiplier = (energia: number): number => {
+  if (energia > 75) return 1.0;
+  if (energia > 49) return 0.8;
+  if (energia > 24) return 0.5;
+  return 0.1;
+};
+
+/** Drain multiplier based on player stamina. Higher stamina = lower drain. Formula: 100 / stamina. */
+export const drainMultiplier = (stamina: number): number => {
+  return 100 / Math.max(50, Math.min(100, stamina));
+};
+
+/** Custo base de energia (0-100%) por sessao de treino, antes do multiplicador de stamina. Tabela canonica = plano 2026-01-07-energy-matchform-system.md (Task 4).
+ *  'recovery' e negativo: devolve -recovery (= +7.5) por periodo (4 periodos = +30/dia), fixo, sem multiplicador. Periodo vazio devolve o mesmo (ENERGIA_POR_PERIODO_LIVRE). */
+export const ENERGY_COST_BASE: Record<string, number> = {
+  passing: 15, longpass: 15, control: 15, wingplay: 20, crossing: 15, shooting: 15, longshots: 20, finishing: 20, volleys: 20, aerial: 20, setpieces: 15, penalties: 15,
+  tackling: 18, sliding: 25, marking: 22, def_pos: 15, positioning: 15, vision: 18, pressing: 30, playmaking: 20, transition: 20,
+  cardio: 25, sprints: 30, acceleration: 25, agility: 20, jumping: 22, strength: 28, balance: 20,
+  recovery: -7.5,
+  aggression: 15, reactions: 12, composure: 12, consistency: 12, video: 5, teambuilding: 10, shadow: 15, focus: 12
+};
+
+/** Energia devolvida por um periodo vazio ou uma sessao 'recovery' (por periodo, 4 periodos/dia). */
+export const ENERGIA_POR_PERIODO_LIVRE = -ENERGY_COST_BASE.recovery;
+
+/** TAC XP multiplier based on match rating. Rating 8.0 = 1.2x, rating 4.0 = 0.5x, neutral 6.0 = 1.0x. */
+export const ratingToTacMultiplier = (rating: number): number => {
+  if (rating <= 4) return 0.3 + (rating / 4) * 0.2;
+  if (rating <= 6) return 0.5 + ((rating - 4) / 2) * 0.5;
+  if (rating <= 8) return 1.0 + ((rating - 6) / 2) * 0.2;
+  return 1.2 + ((rating - 8) / 2) * 0.1;
+};
+
+/** Pontos de treino base em tacticalAwa (Player.treino3d) ganhos por partida, escalados por ratingToTacMultiplier(nota). Nota 8.0 = +6, nota 4.0 = +2.5. */
+export const BASE_TAC_XP = 5;
+
+/** Bonus TAC pos-jogo (pontos de treino em tacticalAwa) para uma nota 0-10. */
+export const tacBonusDaNota = (nota: number): number => BASE_TAC_XP * ratingToTacMultiplier(nota);
+
 export interface Impact {
   label: string;
   value: number;
@@ -65,7 +124,7 @@ export const ACTIVITIES: TrainingActivity[] = [
 ];
 
 // =====================================================================
-// TREINO DA CPU — antes os times da CPU nao treinavam: recuperavam +15 de fitness por dia, sempre, e o elenco nunca evoluia.
+// TREINO DA CPU — antes os times da CPU nao treinavam: recuperavam +15 de energia por dia, sempre, e o elenco nunca evoluia.
 // Agora o treinador da CPU gere a semana: descansa na vespera do jogo e quando o grupo esta cansado (media < 82), e nos outros dias treina (recupera menos e
 // acumula pontos nos atributos da posicao, mais depressa nos jovens e nada nos veteranos), como o treino do utilizador.
 // =====================================================================
@@ -73,9 +132,11 @@ import type { Player } from '../types';
 
 export const cpuPlanoDoDia = (elenco: Player[], diasParaOJogo: number): { recuperacao: number; treina: boolean } => {
   const aptos = elenco.filter(p => !p.injury);
-  const media = aptos.length ? aptos.reduce((s, p) => s + p.fitness, 0) / aptos.length : 100;
-  const descansa = diasParaOJogo <= 1 || media < 82;
-  return { recuperacao: descansa ? 15 : 10, treina: !descansa };
+  const media = aptos.length ? aptos.reduce((s, p) => s + (p.energia ?? 100), 0) / aptos.length : 100;
+  const mediaEnergia = aptos.length ? aptos.reduce((s, p) => s + (p.energia ?? 100), 0) / aptos.length : 100;
+  const descansa = diasParaOJogo <= 1 || media < 82 || mediaEnergia < 30;
+  // Escala nova (Task 4): descanso = 4 periodos livres (+30/dia); dia de treino = +10 liquido (o utilizador com 2 sessoes + 2 livres fica ~+20).
+  return { recuperacao: descansa ? 4 * ENERGIA_POR_PERIODO_LIVRE : 10, treina: !descansa };
 };
 
 /** Um dia de treino de um jogador da CPU: pontos no atributo da posicao (100 pontos = +1). Muda o proprio objecto. */
@@ -87,6 +148,7 @@ export const cpuAplicarTreino = (p: Player): void => {
   const attr: 'def' | 'pas' | 'drb' | 'sht' =
     ['CB', 'LB', 'RB', 'DM', 'GK'].includes(pos) ? 'def' : ['CM', 'LM', 'RM', 'AM'].includes(pos) ? 'pas' : ['LW', 'RW'].includes(pos) ? 'drb' : 'sht';
   const acc = p.trainingAccumulated || (p.trainingAccumulated = { def: 0, pas: 0, drb: 0, sht: 0 } as any);
-  (acc as any)[attr] += 3 * fator;
+  const starsMult = STAR_MULTIPLIERS[starsFromPotential(p.potential)];
+  (acc as any)[attr] += 3 * fator * starsMult;
   while ((acc as any)[attr] >= 100) { (acc as any)[attr] -= 100; (p as any)[attr] = Math.min(99, (p as any)[attr] + 1); }
 };

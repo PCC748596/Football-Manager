@@ -7,7 +7,7 @@ import ActivityModal from './ActivityModal';
 import { TeamShield } from './TeamShield';
 import { PlayerFace } from './PlayerFace';
 import { ShirtIcon } from './ShirtIcon';
-import FitnessBar from './FitnessBar';
+import EnergyBar, { energiaDe } from './EnergyBar';
 import BoardConfidenceCard from './BoardConfidenceCard';
 import { settleMatch, ECONOMIA_ESTADIO, competicaoDoJogo, type CurrencyCode } from '../textSim/stadiumEconomy';
 
@@ -210,7 +210,7 @@ const OpponentTacticsModal: React.FC<{ team: Team, players: Player[], onClose: (
                       {/* Nome + stamina: abaixo da camisa, ou ACIMA quando abaixo tapava outra camisa (nomeEmCima) */}
                       {player && (
                          <div style={{ marginLeft: `${nomePos[idx].dx}px` }} className={`absolute left-1/2 -translate-x-1/2 z-30 ${nomePos[idx].acima ? 'bottom-full mb-1' : 'top-full mt-2.5'} bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-[2px] shadow-sm max-w-[80px] flex flex-col items-center gap-1`}>
-                            <FitnessBar fitness={player.fitness} className="w-10 h-1" />
+                            <EnergyBar energy={energiaDe(player)} className="w-10 h-1" />
                             <span className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase truncate block text-center leading-tight">
                                {player.name.split(' ').pop()}
                             </span>
