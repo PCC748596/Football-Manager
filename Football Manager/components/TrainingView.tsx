@@ -271,10 +271,12 @@ const TrainingView: React.FC = () => {
                    const grava = (ativo: boolean, novos: number[]) => setTrainingAutoGrupos({ ativo, limiares: novos });
                    return (
                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500" title="Players move between groups automatically by ENR (at the start of each day).">
-                       <label className="flex items-center gap-1 cursor-pointer">
-                         <input type="checkbox" checked={auto.ativo} onChange={e => grava(e.target.checked, lim)} />
-                         Auto ENR
-                       </label>
+                       <button
+                         onClick={() => grava(!auto.ativo, lim)}
+                         className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest transition-colors ${auto.ativo ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 hover:bg-slate-300 dark:hover:bg-slate-700'}`}
+                       >
+                         AUTO ENR {lim[0]} - {auto.ativo ? 'ON' : 'OFF'}
+                       </button>
                        {lim.map((v, i) => (
                          <span key={i} className={`flex items-center gap-1 ${auto.ativo ? '' : 'opacity-40'}`}>
                            G{i + 1} ≥

@@ -27,7 +27,7 @@ import { slotsVazios, jogoEmAndamento } from '../textSim/escalacao';
 import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico, gerarMedico } from '../textSim/medico';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
-import { ACTIVITIES, cpuPlanoDoJogador, SLOTS_CPU_LEVE, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, XP_POR_PONTO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, ENERGIA_SLOT_VAZIO, drainMultiplier, recoveryMultiplier, energiaPosLesao, energiaInicial, definirNivelDoCt, tetoDoLegacy, garantirBaseLegacy, SLOTS_CPU_POR_DIA, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
+import { ACTIVITIES, cpuPlanoDoJogador, SLOTS_CPU_LEVE, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, XP_POR_PONTO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, ENERGIA_SLOT_VAZIO, drainMultiplier, recoveryMultiplier, energiaPosLesao, energiaInicial, definirNivelDoCt, tetoDoLegacy, garantirBaseLegacy, SLOTS_CPU_POR_DIA, rolouLesaoTreino, grupoPorEnergia, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
 import { campo3d, atributos3d, regredirPorIdade, migrarTreinoParaXp } from '../textSim/atributos3d';
 import { GRUPOS } from '../textSim/geradorAtributos';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
@@ -256,6 +256,8 @@ interface GameContextType {
   setTrainingSchedules: (schedules: (string | null)[][][]) => void;
   unlockTrainingGroup: () => void;
   updatePlayerTrainingGroup: (playerId: string, groupId: number) => void;
+  /** Grupos de treino automaticos pela ENR (GameState.trainingAutoGrupos): grava a configuracao e reagrupa o elenco ja. */
+  setTrainingAutoGrupos: (cfg: { ativo: boolean; limiares: number[] }) => void;
   saveGame: () => Promise<void>;
   importGameData: (jsonString: string) => boolean;
   /** Sobe a cada save carregado: serve de `key` para remontar as telas com estado proprio (MatchDay). */
@@ -1031,13 +1033,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
+      // Grupos automaticos pela ENR (do inicio do dia): quem tem Energia alta treina no G1, quem esta cansado passa para o seguinte.
+      const nGruposAuto = gameState.unlockedTrainingGroups || 1;
+      const autoG = gameState.trainingAutoGrupos;
+      const grupoAuto = (pl: Player): number | null => (autoG?.ativo && nGruposAuto > 1 && pl.teamId === gameState.userTeamId && !pl.injury)
+        ? grupoPorEnergia(pl.energia ?? pl.fitness ?? 100, autoG.limiares, nGruposAuto) : null;
+
       return prevPlayers.map(p => {
+        const gAuto = grupoAuto(p);
+        if (gAuto !== null && (p.trainingGroupId || 0) !== gAuto) p = { ...p, trainingGroupId: gAuto };
         let dailyRecovery = 0;
         let moraleBoost = 0;
         // Lesao nova do dia (rolo de lesao dos slots de treino; as dos jogos vem do motor da partida).
         let novaLesao: Player['injury'] | undefined;
         const rolarLesaoTreino = (energiaNoEvento: number) => {
-          if (novaLesao || !rolouLesao(energiaNoEvento)) return;
+          if (novaLesao || !rolouLesaoTreino(energiaNoEvento)) return;
           novaLesao = { type: 'Lesao muscular (treino)', daysOut: 3 + Math.floor(Math.random() * 8), severity: 'LIGHT' };
         };
 
@@ -1049,7 +1059,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const gIdx = p.trainingGroupId || 0;
           const userSchedules = gameState.trainingSchedules || [gameState.trainingSchedule, [], []];
           const groupSchedule = userSchedules[gIdx] || gameState.trainingSchedule;
-          let energiaNoSlot = p.energia ?? 100;
+          let energiaNoSlot = p.energia ?? p.fitness ?? 100;
 
           for (let slot = 0; slot < 4; slot++) {
             const actId = groupSchedule[dayIdx] ? groupSchedule[dayIdx][slot] : null;
@@ -1077,7 +1087,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } else {
           // Outros times: o plano do treinador da CPU (descanso ou treino do dia)
-          const plano = cpuPlanoDoJogador(p.energia ?? 100, diasParaJogoCpu.get(p.teamId) ?? 7, jogouOntem.has(p.id));   // 1 dia de folga depois do jogo, so para quem jogou
+          const plano = cpuPlanoDoJogador(p.energia ?? p.fitness ?? 100, diasParaJogoCpu.get(p.teamId) ?? 7, jogouOntem.has(p.id));   // 1 dia de folga depois do jogo, so para quem jogou
           dailyRecovery = 4 * ENERGIA_POR_PERIODO_LIVRE;   // descanso
           if (plano !== 'descanso') {
             // A CPU treina pelas atividades do utilizador: gasta Energia (custo x 100/Stamina), rola a lesao por sessao pesada e os periodos que sobram recuperam como slots vazios.
@@ -1098,11 +1108,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         // Alta medica: a Energia cai a 1/2 do FIS (lesao grave), 1/3 (media) ou 1/4 (leve).
         const teveAlta = !!lesao && lesao.daysOut <= 1;
-        const energiaSoma = (p.energia ?? 100) + dailyRecovery;
+        const energiaSoma = (p.energia ?? p.fitness ?? 100) + dailyRecovery;
         const energiaBase = teveAlta ? Math.min(energiaSoma, energiaPosLesao(atributos3d(p).fis, lesao?.severity)) : energiaSoma;
         const energiaFinal = Math.min(100, Math.max(0, energiaBase));
+        // Volta de lesao (jogador do utilizador): vai para o grupo da sua ENR de agora (baixa pela alta medica), se houver mais de um grupo desbloqueado.
+        const nGruposAlta = gameState.unlockedTrainingGroups || 1;
+        const grupoAlta = (teveAlta && p.teamId === gameState.userTeamId && nGruposAlta > 1)
+          ? grupoPorEnergia(energiaFinal, gameState.trainingAutoGrupos?.limiares || [80, 50], nGruposAlta) : undefined;
         return {
           ...p,
+          ...(grupoAlta !== undefined ? { trainingGroupId: grupoAlta } : {}),
           energia: energiaFinal,
           fitness: energiaFinal, // espelho legado ate a Task 8
           morale: Math.min(100, Math.max(0, (p.morale || 50) + moraleBoost)),
@@ -1135,7 +1150,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const diaDaSemana = (new Date(gameState.currentDate + 'T12:00:00').getDay() + 6) % 7;   // segunda = 0
       const agendas = gameState.trainingSchedules || [gameState.trainingSchedule, [], []];
       const porGrupo = new Map<number, string[]>();
-      players.filter(p => p.teamId === gameState.userTeamId && !p.injury).forEach(p => { const g = p.trainingGroupId || 0; porGrupo.set(g, [...(porGrupo.get(g) || []), p.id]); });
+      players.filter(p => p.teamId === gameState.userTeamId && !p.injury).forEach(p => { const gA = (gameState.trainingAutoGrupos?.ativo && (gameState.unlockedTrainingGroups || 1) > 1) ? grupoPorEnergia(p.energia ?? p.fitness ?? 100, gameState.trainingAutoGrupos.limiares, gameState.unlockedTrainingGroups || 1) : null; const g = gA ?? (p.trainingGroupId || 0); porGrupo.set(g, [...(porGrupo.get(g) || []), p.id]); });
       const ganhos: [string[], number][] = [];
       porGrupo.forEach((ids, g) => {
         const agenda = agendas[g] || gameState.trainingSchedule;
@@ -1920,7 +1935,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const tactics = team?.tactics;
             // Mesma fórmula usada pelo motor: assistir e simular a partida
             // precisam desgastar o elenco exatamente igual.
-            const perMinute = matchFatiguePerMinute(tactics, p.position);
+            const perMinute = matchFatiguePerMinute(tactics, p.position, campo3d(p, ['stamina']));
             let injuryMultiplier = 1;
             const f = todays.find(f => f.homeTeamId === p.teamId || f.awayTeamId === p.teamId);
             if (f && f.events) {
@@ -2078,7 +2093,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const team = teams.find(t => t.id === teamId);
           const tactics = team?.tactics;
 
-          const perMinute = matchFatiguePerMinute(tactics, p.position);
+          const perMinute = matchFatiguePerMinute(tactics, p.position, campo3d(p, ['stamina']));
 
           let injuryDrop = 0;
           const f = todays.find(f => f.homeTeamId === p.teamId || f.awayTeamId === p.teamId);
@@ -2385,6 +2400,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, trainingGroupId: groupId } : p));
   };
 
+  const setTrainingAutoGrupos = (cfg: { ativo: boolean; limiares: number[] }) => {
+    setGameState(prev => ({ ...prev, trainingAutoGrupos: cfg }));
+    // Reagrupa o elenco ja, pela ENR de agora (os lesionados ficam no MED e nao mudam).
+    if (cfg.ativo) {
+      const n = gameState.unlockedTrainingGroups || 1;
+      if (n > 1) setPlayers(prev => prev.map(p => (p.teamId === gameState.userTeamId && !p.injury)
+        ? { ...p, trainingGroupId: grupoPorEnergia(p.energia ?? p.fitness ?? 100, cfg.limiares, n) } : p));
+    }
+  };
+
   const saveGame = async () => {
     // A partida 3D a meio: o instantaneo do motor (posicoes, bola, posse, estatisticas) vai no save, para o load continuar exactamente dali (ver Ponte.instantaneo).
     let motor3d: any = null;
@@ -2444,6 +2469,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         simulador3dDescartar();   // o 3D do save anterior sai: o MatchDay (remontado por loadId) cria o do save carregado
         pauseMatch();
         (window as any).motor3dMinuto = undefined;
+        // Saves antigos so tem `fitness` (a barra le `energia ?? fitness`): sem isto o fecho do dia lia `energia ?? 100` e todos iam de 50% a 100% no primeiro dia.
+        data.players = data.players.map((p: any) => (p.energia === undefined && typeof p.fitness === 'number' ? { ...p, energia: p.fitness } : p));
         // Saves antigos: ninguem fica abaixo do nivel minimo (50).
         data.players = data.players.map((p: any) => (p.skill < 50 || p.def < 50 || p.pas < 50 || p.drb < 50 || p.sht < 50
           ? { ...p, skill: Math.max(50, p.skill), def: Math.max(50, p.def), pas: Math.max(50, p.pas), drb: Math.max(50, p.drb), sht: Math.max(50, p.sht) } : p));
@@ -2531,7 +2558,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       registrarFinanceiro,
       setTrainingSchedules,
       unlockTrainingGroup,
-      updatePlayerTrainingGroup
+      updatePlayerTrainingGroup, setTrainingAutoGrupos
     }}
     >{children}</GameContext.Provider>
   );
