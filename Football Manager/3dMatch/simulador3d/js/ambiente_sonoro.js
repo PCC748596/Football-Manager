@@ -24,8 +24,8 @@ const AmbienteSonoro = {
     Volumes por situação. São baixos de propósito: isto é ruído de fundo, e um
     som de estádio a tocar alto durante 90 minutos cansa em três.
     */
-    volumeRepouso: 0.25,
-    volumeAtaque: 0.55,
+    volumeRepouso: 0.275,
+    volumeAtaque: 0.605,
     volumeGolo: 1.00,
 
     /*

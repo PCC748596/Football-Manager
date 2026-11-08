@@ -31,7 +31,7 @@ const EfeitosSonoros = {
     arbitragem, tem de cortar o ruído do estádio; o chute vive por baixo dele.
     */
     volumeApito: 0.27,
-    volumeChute: 0.40,
+    volumeChute: 0.44,
 
     // Quantas cópias de cada som podem tocar ao mesmo tempo.
     vozes: 4,
