@@ -47,8 +47,16 @@ if (process.env.E90_WORKER !== undefined) {
     const inicio = new Map();
     for (const p of Match.players.concat(Match.opponents)) if (p && p.model) inicio.set(p, { id: p.id || (p.skills && p.skills.id), pos: p.pos, role: p.role, e0: p.energia, stam: p.skillFor ? p.skillFor('STAMINA') : null, e44: null, e46: null });
     let erro = null;
-    const passos = Math.round(MINUTOS * 60 / dt);
-    try { for (let f = 0; f < passos; f++) Match.update(dt); } catch (e) { erro = String(e && e.message || e); }
+    // O relogio do jogo corre mais depressa que o real: para quando `Match.tempoDeJogo` (segundos de jogo) chega aos minutos pedidos (e no maximo MINUTOS de relogio, por seguranca).
+    const alvo = MINUTOS * 60, maxFrames = Math.round(MINUTOS * 60 / dt);
+    let viu44 = false, viu46 = false;
+    try {
+        for (let f = 0; f < maxFrames && Match.tempoDeJogo < alvo; f++) {
+            Match.update(dt);
+            if (!viu44 && Match.tempoDeJogo >= 44 * 60) { viu44 = true; inicio.forEach((v, p) => { v.e44 = p.energia; }); }
+            if (!viu46 && Match.tempoDeJogo >= 47 * 60) { viu46 = true; inicio.forEach((v, p) => { v.e46 = p.energia; }); }
+        }
+    } catch (e) { erro = String(e && e.message || e); }
 
     const emCampo = new Set(Match.players.concat(Match.opponents));
     const linhas = [];

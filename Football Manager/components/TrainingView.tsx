@@ -278,8 +278,7 @@ const TrainingView: React.FC = () => {
                          AUTO ENR {lim[0]} - {auto.ativo ? 'ON' : 'OFF'}
                        </button>
                        {lim.map((v, i) => (
-                         <span key={i} className={`flex items-center gap-1 ${auto.ativo ? '' : 'opacity-40'}`}>
-                           G{i + 1} ≥
+                         <span key={i} title={`G${i + 1}: ENR minima`} className={`flex items-center gap-1 ${auto.ativo ? '' : 'opacity-40'}`}>
                            <input
                              type="number" min={0} max={100} value={v} disabled={!auto.ativo}
                              onChange={e => {
