@@ -149,12 +149,6 @@ export interface Player {
   age: number;
   position: Position;
   skill: number;
-  /** Match Form / Tank (0-100): ritmo de jogo e TETO da Energia. Ganha min(minutos, 60) * 0.5 por jogo; decai por semana sem jogar (ver Training_Motor_and_Progression.md). */
-  matchForm: number;
-  /** Minutos jogados na semana corrente (zera no domingo, quando o decay semanal do Match Form e verificado). */
-  minutosSemana?: number;
-  /** true quando o Match Form inicial (= FIS medio) ja foi calculado; um save antigo ou um jogador novo ainda nao o tem. */
-  mfIniciado?: boolean;
   /** Daily Energy (0-100%): consumed by training/matches, recovered with rest. Default 100. */
   energia?: number;
   fitness: number;

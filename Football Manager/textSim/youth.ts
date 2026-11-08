@@ -195,10 +195,10 @@ export const gerarJovem = (teamId: string, posicao: Position, idade: number, hoj
   const nascimento = somarAnos(hoje, -idade);
   const dias = Math.floor(rnd() * 358);
   const d = new Date(nascimento + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - dias);
+  const energiaIni = 45 + Math.round(rnd() * 10);   // Energia inicial entre 45 e 55
   const jovem: Player = {
     id, name: nome, age: idade, position: posicao, skill,
-    matchForm: 50, energia: 100,   // matchForm provisorio: o GameContext troca pelo FIS medio (mfIniciado)
-    fitness: 80, morale: 60, goalsScored: 0, assists: 0, appearances: 0, weeklyGrowth: 0,
+    energia: energiaIni, fitness: energiaIni, morale: 60, goalsScored: 0, assists: 0, appearances: 0, weeklyGrowth: 0,
     value: 0, salary: Math.max(500, Math.round(valorParaSalario * 0.002)), contractExpiry: '',
     contract: novoContrato(idade, hoje, rnd),
     birthDate: d.toISOString().slice(0, 10),

@@ -4,9 +4,6 @@ import React from 'react';
 /** Energia diaria (0-100) do jogador. Saves antigos podem nao ter `energia`: cai para o espelho legado `fitness`. */
 export const energiaDe = (p: { energia?: number; fitness?: number }): number => p.energia ?? p.fitness ?? 100;
 
-/** Match Form / Tank (0-100). Saves antigos sem o campo: 50 (o valor inicial do gerador). */
-export const matchFormDe = (p: { matchForm?: number }): number => p.matchForm ?? 50;
-
 const clamp = (v: number) => Math.min(100, Math.max(0, Number.isFinite(v) ? v : 0));
 
 /** 5 segmentos de 20 pontos cada. */
@@ -34,12 +31,6 @@ const energyColor = (val: number) => {
   return 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.2)]';
 };
 
-const matchFormColor = (val: number) => {
-  if (val <= 30) return 'bg-slate-400';
-  if (val <= 60) return 'bg-sky-400';
-  return 'bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.2)]';
-};
-
 interface EnergyBarProps {
   energy: number;
   className?: string;
@@ -47,11 +38,6 @@ interface EnergyBarProps {
 
 const EnergyBar: React.FC<EnergyBarProps> = ({ energy, className = "" }) => (
   <SegmentedBar value={energy} className={className} colorFor={energyColor} title={`Energy ${Math.round(clamp(energy))}%`} />
-);
-
-/** Indicador separado do Match Form (ritmo de jogo, 0-100), em tons de azul para nao se confundir com a energia. */
-export const MatchFormBar: React.FC<{ matchForm: number; className?: string }> = ({ matchForm, className = "" }) => (
-  <SegmentedBar value={matchForm} className={className} colorFor={matchFormColor} title={`Match Form ${Math.round(clamp(matchForm))}`} />
 );
 
 export default EnergyBar;

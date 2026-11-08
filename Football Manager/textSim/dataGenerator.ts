@@ -86,9 +86,7 @@ export const generatePlayer = (teamId: string, position: Position, idCounter: nu
     age,
     position,
     skill: finalSkill,
-    matchForm: 50,   // provisorio: o GameContext troca pelo FIS medio (mfIniciado)
-    energia: 100,
-    fitness: 100,
+    ...(() => { const e = randomInt(45, 55); return { energia: e, fitness: e }; })(),   // Energia inicial entre 45 e 55
     morale: randomInt(40, 60),
     goalsScored: 0,
     assists: 0,
@@ -667,9 +665,7 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
           position: mapPosString(p.posPlayer),
           ...(p.birthDate ? { birthDate: p.birthDate } : {}),
           skill: Math.max(NIVEL_MINIMO, p.ovrPlayer),
-          matchForm: 50,   // provisorio: o GameContext troca pelo FIS medio (mfIniciado)
-          energia: 100,
-          fitness: 100,
+          ...(() => { const e = randomInt(45, 55); return { energia: e, fitness: e }; })(),   // Energia inicial entre 45 e 55
           morale: randomInt(40, 60), // Everyone starts at 4-6 morale in preseason
           goalsScored: 0,
           assists: 0,

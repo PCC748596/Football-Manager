@@ -8,7 +8,7 @@ import { AttributeGrowthArrow, getStarCount } from './SquadView';
 import { createPortal } from 'react-dom';
 import { RenovarModal } from './ContractPanel';
 import { PlayerFace } from './PlayerFace';
-import EnergyBar, { energiaDe, matchFormDe, MatchFormBar } from './EnergyBar';
+import EnergyBar, { energiaDe } from './EnergyBar';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 import { estiloPorPosicao, estiloValidoDoJogador } from '../textSim/playStyleFallback';
@@ -384,7 +384,6 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                 <div className="flex justify-between"><span className="text-slate-400">Contract</span><span className="font-black text-white">{player.contract?.end ? player.contract.end.split('-').reverse().join('/') : '-'}</span></div>
                 <div className="flex justify-between"><span className="text-slate-400">Value</span><span className="font-black text-white">{formatCurrency(player.value)}</span></div>
                 <div className="flex justify-between"><span className="text-slate-400">Condition</span><span className="font-black text-white">{Math.round(energiaDe(player))}%</span></div>
-                <div className="flex justify-between"><span className="text-slate-400">Match Form</span><span className="font-black text-white">{Math.round(matchFormDe(player))}</span></div>
                 <div className="flex justify-between"><span className="text-slate-400">Morale</span><span className="font-black text-white">{Math.round(player.morale)}</span></div>
               </div>
               {userTeam && player.teamId === userTeam.id && (
