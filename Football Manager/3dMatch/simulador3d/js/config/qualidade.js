@@ -20,8 +20,8 @@ const BLOB_Y = 0.02;
 const Qualidade = {
     niveis: {
         // Todos os niveis: jogadores e arbitros com o corpo `leve` 4 (456 triangulos), torcida, staff e reservas com o `leve` 5 (400).
-        HIGH:   { luzes: 14, sombras: true,  mapa: 2048, pixelRatio: 1.5, adeptos: 1.00, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
-        MEDIUM: { luzes: 10, sombras: true,  mapa: 1024, pixelRatio: 1.5, adeptos: 0.50, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
+        HIGH:   { luzes: 14, sombras: false, mapa: 2048, pixelRatio: 1.5, adeptos: 1.00, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
+        MEDIUM: { luzes: 10, sombras: false, mapa: 1024, pixelRatio: 1.5, adeptos: 0.50, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
         LOW:    { luzes: 6, sombras: false, mapa: 512,  pixelRatio: 1.5, adeptos: 0.25, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: false }
     },
     // RESOLUCAO DINAMICA: a escala (0.85..1) que multiplica o pixel ratio do nivel. Desce se o FPS cai e sobe quando recupera (ver `ajustarPelaFps`, chamado uma vez por segundo).

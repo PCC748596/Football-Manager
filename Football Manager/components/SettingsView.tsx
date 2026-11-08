@@ -122,7 +122,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                           </button>
                       ))}
                   </div>
-                  <p className="text-xs text-slate-400">HIGH (default): everything, 100% crowd. MEDIUM: shadows, 50% crowd. LOW: no shadows, light player model, 25% of the stadium seats filled. Crowd size applies from the next match.</p>
+                  <p className="text-xs text-slate-400">HIGH (default): 100% crowd. MEDIUM: 50% crowd. LOW: light player model, 25% of the stadium seats filled. Real-time shadows are OFF by default at every level (use the Shadows button in the 3D match to turn them on; a soft blob shadow is drawn instead). Crowd size applies from the next match.</p>
               </div>
               <div className="space-y-2 pt-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">TV Sideline camera</label>

@@ -1158,7 +1158,10 @@ function preencherHudJogador(elId, p) {
     preencherEscudoHud(el.querySelector('.hud-jog-logo'), el.id, p.team);
     // Nome | numero | posicao.
     const numero = (p.skills.numero !== undefined && p.skills.numero !== null && p.skills.numero !== '') ? p.skills.numero : p.num;
-    el.querySelector('.hud-jog-nome').textContent = [p.skills.nome, numero, rotuloDaPosicao(p.pos)].filter(x => x !== undefined && x !== null && x !== '').join(' | ');
+    // So DOIS nomes no cartao (o primeiro e o ultimo), como `doisNomes` do manager (textSim/nomes.ts): "Rafael Andrade Moreira" vira "Rafael Moreira".
+    const partesNome = String(p.skills.nome || '').split(' ').filter(Boolean);
+    const nomeCartao = partesNome.length <= 2 ? partesNome.join(' ') : partesNome[0] + ' ' + partesNome[partesNome.length - 1];
+    el.querySelector('.hud-jog-nome').textContent = [nomeCartao, numero, rotuloDaPosicao(p.pos)].filter(x => x !== undefined && x !== null && x !== '').join(' | ');
     // Quem tem cartao AMARELO leva o nome em amarelo no cartao (pedido).
     el.querySelector('.hud-jog-nome').style.color = p.temAmarelo ? '#facc15' : '';
     // LESIONADO (js/injuries/injury_match.js): uma cruz verde no cartao, a seguir ao nome.
