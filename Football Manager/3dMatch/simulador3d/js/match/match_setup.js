@@ -2,6 +2,11 @@
 DETALHE DA RELVA no shader (ver RelvaDetalhe, config/physics.js): ruido de valor em coordenadas do mundo (x,z), sem textura nova. Mexe na cor (manchas e grao) e inclina a normal pelo
 gradiente do ruido de laminas (derivadas de ecra), esbatendo com a distancia a camara. O resto do material (mapa das faixas, luz, sombras) fica como estava.
 */
+
+// Altura (m) das linhas sobre o gramado (y 0): as do CAMPO 1 cm acima, as de IMPEDIMENTO (o overlay do 3D) 2 cm acima (pedido).
+const LINHA_Y_CAMPO = 0.01;
+const LINHA_Y_IMPEDIMENTO = 0.02;
+
 function aplicarDetalheDaRelva(mat) {
     const D = (typeof RelvaDetalhe !== 'undefined') ? RelvaDetalhe : null;
     if (!D || !D.activo) return;
@@ -124,11 +129,11 @@ Object.assign(Match, {
         this.ball.add(this.ballVisual); this.scene.add(this.ball);
 
         this.offsideLineA = new THREE.Mesh(new THREE.PlaneGeometry(CAMPO_LARG, 0.25), new THREE.MeshBasicMaterial({ color: 0x3498db, transparent: true, opacity: 0.65, side: THREE.DoubleSide }));
-        this.offsideLineA.rotation.x = -Math.PI / 2; this.offsideLineA.position.y = 0.04; this.offsideLineA.visible = false;
+        this.offsideLineA.rotation.x = -Math.PI / 2; this.offsideLineA.position.y = LINHA_Y_IMPEDIMENTO; this.offsideLineA.visible = false;
         this.scene.add(this.offsideLineA);
 
         this.offsideLineB = new THREE.Mesh(new THREE.PlaneGeometry(CAMPO_LARG, 0.25), new THREE.MeshBasicMaterial({ color: 0xe74c3c, transparent: true, opacity: 0.65, side: THREE.DoubleSide }));
-        this.offsideLineB.rotation.x = -Math.PI / 2; this.offsideLineB.position.y = 0.04; this.offsideLineB.visible = false;
+        this.offsideLineB.rotation.x = -Math.PI / 2; this.offsideLineB.position.y = LINHA_Y_IMPEDIMENTO; this.offsideLineB.visible = false;
         this.scene.add(this.offsideLineB);
         const lineGeomA = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-CAMPO_LARG/2, 0.05, 0), new THREE.Vector3(CAMPO_LARG/2, 0.05, 0)]);
         this.defLineA = new THREE.LineSegments(lineGeomA, new THREE.LineDashedMaterial({ color: 0x3498db, dashSize: 1, gapSize: 1 }));
@@ -310,11 +315,11 @@ Object.assign(Match, {
 
         const matLinha = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
         const esp = 0.15; const comp = CAMPO_COMP; const larg = CAMPO_LARG;
-        function addLinha(w, h, x, z) { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), matLinha); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.02, z); m.receiveShadow = true; campoGrupo.add(m); }
+        function addLinha(w, h, x, z) { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), matLinha); m.rotation.x = -Math.PI / 2; m.position.set(x, LINHA_Y_CAMPO, z); m.receiveShadow = true; campoGrupo.add(m); }
         addLinha(larg + esp, esp, 0, comp / 2); addLinha(larg + esp, esp, 0, -comp / 2); addLinha(esp, comp + esp, larg / 2, 0); addLinha(esp, comp + esp, -larg / 2, 0); addLinha(larg, esp, 0, 0);
 
-        const circ = new THREE.Mesh(new THREE.RingGeometry(9.15 - esp / 2, 9.15 + esp / 2, 64), matLinha); circ.rotation.x = -Math.PI / 2; circ.position.y = 0.02; campoGrupo.add(circ);
-        const ptC = new THREE.Mesh(new THREE.CircleGeometry(0.2, 16), matLinha); ptC.rotation.x = -Math.PI / 2; ptC.position.y = 0.02; campoGrupo.add(ptC);
+        const circ = new THREE.Mesh(new THREE.RingGeometry(9.15 - esp / 2, 9.15 + esp / 2, 64), matLinha); circ.rotation.x = -Math.PI / 2; circ.position.y = LINHA_Y_CAMPO; campoGrupo.add(circ);
+        const ptC = new THREE.Mesh(new THREE.CircleGeometry(0.2, 16), matLinha); ptC.rotation.x = -Math.PI / 2; ptC.position.y = LINHA_Y_CAMPO; campoGrupo.add(ptC);
 
         /*
         OS QUATRO CANTOS: quarto de círculo e bandeirinha.
@@ -344,7 +349,7 @@ Object.assign(Match, {
                     16, 1, arcoDeCanto(sx, sz), Math.PI / 2),
                 matLinha);
             quarto.rotation.x = -Math.PI / 2;
-            quarto.position.set(cx, 0.02, cz);
+            quarto.position.set(cx, LINHA_Y_CAMPO, cz);
             quarto.receiveShadow = true;
             campoGrupo.add(quarto);
 
@@ -355,7 +360,7 @@ Object.assign(Match, {
             */
             const traco = new THREE.Mesh(new THREE.PlaneGeometry(esp, 0.6), matLinha);
             traco.rotation.x = -Math.PI / 2;
-            traco.position.set(cx - sx * 9.15, 0.02, cz + sz * (0.1 + 0.3));
+            traco.position.set(cx - sx * 9.15, LINHA_Y_CAMPO, cz + sz * (0.1 + 0.3));
             traco.receiveShadow = true;
             campoGrupo.add(traco);
 
@@ -684,9 +689,9 @@ Object.assign(Match, {
             addLinha(esp, Area.pequenaProfundidade + esp, -Area.pequenaMeiaLargura, zPA);
 
             const ptPen = new THREE.Mesh(new THREE.CircleGeometry(0.2 * 0.65, 16), matLinha);   // a marca do penalti 35% menor (raio 0.20 -> 0.13 m)
-            ptPen.rotation.x = -Math.PI / 2; ptPen.position.set(0, 0.02, zSinal + Area.distanciaPenalti * dir); campoGrupo.add(ptPen);
+            ptPen.rotation.x = -Math.PI / 2; ptPen.position.set(0, LINHA_Y_CAMPO, zSinal + Area.distanciaPenalti * dir); campoGrupo.add(ptPen);
             const theta = Math.acos(Area.pequenaProfundidade / Area.raioMeiaLua); const arcRot = lado === 1 ? Math.PI / 2 - theta : -Math.PI / 2 - theta;
-            const arco = new THREE.Mesh(new THREE.RingGeometry(Area.raioMeiaLua - esp / 2, Area.raioMeiaLua + esp / 2, 32, 1, arcRot, theta * 2), matLinha); arco.rotation.x = -Math.PI / 2; arco.position.set(0, 0.02, zSinal + Area.distanciaPenalti * dir); campoGrupo.add(arco);
+            const arco = new THREE.Mesh(new THREE.RingGeometry(Area.raioMeiaLua - esp / 2, Area.raioMeiaLua + esp / 2, 32, 1, arcRot, theta * 2), matLinha); arco.rotation.x = -Math.PI / 2; arco.position.set(0, LINHA_Y_CAMPO, zSinal + Area.distanciaPenalti * dir); campoGrupo.add(arco);
 
             const baliza = new THREE.Group();
             const matPoste = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }); const rP = GoalFrame.raioPoste;
@@ -3051,6 +3056,7 @@ Object.assign(Match, {
         for (const p of this.expulsos) {
             p.expulso = false;
             p.temAmarelo = false;
+            p.saidaExpulso = null; p.foraDeCampo = false;
             if (p.model) p.model.visible = true;
             const lista = (p.team === 'TeamA') ? this.players : this.opponents;
             const idx = (typeof p.indiceNaFormacao === 'number')
@@ -3058,5 +3064,6 @@ Object.assign(Match, {
             lista.splice(idx, 0, p);
         }
         this.expulsos.length = 0;
+        this.expulsosSaindo = [];
     },
 });

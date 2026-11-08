@@ -311,6 +311,9 @@ Object.assign(Match, {
         jogo recomeca da cobranca. Ver js/match/match_substituicoes.js.
         */
         this._seguraCobranca = !!((this.subsEmCurso || this._aguardaEntrantes(dt) || this._aguardaGoleiro(dt)) && this._paradaParaSubstituir());
+        // O EXPULSO SAI PELO TUNEL ANTES DE O JOGO RECOMECAR: enquanto algum caminha para o tunel a cobranca espera (ver Officials.iniciarSaidaExpulso).
+        if (!this._seguraCobranca && this.expulsosSaindo && this.expulsosSaindo.length &&
+            (this._paradaParaSubstituir() || this.state === 'PENALTY')) this._seguraCobranca = true;
 
         // Intervalo e apito final: o relogio para, a bola fica no sitio.
         if (this.state === 'INTERVALO' || this.state === 'FIM_DE_JOGO') {

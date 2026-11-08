@@ -2559,6 +2559,7 @@ const Officials = {
     },
 
     update: function (dt) {
+        this.atualizarExpulsos(dt);
         if (typeof Match === 'undefined' || !Match.ball) return;
 
         /*
@@ -3240,12 +3241,70 @@ const Officials = {
         Match.expulsos.push(p);
         // O goleiro expulso: o time precisa de outro (troca obrigatoria na proxima parada, ver Match.goleiroExpulso). `p.role` mantem-se 'gk' ate ao fim da funcao.
         if (p.role === 'gk' && typeof Match.goleiroExpulso === 'function') Match.goleiroExpulso(p);
-        if (p.model) p.model.visible = false;
+        if (!this.iniciarSaidaExpulso(p) && p.model) p.model.visible = false;
 
         console.log('Officials: ' + p.team + ' (' + p.pos + ') EXPULSO, ficam ' +
             lista.length + ' em campo.');
         // O manager decide se é a equipa dele: se for, pausa o jogo e abre o MATCH TACTICS (ver MatchDay.tsx).
         if (typeof Ponte !== 'undefined' && Ponte.enviar) Ponte.enviar('expulsao', { lado: p.team === 'TeamA' ? 'A' : 'B', pos: p.pos, goleiro: p.role === 'gk' });
+    },
+
+    /*
+    O EXPULSO SAI DE CAMPO PELO TUNEL (pedido: *"quando um jogador for expulso ele sai pelo tunel; so desaparece depois que sair pelo tunel; o jogo so recomeca quando ele sair de campo"*).
+
+    O corpo continua visivel e caminha ate ao tunel pelo MESMO caminho da saida do intervalo (Abertura.saidaIntervalo): primeiro ao vao da placa de publicidade, em frente a boca,
+    e so dai entra — nunca em linha reta por cima das placas. Ao entrar no tunel esconde-se. Enquanto algum caminha (`Match.expulsosSaindo`) a cobranca espera (Match.update, `_seguraCobranca`).
+    Sem tunel, sem renderer (simulacao rapida) ou sem corpo: desaparece logo, como antes. Devolve true se a saida comecou.
+    */
+    iniciarSaidaExpulso: function (p) {
+        const T = (typeof TunelJogadores !== 'undefined') ? TunelJogadores : null;
+        const AM = (typeof AberturaModel !== 'undefined') ? AberturaModel : null;
+        if (!p || !p.model || !T || !T.activo || !AM || (typeof Sim !== 'undefined' && Sim.running)) return false;
+        if (typeof CAMPO_LARG === 'undefined') return false;
+        const f = -T.lado;
+        const zf = THREE.MathUtils.clamp(p.model.position.z, -AM.zFileira * 2, AM.zFileira * 2);
+        const xVao = T.lado * (CAMPO_LARG / 2 + 1.5), xBoca = T.xBoca + f * 3.0, xDentro = T.xFundo + f * 0.9;
+        p.saidaExpulso = { i: 0, t: 0, vel: 2.6, wps: [{ x: xVao, z: zf }, { x: xBoca, z: zf }, { x: xDentro, z: zf }] };
+        p.velocity.set(0, 0, 0);
+        p.actionState = null; p.queda = null; p.jumpTimer = 0; p.lugarBolaParada = null; p.voltaDaQueda = null;
+        if (p.fsm) p.fsm.changeState('IDLE');
+        p.model.visible = true;
+        Match.expulsosSaindo = Match.expulsosSaindo || [];
+        Match.expulsosSaindo.push(p);
+        return true;
+    },
+
+    // Um frame da saida dos expulsos: anda ate ao tunel (com a passada do `animateBones`) e esconde-se ao entrar.
+    atualizarExpulsos: function (dt) {
+        const lista = Match.expulsosSaindo;
+        if (!lista || !lista.length) return;
+        const base = (typeof ALTURA_BASE_Y === 'number') ? ALTURA_BASE_Y : 0;
+        for (let k = lista.length - 1; k >= 0; k--) {
+            const p = lista[k], s = p.saidaExpulso;
+            if (!s || !p.model || !p.expulso) { lista.splice(k, 1); continue; }   // reposto (Match.reporExpulsos) ou sem corpo
+            s.t += dt;
+            const pos = p.model.position;
+            pos.y = base;
+            if (s.i < s.wps.length && s.t < 40) {
+                const w = s.wps[s.i], dx = w.x - pos.x, dz = w.z - pos.z, d = Math.hypot(dx, dz);
+                if (d < 0.1) { s.i++; continue; }
+                const passo = Math.min(d, s.vel * dt);
+                pos.x += dx / d * passo; pos.z += dz / d * passo;
+                p.velocity.set(dx / d * s.vel, 0, dz / d * s.vel);
+                const alvo = Math.atan2(dx, dz);
+                let da = alvo - p.model.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da));
+                p.model.rotation.y += da * Math.min(1, dt * 8);
+                if (p.animateBones) p.animateBones(dt);
+            } else {
+                // Entrou no tunel (ou o prazo acabou): esconde-se e o jogo pode recomecar.
+                p.velocity.set(0, 0, 0);
+                p.model.visible = false; p.foraDeCampo = true;
+                if (p.discoTatico) p.discoTatico.visible = false;
+                if (p.disco) p.disco.visible = false;
+                p.saidaExpulso = null;
+                lista.splice(k, 1);
+            }
+        }
     },
 
     /*
