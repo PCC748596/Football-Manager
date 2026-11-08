@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { regressaoPorIdade, chanceLesao, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, recoveryMultiplier, custoDoNivel, niveisDeXp, xpDeNiveis, tetoDoAtributo, folgaDeTreino, definirNivelDoCt, tetoDoCt } from '../textSim/trainingService';
+import { regressaoPorIdade, chanceLesao, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, recoveryMultiplier, custoDoNivel, niveisDeXp, xpDeNiveis, tetoDoAtributo, folgaDeTreino, definirNivelDoCt, tetoDoCt, FOCO_CPU_POR_POSICAO, cpuAplicarTreino, atividadesDaPosicao, SLOTS_CPU_POR_DIA, cpuPlanoDoJogador, SLOTS_CPU_LEVE, ENERGY_COST_BASE, atividadesLevesDaPosicao } from '../textSim/trainingService';
 import { atributos3d, regredirPorIdade } from '../textSim/atributos3d';
 
 test('exaustao: faixas com >= (sem buracos)', () => {
@@ -77,11 +77,11 @@ test('XP: custo do nivel (50->51 300, 70->71 500, 90->91 1100) e level up a part
 
 test('teto de crescimento pelo potencial: a Serie D nao treina o OVR 68 ate 80', () => {
   const profissional = { skill: 68, age: 24 };
-  assert.equal(folgaDeTreino(profissional), 2, 'sem potencial: a folga da idade (24 anos)');
-  assert.equal(folgaDeTreino({ skill: 68, age: 20 }), 5, 'aos 20 anos a folga e maior');
+  assert.equal(folgaDeTreino(profissional), 5, 'sem potencial: a folga da idade (24 anos)');
+  assert.equal(folgaDeTreino({ skill: 68, age: 20 }), 9, 'aos 20 anos a folga e maior');
   const teto = tetoDoAtributo(profissional, 68);
-  assert.equal(teto, 72, 'base + folga + margem');
-  assert.equal(68 + niveisDeXp(68, 1e9, teto), 72, 'mesmo com XP infinito nao passa do teto');
+  assert.equal(teto, 75, 'base + folga + margem');
+  assert.equal(68 + niveisDeXp(68, 1e9, teto), 75, 'mesmo com XP infinito nao passa do teto');
   assert.equal(tetoDoAtributo({ skill: 80, age: 30 }, 97), 97, 'acima do teto do CT fica onde esta');
   assert.equal(tetoDoAtributo({ skill: 60, age: 17, potential: 75 }, 60), 77, 'a base usa o potencial real: base + (75 - 60) + 2');
 });
@@ -94,4 +94,45 @@ test('CT limita o treino: nivel 2 ate 80, 3 ate 85, 4 ate 90, 5 ate 95', () => {
     assert.equal(tetoDoAtributo(jovem, 60), teto, 'o CT nivel ' + nivel + ' limita a ' + teto);
   }
   definirNivelDoCt(() => 3);
+});
+
+test('CPU: cada posicao treina 10 atributos distintos e validos do 3D', () => {
+  const validos = new Set(['ballControl','dribbling','finishing','shotPower','longShots','volleys','crossing','passing','longPassing','headAccurancy','freekicks','cornerKicks','penalties','tackleStanding','tackleSliding','manMarking','posOffense','posDefense','vision','tacticalAwa','aggression','reactions','composure','consistency','acceleration','speed','agility','jumping','strength','stamina','balance']);
+  for (const [pos, lista] of Object.entries(FOCO_CPU_POR_POSICAO)) {
+    assert.equal(lista.length, 10, pos + ' tem 10');
+    assert.equal(new Set(lista).size, 10, pos + ' sem repetidos');
+    lista.forEach(c => assert.ok(validos.has(c), pos + ': ' + c + ' e um atributo do 3D'));
+  }
+});
+
+test('CPU treina pelas atividades do utilizador: XP, Energia gasta e riscos por sessao', () => {
+  const p: any = { id: 'p-cpu', position: 'ST', age: 20, skill: 70, def: 60, pas: 60, drb: 60, sht: 60, energia: 100, treino3d: {}, trainingAccumulated: { def: 0, pas: 0, drb: 0, sht: 0 } };
+  assert.ok(atividadesDaPosicao('ST').length > 0, 'o ST tem atividades');
+  const r = cpuAplicarTreino(p, { stamina: 70, rnd: () => 0 });
+  assert.equal(r.riscos.length, SLOTS_CPU_POR_DIA, 'um risco de lesao por sessao pesada');
+  assert.ok(r.custoEnergia > 0, 'gastou Energia');
+  assert.ok(Object.values<number>(p.treino3d).some(v => v > 0), 'ganhou XP nos atributos');
+  assert.equal(p.treinoEmXp, true);
+  const exausto: any = { ...p, treino3d: {}, trainingAccumulated: { def: 0, pas: 0, drb: 0, sht: 0 }, energia: 10 };
+  cpuAplicarTreino(exausto, { stamina: 70, rnd: () => 0 });
+  const soma = (o: any) => (Object.values(o.treino3d) as number[]).reduce((s, v) => s + v, 0);
+  assert.ok(soma(exausto) < soma(p) * 0.2, 'exausta (Energia 10) rende bem menos');
+  const velho: any = { ...p, age: 36, treino3d: {}, trainingAccumulated: { def: 0, pas: 0, drb: 0, sht: 0 } };
+  cpuAplicarTreino(velho, { stamina: 70, rnd: () => 0 });
+  assert.ok(Math.abs(soma(velho) - soma(p) / 3) < 1e-6, 'acima de 32 anos rende 0.5 (jovem 1.5): o mesmo fator do utilizador');
+});
+
+test('CPU decide por jogador pela Energia: treino, treino leve ou descanso', () => {
+  assert.equal(cpuPlanoDoJogador(90, 5, false), 'treino');
+  assert.equal(cpuPlanoDoJogador(70, 5, false), 'treino');
+  assert.equal(cpuPlanoDoJogador(69, 5, false), 'leve');
+  assert.equal(cpuPlanoDoJogador(45, 5, false), 'leve');
+  assert.equal(cpuPlanoDoJogador(44, 5, false), 'descanso');
+  assert.equal(cpuPlanoDoJogador(100, 1, false), 'descanso', 'vespera do jogo');
+  assert.equal(cpuPlanoDoJogador(100, 0, false), 'descanso', 'dia do jogo');
+  assert.equal(cpuPlanoDoJogador(100, 5, true), 'descanso', 'quem jogou ontem folga');
+  const p: any = { id: 'p-leve', position: 'CM', age: 25, skill: 70, def: 60, pas: 60, drb: 60, sht: 60, energia: 60, treino3d: {}, trainingAccumulated: { def: 0, pas: 0, drb: 0, sht: 0 } };
+  const r = cpuAplicarTreino(p, { stamina: 70, leve: true, rnd: () => 0 });
+  assert.equal(r.riscos.length, SLOTS_CPU_LEVE, 'o treino leve e uma sessao');
+  assert.ok(atividadesLevesDaPosicao('CM').every(a => (ENERGY_COST_BASE[a.id] ?? 0) <= 2), 'so atividades baratas');
 });

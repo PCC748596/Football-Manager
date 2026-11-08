@@ -27,7 +27,7 @@ import { slotsVazios, jogoEmAndamento } from '../textSim/escalacao';
 import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico, gerarMedico } from '../textSim/medico';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
-import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, XP_POR_PONTO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, ENERGIA_SLOT_VAZIO, drainMultiplier, recoveryMultiplier, energiaPosLesao, energiaInicial, definirNivelDoCt, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
+import { ACTIVITIES, cpuPlanoDoJogador, SLOTS_CPU_LEVE, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, XP_POR_PONTO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, ENERGIA_SLOT_VAZIO, drainMultiplier, recoveryMultiplier, energiaPosLesao, energiaInicial, definirNivelDoCt, tetoDoLegacy, garantirBaseLegacy, SLOTS_CPU_POR_DIA, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
 import { campo3d, atributos3d, regredirPorIdade, migrarTreinoParaXp } from '../textSim/atributos3d';
 import { GRUPOS } from '../textSim/geradorAtributos';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
@@ -1009,15 +1009,25 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const d = new Date(gameState.currentDate + 'T12:00:00');
       const dayIdx = (d.getDay() + 6) % 7; // Monday = 0, Sunday = 6
 
-      // O treino da CPU: por time, descansa na vespera do jogo ou com o grupo cansado, e treina nos outros dias (textSim/trainingService.ts).
-      const planosCpu = new Map<string, { recuperacao: number; treina: boolean }>();
+      // O treino da CPU: cada jogador decide pela propria Energia (treino, treino leve ou descanso); o time todo descansa na vespera e no dia do jogo (textSim/trainingService.ts, cpuPlanoDoJogador).
+      const diasParaJogoCpu = new Map<string, number>();
       {
-        const porTime = new Map<string, Player[]>();
-        prevPlayers.forEach(pl => { if (pl.teamId !== gameState.userTeamId) { if (!porTime.has(pl.teamId)) porTime.set(pl.teamId, []); porTime.get(pl.teamId)!.push(pl); } });
-        porTime.forEach((elenco, tid) => {
+        const clubes = new Set<string>();
+        prevPlayers.forEach(pl => { if (pl.teamId !== gameState.userTeamId) clubes.add(pl.teamId); });
+        clubes.forEach(tid => {
           const prox = fixtures.filter(f => !f.played && f.date >= gameState.currentDate && (f.homeTeamId === tid || f.awayTeamId === tid)).map(f => f.date).sort()[0];
-          const dias = prox ? Math.round((new Date(prox + 'T12:00:00').getTime() - new Date(gameState.currentDate + 'T12:00:00').getTime()) / 86400000) : 7;
-          planosCpu.set(tid, cpuPlanoDoDia(elenco, dias));
+          diasParaJogoCpu.set(tid, prox ? Math.round((new Date(prox + 'T12:00:00').getTime() - new Date(gameState.currentDate + 'T12:00:00').getTime()) / 86400000) : 7);
+        });
+      }
+
+      // Quem jogou ontem (titulares e quem entrou do banco) folga hoje; quem nao jogou treina.
+      const jogouOntem = new Set<string>();
+      {
+        const ontem = new Date(gameState.currentDate + 'T12:00:00'); ontem.setDate(ontem.getDate() - 1);
+        const dataOntem = ontem.toISOString().split('T')[0];
+        fixtures.filter(f => f.date === dataOntem && f.played).forEach(f => {
+          [...(f.homeLineup || []), ...(f.awayLineup || [])].forEach(id => jogouOntem.add(id));
+          (f.events || []).forEach(e => { if (e.type === 'SUB' && e.playerId) jogouOntem.add(e.playerId); });
         });
       }
 
@@ -1067,9 +1077,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } else {
           // Outros times: o plano do treinador da CPU (descanso ou treino do dia)
-          const plano = planosCpu.get(p.teamId) || { recuperacao: 4 * ENERGIA_POR_PERIODO_LIVRE, treina: false };
-          dailyRecovery = plano.recuperacao;
-          if (plano.treina) { rolarLesaoTreino(p.energia ?? 100); p = { ...p, trainingAccumulated: p.trainingAccumulated ? { ...p.trainingAccumulated } : undefined } as Player; cpuAplicarTreino(p); }
+          const plano = cpuPlanoDoJogador(p.energia ?? 100, diasParaJogoCpu.get(p.teamId) ?? 7, jogouOntem.has(p.id));   // 1 dia de folga depois do jogo, so para quem jogou
+          dailyRecovery = 4 * ENERGIA_POR_PERIODO_LIVRE;   // descanso
+          if (plano !== 'descanso') {
+            // A CPU treina pelas atividades do utilizador: gasta Energia (custo x 100/Stamina), rola a lesao por sessao pesada e os periodos que sobram recuperam como slots vazios.
+            p = { ...p, trainingAccumulated: p.trainingAccumulated ? { ...p.trainingAccumulated } : undefined, treino3d: p.treino3d ? { ...p.treino3d } : undefined } as Player;
+            const stamina = campo3d(p, ['stamina']);
+            const leve = plano === 'leve';
+            const dia = cpuAplicarTreino(p, { stamina, leve });
+            dia.riscos.forEach(rolarLesaoTreino);
+            dailyRecovery = ENERGIA_SLOT_VAZIO * recoveryMultiplier(stamina) * Math.max(0, 4 - (leve ? SLOTS_CPU_LEVE : SLOTS_CPU_POR_DIA)) - dia.custoEnergia;
+          }
         }
 
         // Segunda-feira: boletim medico das lesoes complexas (evolucao excelente ou recaida mexem no prazo real).
@@ -1365,11 +1383,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (p.energia === undefined) p.energia = 100;
 
         const pGroup = p.trainingGroupId || 0;
+        // A CPU nao ganha mais aqui: o treino dela e o `cpuAplicarTreino` (so em dias de treino, com teto). So o ruido de moral fica.
         const gains = isUserPlayer ? groupGains[pGroup] : {
-          def: Math.random() * 8,
-          pas: Math.random() * 8,
-          drb: Math.random() * 8,
-          sht: Math.random() * 8,
+          def: 0,
+          pas: 0,
+          drb: 0,
+          sht: 0,
           mor: (Math.random() - 0.5) * 4,
           skl: {} as Record<string, number>
         };
@@ -1421,7 +1440,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (points !== 0) updated = true;
 
-          while (p.trainingAccumulated![key] >= 100) {
+          // O teto (CT e crescimento por idade/potencial) limita o treino: no teto o atributo para e o cofre nao enche (so a subida; a queda continua).
+          if (points > 0) garantirBaseLegacy(p);
+          const tetoAtr = tetoDoLegacy(p, attrKey);
+          if (p[attrKey] >= tetoAtr && p.trainingAccumulated![key] > 99) p.trainingAccumulated![key] = 99;
+          while (p.trainingAccumulated![key] >= 100 && p[attrKey] < tetoAtr) {
             p[attrKey] = Math.min(99, p[attrKey] + 1);
             p.trainingAccumulated![key] -= 100;
             p.weeklyGrowth = (p.weeklyGrowth || 0) + 1;

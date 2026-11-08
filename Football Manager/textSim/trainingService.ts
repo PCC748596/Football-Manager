@@ -20,8 +20,8 @@ potencial real (`Player.potential`, folga = potencial - OVR); o profissional nao
 jogadores de OVR 66-70 ate 80 e viraria time de Serie A, e a liga inteira subiria para 90. Medido: com XP infinito em todos os atributos a media da liga sobe so ~+4 a +6 (ver tools/auditoriaTreino.ts).
 */
 export const MARGEM_ATRIBUTO = 2;
-/** A folga de crescimento de um profissional, em OVR: 0,6 por ano abaixo de 26 anos, mais 1 (nunca zero: quem esta no auge ainda lapida). */
-export const folgaDeCrescimento = (idade: number): number => Math.round(Math.max(0, 26 - idade) * 0.6) + 1;
+/** A folga de crescimento de um profissional, em OVR: 1 por ano abaixo de 26 anos, mais 3 (nunca zero: quem esta no auge ainda lapida). */
+export const folgaDeCrescimento = (idade: number): number => Math.round(Math.max(0, 26 - idade) * 1.0) + 3;
 /** Quanto o jogador ainda pode crescer em OVR: o potencial real menos o OVR (base) ou, sem potencial, a folga da idade. */
 export const folgaDeTreino = (p: { skill: number; age: number; potential?: number }): number =>
   typeof p.potential === 'number' ? Math.max(0, p.potential - p.skill) : folgaDeCrescimento(p.age);
@@ -39,6 +39,18 @@ export const tetoDoCt = (teamId?: string): number => TETO_POR_CT[Math.max(1, Mat
 /** O maior valor que o treino leva um atributo de `base`: base + folga + margem, limitado pelo CT e por 99; nunca abaixo da base. */
 export const tetoDoAtributo = (p: { skill: number; age: number; potential?: number; teamId?: string }, base: number): number =>
   Math.min(99, Math.max(base, Math.min(Math.round(base + folgaDeTreino(p) + MARGEM_ATRIBUTO), tetoDoCt(p.teamId))));
+
+type AtrLegacy = 'def' | 'pas' | 'drb' | 'sht';
+/** Tira a foto dos quatro atributos antes do primeiro ganho de treino (o teto de crescimento conta a partir dela). */
+export const garantirBaseLegacy = (p: Player): void => {
+  if (!p.legacyBase) p.legacyBase = { def: p.def, pas: p.pas, drb: p.drb, sht: p.sht };
+};
+/** O teto de um dos quatro atributos (def, pas, drb, sht): o menor entre o do CT e `base + folga + margem` (o mesmo teto de crescimento dos 31 atributos). */
+export const tetoDoLegacy = (p: Player, attr: AtrLegacy, soCt = false): number => {
+  if (soCt) return tetoDoCt(p.teamId);   // jovem da CPU: so o CT limita
+  const base = p.legacyBase ? p.legacyBase[attr] : p[attr];
+  return Math.min(tetoDoCt(p.teamId), Math.round(base + folgaDeTreino(p) + MARGEM_ATRIBUTO));
+};
 
 /** Niveis (inteiros, negativos se perdeu) que um XP acumulado vale a partir do valor base do atributo, ate o `teto` (99 por omissao). */
 export const niveisDeXp = (base: number, xp: number, teto = 99): number => {
@@ -223,21 +235,121 @@ export const cpuPlanoDoDia = (elenco: Player[], diasParaOJogo: number): { recupe
   const aptos = elenco.filter(p => !p.injury);
   const media = aptos.length ? aptos.reduce((s, p) => s + (p.energia ?? 100), 0) / aptos.length : 100;
   const mediaEnergia = aptos.length ? aptos.reduce((s, p) => s + (p.energia ?? 100), 0) / aptos.length : 100;
+  // Folga do time na vespera do jogo (e no proprio dia) ou com o grupo cansado. A folga do dia seguinte e so de quem jogou (ver GameContext.advanceDay).
   const descansa = diasParaOJogo <= 1 || media < 82 || mediaEnergia < 30;
   // Escala nova (Task 4): descanso = 4 periodos livres (+32/dia); dia de treino = +10 liquido (o utilizador com 2 sessoes + 2 livres fica ~+20).
   return { recuperacao: descansa ? 4 * ENERGIA_POR_PERIODO_LIVRE : 10, treina: !descansa };
 };
 
-/** Um dia de treino de um jogador da CPU: pontos no atributo da posicao (100 pontos = +1). Muda o proprio objecto. */
-export const cpuAplicarTreino = (p: Player): void => {
-  if (p.injury) return;
-  const fator = p.age < 22 ? 1.5 : p.age > 32 ? 0 : p.age > 29 ? 0.5 : 1.0;
-  if (fator === 0) return;
+/*
+O TREINO DA CPU USA AS MESMAS ATIVIDADES DO UTILIZADOR (`ACTIVITIES`), nas mesmas regras: cada posicao tem 10 atributos do 3D que o treinador da CPU trabalha (`FOCO_CPU_POR_POSICAO`) e as atividades que
+treinam algum deles sao as dela (`atividadesDaPosicao`). Num dia de treino a CPU faz `SLOTS_CPU_POR_DIA` sessoes e cada uma sorteia UMA atividade dessa lista. Cada sessao:
+- da XP a TODOS os atributos que a atividade treina (chip SKL): `XP_POR_PONTO x valor x idade x estrelas x exaustao` (a exaustao e a da Energia do inicio do dia, como a do utilizador);
+- soma os chips DEF/PAS/DRB/SHT ao cofre dos quatro atributos agregados (com o teto do CT e de crescimento);
+- gasta Energia: custo base x (100 / Stamina), e rola o risco de lesao (so sessoes pesadas, com a Energia no inicio da sessao) — quem chama aplica as duas coisas com o que `cpuAplicarTreino` devolve.
+O custo do nivel, o teto de crescimento (folga) e o teto do CT sao os de sempre: a CPU nao treina mais barato.
+*/
+export const SLOTS_CPU_POR_DIA = 3;
+/*
+O TREINADOR DA CPU DECIDE JOGADOR A JOGADOR, pela Energia de cada um (`cpuPlanoDoJogador`): com `LIMIAR_TREINO_CPU` (70) ou mais treina de verdade (`SLOTS_CPU_POR_DIA` sessoes); de `LIMIAR_LEVE_CPU` (45) a
+69 faz so um treino leve (`SLOTS_CPU_LEVE` sessao, de atividade barata); abaixo de 45 descansa. Na vespera e no dia do jogo todos descansam, e quem jogou ontem folga hoje. Assim, no mesmo dia, um grupo do
+elenco (os descansados) treina e o outro (os cansados) fica de descanso ou treino leve.
+*/
+export const LIMIAR_TREINO_CPU = 70;
+export const LIMIAR_LEVE_CPU = 45;
+export const SLOTS_CPU_LEVE = 1;
+export type PlanoCpu = 'treino' | 'leve' | 'descanso';
+export const cpuPlanoDoJogador = (energia: number, diasParaOJogo: number, jogouOntem: boolean): PlanoCpu => {
+  if (diasParaOJogo <= 1 || jogouOntem) return 'descanso';
+  if (energia >= LIMIAR_TREINO_CPU) return 'treino';
+  if (energia >= LIMIAR_LEVE_CPU) return 'leve';
+  return 'descanso';
+};
+export const FOCO_CPU_POR_POSICAO: Record<string, string[]> = {
+  GK: ['reactions', 'composure', 'consistency', 'posDefense', 'jumping', 'agility', 'tacticalAwa', 'balance', 'strength', 'speed'],
+  CB: ['tackleStanding', 'tackleSliding', 'manMarking', 'posDefense', 'headAccurancy', 'strength', 'jumping', 'aggression', 'tacticalAwa', 'balance'],
+  LB: ['tackleStanding', 'manMarking', 'posDefense', 'crossing', 'speed', 'acceleration', 'stamina', 'passing', 'ballControl', 'agility'],
+  RB: ['tackleStanding', 'manMarking', 'posDefense', 'crossing', 'speed', 'acceleration', 'stamina', 'passing', 'ballControl', 'agility'],
+  DM: ['tackleStanding', 'manMarking', 'posDefense', 'passing', 'longPassing', 'vision', 'tacticalAwa', 'stamina', 'strength', 'aggression'],
+  CM: ['passing', 'longPassing', 'ballControl', 'vision', 'tacticalAwa', 'stamina', 'longShots', 'posOffense', 'composure', 'dribbling'],
+  LM: ['crossing', 'dribbling', 'ballControl', 'speed', 'acceleration', 'passing', 'agility', 'stamina', 'finishing', 'vision'],
+  RM: ['crossing', 'dribbling', 'ballControl', 'speed', 'acceleration', 'passing', 'agility', 'stamina', 'finishing', 'vision'],
+  LW: ['crossing', 'dribbling', 'ballControl', 'speed', 'acceleration', 'agility', 'finishing', 'passing', 'vision', 'posOffense'],
+  RW: ['crossing', 'dribbling', 'ballControl', 'speed', 'acceleration', 'agility', 'finishing', 'passing', 'vision', 'posOffense'],
+  AM: ['passing', 'vision', 'dribbling', 'ballControl', 'longShots', 'finishing', 'posOffense', 'composure', 'longPassing', 'reactions'],
+  SS: ['finishing', 'shotPower', 'dribbling', 'posOffense', 'ballControl', 'composure', 'acceleration', 'volleys', 'passing', 'agility'],
+  ST: ['finishing', 'shotPower', 'headAccurancy', 'posOffense', 'volleys', 'ballControl', 'composure', 'strength', 'acceleration', 'jumping']
+};
+const FOCO_CPU_PADRAO = ['passing', 'ballControl', 'stamina', 'reactions', 'vision', 'composure', 'strength', 'speed', 'tacticalAwa', 'dribbling'];
+const atividadesPorPosicao = new Map<string, TrainingActivity[]>();
+/** As atividades que treinam algum dos 10 atributos da posicao. */
+export const atividadesDaPosicao = (pos: string): TrainingActivity[] => {
+  let r = atividadesPorPosicao.get(pos);
+  if (!r) {
+    const foco = new Set(FOCO_CPU_POR_POSICAO[pos] || FOCO_CPU_PADRAO);
+    r = ACTIVITIES.filter(a => a.impacts.some(i => i.label === 'SKL' && !!i.campo && foco.has(i.campo)) && sessaoRolaLesao(a.id));
+    atividadesPorPosicao.set(pos, r);
+  }
+  return r;
+};
+
+const atividadesLevesPorPosicao = new Map<string, TrainingActivity[]>();
+/** As atividades baratas da posicao (custo base ate 2); se nenhuma, a mais barata. */
+export const atividadesLevesDaPosicao = (pos: string): TrainingActivity[] => {
+  let r = atividadesLevesPorPosicao.get(pos);
+  if (!r) {
+    const todas = atividadesDaPosicao(pos);
+    r = todas.filter(a => (ENERGY_COST_BASE[a.id] ?? 0) <= 2);
+    if (!r.length && todas.length) { const min = Math.min(...todas.map(a => ENERGY_COST_BASE[a.id] ?? 0)); r = todas.filter(a => (ENERGY_COST_BASE[a.id] ?? 0) === min); }
+    atividadesLevesPorPosicao.set(pos, r);
+  }
+  return r;
+};
+
+/** O que um dia de treino da CPU custou: a Energia gasta e a Energia no inicio de cada sessao que rola risco de lesao. */
+export interface TreinoCpuDia { custoEnergia: number; riscos: number[]; }
+
+/**
+ * Um dia de treino de um jogador da CPU, pelas atividades do utilizador (ver acima). Muda o proprio objecto (treino3d e cofres dos quatro atributos). `stamina` (do 3D) da o custo real de Energia;
+ * sem ela vale 70. `leve`: so uma sessao, de atividade barata. Devolve a Energia gasta e as Energias de risco para quem chama gastar e rolar a lesao.
+ */
+export const cpuAplicarTreino = (p: Player, opts: { stamina?: number; rnd?: () => number; leve?: boolean } = {}): TreinoCpuDia => {
+  const r: TreinoCpuDia = { custoEnergia: 0, riscos: [] };
+  if (p.injury) return r;
+  // O mesmo fator de idade do utilizador (GameContext.advanceDay): < 22 anos 1.5, 22-32 1.0, acima de 32 0.5.
+  const fator = p.age < 22 ? 1.5 : (p.age > 32 ? 0.5 : 1.0);
+  const rnd = opts.rnd || Math.random;
   const pos = String(p.position);
-  const attr: 'def' | 'pas' | 'drb' | 'sht' =
-    ['CB', 'LB', 'RB', 'DM', 'GK'].includes(pos) ? 'def' : ['CM', 'LM', 'RM', 'AM'].includes(pos) ? 'pas' : ['LW', 'RW'].includes(pos) ? 'drb' : 'sht';
-  const acc = p.trainingAccumulated || (p.trainingAccumulated = { def: 0, pas: 0, drb: 0, sht: 0 } as any);
   const starsMult = STAR_MULTIPLIERS[starsFromPotential(p.potential)];
-  (acc as any)[attr] += 3 * fator * starsMult;
-  while ((acc as any)[attr] >= 100) { (acc as any)[attr] -= 100; (p as any)[attr] = Math.min(99, (p as any)[attr] + 1); }
+  const energiaInicio = p.energia ?? 100;
+  const exaust = exaustaoMultiplier(energiaInicio);
+  const drain = drainMultiplier(opts.stamina ?? 70);
+  const lista = opts.leve ? atividadesLevesDaPosicao(pos) : atividadesDaPosicao(pos);
+  if (!lista.length) return r;
+  const t3 = p.treino3d || (p.treino3d = {});
+  p.treinoEmXp = true;
+  const acc = p.trainingAccumulated || (p.trainingAccumulated = { def: 0, pas: 0, drb: 0, sht: 0 } as any);
+  garantirBaseLegacy(p);
+  const soCt = p.age < 22;   // jovem da CPU: so o CT limita os quatro atributos agregados; a partir dos 22 volta o `base + folga + margem`
+  let energia = energiaInicio;
+  const sessoes = opts.leve ? SLOTS_CPU_LEVE : SLOTS_CPU_POR_DIA;
+  for (let i = 0; i < sessoes; i++) {
+    const act = lista[Math.min(lista.length - 1, Math.floor(rnd() * lista.length))];
+    const custo = (ENERGY_COST_BASE[act.id] ?? 0) * drain;
+    r.riscos.push(energia);
+    energia = Math.max(0, energia - custo);
+    r.custoEnergia += custo;
+    for (const imp of act.impacts) {
+      if (imp.label === 'SKL' && imp.campo) t3[imp.campo] = (t3[imp.campo] || 0) + XP_POR_PONTO * imp.value * fator * starsMult * exaust;
+      const k = imp.label === 'DEF' ? 'def' : imp.label === 'PAS' ? 'pas' : imp.label === 'DRB' ? 'drb' : imp.label === 'SHT' ? 'sht' : null;
+      if (!k) continue;
+      if ((p as any)[k] >= tetoDoLegacy(p, k, soCt)) { (acc as any)[k] = Math.min((acc as any)[k], 99); continue; }
+      (acc as any)[k] += imp.value * fator * starsMult * exaust;
+      while ((acc as any)[k] >= 100) {
+        (acc as any)[k] -= 100; (p as any)[k] = Math.min(99, (p as any)[k] + 1);
+        if ((p as any)[k] >= tetoDoLegacy(p, k, soCt)) { (acc as any)[k] = 0; break; }
+      }
+    }
+  }
+  return r;
 };

@@ -184,6 +184,8 @@ export interface Player {
   pas: number;
   drb: number;
   sht: number;
+  /** Os def/pas/drb/sht antes do treino (foto tirada no primeiro ganho): o teto de crescimento do treino conta a partir deles. */
+  legacyBase?: { def: number; pas: number; drb: number; sht: number };
   trainingAccumulated?: {
     def: number;
     pas: number;
