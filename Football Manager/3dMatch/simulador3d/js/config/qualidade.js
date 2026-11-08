@@ -59,6 +59,37 @@ const Qualidade = {
         return Math.min(dpr, this.ehTouch() ? Math.min(1.0, c.pixelRatio) : c.pixelRatio) * this.escala;
     },
 
+    /*
+    SOMBRA FALSA (BLOB SHADOW) para quando o mapa de sombras esta desligado (tablet): sem sombra os jogadores e os arbitros "flutuam" e o jogo perde profundidade. Um disco escuro
+    com borda suave colado ao relvado, filho do corpo (anda e roda com ele). Uma so geometria, material e textura para todos. So aparece com as sombras reais desligadas (`aplicar`).
+    So jogadores em campo e arbitros: staff, reservas e adeptos nao levam (muitos, e pouco se vê).
+    */
+    _blobRecursos: null, _blobs: [],
+    criarBlob: function (corpo) {
+        if (typeof THREE === 'undefined' || !corpo) return null;
+        let r = this._blobRecursos;
+        if (!r) {
+            const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+            const c = cv.getContext('2d'), g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+            g.addColorStop(0, 'rgba(0,0,0,0.55)'); g.addColorStop(0.55, 'rgba(0,0,0,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+            c.fillStyle = g; c.fillRect(0, 0, 64, 64);
+            r = this._blobRecursos = {
+                geo: new THREE.PlaneGeometry(1, 1),
+                mat: new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })
+            };
+        }
+        const m = new THREE.Mesh(r.geo, r.mat);
+        const esc = (corpo.scale && corpo.scale.x) || 1;
+        m.rotation.x = -Math.PI / 2;
+        m.scale.set(0.95 / esc, 0.95 / esc, 1);   // ~0.95 m de diametro
+        m.position.y = 0.04 / esc;                // logo acima do relvado (o corpo assenta em ALTURA_BASE_Y = -0.01)
+        m.renderOrder = 1; m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false; m.name = 'BlobSombra';
+        m.visible = !this.cfg().sombras;
+        corpo.add(m);
+        this._blobs.push(m);
+        return m;
+    },
+
     // Depois de o renderer e a luz existirem (e a meio do jogo): sombras, mapa e pixel ratio.
     aplicar: function () {
         const c = this.cfg(), r = window.rendererCore, luz = window.dirLightCore;
@@ -74,6 +105,9 @@ const Qualidade = {
                 if (luz.shadow.map) { luz.shadow.map.dispose(); luz.shadow.map = null; }
             }
         }
+        // Sombra falsa: so quando nao ha mapa de sombras (e limpa os de corpos ja deitados fora).
+        this._blobs = this._blobs.filter(function (m) { return m.parent; });
+        this._blobs.forEach(function (m) { m.visible = !c.sombras; });
         if (window.relvaTufos) window.relvaTufos.visible = c.relvaTufos !== false;   // tufos de relva 3D (js/relva_tufos.js)
         const b = document.getElementById('btn-sombras');
         if (b) { b.innerText = 'Sombras: ' + (c.sombras ? 'ON' : 'OFF'); b.classList.toggle('active', c.sombras); }
