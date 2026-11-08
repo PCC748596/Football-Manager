@@ -1198,7 +1198,8 @@ Object.assign(Match, {
 
         } else if (type === 'PENALTY') {
             this._penPlano = null;   // o plano da corrida do batedor (match_loop.js) e por penalti
-            this.penaltiEspera = 0;  // so a disputa (iniciarPenaltiDaDisputa) espera parada antes da corrida
+            // Espera parada antes da corrida (penalti em jogo: PenaltyModel.esperaBatida); a disputa (iniciarPenaltiDaDisputa) poe a sua depois.
+            this.penaltiEspera = (typeof PenaltyModel !== 'undefined' && PenaltyModel.esperaBatida) || 0;
             /*
             PENÁLTI. Bola na marca, batedor atrás dela, guarda-redes na linha e
             toda a gente fora da área E fora da meia-lua. O remate tem resolução

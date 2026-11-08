@@ -1446,6 +1446,7 @@ normal (o GK reage com `gkDelayReacao`, como em qualquer remate).
 =============================================================================
 */
 const PenaltyModel = {
+    esperaBatida: 3.0,         // s PARADO antes da corrida do penalti em jogo (pedido: "+3 segs"); a disputa tem a sua (DisputaModel.pausa.esperaBatida)
     marcaZ: typeof Area !== 'undefined' ? Area.distanciaPenalti : 11.0,         // distÃ¢ncia Ã  linha de fundo
     raioMeiaLua: typeof Area !== 'undefined' ? Area.raioMeiaLua : 9.15,        // ninguÃ©m dentro disto alÃ©m do batedor
     margemArea: typeof Area !== 'undefined' ? Area.profundidade : 16.5,         // linha da grande Ã¡rea
