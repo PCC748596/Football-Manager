@@ -139,6 +139,28 @@ const Qualidade = {
             const esc = m.userData.esc || 1, psi = corpo.rotation.y, c = Math.cos(psi), s = Math.sin(psi);
             m.material = noite ? r.matNoite : r.matDia;
             /*
+            CORPO INCLINADO (mergulho do guarda-redes, `GkDive`: o corpo tomba por um quaternio em torno do eixo da frente): a mancha e filha dele e herdava a inclinacao, ficando de pe, ou no ar, a meio do
+            voo (relato: *"no pulo do goleiro a sombra ficou no ar"*). Nesse caso a orientacao e a posicao calculam-se NO MUNDO — o desenho deitado no relvado (a `BLOB_Y`), sob o corpo — e convertem-se
+            para o referencial do corpo.
+            */
+            const qc = corpo.quaternion;
+            if (Math.abs(qc.x) + Math.abs(qc.z) > 0.02) {
+                const Q = this._qBlob || (this._qBlob = { alvo: new THREE.Quaternion(), plano: new THREE.Quaternion(), z: new THREE.Quaternion(), inv: new THREE.Quaternion(), v: new THREE.Vector3(), ex: new THREE.Vector3(1, 0, 0), ez: new THREE.Vector3(0, 0, 1) });
+                const angMundo = noite ? 0 : Math.atan2(-dz, dx);
+                Q.plano.setFromAxisAngle(Q.ex, -Math.PI / 2);
+                Q.z.setFromAxisAngle(Q.ez, angMundo);
+                Q.alvo.copy(Q.plano).multiply(Q.z);                       // deitada no relvado, com a sombra para o lado oposto ao sol
+                Q.inv.copy(qc).invert();
+                m.quaternion.copy(Q.inv).multiply(Q.alvo);
+                const lado = noite ? 2.2 : comp, larg = noite ? 2.2 : largura, desloca = noite ? 0 : (comp / 2 - 0.35);
+                m.scale.set(lado / esc, larg / esc, 1);
+                corpo.updateMatrixWorld(true);
+                Q.v.set(corpo.position.x + dx * desloca, BLOB_Y, corpo.position.z + dz * desloca);
+                corpo.worldToLocal(Q.v);
+                m.position.copy(Q.v);
+                continue;
+            }
+            /*
             A ALTURA DA MANCHA E A DO MUNDO, nao a do corpo (relato: *"as sombras estao piscando com os jogadores correndo"*). A mancha e filha do corpo a +0.04, mas o corpo sobe e desce ao correr (o assento
             da sola, `assentarNoChao`, chega a leva-lo 6 cm abaixo da base): quando ele descia mais de ~4 cm a mancha ficava ABAIXO do relvado e desaparecia, e voltava no frame seguinte. Cada frame poe-se
             a mancha a `BLOB_Y` m do relvado (y do mundo 0), compensando o y do corpo.
@@ -148,11 +170,11 @@ const Qualidade = {
             const lx = dx * c - dz * s, lz = dx * s + dz * c;
             if (noite) {
                 // As diagonais ja estao no desenho: roda-se so contra a rotacao do corpo, e a mancha e quadrada (~2.2 m).
-                m.rotation.z = -psi;   // o angulo no mundo e (rotation.z + psi): com -psi o desenho fica fixo no mundo
+                m.rotation.set(-Math.PI / 2, 0, -psi);   // o angulo no mundo e (rotation.z + psi): com -psi o desenho fica fixo no mundo
                 m.scale.set(2.2 / esc, 2.2 / esc, 1);
                 m.position.x = 0; m.position.z = 0;
             } else {
-                m.rotation.z = Math.atan2(-lz, lx);
+                m.rotation.set(-Math.PI / 2, 0, Math.atan2(-lz, lx));
                 m.scale.set(comp / esc, largura / esc, 1);
                 // O centro avanca ao longo da sombra: ela nasce nos pes e estende-se para longe.
                 const av = (comp / 2 - 0.35) / esc;

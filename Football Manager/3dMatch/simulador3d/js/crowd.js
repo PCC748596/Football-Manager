@@ -258,11 +258,11 @@ const CrowdModel = {
     */
     // `fracao`: a que aplaude na entrada dos times; `perigo`: a que aplaude (em continuo) numa claque quando o seu time tem um lance perigoso (ataque no terco ofensivo). No jogo normal ninguem aplaude.
     // `perigo`: fracao da claque que bate palmas num lance perigoso do seu time e durante as substituicoes dele; `duracaoPerigo` s de palmas depois do lance.
-    aplauso: { fracao: 0.16, perigo: 0.50, repouso: 0.6, entrada: 1.0, duracaoPerigo: 6 },
-    olhaParaTras: 0.12,
-    amplitudeIdle: 0.35,
-    ritmoIdle: 1.6,
-    bobDePe: 0.06,
+    aplauso: { fracao: 0.30, perigo: 0.70, repouso: 0.85, entrada: 1.0, duracaoPerigo: 8 },   // torcida mais animada (pedido): era fracao 0.16, perigo 0.50, repouso 0.6, duracaoPerigo 6
+    olhaParaTras: 0.20,   // era 0.12
+    amplitudeIdle: 0.50,   // era 0.35: mais movimento mesmo sentados
+    ritmoIdle: 2.0,   // era 1.6
+    bobDePe: 0.10,   // era 0.06: quem esta de pe balanca mais
     salto: 0.42,
     ritmoSalto: 7.0,
 
@@ -273,8 +273,8 @@ const CrowdModel = {
     pé — a chegar, a sair, a bater palmas. A zero a bancada lia-se como uma
     plateia de teatro.
     */
-    fraccaoRepouso: 0.08,
-    fraccaoAtaque: 0.50,
+    fraccaoRepouso: 0.20,   // era 0.08: sempre mais gente de pe
+    fraccaoAtaque: 0.70,   // era 0.50
     fraccaoGolo: 1.00,
 
     /*
