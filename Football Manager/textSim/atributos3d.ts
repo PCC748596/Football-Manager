@@ -123,9 +123,11 @@ export const atributos3d = (p: Player): Atributos3D => {
   let gkMedia: number | undefined;
   if (String(p.position) === 'GK') {
     const lista = ATRIBUTOS_GK.map(campo => {
-      const valor = gerado ? (gerado[campo] ?? 50) : limitarAtributo(guardados && typeof guardados[campo] === 'number' ? guardados[campo] : (linha ? linha[IDX[campo]] : 50));
+      const baseGk = gerado ? (gerado[campo] ?? 50) : limitarAtributo(guardados && typeof guardados[campo] === 'number' ? guardados[campo] : (linha ? linha[IDX[campo]] : 50));
+      // O treino individual tambem mexe nos atributos de baliza (mesmo XP, custo e tetos dos outros).
+      const valor = limitarAtributo(baseGk + bonusTreino(p, campo, baseGk));
       valores[campo] = valor;
-      return { campo, nome: NOME_DO_CAMPO[campo] || campo, valor };
+      return { campo, nome: NOME_DO_CAMPO[campo] || campo, valor, base: baseGk };
     });
     (detalhe as any).GK = lista;
     gkMedia = Math.round(lista.reduce((s, x) => s + x.valor, 0) / lista.length);
@@ -219,9 +221,10 @@ export const migrarTreinoParaXp = (p: Player): Record<string, number> | undefine
 TREINO INDIVIDUAL (atividade `individual`, aba Tactics): cada jogador treina os atributos que o utilizador marcou no overview dele — ate `INDIVIDUAL_MAX` de UMA area (3 em TEC/TAC/FIS, 2 no mental).
 Sem nenhum marcado, o sistema escolhe os atributos MAIS IMPORTANTES PARA A POSICAO (`CHAVES_POR_POSICAO`), da area em que eles estao mais fracos.
 */
-export const INDIVIDUAL_MAX: Record<GrupoAtributo, number> = { TEC: 3, TAC: 3, FIS: 3, MEN: 2 };
-/** A area (TEC/TAC/MEN/FIS) de um campo do 3D, ou null (atributo de baliza ou desconhecido). */
-export const areaDoCampo = (campo: string): GrupoAtributo | null => ORDEM_GRUPOS.find(g => GRUPOS[g].indexOf(campo) >= 0) || null;
+export type AreaIndividual = GrupoAtributo | 'GK';
+export const INDIVIDUAL_MAX: Record<AreaIndividual, number> = { TEC: 3, TAC: 3, FIS: 3, MEN: 2, GK: 3 };
+/** A area (TEC/TAC/MEN/FIS, ou GK nos atributos de baliza) de um campo, ou null (desconhecido). */
+export const areaDoCampo = (campo: string): AreaIndividual | null => ORDEM_GRUPOS.find(g => GRUPOS[g].indexOf(campo) >= 0) || (ATRIBUTOS_GK.indexOf(campo) >= 0 ? 'GK' : null);
 
 /** A nova lista depois de clicar em `campo`: tira-o se estava; senao poe-o. Outra area limpa a lista; passar do maximo da area tira o mais antigo. */
 export const alternarIndividual = (atual: string[] | undefined, campo: string): string[] => {
@@ -244,12 +247,20 @@ export const atributosIndividuais = (p: Player): { campos: string[]; auto: boole
     if (doArea.length) return { campos: doArea, auto: false };
   }
   const a = atributos3d(p);
-  // Sem marcados: os atributos MAIS IMPORTANTES PARA A POSICAO (CHAVES_POR_POSICAO), da area em que eles estao mais fracos (menor media dos atributos-chave da area).
+  // GOLEIRO sem marcados: os atributos de baliza mais importantes (area GK), sempre. Antes o automatico escolhia a area de media mais baixa, e o goleiro (fraco no passe, controle...) caia quase sempre na area TEC.
+  if (String(p.position) === 'GK' && a.detalhe && a.detalhe.GK) {
+    const presentes = new Set(a.detalhe.GK.map(x => x.campo));
+    const chavesGk = ((CHAVES_POR_POSICAO.GK && CHAVES_POR_POSICAO.GK.GK) || []).filter(c => presentes.has(c)).slice(0, INDIVIDUAL_MAX.GK);
+    if (chavesGk.length) return { campos: chavesGk, auto: true };
+  }
+  // Sem marcados: os atributos MAIS IMPORTANTES PARA A POSICAO (CHAVES_POR_POSICAO), da area em que eles estao mais fracos (menor media dos atributos-chave da area). O goleiro tem tambem a area GK.
   const chaves = CHAVES_POR_POSICAO[String(p.position)];
-  let melhor: GrupoAtributo | null = null, menor = Infinity, escolhidos: string[] = [];
+  let melhor: AreaIndividual | null = null, menor = Infinity, escolhidos: string[] = [];
   if (chaves) {
-    for (const g of ORDEM_GRUPOS) {
-      const valores = Object.fromEntries(a.detalhe![g].map(x => [x.campo, x.valor]));
+    for (const g of [...ORDEM_GRUPOS, 'GK'] as AreaIndividual[]) {
+      const linhas = (a.detalhe as any)[g] as { campo: string; valor: number }[] | undefined;
+      if (!linhas) continue;
+      const valores = Object.fromEntries(linhas.map(x => [x.campo, x.valor]));
       const lista = (chaves[g] || []).filter(c => typeof valores[c] === 'number').slice(0, INDIVIDUAL_MAX[g]);
       if (!lista.length) continue;
       const media = lista.reduce((s, c) => s + valores[c], 0) / lista.length;

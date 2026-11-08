@@ -177,7 +177,39 @@ test('treino individual: sem marcados escolhe os atributos mais importantes da p
   const valores = Object.fromEntries([...a.detalhe!.TEC, ...a.detalhe!.TAC, ...a.detalhe!.MEN, ...a.detalhe!.FIS].map(x => [x.campo, x.valor]));
   const mediaChaves = (g: 'TEC' | 'TAC' | 'MEN' | 'FIS') => { const l = (CHAVES_POR_POSICAO.CM[g] || []).slice(0, INDIVIDUAL_MAX[g]); return l.reduce((s, c) => s + valores[c], 0) / l.length; };
   const medias = (['TEC', 'TAC', 'MEN', 'FIS'] as const).map(g => mediaChaves(g));
-  assert.equal(mediaChaves(area), Math.min(...medias), 'a area escolhida e a de menor media dos atributos-chave');
+  assert.equal(mediaChaves(area as 'TEC' | 'TAC' | 'MEN' | 'FIS'), Math.min(...medias), 'a area escolhida e a de menor media dos atributos-chave');
   const marcado = atributosIndividuais({ ...p, treinoIndividual: ['finishing', 'passing'] });
   assert.deepEqual(marcado, { campos: ['finishing', 'passing'], auto: false });
+});
+
+test('CPU tambem faz o treino individual: uma sessao do dia vai para os atributos escolhidos (-3 ENR)', () => {
+  const novo = () => ({ id: 'p-cpu-ind', position: 'ST', age: 24, skill: 70, def: 60, pas: 60, drb: 60, sht: 60, energia: 100, treino3d: {} as Record<string, number>, trainingAccumulated: { def: 0, pas: 0, drb: 0, sht: 0 } }) as any;
+  const a = novo();
+  const ra = cpuAplicarTreino(a, { stamina: 70, rnd: () => 0, individualDe: () => ['freekicks', 'penalties'] });
+  assert.equal(ra.riscos.length, SLOTS_CPU_POR_DIA, 'a sessao individual conta como sessao pesada');
+  assert.ok(a.treino3d.freekicks > 0 && a.treino3d.penalties > 0, 'o individual da XP aos atributos escolhidos');
+  const b = novo();
+  const rb = cpuAplicarTreino(b, { stamina: 70, rnd: () => 0.99, individualDe: () => ['freekicks'] });
+  assert.equal(rb.riscos.length, SLOTS_CPU_POR_DIA);
+  assert.ok(!(b.treino3d.freekicks > 0), 'sem o sorteio do individual, os atributos escolhidos nao ganham XP');
+  const leve = novo();
+  assert.equal(cpuAplicarTreino(leve, { stamina: 70, leve: true, rnd: () => 0, individualDe: () => ['composure'] }).riscos.length, 1, 'treino leve nao tem individual');
+});
+
+test('goleiro: o treino individual tambem ajusta os atributos de baliza (area GK, ate 3)', () => {
+  assert.equal(areaDoCampo('reflexes'), 'GK');
+  assert.equal(INDIVIDUAL_MAX.GK, 3);
+  assert.deepEqual(alternarIndividual(['reflexes'], 'diving'), ['reflexes', 'diving']);
+  assert.deepEqual(alternarIndividual(['reflexes'], 'finishing'), ['finishing'], 'outra area limpa a lista');
+  const gk: any = { id: 'p-gk-ind', position: 'GK', age: 22, skill: 70, def: 60, pas: 60, drb: 60, sht: 60, treino3d: {} };
+  const antes = atributos3d(gk).detalhe!.GK!.find(x => x.campo === 'reflexes')!.valor;
+  const depois = atributos3d({ ...gk, treino3d: { reflexes: 1e9 } }).detalhe!.GK!.find(x => x.campo === 'reflexes')!.valor;
+  assert.ok(depois > antes, 'o XP em reflexes sobe o atributo do goleiro (' + antes + ' -> ' + depois + ')');
+  const auto = atributosIndividuais(gk);
+  assert.equal(auto.auto, true);
+  assert.deepEqual(auto.campos, ['reflexes', 'diving', 'handling'], 'o automatico do goleiro usa os atributos de baliza');
+  assert.ok(auto.campos.every(c => areaDoCampo(c) === 'GK'));
+  const cpuGk: any = { ...gk, energia: 100, trainingAccumulated: { def: 0, pas: 0, drb: 0, sht: 0 } };
+  cpuAplicarTreino(cpuGk, { stamina: 70, rnd: () => 0.99, individualDe: () => atributosIndividuais(gk).campos });
+  assert.ok(cpuGk.treino3d.reflexes > 0 && cpuGk.treino3d.diving > 0 && cpuGk.treino3d.handling > 0, 'o goleiro da CPU treina a baliza todo dia de treino');
 });

@@ -238,10 +238,11 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
   const doUtilizador = !!userTeam && player.teamId === userTeam.id;
   const individual = doUtilizador ? atributosIndividuais(player) : { campos: [] as string[], auto: false };
   const cone = (auto: boolean) => (
-    <svg viewBox="0 0 24 24" width="22" height="22" className={`inline-block mr-1.5 shrink-0 ${auto ? 'opacity-40' : ''}`} aria-hidden="true">
-      <path d="M12 3 L18 19 H6 Z" fill="#f97316" stroke="#c2410c" strokeWidth="1" strokeLinejoin="round" />
-      <path d="M9.4 11 H14.6 M8.2 15 H15.8" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
-      <rect x="3" y="19" width="18" height="2.4" rx="0.8" fill="#c2410c" />
+    <svg viewBox="0 0 24 24" width="22" height="22" className={`relative z-10 inline-block mr-1.5 shrink-0 ${auto ? 'opacity-80' : ''}`}
+      style={{ filter: auto ? 'drop-shadow(0 0 3px rgba(251,146,60,0.6))' : 'drop-shadow(0 0 4px rgba(255,160,40,0.95)) drop-shadow(0 0 8px rgba(255,120,0,0.7))' }} aria-hidden="true">
+      <path d="M12 3 L18 19 H6 Z" fill="#ffa229" stroke="#ffd27a" strokeWidth="1" strokeLinejoin="round" />
+      <path d="M9.4 11 H14.6 M8.2 15 H15.8" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" />
+      <rect x="3" y="19" width="18" height="2.4" rx="0.8" fill="#ff7a00" />
     </svg>
   );
 
@@ -263,12 +264,12 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
           </span>
         </div>
         {lista.map(x => (
-          <div key={x.campo} className={`flex items-center justify-between text-sm px-1 -mx-1 ${doUtilizador && g !== 'GK' ? 'cursor-pointer hover:bg-slate-800/60' : ''}`}
-            title={doUtilizador && g !== 'GK' ? 'Individual training: click to select / unselect' : undefined}
-            onClick={doUtilizador && g !== 'GK' ? () => alternarTreinoIndividual(player.id, x.campo) : undefined}
+          <div key={x.campo} className={`flex items-center justify-between text-sm px-1 -mx-1 ${doUtilizador ? 'cursor-pointer hover:bg-slate-800/60' : ''}`}
+            title={doUtilizador ? 'Individual training: click to select / unselect' : undefined}
+            onClick={doUtilizador ? () => alternarTreinoIndividual(player.id, x.campo) : undefined}
             style={((CHAVES_POR_POSICAO[player.position] as any)?.[g] || []).includes(x.campo) ? HACHURA : undefined}>
             <span className="text-slate-300">{x.nome}</span>
-            <span className={`font-black flex items-center ${getColorClass(x.valor)}`}>{individual.campos.includes(x.campo) && cone(individual.auto)}{x.valor}</span>
+            <span className={`relative z-10 font-black flex items-center ${getColorClass(x.valor)}`}>{individual.campos.includes(x.campo) && cone(individual.auto)}{x.valor}</span>
           </div>
         ))}
       </React.Fragment>

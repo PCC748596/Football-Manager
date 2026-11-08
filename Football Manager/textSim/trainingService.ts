@@ -329,7 +329,7 @@ export interface TreinoCpuDia { custoEnergia: number; riscos: number[]; }
  * Um dia de treino de um jogador da CPU, pelas atividades do utilizador (ver acima). Muda o proprio objecto (treino3d e cofres dos quatro atributos). `stamina` (do 3D) da o custo real de Energia;
  * sem ela vale 70. `leve`: so uma sessao, de atividade barata. Devolve a Energia gasta e as Energias de risco para quem chama gastar e rolar a lesao.
  */
-export const cpuAplicarTreino = (p: Player, opts: { stamina?: number; rnd?: () => number; leve?: boolean } = {}): TreinoCpuDia => {
+export const cpuAplicarTreino = (p: Player, opts: { stamina?: number; rnd?: () => number; leve?: boolean; individualDe?: () => string[] } = {}): TreinoCpuDia => {
   const r: TreinoCpuDia = { custoEnergia: 0, riscos: [] };
   if (p.injury) return r;
   // O mesmo fator de idade do utilizador (GameContext.advanceDay): < 22 anos 1.5, 22-32 1.0, acima de 32 0.5.
@@ -348,7 +348,11 @@ export const cpuAplicarTreino = (p: Player, opts: { stamina?: number; rnd?: () =
   garantirBaseLegacy(p);
   const soCt = p.age < 22;   // jovem da CPU: so o CT limita os quatro atributos agregados; a partir dos 22 volta o `base + folga + margem`
   let energia = energiaInicio;
-  const sessoes = opts.leve ? SLOTS_CPU_LEVE : SLOTS_CPU_POR_DIA;
+  let sessoes = opts.leve ? SLOTS_CPU_LEVE : SLOTS_CPU_POR_DIA;
+  // TREINO INDIVIDUAL da CPU (a atividade `individual` do utilizador): num dia de treino de verdade, metade das vezes (~2 por semana, o limite do utilizador) uma das sessoes e individual.
+  // O GOLEIRO faz o individual todos os dias de treino: e a unica sessao que treina os atributos de baliza (nao ha atividade deles).
+  const individual = (!opts.leve && opts.individualDe && (pos === 'GK' || rnd() < 0.5)) ? opts.individualDe() : null;
+  if (individual && individual.length) sessoes -= 1;
   for (let i = 0; i < sessoes; i++) {
     const act = lista[Math.min(lista.length - 1, Math.floor(rnd() * lista.length))];
     const custo = (ENERGY_COST_BASE[act.id] ?? 0) * drain;
@@ -366,6 +370,12 @@ export const cpuAplicarTreino = (p: Player, opts: { stamina?: number; rnd?: () =
         if ((p as any)[k] >= tetoDoLegacy(p, k, soCt)) { (acc as any)[k] = 0; break; }
       }
     }
+  }
+  if (individual && individual.length) {
+    // +1 (x10 XP) em cada atributo escolhido (os mais importantes da posicao), -3 ENR x 100/Stamina, com o risco de lesao da sessao pesada.
+    r.riscos.push(energia);
+    r.custoEnergia += (ENERGY_COST_BASE.individual ?? 0) * drain;
+    for (const campo of individual) t3[campo] = (t3[campo] || 0) + XP_POR_PONTO * 1.0 * fator * starsMult * exaust;
   }
   return r;
 };
