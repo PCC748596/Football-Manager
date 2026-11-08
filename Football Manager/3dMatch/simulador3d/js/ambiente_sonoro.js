@@ -51,7 +51,7 @@ const AmbienteSonoro = {
     volumePalmas: 0.3,
     palmasRampa: 1.2,           // s para entrar e para sair
     ficheiroReacao: 'assets/Crowd_reacting.wav',
-    volumeReacao: 0.8,
+    volumeReacao: 0.64,
     reacaoIntervalo: 5.0,
     reacaoXgMin: 0.07,
     _palmas: null,
