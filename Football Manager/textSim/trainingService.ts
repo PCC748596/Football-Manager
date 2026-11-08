@@ -116,6 +116,19 @@ export const lesaoMuitoSeria = (severity?: string): boolean => severity === 'SEV
 export const chanceLesao = (energia: number): number => (energia < 25 ? 3 : 1);
 /** Rola o dado de lesao (1 a 100): lesiona se o rolo <= chance. `rolo` e injetavel para os testes. */
 export const rolouLesao = (energia: number, rolo: number = 1 + Math.floor(Math.random() * 100)): boolean => rolo <= chanceLesao(energia);
+/** Grupo de treino (0-based) pela ENR: o primeiro grupo cujo limiar a Energia alcanca; sem nenhum, o ultimo grupo desbloqueado. `limiares` em ordem decrescente (G1 >= limiares[0], G2 >= limiares[1]...). */
+export const grupoPorEnergia = (energia: number, limiares: number[], nGrupos: number): number => {
+  for (let i = 0; i < nGrupos - 1; i++) if (energia >= (limiares[i] ?? 0)) return i;
+  return Math.max(0, nGrupos - 1);
+};
+
+/**
+ * Chance (%) de lesao por SESSAO DE TREINO (so o treino; o jogo usa `chanceLesao`): 0.2% com Energia >= 25%, 0.6% abaixo. Com 1%/3% por sessao (4 sessoes/dia, ~25 jogadores, mais os clubes da CPU)
+ * saia uma lesao muscular por dia em cada elenco. Agora: ~0.8%/dia por jogador no maximo, ~uma por elenco a cada 5 dias de treino pesado.
+ */
+export const chanceLesaoTreino = (energia: number): number => (energia < 25 ? 0.6 : 0.2);
+/** Rola o dado de lesao do treino (decimal 0-100). `rolo` e injetavel para os testes. */
+export const rolouLesaoTreino = (energia: number, rolo: number = Math.random() * 100): boolean => rolo < chanceLesaoTreino(energia);
 /** Sessoes que nao disparam o rolo de lesao: Recovery e as que so mexem em Chemistry/Moral (Analysis, Team Dinner). */
 export const sessaoRolaLesao = (actId: string): boolean => {
   if (actId === 'recovery') return false;

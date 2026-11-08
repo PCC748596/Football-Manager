@@ -39,7 +39,7 @@ const ICONE_CHE = <Ico><path d="M4 8h14" /><path d="m14 4 4 4-4 4" /><path d="M2
 const ICONE_MOR = <Ico><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><path d="M9 9h.01M15 9h.01" /></Ico>;
 
 const TrainingView: React.FC = () => {
-  const { gameState, userTeam, teams, fixtures, players, setTrainingSchedules, unlockTrainingGroup, updatePlayerTrainingGroup, advanceDay, formatCurrency, formatCurrencyShort, t } = useGame();
+  const { gameState, userTeam, teams, fixtures, players, setTrainingSchedules, unlockTrainingGroup, updatePlayerTrainingGroup, setTrainingAutoGrupos, advanceDay, formatCurrency, formatCurrencyShort, t } = useGame();
   const [activeCategory, setActiveCategory] = useState<TrainingActivity['category']>('TECHNIQUE');
   // 0..2 = G1..G3; 3 = Medical Department (os lesionados, que nao treinam).
   const GRUPO_MED = 3;
@@ -264,6 +264,36 @@ const TrainingView: React.FC = () => {
                       ✚ MED{lesionadosDoClube > 0 ? ` (${lesionadosDoClube})` : ''}
                     </button>
                  </div>
+                 {(gameState.unlockedTrainingGroups || 1) > 1 && (() => {
+                   const nG = gameState.unlockedTrainingGroups || 1;
+                   const auto = gameState.trainingAutoGrupos || { ativo: false, limiares: [80, 50] };
+                   const lim = Array.from({ length: nG - 1 }, (_, i) => auto.limiares[i] ?? (i === 0 ? 80 : 50));
+                   const grava = (ativo: boolean, novos: number[]) => setTrainingAutoGrupos({ ativo, limiares: novos });
+                   return (
+                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500" title="Players move between groups automatically by ENR (at the start of each day).">
+                       <label className="flex items-center gap-1 cursor-pointer">
+                         <input type="checkbox" checked={auto.ativo} onChange={e => grava(e.target.checked, lim)} />
+                         Auto ENR
+                       </label>
+                       {lim.map((v, i) => (
+                         <span key={i} className={`flex items-center gap-1 ${auto.ativo ? '' : 'opacity-40'}`}>
+                           G{i + 1} ≥
+                           <input
+                             type="number" min={0} max={100} value={v} disabled={!auto.ativo}
+                             onChange={e => {
+                               const n = Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)));
+                               const novos = lim.slice(); novos[i] = n;
+                               for (let k = i + 1; k < novos.length; k++) if (novos[k] > n) novos[k] = n;   // decrescentes
+                               for (let k = i - 1; k >= 0; k--) if (novos[k] < n) novos[k] = n;
+                               grava(true, novos);
+                             }}
+                             className="w-12 px-1 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-white text-[10px] font-black"
+                           />
+                         </span>
+                       ))}
+                     </div>
+                   );
+                 })()}
                  <button 
                    disabled={selectedGroup === GRUPO_MED || selectedGroup >= (gameState.unlockedTrainingGroups || 1)}
                    onClick={() => {

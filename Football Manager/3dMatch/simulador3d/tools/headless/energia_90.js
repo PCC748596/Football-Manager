@@ -45,7 +45,7 @@ if (process.env.E90_WORKER !== undefined) {
 
     // Quem comeca em campo e com que energia.
     const inicio = new Map();
-    for (const p of Match.players.concat(Match.opponents)) if (p && p.model) inicio.set(p, { id: p.id || (p.skills && p.skills.id), pos: p.pos, role: p.role, e0: p.energia });
+    for (const p of Match.players.concat(Match.opponents)) if (p && p.model) inicio.set(p, { id: p.id || (p.skills && p.skills.id), pos: p.pos, role: p.role, e0: p.energia, stam: p.skillFor ? p.skillFor('STAMINA') : null, e44: null, e46: null });
     let erro = null;
     const passos = Math.round(MINUTOS * 60 / dt);
     try { for (let f = 0; f < passos; f++) Match.update(dt); } catch (e) { erro = String(e && e.message || e); }
@@ -53,7 +53,7 @@ if (process.env.E90_WORKER !== undefined) {
     const emCampo = new Set(Match.players.concat(Match.opponents));
     const linhas = [];
     inicio.forEach((v, p) => {
-        linhas.push({ pos: v.pos, role: v.role, e0: v.e0, e1: p.energia, ficou: emCampo.has(p) && !p.expulso });
+        linhas.push({ pos: v.pos, role: v.role, e0: v.e0, e1: p.energia, e44: v.e44, e46: v.e46, stam: v.stam, ficou: emCampo.has(p) && !p.expulso });
     });
     process.send({ i, nomes, tempo: Match.tempoDeJogo, placar: Match.placarA + '-' + Match.placarB, erro, linhas });
     process.exit(0);
@@ -78,6 +78,7 @@ if (process.env.E90_WORKER !== undefined) {
                 total++;
                 if (!l.ficou) return;
                 inteiro++;
+                if (l.role === 'gk') return;   // o goleiro fica fora da media (ver o bloco GK acima)
                 const q = (l.e0 - l.e1) * 100;
                 quedas.push(q);
                 const g = l.role === 'gk' ? 'GK' : ['CB', 'LB', 'RB', 'LWB', 'RWB'].includes(l.pos) ? 'DEF' : ['DM', 'CM', 'LM', 'RM', 'AM'].includes(l.pos) ? 'MEIO' : 'ATA';

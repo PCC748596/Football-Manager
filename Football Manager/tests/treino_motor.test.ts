@@ -136,3 +136,12 @@ test('CPU decide por jogador pela Energia: treino, treino leve ou descanso', () 
   assert.equal(r.riscos.length, SLOTS_CPU_LEVE, 'o treino leve e uma sessao');
   assert.ok(atividadesLevesDaPosicao('CM').every(a => (ENERGY_COST_BASE[a.id] ?? 0) <= 2), 'so atividades baratas');
 });
+
+test('grupos automaticos pela ENR: G1 >= limiar, o ultimo grupo fica com o resto', async () => {
+  const { grupoPorEnergia } = await import('../textSim/trainingService');
+  assert.equal(grupoPorEnergia(80, [80], 2), 0);
+  assert.equal(grupoPorEnergia(79, [80], 2), 1);
+  assert.equal(grupoPorEnergia(60, [80, 50], 3), 1);
+  assert.equal(grupoPorEnergia(49, [80, 50], 3), 2);
+  assert.equal(grupoPorEnergia(10, [80], 1), 0);   // um so grupo
+});
