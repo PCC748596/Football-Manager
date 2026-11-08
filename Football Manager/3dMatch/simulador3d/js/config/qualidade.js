@@ -218,6 +218,19 @@ const Qualidade = {
         return ficam;
     },
 
+    // As SpotLights de baixo da cobertura (luzesSob): so `sob` ficam, espalhadas pela lista. Cada uma custa fps a noite no tablet.
+    limitarSob: function (luzes) {
+        const max = { HIGH: 10, MEDIUM: 6, LOW: 3 }[this.nivel] || 6;
+        if (!luzes || luzes.length <= max) return luzes;
+        const ficam = [];
+        for (let i = 0; i < max; i++) ficam.push(luzes[Math.floor((i + 0.5) * luzes.length / max)]);
+        luzes.forEach(function (l) {
+            if (ficam.indexOf(l) >= 0) return;
+            l.intensity = 0; if (l.parent) l.parent.remove(l); if (l.target && l.target.parent) l.target.parent.remove(l.target);
+        });
+        return ficam;
+    },
+
     // Depois de o renderer e a luz existirem (e a meio do jogo): sombras, mapa e pixel ratio.
     aplicar: function () {
         const c = this.cfg(), r = window.rendererCore, luz = window.dirLightCore;

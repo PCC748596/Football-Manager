@@ -1725,7 +1725,7 @@ Object.assign(Match, {
             imS.castShadow = false; imS.receiveShadow = false;
             campoGrupo.add(imS);
             window.holofotes = window.holofotes || { luzes: [], matLampada: null, lampadas: null };
-            window.holofotes.luzesSob = sobCob.luzes;
+            window.holofotes.luzesSob = (typeof Qualidade !== 'undefined' && Qualidade.limitarSob) ? Qualidade.limitarSob(sobCob.luzes) : sobCob.luzes;
             window.holofotes.matLuzSob = matLuzSob;
         }
 
