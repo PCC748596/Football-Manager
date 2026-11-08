@@ -203,9 +203,9 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
             const p = l.p, neg = negDe(p.id), ativo = selId === p.id;
             return (
               <div key={p.id} onClick={() => setSelId(p.id)}
-                className={`grid ${COLS} gap-3 items-center px-4 py-[4px] rounded-lg border cursor-pointer transition-colors ${ativo ? 'border-blue-500 bg-blue-500/10' : 'border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-[#0e182c] hover:border-slate-400 dark:hover:border-slate-600'}`}>
+                className={`grid ${COLS} gap-3 items-center px-4 py-[4px] min-h-[79px] rounded-lg border overflow-hidden cursor-pointer transition-colors ${ativo ? 'border-blue-500 bg-blue-500/10' : 'border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-[#0e182c] hover:border-slate-400 dark:hover:border-slate-600'}`}>
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-[50px] h-[50px] rounded-full overflow-hidden bg-slate-800 shrink-0 border border-slate-700"><PlayerFace3D playerId={p.id} team={l.clube} gk={p.position === 'GK'} camisa={l.clube?.primaryColor} className="w-full h-full" /></div>
+                  <div className="w-[72px] h-[72px] overflow-hidden shrink-0 self-end -mb-[4px]"><PlayerFace3D playerId={p.id} team={l.clube} gk={p.position === 'GK'} camisa={l.clube?.primaryColor} className="w-full h-full" /></div>
                   <div className="min-w-0"><div className="font-black text-base text-slate-800 dark:text-slate-100 truncate">{p.name}</div>
                     <div className="flex gap-1 flex-wrap">
                       {shortlist.includes(p.id) && <span className="text-[9px] font-black bg-yellow-500 text-slate-900 px-1.5 rounded">★ LIST</span>}

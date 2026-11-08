@@ -41,12 +41,13 @@ const recorte = new THREE.DirectionalLight(0x6f8cff, 0.3); recorte.position.set(
 const ALTURA = 1.8;
 let atual = null;
 
-function desenhar(id, camisa, graus, uniforme, alto) {
+function desenhar(id, camisa, graus, uniforme, alto, estilo) {
     if (atual) { scene.remove(atual); atual = null; }
     let ap = aparenciaDoJogador(id);
     if (ap && !ap.estilo && typeof estiloDeCabeloDe === 'function') ap = Object.assign({}, ap, { estilo: estiloDeCabeloDe(id, ap.tipo) });
     if (ap && !ap.barba && typeof estiloDeBarbaDe === 'function') ap = Object.assign({}, ap, { barba: estiloDeBarbaDe(id, ap.tipo) });
     const calcao = (uniforme && uniforme.calcao && uniforme.calcao.cores && uniforme.calcao.cores[0]) || '#ffffff';
+    if (estilo) ap = Object.assign({}, ap, { estilo });   // so para testes: forca o penteado
     const feito = construirCorpo(camisa, calcao, ap, uniforme || null, 0);
     const corpo = feito.corpo, rig = feito.rig;
     const base = corpo.scale.x;
@@ -78,7 +79,7 @@ window.addEventListener('message', e => {
     if (m.tipo !== 'cabeca') return;
     const id = Number(String(m.id).replace(/^p-/, '')) >>> 0;
     let url = '';
-    try { url = desenhar(id, m.camisa || '#475569', typeof m.graus === 'number' ? m.graus : 20, m.uniforme || null, m.alto); } catch (err) { console.warn('[cabeca]', err); }
+    try { url = desenhar(id, m.camisa || '#475569', typeof m.graus === 'number' ? m.graus : 20, m.uniforme || null, m.alto, m.estilo); } catch (err) { console.warn('[cabeca]', err); }
     parent.postMessage({ tipo: 'cabecaPronta', req: m.req, url }, '*');
 });
 parent.postMessage({ tipo: 'cabecaPronto' }, '*');

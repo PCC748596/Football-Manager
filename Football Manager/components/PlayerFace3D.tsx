@@ -17,6 +17,8 @@ interface Props {
   team?: Team;
   /** Goleiro: usa o uniforme de goleiro do clube. */
   gk?: boolean;
+  /** Qual uniforme do clube (0 = 1.o, 1 = 2.o, 2 = 3.o). */
+  kitIdx?: 0 | 1 | 2;
   className?: string;
 }
 
@@ -58,12 +60,12 @@ const garantirIframe = () => {
   document.body.appendChild(iframe);
 };
 
-export const PlayerFace3D: React.FC<Props> = ({ playerId, camisa = '#475569', graus = 20, uniforme: uniformeProp, chaveUniforme: chaveProp = '', team, gk = false, className = '' }) => {
+export const PlayerFace3D: React.FC<Props> = ({ playerId, camisa = '#475569', graus = 20, uniforme: uniformeProp, chaveUniforme: chaveProp = '', team, gk = false, kitIdx = 0, className = '' }) => {
   // Com o clube, o kit 1 (ou o de goleiro) dele; a camisa e o uniforme vao para o 3D.
-  const kit = team ? (gk ? getGKKitDetails(team, 0, 0) : getKitDetails(team, 0)) : null;
+  const kit = team ? (gk ? getGKKitDetails(team, kitIdx, 0) : getKitDetails(team, kitIdx)) : null;
   if (kit) camisa = kit.c1;
   const uniforme = kit ? uniformeDoKit(kit, !gk) : uniformeProp;
-  const chaveUniforme = team ? team.id + (gk ? '-gk' : '-0') + '|' + kit!.c1 + (kit!.c2 || '') + (kit!.c3 || '') : chaveProp;
+  const chaveUniforme = team ? team.id + (gk ? '-gk' : '-') + kitIdx + '|' + kit!.c1 + (kit!.c2 || '') + (kit!.c3 || '') : chaveProp;
   const chave = `${playerId}|${camisa}|${graus}|${chaveUniforme}`;
   const [url, setUrl] = useState<string>(cache.get(chave) || '');
   useEffect(() => {

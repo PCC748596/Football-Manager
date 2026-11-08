@@ -257,6 +257,8 @@ export interface Tactics {
   playingStylesOn?: boolean;
   /** Mostra a MEDIA DAS NOTAS dos jogos de cada jogador nos cards do Match Tactics (campo, reservas e Squad Pool); omitido = ligado. Botao ON/OFF da aba GENERAL. */
   mediaNotasOn?: boolean;
+  /** Mostra a cara (foto 3D) de cada jogador sobre a camisa no campo da aba Tactics (so quando e `false` fica desligado). */
+  playerFacesOn?: boolean;
 }
 
 export type ZoneOverrides = { com?: Record<string, Record<string, [number, number]>>; sem?: Record<string, Record<string, [number, number]>> };

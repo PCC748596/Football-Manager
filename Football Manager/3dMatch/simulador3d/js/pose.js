@@ -479,7 +479,8 @@ function aplicarEstiloCabelo(estilo, ap, head, partes, u) {
     } else if (estilo === 'afro') {
         // Afro: uma bola de cabelo (miolo + tampa) a cobrir o topo, os lados e as costas
         esconde();
-        novaCaixa(1.22, 0.9, 1.22, 0, 0.32, -0.05); novaCaixa(0.98, 0.22, 0.98, 0, 0.88, -0.03);
+        // O volume fica ATRAS e AOS LADOS do rosto (a frente do miolo a z 0.35 e a cara a 0.45): antes o miolo (1.22 de fundo) passava pela frente e tapava a testa e os olhos. Na frente so uma franja curta.
+        novaCaixa(1.22, 0.9, 0.95, 0, 0.32, -0.15); novaCaixa(0.98, 0.22, 0.9, 0, 0.88, -0.1); novaCaixa(0.9, 0.2, 0.2, 0, 0.43, 0.42);
     } else if (estilo === 'cacheado') {
         // Cacheado: o cabelo de sempre, mais baixo, com cachos (cubinhos) por cima e nos lados; sem franja lisa
         hF.visible = false; ajusta(hT, 0.8, u * 0.62);
@@ -499,7 +500,7 @@ function aplicarEstiloCabelo(estilo, ap, head, partes, u) {
         novaCaixa(0.34, 0.34, 0.34, 0, 0.88, -0.15);
     } else if (estilo === 'franja') {
         // Franja: a franja desce sobre a testa e os lados caem em cortina
-        ajusta(hF, 2.8, u * 0.525); ajusta(hL, 1.2, u * 0.5); ajusta(hR, 1.2, u * 0.5);
+        ajusta(hF, 1.9, u * 0.525); ajusta(hL, 1.2, u * 0.5); ajusta(hR, 1.2, u * 0.5);   // 1.9 (era 2.8): a franja acaba logo acima dos olhos em vez de os tapar
     } else if (estilo === 'mullet') {
         // Mullet: curto na frente e nos lados, comprido atras
         hF.visible = false; ajusta(hT, 0.8, u * 0.62); ajusta(hL, 0.6, u * 0.5); ajusta(hR, 0.6, u * 0.5); ajusta(hB, 2.3, u * 0.5);

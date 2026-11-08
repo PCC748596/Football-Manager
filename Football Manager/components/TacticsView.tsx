@@ -17,6 +17,7 @@ interface FieldPosition {
 
 
 import { ShirtIcon } from './ShirtIcon';
+import { PlayerFace3D } from './PlayerFace3D';
 import { setoresPadraoDaFormacao } from '../3dMatch/simulador3dCliente';
 import ZonePositionsModal from './ZonePositionsModal';
 import { campo3d } from '../textSim/atributos3d';
@@ -529,6 +530,12 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                             Avg Ratings <span className={`px-2 py-0.5 rounded-full text-[9px] ${userTeam.tactics.mediaNotasOn === false ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{userTeam.tactics.mediaNotasOn === false ? 'OFF' : 'ON'}</span>
                         </button>
                     )}
+                    {aba === 'geral' && (
+                        <button onClick={() => handleTacticChange('playerFacesOn' as keyof Tactics, userTeam.tactics.playerFacesOn === false)} title="Shows each player's face above the shirt on the pitch"
+                            className={`absolute top-[12.25rem] right-1 z-20 flex items-center gap-1.5 px-2.5 py-1.5 min-h-[32px] rounded-full border text-[9px] font-black uppercase tracking-widest transition-colors ${userTeam.tactics.playerFacesOn === false ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-emerald-600 border-emerald-400 text-white'}`}>
+                            Player Faces <span className={`px-2 py-0.5 rounded-full text-[9px] ${userTeam.tactics.playerFacesOn === false ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{userTeam.tactics.playerFacesOn === false ? 'OFF' : 'ON'}</span>
+                        </button>
+                    )}
                     <div className="absolute top-6 left-6 z-20 flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
                         {([['geral', 'GENERAL'], ['com', 'WITH BALL'], ['sem', 'WITHOUT BALL']] as const).map(([v, r]) => (
                             <button key={v} onClick={() => { setAba(v); if (v !== 'geral' && zona === null) setZona(4); }} className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${aba === v ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>{r}</button>
@@ -673,11 +680,13 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         return (
                             <div key={idx} onDragOver={(e) => e.preventDefault()} onClick={() => tocarNoCampo(idx)} onDrop={(e) => handleDropToLineup(e.dataTransfer.getData("playerId"), idx)} className={`absolute flex flex-col items-center justify-center w-24 h-24 transition-all duration-500 z-10 ${player && selecionado === player.id ? 'ring-4 ring-blue-400 rounded-xl bg-blue-400/20' : ''}`} style={{ ...(postos && postos[idx] ? emCampo(postos[idx].x, postos[idx].z) : { left: `${pos.x}%`, top: `${pos.y}%` }), transform: `translate(-50%, calc(-50% + ${pos.label === 'GK' ? 20 : 0}px)) scale(0.8)`, opacity: isRed ? 0.2 : 1 }}>
                                 <div className="relative">
-                                    <div className="absolute top-1/2 -translate-y-1/2 -left-10 bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded-md shadow-sm z-10">
+                                    <div className={`absolute top-1/2 ${player && userTeam.tactics.playerFacesOn !== false ? '-translate-y-[calc(50%+7px)]' : '-translate-y-1/2'} -left-10 bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded-md shadow-sm z-10`}>
                                         <span className="text-[17px] font-black text-slate-500 dark:text-slate-400 uppercase leading-none block">{pos.label}</span>
                                     </div>
                                     <div draggable={!!player} onDragStart={(e) => e.dataTransfer.setData("playerId", player?.id || "")} style={player ? undefined : { filter: 'brightness(0.28) saturate(0.5)' }} className={`relative flex flex-col items-center group mt-[13px] ${player ? 'cursor-grab active:cursor-grabbing' : 'animate-pulse'}`}>
-                                        <ShirtIcon 
+                                        {player && userTeam.tactics.playerFacesOn !== false ? (
+                                            <div className="w-[72px] h-[72px] pointer-events-none -translate-y-[20px] scale-[1.25]"><PlayerFace3D playerId={player.id} team={userTeam} kitIdx={kitDeCampo} gk={player.position === Position.GK || pos.label === 'GK'} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
+                                        ) : <ShirtIcon 
                                             color={color} 
                                             color2={color2} 
                                             color3={color3} 
@@ -696,7 +705,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                             scale={1.2} 
                                             outOfPosition={false} 
                                             longSleeves={player?.position === Position.GK || pos.label === 'GK'} 
-                                        />
+                                        />}
                                         {player && status && (
                                             <div className="absolute top-0 -right-4 flex flex-col gap-1 items-center">
                                                 {status.yellow && <div className="w-3 h-4 bg-yellow-400 border border-yellow-600 rounded-[1px] shadow-sm" />}
@@ -706,7 +715,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                         )}
                                     </div>
                                     {player && (
-                                        <div className="absolute top-1/2 -translate-y-1/2 -right-10 flex items-center bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded shadow-md gap-0.5 border border-slate-100 dark:border-slate-700">
+                                        <div className={`absolute top-1/2 ${player && userTeam.tactics.playerFacesOn !== false ? '-translate-y-[calc(50%+7px)]' : '-translate-y-1/2'} -right-[47px] flex items-center bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded shadow-md gap-0.5 border border-slate-100 dark:border-slate-700`}>
                                             <span className={`text-[16px] font-black leading-none ${isRed ? 'text-slate-400' : (player.position !== pos.label ? 'text-rose-500' : 'text-slate-700 dark:text-slate-300')}`}>
                                                 {isRed ? 0 : getEffectiveSkill(player, pos.label)}
                                             </span>
@@ -780,7 +789,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                 <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.stopPropagation(); handleBenchSwap(e.dataTransfer.getData("playerId"), p.id); }} onClick={(e) => { e.stopPropagation(); tocarNoBanco(p.id); }} title={foiSubstituido(p.id) ? "Already substituted: cannot re-enter" : indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1.5 flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
                                     {!jogoIniciado && <button onClick={(e) => { e.stopPropagation(); removeFromSquad(p.id); }} title="Remove from bench" className="absolute bottom-1 right-1 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>}
                                     <div className={`relative mt-[2px] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
-                                        <ShirtIcon 
+                                        {userTeam.tactics.playerFacesOn !== false ? (
+                                            <div className="w-[52px] h-[52px] pointer-events-none -translate-y-[5px]"><PlayerFace3D playerId={p.id} team={userTeam} kitIdx={kitDeCampo} gk={p.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
+                                        ) : <ShirtIcon 
                                             color={benchColor} 
                                             color2={benchColor2} 
                                             color3={benchColor3} 
@@ -797,7 +808,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                             sleeveColor={bsc}
                                             scale={0.7} 
                                             longSleeves={p.position === Position.GK} 
-                                        />
+                                        />}
                                         {status && (status.yellow || status.injury || status.red) && (
                                             <div className="absolute -top-1 -right-2 flex flex-col gap-0.5 items-center">
                                                 {status.yellow && <div className="w-2 h-2.5 bg-yellow-400 border border-yellow-600 rounded-[1px]" />}
@@ -872,7 +883,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                 return (
                                     <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onClick={(e) => { e.stopPropagation(); tocarNoPool(p.id); }} title={foiSubstituido(p.id) ? "Already substituted: cannot re-enter" : indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1.5 py-[5px] flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
                                         <div className={`relative mt-[2px] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
-                                            <ShirtIcon 
+                                            {userTeam.tactics.playerFacesOn !== false ? (
+                                            <div className="w-[52px] h-[52px] pointer-events-none -translate-y-[8px]"><PlayerFace3D playerId={p.id} team={userTeam} kitIdx={kitDeCampo} gk={p.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
+                                        ) : <ShirtIcon 
                                                 color={d.c1} 
                                                 color2={d.c2} 
                                                 color3={d.c3} 
@@ -892,7 +905,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                                 sleeveColor={d.sc}
                                                 scale={0.7} 
                                                 longSleeves={p.position === Position.GK} 
-                                            />
+                                            />}
                                             {status && (status.yellow || status.injury || status.red) && (
                                                 <div className="absolute -top-1 -right-2 flex flex-col gap-0.5 items-center">
                                                     {status.yellow && <div className="w-2 h-2.5 bg-yellow-400 border border-yellow-600 rounded-[1px]" />}
