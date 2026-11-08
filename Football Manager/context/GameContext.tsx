@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useMemo } from 'react';
 import { assetUrl } from '../textSim/assetUrl';
 import { Team, Player, Contract, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador, PontoFinanceiro } from '../types';
-import { generateLeagueData, generateFixtures, COUNTRIES, faixaDoClube } from '../textSim/dataGenerator';
+import { generateLeagueData, generateFixtures, COUNTRIES, faixaDoClube, nivelDaBaseDoClube } from '../textSim/dataGenerator';
 import { gruposDaSerieD, arquivarCampeoes, HistoricoDeCopas } from '../textSim/competitions';
 import { espacarCalendario, comDatasDeCopa } from '../textSim/calendario';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, buildTable } from '../textSim/world';
 import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disputaPendente, prepararCopas, ligaIdDoClube, teamKey, ehDoPaulista, noAno, ANO_BASE } from '../textSim/competitions';
 import { calcularVirada, aplicarDivisoes, divisoesAtuais, paisDaLiga, Divisoes } from '../textSim/virada';
-import { BaseState, garantirBase, processarBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
+import { BaseState, garantirBase, processarBase, definirNivelDaBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
 import { fimDoClube, fimDaLiga } from '../textSim/contratoRegiao';
 import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, avisoDeBonusPatrocinio } from '../textSim/inbox';
@@ -705,6 +705,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!teams.length || !gameState.userTeamId) return;
     const hoje = gameState.currentDate;
+    { const niveis = new Map(teams.map(t => [t.id, nivelDaBaseDoClube(t)] as const)); definirNivelDaBase(id => niveis.get(id) ?? 2); }   // o nivel da base de cada clube, pela liga
     const r = processarBase(garantirBase(base, teams.map(t => t.id), hoje), hoje);
     const baseFinal = ajustarSalariosDaBase(r.base, teams);   // Sub-20 das series A-D com o salario da faixa de base da liga (textSim/salarios.ts)
     if (baseFinal !== base) setBase(baseFinal);

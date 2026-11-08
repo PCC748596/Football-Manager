@@ -101,8 +101,9 @@ test('distribuicao de potencial e de posicoes razoavel', () => {
   b.jogadores.forEach(p => por[estrelasDePotencial(p.potential!)]++);
   const n = b.jogadores.length;
   console.log('estrelas (1..5):', por.slice(1).map(x => (100 * x / n).toFixed(1) + '%').join(' '));
-  assert.ok(por[5] / n > 0.02 && por[5] / n < 0.15, '5 estrelas: ' + (por[5] / n));
-  assert.ok(por[1] / n < 0.25 && por[3] / n > 0.2, 'piramide');
+  // Tabela da base, nivel 3 (o padrao sem liga): 40 / 40 / 15 / 4 / 1 %.
+  const alvo = [0, 0.40, 0.40, 0.15, 0.04, 0.01];
+  for (let e = 1; e <= 5; e++) assert.ok(Math.abs(por[e] / n - alvo[e]) < 0.05, e + ' estrelas: ' + (por[e] / n) + ' (alvo ' + alvo[e] + ')');
   const gk = b.jogadores.filter(p => p.position === Position.GK).length / n;
   assert.ok(Math.abs(gk - 0.1) < 0.02, 'goleiros ~10%: ' + gk);
 });

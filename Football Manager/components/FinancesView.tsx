@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
-import { generatePlayer } from '../textSim/dataGenerator';
+import { generatePlayer, faixaDoClube } from '../textSim/dataGenerator';
 import { Position, Player } from '../types';
 import { ordemDaPosicao } from '../3dMatch/simulador3dCliente';
 import { settleMatch, type CurrencyCode } from '../textSim/stadiumEconomy';
@@ -42,10 +42,10 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
     for (let i = 0; i < 25; i++) {
       const group = groups[Math.floor((i % 4))]; // Ensure distribution
       const pos = group[Math.floor(Math.random() * group.length)];
-      list.push(generatePlayer('MARKET', pos, seedBase + i, 99)); // 99 as dummy shirt number
+      list.push(generatePlayer('MARKET', pos, seedBase + i, 99, userTeam ? faixaDoClube(userTeam) : null)); // 99 as dummy shirt number
     }
     return list;
-  }, [gameState.currentWeek]);
+  }, [gameState.currentWeek, userTeam?.id]);
 
   // Filter Market Players
   const filteredMarketPlayers = useMemo(() => {

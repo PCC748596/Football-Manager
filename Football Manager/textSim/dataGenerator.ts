@@ -40,22 +40,57 @@ const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max 
 /** Nivel minimo (OVR e atributos) de qualquer jogador do jogo. */
 export const NIVEL_MINIMO = 50;
 
-export const generatePlayer = (teamId: string, position: Position, idCounter: number, shirtNumber: number): Player => {
+/*
+A TABELA DE OVR DOS JOGADORES GERADOS (nao da base): em 100 jogadores 45 sao de 1 estrela (OVR 50-59), 35 de 2 (60-69), 15 de 3 (70-79), 4 de 4 (80-89) e 1 de 5 (90-100).
+Adaptada a LIGA e a IDADE:
+- Liga: a posicao do jogador na tabela (0 = OVR 50, 1 = OVR 100) e reescalada para o intervalo [piso, teto] da liga, que sai da faixa de OVR dos clubes dela
+  ([mais forte, mais fraco]): piso = mais fraco - 8, teto = mais forte + 12. Sem liga (mercado sem clube), vale a tabela crua (50-100).
+- Idade: abaixo de 22 anos desconta 1.8 OVR por ano que falta; acima de 31 desconta 1.5 por ano (o auge fica entre 22 e 31).
+*/
+export const TABELA_OVR_GERADOS: { ate: number; peso: number }[] = [
+  { ate: 59, peso: 45 }, { ate: 69, peso: 35 }, { ate: 79, peso: 15 }, { ate: 89, peso: 4 }, { ate: 100, peso: 1 }
+];
+export const PISO_ABAIXO_DO_MAIS_FRACO = 8;
+export const TETO_ACIMA_DO_MAIS_FORTE = 12;
+
+/** Um OVR de 50 a 100 pela tabela (a faixa e sorteada pelo peso, o valor e uniforme dentro dela). */
+export const sortearOvrDaTabela = (rnd: () => number = Math.random): number => {
+  let r = rnd() * 100, de = 50;
+  for (const f of TABELA_OVR_GERADOS) {
+    if (r < f.peso) return de + rnd() * (f.ate - de + (f.ate === 100 ? 0 : 1));
+    r -= f.peso; de = f.ate + 1;
+  }
+  return 50;
+};
+
+/** Ajuste de OVR pela idade: negativo antes dos 22 e depois dos 31. */
+export const ajusteDeIdade = (age: number): number => (age < 22 ? -(22 - age) * 1.8 : age > 31 ? -(age - 31) * 1.5 : 0);
+
+/** O OVR de um jogador gerado: tabela -> escala da liga (se houver) -> idade. */
+export const ovrGerado = (age: number, faixa?: [number, number] | null, rnd: () => number = Math.random): number => {
+  const bruto = sortearOvrDaTabela(rnd);
+  let ovr = bruto;
+  if (faixa) {
+    const piso = faixa[1] - PISO_ABAIXO_DO_MAIS_FRACO, teto = faixa[0] + TETO_ACIMA_DO_MAIS_FORTE;
+    ovr = piso + ((bruto - 50) / 50) * (teto - piso);
+  }
+  return Math.min(99, Math.max(NIVEL_MINIMO, Math.round(ovr + ajusteDeIdade(age))));
+};
+
+export const generatePlayer = (teamId: string, position: Position, idCounter: number, shirtNumber: number, faixaLiga?: [number, number] | null): Player => {
   const age = randomInt(17, 36);
 
-  // Atributos base
-  const def = randomInt(50, 100);
-  const pas = randomInt(50, 100);
-  const drb = randomInt(50, 100);
-  const sht = randomInt(50, 100);
-
-  // Cálculo de Skill (OVR) baseado na posição (textSim/overall.ts)
-  let skill = calcularSkill(position, def, pas, drb, sht);
-
-  // Bônus de "Auge" (24-30 anos)
-  if (age > 24 && age < 30) {
-    skill = Math.min(99, skill + randomInt(2, 5));
+  // O OVR vem da tabela adaptada (liga e idade); os 4 atributos giram em torno dele e sao acertados para o OVR da posicao bater (textSim/overall.ts).
+  const alvo = ovrGerado(age, faixaLiga);
+  const clampAtr = (v: number) => Math.min(99, Math.max(NIVEL_MINIMO, Math.round(v)));
+  let def = clampAtr(alvo + randomInt(-8, 8)), pas = clampAtr(alvo + randomInt(-8, 8));
+  let drb = clampAtr(alvo + randomInt(-8, 8)), sht = clampAtr(alvo + randomInt(-8, 8));
+  for (let k = 0; k < 4; k++) {
+    const d = alvo - calcularSkill(position, def, pas, drb, sht);
+    if (d === 0) break;
+    def = clampAtr(def + d); pas = clampAtr(pas + d); drb = clampAtr(drb + d); sht = clampAtr(sht + d);
   }
+  const skill = calcularSkill(position, def, pas, drb, sht);
 
   const finalSkill = Math.min(99, Math.max(NIVEL_MINIMO, skill));
 
@@ -487,6 +522,19 @@ export const FAIXA_OVR_AMERICA_DO_SUL: Record<number, [number, number]> = { 1: [
 export const FAIXA_OVR_EUROPA: Record<number, [number, number]> = { 1: [80, 75], 2: [75, 70], 3: [70, 65], 4: [65, 65] };
 export const FAIXA_OVR_LIGA_OCULTA: [number, number] = [75, 70];
 
+/**
+ * O NIVEL da base (centro de treinamento, 1 a 5) de um clube, enquanto o jogo nao tem o centro: 4 = Serie A do Brasil e a 1.a divisao da Europa;
+ * 3 = 1.a divisao da America do Sul; 2 = o resto (divisoes inferiores, ligas ocultas, demais paises). Ver a tabela em youth.ts.
+ */
+export const nivelDaBaseDoClube = (team: { country: string; leagueId?: string }): number => {
+  const pais: any = COUNTRIES.find((c: any) => c.id === team.country);
+  const liga = pais?.leagues?.find((l: any) => l.id === team.leagueId);
+  if (!liga || liga.hidden || liga.tier !== 1) return 2;
+  if (team.country === '45' || pais?.continent === 'Europe') return 4;
+  if (pais?.continent === 'South America') return 3;
+  return 2;
+};
+
 /** A faixa de OVR da divisao de um clube ja criado (para o medico de saves antigos): procura a liga dele nos paises do jogo. */
 export const faixaDoClube = (team: { country: string; leagueId?: string }): [number, number] | null => {
   const pais: any = COUNTRIES.find((c: any) => c.id === team.country);
@@ -714,7 +762,7 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
 
       for (let i = 0; i < fillerCount; i++) {
         const pos = positionsNeeded[i % positionsNeeded.length];
-        const f = generatePlayer(team.id, pos, playerIdCounter++, currentMaxShirt + 1 + i);
+        const f = generatePlayer(team.id, pos, playerIdCounter++, currentMaxShirt + 1 + i, faixaDeOvr(countryId, league));
         // Clube com dados locais: o tapa-buracos sai no nivel do plantel real (sorteado de 50 a 100 daria 95 num clube da Serie D).
         if (squad.length && jogadoresLocaisDoClube(Number(t.teamID))) {
           const media = squad.slice(0, squad.length - i).reduce((a, p) => a + p.skill, 0) / Math.max(1, squad.length - i);
