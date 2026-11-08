@@ -6,6 +6,8 @@ module.exports = {
   darkMode: 'class',
   content: ['./index.html', './index.tsx', './App.tsx', './components/**/*.{ts,tsx}', './context/**/*.{ts,tsx}', './textSim/**/*.{ts,tsx}', './3dMatch/*.{ts,tsx}'],
   theme: {
+    // Paineis sem cantos arredondados; `rounded-full` fica (circulos: camisas, pontos, avatares).
+    borderRadius: { none: '0', sm: '0', DEFAULT: '0', md: '0', lg: '0', xl: '0', '2xl': '0', '3xl': '0', full: '9999px' },
     extend: {
       colors: {
         manager: { bg: '#0f172a', panel: '#1e293b', accent: '#3b82f6', success: '#10b981', danger: '#ef4444', text: '#f1f5f9', muted: '#94a3b8' }

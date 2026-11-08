@@ -14,12 +14,22 @@ const ler = f => fs.readFileSync(path.join(raiz, f), 'utf8').split('\r\n').join(
 const modelo = ler('js/config/player_behavior.js').match(/const AppearanceModel = \{[\s\S]*?\n\};/)[0];
 const hash = ler('js/utils.js').match(/function hashAparencia[\s\S]*?\n\}\n/)[0];
 const aparencia = ler('js/utils.js').match(/function aparenciaDoJogador[\s\S]*?\n\}\n/)[0];
+const utilsJs = ler('js/utils.js');
+const estilos = utilsJs.match(/const EstilosDeCabelo = \{[\s\S]*?\n\};/)[0] + '\n' + utilsJs.match(/function estiloDeCabeloDe[\s\S]*?\n\}\n/)[0] + '\n' + utilsJs.match(/function estiloDeBarbaDe[\s\S]*?\n\}\n/)[0];
 // A face personalizada de teste (a mesma nos dois lados): o jogador 777001.
 const FACE_TESTE = { pele: '#c68a5e', cabelo: '#1a1410', estilo: 'topete', barba: 'rala', oculos: true, largura: 1.05 };
 const mod3d = new Function('FacesPersonalizadas', `${modelo}
 ${hash}
 ${aparencia}
-return { aparenciaDoJogador };`)({ 777001: FACE_TESTE });
+${estilos}
+// Como o FootballPlayer (player.js) completa a aparencia: o estilo de cabelo e a barba sorteados pelo id, so em quem nao tem face personalizada.
+function aparenciaCompleta(id) {
+    let ap = aparenciaDoJogador(id);
+    if (!ap.estilo) ap = Object.assign({}, ap, { estilo: estiloDeCabeloDe(id, ap.tipo) });
+    if (!ap.barba) ap = Object.assign({}, ap, { barba: estiloDeBarbaDe(id, ap.tipo) });
+    return ap;
+}
+return { aparenciaDoJogador: aparenciaCompleta };`)({ 777001: FACE_TESTE });
 
 const srcTs = fs.readFileSync(path.join(raiz, '..', '..', 'textSim', 'aparencia.ts'), 'utf8');
 const js = ts.transpileModule(srcTs, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;

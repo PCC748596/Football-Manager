@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import PlayerDetailModal from './PlayerDetailModal';
 import { atributos3d } from '../textSim/atributos3d';
 import { useGame } from '../context/GameContext';
 import { Player, Team } from '../types';
@@ -57,6 +58,8 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const [ordem, setOrdem] = useState<{ k: 'name' | 'age' | 'ovr' | 'pot' | 'value' | 'wage'; dir: 1 | -1 }>({ k: 'ovr', dir: -1 });
   const [pagina, setPagina] = useState(0);
   const [selId, setSelId] = useState<string | null>(null);
+  // Clicar no nome do jogador numa negociacao abre o overview dele (o mesmo modal do Squad).
+  const [modalNegId, setModalNegId] = useState<string | null>(null);
   const [ofertando, setOfertando] = useState<Linha | null>(null);
   const [valorOferta, setValorOferta] = useState(0);
   const abrirOferta = (l: Linha) => { setValorOferta(Math.round(l.p.value / 1000) * 1000); setOfertando(l); };
@@ -303,7 +306,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
           <div className="w-[72px] h-[72px] rounded-lg overflow-hidden bg-slate-800 shrink-0 border border-slate-700">{jog ? <PlayerFace playerId={jog.id} camisa={outroClube?.primaryColor} className="w-full h-full" /> : null}</div>
           {outroClube ? <TeamShield team={outroClube} className="w-12 h-14 shrink-0" /> : null}
           <div className="min-w-0">
-            <div className="text-xl font-black text-slate-900 dark:text-white leading-tight truncate">{nomeJogador(n.playerId)} {n.origem === 'BASE' && <span className="text-[10px] font-black bg-violet-600 text-white px-1.5 rounded align-middle">U20</span>}</div>
+            <div className={`text-xl font-black text-slate-900 dark:text-white leading-tight truncate ${jog ? 'cursor-pointer hover:text-blue-500 dark:hover:text-blue-400' : ''}`} title={jog ? 'Open player overview' : undefined} onClick={jog ? () => setModalNegId(n.id) : undefined}>{nomeJogador(n.playerId)} {n.origem === 'BASE' && <span className="text-[10px] font-black bg-violet-600 text-white px-1.5 rounded align-middle">U20</span>}</div>
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">{compro ? `Buying from ${nomeClube(n.vendedorId)}` : `${nomeClube(n.compradorId)} wants to buy`}</div>
             <div className="mt-2 flex items-end gap-6">
               <div><div className="text-[10px] font-bold uppercase text-slate-500">Market value</div><div className="text-base font-black text-slate-900 dark:text-white">{jog ? formatCurrency(jog.value) : '-'}</div></div>
@@ -346,6 +349,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
             {n.estado === 'ACEITA' && <button onClick={() => mostrar(tentarConcluir(n.id), 'Transfer completed')} className={`${btn} bg-emerald-600 hover:bg-emerald-500 text-white`}>{check}Try to complete</button>}
           </div>
         </div>
+        {jog && modalNegId === n.id && <PlayerDetailModal player={players.find(x => x.id === jog.id) || (jog as any)} onClose={() => setModalNegId(null)} />}
       </div>
     );
   };

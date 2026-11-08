@@ -89,10 +89,83 @@ export const PlayerFace: React.FC<Props> = ({ playerId, camisa = '#475569', face
           <rect x="-0.42" y="-0.8" width="0.84" height="0.43" fill={cabelo} />
           <rect x="-0.4" y="-0.45" width="0.8" height="0.1" fill={cabelo} />
         </>)}
+        {/* Os estilos que o 3D sorteia pelo id (pose.js, aplicarEstiloCabelo), vistos de frente */}
+        {estilo === 'militar' && (<>
+          <rect x="-0.44" y="-0.74" width="0.88" height="0.4" fill={cabelo} />
+          <rect x="-0.44" y="-0.5" width="0.08" height="0.3" fill={cabelo} />
+          <rect x="0.36" y="-0.5" width="0.08" height="0.3" fill={cabelo} />
+        </>)}
+        {estilo === 'partido' && (<>
+          <rect x="-0.46" y="-0.62" width="0.45" height="0.27" fill={cabelo} />
+          <rect x="0.01" y="-0.62" width="0.45" height="0.27" fill={cabelo} />
+          <rect x="-0.44" y="-0.5" width="0.43" height="0.15" fill={cabelo} />
+          <rect x="0.01" y="-0.5" width="0.43" height="0.15" fill={cabelo} />
+          <rect x="-0.47" y="-0.5" width="0.1" height="0.6" fill={cabelo} />
+          <rect x="0.37" y="-0.5" width="0.1" height="0.6" fill={cabelo} />
+        </>)}
+        {estilo === 'afro' && (<>
+          <rect x="-0.64" y="-0.9" width="1.28" height="0.58" fill={cabelo} />
+          <rect x="-0.64" y="-0.5" width="0.28" height="0.85" fill={cabelo} />
+          <rect x="0.36" y="-0.5" width="0.28" height="0.85" fill={cabelo} />
+          <rect x="-0.5" y="-1.0" width="1.0" height="0.2" fill={cabelo} />
+        </>)}
+        {estilo === 'cacheado' && (<>
+          <rect x="-0.47" y="-0.5" width="0.15" height="0.55" fill={cabelo} />
+          <rect x="0.32" y="-0.5" width="0.15" height="0.55" fill={cabelo} />
+          <rect x="-0.44" y="-0.58" width="0.88" height="0.22" fill={cabelo} />
+          {[[-0.34, -0.74], [-0.11, -0.8], [0.11, -0.8], [0.34, -0.74], [-0.5, -0.4], [0.5, -0.4]].map(([x, y], i) => <rect key={i} x={x - 0.1} y={y - 0.1} width="0.2" height="0.2" fill={cabelo} />)}
+        </>)}
+        {estilo === 'franja' && (<>
+          <rect x="-0.5" y="-0.5" width="0.17" height="0.85" fill={cabelo} />
+          <rect x="0.33" y="-0.5" width="0.17" height="0.85" fill={cabelo} />
+          <rect x="-0.44" y="-0.625" width="0.88" height="0.25" fill={cabelo} />
+          <rect x="-0.44" y="-0.5" width="0.88" height="0.3" fill={cabelo} />
+        </>)}
+        {estilo === 'mullet' && (<>
+          <rect x="-0.5" y="-0.5" width="0.16" height="0.85" fill={cabelo} />
+          <rect x="0.34" y="-0.5" width="0.16" height="0.85" fill={cabelo} />
+          <rect x="-0.44" y="-0.58" width="0.88" height="0.22" fill={cabelo} />
+          <rect x="-0.44" y="-0.5" width="0.88" height="0.12" fill={cabelo} />
+        </>)}
+        {estilo === 'platinado' && (<>
+          <rect x="-0.46" y="-0.5" width="0.1" height="0.4" fill="#e9e4c8" />
+          <rect x="0.36" y="-0.5" width="0.1" height="0.4" fill="#e9e4c8" />
+          <rect x="-0.44" y="-0.78" width="0.88" height="0.44" fill="#e9e4c8" />
+          <rect x="-0.4" y="-0.45" width="0.8" height="0.13" fill="#e9e4c8" />
+        </>)}
+        {estilo === 'coque' && (<>
+          <rect x="-0.43" y="-0.5" width="0.07" height="0.3" fill={cabelo} />
+          <rect x="0.36" y="-0.5" width="0.07" height="0.3" fill={cabelo} />
+          <rect x="-0.44" y="-0.58" width="0.88" height="0.2" fill={cabelo} />
+          <rect x="-0.17" y="-0.88" width="0.34" height="0.34" fill={cabelo} />
+        </>)}
+        {estilo === 'moicano' && (<>
+          <rect x="-0.43" y="-0.5" width="0.06" height="0.2" fill={misturar(cabelo, pele, 0.6)} />
+          <rect x="0.37" y="-0.5" width="0.06" height="0.2" fill={misturar(cabelo, pele, 0.6)} />
+          <rect x="-0.09" y="-0.88" width="0.18" height="0.52" fill="#1e90ff" />
+          <rect x="-0.09" y="-0.5" width="0.18" height="0.14" fill="#1e90ff" />
+        </>)}
+        {estilo === 'dreads' && (<>
+          <rect x="-0.44" y="-0.62" width="0.88" height="0.28" fill={cabelo} />
+          {[-0.5, -0.38, 0.38, 0.5].map((x, i) => <rect key={i} x={x - 0.065} y="-0.5" width="0.13" height={0.95} fill={cabelo} />)}
+          <rect x="-0.4" y="-0.5" width="0.8" height="0.12" fill={cabelo} />
+        </>)}
+        {estilo === 'trancas' && (<>
+          <rect x="-0.44" y="-0.58" width="0.88" height="0.2" fill={cabelo} />
+          <rect x="-0.44" y="-0.5" width="0.07" height="0.3" fill={cabelo} />
+          <rect x="0.37" y="-0.5" width="0.07" height="0.3" fill={cabelo} />
+          {[-0.36, -0.22, -0.07, 0.07, 0.22, 0.36].map((x, i) => <rect key={i} x={x - 0.04} y="0.35" width="0.08" height="0.4" fill={cabelo} />)}
+        </>)}
+        {estilo === 'picos' && (<>
+          <rect x="-0.46" y="-0.5" width="0.1" height="0.3" fill={cabelo} />
+          <rect x="0.36" y="-0.5" width="0.1" height="0.3" fill={cabelo} />
+          <rect x="-0.44" y="-0.58" width="0.88" height="0.22" fill={cabelo} />
+          {[-0.3, -0.1, 0.1, 0.3].map((x, i) => <rect key={i} x={x - 0.07} y={-0.58 - 0.2 - (i % 2) * 0.1} width="0.14" height={0.26 + (i % 2) * 0.1} fill="#2f9e44" />)}
+        </>)}
         {/* Barba */}
         {/* A barba comeca LOGO ABAIXO DO NARIZ (o nariz acaba em y = 0.08): nunca por cima dele. */}
         {barba === 'rala' && <rect x="-0.4" y="0.1" width="0.8" height="0.4" fill={misturar(pele, cabelo, 0.3)} />}
-        {barba === 'cheia' && (<>
+        {(barba === 'cheia' || barba === 'cheia_bigode') && (<>
           <rect x="-0.4" y="0.1" width="0.8" height="0.4" fill={misturar(pele, cabelo, 0.9)} />
           <rect x="-0.4" y="-0.05" width="0.1" height="0.25" fill={misturar(pele, cabelo, 0.9)} />
           <rect x="0.3" y="-0.05" width="0.1" height="0.25" fill={misturar(pele, cabelo, 0.9)} />
@@ -102,7 +175,7 @@ export const PlayerFace: React.FC<Props> = ({ playerId, camisa = '#475569', face
           <rect x="-0.15" y="0.3" width="0.3" height="0.2" fill={misturar(pele, cabelo, 0.6)} />
           <rect x="-0.16" y="0.12" width="0.32" height="0.05" fill={misturar(pele, cabelo, 0.6)} />
         </>)}
-        {barba === 'bigode' && <rect x="-0.18" y="0.11" width="0.36" height="0.07" fill={cabelo} />}
+        {(barba === 'bigode' || barba === 'cheia_bigode') && <rect x="-0.18" y="0.11" width="0.36" height="0.07" fill={cabelo} />}
         {/* Olhos, nariz e boca (desenhados so quando nao ha a cara em pixels) */}
         {!ap.rosto && (<>
           {/* Olhos de qualquer pele: o branco com a pupila preta no meio */}
@@ -111,7 +184,7 @@ export const PlayerFace: React.FC<Props> = ({ playerId, camisa = '#475569', face
           <rect x="-0.19" y="-0.2" width="0.07" height="0.09" fill="#14100e" />
           <rect x="0.12" y="-0.2" width="0.07" height="0.09" fill="#14100e" />
           <polyline points="0,-0.05 0,0.08 0.06,0.08" fill="none" stroke={tintaNariz} strokeWidth="0.025" />
-          {barba === 'cheia' || barba === 'bigode'
+          {barba === 'cheia' || barba === 'bigode' || barba === 'cheia_bigode'
             ? <rect x="-0.12" y="0.2" width="0.24" height="0.05" fill={labios} />
             : <line x1="-0.12" y1="0.22" x2="0.12" y2="0.22" stroke={peleEscura ? misturar(hex(ap.pele), '#b07a6c', 0.4) : tinta} strokeWidth={peleEscura ? 0.04 : 0.03} />}
         </>)}

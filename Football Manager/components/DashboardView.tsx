@@ -575,12 +575,12 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
         <div className="text-[10px] font-black text-slate-900 dark:text-slate-400 uppercase tracking-[0.2em] italic transition-colors px-1">
           {calendarInfo.monthYearLabel}
         </div>
-        <div className="grid grid-cols-5 gap-[5px]">
+        <div className="grid grid-cols-5 gap-[9px]">
           {calendarInfo.days.map((day, idx) => (
             <button 
               key={idx} 
               onClick={() => !day.isPast && setSelectedDate(day.date)}
-              className={`relative border overflow-hidden flex transition-all min-h-[80px] justify-center text-left group ${
+              className={`relative border overflow-hidden flex transition-all min-h-[75px] justify-center text-left group ${
                 day.isToday ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.4)] z-10' : 
                 day.isPast ? 'bg-slate-100 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 opacity-40 cursor-default' : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm'
               }`}

@@ -12,13 +12,16 @@ usa a pele, o cabelo, o estilo do cabelo, a barba, os oculos e a largura do rost
 */
 export type EstiloCabelo = 'curto' | 'degrade' | 'raspado' | 'longo' | 'topete' | 'careca';
 export type EstiloBarba = 'nenhuma' | 'rala' | 'cheia' | 'bigode' | 'cavanhaque';
+/** Os estilos que o 3D sorteia pelo id (utils.js: estiloDeCabeloDe / estiloDeBarbaDe) alem dos do Editor de Faces. */
+export type EstiloCabeloJogo = EstiloCabelo | 'militar' | 'partido' | 'afro' | 'cacheado' | 'moicano' | 'dreads' | 'coque' | 'franja' | 'mullet' | 'trancas' | 'platinado' | 'picos';
+export type EstiloBarbaJogo = EstiloBarba | 'cheia_bigode';
 /** Desligado: a cara em pixels (foto) nao e usada; fica so a face desenhada (cor, estilo, barba, oculos). Os dados `rosto` continuam gravados: ligar de volta = `true` aqui e em utils.js. */
 export const ROSTO_PIXELADO = false;
 /** `rosto` (opcional): a cara de frente em pixels (PNG pequeno, data URL), gerada da foto no Editor de Faces: quando existe, ela substitui os olhos, nariz, boca, barba e oculos desenhados. */
 export interface FaceCustom { pele: string; cabelo: string; estilo: EstiloCabelo; barba: EstiloBarba; oculos: boolean; largura: number; rosto?: string; cabeloTextura?: string; }
 export interface Aparencia {
   tipo: string; cabelo: number; pele: number; chuteira: string; corChuteira: number;
-  estilo?: EstiloCabelo; barba?: EstiloBarba; oculos?: boolean; largura?: number; rosto?: string; cabeloTextura?: string;   // so nas faces personalizadas
+  estilo?: EstiloCabeloJogo; barba?: EstiloBarbaJogo; oculos?: boolean; largura?: number; rosto?: string; cabeloTextura?: string;   // faces personalizadas, ou o estilo sorteado pelo id
 }
 
 const TIPOS = [
@@ -62,11 +65,34 @@ const porPeso = <T extends { peso: number }>(lista: T[], r: number): T => {
 
 const hexParaNumero = (c: string): number => parseInt(String(c).replace('#', ''), 16);
 
+/*
+O ESTILO DE CABELO E A BARBA sem face personalizada saem do id, como no 3D (utils.js: `EstilosDeCabelo`, `estiloDeCabeloDe`, `estiloDeBarbaDe`; sais 3 e 4): as mesmas tabelas e a mesma conta.
+Os de pele escura (`tipo` 'negro') levam mais afro e cacheado e um pouco mais de barba cheia.
+*/
+const ESTILOS_DE_CABELO: Record<'claro' | 'escuro', [EstiloCabeloJogo, number][]> = {
+  claro: [['curto', 22], ['careca', 5], ['militar', 10], ['topete', 11], ['partido', 11], ['afro', 1], ['cacheado', 11], ['franja', 6], ['mullet', 3], ['longo', 4], ['platinado', 4], ['coque', 3], ['moicano', 2], ['dreads', 1], ['trancas', 1], ['picos', 2]],
+  escuro: [['curto', 14], ['careca', 7], ['militar', 9], ['topete', 4], ['partido', 6], ['afro', 16], ['cacheado', 18], ['franja', 3], ['mullet', 4], ['longo', 3], ['platinado', 1], ['coque', 3], ['moicano', 2], ['dreads', 6], ['trancas', 6], ['picos', 2]]
+};
+const estiloDeCabeloDe = (n: number, tipo: string): EstiloCabeloJogo => {
+  const lista = ESTILOS_DE_CABELO[tipo === 'negro' ? 'escuro' : 'claro'];
+  const total = lista.reduce((a, x) => a + x[1], 0);
+  let acc = hashAparencia(n, 3) % total;
+  for (const [nome, peso] of lista) { if (acc < peso) return nome; acc -= peso; }
+  return 'curto';
+};
+const estiloDeBarbaDe = (n: number, tipo: string): EstiloBarbaJogo => {
+  const lista: [EstiloBarbaJogo, number][] = [['nenhuma', 73], ['rala', 9], ['cheia', tipo === 'negro' ? 8 : 6], ['bigode', 4], ['cheia_bigode', 4], ['cavanhaque', 4]];
+  const total = lista.reduce((a, x) => a + x[1], 0);
+  let acc = hashAparencia(n, 4) % total;
+  for (const [nome, peso] of lista) { if (acc < peso) return nome; acc -= peso; }
+  return 'nenhuma';
+};
+
 export const aparenciaDoJogador = (id: string | number): Aparencia => {
   const n = numeroDoId(id);
   const tipo = porPeso(TIPOS, hashAparencia(n, 1));
   const bota = porPeso(CHUTEIRAS, hashAparencia(n, 2));
   const f = FACES[String(n)];
   if (f) return { tipo: 'custom', cabelo: hexParaNumero(f.cabelo), pele: hexParaNumero(f.pele), chuteira: bota.nome, corChuteira: bota.cor, estilo: f.estilo, barba: f.barba, oculos: !!f.oculos, largura: f.largura, rosto: ROSTO_PIXELADO ? f.rosto : undefined, cabeloTextura: ROSTO_PIXELADO ? f.cabeloTextura : undefined };
-  return { tipo: tipo.nome, cabelo: tipo.cabelo, pele: tipo.pele, chuteira: bota.nome, corChuteira: bota.cor };
+  return { tipo: tipo.nome, cabelo: tipo.cabelo, pele: tipo.pele, chuteira: bota.nome, corChuteira: bota.cor, estilo: estiloDeCabeloDe(n, tipo.nome), barba: estiloDeBarbaDe(n, tipo.nome) };
 };
