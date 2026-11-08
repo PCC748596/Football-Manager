@@ -903,7 +903,7 @@ tracejado, com o treinador de fato e gravata a passear devagar lá dentro. Em fr
 */
 const BancosDeReservas = {
     activo: true,
-    lado: 1,                 // +X: o das câmaras (o túnel está do lado oposto, TunelJogadores.lado)
+    lado: -1,                // -1 = o lado do TUNEL (-X, TunelJogadores.lado); +1 = o das câmaras (+X). As medidas abaixo são em módulo: o `lado` dá-lhes o sinal.
     xBanco: 42.4,
     zBanco: 12.0,
     lugares: 12,             // os assentos do banco: `reservas` jogadores + `staff.length` (medico e massagista)
@@ -930,6 +930,9 @@ const BancosDeReservas = {
     // Equipas sem uniforme conhecido: os reservas vestem isto.
     coresPorOmissao: { A: '#3498db', B: '#e74c3c' }
 };
+// O sinal do lado nas medidas em x que outros ficheiros lêem (o treinador; a disputa de penaltis tira o lado do sinal de `treinador.x`).
+BancosDeReservas.lado = BancosDeReservas.lado < 0 ? -1 : 1;
+BancosDeReservas.treinador.x = Math.abs(BancosDeReservas.treinador.x) * BancosDeReservas.lado;
 if (typeof window !== 'undefined') window.BancosDeReservas = BancosDeReservas;
 
 /*

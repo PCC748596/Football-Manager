@@ -27,6 +27,8 @@ const QuartoArbitro = {
         return this.z;
     }
 };
+// O 4.o arbitro fica do lado dos bancos (BancosDeReservas.lado): x e xPlaca espelham-se com o banco no -X.
+if (typeof BancosDeReservas !== 'undefined' && BancosDeReservas.lado < 0) { QuartoArbitro.x = -Math.abs(QuartoArbitro.x); QuartoArbitro.xPlaca = -Math.abs(QuartoArbitro.xPlaca); }
 if (typeof window !== 'undefined') window.QuartoArbitro = QuartoArbitro;
 
 Object.assign(Officials, {
@@ -37,7 +39,7 @@ Object.assign(Officials, {
         if (!Q.activo || this.quarto) return null;
         const o = this.criarOficial(scene, 3, 'Q');
         o.model.position.set(Q.x, 0, Q.postoZ());
-        o.model.rotation.y = -Math.PI / 2;           // de frente para o campo (-X)
+        o.model.rotation.y = (Q.x < 0 ? 1 : -1) * Math.PI / 2;   // de frente para o campo (-X com o banco no +X; +X com o banco no -X)
         o.braco = 0;
         o.placa = this._criarPlaca(o);
         this.quarto = o;

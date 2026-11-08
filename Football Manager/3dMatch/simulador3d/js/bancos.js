@@ -63,25 +63,25 @@ const Bancos = {
             o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = false;
             grupo.add(o); return o;
         };
-        const x = B.xBanco;
+        const S = B.lado < 0 ? -1 : 1, x = S * B.xBanco;   // `S`: o lado (-1 = o do tunel); os desvios abaixo tambem se espelham
         // Assento corrido e costas baixas, do lado da bancada.
-        caixa(0.5, hAssento, L, x - 0.05, hAssento / 2, zc, mat(C.assento));
-        caixa(0.06, 0.55, L, x + 0.30, hAssento + 0.27, zc, mat(C.costas));
+        caixa(0.5, hAssento, L, x - S * 0.05, hAssento / 2, zc, mat(C.assento));
+        caixa(0.06, 0.55, L, x + S * 0.30, hAssento + 0.27, zc, mat(C.costas));
         // Cobertura e paredes transparentes (fundo e laterais), com colunas nos cantos.
         const vidro = mat(C.cobertura, { transparent: true, opacity: 0.35, roughness: 0.2, depthWrite: false, side: THREE.DoubleSide });
-        caixa(1.7, 0.06, L + 0.4, x - 0.15, 2.25, zc, mat(C.estrutura));
-        caixa(0.05, 1.65, L + 0.4, x + 0.62, 1.42, zc, vidro);
-        caixa(1.6, 1.65, 0.05, x - 0.1, 1.42, zc - (L + 0.4) / 2, vidro);
-        caixa(1.6, 1.65, 0.05, x - 0.1, 1.42, zc + (L + 0.4) / 2, vidro);
+        caixa(1.7, 0.06, L + 0.4, x - S * 0.15, 2.25, zc, mat(C.estrutura));
+        caixa(0.05, 1.65, L + 0.4, x + S * 0.62, 1.42, zc, vidro);
+        caixa(1.6, 1.65, 0.05, x - S * 0.1, 1.42, zc - (L + 0.4) / 2, vidro);
+        caixa(1.6, 1.65, 0.05, x - S * 0.1, 1.42, zc + (L + 0.4) / 2, vidro);
         for (const sz of [-1, 1]) for (const sx of [-0.85, 0.62]) {
-            caixa(0.06, 2.25, 0.06, x + sx * 0.97 - 0.1, 1.125, zc + sz * (L + 0.4) / 2, mat(C.estrutura));
+            caixa(0.06, 2.25, 0.06, x + S * (sx * 0.97 - 0.1), 1.125, zc + sz * (L + 0.4) / 2, mat(C.estrutura));
         }
     },
 
     // A ÁREA TÉCNICA: o rectângulo a tracejado no relvado, da linha de fora até à frente do banco.
     _area(grupo, zc, B) {
         const A = B.area, y = 0.03;
-        const x0 = A.xInterior, x1 = B.xBanco - 1.0;
+        const S = B.lado < 0 ? -1 : 1, x0 = S * A.xInterior, x1 = S * (B.xBanco - 1.0);
         const z0 = zc - A.meiaLargura, z1 = zc + A.meiaLargura;
         const passo = A.tracoDash + A.tracoVazio;
         const tracos = [];
@@ -156,7 +156,7 @@ const Bancos = {
         mk(0.13, 0.85, 0.04, T.gravata, 0.98, prof + 0.02);
         scene.add(feito.corpo);
         feito.corpo.position.set(T.x, 0, zc);
-        feito.corpo.rotation.y = -Math.PI / 2;
+        feito.corpo.rotation.y = -(B.lado < 0 ? -1 : 1) * Math.PI / 2;
         return { model: feito.corpo, rig, animTimer: 0, jogador, fato: fato.nome, zc, alvoZ: zc, relogio: 0 };
     },
 
@@ -215,9 +215,9 @@ const Bancos = {
         this._vestirPano(feito, new THREE.Color(cor).getHex());
         const pelvisY0 = feito.rig.pelvis.position.y;
         this._sentar({ rig: feito.rig, model: feito.corpo });
-        feito.corpo.position.x = B.xBanco - 0.05;
+        feito.corpo.position.x = (B.lado < 0 ? -1 : 1) * (B.xBanco - 0.05);
         feito.corpo.position.z = z;
-        feito.corpo.rotation.y = -Math.PI / 2;
+        feito.corpo.rotation.y = -(B.lado < 0 ? -1 : 1) * Math.PI / 2;
         feito.corpo.userData.corpoDoBanco = true;
         this._scene.add(feito.corpo);
         return { model: feito.corpo, rig: feito.rig, jogador: feito.jogador, funcao, cor, pelvisY0, animTimer: 0 };
@@ -345,9 +345,9 @@ const Bancos = {
                 // O numero e as costas da camisa (como nos titulares): sem isto o reserva sentado/a aquecer tinha as costas lisas.
                 if (B.numeroNosReservas) p.updateShirt(j.numero || (12 + i), 'CM');   // desligado (`numeroNosReservas`): voltou-se ao banco de antes disto
                 this._sentar(p);
-                p.model.position.x = B.xBanco - 0.05;
+                p.model.position.x = (B.lado < 0 ? -1 : 1) * (B.xBanco - 0.05);
                 p.model.position.z = b.zc + this._zDoLugar(i, B);
-                p.model.rotation.y = -Math.PI / 2;
+                p.model.rotation.y = -(B.lado < 0 ? -1 : 1) * Math.PI / 2;
                 p.model.userData.corpoDoBanco = true;
                 this._scene.add(p.model);
                 b.reservas.push(p);

@@ -520,8 +520,8 @@ const Staff = {
         const livreDoTunel = (p) => !(typeof TunelJogadores !== 'undefined' && TunelJogadores.bloqueia(p.x, p.z));
         // ATRAS DOS BANCOS DE RESERVAS os segurancas ficam 1 m mais para a frente (para o lado da bancada, que e para onde olham): senao ficavam em cima do vidro do banco.
         const BR = (typeof BancosDeReservas !== 'undefined' && BancosDeReservas.activo) ? BancosDeReservas : null;
-        const atrasDeUmBanco = (p) => !!BR && p.x > 0 && Math.abs(Math.abs(p.z) - BR.zBanco) <= BR.larguraVao / 2 + 1.0;
-        for (const p of anel) if (livreDoTunel(p)) lugares.dePe.push({ x: p.x + (atrasDeUmBanco(p) ? 1.0 : 0), z: p.z, tipo: 'anel' });
+        const atrasDeUmBanco = (p) => !!BR && Math.sign(p.x) === BR.lado && Math.abs(Math.abs(p.z) - BR.zBanco) <= BR.larguraVao / 2 + 1.0;
+        for (const p of anel) if (livreDoTunel(p)) lugares.dePe.push({ x: p.x + (atrasDeUmBanco(p) ? BR.lado * 1.0 : 0), z: p.z, tipo: 'anel' });
 
         if (F.grupos && F.grupos.activo) {
             const pts = this._pontosDosGrupos(

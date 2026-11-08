@@ -23,9 +23,9 @@ test('dois bancos do lado das câmaras, um em cada metade, com 10 reservas e um 
     assert.ok(zs[0] < 0 && zs[1] > 0, 'um banco em cada metade');
     for (const b of Bancos.bancos) {
         assert.strictEqual(b.reservas.length, 10, 'dez reservas (modelos de jogador)');
-        assert.ok(b.reservas.every(r => r.rig && r.model.position.x > 0), 'no lado +X');
+        assert.ok(b.reservas.every(r => r.rig && Math.sign(r.model.position.x) === B.lado), 'no lado do banco (BancosDeReservas.lado)');
         assert.ok(b.treinador, 'treinador criado');
-        assert.ok(b.treinador.model.position.x > 0, 'no lado +X');
+        assert.ok(Math.sign(b.treinador.model.position.x) === B.lado, 'no lado do banco (BancosDeReservas.lado)');
     }
 });
 
@@ -34,7 +34,7 @@ test('um painel de publicidade retirado em frente a cada banco (e nenhuma placa 
     assert.strictEqual(vaos.length, 2);
     for (const [z0, z1] of vaos) assert.ok(Math.abs((z1 - z0) - B.larguraVao) < 1e-9);
     // Nenhuma malha de placa (caixa a x = +placa) cobre o centro dos vãos.
-    const xPlaca = 34 + PlacasPublicidade.recuo;
+    const xPlaca = B.lado * (34 + PlacasPublicidade.recuo);
     const placas = [];
     cena.traverse(o => { if (o.isMesh && o.geometry && o.geometry.type === 'BoxGeometry' && Math.abs(o.position.x - xPlaca) < 0.01 && Math.abs(o.rotation.y - Math.PI / 2) < 1e-6) placas.push(o); });
     assert.ok(placas.length >= 3, 'placas do lado dos bancos: ' + placas.length);

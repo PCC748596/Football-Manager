@@ -38,6 +38,14 @@ const Aquecimento = {
     placaSobra: 1.6,      // s de placa levantada depois da troca
     intervaloEntreSaidas: 3.0   // s entre um titular comecar a sair e o seguinte (do MESMO lado): saem e entram em paralelo, escalonados, e nao um de cada vez
 };
+// O LADO DO BANCO (BancosDeReservas.lado): as medidas acima sao em modulo (o lado +X); com o banco no -X (o do tunel) espelham-se em x.
+(function () {
+    const S = (typeof BancosDeReservas !== 'undefined' && BancosDeReservas.lado < 0) ? -1 : 1;
+    if (S === 1) return;
+    ['xAquecer', 'xVolta', 'xVao', 'xEspera'].forEach(k => { Aquecimento[k] *= S; });
+    Aquecimento.saida.x *= S;
+    Aquecimento.preparador.x *= S; Aquecimento.preparador.xFim *= S;
+})();
 if (typeof window !== 'undefined') window.Aquecimento = Aquecimento;
 
 // O GOLEIRO EXPULSO: `limiteTrocas` por time; `esperaAuto` s de jogo parado a espera da troca do manager antes de o 3D decidir sozinho.
