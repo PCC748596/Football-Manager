@@ -165,8 +165,10 @@ export const SIM_CONFIG = {
    * os lances por igual, mas no futebol real os times se abrem, cansam e quem
    * está perdendo se lança — ~40% dos gols saem depois dos 60 minutos.
    */
-  /** Queda base de preparo por minuto (mantém a economia da temporada). */
-  baseFatiguePerMinute: 0.4995,
+  /** Queda base de preparo por minuto, para um jogador de Stamina 80 (a de referencia). 0.5486: um jogador de linha de Stamina 80 que joga os 90 min perde ~45 pontos de Energia (era 0.4995 e ~41, sem a Stamina). */
+  baseFatiguePerMinute: 0.5486,
+  /** Stamina de referencia: com ela o desgaste e o da formula. Mais Stamina desgasta menos, menos Stamina desgasta mais (referencia / Stamina). */
+  staminaReferencia: 80,
   /** Teto do multiplicador tático sobre o desgaste. */
   maxFatigueMultiplier: 1.45,
   lateGameAttackBias: 0.16,
@@ -229,7 +231,7 @@ export const ALL_LANES: Lane[] = ['Left', 'Center', 'Right'];
 // davam desgastes diferentes para o mesmo jogo.
 // =====================================================================
 /** Queda de preparo físico por minuto jogado. */
-export const matchFatiguePerMinute = (tactics: Tactics | undefined, position: Position | string): number => {
+export const matchFatiguePerMinute = (tactics: Tactics | undefined, position: Position | string, stamina?: number): number => {
   const style = tactics?.style;
   const styleMod = style === 'Offensive' ? 1.15 : style === 'Very Offensive' ? 1.30
     : style === 'Defensive' ? 0.88 : style === 'Very Defensive' ? 0.80 : 1.0;
@@ -243,7 +245,10 @@ export const matchFatiguePerMinute = (tactics: Tactics | undefined, position: Po
   const pos = String(position);
   const posMod = pos === 'GK' ? 0.15 : (['CB', 'LB', 'RB'].includes(pos) ? 0.85 : 1.0);
 
-  return SIM_CONFIG.baseFatiguePerMinute * combined * posMod;
+  // A Stamina do jogador escala o desgaste: 80 = a formula, 100 gasta 20% menos, 60 gasta 33% mais (referencia / Stamina). Sem a Stamina vale a de referencia.
+  const staminaMod = typeof stamina === 'number' ? SIM_CONFIG.staminaReferencia / Math.max(40, Math.min(100, stamina)) : 1;
+
+  return SIM_CONFIG.baseFatiguePerMinute * combined * posMod * staminaMod;
 };
 
 /** Faixa vertical do campo a que um slot da formação pertence. */

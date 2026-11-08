@@ -505,12 +505,11 @@ Object.assign(Match, {
         const ZF = (typeof CameraZoom !== 'undefined') ? CameraZoom : null;
         const dtFalta = (typeof window.lastFrameDelta === 'number') ? window.lastFrameDelta : (1 / 60);
         let faltaAplica = false;
-        if (window.cameraMode !== 'topdown' && window.cameraMode !== 'cinema' && (this.state === 'FREE_KICK' || this.state === 'CORNER_KICK') && this.setPieceTaker) {
+        // So na FALTA DIRECTA (a decisao montada e `remate`: o batedor vai rematar a baliza): nao no canto, nem no livre indirecto, nem na falta longa de passe ou cruzamento (pedido).
+        if (window.cameraMode !== 'topdown' && window.cameraMode !== 'cinema' && this.state === 'FREE_KICK' && this.decisaoFaltaMontada === 'remate' && this.setPieceTaker) {
             const dMax = (ZF && ZF.faltaDirectaDist) || 35.0;
             const golZ = this.setPieceTaker.targetGoalZ;
-            // No canto vale sempre (a bola esta na bandeirola, ~34 m do centro da baliza).
-            if (typeof golZ === 'number' && (this.state === 'CORNER_KICK' ||
-                Math.hypot(foco.x, golZ - foco.z) <= dMax)) {
+            if (typeof golZ === 'number' && Math.hypot(foco.x, golZ - foco.z) <= dMax) {
                 faltaAplica = true;
                 this._faltaGolZ = golZ;
             }

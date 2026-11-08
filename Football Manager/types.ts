@@ -1031,6 +1031,8 @@ export interface GameState {
   trainingSchedule: (string | null)[][]; // Legacy/Group 1
   trainingSchedules?: (string | null)[][][]; // Array of schedules for up to 3 groups
   unlockedTrainingGroups?: number; // default 1
+  /** Grupos de treino automaticos pela ENR: `limiares[i]` = ENR minima para o grupo G(i+1); o ultimo grupo desbloqueado fica com o resto. Ex.: [80, 50] -> G1 >= 80, G2 50-79, G3 < 50. */
+  trainingAutoGrupos?: { ativo: boolean; limiares: number[] };
   matchVisual?: MatchVisualState;
 }
 

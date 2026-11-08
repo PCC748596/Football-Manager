@@ -541,6 +541,42 @@ Object.assign(Match, {
                 }
             });
 
+            /*
+            OS DEZ DE CADA EQUIPA FICAM NO POSTO DA TABELA POR ZONA (pedido: usar a interpolacao da posicao dos jogadores nas cobrancas de lateral). Com as tabelas do Match Tactics
+            (ZonasModel), o posto de cada um sai da bola ONDE ELA ESTA (aqui, no ponto da linha) e da fase: quem cobra esta COM bola, quem defende SEM bola, e a tabela e interpolada entre as
+            zonas mais proximas — o mesmo que o livre usa para a defesa (formaDaDefesaNoLivre). Antes cada um partia de onde estava e andava ate la, e a bola ia a jogo com o time desmontado. O batedor e o
+            guarda-redes ficam como estao; o adversario nunca fica a menos de `afastaAdversarios` da bola. O nivel 2 (ativo no THROW_IN) continua a mover os dez a partir daqui.
+            */
+            if (typeof posicaoPorZona === 'function') {
+                const colocarPorZona = (lista, ataca) => {
+                    let bbL = null;
+                    lista.forEach(p => {
+                        if (p === taker || p.role === 'gk' || p.expulso || !p.model) return;
+                        if (!bbL) bbL = { team: p.team, dir: p.dirZ, ballX: xLinha, ballZ: zLinha, isAttacking: ataca, possessionTime: 99 };
+                        const zt = posicaoPorZona(p, bbL);
+                        if (!zt) return;
+                        let x = zt.x, z = zt.z;
+                        if (!ataca) {
+                            const dxb = x - xLinha, dzb = z - zLinha, db = Math.hypot(dxb, dzb);
+                            if (db < ThrowInModel.afastaAdversarios) {
+                                const f = db > 0.001 ? ThrowInModel.afastaAdversarios / db : 1;
+                                x = xLinha + (db > 0.001 ? dxb * f : ThrowInModel.afastaAdversarios);
+                                z = zLinha + (db > 0.001 ? dzb * f : 0);
+                            }
+                        }
+                        p.hasBall = false;
+                        p.velocity.set(0, 0, 0);
+                        p.model.position.set(
+                            THREE.MathUtils.clamp(x, -CAMPO_LARG / 2 + 1, CAMPO_LARG / 2 - 1),
+                            ALTURA_BASE_Y,
+                            THREE.MathUtils.clamp(z, -LINHA_FUNDO + 1, LINHA_FUNDO - 1));
+                        if (p.dynamicTarget) p.dynamicTarget.copy(p.model.position);
+                    });
+                };
+                colocarPorZona(attackingPlayers, true);
+                colocarPorZona(defendingPlayers, false);
+            }
+
             this.lateralPendente = true;
             // O lateral espera mais do que as outras reposicoes -- ver
             // ESPERA_COBRANCA_LATERAL (js/config/tactics.js).
