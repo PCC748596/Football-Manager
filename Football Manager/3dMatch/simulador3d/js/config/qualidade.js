@@ -20,9 +20,9 @@ const BLOB_Y = 0.02;
 const Qualidade = {
     niveis: {
         // Todos os niveis: jogadores e arbitros com o corpo `leve` 4 (456 triangulos), torcida, staff e reservas com o `leve` 5 (400).
-        HIGH:   { sombras: true,  mapa: 2048, pixelRatio: 1.5, adeptos: 1.00, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
-        MEDIUM: { sombras: true,  mapa: 1024, pixelRatio: 1.5, adeptos: 0.50, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
-        LOW:    { sombras: false, mapa: 512,  pixelRatio: 1.5, adeptos: 0.25, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: false }
+        HIGH:   { luzes: 14, sombras: true,  mapa: 2048, pixelRatio: 1.5, adeptos: 1.00, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
+        MEDIUM: { luzes: 10, sombras: true,  mapa: 1024, pixelRatio: 1.5, adeptos: 0.50, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
+        LOW:    { luzes: 6, sombras: false, mapa: 512,  pixelRatio: 1.5, adeptos: 0.25, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: false }
     },
     // RESOLUCAO DINAMICA: a escala (0.85..1) que multiplica o pixel ratio do nivel. Desce se o FPS cai e sobe quando recupera (ver `ajustarPelaFps`, chamado uma vez por segundo).
     escala: 1, _baixos: 0, _altos: 0, escalaMin: 0.6,
@@ -42,7 +42,7 @@ const Qualidade = {
         const base = this.niveis[this.nivel] || this.niveis.LOW;
         if (!base.sombras || !this.ehTouch()) return base;
         const c = this._cfgTouch || (this._cfgTouch = {});
-        if (c.__de !== base) { Object.assign(c, base, { sombras: false }); c.__de = base; }
+        if (c.__de !== base) { Object.assign(c, base, { sombras: false, luzes: Math.min(base.luzes || 6, 6) }); c.__de = base; }
         return c;
     },
 
@@ -186,6 +186,29 @@ const Qualidade = {
         E.bola.position.set(b.x, BLOB_Y, b.z);
         E.bola.scale.set(tam, tam, 1);
         E.bola.material.opacity = Math.max(0.2, 0.95 - h * 0.08);
+    },
+
+    /*
+    QUANTAS SpotLights DOS HOLOFOTES (`luzes` do nivel): cada SpotLight soma ao sombreamento de TODOS os pixeis do campo e da bancada (o iPad ja media 25 fps mesmo sem torcida por isso). Com os
+    holofotes dos dois lados e dos fundos (14) o tablet caiu para ~13 fps. Aqui ficam so `max` luzes, repartidas pelos mesmos quatro grupos (lateral -x, lateral +x, fundo -z, fundo +z) na proporcao
+    de cada um, e as que ficam sobem de intensidade (`userData.fator`, raiz da razao, teto 2) para o campo nao escurecer. As lampadas desenhadas nao mudam. Devolve a lista que ficou.
+    */
+    limitarLuzes: function (luzes) {
+        const max = this.cfg().luzes || 14;
+        if (!luzes || luzes.length <= max) return luzes;
+        const grupos = {};
+        luzes.forEach(function (l) { const k = (l.userData && l.userData.tipo || '') + '|' + (l.userData && l.userData.lado || ''); (grupos[k] = grupos[k] || []).push(l); });
+        const ficam = [];
+        Object.keys(grupos).forEach(function (k) {
+            const g = grupos[k], n = Math.max(1, Math.round(g.length * max / luzes.length));
+            for (let i = 0; i < Math.min(n, g.length); i++) ficam.push(g[Math.floor((i + 0.5) * g.length / n)]);
+        });
+        const fator = Math.min(2.0, Math.sqrt(luzes.length / ficam.length));
+        luzes.forEach(function (l) {
+            if (ficam.indexOf(l) >= 0) { l.userData = l.userData || {}; l.userData.fator = fator; }
+            else { l.intensity = 0; if (l.parent) l.parent.remove(l); if (l.target && l.target.parent) l.target.parent.remove(l.target); }
+        });
+        return ficam;
     },
 
     // Depois de o renderer e a luz existirem (e a meio do jogo): sombras, mapa e pixel ratio.

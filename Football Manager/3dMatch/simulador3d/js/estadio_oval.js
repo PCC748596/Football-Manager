@@ -577,7 +577,8 @@ const EstadioOval = {
 
         // ---- holofotes no bordo de fora da cobertura ---------------------
         if (typeof Holofotes !== 'undefined' && Holofotes.activo) {
-            const H = Holofotes, luzes = [], pos = [], travGeos = [];
+            const H = Holofotes, pos = [], travGeos = [];
+            let luzes = [];
             const nH = cfg.torresHolofotes;
             for (let k = 0; k < nH; k++) {
                 const t = ((k + 0.5) / nH) * Math.PI * 2;
@@ -627,21 +628,22 @@ const EstadioOval = {
             `fileiras` conjuntos espalhados ao longo de z; fundos a z = ±(BANCADA_Z + 19), em x -18, 0, 18.
             */
             const yLuzPadrao = 26.0, xLat = 46 + 19, zFundo = (CAMPO_COMP_ / 2 + 12) + 19, cantoZ = (CAMPO_COMP_ / 2 + 12) - 6.5, fundoJogo = CAMPO_COMP_ / 2;
-            const novaLuz = (x, z, alvo, angulo) => {
+            const novaLuz = (x, z, alvo, angulo, tipo, lado) => {
                 const luz = new THREE.SpotLight(H.corLuz, 0, H.alcanceLuz, angulo, H.penumbra, 1.0);
                 luz.position.set(x, yLuzPadrao, z);
                 luz.target.position.set(alvo[0], alvo[1], alvo[2]);
                 luz.castShadow = false;
+                luz.userData.tipo = tipo; luz.userData.lado = lado;
                 grupo.add(luz, luz.target);
                 luzes.push(luz);
             };
             for (const sinal of [-1, 1]) for (let f = 0; f < H.fileiras; f++) {
                 const frac = (f + 0.5) / H.fileiras, z = (frac * 2 - 1) * cantoZ;
                 const ponta = (f === 0 || f === H.fileiras - 1);
-                novaLuz(sinal * xLat, z, ponta ? [0, 1.0, Math.sign(z) * fundoJogo] : [0, 0, z * 0.4], H.anguloLuz);
+                novaLuz(sinal * xLat, z, ponta ? [0, 1.0, Math.sign(z) * fundoJogo] : [0, 0, z * 0.4], H.anguloLuz, 'lat', sinal);
             }
             for (const sinalZ of [-1, 1]) for (const xo of [-18, 0, 18]) {
-                novaLuz(xo, sinalZ * zFundo, [xo * 0.3, 1.2, sinalZ * fundoJogo], 0.85);
+                novaLuz(xo, sinalZ * zFundo, [xo * 0.3, 1.2, sinalZ * fundoJogo], 0.85, 'fundo', sinalZ);
             }
             // As quatro curvas: a SpotLight sobre o conjunto do canto, apontada para o quarto de campo oposto (cruza o relvado na diagonal).
             for (const cL of cantosLuz) {
@@ -661,6 +663,7 @@ const EstadioOval = {
             pos.forEach((pp, i) => { dL.position.set(pp[0], pp[1], pp[2]); dL.updateMatrix(); imL.setMatrixAt(i, dL.matrix); });
             imL.castShadow = false; imL.receiveShadow = false;
             grupo.add(imL);
+            if (typeof Qualidade !== 'undefined' && Qualidade.limitarLuzes) luzes = Qualidade.limitarLuzes(luzes);   // so `luzes` SpotLights (config/qualidade.js)
             window.holofotes = { luzes, matLampada, lampadas: imL };
         }
 

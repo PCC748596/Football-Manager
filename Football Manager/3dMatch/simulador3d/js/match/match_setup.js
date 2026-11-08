@@ -1604,7 +1604,7 @@ Object.assign(Match, {
 
             const geosTravessa = [];
             const posLampadas = [];
-            const luzes = [];
+            let luzes = [];
             const larguraConj = H.lampadasPorFileira * H.espacoEntreLampadas;
 
             // As DUAS laterais levam holofotes, tambem nos estadios sem cobertura (pedido: a iluminacao so de um lado era fraca): sem cobertura o conjunto vai ao bordo da arquibancada, dos dois lados.
@@ -1643,6 +1643,7 @@ Object.assign(Match, {
                     }
 
                     luz.castShadow = false;
+                    luz.userData.tipo = 'lat'; luz.userData.lado = sinal;
                     campoGrupo.add(luz);
                     campoGrupo.add(luz.target);
                     luzes.push(luz);
@@ -1675,6 +1676,7 @@ Object.assign(Match, {
                     luzGol.position.set(xOffset, yLuz, zConj);
                     luzGol.target.position.set(xOffset * 0.3, 1.2, targetZ);
                     luzGol.castShadow = false;
+                    luzGol.userData.tipo = 'fundo'; luzGol.userData.lado = sinalZ;
                     campoGrupo.add(luzGol);
                     campoGrupo.add(luzGol.target);
                     luzes.push(luzGol);
@@ -1701,6 +1703,8 @@ Object.assign(Match, {
             imL.castShadow = false; imL.receiveShadow = false;
             campoGrupo.add(imL);
 
+            // So `luzes` SpotLights ficam (config/qualidade.js): no tablet cada luz custa fps.
+            if (typeof Qualidade !== 'undefined' && Qualidade.limitarLuzes) luzes = Qualidade.limitarLuzes(luzes);
             window.holofotes = { luzes, matLampada, lampadas: imL };
         }
 

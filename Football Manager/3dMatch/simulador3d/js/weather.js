@@ -443,7 +443,7 @@ const Weather = {
             const ligarHolofotes = pConfig.holofotes;
             const intensidade = pConfig.holofotesIntensidade || HConfig.intensidadeLuz;
             for (const l of HF.luzes) {
-                l.intensity = ligarHolofotes ? intensidade : 0;
+                l.intensity = ligarHolofotes ? intensidade * ((l.userData && l.userData.fator) || 1) : 0;
             }
             if (HF.matLampada) {
                 HF.matLampada.color.setHex(ligarHolofotes ? HConfig.corLampadaAcesa : HConfig.corLampadaApagada);
