@@ -315,7 +315,11 @@ const Bracadeira = { activa: true, intervalo: 1.0, u: 1.0, cores: [0xffd400, 0xf
 if (typeof window !== 'undefined') window.Bracadeira = Bracadeira;
 
 // Mais perto da lateral da troca (era x -46, y 17): a camera avanca para o campo e desce, e a zona da troca (o foco, na lateral +X) enche mais o ecra.
-const CameraSubstituicao = { x: -22, y: 10, foco: { x: 34.4, y: 1.2, z: 0 } };
+/*
+Banco do lado do TUNEL (BancosDeReservas.lado = -1): a camera fica onde a TV Sideline padrao esta (`tv.x`, `tv.y`: o mesmo ponto base do 'lateraltv') e so APROXIMA — `tv.zoom` e a
+fracao do caminho ate ao foco (a zona da troca, agora no -X): 0.4 = a camera fica a 40% da distancia da TV Sideline. Com o banco no lado das camaras (+1) vale `x`/`y` de cima, no lado oposto.
+*/
+const CameraSubstituicao = { x: -22, y: 10, foco: { x: 34.4, y: 1.2, z: 0 }, tv: { x: 48, y: 20, zoom: 0.4 } };
 if (typeof window !== 'undefined') window.CameraSubstituicao = CameraSubstituicao;
 
 const CameraZoom = {

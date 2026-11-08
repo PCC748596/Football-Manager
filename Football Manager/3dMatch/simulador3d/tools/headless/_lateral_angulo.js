@@ -1,0 +1,23 @@
+require('./harness.js');
+const dt = 1 / 60; const scene = new THREE.Scene();
+Match.init(scene); if (typeof Officials !== 'undefined' && Officials.init) Officials.init(scene);
+if (typeof Sim === 'undefined') global.Sim = {}; Sim.running = true;
+const seed = Number(process.argv[2] || 1);
+let a = 1000 + seed * 977; Math.random = () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+const todas = SquadsData.equipas; Match.trocarEquipas({ A: todas[(seed * 2) % todas.length].id, B: todas[(seed * 2 + 1) % todas.length].id });
+MatchStats.reset(); Match.tempoDeJogo = 0;
+const orig = FootballPlayer.prototype.lancarLateral;
+const res = [];
+FootballPlayer.prototype.lancarLateral = function () {
+  const antes = Match.lateralEsperaExtra;
+  const r = orig.apply(this, arguments);
+  const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(this.model.quaternion);
+  const v = Match.ballVel;
+  const ang = Math.acos(Math.max(-1, Math.min(1, (fwd.x * v.x + fwd.z * v.z) / (Math.hypot(fwd.x, fwd.z) * Math.hypot(v.x, v.z) || 1)))) * 180 / Math.PI;
+  res.push({ ang: ang, giro: this.lateralGiroCorpo, giroAtual: this.lateralGiroCorpoActual, t: Match.tempoDeJogo / 60 });
+  return r;
+};
+for (let f = 0; f < 60 * 60 * 30 && Match.tempoDeJogo < 25 * 60; f++) Match.update(dt);
+console.log(JSON.stringify(res.map(r => ({ ang: +r.ang.toFixed(0), giro: r.giro == null ? null : +r.giro.toFixed(2), giroAtual: r.giroAtual == null ? null : +r.giroAtual.toFixed(2) }))));
+const ang = res.map(r => r.ang);
+console.log('laterais', ang.length, '| angulo entre a frente do corpo e a bola (graus): media', (ang.reduce((s, x) => s + x, 0) / Math.max(1, ang.length)).toFixed(0), 'max', Math.max(0, ...ang).toFixed(0), '| acima de 45 graus:', ang.filter(x => x > 45).length);

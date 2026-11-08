@@ -98,7 +98,7 @@ const Qualidade = {
         m.userData.esc = esc;
         m.position.y = 0.04 / esc;                // logo acima do relvado (o corpo assenta em ALTURA_BASE_Y = -0.01)
         m.renderOrder = 1; m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false; m.name = 'BlobSombra';
-        m.visible = !this.cfg().sombras && !window.semBlobsDebug;
+        m.visible = !this.cfg().sombras;
         corpo.add(m);
         this._blobs.push(m);
         return m;
@@ -157,13 +157,14 @@ const Qualidade = {
     /*
     A SOMBRA FALSA DA BOLA E DAS BALIZAS (pedido): sem o mapa de sombras a bola e as balizas ficavam sem sombra nenhuma. A da bola e uma mancha pequena que segue o ponto da bola no relvado, mais
     larga e mais fraca quanto mais alto ela vai; a das balizas e uma mancha larga e suave atras de cada linha de golo (a rede e a estrutura). Vivem na cena (nao filhas de um corpo) a `BLOB_Y` do relvado
-    e seguem a mesma regra de visibilidade das dos jogadores: so sem o mapa de sombras e sem o OFF do painel.
+    e seguem a mesma regra de visibilidade das dos jogadores: so sem o mapa de sombras (com o OFF do painel de debug elas aparecem).
     */
     _blobsExtra: null,
     _atualizarBlobsExtra: function (r) {
         const cena = window.Match && window.Match.scene;
         if (!cena || !window.Match.ball) return;
-        const visivel = !this.cfg().sombras && !window.semBlobsDebug;
+        // Segue o ESTADO REAL do mapa de sombras (o botao do debug mexe nele): sem mapa, ha mancha.
+        const visivel = window.rendererCore ? !window.rendererCore.shadowMap.enabled : !this.cfg().sombras;
         if (!this._blobsExtra || !this._blobsExtra.bola.parent) {
             const mk = () => new THREE.MeshBasicMaterial({ map: r.matDia.map, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, side: THREE.DoubleSide });
             const plano = (mat) => { const m = new THREE.Mesh(r.geo, mat); m.rotation.x = -Math.PI / 2; m.renderOrder = 1; m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false; return m; };
@@ -204,7 +205,7 @@ const Qualidade = {
         }
         // Sombra falsa: so quando nao ha mapa de sombras (e limpa os de corpos ja deitados fora).
         this._blobs = this._blobs.filter(function (m) { return m.parent; });
-        this._blobs.forEach(function (m) { m.visible = !c.sombras && !window.semBlobsDebug; });
+        this._blobs.forEach(function (m) { m.visible = !c.sombras; });
         if (window.relvaTufos) window.relvaTufos.visible = c.relvaTufos !== false;   // tufos de relva 3D (js/relva_tufos.js)
         const b = document.getElementById('btn-sombras');
         if (b) { b.innerText = 'Sombras: ' + (c.sombras ? 'ON' : 'OFF'); b.classList.toggle('active', c.sombras); }
