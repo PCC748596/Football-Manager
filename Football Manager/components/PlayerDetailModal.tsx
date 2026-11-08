@@ -12,7 +12,7 @@ import EnergyBar, { energiaDe } from './EnergyBar';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 import { estiloPorPosicao, estiloValidoDoJogador } from '../textSim/playStyleFallback';
-import { atributos3d, campo3d, paisDoJogador, atributosIndividuais, CHAVES_POR_POSICAO } from '../textSim/atributos3d';
+import { atributos3d, campo3d, paisDoJogador, atributosIndividuais, progressoDeXp, CHAVES_POR_POSICAO } from '../textSim/atributos3d';
 import { peBomDe } from '../textSim/peBom';
 import { estrelasDoJogador } from '../textSim/youth';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
@@ -263,15 +263,26 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
             {delta !== 0 && <span className={`text-xs font-black ${delta > 0 ? 'text-emerald-500' : 'text-red-500'}`}>{delta > 0 ? '+' : ''}{delta}</span>}
           </span>
         </div>
-        {lista.map(x => (
-          <div key={x.campo} className={`flex items-center justify-between text-sm px-1 -mx-1 ${doUtilizador ? 'cursor-pointer hover:bg-slate-800/60' : ''}`}
-            title={doUtilizador ? 'Individual training: click to select / unselect' : undefined}
+        {lista.map(x => {
+          // XP de treino ate ao proximo ponto do atributo: barra fina no fundo da linha (so o elenco do utilizador).
+          const prog = doUtilizador ? progressoDeXp(player, x.campo, x.valor) : null;
+          const pct = prog ? Math.min(100, Math.round(100 * prog.xp / prog.custo)) : 0;
+          return (
+          <div key={x.campo} className={`relative flex items-center justify-between text-sm px-1 -mx-1 ${doUtilizador ? 'cursor-pointer hover:bg-slate-800/60' : ''}`}
+            title={(doUtilizador ? 'Individual training: click to select / unselect' : '') + (prog ? `${doUtilizador ? '\n' : ''}Training XP: ${Math.round(prog.xp)} / ${Math.round(prog.custo)} to +1` : '')}
             onClick={doUtilizador ? () => alternarTreinoIndividual(player.id, x.campo) : undefined}
             style={((CHAVES_POR_POSICAO[player.position] as any)?.[g] || []).includes(x.campo) ? HACHURA : undefined}>
-            <span className="text-slate-300">{x.nome}</span>
-            <span className={`relative z-10 font-black flex items-center ${getColorClass(x.valor)}`}>{individual.campos.includes(x.campo) && cone(individual.auto)}{x.valor}</span>
+            <span className="relative z-20 text-white">{x.nome}</span>
+            <span className={`relative z-10 font-black flex items-center ${getColorClass(x.valor)}`}>{individual.campos.includes(x.campo) && cone(individual.auto)}{x.valor}{(() => {
+              // O ganho do atributo na temporada: o valor de agora menos o do inicio da temporada (snapshot `attr:<campo>`, GameContext).
+              const ini = player.treino3dSeasonStart?.['attr:' + x.campo];
+              const d = typeof ini === 'number' ? x.valor - ini : 0;
+              return d !== 0 ? <span className={`ml-1 text-[11px] font-black ${d > 0 ? 'text-emerald-500' : 'text-red-500'}`} title="Change this season">{d > 0 ? '+' : ''}{d}</span> : null;
+            })()}</span>
+            {prog && <div className="absolute inset-y-0 left-0 bg-cyan-500/35 pointer-events-none" style={{ width: `${pct}%` }} />}
           </div>
-        ))}
+          );
+        })}
       </React.Fragment>
     );
   };

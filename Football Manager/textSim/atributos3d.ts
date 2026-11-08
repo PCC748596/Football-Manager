@@ -10,7 +10,7 @@ TEC, TAC e MEN seguem a QUALIDADE do jogador; o FIS e parecido num craque e num 
 */
 import dados from './atributos3d.json';
 import type { Player } from '../types';
-import { niveisDeXp, xpDeNiveis, XP_POR_PONTO, regressaoPorIdade, tetoDoAtributo, tetoDoCt } from './trainingService';
+import { niveisDeXp, xpDeNiveis, custoDoNivel, NIVEIS_MAX_TREINO, XP_POR_PONTO,regressaoPorIdade, tetoDoAtributo, tetoDoCt } from './trainingService';
 import { REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 import { PLAYSTYLE_DA_BASE } from './playStylesDatabase';
 import { NIVEL_MINIMO } from './dataGenerator';
@@ -75,6 +75,22 @@ const cache = new Map<string, Atributos3D>();
 
 /** Os niveis inteiros que o XP de treino de um atributo ja comprou, a partir do valor base dele (a parte que ja conta). */
 const bonusTreino = (p: Player, campo: string, base: number): number => niveisDeXp(base, (p.treino3d && p.treino3d[campo]) || 0, tetoDoAtributo(p, base));
+/**
+ * PROGRESSO DO XP ATE AO PROXIMO PONTO de um atributo (para a barra do modal do jogador): `xp` e o que ja se juntou para o proximo nivel, `custo` o que ele custa (`custoDoNivel`).
+ * `valor` e o atributo ja com o treino; a base acha-se por tentativa (a que da os mesmos niveis ganhos). `null` sem XP positivo ou se o atributo esta no teto (nao sobe mais).
+ */
+export const progressoDeXp = (p: Player, campo: string, valor: number): { xp: number; custo: number } | null => {
+  const total = (p.treino3d && p.treino3d[campo]) || 0;
+  if (!(total > 0)) return null;
+  for (let n = 0; n <= NIVEIS_MAX_TREINO; n++) {
+    const base = valor - n;
+    const teto = tetoDoAtributo(p, base);
+    if (niveisDeXp(base, total, teto) !== n) continue;
+    if (valor >= teto || n >= NIVEIS_MAX_TREINO) return null;
+    return { xp: Math.max(0, total - xpDeNiveis(base, n)), custo: custoDoNivel(valor) };
+  }
+  return null;
+};
 /** Entra na chave do cache: o treino muda os atributos. */
 const assinaturaTreino = (p: Player): string => (p.treino3d ? Object.keys(p.treino3d).map(c => c + Math.round(p.treino3d![c] || 0)).join(',') : '');
 

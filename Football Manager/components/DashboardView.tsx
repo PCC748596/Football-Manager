@@ -9,7 +9,8 @@ import { PlayerFace } from './PlayerFace';
 import { ShirtIcon } from './ShirtIcon';
 import EnergyBar, { energiaDe } from './EnergyBar';
 import BoardConfidenceCard from './BoardConfidenceCard';
-import { ligaDoUtilizador, mapaDeClubes, tabelaDoGrupo, NOMES_FASES, rotuloDaFase, teamKey } from '../textSim/competitions';
+import { COUNTRIES } from '../textSim/dataGenerator';
+import { ligaDoClube, ligaDoUtilizador, mapaDeClubes, tabelaDoGrupo, NOMES_FASES, rotuloDaFase, teamKey } from '../textSim/competitions';
 import { settleMatch, ECONOMIA_ESTADIO, competicaoDoJogo, type CurrencyCode } from '../textSim/stadiumEconomy';
 
 interface Props {
@@ -477,6 +478,20 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
           opponentTeam = teams.find(t => t.name === activity.label);
       }
 
+      // A competicao do jogo: amistoso, copa (pelo id do fixture) ou a liga do mandante.
+      let compName = '';
+      if (match || opponentTeam) {
+          if (!match || match.isFriendly || match.type === 'FRIENDLY') compName = 'Friendly';
+          else if (match.type === 'CUP') compName = (comps || []).find(c => c.matches.some(m => 'fix-cup-' + m.id === match.id))?.name || 'Cup';
+          else {
+              try {
+                  const mandante = teams.find(t => t.id === match.homeTeamId);
+                  const l = mandante ? ligaDoClube(mandante) : null;
+                  compName = l ? ((COUNTRIES as any[]).find(c => c.id === l.countryId)?.leagues.find((x: any) => x.id === l.leagueId)?.name || '') : '';
+              } catch { compName = ''; }
+          }
+      }
+
       const monthIndex = d.getMonth();
       // Market open: Jan (0), Feb (1), Jul (6), Aug (7)
       const isTransferWindow = [0, 1, 6, 7].includes(monthIndex);
@@ -487,6 +502,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
         dayNum: d.getDate(),
         isMatch: !!match || !!opponentTeam,
         opponentTeam,
+        compName,
         activity: activity,
         isToday: dStr === gameState.currentDate,
         isPast: dStr < gameState.currentDate,
@@ -494,7 +510,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
       });
     }
     return { days, monthYearLabel };
-  }, [gameState.currentDate, fixtures, userTeam.id, gameState.activities, teams, gameState.language]);
+  }, [gameState.currentDate, fixtures, userTeam.id, gameState.activities, teams, gameState.language, comps]);
 
   return (
     <div className="h-full flex flex-col gap-[5px] animate-fade-in overflow-hidden relative">
@@ -564,7 +580,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
             <button 
               key={idx} 
               onClick={() => !day.isPast && setSelectedDate(day.date)}
-              className={`relative rounded-lg border overflow-hidden flex transition-all min-h-[85px] justify-center text-left group ${
+              className={`relative border overflow-hidden flex transition-all min-h-[80px] justify-center text-left group ${
                 day.isToday ? 'bg-blue-600 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.4)] z-10' : 
                 day.isPast ? 'bg-slate-100 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 opacity-40 cursor-default' : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm'
               }`}
@@ -583,11 +599,15 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
               {/* Right Column: 2/3 Width - Shield or Activity */}
               <div className="flex-1 flex flex-col items-center justify-center p-1 xl:p-2 overflow-hidden">
                 {day.isMatch && day.opponentTeam ? (
-                   <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
-                     <TeamShield team={day.opponentTeam} className="w-8 h-10 xl:w-10 xl:h-12 drop-shadow-md transform group-hover:scale-110 transition-transform" />
-                     <span className={`text-[10px] xl:text-[11px] font-black uppercase tracking-tight text-center leading-tight px-0.5 xl:px-1 truncate w-full ${day.isToday ? 'text-blue-100' : 'text-slate-600 dark:text-slate-300'}`}>
+                   // Texto a esquerda e o escudo grande a direita, cortado pela borda da celula (meio escudo).
+                   <div className="relative w-full h-full flex flex-col items-start justify-center gap-1">
+                     <div className="absolute top-1/2 -right-[38%] -translate-y-1/2 pointer-events-none">
+                       <TeamShield team={day.opponentTeam} className="w-24 h-28 xl:w-32 xl:h-40 drop-shadow-md transform group-hover:scale-110 transition-transform" />
+                     </div>
+                     <span className={`relative z-10 text-[10px] xl:text-[11px] font-black uppercase tracking-tight text-left leading-tight w-[62%] break-words ${day.isToday ? 'text-white' : 'text-slate-700 dark:text-white'}`}>
                         {day.opponentTeam.name}
                      </span>
+                     {day.compName && <span className={`relative z-10 text-[8px] xl:text-[9px] font-bold uppercase tracking-wide text-left leading-tight w-[62%] ${day.isToday ? 'text-blue-200' : 'text-slate-400 dark:text-slate-500'}`}>{day.compName}</span>}
                    </div>
                 ) : day.activity ? (
                    <div className="flex flex-col items-center justify-center">

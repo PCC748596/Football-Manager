@@ -954,9 +954,9 @@ function mostrarModalIntervalo(ligar, titulo) {
     // Pede ao manager a classificacao actualizada (chega em `classificacao` e e mostrada por mostrarClassificacaoIntervalo).
     if (typeof Ponte !== 'undefined' && Ponte.aoIntervaloIniciado) Ponte.aoIntervaloIniciado();
     if (typeof MatchStats === 'undefined' || !MatchStats.TeamA) return;
-    const dirLado = (t) => (typeof Lados !== 'undefined' && Lados.dirDe) ? Lados.dirDe(t) : (t === 'TeamA' ? 1 : -1);
-    const esq = dirLado('TeamA') < 0 ? 'TeamA' : 'TeamB';
-    const dir = esq === 'TeamA' ? 'TeamB' : 'TeamA';
+    // Casa (TeamA) sempre a esquerda, como no placar: a ordem nao acompanha o lado do campo, que troca no 2o tempo.
+    const esq = 'TeamA';
+    const dir = 'TeamB';
     const S = { esq: MatchStats[esq], dir: MatchStats[dir] };
     const info = (t) => (t === 'TeamA') ? Match.equipaInfoA : Match.equipaInfoB;
     const cor = (t) => {
