@@ -1573,11 +1573,21 @@ Object.assign(Match, {
         (main.js) poder acender e apagar sem reconstruir nada.
         */
         if (!OVAL && typeof Holofotes !== 'undefined' && Holofotes.activo && BA.coberturaAvanco > 0) {
-            const soFrenteH = !BA.cobertura;   // so a lateral das cameras (+X)
+            const soFrenteH = !BA.cobertura;   // sem cobertura: a posicao do conjunto vem do bordo da arquibancada, nao da cobertura
             const H = Holofotes;
             const tUlt = N_ANEIS - 1;
             const profBordo = tUlt * PASSO_PROF + rows * 1.2 - (soFrenteH ? Math.min(rows * 1.2 + 1.5, 26) : BA.coberturaAvanco);
             const yLuz = tUlt * PASSO_Y + rows * 0.5 + BA.alturaParede;
+            /*
+            SEM COBERTURA OS HOLOFOTES VAO EM TORRES, no fundo das arquibancadas (pedido: *"os holofotes estao no ar; coloca umas torres no fundo das arquibancadas que nao tem cobertura"*):
+            um mastro do chao ate a altura da luz, 3 m atras da ultima fila, com as lampadas e a travessa no topo. Com cobertura continuam presos ao bordo dela.
+            */
+            const profPos = soFrenteH ? (tUlt * PASSO_PROF + rows * 1.2 + 3.0) : profBordo;
+            const addMastro = (x, z) => {
+                const gm = new THREE.BoxGeometry(0.9, yLuz, 0.9).toNonIndexed();
+                gm.translate(x, yLuz / 2 - 0.2, z);
+                geosTravessa.push(gm);
+            };
 
             const matEstrut = new THREE.MeshStandardMaterial({
                 color: H.corEstrutura, roughness: 0.8, metalness: 0.3
@@ -1597,8 +1607,9 @@ Object.assign(Match, {
             const luzes = [];
             const larguraConj = H.lampadasPorFileira * H.espacoEntreLampadas;
 
-            for (const sinal of (soFrenteH ? [1] : [-1, 1])) {
-                const xConj = sinal * (BANCADA_X + profBordo);
+            // As DUAS laterais levam holofotes, tambem nos estadios sem cobertura (pedido: a iluminacao so de um lado era fraca): sem cobertura o conjunto vai ao bordo da arquibancada, dos dois lados.
+            for (const sinal of [-1, 1]) {
+                const xConj = sinal * (BANCADA_X + profPos);
                 for (let f = 0; f < H.fileiras; f++) {
                     // Espalhados ao longo do comprimento, simetricos sobre z=0.
                     const frac = (H.fileiras === 1) ? 0.5 : (f + 0.5) / H.fileiras;
@@ -1609,6 +1620,7 @@ Object.assign(Match, {
                         H.travessaEspessura, H.travessaEspessura, larguraConj).toNonIndexed();
                     gt.translate(xConj, yLuz - H.lampadaAlt / 2 - H.travessaEspessura / 2, zConj);
                     geosTravessa.push(gt);
+                    if (soFrenteH) addMastro(xConj, zConj);
 
                     for (let i = 0; i < H.lampadasPorFileira; i++) {
                         const dz = (i - (H.lampadasPorFileira - 1) / 2) * H.espacoEntreLampadas;
@@ -1641,8 +1653,9 @@ Object.assign(Match, {
             HOLOFOTES DE FUNDO — direcionados exclusivamente para as balizas e grande área.
             3 conjuntos de holofotes no topo da cobertura das bancadas Norte e Sul (-18m, 0m, +18m).
             */
-            for (const sinalZ of (soFrenteH ? [] : [-1, 1])) {
-                const zConj = sinalZ * (BANCADA_Z + profBordo);
+            // E os de fundo (-18, 0 e 18 m) nos dois fundos, para a iluminacao ficar igual a do estadio com cobertura: 8 conjuntos nas laterais + 6 nos fundos.
+            for (const sinalZ of [-1, 1]) {
+                const zConj = sinalZ * (BANCADA_Z + profPos);
                 const targetZ = sinalZ * LINHA_FUNDO;
 
                 for (const xOffset of [-18, 0, 18]) {
@@ -1650,6 +1663,7 @@ Object.assign(Match, {
                         larguraConj, H.travessaEspessura, H.travessaEspessura).toNonIndexed();
                     gt.translate(xOffset, yLuz - H.lampadaAlt / 2 - H.travessaEspessura / 2, zConj);
                     geosTravessa.push(gt);
+                    if (soFrenteH) addMastro(xOffset, zConj);
 
                     for (let i = 0; i < H.lampadasPorFileira; i++) {
                         const dx = (i - (H.lampadasPorFileira - 1) / 2) * H.espacoEntreLampadas;

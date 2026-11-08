@@ -595,6 +595,29 @@ const EstadioOval = {
                 }
             }
             /*
+            HOLOFOTES NAS CURVAS (pedido: *"coloca uns holofotes nas curvas da arquibancada tambem"*): um conjunto de lampadas e uma SpotLight em cada um dos quatro cantos
+            (as diagonais, t = 45, 135, 225, 315 graus). Os conjuntos regulares ficam espalhados pelo parametro da elipse e podem passar ao lado do canto sem o ocupar: salta-se
+            o canto que ja tem um conjunto a menos de 5 m.
+            */
+            const cantosLuz = [];
+            for (let k = 0; k < 4; k++) {
+                const tC = Math.PI / 4 + k * Math.PI / 2;
+                const q = this.ponto(a0, b0, dIn + 0.8, tC);
+                const y = yIn + espessura + 1.4;
+                cantosLuz.push({ x: q.x, z: q.z });
+                if (pos.some(pp => Math.hypot(pp[0] - q.x, pp[2] - q.z) < 5.0)) continue;
+                const tang = [-q.nz, q.nx];
+                const larg = H.lampadasPorFileira * H.espacoEntreLampadas;
+                const g = new THREE.BoxGeometry(H.travessaEspessura, H.travessaEspessura, larg).toNonIndexed();
+                g.rotateY(-Math.atan2(tang[1], tang[0]) + Math.PI / 2);
+                g.translate(q.x, y - H.lampadaAlt / 2 - H.travessaEspessura / 2, q.z);
+                travGeos.push(g);
+                for (let i = 0; i < H.lampadasPorFileira; i++) {
+                    const o = (i - (H.lampadasPorFileira - 1) / 2) * H.espacoEntreLampadas;
+                    pos.push([q.x + tang[0] * o, y, q.z + tang[1] * o]);
+                }
+            }
+            /*
             A ILUMINAÇÃO DO CAMPO é a do estádio padrão, igual: as mesmas 14 SpotLights, nas
             mesmas posições em relação ao relvado e com os mesmos alvos, ângulo, penumbra,
             alcance e intensidade (config Holofotes). As lâmpadas desenhadas na ponta da
@@ -619,6 +642,11 @@ const EstadioOval = {
             }
             for (const sinalZ of [-1, 1]) for (const xo of [-18, 0, 18]) {
                 novaLuz(xo, sinalZ * zFundo, [xo * 0.3, 1.2, sinalZ * fundoJogo], 0.85);
+            }
+            // As quatro curvas: a SpotLight sobre o conjunto do canto, apontada para o quarto de campo oposto (cruza o relvado na diagonal).
+            for (const cL of cantosLuz) {
+                novaLuz(cL.x, cL.z, [-Math.sign(cL.x) * 12, 0, -Math.sign(cL.z) * 16], H.anguloLuz);
+                luzes[luzes.length - 1].userData.fator = 0.8;
             }
             const matEstrut = new THREE.MeshStandardMaterial({ color: H.corEstrutura, roughness: 0.8, metalness: 0.3 });
             const matLampada = new THREE.MeshStandardMaterial({

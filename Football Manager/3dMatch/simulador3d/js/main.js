@@ -1466,6 +1466,7 @@ function animate(time) {
     // A captura dos ultimos 30 s (F9 salva): corre sempre que o jogo corre, nao durante uma repeticao.
     if (window.CapturaDeJogo && !window.isPaused && !(window.MatchReplay && window.MatchReplay.isReplaying)) window.CapturaDeJogo.registar(1 / 60);
     if (window.PlacasLed && window.PlacasLed.tick) window.PlacasLed.tick();
+    if (window.Qualidade && Qualidade.atualizarBlobs) Qualidade.atualizarBlobs();   // sombras falsas acompanham o sol / os holofotes
     const _tR0 = performance.now();
     window._pfPrep = _tR0 - (window._pfFimLogica || _tR0);   // camera, torcida, repeticao, captura: tudo entre a logica e o render
     rendererCore.render(scene, cameraCore);

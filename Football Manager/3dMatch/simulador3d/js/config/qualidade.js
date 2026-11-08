@@ -69,25 +69,80 @@ const Qualidade = {
         if (typeof THREE === 'undefined' || !corpo) return null;
         let r = this._blobRecursos;
         if (!r) {
+            const mk = (tex) => new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+            // DIA: uma mancha com borda suave (o `atualizarBlobs` estica-a e roda-a para o lado oposto ao sol).
             const cv = document.createElement('canvas'); cv.width = cv.height = 64;
             const c = cv.getContext('2d'), g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
             g.addColorStop(0, 'rgba(0,0,0,0.55)'); g.addColorStop(0.55, 'rgba(0,0,0,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)');
             c.fillStyle = g; c.fillRect(0, 0, 64, 64);
-            r = this._blobRecursos = {
-                geo: new THREE.PlaneGeometry(1, 1),
-                mat: new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })
-            };
+            // NOITE (estadio iluminado): quatro sombras suaves a sair do pe para as DIAGONAIS (as torres de luz estao nos cantos), mais um nucleo pequeno.
+            const cn = document.createElement('canvas'); cn.width = cn.height = 128;
+            const d = cn.getContext('2d');
+            for (let k = 0; k < 4; k++) {
+                d.save(); d.translate(64, 64); d.rotate(Math.PI / 4 + k * Math.PI / 2); d.translate(26, 0); d.scale(1, 0.26);
+                const gg = d.createRadialGradient(0, 0, 0, 0, 0, 38);
+                gg.addColorStop(0, 'rgba(0,0,0,0.42)'); gg.addColorStop(1, 'rgba(0,0,0,0)');
+                d.fillStyle = gg; d.beginPath(); d.arc(0, 0, 38, 0, Math.PI * 2); d.fill(); d.restore();
+            }
+            const gc = d.createRadialGradient(64, 64, 0, 64, 64, 15);
+            gc.addColorStop(0, 'rgba(0,0,0,0.5)'); gc.addColorStop(1, 'rgba(0,0,0,0)');
+            d.fillStyle = gc; d.fillRect(0, 0, 128, 128);
+            r = this._blobRecursos = { geo: new THREE.PlaneGeometry(1, 1), matDia: mk(new THREE.CanvasTexture(cv)), matNoite: mk(new THREE.CanvasTexture(cn)) };
         }
-        const m = new THREE.Mesh(r.geo, r.mat);
+        const m = new THREE.Mesh(r.geo, r.matDia);
         const esc = (corpo.scale && corpo.scale.x) || 1;
         m.rotation.x = -Math.PI / 2;
-        m.scale.set(0.95 / esc, 0.95 / esc, 1);   // ~0.95 m de diametro
+        m.scale.set(0.95 / esc, 0.95 / esc, 1);   // ~0.95 m de diametro (o `atualizarBlobs` ajusta-o a luz)
+        m.userData.esc = esc;
         m.position.y = 0.04 / esc;                // logo acima do relvado (o corpo assenta em ALTURA_BASE_Y = -0.01)
         m.renderOrder = 1; m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false; m.name = 'BlobSombra';
         m.visible = !this.cfg().sombras;
         corpo.add(m);
         this._blobs.push(m);
         return m;
+    },
+
+    /*
+    A SOMBRA ACOMPANHA A LUZ (corre uma vez por frame, do main.js, so com as sombras reais desligadas):
+      . DE DIA a mancha estica-se para o lado OPOSTO ao sol, no angulo dele: o comprimento cresce com o quanto o sol esta baixo (distancia horizontal / altura da `dirLightCore`).
+      . COM O ESTADIO ILUMINADO (`window.jogoNoturno`, holofotes) a textura passa a ser a das quatro sombras nas diagonais, fixas no mundo (as torres estao nos cantos).
+    A mancha e filha do corpo, que roda: o angulo do mundo converte-se para o referencial do corpo (menos o `rotation.y` dele).
+    */
+    atualizarBlobs: function () {
+        const bl = this._blobs, r = this._blobRecursos;
+        if (!bl.length || !r) return;
+        const noite = !!window.jogoNoturno;
+        const luz = window.dirLightCore;
+        // Direccao da sombra no mundo (oposta ao sol) e o seu comprimento relativo.
+        let dx = -0.62, dz = -0.49, esticar = 0.64;
+        if (luz && luz.position && luz.position.y > 1) {
+            const h = Math.hypot(luz.position.x, luz.position.z);
+            if (h > 1e-3) { dx = -luz.position.x / h; dz = -luz.position.z / h; }
+            esticar = h / luz.position.y;
+        }
+        const largura = 0.8, comp = largura * (1 + 1.6 * esticar);   // ~2 m com o sol a 100 m de altura e 64 m de lado
+        const cd = Math.cos(Math.PI / 4), sd = Math.sin(Math.PI / 4);
+        for (let i = bl.length - 1; i >= 0; i--) {
+            const m = bl[i], corpo = m.parent;
+            if (!corpo) { bl.splice(i, 1); continue; }
+            if (!m.visible) continue;
+            const esc = m.userData.esc || 1, psi = corpo.rotation.y, c = Math.cos(psi), s = Math.sin(psi);
+            m.material = noite ? r.matNoite : r.matDia;
+            // Para o referencial do corpo: l = Ry(-psi) * mundo.
+            const lx = dx * c - dz * s, lz = dx * s + dz * c;
+            if (noite) {
+                // As diagonais ja estao no desenho: roda-se so contra a rotacao do corpo, e a mancha e quadrada (~2.2 m).
+                m.rotation.z = -psi;   // o angulo no mundo e (rotation.z + psi): com -psi o desenho fica fixo no mundo
+                m.scale.set(2.2 / esc, 2.2 / esc, 1);
+                m.position.x = 0; m.position.z = 0;
+            } else {
+                m.rotation.z = Math.atan2(-lz, lx);
+                m.scale.set(comp / esc, largura / esc, 1);
+                // O centro avanca ao longo da sombra: ela nasce nos pes e estende-se para longe.
+                const av = (comp / 2 - 0.35) / esc;
+                m.position.x = lx * av; m.position.z = lz * av;
+            }
+        }
     },
 
     // Depois de o renderer e a luz existirem (e a meio do jogo): sombras, mapa e pixel ratio.

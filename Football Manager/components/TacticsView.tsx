@@ -218,12 +218,15 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     const inj: any = st.injury;
     const tipoLesao = inj && typeof inj === 'object' ? String(inj.type || 'Injury') : 'Injury';
     const diasLesao = inj && typeof inj === 'object' ? inj.daysOut : null;
+    // Compacto, ao lado do nome: CARD (amarelo ou vermelho) e INJ (verde). O detalhe (cartao, competicao, jogos, lesao e dias) fica no title (passar o mouse).
+    const comp = nomeDaCompeticao(chaveJogo);
     return (
-      <div className="flex flex-col items-start gap-[2px] mt-[3px] w-full">
-        {(st.yellow || acum > 0) && !st.red && !susp && <span className="flex items-center gap-1 text-[10px] font-black text-yellow-400 uppercase leading-tight"><span className="inline-block w-[6px] h-[9px] bg-yellow-400 border border-yellow-600 rounded-[1px]" />Yellow{acum > 0 ? ` ${acum}/${AMARELOS_PARA_SUSPENSAO}` : ''}</span>}
-        {(st.red || susp) && <span className="flex items-center gap-1 text-[10px] font-black text-red-500 uppercase leading-tight"><span className="inline-block w-[6px] h-[9px] bg-red-600 border border-red-800 rounded-[1px]" />{motivoSusp} [{jogosSusp}] {nomeDaCompeticao(chaveJogo)}</span>}
-        {st.injury && <span className="flex items-center gap-1 text-[10px] font-black uppercase leading-tight text-emerald-500"><span className="text-[11px]">✚</span>{tipoLesao}{diasLesao !== null ? ` [${diasLesao}]` : ''}</span>}
-      </div>
+      <span className="inline-flex items-center gap-1 shrink-0 leading-none">
+        <span className="text-slate-500 text-[9px] font-black">|</span>
+        {(st.yellow || acum > 0) && !st.red && !susp && <span className="text-[10px] font-black text-yellow-400 cursor-help" title={`Yellow card${acum > 0 ? ` ${acum}/${AMARELOS_PARA_SUSPENSAO}` : ''}${comp ? ' - ' + comp : ''}`}>CARD</span>}
+        {(st.red || susp) && <span className="text-[10px] font-black text-red-500 cursor-help" title={`${motivoSusp} [${jogosSusp}]${comp ? ' - ' + comp : ''}`}>CARD</span>}
+        {st.injury && <span className="text-[10px] font-black text-emerald-500 cursor-help" title={`${tipoLesao}${diasLesao !== null ? ` [${diasLesao}]` : ''}`}>INJ</span>}
+      </span>
     );
   };
 
@@ -804,21 +807,20 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                    <div className={`flex justify-between w-full items-start mb-0 ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
+                                    <div className={`flex justify-between w-full items-start mb-0`}>
                                         <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400 text-[14px]">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span>{mediaNotas(p) && <> <span className="text-slate-500">|</span> <span className="text-amber-400">{mediaNotas(p)}</span></>}</span>
                                         <span className="flex items-center gap-1">{iconeDoEstilo(p)}<MoraleArrow morale={p.morale} /></span>
                                     </div>
-                                        <div className={`${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
+                                        <div>
                                             <EnergyBar energy={energiaDe(p)} className="h-1.5" />
                                         </div>
-                                        <div className={`flex flex-col items-start justify-start leading-[1.1] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
+                                        <div className={`flex flex-col items-start justify-start leading-[1.1] min-w-0`}>
                                             {doisNomes(p.name).map((part, index) => (
-                                                <span key={index} className="text-[9px] font-black text-slate-400 uppercase truncate max-w-full">
-                                                    {part}
+                                                <span key={index} className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase max-w-full">
+                                                    <span className="truncate">{part}</span>{index === 0 && <AvisosDoCard playerId={p.id} />}
                                                 </span>
                                             ))}
                                         </div>
-<AvisosDoCard playerId={p.id} />
                                     </div>
                                 </div>
                             );
@@ -900,21 +902,20 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                             )}
                                         </div>
                                         <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                        <div className={`flex justify-between w-full items-start mb-0 ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
+                                        <div className={`flex justify-between w-full items-start mb-0`}>
                                             <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400 text-[14px]">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span>{mediaNotas(p) && <> <span className="text-slate-500">|</span> <span className="text-amber-400">{mediaNotas(p)}</span></>}</span>
                                             <span className="flex items-center gap-1"><MoraleArrow morale={p.morale} /></span>
                                         </div>
-                                            <div className={`-mt-1 mb-1 ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}><EnergyBar energy={energiaDe(p)} className="h-1.5" /></div>
-                                            <div className={`flex flex-col items-start justify-start leading-[1.1] min-h-[20px] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
+                                            <div className={`-mt-1 mb-1`}><EnergyBar energy={energiaDe(p)} className="h-1.5" /></div>
+                                            <div className={`flex flex-col items-start justify-start leading-[1.1] min-h-[20px] min-w-0`}>
                                                 {doisNomes(p.name).map((part, index) => (
-                                                    <span key={index} className="text-[9px] font-black text-slate-400 uppercase truncate max-w-full">
-                                                        {part}
+                                                    <span key={index} className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase max-w-full">
+                                                        <span className="truncate">{part}</span>{index === 0 && <AvisosDoCard playerId={p.id} />}
                                                     </span>
                                                 ))}
                                             </div>
-                                            <AvisosDoCard playerId={p.id} />
                                         </div>
-                                        <span className={`absolute bottom-1 right-1 flex items-center ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>{iconeDoEstilo(p)}</span>
+                                        <span className={`absolute bottom-1 right-1 flex items-center`}>{iconeDoEstilo(p)}</span>
                                     </div>
                                 );
                             })}

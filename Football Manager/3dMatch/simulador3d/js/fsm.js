@@ -1176,6 +1176,7 @@ class PlayerFSM {
         const v = _v4;
         raiz.traverse(o => {
             if (!o.isMesh || !o.geometry || !o.geometry.attributes.position) return;
+            if (o.name === 'BlobSombra') return;   // sombra falsa: nao e corpo
             if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
             const b = o.geometry.boundingBox;
             for (let c = 0; c < 8; c++) {

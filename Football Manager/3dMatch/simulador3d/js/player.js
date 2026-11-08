@@ -1494,6 +1494,7 @@ class FootballPlayer {
         };
         m.traverse(o => {
             if (!o.isMesh || !o.visible || !o.geometry || !o.geometry.attributes.position) return;
+            if (o.name === 'BlobSombra') return;   // a sombra falsa (Qualidade.criarBlob) esta no chao: nao conta como o ponto mais baixo do corpo (senao o caido ficava a flutuar)
             if (fora(o)) return;
             const g = o.geometry;
             if (!g.boundingBox) g.computeBoundingBox();
