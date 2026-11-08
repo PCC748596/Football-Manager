@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { regressaoPorIdade, chanceLesao, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, recoveryMultiplier, custoDoNivel, niveisDeXp, xpDeNiveis, tetoDoAtributo, folgaDeTreino, definirNivelDoCt, tetoDoCt, FOCO_CPU_POR_POSICAO, cpuAplicarTreino, atividadesDaPosicao, SLOTS_CPU_POR_DIA, cpuPlanoDoJogador, SLOTS_CPU_LEVE, ENERGY_COST_BASE, atividadesLevesDaPosicao } from '../textSim/trainingService';
-import { atributos3d, regredirPorIdade } from '../textSim/atributos3d';
+import { regressaoPorIdade, chanceLesao, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, recoveryMultiplier, custoDoNivel, niveisDeXp, xpDeNiveis, tetoDoAtributo, folgaDeTreino, definirNivelDoCt, tetoDoCt, FOCO_CPU_POR_POSICAO, cpuAplicarTreino, atividadesDaPosicao, SLOTS_CPU_POR_DIA, cpuPlanoDoJogador, SLOTS_CPU_LEVE, ENERGY_COST_BASE, atividadesLevesDaPosicao, ACTIVITIES } from '../textSim/trainingService';
+import { atributos3d, regredirPorIdade, alternarIndividual, atributosIndividuais, areaDoCampo, INDIVIDUAL_MAX, CHAVES_POR_POSICAO } from '../textSim/atributos3d';
 
 test('exaustao: faixas com >= (sem buracos)', () => {
   assert.equal(exaustaoMultiplier(75), 1.0);
@@ -144,4 +144,40 @@ test('grupos automaticos pela ENR: G1 >= limiar, o ultimo grupo fica com o resto
   assert.equal(grupoPorEnergia(60, [80, 50], 3), 1);
   assert.equal(grupoPorEnergia(49, [80, 50], 3), 2);
   assert.equal(grupoPorEnergia(10, [80], 1), 0);   // um so grupo
+});
+
+test('treino individual: atividade da aba Tactics, -3 ENR, selecao por area (3 ou 2 no mental)', () => {
+  const ind = ACTIVITIES.find(a => a.id === 'individual')!;
+  assert.equal(ind.category, 'TACTICS');
+  assert.equal(ENERGY_COST_BASE.individual, 3);
+  assert.equal(ind.impacts.find(i => i.label === 'ENR')!.value, -3);
+  assert.equal(ind.impacts.find(i => i.label === 'IND')!.value, 1);
+  assert.equal(INDIVIDUAL_MAX.TEC, 3); assert.equal(INDIVIDUAL_MAX.TAC, 3); assert.equal(INDIVIDUAL_MAX.FIS, 3); assert.equal(INDIVIDUAL_MAX.MEN, 2);
+  assert.equal(areaDoCampo('finishing'), 'TEC'); assert.equal(areaDoCampo('vision'), 'TAC'); assert.equal(areaDoCampo('composure'), 'MEN'); assert.equal(areaDoCampo('speed'), 'FIS');
+  let sel: string[] = [];
+  for (const c of ['finishing', 'passing', 'dribbling']) sel = alternarIndividual(sel, c);
+  assert.deepEqual(sel, ['finishing', 'passing', 'dribbling']);
+  sel = alternarIndividual(sel, 'crossing');
+  assert.deepEqual(sel, ['passing', 'dribbling', 'crossing'], 'passou de 3: sai o mais antigo');
+  assert.deepEqual(alternarIndividual(sel, 'passing'), ['dribbling', 'crossing'], 'clicar de novo desmarca');
+  assert.deepEqual(alternarIndividual(sel, 'composure'), ['composure'], 'outra area limpa a lista');
+  assert.deepEqual(alternarIndividual(alternarIndividual(['composure'], 'reactions'), 'aggression'), ['reactions', 'aggression'], 'mental: no maximo 2');
+});
+
+test('treino individual: sem marcados escolhe os atributos mais importantes da posicao (area onde estao mais fracos); com marcados usa os marcados', () => {
+  const p: any = { id: 'p-ind', position: 'CM', age: 24, skill: 70, def: 60, pas: 60, drb: 60, sht: 60, treino3d: {} };
+  const a = atributos3d(p);
+  const auto = atributosIndividuais(p);
+  assert.equal(auto.auto, true);
+  const area = areaDoCampo(auto.campos[0])!;
+  assert.ok(auto.campos.every(c => areaDoCampo(c) === area), 'todos da mesma area');
+  assert.equal(auto.campos.length, INDIVIDUAL_MAX[area]);
+  const chavesDaArea = CHAVES_POR_POSICAO.CM[area]!;
+  assert.deepEqual(auto.campos, chavesDaArea.slice(0, INDIVIDUAL_MAX[area]), 'sao os atributos-chave do CM nessa area');
+  const valores = Object.fromEntries([...a.detalhe!.TEC, ...a.detalhe!.TAC, ...a.detalhe!.MEN, ...a.detalhe!.FIS].map(x => [x.campo, x.valor]));
+  const mediaChaves = (g: 'TEC' | 'TAC' | 'MEN' | 'FIS') => { const l = (CHAVES_POR_POSICAO.CM[g] || []).slice(0, INDIVIDUAL_MAX[g]); return l.reduce((s, c) => s + valores[c], 0) / l.length; };
+  const medias = (['TEC', 'TAC', 'MEN', 'FIS'] as const).map(g => mediaChaves(g));
+  assert.equal(mediaChaves(area), Math.min(...medias), 'a area escolhida e a de menor media dos atributos-chave');
+  const marcado = atributosIndividuais({ ...p, treinoIndividual: ['finishing', 'passing'] });
+  assert.deepEqual(marcado, { campos: ['finishing', 'passing'], auto: false });
 });

@@ -93,6 +93,12 @@ if (process.env.E90_WORKER !== undefined) {
                 (porGrupo[g] = porGrupo[g] || []).push(q);
             });
         });
+        const gk = resultados.flatMap(r => r.linhas.filter(l => l.role === 'gk'));
+        console.log('GK (amostra): ' + gk.slice(0, 6).map(l => 'e0=' + l.e0 + ' e44=' + (l.e44 == null ? l.e44 : l.e44.toFixed(2)) + ' e1=' + (typeof l.e1 === 'number' ? l.e1.toFixed(2) : l.e1) + ' ficou=' + l.ficou).join(' | '));
+        const campo = resultados.flatMap(r => r.linhas.filter(l => l.role !== 'gk' && l.ficou && typeof l.e44 === 'number' && typeof l.e46 === 'number'));
+        console.log('Intervalo (jogadores de linha): energia media aos 44 min ' + (media(campo.map(l => l.e44)) * 100).toFixed(1) + ' -> aos 47 min ' + (media(campo.map(l => l.e46)) * 100).toFixed(1));
+        const fx = (a, b) => resultados.flatMap(r => r.linhas.filter(l => l.role !== 'gk' && l.ficou && l.stam >= a && l.stam < b)).map(l => (l.e0 - l.e1) * 100);
+        [[0, 60], [60, 70], [70, 75], [75, 80], [80, 85], [85, 90], [90, 101]].forEach(([a, b]) => { const q = fx(a, b); if (q.length) console.log('  stamina ' + a + '-' + (b - 1) + ': n=' + q.length + ' queda media ' + media(q).toFixed(1)); });
         console.log('\nJogadores que comecaram: ' + total + ' | que ficaram em campo o jogo todo: ' + inteiro + ' | ' + ((Date.now() - t0) / 60000).toFixed(1) + ' min de relogio');
         console.log('QUEDA MEDIA DE ENERGIA (pontos de 0 a 100): ' + media(quedas).toFixed(1) + ' | min ' + Math.min(...quedas).toFixed(1) + ' | max ' + Math.max(...quedas).toFixed(1));
         Object.keys(porGrupo).forEach(g => console.log('  ' + g.padEnd(5) + ' n=' + String(porGrupo[g].length).padStart(3) + ' queda media ' + media(porGrupo[g]).toFixed(1)));

@@ -158,7 +158,8 @@ export const ENERGY_COST_BASE: Record<string, number> = {
   tackling: 3, sliding: 4, marking: 3, def_pos: 2, positioning: 2, vision: 3, pressing: 4, playmaking: 3, transition: 3,
   cardio: 4, sprints: 4, acceleration: 4, agility: 3, jumping: 3, strength: 4, balance: 3,
   recovery: -8,
-  aggression: 2, reactions: 2, composure: 2, consistency: 2, video: 2, teambuilding: 2, shadow: 2, focus: 2
+  aggression: 2, reactions: 2, composure: 2, consistency: 2, video: 2, teambuilding: 2, shadow: 2, focus: 2,
+  individual: 3
 };
 
 /** Energia devolvida por um periodo vazio ou uma sessao 'recovery' (por periodo, 4 periodos/dia). */
@@ -218,6 +219,8 @@ export const ACTIVITIES: TrainingActivity[] = [
   { id: 'vision', name: 'Vision', category: 'TACTICS', icon: '👁️', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'vision' }, { label: 'ENR', value: -ENERGY_COST_BASE.vision }] },
   { id: 'pressing', name: 'Pressing', category: 'TACTICS', icon: '😤', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'tacticalAwa' }, { label: 'ENR', value: -ENERGY_COST_BASE.pressing }] },
   { id: 'playmaking', name: 'Playmaking', category: 'TACTICS', icon: '🧠', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'tacticalAwa' }, { label: 'ENR', value: -ENERGY_COST_BASE.playmaking }] },
+  // TREINO INDIVIDUAL: cada jogador treina os atributos que escolheu no overview dele (ver `atributosIndividuais`, atributos3d.ts): +1 em cada um, -3 ENR. Nao tem `campo`: o ganho e por jogador (GameContext.advanceDay).
+  { id: 'individual', name: 'Individual', category: 'TACTICS', icon: '🎯', impacts: [{ label: 'IND', value: 1.0, skill: 'Selected' }, { label: 'ENR', value: -ENERGY_COST_BASE.individual }] },
   { id: 'transition', name: 'Transitions', category: 'TACTICS', icon: '🔀', impacts: [{ label: 'DEF', value: 1.0 }, { label: 'SKL', value: 1.0, campo: 'tacticalAwa' }, { label: 'ENR', value: -ENERGY_COST_BASE.transition }] },
   { id: 'cardio', name: 'Cardio', category: 'PHYSICAL', icon: '🫁', impacts: [{ label: 'SKL', value: 2.0, campo: 'stamina' }, { label: 'ENR', value: -ENERGY_COST_BASE.cardio }] },
   { id: 'sprints', name: 'Sprints', category: 'PHYSICAL', icon: '⚡', impacts: [{ label: 'SKL', value: 1.0, campo: 'speed' }, { label: 'ENR', value: -ENERGY_COST_BASE.sprints }] },

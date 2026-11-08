@@ -378,7 +378,9 @@ class FootballPlayer {
             ? MatchDuration.timeScale : 1;
         const dtJogo = dt * escala;
 
-        const v = this.velocity ? Math.hypot(this.velocity.x, this.velocity.z) : 0;
+        // A velocidade que conta e limitada (S.vMax): um teletransporte (troca de lados, bola parada) nao e corrida e zerava o deposito num frame (goleiro).
+        const vBruta = this.velocity ? Math.hypot(this.velocity.x, this.velocity.z) : 0;
+        const v = Math.min(vBruta, S.vMax || 15.0);
 
         if (v > S.limiarDescanso) {
             // stamina alta gasta menos. 50 e a media e nao mexe.

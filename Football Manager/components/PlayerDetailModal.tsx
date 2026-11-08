@@ -12,7 +12,7 @@ import EnergyBar, { energiaDe } from './EnergyBar';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 import { estiloPorPosicao, estiloValidoDoJogador } from '../textSim/playStyleFallback';
-import { atributos3d, campo3d, paisDoJogador } from '../textSim/atributos3d';
+import { atributos3d, campo3d, paisDoJogador, atributosIndividuais, CHAVES_POR_POSICAO } from '../textSim/atributos3d';
 import { peBomDe } from '../textSim/peBom';
 import { estrelasDoJogador } from '../textSim/youth';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
@@ -114,7 +114,7 @@ const RadarChart = ({ stats }: { stats: Record<string, number> }) => {
 
 const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) => {
   const [activePlayerId, setActivePlayerId] = React.useState(initialPlayer.id);
-  const { teams, players, formatCurrency, userTeam, gameState, negociacoes, listarParaEmprestimo, dispensarJogador } = useGame();
+  const { teams, players, formatCurrency, userTeam, gameState, negociacoes, listarParaEmprestimo, dispensarJogador, alternarTreinoIndividual } = useGame();
   const [aviso, setAviso] = React.useState<string | null>(null);
   const [renovando, setRenovando] = React.useState(false);     // modal da renovacao (ContractPanel.RenovarModal)
   const [dispensando, setDispensando] = React.useState(false); // modal de confirmacao da dispensa
@@ -232,22 +232,18 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
   const corDaBarra = (v: number) => (v >= 80 ? '#10b981' : v >= 70 ? '#60a5fa' : v >= 60 ? '#eab308' : '#f43f5e');
 
   // Os atributos mais importantes da posicao (3 em Technical/Tactical/Physical/Goalkeeping, 2 em Mental), marcados com hachura. Goalkeeping so o goleiro.
-  const CHAVES_POR_POSICAO: Record<string, Partial<Record<'TEC' | 'TAC' | 'MEN' | 'FIS' | 'GK', string[]>>> = {
-    GK: { TEC: ['passing', 'longPassing', 'ballControl'], TAC: ['posDefense', 'tacticalAwa', 'vision'], MEN: ['reactions', 'composure'], FIS: ['jumping', 'agility', 'balance'], GK: ['reflexes', 'diving', 'handling'] },
-    CB: { TEC: ['headAccurancy', 'passing', 'ballControl'], TAC: ['tackleStanding', 'manMarking', 'posDefense'], MEN: ['aggression', 'composure'], FIS: ['strength', 'jumping', 'speed'] },
-    LB: { TEC: ['crossing', 'passing', 'dribbling'], TAC: ['tackleStanding', 'posDefense', 'manMarking'], MEN: ['consistency', 'reactions'], FIS: ['speed', 'stamina', 'acceleration'] },
-    RB: { TEC: ['crossing', 'passing', 'dribbling'], TAC: ['tackleStanding', 'posDefense', 'manMarking'], MEN: ['consistency', 'reactions'], FIS: ['speed', 'stamina', 'acceleration'] },
-    DM: { TEC: ['passing', 'ballControl', 'longPassing'], TAC: ['tackleStanding', 'posDefense', 'tacticalAwa'], MEN: ['aggression', 'composure'], FIS: ['stamina', 'strength', 'balance'] },
-    CM: { TEC: ['passing', 'ballControl', 'longPassing'], TAC: ['vision', 'tacticalAwa', 'posDefense'], MEN: ['consistency', 'composure'], FIS: ['stamina', 'balance', 'agility'] },
-    LM: { TEC: ['crossing', 'dribbling', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['consistency', 'composure'], FIS: ['speed', 'stamina', 'acceleration'] },
-    RM: { TEC: ['crossing', 'dribbling', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['consistency', 'composure'], FIS: ['speed', 'stamina', 'acceleration'] },
-    AM: { TEC: ['passing', 'dribbling', 'ballControl'], TAC: ['vision', 'posOffense', 'tacticalAwa'], MEN: ['composure', 'reactions'], FIS: ['agility', 'balance', 'acceleration'] },
-    LW: { TEC: ['dribbling', 'crossing', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['composure', 'reactions'], FIS: ['speed', 'acceleration', 'agility'] },
-    RW: { TEC: ['dribbling', 'crossing', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['composure', 'reactions'], FIS: ['speed', 'acceleration', 'agility'] },
-    SS: { TEC: ['finishing', 'dribbling', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['composure', 'reactions'], FIS: ['acceleration', 'agility', 'speed'] },
-    ST: { TEC: ['finishing', 'shotPower', 'headAccurancy'], TAC: ['posOffense', 'tacticalAwa', 'vision'], MEN: ['composure', 'reactions'], FIS: ['strength', 'acceleration', 'speed'] }
-  };
   const HACHURA: React.CSSProperties = { backgroundImage: 'repeating-linear-gradient(135deg, rgba(0,0,0,0.65) 0, rgba(0,0,0,0.65) 1.5px, rgba(100,116,139,0.45) 1.5px, rgba(100,116,139,0.45) 3px)', borderRadius: 4 };
+
+  // TREINO INDIVIDUAL (so o elenco do utilizador): clicar num atributo marca/desmarca; o cone fica ao lado do marcado (esmaecido quando e a escolha automatica: os mais fracos de uma area).
+  const doUtilizador = !!userTeam && player.teamId === userTeam.id;
+  const individual = doUtilizador ? atributosIndividuais(player) : { campos: [] as string[], auto: false };
+  const cone = (auto: boolean) => (
+    <svg viewBox="0 0 24 24" width="22" height="22" className={`inline-block mr-1.5 shrink-0 ${auto ? 'opacity-40' : ''}`} aria-hidden="true">
+      <path d="M12 3 L18 19 H6 Z" fill="#f97316" stroke="#c2410c" strokeWidth="1" strokeLinejoin="round" />
+      <path d="M9.4 11 H14.6 M8.2 15 H15.8" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="3" y="19" width="18" height="2.4" rx="0.8" fill="#c2410c" />
+    </svg>
+  );
 
   // Um bloco de atributos (Technical, Tactical, Mental, Physical, Goalkeeping): titulo com a media e o ganho do treino da temporada, e a lista de campos.
   const blocoAtributos = (g: 'TEC' | 'TAC' | 'MEN' | 'FIS' | 'GK') => {
@@ -267,10 +263,12 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
           </span>
         </div>
         {lista.map(x => (
-          <div key={x.campo} className="flex items-center justify-between text-sm px-1 -mx-1"
+          <div key={x.campo} className={`flex items-center justify-between text-sm px-1 -mx-1 ${doUtilizador && g !== 'GK' ? 'cursor-pointer hover:bg-slate-800/60' : ''}`}
+            title={doUtilizador && g !== 'GK' ? 'Individual training: click to select / unselect' : undefined}
+            onClick={doUtilizador && g !== 'GK' ? () => alternarTreinoIndividual(player.id, x.campo) : undefined}
             style={((CHAVES_POR_POSICAO[player.position] as any)?.[g] || []).includes(x.campo) ? HACHURA : undefined}>
             <span className="text-slate-300">{x.nome}</span>
-            <span className={`font-black ${getColorClass(x.valor)}`}>{x.valor}</span>
+            <span className={`font-black flex items-center ${getColorClass(x.valor)}`}>{individual.campos.includes(x.campo) && cone(individual.auto)}{x.valor}</span>
           </div>
         ))}
       </React.Fragment>

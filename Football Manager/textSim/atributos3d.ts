@@ -214,3 +214,72 @@ export const migrarTreinoParaXp = (p: Player): Record<string, number> | undefine
   }
   return novo;
 };
+
+/*
+TREINO INDIVIDUAL (atividade `individual`, aba Tactics): cada jogador treina os atributos que o utilizador marcou no overview dele — ate `INDIVIDUAL_MAX` de UMA area (3 em TEC/TAC/FIS, 2 no mental).
+Sem nenhum marcado, o sistema escolhe os atributos MAIS IMPORTANTES PARA A POSICAO (`CHAVES_POR_POSICAO`), da area em que eles estao mais fracos.
+*/
+export const INDIVIDUAL_MAX: Record<GrupoAtributo, number> = { TEC: 3, TAC: 3, FIS: 3, MEN: 2 };
+/** A area (TEC/TAC/MEN/FIS) de um campo do 3D, ou null (atributo de baliza ou desconhecido). */
+export const areaDoCampo = (campo: string): GrupoAtributo | null => ORDEM_GRUPOS.find(g => GRUPOS[g].indexOf(campo) >= 0) || null;
+
+/** A nova lista depois de clicar em `campo`: tira-o se estava; senao poe-o. Outra area limpa a lista; passar do maximo da area tira o mais antigo. */
+export const alternarIndividual = (atual: string[] | undefined, campo: string): string[] => {
+  const area = areaDoCampo(campo);
+  if (!area) return atual || [];
+  const sel = (atual || []).filter(c => areaDoCampo(c) !== null);
+  if (sel.indexOf(campo) >= 0) return sel.filter(c => c !== campo);
+  const mesmaArea = sel.length > 0 && areaDoCampo(sel[0]) === area;
+  const nova = mesmaArea ? [...sel, campo] : [campo];
+  while (nova.length > INDIVIDUAL_MAX[area]) nova.shift();
+  return nova;
+};
+
+/** Os atributos que o jogador treina no `individual` agora: os marcados (validos, de uma area, dentro do maximo) ou, sem nenhum, os mais fracos de uma area (`auto: true`). */
+export const atributosIndividuais = (p: Player): { campos: string[]; auto: boolean } => {
+  const marcados = (p.treinoIndividual || []).filter(c => areaDoCampo(c) !== null);
+  if (marcados.length) {
+    const area = areaDoCampo(marcados[0])!;
+    const doArea = marcados.filter(c => areaDoCampo(c) === area).slice(0, INDIVIDUAL_MAX[area]);
+    if (doArea.length) return { campos: doArea, auto: false };
+  }
+  const a = atributos3d(p);
+  // Sem marcados: os atributos MAIS IMPORTANTES PARA A POSICAO (CHAVES_POR_POSICAO), da area em que eles estao mais fracos (menor media dos atributos-chave da area).
+  const chaves = CHAVES_POR_POSICAO[String(p.position)];
+  let melhor: GrupoAtributo | null = null, menor = Infinity, escolhidos: string[] = [];
+  if (chaves) {
+    for (const g of ORDEM_GRUPOS) {
+      const valores = Object.fromEntries(a.detalhe![g].map(x => [x.campo, x.valor]));
+      const lista = (chaves[g] || []).filter(c => typeof valores[c] === 'number').slice(0, INDIVIDUAL_MAX[g]);
+      if (!lista.length) continue;
+      const media = lista.reduce((s, c) => s + valores[c], 0) / lista.length;
+      if (media < menor) { menor = media; melhor = g; escolhidos = lista; }
+    }
+  }
+  if (melhor) return { campos: escolhidos, auto: true };
+  // Posicao sem tabela: os mais fracos da area de media mais baixa.
+  let pior: GrupoAtributo = 'TEC', menorArea = Infinity;
+  for (const g of ORDEM_GRUPOS) {
+    const m = g === 'TEC' ? a.tec : g === 'TAC' ? a.tac : g === 'MEN' ? a.men : a.fis;
+    if (m < menorArea) { menorArea = m; pior = g; }
+  }
+  const campos = [...a.detalhe![pior]].sort((x, y) => x.valor - y.valor).slice(0, INDIVIDUAL_MAX[pior]).map(x => x.campo);
+  return { campos, auto: true };
+};
+
+/** Os atributos-chave de cada posicao por area (os que o overview realca): 3 de TEC, 3 de TAC, 2 do mental e 3 de FIS. */
+export const CHAVES_POR_POSICAO: Record<string, Partial<Record<'TEC' | 'TAC' | 'MEN' | 'FIS' | 'GK', string[]>>> = {
+  GK: { TEC: ['passing', 'longPassing', 'ballControl'], TAC: ['posDefense', 'tacticalAwa', 'vision'], MEN: ['reactions', 'composure'], FIS: ['jumping', 'agility', 'balance'], GK: ['reflexes', 'diving', 'handling'] },
+  CB: { TEC: ['headAccurancy', 'passing', 'ballControl'], TAC: ['tackleStanding', 'manMarking', 'posDefense'], MEN: ['aggression', 'composure'], FIS: ['strength', 'jumping', 'speed'] },
+  LB: { TEC: ['crossing', 'passing', 'dribbling'], TAC: ['tackleStanding', 'posDefense', 'manMarking'], MEN: ['consistency', 'reactions'], FIS: ['speed', 'stamina', 'acceleration'] },
+  RB: { TEC: ['crossing', 'passing', 'dribbling'], TAC: ['tackleStanding', 'posDefense', 'manMarking'], MEN: ['consistency', 'reactions'], FIS: ['speed', 'stamina', 'acceleration'] },
+  DM: { TEC: ['passing', 'ballControl', 'longPassing'], TAC: ['tackleStanding', 'posDefense', 'tacticalAwa'], MEN: ['aggression', 'composure'], FIS: ['stamina', 'strength', 'balance'] },
+  CM: { TEC: ['passing', 'ballControl', 'longPassing'], TAC: ['vision', 'tacticalAwa', 'posDefense'], MEN: ['consistency', 'composure'], FIS: ['stamina', 'balance', 'agility'] },
+  LM: { TEC: ['crossing', 'dribbling', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['consistency', 'composure'], FIS: ['speed', 'stamina', 'acceleration'] },
+  RM: { TEC: ['crossing', 'dribbling', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['consistency', 'composure'], FIS: ['speed', 'stamina', 'acceleration'] },
+  AM: { TEC: ['passing', 'dribbling', 'ballControl'], TAC: ['vision', 'posOffense', 'tacticalAwa'], MEN: ['composure', 'reactions'], FIS: ['agility', 'balance', 'acceleration'] },
+  LW: { TEC: ['dribbling', 'crossing', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['composure', 'reactions'], FIS: ['speed', 'acceleration', 'agility'] },
+  RW: { TEC: ['dribbling', 'crossing', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['composure', 'reactions'], FIS: ['speed', 'acceleration', 'agility'] },
+  SS: { TEC: ['finishing', 'dribbling', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['composure', 'reactions'], FIS: ['acceleration', 'agility', 'speed'] },
+  ST: { TEC: ['finishing', 'shotPower', 'headAccurancy'], TAC: ['posOffense', 'tacticalAwa', 'vision'], MEN: ['composure', 'reactions'], FIS: ['strength', 'acceleration', 'speed'] }
+};

@@ -2440,7 +2440,10 @@ const StaminaModel = {
 
     vRef: 6.5,                  // m/s: a corrida contra a qual o custo se mede
     expoente: 2.0,              // custo ~ (v/vRef)^expoente
-    custoPorSegundo: 0.00031,    // fraccao de deposito por segundo de JOGO a vRef, com stamina 50 (era 0.00042: -25%, pedido: a stamina caia depressa demais)
+    // 0.00031 -> 0.000274 (pedido: um jogador de linha com stamina 80 perde ~45 pontos de energia em 90 min; medido em 10 jogos: 0.00031 dava ~51 a stamina 80). A stamina ja escala o custo: mais stamina gasta menos (50 gasta o normal, 100 metade, 0 metade a mais).
+    custoPorSegundo: 0.000274,   // fraccao de deposito por segundo de JOGO a vRef, com stamina 50 (era 0.00042 e depois 0.00031)
+    // Teto da velocidade (m/s) que conta no gasto: a reposicao em campo (troca de lados no 2.o tempo, bolas paradas) teletransporta o jogador e o `velocity` daquele frame chegava a 5000 m/s, o que zerava o deposito do goleiro. Os 15 m/s medidos em jogo ficam dentro.
+    vMax: 15.0,
     sensibilidadeStamina: 0.5,  // stamina 100 gasta metade; stamina 0, metade a mais
 
     limiarDescanso: 2.0,        // m/s abaixo do qual recupera

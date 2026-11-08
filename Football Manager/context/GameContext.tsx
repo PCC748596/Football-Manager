@@ -28,7 +28,7 @@ import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico,
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoJogador, SLOTS_CPU_LEVE, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, XP_POR_PONTO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, ENERGIA_SLOT_VAZIO, drainMultiplier, recoveryMultiplier, energiaPosLesao, energiaInicial, definirNivelDoCt, tetoDoLegacy, garantirBaseLegacy, SLOTS_CPU_POR_DIA, rolouLesaoTreino, grupoPorEnergia, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
-import { campo3d, atributos3d, regredirPorIdade, migrarTreinoParaXp } from '../textSim/atributos3d';
+import { campo3d, atributos3d, regredirPorIdade, migrarTreinoParaXp, atributosIndividuais, alternarIndividual } from '../textSim/atributos3d';
 import { GRUPOS } from '../textSim/geradorAtributos';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
@@ -254,6 +254,8 @@ interface GameContextType {
   definirOrdemPenaltis: (teamId: string, ordem: string[]) => void;
   scheduleActivity: (date: string, type: ActivityType, details: any) => void;
   setTrainingSchedules: (schedules: (string | null)[][][]) => void;
+  /** Marca/desmarca um atributo do treino individual do jogador (ver alternarIndividual, atributos3d.ts). */
+  alternarTreinoIndividual: (playerId: string, campo: string) => void;
   unlockTrainingGroup: () => void;
   updatePlayerTrainingGroup: (playerId: string, groupId: number) => void;
   /** Grupos de treino automaticos pela ENR (GameState.trainingAutoGrupos): grava a configuracao e reagrupa o elenco ja. */
@@ -1438,6 +1440,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updated = true;
         }
 
+        // TREINO INDIVIDUAL: cada slot `individual` de HOJE (no grupo do jogador) da +1 (x10 XP) em cada atributo que ele escolheu no overview (ou nos mais fracos de uma area), com os mesmos multiplicadores.
+        if (isUserPlayer && !p.injury) {
+          const diaSem = (new Date(gameState.currentDate + 'T12:00:00').getDay() + 6) % 7;
+          const nInd = ((schedules[pGroup] && schedules[pGroup][diaSem]) || []).filter(a => a === 'individual').length;
+          if (nInd > 0 && pGroup < unlockedGroups) {
+            const t3i = { ...(p.treino3d || {}) };
+            const multInd = ageFactor * STAR_MULTIPLIERS[starsFromPotential(p.potential)] * exaustaoMultiplier(p.energia ?? 100);
+            for (const campo of atributosIndividuais(p).campos) t3i[campo] = (t3i[campo] || 0) + nInd * XP_POR_PONTO * multInd;
+            p.treino3d = t3i;
+            updated = true;
+          }
+        }
+
         ['def', 'pas', 'drb', 'sht'].forEach(attr => {
           const key = attr as 'def' | 'pas' | 'drb' | 'sht';
           const attrKey = attr as 'def' | 'pas' | 'drb' | 'sht';
@@ -2387,6 +2402,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setGameState(prev => ({ ...prev, trainingSchedules: schedules, trainingSchedule: schedules[0] }));
   };
 
+  const alternarTreinoIndividual = (playerId: string, campo: string) => {
+    setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, treinoIndividual: alternarIndividual(p.treinoIndividual, campo) } : p));
+  };
+
   const unlockTrainingGroup = () => {
     if (!userTeam) return;
     if ((gameState.unlockedTrainingGroups || 1) >= 3) return;
@@ -2557,6 +2576,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateMatchVisualState,
       registrarFinanceiro,
       setTrainingSchedules,
+      alternarTreinoIndividual,
       unlockTrainingGroup,
       updatePlayerTrainingGroup, setTrainingAutoGrupos
     }}
