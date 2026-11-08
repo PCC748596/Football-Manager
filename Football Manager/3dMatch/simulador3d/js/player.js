@@ -85,6 +85,8 @@ class FootballPlayer {
 
         const gerado = this.buildBody(color1, color2);
         this.model = gerado.corpo; this.rig = gerado.rig;
+        // Sombra falsa (tablet, sem mapa de sombras): so jogadores em campo e arbitros.
+        if ((!FootballPlayer.extra || FootballPlayer.extra === 'arbitro') && typeof Qualidade !== 'undefined' && Qualidade.criarBlob) Qualidade.criarBlob(this.model);
 
         this.baseTarget = new THREE.Vector3();
         this.dynamicTarget = new THREE.Vector3();

@@ -524,6 +524,8 @@ function toggleSombras() {
     cada objecto faz com as sombras e continuam intocados.
     */
     if (window.dirLightCore) window.dirLightCore.castShadow = on;
+    // As sombras falsas (Qualidade.criarBlob) so aparecem sem o mapa de sombras.
+    if (window.Qualidade && Qualidade._blobs) Qualidade._blobs.forEach(function (m) { m.visible = !on; });
 
     if (window.Match && window.Match.scene) {
         window.Match.scene.traverse(function (o) {
