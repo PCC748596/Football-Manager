@@ -6,9 +6,9 @@ import NextGameButton, { SetasAGirar } from './NextGameButton';
 import React, { useState, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { Position, Player } from '../types';
+import { PlayerFace3D } from './PlayerFace3D';
 
 import { ACTIVITIES, TrainingActivity, Impact } from '../textSim/trainingService';
-import { AttributeGrowthArrow } from './SquadView';
 import EnergyBar, { energiaDe } from './EnergyBar';
 import { MedicalDepartmentPanel } from './MedicalDepartmentPanel';
 import TrainingIcon, { COR_DO_TREINO } from './TrainingIcon';
@@ -37,6 +37,30 @@ const ICONE_FIS = <Ico><path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12" /></Ico>;
 const ICONE_STA = <Ico><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" /></Ico>;
 const ICONE_CHE = <Ico><path d="M4 8h14" /><path d="m14 4 4 4-4 4" /><path d="M20 16H6" /><path d="m10 12-4 4 4 4" /></Ico>;
 const ICONE_MOR = <Ico><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><path d="M9 9h.01M15 9h.01" /></Ico>;
+
+/*
+A CARGA DE TREINO DE UMA AREA (TEC, TAC, MEN, PHY) na ultima sessao: tres barras que crescem (como o sinal de um telefone), cheias ate o nivel (1 = leve, 2 = medio, 3 = forte), em verde quando o jogador evoluiu na
+area e em vermelho quando regrediu; sem treino nessa area, as tres ficam apagadas. Substitui as setas empilhadas, que nao diziam o que significavam. O `title` explica.
+*/
+const BarrasDeNivel: React.FC<{ nivel: number; cor: string }> = ({ nivel, cor }) => (
+  <div className="flex items-end gap-[2px] h-[14px]">
+    {[1, 2, 3].map(i => (
+      <span key={i} className={`w-[5px] rounded-[1px] ${i <= nivel ? cor : 'bg-slate-300 dark:bg-slate-700'}`} style={{ height: 4 + i * 3 }} />
+    ))}
+  </div>
+);
+const NOME_DA_AREA: Record<string, string> = { TEC: 'Technical', TAC: 'Tactical', MEN: 'Mental', PHY: 'Physical' };
+const CargaDeTreino: React.FC<{ label: string; val: number }> = ({ label, val }) => {
+  const nivel = Math.min(3, Math.abs(Math.round(val)));
+  const cor = val < 0 ? 'bg-rose-500' : 'bg-emerald-500';
+  const texto = nivel === 0 ? 'no training' : `${['', 'light', 'medium', 'strong'][nivel]} ${val < 0 ? 'decline' : 'training'}`;
+  return (
+    <div className="flex flex-col items-center justify-start min-w-[34px] gap-1" title={`${NOME_DA_AREA[label] || label}: ${texto} (last session)`}>
+      <div className="text-[10px] font-black text-slate-400 uppercase leading-none">{label}</div>
+      <BarrasDeNivel nivel={nivel} cor={cor} />
+    </div>
+  );
+};
 
 const TrainingView: React.FC = () => {
   const { gameState, userTeam, teams, fixtures, players, setTrainingSchedules, unlockTrainingGroup, updatePlayerTrainingGroup, setTrainingAutoGrupos, advanceDay, formatCurrency, formatCurrencyShort, t } = useGame();
@@ -207,13 +231,21 @@ const TrainingView: React.FC = () => {
     return counts;
   }, [program]);
 
-  const StatBox = ({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: number, color: string }) => (
+  // A CARGA DA SEMANA de cada area (as barras sob TECHNIQUE, TACTICS, MENTAL e PHYSICAL): as sessoes dela no programa do grupo, em relacao a area que mais treina (3 barras = a mais treinada).
+  const sessoesPorArea = usageCounts.categories as Record<string, number>;
+  const maxSessoes = Math.max(1, ...Object.values(sessoesPorArea) as number[]);
+  const cargaDe = (area: string) => { const n = sessoesPorArea[area] || 0; return { nivel: n > 0 ? Math.max(1, Math.round(3 * n / maxSessoes)) : 0, sessoes: n }; };
+  const StatBox = ({ icon, label, value, color, area }: { icon: React.ReactNode, label: string, value: number, color: string, area?: string }) => {
+    const carga = area ? cargaDe(area) : null;
+    return (
     <div className="flex-1 flex flex-col items-center justify-center p-2 border-r last:border-r-0 border-slate-200 dark:border-slate-800/50 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors">
         <span className="mb-1 text-slate-500 dark:text-slate-300">{icon}</span>
         <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{label}</div>
         <div className={`text-2xl font-black italic tracking-tighter ${color}`}>{value}</div>
+        {carga && <div className="mt-1" title={`${carga.sessoes} training session(s) this week` + (carga.nivel === 3 ? ' — the most trained area' : carga.nivel === 0 ? ' — not trained' : '')}><BarrasDeNivel nivel={carga.nivel} cor="bg-emerald-500" /></div>}
     </div>
-  );
+    );
+  };
 
   return (
     <div className="h-full flex flex-col gap-6 animate-fade-in">
@@ -423,10 +455,10 @@ const TrainingView: React.FC = () => {
 
            {/* TEAM STATS PANEL - 7 COLUMNS: TEC, TAC, MEN, FIS, STA, CHE, MOR */}
            <div className="h-32 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex overflow-hidden shadow-lg transition-colors">
-              <StatBox icon={ICONE_TEC} label="TECHNIQUE" value={media3d.tec} color={corDaNota(media3d.tec)} />
-              <StatBox icon={ICONE_TAC} label="TACTICS" value={media3d.tac} color={corDaNota(media3d.tac)} />
-              <StatBox icon={ICONE_MEN} label="MENTAL" value={media3d.men} color={corDaNota(media3d.men)} />
-              <StatBox icon={ICONE_FIS} label="PHYSICAL" value={media3d.fis} color={corDaNota(media3d.fis)} />
+              <StatBox icon={ICONE_TEC} label="TECHNIQUE" value={media3d.tec} color={corDaNota(media3d.tec)} area="TECHNIQUE" />
+              <StatBox icon={ICONE_TAC} label="TACTICS" value={media3d.tac} color={corDaNota(media3d.tac)} area="TACTICS" />
+              <StatBox icon={ICONE_MEN} label="MENTAL" value={media3d.men} color={corDaNota(media3d.men)} area="MENTAL" />
+              <StatBox icon={ICONE_FIS} label="PHYSICAL" value={media3d.fis} color={corDaNota(media3d.fis)} area="PHYSICAL" />
               <StatBox icon={ICONE_STA} label="ENERGY" value={avgFit} color="text-emerald-500" />
               <StatBox icon={ICONE_CHE} label="CHEMISTRY" value={teamChe} color="text-blue-500" />
               <StatBox icon={ICONE_MOR} label="MORALE" value={avgMor} color="text-amber-500" />
@@ -446,6 +478,9 @@ const TrainingView: React.FC = () => {
                const catUsage = usageCounts.categories[tab.id as keyof typeof LIMITS.categories];
                const limitCat = LIMITS.categories[tab.id as keyof typeof LIMITS.categories];
                const isExhausted = catUsage >= limitCat;
+               // A CARGA DA SEMANA nesta area, em relacao a que mais treina (3 barras = a area com mais treino; sem treino, apagadas).
+               const maxUsage = Math.max(1, ...Object.values(usageCounts.categories) as number[]);
+               const nivelSemana = catUsage > 0 ? Math.max(1, Math.round(3 * catUsage / maxUsage)) : 0;
                
                return (
                <button 
@@ -461,6 +496,7 @@ const TrainingView: React.FC = () => {
                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COR_DO_TREINO[tab.id as TrainingActivity['category']] }} />
                    {tab.label}
                  </span>
+                 <span className="mt-1" title={`${catUsage} session(s) this week` + (nivelSemana === 3 && catUsage > 0 ? ' — the most trained area' : '')}><BarrasDeNivel nivel={nivelSemana} cor="bg-emerald-500" /></span>
                  <span className={`text-[7px] mt-0.5 px-1.5 py-0.5 rounded leading-none ${isExhausted ? 'bg-rose-500 text-white' : activeCategory === tab.id ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-500' : 'bg-slate-200/50 dark:bg-black/20 text-slate-400'}`}>{catUsage}/{limitCat}</span>
                </button>
              )})}
@@ -557,16 +593,19 @@ const TrainingView: React.FC = () => {
                   <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
                       {squadPlayers.map((p, idx) => {
                           return (
-                          <div key={p.id} onClick={() => setJogadorAberto(p)} className="flex flex-col px-3 py-4 rounded bg-white dark:bg-slate-800/30 border border-slate-100 dark:border-slate-700/50 hover:border-blue-500/30 transition-all group cursor-pointer">
+                          <div key={p.id} onClick={() => setJogadorAberto(p)} className="flex flex-col px-[2px] py-[10px] rounded bg-white dark:bg-slate-800/30 border border-slate-100 dark:border-slate-700/50 hover:border-blue-500/30 transition-all group cursor-pointer">
                               <div className="grid grid-cols-12 items-center gap-3">
                                   {/* COL 1: PLAYER INFO */}
-                                  <div className="col-span-3 flex flex-col min-w-0">
+                                  <div className="col-span-3 flex items-center gap-2 min-w-0">
+                                      <div className="w-[56px] h-[56px] shrink-0 overflow-hidden pointer-events-none"><PlayerFace3D playerId={p.id} team={userTeam} gk={p.position === Position.GK} camisa={userTeam?.primaryColor} className="w-full h-full" /></div>
+                                      <div className="flex flex-col min-w-0">
                                       <div className="flex flex-col min-w-0">
                                           {doisNomes(p.name).map((nome, i) => (
                                               <span key={i} className="text-[13px] font-black text-slate-700 dark:text-slate-200 uppercase truncate leading-tight">{nome}</span>
                                           ))}
                                       </div>
                                       <span className="text-[12px] text-slate-400 font-bold uppercase truncate">{p.position} • Age {p.age}</span>
+                                      </div>
                                   </div>
 
                                   {/* COL 2: TRAINING CATEGORIES */}
@@ -576,12 +615,7 @@ const TrainingView: React.FC = () => {
                                           { label: 'TAC', val: p.lastGrowth?.def || 0 },
                                           { label: 'MEN', val: p.lastGrowth?.men || 0 },
                                           { label: 'PHY', val: p.lastGrowth?.fis || 0 }
-                                      ].map(stat => (
-                                          <div key={stat.label} className="flex flex-col items-center justify-start min-w-[28px] h-10">
-                                              <div className="text-[10px] font-black text-slate-400 uppercase mb-1 leading-none">{stat.label}</div>
-                                              <AttributeGrowthArrow val={stat.val || 0} />
-                                          </div>
-                                      ))}
+                                      ].map(stat => <CargaDeTreino key={stat.label} label={stat.label} val={stat.val || 0} />)}
                                   </div>
 
                                   {/* COL 3: ENERGY */}

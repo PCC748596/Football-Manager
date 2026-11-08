@@ -371,10 +371,16 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
     const meuKey = teamKey(userTeam.leagueId, userTeam.id);
     const fase = NOMES_FASES[jogo.stage] || jogo.stage;
     if (jogo.group && comp.groups?.[jogo.group]) {
-      return { comp, fase, grupo: jogo.group, tabela: tabelaDoGrupo(comp, jogo.group, mapa), jogos: [] as any[], mapa, meuKey };
+      // Os ultimos resultados de cada clube no grupo (do mais antigo para o mais recente): V (vitoria), E (empate), D (derrota).
+      const forma = new Map<string, ('V' | 'E' | 'D')[]>();
+      comp.matches.filter(m => m.group === jogo.group && m.played).slice().sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : 0)).forEach(m => {
+        const hs = m.homeScore || 0, as = m.awayScore || 0, r = hs > as ? ['V', 'D'] : hs < as ? ['D', 'V'] : ['E', 'E'];
+        for (const [k, res] of [[m.homeKey, r[0]], [m.awayKey, r[1]]] as const) { const l = forma.get(k) || []; l.push(res as 'V' | 'E' | 'D'); forma.set(k, l); }
+      });
+      return { comp, fase, grupo: jogo.group, tabela: tabelaDoGrupo(comp, jogo.group, mapa), forma, jogos: [] as any[], mapa, meuKey };
     }
     const jogos = comp.matches.filter(m => m.stage === jogo.stage).sort((a, b) => a.date.localeCompare(b.date));
-    return { comp, fase, grupo: null as string | null, tabela: [] as any[], jogos, mapa, meuKey };
+    return { comp, fase, grupo: null as string | null, tabela: [] as any[], forma: new Map<string, ('V' | 'E' | 'D')[]>(), jogos, mapa, meuKey };
   }, [nextOfficialMatch, comps, world, teams, fixtures, userTeam]);
 
   // Sort: Points DESC, but if all 0 played, then alphabetical. Filter by next official match competition or user league.
@@ -390,7 +396,15 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
   });
 
   const userPos = sortedTeams.findIndex(t => t.id === userTeam.id) + 1;
-  const top20 = sortedTeams.slice(0, 20);
+  const top20 = sortedTeams.slice(0, 24);   // ate 24 clubes; as linhas encolhem sozinhas (ver `densidadeTabela`)
+  // A TABELA ENCOLHE SOZINHA com o numero de clubes (ate 24 cabem no painel sem rolar): 0 = normal (ate 14 clubes), 1 = medio (15 a 19), 2 = compacto (20 a 24).
+  const densidadeTabela = (n: number) => (n > 19 ? 2 : n > 14 ? 1 : 0);
+  const DENS = {
+    py: ['py-0.5 xl:py-2', 'py-0.5 xl:py-1', 'py-[2px]'],
+    escudo: ['w-6 h-[29.5px] xl:w-8 xl:h-10', 'w-5 h-6 xl:w-6 xl:h-[29.5px]', 'w-[18px] h-[22px]'],
+    texto: ['text-xs xl:text-base', 'text-xs xl:text-sm', 'text-[11px]'],
+    quadrado: ['w-[18px] h-[18px] xl:w-6 xl:h-6', 'w-[18px] h-[18px] xl:w-[21px] xl:h-[21px]', 'w-4 h-4'],
+  };
   // OS ULTIMOS RESULTADOS do time (jogos ja disputados, do mais recente para o mais antigo): o painel de noticias do Home.
   const resultadosRecentes = useMemo(() => {
     if (!userTeam) return [] as { f: any; casa: Team; fora: Team; res: 'V' | 'E' | 'D' }[];
@@ -810,31 +824,38 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
           </div>
           <div className="flex-1 bg-white dark:bg-transparent transition-colors overflow-y-auto custom-scrollbar">
             {copaInfo && copaInfo.grupo ? (
-              <table className="w-full">
+              <table className="w-full h-full table-fixed">
                 <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
                   <tr className="text-[8px] xl:text-[11px] font-black text-slate-900 dark:text-slate-600 uppercase">
-                    <th className="px-4 py-2 text-left w-12 tracking-widest">Pos</th>
-                    <th className="px-2 py-2 text-left tracking-widest">Team</th>
-                    <th className="px-2 py-2 text-center tracking-widest">P</th>
-                    <th className="px-2 py-2 text-center tracking-widest">SG</th>
-                    <th className="px-4 py-2 text-right tracking-widest">Pts</th>
+                    <th className="pl-3 pr-1 py-2 text-left w-[38px] tracking-widest">Pos</th>
+                    <th className="px-1 py-2 text-left tracking-widest">Team</th>
+                    <th className="px-1 py-2 text-center w-[44px] tracking-widest">Pts</th>
+                    {['P', 'W', 'D', 'L', 'GD'].map(h => <th key={h} className="px-0 py-2 text-center w-[30px] tracking-widest">{h}</th>)}
+                    <th className="px-1 py-2 text-center w-[168px] tracking-widest">Form</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30">
-                  {copaInfo.tabela.map((r: any, i: number) => (
+                  {copaInfo.tabela.map((r: any, i: number) => { const d = densidadeTabela(copaInfo.tabela.length); return (
                     <tr key={r.key} style={r.key === copaInfo.meuKey ? HACHURA : undefined}>
-                      <td className="px-4 py-0.5 xl:py-2 font-black text-slate-300 dark:text-slate-500 text-xs xl:text-base">{i + 1}</td>
-                      <td className="px-2 py-0.5 xl:py-2">
-                        <div className="flex items-center gap-2 xl:gap-3">
-                          <TeamShield team={r.team} className="w-6 h-[29.5px] xl:w-8 xl:h-10" />
-                          <span className="text-xs xl:text-base font-bold text-slate-900 dark:text-slate-400 uppercase truncate max-w-[120px] xl:max-w-[200px]">{r.team?.name || '?'}</span>
+                      <td className={`pl-3 pr-1 ${DENS.py[d]} font-black text-slate-300 dark:text-slate-500 ${DENS.texto[d]}`}>{i + 1}</td>
+                      <td className={`px-1 ${DENS.py[d]}`}>
+                        <div className="flex items-center gap-2">
+                          <TeamShield team={r.team} className={DENS.escudo[d]} />
+                          <span className={`${DENS.texto[d]} font-bold text-slate-900 dark:text-slate-400 uppercase truncate max-w-[110px] xl:max-w-[150px]`}>{r.team?.name || '?'}</span>
                         </div>
                       </td>
-                      <td className="px-2 py-0.5 xl:py-2 text-center font-bold text-slate-500 text-xs xl:text-base">{r.played}</td>
-                      <td className="px-2 py-0.5 xl:py-2 text-center font-bold text-slate-500 text-xs xl:text-base">{r.gf - r.ga}</td>
-                      <td className="px-4 py-0.5 xl:py-2 text-right font-black text-slate-800 dark:text-slate-200 text-xs xl:text-base">{r.points}</td>
+                      <td className={`px-1 ${DENS.py[d]} text-center font-black text-slate-800 dark:text-slate-200 ${DENS.texto[d]}`}>{r.points}</td>
+                      {[r.played, r.won, r.drawn, r.lost, r.gf - r.ga].map((v: number, k: number) => <td key={k} className={`px-0 ${DENS.py[d]} text-center font-bold text-slate-500 ${DENS.texto[d]}`}>{v}</td>)}
+                      <td className={`px-1 ${DENS.py[d]}`}>
+                        <div className="flex items-center justify-center gap-[2px]" title="Last 5 results in this group (oldest to newest)">
+                          {Array.from({ length: 5 }, (_, k) => {
+                            const l = (copaInfo.forma.get(r.key) || []).slice(-5), res = l[k - (5 - l.length)];
+                            return <span key={k} className={`${["w-[27px] h-[27px] xl:w-[30px] xl:h-[30px]", "w-[26px] h-[26px] xl:w-7 xl:h-7", "w-6 h-6"][d]} flex items-center justify-center text-[10px] xl:text-xs font-black leading-none text-white ${res === 'V' ? 'bg-emerald-500' : res === 'E' ? 'bg-amber-400' : res === 'D' ? 'bg-rose-500' : 'bg-slate-300 dark:bg-slate-700/60'}`}>{res === 'V' ? 'W' : res === 'E' ? 'D' : res === 'D' ? 'L' : ''}</span>;
+                          })}
+                        </div>
+                      </td>
                     </tr>
-                  ))}
+                  ); })}
                 </tbody>
               </table>
             ) : copaInfo ? (
@@ -853,7 +874,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                 })}
               </div>
             ) : (
-            <table className="w-full">
+            <table className="w-full h-full">
               <thead className="bg-slate-50 dark:bg-slate-900/50 transition-colors border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
                 <tr className="text-[8px] xl:text-[11px] font-black text-slate-900 dark:text-slate-600 uppercase transition-colors">
                   <th className="px-4 py-2 text-left w-12 tracking-widest bg-slate-50 dark:bg-slate-900/50">Pos</th>
@@ -863,26 +884,26 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30 transition-colors">
-                {top20.map((t, i) => (
+                {top20.map((t, i) => { const d = densidadeTabela(top20.length); return (
                   <tr key={t.id} style={t.id === userTeam.id ? HACHURA : undefined} className="group transition-colors">
-                    <td className="px-4 py-0.5 xl:py-2 font-black text-slate-300 dark:text-slate-500 text-xs xl:text-base transition-colors">{i + 1}</td>
-                    <td className="px-2 py-0.5 xl:py-2">
+                    <td className={`px-4 ${DENS.py[d]} font-black text-slate-300 dark:text-slate-500 ${DENS.texto[d]} transition-colors`}>{i + 1}</td>
+                    <td className={`px-2 ${DENS.py[d]}`}>
                       <div className="flex items-center gap-2 xl:gap-3">
-                        <TeamShield team={t} className="w-6 h-[29.5px] xl:w-8 xl:h-10" />
-                        <span className="text-xs xl:text-base font-bold text-slate-900 dark:text-slate-400 uppercase truncate max-w-[120px] xl:max-w-[200px] transition-colors">{t.name}</span>
+                        <TeamShield team={t} className={DENS.escudo[d]} />
+                        <span className={`${DENS.texto[d]} font-bold text-slate-900 dark:text-slate-400 uppercase truncate max-w-[120px] xl:max-w-[200px] transition-colors`}>{t.name}</span>
                       </div>
                     </td>
-                    <td className="px-2 py-0.5 xl:py-2">
+                    <td className={`px-2 ${DENS.py[d]}`}>
                       <div className="flex items-center justify-center gap-1" title="Last 5 league results (oldest to newest)">
                         {Array.from({ length: 5 }, (_, k) => {
                           const l = (formaDosTimes.get(t.id) || []).slice(-5), r = l[k - (5 - l.length)];
-                          return <span key={k} className={`w-[18px] h-[18px] xl:w-6 xl:h-6 rounded-[5px] flex items-center justify-center text-[10px] xl:text-xs font-black leading-none text-white ${r === 'V' ? 'bg-emerald-500' : r === 'E' ? 'bg-amber-400' : r === 'D' ? 'bg-rose-500' : 'bg-slate-300 dark:bg-slate-700/60'}`}>{r === 'V' ? 'W' : r === 'E' ? 'D' : r === 'D' ? 'L' : ''}</span>;
+                          return <span key={k} className={`${DENS.quadrado[d]} flex items-center justify-center text-[10px] xl:text-xs font-black leading-none text-white ${r === 'V' ? 'bg-emerald-500' : r === 'E' ? 'bg-amber-400' : r === 'D' ? 'bg-rose-500' : 'bg-slate-300 dark:bg-slate-700/60'}`}>{r === 'V' ? 'W' : r === 'E' ? 'D' : r === 'D' ? 'L' : ''}</span>;
                         })}
                       </div>
                     </td>
-                    <td className="px-4 py-0.5 xl:py-2 text-right font-black text-slate-800 dark:text-slate-200 text-xs xl:text-base transition-colors">{t.points}</td>
+                    <td className={`px-4 ${DENS.py[d]} text-right font-black text-slate-800 dark:text-slate-200 ${DENS.texto[d]} transition-colors`}>{t.points}</td>
                   </tr>
-                ))}
+                ); })}
               </tbody>
             </table>
             )}

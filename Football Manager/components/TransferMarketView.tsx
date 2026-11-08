@@ -19,7 +19,8 @@ interface Linha { p: Player; origem: 'ELENCO' | 'BASE' | 'LIVRE'; clube?: Team; 
 const POR_PAGINA = 40;
 const GRUPOS = ['ANY', 'GK', 'DEF', 'MID', 'ATT'] as const;
 const GRUPO_ROTULO: Record<string, string> = { ANY: 'Any', GK: 'Goalkeeper', DEF: 'Defender', MID: 'Midfielder', ATT: 'Forward' };
-const VALORES = [['1M', 1e6], ['3M', 3e6], ['5M', 5e6], ['10M', 1e7], ['Any', Infinity]] as const;
+const SALARIOS = [['1K', 1e3], ['3K', 3e3], ['6K', 6e3], ['10K', 1e4], ['Any', Infinity]] as const;
+const VALORES = [['500K', 5e5], ['1M', 1e6], ['3M', 3e6], ['5M', 5e6], ['10M', 1e7], ['Any', Infinity]] as const;
 const ESTADO_COR: Record<string, string> = {
   ENVIADA: 'bg-sky-500/15 text-sky-400 border-sky-500/40', RECEBIDA: 'bg-amber-500/15 text-amber-400 border-amber-500/40', CONTRAPROPOSTA: 'bg-violet-500/15 text-violet-400 border-violet-500/40',
   ACEITA: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40', CONCLUIDA: 'bg-emerald-600 text-white border-emerald-700', RECUSADA: 'bg-rose-500/15 text-rose-400 border-rose-500/40',
@@ -46,12 +47,13 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const [idadeMin, setIdadeMin] = useState(15), [idadeMax, setIdadeMax] = useState(42);
   const [ovrMin, setOvrMin] = useState(50), [ovrMax, setOvrMax] = useState(99);
   const [valorMax, setValorMax] = useState<number>(Infinity);
+  const [salarioMax, setSalarioMax] = useState<number>(Infinity);
   const [clubeId, setClubeId] = useState('');
   const [soLivres, setSoLivres] = useState(false), [soListados, setSoListados] = useState(true), [soContrato, setSoContrato] = useState(false), [soBase, setSoBase] = useState(false), [soShortlist, setSoShortlist] = useState(false);
   // Os filtros valem na hora (sem botao de aplicar): cada campo ja atualiza a lista. O objeto so muda quando um filtro muda (a pagina volta a 0 por isso).
-  const filtros = useMemo(() => ({ nome, grupo, idadeMin, idadeMax, ovrMin, ovrMax, valorMax, clubeId, soLivres, soListados, soContrato, soBase, soShortlist }),
-    [nome, grupo, idadeMin, idadeMax, ovrMin, ovrMax, valorMax, clubeId, soLivres, soListados, soContrato, soBase, soShortlist]);
-  const limpar = () => { setNome(''); setGrupo('ANY'); setIdadeMin(15); setIdadeMax(42); setOvrMin(50); setOvrMax(99); setValorMax(Infinity); setClubeId(''); setSoLivres(false); setSoListados(true); setSoContrato(false); setSoBase(false); setSoShortlist(false); };
+  const filtros = useMemo(() => ({ nome, grupo, idadeMin, idadeMax, ovrMin, ovrMax, valorMax, salarioMax, clubeId, soLivres, soListados, soContrato, soBase, soShortlist }),
+    [nome, grupo, idadeMin, idadeMax, ovrMin, ovrMax, valorMax, salarioMax, clubeId, soLivres, soListados, soContrato, soBase, soShortlist]);
+  const limpar = () => { setNome(''); setGrupo('ANY'); setIdadeMin(15); setIdadeMax(42); setOvrMin(50); setOvrMax(99); setValorMax(Infinity); setSalarioMax(Infinity); setClubeId(''); setSoLivres(false); setSoListados(true); setSoContrato(false); setSoBase(false); setSoShortlist(false); };
   // A lista de interesse (shortlist): guardada no navegador (so uma conveniencia de quem joga).
   const [shortlist, setShortlist] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem('fm_shortlist') || '[]'); } catch { return []; } });
   const alternarShortlist = (id: string) => setShortlist(l => { const n = l.includes(id) ? l.filter(x => x !== id) : [...l, id]; try { localStorage.setItem('fm_shortlist', JSON.stringify(n)); } catch { /* sem armazenamento */ } return n; });
@@ -95,6 +97,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
       if (p.age < F.idadeMin || p.age > F.idadeMax) return false;
       if (p.skill < F.ovrMin || p.skill > F.ovrMax) return false;
       if (l.origem !== 'LIVRE' && p.value > F.valorMax) return false;
+      if (p.salary > F.salarioMax) return false;
       if (F.clubeId && p.teamId !== F.clubeId) return false;
       if (F.soLivres && l.origem !== 'LIVRE') return false;
       if (F.soListados && aba !== 'SHORTLIST' && !F.soShortlist && !p.listedForSale) return false;
@@ -160,13 +163,15 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
         <div className="text-[12px] font-black uppercase tracking-widest text-slate-500">Search filters</div>
         <div><label className={rotulo}>Player name</label><input className={campo} value={nome} onChange={e => setNome(e.target.value)} placeholder="Search by name" /></div>
         <div><label className={rotulo}>Position</label>
-          <div className="rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/70 overflow-hidden">
-            {GRUPOS.map(g => <button key={g} onClick={() => { setGrupo(g); }} className={`w-full text-left px-3 py-1.5 text-xs font-black uppercase tracking-wider ${grupo === g ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'}`}>{GRUPO_ROTULO[g]}</button>)}
+          {/* Quatro botoes em duas linhas (GK, DEF / MID, ATA); clicar no ligado desliga o filtro (volta a "qualquer posicao") */}
+          <div className="grid grid-cols-2 gap-1.5">
+            {([['GK', 'GK'], ['DEF', 'DEF'], ['MID', 'MID'], ['ATT', 'ATA']] as const).map(([g, r]) => <button key={g} onClick={() => setGrupo(grupo === g ? 'ANY' : g)} className={chip(grupo === g)}>{r}</button>)}
           </div>
         </div>
         <div><label className={rotulo}>Age</label><div className="flex gap-2 items-center"><input type="number" className={campo} value={idadeMin} min={15} max={45} onChange={e => setIdadeMin(Number(e.target.value) || 15)} /><span className="text-slate-400">–</span><input type="number" className={campo} value={idadeMax} min={15} max={45} onChange={e => setIdadeMax(Number(e.target.value) || 45)} /></div></div>
         <div><label className={rotulo}>Overall</label><div className="flex gap-2 items-center"><input type="number" className={campo} value={ovrMin} min={50} max={99} onChange={e => setOvrMin(Math.max(50, Number(e.target.value) || 50))} /><span className="text-slate-400">–</span><input type="number" className={campo} value={ovrMax} min={0} max={99} onChange={e => setOvrMax(Number(e.target.value) || 99)} /></div></div>
         <div><label className={rotulo}>Value (max)</label><div className="flex flex-wrap gap-1.5">{VALORES.map(([r, v]) => <button key={r} onClick={() => { setValorMax(v); }} className={chip(valorMax === v)}>{r}</button>)}</div></div>
+        <div><label className={rotulo}>Wage (max)</label><div className="flex flex-wrap gap-1.5">{SALARIOS.map(([r, v]) => <button key={r} onClick={() => { setSalarioMax(v); }} className={chip(salarioMax === v)}>{r}</button>)}</div></div>
         <div><label className={rotulo}>Club</label>
           <select className={campo} value={clubeId} onChange={e => setClubeId(e.target.value)}>
             <option value="">All clubs</option>
