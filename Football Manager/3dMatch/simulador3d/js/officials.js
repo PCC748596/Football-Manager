@@ -794,7 +794,7 @@ const Officials = {
             // A barra do calcao: nos arbitros (`gola` dada) e SEMPRE na cor da gola, mesmo com calcao preto; nos outros, preta so com calcao de cor.
             calcao: { cores: [calcao || camisa], barra: (!simples && gola) ? { cor: gola, altura: 0.12 } : ((!simples && calcao && calcao !== preto) ? { cor: preto, altura: 0.12 } : null) }
         } : null;
-        FootballPlayer.extra = arbitro ? 'arbitro' : true;   // arbitro e assistentes: o corpo dos jogadores (Qualidade.corpoArbitros); staff e reservas: Qualidade.corpoExtras
+        FootballPlayer.extra = arbitro ? 'arbitro' : 'staff';   // arbitro e assistentes: o corpo dos jogadores (Qualidade.corpoArbitros); staff (tecnicos, funcionarios, reporters): Qualidade.corpoExtras, mas com sombra falsa como os jogadores
         let jogador;
         try { jogador = new FootballPlayer(id, camisa || R.corCamisa, calcao || R.corCalcao, 'TeamA', uniforme); } finally { FootballPlayer.extra = false; }
 

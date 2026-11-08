@@ -1053,11 +1053,25 @@ Object.assign(Match, {
                 const tp = this.setPieceTaker;
                 const emLateral = !!(tp && tp.fsm.currentState === 'LATERAL');
                 // Escolhe o alvo CEDO, para o corpo e a finta acontecerem antes do arremesso.
-                if (LF && LF.activo && emLateral && !tp.lateralPreparado &&
-                    this.lateralAtraso <= LF.antecedencia) {
-                    tp.lateralPreparado = true;
-                    tp.escolherAlvoDoLateral();
-                    tp.planearFintaDoLateral();
+                if (LF && LF.activo && emLateral && this.lateralAtraso <= LF.antecedencia) {
+                    /*
+                    SEM ALVO AINDA, TENTA DE NOVO (pedido: *"o batedor do lateral bate para um lado virado para o outro"*). Com a espera encurtada (4 s), o alvo era escolhido 0,8 s depois do inicio, com os
+                    companheiros ainda a caminho: ninguem ao alcance, `lateralAlvo` nulo e giro 0, e no arremesso o `lancarLateral` escolhia outro alvo na hora — com o corpo virado para o lado contrario
+                    (medido: bola a 44 graus da frente do corpo). Agora, sem alvo, escolhe-se de novo a cada 0,25 s ate haver um (o giro e a finta acompanham).
+                    */
+                    if (!tp.lateralPreparado) {
+                        tp.lateralPreparado = true;
+                        this._lateralRetentar = 0;
+                        tp.escolherAlvoDoLateral();
+                        tp.planearFintaDoLateral();
+                    } else if (!tp.lateralAlvo) {
+                        this._lateralRetentar = (this._lateralRetentar || 0) + dt;
+                        if (this._lateralRetentar >= 0.25) {
+                            this._lateralRetentar = 0;
+                            tp.escolherAlvoDoLateral();
+                            if (tp.lateralAlvo) tp.planearFintaDoLateral();
+                        }
+                    }
                 }
                 // Chegou a hora, mas so se lanca com o corpo virado para o alvo.
                 let esperaCorpo = false;

@@ -524,8 +524,11 @@ function toggleSombras() {
     cada objecto faz com as sombras e continuam intocados.
     */
     if (window.dirLightCore) window.dirLightCore.castShadow = on;
-    // As sombras falsas (Qualidade.criarBlob) so aparecem sem o mapa de sombras.
-    if (window.Qualidade && Qualidade._blobs) Qualidade._blobs.forEach(function (m) { m.visible = !on; });
+    // "Sombras: OFF" do painel de debug e SEM sombras nenhumas: as sombras falsas (Qualidade.criarBlob, as manchas sob os jogadores) tambem saem. Com o botao em ON o mapa de sombras faz tudo.
+    // A bandeira `semBlobsDebug` impede a Qualidade de as voltar a mostrar (qualidade.js); sem o botao (qualidade baixa) elas continuam a aparecer, por desenho.
+    window.semBlobsDebug = !on;
+    if (window.Qualidade && Qualidade._blobs) Qualidade._blobs.forEach(function (m) { m.visible = false; });
+    // A bola e as balizas (Qualidade._blobsExtra) seguem a mesma regra: o `atualizarBlobs` do proximo frame as esconde com `semBlobsDebug`.
 
     if (window.Match && window.Match.scene) {
         window.Match.scene.traverse(function (o) {

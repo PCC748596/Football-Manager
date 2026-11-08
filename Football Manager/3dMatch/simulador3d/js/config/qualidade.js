@@ -15,6 +15,8 @@ O manager passa o nivel no URL do iframe (`?q=LOW`) e, a meio do jogo, na mensag
 O que muda a meio do jogo: sombras, resolucao do mapa e pixel ratio. A torcida so muda quando a partida e montada de novo.
 =============================================================================
 */
+// Altura (m) da sombra falsa sobre o relvado (y 0); as linhas do campo ficam a 0.01 e as de impedimento a 0.02.
+const BLOB_Y = 0.02;
 const Qualidade = {
     niveis: {
         // Todos os niveis: jogadores e arbitros com o corpo `leve` 4 (456 triangulos), torcida, staff e reservas com o `leve` 5 (400).
@@ -64,12 +66,12 @@ const Qualidade = {
     com borda suave colado ao relvado, filho do corpo (anda e roda com ele). Uma so geometria, material e textura para todos. So aparece com as sombras reais desligadas (`aplicar`).
     So jogadores em campo e arbitros: staff, reservas e adeptos nao levam (muitos, e pouco se vê).
     */
-    _blobRecursos: null, _blobs: [],
+    _blobRecursos: null, _blobs: [],   // BLOB_Y (abaixo): a altura do mundo da mancha
     criarBlob: function (corpo) {
         if (typeof THREE === 'undefined' || !corpo) return null;
         let r = this._blobRecursos;
         if (!r) {
-            const mk = (tex) => new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+            const mk = (tex) => new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, side: THREE.DoubleSide });
             // DIA: uma mancha com borda suave (o `atualizarBlobs` estica-a e roda-a para o lado oposto ao sol).
             const cv = document.createElement('canvas'); cv.width = cv.height = 64;
             const c = cv.getContext('2d'), g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
@@ -96,7 +98,7 @@ const Qualidade = {
         m.userData.esc = esc;
         m.position.y = 0.04 / esc;                // logo acima do relvado (o corpo assenta em ALTURA_BASE_Y = -0.01)
         m.renderOrder = 1; m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false; m.name = 'BlobSombra';
-        m.visible = !this.cfg().sombras;
+        m.visible = !this.cfg().sombras && !window.semBlobsDebug;
         corpo.add(m);
         this._blobs.push(m);
         return m;
@@ -111,6 +113,7 @@ const Qualidade = {
     atualizarBlobs: function () {
         const bl = this._blobs, r = this._blobRecursos;
         if (!bl.length || !r) return;
+        this._atualizarBlobsExtra(r);
         const noite = !!window.jogoNoturno;
         const luz = window.dirLightCore;
         // Direccao da sombra no mundo (oposta ao sol) e o seu comprimento relativo.
@@ -128,6 +131,12 @@ const Qualidade = {
             if (!m.visible) continue;
             const esc = m.userData.esc || 1, psi = corpo.rotation.y, c = Math.cos(psi), s = Math.sin(psi);
             m.material = noite ? r.matNoite : r.matDia;
+            /*
+            A ALTURA DA MANCHA E A DO MUNDO, nao a do corpo (relato: *"as sombras estao piscando com os jogadores correndo"*). A mancha e filha do corpo a +0.04, mas o corpo sobe e desce ao correr (o assento
+            da sola, `assentarNoChao`, chega a leva-lo 6 cm abaixo da base): quando ele descia mais de ~4 cm a mancha ficava ABAIXO do relvado e desaparecia, e voltava no frame seguinte. Cada frame poe-se
+            a mancha a `BLOB_Y` m do relvado (y do mundo 0), compensando o y do corpo.
+            */
+            m.position.y = (BLOB_Y - corpo.position.y) / (corpo.scale.y || esc);   // a escala em y pode diferir da de x (altura do jogador)
             // Para o referencial do corpo: l = Ry(-psi) * mundo.
             const lx = dx * c - dz * s, lz = dx * s + dz * c;
             if (noite) {
@@ -143,6 +152,39 @@ const Qualidade = {
                 m.position.x = lx * av; m.position.z = lz * av;
             }
         }
+    },
+
+    /*
+    A SOMBRA FALSA DA BOLA E DAS BALIZAS (pedido): sem o mapa de sombras a bola e as balizas ficavam sem sombra nenhuma. A da bola e uma mancha pequena que segue o ponto da bola no relvado, mais
+    larga e mais fraca quanto mais alto ela vai; a das balizas e uma mancha larga e suave atras de cada linha de golo (a rede e a estrutura). Vivem na cena (nao filhas de um corpo) a `BLOB_Y` do relvado
+    e seguem a mesma regra de visibilidade das dos jogadores: so sem o mapa de sombras e sem o OFF do painel.
+    */
+    _blobsExtra: null,
+    _atualizarBlobsExtra: function (r) {
+        const cena = window.Match && window.Match.scene;
+        if (!cena || !window.Match.ball) return;
+        const visivel = !this.cfg().sombras && !window.semBlobsDebug;
+        if (!this._blobsExtra || !this._blobsExtra.bola.parent) {
+            const mk = () => new THREE.MeshBasicMaterial({ map: r.matDia.map, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, side: THREE.DoubleSide });
+            const plano = (mat) => { const m = new THREE.Mesh(r.geo, mat); m.rotation.x = -Math.PI / 2; m.renderOrder = 1; m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false; return m; };
+            const bola = plano(mk()); bola.name = 'BlobSombraBola';
+            const largura = ((typeof LARGURA_BALIZA === 'number') ? LARGURA_BALIZA : 7.32) + 1.6, fundo = (typeof CAMPO_COMP === 'number') ? CAMPO_COMP / 2 : 52.5;
+            const balizas = [-1, 1].map(sinal => {
+                const m = plano(mk()); m.name = 'BlobSombraBaliza';
+                m.scale.set(largura, 3.4, 1); m.position.set(0, BLOB_Y, sinal * (fundo + 1.2)); m.material.opacity = 0.55;
+                cena.add(m); return m;
+            });
+            cena.add(bola);
+            this._blobsExtra = { bola: bola, balizas: balizas };
+        }
+        const E = this._blobsExtra, b = window.Match.ball.position;
+        E.bola.visible = visivel; E.balizas.forEach(function (m) { m.visible = visivel; });
+        if (!visivel) return;
+        // A bola no ar: a mancha afasta-se (cresce e esmaece) com a altura, sempre no chao por baixo dela.
+        const h = Math.max(0, b.y - 0.11), tam = 0.55 + 0.06 * h;
+        E.bola.position.set(b.x, BLOB_Y, b.z);
+        E.bola.scale.set(tam, tam, 1);
+        E.bola.material.opacity = Math.max(0.2, 0.95 - h * 0.08);
     },
 
     // Depois de o renderer e a luz existirem (e a meio do jogo): sombras, mapa e pixel ratio.
@@ -162,7 +204,7 @@ const Qualidade = {
         }
         // Sombra falsa: so quando nao ha mapa de sombras (e limpa os de corpos ja deitados fora).
         this._blobs = this._blobs.filter(function (m) { return m.parent; });
-        this._blobs.forEach(function (m) { m.visible = !c.sombras; });
+        this._blobs.forEach(function (m) { m.visible = !c.sombras && !window.semBlobsDebug; });
         if (window.relvaTufos) window.relvaTufos.visible = c.relvaTufos !== false;   // tufos de relva 3D (js/relva_tufos.js)
         const b = document.getElementById('btn-sombras');
         if (b) { b.innerText = 'Sombras: ' + (c.sombras ? 'ON' : 'OFF'); b.classList.toggle('active', c.sombras); }

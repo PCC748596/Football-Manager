@@ -485,8 +485,16 @@ Object.assign(Match, {
             // A SUBSTITUICAO: a camera vai para o lado OPOSTO a zona da troca (a lateral +X, onde estao os bancos e o 4.o arbitro) e olha para ela de lado: vê-se o banco, a placa, quem sai e quem
             // entra, e o campo logo a frente. Ver CameraSubstituicao (config/tactics.js). Passa pela mesma suavizacao das outras vistas (voa para la e volta).
             const CS = (typeof CameraSubstituicao !== 'undefined') ? CameraSubstituicao : { x: -46, y: 17, foco: { x: 34.4, y: 1.2, z: 0 } };
-            targetPos.set(CS.x, CS.y, 0);
-            lookTarget.set(CS.foco.x, CS.foco.y, CS.foco.z);
+            const SB = (typeof BancosDeReservas !== 'undefined' && BancosDeReservas.lado < 0) ? -1 : 1;
+            if (SB < 0 && CS.tv) {
+                // Banco no lado do tunel: a camera da TV Sideline padrao (lado +X), mais perto da zona da troca.
+                const fx = -Math.abs(CS.foco.x);
+                targetPos.set(fx + (CS.tv.x - fx) * CS.tv.zoom, CS.foco.y + (CS.tv.y - CS.foco.y) * CS.tv.zoom, CS.foco.z + (0 - CS.foco.z) * CS.tv.zoom);
+                lookTarget.set(fx, CS.foco.y, CS.foco.z);
+            } else {
+                targetPos.set(CS.x, CS.y, 0);
+                lookTarget.set(CS.foco.x, CS.foco.y, CS.foco.z);
+            }
         } else if (window.cameraMode === 'topdown') {
             const aspect = window.innerWidth / window.innerHeight;
             // Campo deitado: precisamos caber (CAMPO_COMP + margem) na horizontal e (CAMPO_LARG + margem) na vertical
