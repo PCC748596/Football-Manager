@@ -27,8 +27,8 @@ import { slotsVazios, jogoEmAndamento } from '../textSim/escalacao';
 import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico, gerarMedico } from '../textSim/medico';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
-import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, TETO_PONTOS_TREINO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, ENERGIA_SLOT_VAZIO, drainMultiplier, recoveryMultiplier, energiaPosLesao, energiaInicial, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
-import { campo3d, atributos3d, regredirPorIdade } from '../textSim/atributos3d';
+import { ACTIVITIES, cpuPlanoDoDia, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, XP_POR_PONTO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, ENERGIA_SLOT_VAZIO, drainMultiplier, recoveryMultiplier, energiaPosLesao, energiaInicial, definirNivelDoCt, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
+import { campo3d, atributos3d, regredirPorIdade, migrarTreinoParaXp } from '../textSim/atributos3d';
 import { GRUPOS } from '../textSim/geradorAtributos';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
@@ -954,6 +954,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
+  // O NIVEL DO CT de cada clube (pela liga, como o da base) limita ate onde o treino leva um atributo; registado durante o render para os atributos ja lerem o teto certo.
+  useMemo(() => { const niveis = new Map(teams.map(t => [t.id, nivelDaBaseDoClube(t)] as const)); definirNivelDoCt(id => niveis.get(id) ?? 2); }, [teams]);
+
+  // O TREINO EM XP: um save antigo guardava pontos (25 por nivel); converte-se uma vez sem perder os niveis ganhos. Jogadores novos so recebem a marca.
+  useEffect(() => {
+    if (!players.some(p => !p.treinoEmXp)) return;
+    setPlayers(prev => prev.map(p => {
+      if (p.treinoEmXp) return p;
+      const novo = migrarTreinoParaXp(p);
+      return novo ? { ...p, treino3d: novo, treinoEmXp: true } : { ...p, treinoEmXp: true };
+    }));
+  }, [players]);
+
   // O SNAPSHOT DE INICIO DE TEMPORADA (TEC/TAC/MEN/FIS do Squad e da ficha mostram o ganho do treino desde aqui): grava-se para quem ainda nao o tem (inicio, virada, contratacoes).
   useEffect(() => {
     if (!userTeam) return;
@@ -1299,7 +1312,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
               // Bonus TAC pos-jogo: pontos de treino em tacticalAwa escalados pela nota (BASE_TAC_XP * ratingToTacMultiplier) e pela exaustão.
               const t3 = { ...(p.treino3d || {}) };
-              t3.tacticalAwa = Math.min(TETO_PONTOS_TREINO, (t3.tacticalAwa || 0) + tacBonusDaNota(rating) * exaustaoMultiplier(p.energia ?? 100));
+              t3.tacticalAwa = (t3.tacticalAwa || 0) + tacBonusDaNota(rating) * exaustaoMultiplier(p.energia ?? 100) * XP_POR_PONTO;
               p.treino3d = t3;
               // Ajusta moral baseado na nota
               if (rating >= 8.5) p.morale = Math.min(100, p.morale + 10);
@@ -1382,7 +1395,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const t3 = { ...(p.treino3d || {}) };
           // Idade x Estrelas x Exaustao (energia do inicio do dia), como nos outros atributos.
           const multSkl = ageFactor * STAR_MULTIPLIERS[starsFromPotential(p.potential)] * exaustaoMultiplier(p.energia ?? 100);
-          for (const campo of Object.keys(gains.skl)) t3[campo] = Math.min(TETO_PONTOS_TREINO, (t3[campo] || 0) + gains.skl[campo] * multSkl);
+          for (const campo of Object.keys(gains.skl)) t3[campo] = (t3[campo] || 0) + gains.skl[campo] * multSkl * XP_POR_PONTO;   // XP (10 por ponto de valor da atividade)
           p.treino3d = t3;
           // Setas do MEN e do PHY (as do TEC/TAC vem do DEF/PAS/DRB/SHT): 1 seta por 1.5 pontos de foco nos atributos do grupo.
           const pontosGrupo = (campos: string[]) => campos.reduce((sum, c) => sum + (gains.skl[c] || 0) * multSkl, 0);

@@ -10,7 +10,7 @@ TEC, TAC e MEN seguem a QUALIDADE do jogador; o FIS e parecido num craque e num 
 */
 import dados from './atributos3d.json';
 import type { Player } from '../types';
-import { PONTOS_POR_ATRIBUTO, regressaoPorIdade } from './trainingService';
+import { niveisDeXp, xpDeNiveis, XP_POR_PONTO, regressaoPorIdade, tetoDoAtributo, tetoDoCt } from './trainingService';
 import { REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 import { PLAYSTYLE_DA_BASE } from './playStylesDatabase';
 import { NIVEL_MINIMO } from './dataGenerator';
@@ -59,7 +59,7 @@ export interface Atributos3D {
   /** Altura (cm) e peso (kg) do jogador, quando os dados do 3D os trazem. */
   altura?: number; peso?: number;
   /** Os campos do 3D (todos os jogadores) + `GK` (os atributos de baliza, so no goleiro). */
-  detalhe?: Record<GrupoAtributo, { campo: string; nome: string; valor: number }[]> & { GK?: { campo: string; nome: string; valor: number }[] };
+  detalhe?: Record<GrupoAtributo, { campo: string; nome: string; valor: number; base?: number }[]> & { GK?: { campo: string; nome: string; valor: number }[] };
   real: boolean;
 }
 
@@ -73,10 +73,10 @@ export const campo3d = (p: Player, campos: string[]): number => {
 
 const cache = new Map<string, Atributos3D>();
 
-/** Os pontos inteiros de treino de um atributo (a parte que ja conta). */
-const bonusTreino = (p: Player, campo: string): number => Math.floor(((p.treino3d && p.treino3d[campo]) || 0) / PONTOS_POR_ATRIBUTO);
+/** Os niveis inteiros que o XP de treino de um atributo ja comprou, a partir do valor base dele (a parte que ja conta). */
+const bonusTreino = (p: Player, campo: string, base: number): number => niveisDeXp(base, (p.treino3d && p.treino3d[campo]) || 0, tetoDoAtributo(p, base));
 /** Entra na chave do cache: o treino muda os atributos. */
-const assinaturaTreino = (p: Player): string => (p.treino3d ? Object.keys(p.treino3d).map(c => c + bonusTreino(p, c)).join(',') : '');
+const assinaturaTreino = (p: Player): string => (p.treino3d ? Object.keys(p.treino3d).map(c => c + Math.round(p.treino3d![c] || 0)).join(',') : '');
 
 /*
 O FISICO NO INICIO DA TEMPORADA: os dados de origem (3D e CountryData) trazem FIS medio ~62-66, baixo demais para atletas profissionais. A leitura sobe os sete campos fisicos (+FIS_SUBIDA, com
@@ -90,7 +90,7 @@ export const atributos3d = (p: Player): Atributos3D => {
   const id = String(p.id).replace(/^p-/, '');
   const linha = D.jogadores[id];
   // Os derivados dependem dos atributos que o treino mexe, da idade e do OVR: a chave inclui-os.
-  const chave = `${p.id}|${p.age}|${p.position}|${(p as any).playStyle || ''}|${p.def}|${p.pas}|${p.drb}|${p.sht}|${Math.round(p.skill)}|${assinaturaTreino(p)}`;
+  const chave = `${p.id}|${p.age}|${p.position}|${(p as any).playStyle || ''}|${p.def}|${p.pas}|${p.drb}|${p.sht}|${Math.round(p.skill)}|${tetoDoCt(p.teamId)}|${assinaturaTreino(p)}`;
   const c = cache.get(chave);
   if (c) return c;
   const b0 = baseDe(id);
@@ -101,13 +101,14 @@ export const atributos3d = (p: Player): Atributos3D => {
   const gerado = (guardados || linha) ? null : gerarAtributos(p.position, (p as any).playStyle || (PLAYSTYLE_DA_BASE as any)[String(p.id)], p.skill, String(p.id), { idade: p.age }).atributos;
   const dFis = b && b.idade ? curvaFisica(p.age) - curvaFisica(b.idade) : 0;
   const delta: Record<GrupoAtributo, number> = { TEC: 0, TAC: 0, MEN: 0, FIS: Math.round(dFis) };
-  const detalhe = {} as Record<GrupoAtributo, { campo: string; nome: string; valor: number }[]>;
+  const detalhe = {} as Record<GrupoAtributo, { campo: string; nome: string; valor: number; base?: number }[]>;
   const valores: Record<string, number> = {};
   for (const k of ORDEM_GRUPOS) {
     detalhe[k] = GRUPOS[k].map(campo => {
-      const valor = limitarAtributo((gerado ? gerado[campo] : (guardados ? guardados[campo] : linha![IDX[campo]]) + delta[k]) + bonusTreino(p, campo));
+      const baseBruta = gerado ? gerado[campo] : (guardados ? guardados[campo] : linha![IDX[campo]]) + delta[k];   // o atributo sem treino
+      const valor = limitarAtributo(baseBruta + bonusTreino(p, campo, baseBruta));
       valores[campo] = valor;
-      return { campo, nome: NOME_DO_CAMPO[campo] || campo, valor };
+      return { campo, nome: NOME_DO_CAMPO[campo] || campo, valor, base: baseBruta };
     });
   }
   // Fisico: sobe os dados de origem e limita a stamina ao FIS (ver FIS_SUBIDA).
@@ -187,9 +188,29 @@ export const regredirPorIdade = (p: Player): Record<string, number> | undefined 
       const queda = x.campo === 'stamina' ? q.STAMINA : q[k];
       const perda = Math.min(queda, Math.max(0, x.valor - 50));
       if (perda <= 0) continue;
-      t3[x.campo] = Math.floor((t3[x.campo] || 0) / PONTOS_POR_ATRIBUTO) * PONTOS_POR_ATRIBUTO - perda * PONTOS_POR_ATRIBUTO;
+      const base = typeof x.base === 'number' ? x.base : x.valor;
+      t3[x.campo] = xpDeNiveis(base, niveisDeXp(base, t3[x.campo] || 0, tetoDoAtributo(p, base)) - perda);   // niveis inteiros, cofre zerado
       mudou = true;
     }
   }
   return mudou ? t3 : undefined;
+};
+
+/**
+ * MIGRACAO de um save antigo: o `treino3d` era em pontos (25 pontos = +1 nivel); passa a XP sem perder os niveis ganhos (cada nivel vale o custo dele a partir da base) e
+ * converte o parcial a XP_POR_PONTO por ponto. Devolve `undefined` se o jogador nao tinha treino.
+ */
+export const migrarTreinoParaXp = (p: Player): Record<string, number> | undefined => {
+  const t3 = p.treino3d;
+  if (!t3 || !Object.keys(t3).length) return undefined;
+  const sem = atributos3d({ ...p, treino3d: {} });
+  const bases: Record<string, number> = {};
+  for (const k of ORDEM_GRUPOS) for (const x of sem.detalhe![k]) bases[x.campo] = typeof x.base === 'number' ? x.base : x.valor;
+  const novo: Record<string, number> = {};
+  for (const [campo, pontos] of Object.entries(t3)) {
+    const base = bases[campo] ?? 60;
+    const n = Math.floor(pontos / 25);
+    novo[campo] = xpDeNiveis(base, n) + (pontos - n * 25) * XP_POR_PONTO;
+  }
+  return novo;
 };

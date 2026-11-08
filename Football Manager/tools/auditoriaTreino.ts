@@ -4,7 +4,7 @@ Uso: npx tsx tools/auditoriaTreino.ts
 Reproduz as contas do GameContext.advanceDay (recuperacao diaria: +4 por periodo vazio, FIT + STM por sessao; pontos por atributo x fator de idade; PONTOS_POR_ATRIBUTO = +1)
 e os limites do TrainingView (2 usos por sessao e o teto por aba). Se mudar uma dessas contas la, mude aqui.
 */
-import { ACTIVITIES, TETO_PONTOS_TREINO, STAR_MULTIPLIERS, starsFromPotential, ENERGY_COST_BASE, drainMultiplier, ENERGIA_POR_PERIODO_LIVRE } from '../textSim/trainingService';
+import { ACTIVITIES, XP_POR_PONTO, STAR_MULTIPLIERS, starsFromPotential, ENERGY_COST_BASE, drainMultiplier, ENERGIA_POR_PERIODO_LIVRE } from '../textSim/trainingService';
 import { atributos3d, NOME_DO_CAMPO, campo3d } from '../textSim/atributos3d';
 import { GRUPOS } from '../textSim/geradorAtributos';
 import { generateLeagueData } from '../textSim/dataGenerator';
@@ -112,8 +112,8 @@ const simular = (plano: Plano, idade: number) => {
         // Apply stars multiplier to XP
         const starsMult = STAR_MULTIPLIERS[starsFromPotential(p.potential)];
         for (const i of ACTIVITIES.find(a => a.id === id)!.impacts) if (i.label === 'SKL' && i.campo) {
-          const xpFinal = i.value * FATOR_IDADE(p.age) * starsMult;
-          p.treino3d[i.campo] = Math.min(TETO_PONTOS_TREINO, (p.treino3d[i.campo] || 0) + xpFinal);
+          const xpFinal = i.value * FATOR_IDADE(p.age) * starsMult * XP_POR_PONTO;
+          p.treino3d[i.campo] = (p.treino3d[i.campo] || 0) + xpFinal;
           pts[i.campo] = (pts[i.campo] || 0) + i.value;
         }
       }

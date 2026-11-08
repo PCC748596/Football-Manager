@@ -201,7 +201,10 @@ export interface Player {
     fis?: number;
   };
   /** Pontos de treino por atributo do 3D (campo -> pontos; 100 pontos = +1 no atributo), somados em textSim/atributos3d.ts. */
+  /** XP acumulado por atributo do 3D (campo -> XP; ver textSim/trainingService.ts). */
   treino3d?: Record<string, number>;
+  /** true quando o `treino3d` ja esta em XP (saves antigos o tinham em pontos de 25 por nivel: o GameContext converte uma vez). */
+  treinoEmXp?: boolean;
   /** Season-start attribute values (treino3d snapshot at season start for delta display). */
   treino3dSeasonStart?: Record<string, number>;
   lastRating?: number;

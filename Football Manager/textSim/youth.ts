@@ -160,11 +160,47 @@ export const sortearPlayStyle = (pos: Position, rnd: Rnd): PlayStyle => {
 // Teto de OVR por idade: ninguem na base passa de 75 (aos 20); proporcional para os mais novos.
 // (aos 15 anos era 58: com o minimo de 60 (OVR_MIN_BASE) o teto tem de ficar acima dele, senao a evolucao mensal baixaria o jovem de volta; 62 deixa 60-62 aos 15)
 const OVR_MAX_IDADE: Record<number, number> = { 15: 62, 16: 63, 17: 67, 18: 70, 19: 73, 20: 75 };
-/** OVR minimo de um jovem ao ser gerado. */
-export const OVR_MIN_BASE = 60;
+/** OVR minimo de um jovem ao ser gerado (o minimo do jogo: a tabela da base chega a 40, mas e cortada em 50). */
+export const OVR_MIN_BASE = 50;
 const ovrMaxDaIdade = (idade: number) => OVR_MAX_IDADE[Math.max(IDADE_MIN, Math.min(IDADE_MAX, idade))];
 
-const sortearPotencial = (rnd: Rnd) => limitar(Math.round(50 + 49 * limitar(0.36 + normal(rnd) * 0.21, 0, 1)));
+/*
+TABELA DE GERACAO DA BASE: o NIVEL do centro de treinamento (1 a 5) define a chance de cada estrela; a estrela define a faixa do OVR INICIAL e do potencial.
+- Faixa de OVR por estrela (1 a 5): 40-50, 45-55, 50-60, 55-65, 60-70. O minimo e o OVR de um garoto de 16 anos e o maximo o de um de 20 (linear; aos 15 vale o de 16). O jogo nao tem OVR abaixo de 50,
+  entao a escala 40-70 e COMPRIMIDA para 50-70 (`50 + (OVR - 40) * 2/3`): a ordem e a diferenca entre as estrelas ficam, e ninguem e cortado em 50. O OVR nunca passa do potencial (ver `subirAteOPotencial`).
+- O potencial real sai uniforme dentro da faixa da estrela do jogo (1: 50-54, 2: 55-64, 3: 65-74, 4: 75-84, 5: 85-99), igual a `estrelasDePotencial`.
+- Ainda nao ha centro de treinamento no jogo: o nivel vem da liga (`nivelDaBaseDoClube`, dataGenerator.ts): 4 = Serie A do Brasil e a 1.a divisao da Europa; 3 = 1.a divisao da America do Sul;
+  2 = o resto. O nivel 4 tem 10% de craques (4 e 5 estrelas: 7% + 3%), o maximo.
+*/
+export const CHANCE_ESTRELAS_BASE: Record<number, number[]> = {
+  1: [60, 30, 9, 1, 0],
+  2: [50, 35, 12, 2.5, 0.5],
+  3: [40, 40, 15, 4, 1],
+  4: [20, 45, 25, 7, 3],
+  5: [5, 35, 40, 15, 5]
+};
+export const FAIXA_OVR_BASE: [number, number][] = [[40, 50], [45, 55], [50, 60], [55, 65], [60, 70]];
+const FAIXA_POTENCIAL_ESTRELA: [number, number][] = [[50, 54], [55, 64], [65, 74], [75, 84], [85, 99]];
+
+let nivelDaBaseDe: (teamId: string) => number = () => 3;
+/** O GameContext diz qual o nivel da base de cada clube (pela liga). Sem isto vale o nivel 3. */
+export const definirNivelDaBase = (fn: (teamId: string) => number) => { nivelDaBaseDe = fn; };
+
+/** A estrela (1 a 5) de um jovem novo, pela tabela do nivel. */
+export const sortearEstrelasBase = (nivel: number, rnd: Rnd): number => {
+  const linha = CHANCE_ESTRELAS_BASE[Math.max(1, Math.min(5, Math.round(nivel)))];
+  let r = rnd() * linha.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < 5; i++) { if (r < linha[i]) return i + 1; r -= linha[i]; }
+  return 1;
+};
+/** O OVR inicial pela estrela e pela idade (16 = minimo da faixa, 20 = maximo), com a escala 40-70 comprimida para 50-70 (o piso do jogo e 50). */
+export const ovrInicialBase = (estrelas: number, idade: number): number => {
+  const [mn, mx] = FAIXA_OVR_BASE[estrelas - 1];
+  const t = (Math.max(16, Math.min(20, idade)) - 16) / 4;
+  const v = mn + (mx - mn) * t;   // na escala da tabela (40 a 70)
+  return Math.max(OVR_MIN_BASE, Math.round(OVR_MIN_BASE + (v - 40) * (70 - OVR_MIN_BASE) / 30));
+};
+const sortearPotencial = (estrelas: number, rnd: Rnd) => { const [mn, mx] = FAIXA_POTENCIAL_ESTRELA[estrelas - 1]; return limitar(Math.round(mn + rnd() * (mx - mn))); };
 
 const subirAteOPotencial = (pos: Position, a: Record<Attr, number>, potencial: number) => {
   // O overall nunca passa do potencial: baixa o maior atributo ate caber.
@@ -178,9 +214,10 @@ const subirAteOPotencial = (pos: Position, a: Record<Attr, number>, potencial: n
 
 /** Gera um jovem do clube: `idade` de 15 a 20, na `posicao`, com o contrato assinado `hoje`. */
 export const gerarJovem = (teamId: string, posicao: Position, idade: number, hoje: string, rnd: Rnd, id: string, nome: string, camisa: number): Player => {
-  const potencial = sortearPotencial(rnd);
-  // A curva parte do OVR minimo da base (60), e nao de 50: o caminho ate o potencial e feito a partir de 60; com o piso a empurrar, quase todos os jovens de 15-16 anos ficavam em 60 exatos.
-  const alvo = OVR_MIN_BASE + (Math.max(potencial, OVR_MIN_BASE) - OVR_MIN_BASE) * limitar((FRACAO_FEITA[idade] ?? 0.6) + (rnd() - 0.5) * 0.12, 0.2, 0.95) + (rnd() - 0.5) * 3;
+  const estrelas = sortearEstrelasBase(nivelDaBaseDe(teamId), rnd);
+  const potencial = sortearPotencial(estrelas, rnd);
+  // O OVR inicial vem da tabela (estrela x idade); um pouco de ruido nos atributos, nao no OVR.
+  const alvo = ovrInicialBase(estrelas, idade);
   const tetoIdade = ovrMaxDaIdade(idade);
   const o = perfil(posicao);
   const a: Record<Attr, number> = { def: 0, pas: 0, drb: 0, sht: 0 };

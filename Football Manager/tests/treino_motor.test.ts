@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { regressaoPorIdade, chanceLesao, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, recoveryMultiplier, PONTOS_POR_ATRIBUTO } from '../textSim/trainingService';
+import { regressaoPorIdade, chanceLesao, rolouLesao, sessaoRolaLesao, exaustaoMultiplier, recoveryMultiplier, custoDoNivel, niveisDeXp, xpDeNiveis, tetoDoAtributo, folgaDeTreino, definirNivelDoCt, tetoDoCt } from '../textSim/trainingService';
 import { atributos3d, regredirPorIdade } from '../textSim/atributos3d';
 
 test('exaustao: faixas com >= (sem buracos)', () => {
@@ -55,5 +55,43 @@ test('regredirPorIdade: veterano perde niveis; jovem nao muda; nunca abaixo de 5
     assert.ok(x.valor >= 50, `${x.campo} >= 50`);
   }
   assert.ok(campos(depois).some(x => x.valor < campos(antes).find(y => y.campo === x.campo)!.valor), 'algum atributo caiu');
-  for (const v of Object.values(t3!)) assert.ok(v % PONTOS_POR_ATRIBUTO === 0, 'pontos parciais zerados');
+  for (const [campo, v] of Object.entries(t3!)) {
+    const base = campos(antes).find(y => y.campo === campo)!.base!;
+    assert.equal(v, xpDeNiveis(base, niveisDeXp(base, v)), 'cofre parcial zerado: ' + campo);
+  }
+});
+
+test('XP: custo do nivel (50->51 300, 70->71 500, 90->91 1100) e level up a partir da base', () => {
+  assert.equal(custoDoNivel(50), 300);
+  assert.equal(custoDoNivel(70), 500);
+  assert.equal(custoDoNivel(90), 1100);
+  assert.equal(niveisDeXp(70, 499), 0);
+  assert.equal(niveisDeXp(70, 500), 1);
+  assert.equal(niveisDeXp(70, 500 + custoDoNivel(71) - 1), 1);
+  assert.equal(niveisDeXp(70, 500 + custoDoNivel(71)), 2);
+  assert.equal(niveisDeXp(60, 1e9), 15, 'teto de +15 niveis');
+  assert.equal(niveisDeXp(95, 1e9), 4, 'nunca passa de 99');
+  for (const n of [-3, 0, 1, 5]) assert.equal(niveisDeXp(72, xpDeNiveis(72, n)), n, 'ida e volta ' + n);
+  assert.equal(niveisDeXp(72, -1), -1, 'um pedaco de nivel perdido ja conta');
+});
+
+test('teto de crescimento pelo potencial: a Serie D nao treina o OVR 68 ate 80', () => {
+  const profissional = { skill: 68, age: 24 };
+  assert.equal(folgaDeTreino(profissional), 2, 'sem potencial: a folga da idade (24 anos)');
+  assert.equal(folgaDeTreino({ skill: 68, age: 20 }), 5, 'aos 20 anos a folga e maior');
+  const teto = tetoDoAtributo(profissional, 68);
+  assert.equal(teto, 72, 'base + folga + margem');
+  assert.equal(68 + niveisDeXp(68, 1e9, teto), 72, 'mesmo com XP infinito nao passa do teto');
+  assert.equal(tetoDoAtributo({ skill: 80, age: 30 }, 97), 97, 'acima do teto do CT fica onde esta');
+  assert.equal(tetoDoAtributo({ skill: 60, age: 17, potential: 75 }, 60), 77, 'a base usa o potencial real: base + (75 - 60) + 2');
+});
+
+test('CT limita o treino: nivel 2 ate 80, 3 ate 85, 4 ate 90, 5 ate 95', () => {
+  const jovem = { skill: 60, age: 17, potential: 99, teamId: 'T' };
+  for (const [nivel, teto] of [[2, 80], [3, 85], [4, 90], [5, 95]] as const) {
+    definirNivelDoCt(() => nivel);
+    assert.equal(tetoDoCt('T'), teto);
+    assert.equal(tetoDoAtributo(jovem, 60), teto, 'o CT nivel ' + nivel + ' limita a ' + teto);
+  }
+  definirNivelDoCt(() => 3);
 });

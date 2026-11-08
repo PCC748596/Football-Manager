@@ -2,10 +2,63 @@
 /** Minutos de "jogar junto" que cada ponto de impacto CHE (ex.: Analysis) soma a cada par de jogadores do grupo: o Chemistry (textSim/quimica.ts) sobe com eles. */
 export const MINUTOS_POR_PONTO_CHE = 60;
 
-/** Pontos de treino que valem +1 num atributo do 3D (Player.treino3d). Calibrado com tools/auditoriaTreino.ts: uma sessao 2x por semana numa temporada de 38 semanas da ~+3. */
-export const PONTOS_POR_ATRIBUTO = 25;
-/** Teto de pontos de treino por atributo (+15 no atributo). */
-export const TETO_PONTOS_TREINO = 15 * PONTOS_POR_ATRIBUTO;
+/*
+SISTEMA DE XP DO TREINO (atributos do 3D, `Player.treino3d`: campo -> XP acumulado, nao e mais "pontos"):
+- Ganho: cada atividade tem um valor por atributo (chip SKL, ex.: 1.0). XP do slot = XP_POR_PONTO (10, o Centro de Treinamento nivel 3, padrao; o jogo ainda nao tem CT) x valor x idade x estrelas x exaustao.
+- Custo: subir um atributo de N para N+1 custa `custoDoNivel(N) = 300 + 0.5 x (N - 50)^2` XP (50->51: 300; 70->71: 500; 90->91: 1100). Quanto mais alto, mais caro.
+- Level up: o XP acumulado compra niveis a partir do valor BASE do atributo (o que ele tem sem treino); o que sobra e o cofre do proximo nivel. Teto de +15 niveis e de 99.
+- Regressao por idade: tira niveis inteiros e zera o cofre parcial (XP negativo = niveis perdidos abaixo da base, ao custo do nivel de baixo).
+*/
+export const XP_POR_PONTO = 10;
+/** Teto de niveis ganhos so por treino num atributo. */
+export const NIVEIS_MAX_TREINO = 15;
+/** XP para subir um atributo de `n` para `n + 1`. */
+export const custoDoNivel = (n: number): number => 300 + 0.5 * (Math.max(50, n) - 50) ** 2;
+/*
+O TETO DE CRESCIMENTO: o treino so leva um atributo `folga + MARGEM_ATRIBUTO` niveis acima de onde ele esta (a base, sem treino). A folga e o que falta ao jogador para o potencial (OVR): o da base tem
+potencial real (`Player.potential`, folga = potencial - OVR); o profissional nao tem e leva a folga da idade (`folgaDeCrescimento`: ~+1 no auge, +4 aos 20 anos). Sem isto um time da Serie D treinaria os
+jogadores de OVR 66-70 ate 80 e viraria time de Serie A, e a liga inteira subiria para 90. Medido: com XP infinito em todos os atributos a media da liga sobe so ~+4 a +6 (ver tools/auditoriaTreino.ts).
+*/
+export const MARGEM_ATRIBUTO = 2;
+/** A folga de crescimento de um profissional, em OVR: 0,6 por ano abaixo de 26 anos, mais 1 (nunca zero: quem esta no auge ainda lapida). */
+export const folgaDeCrescimento = (idade: number): number => Math.round(Math.max(0, 26 - idade) * 0.6) + 1;
+/** Quanto o jogador ainda pode crescer em OVR: o potencial real menos o OVR (base) ou, sem potencial, a folga da idade. */
+export const folgaDeTreino = (p: { skill: number; age: number; potential?: number }): number =>
+  typeof p.potential === 'number' ? Math.max(0, p.potential - p.skill) : folgaDeCrescimento(p.age);
+/*
+O CENTRO DE TREINAMENTO (CT) LIMITA ATE ONDE O TREINO LEVA UM ATRIBUTO: nivel 2 ate 80, nivel 3 ate 85, nivel 4 ate 90, nivel 5 ate 95 (o nivel 1, sem pedido, vale 75). O jogo ainda nao tem CT: o nivel vem da
+liga do clube, como o da base (`nivelDaBaseDoClube`: 4 = Serie A do Brasil e 1.a da Europa, 3 = 1.a da America do Sul, 2 = o resto), registado pelo GameContext com `definirNivelDoCt`. Um atributo que ja
+esta acima do teto do CT fica onde esta (so nao cresce mais).
+*/
+export const TETO_POR_CT: Record<number, number> = { 1: 75, 2: 80, 3: 85, 4: 90, 5: 95 };
+let nivelDoCtDe: (teamId: string) => number = () => 3;
+/** O GameContext diz qual o nivel do CT de cada clube. Sem isto vale o nivel 3. */
+export const definirNivelDoCt = (fn: (teamId: string) => number) => { nivelDoCtDe = fn; };
+/** Ate que valor o CT do clube deixa treinar um atributo. */
+export const tetoDoCt = (teamId?: string): number => TETO_POR_CT[Math.max(1, Math.min(5, Math.round(teamId === undefined ? 3 : nivelDoCtDe(teamId))))];
+/** O maior valor que o treino leva um atributo de `base`: base + folga + margem, limitado pelo CT e por 99; nunca abaixo da base. */
+export const tetoDoAtributo = (p: { skill: number; age: number; potential?: number; teamId?: string }, base: number): number =>
+  Math.min(99, Math.max(base, Math.min(Math.round(base + folgaDeTreino(p) + MARGEM_ATRIBUTO), tetoDoCt(p.teamId))));
+
+/** Niveis (inteiros, negativos se perdeu) que um XP acumulado vale a partir do valor base do atributo, ate o `teto` (99 por omissao). */
+export const niveisDeXp = (base: number, xp: number, teto = 99): number => {
+  let n = 0;
+  if (xp >= 0) {
+    let r = xp;
+    while (n < NIVEIS_MAX_TREINO && base + n < teto && r >= custoDoNivel(base + n)) { r -= custoDoNivel(base + n); n++; }
+    return n;
+  }
+  let r = -xp;
+  while (r > 0 && n > -60) { n--; r -= custoDoNivel(base + n); }   // uma parte de nivel perdida ja conta como nivel perdido
+  return n;
+};
+/** O XP exato de `n` niveis a partir da base (cofre zerado): o contrario de `niveisDeXp`. */
+export const xpDeNiveis = (base: number, n: number): number => {
+  let x = 0;
+  if (n >= 0) for (let i = 0; i < n; i++) x += custoDoNivel(base + i);
+  else for (let i = 1; i <= -n; i++) x -= custoDoNivel(base - i);
+  return x;
+};
 
 /** Stars (1-5) → XP multiplier. Derived from Player.potential or .potentialEstimate. */
 export const STAR_MULTIPLIERS = {
@@ -16,14 +69,14 @@ export const STAR_MULTIPLIERS = {
   5: 1.4    // ⭐⭐⭐⭐⭐
 };
 
-/** Stars from potential (50-99): convert potential to 1-5 stars. */
+/** Stars from potential (50-99). Same cuts as the Sub-20 display (`estrelasDePotencial`, youth.ts): 50-54 = 1, 55-64 = 2, 65-74 = 3, 75-84 = 4, 85+ = 5. */
 export const starsFromPotential = (potential?: number): number => {
   if (!potential) return 3;
-  if (potential <= 55) return 1;
-  if (potential <= 65) return 2;
-  if (potential <= 80) return 3;
-  if (potential <= 90) return 4;
-  return 5;
+  if (potential >= 85) return 5;
+  if (potential >= 75) return 4;
+  if (potential >= 65) return 3;
+  if (potential >= 55) return 2;
+  return 1;
 };
 
 /** XP penalty for low energy. Energia > 75%: 1.0x, 50-74%: 0.8x, 25-49%: 0.5x, < 25%: 0.1x. */
@@ -96,7 +149,7 @@ export const ratingToTacMultiplier = (rating: number): number => {
   return 1.2 + ((rating - 8) / 2) * 0.1;
 };
 
-/** Pontos de treino base em tacticalAwa (Player.treino3d) ganhos por partida, escalados por ratingToTacMultiplier(nota). Nota 8.0 = +6, nota 4.0 = +2.5. */
+/** Pontos (x XP_POR_PONTO = XP) de treino base em tacticalAwa (Player.treino3d) ganhos por partida, escalados por ratingToTacMultiplier(nota). Nota 8.0 = +6, nota 4.0 = +2.5. */
 export const BASE_TAC_XP = 5;
 
 /** Bonus TAC pos-jogo (pontos de treino em tacticalAwa) para uma nota 0-10. */
