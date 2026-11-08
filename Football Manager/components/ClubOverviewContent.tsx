@@ -1,7 +1,7 @@
 import React from 'react';
 import { Team, Player, League } from '../types';
 import { TeamShield } from './TeamShield';
-import { TeamKit } from './TeamKit';
+import { UniformeCorpo3D } from './UniformeCorpo3D';
 import { PlayerFace3D } from './PlayerFace3D';
 import { useGame } from '../context/GameContext';
 import { BoardExpectationBox, calcularExpectativa } from './BoardExpectationBox';
@@ -61,8 +61,8 @@ export const ClubOverviewContent: React.FC<Props> = ({ team, leagueName, leagueT
       <div className={`${painel} px-0 pt-[2px] pb-0`}>
         <div className="text-[10px] font-black text-white/60 uppercase tracking-widest leading-none mb-0 px-2">Kits</div>
         <div className="flex flex-wrap justify-center gap-x-0 gap-y-0 -mt-[10px] -mb-[11px]">
-          {([0, 1, 2] as const).map(k => <TeamKit key={k} team={team} kitIndex={k} className="w-[66px] h-[85px]" number={10} />)}
-          <TeamKit team={team} gk className="w-[66px] h-[85px]" number={1} />
+          {([0, 1, 2] as const).map(k => <UniformeCorpo3D key={k} team={team} kitIndex={k} className="w-[66px] h-[75px]" number={9} />)}
+          <UniformeCorpo3D team={team} gk className="w-[66px] h-[75px]" number={1} />
         </div>
       </div>
       <div className={`${painel} p-3`}>

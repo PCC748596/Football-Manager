@@ -7,6 +7,7 @@ import ActivityModal from './ActivityModal';
 import { TeamShield } from './TeamShield';
 import { PlayerFace3D } from './PlayerFace3D';
 import { ShirtIcon } from './ShirtIcon';
+import { UniformeCorpo3D } from './UniformeCorpo3D';
 import EnergyBar, { energiaDe } from './EnergyBar';
 import BoardConfidenceCard from './BoardConfidenceCard';
 import { COUNTRIES } from '../textSim/dataGenerator';
@@ -233,18 +234,12 @@ const ClubDetailsCard: React.FC<{ team: Team, t: any, title: string, isOpponent?
         <>
             <h3 className="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-3">{title}</h3>
             
-            <div className="flex justify-center gap-2 mb-[3px]">
-               {[0, 1, 2].map(idx => {
-                  const d = getKitDetails(team, idx as any);
-                  return <ShirtIcon key={idx} color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={d.horizontal} multipleDiagonals={d.multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} collarColor={d.clc} number="9" numberColor={d.nc} numberOutlineColor={d.noc} sleeveColor={d.sc} shortColor={kitShorts(d).cor} shortTrimColor={kitShorts(d).aba} scale={1.5} className="w-20" />;
-               })}
-               {(() => {
-                    const d = getGKKitDetails(team, 0, 0, userTeam);
-                    return <ShirtIcon color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} horizontal={d.horizontal} multipleDiagonals={d.multipleDiagonals} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes} gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} diagonalWidth={d.diagonalWidth} collarColor={d.clc} number="1" numberColor={d.nc} numberOutlineColor={d.noc} sleeveColor={d.sc} shortColor={kitShorts(d, false).cor} shortTrimColor={kitShorts(d, false).aba} scale={1.5} longSleeves={true} className="w-20" />;
-               })()}
+            <div className="flex justify-center -space-x-10 mb-[3px]">
+               {([0, 1, 2] as const).map(idx => <UniformeCorpo3D key={idx} team={team} kitIndex={idx} className="w-[140px] h-[159px]" number={9} />)}
+               <UniformeCorpo3D team={team} gk oponente={userTeam} className="w-[140px] h-[159px]" number={1} />
             </div>
 
-            <div className="grid grid-cols-2 gap-y-3 gap-x-2 mt-2">
+            <div className="grid grid-cols-2 gap-y-0 gap-x-2 mt-2">
                <div>
                   <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">Founded</div>
                   <div className="text-[14px] text-slate-800 dark:text-white font-black">{team.foundedYear}</div>

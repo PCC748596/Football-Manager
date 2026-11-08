@@ -301,8 +301,8 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
     const xis = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>;
     return (
       <div className={`rounded-xl border px-3 py-[4.5px] flex flex-wrap items-center gap-x-5 gap-y-3 ${resp ? 'border-amber-500/60 bg-slate-100/50 dark:bg-[#0e182c]' : 'border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0e182c]'}`}>
-        {/* Esquerda: foto, escudo, nome e clube, valor de mercado, rodada */}
-        <div className="flex items-center gap-3 min-w-0">
+        {/* Esquerda: foto, escudo, nome e clube, valor de mercado, rodada. Largura FIXA: o divisor e a coluna da direita ficam alinhados em todos os cards, seja qual for o tamanho do nome. */}
+        <div className="flex items-center gap-3 min-w-0 w-[390px] shrink-0">
           <div className="w-[72px] h-[72px] overflow-hidden shrink-0">{jog ? <PlayerFace3D playerId={jog.id} team={outroClube} gk={jog.position === 'GK'} camisa={outroClube?.primaryColor} className="w-full h-full" /> : null}</div>
           {outroClube ? <TeamShield team={outroClube} className="w-12 h-14 shrink-0" /> : null}
           <div className="min-w-0">

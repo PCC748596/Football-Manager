@@ -27,7 +27,7 @@ A FOTO EM 3D DO JOGADOR — a cabeca e os ombros do modelo REAL do jogo (cabecap
 O penteado, a barba e os oculos sao exatamente os do 3D. Um unico iframe escondido atende todos os pedidos (em fila); enquanto a imagem nao chega (ou se o 3D falhar) aparece a cara desenhada de sempre.
 */
 const cache = new Map<string, string>();
-const fila: { chave: string; id: string; camisa: string; graus: number; uniforme?: any; fim: (url: string) => void }[] = [];
+const fila: { chave: string; msg: Record<string, any>; fim: (url: string) => void }[] = [];
 let iframe: HTMLIFrameElement | null = null;
 let pronto = false, ocupado = false, contador = 0;
 let atualReq = -1, atualItem: (typeof fila)[number] | null = null;
@@ -37,7 +37,7 @@ const proximo = () => {
   const item = fila.shift()!;
   if (cache.has(item.chave)) { item.fim(cache.get(item.chave)!); proximo(); return; }
   ocupado = true; atualReq = ++contador; atualItem = item;
-  iframe.contentWindow.postMessage({ tipo: 'cabeca', req: atualReq, id: item.id, camisa: item.camisa, graus: item.graus, uniforme: item.uniforme }, '*');
+  iframe.contentWindow.postMessage({ ...item.msg, req: atualReq }, '*');
 };
 
 const garantirIframe = () => {
@@ -60,6 +60,17 @@ const garantirIframe = () => {
   document.body.appendChild(iframe);
 };
 
+/** Pede uma imagem ao renderizador 3D (em fila, com cache pela `chave`). `msg` e a mensagem da pagina (`tipo` 'cabeca' ou 'corpo'). Devolve a funcao que cancela. */
+export const pedirImagem3D = (chave: string, msg: Record<string, any>, fim: (url: string) => void): (() => void) => {
+  if (cache.has(chave)) { fim(cache.get(chave)!); return () => {}; }
+  let vivo = true;
+  garantirIframe();
+  fila.push({ chave, msg, fim: u => { if (vivo) fim(u); } });
+  proximo();
+  return () => { vivo = false; };
+};
+export const imagem3DEmCache = (chave: string) => cache.get(chave) || '';
+
 export const PlayerFace3D: React.FC<Props> = ({ playerId, camisa = '#475569', graus = 20, uniforme: uniformeProp, chaveUniforme: chaveProp = '', team, gk = false, kitIdx = 0, className = '' }) => {
   // Com o clube, o kit 1 (ou o de goleiro) dele; a camisa e o uniforme vao para o 3D.
   const kit = team ? (gk ? getGKKitDetails(team, kitIdx, 0) : getKitDetails(team, kitIdx)) : null;
@@ -71,11 +82,7 @@ export const PlayerFace3D: React.FC<Props> = ({ playerId, camisa = '#475569', gr
   useEffect(() => {
     if (cache.has(chave)) { setUrl(cache.get(chave)!); return; }
     setUrl('');
-    let vivo = true;
-    garantirIframe();
-    fila.push({ chave, id: playerId, camisa, graus, uniforme, fim: u => { if (vivo) setUrl(u); } });
-    proximo();
-    return () => { vivo = false; };
+    return pedirImagem3D(chave, { tipo: 'cabeca', id: playerId, camisa, graus, uniforme }, setUrl);
   }, [chave]);
   if (!url) return <PlayerFace playerId={playerId} camisa={camisa} className={className} />;
   return <img src={url} alt="" className={className} style={{ objectFit: 'contain', transform: 'translateY(10px)' }} />;
