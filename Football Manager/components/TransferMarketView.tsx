@@ -300,10 +300,10 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
     const seta = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>;
     const xis = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>;
     return (
-      <div className={`rounded-xl border p-3 flex flex-wrap items-center gap-x-5 gap-y-3 ${resp ? 'border-amber-500/60 bg-slate-100/50 dark:bg-[#0e182c]' : 'border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0e182c]'}`}>
+      <div className={`rounded-xl border px-3 py-[4.5px] flex flex-wrap items-center gap-x-5 gap-y-3 ${resp ? 'border-amber-500/60 bg-slate-100/50 dark:bg-[#0e182c]' : 'border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0e182c]'}`}>
         {/* Esquerda: foto, escudo, nome e clube, valor de mercado, rodada */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-[72px] h-[72px] rounded-lg overflow-hidden bg-slate-800 shrink-0 border border-slate-700">{jog ? <PlayerFace3D playerId={jog.id} team={outroClube} gk={jog.position === 'GK'} camisa={outroClube?.primaryColor} className="w-full h-full" /> : null}</div>
+          <div className="w-[72px] h-[72px] overflow-hidden shrink-0">{jog ? <PlayerFace3D playerId={jog.id} team={outroClube} gk={jog.position === 'GK'} camisa={outroClube?.primaryColor} className="w-full h-full" /> : null}</div>
           {outroClube ? <TeamShield team={outroClube} className="w-12 h-14 shrink-0" /> : null}
           <div className="min-w-0">
             <div className={`text-xl font-black text-slate-900 dark:text-white leading-tight truncate ${jog ? 'cursor-pointer hover:text-blue-500 dark:hover:text-blue-400' : ''}`} title={jog ? 'Open player overview' : undefined} onClick={jog ? () => setModalNegId(n.id) : undefined}>{nomeJogador(n.playerId)} {n.origem === 'BASE' && <span className="text-[10px] font-black bg-violet-600 text-white px-1.5 rounded align-middle">U20</span>}</div>
@@ -394,6 +394,8 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
       {rotulo}{k && ordemMeus.k === k && <span className="ml-1 text-blue-500">{ordemMeus.dir === 1 ? '▲' : '▼'}</span>}
     </th>
   );
+  // A foto do jogador (3D) sem moldura, para as listas (financas e meus jogadores): com o uniforme do clube onde ele joga agora.
+  const rostoDe = (jogadorId: string, clube?: Team) => <div className="w-[56px] h-[56px] shrink-0 overflow-hidden"><PlayerFace3D playerId={jogadorId} team={clube} camisa={clube?.primaryColor} className="w-full h-full" /></div>;
   const meusAba = (
     <div className="flex-1 bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col shadow-xl min-h-0">
       <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 text-xs font-bold uppercase tracking-widest text-slate-500">List a player for sale to invite offers. Listing does not transfer anyone: you accept, refuse or counter each offer. Sub-20 players aged {CONFIG_MERCADO.idadeMinimaBase}+ can be listed too.</div>
@@ -405,7 +407,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
               const ofertas = mercado.negociacoes.filter(n => n.playerId === p.id && n.vendedorId === meuId && ESTADOS_ATIVOS.includes(n.estado)).length;
               return (
                 <tr key={p.id}>
-                  <td className="px-3 py-2 font-bold text-sm text-slate-800 dark:text-slate-100 whitespace-nowrap">{p.name} {origem === 'BASE' && <span className="text-[10px] font-black bg-violet-600 text-white px-1.5 rounded">U20</span>}</td>
+                  <td className="px-3 py-1 font-bold text-sm text-slate-800 dark:text-slate-100 whitespace-nowrap"><div className="flex items-center gap-2">{rostoDe(p.id, userTeam)}<span>{p.name} {origem === 'BASE' && <span className="text-[10px] font-black bg-violet-600 text-white px-1.5 rounded">U20</span>}</span></div></td>
                   <td className="px-3 py-2 text-sm text-slate-500">{p.age}</td>
                   <td className="px-3 py-2 text-xs font-black text-slate-500">{p.position}</td>
                   <td className="px-3 py-2 text-sm font-black text-blue-500">{p.skill}</td>
@@ -440,7 +442,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
             {minhasTx.map(t => (
               <tr key={t.id}><td className="px-3 py-2 text-xs text-slate-500">{dataCurta(t.data)}</td>
                 <td className="px-3 py-2 text-xs font-black uppercase">{t.natureza === 'COMPRA' ? <span className="text-rose-400">Purchase</span> : t.natureza === 'VENDA' ? <span className="text-emerald-400">Sale</span> : <span className="text-sky-400">Free agent</span>}</td>
-                <td className="px-3 py-2 text-sm font-bold text-slate-700 dark:text-slate-200">{t.jogadorNome}</td><td className="px-3 py-2 text-sm text-slate-500">{nomeClube(t.contraparteId)}</td>
+                <td className="px-3 py-1 text-sm font-bold text-slate-700 dark:text-slate-200"><div className="flex items-center gap-2">{rostoDe(t.jogadorId, t.natureza === 'VENDA' ? porId.get(t.contraparteId) : userTeam)}<span>{t.jogadorNome}</span></div></td><td className="px-3 py-2 text-sm text-slate-500">{nomeClube(t.contraparteId)}</td>
                 <td className="px-3 py-2 font-mono text-sm font-black">{t.natureza === 'COMPRA' ? '−' : t.natureza === 'VENDA' ? '+' : ''}{formatCurrency(t.valor)}</td>
                 <td className="px-3 py-2 font-mono text-xs text-slate-500">{formatCurrency(t.saldoAntes)}</td><td className="px-3 py-2 font-mono text-xs text-slate-500">{formatCurrency(t.saldoDepois)}</td></tr>
             ))}
@@ -451,7 +453,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
         <div className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 border-b border-slate-200 dark:border-slate-800">Latest moves in the market</div>
         <div className="divide-y divide-slate-100 dark:divide-slate-800/30">
           {mercado.historico.slice(-25).reverse().map(m => (
-            <div key={m.id} className="px-4 py-2 text-sm flex justify-between gap-3"><span className="text-slate-700 dark:text-slate-200"><b>{m.jogadorNome}</b> • {nomeClube(m.de)} → {nomeClube(m.para)}{m.tipo === 'DISPENSA' ? ' (released)' : ''}</span><span className="font-mono text-slate-500 whitespace-nowrap">{dataCurta(m.data)} • {m.valor ? formatCurrencyShort(m.valor) : 'free'}</span></div>
+            <div key={m.id} className="px-4 py-2 text-sm flex justify-between gap-3"><span className="text-slate-700 dark:text-slate-200 flex items-center gap-2">{rostoDe(m.jogadorId, porId.get(m.para))}<span><b>{m.jogadorNome}</b> • {nomeClube(m.de)} → {nomeClube(m.para)}{m.tipo === 'DISPENSA' ? ' (released)' : ''}</span></span><span className="font-mono text-slate-500 whitespace-nowrap">{dataCurta(m.data)} • {m.valor ? formatCurrencyShort(m.valor) : 'free'}</span></div>
           ))}
           {!mercado.historico.length && <div className="p-6 text-center text-slate-400 text-sm font-bold uppercase tracking-widest">No moves yet</div>}
         </div>

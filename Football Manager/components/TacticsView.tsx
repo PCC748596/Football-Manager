@@ -680,7 +680,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         return (
                             <div key={idx} onDragOver={(e) => e.preventDefault()} onClick={() => tocarNoCampo(idx)} onDrop={(e) => handleDropToLineup(e.dataTransfer.getData("playerId"), idx)} className={`absolute flex flex-col items-center justify-center w-24 h-24 transition-all duration-500 z-10 ${player && selecionado === player.id ? 'ring-4 ring-blue-400 rounded-xl bg-blue-400/20' : ''}`} style={{ ...(postos && postos[idx] ? emCampo(postos[idx].x, postos[idx].z) : { left: `${pos.x}%`, top: `${pos.y}%` }), transform: `translate(-50%, calc(-50% + ${pos.label === 'GK' ? 20 : 0}px)) scale(0.8)`, opacity: isRed ? 0.2 : 1 }}>
                                 <div className="relative">
-                                    <div className={`absolute top-1/2 ${player && userTeam.tactics.playerFacesOn !== false ? '-translate-y-[calc(50%+7px)]' : '-translate-y-1/2'} -left-10 bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded-md shadow-sm z-10`}>
+                                    <div className={`absolute top-1/2 ${player && userTeam.tactics.playerFacesOn !== false ? '-translate-y-[calc(50%+7px)]' : '-translate-y-1/2'} -left-[35px] bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded-md shadow-sm z-10`}>
                                         <span className="text-[17px] font-black text-slate-500 dark:text-slate-400 uppercase leading-none block">{pos.label}</span>
                                     </div>
                                     <div draggable={!!player} onDragStart={(e) => e.dataTransfer.setData("playerId", player?.id || "")} style={player ? undefined : { filter: 'brightness(0.28) saturate(0.5)' }} className={`relative flex flex-col items-center group mt-[13px] ${player ? 'cursor-grab active:cursor-grabbing' : 'animate-pulse'}`}>
@@ -725,7 +725,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                 </div>
                                 <div className="mt-[13px] flex items-center gap-1">
                                 <div className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-0.5 rounded-md shadow-sm max-w-[120px] relative">
-                                    {player && userTeam.tactics.playingStylesOn !== false && <IconeEstilo estilo={estiloDoJogador(player)} tam={34} className={`absolute -left-11 top-1/2 -translate-y-1/2 ${['AM', 'LW', 'RW', 'CB'].includes(pos.label) ? '-mt-[10px]' : ''}`} />}
+                                    {player && userTeam.tactics.playingStylesOn !== false && <IconeEstilo estilo={estiloDoJogador(player)} tam={34} className={`absolute -left-[40px] top-1/2 -translate-y-1/2 ${['AM', 'LW', 'RW', 'CB'].includes(pos.label) ? '-mt-[10px]' : ''}`} />}
                                     {player && (
                                         <div className="absolute -top-[12px] left-1/2 -translate-x-1/2 w-14">
                                             <EnergyBar energy={energiaDe(player)} className="h-2" />
@@ -952,10 +952,12 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                             <span className="text-[9px] font-black uppercase tracking-wider text-blue-400 text-center leading-tight">{r.label}</span>
                             {pl ? (
                                 <div draggable onDragStart={(e) => e.dataTransfer.setData("playerId", pl.id)} className="relative flex flex-col items-center cursor-grab active:cursor-grabbing">
-                                    <ShirtIcon color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes}
+                                    {userTeam.tactics.playerFacesOn !== false ? (
+                                        <div className="w-[60px] h-[60px] pointer-events-none"><PlayerFace3D playerId={pl.id} team={userTeam} kitIdx={kitDeCampo} gk={pl.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
+                                    ) : <ShirtIcon color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes}
                                         gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} horizontal={(d as any).horizontal}
                                         multipleDiagonals={(d as any).multipleDiagonals} diagonalWidth={d.diagonalWidth} number={pl.shirtNumber} numberColor={d.nc} collarColor={d.clc}
-                                        numberOutlineColor={d.noc} sleeveColor={d.sc} scale={0.8} longSleeves={pl.position === Position.GK} />
+                                        numberOutlineColor={d.noc} sleeveColor={d.sc} scale={0.8} longSleeves={pl.position === Position.GK} />}
                                     <span className="text-[9px] font-black text-slate-500 dark:text-slate-300 uppercase truncate max-w-full leading-tight">{pl.name.split(' ').pop()}</span>
                                     <span className="text-[10px] font-black text-amber-500 leading-none">{r.attr.rotulo} {r.attr.valor(pl)}</span>
                                     <button onClick={() => assignSetPiece(r.role, undefined)} title="Remove" className="absolute top-1/2 -translate-y-1/2 -right-5 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>
