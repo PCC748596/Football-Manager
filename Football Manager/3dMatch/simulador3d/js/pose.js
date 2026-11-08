@@ -57,6 +57,8 @@ quadrado de 200 x 200, escaladas para o canvas. `kit` = { c1, c2, c3, diagonal, 
 dualDiagonal, centerVerticalStripes, gradient, spfcStripes, criciumaStripes } (ver uniformeDoKit em simulador3dCliente.ts).
 E assim que o uniforme do 3D fica igual ao que o utilizador escolheu: o 3D nao reinterpreta o kit, copia o desenho.
 */
+// As listas horizontais da camisa (canvas de 200): a 1.a comeca em `inicio`, repetem-se a cada `passo` e tem `altura` de espessura. A manga usa as mesmas posicoes (o centro de cada lista), com espessura propria por lista (`ALTURA_LISTA_MANGA`: 30, 22).
+const LISTAS_HORIZONTAIS = { inicio: 20, passo: 60, altura: 25 };
 function pintarKitComoIcone(ctx, largura, altura, kit) {
     const c1 = kit.c1, c2 = kit.c2, c3 = kit.c3;
     ctx.save();
@@ -87,7 +89,7 @@ function pintarKitComoIcone(ctx, largura, altura, kit) {
     } else if (kit.spfcStripes && c2 && c3) {
         rect(0, 120, 190, 15, c2); rect(0, 140, 190, 15, c3);
     } else if (kit.horizontal && c2) {
-        for (let y = 20; y < 200; y += 60) rect(0, y, 200, 25, c2);
+        for (let y = LISTAS_HORIZONTAIS.inicio; y < 200; y += LISTAS_HORIZONTAIS.passo) rect(0, y, 200, LISTAS_HORIZONTAIS.altura, c2);
     } else if (hasTri) {
         for (let x = -22.5; x < 200; x += 56) {
             rect(x + 21, 0, 7, 200, c2); rect(x + 28, 0, 21, 200, c3); rect(x + 49, 0, 7, 200, c2);
@@ -692,7 +694,33 @@ function construirCorpo(corCamisa, corCalcao, aparencia, uniforme, leve) {
         });
         mangaTricolorMat = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(cv), roughness: 0.9 });
     }
-    const mangaMat = corManga ? new THREE.MeshStandardMaterial({ color: corManga, roughness: 0.9 }) : (mangaTricolorMat || shirtMat);
+    /*
+    A MANGA DA CAMISA DE LISTAS HORIZONTAIS (Portuguesa-SP): as listas da manga acompanham as do peito, a mesma altura. A textura da camisa esticada no braco dava listas em outro sitio e de outra
+    espessura. Aqui a manga tem a sua textura, com as listas do `pintarKitComoIcone` (canvas 200: c2 em y 20-45, 80-105, 140-165, de cima do peito para baixo) convertidas para a altura do peito:
+    o peito tem 1.5 de altura (topo em +0.75, texture de cima para baixo) e a manga curta cobre y = 0.0 a 0.78 do peito (ombro em 0.75; o braco desce 0.5 + a manga 0.75 + 0.03 de folga no topo).
+    */
+    let mangaListradaMat = null;
+    const kitH = (pecaCamisa && pecaCamisa.padrao === 'kit' && pecaCamisa.kit && pecaCamisa.kit.horizontal && pecaCamisa.kit.c2) ? pecaCamisa.kit : null;
+    if (kitH && !corManga && !mangaComprida) {
+        const TOPO_MANGA = 0.78, BASE_MANGA = 0.0, ALTURA_PEITO = 1.5, TOPO_PEITO = 0.75;
+        const cv = document.createElement('canvas'); cv.width = 64; cv.height = 256;
+        const cx = cv.getContext('2d');
+        cx.fillStyle = kitH.c1; cx.fillRect(0, 0, 64, 256);
+        cx.fillStyle = kitH.c2;
+        for (let ty = LISTAS_HORIZONTAIS.inicio; ty < 200; ty += LISTAS_HORIZONTAIS.passo) {
+            // a lista no peito: de yAlto a yBaixo (altura do peito); na manga: v = (TOPO_MANGA - y) / (TOPO_MANGA - BASE_MANGA)
+            // Espessura propria de cada lista da manga (pedido), centrada na mesma altura da lista do peito.
+        const ALTURA_LISTA_MANGA = [30, 22, 25][Math.round((ty - LISTAS_HORIZONTAIS.inicio) / LISTAS_HORIZONTAIS.passo)] || 25;   // a 1.a um pouco mais grossa que a do peito (25), a 2.a mais fina
+        const centro = ty + LISTAS_HORIZONTAIS.altura / 2;
+        const yAlto = TOPO_PEITO - ((centro - ALTURA_LISTA_MANGA / 2) / 200) * ALTURA_PEITO, yBaixo = TOPO_PEITO - ((centro + ALTURA_LISTA_MANGA / 2) / 200) * ALTURA_PEITO;
+            const a = Math.max(BASE_MANGA, yBaixo), b = Math.min(TOPO_MANGA, yAlto);
+            if (b <= a) continue;
+            const y0 = 256 * (TOPO_MANGA - b) / (TOPO_MANGA - BASE_MANGA), y1 = 256 * (TOPO_MANGA - a) / (TOPO_MANGA - BASE_MANGA);
+            cx.fillRect(0, y0, 64, Math.max(1, y1 - y0));
+        }
+        mangaListradaMat = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(cv), roughness: 0.9 });
+    }
+    const mangaMat = corManga ? new THREE.MeshStandardMaterial({ color: corManga, roughness: 0.9 }) : (mangaListradaMat || mangaTricolorMat || shirtMat);
     let shortMat;
     if (pecaCalcao) {
         const cvsK = document.createElement('canvas'); cvsK.width = 256; cvsK.height = 256;

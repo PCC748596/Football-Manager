@@ -7,7 +7,7 @@ import { TeamShield } from './TeamShield';
 import { AttributeGrowthArrow, getStarCount } from './SquadView';
 import { createPortal } from 'react-dom';
 import { RenovarModal } from './ContractPanel';
-import { PlayerFace } from './PlayerFace';
+import { PlayerFace3D } from './PlayerFace3D';
 import EnergyBar, { energiaDe } from './EnergyBar';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
@@ -323,7 +323,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
               {/* CABECALHO: rosto, nome, escudo + posicao + OVR, dados */}
               <div className="flex items-center gap-5 pr-10">
                 <div className="w-28 h-28 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 overflow-hidden shrink-0">
-                  <PlayerFace playerId={player.id} camisa={team?.primaryColor} className="w-full h-full" />
+                  <PlayerFace3D playerId={player.id} team={team} gk={player.position === Position.GK} camisa={team?.primaryColor} className="w-full h-full" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-3">

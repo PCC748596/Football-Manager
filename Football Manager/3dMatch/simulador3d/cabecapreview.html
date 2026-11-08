@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<title>Cabeca do jogador</title>
+<style>html, body { margin: 0; background: transparent; }</style>
+</head>
+<body>
+<script src="js/vendor/three.r128.min.js"></script>
+<script src="js/config/physics.js"></script>
+<script src="js/config/animations.js"></script>
+<script src="js/config/gait.js"></script>
+<script src="js/config/gait_clips.js"></script>
+<script src="js/config/gk_clips_pes.js"></script>
+<script src="js/config/tactics.js"></script>
+<script src="js/config/passing.js"></script>
+<script src="js/config/shooting.js"></script>
+<script src="js/config/defense.js"></script>
+<script src="js/config/goalkeeper.js"></script>
+<script src="js/config/player_behavior.js"></script>
+<script src="data/faces.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/pose.js"></script>
+<script>
+/*
+A CABECA DO JOGADOR EM 3D, COMO IMAGEM — o corpo REAL do jogo (`construirCorpo`, js/pose.js) com a cabeca e os ombros virados uns graus (a "foto de tres quartos" do overview), desenhado uma vez por jogador
+e devolvido como PNG (data URL). Assim o penteado, a barba e os oculos sao exatamente os do 3D. O manager (components/PlayerFace3D.tsx) pede por postMessage e guarda o resultado:
+  { tipo: 'cabeca', req, id, camisa, graus, uniforme }   ->   { tipo: 'cabecaPronta', req, url }
+*/
+const TAM = 256;
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(TAM, TAM);
+renderer.setClearColor(0x000000, 0);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(18, 1, 0.1, 50);
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x1a2030, 0.75));
+const sol = new THREE.DirectionalLight(0xfff0d8, 0.8); sol.position.set(-1.5, 3, 5); scene.add(sol);
+const recorte = new THREE.DirectionalLight(0x6f8cff, 0.3); recorte.position.set(3, 2, -4); scene.add(recorte);
+const ALTURA = 1.8;
+let atual = null;
+
+function desenhar(id, camisa, graus, uniforme, alto) {
+    if (atual) { scene.remove(atual); atual = null; }
+    let ap = aparenciaDoJogador(id);
+    if (ap && !ap.estilo && typeof estiloDeCabeloDe === 'function') ap = Object.assign({}, ap, { estilo: estiloDeCabeloDe(id, ap.tipo) });
+    if (ap && !ap.barba && typeof estiloDeBarbaDe === 'function') ap = Object.assign({}, ap, { barba: estiloDeBarbaDe(id, ap.tipo) });
+    const calcao = (uniforme && uniforme.calcao && uniforme.calcao.cores && uniforme.calcao.cores[0]) || '#ffffff';
+    const feito = construirCorpo(camisa, calcao, ap, uniforme || null, 0);
+    const corpo = feito.corpo, rig = feito.rig;
+    const base = corpo.scale.x;
+    const h0 = new THREE.Box3().setFromObject(corpo);
+    const f = ALTURA / (h0.max.y - h0.min.y);
+    corpo.scale.set(base * f, base * f, base * f);
+    if (rig.lArm && rig.rArm) { rig.lArm.rotation.z = 0.12; rig.rArm.rotation.z = -0.12; }
+    const g = new THREE.Group(); g.add(corpo);
+    const b = new THREE.Box3().setFromObject(g);
+    corpo.position.y -= b.min.y;
+    g.rotation.y = THREE.MathUtils.degToRad(graus);   // positivo: o rosto olha para a DIREITA da imagem
+    scene.add(g); atual = g;
+    // Enquadra a cabeca e os ombros: o topo da cabeca fica perto do topo da imagem.
+    const cabeca = rig.head || (rig.neck && rig.neck.children.find(o => o.isMesh));
+    g.updateMatrixWorld(true);
+    const alvo = new THREE.Vector3();
+    if (cabeca) cabeca.getWorldPosition(alvo); else alvo.set(0, 1.62, 0);
+    const meiaTan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const dist = (alto || 0.62) / (2 * meiaTan);   // ~0.62 m de altura visivel: cabeca e ombros
+    const yc = alvo.y - 0.07 - (alto ? (alto - 0.62) * 0.4 : 0);
+    camera.position.set(0, yc, dist);
+    camera.lookAt(0, yc, 0);
+    renderer.render(scene, camera);
+    return renderer.domElement.toDataURL('image/png');
+}
+
+window.addEventListener('message', e => {
+    const m = e.data || {};
+    if (m.tipo !== 'cabeca') return;
+    const id = Number(String(m.id).replace(/^p-/, '')) >>> 0;
+    let url = '';
+    try { url = desenhar(id, m.camisa || '#475569', typeof m.graus === 'number' ? m.graus : 20, m.uniforme || null, m.alto); } catch (err) { console.warn('[cabeca]', err); }
+    parent.postMessage({ tipo: 'cabecaPronta', req: m.req, url }, '*');
+});
+parent.postMessage({ tipo: 'cabecaPronto' }, '*');
+</script>
+</body>
+</html>

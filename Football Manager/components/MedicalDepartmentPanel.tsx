@@ -1,7 +1,7 @@
 import React from 'react';
 import { useGame } from '../context/GameContext';
-import { Player } from '../types';
-import { PlayerFace } from './PlayerFace';
+import { Player, Team } from '../types';
+import { PlayerFace3D } from './PlayerFace3D';
 import EnergyBar, { energiaDe } from './EnergyBar';
 import { gerarMedico } from '../textSim/medico';
 
@@ -18,12 +18,12 @@ const Nota: React.FC<{ rotulo: string; dica: string; valor: number }> = ({ rotul
 );
 
 /** O card de um lesionado, no desenho dos cards do Transfer Market: foto, nome, a lesao, a estimativa do medico, a energia e o ultimo boletim. */
-const CardLesao: React.FC<{ p: Player; cor?: string }> = ({ p, cor }) => {
+const CardLesao: React.FC<{ p: Player; cor?: string; team?: Team }> = ({ p, cor, team }) => {
   const l = p.injury!;
   const grav = l.severity;
   return (
     <div className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0e182c] px-3 py-2 flex flex-wrap items-center gap-x-5 gap-y-2">
-      <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-800 shrink-0 border border-slate-700"><PlayerFace playerId={p.id} camisa={cor} className="w-full h-full" /></div>
+      <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-800 shrink-0 border border-slate-700"><PlayerFace3D playerId={p.id} team={team} gk={p.position === 'GK'} camisa={cor} className="w-full h-full" /></div>
       <div className="min-w-[150px] flex-1">
         <div className="text-base font-black text-slate-900 dark:text-white leading-tight truncate">{p.name}</div>
         <div className="flex items-center">
@@ -64,7 +64,7 @@ export const MedicalDepartmentPanel: React.FC = () => {
       <div className="text-[11px] font-black uppercase tracking-widest text-slate-500">Injured players ({lesionados.length})</div>
       {lesionados.length === 0
         ? <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-400 py-10"><span className="text-4xl mb-2 opacity-70">✚</span><div className="text-xs font-bold uppercase tracking-widest">No injured players</div></div>
-        : <div className="flex flex-col gap-2">{lesionados.map(p => <CardLesao key={p.id} p={p} cor={userTeam.primaryColor} />)}</div>}
+        : <div className="flex flex-col gap-2">{lesionados.map(p => <CardLesao key={p.id} p={p} cor={userTeam.primaryColor} team={userTeam} />)}</div>}
     </div>
   );
 };

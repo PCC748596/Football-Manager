@@ -4,7 +4,7 @@ import { atributos3d } from '../textSim/atributos3d';
 import { useGame } from '../context/GameContext';
 import { Player, Team } from '../types';
 import { TeamShield } from './TeamShield';
-import { PlayerFace } from './PlayerFace';
+import { PlayerFace3D } from './PlayerFace3D';
 import { estrelasDoJogador, potencialVisivel } from '../textSim/youth';
 import { potencialParaValor, anosRestantes } from '../textSim/valuation';
 import { CONFIG_MERCADO, ESTADOS_ATIVOS, NegociacaoTransf, grupoDe, janelaAberta, diasParaFecharJanela, proximaAberturaJanela } from '../textSim/transferencias';
@@ -205,7 +205,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
               <div key={p.id} onClick={() => setSelId(p.id)}
                 className={`grid ${COLS} gap-3 items-center px-4 py-[4px] rounded-lg border cursor-pointer transition-colors ${ativo ? 'border-blue-500 bg-blue-500/10' : 'border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-[#0e182c] hover:border-slate-400 dark:hover:border-slate-600'}`}>
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-[50px] h-[50px] rounded-full overflow-hidden bg-slate-800 shrink-0 border border-slate-700"><PlayerFace playerId={p.id} camisa={l.clube?.primaryColor} className="w-full h-full" /></div>
+                  <div className="w-[50px] h-[50px] rounded-full overflow-hidden bg-slate-800 shrink-0 border border-slate-700"><PlayerFace3D playerId={p.id} team={l.clube} gk={p.position === 'GK'} camisa={l.clube?.primaryColor} className="w-full h-full" /></div>
                   <div className="min-w-0"><div className="font-black text-base text-slate-800 dark:text-slate-100 truncate">{p.name}</div>
                     <div className="flex gap-1 flex-wrap">
                       {shortlist.includes(p.id) && <span className="text-[9px] font-black bg-yellow-500 text-slate-900 px-1.5 rounded">★ LIST</span>}
@@ -303,7 +303,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
       <div className={`rounded-xl border p-3 flex flex-wrap items-center gap-x-5 gap-y-3 ${resp ? 'border-amber-500/60 bg-slate-100/50 dark:bg-[#0e182c]' : 'border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0e182c]'}`}>
         {/* Esquerda: foto, escudo, nome e clube, valor de mercado, rodada */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-[72px] h-[72px] rounded-lg overflow-hidden bg-slate-800 shrink-0 border border-slate-700">{jog ? <PlayerFace playerId={jog.id} camisa={outroClube?.primaryColor} className="w-full h-full" /> : null}</div>
+          <div className="w-[72px] h-[72px] rounded-lg overflow-hidden bg-slate-800 shrink-0 border border-slate-700">{jog ? <PlayerFace3D playerId={jog.id} team={outroClube} gk={jog.position === 'GK'} camisa={outroClube?.primaryColor} className="w-full h-full" /> : null}</div>
           {outroClube ? <TeamShield team={outroClube} className="w-12 h-14 shrink-0" /> : null}
           <div className="min-w-0">
             <div className={`text-xl font-black text-slate-900 dark:text-white leading-tight truncate ${jog ? 'cursor-pointer hover:text-blue-500 dark:hover:text-blue-400' : ''}`} title={jog ? 'Open player overview' : undefined} onClick={jog ? () => setModalNegId(n.id) : undefined}>{nomeJogador(n.playerId)} {n.origem === 'BASE' && <span className="text-[10px] font-black bg-violet-600 text-white px-1.5 rounded align-middle">U20</span>}</div>

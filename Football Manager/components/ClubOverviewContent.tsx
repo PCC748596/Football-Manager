@@ -2,7 +2,7 @@ import React from 'react';
 import { Team, Player, League } from '../types';
 import { TeamShield } from './TeamShield';
 import { TeamKit } from './TeamKit';
-import { PlayerFace } from './PlayerFace';
+import { PlayerFace3D } from './PlayerFace3D';
 import { useGame } from '../context/GameContext';
 import { BoardExpectationBox, calcularExpectativa } from './BoardExpectationBox';
 import { competicoesDoClube } from '../textSim/competitions';
@@ -69,7 +69,7 @@ export const ClubOverviewContent: React.FC<Props> = ({ team, leagueName, leagueT
         <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-2">Key players ({elenco.length})</div>
         {elenco.slice(0, 3).map(p => (
           <div key={p.id} className="flex items-center justify-between text-sm py-0.5 gap-2">
-            <PlayerFace playerId={p.id} camisa={team.homeKit?.color1 || team.primaryColor} className="w-[47px] h-[47px] shrink-0 rounded-lg overflow-hidden bg-black/30 border border-white/20" />
+            <PlayerFace3D playerId={p.id} team={team} gk={p.position === 'GK'} camisa={team.homeKit?.color1 || team.primaryColor} className="w-[47px] h-[47px] shrink-0 rounded-lg overflow-hidden bg-black/30 border border-white/20" />
             <span className="font-bold text-white truncate flex-1 min-w-0">{p.name}</span>
             <span className="text-white/60 font-bold text-xs shrink-0 ml-2">{p.position} · {p.age}y · <span className="text-blue-300">{p.skill}</span></span>
           </div>
