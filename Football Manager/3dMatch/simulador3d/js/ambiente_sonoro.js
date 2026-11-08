@@ -37,7 +37,7 @@ const AmbienteSonoro = {
     tocado POR CIMA da faixa de fundo, que baixa para lhe dar espaco.
     */
     ficheiroGrito: 'assets/Soccer_Crowd_Cheerin.mp3',
-    volumeGrito: 0.9,
+    volumeGrito: 0.72,
     // Enquanto o grito toca, o fundo baixa para isto (fica la, mas atras).
     volumeFundoNoGrito: 0.35,
 
