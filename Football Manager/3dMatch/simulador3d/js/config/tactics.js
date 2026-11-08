@@ -75,7 +75,11 @@ Sete segundos ainda cabem com folga na rede de seguranca (`SetPiecePrazos.
 lateral`, 15 s), que conta do mesmo instante e so existe para o caso de o gesto
 encravar.
 */
-const ESPERA_COBRANCA_LATERAL = ESPERA_APOS_REPOSICAO + 4.0;
+/*
+AJUSTE -- pedido: *"muita demora na cobranca do lateral, diminui em 3 segs"*.
+Era +4 s (7 s no total); passa a +1 s (4 s no total).
+*/
+const ESPERA_COBRANCA_LATERAL = ESPERA_APOS_REPOSICAO + 1.0;
 if (typeof window !== 'undefined') window.ESPERA_COBRANCA_LATERAL = ESPERA_COBRANCA_LATERAL;
 
 /*

@@ -4933,6 +4933,14 @@ class FootballPlayer {
         caido passa primeiro pelo ramo da queda e so cai aqui depois de se
         levantar.
         */
+        // Em bola parada, nenhum ramo abaixo avanca o salto: zera-se aqui, para todos (ver SALTO PENDURADO).
+        if (this.jumpTimer > 0 && (Match.state === 'FREE_KICK' || Match.state === 'PENALTY')) {
+            this.jumpTimer = 0;
+            this.jumpAltura = 0;
+            this.hasHeaderedInJump = false;
+            this.headLeanTimer = 0;
+            this.model.position.y = ALTURA_BASE_Y;
+        }
         if (this.lugarBolaParada) {
             const L = this.lugarBolaParada;
             if (Match.state === 'PLAY' || Match.kickoffActive ||
@@ -4962,6 +4970,15 @@ class FootballPlayer {
                         this.passeComClip = false;
                         this.fsm.changeState('SET_PIECE_WAIT');
                     }
+                }
+                if (this.jumpTimer > 0 || this.model.position.y > ALTURA_BASE_Y + 0.001) {
+                    // SALTO PENDURADO: este ramo retorna antes do avanco do salto; quem era apanhado a meio de um
+                    // cabeceio (o infractor) ficava com jumpTimer > 0 para sempre, suspenso e sem animacao de passada.
+                    this.jumpTimer = 0;
+                    this.jumpAltura = 0;
+                    this.hasHeaderedInJump = false;
+                    this.headLeanTimer = 0;
+                    this.model.position.y = ALTURA_BASE_Y;
                 }
                 L.t += dt;
                 const d = Math.hypot(L.x - pos.x, L.z - pos.z);

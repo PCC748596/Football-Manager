@@ -573,10 +573,8 @@ Object.assign(Match, {
                         const dz = takerFalta.model.position.z - pl.az;
                         const d = Math.hypot(dx, dz);
                         // So arranca a andar a tempo de chegar quando a espera acaba (o resto do tempo fica no recuo).
-                        if (this.faltaAtraso > pl.tempo + 0.03 && d > 0.03) {
-                            takerFalta.velocity.set(0, 0, 0);
-                            this.faltaAproximando = false;
-                        } else if (d > 0.03) {
+                        // Pedido: o batedor se posiciona logo no inicio (antes esperava no recuo e saia correndo no fim).
+                        if (d > 0.03) {
                             const passo = Math.min(d, pl.v * dt);
                             const vv = passo / dt;
                             takerFalta.velocity.set(-(dx / d) * vv, 0, -(dz / d) * vv);
@@ -585,7 +583,8 @@ Object.assign(Match, {
                             // Chegou ao arranque: o gesto parte NESTE frame, com a marcha a andar.
                             takerFalta.velocity.set(0, 0, 0);
                             this.faltaAproximando = false;
-                            this.faltaAtraso = Math.min(this.faltaAtraso, 0.0);
+                            // Ja no ponto: espera ai parado; o gesto so parte quando a espera acaba.
+                            if (this.faltaAtraso <= 0.03) this.faltaAtraso = Math.min(this.faltaAtraso, 0.0);
                         }
                     } else {
                         // Segurado (caido, alguem a caminho do lugar): fica parado no recuo.
