@@ -985,11 +985,14 @@ Object.assign(Match, {
                 const leitura = best.skillFor ? best.skillFor('INTERCEPT') : 80;
                 const p = THREE.MathUtils.clamp(PI.base + (leitura - 80) * PI.porSkill - Math.max(0, vBola - PI.velRef) * PI.porVel, PI.min, PI.max);
                 if (Math.random() >= p) {
-                    const ang = (Math.random() - 0.5) * 2 * PI.desvioGraus * Math.PI / 180;
-                    const c = Math.cos(ang), s = Math.sin(ang), vx = this.ballVel.x, vz = this.ballVel.z;
-                    this.ballVel.x = (vx * c - vz * s) * PI.perdaVel;
-                    this.ballVel.z = (vx * s + vz * c) * PI.perdaVel;
+                    /*
+                    O CORTE FALHADO E UM TOQUE, NAO UM FANTASMA. A bola ja esta a menos de `BallControl.reach` do corpo dele: antes so se desviava 12 graus e a bola seguia por
+                    entre as pernas dele ate ao destinatario (e ele ficava `bloqueio` s sem lhe poder tocar, a correr ao lado dela sem a dominar) — relato: "a bola passa por baixo das
+                    pernas de um adversario e chega no receptor" e "ele vai acompanhando a bola correndo para tras em vez de dominar". Agora ele ENCOSTA: a bola leva um desvio a serio
+                    (deflectBall, o mesmo do dominio falhado), o passe deixa de ser do destinatario e a bola fica a disputar-se.
+                    */
                     best.touchLock = Math.max(best.touchLock || 0, PI.bloqueio);
+                    this.deflectBall(best);
                     return false;
                 }
             }

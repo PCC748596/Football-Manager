@@ -1096,7 +1096,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             p = { ...p, trainingAccumulated: p.trainingAccumulated ? { ...p.trainingAccumulated } : undefined, treino3d: p.treino3d ? { ...p.treino3d } : undefined } as Player;
             const stamina = campo3d(p, ['stamina']);
             const leve = plano === 'leve';
-            const dia = cpuAplicarTreino(p, { stamina, leve });
+            const dia = cpuAplicarTreino(p, { stamina, leve, individualDe: () => atributosIndividuais(p).campos });
             dia.riscos.forEach(rolarLesaoTreino);
             dailyRecovery = ENERGIA_SLOT_VAZIO * recoveryMultiplier(stamina) * Math.max(0, 4 - (leve ? SLOTS_CPU_LEVE : SLOTS_CPU_POR_DIA)) - dia.custoEnergia;
           }
