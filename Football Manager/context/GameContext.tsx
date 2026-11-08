@@ -10,7 +10,7 @@ import { calcularVirada, aplicarDivisoes, divisoesAtuais, paisDaLiga, Divisoes }
 import { BaseState, garantirBase, processarBase, definirNivelDaBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
 import { fimDoClube, fimDaLiga } from '../textSim/contratoRegiao';
-import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, avisoDeBonusPatrocinio } from '../textSim/inbox';
+import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, avisoDeBonusPatrocinio, avisoDeEvolucao } from '../textSim/inbox';
 import { salarioDeMercadoDaLiga, ajustarSalariosDaBase } from '../textSim/salarios';
 import { aplicarDivisao, aplicarDificuldade, dificuldadeEscolhida, folhaAnual, PADRAO_COMPRAS } from '../textSim/orcamento';
 import { PATROCINADORES, criarContrato, avaliarProposta, pagarParcelas, reputacaoDoClube, bonusDeCompeticao, diasParaFim, JANELA_RENOVACAO_DIAS, type MotivoRecusa } from '../textSim/patrocinadores';
@@ -28,7 +28,7 @@ import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico,
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoJogador, SLOTS_CPU_LEVE, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, XP_POR_PONTO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, ENERGIA_SLOT_VAZIO, drainMultiplier, recoveryMultiplier, energiaPosLesao, energiaInicial, definirNivelDoCt, tetoDoLegacy, garantirBaseLegacy, SLOTS_CPU_POR_DIA, rolouLesaoTreino, grupoPorEnergia, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
-import { campo3d, atributos3d, regredirPorIdade, migrarTreinoParaXp, atributosIndividuais, alternarIndividual } from '../textSim/atributos3d';
+import { campo3d, atributos3d, NOME_DO_CAMPO, regredirPorIdade, migrarTreinoParaXp, atributosIndividuais, alternarIndividual } from '../textSim/atributos3d';
 import { GRUPOS } from '../textSim/geradorAtributos';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
@@ -541,6 +541,31 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (avisos.length) setInbox(prev => adicionar(prev, avisos));
   }, [gameState.currentDate, userTeam?.id, userTeam?.sponsorContract, userTeam?.sponsorNext]);
 
+  // O E-MAIL SEMANAL DE EVOLUCAO: toda segunda-feira compara os atributos do elenco com os da segunda anterior e manda o relatorio (textSim/inbox.ts, avisoDeEvolucao); o primeiro dia so grava a referencia.
+  useEffect(() => {
+    if (!userTeam) return;
+    if (((new Date(gameState.currentDate + 'T12:00:00').getDay() + 6) % 7) !== 0) return;
+    const referencia = new Map<string, Record<string, number>>();
+    const evolucoes: { nome: string; posicao: string; mudancas: { nome: string; de: number; para: number }[] }[] = [];
+    for (const p of players) {
+      if (p.teamId !== userTeam.id) continue;
+      const a = atributos3d(p);
+      const atuais: Record<string, number> = {};
+      for (const g of ['TEC', 'TAC', 'MEN', 'FIS', 'GK'] as const) for (const x of ((a.detalhe as any)?.[g] || []) as { campo: string; nome: string; valor: number }[]) atuais[x.campo] = x.valor;
+      referencia.set(p.id, atuais);
+      if (!p.treinoRelatorio) continue;
+      const mudancas: { nome: string; de: number; para: number }[] = [];
+      for (const campo of Object.keys(atuais)) {
+        const antes = p.treinoRelatorio[campo];
+        if (typeof antes === 'number' && antes !== atuais[campo]) mudancas.push({ nome: NOME_DO_CAMPO[campo] || campo, de: antes, para: atuais[campo] });
+      }
+      if (mudancas.length) evolucoes.push({ nome: p.name, posicao: String(p.position), mudancas });
+    }
+    if (!referencia.size) return;
+    setPlayers(prev => prev.map(p => referencia.has(p.id) ? { ...p, treinoRelatorio: referencia.get(p.id) } : p));
+    if (evolucoes.length) setInbox(prev => adicionar(prev, [avisoDeEvolucao(gameState.currentDate, gameState.language, evolucoes)]));
+  }, [gameState.currentDate, userTeam?.id]);
+
   // COTA DE PARTICIPACAO das Series C e D (a 1.a fase e a liga do jogo): paga no primeiro jogo da liga.
   useEffect(() => {
     if (!userTeam) return;
@@ -971,14 +996,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   }, [players]);
 
-  // O SNAPSHOT DE INICIO DE TEMPORADA (TEC/TAC/MEN/FIS do Squad e da ficha mostram o ganho do treino desde aqui): grava-se para quem ainda nao o tem (inicio, virada, contratacoes).
+  // O SNAPSHOT DE INICIO DE TEMPORADA (TEC/TAC/MEN/FIS do Squad e da ficha mostram o ganho do treino desde aqui, e cada atributo da ficha leva o seu `+N`: chaves `attr:<campo>`, marca `attr:_v`):
+  // grava-se para quem ainda nao o tem (inicio, virada, contratacoes); um snapshot antigo, so com as medias, recebe os atributos de agora (o ganho por atributo conta daqui para a frente).
+  const snapshotCompleto = (p: Player) => !!p.treino3dSeasonStart && p.treino3dSeasonStart['attr:_v'] === 1;
   useEffect(() => {
     if (!userTeam) return;
-    if (!players.some(p => p.teamId === userTeam.id && !p.treino3dSeasonStart)) return;
+    if (!players.some(p => p.teamId === userTeam.id && !snapshotCompleto(p))) return;
     setPlayers(prev => prev.map(p => {
-      if (p.teamId !== userTeam.id || p.treino3dSeasonStart) return p;
+      if (p.teamId !== userTeam.id || snapshotCompleto(p)) return p;
       const a = atributos3d(p);
-      return { ...p, treino3dSeasonStart: { tec: a.tec, tac: a.tac, men: a.men, fis: a.fis } };
+      const porAtributo: Record<string, number> = { 'attr:_v': 1 };
+      for (const g of ['TEC', 'TAC', 'MEN', 'FIS', 'GK'] as const) for (const x of ((a.detalhe as any)?.[g] || []) as { campo: string; valor: number }[]) porAtributo['attr:' + x.campo] = x.valor;
+      const medias = p.treino3dSeasonStart && typeof p.treino3dSeasonStart.tec === 'number' ? { tec: p.treino3dSeasonStart.tec, tac: p.treino3dSeasonStart.tac, men: p.treino3dSeasonStart.men, fis: p.treino3dSeasonStart.fis } : { tec: a.tec, tac: a.tac, men: a.men, fis: a.fis };
+      return { ...p, treino3dSeasonStart: { ...medias, ...porAtributo } };
     }));
   }, [players, userTeam?.id]);
 

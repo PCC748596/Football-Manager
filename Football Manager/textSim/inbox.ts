@@ -323,3 +323,31 @@ export const avisoDeFimPatrocinio = (hoje: string, lang: Idioma, nome: string, f
 export const avisoDeBonusPatrocinio = (hoje: string, lang: Idioma, nome: string, valor: string, premioKeys: string[]): MensagemInbox => criar({ keys: premioKeys.map(k => `spons-bonus|${k}`), date: hoje, categoria: 'FINANCE', ir: 'FINANCES', de: L(lang, 'Finance Director', 'Diretor Financeiro'),
   assunto: L(lang, `Sponsor bonus — ${nome}`, `Bônus do patrocinador — ${nome}`),
   corpo: L(lang, `${nome} paid a competition bonus of ${valor} on top of the prize money.`, `${nome} pagou um bônus de competição de ${valor} além do prêmio recebido.`) });
+
+
+/** A evolucao de UM jogador na semana: os atributos que mudaram (de -> para). */
+export interface EvolucaoDoJogador { nome: string; posicao: string; mudancas: { nome: string; de: number; para: number }[]; }
+
+/**
+ * O E-MAIL SEMANAL DE EVOLUCAO (segunda-feira, do treinador de preparacao): quem melhorou (ou piorou, na virada de temporada) desde o relatorio da semana anterior, com cada atributo e o valor novo.
+ * Os jogadores com mais ganho primeiro, ate `maxJogadores`; cada um mostra ate `maxAtributos` atributos. A razao `evolucao|<data>` so gera um e-mail por semana.
+ */
+export const avisoDeEvolucao = (hoje: string, lang: Idioma, jogadores: EvolucaoDoJogador[], maxJogadores = 12, maxAtributos = 5): MensagemInbox => {
+  const saldo = (j: EvolucaoDoJogador) => j.mudancas.reduce((s, m) => s + (m.para - m.de), 0);
+  const ordenados = [...jogadores].sort((a, b) => saldo(b) - saldo(a));
+  const linhas = ordenados.slice(0, maxJogadores).map(j => {
+    const ms = [...j.mudancas].sort((a, b) => Math.abs(b.para - b.de) - Math.abs(a.para - a.de)).slice(0, maxAtributos);
+    const resto = j.mudancas.length - ms.length;
+    return `${j.nome} (${j.posicao}): ${ms.map(m => `${m.nome} ${m.para > m.de ? '+' : ''}${m.para - m.de} (${m.para})`).join(', ')}${resto > 0 ? L(lang, ` and ${resto} more`, ` e mais ${resto}`) : ''}`;
+  });
+  const fora = jogadores.length - linhas.length;
+  const total = jogadores.reduce((s, j) => s + j.mudancas.length, 0);
+  return criar({ keys: [`evolucao|${hoje}`], date: hoje, categoria: 'TRAINING', de: L(lang, 'Head of Training', 'Preparador'), ir: 'SQUAD',
+    assunto: L(lang, `Training report: ${jogadores.length} player(s) changed`, `Relatório de treino: ${jogadores.length} jogador(es) evoluíram`),
+    corpo: L(lang, `Here is how the squad developed since last week (${total} attribute change(s)):
+
+`, `Veja como o elenco evoluiu desde a semana passada (${total} mudança(s) de atributo):
+
+`)
+      + linhas.join('\n') + (fora > 0 ? '\n\n' + L(lang, `...and ${fora} more player(s).`, `...e mais ${fora} jogador(es).`) : '') });
+};

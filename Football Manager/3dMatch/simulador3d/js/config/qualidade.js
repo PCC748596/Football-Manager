@@ -125,9 +125,16 @@ const Qualidade = {
         }
         const largura = 0.8, comp = largura * (1 + 1.6 * esticar);   // ~2 m com o sol a 100 m de altura e 64 m de lado
         const cd = Math.cos(Math.PI / 4), sd = Math.sin(Math.PI / 4);
+        /*
+        A LISTA NAO CRESCE: a mancha de um corpo deitado fora (uma troca de jogadores, o staff ou os reservas refeitos, uma nova partida) continuava na lista — o `parent` dela e o corpo velho, que nao e
+        null mesmo fora da cena — e o loop abaixo percorria-a e fazia a conta (seno, cosseno, escala) para cada uma, todo frame, cada vez mais. Medido: 56 entradas para 29 manchas vivas. Agora a mancha
+        so conta se a cadeia de `parent` acaba na cena do jogo.
+        */
+        const cena = window.Match && window.Match.scene;
         for (let i = bl.length - 1; i >= 0; i--) {
             const m = bl[i], corpo = m.parent;
-            if (!corpo) { bl.splice(i, 1); continue; }
+            let raiz = corpo; while (raiz && raiz.parent) raiz = raiz.parent;
+            if (!corpo || (cena && raiz !== cena)) { bl.splice(i, 1); continue; }
             if (!m.visible) continue;
             const esc = m.userData.esc || 1, psi = corpo.rotation.y, c = Math.cos(psi), s = Math.sin(psi);
             m.material = noite ? r.matNoite : r.matDia;

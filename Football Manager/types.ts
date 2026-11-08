@@ -207,6 +207,8 @@ export interface Player {
   treino3d?: Record<string, number>;
   /** Os atributos (campos do 3D) do TREINO INDIVIDUAL, escolhidos no overview do jogador: ate 3 de uma area (TEC/TAC/FIS) ou 2 do mental. Vazio: o sistema escolhe os mais fracos de uma area. */
   treinoIndividual?: string[];
+  /** Os atributos (campo -> valor) na ultima segunda-feira: o e-mail semanal de evolucao compara com isto (GameContext). */
+  treinoRelatorio?: Record<string, number>;
   /** true quando o `treino3d` ja esta em XP (saves antigos o tinham em pontos de 25 por nivel: o GameContext converte uma vez). */
   treinoEmXp?: boolean;
   /** Season-start attribute values (treino3d snapshot at season start for delta display). */
