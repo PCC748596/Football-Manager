@@ -49,8 +49,9 @@ export const BoardExpectationBox: React.FC<{ exp: Expectativa; pt: boolean; clas
       <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 ${exp.campeao ? 'bg-yellow-400/20 text-yellow-300' : 'bg-blue-500/20 text-blue-300'}`}>{exp.campeao ? '🏆 ' : ''}{exp.meta}</span>
     </div>
     <div className="font-black text-white text-base leading-tight mt-1">{exp.rotulo}</div>
-    <div className="flex gap-1 mt-2">
-      {CORES.map((cor, i) => <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= exp.nivel ? cor : 'bg-white/10'}`} />)}
+    {/* 100 retangulos em pe; cada faixa de 1/6 pertence a um nivel e acende na cor dele ate o nivel da expectativa. */}
+    <div className="flex gap-px h-4 mt-2">
+      {Array.from({ length: 100 }, (_, i) => { const nv = Math.min(5, Math.floor(i * 6 / 100)); return <div key={i} className={`flex-1 min-w-0 ${nv <= exp.nivel ? CORES[nv] : 'bg-white/10'}`} />; })}
     </div>
     <div className="flex justify-between text-[8px] font-bold text-white/40 uppercase tracking-widest mt-1"><span>{exp.porFases ? (pt ? 'Grupos' : 'Groups') : (pt ? 'Permanência' : 'Survival')}</span><span>{pt ? 'Título' : 'Title'}</span></div>
   </div>

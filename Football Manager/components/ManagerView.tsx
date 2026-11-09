@@ -17,7 +17,8 @@ const dataCurta = (iso: string) => iso.split('-').reverse().join('/');
 const Barra: React.FC<{ rotulo: string; valor: number; cor: string; texto?: string }> = ({ rotulo, valor, cor, texto }) => (
   <div>
     <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/60"><span>{rotulo}</span><span className="text-white">{texto ?? Math.round(valor)}</span></div>
-    <div className="h-2 mt-1 rounded bg-white/10 overflow-hidden"><div className={`h-full ${cor}`} style={{ width: `${Math.max(0, Math.min(100, valor))}%` }} /></div>
+    {/* 100 retangulos em pe, um por ponto: os preenchidos na cor da barra. */}
+    <div className="flex gap-px h-4 mt-1">{Array.from({ length: 100 }, (_, i) => <div key={i} className={`flex-1 min-w-0 ${i < Math.round(Math.max(0, Math.min(100, valor))) ? cor : 'bg-white/10'}`} />)}</div>
   </div>
 );
 

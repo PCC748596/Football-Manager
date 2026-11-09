@@ -3,6 +3,7 @@ import { escalaDaLiga } from '../textSim/economia';
 import { useGame } from '../context/GameContext';
 import { assetUrl } from '../textSim/assetUrl';
 import { PATROCINADORES, statusDoPatrocinador, reputacaoMinima, diasParaFim, ANOS_MIN, ANOS_MAX, valorAnualPara, bonusPctDaMarca, FATOR_DURACAO, JANELA_RENOVACAO_DIAS, type Patrocinador, type RegiaoPatrocinio } from '../textSim/patrocinadores';
+import { ligaIdDoClube } from '../textSim/competitions';
 import { paraDolares } from '../textSim/cambio';
 
 const bandeira = (p: Patrocinador) => assetUrl(p.cod === 'br' ? '/Assets/Bandeiras/45.png' : `/flags/${p.cod}.svg`);
@@ -19,12 +20,15 @@ const LogoMarca: React.FC<{ p: Patrocinador; className?: string }> = ({ p, class
 
 const SponsorsTab: React.FC = () => {
   const { userTeam, gameState, formatCurrency, proporPatrocinio, reputacaoClube } = useGame();
-  const [regiao, setRegiao] = useState<RegiaoPatrocinio>('BRASIL');
+  const [regiaoSel, setRegiao] = useState<RegiaoPatrocinio>('BRASIL');
   const [aberto, setAberto] = useState<Patrocinador | null>(null);
   const [anos, setAnos] = useState(1);
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
   if (!userTeam) return null;
   const pt = gameState.language === 'PT';
+  // Os patrocinadores do Brasil so aparecem para clubes brasileiros (ligas 'bra_*'); os demais veem so os internacionais.
+  const ehBrasil = ligaIdDoClube(userTeam).startsWith('bra_');
+  const regiao: RegiaoPatrocinio = ehBrasil ? regiaoSel : 'INTERNATIONAL';
   const hoje = gameState.currentDate;
   const atual = userTeam.sponsorContract, proximo = userTeam.sponsorNext;
   const nomeDe = (id: string) => PATROCINADORES.find(p => p.id === id)?.nome || '';
@@ -59,7 +63,7 @@ const SponsorsTab: React.FC = () => {
   return (
     <div className="h-full overflow-y-auto flex flex-col gap-4 pr-1">
       <div className="flex flex-wrap items-center gap-3 justify-between">
-        <div className="flex gap-2">{aba('BRASIL', 'BRASIL')}{aba('INTERNATIONAL', 'INTERNATIONAL')}</div>
+        <div className="flex gap-2">{ehBrasil && aba('BRASIL', 'BRASIL')}{ehBrasil && aba('INTERNATIONAL', 'INTERNATIONAL')}</div>
         <div className="text-[11px] font-black uppercase tracking-widest text-slate-500">{pt ? 'Reputação do clube' : 'Club reputation'}: <span className="text-blue-500">{reputacaoClube}</span> / 100</div>
       </div>
 

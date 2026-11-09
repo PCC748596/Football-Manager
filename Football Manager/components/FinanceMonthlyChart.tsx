@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useGame } from '../context/GameContext';
+import { ligaIdDoClube } from '../textSim/competitions';
+import { ehLigaEuropeia } from '../textSim/dataGenerator';
 
 /*
 GRAFICO MES A MES do Financial Center: ganhos e gastos do clube do jogador, cada serie liga/desliga por botao.
@@ -40,8 +42,16 @@ const FinanceMonthlyChart: React.FC<{ salarioSemanalTotal: number }> = ({ salari
     });
     // o semestre do ano actual; os meses que ainda nao chegaram ficam vazios (null)
     const ano = hoje.slice(0, 4);
-    const inicioMes = Number(hoje.slice(5, 7)) <= 6 ? 1 : 7;   // 6 meses: o semestre do mes actual (JAN-JUN ou JUL-DEZ)
-    const ultimos = Array.from({ length: 6 }, (_, i) => `${ano}-${String(inicioMes + i).padStart(2, '0')}`);
+    // Clube europeu: a temporada inteira, de JUN a MAI (vira a 1/6). Os demais: o semestre do mes actual (JAN-JUN ou JUL-DEZ).
+    const mesAtual = Number(hoje.slice(5, 7));
+    let ultimos: string[];
+    if (ehLigaEuropeia(ligaIdDoClube(userTeam))) {
+      const anoIni = mesAtual >= 6 ? Number(ano) : Number(ano) - 1;
+      ultimos = Array.from({ length: 12 }, (_, i) => { const m = 6 + i; return `${m > 12 ? anoIni + 1 : anoIni}-${String(m > 12 ? m - 12 : m).padStart(2, '0')}`; });
+    } else {
+      const inicioMes = mesAtual <= 6 ? 1 : 7;
+      ultimos = Array.from({ length: 6 }, (_, i) => `${ano}-${String(inicioMes + i).padStart(2, '0')}`);
+    }
     const folhaMensal = (salarioSemanalTotal * 52) / 12, patroMensal = (userTeam.sponsorContract?.valorAnualUSD || 0) / 12;
     const out = { gate: [], sales: [], sponsor: [], stadium: [], purchases: [], wages: [] } as Record<Chave, (number | null)[]>;
     ultimos.forEach(k => {
