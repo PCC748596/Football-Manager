@@ -75,6 +75,8 @@ const Ponte = {
             else if (m.tipo === 'parar') this.parar();
             else if (m.tipo === 'velocidade') this.definirVelocidade(m.valor);
             else if (m.tipo === 'esc') this.esc();
+            // Um gesto do utilizador no manager (o iframe do 3D nao o recebe): retoma o som que o iOS suspendeu ao sair da tela do jogo (efeitos por Web Audio e o loop da torcida).
+            else if (m.tipo === 'gesto') { if (window.EfeitosSonoros && EfeitosSonoros.retomar) EfeitosSonoros.retomar(); if (window.AmbienteSonoro && AmbienteSonoro.ligado && !AmbienteSonoro._pausado && AmbienteSonoro.tentarTocar) AmbienteSonoro.tentarTocar(); }
             else if (m.tipo === 'captura') { if (window.CapturaDeJogo) window.CapturaDeJogo.salvar(); }
             else if (m.tipo === 'qualidade') { if (window.Qualidade) window.Qualidade.definir(m.nivel); }
             else if (m.tipo === 'camera_tv') { if (window.CameraZoom) window.CameraZoom.definirTvLateral(m.min, m.max); }

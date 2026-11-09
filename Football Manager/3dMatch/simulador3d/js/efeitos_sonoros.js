@@ -65,6 +65,16 @@ const EfeitosSonoros = {
         if (!AC) return;
         try { this._ctx = new AC(); } catch (e) { this._ctx = null; return; }
         const destravar = () => { if (this._ctx && this._ctx.state !== 'running') { try { this._ctx.resume(); } catch (e) { /* ignora */ } } };
+        /*
+        SAIR DA TELA DO JOGO E VOLTAR (relato: *"o som do apito e do toque na bola some"*): o iOS suspende ('suspended'/'interrupted') o contexto de Web Audio quando a pagina fica escondida e nao o retoma
+        sozinho; sem ele o `tocar` caia nos <audio> de reserva, que nunca foram destravados — mudos. Agora o contexto retoma-se ao voltar a ficar visivel, ao ganhar o foco, e a cada gesto do utilizador no manager
+        (a ponte reencaminha-os: tipo 'gesto').
+        */
+        this.retomar = () => { destravar(); this._ctxFalhou = false; };
+        if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (!document.hidden) this.retomar(); });
+        window.addEventListener('pageshow', () => this.retomar());
+        window.addEventListener('focus', () => this.retomar());
+        try { this._ctx.onstatechange = () => { if (this._ctx.state !== 'running' && !(typeof document !== 'undefined' && document.hidden)) destravar(); }; } catch (e) { /* ignora */ }
         ['pointerdown', 'touchstart', 'touchend', 'keydown', 'click'].forEach(ev => window.addEventListener(ev, destravar, { passive: true }));
     },
     /*
@@ -169,6 +179,7 @@ const EfeitosSonoros = {
         // Caminho rapido: AudioBuffer ja carregado e contexto ativo.
         if (this._ctx && som.buffer) {
             if (this._ctx.state === 'running') {
+                this._ctxFalhou = false;
                 try {
                     const src = this._ctx.createBufferSource();
                     src.buffer = som.buffer;
@@ -180,8 +191,16 @@ const EfeitosSonoros = {
                     src.start(0);
                     return;
                 } catch (e) { /* cai no <audio> */ }
-            } else {
-                try { this._ctx.resume(); } catch (e) { /* ignora */ }
+            } else if (!this._ctxFalhou) {
+                // Contexto suspenso (o iOS suspende-o ao esconder a pagina): retoma-se e o som toca assim que ele volta (so se ainda for a tempo); sem gesto que o permita, passa-se aos <audio> de reserva.
+                const t0 = Date.now();
+                try {
+                    this._ctx.resume().then(() => {
+                        if (this._ctx.state === 'running') { if (Date.now() - t0 < 700) this.tocar(nome, ganho, 0); }
+                        else this._ctxFalhou = true;
+                    }).catch(() => { this._ctxFalhou = true; });
+                    return;
+                } catch (e) { this._ctxFalhou = true; }
             }
         }
 
