@@ -1947,7 +1947,10 @@ function podeDriblar(ctx) {
 
     // Regra 4: Adversário próximo, espaço atrás do adversário - Driblar
     // No último terço a barreira técnica necessária é mais baixa.
-    let baseTec = (noUltimoTerco ? UT.tecMin : 72) / Math.max(0.5, mult * bonusUltimoTerco);
+    // LM/RM/AM: habilidade minima de drible 60 em todo o campo (DribbleModel.tecMinMeias), nao so no ultimo terco.
+    const TM = (typeof DribbleModel !== 'undefined') ? DribbleModel.tecMinMeias : null;
+    const tecMinFora = (TM && TM.posicoes.indexOf(p.pos) >= 0) ? TM.tecMin : 72;
+    let baseTec = (noUltimoTerco ? UT.tecMin : tecMinFora) / Math.max(0.5, mult * bonusUltimoTerco);
     const tec = p.atributoDe ? p.atributoDe('dribbling', 'TEC') : ctx.skillTec;
     if (tec < baseTec) return false;
 

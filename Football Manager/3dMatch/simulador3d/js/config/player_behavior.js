@@ -675,6 +675,8 @@ oposto (30-45°). Se tentar ir reto, probabilidade de perda é muito maior.
 jogador e pela proximidade do adversário.
 */
 const DribbleModel = {
+    // Habilidade (TEC de drible) minima para tentar o drible fora do ultimo terco, para estes meias (o resto: 72).
+    tecMinMeias: { posicoes: ['LM', 'RM', 'AM'], tecMin: 60 },
     // 3.2 -> 4.4 (a mesma do ultimo terco): fora dele quase nao havia dribles — medido, +55% em 3 x 45 min. Ver `ultimoTerco.triggerDist`.
     triggerDist: 4.4,     // distância para activar drible 1v1 (adversário à frente)
     angleSide: 0.6,       // (antigo) ângulo fixo; hoje o toque sorteia entre `anguloMinGraus` e `anguloMaxGraus`
