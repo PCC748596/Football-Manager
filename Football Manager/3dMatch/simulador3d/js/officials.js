@@ -2642,8 +2642,17 @@ const Officials = {
         */
         const dBola = Math.hypot(S.model.position.x - Match.ball.position.x,
             S.model.position.z - Match.ball.position.z);
+        /*
+        SO FOGE SE AINDA TEM PARA ONDE. A fuga corre sem amortecer o alvo, e o alvo da coroa nunca fica a menos de `distMinDura` da bola — mas a fuga so acaba aos
+        `distMinDura + margemFuga`. Quem ja esta EM CIMA do alvo, entre as duas distancias (ou com o alvo trancado pela faixa dos assistentes, junto a baliza com o
+        guarda-redes a segurar a bola), ficava preso na fuga: alvo sem filtro a saltar com a bola/antecipacao, passo cheio para um lado e para o outro — o corpo todo a tremer.
+        Com o alvo a menos de `fugaAlvoMin` m ja nao ha o que fugir: segue o ramo amortecido.
+        */
+        const dAlvoArb = Math.hypot(S.model.position.x - alvoArb.x, S.model.position.z - alvoArb.z);
         const emFuga = (typeof R.distMinDura === 'number') &&
-            dBola < R.distMinDura + (R.margemFuga || 0);
+            dBola < R.distMinDura + (R.margemFuga || 0) &&
+            dAlvoArb > (S._fugindo ? 0.6 : (R.fugaAlvoMin === undefined ? 1.5 : R.fugaAlvoMin));   // histerese: comeca a fugir a 1.5 m do alvo, so para a 0.6
+        S._fugindo = emFuga;
         if (!S.alvoSuave || !(R.alvoSuavizacao > 0) || emFuga) {
             S.alvoSuave = { x: alvoArb.x, z: alvoArb.z };
         } else {
@@ -2664,7 +2673,9 @@ const Officials = {
         (`seguraMargem`) evita que entre e saia da zona a cada frame. Fora dela, a coroa manda como sempre.
         */
         const distLim = R.raioMax + (S._parado ? (R.seguraMargem || 1.5) : 0);
-        const parar = !emFuga && dBola <= distLim && dBola >= R.distMinDura + (R.margemFuga || 0);
+        // Sem piso de distancia: o que o faz sair de `parar` por estar perto demais e a FUGA (acima, que ja so acontece com para onde ir). Com o piso `distMinDura + margemFuga` ele
+        // parava a exactamente essa distancia (17.0 m) e alternava parado/andar a cada 5 frames, rodando +-0.067 rad para a bola e de volta: o corpo todo a tremer.
+        const parar = !emFuga && dBola <= distLim;
         S._parado = parar;
         if (parar) {
             const rotAntes = S.model.rotation.y;
