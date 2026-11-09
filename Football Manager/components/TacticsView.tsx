@@ -406,12 +406,12 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   }, [fixtures]);
   const mediaNotas = (p: Player | null | undefined): string | null => (userTeam.tactics.mediaNotasOn === false || !p || mediasDeNotas[p.id] === undefined) ? null : mediasDeNotas[p.id].toFixed(1);
   // A nota num retangulo arredondado ao lado do nome: >= 7.0 verde, <= 6.0 vermelho, entre os dois cinza; letra branca.
-  const etiquetaNota = (p: Player | null | undefined) => {
+  const etiquetaNota = (p: Player | null | undefined, pequena = false) => {
     const txt = mediaNotas(p);
     if (!txt || !p) return null;
     const v = mediasDeNotas[p.id];
     const fundo = v >= 7 ? 'bg-emerald-600' : v <= 6 ? 'bg-red-600' : 'bg-slate-500';
-    return <span className={`ml-1 px-2 py-1 rounded-md text-white text-[13px] font-black leading-none ${fundo}`}>{txt}</span>;
+    return <span className={`ml-1 rounded-md text-white font-black leading-none ${pequena ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-[13px]'} ${fundo}`}>{txt}</span>;
   };
 
   const handleTacticChange = (field: keyof Tactics, value: any) => {
@@ -510,7 +510,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
         </div>
 
         <div className={`flex-1 grid gap-[5px] min-h-0 ${largo ? 'grid-cols-[5.6fr_3.7fr_3fr]' : 'grid-cols-3 overflow-y-auto custom-scrollbar content-start'}`}>   {/* tablet: o campo com os reservas em cima (linha inteira) e, em baixo, em UMA linha de 3 colunas IGUAIS: Squad Pool | Set Pieces | Kit + Tactical Instructions */}
-            <div className="flex flex-col gap-[3px] min-h-0 min-w-0" style={largo ? { width: 'calc(100% + 129px)' } : { minHeight: 700, gridColumn: '1 / -1' }}>
+            <div className="flex flex-col gap-[3px] min-h-0 min-w-0" style={largo ? { width: 'calc(100% + 154px)' } : { minHeight: 700, gridColumn: '1 / -1' }}>
                 <div className="flex-1 relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ minHeight: '350px', containerType: 'size' }}>
                     {aba === 'geral' && (
                         <button onClick={() => handleTacticChange('playingStylesOn' as keyof Tactics, userTeam.tactics.playingStylesOn === false)} title="Turns the players' individual Playing Styles on or off in the 3D match"
@@ -814,7 +814,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                     <div className="flex-1 min-w-0 flex flex-col gap-1 -ml-[8px]">
                                     <div className={`flex justify-between w-full items-start mb-0 gap-1 min-w-0`}>
                                         {/* O topo tem de caber no cartao: o texto encolhe (min-w-0, separadores curtos) e os icones (estilo + moral) nunca saem para fora (shrink-0). */}
-                                        <span className="text-[11px] font-black leading-none whitespace-nowrap min-w-0 truncate"><span className="text-slate-400 text-[13px]">{p.position}</span><span className="text-slate-500 mx-[3px]">|</span><span className="text-blue-400">{p.skill}</span>{mediaNotas(p) && <><span className="text-slate-500 mx-[3px]">|</span><span className="text-amber-400">{mediaNotas(p)}</span></>}</span>
+                                        <span className="text-[11px] font-black leading-none whitespace-nowrap min-w-0 truncate"><span className="text-slate-400 text-[13px]">{p.position}</span><span className="text-slate-500 mx-[3px]">|</span><span className="text-blue-400">{p.skill}</span>{etiquetaNota(p, true)}</span>
                                         <span className="flex items-center gap-0.5 shrink-0">{iconeDoEstilo(p, 20)}<MoraleArrow morale={p.morale} /></span>
                                     </div>
                                         <div>
@@ -837,8 +837,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             </div>
 
             {/* SQUAD POOL e COBRADORES: duas colunas do mesmo tamanho, no espaco que o campo deixa (o campo avanca 109 px sobre ele). */}
+            {/* (Set Pieces -25 px, Squad Pool igual: margem 129 -> 154, colunas 'calc(50% + 20px) calc(50% - 25px)'; os 25 px livres vao para o campo e os reservas.) */}
             {/* Set Pieces 20 px mais estreito e Squad Pool outra vez como era (pedido): antes 1fr 1fr com folga de 16 px; as duas encostadas a direita (margem 109 -> 129, mesmas larguras): os 20 px livres vao para a area dos reservas. */}
-            <div className="grid gap-[5px] min-h-0 min-w-0" style={largo ? { marginLeft: 129, gridTemplateColumns: 'calc(50% + 7.5px) calc(50% - 12.5px)' } : { display: 'contents' }}>   {/* paineis a 5 px uns dos outros (pedido) */}
+            <div className="grid gap-[5px] min-h-0 min-w-0" style={largo ? { marginLeft: 154, gridTemplateColumns: 'calc(50% + 20px) calc(50% - 25px)' } : { display: 'contents' }}>   {/* paineis a 5 px uns dos outros (pedido) */}
             {/* O SQUAD POOL: o que sobrou do plantel, ao lado do campo (antes ficava sob as instrucoes). */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col shadow-sm overflow-hidden min-h-0 min-w-0">
                     <div className="px-3 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900">
@@ -911,7 +912,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                         </div>
                                         <div className="flex-1 min-w-0 flex flex-col gap-1">
                                         <div className={`flex justify-between w-full items-start mb-0`}>
-                                            <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400 text-[14px]">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span>{mediaNotas(p) && <> <span className="text-slate-500">|</span> <span className="text-amber-400">{mediaNotas(p)}</span></>}</span>
+                                            <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400 text-[14px]">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span>{etiquetaNota(p)}</span>
                                             <span className="flex items-center gap-1"><MoraleArrow morale={p.morale} /></span>
                                         </div>
                                             <div className={`-mt-1 mb-1`}><EnergyBar energy={energiaDe(p)} className="h-1.5" /></div>
