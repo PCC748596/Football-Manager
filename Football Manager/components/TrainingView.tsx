@@ -62,6 +62,37 @@ const CargaDeTreino: React.FC<{ label: string; val: number }> = ({ label, val })
   );
 };
 
+// Altura de cada linha do calendario (metade da anterior): 5 linhas (2 manha, almoco, 2 tarde) + 4 espacos de 4px.
+const ALTURA_LINHA = 100;
+const ALTURA_GRADE = ALTURA_LINHA * 5 + 4 * 4;
+
+/*
+SEMANAS PRE-PROGRAMADAS: 6 dias (SEG-SAB) x 3 sessoes. Cada uma respeita os limites da semana (2 por treino; TEC 12, TAC 10, FIS 8, MEN 8).
+*/
+const PRESETS: { nome: string; icone: React.ReactNode; dias: string[][] }[] = [
+  { nome: 'Balanced', icone: <Ico><path d="M12 3v18M7 21h10M5 7h14" /><path d="m5 7-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z" /></Ico>, dias: [
+    ['passing', 'tackling', 'cardio'], ['control', 'pressing', 'strength'], ['shooting', 'vision', 'composure'],
+    ['crossing', 'marking', 'sprints'], ['setpieces', 'def_pos', 'focus'], ['finishing', 'recovery', 'video'] ] },
+  { nome: 'Attack', icone: <Ico><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /></Ico>, dias: [
+    ['finishing', 'shooting', 'positioning'], ['longshots', 'volleys', 'acceleration'], ['wingplay', 'crossing', 'vision'],
+    ['finishing', 'shooting', 'sprints'], ['setpieces', 'penalties', 'composure'], ['aerial', 'recovery', 'shadow'] ] },
+  { nome: 'Defense', icone: <Ico><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z" /></Ico>, dias: [
+    ['tackling', 'sliding', 'cardio'], ['marking', 'def_pos', 'strength'], ['pressing', 'transition', 'aerial'],
+    ['tackling', 'marking', 'jumping'], ['def_pos', 'focus', 'aggression'], ['sliding', 'recovery', 'reactions'] ] },
+  { nome: 'Physical', icone: ICONE_FIS, dias: [
+    ['cardio', 'strength', 'passing'], ['sprints', 'agility', 'control'], ['acceleration', 'tackling', 'reactions'],
+    ['cardio', 'strength', 'passing'], ['recovery', 'control', 'pressing'], ['wingplay', 'composure', 'tackling'] ] },
+  { nome: 'Mental & Chem', icone: ICONE_MEN, dias: [
+    ['composure', 'video', 'passing'], ['focus', 'teambuilding', 'vision'], ['reactions', 'consistency', 'control'],
+    ['composure', 'video', 'playmaking'], ['passing', 'transition', 'vision'], ['control', 'playmaking', 'recovery'] ] },
+  { nome: 'Tactical', icone: ICONE_TAC, dias: [
+    ['pressing', 'transition', 'passing'], ['playmaking', 'vision', 'cardio'], ['positioning', 'def_pos', 'longpass'],
+    ['pressing', 'transition', 'control'], ['playmaking', 'vision', 'video'], ['crossing', 'recovery', 'setpieces'] ] },
+  { nome: 'Light / Recovery', icone: <Ico><path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z" /></Ico>, dias: [
+    ['recovery', 'teambuilding', 'video'], ['passing', 'focus', 'control'], ['recovery', 'shadow', 'composure'],
+    ['longpass', 'vision', 'consistency'], ['passing', 'control', 'focus'], ['shadow', 'longpass', 'vision'] ] },
+];
+
 const TrainingView: React.FC = () => {
   const { gameState, userTeam, teams, fixtures, players, setTrainingSchedules, unlockTrainingGroup, updatePlayerTrainingGroup, setTrainingAutoGrupos, advanceDay, formatCurrency, formatCurrencyShort, t } = useGame();
   const [activeCategory, setActiveCategory] = useState<TrainingActivity['category']>('TECHNIQUE');
@@ -72,6 +103,8 @@ const TrainingView: React.FC = () => {
   const [jogadorAberto, setJogadorAberto] = useState<Player | null>(null);
   // Toque (iPad): escolhe-se o treino e depois o slot, como na substituicao de jogadores; arrastar continua a funcionar.
   const [selActivity, setSelActivity] = useState<string | null>(null);
+  // Semana exibida no calendario: 0 = a atual, -1/+1 = anterior/proxima.
+  const [semanaOffset, setSemanaOffset] = useState(0);
   const [squadSortBy, setSquadSortBy] = useState<'growth' | 'energy'>('growth');
   
   // Use gameState schedule directly
@@ -83,7 +116,7 @@ const TrainingView: React.FC = () => {
     const curr = new Date(gameState.currentDate + 'T12:00:00');
     const dayOfWeek = curr.getDay();
     const diff = curr.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    const monday = new Date(curr.setDate(diff));
+    const monday = new Date(curr.setDate(diff + semanaOffset * 7));
 
     for (let i = 0; i < 7; i++) {
       const d = new Date(monday);
@@ -102,7 +135,7 @@ const TrainingView: React.FC = () => {
       });
     }
     return { days };
-  }, [gameState.currentDate, gameState.activities]);
+  }, [gameState.currentDate, gameState.activities, semanaOffset]);
 
   const matchesInWeek = useMemo(() => {
     if (!userTeam) return [];
@@ -152,6 +185,18 @@ const TrainingView: React.FC = () => {
   };
 
   const getActivity = (id: string | null) => ACTIVITIES.find(a => a.id === id);
+
+  // Aplica uma semana pre-programada ao grupo: SEG-SAB nos slots 0, 1 e 2 (o slot 3, da viagem, fica vazio). Dias passados e dias de jogo nao mudam.
+  const aplicarPreset = (p: { dias: string[][] }) => {
+    const novo = (gameState.trainingSchedules || [gameState.trainingSchedule, Array(7).fill(null).map(() => Array(4).fill(null)), Array(7).fill(null).map(() => Array(4).fill(null))]).map(g => g.map(d => [...d]));
+    weekInfo.days.forEach((day, dIdx) => {
+      if (day.isPast || matchesInWeek.some(m => m.index === dIdx)) return;
+      const ids = p.dias[dIdx] || [];
+      novo[selectedGroup][dIdx] = [ids[0] || null, ids[1] || null, ids[2] || null, null];
+    });
+    setTrainingSchedules(novo);
+    setSelActivity(null);
+  };
 
   // Toque num slot com um treino escolhido: poe o treino la (respeitando os limites) e, se esgotou, desmarca.
   const colocarSelecionado = (dIdx: number, slotIdx: number) => {
@@ -276,7 +321,7 @@ const TrainingView: React.FC = () => {
         {/* LEFT COLUMN: CALENDAR GRID + TEAM STATS */}
         <div className="xl:col-span-7 flex flex-col gap-4 min-h-[640px] xl:min-h-0">
            {/* CALENDAR */}
-           <div className="flex-1 bg-slate-200/50 dark:bg-slate-950/40 rounded-xl border border-slate-300 dark:border-slate-800/60 flex flex-col overflow-hidden shadow-xl transition-colors min-h-0">
+           <div className={`${selectedGroup === GRUPO_MED || selectedGroup >= (gameState.unlockedTrainingGroups || 1) ? 'flex-1' : 'flex-none'} bg-slate-200/50 dark:bg-slate-950/40 rounded-xl border border-slate-300 dark:border-slate-800/60 flex flex-col overflow-hidden shadow-xl transition-colors min-h-0`}>
               <div className="bg-slate-300/50 dark:bg-slate-900/60 px-6 py-3 border-b border-slate-300 dark:border-slate-800 flex justify-between items-center transition-colors">
                  <div className="flex gap-2">
                     {[0, 1, 2].map(grp => (
@@ -356,21 +401,25 @@ const TrainingView: React.FC = () => {
                     </button>
                  </div>
               ) : (
-                <div className="flex-1 p-3 grid grid-cols-7 gap-2 bg-white dark:bg-transparent overflow-y-auto">
+                <div className="flex items-stretch gap-1 bg-white dark:bg-transparent">
+                <button disabled={semanaOffset <= 0} onClick={() => setSemanaOffset(o => Math.max(0, o - 1))} title="Previous week" className="shrink-0 w-7 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:text-slate-400 disabled:hover:bg-transparent">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                </button>
+                <div className="flex-1 min-w-0 py-3 grid grid-cols-7 gap-2">
                  {weekInfo.days.map((day, dIdx) => {
                    const matchForDay = matchesInWeek.find(m => m.index === dIdx);
                    const isMatchDay = !!matchForDay;
                    const travel = isTravelDay(dIdx);
 
                    return (
-                     <div key={dIdx} className="flex flex-col gap-1.5 h-full relative">
+                     <div key={dIdx} className="flex flex-col gap-1.5 relative">
                         <div className={`text-center py-1.5 rounded-t transition-colors relative z-10 ${day.isToday ? 'bg-blue-600/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-500' : (isMatchDay ? 'text-blue-500' : 'text-slate-400 dark:text-slate-600')}`}>
                           <div className="text-[8px] font-black leading-none uppercase">{day.dayName}</div>
                           <div className="text-xs font-black mt-0.5 flex items-center justify-center gap-1">{day.dayNum}{day.isToday && <SetasAGirar className="w-3.5 h-3.5" />}</div>
                         </div>
                        
                        {isMatchDay && matchForDay ? (
-                         <div className="flex-1 bg-blue-50 dark:bg-blue-900/10 rounded-b-lg border border-blue-200 dark:border-blue-500/20 flex flex-col items-center relative overflow-hidden transition-colors">
+                         <div style={{ height: ALTURA_GRADE }} className="flex-none bg-blue-50 dark:bg-blue-900/10 rounded-b-lg border border-blue-200 dark:border-blue-500/20 flex flex-col items-center relative overflow-hidden transition-colors">
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-1" style={{ containerType: 'size' }}>
                                <div className="font-black italic tracking-tighter text-blue-500/20 dark:text-blue-500/15 whitespace-nowrap transition-all uppercase leading-none" style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)', fontSize: `min(50px, 80cqw, ${(90 / Math.max(1, matchForDay.opponent.length * 0.65)).toFixed(2)}cqh)` }}>
                                   {matchForDay.opponent}
@@ -378,7 +427,7 @@ const TrainingView: React.FC = () => {
                             </div>
                          </div>
                        ) : (
-                        <div className={`flex-1 flex flex-col gap-1 relative ${day.isPast ? 'opacity-20 pointer-events-none grayscale' : ''}`}>
+                        <div style={{ height: ALTURA_GRADE }} className={`flex-none flex flex-col gap-1 relative ${day.isPast ? 'opacity-20 pointer-events-none grayscale' : ''}`}>
                              {day.isTrainingCamp && (
                                  <div className="absolute inset-x-0 -bottom-1 h-2 flex items-center justify-center">
                                      <div className="w-full h-full bg-emerald-500/20 rounded-full blur-[2px]"></div>
@@ -389,8 +438,8 @@ const TrainingView: React.FC = () => {
                               if (slotIdx === 'lunch') {
                                 return (
                                   <div key="lunch" className="flex-1 basis-0 min-h-0 rounded border border-slate-200 dark:border-slate-800/60 bg-slate-100/60 dark:bg-slate-900/40 relative overflow-hidden flex flex-col items-center justify-center gap-1 pointer-events-none select-none">
-                                    <span className="text-3xl leading-none opacity-30 grayscale">🍽️</span>
-                                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest leading-none">Lunch time</span>
+                                    <span className="text-lg leading-none opacity-30 grayscale">🍽️</span>
+                                    <span className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest leading-none">Lunch time</span>
                                   </div>
                                 );
                               }
@@ -416,10 +465,10 @@ const TrainingView: React.FC = () => {
                                 >
                                    {(act || day.isTrainingCamp) && !isBlocked ? (
                                      <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-                                        <span className={`text-6xl drop-shadow-sm leading-none flex-1 flex items-center justify-center ${day.isTrainingCamp && !act ? 'opacity-20 grayscale scale-110' : ''}`}>
-                                            <TrainingIcon id={act ? act.id : 'camp'} categoria={act?.category} semCor={!act} className="w-16 h-16" />
+                                        <span className={`drop-shadow-sm leading-none flex-1 flex items-center justify-center pb-4 ${day.isTrainingCamp && !act ? 'opacity-20 grayscale scale-110' : ''}`}>
+                                            <TrainingIcon id={act ? act.id : 'camp'} categoria={act?.category} semCor={!act} className="w-8 h-8" />
                                         </span>
-                                        <span className="absolute bottom-0 w-full text-center text-[10px] font-black text-slate-800 dark:text-white uppercase leading-none tracking-tighter truncate bg-white/60 dark:bg-black/60 backdrop-blur-[2px] py-1">
+                                        <span className="absolute bottom-0 w-full text-center text-[11px] font-black text-slate-800 dark:text-white uppercase leading-none tracking-tighter truncate bg-white/60 dark:bg-black/60 backdrop-blur-[2px] py-1.5">
                                             {act ? act.name : 'CAMP'}
                                         </span>
                                      </div>
@@ -438,7 +487,7 @@ const TrainingView: React.FC = () => {
                                    {act && !isBlocked && (
                                      <div 
                                        onClick={(e) => { e.stopPropagation(); handleSlotUpdate(dIdx, slotIdx, ''); }}
-                                       title="Remove" className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-700 text-slate-200 flex items-center justify-center text-[10px] font-black leading-none hover:bg-rose-600 z-10 transition-all"
+                                       title="Remove" className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-slate-700 text-slate-200 flex items-center justify-center text-[8px] font-black leading-none hover:bg-rose-600 z-10 transition-all"
                                      >✕</div>
                                    )}
                                 </div>
@@ -449,9 +498,33 @@ const TrainingView: React.FC = () => {
                       </div>
                     );
                  })}
-              </div>
+                </div>
+                <button onClick={() => setSemanaOffset(o => o + 1)} title="Next week" className="shrink-0 w-7 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                </button>
+                </div>
               )}
            </div>
+
+           {/* TREINOS PRE-PROGRAMADOS: 7 botoes, cada um preenche a semana do grupo (SEG-SAB, 3 slots por dia). */}
+           {selectedGroup !== GRUPO_MED && selectedGroup < (gameState.unlockedTrainingGroups || 1) && (
+             <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg p-3 flex flex-col gap-2 transition-colors">
+               <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest italic">Preset Weeks · Mon-Sat · 3 sessions/day</div>
+               <div className="grid grid-cols-4 xl:grid-cols-7 gap-2 flex-1 min-h-0">
+                 {PRESETS.map(p => (
+                   <button
+                     key={p.nome}
+                     onClick={() => aplicarPreset(p)}
+                     title={p.dias.map((d, i) => `${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i]}: ${d.map(id => getActivity(id)?.name || id).join(', ')}`).join('\n')}
+                     className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-slate-700 transition-all active:scale-95"
+                   >
+                     <span className="text-slate-500 dark:text-slate-300">{p.icone}</span>
+                     <span className="text-[10px] font-black uppercase tracking-tight text-slate-700 dark:text-slate-200 text-center leading-tight">{p.nome}</span>
+                   </button>
+                 ))}
+               </div>
+             </div>
+           )}
 
            {/* TEAM STATS PANEL - 7 COLUMNS: TEC, TAC, MEN, FIS, STA, CHE, MOR */}
            <div className="h-32 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex overflow-hidden shadow-lg transition-colors">

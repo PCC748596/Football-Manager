@@ -30,7 +30,7 @@ const FORMAS: Record<string, React.ReactNode> = {
   wingplay: <><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /><path d="M4 7h6M4 17h6" /></>,
   // TACTICS
   video: <><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M10 8.5v4l4-2z" /><path d="M8 21h8M12 17v4" /></>,
-  setpieces: <><path d="M6 21V3" /><path d="M6 4h12l-3 4 3 4H6" /></>,
+  setpieces: <><rect x="3" y="3" width="18" height="18" rx="1" /><rect x="3" y="3" width="6" height="6" fill="#3b82f6" stroke="none" /><rect x="15" y="3" width="6" height="6" fill="#3b82f6" stroke="none" /><rect x="9" y="9" width="6" height="6" fill="#3b82f6" stroke="none" /><rect x="3" y="15" width="6" height="6" fill="#3b82f6" stroke="none" /><rect x="15" y="15" width="6" height="6" fill="#3b82f6" stroke="none" /></>,
   pressing: <><path d="M3 12h6" /><path d="M6 8l4 4-4 4" /><path d="M21 12h-6" /><path d="M18 8l-4 4 4 4" /></>,
   shadow: <><circle cx="9" cy="8" r="3" /><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6" /><circle cx="17" cy="9" r="2.4" opacity="0.55" /><path d="M16 14.2c3 0 5 2.2 5 5.3" opacity="0.55" /></>,
   // FITNESS
