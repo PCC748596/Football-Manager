@@ -94,6 +94,14 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
       // O instantaneo do 3D gravado com o save (posicoes, bola, posse, estatisticas): continua exactamente dali, sem saida de bola.
       instantaneo: (window as any).__instantaneo3d || undefined
     } : null);
+  // VOLTAR DO TACTICS (ou de outra tela) COM O JOGO A MEIO: o 3D ja esta arrancado e o relogio voltou pausado; retoma sozinho 3 s depois (pedido), a menos que o treinador ja o tenha feito.
+  const processandoRef = useRef(gameState.isProcessing);
+  processandoRef.current = gameState.isProcessing;
+  useEffect(() => {
+    if (!iniciou || !match || match.played || gameState.matchMinute <= 0 || gameState.matchMinute >= 90 || gameState.isProcessing) return;
+    const t = setTimeout(() => { if (!processandoRef.current) playMatchDay('VISUAL'); }, 3000);
+    return () => clearTimeout(t);
+  }, []);
   // Sair desta tela (taticas, etc.) pausa o relogio; o 3D pausa-se sozinho e retoma ao voltar (o iframe nao e recriado).
   useEffect(() => () => { pauseMatch(); }, []);
 
@@ -515,7 +523,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 const souCasa = match.homeTeamId === gameState.userTeamId;
                 const adv = souCasa ? awayTeam : homeTeam;
                 const kitUser = ((souCasa ? gameState.matchVisual?.kitHomeIdx : gameState.matchVisual?.kitAwayIdx) ?? 0) as 0 | 1 | 2;
-                return <MatchPreviewModal userTeam={userTeam} adversario={adv} players={players} kitDoUtilizador={kitUser} onClose={() => { setShowPreview(false); if (previewRetomaRef.current) { previewRetomaRef.current = false; playMatchDay('VISUAL'); } }} />;
+                return <MatchPreviewModal userTeam={userTeam} adversario={adv} players={players} kitDoUtilizador={kitUser} onClose={() => { setShowPreview(false); simulador3dTelaCheia(); if (previewRetomaRef.current) { previewRetomaRef.current = false; playMatchDay('VISUAL'); } }} />;
             })()}
             {showStatsModal && (
                 <MatchStatsModal 

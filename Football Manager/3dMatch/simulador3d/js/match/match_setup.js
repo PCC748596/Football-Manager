@@ -588,7 +588,8 @@ Object.assign(Match, {
                     TunelJogadores.lado === sinal) ? TunelJogadores : null;
                 // Os vãos: o do túnel (centro) e, no lado das câmaras, um por banco de reservas (Bancos.vaosDasPlacas).
                 const vaos = [];
-                if (TJp) { const meia = TJp.largura / 2 + TJp.folgaPlaca; vaos.push([-meia, meia]); }
+                // O vao do tunel alarga-se UM PAINEL de cada lado (pedido: tirar as duas placas junto ao tunel).
+                if (TJp) { const meia = TJp.largura / 2 + TJp.folgaPlaca + LPan; vaos.push([-meia, meia]); }
                 if (typeof Bancos !== 'undefined' && typeof BancosDeReservas !== 'undefined' &&
                     BancosDeReservas.activo && BancosDeReservas.lado === sinal) {
                     for (const v of Bancos.vaosDasPlacas()) vaos.push(v);
