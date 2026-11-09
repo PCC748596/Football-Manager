@@ -6,6 +6,7 @@ import { estrelasDoJogador, MudancaAtributo, RelatorioMes, TAMANHO_BASE, IDADE_E
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 import { PlayerSummary, PlayerRadar } from './PlayerOverviewParts';
 import { ContractChip, ContractPanel } from './ContractPanel';
+import { PlayerFace3D } from './PlayerFace3D';
 
 const ORDEM: Position[] = [Position.GK, Position.LB, Position.CB, Position.RB, Position.DM, Position.LM, Position.CM, Position.RM, Position.AM, Position.LW, Position.RW, Position.SS, Position.ST];
 const NOME_ATTR: Record<MudancaAtributo['attr'], string> = { def: 'TAC', pas: 'TEC', drb: 'TEC', sht: 'TEC' };
@@ -128,7 +129,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
                     return (
                       <tr key={p.id} onClick={() => setSelId(p.id)} className={`cursor-pointer transition-colors ${selId === p.id ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-blue-50/50 dark:hover:bg-white/5'}`}>
                         <td className="px-3 py-[6px]"><span className="text-xs font-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded bg-slate-50 dark:bg-slate-900/40">{p.position}</span></td>
-                        <td className="px-3 py-[6px] font-bold text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">{p.name}</td>
+                        <td className="px-3 py-[2px] font-bold text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap"><div className="flex items-center gap-2"><div className="w-[57px] h-[57px] shrink-0 overflow-hidden pointer-events-none"><PlayerFace3D playerId={p.id} team={userTeam} gk={p.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div><span>{p.name}</span></div></td>
                         <td className="px-3 py-[6px] text-center text-sm text-slate-500 dark:text-slate-400">{p.age}</td>
                         <td className="px-3 py-[6px] text-center"><span className="text-sm font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 px-2 py-0.5 rounded">{p.skill}</span></td>
                         <td className="px-3 py-[6px]"><Estrelas n={estrelasDoJogador(p)} /></td>
@@ -149,12 +150,15 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
               <div className="text-slate-400 text-sm font-bold uppercase tracking-widest m-auto text-center">Select a player to see attributes and development</div>
             ) : (
               <>
-                <div className="flex justify-between items-start">
-                  <div>
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-[104px] h-[104px] shrink-0 overflow-hidden pointer-events-none"><PlayerFace3D playerId={sel.id} team={userTeam} gk={sel.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
+                  <div className="min-w-0">
                     <div className="text-2xl font-black italic uppercase text-slate-900 dark:text-white leading-tight">{sel.name}</div>
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-1">{sel.position} • {sel.age} years • value {formatCurrencyShort(sel.value)}</div>
                     <div className="mt-1"><Estrelas n={estrelasDoJogador(sel)} /> <span className="text-[11px] text-slate-400 font-bold uppercase">estimate</span></div>
                     <div className="mt-1 text-[11px] font-black uppercase tracking-widest text-slate-400">PlayStyle: <EstiloDoJovem p={sel} completo /></div>
+                  </div>
                   </div>
                   <div className="text-right"><div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Overall</div><div className="text-5xl font-black italic text-blue-500">{sel.skill}</div></div>
                 </div>
@@ -224,7 +228,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
                     const r = ultimo(p);
                     return (
                       <tr key={p.id} onClick={() => { setSelId(p.id); setAba('LISTA'); }} className="cursor-pointer hover:bg-blue-50/50 dark:hover:bg-white/5">
-                        <td className="px-3 py-[6px] font-bold text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">{p.name}</td>
+                        <td className="px-3 py-[2px] font-bold text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap"><div className="flex items-center gap-2"><div className="w-[54px] h-[54px] shrink-0 overflow-hidden pointer-events-none"><PlayerFace3D playerId={p.id} team={userTeam} gk={p.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div><span>{p.name}</span></div></td>
                         <td className="px-3 py-[6px] text-center text-sm text-slate-500">{p.age}</td>
                         <td className="px-3 py-[6px] text-xs font-black text-slate-500">{p.position}</td>
                         <td className="px-3 py-[6px] text-center text-sm font-black text-slate-700 dark:text-slate-200">{r ? `${r.ovrAntes} → ${r.ovrDepois}` : p.skill}</td>

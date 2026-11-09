@@ -6,6 +6,7 @@ import { Position, Player, PLAYSTYLE_POSITIONS, PlayStyle } from '../types';
 import PlayerDetailModal from './PlayerDetailModal';
 import EnergyBar, { energiaDe } from './EnergyBar';
 import { ShirtIcon } from './ShirtIcon';
+import { PlayerFace3D } from './PlayerFace3D';
 import { getKitDetails, getGKKitDetails } from '../types';
 import YouthView from './YouthView';
 import { ContractChip } from './ContractPanel';
@@ -175,9 +176,9 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
             <table className="w-full text-left border-separate border-spacing-0">
                <thead className="bg-slate-200/40 dark:bg-slate-950/60 text-[13px] text-slate-400 dark:text-slate-500 font-black uppercase sticky top-0 z-10 transition-colors">
                  <tr>
-                   <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 w-12 text-center cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('num')}>#{seta('num')}</th>
+                   <th className="px-2 py-2 border-b border-slate-200 dark:border-slate-800 w-12 text-center cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('num')}>#{seta('num')}</th>
                    <th className="px-1 py-2 border-b border-slate-200 dark:border-slate-800 text-center w-12 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pos')}>Pos{seta('pos')}</th>
-                   <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('name')}>Name{seta('name')}</th>
+                   <th className="px-2 py-2 border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('name')}>Name{seta('name')}</th>
                    <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('age')}>Age{seta('age')}</th>
                    <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('ovr')}>OVR{seta('ovr')}</th>
                    <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pot')}>Pot{seta('pot')}</th>
@@ -199,7 +200,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                      onClick={() => setSelectedPlayer(p)}
                      className={`hover:bg-blue-50/50 dark:hover:bg-white/5 transition-colors group cursor-pointer ${draggingPlayerId === p.id ? 'opacity-40' : ''}`}
                    >
-                     <td className="px-4 py-[6.5px] text-center" onClick={(e) => e.stopPropagation()}>
+                     <td className="px-2 py-[8px] text-center" onClick={(e) => e.stopPropagation()}>
                         <div 
                           draggable
                           onDragStart={(e) => handleDragStart(e, p.id)}
@@ -216,50 +217,52 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                             </div>
                         </div>
                      </td>
-                     <td className="px-1 py-[6.5px] text-center">
+                     <td className="px-1 py-[8px] text-center">
                        <span className="text-[11px] font-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded uppercase bg-slate-50 dark:bg-slate-900/40">
                          {p.position}
                        </span>
                      </td>
-                     <td className="px-4 py-[6.5px] font-bold text-slate-700 dark:text-slate-200 text-sm truncate max-w-[140px] transition-colors group-hover:text-blue-500">
+                     <td className="px-2 py-[8px] font-bold text-slate-700 dark:text-slate-200 text-sm max-w-[210px] transition-colors group-hover:text-blue-500">
                         <div className="flex items-center gap-1.5">
-                           {p.name}
+                           {/* A foto 3D sem moldura (44 px) com margem vertical negativa: sai um pouco da linha, que continua com a altura de antes. */}
+                           <div className="w-[44px] h-[44px] shrink-0 -my-[7px] -translate-y-[10px] overflow-visible pointer-events-none"><PlayerFace3D playerId={p.id} team={userTeam} gk={p.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
+                           <span className="truncate">{p.name}</span>
                            {p.injury && <span className={`text-[11px] ${getInjuryColorClass(p.injury)} font-black cursor-help drop-shadow-sm leading-none`} title={typeof p.injury === 'object' ? `${p.injury.type} (${p.injury.estimativa || `${p.injury.daysOut} dias`})${p.injury.boletim ? ` — ${p.injury.boletim}` : ''}` : 'Contundido'}>✚</span>}
                         </div>
                      </td>
                      
-                     <td className="px-1 py-[6.5px] text-center text-xs text-slate-400 dark:text-slate-500 font-medium transition-colors">{p.age}</td>
-                     <td className="px-1 py-[6.5px] text-center">
+                     <td className="px-1 py-[8px] text-center text-xs text-slate-400 dark:text-slate-500 font-medium transition-colors">{p.age}</td>
+                     <td className="px-1 py-[8px] text-center">
                        <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 px-1.5 py-0.5 rounded shadow-sm transition-colors">
                          {Math.round(p.skill)}
                        </span>
                      </td>
-                     <td className="px-1 py-[6.5px] text-center whitespace-nowrap text-lg leading-none tracking-tighter" title="Current level (gold) and estimated potential (grey, scout estimate)">
+                     <td className="px-1 py-[8px] text-center whitespace-nowrap text-lg leading-none tracking-tighter" title="Current level (gold) and estimated potential (grey, scout estimate)">
                        {/* Uma linha de 5 estrelas so: douradas = o nivel atual; cinzentas = o que falta ate ao potencial; apagadas = acima do potencial. */}
                        {Array.from({ length: 5 }, (_, i) => <span key={i} className={i < starCount ? 'text-yellow-400' : i < estrelasDoJogador(p) ? 'text-slate-400 dark:text-slate-400' : 'text-slate-200 dark:text-slate-700'}>★</span>)}
                      </td>
-                     <td className="px-1 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-400 font-medium transition-colors">
+                     <td className="px-1 py-[8px] text-center text-xs text-slate-500 dark:text-slate-400 font-medium transition-colors">
                         <div className="flex flex-col items-center gap-1">
                            <EnergyBar energy={energiaDe(p)} className="w-12 h-1.5" />
                            <span>{Math.round(energiaDe(p))}%</span>
                         </div>
                      </td>
-                     <td className="px-1 py-[6.5px] text-center text-xs font-medium transition-colors">
+                     <td className="px-1 py-[8px] text-center text-xs font-medium transition-colors">
                         <MoraleArrow morale={Math.round(p.morale)} />
                      </td>
-                      <td className="px-1 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
+                      <td className="px-1 py-[8px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         {(() => { const now = atributos3d(p).tec, start = p.treino3dSeasonStart?.tec ?? now, delta = now - start; return <div className="flex items-center justify-center gap-1"><span>{now}</span>{delta !== 0 && <span className={delta > 0 ? 'text-emerald-500' : 'text-red-500'}>{delta > 0 ? '+' : ''}{delta}</span>}</div>; })()}
                       </td>
-                      <td className="px-1 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
+                      <td className="px-1 py-[8px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         {(() => { const now = atributos3d(p).tac, start = p.treino3dSeasonStart?.tac ?? now, delta = now - start; return <div className="flex items-center justify-center gap-1"><span>{now}</span>{delta !== 0 && <span className={delta > 0 ? 'text-emerald-500' : 'text-red-500'}>{delta > 0 ? '+' : ''}{delta}</span>}</div>; })()}
                       </td>
-                      <td className="px-1 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
+                      <td className="px-1 py-[8px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         {(() => { const now = atributos3d(p).men, start = p.treino3dSeasonStart?.men ?? now, delta = now - start; return <div className="flex items-center justify-center gap-1"><span>{now}</span>{delta !== 0 && <span className={delta > 0 ? 'text-emerald-500' : 'text-red-500'}>{delta > 0 ? '+' : ''}{delta}</span>}</div>; })()}
                       </td>
-                      <td className="px-1 py-[6.5px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
+                      <td className="px-1 py-[8px] text-center text-xs text-slate-500 dark:text-slate-300 font-bold transition-colors">
                         {(() => { const now = atributos3d(p).fis, start = p.treino3dSeasonStart?.fis ?? now, delta = now - start; return <div className="flex items-center justify-center gap-1"><span>{now}</span>{delta !== 0 && <span className={delta > 0 ? 'text-emerald-500' : 'text-red-500'}>{delta > 0 ? '+' : ''}{delta}</span>}</div>; })()}
                       </td>
-                     <td className="px-1 py-[6.5px] text-center text-xs font-bold transition-colors">
+                     <td className="px-1 py-[8px] text-center text-xs font-bold transition-colors">
                         <span title={'Playing Style: ' + estiloDoJogador(p)} className="inline-flex items-center justify-center" style={{ width: 24, height: 24 }}><IconePlayStyleSvg estilo={estiloDoJogador(p)} tam={24} /></span>
                      </td>
                    </tr>
