@@ -1132,6 +1132,8 @@ por lateral sao muitas luzes a somar, e cada uma a 1.0 estouraria o relvado.
 */
 const Holofotes = {
     activo: true,
+    // As quatro torres dos cantos dos estadios menores (SpotLight para dentro + halo e mancha no chao, match_setup.js). DESLIGADO: o FPS caiu (30) com elas; ligar de volta = true.
+    cantos: false,
     // Quantos conjuntos por lateral, e quantas lampadas em cada.
     fileiras: 4,
     lampadasPorFileira: 6,

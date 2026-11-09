@@ -142,13 +142,41 @@ class CidadeAcumulador {
             if (!this.inst.size) return null;
             const grupo = new THREE.Group();
             const cor = new THREE.Color();
+            /*
+            O CORTE POR CELULAS (pedido: o FPS caia a noite com chuva, e a cidade desenhava TODAS as instancias todo frame, mesmo com a camera a olhar para dentro do estadio): o `InstancedMesh` do Three testa
+            a visibilidade so da caixa da geometria base, e por isso as malhas tinham `frustumCulled = false`. Aqui cada forma reparte-se por CELULAS de `CELULA` m (uma malha por forma e celula), cada uma
+            com o seu centro e raio (`userData.corte`), e o `Cidade.update` testa as celulas contra o frustum da camera (`window.cameraFrustum`), desenhando so as que a camera pode ver.
+            */
+            const CELULA = 80;
             for (const l of this.inst.values()) {
-                const m = new THREE.InstancedMesh(CidadeAcumulador.geoUnidade(l.un), mat, l.m.length);
-                for (let i = 0; i < l.m.length; i++) { m.instanceMatrix.array.set(l.m[i], i * 16); m.setColorAt(i, cor.setHex(l.c[i])); }
-                m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true;
-                m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false;
-                m.name = 'Cidade_' + l.un.nome;
-                grupo.add(m);
+                const geo = CidadeAcumulador.geoUnidade(l.un);
+                if (!geo.boundingSphere) geo.computeBoundingSphere();
+                const rGeo = geo.boundingSphere ? geo.boundingSphere.radius : 1;
+                const baldes = new Map();
+                for (let i = 0; i < l.m.length; i++) {
+                    const e = l.m[i], x = e[12], z = e[14];
+                    const chave = Math.floor(x / CELULA) + ',' + Math.floor(z / CELULA);
+                    let b = baldes.get(chave); if (!b) { b = []; baldes.set(chave, b); }
+                    b.push(i);
+                }
+                for (const idxs of baldes.values()) {
+                    const m = new THREE.InstancedMesh(geo, mat, idxs.length);
+                    let sx = 0, sy = 0, sz = 0;
+                    for (const i of idxs) { sx += l.m[i][12]; sy += l.m[i][13]; sz += l.m[i][14]; }
+                    const cx = sx / idxs.length, cy = sy / idxs.length, cz = sz / idxs.length;
+                    let raio = 0;
+                    idxs.forEach((i, k) => {
+                        const e = l.m[i];
+                        m.instanceMatrix.array.set(e, k * 16); m.setColorAt(k, cor.setHex(l.c[i]));
+                        const esc = Math.max(Math.hypot(e[0], e[1], e[2]), Math.hypot(e[4], e[5], e[6]), Math.hypot(e[8], e[9], e[10]));
+                        raio = Math.max(raio, Math.hypot(e[12] - cx, e[13] - cy, e[14] - cz) + rGeo * esc);
+                    });
+                    m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true;
+                    m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false;
+                    m.userData.corte = { x: cx, y: cy, z: cz, r: raio };
+                    m.name = 'Cidade_' + l.un.nome;
+                    grupo.add(m);
+                }
             }
             return grupo;
         }
@@ -314,7 +342,7 @@ const Cidade = {
             if (o.geometry) o.geometry.dispose();
             if (o.material && o.material.map && o.material.map.dispose) o.material.map.dispose();
         });
-        this.grupo = null; this._veiculos = []; this._trens = []; this._noite = null;
+        this.grupo = null; this._veiculos = []; this._trens = []; this._noite = null; this._celulas = null;
         if (this.gente && this.gente.limpar) this.gente.limpar();
         this.gente = null; this.dados = null; this._parados = null;
     },
@@ -1898,7 +1926,27 @@ const Cidade = {
         this._aplicarPeriodo(noite);
         this._atualizarVeiculos(dt);
         this._atualizarTrens(dt);
+        this._cortarCelulas();
         if (this.gente) this.gente.update(dt);
+    },
+
+    /*
+    O CORTE DA CIDADE (ver `CidadeAcumulador.malha`): cada celula so e desenhada se a esfera dela cruza o frustum da camera do jogo. A lista das celulas monta-se uma vez por construcao (e e limpa em `remover`).
+    */
+    _cortarCelulas() {
+        const fr = window.cameraFrustum;
+        if (!fr || !this.grupo) return;
+        if (!this._celulas) {
+            this._celulas = [];
+            this.grupo.traverse(o => { if (o.userData && o.userData.corte) this._celulas.push(o); });
+            this._esfera = new THREE.Sphere();
+        }
+        const sf = this._esfera;
+        for (const o of this._celulas) {
+            const c = o.userData.corte;
+            sf.center.set(c.x, c.y, c.z); sf.radius = c.r + 12;   // folga: o frustum pode ter um frame de atraso (camera em movimento)
+            o.visible = fr.intersectsSphere(sf);
+        }
     }
 };
 if (typeof window !== 'undefined') window.Cidade = Cidade;

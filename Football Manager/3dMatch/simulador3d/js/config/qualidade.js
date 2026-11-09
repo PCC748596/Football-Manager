@@ -20,7 +20,7 @@ const BLOB_Y = 0.02;
 const Qualidade = {
     niveis: {
         // Todos os niveis: jogadores e arbitros com o corpo `leve` 4 (456 triangulos), torcida, staff e reservas com o `leve` 5 (400).
-        HIGH:   { luzes: 14, sombras: false, mapa: 2048, pixelRatio: 1.5, adeptos: 1.00, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
+        HIGH:   { luzes: 11, sombras: false, mapa: 2048, pixelRatio: 1.5, adeptos: 1.00, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
         MEDIUM: { luzes: 10, sombras: false, mapa: 1024, pixelRatio: 1.5, adeptos: 0.50, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
         LOW:    { luzes: 6, sombras: false, mapa: 512,  pixelRatio: 1.5, adeptos: 0.25, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: false }
     },
@@ -242,7 +242,7 @@ const Qualidade = {
 
     // As SpotLights de baixo da cobertura (luzesSob): so `sob` ficam, espalhadas pela lista. Cada uma custa fps a noite no tablet.
     limitarSob: function (luzes) {
-        const max = { HIGH: 10, MEDIUM: 6, LOW: 3 }[this.nivel] || 6;
+        const max = { HIGH: 6, MEDIUM: 5, LOW: 3 }[this.nivel] || 6;
         if (!luzes || luzes.length <= max) return luzes;
         const ficam = [];
         for (let i = 0; i < max; i++) ficam.push(luzes[Math.floor((i + 0.5) * luzes.length / max)]);

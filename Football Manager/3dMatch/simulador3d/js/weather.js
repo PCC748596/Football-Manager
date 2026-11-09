@@ -445,6 +445,8 @@ const Weather = {
             for (const l of HF.luzes) {
                 l.intensity = ligarHolofotes ? intensidade * ((l.userData && l.userData.fator) || 1) : 0;
             }
+            // Os brilhos dos holofotes dos cantos (halo e mancha no chao): so aparecem com eles acesos, mais fortes de noite.
+            if (HF.brilhos) for (const bm of HF.brilhos) bm.opacity = ligarHolofotes ? (this.periodo === 'noite' ? 0.85 : 0.25) : 0;
             if (HF.matLampada) {
                 HF.matLampada.color.setHex(ligarHolofotes ? HConfig.corLampadaAcesa : HConfig.corLampadaApagada);
                 HF.matLampada.emissive.setHex(ligarHolofotes ? HConfig.corLampadaAcesa : 0x000000);

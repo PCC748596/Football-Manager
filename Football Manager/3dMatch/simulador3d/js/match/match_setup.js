@@ -1683,6 +1683,48 @@ Object.assign(Match, {
                 }
             }
 
+            /*
+            OS QUATRO CANTOS (pedido: "os cantos do estadio menor estao sem iluminacao"): as laterais e os fundos deixavam as curvas as escuras. Uma torre em cada canto, no ponto de 45 graus do arco que
+            fecha as arquibancadas (centro do arco a (BANCADA_X - R, BANCADA_Z - R), raio R + `profPos`), com a travessa de lampadas na tangente. Cada uma leva:
+              . uma SpotLight para DENTRO, apontada ao quarto de campo oposto (cruza o relvado na diagonal), como as curvas do estadio oval;
+              . para FORA (pedido: "os holofotes podem iluminar para o lado de fora tambem?") NAO ha SpotLight: as 4 que se tinham posto fizeram o FPS cair muito (cada luz a mais e custo em todo o
+                fragmento da cena); o lado de fora fica com o BRILHO abaixo;
+              . um BRILHO (halo na altura das lampadas e mancha no chao ao pe da torre), sem luz real, so aparencia; acende e apaga com os holofotes (`window.holofotes.brilhos`, weather.js).
+            As luzes de canto entram na lista `luzes` (tipo 'canto'): o `Qualidade.limitarLuzes` mantem o total no maximo do nivel (14 em HIGH), por isso nao ha mais luzes do que antes, so repartidas.
+            */
+            const brilhos = [];
+            if (!OVAL && H.cantos) {   // `Holofotes.cantos` (config/physics.js): desligado por omissao ate se medir o custo em fps
+                const R = RAIO_PRIMEIRA_FILA, rTorre = R + profPos;
+                const cvG = document.createElement('canvas'); cvG.width = cvG.height = 128;
+                { const g2 = cvG.getContext('2d'), gr = g2.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,244,214,1)'); gr.addColorStop(0.35, 'rgba(255,238,200,0.45)'); gr.addColorStop(1, 'rgba(255,238,200,0)'); g2.fillStyle = gr; g2.fillRect(0, 0, 128, 128); }
+                const texG = new THREE.CanvasTexture(cvG);
+                const matHalo = new THREE.SpriteMaterial({ map: texG, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+                const matChao = new THREE.MeshBasicMaterial({ map: texG, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+                brilhos.push(matHalo, matChao);
+                for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+                    const cx = sx * ((BANCADA_X - R) + 0.7071 * rTorre), cz = sz * ((BANCADA_Z - R) + 0.7071 * rTorre);
+                    const tx = -sz * 0.7071, tz = sx * 0.7071;   // tangente (unitaria) do arco neste canto
+                    const gt = new THREE.BoxGeometry(larguraConj, H.travessaEspessura, H.travessaEspessura).toNonIndexed();
+                    gt.rotateY(Math.atan2(-tz, tx));   // o eixo longo (x) passa a ser a tangente
+                    gt.translate(cx, yLuz - H.lampadaAlt / 2 - H.travessaEspessura / 2, cz);
+                    geosTravessa.push(gt);
+                    if (soFrenteH) addMastro(cx, cz);
+                    for (let i = 0; i < H.lampadasPorFileira; i++) {
+                        const o = (i - (H.lampadasPorFileira - 1) / 2) * H.espacoEntreLampadas;
+                        posLampadas.push([cx + tx * o, yLuz, cz + tz * o]);
+                    }
+                    // Para dentro.
+                    const luzIn = new THREE.SpotLight(H.corLuz, 0, H.alcanceLuz, H.anguloLuz, H.penumbra, 1.0);
+                    luzIn.position.set(cx, yLuz, cz);
+                    luzIn.target.position.set(-sx * 12, 0, -sz * 16);
+                    luzIn.castShadow = false; luzIn.userData.tipo = 'canto'; luzIn.userData.lado = 0; luzIn.userData.fator = 0.8;
+                    campoGrupo.add(luzIn); campoGrupo.add(luzIn.target); luzes.push(luzIn);
+                    // Brilho: halo nas lampadas e mancha no chao.
+                    const halo = new THREE.Sprite(matHalo); halo.position.set(cx, yLuz, cz); halo.scale.set(12, 12, 1); halo.renderOrder = 3; campoGrupo.add(halo);
+                    const chao = new THREE.Mesh(new THREE.PlaneGeometry(34, 34), matChao); chao.rotation.x = -Math.PI / 2; chao.position.set(cx + sx * 6, 0.06, cz + sz * 6); chao.renderOrder = 2; campoGrupo.add(chao);
+                }
+            }
+
             if (geosTravessa.length) {
                 const g = mergeNonIndexedGeometries(geosTravessa);
                 g.computeVertexNormals();
@@ -1705,7 +1747,7 @@ Object.assign(Match, {
 
             // So `luzes` SpotLights ficam (config/qualidade.js): no tablet cada luz custa fps.
             if (typeof Qualidade !== 'undefined' && Qualidade.limitarLuzes) luzes = Qualidade.limitarLuzes(luzes);
-            window.holofotes = { luzes, matLampada, lampadas: imL };
+            window.holofotes = { luzes, matLampada, lampadas: imL, brilhos };
         }
 
         // Painéis sob as coberturas (um material -> acendem todos juntos).

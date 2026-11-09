@@ -1251,7 +1251,9 @@ function updateCameraFrustum() {
     window.cameraFrustum.setFromProjectionMatrix(window.cameraProjMatrix);
 }
 
-const _embutidoSemCidade = /[?&]embutido/.test(location.search) && !/[?&](cidade|oculto)/.test(location.search);
+// A CIDADE SO SE DESENHA NA CAMERA CINEMA (pedido, por causa do FPS): salvo com `?cidade=1` (forcar sempre). `?cidade=pequena` (Series C e D) so escolhe o tipo de cidade e nao a deixa sempre ligada
+// (antes o `cidade=pequena` desligava esta regra e a cidade era desenhada em todas as cameras); `?oculto` nem a constroi.
+const _embutidoSemCidade = !/[?&]cidade=1(&|$)/.test(location.search) && !/[?&]oculto/.test(location.search);
 function animate(time) {
     requestAnimationFrame(animate);
 
@@ -1274,7 +1276,7 @@ function animate(time) {
     */
     if (typeof Cidade !== 'undefined') {
         if (_embutidoSemCidade) {
-            const ve = ['cinema', 'grua', 'orbit'].indexOf(window.cameraMode) >= 0;
+            const ve = window.cameraMode === 'cinema';   // so a camera Cinema (antes: cinema, grua e orbita)
             // A cidade constroi-se JA (escondida) e nao na primeira vez que se muda para uma camera que a ve: carrega junto com o estadio (a construcao a meio do jogo era o soluco ao trocar para Orbita / Cinema).
             // Uma tentativa so: se a construcao falhar nao se repete a cada quadro (reconstruir uma cidade de 12 mil instancias, ~200 ms, por quadro seria o jogo a travar).
             if (!Cidade.grupo && !Cidade._tentouConstruir && typeof CidadeConfig !== 'undefined' && CidadeConfig.ativa && Match.scene) {
