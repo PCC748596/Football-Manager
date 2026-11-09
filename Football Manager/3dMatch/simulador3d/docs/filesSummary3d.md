@@ -15,6 +15,48 @@ Consulta este ficheiro para saber **onde** mexer antes de abrir o código.
 
 ## Últimas Actualizações (Outubro e Novembro 2026)
 
+### 7 a 9 de Novembro de 2026 — luzes e FPS, sombras, drible, carrinho, faltas, troca no intervalo, som e calendário europeu
+
+**Luzes, sombras e FPS (`js/config/qualidade.js`, `js/match/match_setup.js`, `js/config/physics.js`, `js/cidade.js`, `js/main.js`)**
+- **Sombras reais desligadas por omissão** em todos os níveis (`sombras: false`); com elas desligadas vale a sombra falsa `BlobSombra` (`Qualidade.criarBlob` / `atualizarBlobs`).
+- **A sombra de dia é redonda** (disco de 1.0 m centrado nos pés, não estica para o lado oposto ao sol) e a força depende do clima (`Weather.condicao`): limpo 1, nublado 0.5, encoberto 0.3, chuva 0.3, neve 0.4 (opacidade do `matDia`). De noite continuam as quatro sombras nas diagonais. Corpo inclinado (mergulho do goleiro): a mancha calcula-se no mundo (`BLOB_Y`) para não ficar no ar.
+- **`BlobSombra` fica de fora** das fusões de corpos de `crowd.js`, `staff.js` e `bancos.js` (senão viravam quadrados laranja sob as pessoas).
+- **`limitarLuzes` escolhe de forma simétrica** (índices do primeiro ao último, a passos iguais), para um lado do estádio não ficar mais iluminado. HIGH: 11 luzes, 6/5/3 sob a cobertura (HIGH/MEDIUM/LOW).
+- **Torres de canto** (`Holofotes.cantos: true`, bloco `if (!OVAL && H.cantos)` em match_setup.js): SpotLight virada para dentro (cone 0.5, alvo `[-sx*8, 0, -sz*10]`, tipo `'canto'`, `fator` 0.8), sem halo nem poça de luz no chão e sem holofotes virados para fora. As luzes da parte coberta ficam penduradas na frente da cobertura (`frenteCob`).
+- **Cidade**: instâncias partidas em células de 80 m (`userData.corte`); `Cidade._cortarCelulas()` testa o frustum da câmara com 12 m de margem. **A cidade só se desenha na câmara Cinema** (`main.js`, `_embutidoSemCidade`; `?cidade=1` força).
+- **Linhas do campo**: o `matLinha` tem `polygonOffset` (-4, -4); estavam a 1 cm do relvado e, no tablet (z-buffer menos preciso), sumiam. `main.js` trata `webglcontextlost` (`preventDefault`) e `webglcontextrestored` (`needsUpdate` nos materiais), para o tablet que perde o contexto ao sair da tela do jogo.
+- **Cartões do HUD no tablet** (`css/styles.css`, `body.toque` e `pointer: coarse`): escala dos cartões de jogador 0.924 → 1.155 (+25%); o de evento ficou em 0.84.
+
+**Cansaço (`js/config/player_behavior.js`, `StaminaModel`)**: `custoPorSegundo` 0.000295 → 0.000236 (−20%) → **0.0001888** (mais −20%).
+
+**Drible: o corte do marcador (`DribbleModel.corteAtrasado`, `js/fsm.js` DRIBBLE, `js/player.js` `aplicarCamadaCorteAtrasado`)**: quando o drible resulta, o marcador batido faz um corte em pé, atrasado: `atraso` 0.25 s, depois `dur` 0.65 s de torção do tronco e da bacia para o lado de fuga, inclinação, pernas abertas e braços no ar (curva seno). Só mexe nos ossos (camada depois do `animateBones`); cancela em TACKLE, SLIDE_TACKLE, SHOOT e PASS.
+
+**Condução: zona sem toque (`CarryModel.zonaSemToqueAte = 15`, `js/fsm.js` CARRY)**: a bola só fica colada ao pé (sem toque à frente) na zona de finalização **e** a menos de 15 m da linha de fundo adversária. Antes valia em toda a zona (o `shootingRange` de um avançado forte chega a 20-25 m): ele ganhava a frente aos defesas, perdia velocidade e a bola. Os toques por distância do adversário continuam: > 15 m 2.0 m, 10-15 m 1.6, 5-10 m `touchShort` 1.4, < 5 m `touchShort × 0.7`.
+
+**Carrinho: o levantar (`js/fsm.js` `_levantarDoCarrinho`)**: depois do deslize o jogador levanta-se como o goleiro depois da queda, pelo `Levantar` (de joelhos com uma mão no chão, um joelho no chão, quase de pé, de pé). Mistura osso a osso a pose do deslize (`applySlidePose(1, 1)`) com a do `Levantar` no primeiro tramo; a altura segue `Levantar.alturaPescoco`.
+
+**Faltas: passos e não giros (`js/bt/team_bt.js` `PASSEIO_FALTA` em `aplicarInquietacao`, `js/fsm.js` SET_PIECE_WAIT)**: na falta (`Match.state === 'FREE_KICK'`) quem espera usa o `passeioDeEspera` com 1 a 2 passos, 2 a 3 s parado e 1 a 2 passos de volta; quem defende nunca chega a menos de 9.5 m da bola. Antes caía no passo aleatório (a "inquietação"), que com o corpo virado para a bola parecia giro.
+
+**Substituição no intervalo (`js/match/match_substituicoes.js`, `js/abertura.js`, `js/match/match_loop.js`, `tests/troca_no_intervalo.test.js`)**
+- Um pedido feito com `Match.state === 'INTERVALO'` (e `intervaloComSaida`) fica com `intervalo: true`: **sem aquecimento** (o reserva não se levanta) e espera a volta do 2.º tempo.
+- `Match.converterTrocasDoIntervalo()` (chamado no início de `Abertura.segundoTempo`) faz a troca JÁ na lista (`executarSubstituicao`, entrante com o posto de quem sai). O **entrante** sai do túnel com os 22 mas vai ao **4.º árbitro** — o ponto de espera `Aquecimento.xEspera`, a **3 m à esquerda** dele (`QuartoArbitro.postoZ() + Sb * (3.0 + 1.5 * indice)`; cada entrante a mais fica 1.5 m mais longe; o contador é um só para os dois times) — e **pára** (`parte.seguraEm`, `aEspera`) até o bandeirinha sinalizar e a placa estar no ar (`_tickTrocaDoIntervalo`: `int_ir` → `placa` → `int_entra` → `int_fim`); só então segue ao posto. A volta do intervalo espera por ele.
+- O **substituído** não vai ao posto: sai do túnel (`_tickVoltaDeQuemSai`, com atraso por índice), anda pela faixa da lateral (`Aquecimento.xVao`, `xAquecer`) e senta-se no lugar do reserva. O reserva do banco fica escondido.
+- Sem a volta pelo túnel (lotes, sem túnel) o `iniciarSegundoTempo` limpa a marca `intervalo` e os pedidos seguem o caminho de sempre (aquecimento e parada).
+- **Skip da volta do intervalo** (`Abertura._acelerarVolta`, chamado por `Abertura.cancelar` no modo `'segundo'`): ninguém corta caminho pelas placas. Todos saem já do túnel (`AberturaModel.skipEscalonamento` 0.12 s entre cada um), a correr (`velocidadeSkip` 7.5 m/s, em `config/tunel.js`), pelos mesmos pontos (boca, vão da placa, posto); o entrante de troca é libertado e corre ao posto.
+- **Placa de troca (`js/officials_quarto.js`)**: números mais brilhantes (cores `#ff5047` / `#3dff7a`, halo `shadowBlur` 22, miolo claro, `toneMapped: false`).
+
+**Som (`js/ambiente_sonoro.js`, `js/efeitos_sonoros.js`, `js/narracao/ponte.js`; manager: `3dMatch/Simulador3DView.tsx`)**
+- `AmbienteSonoro.setLigado(false)` cala mesmo: o loop, o grito, a reacção e as palmas ficam `muted` e em pausa (no iPad o `volume` de um `<audio>` é só de leitura), mais `EfeitosSonoros.pararTudo()` e uma rede de segurança por frame no `update`. A ponte só liga o som na 1.ª preparação (`_somJaLigado`) e põe o texto do botão `btn-som` a acompanhar o estado real.
+- **Voltar à tela do jogo no iPad**: `EfeitosSonoros.retomar()` retoma o contexto de Web Audio em `visibilitychange`, `pageshow`, `focus`, `onstatechange` e na mensagem `gesto` (o manager reenvia ao iframe cada toque/clique/tecla); o `tocar` com o contexto suspenso espera o `resume()` e toca (se ainda for a tempo, 700 ms) em vez de cair nos `<audio>` de reserva, que estão mudos (`_ctxFalhou`).
+
+**Copas e calendário europeu (lado do manager, em `textSim/`)**
+- **Temporada europeia**: `ehLigaEuropeia(leagueId)` e `datasDaTemporadaEuropeia(rodadas, anoInicio)` (`textSim/dataGenerator.ts`): jogos de **1/7** até 23/5 do ano seguinte (sábados e terças); a temporada vira a **1/6**. `generateFixtures(..., temporadaEuropa)` e `createWorld(..., temporadaEuropa)` só usam o calendário novo quando recebem o ano. Jogo novo: clube não europeu começa a 1/1 (as ligas europeias chegam a 1/1 com julho a dezembro simulados, modelo rápido); clube europeu começa a **1/6** (pré-temporada, amistosos da CPU a 6, 13 e 20 de junho), a liga a 1/7 e as outras ligas simulam de 1/1 a 1/6. A virada de temporada de clube europeu é em 1/6 (a dos outros em 1/1). Um save antigo recria o mundo e simula as ligas até à data do calendário.
+- **Champions, Europa, Conference e Carabao** só a partir de 1/7 (`INICIO_EUROPA`): fase de liga em 8 terças de 7/7 a 25/8, playoff 1 e 8/9; Carabao R1 7/7, R2 21/7, R3 4/8, R4 18/8, quartas 1/9, meias 22/9 e 20/10, final 29/11.
+- **Datas das copas (`agendarJogo`, `agendarIdaEVolta`)**: 2 dias livres de cada lado (JOGO-LIVRE-LIVRE-JOGO) para os dois clubes, busca de até 150 dias e nenhum jogo depois de 28/12 do ano; a jornada seguinte de um grupo nunca fica antes do último jogo do clube + 3 dias. **Ida e volta**: a volta 7 dias depois da ida (ou o espaçamento nominal se for de 5 a 9, como a final do Paulistão, 15 e 21/3), com 1-2 dias de folga se preciso. Medido (mundo completo): nenhum jogo em dias seguidos; restam ~51 sequências com 1 dia livre (clubes cuja liga não deixa janela de 2 dias dentro do ano, ex. a Argentina).
+- **Escolha automática dos cobradores**: `resolveSetPieceTakers` (types.ts) usa os atributos do 3D que a aba Tactics mostra (cornerKicks + crossing, longPassing + freekicks, freekicks + shotPower, penalties + composure) via `definirMedidaDeCobrador` (registada em `textSim/atributos3d.ts`).
+
+**Testes**: novo `tests/troca_no_intervalo.test.js`; `tests/carabao.test.ts` avança 120 dias em vez de 60 (a 2.ª rodada passou de maio para julho). `tests/toque_com_marcador_atras.test.js` falha ("um defesa 6 m à frente ainda ganha a bola adiantada 2.8 m") já antes destas mudanças; `tests/pausa_cala_o_som.test.js` (testes 3 e 4) falha com `ativos is not iterable` no `pararTudo` (o mock não tem `ativos`).
+
 ### 5 e 6 de Novembro de 2026 — recepção, estilos de jogo, bola parada, clima e hora do jogo
 
 **Recepção do passe e da bola (`js/bt/player_bt.js`, `js/config/passing.js`, `js/player.js`, `js/fsm.js`)**

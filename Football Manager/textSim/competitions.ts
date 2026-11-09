@@ -329,6 +329,8 @@ export const ocupacaoDe = (ligas: { leagueId: string; fixtures: import('../types
 };
 
 const INICIO_DA_EPOCA = '2026-03-31';
+// As competicoes europeias (Champions, Europa, Conference, Carabao) nunca tem jogos antes de 1/7: a busca de datas pode andar muitos dias e nao pode recuar para antes.
+const INICIO_EUROPA = '2026-07-01';
 /** As datas nominais abaixo sao da temporada de 2026. Noutros anos desloca-se um multiplo de 52 semanas (364 dias): o dia da semana de cada jornada mantem-se. */
 export const ANO_BASE = 2026;
 export const noAno = (d: string, ano: number = ANO_BASE): string => (ano === ANO_BASE ? d : somarDias(d, 364 * (ano - ANO_BASE)));
@@ -417,7 +419,7 @@ export const criarChampions = (ucl: { key: string; team: Team; countryId: string
   jogos.map((_, i) => i).sort((x, y) => dia[x] - dia[y] || x - y).forEach(i => {
     const [h, v] = jogos[i];
     const ant = [ultimoJogo.get(h), ultimoJogo.get(v)].filter(Boolean) as string[];
-    const minimo = ant.length ? [noAno(INICIO_DA_EPOCA, ano), somarDias(ant.reduce((m, x) => (x > m ? x : m), ''), 3)].reduce((m, x) => (x > m ? x : m)) : noAno(INICIO_DA_EPOCA, ano);
+    const minimo = ant.length ? [noAno(INICIO_EUROPA, ano), somarDias(ant.reduce((m, x) => (x > m ? x : m), ''), 3)].reduce((m, x) => (x > m ? x : m)) : noAno(INICIO_EUROPA, ano);
     dataDe[i] = agendarJogo(oc, noAno(GRUPOS[dia[i]], ano), [h, v], minimo);
     ultimoJogo.set(h, dataDe[i]); ultimoJogo.set(v, dataDe[i]);
   });
@@ -577,7 +579,7 @@ export const criarCarabao = (a: { premier: Clube[]; outros: Clube[]; europeus: s
     entradas: { R2: [...naoEuropa, ...euroNa2, ...folga1], R3: entra3 }, ano
   };
   const pares: [string, string][] = []; for (let i = 0; i + 1 < r1.length; i += 2) pares.push([r1[i], r1[i + 1]]);
-  c.matches.push(...jogosDaFase(c, fasesNoAno(FASES_CARABAO, ano)[0], pares, oc, noAno(INICIO_DA_EPOCA, ano)));
+  c.matches.push(...jogosDaFase(c, fasesNoAno(FASES_CARABAO, ano)[0], pares, oc, noAno(INICIO_EUROPA, ano)));
   return c;
 };
 

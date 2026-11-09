@@ -906,19 +906,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (dificuldade && !continuacao) initTeams = initTeams.map(t => t.id === teamId ? aplicarDificuldade(t, folhaAnual(initPlayers.filter(p => p.teamId === t.id).map(p => p.salary)), dificuldade) : t);
     /*
     A DATA DE ARRANQUE E A TEMPORADA EUROPEIA (pedido): o jogo comeca a 1/1 com os clubes de fora da Europa — as ligas europeias, que jogam de 1/7 a maio, ja vem a meio (julho a dezembro simulados ate 1/1) —
-    e a 1/7 com um clube europeu (a temporada vira a 1/6 e os jogos comecam a 1/7): a liga dele comeca nesse dia e as outras ligas (as brasileiras, de abril a setembro) recuperam de 1/1 ate 1/7. O mundo simula as rodadas que ficam para tras (modelo rapido).
+    e a 1/6 com um clube europeu (a temporada vira a 1/6 e os jogos comecam a 1/7): a pre-temporada vai de 1/6 a 23/6, a liga dele comeca em 1/7 e as outras ligas (as brasileiras, de abril a setembro) recuperam de 1/1 ate 1/6. O mundo simula as rodadas que ficam para tras (modelo rapido).
     */
     const europeu = ehLigaEuropeia(leagueId);
-    const dataInicial = (!continuacao && europeu) ? `${ano}-07-01` : `${ano}-01-01`;
+    const dataInicial = (!continuacao && europeu) ? `${ano}-06-01` : `${ano}-01-01`;   // clube europeu: a temporada comeca em 1/6 (pre-temporada) e os jogos em 1/7
     const dataDoMundo = continuacao ? gameState.currentDate : dataInicial;
     const temporadaEuropa = europeu ? ano : ano - 1;   // o ano em que comeca a temporada europeia do mundo (a do utilizador, se for europeu, comeca em `ano`)
     let initFixtures = generateFixtures(initTeams, leagueId, ano, europeu ? ano : undefined);
     if (formato === 'SERIE_C') initFixtures = initFixtures.filter(f => f.week <= initTeams.length - 1);   // so o 1.o turno
 
     // --- CPU FRIENDLY SCHEDULING (PRE-SEASON) ---
-    // Europa: a pre-temporada e entre 1/6 e 23/6 (a temporada vira a 1/6); num jogo novo o jogo comeca a 1/7, depois dela, entao so as viradas a levam (`continuacao`).
+    // Europa: a pre-temporada e entre 1/6 e 23/6 (a temporada vira a 1/6); o jogo novo de clube europeu tambem comeca a 1/6.
     // Os clubes do Paulistao comecam em janeiro (a bola rola na 3.a semana); os outros, a 1 de janeiro nao tem jogos ate abril: a pre-temporada deles fica perto do inicio da liga.
-    const preseasonPaulista = ["2026-01-04", "2026-01-07", "2026-01-11"].map(d => noAno(d, ano)), preseasonOutros = (europeu ? (continuacao ? ["2026-06-06", "2026-06-13", "2026-06-20"] : []) : ["2026-04-02", "2026-04-05", "2026-04-09"]).map(d => noAno(d, ano));
+    const preseasonPaulista = ["2026-01-04", "2026-01-07", "2026-01-11"].map(d => noAno(d, ano)), preseasonOutros = (europeu ? ["2026-06-06", "2026-06-13", "2026-06-20"] : ["2026-04-02", "2026-04-05", "2026-04-09"]).map(d => noAno(d, ano));
     const cpuFriendlies: Fixture[] = [];
 
     initTeams.forEach(team => {

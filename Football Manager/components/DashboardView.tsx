@@ -399,9 +399,22 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
   // As zonas da tabela (vagas continentais, acesso, rebaixamento): a posicao e a linha acendem na cor da zona.
   const zonasCopa = useMemo(() => (copaInfo && copaInfo.grupo) ? zonasDoGrupo(copaInfo.comp.id, copaInfo.grupo, copaInfo.tabela.length) : [], [copaInfo]);
   const zonas = useMemo(() => zonasDaLiga(userTeam.leagueId, sortedTeams.length), [userTeam.leagueId, sortedTeams.length]);
-  const top20 = sortedTeams.slice(0, 24);   // ate 24 clubes; as linhas encolhem sozinhas (ver `densidadeTabela`)
-  // A TABELA ENCOLHE SOZINHA com o numero de clubes (ate 24 cabem no painel sem rolar): 0 = normal (ate 14 clubes), 1 = medio (15 a 19), 2 = compacto (20 a 24).
-  const densidadeTabela = (n: number) => (n > 19 ? 2 : n > 14 ? 1 : 0);
+  // A TABELA MOSTRA 18 LINHAS DE UMA VEZ: com mais de 18 clubes a altura de cada linha e a do painel dividida por 18 (menos o cabecalho) e os demais ficam abaixo, na rolagem.
+  const painelTabelaRef = useRef<HTMLDivElement>(null);
+  const [alturaLinha, setAlturaLinha] = useState(0);
+  useEffect(() => {
+    const el = painelTabelaRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const f = () => { const cab = el.querySelector('thead') as HTMLElement | null; setAlturaLinha(Math.floor((el.clientHeight - (cab ? cab.offsetHeight : 0)) / 18)); };
+    f();
+    const ro = new ResizeObserver(f);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [sortedTeams.length]);
+  // Todos os clubes entram na tabela (ate 24): o tamanho das linhas ajusta-se sozinho ate 18 (ver `densidadeTabela`) e, com mais, a tabela ROLA (barra de rolagem do painel).
+  const linhasLiga = sortedTeams.map((t, i) => ({ t, pos: i + 1 }));
+  // A TABELA ENCOLHE SOZINHA com o numero de clubes (ate 24 cabem no painel sem rolar): 0 = normal (ate 14 clubes), 1 = medio (15 clubes ou mais; a tabela rola acima de 18).
+  const densidadeTabela = (n: number) => (n > 14 ? 1 : 0);   // o ajuste automatico vai ate 18 clubes (a tabela mostra no maximo 18 linhas)
   const DENS = {
     py: ['py-0.5 xl:py-2', 'py-0.5 xl:py-1', 'py-[2px]'],
     escudo: ['w-6 h-[29.5px] xl:w-8 xl:h-10', 'w-5 h-6 xl:w-6 xl:h-[29.5px]', 'w-[18px] h-[22px]'],
@@ -825,7 +838,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
             <h3 className="text-xs xl:text-base font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest transition-colors">{copaInfo ? copaInfo.comp.name : t('dash_standings')}</h3>
             <span className={`font-black bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded italic border border-blue-200 dark:border-blue-500/30 transition-colors ${copaInfo ? 'text-xs xl:text-base px-3 py-1' : 'text-[10px] px-2 py-0.5'}`}>{copaInfo ? `${copaInfo.fase}${copaInfo.grupo ? ' · ' + copaInfo.grupo : ''}` : `Pos: ${userPos}º`}</span>
           </div>
-          <div className="flex-1 bg-white dark:bg-transparent transition-colors overflow-y-auto custom-scrollbar">
+          <div ref={painelTabelaRef} className="flex-1 bg-white dark:bg-transparent transition-colors overflow-y-auto custom-scrollbar">
             {copaInfo && copaInfo.grupo ? (
               <table className="w-full h-full table-fixed">
                 <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
@@ -877,34 +890,36 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                 })}
               </div>
             ) : (
-            <table className="w-full h-full">
+            <table className="w-full h-full table-fixed">
               <thead className="bg-slate-50 dark:bg-slate-900/50 transition-colors border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
                 <tr className="text-[8px] xl:text-[11px] font-black text-slate-900 dark:text-slate-600 uppercase transition-colors">
-                  <th className="px-4 py-2 text-left w-12 tracking-widest bg-slate-50 dark:bg-slate-900/50">Pos</th>
-                  <th className="px-2 py-2 text-left tracking-widest bg-slate-50 dark:bg-slate-900/50">Team</th>
-                  <th className="px-2 py-2 text-center tracking-widest bg-slate-50 dark:bg-slate-900/50">Form</th>
-                  <th className="px-4 py-2 text-right tracking-widest bg-slate-50 dark:bg-slate-900/50">Pts</th>
+                  <th className="pl-3 pr-1 py-2 text-left w-[38px] tracking-widest">Pos</th>
+                  <th className="px-1 py-2 text-left tracking-widest">Team</th>
+                  <th className="px-1 py-2 text-center w-[44px] tracking-widest">Pts</th>
+                  {['P', 'W', 'D', 'L', 'GD'].map(h => <th key={h} className="px-0 py-2 text-center w-[30px] tracking-widest">{h}</th>)}
+                  <th className="px-1 py-2 text-center w-[168px] tracking-widest">Form</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30 transition-colors">
-                {top20.map((t, i) => { const d = densidadeTabela(top20.length); return (
-                  <tr key={t.id} style={t.id === userTeam.id ? HACHURA : undefined} title={zonas[i]?.nome} className="group transition-colors">
-                    <td className={`px-4 ${DENS.py[d]} font-black text-slate-300 dark:text-slate-500 ${DENS.texto[d]} transition-colors`} style={zonas[i] ? { boxShadow: `inset 3px 0 0 ${zonas[i]!.cor}` } : undefined}>{i + 1}</td>
-                    <td className={`px-2 ${DENS.py[d]}`}>
-                      <div className="flex items-center gap-2 xl:gap-3">
+                {linhasLiga.map(({ t, pos }) => { const fixa = linhasLiga.length > 18 && alturaLinha > 0; const d = fixa ? (alturaLinha < 36 ? 2 : 1) : densidadeTabela(linhasLiga.length); const i = pos - 1; return (
+                  <tr key={t.id} style={{ ...(t.id === userTeam.id ? HACHURA : {}), ...(fixa ? { height: alturaLinha } : {}) }} title={zonas[i]?.nome} className="group transition-colors">
+                    <td className={`pl-3 pr-1 ${DENS.py[d]} font-black text-slate-300 dark:text-slate-500 ${DENS.texto[d]} transition-colors`} style={zonas[i] ? { boxShadow: `inset 3px 0 0 ${zonas[i]!.cor}` } : undefined}>{pos}</td>
+                    <td className={`px-1 ${DENS.py[d]}`}>
+                      <div className="flex items-center gap-2">
                         <TeamShield team={t} className={DENS.escudo[d]} />
-                        <span className={`${DENS.texto[d]} font-bold text-slate-900 dark:text-slate-400 uppercase truncate max-w-[120px] xl:max-w-[200px] transition-colors`}>{t.name}</span>
+                        <span className={`${DENS.texto[d]} font-bold text-slate-900 dark:text-slate-400 uppercase truncate max-w-[110px] xl:max-w-[150px] transition-colors`}>{t.name}</span>
                       </div>
                     </td>
-                    <td className={`px-2 ${DENS.py[d]}`}>
-                      <div className="flex items-center justify-center gap-1" title="Last 5 league results (oldest to newest)">
+                    <td className={`px-1 ${DENS.py[d]} text-center font-black text-slate-800 dark:text-slate-200 ${DENS.texto[d]} transition-colors`}>{t.points}</td>
+                    {[t.played, t.won, t.drawn, t.lost, t.goalsFor - t.goalsAgainst].map((v: number, k: number) => <td key={k} className={`px-0 ${DENS.py[d]} text-center font-bold text-slate-500 ${DENS.texto[d]}`}>{k === 4 && v > 0 ? '+' + v : v}</td>)}
+                    <td className={`px-1 ${DENS.py[d]}`}>
+                      <div className="flex items-center justify-center gap-[2px]" title="Last 5 league results (oldest to newest)">
                         {Array.from({ length: 5 }, (_, k) => {
                           const l = (formaDosTimes.get(t.id) || []).slice(-5), r = l[k - (5 - l.length)];
-                          return <span key={k} className={`${DENS.quadrado[d]} flex items-center justify-center text-[10px] xl:text-xs font-black leading-none text-white ${r === 'V' ? 'bg-emerald-500' : r === 'E' ? 'bg-amber-400' : r === 'D' ? 'bg-rose-500' : 'bg-slate-300 dark:bg-slate-700/60'}`}>{r === 'V' ? 'W' : r === 'E' ? 'D' : r === 'D' ? 'L' : ''}</span>;
+                          return <span key={k} className={`${["w-[27px] h-[27px] xl:w-[30px] xl:h-[30px]", "w-[26px] h-[26px] xl:w-7 xl:h-7", "w-6 h-6"][d]} flex items-center justify-center text-[10px] xl:text-xs font-black leading-none text-white ${r === 'V' ? 'bg-emerald-500' : r === 'E' ? 'bg-amber-400' : r === 'D' ? 'bg-rose-500' : 'bg-slate-300 dark:bg-slate-700/60'}`}>{r === 'V' ? 'W' : r === 'E' ? 'D' : r === 'D' ? 'L' : ''}</span>;
                         })}
                       </div>
                     </td>
-                    <td className={`px-4 ${DENS.py[d]} text-right font-black text-slate-800 dark:text-slate-200 ${DENS.texto[d]} transition-colors`}>{t.points}</td>
                   </tr>
                 ); })}
               </tbody>
