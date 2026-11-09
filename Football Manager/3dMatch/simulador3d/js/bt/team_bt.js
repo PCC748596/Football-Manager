@@ -1467,6 +1467,17 @@ function posicaoPorZona(p, bb) {
     }
     if (!cache.lista || !cache.lista[p.idxFormacao]) return null;
     const m = FormacoesZonasLib.emMetros(FormacoesZonas, cache.lista[p.idxFormacao]);
+    // A bola no fundo: atacantes e meias entram na area (ver ZonasModel.entradaArea).
+    const E = Z.entradaArea;
+    if (E && (p.role === 'atk' || p.role === 'mid')) {
+        const C = FormacoesZonasLib.centros(FormacoesZonas), zc = C.z[2], zf = (FormacoesZonas.meiaAltura || 53);
+        const t = Math.max(0, Math.min(1, (bz - zc) / Math.max(1e-6, zf - zc)));
+        if (t > 0) {
+            const atk = p.role === 'atk';
+            m.z = Math.max(m.z, Math.min(E.zMax, m.z + (atk ? E.avancoAtk : E.avancoMid) * t));
+            m.x *= 1 - (atk ? E.fechaXAtk : E.fechaXMid) * t;
+        }
+    }
     const maxX = CAMPO_LARG / 2 - Z.margemX, maxZ = CAMPO_COMP / 2 - Z.margemZ;
     return { x: THREE.MathUtils.clamp(m.x * dir, -maxX, maxX), z: THREE.MathUtils.clamp(m.z * dir, -maxZ, maxZ) };
 }

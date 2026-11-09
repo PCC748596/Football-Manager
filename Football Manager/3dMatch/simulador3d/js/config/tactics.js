@@ -2279,6 +2279,12 @@ const ZonasModel = {
     misturaFases: 2.0,
     transicao: { duracao: 3.0, avancoOfensivo: 14.0, recuoDefensivo: 8.0 },
     /*
+    A BOLA NO FUNDO (dentro da grande area): a interpolacao entre zonas trava no centro da ultima linha (z = (terco + meiaAltura)/2, ~35.6 m), e a area inteira fica depois dele, por isso com a bola
+    na entrada da area ou na linha de fundo os postos eram os mesmos e ninguem entrava na area. Aqui, de esse centro ate a linha de fundo (t de 0 a 1), os ATACANTES e os MEIAS (nao o GK, nem os defesas)
+    avancam ate `avancoAtk` / `avancoMid` m e fecham o x para o centro (`fechaXAtk` / `fechaXMid`, fracao de |x|), sem passar de `zMax` m (referencial de ataque). `entradaArea: null` desliga.
+    */
+    entradaArea: { avancoAtk: 6.0, avancoMid: 4.0, fechaXAtk: 0.35, fechaXMid: 0.2, zMax: 48.0 },
+    /*
     AS CAMADAS DO `tickFinal` QUE A TABELA JA FAZ (medido na liga de 380 jogos): com bola o alvo final afastava-se 11-12 m do posto da tabela; as maiores parcelas eram a mola de
     coesao a bola (2.6 m), o pendulo (1.2 m), o tecto dos meias (1.2 m) e o desvio maximo ao slot (0.7 m) — todas escritas para o bloco rigido, e a tabela ja poe cada jogador
     em relacao a bola. `false` = esta camada nao corre quando o posto vem da tabela (a marcacao, o fora-de-jogo, o rest defense e a repulsao continuam). `true` volta a correr.

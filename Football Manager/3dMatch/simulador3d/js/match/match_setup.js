@@ -468,27 +468,37 @@ Object.assign(Match, {
                 const frac = Math.max(0, Math.min(1, (dec - passo) * this.periodo / this.transicao));
                 const ease = frac * frac * (3 - 2 * frac);
                 const off = (passo - 1 + ease) / 12;
-                for (const t of this.texs) t.offset.x = off;
+                for (const t of this.texs) t.offset.x = off * 12 / (t._n || 12);
             };
-            const arte = (typeof PlacasArte !== 'undefined' && PlacasArte.faixas) ? PlacasArte : null;
+            /*
+            A ARTE POR COMPETICAO (`?competicao=`): Champions League usa as placas da UEFA; Premier League e copas inglesas as da Inglaterra (assets/placas_competicoes.js, faixas de `n` paineis de `pw`x`ph` px); as demais, as de sempre.
+            */
+            let nomeCompArte = '';
+            try { nomeCompArte = (new URLSearchParams(window.location.search).get('competicao') || '').trim(); } catch (e) { /* sem URL */ }
+            const conjuntoComp = (typeof PlacasArteComp !== 'undefined')
+                ? (/champions league/i.test(nomeCompArte) ? PlacasArteComp.champions
+                    : /^(premier league|championship|league one|league two|carabao cup|fa cup|community shield)$/i.test(nomeCompArte) ? PlacasArteComp.england : null)
+                : null;
+            const arte = conjuntoComp || ((typeof PlacasArte !== 'undefined' && PlacasArte.faixas) ? PlacasArte : null);
+            const NP = (arte && arte.n) || 12, PWpx = (arte && arte.pw) || 256, PHpx = (arte && arte.ph) || 64;
             const faixasArte = [];
             let proximaFaixa = 0;
             const cvsFaixa = () => {
                 if (!arte) return { cvs: cvsPP, n: nCores };
                 const k = (proximaFaixa++) % arte.faixas.length;
                 if (!faixasArte[k]) {
-                    const cv = document.createElement('canvas'); cv.width = 256 * 12; cv.height = 64;
+                    const cv = document.createElement('canvas'); cv.width = PWpx * NP; cv.height = PHpx;
                     const cx = cv.getContext('2d'); cx.fillStyle = '#222'; cx.fillRect(0, 0, cv.width, cv.height);
-                    faixasArte[k] = { cvs: cv, n: 12, texs: [] };
+                    faixasArte[k] = { cvs: cv, n: NP, texs: [] };
                     const img = new Image();
                     img.onload = () => {
-                        cx.drawImage(img, 0, 0);
+                        cx.drawImage(img, 0, 0, cv.width, cv.height);
                         // Grelha de pixeis de LED: um ponto a cada 4 px, com a junta mais escura, e a junta entre modulos de cada painel.
                         const pm = document.createElement('canvas'); pm.width = 4; pm.height = 4;
                         const pc = pm.getContext('2d'); pc.fillStyle = 'rgba(0,0,0,0.28)'; pc.fillRect(0, 3, 4, 1); pc.fillRect(3, 0, 1, 4);
                         cx.fillStyle = cx.createPattern(pm, 'repeat'); cx.fillRect(0, 0, cv.width, cv.height);
                         cx.fillStyle = 'rgba(0,0,0,0.55)';
-                        for (let i = 0; i < 12; i++) { cx.fillRect(i * 256, 0, 2, 64); cx.fillRect(i * 256 + 128, 0, 1, 64); }
+                        for (let i = 0; i < NP; i++) { cx.fillRect(i * PWpx, 0, 2, PHpx); cx.fillRect(i * PWpx + PWpx / 2, 0, 1, PHpx); }
                         faixasArte[k].texs.forEach(t => { t.needsUpdate = true; });
                     };
                     img.src = arte.faixas[k];
@@ -498,7 +508,7 @@ Object.assign(Match, {
             const texDaFaixa = () => {
                 const fx = cvsFaixa();
                 const tex = new THREE.CanvasTexture(fx.cvs);
-                if (fx.texs) { fx.texs.push(tex); PlacasLed.texs.push(tex); }
+                if (fx.texs) { tex._n = fx.n; fx.texs.push(tex); PlacasLed.texs.push(tex); }
                 tex.wrapS = THREE.RepeatWrapping;
                 tex.wrapT = THREE.ClampToEdgeWrapping;
                 tex.anisotropy = 4;
