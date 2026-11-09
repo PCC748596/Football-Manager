@@ -684,8 +684,8 @@ const TrainingView: React.FC = () => {
                                   {/* COL 2: TRAINING CATEGORIES */}
                                   <div className="flex justify-center items-center gap-2">
                                       {[
-                                          { label: 'TEC', val: (p.lastGrowth?.drb || 0) + (p.lastGrowth?.sht || 0) + (p.lastGrowth?.pas || 0) },
-                                          { label: 'TAC', val: p.lastGrowth?.def || 0 },
+                                          { label: 'TEC', val: p.lastGrowth?.tec ?? ((p.lastGrowth?.drb || 0) + (p.lastGrowth?.sht || 0) + (p.lastGrowth?.pas || 0)) },
+                                          { label: 'TAC', val: p.lastGrowth?.tac ?? (p.lastGrowth?.def || 0) },
                                           { label: 'MEN', val: p.lastGrowth?.men || 0 },
                                           { label: 'PHY', val: p.lastGrowth?.fis || 0 }
                                       ].map(stat => <CargaDeTreino key={stat.label} label={stat.label} val={stat.val || 0} />)}

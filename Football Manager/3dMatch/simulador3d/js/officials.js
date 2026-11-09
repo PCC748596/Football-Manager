@@ -564,7 +564,8 @@ const RefereeModel = {
             `pesoMarcacao` inteiro à gravidade, um de 0 soma-o.
             */
             pesoMarcacao: 0.14,
-            pesoForca: 0.12
+            pesoForca: 0.12,
+            pesoAgressividade: 0.12
         },
 
         /*
@@ -2930,6 +2931,9 @@ const Officials = {
         const forca = (typeof o.forca === 'number') ? o.forca : 50;
         g -= ((marcacao - 50) / 50) * G.pesoMarcacao;
         g += ((forca - 50) / 50) * G.pesoForca;
+        // Agressividade (MEN) agrava: quem entra com mais raiva magoa mais. Omitida vale 50.
+        const agressividade = (typeof o.agressividade === 'number') ? o.agressividade : 50;
+        g += ((agressividade - 50) / 50) * (G.pesoAgressividade || 0);
 
         // Uma falta nunca é de gravidade negativa, por muito bom que o
         // defensor seja: continua a ser uma falta.
@@ -3525,7 +3529,10 @@ const Officials = {
     */
     _skillsDe: function (p) {
         if (!p || typeof p.skillFor !== 'function') return {};
-        return { marcacao: p.skillFor('MARKING'), forca: p.skillFor('STRENGTH') };
+        return {
+            marcacao: p.skillFor('MARKING'), forca: p.skillFor('STRENGTH'),
+            agressividade: typeof p.atributoDe === 'function' ? p.atributoDe('aggression', 'MARKING') : 50
+        };
     },
 
     /*

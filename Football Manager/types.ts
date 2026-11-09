@@ -201,6 +201,9 @@ export interface Player {
     /** Setas do MEN e do FIS (PHY): os atributos mentais e fisicos treinados no bloco (`treino3d`). */
     men?: number;
     fis?: number;
+    /** Setas do TEC e do TAC pelo ganho real nos atributos do grupo (quando ha `treino3d`); sem elas usa-se o legado def/pas/drb/sht. */
+    tec?: number;
+    tac?: number;
   };
   /** Pontos de treino por atributo do 3D (campo -> pontos; 100 pontos = +1 no atributo), somados em textSim/atributos3d.ts. */
   /** XP acumulado por atributo do 3D (campo -> XP; ver textSim/trainingService.ts). */

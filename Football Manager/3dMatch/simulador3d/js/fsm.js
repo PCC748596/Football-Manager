@@ -143,8 +143,11 @@ function executePassGameplay(p) {
     }
     p.cosCorpoNoPasse = null;
 
+    // FRIEZA no passe: com adversario a < 2.2 m, composure sobe/desce ate +-4 pontos no passSkill do erro de mira.
+    const bonusFriezaPasse = (distAdversario < 2.2 && p.atributoDe)
+        ? ((p.atributoDe('composure', 'TACTICKNOW') - 50) / 50) * 4 : 0;
     const sigma = sigmaDePasse({
-        passSkill: passSkill,
+        passSkill: passSkill + bonusFriezaPasse,
         tecSkill: tecSkill,
         distAdversario: distAdversario,
         cosCorpo: cosCorpo,
@@ -768,7 +771,8 @@ function executeShotGameplay(p) {
     // Bloqueado: Técnica (chutador) x Marcação (quem está em cima
     // dele) — base 0.6, favorece o chutador (defensor tem de
     // acertar o corte no timing certo).
-    const bloqueado = bloqueador && !venceuDuelo(p.skillFor('TEC'), bloqueador.skillFor('MARKING'), 0.6);
+    // O corte em cima do chutador e marcacao a homem: `manMarking` (e o posicionamento defensivo) leem direto, alem da skill agregada.
+    const bloqueado = bloqueador && !venceuDuelo(p.skillFor('TEC'), bloqueador.atributoDe(['manMarking', 'posDefense'], 'MARKING'), 0.6);
 
     let pow, alvoX, alvoY;
     /*
@@ -819,6 +823,11 @@ function executeShotGameplay(p) {
             ? Math.max(0, Math.abs(p.targetGoalZ) - Math.abs(gkDef.model.position.z))
             : 0;
 
+        /*
+        FRIEZA (composure): sob pressao (adversario a < 2.2 m) quem mantem a calma acerta mais, quem treme erra mais. Soma ate +-4 pontos ao finishing no erro da mira; sem pressao nao mexe.
+        */
+        const emPressaoRemate = Math.min(distBloqueio, distPressaoRemate) < 2.2;
+        const bonusFrieza = emPressaoRemate ? ((p.atributoDe('composure', 'TACTICKNOW') - 50) / 50) * 4 : 0;
         const tipoRemate = tipoDeRemate({
             dist: distBaliza,
             tec: p.atributoDe('finishing', 'TEC'),
@@ -840,7 +849,7 @@ function executeShotGameplay(p) {
 
         const sigma = sigmaDeRemate({
             dist: distBaliza,
-            tec: p.atributoDe('finishing', 'TEC'),
+            tec: p.atributoDe('finishing', 'TEC') + bonusFrieza,
             distAdversario: Math.min(distBloqueio, distPressaoRemate),
             angulo: anguloBaliza,
             tipo: tipoRemate

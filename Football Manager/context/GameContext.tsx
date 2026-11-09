@@ -1484,10 +1484,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const multSkl = ageFactor * STAR_MULTIPLIERS[starsFromPotential(p.potential)] * exaustaoMultiplier(p.energia ?? 100);
           for (const campo of Object.keys(gains.skl)) t3[campo] = (t3[campo] || 0) + gains.skl[campo] * multSkl * XP_POR_PONTO;   // XP (10 por ponto de valor da atividade)
           p.treino3d = t3;
-          // Setas do MEN e do PHY (as do TEC/TAC vem do DEF/PAS/DRB/SHT): 1 seta por 1.5 pontos de foco nos atributos do grupo.
+          // Setas dos 4 grupos (TEC/TAC/MEN/PHY) pelo ganho real nos atributos: 1 seta por 1.5 pontos de foco nos atributos do grupo.
           const pontosGrupo = (campos: string[]) => campos.reduce((sum, c) => sum + (gains.skl[c] || 0) * multSkl, 0);
           const setas = (pts: number) => (pts > 0 ? Math.min(3, Math.max(1, Math.floor(pts / 1.5))) : 0);
-          p.lastGrowth = { ...p.lastGrowth!, men: setas(pontosGrupo(GRUPOS.MEN)), fis: setas(pontosGrupo(GRUPOS.FIS)) };
+          p.lastGrowth = { ...p.lastGrowth!, tec: setas(pontosGrupo(GRUPOS.TEC)), tac: setas(pontosGrupo(GRUPOS.TAC)), men: setas(pontosGrupo(GRUPOS.MEN)), fis: setas(pontosGrupo(GRUPOS.FIS)) };
           updated = true;
         }
 

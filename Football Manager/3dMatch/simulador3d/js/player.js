@@ -464,6 +464,10 @@ class FootballPlayer {
         if (this.skills) {
             const v = this.skills[chave];
             if (typeof v === 'number') base = v;
+            // DEF individual: nao existe nos 31 atributos nem no SkillMap, entao sai da media de marking e intercept (ambos feitos de atributos TAC/MEN). Sem eles, cai na do time por funcao.
+            else if (chave === 'def' && typeof this.skills.marking === 'number' && typeof this.skills.intercept === 'number') {
+                base = (this.skills.marking + this.skills.intercept) / 2;
+            }
         }
         if (base === null) base = this.getSkill();
         return this._ajustarSkill(base, chave);
@@ -4979,6 +4983,16 @@ class FootballPlayer {
             if (!headless) this.animateBones(dt);
             else this.model.position.y = ALTURA_BASE_Y;
             return;
+        }
+
+        /*
+        QUEM SOFREU A FALTA FICA EM `CARRY` (era o portador da bola quando caiu): levantado, a FSM continuava a conduzir uma bola que ja nao tem — as pernas a tentar chutar e ele a
+        andar de um lado para o outro 3-4 m da bola, durante toda a espera da cobranca (medido: 874 frames em CARRY numa falta com vermelho, a velocidade a alternar 0 / 1.1 m/s).
+        Em falta, sem a bola nos pes e sem ser o batedor, volta ao estado de espera de bola parada.
+        */
+        if (Match.state === 'FREE_KICK' && !this.hasBall && this.fsm && this.fsm.currentState === 'CARRY' && !this.queda && this !== Match.ballCarrier) {
+            this.actionState = null;
+            this.fsm.changeState('SET_PIECE_WAIT');
         }
 
         /*
