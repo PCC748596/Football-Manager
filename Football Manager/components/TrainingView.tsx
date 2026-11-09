@@ -589,7 +589,7 @@ const TrainingView: React.FC = () => {
                      Tap a session, then tap a calendar slot (or drag it there)
                    </p>
 
-                   <div className="grid grid-cols-2 gap-2 flex-1 content-start bg-white/40 dark:bg-transparent rounded p-2 overflow-y-auto custom-scrollbar">
+                   <div className="grid grid-cols-2 gap-[2px] flex-1 content-start bg-white/40 dark:bg-transparent rounded p-2 overflow-y-auto custom-scrollbar">
                       {ACTIVITIES.filter(a => a.category === activeCategory).map(act => {
                         const actUsage = usageCounts.activities[act.id] || 0;
                         const catUsage = usageCounts.categories[act.category as keyof typeof LIMITS.categories];
@@ -667,9 +667,9 @@ const TrainingView: React.FC = () => {
                       {squadPlayers.map((p, idx) => {
                           return (
                           <div key={p.id} onClick={() => setJogadorAberto(p)} className="flex flex-col px-[2px] py-[10px] rounded bg-white dark:bg-slate-800/30 border border-slate-100 dark:border-slate-700/50 hover:border-blue-500/30 transition-all group cursor-pointer">
-                              <div className="grid grid-cols-12 items-center gap-3">
+                              <div className="grid items-center gap-3" style={{ gridTemplateColumns: 'minmax(0,3.6fr) minmax(0,3fr) minmax(0,2fr) 45px minmax(0,3fr)' }}>
                                   {/* COL 1: PLAYER INFO */}
-                                  <div className="col-span-3 flex items-center gap-2 min-w-0">
+                                  <div className="flex items-center gap-2 min-w-0">
                                       <div className="w-[56px] h-[56px] shrink-0 overflow-hidden pointer-events-none"><PlayerFace3D playerId={p.id} team={userTeam} gk={p.position === Position.GK} camisa={userTeam?.primaryColor} className="w-full h-full" /></div>
                                       <div className="flex flex-col min-w-0">
                                       <div className="flex flex-col min-w-0">
@@ -682,7 +682,7 @@ const TrainingView: React.FC = () => {
                                   </div>
 
                                   {/* COL 2: TRAINING CATEGORIES */}
-                                  <div className="col-span-3 flex justify-center items-center gap-2">
+                                  <div className="flex justify-center items-center gap-2">
                                       {[
                                           { label: 'TEC', val: (p.lastGrowth?.drb || 0) + (p.lastGrowth?.sht || 0) + (p.lastGrowth?.pas || 0) },
                                           { label: 'TAC', val: p.lastGrowth?.def || 0 },
@@ -692,7 +692,7 @@ const TrainingView: React.FC = () => {
                                   </div>
 
                                   {/* COL 3: ENERGY */}
-                                  <div className="col-span-2 flex justify-center">
+                                  <div className="flex justify-center">
                                     <div className="flex flex-col items-start gap-1 w-[80px]">
                                       <div className="flex items-center gap-1.5">
                                           <span className="text-[10px] font-black text-slate-400 uppercase leading-none">ENR:</span>
@@ -705,7 +705,7 @@ const TrainingView: React.FC = () => {
                                   </div>
 
                                   {/* COL 4: WEEKLY GROWTH */}
-                                  <div className="col-span-1 flex flex-col items-center">
+                                  <div className="flex flex-col items-center">
                                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5">GROWTH</span>
                                       <div className={`text-[20px] font-black leading-none ${p.weeklyGrowth > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
                                           {p.weeklyGrowth > 0 ? `+${p.weeklyGrowth}` : p.weeklyGrowth}
@@ -713,7 +713,7 @@ const TrainingView: React.FC = () => {
                                   </div>
 
                                   {/* COL 5: GROUPS */}
-                                  <div className="col-span-3 flex justify-end" onClick={e => e.stopPropagation()}>
+                                  <div className="flex justify-end" onClick={e => e.stopPropagation()}>
                                       {p.injury ? (
                                           <button onClick={() => setSelectedGroup(GRUPO_MED)} title={`${p.injury.type} — Medical Department`} className="px-3 py-3 text-[12px] font-black rounded bg-emerald-600 text-white shadow-sm">✚ MED</button>
                                       ) : (
