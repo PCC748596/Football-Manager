@@ -687,6 +687,14 @@ const DribbleModel = {
     corteGraus: 60,       // o drible em dois cortes: 60 graus para um lado e 60 para o oposto (ver DRIBBLE em fsm.js)
     marcadorDur: 1.1, marcadorFator: 0.18,
     /*
+    DRIBLE A CORRER x DRIBLE PARADO (pedido: *"o jogador esta dando o drible sem adiantar a bola. Sem adiantar so em baixa velocidade; correndo tem que ter o toque pro lado e a tentativa de corte
+    atrasada do defensor"*): abaixo de `corridaMin` m/s (a velocidade dele ao comecar o drible) vale o drible de sempre, em dois cortes e SEM adiantar a bola. Acima disso e um drible a correr: UM toque
+    para o lado de fuga (entre `anguloMinGraus` e `anguloMaxGraus`), com a bola ADIANTADA — sai a `corridaToqueFator` x a velocidade dele (no minimo `corridaToqueMin` m/s) — e o marcador batido faz o
+    corte em pe atrasado (`corteAtrasado`). O 2.o corte e o toque a meio do gesto so existem no drible lento.
+    */
+    espera: 1.2,          // segundos sem poder voltar a driblar depois de um drible (corta a cadeia de dribles em 1x1 na area)
+    corridaMin: 3.5, corridaToqueFator: 1.35, corridaToqueMin: 7.0,
+    /*
     O CORTE DO MARCADOR, EM PE E ATRASADO (pedido: *"nao consigo ver os jogadores driblando, dando um corte bonito no outro: o adversario vai fazer o movimento de corte em pe, atrasado"*): quando o drible
     resulta, o marcador reage tarde — `atraso` s depois do toque comeca um corte no lugar, `dur` s: o tronco torce para o lado de fuga do driblador (`torcao`, rad), a bacia inclina (`inclina`), as pernas
     abrem (`abre`) e os bracos sobem (`bracos`), tudo com a curva seno (comeca e acaba em pe). Visual: nao mexe na posicao nem na decisao, so nos ossos (camada depois do animateBones, ver Player.aplicarCamadaCorteAtrasado).

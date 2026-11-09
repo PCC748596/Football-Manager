@@ -12,6 +12,7 @@ import { taticaParaMotor, taticaDoMotor } from '../3dMatch/simulador3dCliente';
 import { COUNTRIES } from '../textSim/dataGenerator';
 import { ligaDoClube } from '../textSim/competitions';
 import PenaltyOrderView from './PenaltyOrderView';
+import MatchPreviewModal from './MatchPreviewModal';
 import { emCampo, mesclarOrdem, ordemDaCpu, disputa3dDaSessao, limparDisputa3d, aoReuniao, aoConfirmarOrdem, aoCobranca, mensagemDoCard } from '../3dMatch/disputa3d';
 
 type VisualState = 'PRE_MATCH' | 'KICKOFF_SET' | 'KICKOFF_PASS' | 'PLAYING' | 'OFFSIDE' | 'GOAL' | 'RESET';
@@ -63,6 +64,9 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   // Os times estao a entrar em campo: o botao principal diz PULAR (ver Ponte.pularDisponivel).
   const [podePular, setPodePular] = useState(false);
   const userTeam = teams.find(t => t.id === gameState.userTeamId);
+  // O Match Preview aberto pelo botao da tela cheia do 3D: pausa o relogio enquanto esta aberto e retoma ao fechar se estava a correr.
+  const [showPreview, setShowPreview] = useState(false);
+  const previewRetomaRef = useRef(false);
   // Reservas lesionados: avisa uma vez ao entrar no jogo (o Set vive fora do componente, para voltar do Tactics nao repetir o aviso).
   const lesionadosNoBanco = useMemo(() => (userTeam?.bench || []).map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p && !!p.injury), [userTeam, players]);
   const [avisoLesionadosFechado, setAvisoLesionadosFechado] = useState(() => avisosDeLesionadosDados.has(chave3d) || !!gameState.matchVisual?.visualStatus && gameState.matchVisual.visualStatus !== 'PRE_MATCH');
@@ -389,6 +393,12 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         simulador3dSairDaTelaCheia();
                         if (gameState.isProcessing) pauseMatch();
                         setView?.('TACTICS');
+                      } else if (m.tipo === 'abrir_preview') {
+                        // Botao Match Preview da tela cheia do 3D: sai da tela cheia (o iframe cobriria o modal), pausa o relogio e abre as escalacoes dos dois times.
+                        simulador3dSairDaTelaCheia();
+                        previewRetomaRef.current = !!gameState.isProcessing;
+                        if (gameState.isProcessing) pauseMatch();
+                        setShowPreview(true);
                       } else if (m.tipo === 'sair_tela_cheia') {
                         // O botao Sair da barra da tela cheia do 3D (tablet: sem ESC).
                         simulador3dSairDaTelaCheia();
@@ -501,6 +511,12 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
             )}
 
             {/* Match Stats Overlay */}
+            {showPreview && userTeam && (() => {
+                const souCasa = match.homeTeamId === gameState.userTeamId;
+                const adv = souCasa ? awayTeam : homeTeam;
+                const kitUser = ((souCasa ? gameState.matchVisual?.kitHomeIdx : gameState.matchVisual?.kitAwayIdx) ?? 0) as 0 | 1 | 2;
+                return <MatchPreviewModal userTeam={userTeam} adversario={adv} players={players} kitDoUtilizador={kitUser} onClose={() => { setShowPreview(false); if (previewRetomaRef.current) { previewRetomaRef.current = false; playMatchDay('VISUAL'); } }} />;
+            })()}
             {showStatsModal && (
                 <MatchStatsModal 
                   fixture={match} 

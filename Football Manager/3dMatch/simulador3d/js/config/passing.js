@@ -1530,6 +1530,14 @@ const RunIntoSpaceModel = {
     arrefecimento: 3.0,
 
     /*
+    OS 5 ALVOS DE INFILTRACAO (pedido): a infiltracao deixa de escolher "um espaco" qualquer — que acabava em corridas paralelas a linha de fundo — e passa a ir a um de 5 pontos fixos da
+    grande area do ataque, os da FRENTE dela: as duas pontas da linha da area (|x| = meia-largura da area), as duas interseccoes da linha da area com a meia-lua e a marca do penalti.
+    UM CORREDOR POR VEZ por equipa; quem arranca reserva o alvo mais perto a frente dele (`ganhoMin` m) e o portador lanca a bola nesse ponto (ver o ramo 5 do passe em player_bt.js).
+    Corre-se SEMPRE para o alvo (`duracao` s reais = ~30 s de jogo); o fora-de-jogo segue a regra de sempre (o alvo e cortado na linha lida, e ele espera ai). `activo: false` volta ao espaco livre.
+    */
+    alvosInfiltracao: { activo: true, umPorVez: true, duracao: 5.0, ganhoMin: 4.0 },
+
+    /*
     =====================================================================
     QUEM TOCA PARA TRAS ARRANCA — a corrida que se segue ao apoio
     =====================================================================

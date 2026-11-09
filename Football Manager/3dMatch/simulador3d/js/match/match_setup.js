@@ -482,6 +482,7 @@ Object.assign(Match, {
             console.info('[placas] competicao="' + nomeCompArte + '" liga="' + ligaArte + '" arte=' + (conjuntoComp ? (conjuntoComp === (typeof PlacasArteComp !== 'undefined' && PlacasArteComp.champions) ? 'champions' : 'inglaterra') : 'padrao') + ' (PlacasArteComp ' + (typeof PlacasArteComp !== 'undefined' ? 'carregado' : 'NAO carregado') + ')');
             const arte = conjuntoComp || ((typeof PlacasArte !== 'undefined' && PlacasArte.faixas) ? PlacasArte : null);
             const NP = (arte && arte.n) || 12, PWpx = (arte && arte.pw) || 256, PHpx = (arte && arte.ph) || 64;
+            const ALTp = (arte && arte.altura) || PP.altura;   // altura (m) das placas: as artes por competicao (2.4:1) a 5 m de largura ficam com 2.08 m
             const LPan = (arte && arte.lp) || PP.larguraPainel;   // largura (m) de um painel: as artes por competicao (2.4:1) usam 3 m
             const faixasArte = [];
             let proximaFaixa = 0;
@@ -545,9 +546,9 @@ Object.assign(Match, {
                 const frenteParaCampo = (nx * -x + nz * -z) > 0 ? 4 : 5;
                 const preto = new THREE.MeshBasicMaterial({ color: 0x050505 });
                 const m = new THREE.Mesh(
-                    new THREE.BoxGeometry(comprimento, PP.altura, PP.espessura),
+                    new THREE.BoxGeometry(comprimento, ALTp, PP.espessura),
                     [0, 1, 2, 3, 4, 5].map(i => i === frenteParaCampo ? mat : preto));
-                m.position.set(x, PP.altura / 2, z);
+                m.position.set(x, ALTp / 2, z);
                 m.rotation.y = rodaY;
                 m.castShadow = true;
                 m.receiveShadow = false;   // a sombra da própria placa pintava o verso de preto
@@ -556,7 +557,7 @@ Object.assign(Match, {
 
             // Uma placa fixa (sem a rotacao dos patrocinios) com um texto: a face virada para o campo mostra `texto` em letras de LED.
             const addPlacaFixa = (comprimento, x, z, rodaY, texto) => {
-                const cv = document.createElement('canvas'); cv.width = 1024; cv.height = Math.max(64, Math.round(1024 * PP.altura / comprimento));
+                const cv = document.createElement('canvas'); cv.width = 1024; cv.height = Math.max(64, Math.round(1024 * ALTp / comprimento));
                 const c = cv.getContext('2d');
                 c.fillStyle = '#0b0d12'; c.fillRect(0, 0, cv.width, cv.height);
                 const t = String(texto).toUpperCase();
@@ -571,8 +572,8 @@ Object.assign(Match, {
                 const nx = Math.sin(rodaY), nz = Math.cos(rodaY);
                 const frenteParaCampo = (nx * -x + nz * -z) > 0 ? 4 : 5;
                 const preto = new THREE.MeshBasicMaterial({ color: 0x050505 });
-                const m = new THREE.Mesh(new THREE.BoxGeometry(comprimento, PP.altura, PP.espessura), [0, 1, 2, 3, 4, 5].map(i => i === frenteParaCampo ? mat : preto));
-                m.position.set(x, PP.altura / 2, z); m.rotation.y = rodaY; m.castShadow = true; m.receiveShadow = false;
+                const m = new THREE.Mesh(new THREE.BoxGeometry(comprimento, ALTp, PP.espessura), [0, 1, 2, 3, 4, 5].map(i => i === frenteParaCampo ? mat : preto));
+                m.position.set(x, ALTp / 2, z); m.rotation.y = rodaY; m.castShadow = true; m.receiveShadow = false;
                 campoGrupo.add(m);
             };
 
@@ -629,7 +630,7 @@ Object.assign(Match, {
             */
             const arco = (cx, cz, thetaStart) => {
                 const geo = new THREE.CylinderGeometry(
-                    rc, rc, PP.altura, 24, 1, true, thetaStart, Math.PI / 2);
+                    rc, rc, ALTp, 24, 1, true, thetaStart, Math.PI / 2);
                 const { tex, n: nC } = texDaFaixa();
                 /*
                 O sector cobre um quarto do U do cilindro, portanto para o arco
@@ -644,12 +645,12 @@ Object.assign(Match, {
                 const m = new THREE.Mesh(geo, arte ? new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide }) : new THREE.MeshStandardMaterial({
                     map: tex, roughness: 0.65, side: THREE.BackSide
                 }));
-                m.position.set(cx, PP.altura / 2, cz);
+                m.position.set(cx, ALTp / 2, cz);
                 m.castShadow = true;
                 m.receiveShadow = true;
                 campoGrupo.add(m);
-                const verso = new THREE.Mesh(new THREE.CylinderGeometry(rc + 0.02, rc + 0.02, PP.altura, 24, 1, true, thetaStart, Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x050505, side: THREE.FrontSide }));
-                verso.position.set(cx, PP.altura / 2, cz);
+                const verso = new THREE.Mesh(new THREE.CylinderGeometry(rc + 0.02, rc + 0.02, ALTp, 24, 1, true, thetaStart, Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x050505, side: THREE.FrontSide }));
+                verso.position.set(cx, ALTp / 2, cz);
                 campoGrupo.add(verso);
             };
             if (rc > 0.01) {

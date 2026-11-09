@@ -1073,6 +1073,8 @@ class PlayerFSM {
     }
     changeState(newState) {
         if (this.currentState === newState) return;
+        // ESPERA ENTRE DRIBLES (DribbleModel.espera): sem ela o 1x1 re-disparava em cadeia (a tag DRIBBLE parada 2 s dentro da area) e o portador nunca chegava a conduzir nem a rematar.
+        if (newState === 'DRIBBLE' && this.p && this.p.dribleEspera > 0) return;
         // O ANCHOR MAN NAO CORRE PARA O ESPACO (infiltracao, tabelinha, overlap): a funcao dele e ajudar a defesa, segurando o meio. Pedem-lhe a corrida e ele fica no posto (a faixa de jogo manda no alvo).
         if (newState === 'RUN_INTO_SPACE' && this.p && this.p.playingStyle === 'anchor_man' && !this.p.playingStyleDesligado &&
             !(typeof Config !== 'undefined' && Config.usePlayingStyles === false)) {
@@ -1878,7 +1880,8 @@ class PlayerFSM {
                             p.dynamicTarget.z = Math.max(-47, Math.min(47, p.dynamicTarget.z + p.dirZ * Intencoes.prolongar));
                             chegou = false;
                         }
-                    } else if (Match.intendedReceiver.team === p.team && this.timer > Intencoes.reacaoMin) {
+                    } else if (Match.intendedReceiver.team === p.team && this.timer > Intencoes.reacaoMin && !(p.infiltIdx !== null && p.infiltIdx !== undefined)) {
+                        // (quem corre para um dos 5 alvos de infiltracao NAO tem a corrida encurtada: dura `alvosInfiltracao.duracao`)
                         p.runTimer = Math.min(p.runTimer, Intencoes.restanteSemPasse);
                     }
                 }
@@ -1907,6 +1910,7 @@ class PlayerFSM {
                     (chegou && !fica) || alvoAtras) {
                     p.runTimer = 0;
                     p.runCarrier = null;
+                    p.infiltIdx = null; p.infiltPonto = null;   // acabou a corrida do alvo de infiltracao (libera o proximo corredor)
                     p.overlapAlvo = null;   // o overlap acabou (ver `podeFazerOverlap`)
                     // Arrefecimento: sem isto ele reavalia no frame seguinte,
                     // volta a achar espaço no mesmo sítio e fica a arrancar
@@ -2425,6 +2429,7 @@ class PlayerFSM {
                     // Se perdeu a bola ou o adversário desapareceu, volta a CARRY
                     if (!p.hasBall || !opp) {
                         p.driblePlano = null;
+                        p.dribleEspera = DribbleModel.espera || 1.2;
                         this.changeState('CARRY');
                         break;
                     }
@@ -2472,6 +2477,10 @@ class PlayerFSM {
                         const rodar = (ang) => { const c = Math.cos(ang), sn = Math.sin(ang); return { x: forward.x * c - forward.z * sn, z: forward.x * sn + forward.z * c }; };
                         const d1 = rodar(corteRad * escapeSide), d2 = rodar(-corteRad * escapeSide);
                         let pushDir = _v4.set(d2.x, 0, d2.z).normalize();   // a saida do drible: o 2.o corte
+                        // A CORRER (DribbleModel.corridaMin): um so toque para o lado, a 35-50 graus, com a bola adiantada (sem os dois cortes).
+                        const corrida = p.velocity.length() >= (DribbleModel.corridaMin || 3.5);
+                        const dToque = rodar(grausToque * Math.PI / 180 * escapeSide);
+                        if (corrida) { d1.x = dToque.x; d1.z = dToque.z; pushDir.set(dToque.x, 0, dToque.z); }
 
                         // Chance de sucesso: ir para o lado dá bónus
                         let successChance = DribbleModel.successBase + DribbleModel.successSideBonus;
@@ -2485,7 +2494,7 @@ class PlayerFSM {
                             dir: { x: d1.x, z: d1.z },     // o 1.o corte; o `dir` passa ao 2.o a meio do gesto
                             dir1: { x: d1.x, z: d1.z },
                             dir2: { x: pushDir.x, z: pushDir.z },
-                            fase: 1, tocou1: false,
+                            fase: 1, tocou1: false, corrida: corrida, vel0: p.velocity.length(),
                             frente: { x: forward.x, z: forward.z }
                         };
                     }
@@ -2502,7 +2511,7 @@ class PlayerFSM {
                     // A meio do gesto vem o 2.o corte (o lado oposto); no 1.o corte a bola so e empurrada um pouco (so o primeiro nivel adianta).
                     if (plano.fase === 1 && plano.t >= DribbleModel.duracaoGesto * 0.5) {
                         plano.fase = 2; plano.dir = plano.dir2;
-                        if (!plano.tocou1 && Match.ballVel) { plano.tocou1 = true; Match.ballVel.set(plano.dir1.x, 0, plano.dir1.z).multiplyScalar(Math.max(3.0, p.velocity.length() * 0.8)); }
+                        if (!plano.corrida && !plano.tocou1 && Match.ballVel) { plano.tocou1 = true; Match.ballVel.set(plano.dir1.x, 0, plano.dir1.z).multiplyScalar(Math.max(3.0, p.velocity.length() * 0.8)); }
                     }
                     p.dynamicTarget.set(
                         p.model.position.x + plano.dir.x * DribbleModel.alcanceGesto,
@@ -2515,6 +2524,7 @@ class PlayerFSM {
                     const dirFuga = _v4.set(plano.dir.x, 0, plano.dir.z);
                     const dirFrente = _v2.set(plano.frente.x, 0, plano.frente.z);
                     p.driblePlano = null;
+                    p.dribleEspera = DribbleModel.espera || 1.2;
 
                     if (plano.sucesso) {
                         if (typeof MatchStats !== 'undefined') MatchStats[p.team].dribles.sucesso++;
@@ -2531,7 +2541,10 @@ class PlayerFSM {
                         p.carryTouchGrace = 1.2;
                         Match.ballCarrier = null;
                         Match.intendedReceiver = p;
-                        Match.ballVel.copy(dirFuga).multiplyScalar(Math.max(3.5, p.velocity.length() + 0.3));   // sem adiantar a bola: ela sai a velocidade dele
+                        // Parado/lento: sem adiantar a bola (sai a velocidade dele). A correr: o toque para o lado ADIANTA a bola.
+                        Match.ballVel.copy(dirFuga).multiplyScalar(plano.corrida
+                            ? Math.max(DribbleModel.corridaToqueMin || 7.0, Math.max(p.velocity.length(), plano.vel0 || 0) * (DribbleModel.corridaToqueFator || 1.35))
+                            : Math.max(3.5, p.velocity.length() + 0.3));
                         Match.ballVel.y = 0;
                         Match.lastTouchedTeam = p.team;
                         Match.lastTouchedPlayer = p;

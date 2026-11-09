@@ -4838,6 +4838,7 @@ class FootballPlayer {
             this._pAntX = px; this._pAntZ = pz;
         }
         if (this.touchLock > 0) this.touchLock = Math.max(0, this.touchLock - dt);
+        if (this.dribleEspera > 0) this.dribleEspera = Math.max(0, this.dribleEspera - dt);
         if (this.overlapTimer > 0) this.overlapTimer = Math.max(0, this.overlapTimer - dt);
         if (this.pedindoBola > 0) {
             this.pedindoBola = Math.max(0, this.pedindoBola - dt);

@@ -1742,7 +1742,9 @@ function tratarJogadaCombinada(ctx) {
             if (d < I.distMin || d > I.distMax) continue;
 
             // À frente dele, na direcção em que corre.
-            const alvo = {
+            // Com um dos 5 alvos reservados (RunIntoSpaceModel.alvosInfiltracao) a bola vai para o PONTO dele, ja cortado na linha de fora-de-jogo (`runAlvo`).
+            const alvoFixo = (mate.infiltIdx !== null && mate.infiltIdx !== undefined && mate.runAlvo);
+            const alvo = alvoFixo ? { x: mate.runAlvo.x, z: mate.runAlvo.z } : {
                 x: mate.runAlvo ? mate.runAlvo.x : mate.model.position.x,
                 z: mate.model.position.z + p.dirZ * I.avancoDoPasse
             };
@@ -3485,6 +3487,51 @@ function entradaDoEspaco(p, avancoMax, avancoMin) {
     };
 }
 
+/*
+OS 5 ALVOS DE INFILTRACAO (RunIntoSpaceModel.alvosInfiltracao, config/passing.js). Devolve os pontos no referencial do jogo (x, z mundo) para a equipa de `p`:
+duas pontas da linha da grande area, as duas interseccoes dessa linha com a meia-lua e a marca do penalti.
+*/
+function alvosDeInfiltracao(p) {
+    const A = (typeof Area !== 'undefined') ? Area : { profundidade: 16.5, meiaLargura: 20.16, distanciaPenalti: 11.0, raioMeiaLua: 9.15 };
+    const meio = (typeof CAMPO_COMP === 'number' ? CAMPO_COMP : 106) / 2;
+    const dLinha = A.profundidade, dMarca = A.distanciaPenalti;
+    const xLua = Math.sqrt(Math.max(0, A.raioMeiaLua * A.raioMeiaLua - (dLinha - dMarca) * (dLinha - dMarca)));
+    const pts = [[-A.meiaLargura, dLinha], [-xLua, dLinha], [0, dMarca], [xLua, dLinha], [A.meiaLargura, dLinha]];
+    return pts.map(([x, d], idx) => ({ idx, x, z: (meio - d) * p.dirZ, avanco: meio - d }));
+}
+/** Ha outro corredor da equipa a infiltrar para um alvo (um por vez)? */
+function corredorDeInfiltracaoAtivo(p) {
+    const r = Match._infilt && Match._infilt[p.team];
+    return !!(r && r !== p && r.model && r.team === p.team && r.fsm && r.fsm.currentState === 'RUN_INTO_SPACE' && r.infiltIdx !== null && r.infiltIdx !== undefined && r.runTimer > 0);
+}
+
+/*
+O LANCAMENTO PARA QUEM CORRE AO ALVO (RunIntoSpaceModel.alvosInfiltracao): o portador sabe qual dos 5 pontos o colega reservou (`mate.infiltIdx`, `mate.runAlvo`) e lanca nesse ponto assim que ha
+linha de passe e o colega ainda esta em jogo (nao alem da linha lida). Um lancamento por corrida (`infiltLancado`). Devolve { mate, alvo } ou null.
+*/
+function lancamentoParaInfiltrado(p) {
+    const IA = (typeof RunIntoSpaceModel !== 'undefined') ? RunIntoSpaceModel.alvosInfiltracao : null;
+    if (!IA || !IA.activo || !p.hasBall || typeof Match === 'undefined' || !Match.ball) return null;
+    const colegas = (p.team === 'TeamA') ? Match.players : Match.opponents;
+    const advs = (p.team === 'TeamA') ? Match.opponents : Match.players;
+    const linha = (typeof linhaLidaPor === 'function') ? linhaLidaPor(p, true) : null;
+    const avEu = p.model.position.z * p.dirZ;
+    let melhor = null, melhorAv = -Infinity;
+    for (const mate of colegas) {
+        if (mate === p || !mate.model || mate.infiltIdx === null || mate.infiltIdx === undefined || !mate.runAlvo || !(mate.runTimer > 0.8) || mate.infiltLancado) continue;
+        const avMate = mate.model.position.z * p.dirZ;
+        if (avMate < avEu + 3.0) continue;
+        if (linha !== null && avMate > linha + 0.3) continue;   // ja esta em fora-de-jogo
+        const d = p.model.position.distanceTo(mate.model.position);
+        if (d < 8.0 || d > 42.0) continue;
+        const alvo = { x: mate.runAlvo.x, z: mate.runAlvo.z };
+        if ((alvo.z - p.model.position.z) * p.dirZ < 4.0) continue;
+        if (!corredorLivre(Match.ball.position.x, Match.ball.position.z, alvo.x, alvo.z, advs, 1.2, true)) continue;
+        if (avMate > melhorAv) { melhorAv = avMate; melhor = { mate, alvo }; }
+    }
+    return melhor;
+}
+
 function actInfiltrar(ctx) {
     const p = ctx.p;
 
@@ -3518,7 +3565,7 @@ function actInfiltrar(ctx) {
         mandar, e sem espaco legal a corrida acaba como antes.
         */
         const RP = (typeof RunIntoSpaceModel !== 'undefined') ? RunIntoSpaceModel : null;
-        if (RP && RP.prolongarAoChegar && Match.possessionTeam === p.team && p.runTimer > 0.5 &&
+        if (RP && RP.prolongarAoChegar && !(p.infiltIdx !== null && p.infiltIdx !== undefined) && Match.possessionTeam === p.team && p.runTimer > 0.5 &&
             p.model.position.distanceTo(p.dynamicTarget) < 3.0) {
             let novoAv = p.runAlvo.z * p.dirZ + RP.prolongarAoChegar;
             // Ao prolongar fica AQUEM da linha (`folgaAoFicar`): chegar colado a ela e esperar pelo passe era impedimento (medido: 13 por 40 min contra 2-3 sem isto).
@@ -3562,7 +3609,8 @@ function actInfiltrar(ctx) {
         const alvoSobrePortador = () => !!(portadorCorr && portadorCorr !== p && portadorCorr.team === p.team && portadorCorr.model &&
             typeof alvoSobreOPortador === 'function' &&
             alvoSobreOPortador(p.model.position.x, p.model.position.z, p.runAlvo.x, p.runAlvo.z, portadorCorr.model.position.x, portadorCorr.model.position.z, ES));
-        const colado = alvoSobrePortador();
+        // (quem corre a um dos 5 alvos de infiltracao nao e cortado por o alvo ficar perto do portador: corre-se sempre)
+        const colado = (p.infiltIdx !== null && p.infiltIdx !== undefined) ? false : alvoSobrePortador();
         if (colado) p.runReavalia = 0;
         if (ES && p.runEspaco && typeof espacoEntreAdversarios === 'function') {
             p.runReavalia = (p.runReavalia || 0) - (Match.delta || 1 / 60);
@@ -3695,7 +3743,28 @@ function actInfiltrar(ctx) {
             }
         }
 
-        p.runTimer =(typeof RunIntoSpaceModel !== 'undefined' && RunIntoSpaceModel.duracaoCorrida) || 6.0; // corre durante uns segundos
+        /*
+        OS 5 ALVOS: um corredor por vez; o alvo livre mais perto, a frente dele. Sem alvo (ou com outro a correr) nao ha infiltracao agora.
+        */
+        const IA = (typeof RunIntoSpaceModel !== 'undefined') ? RunIntoSpaceModel.alvosInfiltracao : null;
+        p.infiltIdx = null; p.infiltPonto = null; p.infiltLancado = false;
+        let duracaoCorrida = (typeof RunIntoSpaceModel !== 'undefined' && RunIntoSpaceModel.duracaoCorrida) || 6.0;
+        if (IA && IA.activo) {
+            if (IA.umPorVez && corredorDeInfiltracaoAtivo(p)) { p.runTimer = 0; p.runAlvo = null; p.runCarrier = null; p.runCooldown = 1.0; return; }
+            let melhor = null, menor = Infinity;
+            for (const a of alvosDeInfiltracao(p)) {
+                if (a.avanco < meuAvanco + (IA.ganhoMin || 4.0)) continue;
+                const d = Math.hypot(a.x - p.model.position.x, a.z - p.model.position.z);
+                if (d < menor) { menor = d; melhor = a; }
+            }
+            if (!melhor) { p.runTimer = 0; p.runAlvo = null; p.runCarrier = null; p.runCooldown = (typeof RunIntoSpaceModel !== 'undefined') ? RunIntoSpaceModel.arrefecimento : 3.0; return; }
+            targetX = melhor.x; avancoFinal = melhor.avanco; p.runEspaco = false; p.runReavalia = 0;
+            p.infiltIdx = melhor.idx; p.infiltPonto = { x: melhor.x, z: melhor.z };
+            duracaoCorrida = IA.duracao || 5.0;
+            Match._infilt = Match._infilt || {};
+            Match._infilt[p.team] = p;
+        }
+        p.runTimer = duracaoCorrida; // corre durante uns segundos
         p.runCarrier = Match.ballCarrier;
         // Guardado para ser REESCRITO em cada frame da corrida (ver o topo).
         p.runAlvo = { x: targetX, z: avancoFinal * p.dirZ };
@@ -4962,6 +5031,19 @@ const PlayerBT = sel('PlayerRoot',
             protege a bola (actHoldBall) — não fica estático, mas não se
             atira a correr para a frente enquanto "não decidiu".
             */
+            // LANCA O COLEGA QUE CORRE AO ALVO DE INFILTRACAO (um dos 5 pontos da area), sem esperar a cadencia de decisao.
+            seq('LancarInfiltrado',
+                cond('infiltradoPedeBola', (ctx) => { const r = lancamentoParaInfiltrado(ctx.p); ctx._lancInf = r; return !!r; }),
+                act('lancarInfiltrado', (ctx) => {
+                    const p = ctx.p, r = ctx._lancInf;
+                    if (!r) return false;
+                    if (p.aguardarPassada()) return true;
+                    r.mate.infiltLancado = true;
+                    aplicarMiraDoPasse(p, PassTypes.LEADING, r.alvo);
+                    p.initiatePass(r.mate);
+                    return true;
+                })
+            ),
             seq('Dominar',
                 cond('aindaADominar', (ctx) => {
                     // Cara a cara com o guarda-redes: não "pensa", remata. Sem

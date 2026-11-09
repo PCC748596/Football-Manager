@@ -147,7 +147,7 @@ const Ponte = {
                 '<button data-cam="lateraltv" data-r="3d" title="3D">3D</button><button data-cam="topdown" title="2D">2D</button></div>' +
                 '<div id="tc-dir"><button id="tc-minimapa" title="Minimap">Minimap ON</button><button id="tc-nomes" title="Player names">Names OFF</button>' +
                 '<div class="linha">' + [0.5, 1, 1.5].map(v => '<button data-vel="' + v + '">' + v + 'x</button>').join('') + '</div>' +
-                '<button id="tc-pausa">Pause</button><button id="tc-replay">Replay 10s</button><button id="tc-stats">Statistics</button><button id="tc-tactics">Tactics</button></div>' +
+                '<button id="tc-pausa">Pause</button><button id="tc-replay">Replay 10s</button><button id="tc-stats">Statistics</button><button id="tc-tactics">Tactics</button><button id="tc-preview">Match Preview</button></div>' +
                 '<div id="tc-dir-topo"><span id="tc-evento"></span><button id="tc-debug" title="Right-hand debug panel">Debug OFF</button><span id="tc-fps" title="Frames per second">FPS --</span><button id="tc-sair" title="Exit fullscreen" style="background:rgba(185,28,28,.85)">✕ Exit</button></div>' +
                 '</div>' +
                 '<div id="tc-centro"><div class="hud-jog-logo" id="tc-logo-e"></div><div class="hud-jog-logo" id="tc-logo-d"></div><div id="tc-placar-tv"><div class="tv-linha"><span class="tv-eq" id="tv-eq-e">---</span><span class="tv-gol" id="tv-gol-e">0</span>' +
@@ -176,6 +176,7 @@ const Ponte = {
                 else if (b.id === 'tc-debug') this.definirDebug(document.body.classList.contains('debug-off'));
                 else if (b.id === 'tc-pausa') { if (this.pularDisponivel()) this.esc(); else this.enviar('alternar_pausa', {}); }
                 else if (b.id === 'tc-sair') this.enviar('sair_tela_cheia', {});   // no tablet nao ha ESC: o manager sai da tela cheia (ver MatchDay.tsx)
+                else if (b.id === 'tc-preview') this.enviar('abrir_preview', {});   // o manager sai da tela cheia e abre o Match Preview por cima do jogo (ver MatchDay.tsx)
                 else if (b.id === 'tc-tactics') {
                     // O botao Tactics abre o MATCH TACTICS do manager: o manager sai da tela cheia, pausa o jogo e muda de aba (ver MatchDay.tsx).
                     this.enviar('abrir_tactics', {});
