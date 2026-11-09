@@ -260,6 +260,8 @@ Object.assign(Match, {
         this.ball.position.set(0, BallPhysics.raio, 0);
         // A saida do tunel (js/abertura.js): trio e depois os 22 em ordem aleatoria, direto para os postos.
         if (typeof Abertura !== 'undefined' && Abertura.segundoTempo()) return;
+        // Sem a volta pelo tunel as trocas do intervalo seguem o caminho de sempre (aquecimento e parada).
+        (this.subsPendentes || []).forEach(r => { if (r.intervalo && !r.convertido) r.intervalo = false; });
         // Sem tunel (lotes...): a caminhada de sempre, e sem o grito de golo (ver ambiente_sonoro.js).
         this.semFestaDeGolo = true;
         this.mudarEstado('GOAL', 'segundo_tempo');

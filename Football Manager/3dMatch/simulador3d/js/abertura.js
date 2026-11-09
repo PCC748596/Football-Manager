@@ -119,6 +119,8 @@ const Abertura = {
         if (typeof Sim !== 'undefined' && Sim.running) return false;
         if (typeof Officials === 'undefined' || !Officials.arbitro || !Officials.assistentes) return false;
 
+        // As trocas pedidas no intervalo: o entrante entra na lista (e sai do tunel com os outros); o substituido vai ao banco (Match.converterTrocasDoIntervalo).
+        if (Match.converterTrocasDoIntervalo) Match.converterTrocasDoIntervalo();
         [].concat(Match.players, Match.opponents, [Officials.arbitro], Officials.assistentes).forEach(o => { if (o) o.foraDeCampo = false; });
         this.activa = true;
         this.modo = 'segundo';
@@ -182,6 +184,13 @@ const Abertura = {
             const z0 = ((idx % 2) ? 1 : -1) * AM.zFileira;
             const s = nova('jog', p, p.model, p.team, AM.atrasoSegundoTempo + idx * AM.intervaloSegundoTempo, z0, alvo);
             p.aberturaOrdem = s;
+            // O ENTRANTE DO INTERVALO: do tunel ao 4.o arbitro (ponto de espera da substituicao), onde PARA ate a placa estar no ar, e so depois ao posto.
+            if (p._trocaIntervalo && typeof Aquecimento !== 'undefined') {
+                const rq = p._trocaIntervalo, zEsp = (rq.indice % 2 ? 1.6 : -1.6) * Math.ceil((rq.indice + 1) / 2) * 0.9;
+                s.wps = [s.wps[0], s.wps[1], { x: Aquecimento.xEspera, z: zEsp }, s.wps[2]];
+                s.seguraEm = 3; s.liberado = false; s.aEspera = false;
+                rq.parte = s;
+            }
             p.hasBall = false;
             p.velocity.set(0, 0, 0);
             if (p.fsm) p.fsm.changeState('IDLE');
@@ -355,7 +364,12 @@ const Abertura = {
         p.jumpTimer = 0;
         const T = TunelJogadores;
         let yawAlvo = (this.modo === 'segundo' || this.modo === 'intervalo') ? s.yaw : Math.PI / 2 * (-T.lado);
-        if (s.i < s.wps.length) {
+        // Parado a espera do sinal (entrante do intervalo no 4.o arbitro): de frente para o campo, sem andar.
+        if (s.seguraEm !== undefined && !s.liberado && s.i === s.seguraEm) {
+            s.aEspera = true;
+            p.velocity.set(0, 0, 0);
+            yawAlvo = Math.atan2(-pos.x, 0.0001);
+        } else if (s.i < s.wps.length) {
             const w = s.wps[s.i];
             const dx = w.x - pos.x, dz = w.z - pos.z, d = Math.hypot(dx, dz);
             if (d < 0.05) {

@@ -132,6 +132,8 @@ Object.assign(Match, {
                 if (P && P.skills) { r.corrige = req.sai; r.sai = String(P.skills.id); r._reportar = true; }
             }
         }
+        // TROCA DO INTERVALO (pedido): sem aquecimento (aqueceu no vestiario). Espera a volta do 2.o tempo (`converterTrocasDoIntervalo`, chamado de Abertura.segundoTempo).
+        if (this.state === 'INTERVALO' && this.intervaloComSaida && !r.urgente && !r.goleiro) r.intervalo = true;
         this.subsPendentes.push(r);
         return true;
     },
@@ -186,6 +188,7 @@ Object.assign(Match, {
 
         for (const req of this.subsPendentes) {
             if (req.feita) continue;
+            if (req.intervalo) { if (req.convertido) this._tickTrocaDoIntervalo(req, dt); continue; }   // a troca do intervalo tem o seu proprio caminho
             const lista = this._equipaDoLado(req.lado);
             const P = (req.estado === 'voltar') ? req.sai : this._jogadorPorIdManager(lista, req.sai);
             if (!P) { this._cancelar(req); continue; }   // ja nao esta em campo: o pedido cai
@@ -510,6 +513,101 @@ Object.assign(Match, {
                 P.model.rotation.y = req.assento.rot;
                 if (typeof Bancos !== 'undefined' && Bancos._sentar) { P.resetBonesToDefault(); Bancos._sentar(P); P.model.rotation.y = req.assento.rot; if (Bancos.congelar) Bancos.congelar(P); }
                 req.feita = true;
+            }
+        }
+    },
+
+    /*
+    A TROCA DO INTERVALO (pedido: *"alteracao no intervalo nao precisa de aquecimento: o jogador aqueceu no vestiario. Ele vai entrar no campo e seguir direto pro auxiliar pra entrar no jogo. O auxiliar vai
+    sinalizar e ele vai entrar sem sair ninguem. O jogador que foi substituido vai pro banco na volta do intervalo"*). Chamado de Abertura.segundoTempo, antes de a volta comecar: cada pedido feito no intervalo
+    troca JA na lista (o entrante herda o posto de quem sai) e, na volta pelo tunel:
+      . o ENTRANTE e um dos 22 que saem do tunel, mas em vez de ir ao posto vai ao 4.o arbitro (o ponto de espera, `Aquecimento.xEspera`) e PARA ali (`parte.seguraEm`); o bandeirinha sinaliza e o 4.o arbitro
+        levanta a placa; so entao ele e libertado e segue ao posto — sem ninguem a sair do campo;
+      . o SUBSTITUIDO nao vai ao posto: sai do tunel e vai direto ao banco, pela faixa da lateral, e senta-se no lugar do reserva (que entrou).
+    A volta do intervalo espera o entrante (o 2.o tempo so comeca com os 22 nos postos).
+    */
+    converterTrocasDoIntervalo: function () {
+        const cont = { casa: 0, fora: 0 };
+        for (const req of this.subsPendentes) {
+            if (req.feita || !req.intervalo || req.convertido) continue;
+            const lista = this._equipaDoLado(req.lado);
+            const P = this._jogadorPorIdManager(lista, req.sai);
+            if (!P) { this._cancelar(req); continue; }
+            const banco = this._bancoDoLado(req.lado);
+            const B = this._reservaDoBanco(banco, req.entra);
+            req.banco = banco;
+            req.assento = B ? { x: B.model.position.x, z: B.model.position.z, rot: B.model.rotation.y } : null;
+            req.numSai = P.num;
+            const N = this.executarSubstituicao(req, P, lista, { x: P.model.position.x, z: P.model.position.z, entrada: true });
+            if (!N) { this._cancelar(req); continue; }
+            N.lugarBolaParada = null;   // quem entra segue o caminho da volta do tunel, nao o das bolas paradas
+            N._trocaIntervalo = req;
+            req.N = N; req.P = P; req.convertido = true; req.estado = 'int_ir'; req.t = 0;
+            req.indice = cont[req.lado]++;
+            req.pAtraso = 1.2 + req.indice * 1.0;
+            if (B) B.model.visible = false;   // o reserva e o que acaba de entrar: o banco fica vazio ate o substituido chegar
+            P.model.visible = false;
+        }
+    },
+
+    _tickTrocaDoIntervalo: function (req, dt) {
+        const A = Aquecimento, N = req.N, s = req.parte;
+        this._tickVoltaDeQuemSai(req, dt);
+        const abertura = (typeof Abertura !== 'undefined') && Abertura.activa;
+        if (req.estado === 'int_ir' || req.estado === 'placa') {
+            if (!abertura || !s || !N) {   // a abertura acabou (ESC, prazo): o entrante segue ao posto como os outros; nada de placa
+                if (this.subsEmCurso === req) this.subsEmCurso = null;
+                req.estado = 'int_fim';
+            }
+        }
+        if (req.estado === 'int_ir') {
+            if (s && s.aEspera && (!this.subsEmCurso || this.subsEmCurso === req)) {
+                req.estado = 'placa'; req.t = 0;
+                this.subsEmCurso = req; this._tDesdeUltimaTroca = 0;
+                const sin = Math.sign(req.banco ? req.banco.zc : 1) || 1;
+                this._zBandeira = (req.banco ? req.banco.zc : 0) + sin * (BancosDeReservas.area.meiaLargura + 1.0);
+                this._tBandeira = 0;
+                if (typeof Officials !== 'undefined' && Officials.mostrarPlaca) Officials.mostrarPlaca(req.numSai, N.num);
+            }
+        } else if (req.estado === 'placa') {
+            req.t += dt;
+            const q = (typeof Officials !== 'undefined') ? Officials.quarto : null;
+            if (((q ? q.braco >= 0.95 && this._bandeiraPronta() : true) && req.t >= 0.4) || req.t > 14) { s.liberado = true; req.estado = 'int_entra'; req.t = 0; }
+        } else if (req.estado === 'int_entra') {
+            req.t += dt;
+            if (req.t >= A.placaSobra) { if (this.subsEmCurso === req) this.subsEmCurso = null; this._placaViva = A.placaSobra; req.estado = 'int_fim'; }
+        }
+        if (req.estado === 'int_fim' && req.pFim) req.feita = true;
+    },
+
+    // O substituido: sai do tunel (depois de `pAtraso` s), vai pela faixa da lateral ate ao banco e senta-se no lugar do reserva.
+    _tickVoltaDeQuemSai: function (req, dt) {
+        const P = req.P, banco = req.banco, A = Aquecimento;
+        if (req.pFim || !P) return;
+        if (!req.assento || !banco) { req.pFim = true; return; }   // sem banco: o substituido simplesmente nao reaparece
+        const T = (typeof TunelJogadores !== 'undefined') ? TunelJogadores : null;
+        if (!T) { req.pFim = true; return; }
+        if (!req.pSpawn) {
+            req.pT = (req.pT || 0) + dt;
+            if (req.pT < req.pAtraso) return;
+            const f = -T.lado, z0 = (req.indice % 2 ? 1 : -1) * ((typeof AberturaModel !== 'undefined' && AberturaModel.zFileira) || 1.0);
+            P.foraDeCampo = false;
+            if (P.resetBonesToDefault) P.resetBonesToDefault();
+            P.model.position.set(T.xBoca + f * 3.0, (typeof ALTURA_BASE_Y === 'number') ? ALTURA_BASE_Y : 0, z0);
+            P.model.rotation.set(0, Math.PI / 2 * f, 0);
+            P.model.visible = true;
+            req.pSpawn = true; req.pPasso = 0;
+            req.pontos = [{ x: T.lado * (CAMPO_LARG / 2 + 1.5), z: z0 }, { x: A.xVao, z: banco.zc }, { x: A.xAquecer, z: banco.zc }, { x: A.xAquecer, z: req.assento.z }, { x: req.assento.x, z: req.assento.z }];
+        }
+        const alvo = req.pontos[Math.min(req.pPasso, req.pontos.length - 1)];
+        this._andar(P, alvo.x, alvo.z, 3.2, dt);
+        if (Math.hypot(alvo.x - P.model.position.x, alvo.z - P.model.position.z) < 0.35) {
+            req.pPasso++;
+            if (req.pPasso >= req.pontos.length) {
+                P.model.position.set(req.assento.x, P.model.position.y, req.assento.z);
+                P.model.rotation.y = req.assento.rot;
+                if (typeof Bancos !== 'undefined' && Bancos._sentar) { P.resetBonesToDefault(); Bancos._sentar(P); P.model.rotation.y = req.assento.rot; if (Bancos.congelar) Bancos.congelar(P); }
+                req.pFim = true;
             }
         }
     },
