@@ -1609,7 +1609,15 @@ Object.assign(Match, {
 
             // As DUAS laterais levam holofotes, tambem nos estadios sem cobertura (pedido: a iluminacao so de um lado era fraca): sem cobertura o conjunto vai ao bordo da arquibancada, dos dois lados.
             for (const sinal of [-1, 1]) {
-                const xConj = sinal * (BANCADA_X + profPos);
+                /*
+                A LATERAL COBERTA (pedido: *"as luzes da parte coberta estao atras da cobertura e nao na frente"*): so a arquibancada da frente das cameras (+X) leva a aba de cobertura, que sai da parede ate
+                `avancoH` m para dentro, sobre as filas. Os holofotes dela iam num mastro ATRAS da arquibancada (o do lado sem cobertura) — ou seja, atras da cobertura. Aqui ficam PENDURADOS na ponta da
+                frente da aba (a mais perto do campo), logo abaixo dela, sem mastro. A conta e a de `addCobertura`: a parede a `profFimH` do bordo, a aba avanca `avancoH` dela para o campo.
+                */
+                const frenteCob = soFrenteH && sinal === 1 && BA.coberturaAvanco > 0;
+                const profFimH = tUlt * PASSO_PROF + rows * 1.2, avancoH = Math.min(profFimH + 1.5, 26);
+                const xConj = frenteCob ? (BANCADA_X + (profFimH - avancoH) + 0.8) : sinal * (BANCADA_X + profPos);
+                const yL = frenteCob ? (yLuz - 0.5) : yLuz;   // `yLuz` ja e o fundo da aba (tUlt * PASSO_Y + rows * 0.5 + alturaParede): as lampadas penduram-se logo abaixo
                 for (let f = 0; f < H.fileiras; f++) {
                     // Espalhados ao longo do comprimento, simetricos sobre z=0.
                     const frac = (H.fileiras === 1) ? 0.5 : (f + 0.5) / H.fileiras;
@@ -1618,13 +1626,13 @@ Object.assign(Match, {
                     // A travessa que segura as lampadas.
                     const gt = new THREE.BoxGeometry(
                         H.travessaEspessura, H.travessaEspessura, larguraConj).toNonIndexed();
-                    gt.translate(xConj, yLuz - H.lampadaAlt / 2 - H.travessaEspessura / 2, zConj);
+                    gt.translate(xConj, yL - H.lampadaAlt / 2 - H.travessaEspessura / 2, zConj);
                     geosTravessa.push(gt);
-                    if (soFrenteH) addMastro(xConj, zConj);
+                    if (soFrenteH && !frenteCob) addMastro(xConj, zConj);
 
                     for (let i = 0; i < H.lampadasPorFileira; i++) {
                         const dz = (i - (H.lampadasPorFileira - 1) / 2) * H.espacoEntreLampadas;
-                        posLampadas.push([xConj, yLuz, zConj + dz]);
+                        posLampadas.push([xConj, yL, zConj + dz]);
                     }
 
                     /*
@@ -1633,7 +1641,7 @@ Object.assign(Match, {
                     */
                     const luz = new THREE.SpotLight(H.corLuz, 0,
                         H.alcanceLuz, H.anguloLuz, H.penumbra, 1.0);
-                    luz.position.set(xConj, yLuz, zConj);
+                    luz.position.set(xConj, yL, zConj);
 
                     const ehPonta = (f === 0 || f === H.fileiras - 1);
                     if (ehPonta) {
@@ -1689,7 +1697,7 @@ Object.assign(Match, {
               . uma SpotLight para DENTRO, apontada ao quarto de campo oposto (cruza o relvado na diagonal), como as curvas do estadio oval;
               . para FORA (pedido: "os holofotes podem iluminar para o lado de fora tambem?") NAO ha SpotLight: as 4 que se tinham posto fizeram o FPS cair muito (cada luz a mais e custo em todo o
                 fragmento da cena); o lado de fora fica com o BRILHO abaixo;
-              . um BRILHO (halo na altura das lampadas e mancha no chao ao pe da torre), sem luz real, so aparencia; acende e apaga com os holofotes (`window.holofotes.brilhos`, weather.js).
+              . um BRILHO (so o halo na altura das lampadas; a mancha no chao saiu), sem luz real, so aparencia; acende e apaga com os holofotes (`window.holofotes.brilhos`, weather.js).
             As luzes de canto entram na lista `luzes` (tipo 'canto'): o `Qualidade.limitarLuzes` mantem o total no maximo do nivel (14 em HIGH), por isso nao ha mais luzes do que antes, so repartidas.
             */
             const brilhos = [];
@@ -1699,8 +1707,7 @@ Object.assign(Match, {
                 { const g2 = cvG.getContext('2d'), gr = g2.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,244,214,1)'); gr.addColorStop(0.35, 'rgba(255,238,200,0.45)'); gr.addColorStop(1, 'rgba(255,238,200,0)'); g2.fillStyle = gr; g2.fillRect(0, 0, 128, 128); }
                 const texG = new THREE.CanvasTexture(cvG);
                 const matHalo = new THREE.SpriteMaterial({ map: texG, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
-                const matChao = new THREE.MeshBasicMaterial({ map: texG, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
-                brilhos.push(matHalo, matChao);
+                brilhos.push(matHalo);
                 for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
                     const cx = sx * ((BANCADA_X - R) + 0.7071 * rTorre), cz = sz * ((BANCADA_Z - R) + 0.7071 * rTorre);
                     const tx = -sz * 0.7071, tz = sx * 0.7071;   // tangente (unitaria) do arco neste canto
@@ -1714,14 +1721,15 @@ Object.assign(Match, {
                         posLampadas.push([cx + tx * o, yLuz, cz + tz * o]);
                     }
                     // Para dentro.
-                    const luzIn = new THREE.SpotLight(H.corLuz, 0, H.alcanceLuz, H.anguloLuz, H.penumbra, 1.0);
+                    // Cone mais estreito que o dos laterais (0.50 rad, nao 0.75): o largo apanhava o chao junto da torre, do lado de fora do estadio.
+                    const luzIn = new THREE.SpotLight(H.corLuz, 0, H.alcanceLuz, 0.5, H.penumbra, 1.0);
                     luzIn.position.set(cx, yLuz, cz);
-                    luzIn.target.position.set(-sx * 12, 0, -sz * 16);
+                    luzIn.target.position.set(-sx * 8, 0, -sz * 10);
                     luzIn.castShadow = false; luzIn.userData.tipo = 'canto'; luzIn.userData.lado = 0; luzIn.userData.fator = 0.8;
                     campoGrupo.add(luzIn); campoGrupo.add(luzIn.target); luzes.push(luzIn);
                     // Brilho: halo nas lampadas e mancha no chao.
-                    const halo = new THREE.Sprite(matHalo); halo.position.set(cx, yLuz, cz); halo.scale.set(12, 12, 1); halo.renderOrder = 3; campoGrupo.add(halo);
-                    const chao = new THREE.Mesh(new THREE.PlaneGeometry(34, 34), matChao); chao.rotation.x = -Math.PI / 2; chao.position.set(cx + sx * 6, 0.06, cz + sz * 6); chao.renderOrder = 2; campoGrupo.add(chao);
+                    // (O halo em volta das lampadas tambem saiu: lia-se como uma luz a clarear a rua por fora do estadio.)
+                    // (A mancha de luz no chao ao pe da torre saiu: clareava a rua e a cidade por FORA do estadio, o que se pediu para nao haver.)
                 }
             }
 
