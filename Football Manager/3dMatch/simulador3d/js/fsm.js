@@ -1993,7 +1993,7 @@ class PlayerFSM {
                         p.model.position.z * 2 - _v1.z);
                     _m1.lookAt(p.model.position, _v2, p.model.up);
                     _q1.setFromRotationMatrix(_m1);
-                    const giroHold = (typeof TurnModel !== 'undefined') ? TurnModel.comBola : 5.5;
+                    const giroHold = (typeof p.giroDoCorpo === 'function') ? p.giroDoCorpo(true) : 5.5;
                     p.model.quaternion.slerp(_q1, Math.min(1.0, giroHold * dt));
                 } else if (typeof p.emPontaCercada === 'function' && (p.emPontaCercada() || naLinhaLimiteDaPonta(p)) &&
                     (() => {

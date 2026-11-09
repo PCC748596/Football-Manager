@@ -8,7 +8,17 @@ Modelos de marcha, corrida, rotação, cadência e salto para cabeceio.
 
 const TurnModel = {
     base: 12.0,
-    comBola: 9.0
+    comBola: 9.0,
+    /*
+    O giro e escalado pela AGILIDADE do jogador (atributo `agility`, 50..99):
+        giro = (base | comBola) * escala * (1 + amplitude * (agility - agilidadeRef) / 50)
+    `escala` 0.90 = -10% no jogador de agilidade de referencia. Com 0.25 de amplitude: agilidade 50 = x0.79, 75 = x0.90, 99 = x1.01.
+    `activo: false` volta ao giro de antes (base/comBola sem escala).
+    */
+    activo: true,
+    escala: 0.90,
+    agilidadeRef: 75,
+    amplitude: 0.25
 };
 
 /*

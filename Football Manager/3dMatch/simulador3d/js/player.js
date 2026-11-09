@@ -6298,10 +6298,17 @@ class FootballPlayer {
         _v1.set(this.model.position.x * 2 - alvo.x, this.model.position.y, this.model.position.z * 2 - alvo.z);
         _m1.lookAt(this.model.position, _v1, this.model.up);
         _q1.setFromRotationMatrix(_m1);
-        const giro = (typeof TurnModel !== 'undefined')
-            ? (this.hasBall ? TurnModel.comBola : TurnModel.base)
-            : 5.5;
-        this.model.quaternion.slerp(_q1, Math.min(1.0, giro * Match.delta));
+        this.model.quaternion.slerp(_q1, Math.min(1.0, this.giroDoCorpo(this.hasBall) * Match.delta));
+    }
+
+    // Ritmo de giro do corpo (1/s) deste jogador: TurnModel escalado pela agilidade. Ver TurnModel.
+    giroDoCorpo(comBola) {
+        if (typeof TurnModel === 'undefined') return 5.5;
+        const base = comBola ? TurnModel.comBola : TurnModel.base;
+        if (!TurnModel.activo) return base;
+        const agi = this.atributoDe('agility', 'fis');
+        const f = 1 + TurnModel.amplitude * (agi - TurnModel.agilidadeRef) / 50;
+        return base * TurnModel.escala * Math.max(0.5, f);
     }
 
     /*

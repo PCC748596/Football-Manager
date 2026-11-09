@@ -101,7 +101,7 @@ const Ponte = {
 
     barraTopo(ligada) {
         let barra = document.getElementById('barra-topo-tc');
-        if (!ligada) { if (barra) barra.style.display = 'none'; clearInterval(this._tBarra); return; }
+        if (!ligada) { if (barra) barra.style.display = 'none'; clearInterval(this._tBarra); if (window.SlidersJogo && window.SlidersJogo.aberto) window.SlidersJogo.alternar(false); return; }
         if (!barra) {
             const css = document.createElement('style');
             css.textContent = '#barra-topo-tc{position:fixed;inset:0;z-index:2000;pointer-events:none;color:#ecf0f1;font:700 12px/1 system-ui,sans-serif;white-space:nowrap}' +
@@ -148,7 +148,7 @@ const Ponte = {
                 '<div id="tc-dir"><button id="tc-minimapa" title="Minimap">Minimap ON</button><button id="tc-nomes" title="Player names">Names OFF</button>' +
                 '<div class="linha">' + [0.5, 1, 1.5].map(v => '<button data-vel="' + v + '">' + v + 'x</button>').join('') + '</div>' +
                 '<button id="tc-pausa">Pause</button><button id="tc-replay">Replay 10s</button><button id="tc-stats">Statistics</button><button id="tc-tactics">Tactics</button><button id="tc-preview">Match Preview</button></div>' +
-                '<div id="tc-dir-topo"><span id="tc-evento"></span><button id="tc-debug" title="Right-hand debug panel">Debug OFF</button><span id="tc-fps" title="Frames per second">FPS --</span><button id="tc-sair" title="Exit fullscreen" style="background:rgba(185,28,28,.85)">✕ Exit</button></div>' +
+                '<div id="tc-dir-topo"><span id="tc-evento"></span><button id="tc-sliders" title="Live tuning sliders">Sliders</button><button id="tc-debug" title="Right-hand debug panel">Debug OFF</button><span id="tc-fps" title="Frames per second">FPS --</span><button id="tc-sair" title="Exit fullscreen" style="background:rgba(185,28,28,.85)">✕ Exit</button></div>' +
                 '</div>' +
                 '<div id="tc-centro"><div class="hud-jog-logo" id="tc-logo-e"></div><div class="hud-jog-logo" id="tc-logo-d"></div><div id="tc-placar-tv"><div class="tv-linha"><span class="tv-eq" id="tv-eq-e">---</span><span class="tv-gol" id="tv-gol-e">0</span>' +
                 '<span class="tv-vs">vs</span><span class="tv-gol" id="tv-gol-d">0</span><span class="tv-eq" id="tv-eq-d">---</span></div><div class="tv-tempo" id="tv-tempo">00:00</div></div></div>';
@@ -174,6 +174,7 @@ const Ponte = {
                 else if (b.id === 'tc-minimapa') { if (typeof toggleMinimapa === 'function') toggleMinimapa(); }
                 else if (b.id === 'tc-nomes') { if (typeof togglePlayerNames === 'function') togglePlayerNames(); }
                 else if (b.id === 'tc-debug') this.definirDebug(document.body.classList.contains('debug-off'));
+                else if (b.id === 'tc-sliders') { if (window.SlidersJogo) window.SlidersJogo.alternar(); }
                 else if (b.id === 'tc-pausa') { if (this.pularDisponivel()) this.esc(); else this.enviar('alternar_pausa', {}); }
                 else if (b.id === 'tc-sair') this.enviar('sair_tela_cheia', {});   // no tablet nao ha ESC: o manager sai da tela cheia (ver MatchDay.tsx)
                 else if (b.id === 'tc-preview') this.enviar('abrir_preview', {});   // o manager sai da tela cheia e abre o Match Preview por cima do jogo (ver MatchDay.tsx)

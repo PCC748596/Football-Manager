@@ -944,7 +944,9 @@ const FreeKickModel = {
     Esta zona Ã© mais larga e mais funda do que a do mini-canto, e vem
     DEPOIS do trapÃ©zio de remate: de frente continua a rematar-se.
     */
-    cruzXMin: 14.0,             // do eixo para fora, conta como falta lateral
+    cruzamentoDeLongeProb: 0.70,            // das faltas de longe que cairiam no passe, esta fraccao e cruzada para a area (0 desliga)
+    cruzamentoDeLongeProfundidade: 52.0,    // so no ataque: ate esta distancia da linha de fundo
+    cruzXMin: 14.0,          // do eixo para fora, conta como falta lateral
     cruzProfundidade: 26.0,     // e atÃ© esta distÃ¢ncia da linha de fundo
 
     /*

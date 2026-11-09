@@ -628,9 +628,21 @@ Object.assign(Match, {
             */
             const indirecta = !!this.faltaIndirecta;
             this.faltaIndirecta = false;
-            const decisaoFK = indirecta ? 'passe'
+            let decisaoFK = indirecta ? 'passe'
                 : ((typeof decisaoDeFalta === 'function')
                     ? decisaoDeFalta(bolaFK.x, bolaFK.z, attDir) : 'passe');
+            /*
+            FALTA DE LONGE: o ramo do passe dava quase sempre a bola ao jogador da ponta. Agora
+            `FreeKickModel.cruzamentoDeLongeProb` das faltas que cairiam no passe, no ataque (ate
+            `cruzamentoDeLongeProfundidade` m da linha de fundo), sao cruzadas para a area. O sorteio e
+            aqui, uma vez, e vale na cobranca (decisaoFaltaMontada); decisaoDeFalta continua pura.
+            */
+            if (decisaoFK === 'passe' && !indirecta && typeof FreeKickModel !== 'undefined' &&
+                FreeKickModel.cruzamentoDeLongeProb > 0 &&
+                Math.abs(attDir * (CAMPO_COMP / 2) - bolaFK.z) <= FreeKickModel.cruzamentoDeLongeProfundidade &&
+                Math.random() < FreeKickModel.cruzamentoDeLongeProb) {
+                decisaoFK = 'cruzamento';
+            }
             // A decisao MONTADA e a que vale na cobranca (a `baterFalta` lia-a de novo da posicao da bola: se mudasse, a montagem tinha libertado o corredor para um passe
             // e o batedor rematava, com um companheiro na linha bola->baliza; e o livre indirecto rematava na mesma).
             this.decisaoFaltaMontada = decisaoFK;
