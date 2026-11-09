@@ -123,7 +123,12 @@ const Qualidade = {
             if (h > 1e-3) { dx = -luz.position.x / h; dz = -luz.position.z / h; }
             esticar = h / luz.position.y;
         }
-        const largura = 0.8, comp = largura * (1 + 1.6 * esticar);   // ~2 m com o sol a 100 m de altura e 64 m de lado
+        // DE DIA a sombra e REDONDA (pedido): um disco sob os pes, sem esticar para o lado oposto ao sol (`esticar`, `dx`, `dz` ficam so para o angulo da mancha deitada).
+        const largura = 1.0, comp = largura;
+        // Tempo nublado: sombras mais fracas (pedido). Opacidade do material de dia (e das manchas da bola/balizas, que copiam a textura) por condicao.
+        const cond = (window.Weather && window.Weather.condicao) || 'limpo';
+        const forca = { limpo: 1, nublado: 0.5, encoberto: 0.3, chuva: 0.3, neve: 0.4 }[cond];
+        r.matDia.opacity = forca === undefined ? 1 : forca;
         const cd = Math.cos(Math.PI / 4), sd = Math.sin(Math.PI / 4);
         /*
         A LISTA NAO CRESCE: a mancha de um corpo deitado fora (uma troca de jogadores, o staff ou os reservas refeitos, uma nova partida) continuava na lista — o `parent` dela e o corpo velho, que nao e
@@ -152,7 +157,7 @@ const Qualidade = {
                 Q.alvo.copy(Q.plano).multiply(Q.z);                       // deitada no relvado, com a sombra para o lado oposto ao sol
                 Q.inv.copy(qc).invert();
                 m.quaternion.copy(Q.inv).multiply(Q.alvo);
-                const lado = noite ? 2.2 : comp, larg = noite ? 2.2 : largura, desloca = noite ? 0 : (comp / 2 - 0.35);
+                const lado = noite ? 2.2 : comp, larg = noite ? 2.2 : largura, desloca = 0;
                 m.scale.set(lado / esc, larg / esc, 1);
                 corpo.updateMatrixWorld(true);
                 Q.v.set(corpo.position.x + dx * desloca, BLOB_Y, corpo.position.z + dz * desloca);
@@ -177,8 +182,7 @@ const Qualidade = {
                 m.rotation.set(-Math.PI / 2, 0, Math.atan2(-lz, lx));
                 m.scale.set(comp / esc, largura / esc, 1);
                 // O centro avanca ao longo da sombra: ela nasce nos pes e estende-se para longe.
-                const av = (comp / 2 - 0.35) / esc;
-                m.position.x = lx * av; m.position.z = lz * av;
+                m.position.x = 0; m.position.z = 0;   // redonda: centrada nos pes
             }
         }
     },
