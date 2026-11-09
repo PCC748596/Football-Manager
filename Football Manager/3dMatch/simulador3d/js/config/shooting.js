@@ -326,7 +326,12 @@ const ShootingModel = {
     distÃ¢ncia dÃ¡ para ele alcanÃ§ar a bola. Quando nÃ£o dÃ¡, sai uma furada e
     estÃ¡ contada em `remates.furados`.
     */
-    bolaAoPeRemate: 1.3
+    bolaAoPeRemate: 1.3,
+    /*
+    A FURADA (relato: "esta acontecendo demais"): no CONTACTO do remate a bola solta a menos de isto (m) do jogador conta como no pe — ele assume-a e chuta. 0 volta a regra antiga (hasBall exato).
+    Maior que `bolaAoPeRemate` (1.3), porque entre a decisao e o contacto o jogador ainda anda com a bola.
+    */
+    bolaAoPeContacto: 1.7
 };
 
 /*

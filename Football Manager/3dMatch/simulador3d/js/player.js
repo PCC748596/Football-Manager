@@ -4256,6 +4256,17 @@ class FootballPlayer {
             na decisao, e a furada entrava como remate (relato: *"as furadas estao sendo contadas como chutes"*); agora vai so para `remates.furados`, a parte.
             */
             onContact: () => {
+                /*
+                A FURADA QUE NAO DEVIA SER: a bola em condução anda à frente do pé, e nos 0.318 s do gesto ela pode ficar um palmo fora do `hasBall` sem ter saído do alcance da
+                perna. Se a bola ainda está solta (ninguém mais a controla) a menos de `ShootingModel.bolaAoPeContacto` m, o remate sai: o jogador assume-a no contacto.
+                Só é furada de verdade quando o adversário a tirou, ou ela fugiu para longe.
+                */
+                const SMc = (typeof ShootingModel !== 'undefined') ? ShootingModel : null;
+                if (!this.hasBall && SMc && SMc.bolaAoPeContacto > 0 && typeof Match !== 'undefined' && Match.ball && this.model &&
+                    (!Match.ballCarrier || Match.ballCarrier === this) &&
+                    this.model.position.distanceTo(Match.ball.position) <= SMc.bolaAoPeContacto) {
+                    this.hasBall = true; Match.ballCarrier = this;
+                }
                 if (this.hasBall) {
                     if (typeof MatchStats !== 'undefined') MatchStats[this.team].remates.tentados++;
                     executeShotGameplay(this);
