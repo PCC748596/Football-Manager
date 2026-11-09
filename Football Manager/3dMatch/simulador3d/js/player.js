@@ -3618,6 +3618,18 @@ class FootballPlayer {
                 }
             }
 
+            // VIRADA: recebi do corredor de um lado e o sector do outro esta ligado.
+            if (typeof PassModel !== 'undefined' && PassModel.bonusVirada && score > 0 &&
+                Match.viradaOrigem && Match.viradaTimer > 0 && Match.viradaOrigem.team === this.team &&
+                setoresMeus && typeof Tatics !== 'undefined' && typeof Tatics.sectorDeX === 'function') {
+                const orig = Match.viradaOrigem.sector;
+                const oposto = orig === 'dir' ? 'esq' : (orig === 'esq' ? 'dir' : null);
+                if (oposto && setoresMeus.indexOf(oposto) >= 0 &&
+                    Tatics.sectorDeX(optPos.x, dirZ) === oposto) {
+                    score += PassModel.bonusVirada;
+                }
+            }
+
             /*
             FORA-DE-JOGO NA NOTA DO PASSE.
 

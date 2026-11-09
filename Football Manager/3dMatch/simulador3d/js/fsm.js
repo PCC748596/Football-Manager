@@ -653,6 +653,13 @@ function executePassGameplay(p) {
     Match.ultimoPassadorTimer = (typeof PassModel !== 'undefined' &&
         typeof PassModel.tocaECorreDuracao === 'number') ? PassModel.tocaECorreDuracao : 3.0;
 
+    // Virada: de que sector da equipa saiu o passe (ver PassModel.bonusVirada e findPassTarget).
+    if (typeof Tatics !== 'undefined' && typeof Tatics.sectorDeX === 'function') {
+        Match.viradaOrigem = { team: p.team, sector: Tatics.sectorDeX(p.model.position.x, p.dirZ) };
+        Match.viradaTimer = (typeof PassModel !== 'undefined' && typeof PassModel.viradaJanela === 'number')
+            ? PassModel.viradaJanela : 5.0;
+    }
+
     Match.ballCarrier = null;
     Match.intendedReceiver = p.passTarget;
     if (Match.passTargetVisual) Match.passTargetVisual.visible = false;

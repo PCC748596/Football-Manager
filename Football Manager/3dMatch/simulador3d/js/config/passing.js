@@ -452,6 +452,16 @@ const PassModel = {
     */
     bonusSectorActivo: 0.20,
 
+    /*
+    VIRADA DE JOGO (pedido). Quem recebeu um passe vindo de um companheiro
+    que estava num sector lateral (esq ou dir) e tem o sector OPOSTO ligado no
+    painel, da `bonusVirada` na nota do passe para os companheiros desse
+    sector oposto. So vale `viradaJanela` segundos depois do passe recebido.
+    bonusVirada 0 desliga.
+    */
+    bonusVirada: 150,
+    viradaJanela: 5.0,
+
     // O LANÇAMENTO A QUEM ROMPE (RUN_INTO_SPACE, braço no ar): arranca de mais longe e a bola não precisa de 30 m.
     distMinRuptura: 18.0,
     throughBallGapRuptura: 24.0,

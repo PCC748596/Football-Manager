@@ -1259,6 +1259,11 @@ Object.assign(Match, {
             if (this.ultimoPassadorTimer <= 0) this.ultimoPassador = null;
         }
 
+        if (this.viradaTimer > 0) {
+            this.viradaTimer -= dt;
+            if (this.viradaTimer <= 0) this.viradaOrigem = null;
+        }
+
         let isPassing = false;
         if (this.ballCarrier && this.ballCarrier.fsm && (this.ballCarrier.fsm.currentState === 'PASS' || this.ballCarrier.fsm.currentState === 'CROSS')) {
             isPassing = true;

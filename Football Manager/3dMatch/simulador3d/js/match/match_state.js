@@ -92,6 +92,8 @@ const Match = {
     */
     ultimoPassador: null,
     ultimoPassadorTimer: 0,
+    viradaOrigem: null,
+    viradaTimer: 0,
     // Ultimo toque COM O PE, e onde a bola estava nesse instante: e dele que o
     // `avaliarRecuoParaGR` (utils.js) decide, por frame, se a bola vem atrasada.
     ultimoToque: null,
