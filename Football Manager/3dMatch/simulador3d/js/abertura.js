@@ -122,6 +122,7 @@ const Abertura = {
         // As trocas pedidas no intervalo: o entrante entra na lista (e sai do tunel com os outros); o substituido vai ao banco (Match.converterTrocasDoIntervalo).
         if (Match.converterTrocasDoIntervalo) Match.converterTrocasDoIntervalo();
         [].concat(Match.players, Match.opponents, [Officials.arbitro], Officials.assistentes).forEach(o => { if (o) o.foraDeCampo = false; });
+        this._skipVolta = false;
         this.activa = true;
         this.modo = 'segundo';
         this._travarEsc(true);
@@ -186,7 +187,8 @@ const Abertura = {
             p.aberturaOrdem = s;
             // O ENTRANTE DO INTERVALO: do tunel ao 4.o arbitro (ponto de espera da substituicao), onde PARA ate a placa estar no ar, e so depois ao posto.
             if (p._trocaIntervalo && typeof Aquecimento !== 'undefined') {
-                const rq = p._trocaIntervalo, zEsp = (rq.indice % 2 ? 1.6 : -1.6) * Math.ceil((rq.indice + 1) / 2) * 0.9;
+                // Espera a 3 m a ESQUERDA do 4.o arbitro (de frente para o campo) e, havendo mais de um, cada um 1,5 m mais afastado (pedido). A esquerda dele e z * (lado do banco).
+                const rq = p._trocaIntervalo, Sb = Math.sign(Aquecimento.xEspera) || 1, zEsp = ((typeof QuartoArbitro !== 'undefined') ? QuartoArbitro.postoZ() : 0) + Sb * (3.0 + 1.5 * rq.indice);
                 s.wps = [s.wps[0], s.wps[1], { x: Aquecimento.xEspera, z: zEsp }, s.wps[2]];
                 s.seguraEm = 3; s.liberado = false; s.aEspera = false;
                 rq.parte = s;
@@ -513,12 +515,30 @@ const Abertura = {
         if (Officials.colocarInicial) Officials.arbitro.alvoSuave = null;
     },
 
+    /*
+    O SKIP DA VOLTA DO INTERVALO (pedido: *"quando o skip e acionado os jogadores saem correndo e passam pelo meio das placas de publicidade"*): o `terminar` largava todos em MOVE_TO_POS do sitio onde
+    estavam (no tunel, atras das placas) e eles cortavam em linha reta por cima delas. Agora ninguem salta o caminho: todos saem do tunel ja (um a um, `AberturaModel.skipEscalonamento` s), A CORRER
+    (`velocidadeSkip`), e fazem os mesmos pontos de sempre — boca do tunel, vao da placa, posto — e so quando todos chegam o jogo comeca (o `update` acaba a entrada como no caminho normal).
+    */
+    _acelerarVolta: function () {
+        const AM = AberturaModel;
+        if (this._skipVolta) return;
+        this._skipVolta = true;
+        const vel = AM.velocidadeSkip || 7.5, esc = (typeof AM.skipEscalonamento === 'number') ? AM.skipEscalonamento : 0.12;
+        let n = 0;
+        for (const s of this.partes) {
+            s.vel = vel;
+            s.tSpawn = Math.min(s.tSpawn, this.t + n++ * esc);
+            if (s.seguraEm !== undefined) s.liberado = true;   // o entrante de uma troca do intervalo tambem corre ao posto, sem esperar o sinal
+        }
+    },
+
     // ESC: salta direto para a formacao inicial de sempre.
     cancelar: function () {
         if (!this.activa) return;
         if (this.modo === 'intervalo') return;   // o ESC nao salta o intervalo
         // Na volta do intervalo o ESC so poe toda a gente a andar ja para as posicoes.
-        if (this.modo === 'segundo') { this.terminar(); return; }
+        if (this.modo === 'segundo') { this._acelerarVolta(); return; }
         this._libertar();
         Match.saidaPlano = null;
         Match.ballCarrier = null;

@@ -53,7 +53,7 @@ Object.assign(Officials, {
         const esc = o.model.scale.x || 1;
         const cv = document.createElement('canvas'); cv.width = 512; cv.height = 256;
         const tex = new THREE.CanvasTexture(cv);
-        const mat = new THREE.MeshBasicMaterial({ map: tex });
+        const mat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false });   // sem tone mapping: os pontos de led saem com a cor cheia (mais brilhantes)
         const corpoMat = new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.6 });
         const g = new THREE.Mesh(new THREE.BoxGeometry(Q.larguraPlaca / esc, Q.alturaPlaca / esc, 0.05 / esc), [corpoMat, corpoMat, corpoMat, corpoMat, mat, corpoMat]);
         g.visible = true;
@@ -79,21 +79,26 @@ Object.assign(Officials, {
         const cv = o.placa.userData.cv, c = cv.getContext('2d');
         c.fillStyle = '#0b0d10'; c.fillRect(0, 0, 512, 256);
         const celX = 21, celY = 26, r = 8.5;          // 11 colunas (2 digitos + 1 de espaco) x 7 linhas por numero
-        const desenhar = (n, x0, aceso, apagado, brilho) => {
+        const desenhar = (n, x0, aceso, apagado, brilho, nucleo) => {
             const txt = (n === null || n === undefined) ? '  ' : String(n).padStart(2, ' ').slice(-2);
             for (let d = 0; d < 2; d++) {
                 const g = FONTE[txt[d]] || FONTE[' '];
                 for (let l = 0; l < 7; l++) for (let col = 0; col < 5; col++) {
                     const on = g[l][col] === '1';
-                    c.shadowBlur = on ? 10 : 0; c.shadowColor = brilho;
+                    const cx = x0 + (d * 6 + col) * celX + celX / 2, cy = 37 + l * celY + celY / 2;
+                    c.shadowBlur = on ? 22 : 0; c.shadowColor = brilho;   // halo forte nos pontos acesos
                     c.fillStyle = on ? aceso : apagado;
-                    c.beginPath(); c.arc(x0 + (d * 6 + col) * celX + celX / 2, 37 + l * celY + celY / 2, r, 0, Math.PI * 2); c.fill();
+                    c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill();
+                    if (on) {   // miolo claro: o led aceso brilha no centro
+                        c.shadowBlur = 0; c.fillStyle = nucleo;
+                        c.beginPath(); c.arc(cx, cy, r * 0.5, 0, Math.PI * 2); c.fill();
+                    }
                 }
             }
             c.shadowBlur = 0;
         };
-        desenhar(sai, 12, '#ff3b30', '#2a1210', '#ff2a2a');
-        desenhar(entra, 270, '#30d158', '#10241a', '#2dff6a');
+        desenhar(sai, 12, '#ff5047', '#2a1210', '#ff3030', '#ffd2cc');
+        desenhar(entra, 270, '#3dff7a', '#10241a', '#3dff7a', '#e0ffe9');
         o.placa.userData.tex.needsUpdate = true;
         o.placa.visible = true;
         o.placa.userData.numeros = { sai: sai, entra: entra };

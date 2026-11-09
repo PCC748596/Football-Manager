@@ -79,6 +79,8 @@ const AberturaModel = {
     esperaAlinhados: 5.0,
     // A VOLTA DO INTERVALO: saem do tunel em ordem aleatoria, a trote, direto para os postos (sem fila).
     velocidade2T: 3.2,
+    velocidadeSkip: 7.5,        // o SKIP da volta do intervalo: todos correm (m/s) pelo mesmo caminho (boca, vao da placa, posto)
+    skipEscalonamento: 0.12,    // s entre um e o seguinte sairem do tunel no skip
     atrasoSegundoTempo: 2.0,
     intervaloSegundoTempo: 0.45,
     // A SAIDA DO INTERVALO: os 22 e o trio vao a trote para o tunel, um a um (`intervalo` s entre eles); `prazo` s e a rede de seguranca.

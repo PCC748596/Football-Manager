@@ -527,7 +527,7 @@ Object.assign(Match, {
     A volta do intervalo espera o entrante (o 2.o tempo so comeca com os 22 nos postos).
     */
     converterTrocasDoIntervalo: function () {
-        const cont = { casa: 0, fora: 0 };
+        let cont = 0;   // um so contador: os dois times esperam junto do MESMO 4.o arbitro
         for (const req of this.subsPendentes) {
             if (req.feita || !req.intervalo || req.convertido) continue;
             const lista = this._equipaDoLado(req.lado);
@@ -543,7 +543,7 @@ Object.assign(Match, {
             N.lugarBolaParada = null;   // quem entra segue o caminho da volta do tunel, nao o das bolas paradas
             N._trocaIntervalo = req;
             req.N = N; req.P = P; req.convertido = true; req.estado = 'int_ir'; req.t = 0;
-            req.indice = cont[req.lado]++;
+            req.indice = cont++;
             req.pAtraso = 1.2 + req.indice * 1.0;
             if (B) B.model.visible = false;   // o reserva e o que acaba de entrar: o banco fica vazio ate o substituido chegar
             P.model.visible = false;
