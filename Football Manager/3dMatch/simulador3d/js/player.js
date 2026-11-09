@@ -3989,7 +3989,16 @@ class FootballPlayer {
             typeof LancamentoClip !== 'undefined';
         if (this.isCross && this.passeLancamento) this.passeComClip = true;   // protege a pose do clip (ver o update do rig)
         this.actionState = new ActionState(this.passeLancamento ? 'lancamento' : 'pass', {
-            onContact: () => { if (this.hasBall && this.passTarget) executePassGameplay(this); }
+            onContact: () => {
+                if (this.hasBall && this.passTarget) {
+                    // Lancamento (passe longo pelo alto): a chuteira levanta alguns fiapos de grama (js/torroes.js).
+                    if (this.passeLancamento && typeof Torroes !== 'undefined' && this.model) {
+                        const ry2 = this.model.rotation ? this.model.rotation.y : 0;
+                        Torroes.lancar(this.model.position.x, this.model.position.z, Math.sin(ry2), Math.cos(ry2));
+                    }
+                    executePassGameplay(this);
+                }
+            }
         });
         // Consumido: o próximo passe volta a decidir o seu próprio ponto.
         this.passAimPoint = null;
@@ -4266,8 +4275,18 @@ class FootballPlayer {
                     (!Match.ballCarrier || Match.ballCarrier === this) &&
                     this.model.position.distanceTo(Match.ball.position) <= SMc.bolaAoPeContacto) {
                     this.hasBall = true; Match.ballCarrier = this;
+                    // Chute com a bola fora do pe (o que antes era furada): a chuteira rasga o relvado e voam tufos de grama (js/torroes.js).
+                    if (typeof Torroes !== 'undefined' && this.model) {
+                        const ry0 = this.model.rotation ? this.model.rotation.y : 0;
+                        Torroes.lancar(this.model.position.x, this.model.position.z, Math.sin(ry0), Math.cos(ry0));
+                    }
                 }
                 if (this.hasBall) {
+                    // Todo chute a baliza levanta uns fiapos de grama (js/torroes.js); a furada e o chute com a bola fora do pe soltam mais.
+                    if (typeof Torroes !== 'undefined' && this.model && this.hasBallNaOrigem !== false) {
+                        const ry3 = this.model.rotation ? this.model.rotation.y : 0;
+                        Torroes.lancar(this.model.position.x, this.model.position.z, Math.sin(ry3), Math.cos(ry3));
+                    }
                     if (typeof MatchStats !== 'undefined') MatchStats[this.team].remates.tentados++;
                     executeShotGameplay(this);
                 }
