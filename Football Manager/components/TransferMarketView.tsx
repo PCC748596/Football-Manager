@@ -305,7 +305,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
     const seta = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>;
     const xis = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>;
     return (
-      <div className={`rounded-xl border px-3 py-[4.5px] flex flex-wrap items-center gap-x-5 gap-y-3 ${resp ? 'border-amber-500/60 bg-slate-100/50 dark:bg-[#0e182c]' : 'border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0e182c]'}`}>
+      <div className={`rounded-xl border px-3 py-[1px] flex flex-wrap items-center gap-x-5 gap-y-3 ${resp ? 'border-amber-500/60 bg-slate-100/50 dark:bg-[#0e182c]' : 'border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0e182c]'}`}>
         {/* Esquerda: foto, escudo, nome e clube, valor de mercado, rodada. Largura FIXA: o divisor e a coluna da direita ficam alinhados em todos os cards, seja qual for o tamanho do nome. */}
         <div className="flex items-center gap-3 min-w-0 w-[390px] shrink-0">
           <div className="w-[72px] h-[72px] overflow-hidden shrink-0">{jog ? <PlayerFace3D playerId={jog.id} team={outroClube} gk={jog.position === 'GK'} camisa={outroClube?.primaryColor} className="w-full h-full" /> : null}</div>
@@ -359,7 +359,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
     );
   };
   const grupoNeg = (titulo: string, lista: NegociacaoTransf[]) => lista.length ? (
-    <div className="flex flex-col gap-3"><div className="text-[11px] font-black uppercase tracking-widest text-slate-500">{titulo} ({lista.length})</div>{lista.map(n => <React.Fragment key={n.id}>{negCard(n)}</React.Fragment>)}</div>
+    <div className="flex flex-col gap-[10px]"><div className="text-[11px] font-black uppercase tracking-widest text-slate-500">{titulo} ({lista.length})</div>{lista.map(n => <React.Fragment key={n.id}>{negCard(n)}</React.Fragment>)}</div>
   ) : null;
   const negociacoesAba = (
     <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-6 pr-2">
@@ -435,12 +435,12 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const minhasTx = mercado.transacoes.filter(t => t.clubeId === meuId).slice().reverse();
   const financasAba = (
     <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-4 pr-2">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="shrink-0 grid grid-cols-2 md:grid-cols-4 gap-3">
         {[['Cash balance', formatCurrency(userTeam.cash)], ['Transfer budget', formatCurrency(userTeam.transferBudget ?? 0)], ['Window', janela ? `Open${fecha !== null ? ` (${fecha}d left)` : ''}` : 'Closed'], ['Moves this club', String(minhasTx.length)]].map(([k, v]) => (
           <div key={k} className="bg-slate-100/50 dark:bg-slate-900/40 rounded-lg border border-slate-200 dark:border-slate-800 p-4"><div className="text-[11px] font-black uppercase tracking-widest text-slate-400">{k}</div><div className="text-2xl font-black text-slate-900 dark:text-white mt-1">{v}</div></div>
         ))}
       </div>
-      <div className="bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="shrink-0 bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 border-b border-slate-200 dark:border-slate-800">Transaction ledger</div>
         <table className="w-full text-left"><thead><tr>{['Date', 'Type', 'Player', 'Counterparty', 'Amount', 'Balance before', 'Balance after'].map(h => <th key={h} className="px-3 py-2 text-[11px] font-black uppercase tracking-widest text-slate-400">{h}</th>)}</tr></thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30">
@@ -454,11 +454,11 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
             {!minhasTx.length && <tr><td colSpan={7} className="p-8 text-center text-slate-400 text-sm font-bold uppercase tracking-widest">No transactions yet</td></tr>}
           </tbody></table>
       </div>
-      <div className="bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="shrink-0 bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 border-b border-slate-200 dark:border-slate-800">Latest moves in the market</div>
         <div className="divide-y divide-slate-100 dark:divide-slate-800/30">
           {mercado.historico.slice(-25).reverse().map(m => (
-            <div key={m.id} className="px-4 py-2 text-sm flex justify-between gap-3"><span className="text-slate-700 dark:text-slate-200 flex items-center gap-2">{rostoDe(m.jogadorId, porId.get(m.para))}<span><b>{m.jogadorNome}</b> • {nomeClube(m.de)} → {nomeClube(m.para)}{m.tipo === 'DISPENSA' ? ' (released)' : ''}</span></span><span className="font-mono text-slate-500 whitespace-nowrap">{dataCurta(m.data)} • {m.valor ? formatCurrencyShort(m.valor) : 'free'}</span></div>
+            <div key={m.id} className="px-4 py-1 flex justify-between gap-3 items-center"><span className="text-slate-700 dark:text-slate-100 flex items-center gap-2">{rostoDe(m.jogadorId, porId.get(m.para))}{/* a fonte da lista do mercado: nome do jogador font-black text-base, clubes font-bold text-base */}<span className="text-base"><span className="font-black text-slate-800 dark:text-slate-100">{m.jogadorNome}</span> <span className="font-bold text-slate-700 dark:text-slate-100">• {nomeClube(m.de)} → {nomeClube(m.para)}{m.tipo === 'DISPENSA' ? ' (released)' : ''}</span></span></span><span className="font-mono text-slate-500 whitespace-nowrap">{dataCurta(m.data)} • {m.valor ? formatCurrencyShort(m.valor) : 'free'}</span></div>
           ))}
           {!mercado.historico.length && <div className="p-6 text-center text-slate-400 text-sm font-bold uppercase tracking-widest">No moves yet</div>}
         </div>
