@@ -10,7 +10,7 @@ class InMatchInjuryEngine {
     static calcularGatilhoLesaoContato(gravidadeImpacto, injuryProneness) {
         // Multiplicador base para lesões de contato
         const CHANCE_BASE = 0.08;   // ~25 faltas/jogo x gravidade ~0.5 x propensao ~0.5 => ~0.5 lesoes de contato por jogo
-        const chanceLesao = gravidadeImpacto * injuryProneness * CHANCE_BASE;
+        const chanceLesao = gravidadeImpacto * injuryProneness * CHANCE_BASE * ((typeof MatchInjuries !== 'undefined' && typeof MatchInjuries.fatorFrequencia === 'number') ? MatchInjuries.fatorFrequencia : 1);
 
         if (Math.random() < chanceLesao) {
             // No contato, filtramos preferencialmente lesões articulares e ósseas (ou gerais)
@@ -38,7 +38,7 @@ class InMatchInjuryEngine {
     static calcularGatilhoLesaoSemContato(esforcoAtual, injuryProneness) {
         // Chance muito baixa, pois roda frequentemente enquanto o jogador corre
         const CHANCE_BASE = 0.00007;   // por segundo de corrida: ~0.4 lesoes sem contato por jogo
-        const chanceLesao = esforcoAtual * injuryProneness * CHANCE_BASE;
+        const chanceLesao = esforcoAtual * injuryProneness * CHANCE_BASE * ((typeof MatchInjuries !== 'undefined' && typeof MatchInjuries.fatorFrequencia === 'number') ? MatchInjuries.fatorFrequencia : 1);
 
         if (Math.random() < chanceLesao) {
             // Sem contato, filtramos preferencialmente lesões musculares

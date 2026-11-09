@@ -18,6 +18,8 @@ const MatchInjuries = {
     maxTrocas: 5,
     fatorBaleado: 0.80,
     fatorForcado: 0.40,
+    // Multiplica a chance de lesao (contato e sem contato). 1 = como esta calibrado; o slider de tempo real mexe aqui (js/sliders_jogo.js).
+    fatorFrequencia: 1,
     _acSeg: 0,
     _acMin: 0,
     _medicos: {},
