@@ -197,6 +197,8 @@ const AmbienteSonoro = {
         this._audio.volume = this._ligado
             ? Math.max(0, Math.min(tecto, this._actual))
             : 0;
+        // Desligado nada toca (no iPad o `volume` nao manda): rede de seguranca por frame.
+        if (!this._ligado && !this._audio.paused) { this._audio.muted = true; this._audio.pause(); }
     },
 
     // As palmas: em loop enquanto a bancada bate palmas num lance perigoso; rampa de entrada e de saida, e pausam-se quando chegam a zero.
@@ -280,15 +282,24 @@ const AmbienteSonoro = {
         }
     },
 
+    /*
+    SOM OFF CALA TUDO DA TORCIDA (relato: *"o som off nao desliga o barulho da torcida"*). So pôr o `volume` a 0 nao chega: no iPad/Safari o `volume` de um <audio> e so de leitura (o loop do estadio continuava
+    a soar). Por isso, desligado, o loop e o resto ficam `muted` E em pausa, e o que ja estava no ar por Web Audio (o grito e a reaccao) para na hora. Ligado, voltam a poder tocar.
+    */
     setLigado(on) {
         this._ligado = on;
         if (!this._audio) return;
-        if (on) this.tentarTocar();
-        else {
+        const els = [this._audio, this._grito, this._palmas, this._reacao];
+        if (on) {
+            els.forEach(el => { if (el) el.muted = false; });
+            this.tentarTocar();
+        } else {
             this._audio.volume = 0;
-            if (this._grito) { this._grito.pause(); this._grito.volume = 0; }
-            if (this._palmas) { this._palmas.pause(); this._palmasVol = 0; }
-            if (this._reacao) this._reacao.pause();
+            this._palmasVol = 0;
+            els.forEach(el => { if (el) { el.muted = true; try { el.pause(); } catch (e) { /* ignora */ } } });
+            if (this._grito) this._grito.volume = 0;
+            this._tentouTocar = false;
+            if (typeof EfeitosSonoros !== 'undefined' && EfeitosSonoros.pararTudo) EfeitosSonoros.pararTudo();
         }
     },
 

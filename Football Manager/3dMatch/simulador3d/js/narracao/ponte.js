@@ -372,7 +372,12 @@ const Ponte = {
         this._ligarPainel();
         this._ligarControles();
         // O som do estadio e do publico (desligado por omissao no jogo solto) liga-se: o clique do utilizador no manager desbloqueia-o (iframe allow=autoplay).
-        if (typeof AmbienteSonoro !== 'undefined' && AmbienteSonoro.setLigado) { AmbienteSonoro.setLigado(true); if (AmbienteSonoro.tentarTocar) AmbienteSonoro.tentarTocar(); }
+        if (typeof AmbienteSonoro !== 'undefined' && AmbienteSonoro.setLigado) {
+            // So liga na primeira preparacao: uma nova partida nao desfaz o OFF que o utilizador escolheu. O botao do painel acompanha o estado real (ficava a dizer OFF com o som a tocar).
+            if (!this._somJaLigado) { this._somJaLigado = true; AmbienteSonoro.setLigado(true); if (AmbienteSonoro.tentarTocar) AmbienteSonoro.tentarTocar(); }
+            const bs = (typeof document !== 'undefined') ? document.getElementById('btn-som') : null;
+            if (bs) { bs.innerText = 'Som: ' + (AmbienteSonoro.ligado ? 'ON' : 'OFF'); bs.classList.toggle('active', !!AmbienteSonoro.ligado); }
+        }
         if (typeof Sim === 'undefined') global_Sim();
         Sim.running = false;
         // Jogo carregado a meio (save): sem a entrada dos times; o `iniciar` com `retomar` poe cada um no posto.
