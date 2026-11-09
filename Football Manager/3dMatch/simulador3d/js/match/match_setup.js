@@ -313,7 +313,8 @@ Object.assign(Match, {
         window.relva.rotation.x = -Math.PI / 2; window.relva.receiveShadow = true; campoGrupo.add(window.relva);
         if (typeof criarTufosDaRelva === 'function') criarTufosDaRelva(campoGrupo, relvaTex, gramaLarg, gramaComp);   // tufos 3D perto da bola (MEDIUM/HIGH)
 
-        const matLinha = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
+        // polygonOffset: as linhas estao a 1 cm do relvado e, no tablet (z-buffer de 16/24 bits menos preciso), empatavam com ele e SUMIAM as vezes (relato). O offset puxa-as para a camera no z-buffer, sem mexer na altura.
+        const matLinha = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
         const esp = 0.15; const comp = CAMPO_COMP; const larg = CAMPO_LARG;
         function addLinha(w, h, x, z) { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), matLinha); m.rotation.x = -Math.PI / 2; m.position.set(x, LINHA_Y_CAMPO, z); m.receiveShadow = true; campoGrupo.add(m); }
         addLinha(larg + esp, esp, 0, comp / 2); addLinha(larg + esp, esp, 0, -comp / 2); addLinha(esp, comp + esp, larg / 2, 0); addLinha(esp, comp + esp, -larg / 2, 0); addLinha(larg, esp, 0, 0);

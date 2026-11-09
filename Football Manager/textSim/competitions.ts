@@ -1052,6 +1052,54 @@ export const competicoesDoClube = (team: Team, leagueId: string, leagueTeams: Te
   return out;
 };
 
+/**
+ * AS ZONAS DA TABELA (Dashboard do manager): por posicao (0 = lider), o que a posicao vale — vaga continental (Champions, Europa, Conference, Libertadores, Sul-Americana), acesso ou rebaixamento — com
+ * os MESMOS numeros de vagas da classificacao (`VAGAS_UCL/UEL/UECL`, `VAGAS`) e os `promoted` / `relegated` da liga. Ligas de formato proprio (Series C e D) nao tem zonas. `null` = sem destaque.
+ */
+export interface ZonaDaTabela { id: 'UCL' | 'UEL' | 'UECL' | 'LIB' | 'SUL' | 'ACESSO' | 'REBAIXA'; nome: string; cor: string }
+export const zonasDaLiga = (leagueId: string, n: number): (ZonaDaTabela | null)[] => {
+  const out: (ZonaDaTabela | null)[] = Array.from({ length: n }, () => null);
+  const pais: any = (COUNTRIES as any[]).find(c => c.leagues.some((l: any) => l.id === leagueId));
+  const liga: any = pais?.leagues.find((l: any) => l.id === leagueId);
+  if (!pais || !liga || (liga.format && liga.format !== 'ROUND_ROBIN') || liga.worldOnly) return out;
+  const poe = (de: number, ate: number, z: ZonaDaTabela) => { for (let i = Math.max(0, de); i < Math.min(n, ate); i++) if (!out[i]) out[i] = z; };
+  let i0 = 0;
+  const europa = !!VAGAS_UCL[pais.id] && (liga.tier === 1 || /_clubes$/.test(leagueId));
+  if (europa) {
+    const nU = VAGAS_UCL[pais.id] || 0, nL = VAGAS_UEL[pais.id] || 0, nC = VAGAS_UECL[pais.id] || 0;
+    poe(0, nU, { id: 'UCL', nome: 'Champions League', cor: '#3b82f6' });
+    poe(nU, nU + nL, { id: 'UEL', nome: 'Europa League', cor: '#f97316' });
+    poe(nU + nL, nU + nL + nC, { id: 'UECL', nome: 'Conference League', cor: '#14b8a6' });
+    i0 = nU + nL + nC;
+  } else if (liga.tier === 1) {
+    const nL = VAGAS.LIB[pais.id] || 0, nS = VAGAS.SUL[pais.id] || 0;
+    poe(0, nL, { id: 'LIB', nome: 'Copa Libertadores', cor: '#22c55e' });
+    poe(nL, nL + nS, { id: 'SUL', nome: 'Copa Sul-Americana', cor: '#38bdf8' });
+  }
+  if (liga.tier > 1 && (liga.promoted || 0) > 0) poe(0, liga.promoted, { id: 'ACESSO', nome: 'Promotion', cor: '#22c55e' });
+  if ((liga.relegated || 0) > 0) poe(n - liga.relegated, n, { id: 'REBAIXA', nome: 'Relegation', cor: '#ef4444' });
+  return out;
+};
+
+/**
+ * AS ZONAS DA TABELA DE UM GRUPO DE COPA (Paulista, fase de liga da Champions/Europa/Conference, grupos da Libertadores/Sul-Americana, Series C e D): quem avanca acende em verde; na fase de liga das
+ * competicoes europeias os 8 primeiros vao direto as oitavas (verde), do 9.o ao 24.o ha playoff (amarelo) e os outros caem (vermelho). `grupo` e o nome do grupo (a 1.a fase da Serie C e o grupo 'L').
+ */
+export const zonasDoGrupo = (compId: string, grupo: string, n: number): (ZonaDaTabela | null)[] => {
+  const out: (ZonaDaTabela | null)[] = Array.from({ length: n }, () => null);
+  const poe = (de: number, ate: number, z: ZonaDaTabela) => { for (let i = Math.max(0, de); i < Math.min(n, ate); i++) out[i] = z; };
+  const avanca: ZonaDaTabela = { id: 'ACESSO', nome: 'Qualified', cor: '#22c55e' };
+  if (compId === 'PAULISTA') poe(0, 8, { ...avanca, nome: 'Quarter-finals' });
+  else if (compId === 'UCL' || compId === 'UEL' || compId === 'UECL') {
+    poe(0, 8, { ...avanca, nome: 'Round of 16' });
+    poe(8, 24, { id: 'UEL', nome: 'Play-off', cor: '#eab308' });
+    poe(24, n, { id: 'REBAIXA', nome: 'Eliminated', cor: '#ef4444' });
+  } else if (compId === 'SERIE_C') poe(0, grupo === 'L' ? 8 : 2, { ...avanca, nome: grupo === 'L' ? 'Next phase' : 'Semi-finals' });
+  else if (compId === 'SERIE_D') poe(0, 4, avanca);
+  else if (compId === 'LIB' || compId === 'SUL') poe(0, 2, { ...avanca, nome: 'Round of 16' });
+  return out;
+};
+
 /** Copia para a copa os resultados dos jogos do utilizador ja jogados no jogo (fixtures `fix-cup-<id>`). Devolve a MESMA copa se nada mudou. */
 export const sincronizarResultados = (comp: Competition, fixtures: import('../types').Fixture[]): Competition => {
   const jogados = new Map(fixtures.filter(f => f.type === 'CUP' && f.played).map(f => [f.id, f]));

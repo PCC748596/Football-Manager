@@ -1827,6 +1827,9 @@ document.addEventListener("DOMContentLoaded", () => {
         rendererCore.shadowMap.type = THREE.PCFShadowMap; // Better performance
         document.body.appendChild(rendererCore.domElement);
         window.rendererCore = rendererCore;
+        // Sair da tela do jogo e voltar pode fazer o tablet PERDER o contexto WebGL (as linhas e outras texturas sumiam): `preventDefault` deixa o three recriar tudo quando ele volta.
+        rendererCore.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); }, false);
+        rendererCore.domElement.addEventListener('webglcontextrestored', () => { try { scene.traverse(o => { if (o.material) { const ms = Array.isArray(o.material) ? o.material : [o.material]; ms.forEach(m => { m.needsUpdate = true; if (m.map) m.map.needsUpdate = true; }); } }); } catch (err) { /* ignora */ } }, false);
 
         orbitControls = new SimpleOrbitControls(cameraCore, rendererCore.domElement);
         window.orbitControls = orbitControls;

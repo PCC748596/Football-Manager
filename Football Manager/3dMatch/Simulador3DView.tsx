@@ -152,6 +152,10 @@ if (typeof window !== 'undefined') {
     ev.preventDefault(); ev.stopPropagation();
     sessao.iframe?.contentWindow?.postMessage({ para: 'simulador3d', tipo: 'esc' }, '*');
   }, true);
+  // Qualquer toque/clique/tecla no manager avisa o 3D (o iframe nao os recebe): o iOS so deixa retomar o som suspenso (ao sair da tela do jogo e voltar) com um gesto do utilizador.
+  let ultimoGesto = 0;
+  const gesto = () => { const t = Date.now(); if (t - ultimoGesto < 1000 || !sessao.iframe) return; ultimoGesto = t; sessao.iframe.contentWindow?.postMessage({ para: 'simulador3d', tipo: 'gesto' }, '*'); };
+  ['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev => window.addEventListener(ev, gesto, { passive: true, capture: true }));
   // O ESPACO em tela cheia com o foco FORA do iframe (ficou no botao Fullscreen do manager): pausa/continua o jogo, em vez de clicar o botao e sair da tela cheia.
   window.addEventListener('keydown', (ev: KeyboardEvent) => {
     if ((ev.key !== ' ' && ev.code !== 'Space') || !sessao.iframe || !emTelaCheia()) return;

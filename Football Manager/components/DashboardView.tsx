@@ -11,7 +11,7 @@ import { UniformeCorpo3D } from './UniformeCorpo3D';
 import EnergyBar, { energiaDe } from './EnergyBar';
 import BoardConfidenceCard from './BoardConfidenceCard';
 import { COUNTRIES } from '../textSim/dataGenerator';
-import { ligaDoClube, ligaDoUtilizador, mapaDeClubes, tabelaDoGrupo, NOMES_FASES, rotuloDaFase, teamKey } from '../textSim/competitions';
+import { ligaDoClube, ligaDoUtilizador, mapaDeClubes, tabelaDoGrupo, NOMES_FASES, rotuloDaFase, teamKey, zonasDaLiga, zonasDoGrupo } from '../textSim/competitions';
 import { settleMatch, ECONOMIA_ESTADIO, competicaoDoJogo, type CurrencyCode } from '../textSim/stadiumEconomy';
 
 interface Props {
@@ -396,6 +396,9 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
   });
 
   const userPos = sortedTeams.findIndex(t => t.id === userTeam.id) + 1;
+  // As zonas da tabela (vagas continentais, acesso, rebaixamento): a posicao e a linha acendem na cor da zona.
+  const zonasCopa = useMemo(() => (copaInfo && copaInfo.grupo) ? zonasDoGrupo(copaInfo.comp.id, copaInfo.grupo, copaInfo.tabela.length) : [], [copaInfo]);
+  const zonas = useMemo(() => zonasDaLiga(userTeam.leagueId, sortedTeams.length), [userTeam.leagueId, sortedTeams.length]);
   const top20 = sortedTeams.slice(0, 24);   // ate 24 clubes; as linhas encolhem sozinhas (ver `densidadeTabela`)
   // A TABELA ENCOLHE SOZINHA com o numero de clubes (ate 24 cabem no painel sem rolar): 0 = normal (ate 14 clubes), 1 = medio (15 a 19), 2 = compacto (20 a 24).
   const densidadeTabela = (n: number) => (n > 19 ? 2 : n > 14 ? 1 : 0);
@@ -836,8 +839,8 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30">
                   {copaInfo.tabela.map((r: any, i: number) => { const d = densidadeTabela(copaInfo.tabela.length); return (
-                    <tr key={r.key} style={r.key === copaInfo.meuKey ? HACHURA : undefined}>
-                      <td className={`pl-3 pr-1 ${DENS.py[d]} font-black text-slate-300 dark:text-slate-500 ${DENS.texto[d]}`}>{i + 1}</td>
+                    <tr key={r.key} style={r.key === copaInfo.meuKey ? HACHURA : undefined} title={zonasCopa[i]?.nome}>
+                      <td className={`pl-3 pr-1 ${DENS.py[d]} font-black text-slate-300 dark:text-slate-500 ${DENS.texto[d]}`} style={zonasCopa[i] ? { boxShadow: `inset 3px 0 0 ${zonasCopa[i]!.cor}` } : undefined}>{i + 1}</td>
                       <td className={`px-1 ${DENS.py[d]}`}>
                         <div className="flex items-center gap-2">
                           <TeamShield team={r.team} className={DENS.escudo[d]} />
@@ -885,8 +888,8 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30 transition-colors">
                 {top20.map((t, i) => { const d = densidadeTabela(top20.length); return (
-                  <tr key={t.id} style={t.id === userTeam.id ? HACHURA : undefined} className="group transition-colors">
-                    <td className={`px-4 ${DENS.py[d]} font-black text-slate-300 dark:text-slate-500 ${DENS.texto[d]} transition-colors`}>{i + 1}</td>
+                  <tr key={t.id} style={t.id === userTeam.id ? HACHURA : undefined} title={zonas[i]?.nome} className="group transition-colors">
+                    <td className={`px-4 ${DENS.py[d]} font-black text-slate-300 dark:text-slate-500 ${DENS.texto[d]} transition-colors`} style={zonas[i] ? { boxShadow: `inset 3px 0 0 ${zonas[i]!.cor}` } : undefined}>{i + 1}</td>
                     <td className={`px-2 ${DENS.py[d]}`}>
                       <div className="flex items-center gap-2 xl:gap-3">
                         <TeamShield team={t} className={DENS.escudo[d]} />
