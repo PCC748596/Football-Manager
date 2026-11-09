@@ -49,7 +49,7 @@ test('Carabao: 2.a rodada com 24 jogos; campeao da Carabao ganha vaga na Europa 
   let c = base.find(x => x.id === 'CARABAO') as Competition;
   const mapa = mapaDeClubes(w), oc = ocupacaoDe(w, base);
   let dia = '2026-04-01';
-  for (let i = 0; i < 60; i++) { c = avancarCompeticao(c, mapa, dia, { ocupado: oc }); dia = somarDias(dia, 1); }
+  for (let i = 0; i < 120; i++) { c = avancarCompeticao(c, mapa, dia, { ocupado: oc }); dia = somarDias(dia, 1); }
   assert.equal(c.matches.filter(m => m.stage === 'R2').length, 24);
   const uelBase = (base.find(x => x.id === 'UEL') as Competition).teamKeys;
   const eng = w.find(l => l.leagueId === 'eng_prem')!;

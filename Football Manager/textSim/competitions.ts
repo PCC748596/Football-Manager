@@ -65,8 +65,9 @@ export const VAGAS_UCL: Record<string, number> = { '65': 5, '66': 5, '67': 4, '6
 // Vagas por pais, depois das da Champions, pela classificacao do ano anterior; o campeao da Carabao Cup fica com uma vaga na Europa League (se ja estiver na Champions a vaga desce na tabela).
 export const VAGAS_UEL: Record<string, number> = { '65': 3, '66': 4, '67': 3, '68': 3, '69': 3, '70': 2, '80': 1, '81': 3, '82': 2, '83': 2, '84': 1, '85': 2, '86': 1, '87': 2, '88': 2, '89': 2 };
 export const VAGAS_UECL: Record<string, number> = { '65': 3, '66': 3, '67': 3, '68': 3, '69': 2, '70': 1, '80': 2, '81': 2, '82': 1, '83': 2, '84': 3, '85': 2, '86': 3, '87': 2, '88': 2, '89': 2 };
-const GRUPOS_UCL = ['2026-04-15', '2026-04-29', '2026-05-13', '2026-05-27', '2026-06-10', '2026-06-24', '2026-07-15', '2026-07-29'];
-const FASES_UCL = [{ nome: 'PO', datas: ['2026-08-26', '2026-09-02'] }, { nome: 'R16', datas: ['2026-09-30', '2026-10-07'] }, { nome: 'QF', datas: ['2026-10-28', '2026-11-04'] },
+// A temporada europeia do jogo vira a 1/6 e os jogos so comecam a partir de 1/7: a fase de liga da Champions (e Europa/Conference, +1 dia) joga-se em 8 terças a partir de 7/7.
+const GRUPOS_UCL = ['2026-07-07', '2026-07-14', '2026-07-21', '2026-07-28', '2026-08-04', '2026-08-11', '2026-08-18', '2026-08-25'];
+const FASES_UCL = [{ nome: 'PO', datas: ['2026-09-01', '2026-09-08'] }, { nome: 'R16', datas: ['2026-09-30', '2026-10-07'] }, { nome: 'QF', datas: ['2026-10-28', '2026-11-04'] },
   { nome: 'SF', datas: ['2026-11-18', '2026-11-25'] }, { nome: 'F', datas: ['2026-12-12'] }];
 
 // Datas de UEL/UECL: as da Champions mais um dia.
@@ -96,9 +97,9 @@ export const ehLigaFase = (id: string): boolean => id === 'UCL' || id === 'UEL' 
 
 // CARABAO CUP (EFL Cup, Inglaterra): ver `criarCarabao`. Estadio neutro da final (campo avulso, nao e um clube da base).
 export const NEUTRAL_VENUES = { WEMBLEY: { id: 'neutral_wembley', name: 'Wembley Stadium', city: 'London', country: '65', capacity: 90000 } } as const;
-// Datas nominais de 2026 (terças, final ao domingo), no calendario do jogo (a temporada inglesa vai de abril a dezembro). Mesmos intervalos do calendario real 2025/26 (R1 meados de agosto ... final 22/03).
-const FASES_CARABAO = [{ nome: 'R1', datas: ['2026-04-21'] }, { nome: 'R2', datas: ['2026-05-05'] }, { nome: 'R3', datas: ['2026-06-02'] }, { nome: 'R4', datas: ['2026-07-07'] },
-  { nome: 'QF', datas: ['2026-08-25'] }, { nome: 'SF', datas: ['2026-09-15', '2026-10-13'] }, { nome: 'F', datas: ['2026-11-29'] }];
+// Datas nominais de 2026 (terças, final ao domingo), no calendario do jogo (a temporada inglesa do jogo comeca a 1/7). Mesmos intervalos do calendario real 2025/26 (R1 meados de agosto ... final 22/03).
+const FASES_CARABAO = [{ nome: 'R1', datas: ['2026-07-07'] }, { nome: 'R2', datas: ['2026-07-21'] }, { nome: 'R3', datas: ['2026-08-04'] }, { nome: 'R4', datas: ['2026-08-18'] },   // so a partir de 1/7 (a temporada europeia comeca nessa data)
+  { nome: 'QF', datas: ['2026-09-01'] }, { nome: 'SF', datas: ['2026-09-22', '2026-10-20'] }, { nome: 'F', datas: ['2026-11-29'] }];
 
 // Datas (temporada 2024). Libertadores nas terças, Sul-Americana nas quartas e Copa do Brasil em outras semanas, para ninguém jogar duas vezes no mesmo dia.
 const GRUPOS_LIB = ['2026-04-07', '2026-04-21', '2026-05-05', '2026-05-19', '2026-06-02', '2026-06-16'];
@@ -277,20 +278,46 @@ export const somarDias = (d: string, n: number): string => { const x = new Date(
 const marcar = (oc: Ocupacao, keys: string[], d: string) => keys.forEach(k => { let s = oc.get(k); if (!s) { s = new Set(); oc.set(k, s); } s.add(d); });
 
 /**
- * A data de um jogo: a nominal se os DOIS clubes estiverem livres nesse dia e nos vizinhos (um dia de descanso); senao a mais proxima (+1, -1, +2, -2...) que esteja. Se nao houver,
+ * A data de um jogo: a nominal se os DOIS clubes estiverem livres nesse dia e nos 2 dias de cada lado (no minimo 2 dias de descanso entre jogos); senao a mais proxima (+1, -1, +2, -2...) que esteja. Se nao houver,
  * aceita um dia sem jogo (sem folga). Nunca antes de `minimo`. Marca o dia nos dois clubes.
  */
 export const agendarJogo = (oc: Ocupacao, nominal: string, keys: string[], minimo: string): string => {
-  const livre = (d: string, folga: number) => d >= minimo && keys.every(k => { const s = oc.get(k); if (!s) return true; for (let i = -folga; i <= folga; i++) if (s.has(somarDias(d, i))) return false; return true; });
-  const deslocamentos: number[] = [0]; for (let i = 1; i <= 12; i++) deslocamentos.push(i, -i);
+  // As copas acabam no ano da temporada (a virada de 1/1 reiniciava-as): nenhum jogo depois de 28/12 do ano da data nominal.
+  const limite = nominal.slice(0, 4) + '-12-28';
+  const livre = (d: string, folga: number) => d >= minimo && d <= limite && keys.every(k => { const s = oc.get(k); if (!s) return true; for (let i = -folga; i <= folga; i++) if (s.has(somarDias(d, i))) return false; return true; });
+  const deslocamentos: number[] = [0]; for (let i = 1; i <= 150; i++) deslocamentos.push(i, -i);   // procura ate 150 dias para cada lado (as datas nominais das copas sao so uma referencia: esticam-se ate caber o descanso): com 2 dias livres entre jogos (JOGO-LIVRE-LIVRE-JOGO) as datas nominais podem andar bastante
   let escolhida: string | null = null;
-  for (const folga of [1, 0]) {
+  for (const folga of [2, 1, 0]) {   // 2 dias livres de cada lado (no minimo 2 de descanso entre jogos); so se nao houver data assim, 1 e por fim 0
     for (const off of deslocamentos) { const d = somarDias(nominal, off); if (livre(d, folga)) { escolhida = d; break; } }
     if (escolhida) break;
   }
   const d = escolhida || (nominal >= minimo ? nominal : minimo);
   marcar(oc, keys, d);
   return d;
+};
+
+/**
+ * IDA E VOLTA (pedido): a ida numa semana e a volta na SEMANA SEGUINTE (7 dias depois, com 1-2 dias de folga para cada lado se for preciso), com 2 dias de descanso para os dois clubes em cada jogo; so depois
+ * ha distancia para a fase seguinte. Procura o PAR de datas: a ida perto da nominal (ate 150 dias para cada lado) e a volta a 7 dias dela. Devolve [ida, volta] e marca os dois dias.
+ */
+export const agendarIdaEVolta = (oc: Ocupacao, nominal: string, keys: string[], minimo: string, nominalVolta?: string): [string, string] => {
+  const limite = nominal.slice(0, 4) + '-12-28';   // as copas acabam no ano da temporada
+  const livre = (d: string, folga: number) => d >= minimo && d <= limite && keys.every(k => { const s = oc.get(k); if (!s) return true; for (let i = -folga; i <= folga; i++) if (s.has(somarDias(d, i))) return false; return true; });
+  const deslocamentos: number[] = [0]; for (let i = 1; i <= 150; i++) deslocamentos.push(i, -i);
+  // A volta na semana seguinte: 7 dias depois (ou o intervalo nominal, se for de 5 a 9 dias, como na final do Paulista: 15 e 21/3), ou 1-2 dias a menos/mais.
+  const esp = nominalVolta ? Math.round((Date.parse(nominalVolta) - Date.parse(nominal)) / 864e5) : 7;
+  const base = (esp >= 5 && esp <= 9) ? esp : 7;
+  const voltas = [base, base - 1, base + 1, base - 2, base + 2].filter(v => v >= 5 && v <= 9);
+  for (const folga of [2, 1, 0]) {
+    for (const off of deslocamentos) {
+      const d1 = somarDias(nominal, off);
+      if (!livre(d1, folga)) continue;
+      for (const v of voltas) { const d2 = somarDias(d1, v); if (livre(d2, folga)) { marcar(oc, keys, d1); marcar(oc, keys, d2); return [d1, d2]; } }
+    }
+  }
+  const d1 = nominal >= minimo ? nominal : minimo, d2 = somarDias(d1, base);
+  marcar(oc, keys, d1); marcar(oc, keys, d2);
+  return [d1, d2];
 };
 
 /** A ocupacao actual: jogos de liga de todas as ligas e os jogos das copas dadas. */
@@ -312,11 +339,16 @@ const jogosDeGrupo = (prefixo: string, grupos: Record<string, string[]>, datas: 
   const rondas = [[[0, 1], [2, 3]], [[2, 0], [1, 3]], [[0, 3], [1, 2]]];
   for (const g of Object.keys(grupos)) {
     const t = grupos[g];
+    const ultimo = new Map<string, string>();   // o ultimo jogo de grupo de cada clube: a jornada seguinte nunca fica antes dele (o agendador pode andar muitos dias)
     for (let md = 0; md < 6; md++) {
       const volta = md >= 3;
       rondas[md % 3].forEach(([a, b], k) => {
         const [h, v] = volta ? [t[b], t[a]] : [t[a], t[b]];
-        out.push(jogo(`${prefixo}-G${g}-${md + 1}-${k}`, 'G' + (md + 1), agendarJogo(oc, noAno(datas[md], ano), [h, v], noAno(INICIO_DA_EPOCA, ano)), h, v, { group: g }));
+        const ant = [ultimo.get(h), ultimo.get(v)].filter(Boolean) as string[];
+        const minimo = ant.length ? [noAno(INICIO_DA_EPOCA, ano), somarDias(ant.reduce((m, x) => (x > m ? x : m), ''), 3)].reduce((m, x) => (x > m ? x : m)) : noAno(INICIO_DA_EPOCA, ano);
+        const d = agendarJogo(oc, noAno(datas[md], ano), [h, v], minimo);
+        ultimo.set(h, d); ultimo.set(v, d);
+        out.push(jogo(`${prefixo}-G${g}-${md + 1}-${k}`, 'G' + (md + 1), d, h, v, { group: g }));
       });
     }
   }
@@ -379,7 +411,17 @@ export const criarChampions = (ucl: { key: string; team: Team; countryId: string
     if (d < 0) d = Math.floor(Math.random() * ocupado.length);
     ocupado[d].add(h); ocupado[d].add(v); dia[i] = d;
   });
-  const matches = jogos.map(([h, v], i) => jogo(`${id}-L-${dia[i] + 1}-${i}`, 'G' + (dia[i] + 1), agendarJogo(oc, noAno(GRUPOS[dia[i]], ano), [h, v], noAno(INICIO_DA_EPOCA, ano)), h, v, { group: 'L' }));
+  // Agenda-se por jornada (a 1.a antes da 2.a...), cada jogo nunca antes do ultimo do clube mais 3 dias (o agendador pode andar muitos dias para dar 2 dias de descanso).
+  const dataDe: string[] = jogos.map(() => '');
+  const ultimoJogo = new Map<string, string>();
+  jogos.map((_, i) => i).sort((x, y) => dia[x] - dia[y] || x - y).forEach(i => {
+    const [h, v] = jogos[i];
+    const ant = [ultimoJogo.get(h), ultimoJogo.get(v)].filter(Boolean) as string[];
+    const minimo = ant.length ? [noAno(INICIO_DA_EPOCA, ano), somarDias(ant.reduce((m, x) => (x > m ? x : m), ''), 3)].reduce((m, x) => (x > m ? x : m)) : noAno(INICIO_DA_EPOCA, ano);
+    dataDe[i] = agendarJogo(oc, noAno(GRUPOS[dia[i]], ano), [h, v], minimo);
+    ultimoJogo.set(h, dataDe[i]); ultimoJogo.set(v, dataDe[i]);
+  });
+  const matches = jogos.map(([h, v], i) => jogo(`${id}-L-${dia[i] + 1}-${i}`, 'G' + (dia[i] + 1), dataDe[i], h, v, { group: 'L' }));
   return { id, name: NOME_LIGA_FASE[id], teamKeys: keys, groups: { L: keys }, matches, ano };
 };
 
@@ -641,9 +683,9 @@ const jogosDaFase = (c: Competition, fase: { nome: string; datas: string[] }, pa
       out.push(jogo(`${c.id}-${tie}`, fase.nome, agendarJogo(oc, fase.datas[0], [melhor, pior], minimo), casa, fora, (c.id === 'CARABAO' && fase.nome === 'F') ? { tie, venue: NEUTRAL_VENUES.WEMBLEY.name } : { tie }));
     }
     else {
-      const d1 = agendarJogo(oc, fase.datas[0], [melhor, pior], minimo);
+      const [d1, d2] = agendarIdaEVolta(oc, fase.datas[0], [melhor, pior], minimo, fase.datas[1]);   // a ida numa semana e a volta na seguinte
       out.push(jogo(`${c.id}-${tie}-1`, fase.nome, d1, pior, melhor, { tie, leg: 1 }));
-      out.push(jogo(`${c.id}-${tie}-2`, fase.nome, agendarJogo(oc, fase.datas[1], [melhor, pior], somarDias(d1, 2)), melhor, pior, { tie, leg: 2 }));
+      out.push(jogo(`${c.id}-${tie}-2`, fase.nome, d2, melhor, pior, { tie, leg: 2 }));
     }
   });
   return out;
