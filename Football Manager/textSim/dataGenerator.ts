@@ -390,7 +390,34 @@ export const ordemComClassicosNoMeio = (teams: Team[], leagueId: string): string
 };
 
 /** `ano`: o ano da temporada. As datas nominais sao de 2026; noutro ano desloca-se um multiplo de 52 semanas (364 dias), que preserva o dia da semana de cada rodada. */
-export const generateFixtures = (teams: Team[], leagueId: string, ano: number = 2026): Fixture[] => {
+/*
+A TEMPORADA EUROPEIA (jogos de 1/7 a maio): os paises da Europa com liga completa jogam a temporada atravessando o ano (a temporada vira a 1/6). `ehLigaEuropeia(leagueId)` diz se a liga e europeia (os ids de pais 65 a 70 e 80 a 89, os mesmos das vagas
+da Champions); `datasDaTemporadaEuropeia(rodadas, anoInicio)` da as datas das rodadas — a 1.a a 1/7 de `anoInicio` e as outras ao ritmo que cabe ate 23/5 do ano seguinte (sabados e tercas). `generateFixtures` so as usa quando recebe `temporadaEuropa` (o ano em que a temporada comeca); sem ele fica o calendario de sempre.
+*/
+export const ehLigaEuropeia = (leagueId: string): boolean => {
+  const pais: any = (COUNTRIES as any[]).find(c => c.leagues.some((l: any) => l.id === leagueId));
+  if (!pais) return false;
+  const n = Number(pais.id);
+  return (n >= 65 && n <= 70) || (n >= 80 && n <= 89);
+};
+export const datasDaTemporadaEuropeia = (rodadas: number, anoInicio: number): string[] => {
+  // A temporada europeia do jogo vira em 1/6 e os JOGOS comecam em 1/7 (a 1.a rodada e o proprio 1/7) e vao ate 23/5 do ano seguinte; depois, rodadas a cada ~1 semana (sabado ou terca).
+  const ini = new Date(`${anoInicio}-07-01T12:00:00Z`).getTime();
+  const fim = new Date(`${anoInicio + 1}-05-23T12:00:00Z`).getTime();
+  const passo = (fim - ini) / Math.max(1, rodadas - 1);
+  const datas: string[] = [];
+  let anterior = ini - 4 * 86400000;
+  for (let r = 0; r < rodadas; r++) {
+    const t0 = Math.max(anterior + 3 * 86400000, ini + r * passo);
+    const c = new Date(t0);
+    if (r > 0) while (c.getUTCDay() !== 6 && c.getUTCDay() !== 2) c.setUTCDate(c.getUTCDate() + 1);   // sabado ou terca
+    datas.push(c.toISOString().slice(0, 10));
+    anterior = c.getTime();
+  }
+  return datas;
+};
+
+export const generateFixtures = (teams: Team[], leagueId: string, ano: number = 2026, temporadaEuropa?: number): Fixture[] => {
   const fixtures: Fixture[] = [];
   const teamIds = ordemComClassicosNoMeio(teams, leagueId);
   const totalTeams = teamIds.length;
@@ -432,7 +459,7 @@ export const generateFixtures = (teams: Team[], leagueId: string, ano: number = 
   };
 
   const totalRounds = numRounds * 2; // turno + returno
-  const matchDates = generateMatchDates(totalRounds, leagueId);
+  const matchDates = (temporadaEuropa !== undefined && ehLigaEuropeia(leagueId)) ? datasDaTemporadaEuropeia(totalRounds, temporadaEuropa) : generateMatchDates(totalRounds, leagueId);
 
   // Create round robin schedule
   let roundTeams = [...teamIds];

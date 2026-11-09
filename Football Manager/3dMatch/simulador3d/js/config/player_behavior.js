@@ -505,6 +505,12 @@ const CarryModel = {
     touchShort: 1.4,      // toque curto (adversário entre 5-10m)
     touchPower: 8.0,      // força base do toque (m/s)
     touchCooldown: 0.4,   // tempo mínimo entre toques (seg)
+    /*
+    A ZONA SEM TOQUE: a bola so fica colada ao pe (sem toque a frente) na zona de finalizacao (`emZonaDeFinalizacao`) E a menos de `zonaSemToqueAte` m da linha de fundo adversaria. Antes valia em toda a
+    zona (o `shootingRange` de um avancado forte chega a 20-25 m): ele ganhava a frente dos defesas, ficava com a bola colada, perdia velocidade e perdia a bola (relato). Mais longe disto o toque a frente
+    (curto, ver `touchShort`) volta, validado pela disputa. Dentro da grande area continua colada (a razao original: nao entregar a bola ao guarda-redes).
+    */
+    zonaSemToqueAte: 15,
 
     /*
     DISPUTA DO TOQUE — o toque é validado por quem chega primeiro à bola, e não

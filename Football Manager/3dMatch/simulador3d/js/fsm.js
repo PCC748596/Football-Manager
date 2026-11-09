@@ -2247,7 +2247,7 @@ class PlayerFSM {
                         p.model.position.distanceTo(gkAdv.model.position) <= CarryModel.semToqueComGkA;
                 }
                 if (p.hasBall && p.velocity.lengthSq() > 2.0 && this.timer > CarryModel.touchCooldown
-                    && !pertoDaLinhaDeFundo(p) && !emZonaDeFinalizacao(p) && !gkAdversarioPerto
+                    && !pertoDaLinhaDeFundo(p) && !(emZonaDeFinalizacao(p) && (CAMPO_COMP / 2 - p.model.position.z * p.dirZ) <= (CarryModel.zonaSemToqueAte || 15)) && !gkAdversarioPerto
                     && p.gkEstado !== 'segurando') {
                     let forward = _v1.copy(p.velocity).normalize();
                     let allOpps = (p.team === 'TeamA') ? Match.opponents : Match.players;
