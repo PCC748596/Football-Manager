@@ -2497,6 +2497,8 @@ class PlayerFSM {
                         if (typeof Notas !== 'undefined') Notas.drible(p);   // nota do jogador: drible certo
                         // O marcador foi BATIDO: fica para tras (ver DribbleModel.marcadorDur / marcadorFator, aplicado no Player.update).
                         if (opp && DribbleModel.marcadorDur) opp.dribladoTimer = DribbleModel.marcadorDur;
+                        // O corte em pe, atrasado (DribbleModel.corteAtrasado): o marcador reage tarde ao lado de fuga do driblador.
+                        if (opp && DribbleModel.corteAtrasado && DribbleModel.corteAtrasado.ativo) opp.corteAtrasado = { t: 0, dx: dirFuga.x, dz: dirFuga.z };
                         p.speedMult = DribbleModel.sprintBoost;
                         window.bolaChutada = false;
 

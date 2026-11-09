@@ -680,6 +680,12 @@ const DribbleModel = {
     anguloMinGraus: 35, anguloMaxGraus: 50,
     corteGraus: 60,       // o drible em dois cortes: 60 graus para um lado e 60 para o oposto (ver DRIBBLE em fsm.js)
     marcadorDur: 1.1, marcadorFator: 0.18,
+    /*
+    O CORTE DO MARCADOR, EM PE E ATRASADO (pedido: *"nao consigo ver os jogadores driblando, dando um corte bonito no outro: o adversario vai fazer o movimento de corte em pe, atrasado"*): quando o drible
+    resulta, o marcador reage tarde — `atraso` s depois do toque comeca um corte no lugar, `dur` s: o tronco torce para o lado de fuga do driblador (`torcao`, rad), a bacia inclina (`inclina`), as pernas
+    abrem (`abre`) e os bracos sobem (`bracos`), tudo com a curva seno (comeca e acaba em pe). Visual: nao mexe na posicao nem na decisao, so nos ossos (camada depois do animateBones, ver Player.aplicarCamadaCorteAtrasado).
+    */
+    corteAtrasado: { ativo: true, atraso: 0.25, dur: 0.65, torcao: 0.75, inclina: 0.28, abre: 0.38, bracos: 0.55, tronco: 0.14 },
 
     /*
     =====================================================================
@@ -2441,7 +2447,7 @@ const StaminaModel = {
     vRef: 6.5,                  // m/s: a corrida contra a qual o custo se mede
     expoente: 2.0,              // custo ~ (v/vRef)^expoente
     // Pedido: um jogador de linha com stamina 80 perde ~45 pontos de energia em 90 min. Medido em 10 jogos: com 0.00031 dava ~51 (com os teletransportes a inflar o gasto) e, com o teto de velocidade `vMax`, 0.000274 deu ~39 e 0.0003 deu ~47 a stamina 80-84; 0.000295 e a interpolacao para 45. A stamina escala o custo: mais stamina gasta menos (50 gasta o normal, 100 metade, 0 metade a mais).
-    custoPorSegundo: 0.000236,   // fraccao de deposito por segundo de JOGO a vRef, com stamina 50 (era 0.00042, 0.00031 e 0.000295; -20% pedido: "cai demais, principalmente meias e pontas")
+    custoPorSegundo: 0.0001888,   // -20% de novo (pedido: "reduzir em mais 20% o cansaco"): 0.000236 -> 0.0001888. Antes: fraccao de deposito por segundo de JOGO a vRef, com stamina 50 (era 0.00042, 0.00031 e 0.000295; -20% pedido: "cai demais, principalmente meias e pontas")
     // Teto da velocidade (m/s) que conta no gasto: a reposicao em campo (troca de lados no 2.o tempo, bolas paradas) teletransporta o jogador e o `velocity` daquele frame chegava a 5000 m/s, o que zerava o deposito do goleiro. Os 15 m/s medidos em jogo ficam dentro.
     vMax: 15.0,
     sensibilidadeStamina: 0.5,  // stamina 100 gasta metade; stamina 0, metade a mais

@@ -5506,6 +5506,7 @@ class FootballPlayer {
                 // animateBones, senão ele reescreve o tronco no mesmo frame.
                 this.aplicarCamadaPeito();
                 this.aplicarCamadaCabeceioDePe(dt);
+                this.aplicarCamadaCorteAtrasado(dt);
             } else {
                 if (!(this.fsm.currentState === 'CHEST_CONTROL' && this.peitoHopTimer > 0)) {
                     this.model.position.y = ALTURA_BASE_Y;
@@ -6591,6 +6592,35 @@ class FootballPlayer {
     pescoço para cima e para trás durante um instante curto; nunca sai do
     chão. Mesmo padrão de camada aditiva das outras duas (corte, peito).
     */
+    /*
+    O CORTE DO MARCADOR BATIDO, EM PE E ATRASADO (DribbleModel.corteAtrasado, config/player_behavior.js): depois de `atraso` s do toque do driblador, durante `dur` s, o marcador torce o tronco e a bacia para o
+    lado de fuga dele, inclina o corpo, abre as pernas e levanta os bracos — o gesto de quem reage tarde e fica a rodar no lugar. So os ossos (por cima do animateBones, como as outras camadas): nao mexe na
+    posicao nem na velocidade (o `dribladoTimer` ja o atrasa). `lado` = o lado de fuga no referencial do proprio corpo.
+    */
+    aplicarCamadaCorteAtrasado(dt) {
+        const c = this.corteAtrasado;
+        if (!c) return;
+        const K = (typeof DribbleModel !== 'undefined') ? DribbleModel.corteAtrasado : null;
+        const rig = this.rig;
+        const st = this.fsm.currentState;
+        if (!K || !K.ativo || !rig || this.jumpTimer > 0 || st === 'TACKLE' || st === 'SLIDE_TACKLE' || st === 'SHOOT' || st === 'PASS') { this.corteAtrasado = null; return; }
+        c.t += dt;
+        const u = (c.t - K.atraso) / K.dur;
+        if (u >= 1) { this.corteAtrasado = null; return; }
+        if (u <= 0) return;   // ainda a ler o lance: o atraso
+        const f = Math.sin(Math.PI * u);   // 0 -> 1 -> 0
+        const ry = this.model.rotation.y;
+        const lado = (c.dx * Math.cos(ry) - c.dz * Math.sin(ry)) >= 0 ? 1 : -1;
+        rig.chest.rotation.y = lado * K.torcao * f;
+        rig.chest.rotation.x = K.tronco * f;
+        rig.pelvis.rotation.y = lado * K.torcao * 0.45 * f;
+        rig.pelvis.rotation.z = lado * K.inclina * f;
+        rig.lLeg.rotation.z = K.abre * f; rig.rLeg.rotation.z = -K.abre * f;
+        rig.lLeg.rotation.x = -0.25 * f; rig.rLeg.rotation.x = -0.25 * f;
+        rig.lKnee.rotation.x = 0.5 * f; rig.rKnee.rotation.x = 0.5 * f;
+        rig.lArm.rotation.z = K.bracos * f; rig.rArm.rotation.z = -K.bracos * f;
+    }
+
     aplicarCamadaCabeceioDePe(dt) {
         if (this.jumpTimer > 0) {
             this.headLeanTimer = 0;
