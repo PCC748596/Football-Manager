@@ -2,6 +2,8 @@ import React, { useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { naLigaDoUtilizador } from '../types';
 import { TeamShield } from './TeamShield';
+import ManagerAvatar from './ManagerAvatar';
+import { LOOK_PADRAO } from './ManagerCreation';
 import { BoardExpectationBox, calcularExpectativa } from './BoardExpectationBox';
 import { FAIXAS } from './BoardConfidenceCard';
 import { faixaDeConfianca, USUARIO_ID, RegistroCarreira } from '../textSim/managerExpectations';
@@ -80,17 +82,21 @@ const ManagerView: React.FC = () => {
         <p className="text-blue-500 dark:text-blue-400 font-bold text-[10px] uppercase tracking-widest mt-1 italic">{pt ? 'Acompanhe a sua carreira' : 'Follow your career'}</p>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 grid grid-cols-1 xl:grid-cols-2 gap-2 content-start">
-        <div className={card}>
-          <div className="flex items-center gap-3 mb-3">
-            <TeamShield team={userTeam} className="w-[40px] h-[50px] shrink-0" />
-            <div className="min-w-0">
-              <div className="text-xl font-black uppercase leading-tight truncate">{gameState.managerName}</div>
-              <div className="text-[10px] font-bold text-blue-300 uppercase tracking-widest truncate">{userTeam.name} · {liga?.name}</div>
+        <div className={card + ' flex gap-4'}>
+          {/* A FOTO GRANDE do treinador a esquerda, a toda a altura do cartao; o escudo, o nome e as barras ficam ao lado dela, depois da foto. */}
+          <div className="relative w-[150px] shrink-0 self-stretch min-h-[170px] -my-3 -ml-2"><ManagerAvatar look={gameState.managerLook || LOOK_PADRAO} busto className="absolute inset-0 w-full h-full" /></div>
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <div className="flex items-center gap-3 mb-3">
+              <TeamShield team={userTeam} className="w-[40px] h-[50px] shrink-0" />
+              <div className="min-w-0">
+                <div className="text-xl font-black uppercase leading-tight truncate">{gameState.managerName}</div>
+                <div className="text-[10px] font-bold text-blue-300 uppercase tracking-widest truncate">{userTeam.name} · {liga?.name}</div>
+              </div>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Barra rotulo={pt ? 'Confiança da diretoria' : 'Board confidence'} valor={eu.confidence} cor={faixa.cor} texto={`${Math.round(eu.confidence)} · ${pt ? faixa.pt : faixa.en}`} />
-            <Barra rotulo={pt ? 'Reputação do treinador' : 'Manager reputation'} valor={eu.reputation} cor="bg-blue-500" />
+            <div className="space-y-2">
+              <Barra rotulo={pt ? 'Confiança da diretoria' : 'Board confidence'} valor={eu.confidence} cor={faixa.cor} texto={`${Math.round(eu.confidence)} · ${pt ? faixa.pt : faixa.en}`} />
+              <Barra rotulo={pt ? 'Reputação do treinador' : 'Manager reputation'} valor={eu.reputation} cor="bg-blue-500" />
+            </div>
           </div>
         </div>
 

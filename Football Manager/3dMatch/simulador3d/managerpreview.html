@@ -53,6 +53,7 @@ sombra.rotation.x = -Math.PI / 2; sombra.position.y = 0.01; scene.add(sombra);
 // Medidas por corpo: largura (x), profundidade (z) e altura (y) sobre o corpo base.
 const CORPOS = { SLIM: [0.88, 0.9, 1.0], AVERAGE: [1.0, 1.08, 0.98], ATHLETIC: [1.1, 1.0, 1.02] };
 const ALTURA = 1.8;
+let ALTURA_VISTA = 2.9, Y_VISTA = 1.0;   // o enquadramento: corpo inteiro por omissao; `busto` aproxima para a cabeca e os ombros
 let atual = null, angulo = 0.35, alvoAngulo = 0.35, arrastando = false, ultimoX = 0;
 
 function hex(s) { return new THREE.Color(s).getHex(); }
@@ -187,9 +188,9 @@ function redimensionar() {
     renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
     // A distancia em que cabem 2.9 m de altura (o boneco tem 1.8: pes a cabeca com muita folga) e 2.2 m de largura (ombros e bracos), seja qual for o formato do painel.
     const meiaTan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-    const dist = Math.max(2.9 / (2 * meiaTan), 2.2 / (2 * meiaTan * camera.aspect));
-    camera.position.set(0, 1.0, dist);
-    camera.lookAt(0, 1.0, 0);
+    const dist = Math.max(ALTURA_VISTA / (2 * meiaTan), (ALTURA_VISTA === 2.9 ? 2.2 : 0.8) / (2 * meiaTan * camera.aspect));
+    camera.position.set(0, Y_VISTA, dist);
+    camera.lookAt(0, Y_VISTA, 0);
 }
 window.addEventListener('resize', redimensionar);
 div.addEventListener('pointerdown', e => { arrastando = true; ultimoX = e.clientX; div.setPointerCapture(e.pointerId); });
@@ -200,6 +201,13 @@ window.addEventListener('message', e => {
     const m = e.data || {};
     if (m.tipo === 'look' && m.look) montar(m.look);
     else if (m.tipo === 'rodar') alvoAngulo += Math.PI;
+    else if (m.tipo === 'busto') {
+        // A foto (como as dos jogadores): so a cabeca e os ombros, SEM fundo (o ceu/estadio da criacao do treinador sai) e sem a sombra do chao.
+        ALTURA_VISTA = 0.8; Y_VISTA = 1.56;   // de cima da cabeca ate ao meio da barriga (~1.16 m do chao)
+        document.documentElement.style.background = 'transparent'; document.body.style.background = 'transparent';
+        sombra.visible = false;
+        redimensionar();
+    }
 });
 
 function laco() {

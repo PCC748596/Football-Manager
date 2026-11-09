@@ -1019,6 +1019,8 @@ export interface GameState {
   currentDate: string; 
   userTeamId: string | null;
   managerName: string;
+  /** A aparencia do treinador (ManagerLook, components/ManagerAvatar.tsx), escolhida na criacao: a foto da aba Manager. */
+  managerLook?: any;
   isProcessing: boolean;
   matchMinute: number;
   matchDuration: MatchDuration;

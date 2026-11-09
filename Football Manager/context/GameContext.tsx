@@ -189,7 +189,7 @@ interface GameContextType {
   players: Player[];
   fixtures: Fixture[];
   gameState: GameState;
-  startGame: (teamId: string, managerName: string, countryId: string, leagueId?: string, continuacao?: { teams: Team[]; players: Player[]; ano: number }) => void;
+  startGame: (teamId: string, managerName: string, countryId: string, leagueId?: string, continuacao?: { teams: Team[]; players: Player[]; ano: number }, managerLook?: any) => void;
   advanceDay: () => void;
   /** NEXT GAME: passa os dias (5 s por dia) ate ao proximo jogo do utilizador; para num e-mail de resposta de negociacao. */
   proximoJogo: { date: string; adversario: string; dias: number } | null;
@@ -878,7 +878,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   /** `continuacao`: a VIRADA de temporada. Os clubes e jogadores que ja estao no jogo ficam (com as tabelas a zero) e so entram os que chegam (promovidos/rebaixados); o resto
    (calendario, mundo e copas do ano `ano`) refaz-se como num jogo novo, mas inbox, base, mercado e negociacoes continuam. */
-  const startGame = (teamId: string, managerName: string, countryId: string, leagueId: string = 'bra_serie_a', continuacao?: { teams: Team[]; players: Player[]; ano: number }) => {
+  const startGame = (teamId: string, managerName: string, countryId: string, leagueId: string = 'bra_serie_a', continuacao?: { teams: Team[]; players: Player[]; ano: number }, managerLook?: any) => {
     if (!continuacao) { aplicarDivisoes(DIVISOES_ORIGINAIS); setHistoricoCopas({}); }   // um jogo novo parte das divisoes originais e sem historico de copas
     const ano = continuacao ? continuacao.ano : ANO_BASE;
     let { teams: initTeams, players: initPlayers } = generateLeagueData(countryId, leagueId);
@@ -977,6 +977,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       currentDate: '2026-01-01',
       userTeamId: teamId,
       managerName,
+      managerLook,
       view: 'DASHBOARD',
       matchMode: 'NONE',
       matchVisual: undefined

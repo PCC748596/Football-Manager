@@ -26,6 +26,7 @@ import { Team, Player, GameState } from './types';
 import { TeamShield } from './components/TeamShield';
 import EditorApp from './components/EditorApp';
 import ManagerCreation from './components/ManagerCreation';
+import type { ManagerLook } from './components/ManagerAvatar';
 import { ModeSelection, CareerOffers } from './components/CareerStart';
 
 // -- Sub-components --
@@ -267,6 +268,7 @@ const GameContainer: React.FC = () => {
   const { gameState, startGame, importGameData, loadId, t, userTeam, players, fixtures } = useGame();
   const [appPhase, setAppPhase] = useState<'MENU' | 'CREATE_MANAGER' | 'SELECT_MODE' | 'CAREER' | 'SELECT_TEAM' | 'GAME' | 'SETTINGS' | 'EDITOR'>('MENU');
   const [tempManagerName, setTempManagerName] = useState('');
+  const [tempManagerLook, setTempManagerLook] = useState<ManagerLook | undefined>(undefined);   // a aparencia do treinador, para a foto do Manager career
   const [view, setView] = useState<GameState['view']>('DASHBOARD');
   // ESCALACAO INCOMPLETA: com jogo hoje e um slot vazio, o Match Day (3D) e a simulacao da rodada ficam fechados e o treinador vai para o MATCH TACTICS.
   const jogoDoUtilizadorHoje = !!userTeam && fixtures.some(f => f.date === gameState.currentDate && !f.played && (f.homeTeamId === userTeam.id || f.awayTeamId === userTeam.id));
@@ -296,12 +298,13 @@ const GameContainer: React.FC = () => {
     e.target.value = '';
   };
 
-  const handleManagerCreated = (name: string) => {
+  const handleManagerCreated = (name: string, look?: ManagerLook) => {
     setTempManagerName(name);
+    setTempManagerLook(look);
     setAppPhase('SELECT_MODE');
   };
   const handleTeamSelected = (teamId: string, countryId: string, leagueId: string) => {
-    startGame(teamId, tempManagerName, countryId, leagueId);
+    startGame(teamId, tempManagerName, countryId, leagueId, undefined, tempManagerLook);
     setAppPhase('GAME');
   };
 
@@ -324,7 +327,7 @@ const GameContainer: React.FC = () => {
       )}
       {appPhase === 'CREATE_MANAGER' && <ManagerCreation onNext={handleManagerCreated} onBack={() => setAppPhase('MENU')} />}
       {appPhase === 'SELECT_MODE' && <ModeSelection managerName={tempManagerName} onPickClub={() => setAppPhase('SELECT_TEAM')} onCareer={() => setAppPhase('CAREER')} onBack={() => setAppPhase('CREATE_MANAGER')} />}
-      {appPhase === 'CAREER' && <CareerOffers managerName={tempManagerName} onSelectTeam={handleTeamSelected} onBack={() => setAppPhase('SELECT_MODE')} />}
+      {appPhase === 'CAREER' && <CareerOffers managerName={tempManagerName} managerLook={tempManagerLook} onSelectTeam={handleTeamSelected} onBack={() => setAppPhase('SELECT_MODE')} />}
       {appPhase === 'SELECT_TEAM' && <TeamSelection managerName={tempManagerName} onSelectTeam={handleTeamSelected} onBack={() => setAppPhase('SELECT_MODE')} />}
 
       {appPhase === 'GAME' && gameState.userTeamId && (

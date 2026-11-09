@@ -22,6 +22,8 @@ interface Props {
   look: ManagerLook;
   /** Sobe a cada clique em Rotate: o preview gira meia volta. */
   rodar?: number;
+  /** So a cabeca e os ombros (a foto): enquadra mais perto, em vez do corpo inteiro. */
+  busto?: boolean;
   className?: string;
 }
 
@@ -29,7 +31,7 @@ interface Props {
 O TREINADOR — o corpo REAL do jogo (`construirCorpo`, 3dMatch/simulador3d/js/pose.js) desenhado em 3D numa pagina propria (managerpreview.html),
 vestido como o treinador do banco (fato, camisa branca, gravata). O aspeto vai por postMessage; da para arrastar para rodar.
 */
-export const ManagerAvatar: React.FC<Props> = ({ look, rodar = 0, className = '' }) => {
+export const ManagerAvatar: React.FC<Props> = ({ look, rodar = 0, busto = false, className = '' }) => {
   const ref = useRef<HTMLIFrameElement>(null);
   const pronto = useRef(false);
   const lookAtual = useRef(look);
@@ -41,6 +43,7 @@ export const ManagerAvatar: React.FC<Props> = ({ look, rodar = 0, className = ''
     const onMsg = (e: MessageEvent) => {
       if (e.source !== ref.current?.contentWindow || e.data?.tipo !== 'managerPreviewPronto') return;
       pronto.current = true;
+      if (busto) enviar({ tipo: 'busto' });
       enviar({ tipo: 'look', look: lookAtual.current });
     };
     window.addEventListener('message', onMsg);

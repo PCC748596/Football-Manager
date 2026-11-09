@@ -38,9 +38,14 @@ const Cores = ({ valor, cores, onChange }: { valor: string; cores: string[]; onC
 );
 
 interface Props {
-  onNext: (name: string) => void;
+  onNext: (name: string, look: ManagerLook) => void;
   onBack: () => void;
 }
+
+/** A aparencia de partida do treinador (a que a tela de criacao mostra ao abrir): a foto dos jogos salvos antes de a aparencia ser gravada no save. */
+export const LOOK_PADRAO: ManagerLook = {
+  gender: 'MALE', body: 'ATHLETIC', skin: SKINS[4], hairStyle: 'SHORT', hair: HAIRS[0], outfit: 'SUIT', ...PRIMEIRO_TERNO, pantsColor: COMBINACOES[0].calca
+};
 
 const ManagerCreation: React.FC<Props> = ({ onNext, onBack }) => {
   const { t } = useGame();
@@ -52,9 +57,7 @@ const ManagerCreation: React.FC<Props> = ({ onNext, onBack }) => {
   const [ano, setAno] = useState(1984);
   const [estilo, setEstilo] = useState<'TRACKSUIT' | 'TACTICAL'>('TACTICAL');
   const [rodar, setRodar] = useState(0);
-  const [look, setLook] = useState<ManagerLook>({
-    gender: 'MALE', body: 'ATHLETIC', skin: SKINS[4], hairStyle: 'SHORT', hair: HAIRS[0], outfit: 'SUIT', ...PRIMEIRO_TERNO, pantsColor: COMBINACOES[0].calca
-  });
+  const [look, setLook] = useState<ManagerLook>(LOOK_PADRAO);
   const mudar = (p: Partial<ManagerLook>) => setLook(l => ({ ...l, ...p }));
   const mudarOutfit = (outfit: ManagerOutfit) => mudar(
     outfit === 'SUIT' ? { outfit, ...PRIMEIRO_TERNO }
@@ -76,7 +79,7 @@ const ManagerCreation: React.FC<Props> = ({ onNext, onBack }) => {
 
   const nomeCompleto = `${nome.trim()} ${sobrenome.trim()}`.trim();
   const valido = nome.trim() !== '' && sobrenome.trim() !== '';
-  const submeter = (e: React.FormEvent) => { e.preventDefault(); if (valido) onNext(nomeCompleto); };
+  const submeter = (e: React.FormEvent) => { e.preventDefault(); if (valido) onNext(nomeCompleto, look); };
   const dias = new Date(ano, mes + 1, 0).getDate();
 
   return (

@@ -168,7 +168,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
           </div>
         </nav>
 
-        <div className="p-2 lg:p-6 border-t border-slate-200 dark:border-slate-900 flex flex-col gap-2 lg:gap-4 transition-colors">
+        <div className="p-2 lg:px-6 lg:pt-4 lg:pb-2 border-t border-slate-200 dark:border-slate-900 flex flex-col gap-2 transition-colors">   {/* menos espaco entre o Match Week e os botoes (gap 16 -> 8 px) e o conjunto mais perto da borda de baixo (padding de baixo 24 -> 8 px) */}
             {/* O botao CONTINUE / PLAY MATCH nao aparece no painel da esquerda (pedido): avanca-se o dia e abre-se o jogo pelo Dashboard. */}
 
            <div className="hidden lg:block bg-slate-100 dark:bg-slate-900/40 rounded-lg px-4 py-0 text-center border border-slate-200 dark:border-slate-800 shadow-inner">

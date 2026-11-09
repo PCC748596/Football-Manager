@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { COUNTRIES, generateLeagueData } from '../textSim/dataGenerator';
 import { Team, Player, League } from '../types';
+import ManagerAvatar from './ManagerAvatar';
+import type { ManagerLook } from './ManagerAvatar';
 import { TeamShield } from './TeamShield';
 import { ClubOverviewContent } from './ClubOverviewContent';
 import { DIFICULDADES, escolherDificuldade, type Dificuldade } from '../textSim/orcamento';
@@ -76,7 +78,7 @@ export const ModeSelection: React.FC<{ managerName: string; onPickClub: () => vo
   );
 };
 
-export const CareerOffers: React.FC<{ managerName: string; onSelectTeam: (teamId: string, countryId: string, leagueId: string) => void; onBack: () => void }> = ({ managerName, onSelectTeam, onBack }) => {
+export const CareerOffers: React.FC<{ managerName: string; managerLook?: ManagerLook; onSelectTeam: (teamId: string, countryId: string, leagueId: string) => void; onBack: () => void }> = ({ managerName, managerLook, onSelectTeam, onBack }) => {
   const [countryId, setCountryId] = useState('45');
   const paises = useMemo(() => COUNTRIES.filter(c => c.leagues.some(l => !l.hidden)).sort((a, b) => a.name.localeCompare(b.name)), []);
 
@@ -108,6 +110,7 @@ export const CareerOffers: React.FC<{ managerName: string; onSelectTeam: (teamId
       <div className="flex items-center gap-6 mb-6 bg-slate-50 dark:bg-slate-800/50 p-6 rounded border border-slate-200 dark:border-slate-700">
         <button onClick={onBack} className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white font-bold uppercase text-sm">‹ Back</button>
         <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-700"></div>
+        {managerLook && <div className="relative w-[84px] h-[96px] shrink-0 -my-3"><ManagerAvatar look={managerLook} busto className="absolute inset-0 w-full h-full" /></div>}
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Manager career</h1>
           <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest">Manager: {managerName}</p>
