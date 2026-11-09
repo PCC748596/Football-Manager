@@ -348,6 +348,13 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
             {([['LISTA', 'Academy'], ['RELATORIO', 'Monthly report']] as const).map(([id, rotulo]) => (
               <button key={id} onClick={() => setAbaJovens(id)} className={`px-4 py-1.5 rounded text-xs font-black uppercase tracking-widest transition-colors ${abaJovens === id ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`}>{rotulo}</button>
             ))}
+            {(() => {
+              // A PROXIMA SELECAO DE JOVENS: a relacao Sub-20 so muda nas janelas de 1/1 e 1/6 (saem os de 21 anos e entram os novos, ver `janelaDe` em textSim/youth.ts).
+              const hojeJ = gameState.currentDate, ano = Number(hojeJ.slice(0, 4));
+              const proxima = [`${ano}-01-01`, `${ano}-06-01`, `${ano + 1}-01-01`].find(d => d > hojeJ)!;
+              const dias = Math.round((Date.parse(proxima + 'T12:00:00Z') - Date.parse(hojeJ + 'T12:00:00Z')) / 86400000);
+              return <span className="ml-2 text-xs font-black uppercase tracking-widest text-slate-400" title={`The academy list is renewed on ${proxima.slice(8, 10)}/${proxima.slice(5, 7)}/${proxima.slice(0, 4)}`}>Next youth intake <span className="text-blue-400">{dias} day{dias === 1 ? '' : 's'}</span></span>;
+            })()}
           </div>
         )}
       </div>

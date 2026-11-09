@@ -111,6 +111,13 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
           {!abaExterna && ([['LISTA', 'Academy'], ['RELATORIO', 'Monthly report']] as const).map(([id, rotulo]) => (
             <button key={id} onClick={() => setAba(id)} className={`px-4 py-1.5 rounded text-xs font-black uppercase tracking-widest transition-colors ${aba === id ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`}>{rotulo}</button>
           ))}
+          {!abaExterna && (() => {
+            // A PROXIMA SELECAO DE JOVENS: a relacao Sub-20 so muda nas janelas de 1/1 e 1/6 (saem os de 21 anos e entram os novos, ver `janelaDe` em textSim/youth.ts).
+            const ano = Number(hoje.slice(0, 4));
+            const proxima = [`${ano}-01-01`, `${ano}-06-01`, `${ano + 1}-01-01`].find(d => d > hoje)!;
+            const dias = Math.round((Date.parse(proxima + 'T12:00:00Z') - Date.parse(hoje + 'T12:00:00Z')) / 86400000);
+            return <span className="self-center ml-2 text-xs font-black uppercase tracking-widest text-slate-400" title={`The academy list is renewed on ${proxima.slice(8, 10)}/${proxima.slice(5, 7)}/${proxima.slice(0, 4)}`}>Next youth intake <span className="text-blue-400">{dias} day{dias === 1 ? '' : 's'}</span></span>;
+          })()}
         </div>
         <div className="text-xs font-black uppercase tracking-widest text-slate-400">{jovens.length}/{TAMANHO_BASE} players • ages 15-20 • no matches, development only</div>
       </div>

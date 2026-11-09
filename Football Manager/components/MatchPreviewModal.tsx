@@ -127,10 +127,10 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
                       )}
                     </div>
                     <div className="mt-[13px] flex items-center gap-1">
-                      <div className={`bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-0.5 rounded-md shadow-sm ${adversario ? 'max-w-[210px]' : 'max-w-[120px]'} relative`}>
+                      <div className={`bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-0.5 rounded-md shadow-sm ${adversario ? 'max-w-[240px]' : 'max-w-[120px]'} relative`}>
                         {player && estilosOn && <IconeEstilo estilo={estiloDe(player)} tam={34} className={`absolute -left-[40px] top-1/2 -translate-y-1/2 ${['AM', 'LW', 'RW', 'CB'].includes(pos.label) ? '-mt-[10px]' : ''}`} />}
                         {player && <div className="absolute -top-[12px] left-1/2 -translate-x-1/2 w-14"><EnergyBar energy={energiaDe(player)} className="h-2" /></div>}
-                        <span className={`text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase block text-center mt-[2px] ${adversario ? 'whitespace-nowrap' : 'truncate'}`}>{player ? player.name.split(' ').pop() : '---'}{adversario && player && <><span className="mx-1 text-slate-400">|</span>{pos.label}<span className="mx-1 text-slate-400">|</span><span className={player.position !== pos.label ? 'text-rose-500' : 'text-blue-400'}>{getEffectiveSkill(player, pos.label)}</span></>}{adversario && !player && <><span className="mx-1">|</span>{pos.label}</>}</span>
+                        <span className={`${adversario ? 'text-[13px]' : 'text-[11px]'} font-black text-slate-500 dark:text-slate-400 uppercase block text-center mt-[2px] ${adversario ? 'whitespace-nowrap' : 'truncate'}`}>{player ? player.name.split(' ').pop() : '---'}{adversario && player && <><span className="mx-1 text-slate-400">|</span>{pos.label}<span className="mx-1 text-slate-400">|</span><span className={player.position !== pos.label ? 'text-rose-500' : 'text-blue-400'}>{getEffectiveSkill(player, pos.label)}</span></>}{adversario && !player && <><span className="mx-1">|</span>{pos.label}</>}</span>
                       </div>
                     </div>
                   </div>
