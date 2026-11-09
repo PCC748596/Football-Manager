@@ -1164,9 +1164,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const nGruposAlta = gameState.unlockedTrainingGroups || 1;
         const grupoAlta = (teveAlta && p.teamId === gameState.userTeamId && nGruposAlta > 1)
           ? grupoPorEnergia(energiaFinal, gameState.trainingAutoGrupos?.limiares || [80, 50], nGruposAlta) : undefined;
+        // AUTO ENR no FIM DO DIA: com a Energia ja atualizada, quem nao esta lesionado e e do utilizador vai para o grupo da ENR de agora (G1 alta, G2/G3 cansado).
+        const lesaoFinal = lesao ? (lesao.daysOut > 1 ? lesao : undefined) : undefined;
+        const grupoFimDoDia = (gameState.trainingAutoGrupos?.ativo && nGruposAlta > 1 && p.teamId === gameState.userTeamId && !lesaoFinal)
+          ? grupoPorEnergia(energiaFinal, gameState.trainingAutoGrupos.limiares, nGruposAlta) : undefined;
         return {
           ...p,
-          ...(grupoAlta !== undefined ? { trainingGroupId: grupoAlta } : {}),
+          ...(grupoFimDoDia !== undefined ? { trainingGroupId: grupoFimDoDia } : grupoAlta !== undefined ? { trainingGroupId: grupoAlta } : {}),
           energia: energiaFinal,
           fitness: energiaFinal, // espelho legado ate a Task 8
           morale: Math.min(100, Math.max(0, (p.morale || 50) + moraleBoost)),
