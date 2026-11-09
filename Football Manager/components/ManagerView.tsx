@@ -56,8 +56,22 @@ const ManagerView: React.FC = () => {
   const exp = calcularExpectativa(pt, userTeam, dados.times, liga);
   const diff = exp.alvo - pos;
   const relativa = exp.porFases || !row.played ? null : diff > 0 ? { txt: pt ? `${diff} à frente da meta` : `${diff} ahead of target`, cor: 'text-emerald-400' } : diff === 0 ? { txt: pt ? 'Exatamente na meta' : 'Right on target', cor: 'text-lime-300' } : { txt: pt ? `${-diff} atrás da meta` : `${-diff} behind target`, cor: 'text-rose-400' };
-  const aprov = row.played ? row.points / (3 * row.played) : 0;
-  const jogosM = row.played - eu.baseJogos, aprovM = jogosM > 0 ? (row.points - eu.basePontos) / (3 * jogosM) : null;
+  /*
+  AS ESTATISTICAS DA TEMPORADA SAO DE TODAS AS COMPETICOES (relato: *"o season statistics do tecnico nao esta conectado com os resultados"*): vinham so da linha da LIGA (`row`), que fica a zero enquanto o clube
+  joga so o estadual e a copa (a Serie D ainda nao comecou). Agora somam-se todos os jogos oficiais ja disputados do clube na temporada (liga, estadual, copas; os amistosos ficam de fora).
+  */
+  const oficiais = fixtures.filter(f => f.played && !f.isFriendly && f.type !== 'FRIENDLY' && (f.homeTeamId === userTeam.id || f.awayTeamId === userTeam.id));
+  const temp = { jogos: oficiais.length, v: 0, e: 0, d: 0, gf: 0, ga: 0 };
+  for (const f of oficiais) {
+    const casa = f.homeTeamId === userTeam.id, pro = casa ? f.homeScore : f.awayScore, contra = casa ? f.awayScore : f.homeScore;
+    temp.gf += pro || 0; temp.ga += contra || 0;
+    if ((pro || 0) > (contra || 0)) temp.v++; else if ((pro || 0) < (contra || 0)) temp.d++; else temp.e++;
+  }
+  const tPontos = 3 * temp.v + temp.e;
+  const aprov = temp.jogos ? tPontos / (3 * temp.jogos) : 0;
+  // Desde que assumiu: com o inicio da temporada (sem jogos nem pontos de base) vale o total de todas as competicoes; com base (assumiu a meio) fica o calculo da liga.
+  const jogosM = row.played - eu.baseJogos;
+  const aprovM = (eu.baseJogos === 0 && eu.basePontos === 0) ? (temp.jogos ? aprov : null) : (jogosM > 0 ? (row.points - eu.basePontos) / (3 * jogosM) : null);
   const userKey = teamKey(userTeam.leagueId, userTeam.id);
   const copas = (comps || []).filter(c => c.teamKeys.includes(userKey)).map(c => {
     const jogos = c.matches.filter(m => m.homeKey === userKey || m.awayKey === userKey).sort((a, b) => a.date.localeCompare(b.date));
@@ -121,13 +135,13 @@ const ManagerView: React.FC = () => {
         <div className={card}>
           <div className={titulo}>{pt ? 'Estatísticas da temporada' : 'Season statistics'}</div>
           <div className="grid grid-cols-4 gap-1">
-            <Numero rotulo={pt ? 'Jogos' : 'Games'} valor={row.played} />
-            <Numero rotulo={pt ? 'V' : 'W'} valor={row.won} />
-            <Numero rotulo={pt ? 'E' : 'D'} valor={row.drawn} />
-            <Numero rotulo={pt ? 'D' : 'L'} valor={row.lost} />
-            <Numero rotulo={pt ? 'Gols pró' : 'Goals for'} valor={row.gf} />
-            <Numero rotulo={pt ? 'Gols contra' : 'Goals against'} valor={row.ga} />
-            <Numero rotulo={pt ? 'Saldo' : 'Diff'} valor={row.gd > 0 ? `+${row.gd}` : row.gd} />
+            <Numero rotulo={pt ? 'Jogos' : 'Games'} valor={temp.jogos} />
+            <Numero rotulo={pt ? 'V' : 'W'} valor={temp.v} />
+            <Numero rotulo={pt ? 'E' : 'D'} valor={temp.e} />
+            <Numero rotulo={pt ? 'D' : 'L'} valor={temp.d} />
+            <Numero rotulo={pt ? 'Gols pró' : 'Goals for'} valor={temp.gf} />
+            <Numero rotulo={pt ? 'Gols contra' : 'Goals against'} valor={temp.ga} />
+            <Numero rotulo={pt ? 'Saldo' : 'Diff'} valor={temp.gf - temp.ga > 0 ? `+${temp.gf - temp.ga}` : temp.gf - temp.ga} />
             <Numero rotulo={pt ? 'Aprov.' : 'Win %'} valor={`${Math.round(aprov * 100)}%`} />
           </div>
           <div className="mt-2 text-xs text-white/60">{pt ? 'Desde que assumiu o clube' : 'Since taking charge'}: <span className="font-black text-white">{aprovM === null ? '—' : `${Math.round(aprovM * 100)}% ${pt ? 'de aproveitamento' : 'of points'} (${jogosM} ${pt ? 'jogos' : 'games'})`}</span></div>
