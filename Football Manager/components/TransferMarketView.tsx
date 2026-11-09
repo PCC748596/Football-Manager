@@ -11,7 +11,7 @@ import { CONFIG_MERCADO, ESTADOS_ATIVOS, NegociacaoTransf, grupoDe, janelaAberta
 import { estadoDoContrato } from '../textSim/contracts';
 import { orcamentoDaTemporada, folhaAnual } from '../textSim/orcamento';
 
-type Aba = 'MARKET' | 'SHORTLIST' | 'NEGOTIATIONS' | 'MY_PLAYERS' | 'FINANCES';
+type Aba = 'MARKET' | 'SHORTLIST' | 'NEGOTIATIONS' | 'COMPLETED' | 'MY_PLAYERS' | 'FINANCES';
 
 /** Quem navega para as Transfers de outra tela (ex.: a tag OFFER RECEIVED do Squad Payroll) pede a aba aqui; a view a le ao montar e limpa. */
 export const pedidoDeAba: { aba: Aba | null } = { aba: null };
@@ -32,7 +32,7 @@ const ESTADO_ROTULO: Record<string, string> = {
 const dataCurta = (iso?: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '-');
 
 const Estrelas: React.FC<{ n: number }> = ({ n }) => (
-  <span className="whitespace-nowrap text-sm tracking-tighter" title="Estimated potential">{Array.from({ length: 5 }, (_, i) => <span key={i} className={i < n ? 'text-slate-400 dark:text-slate-300' : 'text-slate-200 dark:text-slate-700'}>★</span>)}</span>
+  <span className="whitespace-nowrap text-sm inline-flex gap-[3px]" title="Estimated potential">{Array.from({ length: 5 }, (_, i) => <span key={i} className={i < n ? 'text-amber-400' : 'text-slate-200 dark:text-slate-700'}>★</span>)}</span>
 );
 
 const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }) => {
@@ -312,11 +312,12 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
           {outroClube ? <TeamShield team={outroClube} className="w-12 h-14 shrink-0" /> : null}
           <div className="min-w-0">
             <div className={`text-xl font-black text-slate-900 dark:text-white leading-tight truncate ${jog ? 'cursor-pointer hover:text-blue-500 dark:hover:text-blue-400' : ''}`} title={jog ? 'Open player overview' : undefined} onClick={jog ? () => setModalNegId(n.id) : undefined}>{nomeJogador(n.playerId)} {n.origem === 'BASE' && <span className="text-[10px] font-black bg-violet-600 text-white px-1.5 rounded align-middle">U20</span>}</div>
+            {jog && <div className="flex items-center gap-2 text-sm font-bold text-slate-400 dark:text-slate-500 leading-tight"><span>{jog.position}</span><span>|</span><span>{Math.round(jog.skill)}</span><span>|</span><Estrelas n={estrelasDoJogador(jog as any)} /></div>}
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">{compro ? `Buying from ${nomeClube(n.vendedorId)}` : `${nomeClube(n.compradorId)} wants to buy`}</div>
-            <div className="mt-2 flex items-end gap-6">
+            <div className="mt-2 flex items-start gap-6">
               <div><div className="text-[10px] font-bold uppercase text-slate-500">Market value</div><div className="text-base font-black text-slate-900 dark:text-white">{jog ? formatCurrency(jog.value) : '-'}</div></div>
               <div><div className="text-[10px] font-bold uppercase text-slate-500">Round {n.rodadas}/{CONFIG_MERCADO.maxRodadas}</div>
-                <div className="flex gap-1.5 mt-1.5">{Array.from({ length: CONFIG_MERCADO.maxRodadas }).map((_, i) => <span key={i} className={`w-2.5 h-2.5 rounded-full ${i < n.rodadas ? 'bg-slate-900 dark:bg-white' : 'bg-slate-400 dark:bg-slate-600'}`} />)}</div></div>
+                <div className="flex gap-1.5 h-6 items-center">{Array.from({ length: CONFIG_MERCADO.maxRodadas }).map((_, i) => <span key={i} className={`w-6 h-2.5 ${i < n.rodadas ? (i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-amber-400' : 'bg-rose-500') : 'bg-slate-400 dark:bg-slate-600'}`} />)}</div></div>
             </div>
           </div>
         </div>
@@ -332,6 +333,9 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
               {ESTADOS_ATIVOS.includes(n.estado)
                 ? <div className="mt-0.5 text-[11px] text-slate-400 flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Expires {dataCurta(n.expira)}{n.respondeEm && n.estado === 'ENVIADA' ? ` • answer expected ${dataCurta(n.respondeEm)}` : ''}</div>
                 : (n.motivo && <div className="mt-0.5 text-[11px] text-slate-400">Reason: {n.motivo}</div>)}
+              {/* A DATA: o negocio aceito com a janela fechada so se completa quando ela abre (o jogador chega nessa data); o concluido mostra o dia em que foi fechado. */}
+              {n.estado === 'ACEITA' && !janela && proximaAberturaJanela(hoje, userTeam.country) && <div className="mt-0.5 text-[11px] font-bold text-amber-500">Player arrives {dataCurta(proximaAberturaJanela(hoje, userTeam.country)!.data)} (window opens)</div>}
+              {n.estado === 'CONCLUIDA' && <div className="mt-0.5 text-[11px] font-bold text-emerald-500">Completed on {dataCurta(n.atualizada)}</div>}
             </div>
             <span className={`text-[11px] font-black uppercase border px-2.5 py-1 rounded-md shrink-0 ${ESTADO_COR[n.estado]}`}>{ESTADO_ROTULO[n.estado]}</span>
           </div>
@@ -367,7 +371,15 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
       {grupoNeg('Needs your answer', negociacoesMinhas.filter(precisaResposta))}
       {grupoNeg('Accepted — pending completion', negociacoesMinhas.filter(n => n.estado === 'ACEITA'))}
       {grupoNeg('Waiting for the other club', negociacoesMinhas.filter(n => ESTADOS_ATIVOS.includes(n.estado) && n.estado !== 'ACEITA' && !precisaResposta(n)))}
-      {grupoNeg('Closed', negociacoesMinhas.filter(n => !ESTADOS_ATIVOS.includes(n.estado)).slice().reverse().slice(0, 30))}
+      {grupoNeg('Closed', negociacoesMinhas.filter(n => !ESTADOS_ATIVOS.includes(n.estado) && n.estado !== 'CONCLUIDA').slice().reverse().slice(0, 30))}
+    </div>
+  );
+  // A aba COMPLETED: as transferencias concluidas (as mais recentes primeiro), com a data de cada uma.
+  const concluidas = negociacoesMinhas.filter(n => n.estado === 'CONCLUIDA');
+  const completadasAba = (
+    <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-6 pr-2">
+      {!concluidas.length && <div className="m-auto text-slate-400 text-sm font-bold uppercase tracking-widest">No completed transfers yet</div>}
+      {grupoNeg('Completed', concluidas.slice().reverse())}
     </div>
   );
 
@@ -506,7 +518,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
         <p className="text-slate-400 dark:text-slate-500 font-bold text-[11px] uppercase tracking-widest mt-2 opacity-70">Player search and transactions • window {janela ? <span className="text-emerald-500">open{fecha !== null ? ` (${fecha} days left)` : ''}</span> : <span className="text-rose-400">closed{abre !== null ? ` (opens in ${abre} days)` : ''}</span>}</p>
       </div>
       <div className="flex flex-wrap gap-2 items-center">
-        {([['MARKET', 'Market'], ['SHORTLIST', `Shortlist (${shortlistN})`], ['NEGOTIATIONS', `Negotiations${pendentes ? ` (${pendentes})` : ''}`], ['MY_PLAYERS', 'My players / for sale'], ['FINANCES', 'Transfer finances']] as const).map(([id, r]) => (
+        {([['MARKET', 'Market'], ['SHORTLIST', `Shortlist (${shortlistN})`], ['NEGOTIATIONS', `Negotiations${pendentes ? ` (${pendentes})` : ''}`], ['COMPLETED', `Completed${negociacoesMinhas.filter(n => n.estado === 'CONCLUIDA').length ? ` (${negociacoesMinhas.filter(n => n.estado === 'CONCLUIDA').length})` : ''}`], ['MY_PLAYERS', 'My players / for sale'], ['FINANCES', 'Transfer finances']] as const).map(([id, r]) => (
           <button key={id} onClick={() => setAba(id)} className={`px-5 py-2 rounded text-xs font-black uppercase tracking-widest transition-colors ${aba === id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-800 dark:hover:text-white'}`}>{r}</button>
         ))}
         <div className="ml-auto flex gap-8 text-xs font-black uppercase tracking-widest text-slate-500">
@@ -518,6 +530,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
       </div>
       {(aba === 'MARKET' || aba === 'SHORTLIST') && mercadoAba}
       {aba === 'NEGOTIATIONS' && negociacoesAba}
+      {aba === 'COMPLETED' && completadasAba}
       {aba === 'MY_PLAYERS' && meusAba}
       {aba === 'FINANCES' && financasAba}
       {ofertando && modalOferta(ofertando)}
