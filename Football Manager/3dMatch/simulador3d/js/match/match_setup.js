@@ -473,14 +473,16 @@ Object.assign(Match, {
             /*
             A ARTE POR COMPETICAO (`?competicao=`): Champions League usa as placas da UEFA; Premier League e copas inglesas as da Inglaterra (assets/placas_competicoes.js, faixas de `n` paineis de `pw`x`ph` px); as demais, as de sempre.
             */
-            let nomeCompArte = '';
-            try { nomeCompArte = (new URLSearchParams(window.location.search).get('competicao') || '').trim(); } catch (e) { /* sem URL */ }
+            let nomeCompArte = '', ligaArte = '';
+            try { const q = new URLSearchParams(window.location.search); nomeCompArte = (q.get('competicao') || '').trim(); ligaArte = (q.get('liga') || '').trim(); } catch (e) { /* sem URL */ }
             const conjuntoComp = (typeof PlacasArteComp !== 'undefined')
                 ? (/champions league/i.test(nomeCompArte) ? PlacasArteComp.champions
-                    : /^(premier league|championship|league one|league two|carabao cup|fa cup|community shield)$/i.test(nomeCompArte) ? PlacasArteComp.england : null)
+                    : (/^eng_/i.test(ligaArte) || /^(premier league|championship|league one|league two|carabao cup|fa cup|community shield)$/i.test(nomeCompArte)) ? PlacasArteComp.england : null)
                 : null;
+            console.info('[placas] competicao="' + nomeCompArte + '" liga="' + ligaArte + '" arte=' + (conjuntoComp ? (conjuntoComp === (typeof PlacasArteComp !== 'undefined' && PlacasArteComp.champions) ? 'champions' : 'inglaterra') : 'padrao') + ' (PlacasArteComp ' + (typeof PlacasArteComp !== 'undefined' ? 'carregado' : 'NAO carregado') + ')');
             const arte = conjuntoComp || ((typeof PlacasArte !== 'undefined' && PlacasArte.faixas) ? PlacasArte : null);
             const NP = (arte && arte.n) || 12, PWpx = (arte && arte.pw) || 256, PHpx = (arte && arte.ph) || 64;
+            const LPan = (arte && arte.lp) || PP.larguraPainel;   // largura (m) de um painel: as artes por competicao (2.4:1) usam 3 m
             const faixasArte = [];
             let proximaFaixa = 0;
             const cvsFaixa = () => {
@@ -498,7 +500,7 @@ Object.assign(Match, {
                         const pc = pm.getContext('2d'); pc.fillStyle = 'rgba(0,0,0,0.28)'; pc.fillRect(0, 3, 4, 1); pc.fillRect(3, 0, 1, 4);
                         cx.fillStyle = cx.createPattern(pm, 'repeat'); cx.fillRect(0, 0, cv.width, cv.height);
                         cx.fillStyle = 'rgba(0,0,0,0.55)';
-                        for (let i = 0; i < NP; i++) { cx.fillRect(i * PWpx, 0, 2, PHpx); cx.fillRect(i * PWpx + PWpx / 2, 0, 1, PHpx); }
+                        for (let i = 0; i < NP; i++) { cx.fillRect(i * PWpx, 0, 2, PHpx); if (!(arte && arte.lp)) cx.fillRect(i * PWpx + PWpx / 2, 0, 1, PHpx); }
                         faixasArte[k].texs.forEach(t => { t.needsUpdate = true; });
                     };
                     img.src = arte.faixas[k];
@@ -523,7 +525,7 @@ Object.assign(Match, {
                 real divide o comprimento por igual (±3%): nenhum painel sai cortado a meio
                 na ponta. A faixa tem `nCores` blocos, daí o /nCores.
                 */
-                const nPaineis = Math.max(1, Math.round(comprimento / PP.larguraPainel));
+                const nPaineis = Math.max(1, Math.round(comprimento / LPan));
                 tex.repeat.set(nPaineis / nC, 1);
                 if (arte) return new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
                 // O verso (virado para a arquibancada) não apanha a luz do sol e ficava preto: a própria textura também emite, por isso as duas faces se leem.
@@ -634,10 +636,10 @@ Object.assign(Match, {
                 (de comprimento R*PI/2) mostrar N repeticoes da faixa e preciso
                 pedir 4*N ao `repeat`.
                 */
-                const nPaineisArco = Math.max(1, Math.round((rc * Math.PI / 2) / PP.larguraPainel));
+                const nPaineisArco = Math.max(1, Math.round((rc * Math.PI / 2) / LPan));
                 // Uma imagem so por curva (os paineis dela juntos): o sector do cilindro ja cobre u de 0 a 1, portanto 1 faixa = 1 painel inteiro.
                 // Negativo: vista de dentro do campo a curva saia espelhada. O deslize da rotacao e invertido em PlacasLed.tick (_espelho).
-                tex.repeat.set(-(arte ? 1 / nC : nPaineisArco / nC), 1); tex._espelho = true;
+                tex.repeat.set(-((arte && !arte.lp) ? 1 / nC : nPaineisArco / nC), 1); tex._espelho = true;
                 // So a face de DENTRO (virada para o campo) leva a publicidade; por fora a curva e preta, como as placas retas.
                 const m = new THREE.Mesh(geo, arte ? new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide }) : new THREE.MeshStandardMaterial({
                     map: tex, roughness: 0.65, side: THREE.BackSide

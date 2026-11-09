@@ -47,7 +47,7 @@ const PlayerRatingsList: React.FC<Props> = ({ jogadores, notas, detalhes, motm }
               onClick={() => d && setAberto(aberta ? null : p.id)}
               className={`flex items-center gap-2 px-3 py-1.5 transition-colors ${d ? 'cursor-pointer' : ''} ${moc ? 'bg-amber-500/25 hover:bg-amber-500/35' : piores.has(p.id) ? 'bg-rose-500/20 hover:bg-rose-500/30' : 'bg-black/50 hover:bg-black/65'}`}
             >
-              {d?.pos && <span className="w-7 text-[9px] font-black text-slate-500 uppercase not-italic">{d.pos}</span>}
+              {d?.pos && <span className="w-7 text-[9px] font-black text-slate-500 uppercase not-italic">{d.pos === 'CF' ? 'ST' : d.pos}</span>}
               <span className="flex-1 min-w-0 text-[13px] font-bold text-white truncate">
                 {moc && <span className="text-amber-400">★ </span>}
                 {p.name.split(' ').pop()}

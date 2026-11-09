@@ -1855,7 +1855,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .sort((a, b) => ordemDaPosicao(a.p!) - ordemDaPosicao(b.p!) || b.nota - a.nota)
           .map(x => {
             const d = dm ? dm.ratingDetalhes[x.p!.id] : undefined;   // com as notas do 3D a tabela leva o detalhe (posicao, minutos, gols, componentes)
-            return { nome: String(x.p!.name).split(' ').pop(), nota: Math.round(x.nota * 10) / 10, ...(d ? { pos: d.pos, minutos: d.minutos, golos: d.golos || 0, assistencias: d.assistencias || 0, moc: !!d.moc, def: d.def || 0, tatico: d.tatico, tecnico: d.tecnico, participacao: d.participacao, disciplina: d.disciplina } : {}) };
+            return { nome: String(x.p!.name).split(' ').pop(), nota: Math.round(x.nota * 10) / 10, ...(d ? { pos: d.pos === 'CF' ? 'ST' : d.pos, minutos: d.minutos, golos: d.golos || 0, assistencias: d.assistencias || 0, moc: !!d.moc, def: d.def || 0, tatico: d.tatico, tecnico: d.tecnico, participacao: d.participacao, disciplina: d.disciplina } : {}) };
           });
         simulador3dEnviar({ tipo: 'notas', casa: { nome: casa.name, jogadores: lado(casa) }, fora: { nome: fora.name, jogadores: lado(fora) } });
       } catch (e) { console.warn('[notas do intervalo]', e); }

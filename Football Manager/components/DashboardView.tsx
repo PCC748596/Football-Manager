@@ -399,25 +399,25 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
   // As zonas da tabela (vagas continentais, acesso, rebaixamento): a posicao e a linha acendem na cor da zona.
   const zonasCopa = useMemo(() => (copaInfo && copaInfo.grupo) ? zonasDoGrupo(copaInfo.comp.id, copaInfo.grupo, copaInfo.tabela.length) : [], [copaInfo]);
   const zonas = useMemo(() => zonasDaLiga(userTeam.leagueId, sortedTeams.length), [userTeam.leagueId, sortedTeams.length]);
-  // A TABELA MOSTRA 18 LINHAS DE UMA VEZ: com mais de 18 clubes a altura de cada linha e a do painel dividida por 18 (menos o cabecalho) e os demais ficam abaixo, na rolagem.
+  // A TABELA MOSTRA 16 LINHAS DE UMA VEZ: com mais de 16 clubes a altura de cada linha e a do painel dividida por 16 (menos o cabecalho) e os demais ficam abaixo, na rolagem.
   const painelTabelaRef = useRef<HTMLDivElement>(null);
   const [alturaLinha, setAlturaLinha] = useState(0);
   useEffect(() => {
     const el = painelTabelaRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
-    const f = () => { const cab = el.querySelector('thead') as HTMLElement | null; setAlturaLinha(Math.floor((el.clientHeight - (cab ? cab.offsetHeight : 0)) / 18)); };
+    const f = () => { const cab = el.querySelector('thead') as HTMLElement | null; setAlturaLinha(Math.floor((el.clientHeight - (cab ? cab.offsetHeight : 0)) / 16)); };
     f();
     const ro = new ResizeObserver(f);
     ro.observe(el);
     return () => ro.disconnect();
   }, [sortedTeams.length]);
-  // Todos os clubes entram na tabela (ate 24): o tamanho das linhas ajusta-se sozinho ate 18 (ver `densidadeTabela`) e, com mais, a tabela ROLA (barra de rolagem do painel).
+  // Todos os clubes entram na tabela (ate 24): o tamanho das linhas ajusta-se sozinho ate 16 (ver `densidadeTabela`) e, com mais, a tabela ROLA (barra de rolagem do painel).
   const linhasLiga = sortedTeams.map((t, i) => ({ t, pos: i + 1 }));
   // A TABELA ENCOLHE SOZINHA com o numero de clubes (ate 24 cabem no painel sem rolar): 0 = normal (ate 14 clubes), 1 = medio (15 clubes ou mais; a tabela rola acima de 18).
-  const densidadeTabela = (n: number) => (n > 14 ? 1 : 0);   // o ajuste automatico vai ate 18 clubes (a tabela mostra no maximo 18 linhas)
+  const densidadeTabela = (n: number) => (n > 14 ? 1 : 0);   // o ajuste automatico vai ate 16 clubes (a tabela mostra no maximo 16 linhas de uma vez)
   const DENS = {
     py: ['py-0.5 xl:py-2', 'py-0.5 xl:py-1', 'py-[2px]'],
-    escudo: ['w-6 h-[29.5px] xl:w-8 xl:h-10', 'w-5 h-6 xl:w-6 xl:h-[29.5px]', 'w-[18px] h-[22px]'],
+    escudo: ['w-7 h-9 xl:w-9 xl:h-11', 'w-6 h-[30px] xl:w-9 xl:h-11', 'w-5 h-6'],
     texto: ['text-xs xl:text-base', 'text-xs xl:text-sm', 'text-[11px]'],
     quadrado: ['w-[18px] h-[18px] xl:w-6 xl:h-6', 'w-[18px] h-[18px] xl:w-[21px] xl:h-[21px]', 'w-4 h-4'],
   };
@@ -901,7 +901,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30 transition-colors">
-                {linhasLiga.map(({ t, pos }) => { const fixa = linhasLiga.length > 18 && alturaLinha > 0; const d = fixa ? (alturaLinha < 36 ? 2 : 1) : densidadeTabela(linhasLiga.length); const i = pos - 1; return (
+                {linhasLiga.map(({ t, pos }) => { const fixa = linhasLiga.length > 16 && alturaLinha > 0; const d = fixa ? (alturaLinha < 36 ? 2 : 1) : densidadeTabela(linhasLiga.length); const i = pos - 1; return (
                   <tr key={t.id} style={{ ...(t.id === userTeam.id ? HACHURA : {}), ...(fixa ? { height: alturaLinha } : {}) }} title={zonas[i]?.nome} className="group transition-colors">
                     <td className={`pl-3 pr-1 ${DENS.py[d]} font-black text-slate-300 dark:text-slate-500 ${DENS.texto[d]} transition-colors`} style={zonas[i] ? { boxShadow: `inset 3px 0 0 ${zonas[i]!.cor}` } : undefined}>{pos}</td>
                     <td className={`px-1 ${DENS.py[d]}`}>

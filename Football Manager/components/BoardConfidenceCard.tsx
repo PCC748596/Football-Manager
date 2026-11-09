@@ -20,7 +20,8 @@ const BoardConfidenceCard: React.FC = () => {
   return (
     <div className="flex items-center gap-2 mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400" title={pt ? 'Confiança da diretoria e reputação do treinador' : 'Board confidence and manager reputation'}>
       <span>{pt ? 'Diretoria' : 'Board'}</span>
-      <div className="h-1.5 w-24 rounded bg-slate-300 dark:bg-slate-700 overflow-hidden"><div className={`h-full ${faixa.cor}`} style={{ width: `${eu.confidence}%` }} /></div>
+      {/* 100 retangulos em pe, um por ponto (o mesmo padrao do Manager Career). */}
+      <div className="flex gap-px h-3 w-[200px]">{Array.from({ length: 100 }, (_, i) => <div key={i} className={`flex-1 min-w-0 ${i < Math.round(Math.max(0, Math.min(100, eu.confidence))) ? faixa.cor : 'bg-slate-300 dark:bg-white/10'}`} />)}</div>
       <span className="text-slate-800 dark:text-white">{Math.round(eu.confidence)} · {pt ? faixa.pt : faixa.en}</span>
       <span className="opacity-50">|</span>
       <span>{pt ? 'Reputação' : 'Reputation'} <span className="text-slate-800 dark:text-white">{eu.reputation}</span></span>
