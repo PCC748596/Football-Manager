@@ -204,8 +204,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   const estiloDoJogador = (p: Player): string => estiloValidoDoJogador(p,
     PLAYSTYLE_AJUSTES[`${userTeam.name}|${p.name}`], p.playStyle, PLAYSTYLE_DA_BASE[p.id]);
   // O icone do Playing Style nos cards do banco e do squad pool (so com o botao Playing Styles ligado).
-  const iconeDoEstilo = (p: Player) => userTeam.tactics.playingStylesOn === false ? null : (
-    <IconeEstilo estilo={estiloDoJogador(p)} tam={24} />
+  const iconeDoEstilo = (p: Player, tam = 24) => userTeam.tactics.playingStylesOn === false ? null : (
+    <IconeEstilo estilo={estiloDoJogador(p)} tam={tam} />
   );
   const nomeDaCompeticao = (chave: string | null) => !chave ? '' : chave === 'LEAGUE' ? 'LEAGUE' : String((comps || []).find(c => c.id === chave)?.name || chave).toUpperCase();
   const AvisosDoCard = ({ playerId }: { playerId: string }) => {
@@ -742,7 +742,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                     </div>
                 </div>
 
-                <div onDragOver={(e) => { e.preventDefault(); setIsOverBench(true); }} onDragLeave={() => setIsOverBench(false)} onClick={tocarNoPainelDoBanco} onDrop={(e) => handleDropToBench(e.dataTransfer.getData("playerId"))} className={`bg-white dark:bg-slate-900/50 rounded-xl p-3 flex flex-col gap-0 shrink-0 shadow-sm border transition-all ${isOverBench ? 'border-blue-400 bg-blue-50/50' : 'border-slate-200 dark:border-slate-800'}`}>
+                <div onDragOver={(e) => { e.preventDefault(); setIsOverBench(true); }} onDragLeave={() => setIsOverBench(false)} onClick={tocarNoPainelDoBanco} onDrop={(e) => handleDropToBench(e.dataTransfer.getData("playerId"))} className={`bg-white dark:bg-slate-900/50 rounded-xl p-[2px] flex flex-col gap-0 shrink-0 shadow-sm border transition-all ${isOverBench ? 'border-blue-400 bg-blue-50/50' : 'border-slate-200 dark:border-slate-800'}`}>
                     <div className="flex justify-between items-center mb-0">
                         <div className="flex items-center gap-4">
                             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">SUBSTITUTES</span>
@@ -786,11 +786,11 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                              } else benchColor = getPosColor(p.position);
                             const status = getPlayerMatchStatus(p.id);
                             return (
-                                <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.stopPropagation(); handleBenchSwap(e.dataTransfer.getData("playerId"), p.id); }} onClick={(e) => { e.stopPropagation(); tocarNoBanco(p.id); }} title={foiSubstituido(p.id) ? "Already substituted: cannot re-enter" : indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1.5 flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
+                                <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.stopPropagation(); handleBenchSwap(e.dataTransfer.getData("playerId"), p.id); }} onClick={(e) => { e.stopPropagation(); tocarNoBanco(p.id); }} title={foiSubstituido(p.id) ? "Already substituted: cannot re-enter" : indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg px-1.5 py-[8.5px] flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
                                     {!jogoIniciado && <button onClick={(e) => { e.stopPropagation(); removeFromSquad(p.id); }} title="Remove from bench" className="absolute bottom-1 right-1 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>}
                                     <div className={`relative mt-[2px] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
                                         {userTeam.tactics.playerFacesOn !== false ? (
-                                            <div className="w-[52px] h-[52px] pointer-events-none -translate-y-[5px]"><PlayerFace3D playerId={p.id} team={userTeam} kitIdx={kitDeCampo} gk={p.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
+                                            <div className="w-[52px] h-[52px] pointer-events-none -translate-y-[10px]"><PlayerFace3D playerId={p.id} team={userTeam} kitIdx={kitDeCampo} gk={p.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
                                         ) : <ShirtIcon 
                                             color={benchColor} 
                                             color2={benchColor2} 
@@ -817,10 +817,11 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                    <div className={`flex justify-between w-full items-start mb-0`}>
-                                        <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400 text-[14px]">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span>{mediaNotas(p) && <> <span className="text-slate-500">|</span> <span className="text-amber-400">{mediaNotas(p)}</span></>}</span>
-                                        <span className="flex items-center gap-1">{iconeDoEstilo(p)}<MoraleArrow morale={p.morale} /></span>
+                                    <div className="flex-1 min-w-0 flex flex-col gap-1 -ml-[8px]">
+                                    <div className={`flex justify-between w-full items-start mb-0 gap-1 min-w-0`}>
+                                        {/* O topo tem de caber no cartao: o texto encolhe (min-w-0, separadores curtos) e os icones (estilo + moral) nunca saem para fora (shrink-0). */}
+                                        <span className="text-[11px] font-black leading-none whitespace-nowrap min-w-0 truncate"><span className="text-slate-400 text-[13px]">{p.position}</span><span className="text-slate-500 mx-[3px]">|</span><span className="text-blue-400">{p.skill}</span>{mediaNotas(p) && <><span className="text-slate-500 mx-[3px]">|</span><span className="text-amber-400">{mediaNotas(p)}</span></>}</span>
+                                        <span className="flex items-center gap-0.5 shrink-0">{iconeDoEstilo(p, 20)}<MoraleArrow morale={p.morale} /></span>
                                     </div>
                                         <div>
                                             <EnergyBar energy={energiaDe(p)} className="h-1.5" />
@@ -884,7 +885,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                     <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onClick={(e) => { e.stopPropagation(); tocarNoPool(p.id); }} title={foiSubstituido(p.id) ? "Already substituted: cannot re-enter" : indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1.5 py-[5px] flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
                                         <div className={`relative mt-[2px] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
                                             {userTeam.tactics.playerFacesOn !== false ? (
-                                            <div className="w-[52px] h-[52px] pointer-events-none -translate-y-[8px]"><PlayerFace3D playerId={p.id} team={userTeam} kitIdx={kitDeCampo} gk={p.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
+                                            <div className="w-[52px] h-[52px] pointer-events-none -translate-y-[13px]"><PlayerFace3D playerId={p.id} team={userTeam} kitIdx={kitDeCampo} gk={p.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
                                         ) : <ShirtIcon 
                                                 color={d.c1} 
                                                 color2={d.c2} 
@@ -937,7 +938,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                 </div>
 
             {/* OS COBRADORES E O CAPITAO: arrastar a camisa do jogador (campo, banco ou squad pool) para a funcao. Fica entre o campo e as instrucoes. */}
-            <div className="flex flex-col gap-2 min-h-0 min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-sm overflow-y-auto custom-scrollbar">
+            <div className="flex flex-col gap-2 min-h-0 min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-[5px] shadow-sm overflow-y-auto custom-scrollbar">
                 <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">CAPTAIN & SET-PIECE TAKERS</h3>
                 {SET_PIECE_ROLES.map(r => {
                     const pid = userTeam.setPieceTakers?.[r.role];
@@ -948,18 +949,17 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         <div key={r.role}
                              onDragOver={(e) => { e.preventDefault(); }}
                              onDrop={(e) => { e.preventDefault(); const id = e.dataTransfer.getData("playerId"); if (id) assignSetPiece(r.role, id); }}
-                             className="flex-1 flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 py-1.5 px-1 hover:border-blue-400 transition-colors">
+                             className="flex-1 flex flex-col items-center justify-center gap-1 rounded-lg border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm py-1.5 px-1 hover:border-blue-300 transition-colors">
                             <span className="text-[9px] font-black uppercase tracking-wider text-blue-400 text-center leading-tight">{r.label}</span>
                             {pl ? (
                                 <div draggable onDragStart={(e) => e.dataTransfer.setData("playerId", pl.id)} className="relative flex flex-col items-center cursor-grab active:cursor-grabbing">
                                     {userTeam.tactics.playerFacesOn !== false ? (
-                                        <div className="w-[60px] h-[60px] pointer-events-none"><PlayerFace3D playerId={pl.id} team={userTeam} kitIdx={kitDeCampo} gk={pl.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
+                                        <div className="w-[60px] h-[60px] pointer-events-none -translate-y-[9px]"><PlayerFace3D playerId={pl.id} team={userTeam} kitIdx={kitDeCampo} gk={pl.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
                                     ) : <ShirtIcon color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes}
                                         gradient={d.gradient} spfcStripes={(d as any).spfcStripes} criciumaStripes={(d as any).criciumaStripes} horizontal={(d as any).horizontal}
                                         multipleDiagonals={(d as any).multipleDiagonals} diagonalWidth={d.diagonalWidth} number={pl.shirtNumber} numberColor={d.nc} collarColor={d.clc}
                                         numberOutlineColor={d.noc} sleeveColor={d.sc} scale={0.8} longSleeves={pl.position === Position.GK} />}
-                                    <span className="text-[9px] font-black text-slate-500 dark:text-slate-300 uppercase truncate max-w-full leading-tight">{pl.name.split(' ').pop()}</span>
-                                    <span className="text-[10px] font-black text-amber-500 leading-none">{r.attr.rotulo} {r.attr.valor(pl)}</span>
+                                    <span className="relative z-10 mt-[10px] flex items-baseline justify-center gap-1 max-w-full leading-tight whitespace-nowrap"><span className="text-[9px] font-black text-slate-500 dark:text-slate-300 uppercase truncate">{pl.name.split(' ').pop()}</span><span className="text-[9px] font-black text-slate-400">|</span><span className="text-[10px] font-black text-amber-500 shrink-0">{r.attr.rotulo} {r.attr.valor(pl)}</span></span>
                                     <button onClick={() => assignSetPiece(r.role, undefined)} title="Remove" className="absolute top-1/2 -translate-y-1/2 -right-5 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>
                                 </div>
                             ) : (

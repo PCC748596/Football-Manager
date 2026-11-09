@@ -843,13 +843,19 @@ OS COBRADORES E O CAPITAO de um time: os designados na aba Match Tactics que ain
 (esquerda a melhor, direita a segunda) e falta longa o de melhor passe; falta direta e penalti o de melhor chute. O goleiro nao cobra. Usado pela aba Tactics (preenche) e na partida
 (o time da CPU, ou o do utilizador que nunca abriu a aba, tambem leva os melhores).
 */
+type MedidaDeCobrador = (p: Player, role: SetPieceRole) => number | undefined;
+let medidaDeCobrador: MedidaDeCobrador | null = null;
+export const definirMedidaDeCobrador = (f: MedidaDeCobrador) => { medidaDeCobrador = f; };
 export const resolveSetPieceTakers = (team: Team, players: Player[]): SetPieceTakers => {
   const onze = team.lineup.map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p && p.position !== Position.GK && !p.injury);
   const por = (f: (p: Player) => number) => [...onze].sort((a, b) => f(b) - f(a));
-  const pas = por(p => p.pas), sht = por(p => p.sht), ovr = por(p => p.skill);
+  // Os melhores PELOS ATRIBUTOS que a aba Tactics mostra (escanteio, passe longo, falta, penalti: `definirMedidaDeCobrador`, registada por textSim/atributos3d.ts); sem ela, o passe e o chute antigos.
+  const rank = (role: SetPieceRole, velho: (p: Player) => number) => por(p => { const v = medidaDeCobrador ? medidaDeCobrador(p, role) : undefined; return typeof v === 'number' ? v : velho(p); });
+  const ovr = por(p => p.skill);
+  const cL = rank('cornerL', p => p.pas), fl = rank('freeKickLong', p => p.pas), fd = rank('freeKickDirectL', p => p.sht), pe = rank('penalty', p => p.sht);
   const sugestao: SetPieceTakers = {
-    captain: ovr[0]?.id, cornerL: pas[0]?.id, cornerR: (pas[1] || pas[0])?.id, freeKickLong: pas[0]?.id,
-    freeKickDirectL: sht[0]?.id, freeKickDirectR: sht[0]?.id, penalty: sht[0]?.id
+    captain: ovr[0]?.id, cornerL: cL[0]?.id, cornerR: (cL[1] || cL[0])?.id, freeKickLong: fl[0]?.id,
+    freeKickDirectL: fd[0]?.id, freeKickDirectR: fd[0]?.id, penalty: pe[0]?.id
   };
   const noOnze = new Set(team.lineup);
   const atual = team.setPieceTakers || {};

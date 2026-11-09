@@ -10,6 +10,7 @@ TEC, TAC e MEN seguem a QUALIDADE do jogador; o FIS e parecido num craque e num 
 */
 import dados from './atributos3d.json';
 import type { Player } from '../types';
+import { definirMedidaDeCobrador } from '../types';
 import { niveisDeXp, xpDeNiveis, custoDoNivel, NIVEIS_MAX_TREINO, XP_POR_PONTO,regressaoPorIdade, tetoDoAtributo, tetoDoCt } from './trainingService';
 import { REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 import { PLAYSTYLE_DA_BASE } from './playStylesDatabase';
@@ -334,3 +335,13 @@ export const treinoDoMes = (p: Player, hoje: string): Record<string, number> | u
   for (const x of lista) out[x.campo] = xpDeNiveis(x.valor, dSkill) * fracao;
   return Object.keys(out).length ? out : undefined;
 };
+
+/*
+OS COBRADORES ESCOLHIDOS PELOS ATRIBUTOS DO 3D (os que a aba Tactics mostra por baixo de cada funcao): escanteio = cornerKicks + crossing; falta longa = longPassing + freekicks; falta direta = freekicks + shotPower;
+penalti = penalties + composure. Antes o sistema escolhia pelo passe (`pas`) e chute (`sht`) antigos, que nao sao estes numeros. Regista-se em types.ts (`resolveSetPieceTakers`).
+*/
+const CAMPOS_DO_COBRADOR: Record<string, string[]> = {
+  cornerL: ['cornerKicks', 'crossing'], cornerR: ['cornerKicks', 'crossing'], freeKickLong: ['longPassing', 'freekicks'],
+  freeKickDirectL: ['freekicks', 'shotPower'], freeKickDirectR: ['freekicks', 'shotPower'], penalty: ['penalties', 'composure']
+};
+definirMedidaDeCobrador((p, role) => (CAMPOS_DO_COBRADOR[role] ? campo3d(p, CAMPOS_DO_COBRADOR[role]) : undefined));
