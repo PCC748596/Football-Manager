@@ -1413,7 +1413,7 @@ class PlayerFSM {
                     */
                     const taker = Match.setPieceTaker;
                     const defende = !!taker && taker.team !== p.team;
-                    const alvoP = passeioDeEspera(p, p.jostleAncora, Match.ball.position, dt, defende ? 9.5 : undefined);
+                    const alvoP = passeioDeEspera(p, p.jostleAncora, Match.ball.position, dt, defende ? 9.5 : undefined, Match.state === 'FREE_KICK' ? { passosMin: 1, passosMax: 2, esperaMin: 2.0, esperaMax: 3.0 } : undefined);   // falta: 1-2 passos, 2-3 s, 1-2 passos para tras
                     _v1.set(alvoP.x, ALTURA_BASE_Y, alvoP.z);
                     p.velocity = p.steerArrive(_v1, PasseioDeEspera.velocidade, 0);
                 } else if (Match.state === 'CORNER_KICK' && p.jostleAncora &&

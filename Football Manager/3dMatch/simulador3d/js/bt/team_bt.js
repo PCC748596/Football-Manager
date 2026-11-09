@@ -2224,6 +2224,8 @@ chega aqui.
 
 Parte sempre do alvo corrente e não acumula — ver RestlessModel em config.js.
 */
+// O passeio de espera numa falta: 1 a 2 passos a frente, 2 a 3 s parado, 1 a 2 passos para tras (passeioDeEspera, utils.js).
+const PASSEIO_FALTA = { passosMin: 1, passosMax: 2, esperaMin: 2.0, esperaMax: 3.0 };
 function aplicarInquietacao(p, bb, targetX, targetZ) {
     if (typeof RestlessModel === 'undefined' ||
         typeof offsetInquietacao !== 'function') {
@@ -2238,11 +2240,13 @@ function aplicarInquietacao(p, bb, targetX, targetZ) {
     }
 
     // TIRO DE META: nao ha passo aleatorio (que se lia como girar) — 1 a 3 passos em direccao a bola, espera ~2 s, 1 a 3 passos para tras (passeioDeEspera, utils.js).
-    if (typeof Match !== 'undefined' && Match.state === 'GOAL_KICK' && Match.ball && typeof passeioDeEspera === 'function') {
+    // FALTA (pedido: *"a histerese nas faltas: os jogadores estao girando; quero 1 ou 2 passos a frente, aguarda 2 ou 3 s, 1 ou 2 passos para tras, e repete — sao passos, nao giros"*): o mesmo passeio, com os passos e as esperas pedidos.
+    const emFalta = typeof Match !== 'undefined' && Match.state === 'FREE_KICK';
+    if (typeof Match !== 'undefined' && (Match.state === 'GOAL_KICK' || emFalta) && Match.ball && typeof passeioDeEspera === 'function') {
         const dtG = Match.delta || 0.016;
         const ancoraG = (p._pw && p._pw.ax !== undefined && Math.hypot(p._pw.ax - targetX, p._pw.az - targetZ) < 1.0) ? { x: p._pw.ax, z: p._pw.az } : { x: targetX, z: targetZ };
         const taker = Match.setPieceTaker;
-        return passeioDeEspera(p, ancoraG, Match.ball.position, dtG, (taker && taker.team !== p.team) ? 9.5 : undefined);
+        return passeioDeEspera(p, ancoraG, Match.ball.position, dtG, (taker && taker.team !== p.team) ? 9.5 : undefined, emFalta ? PASSEIO_FALTA : undefined);
     }
 
     const dt = (typeof Match !== 'undefined' && Match.delta) ? Match.delta : 0.016;
