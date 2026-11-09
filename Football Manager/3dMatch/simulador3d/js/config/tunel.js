@@ -25,6 +25,8 @@ ESC em qualquer altura salta direto para a formacao inicial de sempre.
 =============================================================================
 */
 const TunelJogadores = {
+    // Velocidade (m/s) do jogador EXPULSO a sair do campo pelo tunel (era 2.6, a andar: ~27 s do meio do campo ao tunel e o jogo parado). A trote.
+    velExpulso: 5.5,
     activo: true,
     // -1 = bancada do lado -X (oposta a camara TV Centro).
     lado: -1,

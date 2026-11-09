@@ -18,7 +18,11 @@ const TurnModel = {
     activo: true,
     escala: 0.90,
     agilidadeRef: 75,
-    amplitude: 0.25
+    amplitude: 0.25,
+    // INERCIA DE DIRECCAO: quanto a VELOCIDADE acompanha a desejada (steerArrive: velocity.lerp(desired, inercia * dt)). E ela, mais do que o giro do corpo
+    // (constante de ~0.1 s), que da a sensacao de virar devagar. escalaInercia 0.90 = -10%, com o mesmo efeito da agilidade do giro.
+    inercia: 5.0,
+    escalaInercia: 0.90
 };
 
 /*

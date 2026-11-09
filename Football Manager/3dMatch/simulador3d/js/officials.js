@@ -2650,7 +2650,8 @@ const Officials = {
         */
         const dAlvoArb = Math.hypot(S.model.position.x - alvoArb.x, S.model.position.z - alvoArb.z);
         const emFuga = (typeof R.distMinDura === 'number') &&
-            dBola < R.distMinDura + (R.margemFuga || 0) &&
+            // histerese tambem na distancia: quem esta a fugir so acaba `seguraMargem` m depois do limiar (senao alterna fuga/parado a cada poucos frames junto dele)
+            dBola < R.distMinDura + (R.margemFuga || 0) + (S._fugindo ? (R.seguraMargem || 1.5) : 0) &&
             dAlvoArb > (S._fugindo ? 0.6 : (R.fugaAlvoMin === undefined ? 1.5 : R.fugaAlvoMin));   // histerese: comeca a fugir a 1.5 m do alvo, so para a 0.6
         S._fugindo = emFuga;
         if (!S.alvoSuave || !(R.alvoSuavizacao > 0) || emFuga) {
@@ -3275,7 +3276,7 @@ const Officials = {
         const f = -T.lado;
         const zf = THREE.MathUtils.clamp(p.model.position.z, -AM.zFileira * 2, AM.zFileira * 2);
         const xVao = T.lado * (CAMPO_LARG / 2 + 1.5), xBoca = T.xBoca + f * 3.0, xDentro = T.xFundo + f * 0.9;
-        p.saidaExpulso = { i: 0, t: 0, vel: 2.6, wps: [{ x: xVao, z: zf }, { x: xBoca, z: zf }, { x: xDentro, z: zf }] };
+        p.saidaExpulso = { i: 0, t: 0, vel: (typeof T.velExpulso === 'number' ? T.velExpulso : 5.5), wps: [{ x: xVao, z: zf }, { x: xBoca, z: zf }, { x: xDentro, z: zf }] };
         p.velocity.set(0, 0, 0);
         p.actionState = null; p.queda = null; p.jumpTimer = 0; p.lugarBolaParada = null; p.voltaDaQueda = null;
         if (p.fsm) p.fsm.changeState('IDLE');

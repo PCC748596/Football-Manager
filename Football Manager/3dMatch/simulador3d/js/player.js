@@ -6278,7 +6278,7 @@ class FootballPlayer {
         }
         this.virarPara(lookTarget);
         // Inércia ajustada para fator 5.0 (curvas bastante responsivas e quase sem derrapagem)
-        this.velocity.lerp(desired, Math.min(1.0, 5.0 * Match.delta));
+        this.velocity.lerp(desired, Math.min(1.0, this.inerciaDoCorpo() * Match.delta));
         return this.velocity;
     }
 
@@ -6299,6 +6299,14 @@ class FootballPlayer {
         _m1.lookAt(this.model.position, _v1, this.model.up);
         _q1.setFromRotationMatrix(_m1);
         this.model.quaternion.slerp(_q1, Math.min(1.0, this.giroDoCorpo(this.hasBall) * Match.delta));
+    }
+
+    // Inercia de direccao (1/s): TurnModel.inercia x escalaInercia x o factor da agilidade (o mesmo do giro). Ver TurnModel.
+    inerciaDoCorpo() {
+        if (typeof TurnModel === 'undefined' || !TurnModel.activo || typeof TurnModel.inercia !== 'number') return 5.0;
+        const agi = this.atributoDe('agility', 'fis');
+        const f = 1 + TurnModel.amplitude * (agi - TurnModel.agilidadeRef) / 50;
+        return TurnModel.inercia * TurnModel.escalaInercia * Math.max(0.5, f);
     }
 
     // Ritmo de giro do corpo (1/s) deste jogador: TurnModel escalado pela agilidade. Ver TurnModel.

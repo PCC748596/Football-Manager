@@ -19,12 +19,13 @@ const SlidersJogo = {
     Um slider que multiplica VARIOS campos de uma vez (o padrao do slider e 1.0 = x1): `campos` e uma lista de [() => objecto, 'chave'].
     Os valores originais ficam guardados na primeira leitura. `teto` limita cada campo (probabilidades).
     */
-    _fator(campos, teto) {
+    _fator(campos, teto, formula) {
         const orig = [];
         const cap = () => { if (!orig.length) for (const [o, k] of campos) orig.push(o()[k]); };
+        const calc = formula || ((a, f) => a * f);
         return {
             ler: () => 1,
-            escrever: (f) => { cap(); campos.forEach(([o, k], i) => { let v = orig[i] * f; if (typeof teto === 'number') v = Math.min(teto, v); o()[k] = v; }); }
+            escrever: (f) => { cap(); campos.forEach(([o, k], i) => { let v = calc(orig[i], f); if (typeof teto === 'number') v = Math.min(teto, v); o()[k] = v; }); }
         };
     },
 
@@ -38,9 +39,16 @@ const SlidersJogo = {
         { id: 'GoalkeeperDive.alcanceBraco', grupo: 'Goalkeeper', nome: 'GK arm reach (m)', ler: () => GoalkeeperDive.alcanceBraco, escrever: v => { GoalkeeperDive.alcanceBraco = v; }, casas: 2 },
         { id: 'GoalkeeperDive.velLateral', grupo: 'Goalkeeper', nome: 'GK dive speed (m/s)', ler: () => GoalkeeperDive.velLateral, escrever: v => { GoalkeeperDive.velLateral = v; }, casas: 1 },
         { id: 'MarkingModel.distancia', grupo: 'Defending', nome: 'Marking distance (m)', ler: () => MarkingModel.distancia, escrever: v => { MarkingModel.distancia = v; }, casas: 2 },
+        { id: 'RunIntoSpaceModel.frequencia', grupo: 'Movement', nome: 'Off-ball run frequency (x)', casas: 2 },
+        { id: 'MatchInjuries.fatorFrequencia', grupo: 'Injuries', nome: 'Injury frequency (x)', casas: 2 },
+        { id: 'MatchInjuries.gravidade', grupo: 'Injuries', nome: 'Injury severity (x)', casas: 2 },
+        { id: 'TeamShape.linhaDefensiva', grupo: 'Team shape', nome: 'Defensive line height (x; 2 = halfway)', casas: 2 },
+        { id: 'BlockShape.profundidade', grupo: 'Team shape', nome: 'Team length (x)', casas: 2 },
+        { id: 'BlockShape.amplitude', grupo: 'Team shape', nome: 'Team width (x)', casas: 2 },
         { id: 'WideAnchor.lateral', grupo: 'Positioning', nome: 'Fullback width (x)', casas: 2 },
         { id: 'WideAnchor.ala', grupo: 'Positioning', nome: 'Wide midfielder width (x)', casas: 2 },
-        { id: 'TurnModel.escala', grupo: 'Movement', nome: 'Body turn speed (x base)', ler: () => TurnModel.escala, escrever: v => { TurnModel.escala = v; }, casas: 2 },
+        { id: 'TurnModel.escala', grupo: 'Movement', nome: 'Body turn speed (x base)', ler: () => TurnModel.escala, escrever: v => { TurnModel.escala = v; }, casas: 2, min: 0.1 },
+        { id: 'TurnModel.escalaInercia', grupo: 'Movement', nome: 'Direction-change responsiveness (x)', ler: () => TurnModel.escalaInercia, escrever: v => { TurnModel.escalaInercia = v; }, casas: 2, min: 0.1 },
         { id: 'TurnModel.amplitude', grupo: 'Movement', nome: 'Agility influence on turn', ler: () => TurnModel.amplitude, escrever: v => { TurnModel.amplitude = v; }, casas: 2 },
         { id: 'PassModel.bonusVirada', grupo: 'Passing', nome: 'Switch-of-play bonus (pts)', ler: () => PassModel.bonusVirada, escrever: v => { PassModel.bonusVirada = v; }, casas: 0 },
         { id: 'PassModel.viradaJanela', grupo: 'Passing', nome: 'Switch-of-play window (s)', ler: () => PassModel.viradaJanela, escrever: v => { PassModel.viradaJanela = v; }, casas: 1 },
@@ -54,7 +62,17 @@ const SlidersJogo = {
             'PassErrorModel.fator': this._fator([[() => PassErrorModel, 'sigmaMax'], [() => PassErrorModel, 'sigmaMin'], [() => PassErrorModel, 'sigmaTecto']]),
             'FirstTouchModel.chance': this._fator([[() => FirstTouchModel, 'chanceMin'], [() => FirstTouchModel, 'chanceMax']], 1),
             'WideAnchor.lateral': this._fator([[() => WideAnchor.lateral, 'comBola'], [() => WideAnchor.lateral, 'semBola']]),
-            'WideAnchor.ala': this._fator([[() => WideAnchor.ala, 'comBola'], [() => WideAnchor.ala, 'semBola']])
+            'WideAnchor.ala': this._fator([[() => WideAnchor.ala, 'comBola'], [() => WideAnchor.ala, 'semBola']]),
+            // Largura / comprimento da equipa: o bloco (BlockShape.amplitude = largura, .profundidade = comprimento).
+            'BlockShape.amplitude': this._fator(['short', 'median', 'large'].map(k => [() => BlockShape.amplitude, k]), 1),
+            'BlockShape.profundidade': this._fator(['short', 'mediumSmall', 'median', 'mediumLarge', 'large'].map(k => [() => BlockShape.profundidade, k])),
+            // Altura da linha defensiva: os valores sao Z negativos (recuo ao meio-campo). x1 = padrao, x2 = linha no meio-campo, x0 = o dobro do recuo.
+            'TeamShape.linhaDefensiva': this._fator(['low', 'medium', 'high'].map(k => [() => TeamShape.linhaDefensiva, k]), undefined, (a, f) => a * (2 - f)),
+            // Frequencia das corridas sem bola: e o inverso do tempo de espera entre duas corridas (arrefecimento).
+            'RunIntoSpaceModel.frequencia': this._fator([[() => RunIntoSpaceModel, 'arrefecimento']], undefined, (a, f) => a / Math.max(0.05, f)),
+            'MatchInjuries.fatorFrequencia': this._fator([[() => MatchInjuries, 'fatorFrequencia']]),
+            // Gravidade: quanto o jogador baleado que continua em campo perde (1 - fator). x1 = 20% (Hurt) e 60% (Forced).
+            'MatchInjuries.gravidade': this._fator([[() => MatchInjuries, 'fatorBaleado'], [() => MatchInjuries, 'fatorForcado']], undefined, (a, f) => Math.max(0, Math.min(1, 1 - (1 - a) * f)))
         };
         for (const p of this.parametros) if (mapa[p.id]) { p.ler = mapa[p.id].ler; p.escrever = mapa[p.id].escrever; }
     },
@@ -62,6 +80,7 @@ const SlidersJogo = {
     _valorDe(p, pos) {
         let v = this.padroes[p.id] * pos / 50;
         if (typeof p.max === 'number') v = Math.min(p.max, v);
+        if (typeof p.min === 'number') v = Math.max(p.min, v);
         const k = Math.pow(10, p.casas === undefined ? 2 : p.casas);
         return Math.round(v * k) / k;
     },

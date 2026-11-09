@@ -290,8 +290,16 @@ Object.assign(Match, {
     _esperarEmIdle: function (req, dt) {
         const B = req.B, p = B.model.position;
         Officials.mover(B, p.x, p.z, 0, dt, undefined);
-        this._virarPara(B, this.ball.position.x, this.ball.position.z, dt * 5);
+        const f = this._pontoDoCampo(B);
+        this._virarPara(B, f.x, f.z, dt * 5);
         this._assentar(B, dt, p.x, p.z);
+    },
+
+    // Para onde olha um substituto parado na lateral: PARA DENTRO DO CAMPO (x = 0), acompanhando a bola so ao longo da linha (ate 12 m de cada lado dele). Olhar a bola
+    // directamente punha-o de lado ou de costas para o campo quando a jogada estava junto a linha, na altura dele.
+    _pontoDoCampo: function (o) {
+        const z = o.model.position.z, bz = this.ball ? this.ball.position.z : z;
+        return { x: 0, z: THREE.MathUtils.clamp(bz, z - 12, z + 12) };
     },
 
     // O bandeirinha da substituicao chegou a ponta da area tecnica? (a bandeira so sobe la)
@@ -435,7 +443,8 @@ Object.assign(Match, {
             // Parado a olhar o jogo.
             const bx = B.model.position.x, bz = B.model.position.z;
             Officials.mover(B, bx, bz, 0, dt, undefined);
-            this._virarPara(B, bola.x, bola.z, dt * 5);
+            const fc = this._pontoDoCampo(B);
+            this._virarPara(B, fc.x, fc.z, dt * 5);
             this._assentar(B, dt, bx, bz);
             req.t += dt;
             if (req.t >= st.s) { req.passo++; req.t = 0; }
@@ -725,7 +734,7 @@ Object.assign(Match, {
         if (base.role !== 'gk') this.aplicarPlayingStyle(N, base.pos, idxPos);
         const ponto = (opcoes && typeof opcoes.x === 'number') ? opcoes : P.model.position;
         N.model.position.set(ponto.x, (typeof ALTURA_BASE_Y === 'number') ? ALTURA_BASE_Y : 0, ponto.z);
-        if (opcoes && opcoes.entrada) N.model.rotation.y = -Math.PI / 2; else N.model.quaternion.copy(P.model.quaternion);
+        if (opcoes && opcoes.entrada) N.model.rotation.y = -(Math.sign(ponto.x) || 1) * Math.PI / 2; else N.model.quaternion.copy(P.model.quaternion);
         N.velocity.set(0, 0, 0);
         // O alvo de quem sai (o que a parada lhe deu) passa a ser o de quem entra: segue para la; sem entrada em campo, fica onde esta.
         if (opcoes && opcoes.entrada && P.dynamicTarget) {
