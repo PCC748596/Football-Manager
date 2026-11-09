@@ -4271,7 +4271,14 @@ class FootballPlayer {
                     if (typeof MatchStats !== 'undefined') MatchStats[this.team].remates.tentados++;
                     executeShotGameplay(this);
                 }
-                else if (typeof MatchStats !== 'undefined') MatchStats[this.team].remates.furados++;
+                else {
+                    if (typeof MatchStats !== 'undefined') MatchStats[this.team].remates.furados++;
+                    // A furada rasga o relvado: tufos de grama voados (js/torroes.js).
+                    if (typeof Torroes !== 'undefined' && this.model) {
+                        const ry = this.model.rotation ? this.model.rotation.y : 0;
+                        Torroes.lancar(this.model.position.x, this.model.position.z, Math.sin(ry), Math.cos(ry));
+                    }
+                }
             }
         });
         this.fsm.changeState('SHOOT');
