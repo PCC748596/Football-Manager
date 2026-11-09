@@ -14,6 +14,8 @@ import { niveisDeXp, xpDeNiveis, custoDoNivel, NIVEIS_MAX_TREINO, XP_POR_PONTO,r
 import { REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 import { PLAYSTYLE_DA_BASE } from './playStylesDatabase';
 import { NIVEL_MINIMO } from './dataGenerator';
+import { evolucaoMensal, proximoMes } from './youth';
+import { mesDe, criarRng } from './contracts';
 import { jogadorLocalPorId, bandeiraDoCodigo } from './dadosLocais';
 import { GRUPOS, ATRIBUTOS_GK, gerarAtributos, limitarAtributo, curvaFisica, calcularGrupos } from './geradorAtributos';
 
@@ -309,4 +311,26 @@ export const CHAVES_POR_POSICAO: Record<string, Partial<Record<'TEC' | 'TAC' | '
   RW: { TEC: ['dribbling', 'crossing', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['composure', 'reactions'], FIS: ['speed', 'acceleration', 'agility'] },
   SS: { TEC: ['finishing', 'dribbling', 'ballControl'], TAC: ['posOffense', 'vision', 'tacticalAwa'], MEN: ['composure', 'reactions'], FIS: ['acceleration', 'agility', 'speed'] },
   ST: { TEC: ['finishing', 'shotPower', 'headAccurancy'], TAC: ['posOffense', 'tacticalAwa', 'vision'], MEN: ['composure', 'reactions'], FIS: ['strength', 'acceleration', 'speed'] }
+};
+
+/*
+O SUB-20 SOBE NOS ATRIBUTOS, DIA A DIA: a evolucao do proximo mes ja esta sorteada (`evolucaoMensal`: semente por jogador e mes) e aplica-se no dia 1. Se ela da ganho de OVR, sorteia-se (mesma semente) UM GRUPO de
+atributos — TEC, TAC, FIS ou MEN (e GK, nos goleiros) — e TODOS os atributos desse grupo ganham o XP de +N niveis (N = o ganho de OVR, no minimo 1) aos poucos durante o mes (dia / dias do mes). Assim os
+atributos do grupo (e a barra de XP do Summary) crescem durante o mes e, no dia 1, o OVR novo assenta. E SEM ESTADO: o XP de hoje sai so da data e do sorteio (recarregar nao muda nada), por isso substitui o `treino3d`.
+*/
+export const treinoDoMes = (p: Player, hoje: string): Record<string, number> | undefined => {
+  const ano = Number(hoje.slice(0, 4)), mes = Number(hoje.slice(5, 7)), dia = Number(hoje.slice(8, 10));
+  if (!ano || !mes || !dia) return undefined;
+  const fracao = Math.min(1, dia / new Date(ano, mes, 0).getDate());
+  const prox = proximoMes(mesDe(hoje));
+  const { jogador } = evolucaoMensal(p, prox);
+  const dSkill = jogador.skill - p.skill;
+  if (dSkill <= 0) return undefined;
+  const grupos: (GrupoAtributo | 'GK')[] = String(p.position) === 'GK' ? ['GK', 'TEC', 'TAC', 'FIS', 'MEN'] : ['TEC', 'TAC', 'FIS', 'MEN'];
+  const grupo = grupos[Math.floor(criarRng(`${prox}|grupo|${p.id}`)() * grupos.length)];
+  const a = atributos3d({ ...p, treino3d: undefined });
+  const lista = grupo === 'GK' ? (a.detalhe!.GK || []) : a.detalhe![grupo];
+  const out: Record<string, number> = {};
+  for (const x of lista) out[x.campo] = xpDeNiveis(x.valor, dSkill) * fracao;
+  return Object.keys(out).length ? out : undefined;
 };

@@ -158,13 +158,13 @@ export const ContractPanel: React.FC<{ player: Player }> = ({ player: recebido }
   const estado = estadoDoContrato(c, hoje);
   const alerta = estado === 'CRITICO' ? 'Critical: renew or sell this player now.' : estado === 'ATENCAO' ? 'Less than 12 months left: negotiate a renewal or consider selling.' : estado === 'VENCIDO' ? 'The contract has expired.' : '';
   return (
-    <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800">
-      <div className="flex items-center justify-between mb-2">
+    <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+      <div className="flex items-center justify-between mb-1">
         <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Contract</div>
         {c && <ContractChip player={player} hoje={hoje} />}
       </div>
       {c ? (
-        <div className="grid grid-cols-3 gap-3 text-center">
+        <div className="grid grid-cols-3 gap-2 text-center">
           <div><div className="text-[10px] text-slate-500 font-bold uppercase">Signed</div><div className="text-sm font-black text-slate-200">{dataCurta(c.start)}</div></div>
           <div><div className="text-[10px] text-slate-500 font-bold uppercase">Expires</div><div className="text-sm font-black text-slate-200">{dataCurta(c.end)}</div></div>
           <div><div className="text-[10px] text-slate-500 font-bold uppercase">Length</div><div className="text-sm font-black text-slate-200">{c.years} yr</div></div>
@@ -173,7 +173,7 @@ export const ContractPanel: React.FC<{ player: Player }> = ({ player: recebido }
       {alerta && <div className={`mt-2 text-xs font-bold ${estado === 'ATENCAO' ? 'text-amber-400' : 'text-rose-400'}`}>{alerta}</div>}
       {meu && c && (
         <button onClick={() => setRenovando(true)}
-          className="mt-3 w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-2 rounded text-xs uppercase tracking-widest transition-colors">{negociacoes.some(n => n.playerId === player.id) ? 'Negotiation in progress' : 'Renew contract'}</button>
+          className="mt-2 w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-1.5 rounded text-xs uppercase tracking-widest transition-colors">{negociacoes.some(n => n.playerId === player.id) ? 'Negotiation in progress' : 'Renew contract'}</button>
       )}
       {renovando && <RenovarModal player={player} hoje={hoje} onClose={() => setRenovando(false)} />}
     </div>

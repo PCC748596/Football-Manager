@@ -313,7 +313,7 @@ export const evolucaoMensal = (p: Player, mes: string): { jogador: Player; relat
     ...(estiloNovo && estiloNovo !== p.playStyle ? { estilo: { de: p.playStyle, para: estiloNovo } } : {}) } };
 };
 
-const proximoMes = (mes: string): string => somarMeses(mes + '-01', 1).slice(0, 7);
+export const proximoMes = (mes: string): string => somarMeses(mes + '-01', 1).slice(0, 7);
 
 /** A janela de atualizacao em vigor: 1/6 do ano (de junho a dezembro) ou 1/1 (de janeiro a maio). */
 export const janelaDe = (hoje: string): string => {

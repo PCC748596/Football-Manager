@@ -28,7 +28,7 @@ import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico,
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
 import { ACTIVITIES, cpuPlanoDoJogador, SLOTS_CPU_LEVE, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, XP_POR_PONTO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, ENERGIA_SLOT_VAZIO, drainMultiplier, recoveryMultiplier, energiaPosLesao, energiaInicial, definirNivelDoCt, tetoDoLegacy, garantirBaseLegacy, SLOTS_CPU_POR_DIA, rolouLesaoTreino, grupoPorEnergia, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
-import { campo3d, atributos3d, NOME_DO_CAMPO, regredirPorIdade, migrarTreinoParaXp, atributosIndividuais, alternarIndividual } from '../textSim/atributos3d';
+import { campo3d, atributos3d, NOME_DO_CAMPO, regredirPorIdade, migrarTreinoParaXp, atributosIndividuais, alternarIndividual, treinoDoMes } from '../textSim/atributos3d';
 import { GRUPOS } from '../textSim/geradorAtributos';
 import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
@@ -736,7 +736,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const hoje = gameState.currentDate;
     { const niveis = new Map(teams.map(t => [t.id, nivelDaBaseDoClube(t)] as const)); definirNivelDaBase(id => niveis.get(id) ?? 2); }   // o nivel da base de cada clube, pela liga
     const r = processarBase(garantirBase(base, teams.map(t => t.id), hoje), hoje);
-    const baseFinal = ajustarSalariosDaBase(r.base, teams);   // Sub-20 das series A-D com o salario da faixa de base da liga (textSim/salarios.ts)
+    const baseSal = ajustarSalariosDaBase(r.base, teams);   // Sub-20 das series A-D com o salario da faixa de base da liga (textSim/salarios.ts)
+    // Os jovens do utilizador sobem nos atributos durante o mes (XP diario do ganho ja sorteado, textSim/atributos3d.ts `treinoDoMes`).
+    const baseFinal = { ...baseSal, jogadores: baseSal.jogadores.map(j => (j.teamId === gameState.userTeamId ? { ...j, treino3d: treinoDoMes(j, hoje) } : j)) };
     if (baseFinal !== base) setBase(baseFinal);
     const doUtilizador = r.saidas.filter(j => j.teamId === gameState.userTeamId).map(j => ({ ...j, teamId: 'MARKET' }));
     if (doUtilizador.length) { setPlayers(prev => [...prev, ...doUtilizador.filter(j => !prev.some(p => p.id === j.id))]); empurrarInbox(avisoDeSaidaDaBase(hoje, gameState.language, doUtilizador)); }

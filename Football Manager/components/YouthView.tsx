@@ -129,7 +129,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
                     return (
                       <tr key={p.id} onClick={() => setSelId(p.id)} className={`cursor-pointer transition-colors ${selId === p.id ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-blue-50/50 dark:hover:bg-white/5'}`}>
                         <td className="px-3 py-[6px]"><span className="text-xs font-black text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded bg-slate-50 dark:bg-slate-900/40">{p.position}</span></td>
-                        <td className="px-3 py-[2px] font-bold text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap"><div className="flex items-center gap-2"><div className="w-[57px] h-[57px] shrink-0 overflow-hidden pointer-events-none"><PlayerFace3D playerId={p.id} team={userTeam} gk={p.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div><span>{p.name}</span></div></td>
+                        <td className="px-3 py-[2px] font-bold text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap"><div className="flex items-center gap-2"><div className="w-[57px] h-[57px] -my-[2.5px] shrink-0 overflow-hidden pointer-events-none"><PlayerFace3D playerId={p.id} team={userTeam} gk={p.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div><span>{p.name}</span></div></td>
                         <td className="px-3 py-[6px] text-center text-sm text-slate-500 dark:text-slate-400">{p.age}</td>
                         <td className="px-3 py-[6px] text-center"><span className="text-sm font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 px-2 py-0.5 rounded">{p.skill}</span></td>
                         <td className="px-3 py-[6px]"><Estrelas n={estrelasDoJogador(p)} /></td>
@@ -145,7 +145,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
             </div>
           </div>
 
-          <div className="bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl p-4 overflow-y-auto custom-scrollbar flex flex-col gap-2">
+          <div className="bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl p-4 overflow-y-auto custom-scrollbar flex flex-col gap-1">
             {!sel ? (
               <div className="text-slate-400 text-sm font-bold uppercase tracking-widest m-auto text-center">Select a player to see attributes and development</div>
             ) : (
@@ -180,11 +180,11 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
                   })}
                 </div>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">Monthly development</div>
+                  <div className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-1">Monthly development</div>
                   {(base.relatorios[sel.id] || []).length === 0 ? <div className="text-xs text-slate-400">No monthly update yet.</div> : (
                     <div className="flex flex-col gap-1">
                       {[...(base.relatorios[sel.id] || [])].reverse().map(r => (
-                        <div key={r.mes} className="bg-slate-200/50 dark:bg-slate-950/50 rounded px-3 py-2 border border-slate-200 dark:border-slate-800 text-xs">
+                        <div key={r.mes} className="bg-slate-200/50 dark:bg-slate-950/50 rounded px-3 py-1.5 border border-slate-200 dark:border-slate-800 text-xs">
                           <div className="flex justify-between font-black uppercase tracking-wider"><span className="text-slate-500">{mesEmTexto(r.mes)}</span><span className="text-slate-700 dark:text-slate-200">OVR {r.ovrAntes} → {r.ovrDepois} <Delta v={r.delta} /></span></div>
                           <div className="mt-1"><Mudancas r={r} /></div>
                         </div>
@@ -193,8 +193,8 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
                   )}
                 </div>
                 <ContractPanel player={sel} />
-                <button onClick={() => promover(sel)} className="mt-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded text-xs uppercase tracking-widest shadow-lg transition-colors">Promote to first team</button>
-                <button disabled={!podeDispensar(base, sel.id).ok} title={podeDispensar(base, sel.id).motivo} onClick={() => dispensar(sel)} className="disabled:opacity-30 disabled:cursor-not-allowed border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black py-2.5 rounded text-xs uppercase tracking-widest transition-colors">Release from academy</button>
+                <button onClick={() => promover(sel)} className="mt-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-colors">Promote to first team</button>
+                <button disabled={!podeDispensar(base, sel.id).ok} title={podeDispensar(base, sel.id).motivo} onClick={() => dispensar(sel)} className="disabled:opacity-30 disabled:cursor-not-allowed border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black py-2 rounded text-xs uppercase tracking-widest transition-colors">Release from academy</button>
               </>
             )}
           </div>

@@ -33,7 +33,7 @@ const getCoordinatesForAngle = (angle: number, value: number, center: number, ra
 
 // A posicao no campo (x = 0 baliza propria ... 100 baliza adversaria; y = 0 lado direito ... 100 lado esquerdo), em %.
 const POS_CAMPO: Record<string, [number, number]> = {
-  GK: [5, 50], LB: [22, 86], CB: [20, 50], RB: [22, 14], DM: [35, 50], LM: [50, 86], CM: [50, 50], RM: [50, 14], AM: [64, 50], LW: [78, 86], RW: [78, 14], SS: [78, 50], ST: [88, 50]
+  GK: [5, 50], LB: [22, 14], CB: [20, 50], RB: [22, 86], DM: [35, 50], LM: [50, 14], CM: [50, 50], RM: [50, 86], AM: [64, 50], LW: [78, 14], RW: [78, 86], SS: [78, 50], ST: [88, 50]
 };
 
 const RadarChart = ({ stats }: { stats: Record<string, number> }) => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Player, Position, PlayStyle, PLAYSTYLE_DESCRICAO } from '../types';
-import { atributos3d, campo3d } from '../textSim/atributos3d';
+import { atributos3d, progressoDeXp, CHAVES_POR_POSICAO } from '../textSim/atributos3d';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
 import { PLAYSTYLE_AJUSTES } from '../textSim/playStylesAjustes';
 import { estiloPorPosicao, estiloValidoDoJogador } from '../textSim/playStyleFallback';
@@ -58,45 +58,32 @@ export const PlayerRadar: React.FC<{ player: Player; tam?: number }> = ({ player
 const corDaBarra = (v: number) => (v >= 80 ? '#10b981' : v >= 70 ? '#60a5fa' : v >= 60 ? '#eab308' : '#f43f5e');
 const corDoNumero = (v: number) => (v >= 80 ? 'text-emerald-500' : v >= 70 ? 'text-blue-400' : v >= 60 ? 'text-yellow-500' : 'text-rose-500');
 
-const resumoDe = (player: Player) => player.position === Position.GK ? [
-  { rotulo: 'Diving', valor: campo3d(player, ['diving']) }, { rotulo: 'Handling', valor: campo3d(player, ['handling']) }, { rotulo: 'Kicking', valor: campo3d(player, ['kicking']) },
-  { rotulo: 'Reflexes', valor: campo3d(player, ['reflexes']) }, { rotulo: 'Speed', valor: campo3d(player, ['speed', 'acceleration']) }, { rotulo: 'Positioning', valor: campo3d(player, ['posGK']) }
-] : [
-  { rotulo: 'Pace', valor: campo3d(player, ['speed', 'acceleration']) },
-  { rotulo: 'Shooting', valor: campo3d(player, ['finishing', 'shotPower', 'longShots', 'volleys', 'penalties']) },
-  { rotulo: 'Passing', valor: campo3d(player, ['passing', 'longPassing', 'vision', 'crossing']) },
-  { rotulo: 'Dribbling', valor: campo3d(player, ['dribbling', 'ballControl', 'agility', 'balance']) },
-  { rotulo: 'Defending', valor: campo3d(player, ['tackleStanding', 'tackleSliding', 'manMarking', 'posDefense']) },
-  { rotulo: 'Physical', valor: campo3d(player, ['strength', 'stamina', 'jumping', 'aggression']) }
-];
-
-/** O Summary (as seis medidas) e, por baixo, o PlayStyle do jogador com o icone e a descricao. */
-export const PlayerSummary: React.FC<{ player: Player; nomeDoClube?: string }> = ({ player, nomeDoClube }) => {
-  const estilo = estiloValidoDoJogador(player,
-    nomeDoClube ? PLAYSTYLE_AJUSTES[`${nomeDoClube}|${player.name}`] : undefined,
-    player.playStyle, PLAYSTYLE_DA_BASE[player.id]);
-  const descricao = PLAYSTYLE_DESCRICAO[estilo as PlayStyle] || '';
+/** O Summary do jogador: os atributos-chave da posicao dele (`CHAVES_POR_POSICAO`: tecnicos, taticos, mentais, fisicos e, no goleiro, os de baliza), cada um com o nome, a barra e o valor. Sem o PlayStyle (ja aparece no topo do painel). */
+export const PlayerSummary: React.FC<{ player: Player; nomeDoClube?: string}> = ({ player }) => {
+  const a = atributos3d(player);
+  const chaves = CHAVES_POR_POSICAO[String(player.position)] || {};
+  const todos = [...a.detalhe!.TEC, ...a.detalhe!.TAC, ...a.detalhe!.MEN, ...a.detalhe!.FIS, ...(a.detalhe!.GK || [])];
+  const linhas = (['GK', 'TEC', 'TAC', 'MEN', 'FIS'] as const)
+    .flatMap(g => (chaves[g] || []))
+    .map(c => todos.find(x => x.campo === c))
+    .filter((x): x is NonNullable<typeof x> => !!x);
   return (
     <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 text-white">
       <div className="text-sm font-bold text-white mb-2">Summary</div>
       <div className="flex flex-col gap-0.5">
-        {resumoDe(player).map(r => (
-          <div key={r.rotulo} className="flex items-center gap-3 px-2 py-0.5 rounded bg-slate-950/40">
-            <span className="text-xs font-bold text-slate-300 w-20 shrink-0">{r.rotulo}</span>
-            <div className="flex-1 h-1.5 bg-slate-800 rounded overflow-hidden"><div className="h-full rounded" style={{ width: `${Math.max(0, (r.valor - 50) / 49 * 100)}%`, background: corDaBarra(r.valor) }} /></div>
-            <span className={`text-base font-black w-8 text-right ${corDoNumero(r.valor)}`}>{r.valor}</span>
+        {linhas.map(r => {
+          // XP de treino ate ao proximo ponto (como no Overview do elenco): o fundo da linha enche em ciano por baixo do texto.
+          const prog = progressoDeXp(player, r.campo, r.valor);
+          const pct = prog ? Math.min(100, Math.round(100 * prog.xp / prog.custo)) : 0;
+          return (
+          <div key={r.campo} title={prog ? `Training XP: ${Math.round(prog.xp)} / ${Math.round(prog.custo)} to +1` : undefined} className="relative flex items-center gap-3 px-2 py-0.5 rounded bg-slate-950/40 overflow-hidden">
+            {prog && <div className="absolute inset-y-0 left-0 bg-cyan-500/35 pointer-events-none" style={{ width: `${pct}%` }} />}
+            <span className="relative text-xs font-bold text-slate-300 w-28 shrink-0 truncate">{r.nome}</span>
+            <span className="flex-1" />
+            <span className={`relative text-base font-black w-8 text-right ${corDoNumero(r.valor)}`}>{r.valor}</span>
           </div>
-        ))}
-      </div>
-      <div className="mt-3 text-sm font-bold text-white mb-2">PlayStyle</div>
-      <div className="flex items-center gap-3">
-        <div title={descricao || estilo} className="w-11 h-11 bg-slate-800 rounded rotate-45 border border-slate-600 flex items-center justify-center shadow-lg shrink-0">
-          <span className="-rotate-45 flex items-center justify-center"><IconePlayStyleSvg estilo={estilo} tam={26} /></span>
-        </div>
-        <div className="min-w-0">
-          <div className="text-[11px] font-black text-slate-200 uppercase tracking-widest">{estilo}</div>
-          {descricao && <div className="text-[10px] leading-snug text-slate-500">{descricao}</div>}
-        </div>
+          );
+        })}
       </div>
     </div>
   );
