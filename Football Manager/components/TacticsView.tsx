@@ -22,6 +22,7 @@ import { setoresPadraoDaFormacao } from '../3dMatch/simulador3dCliente';
 import ZonePositionsModal from './ZonePositionsModal';
 import { campo3d } from '../textSim/atributos3d';
 import TacticPresetsModal from './TacticPresetsModal';
+import MatchPreviewModal from './MatchPreviewModal';
 import { slotsVazios } from '../textSim/escalacao';
 import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
@@ -90,6 +91,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   const kitDeCampo = (selectedKitIdx === 3 ? 0 : selectedKitIdx) as 0 | 1 | 2;
   const [showZonas, setShowZonas] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [presetFoco, setPresetFoco] = useState<null | 'save' | 'load'>(null);
   // TOQUE (iPad, onde o arrastar nativo falha): toca-se num jogador (banco, pool ou campo) para o SELECIONAR e depois no destino (um titular, um suplente ou o banco).
   const [selecionado, setSelecionado] = useState<string | null>(null);
@@ -488,6 +490,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
         {showZonas && <ZonePositionsModal team={userTeam} adversario={proximoAdversario} players={players} onClose={() => setShowZonas(false)} onLoadTactics={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })}
             onChange={(over) => { const todos = { ...(userTeam.tactics.zoneOverrides || {}) }; if (over) todos[userTeam.tactics.formation] = over; else delete todos[userTeam.tactics.formation]; updateTactics(userTeam.id, { zoneOverrides: Object.keys(todos).length ? todos : undefined }); }} />}
         {presetFoco && <TacticPresetsModal atual={userTeam.tactics} foco={presetFoco} onClose={() => setPresetFoco(null)} onLoad={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })} />}
+        {showPreview && <MatchPreviewModal userTeam={userTeam} adversario={proximoAdversario} players={players} kitDoUtilizador={kitDeCampo} onClose={() => setShowPreview(false)} />}
         {showPresets && <TacticPresetsModal atual={userTeam.tactics} onClose={() => setShowPresets(false)} onLoad={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })} />}
         {vaziosDoOnze.length > 0 && (
             <div className="shrink-0 bg-rose-600/20 border border-rose-500 text-rose-300 rounded-lg px-4 py-2 text-[12px] font-black uppercase tracking-wider">
@@ -502,16 +505,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                  {isMatchOngoing && setView && (
                     <button onClick={() => setView(localStorage.getItem('activeMatchView') === 'MATCH' ? 'MATCH' : 'TRAINING')} className="bg-emerald-600 text-white text-[10px] font-black uppercase px-4 py-2 rounded">Resume</button>
                  )}
-                 <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded p-1 border border-slate-200 dark:border-slate-700">
-                    <span className="text-[9px] font-black text-slate-400 px-2 uppercase tracking-widest">FORMATION</span>
-                    <select 
-                        value={userTeam.tactics.formation} 
-                        onChange={(e) => handleTacticChange('formation', e.target.value as any)}
-                        className="appearance-none bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white font-bold text-[10px] py-1 pl-3 pr-2 rounded outline-none cursor-pointer uppercase tracking-wider"
-                    >
-                        {Object.keys(FORMATIONS).map(f => <option key={f} value={f}>{f}</option>)}
-                    </select>
-                 </div>
+                 <button onClick={() => setShowPreview(true)} title="Opens the line-ups of both teams side by side" className="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded shadow">Match Preview</button>
             </div>
         </div>
 
@@ -992,7 +986,19 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                 </div>
 
                 <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-[13px] px-4 shadow-sm min-h-0 min-w-0 flex flex-col">
-                    <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic mb-2">TACTICAL INSTRUCTIONS</h3>
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">TACTICAL INSTRUCTIONS</h3>
+                        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded p-1 border border-slate-200 dark:border-slate-700">
+                            <span className="text-[9px] font-black text-slate-400 px-2 uppercase tracking-widest">FORMATION</span>
+                            <select
+                                value={userTeam.tactics.formation}
+                                onChange={(e) => handleTacticChange('formation', e.target.value as any)}
+                                className="appearance-none bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white font-bold text-[10px] py-1 pl-3 pr-2 rounded outline-none cursor-pointer uppercase tracking-wider"
+                            >
+                                {Object.keys(FORMATIONS).map(f => <option key={f} value={f}>{f}</option>)}
+                            </select>
+                        </div>
+                    </div>
                     <div className="flex-1 flex flex-col justify-between pt-2">
                         <div className="space-y-2">
                             <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">MENTALITY</span><span className="text-[9px] font-black text-blue-400 uppercase">{userTeam.tactics.style}</span></div>
