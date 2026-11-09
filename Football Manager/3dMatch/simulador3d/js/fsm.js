@@ -1245,6 +1245,30 @@ class PlayerFSM {
         }
     }
 
+    /*
+    O LEVANTAR DO CARRINHO EM TRES POSES (as do guarda-redes, peixinho e voleio: `Levantar`): parte da pose do fim do deslize (a de `applySlidePose(1, 1)`), passa para `apoio` (de joelhos, uma mao no
+    chao, tronco baixo) no primeiro tramo, depois `joelho` (um joelho no chao) e `quase`, ate ficar de pe. Mistura osso a osso a pose do deslize com a do `Levantar` (sem salto, o deslize tem eixos y/z que o
+    formato do `Levantar` nao tem). A altura segue as poses (`Levantar.alturaPescoco`), a partir de onde o corpo estava deitado.
+    */
+    _levantarDoCarrinho(u0) {
+        const p = this.p, rig = p.rig;
+        const ossos = [rig.pelvis, rig.chest, rig.neck, rig.lLeg, rig.rLeg, rig.lKnee, rig.rKnee, rig.lFoot, rig.rFoot, rig.lArm, rig.rArm, rig.lElbow, rig.rElbow].filter(Boolean);
+        this.applySlidePose(1, 1);
+        const ySlide = p.model.position.y;
+        const snap = ossos.map(o => [o.rotation.x, o.rotation.y, o.rotation.z]);
+        this._escreverPoseComemorar(Levantar.pose(u0));
+        const w = Levantar._sv(u0 / Levantar.fim.apoio);
+        ossos.forEach((o, i) => {
+            const a = snap[i];
+            o.rotation.x = a[0] + (o.rotation.x - a[0]) * w;
+            o.rotation.y = a[1] + (o.rotation.y - a[1]) * w;
+            o.rotation.z = a[2] + (o.rotation.z - a[2]) * w;
+        });
+        const yPose = ALTURA_BASE_Y + (Levantar.alturaPescoco(u0) - Levantar.alturas.dePe);
+        const w0 = Levantar.resto(u0);
+        p.model.position.y = yPose + (ySlide - yPose) * w0;
+    }
+
     applySlidePose(intens, q) {
         const p = this.p;
         const rig = p.rig;
@@ -3114,7 +3138,10 @@ class PlayerFSM {
                         intens = Math.max(0, 1.0 - (tSlide - S.paragem) / (S.levantar - S.paragem));
                     }
 
-                    { const u = Math.max(0, Math.min(1, tSlide / S.paragem)); this.applySlidePose(intens, u * u * (3 - 2 * u)); }
+                    if (tSlide > S.paragem && typeof Levantar !== 'undefined' && Levantar.activo && p.rig) {
+                        // O LEVANTAR DO CARRINHO como o do guarda-redes depois da queda (pedido): de joelhos primeiro, depois um joelho no chao, e so entao de pe (`Levantar`, config/player_behavior.js).
+                        this._levantarDoCarrinho((tSlide - S.paragem) / Math.max(0.01, S.levantar - S.paragem));
+                    } else { const u = Math.max(0, Math.min(1, tSlide / S.paragem)); this.applySlidePose(intens, u * u * (3 - 2 * u)); }
 
                     // Toque na bola: uma unica vez por carrinho.
                     if (!p.slideTouched && !p.hasBall &&
