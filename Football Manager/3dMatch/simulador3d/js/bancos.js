@@ -239,7 +239,7 @@ const Bancos = {
         p.model.position.y = 0;
         p.model.updateMatrixWorld(true);
         let minY = Infinity;
-        p.model.traverse(o => { if (o.isMesh && o.geometry && o.visible) { const b = new THREE.Box3().setFromObject(o); if (b.min.y < minY) minY = b.min.y; } });
+        p.model.traverse(o => { if (o.isMesh && o.geometry && o.visible && o.name !== 'BlobSombra') { const b = new THREE.Box3().setFromObject(o); if (b.min.y < minY) minY = b.min.y; } });
         if (isFinite(minY)) p.model.position.y = -minY;
     },
 
@@ -257,6 +257,7 @@ const Bancos = {
         const porMaterial = new Map();
         const visivel = (o) => { for (let q = o; q; q = q.parent) { if (!q.visible) return false; if (q === m) break; } return true; };
         m.traverse(o => {
+            if (o.name === 'BlobSombra') return;   // a sombra falsa nao e do boneco (ver a nota em staff.js)
             if (!o.isMesh || !o.geometry || Array.isArray(o.material) || !visivel(o)) return;
             if (!o.geometry.attributes.position || !o.geometry.attributes.normal) return;
             if (!porMaterial.has(o.material)) porMaterial.set(o.material, []);

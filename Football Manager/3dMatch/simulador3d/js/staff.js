@@ -259,6 +259,8 @@ const Staff = {
         const porCanal = {};
         m.traverse(o => {
             if (!o.isMesh || !o.geometry || !o.geometry.attributes.position || !o.geometry.attributes.normal) return;
+            // A sombra falsa (Qualidade.criarBlob) NAO e do boneco: com as sombras reais desligadas (o padrao) ela fica visivel e era fundida no canal da camisa, dando um quadrado da cor do colete sob cada pessoa.
+            if (o.name === 'BlobSombra') return;
             for (let q = o; q; q = q.parent) { if (!q.visible) return; if (q === m) break; }
             (porCanal[canalDe(o)] = porCanal[canalDe(o)] || []).push(o);
         });

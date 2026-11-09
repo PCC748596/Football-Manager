@@ -230,7 +230,13 @@ const Qualidade = {
         const ficam = [];
         Object.keys(grupos).forEach(function (k) {
             const g = grupos[k], n = Math.max(1, Math.round(g.length * max / luzes.length));
-            for (let i = 0; i < Math.min(n, g.length); i++) ficam.push(g[Math.floor((i + 0.5) * g.length / n)]);
+            /*
+            A ESCOLHA TEM DE SER SIMETRICA (relato: *"um lado do estadio esta mais iluminado que o outro"*): `floor((i + 0.5) * len / n)` com len 4 e n 2 dava os indices 1 e 3 — as luzes de z -0.25 e +0.75 de uma
+            lateral, e, nos cantos, as DUAS do mesmo fundo. Agora os indices vao do primeiro ao ultimo do grupo, a passos iguais (len 4, n 2: 0 e 3; len 3, n 2: 0 e 2), de modo que a luz que fica
+            de um lado do campo tem a sua par do outro; com uma so, a do meio.
+            */
+            const nn = Math.min(n, g.length);
+            for (let i = 0; i < nn; i++) ficam.push(g[nn === 1 ? Math.floor((g.length - 1) / 2) : Math.round(i * (g.length - 1) / (nn - 1))]);
         });
         const fator = Math.min(2.0, Math.sqrt(luzes.length / ficam.length));
         luzes.forEach(function (l) {
