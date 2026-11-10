@@ -3622,6 +3622,16 @@ class FootballPlayer {
                 }
             }
 
+            // MENOS PASSES AO CF QUANDO FALTA JOGO NA ALA (BalancoCorredores.cfPeso): o avancado central perde parte da nota enquanto um corredor lateral pedido esta abaixo do alvo.
+            {
+                const CP = (typeof BalancoCorredores !== 'undefined') ? BalancoCorredores.cfPeso : null;
+                if (CP && CP.activo && score > 0 && (opt.pos === 'CF' || opt.pos === 'ST' || opt.pos === 'SS') && typeof TempoPorCorredor !== 'undefined' &&
+                    setoresMeus && setoresMeus.length > 0 && setoresMeus.length < 3 && Math.abs(optPos.x) < CP.xCentral) {
+                    const falta = Math.max(0, -TempoPorCorredor.empurrao(this.team, 'esq'), -TempoPorCorredor.empurrao(this.team, 'dir'));
+                    if (falta > 0) score *= 1 - CP.reducao * Math.min(1, falta / CP.faltaCheia);
+                }
+            }
+
             // O RECEPTOR MANTEM NA ALA (BalancoCorredores.mantemAla): quem tem a bola na ala de um sector ligado nao a devolve para dentro (so progride ou segura).
             {
                 const MA = (typeof BalancoCorredores !== 'undefined') ? BalancoCorredores.mantemAla : null;

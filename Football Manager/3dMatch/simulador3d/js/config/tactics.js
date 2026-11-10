@@ -2372,3 +2372,9 @@ const CameraCinema = {
     nevoeiro: 6.0
 };
 if (typeof window !== 'undefined') window.CameraCinema = CameraCinema;
+
+/*
+MOMENTUM: o lado do campo onde a bola esteve nos ultimos `janela` s de jogo (bola em jogo), media do x da bola de -1 a +1. Ver updateMomentum (bt/team_bt.js).
+*/
+const MomentumModel = { janela: 60 };
+if (typeof window !== 'undefined') window.MomentumModel = MomentumModel;

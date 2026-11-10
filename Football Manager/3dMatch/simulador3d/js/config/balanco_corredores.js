@@ -48,6 +48,8 @@ const BalancoCorredores = {
     /*
     O RECEPTOR MANTEM NA ALA: o homem de ala com a bola no corredor de um sector ligado perde `1 - fator` da nota dos passes para dentro (|x| < xLateral) que nao progridem mais de `progMax` m.
     */
+    // MENOS PASSES AO CF: quando um corredor lateral pedido esta abaixo do alvo, o CF/ST/SS central (|x| < xCentral) perde ate `reducao` da nota do passe (cheio com `faltaCheia` de falta).
+    cfPeso: { activo: false, xCentral: 11.0, reducao: 0.5, faltaCheia: 0.3 },
     mantemAla: { activo: true, posicoes: ['LM', 'RM', 'LW', 'RW', 'LB', 'RB'], xLateral: 14.0, fator: 0.5, progMax: 8.0 },
     /*
     O CF LANCA PARA AS PONTAS: o avancado (CF/ST) com a bola a mais de `fundoMin` m da linha de fundo, com Left e/ou Right ligados, manda o homem de ala/lateral mais perto da linha de fundo

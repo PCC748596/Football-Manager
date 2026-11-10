@@ -2484,3 +2484,11 @@ const StaminaModel = {
     */
     recuperaNoIntervalo: 0.10
 };
+
+/*
+O HOMEM DE ALA CONDUZ ANTES DE PASSAR (pedido: cada posicao tem a sua sequencia; quem joga no corredor lateral tem Carry antes de Pass). Nos nos `ConduzirEmEspaco` e `AlaDriblaAntes`
+(bt/player_bt.js): LM/RM/LB/RB com |x| >= `xLateral`, a mais de `zonaMin` m da linha de fundo, com `espacoMin` m livres a frente e sem pressao, conduzem em vez de passar; com um
+adversario a frente (e o drible aplicavel) driblam em vez de buscar a saida de passe.
+*/
+const AlaConduz = { activo: false, posicoes: ['LM', 'RM', 'LB', 'RB'], xLateral: 13.0, zonaMin: 0.0, espacoMin: 4.0, driblarAntes: true };
+if (typeof window !== 'undefined') window.AlaConduz = AlaConduz;

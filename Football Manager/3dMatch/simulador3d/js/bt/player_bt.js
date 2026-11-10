@@ -4930,63 +4930,54 @@ function caminhoFechadoAFrente(ctx) {
     return false;
 }
 
-const PlayerBT = sel('PlayerRoot',
+/*
+Monta a decisao com bola: a ordem padrao e, por grupo de posicao (BTPosicoes.grupos) e por playing style (BTPosicoes.estilos), as operacoes sobre ela. Cada variante vira um ramo
+que so corre para quem tem aquela posicao (e estilo); o ramo final e a ordem padrao. Sem operacoes, e so a ordem padrao.
+*/
+function construirDecisaoComBola(nos, padrao) {
+    const B = (typeof BTPosicoes !== 'undefined') ? BTPosicoes : null;
+    const aplicar = (ordem, ops) => {
+        const o = ordem.slice();
+        for (const op of (ops || [])) {
+            if (nos[op.no] === undefined || (op.ref !== undefined && nos[op.ref] === undefined)) { console.warn('BTPosicoes: no desconhecido', op); continue; }
+            const ia = o.indexOf(op.no);
+            if (ia >= 0) o.splice(ia, 1);
+            if (op.tipo === 'remover') continue;
+            const ir = o.indexOf(op.ref);
+            if (ir < 0) { o.push(op.no); continue; }
+            o.splice(op.tipo === 'depois' ? ir + 1 : ir, 0, op.no);
+        }
+        return o;
+    };
+    const lista = (ordem) => ordem.map(n => nos[n]);
+    const padraoSel = sel('DecisaoComBola', ...lista(padrao));
+    if (!B || !B.activo) return padraoSel;
+    const ramos = [];
+    // Primeiro os estilos (excepcoes), depois o grupo.
+    for (const E of (B.estilos || [])) {
+        if (!(E.operacoes || []).length) continue;
+        const base = aplicar(padrao, (B.grupos[E.grupo] || {}).operacoes);
+        const ordem = aplicar(base, E.operacoes);
+        ramos.push(seq('Estilo:' + E.grupo + ':' + E.estilo,
+            cond('ehEstilo', (ctx) => B.grupoDe[ctx.p.pos] === E.grupo && ctx.p.playingStyle === E.estilo && !ctx.p.playingStyleDesligado),
+            sel('DecisaoComBola', ...lista(ordem))));
+    }
+    for (const g of Object.keys(B.grupos)) {
+        const ops = B.grupos[g].operacoes || [];
+        if (!ops.length) continue;
+        ramos.push(seq('Posicao:' + g,
+            cond('ehGrupo', (ctx) => B.grupoDe[ctx.p.pos] === g),
+            sel('DecisaoComBola', ...lista(aplicar(padrao, ops)))));
+    }
+    if (!ramos.length) return padraoSel;
+    return sel('DecisaoComBola', ...ramos, padraoSel);
+}
 
-    /* --- Bola parada ---------------------------------------------------- */
-    seq('BolaParada',
-        cond('jogoParado', () => Match.state !== 'PLAY'),
-        act('esperarLance', (ctx) => tratarBolaParada(ctx.p))
-    ),
-
-    /* --- Acção em curso: não voltar a decidir ---------------------------- */
-    seq('AccaoEmCurso',
-        cond('estadoBloqueante', (ctx) => {
-            const s = ctx.p.fsm.currentState;
-            return s === 'PASS' || s === 'SHOOT' || s === 'TACKLE' || s === 'SLIDE_TACKLE' ||
-                s === 'CHEST_CONTROL';
-        }),
-        act('deixarTerminar', () => { })
-    ),
-
-    /*
-    A INFILTRACAO SO PARA SE O ADVERSARIO FICAR COM A POSSE (pedido). Com a bola livre (sem portador do adversario) quem vai em corrida ao espaco continua ate ao fim do `runTimer`;
-    com o adversario a conduzir a bola a corrida acaba. Quem foi escolhido para ir a bola (chaser / intercetor) tambem a larga. Ver `RunIntoSpaceModel.persisteSemPosse` e o `perdemosABola` do RUN_INTO_SPACE (fsm.js).
-    */
-    seq('InfiltracaoSemPosse',
-        cond('infiltracaoPersiste', (ctx) => {
-            const R = (typeof RunIntoSpaceModel !== 'undefined') ? RunIntoSpaceModel : null;
-            const p = ctx.p;
-            if (!R || !R.persisteSemPosse || p.fsm.currentState !== 'RUN_INTO_SPACE' || !(p.runTimer > 0)) return false;
-            if (Match.possessionTeam === p.team || Match.ballCarrier === p) return false;
-            // O ADVERSARIO com a bola nos pes pára a corrida (a BT segue); com a bola livre continua.
-            if (Match.ballCarrier && Match.ballCarrier.team !== p.team) return false;
-            const bb = ctx.bb;
-            if (bb && (bb.chaser === p || bb.intercetor === p)) return false;
-            return true;
-        }),
-        act('continuarCorrida', () => { })
-    ),
-
-    // A ADIANTADA DE BOLA LONGA em curso (AdiantadaModel): corre atras dela, a sprint, enquanto ninguem a tem.
-    seq('PerseguirAdiantada',
-        cond('adiantadaLivre', (ctx) => ctx.p.adiantadaTimer > 0 && !ctx.p.hasBall && !Match.ballCarrier && Match.state === 'PLAY'),
-        act('correrAtrasDaBola', (ctx) => {
-            const p = ctx.p;
-            const bp = Match.ball.position, bv = Match.ballVel;
-            const ponto = p.adiantadaPonto || { x: bp.x, z: bp.z };
-            p.dynamicTarget.set(ponto.x, ALTURA_BASE_Y, ponto.z);
-            p.speedMult = p.adiantadaVel || (6.5 * 1.3);
-            p.apoioAtivo = false;
-            if (p.fsm.currentState !== 'MOVE_TO_POS') p.fsm.changeState('MOVE_TO_POS');
-        })
-    ),
-
-    /* --- Com bola -------------------------------------------------------- */
-    seq('ComBola',
-        cond('tenhoABola', temBola),
-
-        sel('DecisaoComBola',
-            /*
+/* ===========================================================================
+   OS NOS DA DECISAO COM BOLA — cada um com nome; a ORDEM por posicao e por playing style vive em config/bt_posicoes.js (BTPosicoes) e e montada por construirDecisaoComBola.
+   =========================================================================== */
+const NOS_COM_BOLA = {};
+NOS_COM_BOLA['DriblarGuardaRedes'] = /*
             DRIBLAR O GUARDA-REDES — o primeiro de todos, e por medição.
 
             Com o guarda-redes a 15 m da linha e a três metros à frente, a
@@ -5010,9 +5001,8 @@ const PlayerBT = sel('PlayerRoot',
             seq('DriblarGuardaRedes',
                 cond('podeDriblarGuardaRedes', podeDriblarGuardaRedes),
                 act('driblarGuardaRedes', actDribble)
-            ),
-
-            /*
+            );
+NOS_COM_BOLA['RecuperarControlo'] = /*
             IR BUSCAR A BOLA — menos quando o que falta fazer é rematá-la.
 
             `bolaFugiu` era só `!hasBall`, e em condução isso é verdade na
@@ -5036,8 +5026,8 @@ const PlayerBT = sel('PlayerRoot',
                     return true;
                 }),
                 act('correrParaBola', actCarry)
-            ),
-            /*
+            );
+NOS_COM_BOLA['PasseSaidaDeBola'] = /*
             SAÍDA DE JOGO: quem recebe a primeira bola toca para trás.
 
             Está ACIMA do `Dominar` de propósito. Estava abaixo, e o `Dominar`
@@ -5091,15 +5081,13 @@ const PlayerBT = sel('PlayerRoot',
                     Match.kickoffPendingPassToDef = false;
                     executarPasseSaidaParaDefesas(ctx.p, ctx.kickoffDefTarget);
                 })
-            ),
-
-            // ADIANTADA: a bola adiantada chegou -> cruza de primeira, ou gira pelo lado e procura o passe.
-            seq('CruzarDePrimeira', cond('adiantadaChegou', adiantadaChegou), act('cruzarDePrimeira', actCross)),
-            seq('AdiantarParaDentro', cond('empurrarDentro', (ctx) => ctx.p.hasBall && !!ctx.p._empurrarDentro), act('empurrarDentro', actEmpurrarDentro)),
-            seq('GiroLateral', cond('aGirar', (ctx) => ctx.p.hasBall && ctx.p.giroLateral > 0.7), act('girarPelaLinha', actGiroLateral)),
-            seq('Adiantar', cond('valeAdiantar', valeAdiantar), act('adiantarBolaLonga', actAdiantar)),
-
-            cond('CalculaDebug', (ctx) => {
+            );
+NOS_COM_BOLA['CruzarDePrimeira'] = // ADIANTADA: a bola adiantada chegou -> cruza de primeira, ou gira pelo lado e procura o passe.
+            seq('CruzarDePrimeira', cond('adiantadaChegou', adiantadaChegou), act('cruzarDePrimeira', actCross));
+NOS_COM_BOLA['AdiantarParaDentro'] = seq('AdiantarParaDentro', cond('empurrarDentro', (ctx) => ctx.p.hasBall && !!ctx.p._empurrarDentro), act('empurrarDentro', actEmpurrarDentro));
+NOS_COM_BOLA['GiroLateral'] = seq('GiroLateral', cond('aGirar', (ctx) => ctx.p.hasBall && ctx.p.giroLateral > 0.7), act('girarPelaLinha', actGiroLateral));
+NOS_COM_BOLA['Adiantar'] = seq('Adiantar', cond('valeAdiantar', valeAdiantar), act('adiantarBolaLonga', actAdiantar));
+NOS_COM_BOLA['CalculaDebug'] = cond('CalculaDebug', (ctx) => {
                 let carryPts = 0;
                 if (ctx.campoAberto) carryPts += 110;
                 if (ctx.livreAFrente10m20g) carryPts += 165;
@@ -5116,8 +5104,8 @@ const PlayerBT = sel('PlayerRoot',
                     if (pass && pass.debugPoints) ctx.p.debugPoints['Pass'] = pass.debugPoints['Pass'];
                 }
                 return false;
-            }),
-            /*
+            });
+NOS_COM_BOLA['LancarInfiltrado'] = /*
             Domina antes de decidir. Cadência real: ~3s a avaliar as opções
             (CadenceModel.posseBase), bem menos sob pressão pesada — aí é
             toque de primeira, decisão quase imediata. Skill acelera um
@@ -5137,8 +5125,8 @@ const PlayerBT = sel('PlayerRoot',
                     p.initiatePass(r.mate);
                     return true;
                 })
-            ),
-            seq('Dominar',
+            );
+NOS_COM_BOLA['Dominar'] = seq('Dominar',
                 cond('aindaADominar', (ctx) => {
                     // Cara a cara com o guarda-redes: não "pensa", remata. Sem
                     // isto o jogador entrava na área de frente pro gol e ainda
@@ -5189,9 +5177,8 @@ const PlayerBT = sel('PlayerRoot',
                     return false;
                 }),
                 act('proteger', actCarry)
-            ),
-
-            /*
+            );
+NOS_COM_BOLA['GuardaRedesJoga'] = /*
             Guarda-redes: 80% sai a jogar pelos LATERAIS, 20% chuta para a
             frente (GoalkeeperDistribution). O sorteio é por posse, não por
             frame.
@@ -5204,9 +5191,8 @@ const PlayerBT = sel('PlayerRoot',
             seq('GuardaRedesJoga',
                 cond('souGR', ehGK),
                 act('sairAJogar', tratarGuardaRedes)
-            ),
-
-            /*
+            );
+NOS_COM_BOLA['SaidaDaArea'] = /*
             ALIVIO PRIMEIRO, quando o perigo é imediato: defensor apertado
             dentro da própria zona de perigo (ClearanceModel.zonaPerigo).
 
@@ -5224,15 +5210,13 @@ const PlayerBT = sel('PlayerRoot',
             seq('SaidaDaArea',
                 cond('pressionadoNaPropriaArea', saidaDaAreaAplica),
                 act('sairDaArea', actSaidaDaArea)
-            ),
-
-            // O zagueiro de costas para o ataque com um marcador nas costas nao gira 180 graus (DefesaDeCostas): recua ao guarda-redes ou chuta pela lateral.
+            );
+NOS_COM_BOLA['DefesaDeCostas'] = // O zagueiro de costas para o ataque com um marcador nas costas nao gira 180 graus (DefesaDeCostas): recua ao guarda-redes ou chuta pela lateral.
             seq('DefesaDeCostas',
                 cond('zagueiroDeCostasPressionado', (ctx) => { ctx._defCostas = opcaoDefesaDeCostas(ctx); return !!ctx._defCostas; }),
                 act('defenderDeCostas', (ctx) => actDefesaDeCostas(ctx, ctx._defCostas))
-            ),
-
-            seq('AlivioDePerigo',
+            );
+NOS_COM_BOLA['AlivioDePerigo'] = seq('AlivioDePerigo',
                 cond('perigoImediato', (ctx) => {
                     const C = (typeof ClearanceModel !== 'undefined') ? ClearanceModel : null;
                     if (!C || !ctx.underPressure) return false;
@@ -5240,21 +5224,18 @@ const PlayerBT = sel('PlayerRoot',
                     return distanciaAoProprioFundo(ctx.p) <= C.zonaPerigo;
                 }),
                 act('aliviarDoPerigo', actClearance)
-            ),
-
-            // 0b. MARCADO DENTRO DA AREA: quem tem drible e consistency acima de 75 tenta o drible em 30% das chances (pedido); nas outras 70% segue o chute.
+            );
+NOS_COM_BOLA['DriblarNaArea'] = // 0b. MARCADO DENTRO DA AREA: quem tem drible e consistency acima de 75 tenta o drible em 30% das chances (pedido); nas outras 70% segue o chute.
             seq('DriblarNaArea',
                 cond('driblaMarcadoNaArea', podeDriblarMarcadoNaArea),
                 act('driblarNaArea', actDribble)
-            ),
-
-            // 1. Verificar chute - chutar
+            );
+NOS_COM_BOLA['Rematar'] = // 1. Verificar chute - chutar
             seq('Rematar',
                 cond('emZonaDeRemate', emZonaDeRemate),
                 act('rematar', actShoot)
-            ),
-
-            // 2. Verificar cruzamento se tiver nas laterais das áreas - cruzar
+            );
+NOS_COM_BOLA['Cruzar'] = // 2. Verificar cruzamento se tiver nas laterais das áreas - cruzar
             seq('Cruzar',
                 cond('valeCruzar', (ctx) => {
                     ctx.cross = findCross(ctx);
@@ -5266,15 +5247,13 @@ const PlayerBT = sel('PlayerRoot',
                     return Math.random() < Math.min(CrossModel.chanceMax, ctx.cross.chance * mult);
                 }),
                 act('cruzar', actCross)
-            ),
-
-            // 2a'. O CF (a mais de 25 m da linha de fundo, Left/Right ligados) lanca para as pontas; um homem de ala infiltra (ver lancamentoDoCF).
+            );
+NOS_COM_BOLA['CFLancaAsPontas'] = // 2a'. O CF (a mais de 25 m da linha de fundo, Left/Right ligados) lanca para as pontas; um homem de ala infiltra (ver lancamentoDoCF).
             seq('CFLancaAsPontas',
                 cond('cfLanca', (ctx) => { const l = lancamentoDoCF(ctx.p, ctx); ctx._lancCF = l; return !!l; }),
                 act('lancarPonta', (ctx) => { ctx.throughBall = ctx._lancCF; actThroughBall(ctx); })
-            ),
-
-            // 2a. ROTACAO DE JOGO: o corredor lateral pedido esta abaixo do alvo -> passa a um homem de ala (ver alaParaRotacao).
+            );
+NOS_COM_BOLA['RotacaoDeJogo'] = // 2a. ROTACAO DE JOGO: o corredor lateral pedido esta abaixo do alvo -> passa a um homem de ala (ver alaParaRotacao).
             seq('RotacaoDeJogo',
                 cond('faltaTempoNaAla', (ctx) => { const r = alaParaRotacao(ctx.p, ctx); ctx._rot = r; return !!r; }),
                 act('rodarJogo', (ctx) => {
@@ -5286,9 +5265,8 @@ const PlayerBT = sel('PlayerRoot',
                     if (typeof MatchStats !== 'undefined' && MatchStats[p.team]) MatchStats[p.team].rotacoes = (MatchStats[p.team].rotacoes || 0) + 1;
                     return true;
                 })
-            ),
-
-            // 2b. LANCAR PARA A INTENCAO de quem corre (ver `Intencoes`): o companheiro que arrancou em posicao regular diz para onde vai e o portador lanca-lhe a bola la.
+            );
+NOS_COM_BOLA['LancarParaIntencao'] = // 2b. LANCAR PARA A INTENCAO de quem corre (ver `Intencoes`): o companheiro que arrancou em posicao regular diz para onde vai e o portador lanca-lhe a bola la.
             seq('LancarParaIntencao',
                 cond('haIntencaoBoa', (ctx) => {
                     const p = ctx.p;
@@ -5306,9 +5284,8 @@ const PlayerBT = sel('PlayerRoot',
                     ctx.throughBall = ctx._lancIntencao;
                     actThroughBall(ctx);
                 })
-            ),
-
-            // 3. Conduzir em espaço aberto (+165 pontos se sem marcação a 10m em 20 graus)
+            );
+NOS_COM_BOLA['ConduzirEmEspaco'] = // 3. Conduzir em espaço aberto (+165 pontos se sem marcação a 10m em 20 graus)
             seq('ConduzirEmEspaco',
                 cond('campoAberto', (ctx) => {
                     const p = ctx.p;
@@ -5327,6 +5304,16 @@ const PlayerBT = sel('PlayerRoot',
                     Ver `alaLivreParaOFundo` e `CrossModel.corredor`.
                     */
                     if (alaLivreParaOFundo(ctx)) return true;
+
+                    /*
+                    O HOMEM DE ALA CONDUZ ANTES DE PASSAR (AlaConduz, config/player_behavior.js): no corredor lateral, com espaco a frente, a conducao vem antes do passe — senao a arvore
+                    nunca chegava a ela (o passe vem primeiro fora do ultimo terco) e a bola ia sempre para o centro.
+                    */
+                    {
+                        const AC = (typeof AlaConduz !== 'undefined') ? AlaConduz : null;
+                        if (AC && AC.activo && AC.posicoes.indexOf(p.pos) >= 0 && Math.abs(p.model.position.x) >= AC.xLateral &&
+                            ctx.zoneAhead > AC.zonaMin && ctx.espacoAFrente >= AC.espacoMin && !ctx.underPressure) return true;
+                    }
 
                     /*
                     O PASSE VEM PRIMEIRO — ver CarryModel.conduzirSoAcimaDe.
@@ -5410,13 +5397,21 @@ const PlayerBT = sel('PlayerRoot',
                     return true;
                 }),
                 act('atacarOEspaco', actCarry)
-            ),
-
-            /*
+            );
+NOS_COM_BOLA['AlaDriblaAntes'] = /*
             4. Caminho fechado / Circulação: se há adversário à frente no corredor
             e não tem espaço para conduzir, prioriza o passe antes sequer de tentar driblar.
             */
-            seq('CaminhoFechado',
+            // 3b. O homem de ala no corredor lateral dribla (se o drible se aplica) ANTES de procurar a saida de passe quando o caminho esta fechado (AlaConduz).
+            seq('AlaDriblaAntes',
+                cond('alaPodeDriblar', (ctx) => {
+                    const AC = (typeof AlaConduz !== 'undefined') ? AlaConduz : null;
+                    if (!AC || !AC.activo || !AC.driblarAntes || AC.posicoes.indexOf(ctx.p.pos) < 0 || Math.abs(ctx.p.model.position.x) < AC.xLateral) return false;
+                    return podeDriblar(ctx);
+                }),
+                act('driblarNaAla', actDribble)
+            );
+NOS_COM_BOLA['CaminhoFechado'] = seq('CaminhoFechado',
                 cond('doisPelaFrente', (ctx) => {
                     if (ctx.livreAFrente10m20g || !caminhoFechadoAFrente(ctx)) return false;
                     const saida = findBestPassAnywhere(ctx) || findPassSide(ctx) || findPassBack(ctx);
@@ -5433,9 +5428,8 @@ const PlayerBT = sel('PlayerRoot',
                         actPass(ctx);
                     }
                 })
-            ),
-
-            /*
+            );
+NOS_COM_BOLA['CircularNaDefesa'] = /*
             4b. Circulação na defesa: se o jogador está na sua metade defensiva ou é defesa
             e não tem espaço livre para conduzir à frente, circula a bola.
             */
@@ -5463,15 +5457,13 @@ const PlayerBT = sel('PlayerRoot',
                         actPass(ctx);
                     }
                 })
-            ),
-
-            // 5. Adversário próximo, espaço atrás do adversário, técnica >= 75 - Driblar
+            );
+NOS_COM_BOLA['Driblar'] = // 5. Adversário próximo, espaço atrás do adversário, técnica >= 75 - Driblar
             seq('Driblar',
                 cond('podeDriblar', podeDriblar),
                 act('driblar', actDribble)
-            ),
-
-            // 6. Escolha de passe baseada na avaliação geral
+            );
+NOS_COM_BOLA['ProcurarPasse'] = // 6. Escolha de passe baseada na avaliação geral
             seq('ProcurarPasse',
                 cond('haOpcaoDePasse', (ctx) => {
                     /*
@@ -5494,9 +5486,8 @@ const PlayerBT = sel('PlayerRoot',
                         actPass(ctx);
                     }
                 })
-            ),
-
-            // 7. Não tem passe viável e está sob pressão - chute para a lateral
+            );
+NOS_COM_BOLA['ChuteLateral'] = // 7. Não tem passe viável e está sob pressão - chute para a lateral
             seq('ChuteLateral',
                 cond('semOpcoesSeguras', (ctx) => {
                     /*
@@ -5532,10 +5523,67 @@ const PlayerBT = sel('PlayerRoot',
                     return isUnderPressure || ctx.p.decisionTimer > timeThreshold;
                 }),
                 act('chutarParaLateral', actClearance)
-            ),
+            );
+NOS_COM_BOLA['conduzir'] = act('conduzir', actCarry);
+const ORDEM_PADRAO_COM_BOLA = ["DriblarGuardaRedes", "RecuperarControlo", "PasseSaidaDeBola", "CruzarDePrimeira", "AdiantarParaDentro", "GiroLateral", "Adiantar", "CalculaDebug", "LancarInfiltrado", "Dominar", "GuardaRedesJoga", "SaidaDaArea", "DefesaDeCostas", "AlivioDePerigo", "DriblarNaArea", "Rematar", "Cruzar", "CFLancaAsPontas", "RotacaoDeJogo", "LancarParaIntencao", "ConduzirEmEspaco", "AlaDriblaAntes", "CaminhoFechado", "CircularNaDefesa", "Driblar", "ProcurarPasse", "ChuteLateral", "conduzir"];
+const DecisaoComBolaPorPosicao = construirDecisaoComBola(NOS_COM_BOLA, ORDEM_PADRAO_COM_BOLA);
 
-            act('conduzir', actCarry)
-        )
+const PlayerBT = sel('PlayerRoot',
+
+    /* --- Bola parada ---------------------------------------------------- */
+    seq('BolaParada',
+        cond('jogoParado', () => Match.state !== 'PLAY'),
+        act('esperarLance', (ctx) => tratarBolaParada(ctx.p))
+    ),
+
+    /* --- Acção em curso: não voltar a decidir ---------------------------- */
+    seq('AccaoEmCurso',
+        cond('estadoBloqueante', (ctx) => {
+            const s = ctx.p.fsm.currentState;
+            return s === 'PASS' || s === 'SHOOT' || s === 'TACKLE' || s === 'SLIDE_TACKLE' ||
+                s === 'CHEST_CONTROL';
+        }),
+        act('deixarTerminar', () => { })
+    ),
+
+    /*
+    A INFILTRACAO SO PARA SE O ADVERSARIO FICAR COM A POSSE (pedido). Com a bola livre (sem portador do adversario) quem vai em corrida ao espaco continua ate ao fim do `runTimer`;
+    com o adversario a conduzir a bola a corrida acaba. Quem foi escolhido para ir a bola (chaser / intercetor) tambem a larga. Ver `RunIntoSpaceModel.persisteSemPosse` e o `perdemosABola` do RUN_INTO_SPACE (fsm.js).
+    */
+    seq('InfiltracaoSemPosse',
+        cond('infiltracaoPersiste', (ctx) => {
+            const R = (typeof RunIntoSpaceModel !== 'undefined') ? RunIntoSpaceModel : null;
+            const p = ctx.p;
+            if (!R || !R.persisteSemPosse || p.fsm.currentState !== 'RUN_INTO_SPACE' || !(p.runTimer > 0)) return false;
+            if (Match.possessionTeam === p.team || Match.ballCarrier === p) return false;
+            // O ADVERSARIO com a bola nos pes pára a corrida (a BT segue); com a bola livre continua.
+            if (Match.ballCarrier && Match.ballCarrier.team !== p.team) return false;
+            const bb = ctx.bb;
+            if (bb && (bb.chaser === p || bb.intercetor === p)) return false;
+            return true;
+        }),
+        act('continuarCorrida', () => { })
+    ),
+
+    // A ADIANTADA DE BOLA LONGA em curso (AdiantadaModel): corre atras dela, a sprint, enquanto ninguem a tem.
+    seq('PerseguirAdiantada',
+        cond('adiantadaLivre', (ctx) => ctx.p.adiantadaTimer > 0 && !ctx.p.hasBall && !Match.ballCarrier && Match.state === 'PLAY'),
+        act('correrAtrasDaBola', (ctx) => {
+            const p = ctx.p;
+            const bp = Match.ball.position, bv = Match.ballVel;
+            const ponto = p.adiantadaPonto || { x: bp.x, z: bp.z };
+            p.dynamicTarget.set(ponto.x, ALTURA_BASE_Y, ponto.z);
+            p.speedMult = p.adiantadaVel || (6.5 * 1.3);
+            p.apoioAtivo = false;
+            if (p.fsm.currentState !== 'MOVE_TO_POS') p.fsm.changeState('MOVE_TO_POS');
+        })
+    ),
+
+    /* --- Com bola -------------------------------------------------------- */
+    seq('ComBola',
+        cond('tenhoABola', temBola),
+
+        DecisaoComBolaPorPosicao
     ),
 
     /* --- Sem bola -------------------------------------------------------- */

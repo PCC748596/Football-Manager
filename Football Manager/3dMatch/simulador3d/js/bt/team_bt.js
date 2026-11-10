@@ -196,9 +196,27 @@ uma bola a 10 m/s, e era isso que punha os dois rectângulos do TeamBT atrás da
 jogada em vez de sobre ela.
 */
 function updateMomentum(bb, dt) {
-    const alvoX = THREE.MathUtils.clamp(bb.ballX / (CAMPO_LARG / 2), -1, 1);
-    const kX = 1 - Math.exp(-0.8 * dt);
-    bb.momentumX += (alvoX - bb.momentumX) * kX;
+    /*
+    O MOMENTUM e o LADO onde a bola esteve no ultimo MINUTO REAL de jogo (MomentumModel.janela s de bola em jogo): a media do x da bola, de -1 (esquerda do campo) a +1 (direita),
+    em baldes de 1 s. Parado nao conta. `momentumAtk` e o mesmo no referencial de ataque da equipa (+1 = a direita de quem ataca), o que serve para distribuir as jogadas.
+    */
+    const MM = (typeof MomentumModel !== 'undefined') ? MomentumModel : { janela: 60 };
+    if (!bb._mom) bb._mom = { buf: [], soma: 0, t: 0 };
+    const mo = bb._mom;
+    if (typeof Match === 'undefined' || Match.state === 'PLAY') {
+        mo.soma += THREE.MathUtils.clamp(bb.ballX / (CAMPO_LARG / 2), -1, 1) * dt;
+        mo.t += dt;
+        if (mo.t >= 1.0) {
+            mo.buf.push(mo.soma / mo.t);
+            mo.soma = 0; mo.t = 0;
+            while (mo.buf.length > MM.janela) mo.buf.shift();
+        }
+        if (mo.buf.length) {
+            let a = 0; for (const v of mo.buf) a += v;
+            bb.momentumX = a / mo.buf.length;
+        }
+        bb.momentumAtk = bb.momentumX * (bb.dir || 1);
+    }
 
     /*
     Seguimento longitudinal: a bola, e mais nada.
