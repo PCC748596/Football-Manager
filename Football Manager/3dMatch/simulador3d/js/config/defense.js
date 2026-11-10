@@ -1266,3 +1266,11 @@ const DisputaAerea = {
 };
 
 if (typeof window !== 'undefined') window.DisputaAerea = DisputaAerea;
+
+/*
+A PRESSAO DO CHASER (pedido: *"o chaser esta a mil por hora; reduz um pouco a pressao"*). Medido: 31 trocas de chaser por minuto e o chaser adversario a 5.9 m/s a 3 m da bola; a posse durava 5.7 s.
+  velFator   multiplica a velocidade com que o chaser corre a bola (1 = como antes);
+  histerese  diferenca de nota (a nota e 100 - distancia a bola, em m) que um segundo jogador tem de ter sobre o chaser actual para o substituir (antes 4).
+*/
+const PressaoDoChaser = { velFator: 0.92, histerese: 8.0 };
+if (typeof window !== 'undefined') window.PressaoDoChaser = PressaoDoChaser;

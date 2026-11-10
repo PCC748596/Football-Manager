@@ -601,7 +601,7 @@ function pickChaser(bb) {
     if (!candidatos.length) { bb.chaser = null; return; }
 
     const prevIdx = prevChaser ? candidatos.findIndex(c => c.p === prevChaser) : -1;
-    if (prevIdx === 0 || (prevIdx === 1 && (candidatos[0].score - candidatos[prevIdx].score < 4.0))) {
+    if (prevIdx === 0 || (prevIdx === 1 && (candidatos[0].score - candidatos[prevIdx].score < ((typeof PressaoDoChaser !== 'undefined') ? PressaoDoChaser.histerese : 4.0)))) {
         bb.chaser = prevChaser;
     } else {
         bb.chaser = candidatos.length ? candidatos[0].p : null;

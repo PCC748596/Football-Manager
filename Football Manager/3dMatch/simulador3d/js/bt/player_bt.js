@@ -2916,7 +2916,7 @@ function actChaseBall(ctx) {
         return;
     }
 
-    p.speedMult = (5.8 + ((ctx.skillSpeed - 50) / 50) * 1.5) * 1.25 * 0.9;
+    p.speedMult = (5.8 + ((ctx.skillSpeed - 50) / 50) * 1.5) * 1.25 * 0.9 * ((typeof PressaoDoChaser !== 'undefined') ? PressaoDoChaser.velFator : 1);
     if (Match.counterAttackTeam === p.team) p.speedMult *= velContraAtaque(1.25, p.team);
 
     /*

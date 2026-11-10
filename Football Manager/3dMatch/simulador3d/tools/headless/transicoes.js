@@ -12,6 +12,7 @@ if (typeof Sim === 'undefined') global.Sim = {};
 Sim.running = true;
 Match.init(new THREE.Scene());
 if (process.env.TR === 'velho') ZonasModel.transicao = { duracao: 3.0, avancoOfensivo: 14.0, recuoDefensivo: 8.0 };
+if (process.env.PCH === 'velho') { PressaoDoChaser.velFator = 1; PressaoDoChaser.histerese = 4; }
 if (process.env.SETORES) Tatics.setores = process.env.SETORES.split(',');
 const lim = CAMPO_COMP / 2 - 16.5, c = CAMPO_LARG / 6;
 let jogo = 0, ult = null, dur = 0; const durs = []; let trocas = 0;
@@ -32,5 +33,5 @@ for (let i = 0; i < segundos * 60; i++) {
 const A = MatchStats.TeamA, B = MatchStats.TeamB;
 const media = durs.length ? durs.reduce((a, b) => a + b, 0) / durs.length : 0;
 const s = t.esq + t.cen + t.dir || 1;
-console.log(`${process.env.TR === 'velho' ? 'VELHO' : 'NOVO '} semente ${semente}: jogo ${jogo.toFixed(0)}s | posse media ${media.toFixed(1)}s, ${(trocas / (jogo / 60)).toFixed(1)} trocas/min | passes ${A.passes.certos + B.passes.certos}/${A.passes.tentados + B.passes.tentados} | remates ${A.remates.tentados + B.remates.tentados} golos ${Match.placarA + Match.placarB} | recuperacoes ${A.recuperacoes + B.recuperacoes} | corredores esq ${(100 * t.esq / s).toFixed(0)}% cen ${(100 * t.cen / s).toFixed(0)}% dir ${(100 * t.dir / s).toFixed(0)}%`);
+console.log(`${process.env.TR === 'velho' ? 'VELHO' : 'NOVO '} semente ${semente}: jogo ${jogo.toFixed(0)}s | posse media ${media.toFixed(1)}s, ${(trocas / (jogo / 60)).toFixed(1)} trocas/min | passes ${A.passes.certos + B.passes.certos}/${A.passes.tentados + B.passes.tentados} | remates ${A.remates.tentados + B.remates.tentados} golos ${Match.placarA + Match.placarB} | recuperacoes ${A.recuperacoes + B.recuperacoes} | trocas de chaser ${((A.trocasChaser + B.trocasChaser) / (jogo / 60)).toFixed(1)}/min | corredores esq ${(100 * t.esq / s).toFixed(0)}% cen ${(100 * t.cen / s).toFixed(0)}% dir ${(100 * t.dir / s).toFixed(0)}%`);
 process.exit(0);
