@@ -4,6 +4,7 @@ O motor 3D decide a partida e gera a narracao. Dois usos:
   . jogarOculto  corre a partida do utilizador sem desenhar (modo "2D simulador": so a narracao) e devolve o resultado inteiro;
   . montarPayload  monta a mensagem `iniciar` (usada tambem pelo Simulador3DView, que mostra o 3D num iframe).
 */
+import { escudoUrl } from '../textSim/distribuicao';
 import { atributosParaMotor } from '../textSim/atributos3d';
 import { peBomDe } from '../textSim/peBom';
 import { Team, Player, Fixture, MatchEvent, RatingDetalhe, Tactics, FORMATIONS, getKitDetails, getGKKitDetails, resolveSetPieceTakers, kitShorts, ehVerde, KitDetails } from '../types';
@@ -91,7 +92,7 @@ const ladoDe = (team: Team, players: Player[]): LadoPayload => {
   }
   const formacao = team.tactics?.formation || '4-4-2';
   return {
-    equipa: { id: team.id, name: team.name, city: (team as any).city, logoUrl: (team as any).logoUrl, cores: [team.primaryColor, team.secondaryColor, team.tertiaryColor], lineup: team.lineup, bench: (team as any).bench || [], tactics: team.tactics, cobradores: resolveSetPieceTakers(team, players), medico: (team as any).medico || null },
+    equipa: { id: team.id, name: team.name, city: (team as any).city, logoUrl: escudoUrl((team as any).logoUrl), cores: [team.primaryColor, team.secondaryColor, team.tertiaryColor], lineup: team.lineup, bench: (team as any).bench || [], tactics: team.tactics, cobradores: resolveSetPieceTakers(team, players), medico: (team as any).medico || null },
     jogadoresPorId: porId,
     tatica: team.tactics ? taticaParaMotor({ ...team.tactics, focusSectors: setoresPadraoDaFormacao(team.tactics.formation) || team.tactics.focusSectors }) : undefined,
     conhecimentoTatico: (team as any).managerTactics ?? 70,
@@ -141,7 +142,7 @@ export const montarPayload = (casa: Team, fora: Team, players: Player[], userTea
   const lado = (t: Team, idx?: number, gkEscolhido?: any) => {
     const i = ((idx ?? (t === casa ? 0 : 1)) as 0 | 1 | 2);
     // O escudo na camisa (pose.js): a imagem do clube ou as tres cores em barras. O Vasco-RJ fica sem ele (a camisa tem a cruz de malta).
-    const escudo = t.name === 'Vasco-RJ' ? null : { logo: (t as any).logoUrl || null, cores: [t.primaryColor, t.secondaryColor, t.tertiaryColor] };
+    const escudo = t.name === 'Vasco-RJ' ? null : { logo: escudoUrl((t as any).logoUrl) || null, cores: [t.primaryColor, t.secondaryColor, t.tertiaryColor] };
     return { ...ladoDe(t, players), uniforme: { titular: i === 0, linha: { ...uniformeDoKit(getKitDetails(t, i)), escudo }, gk: { ...uniformeDoKit(gkEscolhido || getGKKitDetails(t, i), false), escudo },
       // Os outros kits do time (para as camisas da torcida).
       outros: ([0, 1, 2] as const).filter(j => j !== i).map(j => uniformeDoKit(getKitDetails(t, j))) } };

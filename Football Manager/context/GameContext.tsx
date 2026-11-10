@@ -24,6 +24,9 @@ import { registrarLigas, escalaDaLiga } from '../textSim/economia';
 import { Negociacao, Oferta, abrirNegociacao, assinar, chanceDeAceitar, propostaDoJogador, resolverNegociacoes } from '../textSim/negociacao';
 import { rotuloDaFase } from '../textSim/competitions';
 import { slotsVazios, jogoEmAndamento, completarEscalacaoCpu } from '../textSim/escalacao';
+import { DISTRIBUICAO, nomeGenerico, escudoUrl } from '../textSim/distribuicao';
+import { REAL_PLAYERS_JSON } from '../textSim/realDatabase';
+import { jogadorLocalPorId } from '../textSim/dadosLocais';
 import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico, gerarMedico } from '../textSim/medico';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
@@ -288,6 +291,13 @@ interface GameContextType {
   updateMatchVisualState: (visual: Partial<MatchVisualState>) => void;
   registrarFinanceiro: (teamId: string, ponto: PontoFinanceiro) => void;
 }
+
+// Os ids dos jogadores da base real (`p-<idPlayer>`): so estes tem o nome trocado ao carregar um save.
+let _idsReais: Set<string> | null = null;
+const idsDeJogadoresReais = (): Set<string> => {
+  if (!_idsReais) _idsReais = new Set((REAL_PLAYERS_JSON as any[]).filter(p => p.idPlayer).map(p => `p-${p.idPlayer}`));
+  return _idsReais;
+};
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
@@ -1735,7 +1745,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     jogos.filter(j => !j.f.played).forEach(j => { vivo.set(j.f.homeTeamId, `${j.hs}-${j.as}`); vivo.set(j.f.awayTeamId, `${j.as}-${j.hs}`); });
     const ordem = Array.from(tab.values()).sort((a, b) => (b.pts - a.pts) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf));
     return ordem.map((l, i) => ({
-      pos: i + 1, nome: l.t.name, logo: (l.t as any).logoUrl || null, cores: [l.t.primaryColor, l.t.secondaryColor, l.t.tertiaryColor],
+      pos: i + 1, nome: l.t.name, logo: escudoUrl((l.t as any).logoUrl) || null, cores: [l.t.primaryColor, l.t.secondaryColor, l.t.tertiaryColor],
       pts: l.pts, v: l.v, forma: l.forma.slice(-5), vivo: vivo.get(l.t.id) || null, destaque: !!uf && (l.t.id === uf.homeTeamId || l.t.id === uf.awayTeamId)
     }));
   };
@@ -2565,6 +2575,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         simulador3dDescartar();   // o 3D do save anterior sai: o MatchDay (remontado por loadId) cria o do save carregado
         pauseMatch();
         (window as any).motor3dMinuto = undefined;
+        // MODO DE DISTRIBUICAO (textSim/distribuicao.ts): um save com nomes reais passa a mostrar nomes gerados (so os jogadores da base real; os gerados pelo jogo ja o sao).
+        if (DISTRIBUICAO.nomesGenericos) {
+          const idsReais = idsDeJogadoresReais();
+          data.players = data.players.map((p: any) => (p.nomeOriginal || (!idsReais.has(String(p.id)) && !jogadorLocalPorId(String(p.id))) ? p : { ...p, nomeOriginal: p.name, name: nomeGenerico(String(p.id), String(p.teamId)) }));
+        }
         // Saves antigos so tem `fitness` (a barra le `energia ?? fitness`): sem isto o fecho do dia lia `energia ?? 100` e todos iam de 50% a 100% no primeiro dia.
         data.players = data.players.map((p: any) => (p.energia === undefined && typeof p.fitness === 'number' ? { ...p, energia: p.fitness } : p));
         // Saves antigos: ninguem fica abaixo do nivel minimo (50).

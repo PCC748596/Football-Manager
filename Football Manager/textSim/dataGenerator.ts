@@ -7,6 +7,7 @@ import { folhaAnual } from './orcamento';
 import { ECONOMIA_ESTADIO } from './stadiumEconomy';
 import { calcularSkill } from './overall';
 import { nomeDoClube } from './nomes';
+import { DISTRIBUICAO, nomeGenerico } from './distribuicao';
 import { criarRng } from './contracts';
 import { gerarMedico } from './medico';
 import { TREINADORES, sortearConhecimento } from './treinadores';
@@ -735,7 +736,9 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
 
         squad.push({
           id: p.idPlayer ? `p-${p.idPlayer}` : `p-${playerIdCounter++}`,
-          name: p.namePlayer,
+          ...(DISTRIBUICAO.nomesGenericos
+            ? { name: nomeGenerico(p.idPlayer ? `p-${p.idPlayer}` : `p-${playerIdCounter}`, String(t.teamID)), nomeOriginal: p.namePlayer }
+            : { name: p.namePlayer }),
           age: p.agePlayer,
           position: mapPosString(p.posPlayer),
           ...(p.birthDate ? { birthDate: p.birthDate } : {}),

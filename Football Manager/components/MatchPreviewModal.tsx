@@ -76,7 +76,7 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
   // Os reservas dos DOIS times por posicao (goleiro, defesa, meio, ataque; dentro da posicao, o de maior OVR primeiro).
   const reservas = [...reservasTodos].sort((a, b) => ((POSITION_ORDER as any)[a.position] ?? 99) - ((POSITION_ORDER as any)[b.position] ?? 99) || b.skill - a.skill);
   const quimica = calcularQuimica(noCampo.filter((p): p is Player => !!p), team.tactics.formation, team.synergyMap);
-  const estiloDe = (p: Player) => estiloValidoDoJogador(p, PLAYSTYLE_AJUSTES[`${team.name}|${p.name}`], p.playStyle, PLAYSTYLE_DA_BASE[p.id]);
+  const estiloDe = (p: Player) => estiloValidoDoJogador(p, PLAYSTYLE_AJUSTES[`${team.name}|${p.nomeOriginal || p.name}`], p.playStyle, PLAYSTYLE_DA_BASE[p.id]);
   // OS BOTOES DO MATCH TACTICS (Playing Styles, Avg Ratings, Player Faces) valem para os DOIS times: o preview mostra o que o utilizador escolheu la.
   const estilosOn = userTeam?.tactics.playingStylesOn !== false;
   const rostosOn = rostosLigados(userTeam?.tactics);          // o rosto sobre a camisa, no campo sem cartoes

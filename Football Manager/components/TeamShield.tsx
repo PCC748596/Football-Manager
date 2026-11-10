@@ -1,6 +1,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { Team } from '../types';
+import { DISTRIBUICAO } from '../textSim/distribuicao';
 
 interface TeamShieldProps {
   team?: Team;
@@ -34,7 +35,7 @@ export const TeamShield: React.FC<TeamShieldProps> = ({ team, className = "w-6 h
   if (!team || !shieldData) return <div className={`${className} bg-gray-200 rounded-full animate-pulse`} />;
 
   // Display Image if available and not broken
-  if (team.logoUrl && !imageError) {
+  if (!DISTRIBUICAO.escudosGenericos && team.logoUrl && !imageError) {
     return (
       <div className={`${className} flex items-center justify-center overflow-hidden`}>
         <img 

@@ -204,7 +204,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   };
   // O PLAYING STYLE do jogador, pela mesma ordem do PlayerDetailModal: ajuste manual, o definido no jogador, o da base e, por fim, o primeiro que serve a posicao dele.
   const estiloDoJogador = (p: Player): string => estiloValidoDoJogador(p,
-    PLAYSTYLE_AJUSTES[`${userTeam.name}|${p.name}`], p.playStyle, PLAYSTYLE_DA_BASE[p.id]);
+    PLAYSTYLE_AJUSTES[`${userTeam.name}|${p.nomeOriginal || p.name}`], p.playStyle, PLAYSTYLE_DA_BASE[p.id]);
   // O icone do Playing Style nos cards do banco e do squad pool (so com o botao Playing Styles ligado).
   const iconeDoEstilo = (p: Player, tam = 24) => userTeam.tactics.playingStylesOn === false ? null : (
     <IconeEstilo estilo={estiloDoJogador(p)} tam={tam} />

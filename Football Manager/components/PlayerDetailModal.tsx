@@ -210,7 +210,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
   */
   const playStyles = useMemo(() => {
     const daBase = estiloValidoDoJogador(player,
-      team ? PLAYSTYLE_AJUSTES[`${team.name}|${player.name}`] : undefined,
+      team ? PLAYSTYLE_AJUSTES[`${team.name}|${player.nomeOriginal || player.name}`] : undefined,
       player.playStyle,   // o estilo definido pela base Sub-20 (a partir dos 18 anos)
       PLAYSTYLE_DA_BASE[player.id]);
     return [{ name: daBase, descricao: PLAYSTYLE_DESCRICAO[daBase as PlayStyle] || '' }];

@@ -101,7 +101,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
 
   // O PLAYING STYLE do jogador, pela mesma ordem do TacticsView: ajuste manual, o definido no jogador, o da base e, por fim, o primeiro que serve a posicao dele.
   const estiloDoJogador = (p: Player): string => estiloValidoDoJogador(p,
-    PLAYSTYLE_AJUSTES[`${userTeam.name}|${p.name}`], p.playStyle, PLAYSTYLE_DA_BASE[p.id]);
+    PLAYSTYLE_AJUSTES[`${userTeam.name}|${p.nomeOriginal || p.name}`], p.playStyle, PLAYSTYLE_DA_BASE[p.id]);
 
   // (a coluna `pos` ordena por ORDEM_POS: goleiro, defesa, meio-campo, ataque — nao alfabetica)
   const VALOR_DA_COLUNA: Record<string, (p: Player) => number | string> = {

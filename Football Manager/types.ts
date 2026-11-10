@@ -146,6 +146,8 @@ export interface RatingHistorico { fixtureId: string; nota: number; minutos: num
 export interface Player {
   id: string;
   name: string;
+  /** O nome real de origem (so com `DISTRIBUICAO.nomesGenericos`, onde `name` e gerado): chave interna (ajustes de playing style); nunca se mostra. */
+  nomeOriginal?: string;
   age: number;
   position: Position;
   skill: number;

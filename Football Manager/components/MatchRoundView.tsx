@@ -1,3 +1,4 @@
+import { DISTRIBUICAO } from '../textSim/distribuicao';
 import React from 'react';
 import { useGame } from '../context/GameContext';
 import { Fixture, Team, Player, Position, Language } from '../types';
@@ -76,7 +77,7 @@ const TeamShield: React.FC<TeamShieldProps> = ({ team, className = "w-12 h-12" }
   
   return (
     <div className={`${className} relative flex items-center justify-center rounded-full overflow-hidden transition-transform hover:scale-105`}>
-      {team.logoUrl ? (
+      {!DISTRIBUICAO.escudosGenericos && team.logoUrl ? (
         <img src={team.logoUrl} alt={team.name} className="w-full h-full object-contain" />
       ) : isVasco ? (
          <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: 'black' }}>
