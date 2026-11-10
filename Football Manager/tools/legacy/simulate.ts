@@ -1,5 +1,5 @@
-import { generateLeagueData, generateFixtures } from './textSim/dataGenerator';
-import { simulateMatch } from './textSim/matchEngine';
+import { generateLeagueData, generateFixtures } from '../../textSim/dataGenerator';
+import { simulateMatch } from '../../textSim/matchEngine';
 
 console.log('Initializing league data...');
 const { teams, players } = generateLeagueData('45', 'bra_serie_a');

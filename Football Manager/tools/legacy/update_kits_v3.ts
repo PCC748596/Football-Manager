@@ -1,6 +1,6 @@
 import fs from 'fs';
-import { REAL_TEAMS_JSON } from './textSim/realDatabase';
-import { getKitDetails, getGKKitDetails } from './types';
+import { REAL_TEAMS_JSON } from '../../textSim/realDatabase';
+import { getKitDetails, getGKKitDetails } from '../../types';
 
 const updatedTeams = REAL_TEAMS_JSON.map(team => {
     const getPattern = (details: any) => {
