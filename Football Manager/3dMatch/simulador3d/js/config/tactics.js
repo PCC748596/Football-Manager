@@ -2284,12 +2284,7 @@ const ZonasModel = {
     avancam ate `avancoAtk` / `avancoMid` m e fecham o x para o centro (`fechaXAtk` / `fechaXMid`, fracao de |x|), sem passar de `zMax` m (referencial de ataque). `entradaArea: null` desliga.
     */
     entradaArea: { avancoAtk: 6.0, avancoMid: 4.0, fechaXAtk: 0.35, fechaXMid: 0.2, zMax: 48.0 },
-    /*
-    AS CAMADAS DO `tickFinal` QUE A TABELA JA FAZ (medido na liga de 380 jogos): com bola o alvo final afastava-se 11-12 m do posto da tabela; as maiores parcelas eram a mola de
-    coesao a bola (2.6 m), o pendulo (1.2 m), o tecto dos meias (1.2 m) e o desvio maximo ao slot (0.7 m) — todas escritas para o bloco rigido, e a tabela ja poe cada jogador
-    em relacao a bola. `false` = esta camada nao corre quando o posto vem da tabela (a marcacao, o fora-de-jogo, o rest defense e a repulsao continuam). `true` volta a correr.
-    */
-    camadas: { molaCoesao: false, pendulo: false, tectoMeias: false, desvioMaxDoSlot: false },
+    // (As camadas do bloco rigido — mola de coesao, pendulo, tecto dos meias e desvio maximo ao slot — foram removidas: a tabela por zonas ja poe cada jogador em relacao a bola.)
     // O alvo final nunca se afasta do posto da tabela mais do que isto (m), salvo quem tem tarefa de bola: o que o treinador desenha no Match Tactics e o que se ve em campo. 0 desliga.
     desvioMaxFinal: 2.5,
     // E a coleira da arvore individual (infiltracao, apoio, desmarque, marcacao): o alvo nao passa deste raio (m) do posto da tabela. Fora dela: portador, perseguidor, intercetor, bloqueador, destinatario. 0 desliga.

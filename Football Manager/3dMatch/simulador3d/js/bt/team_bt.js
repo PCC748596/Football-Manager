@@ -2847,7 +2847,6 @@ const PosicionamentoAI = {
         if (p.role === 'gk') return;
         if (!p.postoBase) return;
         const comEstilo = p.postoBase;
-        const saltaZ = (k) => p._zonal && typeof ZonasModel !== 'undefined' && ZonasModel.camadas && ZonasModel.camadas[k] === false;
         // MEDICAO (tools/headless/liga_formacoes.js): quanto cada camada desloca o alvo. So com window.__camadas.
         const _D = (typeof window !== 'undefined') ? window.__camadas : null;
         let _px = comEstilo.x, _pz = comEstilo.z;
@@ -2888,40 +2887,14 @@ const PosicionamentoAI = {
             }
         }
 
-        /*
-        MOLA DE COESAO A BOLA — ver molaParaABola (utils.js) e MolaDeCoesao
-        (config.js).
-
-        AQUI e nao noutro sitio: depois do tecto do estilo e da inercia (que
-        dizem onde o jogador QUER estar) e ANTES do corte de fora-de-jogo e do
-        clamp do campo. Se corresse depois, a mola podia empurrar alguem para
-        posicao irregular ou para fora das linhas, e nenhum dos dois cortes
-        voltava a falar.
-
-        O guarda-redes fica de fora: a posicao dele vem do gkAnchor.
-        */
         dbgCamada('recuoApoio+inercia', comInquietacao.x, finalZ);
         let molaX = comInquietacao.x;
-        if (p.role !== 'gk' && !saltaZ('molaCoesao') && typeof MolaDeCoesao !== 'undefined' &&
-            typeof molaParaABola === 'function' &&
-            typeof Match !== 'undefined' && Match.ball) {
-            const M = MolaDeCoesao;
-            const forca = (bb && bb.isAttacking) ? M.forcaComBola : M.forcaSemBola;
-            const puxado = molaParaABola(
-                molaX, finalZ,
-                Match.ball.position.x, Match.ball.position.z,
-                forca, M.distMin, M.puxaoMax);
-            molaX = puxado.x;
-            finalZ = puxado.z;
-        }
-
         // Lateral ofensivo (apoioDoLateral): marcação, inércia pós-passe e mola não o tiram do corredor nem o levam à área.
         if (bb && bb.isAttacking && p._apoioXMin != null) {
             molaX = Math.sign(molaX || p.baseTarget.x || 1) * Math.max(Math.abs(molaX), p._apoioXMin);
             if (p._apoioTectoZ != null && finalZ * p.dirZ > p._apoioTectoZ) finalZ = p._apoioTectoZ * p.dirZ;
         }
 
-        dbgCamada('molaCoesao', molaX, finalZ);
         /*
         OS LIMITES SEM BOLA, E O REST DEFENSE.
 
@@ -3023,60 +2996,6 @@ const PosicionamentoAI = {
 
         dbgCamada('transicaoDef', molaX, finalZ);
         /*
-        TECTO DE DESVIO AO SLOT — a formação tem de continuar a existir.
-
-        O slot é a formação; tudo o que vem depois (estilo, marcação, mola de
-        coesão, inquietação) desloca-o, e sem tecto um central acabava a 20 m
-        do posto dele. `BlockShape.desvioMaxDoSlot` dá corda diferente por
-        função: um defesa segura a linha, um avançado ataca o espaço.
-
-        Aplica-se ao fim de tudo e cede, como os outros, a quem vai à bola.
-        */
-        if (B_LIM && B_LIM.desvioMaxDoSlot && !saltaZ('desvioMaxDoSlot') && !temTarefaDeBola && p.postoBase) {
-            const tecto = B_LIM.desvioMaxDoSlot[p.role];
-            if (typeof tecto === 'number' && tecto > 0) {
-                const dx = molaX - p.postoBase.x;
-                const dz = finalZ - p.postoBase.z;
-                const d = Math.hypot(dx, dz);
-                if (d > tecto) {
-                    const k = tecto / d;
-                    molaX = p.postoBase.x + dx * k;
-                    finalZ = p.postoBase.z + dz * k;
-                }
-            }
-        }
-
-        dbgCamada('desvioMaxDoSlot', molaX, finalZ);
-        /*
-        O PÊNDULO — ninguém fica na outra ponta do campo.
-
-        O rectângulo tem 47.6 m de largura e o centro dele acompanha a bola em
-        X, portanto os slots espalham-se até 23.8 m para cada lado dela: com a
-        bola numa ala, o homem do lado contrário fica na linha lateral oposta.
-        Medido com a bola a mais de 12 m do eixo: o alvo mais afastado estava a
-        27.5 m da bola em X (pior caso 45.6 m). Dali não há linha de passe.
-
-        `BlockShape.distanciaMaxX` é o tecto de afastamento LATERAL à bola: quem
-        passa dele é puxado só em X — a profundidade continua a ser do bloco, e
-        a largura do rectângulo não muda. Não é encolher o bloco; é não deixar
-        um jogador ficar fora do jogo pelo lado.
-
-        Só COM POSSE: sem bola, fechar o lado contrário entrega a ala ao
-        adversário. E cede a quem tem tarefa de bola — chaser, intercetor,
-        bloqueador — que vai onde tem de ir.
-        */
-        if (typeof BlockShape !== 'undefined' && BlockShape.penduloParaABola && p.role !== 'gk' && !saltaZ('pendulo') &&
-            bb && bb.isAttacking && typeof Match !== 'undefined' && Match.ball &&
-            bb.chaser !== p && bb.intercetor !== p && bb.bloqueador !== p) {
-            const tectoX = BlockShape.distanciaMaxX || 22.0;
-            const dxBola = molaX - Match.ball.position.x;
-            if (Math.abs(dxBola) > tectoX) {
-                molaX = Match.ball.position.x + Math.sign(dxBola) * tectoX;
-            }
-        }
-
-        dbgCamada('pendulo', molaX, finalZ);
-        /*
         O LADO FRACO FECHA. Pedido: *"com a bola na esquerda do ataque, os jogadores do lado direito podem
         fechar uns 5 metros; o mesmo do outro lado; quando a bola vai para o corredor do meio, voltam às
         posições, dando opção nas pontas. Com um delay de 5-10 s, para não ficarem a abrir e fechar quando se
@@ -3101,20 +3020,6 @@ const PosicionamentoAI = {
         }
 
         dbgCamada('ladoFraco', molaX, finalZ);
-        /*
-        COM A BOLA NA DEFESA, OS MEIAS NAO SE MANDAM PARA O ATAQUE (BlockShape.meiasComBola, utils.js
-        `tectoDoMeiaComBola`): o alvo do meia fica a `frente` m da bola no maximo, e esse limite sobe a medida que a
-        bola sobe no campo. Aplica-se NO FIM (depois do tecto de desvio ao slot e do pendulo, que o puxavam para a
-        frente) e so cede a quem tem a bola, ao receptor e a quem vai a bola.
-        */
-        if (p.role === 'mid' && !saltaZ('tectoMeias') && !p.hasBall && !temTarefaDeBola &&
-            !(typeof Match !== 'undefined' && Match.intendedReceiver === p) &&
-            typeof tectoDoMeiaComBola === 'function') {
-            const tectoM = tectoDoMeiaComBola(p);
-            if (isFinite(tectoM) && finalZ * p.dirZ > tectoM) finalZ = tectoM * p.dirZ;
-        }
-
-        dbgCamada('tectoMeias', molaX, finalZ);
         /*
         O CENTRAL CONDUZ, OS MEIAS SOBEM COM ELE (BlockShape.meiasComBola.aSeguirODefesa): com um defesa na bola o meia
         central fica no minimo `lead` m a frente dele. Depois do tecto acima (que o segurava atras) e antes do corte do
