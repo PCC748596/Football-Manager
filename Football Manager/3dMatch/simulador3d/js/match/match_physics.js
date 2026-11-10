@@ -983,7 +983,9 @@ Object.assign(Match, {
             const vBola = Math.hypot(this.ballVel.x, this.ballVel.z);
             if (vBola >= PI.velMin) {
                 const leitura = best.skillFor ? best.skillFor('INTERCEPT') : 80;
-                const p = THREE.MathUtils.clamp(PI.base + (leitura - 80) * PI.porSkill - Math.max(0, vBola - PI.velRef) * PI.porVel, PI.min, PI.max);
+                const pBase = THREE.MathUtils.clamp(PI.base + (leitura - 80) * PI.porSkill - Math.max(0, vBola - PI.velRef) * PI.porVel, PI.min, PI.max);
+                // Meias e atacantes cortam menos (PassInterceptModel.fatorMeiasEAtacantes); os defesas mantem a hipotese.
+                const p = (best.role === 'mid' || best.role === 'atk') && typeof PI.fatorMeiasEAtacantes === 'number' ? pBase * PI.fatorMeiasEAtacantes : pBase;
                 if (Math.random() >= p) {
                     /*
                     O CORTE FALHADO E UM TOQUE, NAO UM FANTASMA. A bola ja esta a menos de `BallControl.reach` do corpo dele: antes so se desviava 12 graus e a bola seguia por

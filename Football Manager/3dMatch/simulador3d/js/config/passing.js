@@ -94,6 +94,8 @@ bola a `velRef` m/s; sobe `porSkill` por ponto de leitura e desce `porVel` por m
 velocidade e ele fica `bloqueio` s sem lhe tocar. Bolas abaixo de `velMin` m/s (quase paradas) sao de quem chega, como sempre.
 */
 const PassInterceptModel = { activo: true, base: 0.55, porSkill: 0.006, velRef: 8.0, porVel: 0.03, min: 0.15, max: 0.85, velMin: 3.0, desvioGraus: 12, perdaVel: 0.85, bloqueio: 0.2 };
+// A hipotese de cortar um passe em andamento multiplica-se por `fatorMeiasEAtacantes` quando quem corta e MEIA ou ATACANTE (os defesas mantem a hipotese de sempre): 1 = como antes; < 1 = cortam menos.
+PassInterceptModel.fatorMeiasEAtacantes = 1.0;
 if (typeof window !== 'undefined') window.PassInterceptModel = PassInterceptModel;
 
 const InversaoDeJogo = {
