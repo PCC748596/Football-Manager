@@ -11,6 +11,7 @@ import { UniformeCorpo3D } from './UniformeCorpo3D';
 import EnergyBar, { energiaDe } from './EnergyBar';
 import BoardConfidenceCard from './BoardConfidenceCard';
 import { COUNTRIES } from '../textSim/dataGenerator';
+import { IconeAmistoso, IconeTreino, IconeFesta } from './IconesAtividade';
 import { ligaDoClube, ligaDoUtilizador, mapaDeClubes, tabelaDoGrupo, NOMES_FASES, rotuloDaFase, teamKey, zonasDaLiga, zonasDoGrupo } from '../textSim/competitions';
 import { settleMatch, ECONOMIA_ESTADIO, competicaoDoJogo, type CurrencyCode } from '../textSim/stadiumEconomy';
 
@@ -636,7 +637,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                    </div>
                 ) : day.activity ? (
                    <div className="flex flex-col items-center justify-center">
-                      <span className="text-3xl leading-none mb-1">{day.activity.type === 'TRAINING_CAMP' ? '🏔️' : day.activity.type === 'TEAM_PARTY' ? '🎉' : '⚽'}</span>
+                      {(() => { const cls = `w-9 h-9 xl:w-11 xl:h-11 mb-1 ${day.activity.type === 'TRAINING_CAMP' ? 'text-emerald-400' : day.activity.type === 'TEAM_PARTY' ? 'text-amber-400' : 'text-blue-400'}`; return day.activity.type === 'TRAINING_CAMP' ? <IconeTreino className={cls} /> : day.activity.type === 'TEAM_PARTY' ? <IconeFesta className={cls} /> : <IconeAmistoso className={cls} />; })()}
                       <span className={`text-[9px] font-black uppercase ${day.isToday ? 'text-blue-100' : 'text-slate-400'} tracking-tighter`}>{t('dash_event')}</span>
                    </div>
                 ) : (

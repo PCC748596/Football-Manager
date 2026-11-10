@@ -991,7 +991,12 @@ export interface CalendarActivity {
   date: string;
   type: ActivityType;
   label: string;
+  /** Custo pago por este dia (dolares do jogo): cancelar devolve `REEMBOLSO_ATIVIDADE` x isto. */
+  custo?: number;
 }
+
+/** Fracao do custo devolvida ao cancelar (ou substituir) um treinamento ou festa agendados. */
+export const REEMBOLSO_ATIVIDADE = 0.8;
 
 export type ThemeMode = 'LIGHT' | 'DARK' | 'AUTO';
 export type Language = 'EN' | 'PT';

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useMemo } from 'react';
 import { assetUrl } from '../textSim/assetUrl';
-import { Team, Player, Contract, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador, PontoFinanceiro } from '../types';
+import { Team, Player, Contract, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador, PontoFinanceiro, REEMBOLSO_ATIVIDADE } from '../types';
 import { generateLeagueData, generateFixtures, COUNTRIES, faixaDoClube, nivelDaBaseDoClube, ehLigaEuropeia } from '../textSim/dataGenerator';
 import { gruposDaSerieD, arquivarCampeoes, HistoricoDeCopas } from '../textSim/competitions';
 import { espacarCalendario, comDatasDeCopa } from '../textSim/calendario';
@@ -2373,6 +2373,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const scheduleActivity = (date: string, type: ActivityType, details: any) => {
     // Handle REMOVE: just clear activities on this date
     if (type === 'REMOVE') {
+      // Cancelar um treinamento ou festa devolve REEMBOLSO_ATIVIDADE (0.8x) do que foi pago por esse dia.
+      const devolvido = gameState.activities.filter(a => a.date === date).reduce((s, a) => s + (a.custo || 0) * REEMBOLSO_ATIVIDADE, 0);
+      if (devolvido > 0 && userTeam) setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + devolvido } : t));
       setGameState(prev => ({
         ...prev,
         activities: prev.activities.filter(a => a.date !== date)
@@ -2426,6 +2429,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }
 
+    // Substituir uma atividade ja paga nesses dias tambem devolve 0.8x do que ela custou.
+    const substituidas = gameState.activities.filter(a => affectedDates.includes(a.date)).reduce((s, a) => s + (a.custo || 0) * REEMBOLSO_ATIVIDADE, 0);
+    if (substituidas > 0 && userTeam) setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + substituidas } : t));
+    const custoPorDia = (details.cost && (type === 'TRAINING_CAMP' || type === 'TEAM_PARTY')) ? details.cost / affectedDates.length : 0;
+
     setGameState(prev => {
       // Remove atividades existentes em todos os dias afetados
       const cleanActivities = prev.activities.filter(a => !affectedDates.includes(a.date));
@@ -2435,6 +2443,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: `${id}-d${i}`,
         date: d,
         type,
+        ...(custoPorDia > 0 ? { custo: custoPorDia } : {}),
         label: i === 0 ? (type === 'FRIENDLY' ? (teams.find(t => t.id === details.opponentId)?.name || 'Amistoso') : label) : `${label} (Dia ${i + 1})`
       }));
 

@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { ActivityType, Team, naLigaDoUtilizador } from '../types';
 
+import { IconeAmistoso, IconeTreino, IconeFesta } from './IconesAtividade';
+
 interface ActivityModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -75,7 +77,7 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
                 </div>
                 <div className={`text-[10px] font-bold uppercase tracking-widest group-hover:text-blue-100 transition-colors ${hasMatchOnSelectedDate ? 'text-slate-500' : 'text-blue-500 dark:text-blue-400'}`}>Friendly Match</div>
               </div>
-              <span className="text-2xl">⚽</span>
+              <IconeAmistoso className={`w-9 h-9 ${hasMatchOnSelectedDate ? 'text-slate-400' : 'text-blue-400'} group-hover:text-white transition-colors`} />
             </button>
 
             <button 
@@ -86,7 +88,7 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
                 <div className="text-slate-900 dark:text-white font-black uppercase text-lg group-hover:text-white transition-colors">Treinamento</div>
                 <div className="text-emerald-500 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-emerald-100 transition-colors">Training Camp</div>
               </div>
-              <span className="text-2xl">🏔️</span>
+              <IconeTreino className="w-9 h-9 text-emerald-400 group-hover:text-white transition-colors" />
             </button>
 
             <button 
@@ -104,7 +106,7 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
                 </div>
                 <div className={`text-[10px] font-bold uppercase tracking-widest group-hover:text-amber-100 transition-colors ${hasMatchOnSelectedDate ? 'text-slate-500' : 'text-amber-500 dark:text-amber-400'}`}>Team Party</div>
               </div>
-              <span className="text-2xl">🎉</span>
+              <IconeFesta className={`w-9 h-9 ${hasMatchOnSelectedDate ? 'text-slate-400' : 'text-amber-400'} group-hover:text-white transition-colors`} />
             </button>
           </div>
         );
