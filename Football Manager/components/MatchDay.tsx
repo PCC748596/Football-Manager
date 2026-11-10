@@ -74,6 +74,8 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   const taticaJson = userTeam ? JSON.stringify(taticaParaMotor(userTeam.tactics)) : '';
   // Tatica do manager -> painel do 3D: ao carregar e sempre que o utilizador a muda na aba Tactics.
   useEffect(() => { if (pronto3d && taticaJson) simulador3dEnviar({ tipo: 'tatica', ...JSON.parse(taticaJson) }); }, [pronto3d, taticaJson]);
+  // A duracao dos tempos (Settings: 10, 15 ou 20 min reais) vai ao motor 3D.
+  useEffect(() => { if (pronto3d) simulador3dEnviar({ tipo: 'duracao', minutos: gameState.matchDuration || 10 }); }, [pronto3d, gameState.matchDuration]);
   // Os cobradores/capitao do utilizador mudados na aba Tactics com o jogo em curso vao ao motor (o lado A e a casa).
   const cobradoresJson = userTeam ? JSON.stringify(resolveSetPieceTakers(userTeam, players)) : '';
   useEffect(() => {

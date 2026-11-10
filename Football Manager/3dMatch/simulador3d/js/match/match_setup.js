@@ -239,6 +239,7 @@ Object.assign(Match, {
         this.players = [];
         this.opponents = [];
 
+        if (typeof MatchDuration !== 'undefined' && MatchDuration.aplicarRitmo) MatchDuration.aplicarRitmo();   // a duracao do tempo (10/15/20 min) ajusta o ritmo das acoes
         this.equipasPorOmissao();
         this.createTeams();
         if (doInitAnterior.length && typeof this.esquecerJogadoresAntigos === 'function') {

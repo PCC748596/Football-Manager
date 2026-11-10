@@ -4305,10 +4305,23 @@ const ehGK = (ctx) => ctx.p.role === 'gk';
 
 // Zona/ângulo de finalizar — usado por Rematar E por Dominar (para não fazer
 // o jogador "pensar" 3s com o guarda-redes já batido à sua frente).
+/*
+A DURACAO DO TEMPO (MatchDuration.escalaDeEventos): a 15 e 20 min so uma fraccao das POSSES ganha o direito de rematar (sorteada uma vez por posse, quando o jogador volta a ter a bola),
+para os remates — e os golos e cantos — por jogo serem os de 10 min.
+*/
+function remateLiberado(p) {
+    if (typeof MatchDuration === 'undefined' || MatchDuration.escalaDeEventos >= 1 || typeof Match === 'undefined') return true;
+    const agora = Match.tempoDeJogo || 0;
+    if (p._rmT === undefined || agora - p._rmT > 2 * (MatchDuration.timeScale || 1)) p._rmOk = Math.random() < MatchDuration.escalaDeEventos;
+    p._rmT = agora;
+    return !!p._rmOk;
+}
+
 function emZonaDeRemate(ctx) {
     const p = ctx.p;
     // 3 s sem novo remate depois de um (ShootingModel.esperaEntreRemates).
     if (p.chuteEspera > 0) return false;
+    if (!remateLiberado(p)) return false;
 
     // Posição E jogador: um ST de técnica 90 e outro de 40 não rematam da mesma
     // maneira (ver tendenciaDeAccao, config/physics.js).

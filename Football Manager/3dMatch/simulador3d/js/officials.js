@@ -3130,6 +3130,8 @@ const Officials = {
     marcarFalta: function (infractor, vitima, dados) {
         if (!infractor || !vitima || infractor.expulso) return;
         if (typeof Match === 'undefined' || Match.state !== 'PLAY') return;
+        // A DURACAO DO TEMPO (MatchDuration.escalaDeEventos): a 15 e 20 min so uma fraccao das faltas e marcada (o arbitro deixa seguir), para o total por jogo ser o de 10 min.
+        if (typeof MatchDuration !== 'undefined' && MatchDuration.escalaDeEventos < 1 && Math.random() > MatchDuration.escalaDeEventos) return;
         // O MANDO (config/mando.js): o arbitro deixa passar `arbitroCasa` das faltas da equipa da casa (segue o jogo).
         if (typeof MandoModel !== 'undefined' && MandoModel.activo && infractor.team === MandoModel.equipa &&
             Math.random() < MandoModel.arbitroCasa) return;

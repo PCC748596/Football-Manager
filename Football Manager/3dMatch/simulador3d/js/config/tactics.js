@@ -36,7 +36,7 @@ o jogo DESACELERA o relogio. De 5.00 passa a 4.55 s de relogio por segundo
 real, e um lote de 1080 s deixa de dar 90 minutos: passa a dar ~82. Para um
 lote de 90 minutos a duracao passa a ser 90*60 / 4.55 = 1188 s.
 */
-const GAME_SPEED = 0.90;   // 1.00 -> 0.90 (pedido: -10%): timeScale = 4.5 / 0.90 = 5.0 s de relogio por segundo real, e um lote de 1080 s (18 min) da exactamente 90 minutos (a 1.00 eram 1200 s)
+const GAME_SPEED = 0.918;   // 0.90 -> 0.918 (pedido: +2%): timeScale = 4.5 / 0.918 = 4.90 s de relogio por segundo real de simulacao; o relogio por segundo REAL continua 4.5 (a duracao real do tempo nao muda)
 
 /*
 Pausa (segundos reais) entre o fim de uma reposição e o recomeço do jogo:
@@ -223,8 +223,33 @@ Cada segundo real avança 4.5 segundos no relógio da partida.
 */
 const MatchDuration = {
     halfGameMinutes: 45,
-    halfRealMinutes: 10,
-    gameSecondsPerRealSecond: 4.5,
+    halfRealMinutes: 10,        // 10, 15 ou 20 (Settings, `matchDuration`): os minutos REAIS de cada tempo
+    // O relogio de jogo por segundo real sai da duracao: 45 min de relogio em 10 min reais = 4.5; em 15 = 3.0; em 20 = 2.25.
+    get gameSecondsPerRealSecond() { return this.halfGameMinutes / this.halfRealMinutes; },
+    // Os ajustes do jogo estao calibrados para 10 min reais por tempo: a 15 ou 20 min o motor corre 1.5x / 2x mais segundos de simulacao por partida. `ritmo` e 10 / halfRealMinutes (1, 0.667, 0.5)
+    // e e o que os parametros de frequencia de acao multiplicam para manter os totais por jogo (ver MatchDuration.escalaDeEventos).
+    get ritmo() { return 10 / this.halfRealMinutes; },
+    /*
+    O JOGO CORRE NA MESMA VELOCIDADE a 10, 15 ou 20 min (pedido); o que se ajusta sao as ESTATISTICAS: os eventos que decidem o resultado — remates (e por isso golos e cantos) e faltas
+    (e por isso cartoes e lesoes de contacto) — sao dos 10 min: a 15 e 20 min cada um acontece com a probabilidade `escalaDeEventos` (1, 0.667, 0.5). Passes, duelos e dribles sobem com o tempo
+    jogado, como num jogo mais longo. `compensar` (esperas de decisao, drible e corte por `ritmo`) fica desligado: mudava a maneira de jogar.
+    */
+    compensar: false,
+    get escalaDeEventos() { return Math.min(1, 10 / this.halfRealMinutes); },
+    _base: null,
+    aplicarRitmo() {
+        const r = this.compensar ? this.ritmo : 1;
+        const B = this._base || (this._base = {
+            posseBase: typeof CadenceModel !== 'undefined' ? CadenceModel.posseBase : null,
+            posseSobPressao: typeof CadenceModel !== 'undefined' ? CadenceModel.posseSobPressao : null,
+            dribleEspera: typeof DribbleModel !== 'undefined' ? DribbleModel.espera : null,
+            corteMin: typeof CorteModel !== 'undefined' ? CorteModel.arrefecimentoMin : null,
+            corteMax: typeof CorteModel !== 'undefined' ? CorteModel.arrefecimentoMax : null
+        });
+        if (typeof CadenceModel !== 'undefined' && B.posseBase !== null) { CadenceModel.posseBase = B.posseBase / r; CadenceModel.posseSobPressao = B.posseSobPressao / r; }
+        if (typeof DribbleModel !== 'undefined' && B.dribleEspera !== null) DribbleModel.espera = B.dribleEspera / r;
+        if (typeof CorteModel !== 'undefined' && B.corteMin !== null) { CorteModel.arrefecimentoMin = B.corteMin / r; CorteModel.arrefecimentoMax = B.corteMax / r; }
+    },
     intervaloSegundos: 8,       // duracao REAL do intervalo, em segundos
     /*
     O ACRESCIMO de cada tempo (pedido): cada substituicao soma `porSubstituicao` s, e cada falta um tempo sorteado entre `porFalta[0]` e `porFalta[1]` s —

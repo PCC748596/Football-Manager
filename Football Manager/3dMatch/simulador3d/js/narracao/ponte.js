@@ -58,6 +58,7 @@ const Ponte = {
             else if (m.tipo === 'tecla_espaco') { if (typeof Match !== 'undefined' && Match.togglePause) Match.togglePause(); }   // o espaco carregado fora do iframe (o foco ficou no manager): o mesmo que a tecla aqui dentro
             else if (m.tipo === 'tela_cheia') { document.body.classList.toggle('tela-cheia', !!m.ligada); this.barraTopo(!!m.ligada); }
             else if (m.tipo === 'tatica') this.aplicarTatica(m);
+            else if (m.tipo === 'duracao') { if (typeof MatchDuration !== 'undefined' && [10, 15, 20].indexOf(Number(m.minutos)) >= 0) { MatchDuration.halfRealMinutes = Number(m.minutos); if (MatchDuration.aplicarRitmo) MatchDuration.aplicarRitmo(); } }   // Settings: minutos reais de cada tempo
             else if (m.tipo === 'cobradores') {
                 // Os cobradores designados passam a valer ja (ids do manager -> ids do motor).
                 const o = {}; for (const k of Object.keys(m.cobradores || {})) { const id = AdaptadorManager.idReal(m.cobradores[k]); if (id !== null) o[k] = id; }
