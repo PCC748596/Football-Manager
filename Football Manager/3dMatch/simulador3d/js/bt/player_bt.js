@@ -2632,6 +2632,97 @@ function actTackle(ctx) {
 }
 
 
+
+/*
+ROTACAO DE JOGO (BalancoCorredores.rotacao): quando a equipa joga menos tempo do que o treinador pediu num corredor LATERAL (Left / Right ligados), quem tem a bola passa ja a um
+homem de ala (LM/RM/LW/RW/LB/RB) desse corredor com a linha livre, em vez de a deixar morrer no centro. Medido: a ala tinha ~20% da posse e o CF 35%; mexer na nota do passe nao
+chegava. Devolve {mate} ou null.
+*/
+function alaParaRotacao(p, ctx) {
+    const R = (typeof BalancoCorredores !== 'undefined') ? BalancoCorredores.rotacao : null;
+    if (!R || !R.activo || typeof TempoPorCorredor === 'undefined' || !BalancoCorredores.activo) return null;
+    if (p.role === 'gk' || Match.state !== 'PLAY') return null;
+    const agora = Match.tempoDeJogo || 0;
+    if (p._rotT !== undefined && agora - p._rotT < R.intervalo) return null;
+    p._rotT = agora;
+    const dirZ = p.dirZ;
+    const meuCor = TempoPorCorredor.corredorDeX(p.model.position.x * dirZ);
+    const advs = ctx.opponents;
+    let melhor = null, melhorNota = -Infinity;
+    for (const m of ctx.teammates) {
+        if (m === p || !m.model || m.role === 'gk' || m.expulso) continue;
+        if (R.posicoes.indexOf(m.pos) < 0) continue;
+        const cor = TempoPorCorredor.corredorDeX(m.model.position.x * dirZ);
+        if (cor === 'cen' || cor === meuCor) continue;
+        const falta = -TempoPorCorredor.empurrao(p.team, cor);   // >0: falta tempo nesse corredor
+        if (falta < R.faltaMin) continue;
+        const d = p.model.position.distanceTo(m.model.position);
+        if (d < R.distMin || d > R.distMax) continue;
+        if ((m.model.position.z - p.model.position.z) * dirZ < -R.recuoMax) continue;
+        // A distancia de lancamento (pelo alto) a linha rasteira nao se exige (como no overlap).
+        if (d < R.lancamentoDist && typeof corredorLivre === 'function' && !corredorLivre(p.model.position.x, p.model.position.z, m.model.position.x, m.model.position.z, advs, 1.5, true)) continue;
+        let livre = 99;
+        for (const o of advs) { if (o.role !== 'gk' && o.model) livre = Math.min(livre, o.model.position.distanceTo(m.model.position)); }
+        if (livre < R.livreMin) continue;
+        const nota = falta * 10 + Math.min(livre, 10) - d * 0.1;
+        if (nota > melhorNota) { melhorNota = nota; melhor = { mate: m, falta: falta }; }
+    }
+    if (!melhor || Math.random() > Math.min(1, R.chance * (0.5 + melhor.falta))) return null;
+    return melhor;
+}
+
+
+/*
+O CF LANCA PARA AS PONTAS (BalancoCorredores.cfLanca). Devolve o lance {mate, alvoX, alvoZ, alto} quando e hora de lancar, ou null (e, se ainda nao ha corredor, manda-o arrancar).
+*/
+function lancamentoDoCF(p, ctx) {
+    const C = (typeof BalancoCorredores !== 'undefined') ? BalancoCorredores.cfLanca : null;
+    if (!C || !C.activo || Match.state !== 'PLAY') return null;
+    if (p.pos !== 'CF' && p.pos !== 'ST') return null;
+    const setores = (typeof setoresDe === 'function') ? setoresDe(p.team) : (Tatics.setores || []);
+    if (!(setores.indexOf('esq') >= 0 || setores.indexOf('dir') >= 0) || setores.length >= 3) return null;
+    const dirZ = p.dirZ, agora = Match.tempoDeJogo || 0;
+    if ((CAMPO_COMP / 2) - p.model.position.z * dirZ <= C.fundoMin) { p._cfRun = null; return null; }
+    const run = p._cfRun;
+    if (run) {
+        const m = run.mate;
+        if (!m || !m.model || m.expulso || agora - run.t > C.duracaoCorrida + 1.5) { p._cfRun = null; return null; }
+        if (agora - run.t < C.esperaLanc) return null;
+        p._cfRun = null; p._cfCd = agora + C.cooldown;
+        return { mate: m, alvoX: run.x, alvoZ: run.z, alto: true };
+    }
+    if (p._cfCd !== undefined && agora < p._cfCd) return null;
+    // O mais perto da linha de fundo (maior avanco), de um corredor de sector ligado.
+    let melhor = null, av = -Infinity;
+    const advs = ctx.opponents;
+    for (const m of ctx.teammates) {
+        if (m === p || !m.model || m.role === 'gk' || m.expulso || C.posicoes.indexOf(m.pos) < 0) continue;
+        const lado = Math.sign(m.model.position.x) || 1;
+        const sec = lado * dirZ > 0 ? 'esq' : 'dir';
+        if (setores.indexOf(sec) < 0 && setores.indexOf(Tatics.sectorDeX(m.model.position.x, dirZ)) < 0) continue;
+        const a = m.model.position.z * dirZ;
+        if (a > av) { av = a; melhor = m; }
+    }
+    if (!melhor) return null;
+    const lado = Math.sign(melhor.model.position.x) || 1;
+    const bb = (typeof TeamAI !== 'undefined') ? TeamAI.get(p.team) : null;
+    const pedido = (CAMPO_COMP / 2) - C.fundoPonta;
+    const avanco = (typeof avancoDeInfiltracao === 'function')
+        ? avancoDeInfiltracao({ avancoActual: av, avancoPedido: pedido, offsideLimitDir: bb ? bb.offsideLimitDir : null }) : pedido;
+    if (avanco === null || avanco - av < 4.0) return null;
+    const x = lado * C.xPonta, z = avanco * dirZ;
+    for (const o of advs) { if (o.role !== 'gk' && o.model && Math.hypot(o.model.position.x - x, o.model.position.z - z) < C.livreMin) return null; }
+    // Arranca: a corrida segue o caminho do overlap (alvo guardado e reescrito todos os frames).
+    melhor.overlapAlvo = { x: x, z: z };
+    melhor.dynamicTarget.set(x, ALTURA_BASE_Y, z);
+    melhor.speedMult = melhor.sprintSpeed || (6.5 * 1.3);
+    melhor.overlapTimer = 1.0;
+    melhor.runTimer = C.duracaoCorrida;
+    melhor.fsm.changeState('RUN_INTO_SPACE');
+    p._cfRun = { mate: melhor, x: x, z: z, t: agora };
+    return null;
+}
+
 function podeFazerOverlap(ctx) {
     if (typeof Intencoes !== 'undefined' && Intencoes.activo) {
         const meusO = (ctx.p.team === 'TeamA') ? Match.players : Match.opponents;
@@ -5175,6 +5266,26 @@ const PlayerBT = sel('PlayerRoot',
                     return Math.random() < Math.min(CrossModel.chanceMax, ctx.cross.chance * mult);
                 }),
                 act('cruzar', actCross)
+            ),
+
+            // 2a'. O CF (a mais de 25 m da linha de fundo, Left/Right ligados) lanca para as pontas; um homem de ala infiltra (ver lancamentoDoCF).
+            seq('CFLancaAsPontas',
+                cond('cfLanca', (ctx) => { const l = lancamentoDoCF(ctx.p, ctx); ctx._lancCF = l; return !!l; }),
+                act('lancarPonta', (ctx) => { ctx.throughBall = ctx._lancCF; actThroughBall(ctx); })
+            ),
+
+            // 2a. ROTACAO DE JOGO: o corredor lateral pedido esta abaixo do alvo -> passa a um homem de ala (ver alaParaRotacao).
+            seq('RotacaoDeJogo',
+                cond('faltaTempoNaAla', (ctx) => { const r = alaParaRotacao(ctx.p, ctx); ctx._rot = r; return !!r; }),
+                act('rodarJogo', (ctx) => {
+                    const p = ctx.p, m = ctx._rot.mate;
+                    if (p.aguardarPassada()) return true;
+                    const r = PassTypes.paraMate(p, m);
+                    aplicarMiraDoPasse(p, r.tipo, r.ponto);
+                    p.initiatePass(m);
+                    if (typeof MatchStats !== 'undefined' && MatchStats[p.team]) MatchStats[p.team].rotacoes = (MatchStats[p.team].rotacoes || 0) + 1;
+                    return true;
+                })
             ),
 
             // 2b. LANCAR PARA A INTENCAO de quem corre (ver `Intencoes`): o companheiro que arrancou em posicao regular diz para onde vai e o portador lanca-lhe a bola la.

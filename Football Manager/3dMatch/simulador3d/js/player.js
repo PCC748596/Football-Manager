@@ -3622,6 +3622,17 @@ class FootballPlayer {
                 }
             }
 
+            // O RECEPTOR MANTEM NA ALA (BalancoCorredores.mantemAla): quem tem a bola na ala de um sector ligado nao a devolve para dentro (so progride ou segura).
+            {
+                const MA = (typeof BalancoCorredores !== 'undefined') ? BalancoCorredores.mantemAla : null;
+                if (MA && MA.activo && score > 0 && setoresMeus && setoresMeus.length > 0 && setoresMeus.length < 3 &&
+                    MA.posicoes.indexOf(this.pos) >= 0 && Math.abs(ownX) >= MA.xLateral &&
+                    typeof Tatics !== 'undefined' && setoresMeus.indexOf(Tatics.sectorDeX(ownX, dirZ)) >= 0 &&
+                    Math.abs(optPos.x) < MA.xLateral && progression < MA.progMax) {
+                    score *= MA.fator;
+                }
+            }
+
             // VIRADA: recebi do corredor de um lado e o sector do outro esta ligado.
             if (typeof PassModel !== 'undefined' && PassModel.bonusVirada && score > 0 &&
                 Match.viradaOrigem && Match.viradaTimer > 0 && Match.viradaOrigem.team === this.team &&

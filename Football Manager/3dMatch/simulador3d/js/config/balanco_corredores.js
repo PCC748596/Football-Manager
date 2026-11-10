@@ -41,6 +41,22 @@ const BalancoCorredores = {
     alvoDoisLigados: { ligados: 0.45, resto: 0.10 },
 
     /*
+    ROTACAO DE JOGO: com falta de tempo num corredor lateral (empurrao negativo alem de `faltaMin`), quem tem a bola passa a um homem de ala desse corredor.
+      posicoes  quem conta como ala;  distMin/distMax  distancia do passe;  recuoMax  m que o passe pode recuar;  livreMin  m ao adversario mais perto do receptor;
+      intervalo  s entre avaliacoes de cada portador;  chance  base (sobe com a falta de tempo).
+    */
+    /*
+    O RECEPTOR MANTEM NA ALA: o homem de ala com a bola no corredor de um sector ligado perde `1 - fator` da nota dos passes para dentro (|x| < xLateral) que nao progridem mais de `progMax` m.
+    */
+    mantemAla: { activo: true, posicoes: ['LM', 'RM', 'LW', 'RW', 'LB', 'RB'], xLateral: 14.0, fator: 0.5, progMax: 8.0 },
+    /*
+    O CF LANCA PARA AS PONTAS: o avancado (CF/ST) com a bola a mais de `fundoMin` m da linha de fundo, com Left e/ou Right ligados, manda o homem de ala/lateral mais perto da linha de fundo
+    (`posicoes`) infiltrar para a ponta (|x| = `xPonta`, a `fundoPonta` m da linha) e, `esperaLanc` s depois, lanca-lhe a bola pelo alto. `cooldown` s entre duas tentativas.
+    */
+    cfLanca: { activo: true, posicoes: ['LW', 'RW', 'LM', 'RM', 'RB', 'LB'], fundoMin: 25.0, xPonta: 22.0, fundoPonta: 10.0, esperaLanc: 0.8, duracaoCorrida: 4.0, cooldown: 5.0, livreMin: 3.0 },
+    rotacao: { activo: false, posicoes: ['LM', 'RM', 'LW', 'RW', 'LB', 'RB'], faltaMin: 0.05, distMin: 6, distMax: 40, recuoMax: 6, livreMin: 2.0, lancamentoDist: 16, intervalo: 0.2, chance: 1.0 },
+
+    /*
     A INVERSAO SINALIZADA E O APOIO SUP_TO_INVERT (js/inversao_sinalizada.js). Nasce quando o corredor da bola passou do
     alvo + margem de tempo; o destino e o corredor com mais falta. Se nao ha ninguem livre la (inversao directa), um
     colega recua para um espaco livre atras da bola (`recuo` m) e para o lado do destino (`lateral` m), para receber e

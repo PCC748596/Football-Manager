@@ -17,6 +17,8 @@ Match.init(new THREE.Scene());
 if (process.env.SETORES) Tatics.setores = process.env.SETORES === 'nenhum' ? [] : process.env.SETORES.split(',');
 if (process.env.SEM) BalancoCorredores.activo = false;
 if (process.env.SEMINV) BalancoCorredores.inversao.activo = false;
+if (process.env.PSEC) CarryModel.pesoSector = Number(process.env.PSEC);
+if (process.env.ROT === '0') BalancoCorredores.rotacao.activo = false;
 if (process.env.PTS) BalancoCorredores.pontosPasse = Number(process.env.PTS);
 TempoPorCorredor.reset();
 
