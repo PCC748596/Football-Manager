@@ -166,7 +166,7 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                  const targetCountry = updatedCountries.find(x => x.id === c.id);
                                  if (targetCountry) {
                                    if (!targetCountry.leagues || targetCountry.leagues.length === 0) {
-                                     targetCountry.leagues = [{ id: `league_${Date.now()}`, name: "Divisão 1", tier: 1, teamIds: [] }];
+                                     targetCountry.leagues = [{ id: `league_${Date.now()}`, name: "Division 1", tier: 1, teamIds: [] }];
                                    }
                                    targetCountry.leagues[0].teamIds = [...(targetCountry.leagues[0].teamIds || []), newTeamId];
                                    setCountries(updatedCountries);
@@ -595,8 +595,8 @@ export const EditorApp: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                                 }}
                                                 className="bg-slate-900 border border-slate-800 rounded p-2 text-white text-sm"
                                             >
-                                                <option value="KNOCKOUT">Knockout (Eliminatório)</option>
-                                                <option value="GROUPS_KNOCKOUT">Groups + Knockout (Grupos + Copa)</option>
+                                                <option value="KNOCKOUT">Knockout</option>
+                                                <option value="GROUPS_KNOCKOUT">Groups + Knockout</option>
                                             </select>
                                         )}
                                     </div>

@@ -11,7 +11,7 @@ interface TeamKitProps {
   number?: number | string;   // numero na camisa
 }
 
-const KIT_LABELS = ['Casa', 'Fora', '3ª'];
+const KIT_LABELS = ['Home', 'Away', '3rd'];
 
 export const TeamKit: React.FC<TeamKitProps> = ({ team, kitIndex = 0, className = 'w-12 h-16', showLabel = false, gk = false, number }) => {
   const [imageError, setImageError] = useState(false);

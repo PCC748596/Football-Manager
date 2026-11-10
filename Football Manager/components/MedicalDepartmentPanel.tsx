@@ -56,9 +56,9 @@ export const MedicalDepartmentPanel: React.FC = () => {
           </div>
         </div>
         <div className="flex flex-wrap gap-5 flex-1 justify-end">
-          <Nota rotulo="Accuracy" dica="Precisão da estimativa de retorno: quanto maior, mais perto do prazo real." valor={medico.precisao} />
-          <Nota rotulo="Recovery" dica="Tempo: reduz o prazo real das lesões (até -20%)." valor={medico.tempo} />
-          <Nota rotulo="Efficacy" dica="Eficácia: chance de evolução excelente no boletim semanal e menos recaídas (lesões complexas)." valor={medico.eficacia} />
+          <Nota rotulo="Accuracy" dica="Accuracy of the return estimate: the higher, the closer to the real timeline." valor={medico.precisao} />
+          <Nota rotulo="Recovery" dica="Speed: shortens the real duration of injuries (up to -20%)." valor={medico.tempo} />
+          <Nota rotulo="Efficacy" dica="Efficacy: chance of an excellent weekly report and fewer relapses (complex injuries)." valor={medico.eficacia} />
         </div>
       </div>
       <div className="text-[11px] font-black uppercase tracking-widest text-slate-500">Injured players ({lesionados.length})</div>

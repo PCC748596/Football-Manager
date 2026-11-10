@@ -351,7 +351,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                                      {gameState.matchMinute >= 90 ? "FULL TIME STATS" : "MATCH STATS"}
                                  </h4>
                                  {avisoLesao.map(nome => (
-                                     <div key={nome} className="mb-2 px-3 py-2 rounded border border-red-500 bg-red-600/25 text-red-300 text-xs font-black uppercase tracking-wide text-center animate-pulse">✚ {nome} está sentindo uma lesão</div>
+                                     <div key={nome} className="mb-2 px-3 py-2 rounded border border-red-500 bg-red-600/25 text-red-300 text-xs font-black uppercase tracking-wide text-center animate-pulse">✚ {nome} {gameState.language === 'PT' ? 'está sentindo uma lesão' : 'felt an injury'}</div>
                                  ))}
                                  {(match.estat3d ? [
                                    { label: 'GOALS', h: match.homeScore || 0, a: match.awayScore || 0 },

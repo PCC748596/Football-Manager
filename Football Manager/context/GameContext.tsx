@@ -2430,7 +2430,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       fixtures.some(f => f.date === d && !f.played && (f.homeTeamId === userTeam?.id || f.awayTeamId === userTeam?.id))
     );
     if (matchConflict) {
-      alert(`Conflito! Há um jogo agendado para ${new Date(matchConflict + 'T12:00:00').toLocaleDateString('pt-BR')}. Escolha outra data ou duração.`);
+      { const pt = gameState.language === 'PT'; alert(pt ? `Conflito! Há um jogo agendado para ${new Date(matchConflict + 'T12:00:00').toLocaleDateString('pt-BR')}. Escolha outra data ou duração.` : `Conflict! A match is scheduled for ${new Date(matchConflict + 'T12:00:00').toLocaleDateString('en-US')}. Pick another date or duration.`); }
       return;
     }
 
@@ -2471,7 +2471,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         date: d,
         type,
         ...(custoPorDia > 0 ? { custo: custoPorDia } : {}),
-        label: i === 0 ? (type === 'FRIENDLY' ? (teams.find(t => t.id === details.opponentId)?.name || 'Amistoso') : label) : `${label} (Dia ${i + 1})`
+        label: i === 0 ? (type === 'FRIENDLY' ? (teams.find(t => t.id === details.opponentId)?.name || 'Friendly') : label) : `${label} (${gameState.language === 'PT' ? 'Dia' : 'Day'} ${i + 1})`
       }));
 
       return {

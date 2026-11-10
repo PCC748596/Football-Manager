@@ -401,7 +401,7 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
                          }
                      }} 
                      className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${isNarrationOn ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 hover:bg-slate-300 dark:hover:bg-slate-700'}`} 
-                     title={isNarrationOn ? "Desativar Narração" : "Ativar Narração"}
+                     title={isNarrationOn ? (lang === 'PT' ? "Desativar Narração" : "Turn narration off") : (lang === 'PT' ? "Ativar Narração" : "Turn narration on")}
                   >
                       {isNarrationOn ? '🔊' : '🔈'}
                   </button>
@@ -453,7 +453,7 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
                    <React.Fragment key={`match-col-${fixture.id}`}>
                       {/* BARRA DE NARRAÇÃO */}
                       <div className="bg-slate-900 text-emerald-400 mx-2 mb-2 p-3 rounded-xl border-l-4 border-emerald-500 shadow-md text-sm font-black flex items-center gap-3 italic tracking-wide">
-                          <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded text-xs animate-pulse">🔴 AO VIVO</span>
+                          <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded text-xs animate-pulse">🔴 {lang === 'PT' ? 'AO VIVO' : 'LIVE'}</span>
                           <span className="truncate">{lastComment ? `${getDisplayMinuteStr(lastComment.minute, getFixtureHTDuration(userMatch))}' - ${lastComment.description}` : 'Aguardando o apito inicial...'}</span>
                       </div>
 
@@ -502,14 +502,14 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
                                             <div>{hReds}</div>
                                          </div>
                                          <div className="text-center w-1/3 text-slate-400 space-y-2 text-[10px] uppercase tracking-widest opacity-80">
-                                            <div>Gols</div>
-                                            <div>Posse de Bola</div>
-                                            <div>Chutes</div>
+                                            <div>{lang === 'PT' ? 'Gols' : 'Goals'}</div>
+                                            <div>{lang === 'PT' ? 'Posse de Bola' : 'Possession'}</div>
+                                            <div>{lang === 'PT' ? 'Chutes' : 'Shots'}</div>
                                             <div>Passes</div>
-                                            <div>Escanteios</div>
-                                            <div>Faltas</div>
-                                            <div>CA</div>
-                                            <div>CV</div>
+                                            <div>{lang === 'PT' ? 'Escanteios' : 'Corners'}</div>
+                                            <div>{lang === 'PT' ? 'Faltas' : 'Fouls'}</div>
+                                            <div>{lang === 'PT' ? 'CA' : 'YC'}</div>
+                                            <div>{lang === 'PT' ? 'CV' : 'RC'}</div>
                                          </div>
                                          <div className="text-left w-1/3 space-y-2">
                                             <div>{aGoals}</div>
@@ -524,7 +524,7 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
                                       </div>
                                       {Object.keys(playerRatings).length > 0 && (
                                           <div className="mt-6 border-t border-slate-200 dark:border-slate-700/50 pt-5">
-                                              <h4 className="font-black text-[10px] uppercase mb-4 text-slate-500 tracking-widest">Notas dos Jogadores</h4>
+                                              <h4 className="font-black text-[10px] uppercase mb-4 text-slate-500 tracking-widest">{lang === 'PT' ? 'Notas dos Jogadores' : 'Player Ratings'}</h4>
                                               <div className="flex justify-between gap-2 sm:gap-6">
                                                   <div className="w-1/2 space-y-1">
                                                       {Object.entries(playerRatings).filter(([id]) => {
@@ -601,14 +601,14 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
                                           <div>{hReds}</div>
                                        </div>
                                        <div className="text-center w-1/3 text-slate-400 space-y-2 text-[10px] uppercase tracking-widest opacity-80">
-                                          <div>Gols</div>
-                                          <div>Posse de Bola</div>
-                                          <div>Chutes</div>
+                                          <div>{lang === 'PT' ? 'Gols' : 'Goals'}</div>
+                                          <div>{lang === 'PT' ? 'Posse de Bola' : 'Possession'}</div>
+                                          <div>{lang === 'PT' ? 'Chutes' : 'Shots'}</div>
                                           <div>Passes</div>
-                                          <div>Escanteios</div>
-                                          <div>Faltas</div>
-                                          <div>CA</div>
-                                          <div>CV</div>
+                                          <div>{lang === 'PT' ? 'Escanteios' : 'Corners'}</div>
+                                          <div>{lang === 'PT' ? 'Faltas' : 'Fouls'}</div>
+                                          <div>{lang === 'PT' ? 'CA' : 'YC'}</div>
+                                          <div>{lang === 'PT' ? 'CV' : 'RC'}</div>
                                        </div>
                                        <div className="text-left w-1/3 space-y-2">
                                           <div>{aGoals}</div>
