@@ -2593,6 +2593,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else setComps(null);
         } else { setWorld(null); setComps(null); }
         setTeams(tm);
+        // AUTO ENR: com o save carregado, se estava ON, o elenco do utilizador volta a ser agrupado pela ENR de agora (os lesionados ficam no MED e nao mudam).
+        const autoSave = data.gameState.trainingAutoGrupos, nGruposSave = data.gameState.unlockedTrainingGroups || 1;
+        if (autoSave?.ativo && nGruposSave > 1) {
+          pl = pl.map((p: Player) => (p.teamId === data.gameState.userTeamId && !p.injury)
+            ? { ...p, trainingGroupId: grupoPorEnergia(p.energia ?? p.fitness ?? 100, autoSave.limiares || [80, 50], nGruposSave) } : p);
+        }
         setPlayers(pl);
         setManagerState(data.managers ? { historico: [], ...data.managers } : null);   // save antigo, sem treinadores: o efeito semeia a partir da base
         setBase(data.base || null);   // save antigo, sem base: o motor gera as bases

@@ -2277,7 +2277,8 @@ const ZonasModel = {
     */
     // Ao mudar a posse, as tabelas COM e SEM bola misturam-se ao longo destes segundos (suavizado) em vez de o posto saltar de uma para a outra. 0 desliga.
     misturaFases: 2.0,
-    transicao: { duracao: 3.0, avancoOfensivo: 14.0, recuoDefensivo: 8.0 },
+    // Transicao: a bola e LIDA em z fixo (referencial de ataque): T.Offensive em `zOfensivo`, T.Defensive em `zDefensivo`, durante `duracao` s (desvanece nos ultimos `desvanece` s). Sem `zOfensivo`/`zDefensivo` vale o salto em metros (avancoOfensivo / recuoDefensivo, desvanecendo em `duracao`).
+    transicao: { duracao: 6.0, zOfensivo: 18.25, zDefensivo: -15.0, desvanece: 1.0, avancoOfensivo: 14.0, recuoDefensivo: 8.0 },
     /*
     A BOLA NO FUNDO (dentro da grande area): a interpolacao entre zonas trava no centro da ultima linha (z = (terco + meiaAltura)/2, ~35.6 m), e a area inteira fica depois dele, por isso com a bola
     na entrada da area ou na linha de fundo os postos eram os mesmos e ninguem entrava na area. Aqui, de esse centro ate a linha de fundo (t de 0 a 1), os ATACANTES e os MEIAS (nao o GK, nem os defesas)

@@ -1466,7 +1466,15 @@ function posicaoPorZona(p, bb) {
     // A transicao (ZonasModel.transicao): a bola lida mais a frente ao ganhar, mais atras ao perder, a desvanecer-se.
     const Tr = Z.transicao;
     if (Tr && typeof bb.possessionTime === 'number' && bb.possessionTime < Tr.duracao && typeof Match !== 'undefined' && Match.state === 'PLAY') {
-        bz += (bb.isAttacking ? Tr.avancoOfensivo : -Tr.recuoDefensivo) * (1 - bb.possessionTime / Tr.duracao);
+        if (typeof Tr.zOfensivo === 'number' && typeof Tr.zDefensivo === 'number') {
+            // Posicao FIXA da bola lida (referencial de ataque), mantida `duracao` s e a desvanecer nos ultimos `desvanece` s: so empurra no sentido da transicao (nunca contra ele).
+            const resta = Tr.duracao - bb.possessionTime;
+            const w = Tr.desvanece > 0 ? Math.min(1, resta / Tr.desvanece) : 1;
+            const alvo = bb.isAttacking ? Math.max(bz, Tr.zOfensivo) : Math.min(bz, Tr.zDefensivo);
+            bz += (alvo - bz) * w;
+        } else {
+            bz += (bb.isAttacking ? Tr.avancoOfensivo : -Tr.recuoDefensivo) * (1 - bb.possessionTime / Tr.duracao);
+        }
     }
     let cache = bb._zonasCache;
     /*
