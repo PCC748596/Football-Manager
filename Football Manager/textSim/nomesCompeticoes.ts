@@ -43,8 +43,12 @@ export const nomeComp = (id: string, curto = false): string => {
 /** O prefixo das fases ("CUP" em "CUP - 1"). */
 export const prefixoComp = (id: string): string => mod[id]?.prefixo || GENERICOS[id]?.prefixo || id;
 
-/** O caminho do logo (relativo a pagina), ou '' sem o mod. */
-export const logoComp = (id: string): string => (mod[id]?.logo ? `dados_reais/competicoes/${mod[id].logo}` : '');
+// De onde vem os logos: a pasta escolhida (api/mod/..?pasta=) ou a pasta `dados_reais` junto do jogo; ver textSim/modDados.ts.
+let baseDosLogos = { base: 'dados_reais/', sufixo: '' };
+export const definirBaseDosLogos = (base: string, sufixo = ''): void => { baseDosLogos = { base, sufixo }; };
+
+/** O endereco do logo (relativo a pagina, ou absoluto), ou '' sem o mod. */
+export const logoComp = (id: string): string => (mod[id]?.logo ? `${baseDosLogos.base}competicoes/${mod[id].logo}${baseDosLogos.sufixo}` : '');
 
 /** O nome de uma LIGA (so o do mod; sem ele quem chama usa o da base). */
 export const nomeDeLigaDoMod = (id: string): string | undefined => mod[id]?.nome;

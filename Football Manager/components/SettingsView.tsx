@@ -2,6 +2,8 @@
 import React from 'react';
 import { useGame } from '../context/GameContext';
 import { MatchDuration } from '../types';
+import { lerConfigMod, gravarConfigMod, CAMINHO_PADRAO_DO_MOD } from '../textSim/modConfig';
+import { estadoDoMod } from '../textSim/modDados';
 
 interface SettingsViewProps {
     onBack?: () => void;
@@ -9,6 +11,7 @@ interface SettingsViewProps {
 
 const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
   const { gameState, updateSettings, t, taxasDeCambio, atualizarTaxas } = useGame();
+  const [mod, setMod] = React.useState(lerConfigMod());
 
   return (
     <div className="h-full flex flex-col gap-6 animate-fade-in max-w-6xl mx-auto w-full">
@@ -99,6 +102,44 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                           ))}
                       </div>
                   </div>
+              </div>
+          </section>
+
+          {/* Mod Section */}
+          <section className="space-y-4">
+              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">Mod</h3>
+              <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">Mod (real names, badges and competitions)</label>
+                  <div className="flex gap-2">
+                      {[true, false].map(on => (
+                          <button key={String(on)} onClick={() => setMod({ ...mod, ativo: on })}
+                              className={`flex-1 py-3 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${mod.ativo === on ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
+                              {on ? 'ON' : 'OFF'}
+                          </button>
+                      ))}
+                  </div>
+                  {mod.ativo && (
+                      <div className="space-y-1">
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mod folder</span>
+                          <input type="text" value={mod.caminho} spellCheck={false} placeholder={CAMINHO_PADRAO_DO_MOD}
+                              onChange={e => setMod({ ...mod, caminho: e.target.value })}
+                              className="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-sm font-mono" />
+                      </div>
+                  )}
+                  <div className="flex items-center gap-3 flex-wrap">
+                      <button onClick={() => { gravarConfigMod(mod); window.location.reload(); }}
+                          className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest transition-colors">Apply and restart</button>
+                      <button onClick={() => setMod({ ...mod, caminho: CAMINHO_PADRAO_DO_MOD })}
+                          className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Default folder</button>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                      {estadoDoMod.ativo
+                          ? `Loaded: ${estadoDoMod.nome} (${estadoDoMod.caminho}) — ${estadoDoMod.clubes} clubs, ${estadoDoMod.jogadores} players, ${estadoDoMod.competicoes} competitions.`
+                          : estadoDoMod.configurado
+                              ? `No mod found in ${estadoDoMod.caminho}: the game uses the generic names.`
+                              : 'Mod is OFF: the game uses the generic names.'}
+                      {' '}The mod folder holds mod.json, clubes.json, jogadores.json, competicoes.json and the escudos/ and competicoes/ images. Changes apply after restarting.
+                  </p>
               </div>
           </section>
 

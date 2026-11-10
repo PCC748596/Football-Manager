@@ -4,6 +4,8 @@ O motor 3D decide a partida e gera a narracao. Dois usos:
   . jogarOculto  corre a partida do utilizador sem desenhar (modo "2D simulador": so a narracao) e devolve o resultado inteiro;
   . montarPayload  monta a mensagem `iniciar` (usada tambem pelo Simulador3DView, que mostra o 3D num iframe).
 */
+import { estadoDoMod } from '../textSim/modDados';
+import { parametroDoModNo3D } from '../textSim/modConfig';
 import { escudoUrl } from '../textSim/distribuicao';
 import { atributosParaMotor } from '../textSim/atributos3d';
 import { peBomDe } from '../textSim/peBom';
@@ -262,7 +264,7 @@ simulados (0..90) para uma barra de progresso. O iframe e removido no fim.
 export const jogarOculto = (payload: any, aoProgresso?: (minuto: number) => void, limiteMs = 180000): Promise<ResultadoMotor> =>
   new Promise((resolve, reject) => {
     const iframe = document.createElement('iframe');
-    iframe.src = urlSimulador() + '?oculto=1&embutido=1';
+    iframe.src = urlSimulador() + '?oculto=1&embutido=1' + parametroDoModNo3D(estadoDoMod.origem, estadoDoMod.caminho);
     iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:640px;height:360px;border:0;visibility:hidden';
     let fim = false;
     const limpar = () => { window.removeEventListener('message', ouvir); clearTimeout(tmo); iframe.remove(); };

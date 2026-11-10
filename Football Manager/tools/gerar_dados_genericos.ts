@@ -22,7 +22,7 @@ import { nomeDoClube } from '../textSim/nomes';
 import { criarRng } from '../textSim/contracts';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const MOD = path.join(RAIZ, 'public', 'dados_reais');
+const MOD = process.env.FM_MOD_DIR ? path.resolve(process.env.FM_MOD_DIR) : path.join(RAIZ, 'public', 'dados_reais');   // a pasta do mod (a mesma de Settings > Mod)
 if (fs.existsSync(path.join(MOD, 'clubes.json'))) { console.error('public/dados_reais ja existe: a base ja foi gerada. Veja o cabecalho deste ficheiro para refazer.'); process.exit(1); }
 
 // --- os nomes genericos dos clubes: <prefixo> <palavra>, na lingua do pais, com o sufixo de estado (-SP, -RJ...) dos clubes brasileiros ---

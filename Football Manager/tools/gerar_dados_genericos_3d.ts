@@ -18,8 +18,9 @@ import { criarRng } from '../textSim/contracts';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const S3D = path.join(RAIZ, '3dMatch', 'simulador3d');
-const MOD3D = path.join(RAIZ, 'public', 'dados_reais', '3d');
-if (!fs.existsSync(path.join(RAIZ, 'public', 'dados_reais', 'mod.json'))) { console.error('Corra primeiro tools/gerar_dados_genericos.ts'); process.exit(1); }
+const MODRAIZ = process.env.FM_MOD_DIR ? path.resolve(process.env.FM_MOD_DIR) : path.join(RAIZ, 'public', 'dados_reais');
+const MOD3D = path.join(MODRAIZ, '3d');
+if (!fs.existsSync(path.join(MODRAIZ, 'mod.json'))) { console.error('Corra primeiro tools/gerar_dados_genericos.ts'); process.exit(1); }
 if (fs.existsSync(path.join(MOD3D, 'squads_nomes.json'))) { console.error('Ja gerado (public/dados_reais/3d/squads_nomes.json existe).'); process.exit(1); }
 fs.mkdirSync(MOD3D, { recursive: true });
 
@@ -27,7 +28,7 @@ const genTime = new Map<number, any>((REAL_TEAMS_JSON as any[]).map(t => [Number
 const genJog = new Map<number, string>((REAL_PLAYERS_JSON as any[]).map(p => [Number(p.idPlayer), String(p.namePlayer)]));
 
 // O `squads.json` vem de uma base com ids ANTIGOS em alguns clubes (ex.: ABC-RN 450116, hoje 451065): esses ligam-se pelo NOME real (do mod) ao clube de hoje.
-const modClubes: any[] = JSON.parse(fs.readFileSync(path.join(RAIZ, 'public', 'dados_reais', 'clubes.json'), 'utf8'));
+const modClubes: any[] = JSON.parse(fs.readFileSync(path.join(MODRAIZ, 'clubes.json'), 'utf8'));
 const idHojePeloNomeReal = new Map<string, number>(modClubes.map(c => [String(c.nome), Number(c.id)]));
 for (const [antigo, hoje] of [['Náutico-RE', 'Náutico-PE'], ['SãoJosé-RS', 'São José-RS']]) { const id = idHojePeloNomeReal.get(hoje); if (id !== undefined) idHojePeloNomeReal.set(antigo, id); }   // nomes escritos de outra forma no squads.json
 const squads = JSON.parse(fs.readFileSync(path.join(S3D, 'data', 'squads.json'), 'utf8'));

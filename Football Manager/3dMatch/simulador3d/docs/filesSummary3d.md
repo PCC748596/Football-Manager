@@ -15,6 +15,52 @@ Consulta este ficheiro para saber **onde** mexer antes de abrir o código.
 
 ## Últimas Actualizações (Outubro e Novembro 2026)
 
+### 9 e 10 de Novembro de 2026 — sliders, BT por posição, corredores, drible, duração do tempo, fim em zona segura e dados genéricos
+
+**Sliders de ajuste ao vivo (`js/sliders_jogo.js`, botão "Sliders" em `js/narracao/ponte.js`)**
+- Painel ao lado do Debug ON/OFF da tela cheia: cada slider vai de 0 a 100 e **50 é sempre o valor do código** (`padrão × slider / 50`, com `max` nas probabilidades). "Copy values" copia o JSON dos valores finais; "Reset" volta a 50. Sem persistência.
+- 24 parâmetros: `VelocidadeHumana.escala`, `PassErrorModel.fator`, `PassModel.velMaxSaida`, `ShotModel.erro.escalaGlobal` / `factorForca`, `FirstTouchModel.chance`, `GoalkeeperDive.alcanceBraco` / `velLateral`, `MarkingModel.distancia`, `RunIntoSpaceModel.frequencia`, `MatchInjuries.fatorFrequencia` / `gravidade`, `TeamShape.linhaDefensiva`, `BlockShape.profundidade` / `amplitude`, `WideAnchor.lateral` / `ala`, `TurnModel.escala` / `escalaInercia` / `amplitude`, `PassModel.bonusVirada` / `viradaJanela` / `bonusSectorActivo`, `FreeKickModel.cruzamentoDeLongeProb`. Os que mexem em vários campos usam `_fator`.
+- `tools/headless/jogo_completo.js`: um jogo de 90 min de relógio com os valores de um JSON (`VALORES=ficheiro.json`) ou os padrões, e as estatísticas numa linha. Medido em 20 jogos (sementes 1–20) contra os padrões: quase nada muda (remates +11%, amarelos +23%, **desarmes tentados +17%, dribles −21%**; precisão de passe 71% nos dois).
+
+**Viradas, faltas longas, giro e a falta com o batedor trocado**
+- `PassModel.bonusVirada` (150) e `viradaJanela` (5 s): quem recebe de um corredor lateral e tem o sector do outro lado ligado dá +150 de nota ao colega do lado oposto (`Match.viradaOrigem` / `viradaTimer`, js/fsm.js e js/player.js `findPassTarget`).
+- `FreeKickModel.cruzamentoDeLongeProb` (0.70) e `cruzamentoDeLongeProfundidade` (52 m): 70% das faltas longas viram cruzamento para a área (override em js/match/match_setpieces.js).
+- **Giro do corpo ligado à Agility**: `TurnModel` (escala 0.90, `escalaInercia`, `amplitude`), `giroDoCorpo(comBola)` e `inerciaDoCorpo()` em js/player.js; a inércia da direcção (`steerArrive`) é o que se vê.
+- **Troca do batedor depois das substituições**: `Match.reatribuirBatedorAposTroca` (js/match/match_substituicoes.js) corre uma vez, quando a última troca acaba e antes da cobrança: limpa os cobradores designados que saíram, escolhe o batedor do papel (canto E/D, falta directa E/D, falta longa, pênalti) e troca-o no ponto (`_spotBatedor`, guardado antes das trocas) e no estado do anterior. `_trocaNaParada` marca a parada; js/match/match_loop.js chama-a quando `_seguraCobranca` cai. `tools/headless/troca_batedor.js`.
+- **Juiz, expulso e substituto**: histerese fuga/parar do árbitro (js/officials.js, `S._fugindo`); `TunelJogadores.velExpulso` 5.5 m/s (js/config/tunel.js); o substituto espera virado para o campo; quem sofre a falta passa a `SET_PIECE_WAIT` em vez de ficar em `CARRY` (guarda em js/player.js).
+- **Som de perigo** (`js/ambiente_sonoro.js`, `js/narracao/eventos.js`): o "ohh" toca em remates a menos de `reacaoDistMax` (15 m) mesmo com xG baixo, e em defesa para canto; `Eventos.remate` passa a gravar `dist`; `volumeReacao` 0.512 (−20%).
+
+**Árvore de decisão com bola por posição (`js/bt/player_bt.js`, `js/config/bt_posicoes.js`)**
+- A decisão com bola é agora uma lista de 28 nós com nome (`NOS_COM_BOLA`, ordem padrão em `ORDEM_PADRAO_COM_BOLA`), montada por `construirDecisaoComBola`. `BTPosicoes.grupos` (CB, FB, DM, CM, WM, WF, AM, ST) guarda as operações `antes` / `depois` / `remover` por posição, e `BTPosicoes.estilos` (22 entradas) as excepções por playing style, aplicadas por cima do grupo. Sem operações a árvore é a de antes (provado por `tools/headless/impressao.js`, impressão digital determinística de um jogo).
+- Ramos novos fora da lista: `RotacaoDeJogo` (`alaParaRotacao`, desligado), `CFLancaAsPontas` (`lancamentoDoCF`: o CF a mais de 25 m da linha de fundo manda um homem de ala infiltrar e lança-o), `AlaDriblaAntes` (`AlaConduz`, desligado).
+
+**Corredores e momentum (`js/config/balanco_corredores.js`, `js/bt/team_bt.js`)**
+- Medido (4-4-2, Left e Right ligados): ~60% do tempo no corredor central, mesmo entre as duas áreas; o CF tem a bola 35%, os quatro laterais e alas só ~20%. Mexer na nota do passe (até 5000 pontos) ou na condução não muda isso. Ver `tools/headless/corredores.js`, `corredores_entre_areas.js` (`FORM=`), `viradas_4passes.js` (viradas em até 4 passes: 3 a 7 por jogo).
+- `BalancoCorredores.mantemAla` (o homem de ala no corredor de um sector ligado perde metade da nota dos passes para dentro), `cfPeso` e `rotacao` (desligados) e `PassInterceptModel.fatorMeiasEAtacantes` (1.0, sem efeito medido: mais da metade dos cortes são de meias e atacantes, mas o corte falhado deixa a bola disputada).
+- **Momentum** = o lado onde a bola esteve no último minuto de bola em jogo: `MomentumModel.janela` 60 s, `bb.momentumX` (−1 esquerda do campo … +1) e `bb.momentumAtk` (no referencial de ataque), baldes de 1 s em `updateMomentum`. Ninguém o lê ainda.
+
+**Posições e ritmo (`js/bt/team_bt.js`, `js/config/tactics.js`, `js/config/defense.js`)**
+- **Camadas do bloco rígido removidas** do `tickFinal`: `molaCoesao`, `pendulo`, `tectoMeias`, `desvioMaxDoSlot` (e `ZonasModel.camadas`, `saltaZ`). Impressão digital idêntica antes e depois.
+- `ZonasModel.transicao`: a bola é lida em z fixo (T.Offensive 18.25, T.Defensive −15) durante 6 s, a desvanecer no último segundo (`zOfensivo`, `zDefensivo`, `duracao`, `desvanece`); sem esses campos vale o salto antigo em metros.
+- `FolgaMeioDefesa` (8 m): sem bola, DM/CM/AM não ficam a menos de 8 m do posto do defensor mais avançado (que já inclui o limite da Defensive Line). Medido com a linha em 60%: CB × DM/CM no 4-2-3-1 passou de 4,4 para 6,9 m de mediana; `tools/headless/folga_linhas.js`.
+- `PressaoDoChaser` (`velFator` 0.92, `histerese` 8): o chaser corre 8% mais devagar e demora mais a trocar (de ~37 para ~29 trocas/min). Posse média ~5,5 s antes e depois.
+- **`GAME_SPEED` 0.918** (era 1.00; 0.90 por uns minutos): o relógio por segundo real não muda (4.5), só o ritmo da física.
+
+**Drible: o jogador parava (js/fsm.js, estado `DRIBBLE`)**
+- O estado fixava `dynamicTarget` e `speedMult` mas ninguém movia o jogador durante o gesto (`duracaoGesto` 0.8 s): entrava parado e ficava parado. Agora `p.velocity = p.steerArrive(p.dynamicTarget, p.speedMult, 0)` todos os frames. Medido (25 min): 3 de 66 dribles abaixo de 2 m/s no gesto → 0 de 54.
+- `dentroDoCampo(d)`: o 1.º corte, o 2.º e o toque reflectem a componente que sairia do campo (a 2 m da linha de fundo o alvo caía atrás dela). `tools/headless/parado_na_area.js`.
+
+**Duração do tempo 10/15/20 min (`MatchDuration` em js/config/tactics.js, js/narracao/ponte.js mensagem `duracao`, js/bt/player_bt.js `remateLiberado`, js/officials.js `marcarFalta`)**
+- `halfRealMinutes` vem dos Settings do manager; `gameSecondsPerRealSecond = halfGameMinutes / halfRealMinutes` (4.5 / 3.0 / 2.25). O jogo corre na mesma velocidade: o que se ajusta são as estatísticas — a 15 e 20 min cada posse só ganha o direito de rematar com probabilidade `escalaDeEventos` (1, 0.667, 0.5) e só essa fracção das faltas é marcada. Passes, duelos e dribles sobem com o tempo jogado. `compensar` (esperas de decisão por `ritmo`) fica desligado. `tools/headless/duracao.js`.
+- **Fim da partida em zona segura** (`MatchDuration.fimSeguro`, `Match.fimPermitido` em js/match/match_loop.js): depois do acréscimo o apito (1.º tempo, 2.º tempo e prorrogação) só sai com a bola em |x| < 11.33 e |z| < 18.25; passados `esperaMax` (120 s de relógio) sai de qualquer modo. Só nas partidas visíveis. `tools/headless/fim_seguro.js`.
+
+**Dados genéricos e o mod `dados_reais` (lado do 3D)**
+- `data/squads.js` / `squads.json` trazem nomes genéricos de clubes, estádios e jogadores (os mesmos da base do manager, por id); os reais estão em `public/dados_reais/3d/squads_nomes.json` e o `index.html` aplica-os ao arrancar se o 3D receber `?mod=<pasta>` (a pasta escolhida em **Settings > Mod**, lida por XHR síncrono a `../api/mod/3d/...?pasta=`) ou `?mod=pacote` (a pasta `dados_reais` junto do jogo); sem `mod` não há mod. O manager põe o parâmetro ao abrir o iframe (`parametroDoModNo3D`, 3dMatch/simulador3dCliente.ts e Simulador3DView.tsx). `tools/headless/harness.js` aplica `public/dados_reais/3d/` aos testes e ferramentas.
+- **Settings > Mod ON/OFF** (`components/SettingsView.tsx`, `textSim/modConfig.ts`): por omissão ON, pasta `C:\Footmanager3D\mod`; fica no `localStorage` (`fm_mod_ativo`, `fm_mod_caminho`) porque é lido antes de o jogo abrir. O jogo lê a pasta por `api/mod/<ficheiro>?pasta=<caminho>`, servido por `tools/modServer.mjs` (plugin `modPlugin` do `vite.config.ts`; o .exe deve reutilizar `servirMod`): só ficheiros de tipos conhecidos dentro da pasta, nunca sobe com `..`. Se a pasta não existir, tenta a `dados_reais` do jogo; OFF = só os nomes genéricos. A pasta tem `mod.json`, `clubes.json`, `jogadores.json`, `competicoes.json`, `escudos/`, `competicoes/` e `3d/` (`squads_nomes.json`, `placas_competicoes.js`).
+- `assets/players.json`, `assets/teams.json` (fontes offline) e `assets/placas_competicoes.js` (arte das placas da Premier League e da Champions) passaram para `public/dados_reais/3d/`; o `index.html` carrega as placas de lá se existirem. `tools/gen_squads.js` avisa que gera nomes reais; depois correr `npx tsx tools/gerar_dados_genericos_3d.ts` (na raiz do manager).
+- Ainda com nomes ou marcas reais: `js/config/estadios.js` e `uniformes.js` (chaves por nome de clube), `assets/placas_publicidade.js` e `public/sponsors/` (patrocinadores).
+- Os testes `npm run 3d:teste` passam (22 + 9) com o mod aplicado; a suíte `3d:teste:todos` tem falhas que não foram triadas (parecem defasadas dos ajustes recentes, não dos nomes).
+
 ### 7 a 9 de Novembro de 2026 — luzes e FPS, sombras, drible, carrinho, faltas, troca no intervalo, som e calendário europeu
 
 **Luzes, sombras e FPS (`js/config/qualidade.js`, `js/match/match_setup.js`, `js/config/physics.js`, `js/cidade.js`, `js/main.js`)**

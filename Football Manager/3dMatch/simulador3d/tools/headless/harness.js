@@ -100,11 +100,11 @@ for (const chave of Object.keys(win)) {
 }
 
 /*
-O MOD DOS DADOS REAIS (public/dados_reais/3d/squads_nomes.json): como no index.html, se existir, os nomes reais dos planteis substituem os genericos de data/squads.js. Os testes e as ferramentas que
+O MOD DOS DADOS REAIS (<pasta do mod>/3d/squads_nomes.json): como no index.html, se existir, os nomes reais dos planteis substituem os genericos de data/squads.js. Os testes e as ferramentas que
 procuram clubes pelo nome real ("Flamengo-RJ"...) precisam dele; sem a pasta (o pacote) corre com os genericos.
 */
 try {
-    const caminho = path.resolve(RAIZ, '..', '..', 'public', 'dados_reais', '3d', 'squads_nomes.json');
+    const caminho = path.resolve(process.env.FM_MOD_DIR || 'C:\\Footmanager3D\\mod', '3d', 'squads_nomes.json');   // a pasta do mod (Settings > Mod); FM_MOD_DIR muda-a
     if (fs.existsSync(caminho) && typeof SquadsData !== 'undefined') {
         const n = JSON.parse(fs.readFileSync(caminho, 'utf8'));
         for (const e of SquadsData.equipas) {

@@ -62,6 +62,15 @@ function countryDataPlugin() {
   };
 }
 
+// O MOD (Settings > Mod): serve a pasta escolhida pelo jogador em /api/mod/<ficheiro>?pasta=<caminho> (tools/modServer.mjs; o jogo empacotado deve usar a mesma funcao).
+function modPlugin() {
+  const servir = async (server) => {
+    const { servirMod } = await import('./tools/modServer.mjs');
+    server.middlewares.use('/api/mod', (req, res) => { servirMod(req, res, req.url); });
+  };
+  return { name: 'mod-dados-reais', configureServer: servir, configurePreviewServer: servir };
+}
+
 // O botao de gravar do manager (GameContext.saveGame) descarrega o save no browser E manda uma copia para aqui: fica na pasta `saves/` do projeto (um nivel acima desta), no disco local. So existe no servidor de desenvolvimento.
 function saveGameLocalPlugin() {
   return {
@@ -265,7 +274,7 @@ export default defineConfig(() => {
         host: '0.0.0.0',
         ...(certProprio ? { https: certProprio } : {}),
       },
-      plugins: [...(certProprio ? [] : [basicSsl()]), certDevPlugin(), react(), countryDataPlugin(), databaseSaverPlugin(), facesSaverPlugin(), saveGameLocalPlugin(), simulador3dPlugin(), pwaOfflinePlugin()],
+      plugins: [...(certProprio ? [] : [basicSsl()]), certDevPlugin(), react(), countryDataPlugin(), modPlugin(), databaseSaverPlugin(), facesSaverPlugin(), saveGameLocalPlugin(), simulador3dPlugin(), pwaOfflinePlugin()],
       // Caminhos relativos no build: o jogo instalado (PWA) abre de qualquer pasta / sub-caminho.
       base: './',
       resolve: {
