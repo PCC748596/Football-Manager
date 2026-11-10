@@ -1,8 +1,10 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useGame } from '../context/GameContext';
 import { createPortal } from 'react-dom';
 import { Player, Position, Team, FORMATIONS, POSITION_ORDER, getEffectiveSkill, getKitDetails, getGKKitDetails } from '../types';
 import { PlayerFace3D } from './PlayerFace3D';
 import { ShirtIcon } from './ShirtIcon';
+import CartaoJogador, { CARTAO_LARGURA, CARTAO_ALTURA, deslocamentoDoCartao } from './CartaoJogador';
 import EnergyBar, { energiaDe } from './EnergyBar';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
@@ -43,6 +45,18 @@ interface Props {
 const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0 | 1 | 2; adversario?: boolean }> = ({ team, titulo, players, kitIdx, adversario }) => {
   const slot = useRef<HTMLDivElement>(null);
   const [alt, setAlt] = useState(600);
+  // A MEDIA DAS NOTAS de cada jogador nos jogos disputados (como no Match Tactics), dos dois times, e so com o botao Avg Ratings do utilizador ligado.
+  const { fixtures, userTeam } = useGame();
+  const mediasDeNotas = useMemo(() => {
+    const soma: Record<string, { s: number; n: number }> = {};
+    for (const f of fixtures) {
+      if (!f.played || !f.playerRatings) continue;
+      for (const [id, nota] of Object.entries(f.playerRatings)) { if (typeof nota !== 'number') continue; const e = soma[id] || (soma[id] = { s: 0, n: 0 }); e.s += nota; e.n++; }
+    }
+    const r: Record<string, number> = {};
+    for (const id of Object.keys(soma)) r[id] = soma[id].s / soma[id].n;
+    return r;
+  }, [fixtures]);
   useLayoutEffect(() => {
     const el = slot.current;
     if (!el) return;
@@ -72,13 +86,15 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
 
   return (
     <div className="flex-1 min-w-0 flex flex-col gap-1 min-h-0">
-      <div className="flex items-center justify-between px-1 shrink-0">
-        <span className="text-[13px] font-black italic uppercase tracking-tight text-slate-800 dark:text-white truncate">{team.name}</span>
-        <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">{titulo} • {team.tactics.formation}</span>
-      </div>
       <div className="flex-1 min-h-0 flex gap-[5px]">
         <div ref={slot} className="flex-1 min-w-0 min-h-0 flex items-stretch justify-center">
-          <div className="relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ width: Math.min(largura, 9999), maxWidth: '100%', height: '100%' }}>
+          {/* O cabecalho (modo e formacao a esquerda, o NOME DO TIME a direita) tem a largura do campo: o nome fica no limite direito dele. */}
+          <div className="flex flex-col gap-1 min-h-0" style={{ width: Math.min(largura, 9999), maxWidth: '100%', height: '100%' }}>
+      <div className="flex items-center justify-between px-1 shrink-0 w-full">
+        <span className="text-[31px] leading-none font-black italic uppercase tracking-tight text-blue-400 shrink-0">{titulo} • {team.tactics.formation}</span>
+        <span className="text-[44px] leading-none font-black italic uppercase tracking-tight text-slate-800 dark:text-white truncate text-right ml-3 mr-[10px]">{team.name}</span>
+      </div>
+          <div className="relative flex-1 min-h-0 bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ width: '100%' }}>
             {!adversario && <div className="absolute top-2 right-3 z-10 flex flex-col items-end">
               <span className="text-[9px] font-black text-blue-300 uppercase tracking-widest leading-none mb-0.5">CHEMISTRY</span>
               <div className="flex items-baseline"><span className="text-3xl font-black text-slate-300 dark:text-white/20 italic leading-none tracking-tighter">{quimica}</span><span className="text-lg font-black text-blue-300/50 italic">%</span></div>
@@ -106,6 +122,16 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
                 const player = noCampo[idx];
                 const gk = pos.label === 'GK' || player?.position === Position.GK;
                 const d = kit(gk);
+                // O CARTAO do jogador (so com os rostos ligados; sem eles, as camisas de sempre): o mesmo do Match Tactics. Do adversario nao se mostram estilo nem moral.
+                if (player && rostosOn) {
+                  return (
+                    <div key={idx} className="absolute flex items-center justify-center z-10" style={{ width: CARTAO_LARGURA, height: CARTAO_ALTURA, left: `${adversario ? 100 - pos.x : pos.x}%`, top: `${adversario ? 100 - pos.y : pos.y}%`, transform: `translate(-50%, calc(-50% + ${deslocamentoDoCartao(team.tactics.formation, pos.label, pos.x) * k * (adversario ? -1 : 1)}px)) scale(${0.8 * k})` }}>
+                      <CartaoJogador player={player} slotPos={pos.label} overall={getEffectiveSkill(player, pos.label)}
+                        rosto={<PlayerFace3D playerId={player.id} team={team} kitIdx={kitIdx} gk={gk} camisa={team.primaryColor} className="w-full h-full" />}
+                        estilo={estilosOn ? estiloDe(player) : null} nota={(userTeam?.tactics.mediaNotasOn !== false && mediasDeNotas[player.id] !== undefined) ? mediasDeNotas[player.id].toFixed(1) : null} notaValor={mediasDeNotas[player.id]} foraDePosicao={player.position !== pos.label} />
+                    </div>
+                  );
+                }
                 return (
                   <div key={idx} className="absolute flex flex-col items-center justify-center w-24 h-24 z-10" style={{ left: `${adversario ? 100 - pos.x : pos.x}%`, top: `${adversario ? 100 - pos.y : pos.y}%`, transform: `translate(-50%, calc(-50% + ${(pos.label === 'GK' ? 20 : 0) * k * (adversario ? -1 : 1)}px)) scale(${0.8 * k})` }}>   {/* o adversario vem do outro lado: o campo rodado 180 graus, com o goleiro em cima */}
                     <div className="relative">
@@ -137,6 +163,7 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
                 );
               })}
             </div>
+          </div>
           </div>
         </div>
         {/* OS RESERVAS, do lado direito do campo */}

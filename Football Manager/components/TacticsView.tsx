@@ -18,6 +18,7 @@ interface FieldPosition {
 
 import { ShirtIcon } from './ShirtIcon';
 import { PlayerFace3D } from './PlayerFace3D';
+import CartaoJogador, { CARTAO_LARGURA, CARTAO_ALTURA, deslocamentoDoCartao } from './CartaoJogador';
 import { setoresPadraoDaFormacao } from '../3dMatch/simulador3dCliente';
 import ZonePositionsModal from './ZonePositionsModal';
 import { campo3d } from '../textSim/atributos3d';
@@ -666,6 +667,29 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                         {player?.shirtNumber ?? '-'}{' | '}{pos.label}
                                     </div>
                                     <span className="mt-0.5 text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap">{player && userTeam.tactics.playingStylesOn !== false && <IconeEstilo estilo={estiloDoJogador(player)} tam={18} className="mr-1 align-middle" />}{player ? player.name.split(' ').pop() : '---'}{etiquetaNota(player)}</span>
+                                </div>
+                            );
+                        }
+
+                        // O CARTAO do jogador (so em quem esta em campo; o posto vazio continua como era): ver CartaoJogador.tsx.
+                        // Com os rostos DESLIGADOS (Player Faces OFF) nao ha cartao: voltam as camisas de sempre.
+                        if (player && userTeam.tactics.playerFacesOn !== false) {
+                            const est = userTeam.tactics.playingStylesOn !== false ? estiloDoJogador(player) : null;
+                            return (
+                                <div key={idx} onDragOver={(e) => e.preventDefault()} onClick={() => tocarNoCampo(idx)} onDrop={(e) => handleDropToLineup(e.dataTransfer.getData("playerId"), idx)} className="absolute flex flex-col items-center justify-center transition-all duration-500 z-10" style={{ width: CARTAO_LARGURA, height: CARTAO_ALTURA, ...(postos && postos[idx] ? emCampo(postos[idx].x, postos[idx].z) : { left: `${pos.x}%`, top: `${pos.y}%` }), transform: `translate(-50%, calc(-50% + ${deslocamentoDoCartao(userTeam.tactics.formation, pos.label, pos.x)}px)) scale(0.8)`, opacity: isRed ? 0.2 : 1 }}>
+                                    <div draggable onDragStart={(e) => e.dataTransfer.setData("playerId", player.id)} className="cursor-grab active:cursor-grabbing">
+                                        <CartaoJogador
+                                            player={player} slotPos={pos.label} overall={isRed ? 0 : getEffectiveSkill(player, pos.label)}
+                                            rosto={<PlayerFace3D playerId={player.id} team={userTeam} kitIdx={kitDeCampo} gk={player.position === Position.GK || pos.label === 'GK'} camisa={userTeam.primaryColor} className="w-full h-full" />}
+                                            estilo={est} nota={mediaNotas(player)} notaValor={mediasDeNotas[player.id]}
+                                            selecionado={selecionado === player.id} foraDePosicao={isOutOfPos}
+                                            etiquetas={status ? <>
+                                                {status.yellow && <div className="w-3 h-4 bg-yellow-400 border border-yellow-600 rounded-[1px] shadow-sm" />}
+                                                {status.red && <div className="w-4 h-6 bg-red-600 border border-gray-950 rounded-sm shadow-xl" />}
+                                                {status.injury && <div className={`text-[20px] ${getInjuryColorClass(status.injury)} font-black drop-shadow-md leading-none cursor-help`} title={typeof status.injury === 'object' ? `${status.injury.type} (${status.injury.daysOut} dias)` : 'Contundido na partida'}>✚</div>}
+                                            </> : undefined}
+                                        />
+                                    </div>
                                 </div>
                             );
                         }
