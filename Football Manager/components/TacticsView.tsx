@@ -210,6 +210,18 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     <IconeEstilo estilo={estiloDoJogador(p)} tam={tam} />
   );
   const nomeDaCompeticao = (chave: string | null) => !chave ? '' : chave === 'LEAGUE' ? 'LEAGUE' : String((comps || []).find(c => c.id === chave)?.name || chave).toUpperCase();
+  // O FUNDO do card do banco e do squad pool pela situacao do jogador: expulso (vermelho) > 3.o amarelo / suspenso por amarelos (amarelo) > lesionado (verde). Sem situacao, o fundo de sempre.
+  const fundoDoCard = (playerId: string): string => {
+    const st = getPlayerMatchStatus(playerId);
+    const jog = players.find(p => p.id === playerId);
+    const susp = suspensoNoJogo(playerId);
+    const acum = (chaveJogo && jog?.amarelos?.[chaveJogo]) || 0;
+    const vermelho = !!st.red || (susp && String((chaveJogo && jog?.suspMotivo?.[chaveJogo]) || 'RED CARD').toUpperCase().includes('RED'));
+    if (vermelho) return 'bg-red-100 dark:bg-red-900/40 border-red-300 dark:border-red-800/60';
+    if (acum >= AMARELOS_PARA_SUSPENSAO || susp) return 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-300 dark:border-yellow-700/60';
+    if (st.injury) return 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700/60';
+    return 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700';
+  };
   const AvisosDoCard = ({ playerId }: { playerId: string }) => {
     const st = getPlayerMatchStatus(playerId);
     const susp = suspensoNoJogo(playerId);
@@ -809,7 +821,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                              } else benchColor = getPosColor(p.position);
                             const status = getPlayerMatchStatus(p.id);
                             return (
-                                <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.stopPropagation(); handleBenchSwap(e.dataTransfer.getData("playerId"), p.id); }} onClick={(e) => { e.stopPropagation(); tocarNoBanco(p.id); }} title={foiSubstituido(p.id) ? "Already substituted: cannot re-enter" : indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg px-1.5 py-[8.5px] flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
+                                <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.stopPropagation(); handleBenchSwap(e.dataTransfer.getData("playerId"), p.id); }} onClick={(e) => { e.stopPropagation(); tocarNoBanco(p.id); }} title={foiSubstituido(p.id) ? "Already substituted: cannot re-enter" : indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full min-w-0 ${fundoDoCard(p.id)} border rounded-lg px-1.5 py-[8.5px] flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
                                     {!jogoIniciado && <button onClick={(e) => { e.stopPropagation(); removeFromSquad(p.id); }} title="Remove from bench" className="absolute bottom-1 right-1 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>}
                                     <div className={`relative mt-[2px] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
                                         {rostosNasListas(userTeam.tactics) ? (
@@ -832,11 +844,10 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                             scale={0.7} 
                                             longSleeves={p.position === Position.GK} 
                                         />}
-                                        {status && (status.yellow || status.injury || status.red) && (
+                                        {status && (status.yellow || status.red) && (
                                             <div className="absolute -top-1 -right-2 flex flex-col gap-0.5 items-center">
                                                 {status.yellow && <div className="w-2 h-2.5 bg-yellow-400 border border-yellow-600 rounded-[1px]" />}
                                                 {status.red && <div className="w-2 h-2.5 bg-red-600 border border-red-800 rounded-[1px]" />}
-                                                {status.injury && <div className={`text-[14px] ${getInjuryColorClass(status.injury)} font-black drop-shadow-sm leading-none cursor-help`} title={typeof status.injury === 'object' ? `${status.injury.type} (${status.injury.daysOut} dias)` : 'Contundido na partida'}>✚</div>}
                                             </div>
                                         )}
                                     </div>
@@ -906,7 +917,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                 const status = getPlayerMatchStatus(p.id);
 
                                 return (
-                                    <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onClick={(e) => { e.stopPropagation(); tocarNoPool(p.id); }} title={foiSubstituido(p.id) ? "Already substituted: cannot re-enter" : indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-1.5 py-[5px] flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
+                                    <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onClick={(e) => { e.stopPropagation(); tocarNoPool(p.id); }} title={foiSubstituido(p.id) ? "Already substituted: cannot re-enter" : indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full ${fundoDoCard(p.id)} border rounded-lg p-1.5 py-[5px] flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
                                         <div className={`relative mt-[2px] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
                                             {rostosNasListas(userTeam.tactics) ? (
                                             <div className="w-[52px] h-[52px] pointer-events-none -translate-y-[13px]"><PlayerFace3D playerId={p.id} team={userTeam} kitIdx={kitDeCampo} gk={p.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
@@ -931,11 +942,10 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                                 scale={0.7} 
                                                 longSleeves={p.position === Position.GK} 
                                             />}
-                                            {status && (status.yellow || status.injury || status.red) && (
+                                            {status && (status.yellow || status.red) && (
                                                 <div className="absolute -top-1 -right-2 flex flex-col gap-0.5 items-center">
                                                     {status.yellow && <div className="w-2 h-2.5 bg-yellow-400 border border-yellow-600 rounded-[1px]" />}
                                                     {status.red && <div className="w-2 h-2.5 bg-red-600 border border-red-800 rounded-[1px]" />}
-                                                    {status.injury && <div className={`text-[14px] ${getInjuryColorClass(status.injury)} font-black drop-shadow-sm leading-none cursor-help`} title={typeof status.injury === 'object' ? `${status.injury.type} (${status.injury.daysOut} dias)` : 'Contundido na partida'}>✚</div>}
                                                 </div>
                                             )}
                                         </div>

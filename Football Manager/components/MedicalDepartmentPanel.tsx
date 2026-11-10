@@ -23,12 +23,12 @@ const CardLesao: React.FC<{ p: Player; cor?: string; team?: Team }> = ({ p, cor,
   const grav = l.severity;
   return (
     <div className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0e182c] px-3 py-2 flex flex-wrap items-center gap-x-5 gap-y-2">
-      <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-800 shrink-0 border border-slate-700"><PlayerFace3D playerId={p.id} team={team} gk={p.position === 'GK'} camisa={cor} className="w-full h-full" /></div>
+      <div className="w-20 h-20 -my-2 shrink-0 pointer-events-none"><PlayerFace3D playerId={p.id} team={team} gk={p.position === 'GK'} camisa={cor} className="w-full h-full" /></div>
       <div className="min-w-[150px] flex-1">
-        <div className="text-base font-black text-slate-900 dark:text-white leading-tight truncate">{p.name}</div>
-        <div className="flex items-center">
+        <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
+          <div className="text-base font-black text-slate-900 dark:text-white leading-tight truncate">{p.name}</div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">{p.position} • Age {p.age}</span>
-          <div className={`ml-2 inline-block text-[10px] font-black uppercase border px-2 py-0.5 rounded-md ${COR_GRAVIDADE[grav] || COR_GRAVIDADE.LIGHT}`}>{ROTULO_GRAVIDADE[grav] || 'Light'}{l.tipoLesao ? ` • ${l.tipoLesao === 'Complexa' ? 'Complex' : 'Simple'}` : ''}</div>
+          <div className={`inline-block text-[10px] font-black uppercase border px-2 py-0.5 rounded-md ${COR_GRAVIDADE[grav] || COR_GRAVIDADE.LIGHT}`}>{ROTULO_GRAVIDADE[grav] || 'Light'}{l.tipoLesao ? ` • ${l.tipoLesao === 'Complexa' ? 'Complex' : 'Simple'}` : ''}</div>
         </div>
       </div>
       <div className="text-sm font-black text-slate-800 dark:text-slate-100 min-w-[130px]">✚ {l.type}</div>

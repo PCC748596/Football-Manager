@@ -2498,6 +2498,21 @@ class PlayerFSM {
                         const dToque = rodar(grausToque * Math.PI / 180 * escapeSide);
                         if (corrida) { d1.x = dToque.x; d1.z = dToque.z; pushDir.set(dToque.x, 0, dToque.z); }
 
+                        /*
+                        O DRIBLE NAO VAI PARA FORA DO CAMPO. O 1.o e o 2.o corte (e o toque) podem apontar para a linha de fundo ou a lateral; com o jogador a 2 m dela o alvo do gesto
+                        caia atras da linha, a camada de movimento cortava-o e ele ficava PARADO a meio do drible (medido: portador a z = 50.3, alvo a z = 53 a 56, < 1.5 m/s durante 0.5 s ou mais).
+                        Cada direccao que sai do campo (a `alcanceGesto` + 3 m, que e para onde a bola vai) tem a componente que sai REFLECTIDA para dentro.
+                        */
+                        const dentroDoCampo = (d) => {
+                            const alc = (DribbleModel.alcanceGesto || 3.0) + 3.0, mz = CAMPO_COMP / 2 - 2.0, mx = CAMPO_LARG / 2 - 1.2;
+                            const px = p.model.position.x, pz = p.model.position.z;
+                            if (Math.abs(pz + d.z * alc) > mz && Math.sign(d.z) === Math.sign(pz)) d.z = -d.z;
+                            if (Math.abs(px + d.x * alc) > mx && Math.sign(d.x) === Math.sign(px)) d.x = -d.x;
+                            const n = Math.hypot(d.x, d.z);
+                            if (n < 1e-6) { d.x = -Math.sign(px) || 1; d.z = 0; } else { d.x /= n; d.z /= n; }
+                        };
+                        dentroDoCampo(d1); dentroDoCampo(d2); dentroDoCampo(pushDir);
+
                         // Chance de sucesso: ir para o lado dá bónus
                         let successChance = DribbleModel.successBase + DribbleModel.successSideBonus;
                         // Skill do jogador modifica (+10% para skill > 70, -10% para skill < 40)
@@ -2533,6 +2548,13 @@ class PlayerFSM {
                         p.model.position.x + plano.dir.x * DribbleModel.alcanceGesto,
                         ALTURA_BASE_Y,
                         p.model.position.z + plano.dir.z * DribbleModel.alcanceGesto);
+
+                    /*
+                    O JOGADOR TEM DE SE MOVER DURANTE O GESTO. Este estado punha o `dynamicTarget` e o `speedMult` mas NINGUEM o conduzia: a velocidade ficava a que ele trazia ao entrar
+                    (medido: 5.8 5.8 5.8 ... durante os 0.8 s do gesto). Quem entrava no drible parado — com o marcador atras, a segurar a bola — ficava PARADO o gesto inteiro (o relato: so
+                    aparece "DRIBBLE" na etiqueta e o jogador para). Agora a velocidade acompanha o alvo todos os frames, como no CARRY.
+                    */
+                    p.velocity = p.steerArrive(p.dynamicTarget, p.speedMult, 0);
 
                     if (plano.t < DribbleModel.duracaoGesto) break;
 
