@@ -24,7 +24,6 @@ import { campo3d } from '../textSim/atributos3d';
 import TacticPresetsModal from './TacticPresetsModal';
 import MatchPreviewModal from './MatchPreviewModal';
 import { slotsVazios } from '../textSim/escalacao';
-import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
 import { estiloPorPosicao, estiloValidoDoJogador } from '../textSim/playStyleFallback';
@@ -411,7 +410,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     if (!txt || !p) return null;
     const v = mediasDeNotas[p.id];
     const fundo = v >= 7 ? 'bg-emerald-600' : v <= 6 ? 'bg-red-600' : 'bg-slate-500';
-    return <span className={`ml-1 rounded-md text-white font-black leading-none ${pequena ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-[13px]'} ${fundo}`}>{txt}</span>;
+    return <span className={`ml-1 rounded-full text-white font-black leading-none ${pequena ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-[13px]'} ${fundo}`}>{txt}</span>;
   };
 
   const handleTacticChange = (field: keyof Tactics, value: any) => {
@@ -514,19 +513,19 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                 <div className="flex-1 relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ minHeight: '350px', containerType: 'size' }}>
                     {aba === 'geral' && (
                         <button onClick={() => handleTacticChange('playingStylesOn' as keyof Tactics, userTeam.tactics.playingStylesOn === false)} title="Turns the players' individual Playing Styles on or off in the 3D match"
-                            className={`absolute top-[7.25rem] right-1 z-20 flex items-center gap-1.5 px-2.5 py-1.5 min-h-[32px] rounded-full border text-[9px] font-black uppercase tracking-widest transition-colors ${userTeam.tactics.playingStylesOn === false ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-emerald-600 border-emerald-400 text-white'}`}>
+                            className={`absolute top-[7.25rem] right-1 z-20 flex items-center justify-between gap-1.5 w-[9.6rem] px-2.5 py-1.5 min-h-[32px] rounded-full border text-[9px] font-black uppercase tracking-widest transition-colors ${userTeam.tactics.playingStylesOn === false ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-emerald-600 border-emerald-400 text-white'}`}>
                             Playing Styles <span className={`px-2 py-0.5 rounded-full text-[9px] ${userTeam.tactics.playingStylesOn === false ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{userTeam.tactics.playingStylesOn === false ? 'OFF' : 'ON'}</span>
                         </button>
                     )}
                     {aba === 'geral' && (
                         <button onClick={() => handleTacticChange('mediaNotasOn' as keyof Tactics, userTeam.tactics.mediaNotasOn === false)} title="Shows the average of each player's match ratings on the cards"
-                            className={`absolute top-[9.75rem] right-1 z-20 flex items-center gap-1.5 px-2.5 py-1.5 min-h-[32px] rounded-full border text-[9px] font-black uppercase tracking-widest transition-colors ${userTeam.tactics.mediaNotasOn === false ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-emerald-600 border-emerald-400 text-white'}`}>
+                            className={`absolute top-[9.75rem] right-1 z-20 flex items-center justify-between gap-1.5 w-[9.6rem] px-2.5 py-1.5 min-h-[32px] rounded-full border text-[9px] font-black uppercase tracking-widest transition-colors ${userTeam.tactics.mediaNotasOn === false ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-emerald-600 border-emerald-400 text-white'}`}>
                             Avg Ratings <span className={`px-2 py-0.5 rounded-full text-[9px] ${userTeam.tactics.mediaNotasOn === false ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{userTeam.tactics.mediaNotasOn === false ? 'OFF' : 'ON'}</span>
                         </button>
                     )}
                     {aba === 'geral' && (
                         <button onClick={() => handleTacticChange('playerFacesOn' as keyof Tactics, userTeam.tactics.playerFacesOn === false)} title="Shows each player's face above the shirt on the pitch"
-                            className={`absolute top-[12.25rem] right-1 z-20 flex items-center gap-1.5 px-2.5 py-1.5 min-h-[32px] rounded-full border text-[9px] font-black uppercase tracking-widest transition-colors ${userTeam.tactics.playerFacesOn === false ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-emerald-600 border-emerald-400 text-white'}`}>
+                            className={`absolute top-[12.25rem] right-1 z-20 flex items-center justify-between gap-1.5 w-[9.6rem] px-2.5 py-1.5 min-h-[32px] rounded-full border text-[9px] font-black uppercase tracking-widest transition-colors ${userTeam.tactics.playerFacesOn === false ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-emerald-600 border-emerald-400 text-white'}`}>
                             Player Faces <span className={`px-2 py-0.5 rounded-full text-[9px] ${userTeam.tactics.playerFacesOn === false ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{userTeam.tactics.playerFacesOn === false ? 'OFF' : 'ON'}</span>
                         </button>
                     )}
@@ -845,9 +844,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                     <div className="px-3 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900">
                         <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">SQUAD POOL</h3>
-                            <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded gap-0.5">
-                                <button onClick={() => setPoolSortBy('skill')} className={`text-[8px] font-black px-1.5 py-0.5 rounded transition-all ${poolSortBy === 'skill' ? 'bg-blue-400 text-white' : 'text-slate-400 hover:text-slate-200'}`}>OVRL</button>
-                                <button onClick={() => setPoolSortBy('position')} className={`text-[8px] font-black px-1.5 py-0.5 rounded transition-all ${poolSortBy === 'position' ? 'bg-amber-400 text-white' : 'text-slate-400 hover:text-slate-200'}`}>POS</button>
+                            <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full gap-0.5">
+                                <button onClick={() => setPoolSortBy('skill')} className={`text-[8px] font-black px-2.5 py-1 rounded-full transition-all ${poolSortBy === 'skill' ? 'bg-blue-400 text-white' : 'text-slate-400 hover:text-slate-200'}`}>OVRL</button>
+                                <button onClick={() => setPoolSortBy('position')} className={`text-[8px] font-black px-2.5 py-1 rounded-full transition-all ${poolSortBy === 'position' ? 'bg-amber-400 text-white' : 'text-slate-400 hover:text-slate-200'}`}>POS</button>
                             </div>
                         </div>
                         <span className="text-[9px] font-bold text-slate-300 uppercase">{availablePlayers.length} TOTAL</span>
@@ -944,10 +943,10 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         <div key={r.role}
                              onDragOver={(e) => { e.preventDefault(); }}
                              onDrop={(e) => { e.preventDefault(); const id = e.dataTransfer.getData("playerId"); if (id) assignSetPiece(r.role, id); }}
-                             className="flex-1 flex flex-col items-center justify-center gap-1 rounded-lg border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm py-1.5 px-1 hover:border-blue-300 transition-colors">
+                             className="relative flex-1 flex flex-col items-center justify-center gap-1 rounded-lg border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm py-1.5 px-1 hover:border-blue-300 transition-colors">
                             <span className="text-[9px] font-black uppercase tracking-wider text-blue-400 text-center leading-tight">{r.label}</span>
                             {pl ? (
-                                <div draggable onDragStart={(e) => e.dataTransfer.setData("playerId", pl.id)} className="relative flex flex-col items-center cursor-grab active:cursor-grabbing">
+                                <div draggable onDragStart={(e) => e.dataTransfer.setData("playerId", pl.id)} className="flex flex-col items-center cursor-grab active:cursor-grabbing">
                                     {userTeam.tactics.playerFacesOn !== false ? (
                                         <div className="w-[60px] h-[60px] pointer-events-none -translate-y-[9px]"><PlayerFace3D playerId={pl.id} team={userTeam} kitIdx={kitDeCampo} gk={pl.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
                                     ) : <ShirtIcon color={d.c1} color2={d.c2} color3={d.c3} diagonal={d.diagonal} dualDiagonal={(d as any).dualDiagonal} centerVerticalStripes={(d as any).centerVerticalStripes}
@@ -955,7 +954,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                         multipleDiagonals={(d as any).multipleDiagonals} diagonalWidth={d.diagonalWidth} number={pl.shirtNumber} numberColor={d.nc} collarColor={d.clc}
                                         numberOutlineColor={d.noc} sleeveColor={d.sc} scale={0.8} longSleeves={pl.position === Position.GK} />}
                                     <span className="relative z-10 mt-[10px] flex items-baseline justify-center gap-1 max-w-full leading-tight whitespace-nowrap"><span className="text-[9px] font-black text-slate-500 dark:text-slate-300 uppercase truncate">{pl.name.split(' ').pop()}</span><span className="text-[9px] font-black text-slate-400">|</span><span className="text-[10px] font-black text-amber-500 shrink-0">{r.attr.rotulo} {r.attr.valor(pl)}</span></span>
-                                    <button onClick={() => assignSetPiece(r.role, undefined)} title="Remove" className="absolute top-1/2 -translate-y-1/2 -right-5 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>
+                                    <button onClick={() => assignSetPiece(r.role, undefined)} title="Remove" style={{ right: 6, top: 'calc(50% + 8px)' }} className="absolute -translate-y-1/2 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>
                                 </div>
                             ) : (
                                 <div className="h-[62px] flex items-center justify-center text-[9px] font-bold text-slate-400 uppercase italic text-center px-2">drag a player here</div>

@@ -9,9 +9,9 @@ const DESENHO: Record<string, React.ReactNode> = {
   'Goal Poacher': D('M13 2L4 14h7l-1 8 9-12h-7z'),
   'Target Man': <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></>,
   'Dummy Runner': D('M3 12h3M9 12h3', 'M15 7l5 5-5 5'),
-  'Extra Frontman': D('M12 5v14', 'M5 12h14'),
+  'Extra Frontman': D('M7 20V5', 'M3 9l4-4 4 4', 'M17 20V5', 'M13 9l4-4 4 4'),   // duas setas para a frente, lado a lado
   'Cross Specialist': D('M4 20C4 11 10 5 20 5', 'M16 1.5l4 3.5-3.5 4'),
-  'Prolific Winger': D('M3 21C8 21 18 17 21 3 12 5 6 12 3 21z', 'M8 16l6-6'),
+  'Prolific Winger': <><path d="M4 3v18" /><circle cx="13" cy="17" r="3.2" /><path d="M13 13V4M9.5 7.5L13 4l3.5 3.5" /></>,   // a linha lateral + a bola subindo pela ala
   'Roaming Flank': <><circle cx="12" cy="12" r="9" /><path d="M15.5 8.5l-2 5-5 2 2-5z" /></>,
   'Creative Playmaker': D('M9 18h6', 'M10 21h4', 'M12 3a6 6 0 0 0-4 10.5c1 1 1 2 1 3.5h6c0-1.5 0-2.5 1-3.5A6 6 0 0 0 12 3z'),
   'Classic No. 10': <text x="12" y="17" textAnchor="middle" fontSize="14" fontWeight="900" fontFamily="Arial, sans-serif" fill="currentColor" stroke="none">10</text>,

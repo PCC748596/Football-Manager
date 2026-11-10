@@ -9,7 +9,6 @@ import { createPortal } from 'react-dom';
 import { RenovarModal } from './ContractPanel';
 import { PlayerFace3D } from './PlayerFace3D';
 import EnergyBar, { energiaDe } from './EnergyBar';
-import { ICONE_DO_ESTILO } from '../textSim/playStyleIcons';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 import { estiloPorPosicao, estiloValidoDoJogador } from '../textSim/playStyleFallback';
 import { atributos3d, campo3d, paisDoJogador, atributosIndividuais, progressoDeXp, CHAVES_POR_POSICAO } from '../textSim/atributos3d';
@@ -214,7 +213,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
       team ? PLAYSTYLE_AJUSTES[`${team.name}|${player.name}`] : undefined,
       player.playStyle,   // o estilo definido pela base Sub-20 (a partir dos 18 anos)
       PLAYSTYLE_DA_BASE[player.id]);
-    return [{ icon: ICONE_DO_ESTILO[daBase] || '💡', name: daBase, descricao: PLAYSTYLE_DESCRICAO[daBase as PlayStyle] || '' }];
+    return [{ name: daBase, descricao: PLAYSTYLE_DESCRICAO[daBase as PlayStyle] || '' }];
   }, [player, team]);
 
   // O resumo (as seis medidas do cartao): tiradas SO dos atributos do 3D. O goleiro mostra os seus (Diving, Handling, Kicking, Reflexes, Speed, Positioning).
