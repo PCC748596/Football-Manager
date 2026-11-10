@@ -7,6 +7,8 @@ a pasta `public/dados_reais/` (o "mod"): se ela existir, o jogo le-a ao arrancar
     public/dados_reais/mod.json         nome e versao do mod
     public/dados_reais/clubes.json      [{ id, nome, abreviatura, estadio, escudo }]   (id = teamID da base; `escudo` = ficheiro em escudos/)
     public/dados_reais/jogadores.json   [{ id, nome }]                                 (id = idPlayer da base)
+    public/dados_reais/competicoes.json [{ id, nome, nomeCurto, prefixo, logo }]           (copas e ligas; id = o da copa ou o da liga)
+    public/dados_reais/competicoes/     os logos das copas
     public/dados_reais/escudos/<id>.png os escudos, pelo id do clube
 
 Uso (so uma vez, com a base REAL ainda em textSim/realDatabase.ts):  npx tsx tools/gerar_dados_genericos.ts
@@ -92,6 +94,34 @@ fs.writeFileSync(path.join(MOD, 'clubes.json'), JSON.stringify(clubes, null, 1),
 fs.writeFileSync(path.join(MOD, 'jogadores.json'), JSON.stringify(jogadores), 'utf8');
 fs.writeFileSync(path.join(MOD, 'mod.json'), JSON.stringify({ nome: 'Dados reais', versao: 1, descricao: 'Nomes reais de clubes, estadios e jogadores, e os escudos. Apague esta pasta para o jogo usar so os nomes genericos.' }, null, 2), 'utf8');
 
+// --- as competicoes: nomes reais e logos para o mod; nomes genericos para a base ---
+const COPAS = [
+  { id: 'LIB', nome: 'Copa Libertadores', nomeCurto: 'Copa Libertadores', prefixo: 'LIBERT', logo: 'LIB.png' },
+  { id: 'SUL', nome: 'Copa Sul-Americana', nomeCurto: 'Copa Sul-Americana', prefixo: 'SULA', logo: 'SUL.png' },
+  { id: 'COPA_BR', nome: 'Copa do Brasil', nomeCurto: 'Copa do Brasil', prefixo: 'CUP', logo: 'COPA_BR.png' },
+  { id: 'CARABAO', nome: 'Carabao Cup', nomeCurto: 'Carabao Cup', prefixo: 'EFL', logo: 'CARABAO.png' },
+  { id: 'PAULISTA', nome: 'Campeonato Paulista', nomeCurto: 'Campeonato Paulista', prefixo: 'PAULISTA', logo: '' },
+  { id: 'UCL', nome: 'UEFA Champions League', nomeCurto: 'Champions League', prefixo: 'UCL', logo: 'UCL.png' },
+  { id: 'UEL', nome: 'UEFA Europa League', nomeCurto: 'Europa League', prefixo: 'UEL', logo: 'UEL.png' },
+  { id: 'UECL', nome: 'UEFA Conference League', nomeCurto: 'Conference League', prefixo: 'UECL', logo: 'UECL.png' },
+  { id: 'SERIE_C', nome: 'Série C', nomeCurto: 'Série C', prefixo: 'C', logo: '' },
+  { id: 'SERIE_D', nome: 'Série D', nomeCurto: 'Série D', prefixo: 'D', logo: '' }
+];
+const ligasReais: any[] = [];
+for (const c of REAL_COUNTRIES_JSON as any[]) for (const l of (c.leagues || [])) ligasReais.push({ id: l.id, nome: l.name });
+fs.mkdirSync(path.join(MOD, 'competicoes'), { recursive: true });
+const LOGOS = path.join(RAIZ, 'Assets', 'Competicoes');
+let logosCopiados = 0;
+for (const c of COPAS) {
+  if (c.logo && fs.existsSync(path.join(LOGOS, c.logo))) { fs.copyFileSync(path.join(LOGOS, c.logo), path.join(MOD, 'competicoes', c.logo)); logosCopiados++; } else c.logo = '';
+}
+fs.writeFileSync(path.join(MOD, 'competicoes.json'), JSON.stringify([...COPAS, ...ligasReais], null, 1), 'utf8');
+const NOME_DA_DIVISAO = ['Primeira Divisão', 'Segunda Divisão', 'Terceira Divisão', 'Quarta Divisão', 'Quinta Divisão'];
+const paisesGen = (REAL_COUNTRIES_JSON as any[]).map(c => ({
+  ...c,
+  leagues: (c.leagues || []).map((l: any) => ({ ...l, name: /_clubes$/.test(String(l.id)) ? `Outros clubes (${c.name})` : `${NOME_DA_DIVISAO[Math.max(0, Math.min(4, (Number(l.tier) || 1) - 1))]} (${c.name})` }))
+}));
+
 // --- a base generica (textSim/realDatabase.ts) ---
 const abrev = (nome: string) => nome.replace(/-[A-Z]{2}$/, '').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 3).toUpperCase().padEnd(3, 'X');
 const estadioGenerico = (t: any, gen: string) => LISTAS[linguaDe(paisDe(t))].est(gen.replace(/-[A-Z]{2}$/, '').split(' ').slice(-1)[0]);
@@ -103,8 +133,8 @@ const jogGen = (REAL_PLAYERS_JSON as any[]).map(p => {
   const tid = idDoTime.get(String(p.team));
   return { ...p, team: nomeGenericoDoClube.get(String(p.team)) || p.team, namePlayer: tid !== undefined ? nomeDoClube(criarRng('nome-generico|p-' + p.idPlayer), String(tid)) : 'Jogador ' + p.idPlayer };
 });
-const conteudo = `\n// BASE GENERICA (gerada por tools/gerar_dados_genericos.ts): clubes, estadios e jogadores com nomes gerados. Os nomes e os escudos reais ficam em public/dados_reais (o mod, lido por textSim/modDados.ts).\n\nexport const REAL_COUNTRIES_JSON: any[] = ${JSON.stringify(REAL_COUNTRIES_JSON, null, 1)};\n\nexport const REAL_TEAMS_JSON: any[] = ${JSON.stringify(timesGen, null, 1)};\n\nexport const REAL_PLAYERS_JSON: any[] = ${JSON.stringify(jogGen)};\n`;
+const conteudo = `\n// BASE GENERICA (gerada por tools/gerar_dados_genericos.ts): clubes, estadios e jogadores com nomes gerados. Os nomes e os escudos reais ficam em public/dados_reais (o mod, lido por textSim/modDados.ts).\n\nexport const REAL_COUNTRIES_JSON: any[] = ${JSON.stringify(paisesGen, null, 1)};\n\nexport const REAL_TEAMS_JSON: any[] = ${JSON.stringify(timesGen, null, 1)};\n\nexport const REAL_PLAYERS_JSON: any[] = ${JSON.stringify(jogGen)};\n`;
 fs.writeFileSync(path.join(RAIZ, 'textSim', 'realDatabase.ts'), conteudo, 'utf8');
-console.log(`clubes ${clubes.length} (escudos copiados ${escudosCopiados}), jogadores ${jogadores.length}`);
+console.log(`clubes ${clubes.length} (escudos copiados ${escudosCopiados}), jogadores ${jogadores.length}, competicoes ${COPAS.length + ligasReais.length} (logos ${logosCopiados})`);
 console.log('exemplos de clubes:', timesGen.slice(0, 5).map((t: any, i: number) => `${(REAL_TEAMS_JSON as any[])[i].teamName} -> ${t.teamName}`).join(' | '));
 console.log('exemplos de jogadores:', jogGen.slice(0, 4).map((p: any, i: number) => `${(REAL_PLAYERS_JSON as any[])[i].namePlayer} -> ${p.namePlayer}`).join(' | '));

@@ -1,0 +1,224 @@
+[
+ {
+  "id": "LIB",
+  "nome": "Copa Libertadores",
+  "nomeCurto": "Copa Libertadores",
+  "prefixo": "LIBERT",
+  "logo": "LIB.png"
+ },
+ {
+  "id": "SUL",
+  "nome": "Copa Sul-Americana",
+  "nomeCurto": "Copa Sul-Americana",
+  "prefixo": "SULA",
+  "logo": "SUL.png"
+ },
+ {
+  "id": "COPA_BR",
+  "nome": "Copa do Brasil",
+  "nomeCurto": "Copa do Brasil",
+  "prefixo": "CUP",
+  "logo": "COPA_BR.png"
+ },
+ {
+  "id": "CARABAO",
+  "nome": "Carabao Cup",
+  "nomeCurto": "Carabao Cup",
+  "prefixo": "EFL",
+  "logo": "CARABAO.png"
+ },
+ {
+  "id": "PAULISTA",
+  "nome": "Campeonato Paulista",
+  "nomeCurto": "Campeonato Paulista",
+  "prefixo": "PAULISTA",
+  "logo": ""
+ },
+ {
+  "id": "UCL",
+  "nome": "UEFA Champions League",
+  "nomeCurto": "Champions League",
+  "prefixo": "UCL",
+  "logo": "UCL.png"
+ },
+ {
+  "id": "UEL",
+  "nome": "UEFA Europa League",
+  "nomeCurto": "Europa League",
+  "prefixo": "UEL",
+  "logo": "UEL.png"
+ },
+ {
+  "id": "UECL",
+  "nome": "UEFA Conference League",
+  "nomeCurto": "Conference League",
+  "prefixo": "UECL",
+  "logo": "UECL.png"
+ },
+ {
+  "id": "SERIE_C",
+  "nome": "Série C",
+  "nomeCurto": "Série C",
+  "prefixo": "C",
+  "logo": ""
+ },
+ {
+  "id": "SERIE_D",
+  "nome": "Série D",
+  "nomeCurto": "Série D",
+  "prefixo": "D",
+  "logo": ""
+ },
+ {
+  "id": "bra_serie_a",
+  "nome": "Série A"
+ },
+ {
+  "id": "bra_serie_b",
+  "nome": "Série B"
+ },
+ {
+  "id": "bra_serie_c",
+  "nome": "Série C"
+ },
+ {
+  "id": "bra_serie_d",
+  "nome": "Série D"
+ },
+ {
+  "id": "bra_clubes",
+  "nome": "Outros clubes (Copa do Brasil)"
+ },
+ {
+  "id": "eng_prem",
+  "nome": "Premier League"
+ },
+ {
+  "id": "eng_champ",
+  "nome": "Championship"
+ },
+ {
+  "id": "eng_l1",
+  "nome": "League One"
+ },
+ {
+  "id": "eng_l2",
+  "nome": "League Two"
+ },
+ {
+  "id": "arg_serie_a",
+  "nome": "Liga Profesional"
+ },
+ {
+  "id": "chi_serie_a",
+  "nome": "Primera División"
+ },
+ {
+  "id": "col_serie_a",
+  "nome": "Categoría Primera A"
+ },
+ {
+  "id": "uru_serie_a",
+  "nome": "Primera División"
+ },
+ {
+  "id": "par_serie_a",
+  "nome": "Primera División"
+ },
+ {
+  "id": "equ_serie_a",
+  "nome": "LigaPro Serie A"
+ },
+ {
+  "id": "per_serie_a",
+  "nome": "Liga 1"
+ },
+ {
+  "id": "bol_serie_a",
+  "nome": "División Profesional"
+ },
+ {
+  "id": "ven_serie_a",
+  "nome": "Liga FUTVE"
+ },
+ {
+  "id": "esp_laliga",
+  "nome": "La Liga"
+ },
+ {
+  "id": "esp_segunda",
+  "nome": "LaLiga Hypermotion"
+ },
+ {
+  "id": "ger_bundesliga",
+  "nome": "Bundesliga"
+ },
+ {
+  "id": "ger_2bundesliga",
+  "nome": "2. Bundesliga"
+ },
+ {
+  "id": "ita_seriea",
+  "nome": "Serie A"
+ },
+ {
+  "id": "ita_serieb",
+  "nome": "Serie B"
+ },
+ {
+  "id": "fra_ligue1",
+  "nome": "Ligue 1"
+ },
+ {
+  "id": "fra_ligue2",
+  "nome": "Ligue 2"
+ },
+ {
+  "id": "nor_clubes",
+  "nome": "Eliteserien (clubes)"
+ },
+ {
+  "id": "ned_clubes",
+  "nome": "Eredivisie (clubes)"
+ },
+ {
+  "id": "por_liga",
+  "nome": "Primeira Liga"
+ },
+ {
+  "id": "por_liga2",
+  "nome": "Liga Portugal 2"
+ },
+ {
+  "id": "tur_clubes",
+  "nome": "Süper Lig (clubes)"
+ },
+ {
+  "id": "aut_clubes",
+  "nome": "Bundesliga Austríaca (clubes)"
+ },
+ {
+  "id": "aze_clubes",
+  "nome": "Premyer Liqa (clubes)"
+ },
+ {
+  "id": "bel_clubes",
+  "nome": "Pro League (clubes)"
+ },
+ {
+  "id": "svk_clubes",
+  "nome": "Fortuna Liga (clubes)"
+ },
+ {
+  "id": "gre_clubes",
+  "nome": "Super League (clubes)"
+ },
+ {
+  "id": "cze_clubes",
+  "nome": "Fortuna Liga Tcheca (clubes)"
+ },
+ {
+  "id": "ukr_clubes",
+  "nome": "Premier Liha (clubes)"
+ }
+]

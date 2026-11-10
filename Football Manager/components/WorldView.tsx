@@ -1,3 +1,4 @@
+import { logoComp } from '../textSim/nomesCompeticoes';
 import React, { useEffect, useMemo, useState } from 'react';
 import { assetUrl } from '../textSim/assetUrl';
 import { useGame } from '../context/GameContext';
@@ -14,7 +15,8 @@ WORLD COMPETITIONS: as ligas do jogo (tabela e jogos de cada uma) e as copas (Li
 
 // Bandeiras (Assets/Bandeiras/<id do pais>.png) e logos das copas (Assets/Competicoes/<id>.png).
 const bandeira = (countryId: string) => assetUrl(`/Assets/Bandeiras/${countryId}.png`);
-const logoCopa = (id: string) => assetUrl(`/Assets/Competicoes/${id}.png`);
+// O logo da copa vem do mod dos dados reais (dados_reais/competicoes); sem ele fica o quadrado em branco.
+const logoCopa = (id: string) => { const u = logoComp(id); return u ? assetUrl(u) : ''; };
 // Nomes das abas das Series C e D (as fases do regulamento).
 const NOME_FASE_BR: Record<string, string> = { 'SERIE_C:G': 'Segunda fase', 'SERIE_C:F': 'Final', 'SERIE_D:R64': 'Segunda fase', 'SERIE_D:R32': 'Terceira fase', 'SERIE_D:R16': 'Oitavas de final', 'SERIE_D:QF': 'Quartas de final', 'SERIE_D:SF': 'Semi final', 'SERIE_D:PA': 'Playoffs de acesso', 'SERIE_D:F': 'Final' };
 // Carabao Cup: uma aba por fase (a mais recente abre primeiro).
@@ -379,7 +381,7 @@ const WorldView: React.FC = () => {
             return (
               <button key={c.id} onClick={() => setSel({ tipo: 'COPA', id: c.id })}
                 className={`w-full flex items-center gap-3 text-left px-3 py-2 rounded-lg border-2 transition-all ${ativo ? 'bg-blue-600/15 border-blue-500' : 'bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 hover:border-blue-400'}`}>
-                <span className="w-11 h-11 flex-shrink-0 rounded bg-white flex items-center justify-center p-1"><img src={logoCopa(c.id)} alt="" className="max-w-full max-h-full object-contain" /></span>
+                <span className="w-11 h-11 flex-shrink-0 rounded bg-white flex items-center justify-center p-1">{logoCopa(c.id) && <img src={logoCopa(c.id)} alt="" className="max-w-full max-h-full object-contain" />}</span>
                 <span className="min-w-0">
                   <span className="block text-xs font-black uppercase leading-tight text-slate-800 dark:text-slate-100">{c.name}</span>
                   <span className="block text-[10px] font-bold text-slate-400">{c.teamKeys.length} clubs{c.champion ? ' · finished' : ''}</span>

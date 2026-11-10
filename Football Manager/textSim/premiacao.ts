@@ -11,6 +11,8 @@ nas `keys` do e-mail do inbox, que e o que impede de pagar duas vezes.
 import type { Competition, CompMatch } from './competitions';
 import { paraDolares, type MoedaCambio } from './cambio';
 import CONFIG from './premiacoes.json';
+import { nomeComp } from './nomesCompeticoes';
+import { REAL_COUNTRIES_JSON } from './realDatabase';
 
 type Moeda = MoedaCambio | 'USD';
 interface TabelaCopa { nome: string; moeda: Moeda; cota?: number; vitoria?: number; empate?: number; entrada?: Record<string, number>; fases?: Record<string, number>; vice?: number; campeao?: number }
@@ -23,9 +25,16 @@ const LIGAS = CONFIG.ligas as unknown as Record<string, TabelaLiga>;
 export interface Premio { key: string; usd: number; razao: string; copa: string; data: string; }
 
 /** Nome de cada copa / liga (do JSON), para o e-mail. */
-export const NOME_DA_COPA: Record<string, string> = {};
-Object.entries(COPAS).forEach(([id, t]) => { NOME_DA_COPA[id] = t.nome; });
-Object.entries(LIGAS).forEach(([id, t]) => { NOME_DA_COPA[id] = t.nome; });
+// Os nomes vem do registo de competicoes (genericos, ou os do mod dos dados reais), lidos no momento do uso; o `nome` do JSON ja nao e mostrado.
+export const NOME_DA_COPA: Record<string, string> = new Proxy({} as Record<string, string>, {
+  get: (_t, id) => {
+    const k = String(id);
+    if (k in COPAS) return nomeComp(k);
+    for (const p of REAL_COUNTRIES_JSON as any[]) for (const l of (p.leagues || [])) if (l.id === k) return l.name;
+    return k;
+  },
+  has: (_t, id) => String(id) in COPAS || String(id) in LIGAS
+});
 
 /** O valor da posicao `pos` (1 = campeao) de uma liga, na moeda dela; 0 se a liga nao paga por posicao. */
 export const valorDaPosicao = (t: TabelaLiga, pos: number): number => {

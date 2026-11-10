@@ -4,13 +4,13 @@
     "Valores em unidades inteiras da moeda indicada em cada bloco (BRL, USD, EUR, GBP); o jogo converte para dolares pelas taxas de Settings (Exchange rates).",
     "So o clube do UTILIZADOR recebe (os outros clubes nao tem contabilidade).",
     "COPAS (copas.<ID>): cota = paga no 1.o jogo de grupos; vitoria / empate = por jogo de grupos; entrada = paga no 1.o jogo da fase (chave = fase); fases = paga quando o clube acaba os jogos da fase;",
-    "vice / campeao = pagos no fim da final (substituem o valor da final). Fases: G(rupos) PO(playoff) R16 QF SF F; Copa do Brasil: P5; Serie C: G; Serie D: R64 R32 R16 QF PA SF F.",
+    "vice / campeao = pagos no fim da final (substituem o valor da final). Fases: G(rupos) PO(playoff) R16 QF SF F; a copa nacional: P5; divisao 3: G; divisao 4: R64 R32 R16 QF PA SF F.",
     "LIGAS (ligas.<ID da liga>): porPosicao = lista do 1.o ao ultimo; ou primeiro + ultimo (interpolacao linear entre os dois, para `clubes` clubes); cotaInicio = paga no 1.o jogo da liga.",
     "Pagos uma vez, quando a liga acaba. Nas ligas europeias sem tabela publica os valores sao o MEIO das faixas do texto de origem (La Liga 100-120 mi / 40-45 mi; Bundesliga 83,4-90 / 30-35; Serie A 80-100 / 25-30; Ligue 1 35-45 / 7-10)."
   ],
   "copas": {
     "LIB": {
-      "nome": "Copa Libertadores",
+      "nome": "Copa dos Campeões do Sul",
       "moeda": "USD",
       "cota": 1000000,
       "vitoria": 340000,
@@ -23,7 +23,7 @@
       "campeao": 25000000
     },
     "SUL": {
-      "nome": "Copa Sul-Americana",
+      "nome": "Copa Desafio do Sul",
       "moeda": "USD",
       "cota": 300000,
       "vitoria": 125000,
@@ -36,7 +36,7 @@
       "campeao": 10000000
     },
     "COPA_BR": {
-      "nome": "Copa do Brasil",
+      "nome": "Copa Nacional",
       "moeda": "BRL",
       "fases": {
         "P5": 2000000,
@@ -48,7 +48,7 @@
       "campeao": 78000000
     },
     "UCL": {
-      "nome": "UEFA Champions League",
+      "nome": "Liga dos Campeões Europeus",
       "moeda": "EUR",
       "cota": 18620000,
       "vitoria": 2100000,
@@ -64,7 +64,7 @@
       "_nota": "Mata-mata, empate e vice/campeao: referencia UEFA 2024/25 (o texto de origem nao traz)."
     },
     "SERIE_C": {
-      "nome": "Campeonato Brasileiro Série C",
+      "nome": "Terceira Divisão",
       "moeda": "BRL",
       "entrada": {
         "G": 624000
@@ -74,7 +74,7 @@
       "campeao": 0
     },
     "SERIE_D": {
-      "nome": "Campeonato Brasileiro Série D",
+      "nome": "Quarta Divisão",
       "moeda": "BRL",
       "entrada": {
         "R64": 100000,
@@ -92,7 +92,7 @@
   },
   "ligas": {
     "bra_serie_a": {
-      "nome": "Campeonato Brasileiro Série A",
+      "nome": "bra_serie_a",
       "moeda": "BRL",
       "porPosicao": [
         48100000,
@@ -114,7 +114,7 @@
       ]
     },
     "bra_serie_b": {
-      "nome": "Campeonato Brasileiro Série B",
+      "nome": "bra_serie_b",
       "moeda": "BRL",
       "porPosicao": [
         3500000,
@@ -124,17 +124,17 @@
       ]
     },
     "bra_serie_c": {
-      "nome": "Campeonato Brasileiro Série C",
+      "nome": "bra_serie_c",
       "moeda": "BRL",
       "cotaInicio": 1200000
     },
     "bra_serie_d": {
-      "nome": "Campeonato Brasileiro Série D",
+      "nome": "bra_serie_d",
       "moeda": "BRL",
       "cotaInicio": 500000
     },
     "eng_prem": {
-      "nome": "Premier League",
+      "nome": "eng_prem",
       "moeda": "GBP",
       "porPosicao": [
         75200000,
@@ -160,91 +160,91 @@
       ]
     },
     "esp_laliga": {
-      "nome": "La Liga",
+      "nome": "esp_laliga",
       "moeda": "EUR",
       "clubes": 20,
       "primeiro": 110000000,
       "ultimo": 42500000
     },
     "ger_bundesliga": {
-      "nome": "Bundesliga",
+      "nome": "ger_bundesliga",
       "moeda": "EUR",
       "clubes": 18,
       "primeiro": 86700000,
       "ultimo": 32500000
     },
     "ita_seriea": {
-      "nome": "Serie A",
+      "nome": "ita_seriea",
       "moeda": "EUR",
       "clubes": 20,
       "primeiro": 90000000,
       "ultimo": 27500000
     },
     "fra_ligue1": {
-      "nome": "Ligue 1",
+      "nome": "fra_ligue1",
       "moeda": "EUR",
       "clubes": 18,
       "primeiro": 40000000,
       "ultimo": 8500000
     },
     "eng_champ": {
-      "nome": "Championship",
+      "nome": "eng_champ",
       "moeda": "GBP",
       "clubes": 24,
       "primeiro": 12000000,
       "ultimo": 6000000
     },
     "eng_l1": {
-      "nome": "League One",
+      "nome": "eng_l1",
       "moeda": "GBP",
       "clubes": 24,
       "primeiro": 3500000,
       "ultimo": 1800000
     },
     "eng_l2": {
-      "nome": "League Two",
+      "nome": "eng_l2",
       "moeda": "GBP",
       "clubes": 24,
       "primeiro": 1800000,
       "ultimo": 1000000
     },
     "esp_segunda": {
-      "nome": "Segunda Division",
+      "nome": "esp_segunda",
       "moeda": "EUR",
       "clubes": 22,
       "primeiro": 8000000,
       "ultimo": 3000000
     },
     "ger_2bundesliga": {
-      "nome": "2. Bundesliga",
+      "nome": "ger_2bundesliga",
       "moeda": "EUR",
       "clubes": 18,
       "primeiro": 11000000,
       "ultimo": 6000000
     },
     "ita_serieb": {
-      "nome": "Serie B",
+      "nome": "ita_serieb",
       "moeda": "EUR",
       "clubes": 20,
       "primeiro": 6000000,
       "ultimo": 2500000
     },
     "fra_ligue2": {
-      "nome": "Ligue 2",
+      "nome": "fra_ligue2",
       "moeda": "EUR",
       "clubes": 20,
       "primeiro": 4000000,
       "ultimo": 1800000
     },
     "por_liga": {
-      "nome": "Liga Portugal",
+      "nome": "por_liga",
       "moeda": "EUR",
       "clubes": 18,
       "primeiro": 15000000,
       "ultimo": 5000000
     },
     "por_liga2": {
-      "nome": "Liga Portugal 2",
+      "nome": "por_liga2",
       "moeda": "EUR",
       "clubes": 18,
       "primeiro": 1500000,

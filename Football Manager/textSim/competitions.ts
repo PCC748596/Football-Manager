@@ -16,6 +16,7 @@ FORMATOS
 - Empate no agregado (ou num jogo unico): penaltis, com ligeira vantagem para o mais forte.
 Os jogos sao simulados pelo modelo rapido (textSim/world.ts) e as fases seguintes sao sorteadas quando a anterior acaba.
 */
+import { nomeComp, prefixoComp } from './nomesCompeticoes';
 import { Team, naLigaDoUtilizador } from '../types';
 import { simulateFast, buildTable } from './world';
 
@@ -366,11 +367,11 @@ const gruposReais = (itens: { key: string; team: Team }[], reais: Record<string,
 };
 export const criarLibertadores = (lib: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map(), ano: number = ANO_BASE): Competition => {
   const grupos = gruposReais(lib, GRUPOS_REAIS_LIB) || sortearGrupos(lib);
-  return { id: 'LIB', name: 'Copa Libertadores', teamKeys: lib.map(x => x.key), groups: grupos, matches: jogosDeGrupo('LIB', grupos, GRUPOS_LIB, oc, ano), ano };
+  return { id: 'LIB', name: nomeComp('LIB'), teamKeys: lib.map(x => x.key), groups: grupos, matches: jogosDeGrupo('LIB', grupos, GRUPOS_LIB, oc, ano), ano };
 };
 export const criarSulAmericana = (sul: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map(), ano: number = ANO_BASE): Competition => {
   const grupos = gruposReais(sul, GRUPOS_REAIS_SUL) || sortearGrupos(sul);
-  return { id: 'SUL', name: 'Copa Sul-Americana', teamKeys: sul.map(x => x.key), groups: grupos, matches: jogosDeGrupo('SUL', grupos, GRUPOS_SUL, oc, ano), ano };
+  return { id: 'SUL', name: nomeComp('SUL'), teamKeys: sul.map(x => x.key), groups: grupos, matches: jogosDeGrupo('SUL', grupos, GRUPOS_SUL, oc, ano), ano };
 };
 
 /**
@@ -399,7 +400,7 @@ const sortearFaseDeLiga = (itens: { key: string; team: Team; countryId: string }
   return melhor;
 };
 
-const NOME_LIGA_FASE: Record<string, string> = { UCL: 'UEFA Champions League', UEL: 'UEFA Europa League', UECL: 'UEFA Conference League' };
+const NOME_LIGA_FASE: Record<string, string> = { get UCL() { return nomeComp('UCL'); }, get UEL() { return nomeComp('UEL'); }, get UECL() { return nomeComp('UECL'); } };
 export const criarChampions = (ucl: { key: string; team: Team; countryId: string }[], oc: Ocupacao = new Map(), ano: number = ANO_BASE, id: 'UCL' | 'UEL' | 'UECL' = 'UCL'): Competition => {
   const keys = ucl.map(x => x.key);
   const GRUPOS = id === 'UCL' ? GRUPOS_UCL : GRUPOS_UEL;
@@ -457,7 +458,7 @@ const jogosDeLiga = (prefixo: string, stage: string, grupo: string, keys: string
 export const criarSerieC = (clubes: { key: string; team: Team }[], oc: Ocupacao = new Map(), externa = false, ano: number = ANO_BASE): Competition => {
   const keys = clubes.map(c => c.key);
   // Com o utilizador na Serie C a 1.a fase e a liga do jogo: aqui nao se criam esses jogos.
-  return { id: 'SERIE_C', name: 'Série C', teamKeys: keys, groups: { L: keys }, matches: externa ? [] : jogosDeLiga('SERIE_C', 'L', 'L', keys, false, C_L_INICIO, oc, ano), ligaExterna: externa || undefined, ano };
+  return { id: 'SERIE_C', name: nomeComp('SERIE_C'), teamKeys: keys, groups: { L: keys }, matches: externa ? [] : jogosDeLiga('SERIE_C', 'L', 'L', keys, false, C_L_INICIO, oc, ano), ligaExterna: externa || undefined, ano };
 };
 
 /** Os 16 grupos da Serie D (A-P): fatias de 6 da lista de clubes (que vai por regiao). */
@@ -471,7 +472,7 @@ export const criarSerieD = (clubes: { key: string; team: Team }[], oc: Ocupacao 
   const keys = clubes.map(c => c.key), grupos = gruposDaSerieD(keys), matches: CompMatch[] = [];
   // O grupo do utilizador e a liga do jogo: os outros 7 jogam-se aqui.
   Object.keys(grupos).filter(g => g !== grupoExterno).forEach(g => matches.push(...jogosDeLiga('SERIE_D', 'D', g, grupos[g], true, D_INICIO, oc, ano)));
-  return { id: 'SERIE_D', name: 'Série D', teamKeys: keys, groups: grupos, matches, grupoExterno, ano };
+  return { id: 'SERIE_D', name: nomeComp('SERIE_D'), teamKeys: keys, groups: grupos, matches, grupoExterno, ano };
 };
 
 /** Os 64 jogos da fase classificatoria: 2 contra cada pote (um em casa, um fora), sem repetir adversario. */
@@ -530,7 +531,7 @@ export const criarPaulistao = (clubes: { key: string; team: Team }[], oc: Ocupac
     const r = rodada[i];
     return jogo(`PAULISTA-L-${r + 1}-${contagem[r]++}`, 'G' + (r + 1), agendarJogo(oc, noAno(RODADAS_PAULISTA[r], ano), [h, v], noAno(INICIO_PAULISTA, ano)), h, v, { group: 'L' });
   });
-  return { id: 'PAULISTA', name: 'Campeonato Paulista', teamKeys: keys, groups: { L: keys }, matches, ano };
+  return { id: 'PAULISTA', name: nomeComp('PAULISTA'), teamKeys: keys, groups: { L: keys }, matches, ano };
 };
 
 type Clube = { key: string; team: Team };
@@ -553,7 +554,7 @@ export const criarCopaDoBrasil = (a: { serieA: Clube[]; campeoes: Clube[]; outro
   let n1 = outros.length - 74; if (n1 < 0) n1 = 0; if (n1 % 2) n1--;   // a 1.a fase tem de ter numero par de clubes
   const p1 = outros.slice(outros.length - n1).map(c => c.key), direto = outros.slice(0, outros.length - n1).map(c => c.key);
   const c: Competition = {
-    id: 'COPA_BR', name: 'Copa do Brasil', teamKeys: todos.map(x => x.key), matches: [],
+    id: 'COPA_BR', name: nomeComp('COPA_BR'), teamKeys: todos.map(x => x.key), matches: [],
     entradas: { P2: direto, P3: a.campeoes.map(x => x.key), P5: a.serieA.map(x => x.key) }, ano
   };
   const seed = (k: string) => c.teamKeys.indexOf(k);
@@ -575,7 +576,7 @@ export const criarCarabao = (a: { premier: Clube[]; outros: Clube[]; europeus: s
   let r1 = embaralhar(a.outros.map(c => c.key)); const folga1: string[] = [];
   if (r1.length % 2) { const [m] = a.outros.slice().sort(porForca); r1 = r1.filter(k => k !== m.key); folga1.push(m.key); }
   const c: Competition = {
-    id: 'CARABAO', name: 'Carabao Cup', teamKeys: todos.map(x => x.key), matches: [],
+    id: 'CARABAO', name: nomeComp('CARABAO'), teamKeys: todos.map(x => x.key), matches: [],
     entradas: { R2: [...naoEuropa, ...euroNa2, ...folga1], R3: entra3 }, ano
   };
   const pares: [string, string][] = []; for (let i = 0; i + 1 < r1.length; i += 2) pares.push([r1[i], r1[i + 1]]);
@@ -972,7 +973,7 @@ export const NOMES_FASES: Record<string, string> = { R64: 'Round of 64', PA: 'Pr
  * Sul-Americana (SULA-...), a Copa do Brasil (CUP - 1 ... CUP - 5, CUP - 16 ...), a Serie C (C-G, C FINAL) e a Serie D (D-G, D-64 ... D FINAL). O numero e quantos clubes
  * ficam na fase (16 = oitavas, 8 = quartas, 4 = meias); a final e `... FINAL`, e nao ha fase de 2 alem dela.
  */
-const PREFIXO_COMP: Record<Competition['id'], string> = { UCL: 'UCL', UEL: 'UEL', UECL: 'UECL', CARABAO: 'EFL', LIB: 'LIBERT', SUL: 'SULA', COPA_BR: 'CUP', SERIE_C: 'C', SERIE_D: 'D', PAULISTA: 'PAULISTA' };
+const PREFIXO_COMP = new Proxy({} as Record<Competition['id'], string>, { get: (_t, k) => prefixoComp(String(k)) });   // os prefixos das fases vem de nomesCompeticoes (genericos, ou os do mod)
 export const rotuloDaFase = (compId: Competition['id'], stage: string): string => {
   const p = PREFIXO_COMP[compId];
   const sep = compId === 'COPA_BR' ? ' - ' : '-';   // a Copa do Brasil mostra "CUP - 1"
@@ -1072,26 +1073,26 @@ export const competicoesDoClube = (team: Team, leagueId: string, leagueTeams: Te
   const liga: any = pais?.leagues.find((l: any) => l.id === leagueId);
   if (!pais || !liga) return [];
   const out: { id: string; nome: string }[] = [{ id: 'LIGA', nome: liga.name }];
-  if (pais.id === '65' && liga.tier >= 1 && liga.tier <= 4) out.push({ id: 'CARABAO', nome: 'Carabao Cup' });
-  if (ehDoPaulista(team.name)) out.push({ id: 'PAULISTA', nome: 'Campeonato Paulista' });
-  if (((pais.copaTeamIds || []) as number[]).map(String).includes(String(team.id))) out.push({ id: 'COPA_BR', nome: 'Copa do Brasil' });
+  if (pais.id === '65' && liga.tier >= 1 && liga.tier <= 4) out.push({ id: 'CARABAO', nome: nomeComp('CARABAO') });
+  if (ehDoPaulista(team.name)) out.push({ id: 'PAULISTA', nome: nomeComp('PAULISTA') });
+  if (((pais.copaTeamIds || []) as number[]).map(String).includes(String(team.id))) out.push({ id: 'COPA_BR', nome: nomeComp('COPA_BR') });
   const ordem = classificacaoAnoAnterior(leagueId, leagueTeams, (liga.teamIds || []).map(String));
   const pos = ordem.findIndex(t => t.id === team.id);
   if (pos < 0) return out;
   const nU = VAGAS_UCL[pais.id] || 0;
   if (nU && (liga.tier === 1 || /_clubes$/.test(leagueId))) {
     const nL = VAGAS_UEL[pais.id] || 0, nC = VAGAS_UECL[pais.id] || 0;
-    if (pos < nU) out.push({ id: 'UCL', nome: 'UEFA Champions League' });
-    else if (pos < nU + nL) out.push({ id: 'UEL', nome: 'UEFA Europa League' });
-    else if (pos < nU + nL + nC) out.push({ id: 'UECL', nome: 'UEFA Conference League' });
+    if (pos < nU) out.push({ id: 'UCL', nome: nomeComp('UCL') });
+    else if (pos < nU + nL) out.push({ id: 'UEL', nome: nomeComp('UEL') });
+    else if (pos < nU + nL + nC) out.push({ id: 'UECL', nome: nomeComp('UECL') });
   }
   if (liga.tier === 1) {
     const nL = VAGAS.LIB[pais.id] || 0, nS = VAGAS.SUL[pais.id] || 0;
     const reaisLib = Object.values(GRUPOS_REAIS_LIB).flat(), reaisSul = Object.values(GRUPOS_REAIS_SUL).flat();
-    if (reaisLib.includes(team.name)) out.push({ id: 'LIB', nome: 'Copa Libertadores' });   // 1.a temporada: os clubes reais de 2026
-    else if (reaisSul.includes(team.name)) out.push({ id: 'SUL', nome: 'Copa Sul-Americana' });
-    else if (pos < nL) out.push({ id: 'LIB', nome: 'Copa Libertadores' });
-    else if (pos < nL + nS) out.push({ id: 'SUL', nome: 'Copa Sul-Americana' });
+    if (reaisLib.includes(team.name)) out.push({ id: 'LIB', nome: nomeComp('LIB') });   // 1.a temporada: os clubes reais de 2026
+    else if (reaisSul.includes(team.name)) out.push({ id: 'SUL', nome: nomeComp('SUL') });
+    else if (pos < nL) out.push({ id: 'LIB', nome: nomeComp('LIB') });
+    else if (pos < nL + nS) out.push({ id: 'SUL', nome: nomeComp('SUL') });
   }
   return out;
 };
@@ -1111,14 +1112,14 @@ export const zonasDaLiga = (leagueId: string, n: number): (ZonaDaTabela | null)[
   const europa = !!VAGAS_UCL[pais.id] && (liga.tier === 1 || /_clubes$/.test(leagueId));
   if (europa) {
     const nU = VAGAS_UCL[pais.id] || 0, nL = VAGAS_UEL[pais.id] || 0, nC = VAGAS_UECL[pais.id] || 0;
-    poe(0, nU, { id: 'UCL', nome: 'Champions League', cor: '#3b82f6' });
-    poe(nU, nU + nL, { id: 'UEL', nome: 'Europa League', cor: '#f97316' });
-    poe(nU + nL, nU + nL + nC, { id: 'UECL', nome: 'Conference League', cor: '#14b8a6' });
+    poe(0, nU, { id: 'UCL', nome: nomeComp('UCL', true), cor: '#3b82f6' });
+    poe(nU, nU + nL, { id: 'UEL', nome: nomeComp('UEL', true), cor: '#f97316' });
+    poe(nU + nL, nU + nL + nC, { id: 'UECL', nome: nomeComp('UECL', true), cor: '#14b8a6' });
     i0 = nU + nL + nC;
   } else if (liga.tier === 1) {
     const nL = VAGAS.LIB[pais.id] || 0, nS = VAGAS.SUL[pais.id] || 0;
-    poe(0, nL, { id: 'LIB', nome: 'Copa Libertadores', cor: '#22c55e' });
-    poe(nL, nL + nS, { id: 'SUL', nome: 'Copa Sul-Americana', cor: '#38bdf8' });
+    poe(0, nL, { id: 'LIB', nome: nomeComp('LIB'), cor: '#22c55e' });
+    poe(nL, nL + nS, { id: 'SUL', nome: nomeComp('SUL'), cor: '#38bdf8' });
   }
   if (liga.tier > 1 && (liga.promoted || 0) > 0) poe(0, liga.promoted, { id: 'ACESSO', nome: 'Promotion', cor: '#22c55e' });
   if ((liga.relegated || 0) > 0) poe(n - liga.relegated, n, { id: 'REBAIXA', nome: 'Relegation', cor: '#ef4444' });

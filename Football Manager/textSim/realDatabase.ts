@@ -9,7 +9,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "bra_serie_a",
-    "name": "Série A",
+    "name": "Primeira Divisão (Brazil)",
     "tier": 1,
     "teamIds": [
      450124,
@@ -78,7 +78,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
    },
    {
     "id": "bra_serie_b",
-    "name": "Série B",
+    "name": "Segunda Divisão (Brazil)",
     "tier": 2,
     "teamIds": [
      450119,
@@ -147,7 +147,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
    },
    {
     "id": "bra_serie_c",
-    "name": "Série C",
+    "name": "Terceira Divisão (Brazil)",
     "tier": 3,
     "worldOnly": true,
     "format": "SERIE_C",
@@ -179,7 +179,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
    },
    {
     "id": "bra_serie_d",
-    "name": "Série D",
+    "name": "Quarta Divisão (Brazil)",
     "tier": 4,
     "worldOnly": true,
     "format": "SERIE_D",
@@ -287,7 +287,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
    },
    {
     "id": "bra_clubes",
-    "name": "Outros clubes (Copa do Brasil)",
+    "name": "Outros clubes (Brazil)",
     "tier": 9,
     "hidden": true,
     "teamIds": [
@@ -472,7 +472,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "eng_prem",
-    "name": "Premier League",
+    "name": "Primeira Divisão (England)",
     "tier": 1,
     "teamIds": [
      650012,
@@ -541,7 +541,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
    },
    {
     "id": "eng_champ",
-    "name": "Championship",
+    "name": "Segunda Divisão (England)",
     "tier": 2,
     "teamIds": [
      650011,
@@ -622,7 +622,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
    },
    {
     "id": "eng_l1",
-    "name": "League One",
+    "name": "Terceira Divisão (England)",
     "tier": 3,
     "teamIds": [
      650045,
@@ -703,7 +703,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
    },
    {
     "id": "eng_l2",
-    "name": "League Two",
+    "name": "Quarta Divisão (England)",
     "tier": 4,
     "teamIds": [
      650069,
@@ -791,7 +791,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "arg_serie_a",
-    "name": "Liga Profesional",
+    "name": "Primeira Divisão (Argentina)",
     "tier": 1,
     "teamIds": [
      520001,
@@ -905,7 +905,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "chi_serie_a",
-    "name": "Primera División",
+    "name": "Primeira Divisão (Chile)",
     "tier": 1,
     "teamIds": [
      550001,
@@ -977,7 +977,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "col_serie_a",
-    "name": "Categoría Primera A",
+    "name": "Primeira Divisão (Colombia)",
     "tier": 1,
     "teamIds": [
      560001,
@@ -1061,7 +1061,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "uru_serie_a",
-    "name": "Primera División",
+    "name": "Primeira Divisão (Uruguay)",
     "tier": 1,
     "teamIds": [
      600001,
@@ -1133,7 +1133,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "par_serie_a",
-    "name": "Primera División",
+    "name": "Primeira Divisão (Paraguay)",
     "tier": 1,
     "teamIds": [
      580001,
@@ -1193,7 +1193,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "equ_serie_a",
-    "name": "LigaPro Serie A",
+    "name": "Primeira Divisão (Ecuador)",
     "tier": 1,
     "teamIds": [
      570001,
@@ -1265,7 +1265,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "per_serie_a",
-    "name": "Liga 1",
+    "name": "Primeira Divisão (Peru)",
     "tier": 1,
     "teamIds": [
      590001,
@@ -1343,7 +1343,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "bol_serie_a",
-    "name": "División Profesional",
+    "name": "Primeira Divisão (Bolivia)",
     "tier": 1,
     "teamIds": [
      530001,
@@ -1415,7 +1415,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "ven_serie_a",
-    "name": "Liga FUTVE",
+    "name": "Primeira Divisão (Venezuela)",
     "tier": 1,
     "teamIds": [
      610001,
@@ -1481,7 +1481,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "esp_laliga",
-    "name": "La Liga",
+    "name": "Primeira Divisão (Spain)",
     "tier": 1,
     "teamIds": [
      660002,
@@ -1550,7 +1550,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
    },
    {
     "id": "esp_segunda",
-    "name": "LaLiga Hypermotion",
+    "name": "Segunda Divisão (Spain)",
     "tier": 2,
     "teamIds": [
      660021,
@@ -1632,7 +1632,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "ger_bundesliga",
-    "name": "Bundesliga",
+    "name": "Primeira Divisão (Germany)",
     "tier": 1,
     "teamIds": [
      670001,
@@ -1695,7 +1695,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
    },
    {
     "id": "ger_2bundesliga",
-    "name": "2. Bundesliga",
+    "name": "Segunda Divisão (Germany)",
     "tier": 2,
     "teamIds": [
      670019,
@@ -1765,7 +1765,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "ita_seriea",
-    "name": "Serie A",
+    "name": "Primeira Divisão (Italy)",
     "tier": 1,
     "teamIds": [
      680002,
@@ -1834,7 +1834,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
    },
    {
     "id": "ita_serieb",
-    "name": "Serie B",
+    "name": "Segunda Divisão (Italy)",
     "tier": 2,
     "teamIds": [
      680021,
@@ -1910,7 +1910,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "fra_ligue1",
-    "name": "Ligue 1",
+    "name": "Primeira Divisão (France)",
     "tier": 1,
     "teamIds": [
      690001,
@@ -1973,7 +1973,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
    },
    {
     "id": "fra_ligue2",
-    "name": "Ligue 2",
+    "name": "Segunda Divisão (France)",
     "tier": 2,
     "teamIds": [
      690019,
@@ -2043,7 +2043,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "nor_clubes",
-    "name": "Eliteserien (clubes)",
+    "name": "Outros clubes (Norway)",
     "tier": 9,
     "hidden": true,
     "teamIds": [
@@ -2064,7 +2064,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "ned_clubes",
-    "name": "Eredivisie (clubes)",
+    "name": "Outros clubes (Netherlands)",
     "tier": 9,
     "hidden": true,
     "teamIds": [
@@ -2085,7 +2085,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "por_liga",
-    "name": "Primeira Liga",
+    "name": "Primeira Divisão (Portugal)",
     "tier": 1,
     "teamIds": [
      810001,
@@ -2148,7 +2148,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
    },
    {
     "id": "por_liga2",
-    "name": "Liga Portugal 2",
+    "name": "Segunda Divisão (Portugal)",
     "tier": 2,
     "teamIds": [
      810019,
@@ -2218,7 +2218,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "tur_clubes",
-    "name": "Süper Lig (clubes)",
+    "name": "Outros clubes (Turkey)",
     "tier": 9,
     "hidden": true,
     "teamIds": [
@@ -2239,7 +2239,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "aut_clubes",
-    "name": "Bundesliga Austríaca (clubes)",
+    "name": "Outros clubes (Austria)",
     "tier": 9,
     "hidden": true,
     "teamIds": [
@@ -2260,7 +2260,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "aze_clubes",
-    "name": "Premyer Liqa (clubes)",
+    "name": "Outros clubes (Azerbaijan)",
     "tier": 9,
     "hidden": true,
     "teamIds": [
@@ -2281,7 +2281,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "bel_clubes",
-    "name": "Pro League (clubes)",
+    "name": "Outros clubes (Belgium)",
     "tier": 9,
     "hidden": true,
     "teamIds": [
@@ -2302,7 +2302,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "svk_clubes",
-    "name": "Fortuna Liga (clubes)",
+    "name": "Outros clubes (Slovakia)",
     "tier": 9,
     "hidden": true,
     "teamIds": [
@@ -2323,7 +2323,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "gre_clubes",
-    "name": "Super League (clubes)",
+    "name": "Outros clubes (Greece)",
     "tier": 9,
     "hidden": true,
     "teamIds": [
@@ -2344,7 +2344,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "cze_clubes",
-    "name": "Fortuna Liga Tcheca (clubes)",
+    "name": "Outros clubes (Czechia)",
     "tier": 9,
     "hidden": true,
     "teamIds": [
@@ -2365,7 +2365,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
   "leagues": [
    {
     "id": "ukr_clubes",
-    "name": "Premier Liha (clubes)",
+    "name": "Outros clubes (Ukraine)",
     "tier": 9,
     "hidden": true,
     "teamIds": [
