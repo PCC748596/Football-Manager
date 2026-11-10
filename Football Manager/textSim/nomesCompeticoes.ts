@@ -1,6 +1,6 @@
 /*
 OS NOMES E OS LOGOS DAS COMPETICOES. O jogo traz nomes GENERICOS (copas, divisoes e prefixos das fases); os nomes reais e os logos vem do mod `public/dados_reais/competicoes.json` (textSim/modDados.ts), que
-substitui os genericos ao arrancar. Sem o mod (o pacote da Steam) ficam os genericos e as copas sem logo (o jogo mostra o quadrado em branco do WorldView).
+substitui os genericos ao arrancar. Sem o mod (o pacote da Steam) ficam os nomes genericos e os logos genericos (uma taca em SVG com a sigla).
 
     dados_reais/competicoes.json   [{ id, nome, nomeCurto, prefixo, logo }]    id = o id da copa (LIB, SUL, COPA_BR, CARABAO, PAULISTA, UCL, UEL, UECL, SERIE_C, SERIE_D) ou da liga (bra_serie_a, eng_prem...)
     dados_reais/competicoes/<ficheiro> os logos  (`logo` = o nome do ficheiro)
@@ -11,16 +11,16 @@ substitui os genericos ao arrancar. Sem o mod (o pacote da Steam) ficam os gener
 export interface InfoCompeticao { nome?: string; nomeCurto?: string; prefixo?: string; logo?: string }
 
 const GENERICOS: Record<string, { nome: string; curto: string; prefixo: string }> = {
-  LIB: { nome: 'Copa dos Campeões do Sul', curto: 'Copa dos Campeões do Sul', prefixo: 'CCS' },
-  SUL: { nome: 'Copa Desafio do Sul', curto: 'Copa Desafio do Sul', prefixo: 'CDS' },
-  COPA_BR: { nome: 'Copa Nacional', curto: 'Copa Nacional', prefixo: 'CUP' },
-  CARABAO: { nome: 'Copa da Liga', curto: 'Copa da Liga', prefixo: 'LC' },
-  PAULISTA: { nome: 'Campeonato Estadual', curto: 'Campeonato Estadual', prefixo: 'EST' },
-  UCL: { nome: 'Liga dos Campeões Europeus', curto: 'Liga dos Campeões', prefixo: 'LCE' },
-  UEL: { nome: 'Liga Continental Europeia', curto: 'Liga Continental', prefixo: 'LCO' },
-  UECL: { nome: 'Copa Conferência Europeia', curto: 'Copa Conferência', prefixo: 'CCE' },
-  SERIE_C: { nome: 'Terceira Divisão', curto: 'Terceira Divisão', prefixo: 'C' },
-  SERIE_D: { nome: 'Quarta Divisão', curto: 'Quarta Divisão', prefixo: 'D' }
+  LIB: { nome: 'Southern Champions Cup', curto: 'Southern Champions Cup', prefixo: 'SCC' },
+  SUL: { nome: 'Southern Challenge Cup', curto: 'Southern Challenge Cup', prefixo: 'SCH' },
+  COPA_BR: { nome: 'National Cup', curto: 'National Cup', prefixo: 'CUP' },
+  CARABAO: { nome: 'League Cup', curto: 'League Cup', prefixo: 'LC' },
+  PAULISTA: { nome: 'State Championship', curto: 'State Championship', prefixo: 'STA' },
+  UCL: { nome: 'European Champions League', curto: 'Champions League', prefixo: 'ECL' },
+  UEL: { nome: 'European Continental League', curto: 'Continental League', prefixo: 'CTL' },
+  UECL: { nome: 'European Conference Cup', curto: 'Conference Cup', prefixo: 'ECC' },
+  SERIE_C: { nome: 'Third Division', curto: 'Third Division', prefixo: 'C' },
+  SERIE_D: { nome: 'Fourth Division', curto: 'Fourth Division', prefixo: 'D' }
 };
 
 const mod: Record<string, InfoCompeticao> = {};
@@ -47,8 +47,18 @@ export const prefixoComp = (id: string): string => mod[id]?.prefixo || GENERICOS
 let baseDosLogos = { base: 'dados_reais/', sufixo: '' };
 export const definirBaseDosLogos = (base: string, sufixo = ''): void => { baseDosLogos = { base, sufixo }; };
 
-/** O endereco do logo (relativo a pagina, ou absoluto), ou '' sem o mod. */
-export const logoComp = (id: string): string => (mod[id]?.logo ? `${baseDosLogos.base}competicoes/${mod[id].logo}${baseDosLogos.sufixo}` : '');
+// Os logos GENERICOS (sem o mod): uma taca desenhada em SVG, com a cor e a sigla (o prefixo) de cada copa. Nao ha marca de ninguem nestes desenhos.
+const COR_GENERICA: Record<string, string> = { LIB: '#b8860b', SUL: '#2f7d4f', COPA_BR: '#1f6fb2', CARABAO: '#c2410c', PAULISTA: '#7c3aed', UCL: '#1e3a8a', UEL: '#ea580c', UECL: '#0f766e', SERIE_C: '#475569', SERIE_D: '#64748b' };
+const logoGenerico = (id: string): string => {
+  const cor = COR_GENERICA[id];
+  if (!cor) return '';
+  const sigla = (GENERICOS[id]?.prefixo || id).slice(0, 4);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M28 14h44v26c0 16-10 26-22 26S28 56 28 40z" fill="${cor}"/><path d="M28 22H14c0 14 6 24 17 27M72 22h14c0 14-6 24-17 27" fill="none" stroke="${cor}" stroke-width="6" stroke-linecap="round"/><rect x="44" y="64" width="12" height="12" fill="${cor}"/><rect x="32" y="76" width="36" height="9" rx="2" fill="${cor}"/><text x="50" y="45" font-family="Arial,Helvetica,sans-serif" font-size="${sigla.length > 3 ? 13 : 16}" font-weight="900" text-anchor="middle" fill="#fff">${sigla}</text></svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+};
+
+/** O endereco do logo (relativo a pagina, ou absoluto): o do mod, ou o logo generico (uma taca em SVG). */
+export const logoComp = (id: string): string => (mod[id]?.logo ? `${baseDosLogos.base}competicoes/${mod[id].logo}${baseDosLogos.sufixo}` : logoGenerico(id));
 
 /** O nome de uma LIGA (so o do mod; sem ele quem chama usa o da base). */
 export const nomeDeLigaDoMod = (id: string): string | undefined => mod[id]?.nome;

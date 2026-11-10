@@ -17,6 +17,7 @@ const jogador = (n: number, position: string, squad: string) => ({
 });
 const ficheiro = { country: 54, clubs: [{ id: 2, name: 'Clube Teste', tier: 1, gameTeamId: 450171, players: [jogador(1, 'GK', 'first_team'), ...Array.from({ length: 12 }, (_, i) => jogador(i + 2, 'CM', 'first_team')), jogador(40, 'ST', 'youth')], staff: [] }] };
 
+(globalThis as any).document = (globalThis as any).document || { baseURI: 'http://localhost/' };
 const fetchReal = globalThis.fetch;
 test.after(() => { globalThis.fetch = fetchReal; });
 
@@ -29,7 +30,7 @@ test('sem ficheiro (404) nada muda: usa a base de sempre', async () => {
 });
 
 test('com ficheiro, a partida nova usa os jogadores dele no clube casado e completa o plantel', async () => {
-  globalThis.fetch = (async (url: string) => String(url).endsWith('/54') ? { ok: true, json: async () => ficheiro } : { ok: false }) as any;
+  globalThis.fetch = (async (url: string) => String(url).includes('CountryData54.json') ? { ok: true, json: async () => ficheiro } : { ok: false }) as any;
   assert.equal(await carregarDadosLocais(), true);
   assert.equal(jogadoresLocaisDoClube(450171)!.length, 13);   // a base (youth) fica de fora
   const { teams, players } = generateLeagueData('45', 'bra_serie_a');
@@ -58,7 +59,7 @@ test('os atributos do 3D do jogador local vem do ficheiro (50 a 99) e a nacional
 
 test('Inglaterra (pais 14): as ligas novas existem, e o overlay usa os jogadores no clube casado; bandeira 14 -> 65', async () => {
   const ing = { country: 14, clubs: [{ id: 25, name: 'Clube Ingles', tier: 2, gameTeamId: 650025, players: [{ ...jogador(1, 'GK', 'first_team'), nationality: 14 }, { ...jogador(2, 'CM', 'first_team'), nationality: 50 }], staff: [] }] };
-  globalThis.fetch = (async (url: string) => String(url).endsWith('/14') ? { ok: true, json: async () => ing } : { ok: false }) as any;
+  globalThis.fetch = (async (url: string) => String(url).includes('CountryData14.json') ? { ok: true, json: async () => ing } : { ok: false }) as any;
   assert.equal(await carregarDadosLocais(), true);
   const champ = generateLeagueData('65', 'eng_champ');
   assert.equal(champ.teams.length, 24);

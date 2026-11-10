@@ -100,7 +100,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
             // O mesmo padrao do cartao do clube da escolha de carreira (CareerStart): texto a esquerda e o escudo a direita, cortado pela borda do cartao. No tablet (< 1280 px) o escudo e menor para o nome do clube nao ficar cortado.
             <div className="mt-4 relative overflow-hidden h-[72px] hidden lg:flex flex-col justify-center pl-3 pr-[44px] xl:pr-[70px] bg-slate-50 dark:bg-slate-900/40 rounded border border-slate-200 dark:border-slate-800 transition-colors">
               <div className="absolute top-1/2 -translate-y-1/2 -right-[14px] w-[62px] h-[76px] xl:-right-[22px] xl:w-[96px] xl:h-[116px]"><TeamShield team={userTeam} className="w-full h-full" /></div>
-              <div className="text-[13px] font-black text-slate-800 dark:text-white uppercase truncate">{userTeam.name}</div>
+              <div className="text-[13px] leading-[1.15] font-black text-slate-800 dark:text-white uppercase line-clamp-2 break-words" style={{ textWrap: 'balance' } as React.CSSProperties}>{userTeam.name}</div>
               <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest">{userTeam.strength} OVR</div>
             </div>
           )}

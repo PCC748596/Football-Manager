@@ -116,10 +116,10 @@ for (const c of COPAS) {
   if (c.logo && fs.existsSync(path.join(LOGOS, c.logo))) { fs.copyFileSync(path.join(LOGOS, c.logo), path.join(MOD, 'competicoes', c.logo)); logosCopiados++; } else c.logo = '';
 }
 fs.writeFileSync(path.join(MOD, 'competicoes.json'), JSON.stringify([...COPAS, ...ligasReais], null, 1), 'utf8');
-const NOME_DA_DIVISAO = ['Primeira Divisão', 'Segunda Divisão', 'Terceira Divisão', 'Quarta Divisão', 'Quinta Divisão'];
+const NOME_DA_DIVISAO = ['First Division', 'Second Division', 'Third Division', 'Fourth Division', 'Quinta Divisão'];
 const paisesGen = (REAL_COUNTRIES_JSON as any[]).map(c => ({
   ...c,
-  leagues: (c.leagues || []).map((l: any) => ({ ...l, name: /_clubes$/.test(String(l.id)) ? `Outros clubes (${c.name})` : `${NOME_DA_DIVISAO[Math.max(0, Math.min(4, (Number(l.tier) || 1) - 1))]} (${c.name})` }))
+  leagues: (c.leagues || []).map((l: any) => ({ ...l, name: /_clubes$/.test(String(l.id)) ? `Other clubs (${c.name})` : `${NOME_DA_DIVISAO[Math.max(0, Math.min(4, (Number(l.tier) || 1) - 1))]} (${c.name})` }))
 }));
 
 // --- a base generica (textSim/realDatabase.ts) ---
