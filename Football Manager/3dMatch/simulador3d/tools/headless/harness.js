@@ -99,4 +99,20 @@ for (const chave of Object.keys(win)) {
     }
 }
 
+/*
+O MOD DOS DADOS REAIS (public/dados_reais/3d/squads_nomes.json): como no index.html, se existir, os nomes reais dos planteis substituem os genericos de data/squads.js. Os testes e as ferramentas que
+procuram clubes pelo nome real ("Flamengo-RJ"...) precisam dele; sem a pasta (o pacote) corre com os genericos.
+*/
+try {
+    const caminho = path.resolve(RAIZ, '..', '..', 'public', 'dados_reais', '3d', 'squads_nomes.json');
+    if (fs.existsSync(caminho) && typeof SquadsData !== 'undefined') {
+        const n = JSON.parse(fs.readFileSync(caminho, 'utf8'));
+        for (const e of SquadsData.equipas) {
+            const ne = n.equipas && n.equipas[e.id];
+            if (ne) { if (ne.nome) e.nome = ne.nome; if (ne.estadio) e.estadio = ne.estadio; }
+            for (const j of (e.plantel || [])) { const nj = n.jogadores && n.jogadores[j.id]; if (nj) j.nome = nj; }
+        }
+    }
+} catch (e) { /* sem o mod: ficam os genericos */ }
+
 module.exports = { win, RAIZ };

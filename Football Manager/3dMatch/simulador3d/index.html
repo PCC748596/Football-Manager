@@ -529,7 +529,15 @@
          browser bloqueia fetch em file:// e isto abre sem servidor. -->
     <script src="assets/ball_mesh.js"></script>
     <script src="assets/placas_publicidade.js"></script>
-    <script src="assets/placas_competicoes.js"></script>
+    <!-- A arte das placas das competicoes (marcas reais) vem do mod dos dados reais (dados_reais/3d), se existir; sem ela as placas usam a arte padrao. -->
+    <script>
+        (function () {
+            try {
+                var x = new XMLHttpRequest(); x.open('GET', '../dados_reais/3d/placas_competicoes.js', false); x.send(null);
+                if (x.status === 200 && x.responseText.indexOf('PlacasArteComp') >= 0) document.write('<script src="../dados_reais/3d/placas_competicoes.js"><\/script>');
+            } catch (e) { /* sem o mod */ }
+        })();
+    </script>
     <script src="assets/torcida_atlas.js"></script>
     <script src="assets/torcida_atlas_v2.js"></script>
 
@@ -537,6 +545,21 @@
     <script src="data/player_skills.js"></script>
     <!-- Planteis reais (gerado por tools/gen_squads.js a partir de assets/) -->
     <script src="data/squads.js"></script>
+    <!-- Os NOMES reais dos planteis (dados_reais/3d/squads_nomes.json), se o mod existir ao lado do jogo; sem ele ficam os nomes genericos de data/squads.js. -->
+    <script>
+        (function () {
+            try {
+                var x = new XMLHttpRequest(); x.open('GET', '../dados_reais/3d/squads_nomes.json', false); x.send(null);
+                if (x.status !== 200) return;
+                var n = JSON.parse(x.responseText);
+                for (var i = 0; i < SquadsData.equipas.length; i++) {
+                    var e = SquadsData.equipas[i], ne = n.equipas && n.equipas[e.id];
+                    if (ne) { if (ne.nome) e.nome = ne.nome; if (ne.estadio) e.estadio = ne.estadio; }
+                    for (var k = 0; k < (e.plantel || []).length; k++) { var j = e.plantel[k], nj = n.jogadores && n.jogadores[j.id]; if (nj) j.nome = nj; }
+                }
+            } catch (e) { /* sem o mod (ou o servidor respondeu com uma pagina): ficam os genericos */ }
+        })();
+    </script>
     <!-- Faces personalizadas (Editor de Faces do manager; gerado de data/faces.json) -->
     <script src="data/faces.js"></script>
 

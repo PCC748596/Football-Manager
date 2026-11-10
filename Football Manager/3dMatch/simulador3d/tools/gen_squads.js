@@ -11,6 +11,9 @@ O que sai daqui é só o que o jogo usa, já traduzido (ver js/config/skill_map.
 que é onde a tradução vive e se afina).
 
 Uso: node tools/gen_squads.js [minPlantel]
+
+ATENCAO: as fontes (players.json e teams.json, com nomes REAIS) estao em public/dados_reais/3d/ (o mod dos dados reais). Este script escreve data/squads.js COM os nomes reais: depois de o correr,
+corra `npx tsx tools/gerar_dados_genericos_3d.ts` (apague antes public/dados_reais/3d/squads_nomes.json) para voltar a por os genericos no codigo.
 */
 const fs = require('fs');
 const path = require('path');
