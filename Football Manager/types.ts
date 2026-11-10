@@ -262,6 +262,8 @@ export interface Tactics {
   mediaNotasOn?: boolean;
   /** Mostra a cara (foto 3D) de cada jogador sobre a camisa no campo da aba Tactics (so quando e `false` fica desligado). */
   playerFacesOn?: boolean;
+  /** Match Tactics: mostra os cartoes dos jogadores no campo (Player Cards ON/OFF); desligado, o campo mostra as camisas/rostos de sempre. */
+  playerCardsOn?: boolean;
 }
 
 export type ZoneOverrides = { com?: Record<string, Record<string, [number, number]>>; sem?: Record<string, Record<string, [number, number]>> };

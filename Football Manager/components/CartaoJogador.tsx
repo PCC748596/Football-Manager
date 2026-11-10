@@ -60,7 +60,7 @@ const CartaoJogador: React.FC<Props> = ({ player, slotPos, overall, rosto, estil
       {/* topo: overall + bandeira */}
       <div className="flex items-start justify-between" style={{ height: 66 }}>
         <div className="flex flex-col items-start leading-none" style={{ width: 46 }}>
-          <span className={`font-black inline-block ${foraDePosicao ? 'text-rose-500' : ''}`} style={{ fontSize: 36, letterSpacing: -3, transform: 'scale(0.82, 2.5)', transformOrigin: 'left top', marginTop: -15 }}>{overall}</span>
+          <span className={`font-black inline-block ${foraDePosicao ? 'text-rose-500' : ''}`} style={{ fontSize: 36, letterSpacing: -3, transform: 'scale(0.82, 2.1)', transformOrigin: 'left top', marginTop: -15 }}>{overall}</span>
         </div>
       </div>
 
@@ -101,3 +101,14 @@ export const deslocamentoDoCartao = (formacao: string, label: string, x: number)
   if (['3-5-2 ATA', '5-3-2'].includes(formacao) && label === 'GK') d += 10;
   return d;
 };
+
+/*
+PLAYER CARDS e PLAYER FACES sao EXCLUSIVOS: so um dos dois pode estar ON (o Match Tactics liga um e desliga o outro). Estas tres leituras valem para o Tactics e para o Match Preview.
+  cartoesLigados   o campo mostra os cartoes (por omissao, ligado);
+  rostosLigados    o campo mostra o rosto sobre a camisa (so sem cartoes);
+  rostosNasListas  o banco e o squad pool mostram o rosto (com cartoes ou com Faces ligado).
+*/
+type FlagsDeVista = { playerCardsOn?: boolean; playerFacesOn?: boolean };
+export const cartoesLigados = (t?: FlagsDeVista | null): boolean => !t || (t.playerCardsOn !== false && t.playerFacesOn !== true);
+export const rostosLigados = (t?: FlagsDeVista | null): boolean => !!t && t.playerFacesOn !== false && !cartoesLigados(t);
+export const rostosNasListas = (t?: FlagsDeVista | null): boolean => !t || t.playerFacesOn !== false || cartoesLigados(t);

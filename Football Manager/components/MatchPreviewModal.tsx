@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { Player, Position, Team, FORMATIONS, POSITION_ORDER, getEffectiveSkill, getKitDetails, getGKKitDetails } from '../types';
 import { PlayerFace3D } from './PlayerFace3D';
 import { ShirtIcon } from './ShirtIcon';
-import CartaoJogador, { CARTAO_LARGURA, CARTAO_ALTURA, deslocamentoDoCartao } from './CartaoJogador';
+import CartaoJogador, { CARTAO_LARGURA, CARTAO_ALTURA, deslocamentoDoCartao, cartoesLigados, rostosLigados, rostosNasListas } from './CartaoJogador';
 import EnergyBar, { energiaDe } from './EnergyBar';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
@@ -77,8 +77,11 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
   const reservas = adversario ? reservasTodos : [...reservasTodos].sort((a, b) => ((POSITION_ORDER as any)[a.position] ?? 99) - ((POSITION_ORDER as any)[b.position] ?? 99) || b.skill - a.skill);
   const quimica = calcularQuimica(noCampo.filter((p): p is Player => !!p), team.tactics.formation, team.synergyMap);
   const estiloDe = (p: Player) => estiloValidoDoJogador(p, PLAYSTYLE_AJUSTES[`${team.name}|${p.name}`], p.playStyle, PLAYSTYLE_DA_BASE[p.id]);
-  const estilosOn = !adversario && team.tactics.playingStylesOn !== false;   // do adversario nao se mostram Playing Styles, Chemistry nem moral
-  const rostosOn = team.tactics.playerFacesOn !== false;
+  // OS BOTOES DO MATCH TACTICS (Playing Styles, Avg Ratings, Player Faces) valem para os DOIS times: o preview mostra o que o utilizador escolheu la.
+  const estilosOn = userTeam?.tactics.playingStylesOn !== false;
+  const rostosOn = rostosLigados(userTeam?.tactics);          // o rosto sobre a camisa, no campo sem cartoes
+  const cartoesOn = cartoesLigados(userTeam?.tactics);       // os cartoes (exclusivo com os rostos)
+  const rostosListas = rostosNasListas(userTeam?.tactics);   // os reservas
   const k = Math.max(0.45, Math.min(1.1, alt / 760));   // os cartoes acompanham a altura do campo (no Tactics o campo tem ~760 px)
   const largura = alt * 68 / 106 + 140 * k;
 
@@ -123,7 +126,7 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
                 const gk = pos.label === 'GK' || player?.position === Position.GK;
                 const d = kit(gk);
                 // O CARTAO do jogador (so com os rostos ligados; sem eles, as camisas de sempre): o mesmo do Match Tactics. Do adversario nao se mostram estilo nem moral.
-                if (player && rostosOn) {
+                if (player && cartoesOn) {
                   return (
                     <div key={idx} className="absolute flex items-center justify-center z-10" style={{ width: CARTAO_LARGURA, height: CARTAO_ALTURA, left: `${adversario ? 100 - pos.x : pos.x}%`, top: `${adversario ? 100 - pos.y : pos.y}%`, transform: `translate(-50%, calc(-50% + ${deslocamentoDoCartao(team.tactics.formation, pos.label, pos.x) * k * (adversario ? -1 : 1)}px)) scale(${0.8 * k})` }}>
                       <CartaoJogador player={player} slotPos={pos.label} overall={getEffectiveSkill(player, pos.label)}
@@ -174,7 +177,7 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
             return (
               <div key={p.id} className="relative flex-shrink-0 flex flex-row items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg px-1.5 py-[4px] shadow-sm min-w-0">
                 <div className="relative w-[40px] h-[40px] shrink-0 pointer-events-none">
-                  {rostosOn
+                  {rostosListas
                     ? <div className="w-[40px] h-[40px] -translate-y-[6px]"><PlayerFace3D playerId={p.id} team={team} kitIdx={kitIdx} gk={p.position === Position.GK} camisa={team.primaryColor} className="w-full h-full" /></div>
                     : <ShirtIcon color={kit(p.position === Position.GK).c1} number={p.shirtNumber} scale={0.5} longSleeves={p.position === Position.GK} />}
                 </div>
