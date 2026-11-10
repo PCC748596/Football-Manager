@@ -173,6 +173,16 @@ Object.assign(Match, {
     // O que corre todos os frames (chamado do `update`): o aquecimento de cada pedido, a troca em curso e a placa do 4.o arbitro.
     tickSubstituicoes: function (dt) {
         this.tickBracadeiras(dt);
+        // O PONTO DO BATEDOR antes de qualquer troca: se ele sair, quem o substitui na cobranca fica exactamente ali.
+        {
+            const t = this.setPieceTaker;
+            const parado = this._paradaParaSubstituir() || this.state === 'PENALTY';
+            if (!parado) { this._spotBatedor = null; this._trocaNaParada = false; }
+            else if (t && t.model && !this.subsEmCurso && !this._trocaNaParada && (!this._spotBatedor || this._spotBatedor.taker !== t)) {
+                this._spotBatedor = { taker: t, pos: t.model.position.clone(), quat: t.model.quaternion.clone(), estado: t.fsm ? t.fsm.currentState : null,
+                    alvoFalta: t.alvoFalta ? t.alvoFalta.clone() : null };
+            }
+        }
         const Q = (typeof Officials !== 'undefined') ? Officials : null;
         const emBatch = (typeof Sim !== 'undefined' && Sim.running);
         if (this._placaViva > 0) this._placaViva -= dt;
@@ -756,6 +766,8 @@ Object.assign(Match, {
         this.esquecerJogadoresAntigos([P]);
         if (typeof this.subsFeitas === 'undefined') this.subsFeitas = [];
         this.subsFeitas.push({ lado: req.lado, sai: P, entra: N, t: this.tempoDeJogo });
+        // Troca numa parada: antes da cobranca os set pieces do time sao revistos (reatribuirBatedorAposTroca).
+        if (this._paradaParaSubstituir() || this.state === 'PENALTY') this._trocaNaParada = true;
         if (typeof Notas !== 'undefined') Notas.substituir(P, N);
         // O acrescimo de tempo (MatchDuration.acrescimo): cada troca conta.
         this.substituicoes = (this.substituicoes || 0) + 1;
@@ -771,5 +783,67 @@ Object.assign(Match, {
         }
         if (!(opcoes && opcoes.entrada)) req.feita = true;
         return N;
+    },
+
+    /*
+    DEPOIS DAS TROCAS DE UMA PARADA, ANTES DA COBRANCA (falta, canto, penalti): 1) actualiza os set pieces dos times (tira os cobradores designados que ja nao estao em campo);
+    2) ve quem e agora o batedor (o designado do papel; sem ele, quem ja la estava, ou o entrante que lhe tomou o lugar); 3) se mudou, faz a troca de batedor — o novo fica no
+    ponto e no estado do batedor anterior, e o anterior (se ainda esta em campo) vai para o sitio do novo. So depois a cobranca arranca (a `_seguraCobranca` ja caiu).
+    */
+    reatribuirBatedorAposTroca: function () {
+        // 1. Set pieces dos times.
+        for (const [lado, lista] of [['A', this.players], ['B', this.opponents]]) {
+            const c = this.cobradores ? this.cobradores[lado] : null;
+            if (!c) continue;
+            const ids = new Set(lista.filter(p => p && p.skills).map(p => p.skills.id));
+            for (const k of Object.keys(c)) if (c[k] !== null && c[k] !== undefined && !ids.has(c[k])) c[k] = null;
+        }
+        // 2. Quem e o batedor agora.
+        const velho = this.setPieceTaker;
+        if (!velho || velho.role === 'gk') return null;
+        const lista = (velho.team === 'TeamA') ? this.players : this.opponents;
+        const attDir = velho.dirZ || 1;
+        let papel = null;
+        if (this.state === 'CORNER_KICK') {
+            const bx = this.cantoBolaAlvo ? this.cantoBolaAlvo.x : this.ball.position.x;
+            papel = (ladoDaBola(bx, attDir) === 'L') ? 'cornerL' : 'cornerR';
+        } else if (this.state === 'FREE_KICK') {
+            papel = (this.decisaoFaltaMontada === 'remate')
+                ? ((ladoDaBola(this.ball.position.x, attDir) === 'R') ? 'freeKickDirectR' : 'freeKickDirectL') : 'freeKickLong';
+        } else if (this.state === 'PENALTY') papel = 'penalty';
+        else return null;
+        const campo = lista.filter(p => p && p.model && p.role !== 'gk');
+        const designado = (typeof cobradorDesignado === 'function') ? cobradorDesignado(velho.team, papel, campo) : null;
+        // O que ocupa agora o lugar do batedor anterior: ele mesmo, ou o entrante que o substituiu.
+        let ocupante = velho;
+        if (lista.indexOf(velho) < 0) {
+            const t = (this.subsFeitas || []).slice().reverse().find(x => x.sai === velho);
+            ocupante = t ? t.entra : null;
+        }
+        const novo = designado || (lista.indexOf(velho) >= 0 ? velho : ocupante);
+        if (!novo || novo === velho && lista.indexOf(velho) >= 0) return null;
+        // 3. A troca. O ponto e o estado do batedor anterior (guardados antes da troca, se ele saiu).
+        const sp = (this._spotBatedor && this._spotBatedor.taker === velho) ? this._spotBatedor : null;
+        const pos = sp ? sp.pos : velho.model.position.clone();
+        const quat = sp ? sp.quat : velho.model.quaternion.clone();
+        const estado = (sp && sp.estado) || (velho.fsm ? velho.fsm.currentState : 'SET_PIECE_WAIT');
+        const alvoFalta = sp ? sp.alvoFalta : (velho.alvoFalta ? velho.alvoFalta.clone() : null);
+        const posNovo = novo.model.position.clone(), quatNovo = novo.model.quaternion.clone();
+        const estadoNovo = novo.fsm ? novo.fsm.currentState : 'MOVE_TO_POS';
+        novo.model.position.copy(pos); novo.model.quaternion.copy(quat);
+        novo.velocity.set(0, 0, 0); novo.hasBall = false; novo.actionState = null;
+        if (alvoFalta) novo.alvoFalta = alvoFalta;
+        if (novo.fsm) novo.fsm.changeState(estado);
+        if (lista.indexOf(velho) >= 0 && velho !== novo) {
+            velho.model.position.copy(posNovo); velho.model.quaternion.copy(quatNovo);
+            velho.velocity.set(0, 0, 0); velho.alvoFalta = null; velho.actionState = null;
+            if (velho.fsm) velho.fsm.changeState(estadoNovo === 'SET_PIECE_TAKER' ? 'SET_PIECE_WAIT' : estadoNovo);
+        } else if (ocupante && ocupante !== novo) {
+            ocupante.model.position.copy(posNovo); ocupante.model.quaternion.copy(quatNovo); ocupante.velocity.set(0, 0, 0);
+            if (ocupante.fsm) ocupante.fsm.changeState(estadoNovo === 'SET_PIECE_TAKER' ? 'SET_PIECE_WAIT' : estadoNovo);
+        }
+        this.setPieceTaker = novo;
+        this._spotBatedor = { taker: novo, pos: pos.clone(), quat: quat.clone(), estado: estado, alvoFalta: alvoFalta };
+        return { papel: papel, de: velho, para: novo };
     }
 });
