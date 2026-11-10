@@ -90,7 +90,10 @@ const Eventos = {
 
     // ---- os pontos de emissao (chamados do motor; todos tolerantes a ausencia deste ficheiro) --------------------
     remate(p, xg) {
-        const r = this.registar('REMATE', { equipa: p.team, jogador: this._jog(p), xg: xg, desfecho: null, _idade: 0 });
+        // `dist`: a distancia do remate ao centro da baliza (m); o som de perigo de gol usa-a (ambiente_sonoro.js).
+        let dist = null;
+        if (p && p.model && typeof p.targetGoalZ === 'number') dist = Math.hypot(p.model.position.x, p.targetGoalZ - p.model.position.z);
+        const r = this.registar('REMATE', { equipa: p.team, jogador: this._jog(p), xg: xg, dist: dist, desfecho: null, _idade: 0 });
         if (r) this.ultimoRemate = r;
         return r;
     },

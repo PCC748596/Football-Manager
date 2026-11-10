@@ -51,7 +51,9 @@ const AmbienteSonoro = {
     volumePalmas: 0.3,
     palmasRampa: 1.2,           // s para entrar e para sair
     ficheiroReacao: 'assets/Crowd_reacting.wav',
-    volumeReacao: 0.64,
+    volumeReacao: 0.512,        // 0.64 -20% (pedido)
+    reacaoDistMax: 15.0,        // m: remate de menos disto e perigoso mesmo com xG baixo
+    _defesaParaFora: 0,
     reacaoIntervalo: 5.0,
     reacaoXgMin: 0.07,
     _palmas: null,
@@ -96,8 +98,11 @@ const AmbienteSonoro = {
         */
         if (typeof Eventos !== 'undefined' && Eventos.aoRegistar) Eventos.aoRegistar((ev) => {
             if (!ev || ev.tipo !== 'REMATE') return;
-            if (!ev.desfecho) { this._perigoPendente = (ev.xg || 0) >= this.reacaoXgMin; return; }
+            // Perigoso: xG alto OU remate de menos de `reacaoDistMax` m (pedido).
+            if (!ev.desfecho) { this._perigoPendente = (ev.xg || 0) >= this.reacaoXgMin || (typeof ev.dist === 'number' && ev.dist < this.reacaoDistMax); return; }
             if (ev.desfecho === 'defesa' && this._perigoPendente) this.reagirAoPerigo();
+            // Defesa que o goleiro manda para fora (canto): o "ohh" toca quando a bola sai, mesmo sem xG alto (ver `update`).
+            else if (ev.desfecho === 'defesa') this._defesaParaFora = (typeof performance !== 'undefined' ? performance.now() : Date.now());
             this._perigoPendente = false;
         });
         // Desligado nasce MESMO a zero: o `update` só corrige no frame
@@ -188,6 +193,11 @@ const AmbienteSonoro = {
         const rm = (typeof Match !== 'undefined') ? Match.ultimoRemate : null;
         if (rm && rm.bateuNaTrave && !rm._somTrave) { rm._somTrave = true; this._perigoPendente = false; this.reagirAoPerigo(); }
         // A bola saiu de campo com um remate perigoso por resolver: o "ohh" toca agora.
+        if (this._defesaParaFora && estado === 'CORNER_KICK') {
+            const agora = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+            if (agora - this._defesaParaFora < 8000) this.reagirAoPerigo();
+            this._defesaParaFora = 0;
+        } else if (this._defesaParaFora && (typeof performance !== 'undefined' ? performance.now() : Date.now()) - this._defesaParaFora > 8000) this._defesaParaFora = 0;
         if (this._perigoPendente && (estado === 'CORNER_KICK' || estado === 'GOAL_KICK' || estado === 'THROW_IN')) { this._perigoPendente = false; this.reagirAoPerigo(); }
         else if (this._perigoPendente && (estado === 'GOAL' || estado === 'FREE_KICK' || estado === 'PENALTY' || estado === 'INTERVALO' || estado === 'FIM_DE_JOGO')) this._perigoPendente = false;
 
