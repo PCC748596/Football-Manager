@@ -23,6 +23,20 @@ Object.assign(Match, {
         if (typeof Sim !== 'undefined' && Sim.running) sair(); else setTimeout(sair, ((typeof RefereeModel !== 'undefined' && RefereeModel.duracaoSinal) || 2.5) * 1000 + 300);
     },
 
+    /*
+    O APITO FINAL SO EM ZONA SEGURA (MatchDuration.fimSeguro): depois do acrescimo, a partida acaba quando a bola esta na INTERSECCAO do corredor central com o terco central do campo
+    (|x| < corredorX e |z| < terco: o meio do campo, longe das duas areas), para nao acabar num lance de perigo. Se a bola demorar demais a la chegar, o apito sai passados
+    `esperaMax` s de relogio do fim do acrescimo (para o jogo nao ficar sem fim). So vale nas partidas visiveis (fora dos lotes do `Sim`).
+    */
+    fimPermitido: function (fimComAcrescimo) {
+        const F = MatchDuration.fimSeguro;
+        if (!F || !F.activo || (typeof Sim !== 'undefined' && Sim.running) || !this.ball) return this.tempoDeJogo >= fimComAcrescimo;
+        if (this.tempoDeJogo < fimComAcrescimo) return false;
+        if (this.tempoDeJogo >= fimComAcrescimo + F.esperaMax) return true;
+        const b = this.ball.position;
+        return Math.abs(b.x) < F.corredorX && Math.abs(b.z) < F.terco;
+    },
+
     verificarFimDeTempo: function () {
         if (this.disputa) return false;
         if (this.state !== 'PLAY') return false;
@@ -35,7 +49,7 @@ Object.assign(Match, {
                 this.acrMin1 = emLote ? 0 : this.acrescimoEmMinutos(0, 0);
                 this.acrescimo1 = this.acrMin1 * 60;
             }
-            if (this.acr1Calculado && this.tempoDeJogo >= meio + this.acrescimo1) {
+            if (this.acr1Calculado && this.fimPermitido(meio + this.acrescimo1)) {
                 this.primeiroTempoAcabou = true;
                 this.faltasNoIntervalo = this.faltasTotais();
                 this.substituicoesNoIntervalo = this.substituicoes || 0;
@@ -62,7 +76,7 @@ Object.assign(Match, {
                     this.acrExtraMin = Math.min(3, this.acrescimoEmMinutos(this.faltasNoInicioExtra || 0, this.subsNoInicioExtra || 0));
                     this.acrExtra = this.acrExtraMin * 60;
                 }
-                if (this.acrExtraCalculado && this.tempoDeJogo >= fim + this.acrExtra) {
+                if (this.acrExtraCalculado && this.fimPermitido(fim + this.acrExtra)) {
                     this.updatePlacar();
                     if (this.faseExtra === 1) { this.faseExtra = 2; this.prepararPeriodoExtra(); this.iniciarIntervalo(); return true; }
                     if (typeof DisputaPenaltis !== 'undefined' && !this.disputa && DisputaPenaltis.podeIniciar()) { DisputaPenaltis.iniciar(); return true; }
@@ -71,7 +85,7 @@ Object.assign(Match, {
                 }
                 return false;
             }
-            if (this.acr2Calculado && this.tempoDeJogo >= fimBase + this.acrescimo2) {
+            if (this.acr2Calculado && this.fimPermitido(fimBase + this.acrescimo2)) {
                 this.updatePlacar();
                 if (this.precisaProrrogacao()) { this.faseExtra = 1; this.prepararPeriodoExtra(); this.iniciarIntervalo(); return true; }
                 // Copa empatada, vista em 3D: a disputa de penaltis (js/disputa_penaltis.js) encena-se antes do apito final.

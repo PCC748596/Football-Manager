@@ -257,6 +257,11 @@ const MatchDuration = {
     eles proprios quando param. `maximo` (s) corta o total; null = sem corte.
     */
     acrescimo: { activo: true, porSubstituicao: 60, porFalta: [30, 30], maximo: null },
+    /*
+    O FIM DA PARTIDA EM ZONA SEGURA: depois do acrescimo o apito so sai com a bola na interseccao do corredor central (|x| < `corredorX`) com o terco central (|z| < `terco`), longe das areas.
+    `esperaMax` (s de relogio) e o tempo maximo de espera passado o fim do acrescimo, para a partida nao ficar sem fim. Vale no fim do 1.o tempo, do 2.o tempo e dos periodos da prorrogacao.
+    */
+    fimSeguro: { activo: true, corredorX: 11.33, terco: 18.25, esperaMax: 120 },
     get timeScale() {
         return (typeof GAME_SPEED !== 'undefined' && GAME_SPEED > 0)
             ? (this.gameSecondsPerRealSecond / GAME_SPEED)
@@ -2399,3 +2404,10 @@ MOMENTUM: o lado do campo onde a bola esteve nos ultimos `janela` s de jogo (bol
 */
 const MomentumModel = { janela: 60 };
 if (typeof window !== 'undefined') window.MomentumModel = MomentumModel;
+
+/*
+O MEIO-CAMPO ACOMPANHA A LINHA DEFENSIVA (pedido): sem bola, o DM/CM/AM nao fica a menos de `folga` m (em profundidade) do defensor mais avancado. O limite da Defensive Line sobe os defensores
+acima da tabela; sem esta regra o volante ficava colado ao zagueiro (ver o comentario em `tickBase`, team_bt.js, e `tools/headless/folga_linhas.js`). `activo: false` volta ao posto da tabela.
+*/
+const FolgaMeioDefesa = { activo: true, folga: 8.0, posicoes: ['DM', 'CM', 'AM'] };
+if (typeof window !== 'undefined') window.FolgaMeioDefesa = FolgaMeioDefesa;

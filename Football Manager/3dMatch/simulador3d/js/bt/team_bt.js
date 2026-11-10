@@ -2756,6 +2756,26 @@ const PosicionamentoAI = {
             const lim = limiteDeRecuoDaLinha(bb);
             if (lim !== null && targetZ * p.dirZ < lim) targetZ = lim * p.dirZ;
         }
+        /*
+        O MEIO-CAMPO ACOMPANHA A LINHA DEFENSIVA (FolgaMeioDefesa, config/tactics.js). O limite da Defensive Line sobe os defensores acima do posto da tabela, mas o DM/CM ficava no posto da tabela: com a
+        linha em 60% o zagueiro ia a z = -14.6 e o volante a -15.5 (medido: a 1 m um do outro; no 4-2-3-1 a linha defensiva e o meia mais recuado ficavam a menos de 3 m em ~80% do tempo). Sem bola, o meia
+        central nao fica a menos de `folga` m da frente da defesa (o posto mais avancado dos defensores, ja com o limite).
+        */
+        {
+            const FM = (typeof FolgaMeioDefesa !== 'undefined') ? FolgaMeioDefesa : null;
+            if (zonal && FM && FM.activo && bb && !bb.isAttacking && p.role === 'mid' && FM.posicoes.indexOf(p.pos) >= 0) {
+                let frente = -Infinity;
+                for (const c of (bb.own || [])) {
+                    if (!c || c === p || c.role !== 'def' || c.expulso || !c.postoBase) continue;
+                    const z = c.postoBase.z * p.dirZ;
+                    if (z > frente) frente = z;
+                }
+                if (frente > -Infinity) {
+                    const minimo = frente + FM.folga;
+                    if (targetZ * p.dirZ < minimo) targetZ = minimo * p.dirZ;
+                }
+            }
+        }
 
         /*
         SEGURAR A LINHA: quem foi chamado para completar o mínimo atrás não
