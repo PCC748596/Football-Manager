@@ -1,22 +1,20 @@
 /*
-MODO DE DISTRIBUICAO (Steam): sem escudos reais e sem nomes reais de jogadores.
+SEGUNDA CAMADA, DESLIGADA POR OMISSAO. A base que o jogo traz ja e generica (textSim/realDatabase.ts, gerada por tools/gerar_dados_genericos.ts); os nomes e escudos reais vem do mod `public/dados_reais`
+(textSim/modDados.ts). Estas duas chaves so servem para, COM o mod ligado, voltar a esconder os nomes reais ou os escudos reais (ex.: gravar um video): `VITE_NOMES_GENERICOS=1`, `VITE_ESCUDOS_GENERICOS=1`
+ou `?genericos=1` no endereco.
 
-  escudosGenericos   os clubes mostram o escudo GENERICO (o desenho de TeamShield, nas cores do clube; no 3D, as tres barras nas cores) em vez da imagem real (`logoUrl`).
-  nomesGenericos     os jogadores vindos da base real ganham um nome gerado (o mesmo para sempre: sai do id), do pais do clube. O nome original fica em `nomeOriginal` (so para chaves internas, como os
-                     ajustes de playing style) e nunca e mostrado.
-
-Ligado por omissao. Para trabalhar com os dados reais: `VITE_ESCUDOS_REAIS=1` e/ou `VITE_NOMES_REAIS=1` ao arrancar (ou `?reais=1` no endereco). ATENCAO: isto so muda o que o jogo MOSTRA; os ficheiros de dados reais
-(textSim/realDatabase.ts, local-data/, Assets/Escudos/, 3dMatch/simulador3d/assets e data) continuam na pasta e NAO podem ir no pacote da Steam (ver a nota do chat sobre o passo de empacotamento).
+  escudosGenericos   os clubes mostram o escudo GENERICO (o desenho de TeamShield) em vez da imagem (`logoUrl`).
+  nomesGenericos     os jogadores ganham um nome gerado do id (o mesmo para sempre); o original fica em `nomeOriginal` e nunca e mostrado.
 */
 import { criarRng } from './contracts';
 import { nomeDoClube } from './nomes';
 
 const amb = (k: string): string | undefined => { try { return (import.meta as any).env?.[k]; } catch { return undefined; } };
-const queryReais = (): boolean => { try { return typeof location !== 'undefined' && /[?&]reais=1/.test(location.search); } catch { return false; } };
+const queryGenericos = (): boolean => { try { return typeof location !== 'undefined' && /[?&]genericos=1/.test(location.search); } catch { return false; } };
 
 export const DISTRIBUICAO = {
-  escudosGenericos: amb('VITE_ESCUDOS_REAIS') !== '1' && !queryReais(),
-  nomesGenericos: amb('VITE_NOMES_REAIS') !== '1' && !queryReais()
+  escudosGenericos: amb('VITE_ESCUDOS_GENERICOS') === '1' || queryGenericos(),
+  nomesGenericos: amb('VITE_NOMES_GENERICOS') === '1' || queryGenericos()
 };
 
 /** O nome gerado de um jogador real: determinista (id + pais do clube), do pais do clube. */

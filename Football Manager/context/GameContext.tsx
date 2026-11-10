@@ -2607,7 +2607,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ...t,
             stadium: stadiumName,
             stadiumCapacity: t.stadiumCapacity || ((stadiumName === 'Maracanã' || stadiumName === 'Estádio do Maracanã') ? 78838 : (Math.floor((t.fanBase || 10000) * 0.45) + 15000)),
-            logoUrl: assetUrl(t.logoUrl || dbTeam?.teamBadgeLocation || `/Assets/Escudos/${t.name}.png`),
+            // O escudo vem da base ATUAL (generica, ou a do mod dos dados reais), nao do save: sem o mod, um save antigo nao volta a mostrar o escudo real.
+            logoUrl: dbTeam ? (dbTeam.teamBadgeLocation === '-' ? '' : assetUrl(dbTeam.teamBadgeLocation || `/Assets/Escudos/${t.name}.png`)) : assetUrl(t.logoUrl || `/Assets/Escudos/${t.name}.png`),
             kitUrls: (t.kitUrls || [
               `/Assets/Camisas/${t.name}_1.png`,
               `/Assets/Camisas/${t.name}_2.png`,

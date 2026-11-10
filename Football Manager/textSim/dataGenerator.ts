@@ -706,7 +706,8 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
       primaryColor: getColorHex(t.color1 || t.color || '#333'),
       secondaryColor: getColorHex(t.color2 || '#fff'),
       tertiaryColor: getColorHex(t.color3, 'transparent'),
-      logoUrl: assetUrl(t.teamBadgeLocation || `/Assets/Escudos/${t.teamName.replace('Man United', 'Man Utd').replace('Nottm Forest', 'Nottingham Forest')}.png`),
+      // '-' = sem escudo (a base generica): o TeamShield desenha o escudo generico nas cores do clube. O mod dos dados reais (public/dados_reais) poe o caminho do escudo real.
+      logoUrl: t.teamBadgeLocation === '-' ? '' : assetUrl(t.teamBadgeLocation || `/Assets/Escudos/${t.teamName.replace('Man United', 'Man Utd').replace('Nottm Forest', 'Nottingham Forest')}.png`),
       kitUrls: [
         assetUrl(`/Assets/Camisas/${t.teamName}_1.png`),
         assetUrl(`/Assets/Camisas/${t.teamName}_2.png`),
