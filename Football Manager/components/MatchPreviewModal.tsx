@@ -73,8 +73,8 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
   const formacao = FORMATIONS[team.tactics.formation] || FORMATIONS['4-4-2'];
   const noCampo = formacao.map((_, i) => players.find(p => p.id === team.lineup[i]));
   const reservasTodos = (team.bench || []).map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p);
-  // Os reservas do utilizador por posicao (goleiro, defesa, meio, ataque; dentro da posicao, o de maior OVR primeiro).
-  const reservas = adversario ? reservasTodos : [...reservasTodos].sort((a, b) => ((POSITION_ORDER as any)[a.position] ?? 99) - ((POSITION_ORDER as any)[b.position] ?? 99) || b.skill - a.skill);
+  // Os reservas dos DOIS times por posicao (goleiro, defesa, meio, ataque; dentro da posicao, o de maior OVR primeiro).
+  const reservas = [...reservasTodos].sort((a, b) => ((POSITION_ORDER as any)[a.position] ?? 99) - ((POSITION_ORDER as any)[b.position] ?? 99) || b.skill - a.skill);
   const quimica = calcularQuimica(noCampo.filter((p): p is Player => !!p), team.tactics.formation, team.synergyMap);
   const estiloDe = (p: Player) => estiloValidoDoJogador(p, PLAYSTYLE_AJUSTES[`${team.name}|${p.name}`], p.playStyle, PLAYSTYLE_DA_BASE[p.id]);
   // OS BOTOES DO MATCH TACTICS (Playing Styles, Avg Ratings, Player Faces) valem para os DOIS times: o preview mostra o que o utilizador escolheu la.

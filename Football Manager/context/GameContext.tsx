@@ -23,7 +23,7 @@ import { recalcularValores } from '../textSim/valuation';
 import { registrarLigas, escalaDaLiga } from '../textSim/economia';
 import { Negociacao, Oferta, abrirNegociacao, assinar, chanceDeAceitar, propostaDoJogador, resolverNegociacoes } from '../textSim/negociacao';
 import { rotuloDaFase } from '../textSim/competitions';
-import { slotsVazios, jogoEmAndamento } from '../textSim/escalacao';
+import { slotsVazios, jogoEmAndamento, completarEscalacaoCpu } from '../textSim/escalacao';
 import { boletimSemanal, severidadeDaLesao, variacaoDiariaDeFis, garantirMedico, gerarMedico } from '../textSim/medico';
 import { aplicarSuspensoes, chaveCompeticao, corrigirEscalacao, estaSuspenso } from '../textSim/suspensoes';
 import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calculateMatchRatings, DECK_SLOTS, getStoppageTime, getHalfTimeMinute, getMatchEndMinute, matchFatiguePerMinute } from '../textSim/matchEngine';
@@ -2190,6 +2190,23 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateSetPieceTakers = (teamId: string, takers: Team['setPieceTakers']) => {
     setTeams(prev => prev.map(t => t.id === teamId ? { ...t, setPieceTakers: takers } : t));
   };
+
+  /*
+  FIM DE CADA DIA: os titulares e o banco de todos os times da CPU ficam escalados com jogadores validos (sem lesionados, suspensos na competicao do proximo jogo, vendidos ou ausentes), para a CPU
+  escolher bem depois de expulsoes e lesoes. O time do utilizador fica de fora: ele pode ser escalado ate antes do jogo (ver o efeito abaixo, que o corrige no dia do jogo).
+  */
+  useEffect(() => {
+    if (!gameState.userTeamId || !teams.length || !players.length) return;
+    const hoje = gameState.currentDate;
+    const alteracoes = new Map<string, { lineup: string[]; bench: string[] }>();
+    for (const t of teams) {
+      if (t.id === gameState.userTeamId) continue;
+      const proximo = fixtures.filter(f => !f.played && f.date >= hoje && (f.homeTeamId === t.id || f.awayTeamId === t.id)).sort((a, b) => a.date.localeCompare(b.date))[0];
+      const r = completarEscalacaoCpu(t, players, chaveCompeticao(proximo, comps));
+      if (r.mudou) alteracoes.set(t.id, { lineup: r.lineup, bench: r.bench });
+    }
+    if (alteracoes.size) setTeams(prev => prev.map(t => { const a = alteracoes.get(t.id); return a ? { ...t, lineup: a.lineup, bench: a.bench } : t; }));
+  }, [gameState.currentDate, loadId, players.length, teams.length]);
 
   // No dia do jogo do utilizador: suspensos (cartoes) e lesionados saem da escalacao e do banco antes de o jogo abrir.
   useEffect(() => {
