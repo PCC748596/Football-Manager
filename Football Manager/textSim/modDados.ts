@@ -14,6 +14,8 @@ E assim que qualquer pessoa pode editar o jogo: basta alterar estes JSON (e troc
 Substitui no sitio os campos de REAL_TEAMS_JSON / REAL_PLAYERS_JSON (os numeros nao mudam), por isso tem de correr ANTES de se gerar qualquer jogo (ver index.tsx).
 */
 import { REAL_TEAMS_JSON, REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
+import { TREINADORES } from './treinadores';
+import { GRUPOS_REAIS_LIB, GRUPOS_REAIS_SUL, CLASSIFICACAO_INICIAL } from './competitions';
 import { registarCompeticoes, definirBaseDosLogos, InfoCompeticao } from './nomesCompeticoes';
 import { lerConfigMod, urlDaPastaDoMod } from './modConfig';
 
@@ -25,6 +27,17 @@ export type OrigemDoMod = 'pasta' | null;
 export interface EstadoDoMod { ativo: boolean; nome?: string; clubes: number; jogadores: number; competicoes: number; origem: OrigemDoMod; caminho: string; configurado: boolean }
 
 export const estadoDoMod: EstadoDoMod = { ativo: false, clubes: 0, jogadores: 0, competicoes: 0, origem: null, caminho: '', configurado: false };
+
+/** `regras.json` do mod: dados que traziam nomes reais (chaves = nomes dos clubes do mod). */
+export interface ModRegras { treinadores?: Record<string, { nome: string; tatico: number }>; gruposLib?: Record<string, string[]>; gruposSul?: Record<string, string[]>; classificacaoInicial?: Record<string, string[]>; classificacaoAnterior?: Record<string, string[]> }
+export const aplicarRegras = (r?: ModRegras | null): void => {
+  if (!r || typeof r !== 'object') return;
+  if (r.treinadores) Object.assign(TREINADORES, r.treinadores);
+  if (r.gruposLib) Object.assign(GRUPOS_REAIS_LIB, r.gruposLib);
+  if (r.gruposSul) Object.assign(GRUPOS_REAIS_SUL, r.gruposSul);
+  if (r.classificacaoInicial) Object.assign(CLASSIFICACAO_INICIAL, r.classificacaoInicial);
+  if (r.classificacaoAnterior) for (const pais of REAL_COUNTRIES_JSON as any[]) { const ant: Record<string, string[]> = {}; for (const l of pais.leagues || []) if (r.classificacaoAnterior[l.id]) ant[l.id] = r.classificacaoAnterior[l.id]; if (Object.keys(ant).length) pais.classificacaoAnterior = ant; }
+};
 
 /** Aplica os dados do mod sobre a base (no sitio). Devolve quantos clubes e jogadores mudaram. */
 export const aplicarMod = (clubes: ModClube[], jogadores: ModJogador[], competicoes: ModCompeticao[] = [], fonte: { base: string; sufixo: string } = { base: 'dados_reais/', sufixo: '' }): { clubes: number; jogadores: number; competicoes: number } => {
@@ -79,8 +92,9 @@ export const carregarMod = async (): Promise<EstadoDoMod> => {
     const url = (n: string) => pastaBase + n + pastaSufixo;
     const mod = await lerJson(url('mod.json'));
     if (!mod || typeof mod !== 'object') { console.info(`[mod] nenhum mod em ${cfg.caminho}; segue a base generica.`); return estadoDoMod; }
-    const [clubes, jogadores, competicoes] = await Promise.all([lerJson(url('clubes.json')), lerJson(url('jogadores.json')), lerJson(url('competicoes.json'))]);
+    const [clubes, jogadores, competicoes, regras] = await Promise.all([lerJson(url('clubes.json')), lerJson(url('jogadores.json')), lerJson(url('competicoes.json')), lerJson(url('regras.json'))]);
     const r = aplicarMod(Array.isArray(clubes) ? clubes : [], Array.isArray(jogadores) ? jogadores : [], Array.isArray(competicoes) ? competicoes : [], { base: pastaBase, sufixo: pastaSufixo });
+    aplicarRegras(regras);
     Object.assign(estadoDoMod, { ativo: true, nome: String(mod.nome || 'mod'), origem: 'pasta', clubes: r.clubes, jogadores: r.jogadores, competicoes: r.competicoes });
     console.info(`[mod] ${estadoDoMod.nome} (${cfg.caminho}): ${r.clubes} clubes, ${r.jogadores} jogadores, ${r.competicoes} competicoes`);
   } catch (e) {

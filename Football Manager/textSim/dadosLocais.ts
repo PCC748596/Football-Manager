@@ -1,6 +1,6 @@
 /*
 DADOS LOCAIS (CountryData<N>.json): jogadores reais lidos de um ficheiro que NAO faz parte do jogo.
-Ao abrir o jogo procura-se `/api/country-data/<N>` (o servidor de desenvolvimento serve a pasta `local-data/` do projeto, ou a pasta de COUNTRY_DATA_DIR; ver `countryDataPlugin` em vite.config.ts).
+Ao abrir o jogo procura-se `<pasta do mod>/local-data/CountryData<N>.json` (Settings > Mod; servido por `api/mod/`, tools/modServer.mjs).
 Se o ficheiro existir, uma PARTIDA NOVA usa os jogadores dele nos clubes que ele traz (`gameTeamId`) em vez dos gerados; sem ficheiro (build publicado, 404) nada muda. Nada e escrito na base
 (realDatabase.ts) nem no Editor: o overlay vive so em memoria e os nomes reais nunca entram no codigo-fonte.
 
@@ -11,6 +11,7 @@ import { Position } from '../types';
 import { calcularSkill } from './overall';
 import { limitarAtributo } from './geradorAtributos';
 import { REAL_TEAMS_JSON } from './realDatabase';
+import { lerConfigMod, urlDaPastaDoMod } from './modConfig';
 
 /** Paises dos ficheiros CountryData<N>.json, pelo numero do jogo de origem (54 = Brasil, 14 = Inglaterra, 27 = Italia, 21 = Alemanha, 45 = Espanha, 18 = Franca, 38 = Portugal, 52 = Argentina: so os clubes que o jogo ja tem). */
 export const PAISES_DOS_DADOS_LOCAIS = [54, 14, 27, 21, 45, 18, 38, 52];
@@ -94,7 +95,9 @@ const converter = (pais: number, c: any, nomeDoJogo: string, p: any, idx: number
 
 /** Le o ficheiro de um pais e junta-o ao overlay. false se nao existir. */
 const carregarPais = async (pais: number, nomesDosClubes: Record<number, string>): Promise<boolean> => {
-  const r = await fetch(`/api/country-data/${pais}`);
+  const cfg = lerConfigMod();
+  if (!cfg.ativo) return false;
+  const r = await fetch(urlDaPastaDoMod(`local-data/CountryData${pais}.json`, cfg.caminho));
   if (!r.ok) return false;
   const dados = await r.json();
   let clubes = 0;

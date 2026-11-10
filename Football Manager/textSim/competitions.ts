@@ -74,18 +74,8 @@ const FASES_UCL = [{ nome: 'PO', datas: ['2026-09-01', '2026-09-08'] }, { nome: 
 // Datas de UEL/UECL: as da Champions mais um dia.
 // Libertadores e Sul-Americana 2026 (os 32 clubes e os 8 grupos REAIS; nomes na base: "UCV FC" e Universidad Central). Valem na 1.a temporada, enquanto nenhuma liga sul-americana tem a classificacao do ano anterior
 // jogada; depois as vagas voltam a vir das tabelas (`VAGAS`). Se algum clube faltar na base, usa-se o criterio normal.
-export const GRUPOS_REAIS_LIB: Record<string, string[]> = {
-  A: ['Flamengo-RJ', 'Estudiantes de La Plata', 'Cusco FC', 'Independiente Medellín'], B: ['Nacional-URU', 'Universitario', 'Coquimbo Unido', 'Deportes Tolima'],
-  C: ['Fluminense-RJ', 'Bolívar', 'Deportivo La Guaira', 'Independiente Rivadavia'], D: ['Boca Juniors', 'Cruzeiro-MG', 'Universidad Católica', 'Barcelona SC'],
-  E: ['Peñarol', 'Corinthians-SP', 'Santa Fe', 'Platense'], F: ['Palmeiras-SP', 'Cerro Porteño', 'Junior', 'Sporting Cristal'],
-  G: ['LDU Quito', 'Lanús', 'Always Ready', 'Mirassol-SP'], H: ['Independiente del Valle', 'Libertad', 'Rosario Central', 'UCV FC']
-};
-export const GRUPOS_REAIS_SUL: Record<string, string[]> = {
-  A: ['América de Cali', 'Tigre', 'Macará', 'Alianza Atlético'], B: ['Atlético-MG', 'Cienciano', 'Academia Puerto Cabello', 'Juventud'],
-  C: ['São Paulo-SP', 'Millonarios', 'Boston River', "O'Higgins"], D: ['Santos-SP', 'San Lorenzo', 'Deportivo Cuenca', 'Recoleta'],
-  E: ['Racing Club', 'Caracas FC', 'Independiente Petrolero', 'Botafogo-RJ'], F: ['Grêmio-RS', 'Palestino', 'Torque', 'Deportivo Riestra'],
-  G: ['Olimpia', 'Vasco-RJ', 'Audax Italiano', 'Barracas Central'], H: ['River Plate', 'Bragantino-SP', 'Blooming', 'Carabobo FC']
-};
+export const GRUPOS_REAIS_LIB: Record<string, string[]> = {};   // vazio: preenchido pelo mod (regras.json)
+export const GRUPOS_REAIS_SUL: Record<string, string[]> = {};   // vazio: preenchido pelo mod (regras.json)
 
 // Os classificados REAIS de 2026/27 (nomes na base): entram primeiro; as vagas que sobrarem do pais sao preenchidas pela classificacao do ano anterior. Clubes que a base nao tem sao ignorados.
 export const SEED_UEL = new Set(['Bournemouth', 'Crystal Palace', 'Sunderland', 'Milan', 'Juventus', 'Real Sociedad', 'Celta Vigo', 'Hoffenheim', 'Bayer Leverkusen', 'Lyon', 'Marseille', 'Rennes', 'Benfica', 'AZ Alkmaar', 'Anderlecht', 'Union Saint-Gilloise', 'Olympiacos', 'Red Bull Salzburg', 'Sturm Graz', 'Sparta Praha', 'Viktoria Plzeň']);
@@ -146,17 +136,7 @@ A CLASSIFICACAO INICIAL (ano anterior) por liga: nomes dos clubes, do 1.o ao ult
 as outras ligas: sem esta lista usa-se a ordem em que os clubes estao na liga (que e a ordem aproximada de forca).
 */
 // (A do Brasil vem do pais: `classificacaoAnterior` em realDatabase, editavel no Editor; aqui so o que faltar la.)
-export const CLASSIFICACAO_INICIAL: Record<string, string[]> = {
-  // Os clubes da Champions de cada liga, primeiro (nos paises de 5 clubes sao estes os que jogam; nas ligas completas so o 1.o ano usa esta ordem).
-  // Depois dos da Champions seguem os da Europa League e da Conference (ESTIMADO, editavel; nome que nao bate com a base e ignorado e a liga segue pela ordem em que lista os clubes).
-  eng_prem: ['Arsenal', 'Man City', 'Liverpool', 'Aston Villa', 'Man Utd', 'Chelsea', 'Newcastle', 'Brentford', 'Brighton', 'Crystal Palace', 'Fulham'],
-  esp_laliga: ['Real Madrid', 'Barcelona', 'Atlético de Madrid', 'Villarreal', 'Real Betis', 'Athletic Club', 'Real Sociedad', 'Sevilla'],
-  ger_bundesliga: ['Bayern München', 'Borussia Dortmund', 'RB Leipzig', 'Stuttgart', 'Bayer Leverkusen', 'Eintracht Frankfurt', 'Freiburg'],
-  ita_seriea: ['Inter', 'Napoli', 'Roma', 'Como', 'Juventus', 'Milan', 'Atalanta', 'Lazio'],
-  fra_ligue1: ['Paris Saint-Germain', 'Lille', 'Lens', 'Marseille', 'Monaco', 'Lyon', 'Nice'],
-  nor_clubes: ['Bodø-Glimt', 'Viking'], ned_clubes: ['PSV Eindhoven', 'Feyenoord'], por_liga: ['Sporting CP', 'Porto', 'Benfica', 'Braga'], tur_clubes: ['Galatasaray', 'Fenerbahçe'],
-  aut_clubes: ['LASK'], aze_clubes: ['Sabah'], bel_clubes: ['Club Brugge'], svk_clubes: ['Slovan Bratislava'], gre_clubes: ['AEK Athens'], cze_clubes: ['Slavia Praha'], ukr_clubes: ['Shakhtar Donetsk']
-};
+export const CLASSIFICACAO_INICIAL: Record<string, string[]> = {};   // vazio: preenchido pelo mod (regras.json)
 
 const hash = (s: string) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h; };
 

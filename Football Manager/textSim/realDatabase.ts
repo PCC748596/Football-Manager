@@ -439,31 +439,7 @@ export const REAL_COUNTRIES_JSON: any[] = [
    451036,
    451130,
    451037
-  ],
-  "classificacaoAnterior": {
-   "bra_serie_a": [
-    "Flamengo-RJ",
-    "Palmeiras-SP",
-    "Cruzeiro-MG",
-    "Mirassol-SP",
-    "Fluminense-RJ",
-    "Botafogo-RJ",
-    "Bahia-BA",
-    "São Paulo-SP",
-    "Grêmio-RS",
-    "Bragantino-SP",
-    "Atlético-MG",
-    "Santos-SP",
-    "Corinthians-SP",
-    "Vasco-RJ",
-    "Vitória-BA",
-    "Internacional-RS",
-    "Atlético-PR",
-    "Coritiba-PR",
-    "Remo-PA",
-    "Chapecoense-SC"
-   ]
-  }
+  ]
  },
  {
   "id": "65",

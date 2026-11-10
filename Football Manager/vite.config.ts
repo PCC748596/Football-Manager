@@ -44,24 +44,6 @@ function databaseSaverPlugin() {
   };
 }
 
-// DADOS LOCAIS (textSim/dadosLocais.ts): serve `CountryData<N>.json` da pasta `local-data/` do projeto (ou de COUNTRY_DATA_DIR) em /api/country-data/<N>. Fica de fora do build: sem o ficheiro (ou
-// fora do servidor de desenvolvimento) responde 404 e o jogo segue com os dados de sempre. Os nomes reais nunca entram no codigo-fonte nem no bundle.
-function countryDataPlugin() {
-  return {
-    name: 'country-data-local',
-    configureServer(server) {
-      server.middlewares.use('/api/country-data', (req, res) => {
-        const n = String(req.url || '').replace(/^\//, '').split('?')[0];
-        const pasta = process.env.COUNTRY_DATA_DIR ? path.resolve(process.env.COUNTRY_DATA_DIR) : path.resolve(__dirname, 'local-data');
-        const ficheiro = path.join(pasta, `CountryData${n}.json`);
-        if (!/^\d{1,3}$/.test(n) || !fs.existsSync(ficheiro)) { res.statusCode = 404; res.end(); return; }
-        res.setHeader('Content-Type', 'application/json; charset=utf-8');
-        res.end(fs.readFileSync(ficheiro));
-      });
-    }
-  };
-}
-
 // O MOD (Settings > Mod): serve a pasta escolhida pelo jogador em /api/mod/<ficheiro>?pasta=<caminho> (tools/modServer.mjs; o jogo empacotado deve usar a mesma funcao).
 function modPlugin() {
   const servir = async (server) => {
@@ -274,7 +256,7 @@ export default defineConfig(() => {
         host: '0.0.0.0',
         ...(certProprio ? { https: certProprio } : {}),
       },
-      plugins: [...(certProprio ? [] : [basicSsl()]), certDevPlugin(), react(), countryDataPlugin(), modPlugin(), databaseSaverPlugin(), facesSaverPlugin(), saveGameLocalPlugin(), simulador3dPlugin(), pwaOfflinePlugin()],
+      plugins: [...(certProprio ? [] : [basicSsl()]), certDevPlugin(), react(), modPlugin(), databaseSaverPlugin(), facesSaverPlugin(), saveGameLocalPlugin(), simulador3dPlugin(), pwaOfflinePlugin()],
       // Caminhos relativos no build: o jogo instalado (PWA) abre de qualquer pasta / sub-caminho.
       base: './',
       resolve: {
