@@ -2931,22 +2931,6 @@ class PlayerFSM {
                 break;
 
             case 'PASS':
-                /*
-                GANHOU A DEFESA A MEIO DO GESTO: CANCELA O PASSE PARA TRAS (Nov/2026; ver IsoladoVaiAoGol em bt/player_bt.js). O passe e decidido um instante antes e o gesto
-                prende a arvore (AccaoEmCurso): medido, depois do ramo novo ainda sobravam ~13 passes para tras em 84 lances em que o portador ja estava sozinho a frente
-                da defesa. Antes do contacto, se agora esta isolado e o passe vai para tras (ou para o lado), larga o gesto e conduz a baliza.
-                */
-                if (p.hasBall && p.actionState && !p.actionState.executed && p.passTarget && p.passTarget.model &&
-                    typeof isoladoNaFrenteDaDefesa === 'function' && p.btCtx && isoladoNaFrenteDaDefesa(p.btCtx) &&
-                    (p.passTarget.model.position.z - p.model.position.z) * p.dirZ < 3.0) {
-                    p.actionState = null;
-                    p.passTarget = null;
-                    p.passTargetPos = null;
-                    p.conducaoAoGol = (typeof Match.tempoDeJogo === 'number') ? Match.tempoDeJogo : 0;
-                    if (typeof Match !== 'undefined') Match.passesCanceladosPorIsolado = (Match.passesCanceladosPorIsolado || 0) + 1;
-                    this.changeState('CARRY');
-                    break;
-                }
                 p.velocity.multiplyScalar(0.95);
                 if (p.passTarget && p.turnForPass) {
                     /*

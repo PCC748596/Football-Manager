@@ -1824,13 +1824,51 @@ class FootballPlayer {
         }
         const lf = (typeof melhorIntencaoDeLancamento === 'function') ? melhorIntencaoDeLancamento(this, meus, advs) : null;
         if (lf) { this._faltaPre = { lf: lf }; return { x: lf.alvoX, z: lf.alvoZ }; }
-        const alvo = this.findPassTarget('frente') || this.findPassTarget() || this.findPassTargetRelaxed('frente');
+        const alvo = this.alvoSeguroDaFalta(meus, advs);
         if (alvo && alvo !== this) {
             this._faltaPre = { alvo: alvo };
             const pt = alvoDePasse(alvo);
             return { x: pt.x, z: pt.z };
         }
         return null;
+    }
+
+    /*
+    O PASSE DA FALTA SO VAI A QUEM ESTA LIVRE (Nov/2026). Relato: *"o batedor cobra errado e o adversario pega a bola completamente livre"*; medido em 140
+    faltas (tools/headless/faltas_entrega.js): 11 entregas eram passes de 10-18 m ao meia/ponta da ala com o MARCADOR colado, que cortava. Um companheiro
+    serve se ninguem adversario estiver a menos de `marcado` m dele nem a menos de `linha` m da linha do passe (depois dos 9.15 m da barreira). Entre os que
+    servem, ganha quem fica mais a frente (o avanco pesa mais do que a distancia). Sem nenhum, devolve null: o executarFalta bate a bola longa (ver abaixo).
+    So para o PASSE: o cruzamento para a area e a rotina tem as suas regras.
+    */
+    alvoSeguroDaFalta(meus, advs) {
+        const P = { marcado: 3.2, linha: 1.8, minDist: 6.0, maxDist: 38.0 };
+        const bx = Match.ball.position.x, bz = Match.ball.position.z;
+        const livre = (m) => {
+            const mx = m.model.position.x, mz = m.model.position.z;
+            const vx = mx - bx, vz = mz - bz, l2 = vx * vx + vz * vz || 1;
+            for (const o of advs) {
+                if (!o || !o.model || o.expulso) continue;
+                const ox = o.model.position.x, oz = o.model.position.z;
+                if (Math.hypot(ox - mx, oz - mz) < P.marcado) return false;
+                const u = ((ox - bx) * vx + (oz - bz) * vz) / l2;
+                if (u <= 0 || u >= 1) continue;
+                if (Math.hypot(ox - (bx + u * vx), oz - (bz + u * vz)) < P.linha && Math.hypot(ox - bx, oz - bz) > 8.5) return false;
+            }
+            return true;
+        };
+        // o escolhido pela busca normal, se estiver livre (mantem o comportamento de sempre quando ele e bom)
+        const normal = this.findPassTarget('frente') || this.findPassTarget() || this.findPassTargetRelaxed('frente');
+        if (normal && normal !== this && normal.model && livre(normal)) return normal;
+        let melhor = null, melhorNota = -Infinity;
+        for (const m of meus) {
+            if (!m || m === this || m.role === 'gk' || m.expulso || !m.model) continue;
+            const d = Math.hypot(m.model.position.x - bx, m.model.position.z - bz);
+            if (d < P.minDist || d > P.maxDist || !livre(m)) continue;
+            const avanco = (m.model.position.z - bz) * this.dirZ;
+            const nota = avanco * 1.0 - d * 0.15;
+            if (nota > melhorNota) { melhorNota = nota; melhor = m; }
+        }
+        return melhor;
     }
 
     executarFalta(decisao) {
@@ -2187,8 +2225,8 @@ class FootballPlayer {
 
         const preA = this._faltaPre;
         this._faltaPre = null;
-        let alvo = (preA && preA.alvo) ? preA.alvo : (this.findPassTarget('frente') || this.findPassTarget() ||
-            this.findPassTargetRelaxed('frente'));
+        let alvo = (preA && preA.alvo) ? preA.alvo : this.alvoSeguroDaFalta(
+            (this.team === 'TeamA') ? Match.players : Match.opponents, (this.team === 'TeamA') ? Match.opponents : Match.players);
         if (alvo === this) alvo = null;   // nunca bate a falta para si mesmo
         if (alvo) {
             this.passTarget = alvo;
@@ -2208,11 +2246,23 @@ class FootballPlayer {
             return;
         }
 
-        // Sem ninguém: bola para a frente, para não ficar o jogo parado.
+        /*
+        SEM NINGUEM LIVRE: BOLA LONGA para a zona do companheiro mais adiantado (a disputa la a frente, na area adversaria quando a falta e no ataque), e nao
+        um passe a quem esta marcado. Era sempre 25 m a direito, para onde quer que fosse.
+        */
         const g = BallPhysics.gravidade;
-        const elev = 25 * Math.PI / 180;
-        const v = Math.sqrt((25.0 * g) / Math.sin(2 * elev));
-        Match.ballVel.set(0, v * Math.sin(elev), this.dirZ * v * Math.cos(elev));
+        const elev = 32 * Math.PI / 180;
+        const meusL = ((this.team === 'TeamA') ? Match.players : Match.opponents).filter(p => p !== this && p.role !== 'gk' && !p.expulso && p.model);
+        let alvoL = null;
+        for (const p of meusL) if (!alvoL || p.model.position.z * this.dirZ > alvoL.model.position.z * this.dirZ) alvoL = p;
+        let dLong = 25.0, ux = 0, uz = this.dirZ;
+        if (alvoL) {
+            const tx = alvoL.model.position.x, tz = alvoL.model.position.z + this.dirZ * 3.0;
+            const ddx = tx - this.model.position.x, ddz = tz - this.model.position.z, dd = Math.hypot(ddx, ddz);
+            if (dd > 8) { dLong = Math.min(55, dd); ux = ddx / dd; uz = ddz / dd; }
+        }
+        const v = Math.sqrt((dLong * g) / Math.sin(2 * elev));
+        Match.ballVel.set(ux * v * Math.cos(elev), v * Math.sin(elev), uz * v * Math.cos(elev));
         Match.lastTouchedTeam = this.team;
         Match.lastTouchedPlayer = this;
     }

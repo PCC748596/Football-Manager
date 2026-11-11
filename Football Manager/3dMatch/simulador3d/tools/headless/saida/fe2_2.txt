@@ -1,0 +1,29 @@
+[placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+{
+ "faltas": 70,
+ "direccao": {
+  "frente": 50,
+  "lado": 17,
+  "tras": 3
+ },
+ "primeiro": {
+  "atacante": 36,
+  "adversario": 31,
+  "ninguem": 3
+ },
+ "entregas": 11,
+ "entregasTras": 0,
+ "casos": [
+  "falta em x -6 avanco -42 | passe / - | bola frente | alvo sem alvo | bate GK | pega CB",
+  "falta em x -21 avanco 12 | cruzamento / fk2_wide | bola frente | alvo LB 20 m | bate RB | pega LM",
+  "falta em x -27 avanco 2 | cruzamento / cruz_longe | bola frente | alvo LB -14 m | bate RB | pega GK",
+  "falta em x -14 avanco 6 | cruzamento / cruz_longe | bola frente | alvo LB -15 m | bate LM | pega GK",
+  "falta em x -11 avanco -40 | passe / - | bola frente | alvo primeira_trave | bate GK | pega CM",
+  "falta em x 10 avanco 31 | remate / - | bola frente | alvo RM 2 m | bate LM | pega GK",
+  "falta em x -12 avanco 9 | cruzamento / cruz_longe | bola frente | alvo RM 27 m | bate LM | pega CM",
+  "falta em x -30 avanco 28 | cruzamento / fk2_wide | bola lado | alvo CF 11 m | bate RM | pega LM",
+  "falta em x 5 avanco -37 | passe / - | bola frente | alvo marca_penalti | bate GK | pega CB",
+  "falta em x -11 avanco -38 | passe / - | bola frente | alvo marca_penalti | bate GK | pega CM",
+  "falta em x -11 avanco -38 | passe / - | bola frente | alvo entrada_da_area | bate GK | pega CB"
+ ]
+}

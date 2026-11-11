@@ -1,0 +1,20 @@
+[placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+{
+ "golosNoJogo": 2,
+ "golosApos": 2,
+ "situacoes": 18,
+ "passeTras": 1,
+ "passeLado": 3,
+ "passeFrente": 0,
+ "remate": 6,
+ "ramosTras": {
+  "tenhoABola > ehEstilo > haOpcaoDePasse": 1
+ },
+ "distGolTras": [
+  37
+ ],
+ "exemplos": [
+  "CF a 37 m da baliza, passa 9 m para tras ao CM | tenhoABola > ehEstilo > haOpcaoDePasse"
+ ],
+ "cancelados": 2
+}

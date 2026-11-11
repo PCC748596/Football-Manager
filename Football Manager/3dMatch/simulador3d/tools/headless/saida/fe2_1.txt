@@ -1,0 +1,27 @@
+[placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+{
+ "faltas": 70,
+ "direccao": {
+  "frente": 50,
+  "lado": 19,
+  "tras": 1
+ },
+ "primeiro": {
+  "atacante": 38,
+  "adversario": 26,
+  "ninguem": 6
+ },
+ "entregas": 9,
+ "entregasTras": 0,
+ "casos": [
+  "falta em x -7 avanco 27 | remate / - | bola frente | alvo sem alvo | bate LM | pega GK",
+  "falta em x -6 avanco 32 | remate / - | bola frente | alvo LB -2 m | bate LM | pega GK",
+  "falta em x -4 avanco -45 | passe / fk3_triple | bola frente | alvo segunda_trave | bate GK | pega CM",
+  "falta em x -28 avanco 19 | cruzamento / fk2_wide | bola frente | alvo RB 17 m | bate RM | pega CF",
+  "falta em x 13 avanco 4 | cruzamento / cruz_longe | bola frente | alvo RM 30 m | bate LM | pega CF",
+  "falta em x -17 avanco -40 | passe / - | bola frente | alvo marca_penalti | bate GK | pega LB",
+  "falta em x 6 avanco 29 | remate / - | bola frente | alvo RM 2 m | bate LM | pega CF",
+  "falta em x 17 avanco -39 | passe / - | bola frente | alvo marca_penalti | bate GK | pega RB",
+  "falta em x 9 avanco 10 | cruzamento / cruz_longe | bola frente | alvo RM 26 m | bate LM | pega CB"
+ ]
+}

@@ -1,0 +1,54 @@
+[placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+{
+ "golosNoJogo": 3,
+ "golosApos": 2,
+ "situacoes": 27,
+ "passeTras": 25,
+ "passeLado": 3,
+ "passeFrente": 1,
+ "remate": 6,
+ "ramosTras": {
+  "tenhoABola > ehEstilo > valeCruzar": 1,
+  "DecisaoComBola > ComBola > PlayerRoot": 20,
+  "tenhoABola > ehEstilo > haOpcaoDePasse": 3,
+  "tenhoABola > ehGrupo > haOpcaoDePasse": 1
+ },
+ "distGolTras": [
+  19,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  20,
+  26,
+  50
+ ],
+ "exemplos": [
+  "LM a 20 m da baliza, passa 11 m para tras ao CM | tenhoABola > ehEstilo > valeCruzar",
+  "CF a 20 m da baliza, passa 13 m para tras ao RM | DecisaoComBola > ComBola > PlayerRoot",
+  "CF a 20 m da baliza, passa 14 m para tras ao RM | DecisaoComBola > ComBola > PlayerRoot",
+  "CF a 20 m da baliza, passa 14 m para tras ao RM | DecisaoComBola > ComBola > PlayerRoot",
+  "CF a 20 m da baliza, passa 14 m para tras ao RM | DecisaoComBola > ComBola > PlayerRoot",
+  "CF a 20 m da baliza, passa 14 m para tras ao RM | DecisaoComBola > ComBola > PlayerRoot",
+  "CF a 20 m da baliza, passa 14 m para tras ao RM | DecisaoComBola > ComBola > PlayerRoot",
+  "CF a 20 m da baliza, passa 14 m para tras ao RM | DecisaoComBola > ComBola > PlayerRoot"
+ ],
+ "cancelados": 22
+}
