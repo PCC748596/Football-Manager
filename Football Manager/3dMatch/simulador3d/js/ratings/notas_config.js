@@ -13,6 +13,9 @@ const NotasConfig = {
     ampTatica: 3.0,           // efeito da qualidade tatica media, em torno do neutro (unidades de nota)
     qNeutro: 0.50,            // qualidade tatica media de um jogo normal (medida em lote; Nov/2026: recalibrada em 48 jogos, com 0.63 a componente tatica so descia); cada perfil pode ter o seu `qNeutro`
     janelaErroSeg: 8,         // uma perda de bola ate N s antes de um remate/golo adversario vira "erro que gera ..."
+    // (Nov/2026) o goleiro perde a bola sobretudo na reposicao longa (tiro de meta, chutao): com 8 s um contra-ataque que nasce no meio-campo virava "erro que gera golo"
+    // do goleiro (notas de 3.5-4.7 com a baliza bem defendida). So o erro perto da baliza conta: janela curta.
+    janelaErroSegPorGrupo: { GK: 3 },
     escalaEventos: 1.5,       // fator global sobre os valores da tabela de eventos (calibrado em lote: sem ele o desvio das notas fica ~0.4)
     topo: { x0: 1.0, k: 1.0 },   // a partir de x0 (raw / (4*peso)) a componente deixa de saturar e segue pela tangente; k = inclinacao (ver NotasMotor._pontuacao)
     // Eventos de volume: valem cheio ate `ate` por partida e `depois` do valor a seguir (ver NotasMotor._contribs).
@@ -65,7 +68,7 @@ const NotasConfig = {
     componentes (renormalizados); `tatico` multiplica o efeito da qualidade tatica.
     */
     perfis: {
-        GK: { qNeutro: 0.80, pesos: { tatico: 0.20, tecnico: 0.45, participacao: 0.15, disciplina: 0.20 }, mult: { DEFESA: 1.2, DEFESA_DIFICIL: 1.3, ERRO_GOLO: 1.2 }, tatico: 0.8 },
+        GK: { qNeutro: 0.80, pesos: { tatico: 0.20, tecnico: 0.45, participacao: 0.15, disciplina: 0.20 }, mult: { DEFESA: 1.2, DEFESA_DIFICIL: 1.3, ERRO_GOLO: 0.8 }, tatico: 0.8 },   // ERRO_GOLO 1.2 -> 0.8 (Nov/2026): com o peso dobrado da disciplina do goleiro, um passe curto interceptado que vira golo dava 3.9-4.7
         CB: { qNeutro: 0.63, mult: { DESARME: 1.1, INTERCEPTACAO: 1.1, CORTE: 1.2, DUELO_AEREO: 1.2, GOLO: 1.1, ERRO_GOLO: 1.15 }, tatico: 1.1 },
         FB: { qNeutro: 0.49, mult: { DESARME: 1.1, INTERCEPTACAO: 1.1, CRUZAMENTO_CERTO: 1.4, PASSE_PROGRESSIVO: 1.1 }, tatico: 1.0 },
         DM: { qNeutro: 0.50, mult: { DESARME: 1.3, INTERCEPTACAO: 1.4, CORTE: 1.2, PASSE_PROGRESSIVO: 1.2, GOLO: 1.1 }, tatico: 1.15 },

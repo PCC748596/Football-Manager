@@ -94,7 +94,8 @@ const NotasMotor = {
         const equipaDoErro = equipaQueRematou === 'TeamA' ? 'TeamB' : 'TeamA';
         const p = this._ultimaPerda[equipaDoErro];
         if (!p || p.promovida === true || (p.promovida === 'remate' && !foiGolo)) return false;
-        if (tSeg < p.t || tSeg - p.t > this.cfg.janelaErroSeg) return false;
+        const jp = this.jogadores[p.id], janela = (jp && this.cfg.janelaErroSegPorGrupo && this.cfg.janelaErroSegPorGrupo[jp.grupo]) || this.cfg.janelaErroSeg;
+        if (tSeg < p.t || tSeg - p.t > janela) return false;
         p.promovida = foiGolo ? true : 'remate';
         return this.evento(p.id, foiGolo ? 'ERRO_GOLO' : 'ERRO_REMATE', { evId: p.evId });
     },

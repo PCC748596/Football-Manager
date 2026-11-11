@@ -5,6 +5,7 @@ Funcoes puras: o contexto do jogo (context/GameContext.tsx) chama `avisosDoDia` 
 (as razoes que a geraram, ex. `contract|CRITICO|p-12`): uma razao so gera UMA mensagem, mesmo que o motor volte a passar pelo mesmo dia ou o save seja recarregado.
 Os textos saem no idioma do jogo (EN ou PT).
 */
+import { textoDoMotivo } from './transferencias';
 import { tx, ordinal, textoDaLesao, comIdioma } from './idiomas';
 import type { Language } from '../types';
 import type { Player } from '../types';
@@ -268,9 +269,9 @@ const avisoDeTransferencia_ = (hoje: string, lang: Idioma, e: EventoMercado, val
     case 'OFERTA_RECEBIDA': return M(tx('Offer for {v0}: {v1} bids {v2}', { v0: j, v1: c, v2: valor }), tx('{v0} made an offer of {v1} for {v2}. Open the Transfer Market to accept, refuse or make a counter-offer.', { v0: c, v1: valor, v2: j }), true);
     case 'CONTRAPROPOSTA': return M(tx('Counter-offer for {v0}: {v1} asks {v2}', { v0: j, v1: c, v2: valor }), tx('{v0} answered your offer with a counter-offer of {v1} for {v2}. You can accept it, refuse or offer again.', { v0: c, v1: valor, v2: j }), true);
     case 'ACEITA': return M(tx('{v0} accepted your offer for {v1}', { v0: c, v1: j }), tx('{v0} accepted {v1} for {v2}. The transfer completes as soon as the conditions allow.', { v0: c, v1: valor, v2: j }));
-    case 'RECUSADA': return M(tx('{v0} turned down the deal for {v1}', { v0: c, v1: j }), tx('The offer of {v0} for {v1} was refused{v2}.', { v0: valor, v1: j, v2: e.motivo ? ` (${e.motivo})` : '' }));
-    case 'EXPIRADA': return M(tx('Negotiation for {v0} expired', { v0: j }), tx('The negotiation with {v0} for {v1} is no longer available{v2}.', { v0: c, v1: j, v2: e.motivo ? ` (${e.motivo})` : '' }));
-    case 'BLOQUEADA': return M(tx('Deal for {v0} accepted but not completed yet', { v0: j }), tx('The deal for {v0} ({v1}) cannot be completed yet: {v2}. It stays pending until the conditions are met or it expires.', { v0: j, v1: valor, v2: e.motivo || tx('conditions not met') }), true);
+    case 'RECUSADA': return M(tx('{v0} turned down the deal for {v1}', { v0: c, v1: j }), tx('The offer of {v0} for {v1} was refused{v2}.', { v0: valor, v1: j, v2: e.motivo ? ` (${textoDoMotivo(e.motivo)})` : '' }));
+    case 'EXPIRADA': return M(tx('Negotiation for {v0} expired', { v0: j }), tx('The negotiation with {v0} for {v1} is no longer available{v2}.', { v0: c, v1: j, v2: e.motivo ? ` (${textoDoMotivo(e.motivo)})` : '' }));
+    case 'BLOQUEADA': return M(tx('Deal for {v0} accepted but not completed yet', { v0: j }), tx('The deal for {v0} ({v1}) cannot be completed yet: {v2}. It stays pending until the conditions are met or it expires.', { v0: j, v1: valor, v2: e.motivo ? textoDoMotivo(e.motivo) : tx('conditions not met') }), true);
     case 'CONCLUIDA_COMPRA': return M(tx('Transfer completed: {v0} joins the club', { v0: j }), tx('{v0} signed for {v1}.', { v0: j, v1: valor }));
     case 'CONCLUIDA_VENDA': return M(tx('Transfer completed: {v0} was sold', { v0: j }), tx('{v0} was sold for {v1}.', { v0: j, v1: valor }));
     case 'AGENTE_LIVRE': return M(tx('Free agent signed: {v0}', { v0: j }), tx('{v0} joined as a free agent, with no transfer fee.', { v0: j }));

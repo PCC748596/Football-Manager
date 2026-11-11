@@ -142,6 +142,8 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const negociacoesMinhas = mercado.negociacoes.filter(n => n.compradorId === meuId || n.vendedorId === meuId);
   const precisaResposta = (n: NegociacaoTransf) => (n.vendedorId === meuId && n.estado === 'RECEBIDA') || (n.compradorId === meuId && n.estado === 'CONTRAPROPOSTA');
   const pendentes = negociacoesMinhas.filter(precisaResposta).length;
+  const emAndamento = negociacoesMinhas.filter(n => ESTADOS_ATIVOS.includes(n.estado)).length;
+  const nConcluidas = negociacoesMinhas.filter(n => n.estado === 'CONCLUIDA').length;
   const negDe = (id: string) => mercado.negociacoes.find(n => n.compradorId === meuId && n.playerId === id && ESTADOS_ATIVOS.includes(n.estado));
   const nomeClube = (id: string) => (id === 'MARKET' ? 'Free agent' : porId.get(id)?.name || id);
   const nomeJogador = (id: string) => linhas.find(l => l.p.id === id)?.p.name || players.find(p => p.id === id)?.name || base?.jogadores.find(p => p.id === id)?.name || id;
@@ -551,8 +553,11 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
         <p className="text-slate-400 dark:text-slate-500 font-bold text-[11px] uppercase tracking-widest mt-2 opacity-70">Player search and transactions • window {janela ? <span className="text-emerald-500">{tx('open')}{fecha !== null ? ` (${fecha} days left)` : ''}</span> : <span className="text-rose-400">{tx('closed')}{abre !== null ? ` (opens in ${abre} days)` : ''}</span>}</p>
       </div>
       <div className="flex flex-wrap gap-2 items-center">
-        {([['MARKET', 'Market'], ['SHORTLIST', `Shortlist (${shortlistN})`], ['NEGOTIATIONS', `Negotiations${pendentes ? ` (${pendentes})` : ''}`], ['COMPLETED', `Completed${negociacoesMinhas.filter(n => n.estado === 'CONCLUIDA').length ? ` (${negociacoesMinhas.filter(n => n.estado === 'CONCLUIDA').length})` : ''}`], ['MY_PLAYERS', 'My players / for sale'], ['FINANCES', 'Transfer finances']] as const).map(([id, r]) => (
-          <button key={id} onClick={() => setAba(id)} className={`px-5 py-2 rounded text-xs font-black uppercase tracking-widest transition-colors ${aba === id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-800 dark:hover:text-white'}`}>{r}</button>
+        {/* NEGOTIATIONS conta as negociacoes EM ANDAMENTO (as que esperam o outro clube e as que esperam voce); o ponto vermelho avisa quando alguma espera a sua resposta. */}
+        {([['MARKET', tx('Market'), 0], ['SHORTLIST', `${tx('Shortlist')} (${shortlistN})`, 0], ['NEGOTIATIONS', `${tx('Negotiations')}${emAndamento ? ` (${emAndamento})` : ''}`, pendentes], ['COMPLETED', `${tx('Completed')}${nConcluidas ? ` (${nConcluidas})` : ''}`, 0], ['MY_PLAYERS', tx('My players / for sale'), 0], ['FINANCES', tx('Transfer finances'), 0]] as const).map(([id, r, aviso]) => (
+          <button key={id} onClick={() => setAba(id)} title={aviso ? tx('{v0} waiting for your answer', { v0: aviso }) : undefined} className={`relative px-5 py-2 rounded text-xs font-black uppercase tracking-widest transition-colors ${aba === id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-800 dark:hover:text-white'}`}>
+            {r}{aviso ? <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[10px] leading-[18px] text-center">{aviso}</span> : null}
+          </button>
         ))}
         <div className="ml-auto flex gap-8 text-xs font-black uppercase tracking-widest text-slate-500">
         <span>{tx('Transfer budget:')} <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(userTeam.transferBudget ?? 0)}</b></span>
