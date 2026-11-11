@@ -18,7 +18,7 @@ import { NIVEL_MINIMO } from './dataGenerator';
 import { evolucaoMensal, proximoMes } from './youth';
 import { mesDe, criarRng } from './contracts';
 import { jogadorLocalPorId, bandeiraDoCodigo } from './dadosLocais';
-import { GRUPOS, ATRIBUTOS_GK, gerarAtributos, limitarAtributo, curvaFisica, calcularGrupos } from './geradorAtributos';
+import { GRUPOS, ATRIBUTOS_GK, gerarAtributos, limitarAtributo, curvaFisica, calcularGrupos, fisMaisBaixo, FIS_A_MENOS_POR_POSICAO } from './geradorAtributos';
 
 /*
 O TREINO MEXE NOS ATRIBUTOS DO 3D, um a um: cada sessao (textSim/trainingService.ts) da pontos aos atributos que treina (`Player.treino3d`, campo -> pontos) e PONTOS_POR_ATRIBUTO (trainingService.ts) pontos = +1 no atributo.
@@ -131,7 +131,7 @@ export const atributos3d = (p: Player): Atributos3D => {
     });
   }
   // Fisico: sobe os dados de origem e limita a stamina ao FIS (ver FIS_SUBIDA).
-  if (!gerado && !(b && b.editado)) for (const x of detalhe.FIS) { x.valor = limitarAtributo(subirFis(x.valor)); valores[x.campo] = x.valor; }
+  if (!gerado && !(b && b.editado)) for (const x of detalhe.FIS) { x.valor = limitarAtributo(subirFis(x.valor) - (fisMaisBaixo(p.position) ? FIS_A_MENOS_POR_POSICAO : 0)); valores[x.campo] = x.valor; }
   const stam = detalhe.FIS.find(x => x.campo === 'stamina');
   const outros = detalhe.FIS.filter(x => x.campo !== 'stamina');
   if (stam && outros.length) {

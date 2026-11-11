@@ -51,7 +51,9 @@ test('os atributos do 3D do jogador local vem do ficheiro (50 a 99) e a nacional
   const a = atributos3d(cm);
   assert.equal(a.real, true);
   // o ajuste da faixa de OVR da liga mexe no DEF/PAS/DRB/SHT e o 3D soma esse desvio (mecanismo do treino): uns pontos de folga
-  assert.ok(Math.abs(a.tec - 70) <= 4 && Math.abs(a.fis - 70) <= 1);
+  // O FIS do arquivo (70) sobe na leitura, de proposito: FIS_SUBIDA (+18, com compressao acima de 85) em textSim/atributos3d.ts, porque os dados de origem trazem fisico baixo demais.
+  // 70 + 18 = 88 -> 85 + 3 x 0.6 = 86.8 -> 87.
+  assert.ok(Math.abs(a.tec - 70) <= 4 && Math.abs(a.fis - 87) <= 1, `tec ${a.tec} fis ${a.fis}`);
   const gk = atributos3d(players.find(p => p.name === 'Jog1')!);
   assert.equal(gk.gk, 77);   // media de diving, handling, reflexes, posGK, onos, kicking = (80*5+60)/6
   assert.equal(paisDoJogador(cm, 45), '45');   // 54 (Brasil no jogo de origem) -> 45

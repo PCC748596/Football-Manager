@@ -160,6 +160,10 @@ const gauss = (r: () => number) => { let u = 0, v = 0; while (u === 0) u = r(); 
 /** O fisico segundo a idade: pico dos 24 aos 29; antes -1.5/ano, depois -1.8/ano. */
 export const curvaFisica = (idade: number): number => idade < 24 ? -(24 - idade) * 1.5 : idade > 29 ? -(idade - 29) * 1.8 : 0;
 
+/** Goleiros e zagueiros tem o fisico mais baixo que o resto (como na vida real): -5 pontos nos sete atributos fisicos, na geracao e na leitura dos dados reais (atributos3d.ts). */
+export const FIS_A_MENOS_POR_POSICAO = 5;
+export const fisMaisBaixo = (pos: Position | string): boolean => String(pos) === 'GK' || String(pos) === 'CB';
+
 export interface OpcoesGeracao { idade?: number; }
 export interface ResultadoGeracao { atributos: Atributos; grupos: Record<GrupoAtributo, number>; overallPosicional: number; nivelPedido: number; diferenca: number; estilo: PlayStyle; }
 
@@ -191,7 +195,7 @@ export const gerarAtributos = (posicao: Position | string, estilo: PlayStyle | s
     const peso = PESOS[pr];
     const fisico = GRUPOS.FIS.includes(k);
     // centro: o nivel (ou, no fisico, a idade com um toque do nivel) mais o desvio da prioridade da posicao
-    const centro = fisico ? (P.fisNivel * nivel + (1 - P.fisNivel) * fisIdade) : nivel;
+    const centro = fisico ? (P.fisNivel * nivel + (1 - P.fisNivel) * fisIdade) - (fisMaisBaixo(posicao) ? FIS_A_MENOS_POR_POSICAO : 0) : nivel;
     let v = centro + (peso - 1) * P.pontosPorPeso * (fisico ? 0.35 : 1);
     if (mods.includes(k)) v += P.estiloMin + r() * (P.estiloMax - P.estiloMin);
     v += gauss(r) * P.ruido;
