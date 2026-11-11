@@ -2079,6 +2079,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (alteracoes.size) setTeams(prev => prev.map(t => { const a = alteracoes.get(t.id); return a ? { ...t, lineup: a.lineup, bench: a.bench } : t; }));
   }, [gameState.currentDate, loadId, players.length, teams.length]);
 
+  /*
+  LESIONADO SAI NA HORA (Nov/2026; relato: um zagueiro com lesao de treino de 6 dias continuava no banco, "disponivel para o jogo", em vez de no squad pool):
+  em QUALQUER dia, sem jogo em andamento, quem do utilizador esta lesionado sai do banco e do onze (o posto fica vazio, com o aviso de escalacao incompleta).
+  Os suspensos continuam a sair so no dia do jogo (efeito de baixo): a suspensao depende da competicao do jogo.
+  */
+  useEffect(() => {
+    const t = teams.find(x => x.id === gameState.userTeamId);
+    if (!t || jogoEmAndamento(gameState.matchMinute)) return;
+    const lesionado = new Set(players.filter(p => p.teamId === t.id && p.injury).map(p => p.id));
+    if (!lesionado.size) return;
+    const naEscalacao = (t.lineup || []).some(id => lesionado.has(id)) || (t.bench || []).some(id => lesionado.has(id));
+    if (!naEscalacao) return;
+    updateTactics(t.id, {}, (t.lineup || []).map(id => (lesionado.has(id) ? '' : id)), (t.bench || []).filter(id => !lesionado.has(id)));
+  }, [players, teams, gameState.userTeamId, gameState.matchMinute]);
+
   // No dia do jogo do utilizador: suspensos (cartoes) e lesionados saem da escalacao e do banco antes de o jogo abrir.
   useEffect(() => {
     const t = teams.find(x => x.id === gameState.userTeamId);

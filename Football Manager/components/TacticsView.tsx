@@ -179,7 +179,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
   const subsRemaining = Math.max(0, maxSubs - subsUsed);
 
   const getPlayerMatchStatus = (playerId: string) => {
-    if (!currentMatch) return { yellow: false, injury: false, red: false };
+    // Sem jogo aberto a LESAO conta na mesma (o card do lesionado fica verde no squad pool): so os cartoes sao da partida.
+    if (!currentMatch) return { yellow: false, injury: players.find(p => p.id === playerId)?.injury || false, red: false };
     
     const pEvents = currentMatch.events.filter(e => e.playerId === playerId);
     const redIds = isHome ? (currentMatch.redCardedHome || []) : (currentMatch.redCardedAway || []);

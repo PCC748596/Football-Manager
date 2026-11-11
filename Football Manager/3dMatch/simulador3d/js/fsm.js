@@ -2222,6 +2222,17 @@ class PlayerFSM {
                                 alvoZ = pz;
                             }
                         }
+                        /*
+                        GANHOU A DEFESA: A CONDUCAO VAI DIRECTA A BALIZA (ver IsoladoVaiAoGol em bt/player_bt.js). O leque acima escolhe pelo espaco e pelo sector, e
+                        com o campo todo livre a frente puxava para o lado (medido: depois do ramo novo os remates nesses lances ate cairam). Enquanto a marca do
+                        ramo estiver fresca (`conducaoAoGol`, ate 1 s), o alvo e 10 m na linha para a marca do penalti; o Rematar e o DriblarGuardaRedes tratam do resto.
+                        */
+                        if (!p.carryRecuo && typeof p.conducaoAoGol === 'number' && typeof Match.tempoDeJogo === 'number' && Match.tempoDeJogo - p.conducaoAoGol < 1.0
+                            && typeof p.targetGoalZ === 'number') {
+                            const gx = 0, gz = p.targetGoalZ - p.dirZ * 7;
+                            const ddx = gx - px, ddz = gz - pz, dd = Math.hypot(ddx, ddz);
+                            if (dd > 1.5) { alvoX = px + ddx / dd * Math.min(10, dd); alvoZ = pz + ddz / dd * Math.min(10, dd); }
+                        }
                         p.dynamicTarget.set(alvoX, ALTURA_BASE_Y, alvoZ);
                     }
 

@@ -5248,6 +5248,36 @@ NOS_COM_BOLA['Rematar'] = // 1. Verificar chute - chutar
                 cond('emZonaDeRemate', emZonaDeRemate),
                 act('rematar', actShoot)
             );
+NOS_COM_BOLA['IsoladoVaiAoGol'] = /*
+            1b. GANHOU A DEFESA: VAI AO GOL (Nov/2026). Relato: *"os atacantes e meias ganham na frente dos zagueiros mas insistem em tentar dar passes de volta para tras"*.
+            Medido em 4 jogos (tools/headless/isolados_passe.js): 126 posses de um avancado/meia ja sem nenhum defensor de campo a frente dele (no corredor de +-14 m),
+            e o desfecho foi 21 passes para TRAS, 9 para o lado, 3 para a frente e 19 remates. 13 dos 21 passes para tras sairam do ProcurarPasse posto antes da
+            conducao pelos PLAYING STYLES (creative_playmaker, classic_no10...), e 5 do Cruzar (ramos ehEstilo > haOpcaoDePasse / valeCruzar).
+            Aqui, acima do Cruzar e de todos os passes, quem ja passou a defesa CONDUZ para a baliza; o remate (o Rematar, logo acima) sai quando entra em zona de remate,
+            e o DriblarGuardaRedes trata do 1x1 com o goleiro. Defesas e guarda-redes ficam de fora (o lateral que sobe tem a sua conducao no ConduzirEmEspaco).
+            */
+            seq('IsoladoVaiAoGol',
+                cond('ganhouADefesa', (ctx) => isoladoNaFrenteDaDefesa(ctx)),
+                act('conduzirAoGol', (ctx) => { ctx.p.conducaoAoGol = (typeof Match !== 'undefined' && typeof Match.tempoDeJogo === 'number') ? Match.tempoDeJogo : 0; actCarry(ctx); })
+            );
+/*
+O portador ja passou de TODOS os defensores de campo: nenhum adversario (sem o guarda-redes) mais perto da baliza do que ele, num corredor de
+`IsoladoModel.corredor` m para cada lado. So no meio-campo adversario e a menos de `IsoladoModel.distMax` m da baliza; nunca defesas nem guarda-redes.
+*/
+const IsoladoModel = { corredor: 14.0, distMax: 45.0, folgaAtras: 0.5 };
+function isoladoNaFrenteDaDefesa(ctx) {
+    const p = ctx.p;
+    if (!p || !p.hasBall || p.role === 'gk' || p.role === 'def') return false;
+    if (typeof Match === 'undefined' || Match.state !== 'PLAY') return false;
+    const pz = p.model.position.z * p.dirZ;
+    if (pz < 0) return false;
+    if (Math.hypot(p.model.position.x, p.targetGoalZ - p.model.position.z) > IsoladoModel.distMax) return false;
+    for (const o of (ctx.opponents || [])) {
+        if (!o || !o.model || o.role === 'gk' || o.expulso) continue;
+        if (o.model.position.z * p.dirZ > pz - IsoladoModel.folgaAtras && Math.abs(o.model.position.x - p.model.position.x) < IsoladoModel.corredor) return false;
+    }
+    return true;
+}
 NOS_COM_BOLA['Cruzar'] = // 2. Verificar cruzamento se tiver nas laterais das áreas - cruzar
             seq('Cruzar',
                 cond('valeCruzar', (ctx) => {
@@ -5538,7 +5568,7 @@ NOS_COM_BOLA['ChuteLateral'] = // 7. Não tem passe viável e está sob pressão
                 act('chutarParaLateral', actClearance)
             );
 NOS_COM_BOLA['conduzir'] = act('conduzir', actCarry);
-const ORDEM_PADRAO_COM_BOLA = ["DriblarGuardaRedes", "RecuperarControlo", "PasseSaidaDeBola", "CruzarDePrimeira", "AdiantarParaDentro", "GiroLateral", "Adiantar", "CalculaDebug", "LancarInfiltrado", "Dominar", "GuardaRedesJoga", "SaidaDaArea", "DefesaDeCostas", "AlivioDePerigo", "DriblarNaArea", "Rematar", "Cruzar", "CFLancaAsPontas", "RotacaoDeJogo", "LancarParaIntencao", "ConduzirEmEspaco", "AlaDriblaAntes", "CaminhoFechado", "CircularNaDefesa", "Driblar", "ProcurarPasse", "ChuteLateral", "conduzir"];
+const ORDEM_PADRAO_COM_BOLA = ["DriblarGuardaRedes", "RecuperarControlo", "PasseSaidaDeBola", "CruzarDePrimeira", "AdiantarParaDentro", "GiroLateral", "Adiantar", "CalculaDebug", "LancarInfiltrado", "Dominar", "GuardaRedesJoga", "SaidaDaArea", "DefesaDeCostas", "AlivioDePerigo", "DriblarNaArea", "Rematar", "IsoladoVaiAoGol", "Cruzar", "CFLancaAsPontas", "RotacaoDeJogo", "LancarParaIntencao", "ConduzirEmEspaco", "AlaDriblaAntes", "CaminhoFechado", "CircularNaDefesa", "Driblar", "ProcurarPasse", "ChuteLateral", "conduzir"];
 const DecisaoComBolaPorPosicao = construirDecisaoComBola(NOS_COM_BOLA, ORDEM_PADRAO_COM_BOLA);
 
 const PlayerBT = sel('PlayerRoot',
