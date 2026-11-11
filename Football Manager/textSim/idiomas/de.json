@@ -1150,6 +1150,9 @@
   "Completed": "Abgeschlossen",
   "My players / for sale": "Meine Spieler / zum Verkauf",
   "Transfer finances": "Transferfinanzen",
-  "{v0} waiting for your answer": "{v0} warten auf deine Antwort"
+  "{v0} waiting for your answer": "{v0} warten auf deine Antwort",
+  "Available now (Transfer Market):": "Jetzt verfügbar (Transfermarkt):",
+  "Transfer budget left:": "Restbudget:",
+  "What is left of this season's transfer budget (purchases take from it; half of each sale goes back into it)": "Was vom Transferbudget der Saison übrig ist (Käufe ziehen ab; die Hälfte jedes Verkaufs fließt zurück)"
  }
 }

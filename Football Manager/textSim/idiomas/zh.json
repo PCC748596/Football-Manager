@@ -1150,6 +1150,9 @@
   "Completed": "已完成",
   "My players / for sale": "我的球员 / 出售",
   "Transfer finances": "转会财务",
-  "{v0} waiting for your answer": "{v0}项等待你的回复"
+  "{v0} waiting for your answer": "{v0}项等待你的回复",
+  "Available now (Transfer Market):": "当前可用（转会市场）：",
+  "Transfer budget left:": "剩余转会预算：",
+  "What is left of this season's transfer budget (purchases take from it; half of each sale goes back into it)": "本赛季转会预算的剩余部分（购买会扣除；每次出售的一半会返还）"
  }
 }

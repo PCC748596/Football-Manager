@@ -1150,6 +1150,9 @@
   "Completed": "Completadas",
   "My players / for sale": "Mis jugadores / en venta",
   "Transfer finances": "Finanzas de fichajes",
-  "{v0} waiting for your answer": "{v0} esperando tu respuesta"
+  "{v0} waiting for your answer": "{v0} esperando tu respuesta",
+  "Available now (Transfer Market):": "Disponible ahora (mercado):",
+  "Transfer budget left:": "Presupuesto restante:",
+  "What is left of this season's transfer budget (purchases take from it; half of each sale goes back into it)": "Lo que queda del presupuesto de fichajes de la temporada (cada compra resta; la mitad de cada venta vuelve)"
  }
 }
