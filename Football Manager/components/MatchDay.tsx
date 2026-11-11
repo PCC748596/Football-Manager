@@ -1,4 +1,4 @@
-import { tx } from '../textSim/idiomas';
+import { tx, textoDaLesao } from '../textSim/idiomas';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { Team, Player, Fixture, resolveSetPieceTakers } from '../types';
@@ -498,7 +498,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                         <p className="text-sm text-slate-300 mb-3">{tx('These substitutes are injured and should not be used:')}</p>
                         <ul className="mb-4 space-y-1">
                             {lesionadosNoBanco.map(p => (
-                                <li key={p.id} className="flex justify-between text-sm text-white"><span className="font-bold">{p.name} <span className="text-slate-400 font-normal">({p.position})</span></span><span className="text-red-400">{p.injury?.type || 'Injured'}</span></li>
+                                <li key={p.id} className="flex justify-between text-sm text-white"><span className="font-bold">{p.name} <span className="text-slate-400 font-normal">({p.position})</span></span><span className="text-red-400">{p.injury?.type ? textoDaLesao(p.injury.type) : tx('Injured')}</span></li>
                             ))}
                         </ul>
                         <div className="flex gap-2">

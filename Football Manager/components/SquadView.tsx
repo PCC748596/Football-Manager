@@ -1,5 +1,5 @@
 
-import { tx } from '../textSim/idiomas';
+import { tx, textoDaLesao } from '../textSim/idiomas';
 import NextGameButton from './NextGameButton';
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
@@ -228,7 +228,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                            {/* A foto 3D sem moldura (44 px) com margem vertical negativa: sai um pouco da linha, que continua com a altura de antes. */}
                            <div className="w-[44px] h-[44px] shrink-0 -my-[7px] -translate-y-[10px] overflow-visible pointer-events-none"><PlayerFace3D playerId={p.id} team={userTeam} gk={p.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
                            <span className="truncate">{p.name}</span>
-                           {p.injury && <span className={`text-[11px] ${getInjuryColorClass(p.injury)} font-black cursor-help drop-shadow-sm leading-none`} title={typeof p.injury === 'object' ? `${p.injury.type} (${p.injury.estimativa || `${p.injury.daysOut} dias`})${p.injury.boletim ? ` — ${p.injury.boletim}` : ''}` : 'Contundido'}>✚</span>}
+                           {p.injury && <span className={`text-[11px] ${getInjuryColorClass(p.injury)} font-black cursor-help drop-shadow-sm leading-none`} title={typeof p.injury === 'object' ? `${textoDaLesao(p.injury.type)} (${p.injury.estimativa ? textoDaLesao(p.injury.estimativa) : tx('{v0} days', { v0: p.injury.daysOut })})${p.injury.boletim ? ` — ${textoDaLesao(p.injury.boletim)}` : ''}` : tx('Injured')}>✚</span>}
                         </div>
                      </td>
                      

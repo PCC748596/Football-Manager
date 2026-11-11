@@ -5,7 +5,7 @@ Funcoes puras: o contexto do jogo (context/GameContext.tsx) chama `avisosDoDia` 
 (as razoes que a geraram, ex. `contract|CRITICO|p-12`): uma razao so gera UMA mensagem, mesmo que o motor volte a passar pelo mesmo dia ou o save seja recarregado.
 Os textos saem no idioma do jogo (EN ou PT).
 */
-import { tx } from './idiomas';
+import { tx, ordinal, textoDaLesao, comIdioma } from './idiomas';
 import type { Language } from '../types';
 import type { Player } from '../types';
 import { EstadoContrato, estadoDoContrato } from './contracts';
@@ -29,7 +29,6 @@ export interface MensagemInbox {
 
 /** O idioma das mensagens: os textos daqui so tem EN e PT; os outros idiomas saem em ingles (`L`). */
 export type Idioma = Language;
-const L = (lang: Idioma, en: string, pt: string) => (lang === 'PT' ? pt : en);
 export const LIMITE_INBOX = 400;
 
 let contador = 0;
@@ -71,7 +70,7 @@ export interface EntradaBoasVindas {
   tamanhoDoElenco: number; contratosEmAtencao: number;
 }
 
-export const boasVindas = (e: EntradaBoasVindas): MensagemInbox[] => {
+const boasVindas_ = (e: EntradaBoasVindas): MensagemInbox[] => {
   const { lang: l, hoje } = e;
   const topo = e.posicaoNaForca <= Math.max(3, Math.round(e.clubesNaLiga * 0.15)), baixo = e.posicaoNaForca > Math.round(e.clubesNaLiga * 0.7);
   const meta = topo ? tx('fight for the title and a place in the continental cups')
@@ -81,14 +80,11 @@ export const boasVindas = (e: EntradaBoasVindas): MensagemInbox[] => {
   return [
     criar({ keys: k('board'), date: hoje, categoria: 'BOARD', de: tx('Chairman'), ir: 'LEAGUE',
       assunto: tx('Welcome to {v0}, {v1}', { v0: e.clube, v1: e.treinador }),
-      corpo: L(l,
-        `On behalf of the board, welcome to ${e.clube}. We play at ${e.estadio} in ${e.cidade}, and this season we compete in the ${e.liga}.\n\nYour squad ranks ${e.posicaoNaForca}${e.posicaoNaForca === 1 ? 'st' : e.posicaoNaForca === 2 ? 'nd' : e.posicaoNaForca === 3 ? 'rd' : 'th'} of ${e.clubesNaLiga} on overall strength (${e.forca}). The board's expectation is to ${meta}.\n\nYou have our full support. Good luck.`,
-        `Em nome da diretoria, seja bem-vindo ao ${e.clube}. Jogamos no ${e.estadio}, em ${e.cidade}, e nesta temporada disputamos a ${e.liga}.\n\nSeu elenco é o ${e.posicaoNaForca}º de ${e.clubesNaLiga} em força geral (${e.forca}). A expectativa da diretoria é ${meta}.\n\nVocê tem todo o nosso apoio. Boa sorte.`) }),
+      corpo: tx('On behalf of the board, welcome to {v0}. We play at {v1} in {v2}, and this season we compete in the {v3}.\n\nYour squad ranks {v4} of {v5} on overall strength ({v6}). The board\'s expectation is to {v7}.\n\nYou have our full support. Good luck.', { v0: e.clube, v1: e.estadio, v2: e.cidade, v3: e.liga, v4: ordinal(e.posicaoNaForca), v5: e.clubesNaLiga, v6: e.forca, v7: meta }) }),
     criar({ keys: k('football'), date: hoje, categoria: 'SQUAD', de: tx('Director of Football'), ir: 'SQUAD',
       assunto: tx('Squad overview'),
-      corpo: L(l,
-        `You have ${e.tamanhoDoElenco} professionals available.${e.contratosEmAtencao ? ` ${e.contratosEmAtencao} contract(s) expire within 12 months — I recommend negotiating renewals early.` : ' No contract expires within the next 12 months.'}\n\nThe Sub-20 academy has 20 youngsters aged 15 to 20. Promotions to the first team are always your decision; players who turn 21 leave the academy.`,
-        `Você tem ${e.tamanhoDoElenco} profissionais disponíveis.${e.contratosEmAtencao ? ` ${e.contratosEmAtencao} contrato(s) vence(m) em até 12 meses — recomendo negociar as renovações cedo.` : ' Nenhum contrato vence nos próximos 12 meses.'}\n\nA base Sub-20 tem 20 jovens de 15 a 20 anos. A promoção ao time principal é sempre decisão sua; quem completa 21 anos deixa a base.`) }),
+      corpo: tx('You have {v0} professionals available.', { v0: e.tamanhoDoElenco }) + ' ' + (e.contratosEmAtencao ? tx('{v0} contract(s) expire within 12 months — I recommend negotiating renewals early.', { v0: e.contratosEmAtencao }) : tx('No contract expires within the next 12 months.'))
+        + '\n\n' + tx('The Sub-20 academy has 20 youngsters aged 15 to 20. Promotions to the first team are always your decision; players who turn 21 leave the academy.') }),
     criar({ keys: k('training'), date: hoje, categoria: 'TRAINING', de: tx('Assistant Manager'), ir: 'TRAINING_VIEW',
       assunto: tx('Training plan'),
       corpo: tx('The squad is in pre-season and fitness is still low. Set the weekly training schedule, balance workload and recovery, and avoid heavy sessions right before matches. I will report injuries and fitness problems here.') }),
@@ -127,7 +123,7 @@ const diasEntre = (a: string, b: string) => Math.round((Date.UTC(+b.slice(0, 4),
 /** As razoes que a caixa ja conhece (para os avisos agrupados listarem so o que e novo). */
 export const chavesDe = (inbox: MensagemInbox[]): Set<string> => new Set(inbox.flatMap(m => m.keys));
 
-export const avisosDoDia = (e: EntradaAvisos, vistas: Set<string> = new Set()): MensagemInbox[] => {
+const avisosDoDia_ = (e: EntradaAvisos, vistas: Set<string> = new Set()): MensagemInbox[] => {
   const { hoje, lang: l } = e;
   const out: MensagemInbox[] = [];
 
@@ -162,14 +158,12 @@ export const avisosDoDia = (e: EntradaAvisos, vistas: Set<string> = new Set()): 
       out.push(criar({ keys: [`result|${j.id}`], date: j.date, categoria: 'MATCH', ir: 'FIXTURES', de: tx('Press Office'),
         alta: !!j.copa || j.derbi,
         assunto: `${r}: ${j.casa ? `${tx('vs')} ${j.adversario}` : `${tx('at')} ${j.adversario}`} (${placar})${j.copa ? ` · ${j.copa}` : ''}`,
-        corpo: L(l, `Full time: ${r.toLowerCase()} ${j.casa ? 'at home against' : 'away at'} ${j.adversario}, ${placar}.${j.derbi ? ' A local derby.' : ''}`,
-          `Fim de jogo: ${r.toLowerCase()} ${j.casa ? 'em casa contra o' : 'fora, contra o'} ${j.adversario}, ${placar}.${j.derbi ? ' Foi um clássico.' : ''}`) }));
+        corpo: (j.casa ? tx('Full time: {v0} at home against {v1}, {v2}.', { v0: r.toLowerCase(), v1: j.adversario, v2: placar }) : tx('Full time: {v0} away at {v1}, {v2}.', { v0: r.toLowerCase(), v1: j.adversario, v2: placar })) + (j.derbi ? ' ' + tx('A local derby.') : '') }));
     }
     if (!j.jogado && dias >= 1 && dias <= 2 && (j.derbi || j.copa)) {
       out.push(criar({ keys: [`preview|${j.id}`], date: hoje, categoria: 'MATCH', alta: true, ir: 'TACTICS', de: tx('Assistant Manager'),
         assunto: j.copa ? tx('Cup match in {v0} day(s): {v1}', { v0: dias, v1: j.adversario }) : tx('Derby in {v0} day(s): {v1}', { v0: dias, v1: j.adversario }),
-        corpo: L(l, `${j.copa ? `${j.copa} — ` : ''}${j.casa ? 'Home' : 'Away'} against ${j.adversario} on ${dataLonga(j.date, l)}. This one matters: check the lineup, fitness and set pieces.`,
-          `${j.copa ? `${j.copa} — ` : ''}${j.casa ? 'Em casa' : 'Fora'} contra o ${j.adversario} em ${dataLonga(j.date, l)}. Esse jogo é importante: confira a escalação, a condição física e as bolas paradas.`) }));
+        corpo: (j.copa ? `${j.copa} — ` : '') + (j.casa ? tx('Home against {v0} on {v1}.', { v0: j.adversario, v1: dataLonga(j.date, l) }) : tx('Away against {v0} on {v1}.', { v0: j.adversario, v1: dataLonga(j.date, l) })) + ' ' + tx('This one matters: check the lineup, fitness and set pieces.') }));
     }
   });
 
@@ -178,8 +172,8 @@ export const avisosDoDia = (e: EntradaAvisos, vistas: Set<string> = new Set()): 
     const volta = addDias(hoje, p.injury!.daysOut);
     const grave = p.injury!.severity === 'SEVERE';
     out.push(criar({ keys: [`injury|${p.id}|${volta}`], date: hoje, categoria: 'TRAINING', alta: grave, ir: 'SQUAD', de: tx('Physio'),
-      assunto: tx('Injury: {v0} ({v1})', { v0: p.name, v1: p.injury!.type }),
-      corpo: tx('{v0} ({v1}, OVR {v2}) is injured — {v3}, about {v4} day(s) out (back around {v5}).', { v0: p.name, v1: p.position, v2: p.skill, v3: p.injury!.type, v4: p.injury!.daysOut, v5: dataLonga(volta, l) }) }));
+      assunto: tx('Injury: {v0} ({v1})', { v0: p.name, v1: textoDaLesao(p.injury!.type) }),
+      corpo: tx('{v0} ({v1}, OVR {v2}) is injured — {v3}, about {v4} day(s) out (back around {v5}).', { v0: p.name, v1: p.position, v2: p.skill, v3: textoDaLesao(p.injury!.type), v4: p.injury!.daysOut, v5: dataLonga(volta, l) }) }));
   });
   // fisico: na vespera de jogo com o elenco muito cansado
   const proximo = e.jogos.find(j => !j.jogado && diasEntre(hoje, j.date) === 1);
@@ -198,16 +192,18 @@ export const avisosDoDia = (e: EntradaAvisos, vistas: Set<string> = new Set()): 
     const parados = e.jovens.filter(j => !j.mudou).length;
     out.push(criar({ keys: [`scout|${e.mesDoRelatorio}`], date: hoje, categoria: 'SCOUTING', ir: 'SQUAD', de: tx('Head of Scouting'),
       assunto: tx('Academy development report — {v0}', { v0: e.mesDoRelatorio }),
-      corpo: L(l,
-        `${subiram.length} of ${e.jovens.length} academy players improved their overall this month${subiram[0] ? `; the biggest rise was ${subiram[0].nome} (${subiram[0].posicao}, +${subiram[0].delta})` : ''}. ${parados} showed no change at all.\n\nBest prospect (our estimate): ${talento.nome} (${talento.posicao}, OVR ${talento.ovr}) — ${'★'.repeat(talento.estrelas)}${'☆'.repeat(5 - talento.estrelas)}.\n\nOpen Squad → Sub-20 for the full monthly report.`,
-        `${subiram.length} de ${e.jovens.length} jovens da base subiram de overall neste mês${subiram[0] ? `; a maior evolução foi de ${subiram[0].nome} (${subiram[0].posicao}, +${subiram[0].delta})` : ''}. ${parados} não tiveram nenhuma mudança.\n\nMelhor promessa (estimativa nossa): ${talento.nome} (${talento.posicao}, OVR ${talento.ovr}) — ${'★'.repeat(talento.estrelas)}${'☆'.repeat(5 - talento.estrelas)}.\n\nAbra Elenco → Sub-20 para o relatório mensal completo.`) }));
+      corpo: tx('{v0} of {v1} academy players improved their overall this month', { v0: subiram.length, v1: e.jovens.length })
+        + (subiram[0] ? tx('; the biggest rise was {v0} ({v1}, +{v2})', { v0: subiram[0].nome, v1: subiram[0].posicao, v2: subiram[0].delta }) : '') + '. '
+        + tx('{v0} showed no change at all.', { v0: parados }) + '\n\n'
+        + tx('Best prospect (our estimate): {v0} ({v1}, OVR {v2}) — {v3}.', { v0: talento.nome, v1: talento.posicao, v2: talento.ovr, v3: '★'.repeat(talento.estrelas) + '☆'.repeat(5 - talento.estrelas) }) + '\n\n'
+        + tx('Open Squad → Sub-20 for the full monthly report.') }));
   }
 
   // FINANCAS: resumo no dia 1 de cada mes e alerta de caixa apertado (uma vez por mes).
   const mes = hoje.slice(0, 7), semanas = e.folhaSemanal > 0 ? e.caixa / e.folhaSemanal : 99;
   if (hoje.endsWith('-01')) out.push(criar({ keys: [`finance|${mes}`], date: hoje, categoria: 'FINANCE', ir: 'FINANCES', de: tx('Finance Director'),
     assunto: tx('Monthly finance summary — {v0}', { v0: mes }),
-    corpo: L(l, `Cash balance: ${e.formatar(e.caixa)}. Weekly payroll: ${e.formatar(e.folhaSemanal)} (${semanas >= 99 ? 'n/a' : Math.floor(semanas)} weeks of wages covered).`, `Saldo em caixa: ${e.formatar(e.caixa)}. Folha semanal: ${e.formatar(e.folhaSemanal)} (${semanas >= 99 ? 'n/d' : Math.floor(semanas)} semanas de salários cobertas).`) }));
+    corpo: tx('Cash balance: {v0}. Weekly payroll: {v1} ({v2} weeks of wages covered).', { v0: e.formatar(e.caixa), v1: e.formatar(e.folhaSemanal), v2: semanas >= 99 ? tx('n/a') : Math.floor(semanas) }) }));
   if (e.folhaSemanal > 0 && semanas < 8) out.push(criar({ keys: [`finance-low|${mes}`], date: hoje, categoria: 'FINANCE', alta: true, ir: 'FINANCES', de: tx('Finance Director'),
     assunto: e.caixa < 0 ? tx('Warning: the club is in the red') : tx('Warning: cash is running low'),
     corpo: tx('Cash is {v0} — less than 8 weeks of wages ({v1} per week). Avoid new signings and consider selling players.', { v0: e.formatar(e.caixa), v1: e.formatar(e.folhaSemanal) }) }));
@@ -224,39 +220,39 @@ export const avisosDoDia = (e: EntradaAvisos, vistas: Set<string> = new Set()): 
 const addDias = (iso: string, n: number): string => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
 // ------------------------------------------------------------------ avisos das acoes do utilizador (negociacoes, contratos, promocoes)
-export const avisoDeContratacao = (hoje: string, lang: Idioma, p: Player, valor: string): MensagemInbox => criar({ keys: [], date: hoje, categoria: 'TRANSFER', ir: 'SQUAD', de: tx('Director of Football'),
+const avisoDeContratacao_ = (hoje: string, lang: Idioma, p: Player, valor: string): MensagemInbox => criar({ keys: [], date: hoje, categoria: 'TRANSFER', ir: 'SQUAD', de: tx('Director of Football'),
   assunto: tx('Signing completed: {v0}', { v0: p.name }),
-  corpo: L(lang, `${p.name} (${p.position}, OVR ${p.skill}, ${p.age}) joined for ${valor}.${p.contract ? ` Contract until ${dataLonga(p.contract.end, lang)} (${p.contract.years} years).` : ''}`, `${p.name} (${p.position}, OVR ${p.skill}, ${p.age}) chegou por ${valor}.${p.contract ? ` Contrato até ${dataLonga(p.contract.end, lang)} (${p.contract.years} anos).` : ''}`) });
-export const avisoDeVenda = (hoje: string, lang: Idioma, p: Player, valor: string): MensagemInbox => criar({ keys: [], date: hoje, categoria: 'TRANSFER', ir: 'FINANCES', de: tx('Finance Director'),
+  corpo: tx('{v0} ({v1}, OVR {v2}, {v3}) joined for {v4}.', { v0: p.name, v1: p.position, v2: p.skill, v3: p.age, v4: valor }) + (p.contract ? ' ' + tx('Contract until {v0} ({v1} years).', { v0: dataLonga(p.contract.end, lang), v1: p.contract.years }) : '') });
+const avisoDeVenda_ = (hoje: string, lang: Idioma, p: Player, valor: string): MensagemInbox => criar({ keys: [], date: hoje, categoria: 'TRANSFER', ir: 'FINANCES', de: tx('Finance Director'),
   assunto: tx('Sale completed: {v0}', { v0: p.name }), corpo: tx('{v0} ({v1}, OVR {v2}) was sold for {v3}.', { v0: p.name, v1: p.position, v2: p.skill, v3: valor }) });
 /** O dinheiro de uma copa (premiacao): o e-mail leva a chave do pagamento, que impede de pagar duas vezes. */
-export const avisoDePremiacao = (hoje: string, lang: Idioma, key: string, copa: string, razao: string, valor: string): MensagemInbox => {
+const avisoDePremiacao_ = (hoje: string, lang: Idioma, key: string, copa: string, razao: string, valor: string): MensagemInbox => {
   const motivo = /^entrada-/.test(razao) ? tx('reaching the next phase') : /^pos-/.test(razao) ? tx('finishing {v0}th in the league', { v0: razao.slice(4) }) : /^vitoria/.test(razao) ? tx('a group-stage win') : /^empate/.test(razao) ? tx('a group-stage draw') : razao === 'cota' ? tx('taking part in the group stage')
     : razao === 'campeao' ? tx('winning the title') : razao === 'vice' ? tx('finishing as runner-up')
     : ({ PO: tx('the knockout playoff'), P5: tx('the 5th round'), R16: tx('the round of 16'), QF: tx('the quarter-finals'), SF: tx('the semi-finals') } as Record<string, string>)[razao] || razao;
   return criar({ keys: [key], date: hoje, categoria: 'FINANCE', ir: 'FINANCES', de: tx('Finance Director'),
     assunto: tx('{v0}: prize money of {v1}', { v0: copa, v1: valor }), corpo: tx('The club received {v0} from {v1} for {v2}.', { v0: valor, v1: copa, v2: motivo }) });
 };
-export const avisoDeRenovacao = (hoje: string, lang: Idioma, p: Player): MensagemInbox => criar({ keys: [], date: hoje, categoria: 'CONTRACT', ir: 'FINANCES', de: tx('Director of Football'),
+const avisoDeRenovacao_ = (hoje: string, lang: Idioma, p: Player): MensagemInbox => criar({ keys: [], date: hoje, categoria: 'CONTRACT', ir: 'FINANCES', de: tx('Director of Football'),
   assunto: tx('Contract renewed: {v0}', { v0: p.name }), corpo: p.contract ? tx('{v0} signed a new contract until {v1} ({v2} years).', { v0: p.name, v1: dataLonga(p.contract.end, lang), v2: p.contract.years }) : '' });
-export const avisoDePromocao = (hoje: string, lang: Idioma, p: Player): MensagemInbox => criar({ keys: [], date: hoje, categoria: 'SQUAD', ir: 'SQUAD', de: tx('Head of Scouting'),
+const avisoDePromocao_ = (hoje: string, lang: Idioma, p: Player): MensagemInbox => criar({ keys: [], date: hoje, categoria: 'SQUAD', ir: 'SQUAD', de: tx('Head of Scouting'),
   assunto: tx('Promoted from the academy: {v0}', { v0: p.name }), corpo: tx('{v0} ({v1}, OVR {v2}, {v3}) joined the first team. A new youngster will fill the academy spot.', { v0: p.name, v1: p.position, v2: p.skill, v3: p.age }) });
-export const avisoDeLiberados = (hoje: string, lang: Idioma, jogadores: Player[]): MensagemInbox[] => jogadores.map(p => criar({
+const avisoDeLiberados_ = (hoje: string, lang: Idioma, jogadores: Player[]): MensagemInbox[] => jogadores.map(p => criar({
   keys: [`released|${p.id}|${p.contract?.end || hoje}`], date: hoje, categoria: 'CONTRACT', alta: true, ir: 'FINANCES', de: tx('Director of Football'),
   assunto: tx('Contract expired: {v0} left the club', { v0: p.name }),
   corpo: tx('{v0} ({v1}, OVR {v2}) was not renewed and is now a free agent.', { v0: p.name, v1: p.position, v2: p.skill }) }));
-export const avisoDeSaidaDaBase = (hoje: string, lang: Idioma, jogadores: Player[]): MensagemInbox[] => jogadores.map(p => criar({
+const avisoDeSaidaDaBase_ = (hoje: string, lang: Idioma, jogadores: Player[]): MensagemInbox[] => jogadores.map(p => criar({
   keys: [`u20-out|${p.id}`], date: hoje, categoria: 'SCOUTING', ir: 'SQUAD', de: tx('Head of Scouting'),
   assunto: tx('{v0} turned 21 and left the academy', { v0: p.name }),
   corpo: tx('{v0} ({v1}, OVR {v2}) is no longer eligible for the Sub-20 and was not promoted. He is now a free agent; a new youngster replaced him.', { v0: p.name, v1: p.position, v2: p.skill }) }));
 
 // ------------------------------------------------------------------ negociacao de renovacao
-export const avisoDeNegociacaoIniciada = (hoje: string, lang: Idioma, p: Player, decide: string, salario: string, anos: number): MensagemInbox => criar({
+const avisoDeNegociacaoIniciada_ = (hoje: string, lang: Idioma, p: Player, decide: string, salario: string, anos: number): MensagemInbox => criar({
   keys: [], date: hoje, categoria: 'CONTRACT', ir: 'FINANCES', de: tx('Director of Football'),
   assunto: tx('Negotiation: {v0} is analysing your offer', { v0: p.name }),
   corpo: tx('You offered {v0} {v1} per week for {v2} year(s). He will answer on {v3}.', { v0: p.name, v1: salario, v2: anos, v3: dataLonga(decide, lang) }) });
 
-export const avisoDeRespostaRenovacao = (hoje: string, lang: Idioma, p: Player, aceitou: boolean, salario: string, anos: number): MensagemInbox => criar({
+const avisoDeRespostaRenovacao_ = (hoje: string, lang: Idioma, p: Player, aceitou: boolean, salario: string, anos: number): MensagemInbox => criar({
   keys: [], date: hoje, categoria: 'CONTRACT', alta: !aceitou, ir: 'FINANCES', de: tx('Director of Football'),
   assunto: aceitou ? tx('{v0} accepted the renewal', { v0: p.name }) : tx('{v0} rejected your offer', { v0: p.name }),
   corpo: aceitou
@@ -265,16 +261,16 @@ export const avisoDeRespostaRenovacao = (hoje: string, lang: Idioma, p: Player, 
 
 // ------------------------------------------------------------------ mercado de transferencias
 export interface EventoMercado { tipo: string; jogadorNome: string; clubeNome: string; valor: number; motivo?: string; }
-export const avisoDeTransferencia = (hoje: string, lang: Idioma, e: EventoMercado, valor: string): MensagemInbox => {
+const avisoDeTransferencia_ = (hoje: string, lang: Idioma, e: EventoMercado, valor: string): MensagemInbox => {
   const j = e.jogadorNome, c = e.clubeNome;
   const M = (assunto: string, corpo: string, alta = false): MensagemInbox => criar({ keys: [], date: hoje, categoria: 'TRANSFER', alta, ir: 'TRANSFERS', de: tx('Director of Football'), assunto, corpo });
   switch (e.tipo) {
     case 'OFERTA_RECEBIDA': return M(tx('Offer for {v0}: {v1} bids {v2}', { v0: j, v1: c, v2: valor }), tx('{v0} made an offer of {v1} for {v2}. Open the Transfer Market to accept, refuse or make a counter-offer.', { v0: c, v1: valor, v2: j }), true);
     case 'CONTRAPROPOSTA': return M(tx('Counter-offer for {v0}: {v1} asks {v2}', { v0: j, v1: c, v2: valor }), tx('{v0} answered your offer with a counter-offer of {v1} for {v2}. You can accept it, refuse or offer again.', { v0: c, v1: valor, v2: j }), true);
     case 'ACEITA': return M(tx('{v0} accepted your offer for {v1}', { v0: c, v1: j }), tx('{v0} accepted {v1} for {v2}. The transfer completes as soon as the conditions allow.', { v0: c, v1: valor, v2: j }));
-    case 'RECUSADA': return M(tx('{v0} turned down the deal for {v1}', { v0: c, v1: j }), L(lang, `The offer of ${valor} for ${j} was refused${e.motivo ? ` (${e.motivo})` : ''}.`, `A proposta de ${valor} por ${j} foi recusada${e.motivo ? ` (${e.motivo})` : ''}.`));
-    case 'EXPIRADA': return M(tx('Negotiation for {v0} expired', { v0: j }), L(lang, `The negotiation with ${c} for ${j} is no longer available${e.motivo ? ` (${e.motivo})` : ''}.`, `A negociação com ${c} por ${j} deixou de estar disponível${e.motivo ? ` (${e.motivo})` : ''}.`));
-    case 'BLOQUEADA': return M(tx('Deal for {v0} accepted but not completed yet', { v0: j }), L(lang, `The deal for ${j} (${valor}) cannot be completed yet: ${e.motivo || 'conditions not met'}. It stays pending until the conditions are met or it expires.`, `O negócio por ${j} (${valor}) ainda não pode ser concluído: ${e.motivo || 'condições não atendidas'}. Fica pendente até as condições serem atendidas ou expirar.`), true);
+    case 'RECUSADA': return M(tx('{v0} turned down the deal for {v1}', { v0: c, v1: j }), tx('The offer of {v0} for {v1} was refused{v2}.', { v0: valor, v1: j, v2: e.motivo ? ` (${e.motivo})` : '' }));
+    case 'EXPIRADA': return M(tx('Negotiation for {v0} expired', { v0: j }), tx('The negotiation with {v0} for {v1} is no longer available{v2}.', { v0: c, v1: j, v2: e.motivo ? ` (${e.motivo})` : '' }));
+    case 'BLOQUEADA': return M(tx('Deal for {v0} accepted but not completed yet', { v0: j }), tx('The deal for {v0} ({v1}) cannot be completed yet: {v2}. It stays pending until the conditions are met or it expires.', { v0: j, v1: valor, v2: e.motivo || tx('conditions not met') }), true);
     case 'CONCLUIDA_COMPRA': return M(tx('Transfer completed: {v0} joins the club', { v0: j }), tx('{v0} signed for {v1}.', { v0: j, v1: valor }));
     case 'CONCLUIDA_VENDA': return M(tx('Transfer completed: {v0} was sold', { v0: j }), tx('{v0} was sold for {v1}.', { v0: j, v1: valor }));
     case 'AGENTE_LIVRE': return M(tx('Free agent signed: {v0}', { v0: j }), tx('{v0} joined as a free agent, with no transfer fee.', { v0: j }));
@@ -284,19 +280,19 @@ export const avisoDeTransferencia = (hoje: string, lang: Idioma, e: EventoMercad
 
 
 /** O utilizador foi "demitido": sem game over, ele fica no clube com a confianca em baixo (ver textSim/managerExpectations.ts, `demitir`). */
-export const avisoDeDemissao = (hoje: string, lang: Idioma, key: string, clube: string): MensagemInbox =>
+const avisoDeDemissao_ = (hoje: string, lang: Idioma, key: string, clube: string): MensagemInbox =>
   criar({ keys: [key], date: hoje, categoria: 'BOARD', de: tx('Chairman'), alta: true,
     assunto: tx('{v0}: the board has lost patience', { v0: clube }),
     corpo: tx('After the recent results the board decided to end your contract at {v0}. It is giving you one last chance: confidence is very low and the next results will decide.', { v0: clube }) });
 
 /** Um clube maior quer contratar o utilizador (a oferta fica pendente; ver `ManagerState.ofertas`). */
-export const avisoDeOferta = (hoje: string, lang: Idioma, key: string, clube: string): MensagemInbox =>
+const avisoDeOferta_ = (hoje: string, lang: Idioma, key: string, clube: string): MensagemInbox =>
   criar({ keys: [key], date: hoje, categoria: 'BOARD', de: tx('Sporting Director'),
     assunto: tx('{v0} wants you as manager', { v0: clube }),
     corpo: tx('{v0} was impressed by your work and wants to hire you.', { v0: clube }) });
 
 /** A confianca da diretoria entrou numa faixa pior. */
-export const avisoDeFaixa = (hoje: string, lang: Idioma, key: string, clube: string, faixa: Faixa): MensagemInbox => {
+const avisoDeFaixa_ = (hoje: string, lang: Idioma, key: string, clube: string, faixa: Faixa): MensagemInbox => {
   const texto: Record<string, [string, string]> = {
     PRESSAO: ['The board is putting pressure on you.', 'A diretoria está a pressioná-lo.'],
     RISCO: ['Your job is at risk: the board expects an improvement soon.', 'O seu cargo está em risco: a diretoria espera melhora em breve.'],
@@ -304,19 +300,19 @@ export const avisoDeFaixa = (hoje: string, lang: Idioma, key: string, clube: str
   };
   const [en, pt] = texto[faixa] || texto.PRESSAO;
   return criar({ keys: [key], date: hoje, categoria: 'BOARD', de: tx('Chairman'), alta: faixa === 'RISCO' || faixa === 'IMINENTE',
-    assunto: tx('{v0}: board confidence dropping', { v0: clube }), corpo: L(lang, en, pt) });
+    assunto: tx('{v0}: board confidence dropping', { v0: clube }), corpo: tx(en) });
 };
 
 // ------------------------------------------------------------------ patrocinio (textSim/patrocinadores.ts)
-export const avisoDeParcelaPatrocinio = (hoje: string, lang: Idioma, nome: string, parcelas: number, valor: string, key: string): MensagemInbox => criar({ keys: [key], date: hoje, categoria: 'FINANCE', ir: 'FINANCES', de: tx('Finance Director'),
+const avisoDeParcelaPatrocinio_ = (hoje: string, lang: Idioma, nome: string, parcelas: number, valor: string, key: string): MensagemInbox => criar({ keys: [key], date: hoje, categoria: 'FINANCE', ir: 'FINANCES', de: tx('Finance Director'),
   assunto: tx('Sponsorship payment received — {v0}', { v0: nome }),
-  corpo: L(lang, `${nome} paid ${parcelas > 1 ? `${parcelas} instalments` : 'the monthly instalment'}: ${valor} added to the club's cash.`, `${nome} pagou ${parcelas > 1 ? `${parcelas} parcelas` : 'a parcela mensal'}: ${valor} entraram no caixa do clube.`) });
+  corpo: (parcelas > 1 ? tx('{v0} paid {v1} instalments: {v2} added to the club\'s cash.', { v0: nome, v1: parcelas, v2: valor }) : tx('{v0} paid the monthly instalment: {v1} added to the club\'s cash.', { v0: nome, v1: valor })) });
 
-export const avisoDeFimPatrocinio = (hoje: string, lang: Idioma, nome: string, fim: string, key: string): MensagemInbox => criar({ keys: [key], date: hoje, categoria: 'FINANCE', alta: true, ir: 'FINANCES', de: tx('Finance Director'),
+const avisoDeFimPatrocinio_ = (hoje: string, lang: Idioma, nome: string, fim: string, key: string): MensagemInbox => criar({ keys: [key], date: hoje, categoria: 'FINANCE', alta: true, ir: 'FINANCES', de: tx('Finance Director'),
   assunto: tx('Sponsorship ending soon — {v0}', { v0: nome }),
   corpo: tx('The {v0} contract ends on {v1}. Open Finance → Sponsors to renew or choose another sponsor.', { v0: nome, v1: dataLonga(fim, lang) }) });
 
-export const avisoDeBonusPatrocinio = (hoje: string, lang: Idioma, nome: string, valor: string, premioKeys: string[]): MensagemInbox => criar({ keys: premioKeys.map(k => `spons-bonus|${k}`), date: hoje, categoria: 'FINANCE', ir: 'FINANCES', de: tx('Finance Director'),
+const avisoDeBonusPatrocinio_ = (hoje: string, lang: Idioma, nome: string, valor: string, premioKeys: string[]): MensagemInbox => criar({ keys: premioKeys.map(k => `spons-bonus|${k}`), date: hoje, categoria: 'FINANCE', ir: 'FINANCES', de: tx('Finance Director'),
   assunto: tx('Sponsor bonus — {v0}', { v0: nome }),
   corpo: tx('{v0} paid a competition bonus of {v1} on top of the prize money.', { v0: nome, v1: valor }) });
 
@@ -328,13 +324,13 @@ export interface EvolucaoDoJogador { nome: string; posicao: string; mudancas: { 
  * O E-MAIL SEMANAL DE EVOLUCAO (segunda-feira, do treinador de preparacao): quem melhorou (ou piorou, na virada de temporada) desde o relatorio da semana anterior, com cada atributo e o valor novo.
  * Os jogadores com mais ganho primeiro, ate `maxJogadores`; cada um mostra ate `maxAtributos` atributos. A razao `evolucao|<data>` so gera um e-mail por semana.
  */
-export const avisoDeEvolucao = (hoje: string, lang: Idioma, jogadores: EvolucaoDoJogador[], maxJogadores = 12, maxAtributos = 5): MensagemInbox => {
+const avisoDeEvolucao_ = (hoje: string, lang: Idioma, jogadores: EvolucaoDoJogador[], maxJogadores = 12, maxAtributos = 5): MensagemInbox => {
   const saldo = (j: EvolucaoDoJogador) => j.mudancas.reduce((s, m) => s + (m.para - m.de), 0);
   const ordenados = [...jogadores].sort((a, b) => saldo(b) - saldo(a));
   const linhas = ordenados.slice(0, maxJogadores).map(j => {
     const ms = [...j.mudancas].sort((a, b) => Math.abs(b.para - b.de) - Math.abs(a.para - a.de)).slice(0, maxAtributos);
     const resto = j.mudancas.length - ms.length;
-    return `${j.nome} (${j.posicao}): ${ms.map(m => `${m.nome} ${m.para > m.de ? '+' : ''}${m.para - m.de} (${m.para})`).join(', ')}${resto > 0 ? tx(' and {v0} more', { v0: resto }) : ''}`;
+    return `${j.nome} (${j.posicao}): ${ms.map(m => `${tx(m.nome)} ${m.para > m.de ? '+' : ''}${m.para - m.de} (${m.para})`).join(', ')}${resto > 0 ? tx(' and {v0} more', { v0: resto }) : ''}`;
   });
   const fora = jogadores.length - linhas.length;
   const total = jogadores.reduce((s, j) => s + j.mudancas.length, 0);
@@ -343,3 +339,24 @@ export const avisoDeEvolucao = (hoje: string, lang: Idioma, jogadores: EvolucaoD
     corpo: tx('Here is how the squad developed since last week ({v0} attribute change(s)):\n\n', { v0: total })
       + linhas.join('\n') + (fora > 0 ? '\n\n' + tx('...and {v0} more player(s).', { v0: fora }) : '') });
 };
+
+// Cada aviso sai no idioma pedido (`lang`, ou `e.lang`), mesmo que a interface esteja noutro: o `tx` usa o idioma atual, e `comIdioma` troca-o so durante a chamada.
+export const boasVindas = (...a: Parameters<typeof boasVindas_>): ReturnType<typeof boasVindas_> => comIdioma(a[0].lang, () => boasVindas_(...a));
+export const avisosDoDia = (...a: Parameters<typeof avisosDoDia_>): ReturnType<typeof avisosDoDia_> => comIdioma(a[0].lang, () => avisosDoDia_(...a));
+export const avisoDeContratacao = (...a: Parameters<typeof avisoDeContratacao_>): ReturnType<typeof avisoDeContratacao_> => comIdioma(a[1], () => avisoDeContratacao_(...a));
+export const avisoDeVenda = (...a: Parameters<typeof avisoDeVenda_>): ReturnType<typeof avisoDeVenda_> => comIdioma(a[1], () => avisoDeVenda_(...a));
+export const avisoDePremiacao = (...a: Parameters<typeof avisoDePremiacao_>): ReturnType<typeof avisoDePremiacao_> => comIdioma(a[1], () => avisoDePremiacao_(...a));
+export const avisoDeRenovacao = (...a: Parameters<typeof avisoDeRenovacao_>): ReturnType<typeof avisoDeRenovacao_> => comIdioma(a[1], () => avisoDeRenovacao_(...a));
+export const avisoDePromocao = (...a: Parameters<typeof avisoDePromocao_>): ReturnType<typeof avisoDePromocao_> => comIdioma(a[1], () => avisoDePromocao_(...a));
+export const avisoDeLiberados = (...a: Parameters<typeof avisoDeLiberados_>): ReturnType<typeof avisoDeLiberados_> => comIdioma(a[1], () => avisoDeLiberados_(...a));
+export const avisoDeSaidaDaBase = (...a: Parameters<typeof avisoDeSaidaDaBase_>): ReturnType<typeof avisoDeSaidaDaBase_> => comIdioma(a[1], () => avisoDeSaidaDaBase_(...a));
+export const avisoDeNegociacaoIniciada = (...a: Parameters<typeof avisoDeNegociacaoIniciada_>): ReturnType<typeof avisoDeNegociacaoIniciada_> => comIdioma(a[1], () => avisoDeNegociacaoIniciada_(...a));
+export const avisoDeRespostaRenovacao = (...a: Parameters<typeof avisoDeRespostaRenovacao_>): ReturnType<typeof avisoDeRespostaRenovacao_> => comIdioma(a[1], () => avisoDeRespostaRenovacao_(...a));
+export const avisoDeTransferencia = (...a: Parameters<typeof avisoDeTransferencia_>): ReturnType<typeof avisoDeTransferencia_> => comIdioma(a[1], () => avisoDeTransferencia_(...a));
+export const avisoDeDemissao = (...a: Parameters<typeof avisoDeDemissao_>): ReturnType<typeof avisoDeDemissao_> => comIdioma(a[1], () => avisoDeDemissao_(...a));
+export const avisoDeOferta = (...a: Parameters<typeof avisoDeOferta_>): ReturnType<typeof avisoDeOferta_> => comIdioma(a[1], () => avisoDeOferta_(...a));
+export const avisoDeFaixa = (...a: Parameters<typeof avisoDeFaixa_>): ReturnType<typeof avisoDeFaixa_> => comIdioma(a[1], () => avisoDeFaixa_(...a));
+export const avisoDeParcelaPatrocinio = (...a: Parameters<typeof avisoDeParcelaPatrocinio_>): ReturnType<typeof avisoDeParcelaPatrocinio_> => comIdioma(a[1], () => avisoDeParcelaPatrocinio_(...a));
+export const avisoDeFimPatrocinio = (...a: Parameters<typeof avisoDeFimPatrocinio_>): ReturnType<typeof avisoDeFimPatrocinio_> => comIdioma(a[1], () => avisoDeFimPatrocinio_(...a));
+export const avisoDeBonusPatrocinio = (...a: Parameters<typeof avisoDeBonusPatrocinio_>): ReturnType<typeof avisoDeBonusPatrocinio_> => comIdioma(a[1], () => avisoDeBonusPatrocinio_(...a));
+export const avisoDeEvolucao = (...a: Parameters<typeof avisoDeEvolucao_>): ReturnType<typeof avisoDeEvolucao_> => comIdioma(a[1], () => avisoDeEvolucao_(...a));

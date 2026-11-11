@@ -69,8 +69,41 @@ let atual: Language = 'EN';
 export const definirIdiomaAtual = (lang: Language): void => { if (idiomaValido(lang)) atual = lang; };
 export const idiomaAtual = (): Language => atual;
 export const tx = (en: string, vars?: Record<string, string | number>): string => {
-  const v: string = (atual !== 'EN' && DIC[atual]?.textos?.[en]) || en;
+  // O en.json tambem pode ter `textos`: os dados que ja vem em portugues (os nomes das lesoes, textSim/injuries.ts) tem ali a versao inglesa.
+  const v: string = DIC[atual]?.textos?.[en] || en;
   return vars ? v.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m)) : v;
+};
+
+/*
+OS TEXTOS DAS LESOES vem em PORTUGUES dos dados (nomes em textSim/injuries.ts e js/injuries/injury_database.js do 3D; a estimativa e o boletim do departamento medico) e ficam
+gravados no save assim. `textoDaLesao` traduz na hora de mostrar: os nomes sao chaves do bloco `textos` (o portugues e a chave), e as frases com numeros sao reconhecidas pelo padrao.
+*/
+const FRASES_DA_LESAO: [RegExp, string][] = [
+  [/^Entre (\d+) e (\d+) dias$/, 'Between {v0} and {v1} days'],
+  [/^Evolução excelente: prazo reduziu (\d+) dias\.$/, 'Excellent progress: recovery time cut by {v0} days.'],
+  [/^Recaída: dores no treino leve, prazo estendido em (\d+) dias\.$/, 'Relapse: pain in light training, recovery extended by {v0} days.'],
+  [/^Recuperação dentro do prazo normal\.$/, 'Recovery on schedule.'],
+  [/^Estável$/, 'Stable']
+];
+export const textoDaLesao = (s: string | undefined | null): string => {
+  if (!s) return '';
+  for (const [rx, en] of FRASES_DA_LESAO) {
+    const m = s.match(rx);
+    if (m) return atual === 'PT' ? s : tx(en, Object.fromEntries(m.slice(1).map((v, i) => ['v' + i, v])));
+  }
+  return tx(s);
+};
+
+/** O numero ordinal no idioma atual: 1st, 1º, 1.º, 1er, 1., e no chines o numero (o texto ja traz o 第). */
+export const ordinal = (n: number): string => {
+  switch (atual) {
+    case 'EN': { const d = n % 100 >= 11 && n % 100 <= 13 ? 0 : n % 10; return n + (d === 1 ? 'st' : d === 2 ? 'nd' : d === 3 ? 'rd' : 'th'); }
+    case 'PT': return n + 'º';
+    case 'ES': return n + '.º';
+    case 'FR': return n === 1 ? '1er' : n + 'e';
+    case 'DE': return n + '.';
+    default: return String(n);
+  }
 };
 
 /** Traducoes do mod (idiomas/<codigo>.json): substituem as do jogo. Devolve quantas chaves entraram. */
@@ -78,4 +111,11 @@ export const registarTraducoes = (lang: Language, extra: Dicionario): number => 
   if (!extra || typeof extra !== 'object' || !DIC[lang]) return 0;
   DIC[lang] = fundir(DIC[lang], extra);
   return Object.keys(extra).length;
+};
+
+/** Corre `f` com outro idioma atual (as mensagens da caixa de entrada pedem o seu) e repoe o anterior. */
+export const comIdioma = <T>(lang: Language | undefined, f: () => T): T => {
+  const antes = atual;
+  if (lang && idiomaValido(lang)) atual = lang;
+  try { return f(); } finally { atual = antes; }
 };

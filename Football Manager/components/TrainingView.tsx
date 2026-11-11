@@ -1,5 +1,5 @@
 
-import { tx } from '../textSim/idiomas';
+import { tx, textoDaLesao } from '../textSim/idiomas';
 import { atributos3d, NOME_DO_CAMPO } from '../textSim/atributos3d';
 import { calcularQuimica } from '../textSim/quimica';
 import { doisNomes } from '../textSim/nomes';
@@ -716,7 +716,7 @@ const TrainingView: React.FC = () => {
                                   {/* COL 5: GROUPS */}
                                   <div className="flex justify-end" onClick={e => e.stopPropagation()}>
                                       {p.injury ? (
-                                          <button onClick={() => setSelectedGroup(GRUPO_MED)} title={`${p.injury.type} — Medical Department`} className="px-3 py-3 text-[12px] font-black rounded bg-emerald-600 text-white shadow-sm">✚ MED</button>
+                                          <button onClick={() => setSelectedGroup(GRUPO_MED)} title={`${textoDaLesao(p.injury.type)} — Medical Department`} className="px-3 py-3 text-[12px] font-black rounded bg-emerald-600 text-white shadow-sm">✚ MED</button>
                                       ) : (
                                       <div className="flex gap-0.5 shadow-sm border border-slate-200 dark:border-slate-700/50 rounded overflow-hidden">
                                           {[0, 1, 2].map(grp => {
