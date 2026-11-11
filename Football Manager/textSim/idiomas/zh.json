@@ -1156,6 +1156,18 @@
   "What is left of this season's transfer budget (purchases take from it; half of each sale goes back into it)": "本赛季转会预算的剩余部分（购买会扣除；每次出售的一半会返还）",
   "Used:": "已用：",
   "Left:": "剩余：",
-  "Used: {v0}": "已用：{v0}"
+  "Used: {v0}": "已用：{v0}",
+  "Sell": "出售",
+  "Listed ✓": "已挂牌 ✓",
+  "Listed for sale — click to remove from the list": "已挂牌出售——点击从名单移除",
+  "Put on the transfer list: offers arrive in Negotiations": "挂牌出售：报价会出现在谈判中",
+  "Negotiation in progress": "谈判进行中",
+  "Renew contract": "续约",
+  "Negotiating": "谈判中",
+  "Renew": "续约",
+  "Listed for loan (click to remove)": "已列入租借名单（点击移除）",
+  "Put on the loan list": "列入租借名单",
+  "On loan list": "租借名单中",
+  "Loan": "租借"
  }
 }

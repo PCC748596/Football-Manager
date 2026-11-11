@@ -1156,6 +1156,18 @@
   "What is left of this season's transfer budget (purchases take from it; half of each sale goes back into it)": "Ce qui reste du budget transferts de la saison (chaque achat en retire ; la moitié de chaque vente y revient)",
   "Used:": "Utilisé :",
   "Left:": "Reste :",
-  "Used: {v0}": "Utilisé : {v0}"
+  "Used: {v0}": "Utilisé : {v0}",
+  "Sell": "Vendre",
+  "Listed ✓": "En vente ✓",
+  "Listed for sale — click to remove from the list": "En vente — clique pour le retirer de la liste",
+  "Put on the transfer list: offers arrive in Negotiations": "Mettre en vente : les offres arrivent dans Négociations",
+  "Negotiation in progress": "Négociation en cours",
+  "Renew contract": "Renouveler le contrat",
+  "Negotiating": "En négociation",
+  "Renew": "Renouveler",
+  "Listed for loan (click to remove)": "Sur la liste des prêts (clique pour retirer)",
+  "Put on the loan list": "Mettre sur la liste des prêts",
+  "On loan list": "En prêt",
+  "Loan": "Prêter"
  }
 }
