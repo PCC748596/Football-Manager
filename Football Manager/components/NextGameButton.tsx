@@ -18,7 +18,7 @@ export const SetasAGirar: React.FC<{ className?: string }> = ({ className = '' }
 };
 
 const NextGameButton: React.FC = () => {
-  const { gameState, proximoJogo, autoAvancoAtivo, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo } = useGame();
+  const { gameState, proximoJogo, jogoHoje, autoAvancoAtivo, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo } = useGame();
   const [confirmar, setConfirmar] = useState(false);
 
   // Os dias que vao passar: de hoje ate a VESPERA do jogo. Ha treino marcado se algum grupo tem uma atividade num turno de algum desses dias.
@@ -40,7 +40,7 @@ const NextGameButton: React.FC = () => {
 
   const aoClicar = () => {
     if (autoAvancoAtivo) { pararProximoJogo('Stopped'); return; }
-    if (!proximoJogo) return;
+    if (!proximoJogo || jogoHoje) return;
     if (semTreino()) setConfirmar(true); else iniciarProximoJogo();
   };
 
@@ -48,11 +48,11 @@ const NextGameButton: React.FC = () => {
     <>
       <button
         onClick={aoClicar}
-        disabled={!proximoJogo && !autoAvancoAtivo}
-        title={proximoJogo ? `Next game: ${proximoJogo.adversario} on ${proximoJogo.date} (${proximoJogo.dias} day${proximoJogo.dias === 1 ? '' : 's'}) — 5 s per day` : 'No upcoming game'}
+        disabled={(!proximoJogo || jogoHoje) && !autoAvancoAtivo}
+        title={jogoHoje ? "Match day: play today's game first" : proximoJogo ? `Next game: ${proximoJogo.adversario} on ${proximoJogo.date} (${proximoJogo.dias} day${proximoJogo.dias === 1 ? '' : 's'}) — 5 s per day` : 'No upcoming game'}
         className={`${autoAvancoAtivo ? 'bg-rose-600 hover:bg-rose-500' : 'bg-blue-600 hover:bg-blue-500 disabled:opacity-40'} text-white font-black px-6 py-2.5 rounded text-[10px] uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center gap-2`}
       >
-        {autoAvancoAtivo ? <>■ STOP · {gameState.currentDate}</> : <>{tx('NEXT GAME')}{proximoJogo ? ` (${proximoJogo.dias}d)` : ''}</>}
+        {autoAvancoAtivo ? <>■ STOP · {gameState.currentDate}</> : jogoHoje ? <>{tx('MATCH DAY')}</> : <>{tx('NEXT GAME')}{proximoJogo ? ` (${proximoJogo.dias}d)` : ''}</>}
       </button>
       {!autoAvancoAtivo && autoAvancoMotivo && <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 max-w-[220px] truncate" title={autoAvancoMotivo}>{autoAvancoMotivo}</span>}
 

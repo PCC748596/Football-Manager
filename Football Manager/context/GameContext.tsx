@@ -55,6 +55,8 @@ interface GameContextType {
   advanceDay: () => void;
   /** NEXT GAME: passa os dias (5 s por dia) ate ao proximo jogo do utilizador; para num e-mail de resposta de negociacao. */
   proximoJogo: { date: string; adversario: string; dias: number } | null;
+  /** O jogo do utilizador por jogar hoje (no dia do jogo nao se avanca o dia). */
+  jogoHoje: boolean;
   autoAvancoAtivo: boolean;
   autoAvancoMotivo: string;
   iniciarProximoJogo: () => void;
@@ -918,6 +920,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [gameState.currentDate]);
 
   const advanceDay = () => {
+    /*
+    NO DIA DO JOGO NAO SE PASSA O DIA: com o jogo do utilizador por jogar hoje so ha o NEXT GAME / a partida (o MatchDay conclui o dia com o advanceWeek). Relato: *"selecionei ADVANCE DAY no dia
+    do jogo e o sistema passou para o outro dia"* (o botao do Training Center aparecia sempre). A trava fica aqui para nenhum botao nem avanco automatico saltar o jogo.
+    */
+    if (gameState.userTeamId && fixtures.some(f => !f.played && f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId))) return;
     const isTrainingCamp = gameState.activities.some(a => a.date === gameState.currentDate && a.type === 'TRAINING_CAMP');
 
     setGameState(prev => {
@@ -1115,8 +1122,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const dias = Math.round((new Date(j.date + 'T12:00:00').getTime() - new Date(gameState.currentDate + 'T12:00:00').getTime()) / 86400000);
     return { date: j.date, adversario: adv?.name || '', dias };
   })();
+  // O jogo do utilizador por jogar HOJE: no dia do jogo nao se avanca (ver advanceDay); o NEXT GAME nao arranca e o avanco automatico para.
+  const jogoHoje = !!gameState.userTeamId && fixtures.some(f => !f.played && f.date === gameState.currentDate && (f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId));
   const iniciarProximoJogo = () => {
-    if (!proximoJogo) return;
+    if (!proximoJogo || jogoHoje) return;
     setAutoAvancoMotivo('');
     setAutoAvanco({ alvo: proximoJogo.date, inicio: gameState.currentDate, inboxIds: inbox.map(m => m.id) });
   };
@@ -1125,7 +1134,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!autoAvanco) return;
     const resposta = inbox.find(m => !autoAvanco.inboxIds.includes(m.id) && (m.categoria === 'TRANSFER' || m.categoria === 'CONTRACT') && m.keys.length === 0);
     if (resposta) { pararProximoJogo('Negotiation reply: ' + resposta.assunto); return; }
-    if (gameState.currentDate >= autoAvanco.alvo) { pararProximoJogo('Match day'); return; }
+    if (gameState.currentDate >= autoAvanco.alvo || jogoHoje) { pararProximoJogo('Match day'); return; }
     if (gameState.isProcessing) { pararProximoJogo(''); return; }
     const t = setTimeout(() => advanceDay(), gameState.currentDate === autoAvanco.inicio ? 0 : 5000);
     return () => clearTimeout(t);
@@ -2544,7 +2553,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <GameContext.Provider value={{
-      historicoCopas, managerState, recusarOferta, teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
+      historicoCopas, managerState, recusarOferta, teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, jogoHoje, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
       hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, proporPatrocinio, reputacaoClube, definirDivisaoOrcamento, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, decisaoDoJogoDeHoje, guardarPenaltis3d, scheduleActivity, saveGame, importGameData, loadId, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, avisoGoleiro, avisoLesao, limparAvisoLesao, avisoGoleiroMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal, reportMatchEvent,

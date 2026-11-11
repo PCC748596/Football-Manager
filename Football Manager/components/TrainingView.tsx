@@ -228,6 +228,22 @@ const TrainingView: React.FC = () => {
     const media = (k: 'tec' | 'tac' | 'men' | 'fis') => (ps.length ? Math.round(ps.reduce((acc, p) => acc + atributos3d(p)[k], 0) / ps.length) : 0);
     return { tec: media('tec'), tac: media('tac'), men: media('men'), fis: media('fis') };
   }, [players, userTeam]);
+  // OS PIORES ATRIBUTOS DE CADA AREA (media do plantel por atributo, SEM OS GOLEIROS: os atributos de linha deles puxavam a media para baixo): TEC 3, TAC 3, MEN 2, FIS 3.
+  const pioresPorArea = useMemo(() => {
+    const ps = players.filter(p => p.teamId === userTeam?.id && p.position !== Position.GK);
+    const out: Record<string, { campo: string; nome: string; valor: number }[]> = {};
+    if (!ps.length) return out;
+    const quantos: Record<string, number> = { TEC: 3, TAC: 3, MEN: 2, FIS: 3 };
+    const soma: Record<string, Record<string, { nome: string; s: number; n: number }>> = {};
+    for (const p of ps) {
+      const det = atributos3d(p).detalhe || {};
+      for (const g of Object.keys(quantos)) for (const x of ((det as any)[g] || [])) {
+        const m = (soma[g] = soma[g] || {}); const c = (m[x.campo] = m[x.campo] || { nome: x.nome, s: 0, n: 0 }); c.s += x.valor; c.n++;
+      }
+    }
+    for (const g of Object.keys(quantos)) out[g] = Object.entries(soma[g] || {}).map(([campo, c]) => ({ campo, nome: c.nome, valor: Math.round(c.s / c.n) })).sort((x, y) => x.valor - y.valor).slice(0, quantos[g]);
+    return out;
+  }, [players, userTeam]);
   const avgFit = useMemo(() => { const ps = players.filter(p => p.teamId === userTeam?.id); return ps.length ? Math.round(ps.reduce((acc, p) => acc + energiaDe(p), 0) / ps.length) : 0; }, [players, userTeam]);
   const avgMor = useMemo(() => getTeamAvg('morale'), [players, userTeam]);
   // CHE: o mesmo Chemistry da aba Tactics (textSim/quimica.ts), com a escalacao salva do time.
@@ -281,7 +297,9 @@ const TrainingView: React.FC = () => {
   const sessoesPorArea = usageCounts.categories as Record<string, number>;
   const maxSessoes = Math.max(1, ...Object.values(sessoesPorArea) as number[]);
   const cargaDe = (area: string) => { const n = sessoesPorArea[area] || 0; return { nivel: n > 0 ? Math.max(1, Math.round(3 * n / maxSessoes)) : 0, sessoes: n }; };
-  const StatBox = ({ icon, label, value, color, area }: { icon: React.ReactNode, label: string, value: number, color: string, area?: string }) => {
+  // O jogo do utilizador por jogar HOJE: sem o ADVANCE DAY (no dia do jogo so o NEXT GAME / a partida; ver advanceDay).
+  const jogoHoje = !!userTeam && fixtures.some(f => !f.played && f.date === gameState.currentDate && (f.homeTeamId === userTeam.id || f.awayTeamId === userTeam.id));
+  const StatBox = ({ icon, label, value, color, area, piores }: { icon: React.ReactNode, label: string, value: number, color: string, area?: string, piores?: { campo: string; nome: string; valor: number }[] }) => {
     const carga = area ? cargaDe(area) : null;
     return (
     <div className="flex-1 flex flex-col items-center justify-center p-2 border-r last:border-r-0 border-slate-200 dark:border-slate-800/50 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors">
@@ -289,6 +307,16 @@ const TrainingView: React.FC = () => {
         <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{label}</div>
         <div className={`text-2xl font-black italic tracking-tighter ${color}`}>{value}</div>
         {carga && <div className="mt-1" title={`${carga.sessoes} training session(s) this week` + (carga.nivel === 3 ? ' — the most trained area' : carga.nivel === 0 ? ' — not trained' : '')}><BarrasDeNivel nivel={carga.nivel} cor="bg-emerald-500" /></div>}
+        {piores && piores.length > 0 && (
+          <div className="mt-1.5 w-full flex flex-col gap-0.5" title={tx('Weakest attributes (squad average)')}>
+            {piores.map(x => (
+              <div key={x.campo} className="flex justify-between items-baseline gap-1 text-[9px] leading-tight">
+                <span className="truncate text-slate-500 dark:text-slate-400">{tx(x.nome)}</span>
+                <span className={`font-black ${corDaNota(x.valor)}`}>{x.valor}</span>
+              </div>
+            ))}
+          </div>
+        )}
     </div>
     );
   };
@@ -305,13 +333,13 @@ const TrainingView: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-<button 
+{!jogoHoje && <button 
            onClick={advanceDay}
            className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-6 py-2.5 rounded text-[10px] uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center gap-2"
         >
            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m13 17 5-5-5-5M6 17l5-5-5-5"/></svg>
            {t('dash_advance')}
-        </button>
+        </button>}
 <NextGameButton />
 </div>
       </div>
@@ -528,11 +556,11 @@ const TrainingView: React.FC = () => {
            )}
 
            {/* TEAM STATS PANEL - 7 COLUMNS: TEC, TAC, MEN, FIS, STA, CHE, MOR */}
-           <div className="h-32 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex overflow-hidden shadow-lg transition-colors">
-              <StatBox icon={ICONE_TEC} label="TECHNIQUE" value={media3d.tec} color={corDaNota(media3d.tec)} area="TECHNIQUE" />
-              <StatBox icon={ICONE_TAC} label="TACTICS" value={media3d.tac} color={corDaNota(media3d.tac)} area="TACTICS" />
-              <StatBox icon={ICONE_MEN} label="MENTAL" value={media3d.men} color={corDaNota(media3d.men)} area="MENTAL" />
-              <StatBox icon={ICONE_FIS} label="PHYSICAL" value={media3d.fis} color={corDaNota(media3d.fis)} area="PHYSICAL" />
+           <div className="min-h-32 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex overflow-hidden shadow-lg transition-colors">
+              <StatBox icon={ICONE_TEC} label="TECHNIQUE" value={media3d.tec} color={corDaNota(media3d.tec)} area="TECHNIQUE" piores={pioresPorArea.TEC} />
+              <StatBox icon={ICONE_TAC} label="TACTICS" value={media3d.tac} color={corDaNota(media3d.tac)} area="TACTICS" piores={pioresPorArea.TAC} />
+              <StatBox icon={ICONE_MEN} label="MENTAL" value={media3d.men} color={corDaNota(media3d.men)} area="MENTAL" piores={pioresPorArea.MEN} />
+              <StatBox icon={ICONE_FIS} label="PHYSICAL" value={media3d.fis} color={corDaNota(media3d.fis)} area="PHYSICAL" piores={pioresPorArea.FIS} />
               <StatBox icon={ICONE_STA} label="ENERGY" value={avgFit} color="text-emerald-500" />
               <StatBox icon={ICONE_CHE} label="CHEMISTRY" value={teamChe} color="text-blue-500" />
               <StatBox icon={ICONE_MOR} label="MORALE" value={avgMor} color="text-amber-500" />

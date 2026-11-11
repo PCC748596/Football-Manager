@@ -372,12 +372,23 @@ Object.assign(Match, {
             if (!this.kickoffApitado && this.kickoffTimer <= APITO_ANTES_DA_SAIDA) {
                 this.kickoffApitado = true;
                 if (typeof EfeitosSonoros !== 'undefined') EfeitosSonoros.apito(1.0);
+                /*
+                A SAIDA DE UM PERIODO (1.o e 2.o tempo, os dois da prorrogacao): o juiz apita e APONTA PARA A BALIZA QUE A EQUIPA DA SAIDA ATACA. Pedido: *"na saida de bola do
+                primeiro e segundo e prorrogacoes o juiz tem que apontar para o gol do ataque quando apitar"*. O 1.o tempo e o relogio ainda a zero; os outros tres passam todos
+                por `iniciarSegundoTempo`, que segura o relogio (`aguardaSaida2T`) ate esta saida. A saida depois de um golo nao leva o gesto.
+                */
+                const inicioDePeriodo = this.aguardaSaida2T || this.tempoDeJogo < 1;
+                if (inicioDePeriodo && this.kickoffTeam && typeof Officials !== 'undefined' && Officials.sinalizar && typeof RefereeModel !== 'undefined' && typeof Lados !== 'undefined') {
+                    Officials.sinalizar(0, (CAMPO_COMP / 2) * Lados.dirDe(this.kickoffTeam), RefereeModel.elevacaoSinal);
+                }
             }
 
             // Animação de idle continua (respiração/etc.), mas sem BT: os
             // alvos de movimento não mudam, por isso ninguém sai do lugar.
             this.players.forEach(p => p.update(dt));
             this.opponents.forEach(p => p.update(dt));
+            // O gesto do apito da saida (acima): o juiz fica parado, mas o braco e o corpo seguem o sinal (o `Officials.update` nao corre na saida).
+            if (typeof Officials !== 'undefined' && Officials.arbitro && Officials.arbitro.sinal && Officials.tickSinal) Officials.tickSinal(dt);
             if (this.kickoffTimer <= 0) {
                 this.kickoffActive = false;
                 if (this.kickoffTaker && this.kickoffApoio) {
