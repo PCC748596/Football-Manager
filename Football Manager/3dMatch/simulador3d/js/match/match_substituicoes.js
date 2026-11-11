@@ -327,6 +327,22 @@ Object.assign(Match, {
     _cancelar: function (req) {
         req.feita = true;
         if (this.subsEmCurso === req) this.subsEmCurso = null;
+        if (this._placaDe === req) this._placaSeguinte(req);   // a troca que estava na placa caiu: os numeros da seguinte (se houver) sobem ja
+    },
+
+    /*
+    A PLACA COM VARIAS TROCAS: mostra os numeros de UMA troca de cada vez (`_placaDe`) e so passa aos da seguinte DEPOIS DE O ENTRANTE DESTA PISAR O CAMPO. Pedido: *"quando houver mais de
+    uma, os numeros na placa do assistente devem trocar depois da entrada do jogador em campo"*. As saidas escalonadas (Aquecimento.intervaloEntreSaidas) comecavam a seguinte com o
+    entrante anterior ainda fora, e os numeros dele sumiam da placa antes de ele entrar. A troca que espera guarda os numeros em `placaPendente`; sobem pela ordem dos pedidos.
+    */
+    _placaSeguinte: function (req) {
+        if (this._placaDe !== req) return;
+        this._placaDe = null;
+        const seg = this.subsPendentes.find(o => o !== req && !o.feita && o.placaPendente);
+        if (!seg) return;
+        this._placaDe = seg;
+        if (typeof Officials !== 'undefined' && Officials.mostrarPlaca) Officials.mostrarPlaca(seg.placaPendente[0], seg.placaPendente[1]);
+        seg.placaPendente = null;
     },
 
     _comecar: function (req, P, emBatch) {
@@ -484,7 +500,10 @@ Object.assign(Match, {
         this._zBandeira = (req.banco ? req.banco.zc : 0) + sin * (BancosDeReservas.area.meiaLargura + 1.0);
         this._tBandeira = 0;
         const numEntra = this._numeroDoEntrante(req, P, lista);
-        if (Officials && Officials.mostrarPlaca) Officials.mostrarPlaca(P.num, numEntra);
+        // Outra troca ainda na placa (o entrante dela ainda nao entrou): estes numeros esperam (ver _placaSeguinte).
+        const naPlaca = this._placaDe;
+        if (naPlaca && naPlaca !== req && !naPlaca.feita && !naPlaca.entrou && this.subsPendentes.indexOf(naPlaca) >= 0) req.placaPendente = [P.num, numEntra];
+        else { this._placaDe = req; if (Officials && Officials.mostrarPlaca) Officials.mostrarPlaca(P.num, numEntra); }
         // Quem sai pára o que estava a fazer: o `Player.update` deixa-o quieto (subSaindo) e o `mover` leva-o a lateral.
         P.subSaindo = true;
         P.hasBall = false; P.velocity.set(0, 0, 0);
@@ -505,6 +524,9 @@ Object.assign(Match, {
         const d = Math.hypot(A.saida.x - P.model.position.x, (A.saida.z + (req.lado === 'fora' ? 0.9 : -0.9)) - P.model.position.z);
         if (d < 0.7 || req.t > 28) {
             this.executarSubstituicao(req, P, lista, { x: A.saida.x - 0.6, z: A.saida.z, entrada: true });
+            // O entrante pisou o campo: a placa passa aos numeros da troca seguinte.
+            req.entrou = true;
+            this._placaSeguinte(req);
             req.estado = 'voltar'; req.passo = 0; req.t = 0;
             req.sai = P;
             const aSair = this.subsPendentes.find(o => !o.feita && o !== req && (o.estado === 'placa' || o.estado === 'sai'));   // outra troca ja em andamento: o jogo continua parado por ela
