@@ -37,7 +37,9 @@ if (modoTablet) {
 } else {
   // Dados locais (CountryData<N>.json, so no servidor de desenvolvimento): carregam-se ANTES de arrancar, para a primeira partida nova ja os usar. Sem ficheiro, segue de imediato.
   // O mod dos dados reais (public/dados_reais: nomes e escudos reais) vem primeiro e nunca falha; depois os dados locais.
-  Promise.all([carregarMod().then(() => carregarDadosLocais()), Promise.race([atualizarCambioAoAbrir(), new Promise(r => setTimeout(r, 3000))])]).finally(() => {
+  // O cambio do dia vem em paralelo e NAO atrasa a abertura: quando chegar, a interface redesenha (EVENTO_CAMBIO).
+  atualizarCambioAoAbrir();
+  carregarMod().then(() => carregarDadosLocais()).finally(() => {
     const root = ReactDOM.createRoot(rootElement);
     root.render(
       <React.StrictMode>

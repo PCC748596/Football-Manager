@@ -15,7 +15,7 @@ const mundo = () => {
 };
 
 test('os 16 clubes do Paulistao existem no mundo (sem duplicados)', () => {
-  const cs = clubes(mundo()).filter(c => ehDoPaulista(c.nome));
+  const cs = clubes(mundo()).filter(c => ehDoPaulista(c.id));
   assert.equal(cs.length, 16, cs.map(c => c.nome).join(', '));
   assert.equal(new Set(cs.map(c => c.nome)).size, 16);
 });
@@ -36,8 +36,7 @@ test('fase classificatoria: 64 jogos, 8 por clube (4 casa, 4 fora), sem repetir 
   for (const k of p.teamKeys) { assert.equal(jogos[k], 8, k); assert.equal(casa[k], 4, k + ' casa'); assert.equal(fora[k], 4, k + ' fora'); }
   assert.equal(pares.size, 64, 'nenhum confronto repete');
   // 2 contra cada pote
-  const nome = new Map(mapaDeClubes(w).entries());
-  const pote = (k: string) => ['Corinthians-SP,Palmeiras-SP,Santos-SP,São Paulo-SP', 'São Bernardo-SP,Novorizontino-SP,Bragantino-SP,Mirassol-SP', 'Guarani-SP,Ponte Preta-SP,Velo Clube-SP,Portuguesa-SP', 'Primavera-SP,Capivariano-SP,Noroeste-SP,Botafogo-SP'].findIndex(g => g.split(',').includes(nome.get(k)!.name));
+  const pote = (k: string) => ['450138,450171,450182,450184', '451005,450165,450131,450169', '450194,450173,451103,451102', '451129,451131,451101,450130'].findIndex(p => p.split(',').includes(k.split('|')[1]));   // os potes pelos ids (como POTES_PAULISTA)
   for (const k of p.teamKeys) {
     const cont = [0, 0, 0, 0];
     p.matches.forEach(m => { if (m.homeKey === k) cont[pote(m.awayKey)]++; else if (m.awayKey === k) cont[pote(m.homeKey)]++; });

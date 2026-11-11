@@ -15,7 +15,7 @@ Substitui no sitio os campos de REAL_TEAMS_JSON / REAL_PLAYERS_JSON (os numeros 
 */
 import { REAL_TEAMS_JSON, REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 import { TREINADORES } from './treinadores';
-import { GRUPOS_REAIS_LIB, GRUPOS_REAIS_SUL, CLASSIFICACAO_INICIAL } from './competitions';
+import { GRUPOS_REAIS_LIB, GRUPOS_REAIS_SUL, CLASSIFICACAO_INICIAL, SEED_UEL, SEED_UECL } from './competitions';
 import { registarCompeticoes, definirBaseDosLogos, InfoCompeticao } from './nomesCompeticoes';
 import { lerConfigMod, urlDaPastaDoMod } from './modConfig';
 
@@ -29,13 +29,15 @@ export interface EstadoDoMod { ativo: boolean; nome?: string; clubes: number; jo
 export const estadoDoMod: EstadoDoMod = { ativo: false, clubes: 0, jogadores: 0, competicoes: 0, origem: null, caminho: '', configurado: false };
 
 /** `regras.json` do mod: dados que traziam nomes reais (chaves = nomes dos clubes do mod). */
-export interface ModRegras { treinadores?: Record<string, { nome: string; tatico: number }>; gruposLib?: Record<string, string[]>; gruposSul?: Record<string, string[]>; classificacaoInicial?: Record<string, string[]>; classificacaoAnterior?: Record<string, string[]> }
+export interface ModRegras { treinadores?: Record<string, { nome: string; tatico: number }>; gruposLib?: Record<string, string[]>; gruposSul?: Record<string, string[]>; classificacaoInicial?: Record<string, string[]>; classificacaoAnterior?: Record<string, string[]>; seedUel?: string[]; seedUecl?: string[] }
 export const aplicarRegras = (r?: ModRegras | null): void => {
   if (!r || typeof r !== 'object') return;
   if (r.treinadores) Object.assign(TREINADORES, r.treinadores);
   if (r.gruposLib) Object.assign(GRUPOS_REAIS_LIB, r.gruposLib);
   if (r.gruposSul) Object.assign(GRUPOS_REAIS_SUL, r.gruposSul);
   if (r.classificacaoInicial) Object.assign(CLASSIFICACAO_INICIAL, r.classificacaoInicial);
+  if (Array.isArray(r.seedUel)) r.seedUel.forEach(n => SEED_UEL.add(String(n)));
+  if (Array.isArray(r.seedUecl)) r.seedUecl.forEach(n => SEED_UECL.add(String(n)));
   if (r.classificacaoAnterior) for (const pais of REAL_COUNTRIES_JSON as any[]) { const ant: Record<string, string[]> = {}; for (const l of pais.leagues || []) if (r.classificacaoAnterior[l.id]) ant[l.id] = r.classificacaoAnterior[l.id]; if (Object.keys(ant).length) pais.classificacaoAnterior = ant; }
 };
 

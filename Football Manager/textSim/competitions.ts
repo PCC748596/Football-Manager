@@ -78,8 +78,8 @@ export const GRUPOS_REAIS_LIB: Record<string, string[]> = {};   // vazio: preenc
 export const GRUPOS_REAIS_SUL: Record<string, string[]> = {};   // vazio: preenchido pelo mod (regras.json)
 
 // Os classificados REAIS de 2026/27 (nomes na base): entram primeiro; as vagas que sobrarem do pais sao preenchidas pela classificacao do ano anterior. Clubes que a base nao tem sao ignorados.
-export const SEED_UEL = new Set(['Bournemouth', 'Crystal Palace', 'Sunderland', 'Milan', 'Juventus', 'Real Sociedad', 'Celta Vigo', 'Hoffenheim', 'Bayer Leverkusen', 'Lyon', 'Marseille', 'Rennes', 'Benfica', 'AZ Alkmaar', 'Anderlecht', 'Union Saint-Gilloise', 'Olympiacos', 'Red Bull Salzburg', 'Sturm Graz', 'Sparta Praha', 'Viktoria Plzeň']);
-export const SEED_UECL = new Set(['Brighton', 'Atalanta', 'Getafe', 'Freiburg', 'Monaco', 'Braga', 'Ajax', 'FC Twente', 'Gent', 'Trabzonspor', 'Panathinaikos', 'Brann']);
+export const SEED_UEL = new Set<string>();   // vazio: preenchido pelo mod (regras.json, `seedUel`)
+export const SEED_UECL = new Set<string>();   // vazio: preenchido pelo mod (regras.json, `seedUecl`)
 const dia1 = (d: string): string => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + 1); return x.toISOString().split('T')[0]; };
 const mais1 = (x: string[]): string[] => x.map(dia1);
 const mais1Fases = (x: { nome: string; datas: string[] }[]) => x.map(i => ({ ...i, datas: i.datas.map(dia1) }));
@@ -116,20 +116,21 @@ const FASES_D = [{ nome: 'R64', datas: ['2026-06-14', '2026-06-21'] }, { nome: '
 
 // CAMPEONATO PAULISTA (Serie A1, 2026): 16 clubes em 4 potes; fase classificatoria unica de 8 rodadas (cada clube joga 2 vezes contra cada pote, o seu incluido: 4 em casa e 4 fora), os 8
 // primeiros vao as quartas (1x8, 2x7, 3x6, 4x5, jogo unico em casa do melhor), meias em jogo unico (mando do melhor) e final em ida e volta (agregado e depois penaltis). Sem rebaixamento.
-// Nomes dos clubes na base. Datas: a bola rola na 3.a semana de janeiro e a final e na 3.a semana de marco.
-const POTES_PAULISTA = [
-  ['Corinthians-SP', 'Palmeiras-SP', 'Santos-SP', 'São Paulo-SP'],
-  ['São Bernardo-SP', 'Novorizontino-SP', 'Bragantino-SP', 'Mirassol-SP'],
-  ['Guarani-SP', 'Ponte Preta-SP', 'Velo Clube-SP', 'Portuguesa-SP'],
-  ['Primavera-SP', 'Capivariano-SP', 'Noroeste-SP', 'Botafogo-SP']
+// Os clubes pelo ID da base (`teamID`, o mesmo com e sem o mod: o mod so troca os nomes). Datas: a bola rola na 3.a semana de janeiro e a final e na 3.a semana de marco.
+const POTES_PAULISTA: string[][] = [
+  ['450138', '450171', '450182', '450184'],
+  ['451005', '450165', '450131', '450169'],
+  ['450194', '450173', '451103', '451102'],
+  ['451129', '451131', '451101', '450130']
 ];
-export const ehDoPaulista = (nome: string): boolean => POTES_PAULISTA.some(p => p.includes(nome));
+/** O clube (pelo id do Team) joga o Campeonato Estadual. */
+export const ehDoPaulista = (teamId: string | number): boolean => POTES_PAULISTA.some(p => p.includes(String(teamId)));
 const RODADAS_PAULISTA = ['2026-01-15', '2026-01-22', '2026-01-29', '2026-02-05', '2026-02-12', '2026-02-19', '2026-02-26', '2026-03-05'];
 const FASES_PAULISTA = [{ nome: 'QF', datas: ['2026-03-08'] }, { nome: 'SF', datas: ['2026-03-12'] }, { nome: 'F', datas: ['2026-03-15', '2026-03-21'] }];
 const INICIO_PAULISTA = '2026-01-02';
 
 // Quem entra em cada fase da Copa do Brasil alem dos vencedores da anterior (por nome do clube na base).
-const COPA_CAMPEOES = new Set(['Paysandu-PA', 'Ponte Preta-SP', 'Confiança-SE', 'Barra-SC']);   // campeoes de competicoes de 2025: entram na 3.a fase
+const COPA_CAMPEOES = new Set(['450175', '450173', '451010', '451007']);   // pelo ID da base (teamID)   // campeoes de competicoes de 2025: entram na 3.a fase
 
 /*
 A CLASSIFICACAO INICIAL (ano anterior) por liga: nomes dos clubes, do 1.o ao ultimo. EDITAVEL. Brasil: classificacao final de 2023 (os promovidos pela ordem da Serie B 2023);
@@ -164,7 +165,7 @@ export const qualificados = (ligas: LigaParaCopas[], historico: HistoricoCopas =
   const semAnterior = ligas.every(l => !sulAmerica(l) || !l.anterior);
   const porNome = new Map<string, { key: string; team: Team; countryId: string }>();
   ligas.forEach(l => { if (sulAmerica(l)) l.teams.forEach(t => { if (!porNome.has(t.name)) porNome.set(t.name, { key: teamKey(l.leagueId, t.id), team: t, countryId: l.countryId }); }); });
-  const doSeed = (g: Record<string, string[]>) => { const nomes = Object.values(g).flat(); return semAnterior && nomes.every(n => porNome.has(n)) ? nomes.map(n => porNome.get(n)!) : null; };
+  const doSeed = (g: Record<string, string[]>) => { const nomes = Object.values(g).flat(); return semAnterior && nomes.length > 0 && nomes.every(n => porNome.has(n)) ? nomes.map(n => porNome.get(n)!) : null; };
   const seedLib = doSeed(GRUPOS_REAIS_LIB), seedSul = doSeed(GRUPOS_REAIS_SUL);
   if (seedLib) lib.push(...seedLib);
   if (seedSul) sul.push(...seedSul);
@@ -206,7 +207,7 @@ export const qualificados = (ligas: LigaParaCopas[], historico: HistoricoCopas =
     const c = porId.get(String(id));
     if (!c) return;
     const item = { key: c.key, team: c.team };
-    if (c.tier === 1) serieA.push(item); else if (COPA_CAMPEOES.has(c.team.name)) campeoes.push(item); else outros.push(item);
+    if (c.tier === 1) serieA.push(item); else if (COPA_CAMPEOES.has(String(c.team.id))) campeoes.push(item); else outros.push(item);
   });
   // Series C e D: os clubes das ligas `bra_serie_c` e `bra_serie_d`, pela ordem da liga.
   const daLiga = (id: string) => {
@@ -215,7 +216,7 @@ export const qualificados = (ligas: LigaParaCopas[], historico: HistoricoCopas =
   };
   // Campeonato Paulista: os 16 clubes pelo nome na base (estejam na liga que estiverem; a chave leva a liga de cada um).
   const paulista: { key: string; team: Team }[] = [], vistos = new Set<string>();
-  brasil.forEach(l => l.teams.forEach(t => { if (ehDoPaulista(t.name) && !vistos.has(t.name)) { vistos.add(t.name); paulista.push({ key: teamKey(l.leagueId, t.id), team: t }); } }));
+  brasil.forEach(l => l.teams.forEach(t => { if (ehDoPaulista(t.id) && !vistos.has(String(t.id))) { vistos.add(String(t.id)); paulista.push({ key: teamKey(l.leagueId, t.id), team: t }); } }));
   return { lib, sul, ucl, uel, uecl, paulista, copa: { serieA, campeoes, outros }, serieC: daLiga('bra_serie_c'), serieD: daLiga('bra_serie_d') };
 };
 
@@ -499,10 +500,10 @@ const repartirEmRodadas = (jogos: [string, string][], n: number): number[] | nul
   return null;
 };
 
-/** O Campeonato Paulista: `clubes` sao os 16 (chave `liga|id`); os potes vem dos nomes na base (`POTES_PAULISTA`). */
+/** O Campeonato Paulista: `clubes` sao os 16 (chave `liga|id`); os potes vem dos ids na base (`POTES_PAULISTA`). */
 export const criarPaulistao = (clubes: { key: string; team: Team }[], oc: Ocupacao = new Map(), ano: number = ANO_BASE): Competition => {
-  const porNome = new Map(clubes.map(c => [c.team.name, c.key]));
-  const potes = POTES_PAULISTA.map(p => p.map(n => porNome.get(n) as string));
+  const porId = new Map(clubes.map(c => [String(c.team.id), c.key]));
+  const potes = POTES_PAULISTA.map(p => p.map(id => porId.get(id) as string));
   const keys = clubes.slice().sort((a, b) => b.team.strength - a.team.strength).map(c => c.key);
   const jogos = sortearJogosPaulista(potes);
   const rodada = repartirEmRodadas(jogos, RODADAS_PAULISTA.length) || jogos.map((_, i) => i % RODADAS_PAULISTA.length);   // sem solucao perfeita o agendador desloca o que coincidir
@@ -1054,7 +1055,7 @@ export const competicoesDoClube = (team: Team, leagueId: string, leagueTeams: Te
   if (!pais || !liga) return [];
   const out: { id: string; nome: string }[] = [{ id: 'LIGA', nome: liga.name }];
   if (pais.id === '65' && liga.tier >= 1 && liga.tier <= 4) out.push({ id: 'CARABAO', nome: nomeComp('CARABAO') });
-  if (ehDoPaulista(team.name)) out.push({ id: 'PAULISTA', nome: nomeComp('PAULISTA') });
+  if (ehDoPaulista(team.id)) out.push({ id: 'PAULISTA', nome: nomeComp('PAULISTA') });
   if (((pais.copaTeamIds || []) as number[]).map(String).includes(String(team.id))) out.push({ id: 'COPA_BR', nome: nomeComp('COPA_BR') });
   const ordem = classificacaoAnoAnterior(leagueId, leagueTeams, (liga.teamIds || []).map(String));
   const pos = ordem.findIndex(t => t.id === team.id);

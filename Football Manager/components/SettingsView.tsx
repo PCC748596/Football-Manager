@@ -240,7 +240,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                           <div key={m} className="space-y-1">
                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{m}</span>
                               <input type="number" step="0.01" min="0.01" value={taxasDeCambio[m]}
-                                  onChange={e => { const v = parseFloat(e.target.value); if (v > 0) atualizarTaxas({ [m]: v }); }}
+                                  onChange={e => { const v = parseFloat(e.target.value); if (v > 0) { atualizarTaxas({ [m]: v }); if (cambioAuto) { definirCambioAutomatico(false); setCambioAuto(false); setMsgCambio('Manual rate set: auto-update turned off.'); } } }}
                                   className="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-sm border border-slate-200 dark:border-slate-700" />
                           </div>
                       ))}

@@ -33,7 +33,7 @@ import { simulateMatch, manageCPUTeam, getTeamRatings, generateMatchDeck, calcul
 import { ACTIVITIES, cpuPlanoDoJogador, SLOTS_CPU_LEVE, cpuAplicarTreino, MINUTOS_POR_PONTO_CHE, XP_POR_PONTO, ENERGY_COST_BASE, ENERGIA_POR_PERIODO_LIVRE, ENERGIA_SLOT_VAZIO, drainMultiplier, recoveryMultiplier, energiaPosLesao, energiaInicial, definirNivelDoCt, tetoDoLegacy, garantirBaseLegacy, SLOTS_CPU_POR_DIA, rolouLesaoTreino, grupoPorEnergia, sessaoRolaLesao, exaustaoMultiplier, STAR_MULTIPLIERS, starsFromPotential, tacBonusDaNota } from '../textSim/trainingService';
 import { campo3d, atributos3d, NOME_DO_CAMPO, regredirPorIdade, migrarTreinoParaXp, atributosIndividuais, alternarIndividual, treinoDoMes } from '../textSim/atributos3d';
 import { GRUPOS } from '../textSim/geradorAtributos';
-import { TAXAS, definirTaxas, restaurarTaxas, type MoedaCambio } from '../textSim/cambio';
+import { TAXAS, definirTaxas, restaurarTaxas, EVENTO_CAMBIO, type MoedaCambio } from '../textSim/cambio';
 import { premiosPendentes, premioDaLiga, premioDeInicioDeLiga, NOME_DA_COPA } from '../textSim/premiacao';
 import { settleMatch, applyResult, ECONOMIA_ESTADIO, type CurrencyCode } from '../textSim/stadiumEconomy';
 import { REAL_TEAMS_JSON } from '../textSim/realDatabase';
@@ -865,7 +865,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Mudar as taxas refaz o provider (o `formatCurrency` de todas as telas passa a usar as novas).
   const [, setVersaoCambio] = useState(0);
-  const atualizarTaxas = (novas: Partial<Record<MoedaCambio, number>> | 'padrao') => { if (novas === 'padrao') restaurarTaxas(); else definirTaxas(novas); setVersaoCambio(v => v + 1); };
+  const atualizarTaxas = (novas: Partial<Record<MoedaCambio, number>> | 'padrao') => { if (novas === 'padrao') restaurarTaxas(); else definirTaxas(novas); };
+  // Qualquer mudanca das taxas (Settings ou a atualizacao automatica, que pode chegar com o jogo ja aberto) redesenha.
+  useEffect(() => { const f = () => setVersaoCambio(v => v + 1); window.addEventListener(EVENTO_CAMBIO, f); return () => window.removeEventListener(EVENTO_CAMBIO, f); }, []);
 
   const formatCurrency = (value: number) => {
     let amount = value;
@@ -934,7 +936,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initTeams.forEach(team => {
       if (team.id === teamId) return; // Player schedules their own via UI
 
-      (ehDoPaulista(team.name) ? preseasonPaulista : preseasonOutros).forEach(date => {
+      (ehDoPaulista(team.id) ? preseasonPaulista : preseasonOutros).forEach(date => {
         const hasMatch = [...initFixtures, ...cpuFriendlies].some(f => f.date === date && (f.homeTeamId === team.id || f.awayTeamId === team.id));
         if (hasMatch) return;
 
