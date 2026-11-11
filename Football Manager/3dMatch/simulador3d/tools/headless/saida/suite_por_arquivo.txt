@@ -1,0 +1,194 @@
+TEMPO tests/balanco_corredores.test.js
+FALHA tests/bancos_e_area_tecnica.test.js :: not ok 2 - um painel de publicidade retirado em frente a cada banco (e nenhuma placa a tapar o vão) 
+TEMPO tests/bandeira_canto_45.test.js
+FALHA tests/bloco_segue_bola_na_area.test.js :: not ok 2 - com a bola à frente da linha da área o piso continua a ser a linha da área not ok 3 - com a bola dentro da área a traseira acompanha-a not ok 4 - o piso absoluto é a linha de fundo, não a bola 
+OK    tests/bloco_tres_linhas.test.js
+OK    tests/bola_atrasada_maos.test.js
+OK    tests/bola_parada_com_prazo.test.js
+OK    tests/bola_parada_junto_ao_destinatario.test.js
+OK    tests/btstats_ramos.test.js
+OK    tests/cabeca_nao_olha_para_cima.test.js
+OK    tests/cabecada_baixa.test.js
+OK    tests/cabeceio_nao_desliga_o_guarda_redes.test.js
+FALHA tests/camera_falta_suave.test.js :: #   X o enquadramento nao entrou: 0 #   X o enquadramento desfez-se depressa de mais: 0 
+OK    tests/canto_forca.test.js
+OK    tests/canto_marcacao.test.js
+OK    tests/cantos_campo.test.js
+OK    tests/captura.test.js
+OK    tests/cara_a_cara.test.js
+FALHA tests/centro_do_bloco.test.js :: not ok 1 - com a bola no miolo o centro fica centro.meio à frente dela not ok 2 - no terço ofensivo o centro recua ao longo da rampa not ok 3 - sem bola o centro fica centro.semBola atrás da bola 
+OK    tests/chaser_bola_solta.test.js
+OK    tests/chuva_afecta_o_jogo.test.js
+FALHA tests/cidade.test.js :: #   X draw calls a mais: 378 
+OK    tests/cidade_estadios.test.js
+TEMPO tests/comemoracao_golo.test.js
+OK    tests/companheiro_nao_tira_a_bola.test.js
+OK    tests/corrida_abortada.test.js
+OK    tests/corrida_cone_de_angulo.test.js
+OK    tests/corrida_sem_repetir_alvo.test.js
+OK    tests/cpu_tatica_completa.test.js
+OK    tests/crowd.test.js
+OK    tests/crowd_entrada_dos_times.test.js
+OK    tests/crowd_palmas.test.js
+FALHA tests/crowd_sprites.test.js :: #   X sem ?torcida e sem toque devia ser 3D 
+OK    tests/crowd_vida.test.js
+OK    tests/cruzamento_ala.test.js
+OK    tests/desmarque_afastar_do_marcador.test.js
+OK    tests/disputa_assento.test.js
+OK    tests/disputa_cobranca.test.js
+FALHA tests/disputa_cobranca_posicoes.test.js :: #   X goleiro e bandeirinha do mesmo lado (-20.2 / -20.3) #   X goleiro e bandeirinha do mesmo lado (-20.2 / -20.3) #   X goleiro e bandeirinha do mesmo lado (-20.1 / -20.3) 
+FALHA tests/disputa_desfecho.test.js :: #   X cobranca 1 (gol): a bola fora da rede: {"x":-1.542592331232622,"y":1.4716936164206347,"z":-47.20283218008607} #   X cobranca 3 (gol): a bola fora da rede: {"x":0.4178568460782519,"y":1.5298071306911405,"z":-44.99961452874103} 
+OK    tests/disputa_fluxo.test.js
+OK    tests/disputa_goleiros_posto.test.js
+FALHA tests/disputa_ids.test.js :: 
+OK    tests/disputa_posicoes.test.js
+OK    tests/dois_toques_na_reposicao.test.js
+OK    tests/esperar_pelo_slot.test.js
+OK    tests/estadios.test.js
+OK    tests/estadios_capacidade.test.js
+OK    tests/estatistica_por_jogo.test.js
+OK    tests/estilo_da_equipa.test.js
+FALHA tests/estilos_lado_da_jogada.test.js :: not ok 5 - o pêndulo tem tecto de afastamento lateral à bola 
+FALHA tests/estilos_tres_pedidos.test.js :: 
+OK    tests/etiqueta_do_arbitro.test.js
+OK    tests/face_personalizada.test.js
+OK    tests/falta_barreira_remate.test.js
+OK    tests/falta_cobranca.test.js
+OK    tests/falta_cruzamento.test.js
+OK    tests/falta_decisao.test.js
+OK    tests/falta_directa.test.js
+OK    tests/falta_infrator_recua.test.js
+OK    tests/falta_pelas_costas.test.js
+OK    tests/falta_reposicionamento_passada.test.js
+FALHA tests/falta_rotinas.test.js :: #   X rotinas: cruz_lateral,cruz_longe,fk2_wide,fk3_triple,fk5_over_the_hill,fk6_crossfire #   X tipos: central,central,central,longe,wide,wide #   X cruz_longe: sem lugar para 7 
+OK    tests/falta_setores.test.js
+FALHA tests/faltas_cartoes.test.js :: #   X um carrinho por trás banal dá 0.83, já em amarelo (limiar 0.68) — e esse é o caso COMUM, não o excepcional 
+TEMPO tests/faltas_reincidencia.test.js
+OK    tests/forca_do_passe.test.js
+FALHA tests/formacao_imutavel.test.js :: not ok 1 - só o assignFormations escreve o baseTarget not ok 5 - a camada posicional tem tecto de desvio ao slot, por função 
+OK    tests/formacoes_zonas.test.js
+OK    tests/funcionarios_estadio.test.js
+OK    tests/giro_de_costas.test.js
+TEMPO tests/gk_agarra_com_a_mao.test.js
+OK    tests/gk_agarra_no_fim_do_gesto.test.js
+OK    tests/gk_apos_golo.test.js
+OK    tests/gk_balanco_no_penalti.test.js
+OK    tests/gk_bola_na_palma.test.js
+OK    tests/gk_canto_no_meio.test.js
+OK    tests/gk_chutao_sem_bola.test.js
+OK    tests/gk_defesa.test.js
+OK    tests/gk_deixa_a_bola_ao_defesa.test.js
+OK    tests/gk_lancamento_mao.test.js
+OK    tests/gk_mergulho_maos.test.js
+OK    tests/gk_nao_persegue_o_proprio_passe.test.js
+OK    tests/gk_passada.test.js
+OK    tests/gk_ponto_de_intercepcao.test.js
+TEMPO tests/gk_salta_no_momento.test.js
+OK    tests/gk_salto_voa.test.js
+OK    tests/gk_soco_salta.test.js
+OK    tests/gk_varre_o_trajecto.test.js
+OK    tests/gk_velocidade_humana.test.js
+OK    tests/goleiro_expulso.test.js
+OK    tests/golo_rede.test.js
+OK    tests/grua_de_camera.test.js
+TEMPO tests/guarda_redes_bola_agarrada.test.js
+TEMPO tests/guarda_redes_espalmada.test.js
+FALHA tests/guarda_redes_queda.test.js :: #   X mergulho rasteiro, para a direita: continua a cair de lado (25 graus, era preciso 55+) #   X mergulho rasteiro, para a direita: apoiado na mao em 83% dos frames #   X mergulho rasteiro, para a direita: 15 de 42 frames com osso enterrado 
+FALHA tests/guarda_redes_tiro_de_meta.test.js :: 
+OK    tests/impedimento.test.js
+OK    tests/impedimento_linha_do_passe.test.js
+OK    tests/impedimento_montagem.test.js
+OK    tests/infiltracao_entre_adversarios.test.js
+OK    tests/infiltracao_para_a_frente.test.js
+FALHA tests/intercecao_bola_alta.test.js :: 
+FALHA tests/jogador_nao_flutua.test.js :: not ok 3 - a quem corre o assento nao PUXA PARA BAIXO: a passada tem fase de voo 
+OK    tests/kit_do_manager_no_3d.test.js
+FALHA tests/lancamento_nao_e_automatico.test.js :: 
+FALHA tests/lancamento_vs_espaco.test.js :: not ok 6 - as constantes do vão estão no config 
+OK    tests/laterais_largura.test.js
+OK    tests/lateral_altura_chegada.test.js
+OK    tests/lateral_batedor_e_apoios.test.js
+FALHA tests/lateral_bloco_marcador.test.js :: not ok 2 - quem marca sobe avancoDosMarcadores no lateral not ok 3 - quem repõe fica como estava not ok 4 - o bloco não se deforma ao subir 
+OK    tests/lateral_giro_corpo.test.js
+OK    tests/lateral_peito.test.js
+OK    tests/lateral_pose.test.js
+TEMPO tests/lesoes_na_partida.test.js
+FALHA tests/linha_defensiva.test.js :: 
+OK    tests/linha_defesa_saida_de_jogo.test.js
+OK    tests/livre_forma_da_defesa.test.js
+OK    tests/marcacao_cone_de_angulo.test.js
+FALHA tests/marcacao_e_bloco_por_fase.test.js :: 
+FALHA tests/marcacao_por_setor.test.js :: #   X o tecto devia sair da zona do slot (base.z * p.dirZ) 
+FALHA tests/mentalidade_bloco.test.js :: not ok 2 - o blocoZ é MESMO lido no computeBlock 
+OK    tests/mergulho_gk_sequencia.test.js
+FALHA tests/mola_coesao.test.js :: #   X a mola nao esta ligada no team_bt.js #   X o guarda-redes nao esta excluido da mola 
+FALHA tests/narracao_eventos.test.js :: 
+FALHA tests/nivel2_prioridades.test.js :: not ok 3 - nenhum limite prende quem vai à bola 
+OK    tests/notas_calibracao.test.js
+OK    tests/notas_ligacao.test.js
+OK    tests/notas_lote.test.js
+OK    tests/notas_motor.test.js
+FALHA tests/oficiais_olham_a_bola.test.js :: #   X o arbitro correu de costas para o rumo em 1 de 11716 frames 
+OK    tests/painel_sombras.test.js
+OK    tests/passa_antes_de_conduzir.test.js
+FALHA tests/passe_alto_angulo.test.js :: not ok 9 - o lançamento deixou de ser um pontapé de baliza 
+OK    tests/passe_curto_rasante.test.js
+FALHA tests/passe_em_voo_nao_e_bola_solta.test.js :: 
+OK    tests/passe_encontro.test.js
+OK    tests/passe_morto_bola_parada.test.js
+OK    tests/passe_no_vazio_alcancavel.test.js
+FALHA tests/passe_para_infiltracao.test.js :: not ok 3 - quem infiltra passa a ser escolhido com prioridade a serio 
+OK    tests/passe_planta_o_pe.test.js
+OK    tests/passe_ponto_disputado.test.js
+OK    tests/passe_por_linha_tapada.test.js
+OK    tests/passe_ritmo.test.js
+OK    tests/passe_sem_girar.test.js
+OK    tests/passo_partido.test.js
+FALHA tests/pausa_cala_o_som.test.js :: not ok 3 - os efeitos no ar calam-se not ok 4 - o botão de pausa é quem manda nisto 
+OK    tests/pedir_bola_so_correndo.test.js
+OK    tests/peito_pingpong.test.js
+FALHA tests/penalti_corrida.test.js :: not ok 7 - na prática: o penálti é batido com o gesto do canto, depois de uma corrida andada e sem pausa 
+OK    tests/penalti_defesa.test.js
+OK    tests/penalti_fator_defesa.test.js
+OK    tests/penalti_fila.test.js
+OK    tests/permanencia_estado.test.js
+FALHA tests/planteis_reais.test.js :: not ok 7 - a escala dos titulares cai na banda do motor 
+FALHA tests/ponte_disputa.test.js :: 
+FALHA tests/ponte_manager.test.js :: 
+FALHA tests/ponte_tatica.test.js :: 
+FALHA tests/portador_decide.test.js :: #   X ha ramos depois do fallback — o selector pode voltar a falhar inteiro 
+OK    tests/pose_partilhada.test.js
+OK    tests/prazos_bola_parada.test.js
+FALHA tests/pressao_e_bloco.test.js :: #   X o Tatics.update não aplica a pressão da mentalidade 
+OK    tests/primeira_tocada.test.js
+FALHA tests/reach_ik.test.js :: #   X peD: alvo alcançável e a ponta ficou a 65.0 cm #   X peD: fora de alcance e o membro aponta 107.1° ao lado #   X peE: alvo alcançável e a ponta ficou a 65.0 cm 
+OK    tests/recepcao_passe_directo.test.js
+OK    tests/recuo_com_o_pe.test.js
+OK    tests/recuo_gr_e_bola_presa.test.js
+OK    tests/remate_bloqueado.test.js
+OK    tests/remate_frente_a_frente.test.js
+OK    tests/remate_mira.test.js
+OK    tests/remate_mira_ambicao.test.js
+FALHA tests/remate_tipo_mira.test.js :: not ok 10 - precisão por distância, com um rematador médio 
+FALHA tests/remate_zona.test.js :: 
+OK    tests/replay_bola_e_rede.test.js
+OK    tests/replay_golo.test.js
+OK    tests/replay_sai_com_esc.test.js
+OK    tests/replay_velocidade.test.js
+FALHA tests/reposicao_do_guarda_redes.test.js :: not ok 2 - com um defesa desmarcado, larga assim que pode 
+OK    tests/respingos_de_chuva.test.js
+OK    tests/ritmo_reposicionamento.test.js
+OK    tests/saida_a_jogar_curto.test.js
+OK    tests/saida_a_pe.test.js
+OK    tests/saida_de_bola_posicoes.test.js
+OK    tests/saida_de_bola_ritmo.test.js
+OK    tests/saida_de_jogo_para_defesa.test.js
+OK    tests/saida_de_tras_aos_pes.test.js
+OK    tests/saida_do_guarda_redes.test.js
+OK    tests/saida_gk_pelos_laterais.test.js
+OK    tests/segundo_tempo.test.js
+OK    tests/sim_amostragem.test.js
+OK    tests/sim_medias.test.js
+OK    tests/sinal_do_arbitro.test.js
+FALHA tests/stamina_ligada.test.js :: #   X passou do minimo: 0.2 
+OK    tests/suavizacao_por_tempo.test.js

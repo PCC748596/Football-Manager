@@ -25,10 +25,10 @@ const erro = m => { falhas++; console.log('  X ' + m); };
 const COMP = 106, LARG = 68;
 
 const nomes = FaltaRotinas.rotinas.map(r => r.nome).sort().join(',');
-if (nomes === 'fk2_wide,fk3_triple,fk5_over_the_hill,fk6_crossfire') ok('as quatro rotinas: ' + nomes);
+if (nomes === 'cruz_lateral,cruz_longe,fk2_wide,fk3_triple,fk5_over_the_hill,fk6_crossfire') ok('as seis rotinas: ' + nomes);
 else erro('rotinas: ' + nomes);
 const tipos = FaltaRotinas.rotinas.map(r => r.tipo).sort().join(',');
-if (tipos === 'central,central,central,wide') ok('uma wide e tres central');
+if (tipos === 'central,central,central,longe,wide,wide') ok('duas wide, tres central e uma longe');
 else erro('tipos: ' + tipos);
 
 for (const r of FaltaRotinas.rotinas) {

@@ -1840,9 +1840,10 @@ class FootballPlayer {
         */
         const planoRotina = Match.rotinaPlano;
         if (planoRotina && planoRotina.fase === 0 && planoRotina.taker === this) {
-            const saiu = Match.executarPassoDaRotina(planoRotina, 0);
+            // a fase avanca ANTES do passo: o 1.o passo pode ser o cruzamento do proprio batedor (cruz_longe/cruz_lateral), que volta a chamar o executarFalta
             planoRotina.fase = 1;
             planoRotina.tFase = 0;
+            const saiu = Match.executarPassoDaRotina(planoRotina, 0);
             if (saiu) return;
             Match.encerrarRotinaDaFalta();
         }

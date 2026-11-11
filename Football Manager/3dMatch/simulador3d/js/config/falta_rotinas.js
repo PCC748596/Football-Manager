@@ -42,11 +42,23 @@ pedido: os que sobram da barreira marcam os atacantes da area (ver
 Match.marcarAtacantesNaRotina).
 =============================================================================
 */
+// As corridas das duas rotinas de cruzamento (cruz_longe, cruz_lateral): cada atacante ataca o seu ponto, iguais em todos os desfechos (a defesa nao sabe
+// para onde vai a bola; o desfecho so muda o alvo do cruzamento). Referencial do diagrama: x < 0 e o lado da bola (o primeiro pau), z a distancia a linha de fundo.
+const CORRIDAS_LONGE = {
+    9: { x: -3.4, z: 5.5 }, 10: { x: -6.0, z: 9.0 }, 4: { x: 0.0, z: 10.5 }, 5: { x: 3.4, z: 6.0 }, 11: { x: 8.0, z: 8.0 }, 6: { x: 1.0, z: 17.0 }
+};
+const CORRIDAS_LATERAL = {
+    9: { x: -3.2, z: 5.4 }, 10: { x: -5.5, z: 8.0 }, 4: { x: 0.0, z: 10.5 }, 5: { x: 3.5, z: 5.8 }, 11: { x: 7.0, z: 8.0 }, 6: { x: 1.5, z: 16.5 }, 8: { x: 7.0, z: 19.0 }
+};
+
 const FaltaRotinas = {
     activo: true,
     // So se sorteia quando a bola esta entre estas distancias da linha de fundo adversaria (m).
     zMin: 15.0,
-    zMax: 42.0,
+    zMax: 56.0,   // (Nov/2026: era 42) as rotinas de cada desenho tem a sua faixa (`zd`); sem ela valem ate `zMaxPadrao`
+    zMaxPadrao: 42.0,
+    // A partir desta distancia a falta CRUZADA pode ser a do tipo 'longe' (cruz_longe).
+    longeDe: 30.0,
     // Falta pela ala: |x| a partir do qual se usa a rotina "wide".
     alaX: 14.0,
     // O TRACEJADO ARRANCA 200 ms ANTES DO CONTACTO do batedor (pedido: *"eles tem que se movimentar 200 ms antes
@@ -92,6 +104,70 @@ const FaltaRotinas = {
     ordemDeAtribuicao: [9, 10, 4, 5, 3, 11, 7, 8, 6, 2],
 
     rotinas: [
+
+        /*
+        CRUZ_LONGE — A FALTA DE LONGE CRUZADA PARA A AREA (Nov/2026). Pedido: *"as faltas de longe estao sendo batidas para a area mas sem ninguem la"*.
+        Era o desenho de meio-campo (`meio_avancado`: os avancados 18 m a frente da BOLA, a 25-35 m da baliza) com o cruzamento para a area vazia.
+        Agora: cinco homens alinham-se na entrada da area (na linha da defesa, para nao ficarem em fora-de-jogo) e, no contacto, ATACAM os quatro
+        alvos — primeiro pau (9), zona do primeiro pau (10), marca do penalti (4), segundo pau (5) e o fecho do segundo pau (11) —; o 6 fica a
+        entrada da area para o ressalto e para a bola tensa (o alvo `entrada_da_area`, de primeira). O batedor cruza para UM alvo, sorteado.
+        Laterais e o 8 ficam atras, a fechar o contra-ataque.
+        */
+        {
+            nome: 'cruz_longe',
+            tipo: 'longe',
+            decisoes: ['cruzamento'],
+            zd: [30.0, 56.0],
+            bola: { x: -6.0, z: 40.0 },
+            batedor: 7,
+            barreira: 1,
+            defesa: { de: 9.15, ate: 22.0 },
+            lugares: {
+                9: { x: -4.0, z: 18.5 }, 10: { x: -9.0, z: 19.5 }, 4: { x: 1.0, z: 19.0 }, 5: { x: 6.0, z: 18.5 }, 11: { x: 11.0, z: 19.0 },
+                6: { x: 0.0, z: 25.0 },
+                7: { rel: true, dx: 0.0, dz: -2.0 },   // o batedor (o lugar de quem bate e o do gesto; fica aqui por completude do desenho)
+                8: { rel: true, dx: 9.0, dz: -3.0 },
+                2: { rel: true, dx: -14.0, dz: -12.0 }, 3: { rel: true, dx: 18.0, dz: -14.0 }
+            },
+            opcoes: [
+                { peso: 0.25, corridas: CORRIDAS_LONGE, passos: [{ de: 7, tipo: 'cruzamento', alvoCruz: 'primeira_trave', alvo: { x: -3.4, z: 5.5 } }] },
+                { peso: 0.35, corridas: CORRIDAS_LONGE, passos: [{ de: 7, tipo: 'cruzamento', alvoCruz: 'marca_penalti', alvo: { x: 0.0, z: 11.0 } }] },
+                { peso: 0.25, corridas: CORRIDAS_LONGE, passos: [{ de: 7, tipo: 'cruzamento', alvoCruz: 'segunda_trave', alvo: { x: 3.4, z: 5.8 } }] },
+                { peso: 0.15, corridas: CORRIDAS_LONGE, passos: [{ de: 7, tipo: 'cruzamento', alvoCruz: 'entrada_da_area', alvo: { x: 1.0, z: 17.5 } }] }
+            ]
+        },
+
+        /*
+        CRUZ_LATERAL — A FALTA AO LADO DA AREA, CRUZADA DIRECTO (Nov/2026). Pedido: *"aprimorar as faltas cobradas para as laterais da area para novos
+        cruzamentos, no primeiro pau, centro da area, segundo pau e entrada da area para chutar direto"*.
+        Seis homens na linha da defesa (13 m) e, no contacto, cada um ataca o seu ponto: primeiro pau (9), zona do primeiro pau (10), marca do
+        penalti (4), segundo pau (5) e fecho do segundo pau (11); o 6 chega a entrada da area para a bola tensa de primeira e o 8 fica no ressalto.
+        O batedor (o do lado, ver batedorPorSetorLateral) escolhe UM dos quatro alvos; quem la chega cabeceia ou remata.
+        */
+        {
+            nome: 'cruz_lateral',
+            tipo: 'wide',
+            decisoes: ['cruzamento'],
+            zd: [6.0, 32.0],
+            bola: { x: -24.0, z: 18.0 },
+            batedor: 3,
+            barreira: 2,
+            defesa: { de: 9.15, ate: 20.0 },
+            lugares: {
+                9: { x: -2.0, z: 12.5 }, 10: { x: -6.0, z: 13.5 }, 4: { x: 2.0, z: 13.0 }, 5: { x: 6.0, z: 13.0 }, 11: { x: 10.0, z: 13.5 },
+                6: { x: 1.0, z: 21.0 }, 8: { x: 8.0, z: 22.0 },
+                3: { rel: true, dx: 0.0, dz: -2.0 },   // o batedor
+                7: { rel: true, dx: -3.5, dz: -1.5 },
+                2: { rel: true, dx: 26.0, dz: -16.0 }
+            },
+            // pesos medidos em lote (60 faltas): com mais primeiro/segundo pau o guarda-redes ficava com a bola em 18 de 60 (12 antes das rotinas)
+            opcoes: [
+                { peso: 0.20, corridas: CORRIDAS_LATERAL, passos: [{ de: 3, tipo: 'cruzamento', alvoCruz: 'primeira_trave', alvo: { x: -3.4, z: 5.5 } }] },
+                { peso: 0.33, corridas: CORRIDAS_LATERAL, passos: [{ de: 3, tipo: 'cruzamento', alvoCruz: 'marca_penalti', alvo: { x: 0.0, z: 11.0 } }] },
+                { peso: 0.20, corridas: CORRIDAS_LATERAL, passos: [{ de: 3, tipo: 'cruzamento', alvoCruz: 'segunda_trave', alvo: { x: 3.4, z: 5.8 } }] },
+                { peso: 0.27, corridas: CORRIDAS_LATERAL, passos: [{ de: 3, tipo: 'cruzamento', alvoCruz: 'entrada_da_area', alvo: { x: 1.0, z: 17.5 } }] }
+            ]
+        },
         /*
         FK2 — WIDE. A bola esta na ala, a ~20 m da linha de fundo. Duas opcoes:
         1) o 3 corre cedo e o 7 joga-lhe pela linha para ele cruzar; 2) o 10 corre

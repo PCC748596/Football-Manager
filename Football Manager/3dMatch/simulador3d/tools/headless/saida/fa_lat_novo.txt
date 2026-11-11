@@ -1,0 +1,32 @@
+[placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+lateral {
+ "jogadas": 60,
+ "rotina": {
+  "cruz_lateral": 44,
+  "fk2_wide": 16
+ },
+ "decisao": {
+  "cruzamento": 60
+ },
+ "alvo": {
+  "entrada_da_area": 5,
+  "primeira_trave": 20,
+  "segunda_trave": 13,
+  "marca_penalti": 11,
+  "(passe)": 11
+ },
+ "primeiro": {
+  "atacante": 30,
+  "defensor": 11,
+  "gk": 18,
+  "ninguem": 1
+ },
+ "remates": 17,
+ "golos": 3,
+ "distAlvo": {
+  "n": 44,
+  "p25": 1,
+  "p50": 1.3,
+  "p75": 2.1
+ }
+}

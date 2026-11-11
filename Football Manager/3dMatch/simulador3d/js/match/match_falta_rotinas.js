@@ -16,10 +16,16 @@ Object.assign(Match, {
         if (!FR || !FR.activo || indirecta || decisao === 'remate' || !taker || taker.role === 'gk') return null;
 
         const zd = CAMPO_COMP / 2 - bolaFK.z * attDir;
-        if (zd < FR.zMin || zd > FR.zMax) return null;
+        // a faixa geral e a uniao das faixas das rotinas (`zd` de cada uma; sem ela, zMin..zMaxPadrao): a cruz_lateral comeca a 6 m
+        const zdMin = Math.min(FR.zMin, ...FR.rotinas.map(r => r.zd ? r.zd[0] : FR.zMin));
+        if (zd < zdMin || zd > FR.zMax) return null;
 
-        const tipo = (Math.abs(bolaFK.x) >= FR.alaX) ? 'wide' : 'central';
-        const candidatas = FR.rotinas.filter(r => r.tipo === tipo);
+        // O tipo pelo lado (wide/central) e, de longe e para cruzar, tambem o 'longe'; cada rotina tem a sua faixa de distancia (`zd`) e as decisoes a que serve.
+        const tipos = [(Math.abs(bolaFK.x) >= FR.alaX) ? 'wide' : 'central'];
+        if (zd >= (FR.longeDe || 30) && decisao === 'cruzamento') tipos.push('longe');
+        const candidatas = FR.rotinas.filter(r => tipos.indexOf(r.tipo) >= 0
+            && zd >= (r.zd ? r.zd[0] : FR.zMin) && zd <= (r.zd ? r.zd[1] : (FR.zMaxPadrao || FR.zMax))
+            && (!r.decisoes || r.decisoes.indexOf(decisao) >= 0));
         if (!candidatas.length) return null;
         const rotina = candidatas[Math.floor(Math.random() * candidatas.length)];
 
@@ -57,7 +63,7 @@ Object.assign(Match, {
             bola: { x: bolaFK.x, z: bolaFK.z },
             jogadores: num, lugares: lugares, corridas: corridas, marcadores: [],
             passos: opcao.passos.map(s => ({
-                de: s.de, tipo: s.tipo, para: s.para, espera: s.espera || 0, picado: !!s.picado,
+                de: s.de, tipo: s.tipo, para: s.para, espera: s.espera || 0, picado: !!s.picado, alvoCruz: s.alvoCruz || null,
                 alvo: s.alvo ? ponto(s.alvo) : null
             })),
             depois: (opcao.depois || []).map(d => ({ apos: d.apos, quem: d.quem, alvo: ponto(d.alvo) })),
@@ -281,6 +287,11 @@ Object.assign(Match, {
         } else if (st.tipo === 'cruzamento') {
             de.hasBall = true;
             Match.ballCarrier = de;
+            // O ALVO DO CRUZAMENTO E O DO DESFECHO SORTEADO (`alvoCruz`: primeiro pau, marca, segundo pau ou entrada da area), onde os corredores vao chegar.
+            if (st.alvoCruz && typeof cruzamentoDeFalta === 'function') {
+                const cruz = cruzamentoDeFalta(Match.ball.position, de.dirZ, [], Math.random, st.alvoCruz);
+                if (cruz) de._faltaPre = { cruz: cruz };
+            }
             de.executarFalta('cruzamento');
             saiu = true;
         } else if (st.tipo === 'remate') {

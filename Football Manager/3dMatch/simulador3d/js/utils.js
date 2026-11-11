@@ -1268,7 +1268,7 @@ função existir:
 `rnd` é injectado para a função ser pura e testável. `companheiros` é a lista
 de colegas do batedor (sem ele e sem o guarda-redes).
 */
-function cruzamentoDeFalta(bolaPos, dirZ, companheiros, rnd) {
+function cruzamentoDeFalta(bolaPos, dirZ, companheiros, rnd, forcado) {
     const r = rnd || Math.random;
     const F = FreeKickModel;
     const linhaFundo = dirZ * (CAMPO_COMP / 2);
@@ -1280,7 +1280,9 @@ function cruzamentoDeFalta(bolaPos, dirZ, companheiros, rnd) {
     });
 
     // Peso de cada alvo, com bónus por ter gente lá.
-    const opcoes = F.cruzamentos.map(c => {
+    // `forcado` (o nome de um alvo): so esse — a rotina da falta ja sabe para onde correm os seus (ver cruz_longe/cruz_lateral em falta_rotinas.js).
+    const lista = (forcado && F.cruzamentos.some(c => c.nome === forcado)) ? F.cruzamentos.filter(c => c.nome === forcado) : F.cruzamentos;
+    const opcoes = lista.map(c => {
         const alvo = pontoDe(c);
         let peso = c.peso;
         if (companheiros && companheiros.length) {

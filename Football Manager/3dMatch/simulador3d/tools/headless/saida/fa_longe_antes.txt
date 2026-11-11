@@ -1,0 +1,36 @@
+[placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+longe {
+ "jogadas": 60,
+ "rotina": {
+  "fk3_triple": 8,
+  "fk2_wide": 13,
+  "(sem rotina)": 21,
+  "fk5_over_the_hill": 10,
+  "fk6_crossfire": 8
+ },
+ "decisao": {
+  "passe": 18,
+  "cruzamento": 42
+ },
+ "alvo": {
+  "(passe)": 46,
+  "marca_penalti": 8,
+  "segunda_trave": 2,
+  "primeira_trave": 3,
+  "entrada_da_area": 1
+ },
+ "primeiro": {
+  "atacante": 21,
+  "defensor": 24,
+  "gk": 13,
+  "ninguem": 2
+ },
+ "remates": 6,
+ "golos": 2,
+ "distAlvo": {
+  "n": 13,
+  "p25": 10.1,
+  "p50": 10.7,
+  "p75": 11.9
+ }
+}
