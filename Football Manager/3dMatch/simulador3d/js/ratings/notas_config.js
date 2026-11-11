@@ -11,12 +11,23 @@ const NotasConfig = {
     pesos: { tatico: 0.35, tecnico: 0.30, participacao: 0.25, disciplina: 0.10 },
     amostrasPlenas: 120,      // amostras taticas (1 a cada ~5 s de jogo) para a componente tatica valer por inteiro (~10 min)
     ampTatica: 3.0,           // efeito da qualidade tatica media, em torno do neutro (unidades de nota)
-    qNeutro: 0.63,            // qualidade tatica media de um jogo normal (medida em lote); cada perfil pode ter o seu `qNeutro`
+    qNeutro: 0.50,            // qualidade tatica media de um jogo normal (medida em lote; Nov/2026: recalibrada em 48 jogos, com 0.63 a componente tatica so descia); cada perfil pode ter o seu `qNeutro`
     janelaErroSeg: 8,         // uma perda de bola ate N s antes de um remate/golo adversario vira "erro que gera ..."
     escalaEventos: 1.5,       // fator global sobre os valores da tabela de eventos (calibrado em lote: sem ele o desvio das notas fica ~0.4)
     topo: { x0: 1.0, k: 1.0 },   // a partir de x0 (raw / (4*peso)) a componente deixa de saturar e segue pela tangente; k = inclinacao (ver NotasMotor._pontuacao)
     // Eventos de volume: valem cheio ate `ate` por partida e `depois` do valor a seguir (ver NotasMotor._contribs).
-    rendimento: { PASSE_PROGRESSIVO: { ate: 8, depois: 0.25 }, CORTE: { ate: 8, depois: 0.4 }, DUELO_AEREO: { ate: 6, depois: 0.4 } },
+    // (Nov/2026) tambem desarme, interceptacao, drible, passe decisivo e cruzamento: medido em lote, o meia (~32 eventos/jogo, o dobro dos outros) tinha media 7.33 e era o
+    // Man of the Match em 69% dos jogos so pelo volume.
+    rendimento: { PASSE_PROGRESSIVO: { ate: 8, depois: 0.25 }, CORTE: { ate: 8, depois: 0.4 }, DUELO_AEREO: { ate: 6, depois: 0.4 },
+                  DESARME: { ate: 6, depois: 0.4 }, INTERCEPTACAO: { ate: 6, depois: 0.4 }, DRIBLE: { ate: 5, depois: 0.4 }, PASSE_DECISIVO: { ate: 5, depois: 0.5 }, CRUZAMENTO_CERTO: { ate: 6, depois: 0.5 } },
+    /*
+    O RESULTADO DA PARTIDA e a BALIZA A ZERO (Nov/2026): somam direto na nota final, proporcionais aos minutos jogados (`minutosCheios` = valor inteiro).
+    Medido em lote, antes quem venceu tinha 6.83 e quem perdeu 6.66 (o resultado quase nao contava), e defesa/goleiro nao tinham como se destacar sem sofrer golo.
+    `porGoloSofrido`: o que cada golo sofrido tira (ate `maxGolosSofridos`), so dos grupos listados.
+    */
+    resultado: { vitoria: 0.35, empate: 0, derrota: -0.35, minutosCheios: 60 },
+    balizaAZero: { GK: 0.55, CB: 0.40, FB: 0.30, DM: 0.15 },
+    porGoloSofrido: { GK: -0.12, CB: -0.08, FB: -0.05 }, maxGolosSofridos: 4,
     bonusGolos: { 2: 'DOBRADINHA', 3: 'HATTRICK' },   // n.o de golos na partida -> evento de bonus (aplicado uma vez)
     minutosMoc: 30,           // minimo de minutos para ser Man of the Match
     eventos: {
@@ -54,15 +65,15 @@ const NotasConfig = {
     componentes (renormalizados); `tatico` multiplica o efeito da qualidade tatica.
     */
     perfis: {
-        GK: { qNeutro: 0.8, pesos: { tatico: 0.20, tecnico: 0.45, participacao: 0.15, disciplina: 0.20 }, mult: { DEFESA: 1.2, DEFESA_DIFICIL: 1.3, ERRO_GOLO: 1.2 }, tatico: 0.8 },
-        CB: { qNeutro: 0.71, mult: { DESARME: 1.1, INTERCEPTACAO: 1.1, CORTE: 1.2, DUELO_AEREO: 1.2, GOLO: 1.1, ERRO_GOLO: 1.15 }, tatico: 1.1 },
-        FB: { qNeutro: 0.65, mult: { DESARME: 1.1, INTERCEPTACAO: 1.1, CRUZAMENTO_CERTO: 1.4, PASSE_PROGRESSIVO: 1.1 }, tatico: 1.0 },
-        DM: { qNeutro: 0.64, mult: { DESARME: 1.3, INTERCEPTACAO: 1.4, CORTE: 1.2, PASSE_PROGRESSIVO: 1.2, GOLO: 1.1 }, tatico: 1.15 },
-        CM: { qNeutro: 0.69, mult: { PASSE_DECISIVO: 1.5, PASSE_PROGRESSIVO: 1.4, ASSISTENCIA: 1.1, DESARME: 0.9 }, tatico: 1.0 },
-        W:  { qNeutro: 0.63, mult: { DRIBLE: 1.5, CRUZAMENTO_CERTO: 1.5, PASSE_DECISIVO: 1.3, DESARME: 0.7 }, tatico: 0.9 },
+        GK: { qNeutro: 0.80, pesos: { tatico: 0.20, tecnico: 0.45, participacao: 0.15, disciplina: 0.20 }, mult: { DEFESA: 1.2, DEFESA_DIFICIL: 1.3, ERRO_GOLO: 1.2 }, tatico: 0.8 },
+        CB: { qNeutro: 0.63, mult: { DESARME: 1.1, INTERCEPTACAO: 1.1, CORTE: 1.2, DUELO_AEREO: 1.2, GOLO: 1.1, ERRO_GOLO: 1.15 }, tatico: 1.1 },
+        FB: { qNeutro: 0.49, mult: { DESARME: 1.1, INTERCEPTACAO: 1.1, CRUZAMENTO_CERTO: 1.4, PASSE_PROGRESSIVO: 1.1 }, tatico: 1.0 },
+        DM: { qNeutro: 0.50, mult: { DESARME: 1.3, INTERCEPTACAO: 1.4, CORTE: 1.2, PASSE_PROGRESSIVO: 1.2, GOLO: 1.1 }, tatico: 1.15 },
+        CM: { qNeutro: 0.52, mult: { PASSE_DECISIVO: 1.5, PASSE_PROGRESSIVO: 1.4, ASSISTENCIA: 1.1, DESARME: 0.9 }, tatico: 1.0 },
+        W:  { qNeutro: 0.47, mult: { DRIBLE: 1.5, CRUZAMENTO_CERTO: 1.5, PASSE_DECISIVO: 1.3, DESARME: 0.7 }, tatico: 0.9 },
         // Meia aberto (LM/RM): mesmo que o ponta nos eventos, mas o posto dele afasta-se mais do ideal (q medido ~0.52 contra ~0.63 do ponta).
-        WM: { qNeutro: 0.52, mult: { DRIBLE: 1.5, CRUZAMENTO_CERTO: 1.5, PASSE_DECISIVO: 1.3, DESARME: 0.7 }, tatico: 0.9 },
-        ST: { qNeutro: 0.63, mult: { GOLO: 1.0, REMATE_NO_GOL: 1.2, GRANDE_CHANCE_PERDIDA: 1.1, DESARME: 0.6, INTERCEPTACAO: 0.6, CORTE: 0.5 }, tatico: 0.8 }
+        WM: { qNeutro: 0.35, mult: { DRIBLE: 1.5, CRUZAMENTO_CERTO: 1.5, PASSE_DECISIVO: 1.3, DESARME: 0.7 }, tatico: 0.9 },
+        ST: { qNeutro: 0.47, mult: { GOLO: 1.0, REMATE_NO_GOL: 1.2, GRANDE_CHANCE_PERDIDA: 1.1, DESARME: 0.6, INTERCEPTACAO: 0.6, CORTE: 0.5 }, tatico: 0.8 }
     },
     /*
     Playing Styles (chave = a do motor, js/config/tactics.js `PlayingStyles`, em snake_case). So se aplicam em `posicoes`

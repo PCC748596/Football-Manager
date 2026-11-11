@@ -30,7 +30,12 @@ const Notas = {
     // Chamado ao abrir cada jogo, com os jogadores ja criados (ver Ponte.iniciar e Match.trocarEquipas).
     iniciar() {
         _NMotor.reset();
+        // o placar do jogo, para o resultado e a baliza a zero nas notas (Match.placarA e o da TeamA)
+        _NMotor.placar = () => (typeof Match !== 'undefined' && typeof Match.placarA === 'number') ? { TeamA: Match.placarA, TeamB: Match.placarB } : null;
         this._n = 0;
+        // o relogio da amostragem tatica volta a zero: sem isto, do 2.o jogo na mesma pagina em diante (o 3D oculto joga varios seguidos) o `tempoDeJogo` recomecava
+        // abaixo do ultimo instante amostrado e quase ninguem era amostrado (medido: 619 de 1080 notas sem nenhuma amostra tatica).
+        this._ultT = 0;
         if (typeof Match !== 'undefined') for (const p of this.emCampo()) this.registarJogador(p, 0);
         if (!this._ligado && typeof Eventos !== 'undefined') { Eventos.aoRegistar(ev => this._aoEvento(ev)); this._ligado = true; }
     },

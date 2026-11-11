@@ -4,8 +4,10 @@ const M = require('../js/ratings/notas_motor.js');
 
 const bom = (fase) => ({ fase, dEsperada: 3, bolaPerto: false, ofereceLinha: true, fechaLinha: true, pressiona: false });
 const mau = (fase) => ({ fase, dEsperada: 30, bolaPerto: false, ofereceLinha: false, fechaLinha: false, pressiona: false });
-// `neutro` = jogo tipico medido em lote: q ~ 0.64 (dEsperada ~6.5 m, sem bonus) — ver qNeutro em notas_config.js.
-const neutro = (fase) => ({ fase, dEsperada: 6.5, bolaPerto: false, ofereceLinha: false, fechaLinha: false, pressiona: false });
+// `neutro` = jogo tipico medido em lote: q ~ 0.47 (dEsperada ~8.2 m, sem bonus; recalibrado em Nov/2026, antes 0.64 com 6.5 m) — ver qNeutro em notas_config.js.
+const neutro = (fase) => ({ fase, dEsperada: 8.2, bolaPerto: false, ofereceLinha: false, fechaLinha: false, pressiona: false });
+// o zagueiro fica mais perto do posto: o neutro dele e q ~ 0.63 (qNeutro do CB)
+const neutroCB = (fase) => ({ fase, dEsperada: 6.6, bolaPerto: false, ofereceLinha: false, fechaLinha: false, pressiona: false });
 function jog(id, pos, estilo) { M.entrar(id, { equipa: 'TeamA', pos, estilo, minuto: 0 }); }
 function amostras(id, n, f) { for (let i = 0; i < n; i++) M.amostrar(id, f(i % 2 ? 'defesa' : 'ataque')); }
 function ev(id, tipo, n) { for (let i = 0; i < n; i++) M.evento(id, tipo, { evId: tipo + i }); }
@@ -36,7 +38,7 @@ test('6. ponta que cria muito sem marcar', () => {
     faixa(M.nota('a', 90), 6.8, 8.2, 'W criador');
 });
 test('7. erro grave que gera golo adversario', () => {
-    M.reset(); jog('a', 'CB'); M.perda('a', 'TeamA', 100, 'p1'); M.remateAdversario('TeamB', 104, true); amostras('a', 200, neutro);
+    M.reset(); jog('a', 'CB'); M.perda('a', 'TeamA', 100, 'p1'); M.remateAdversario('TeamB', 104, true); amostras('a', 200, neutroCB);
     faixa(M.nota('a', 90), 4.2, 5.6, 'erro gera golo');
 });
 test('8. cumpre a funcao com poucas estatisticas', () => {

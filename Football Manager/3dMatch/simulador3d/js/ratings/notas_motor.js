@@ -14,6 +14,8 @@ const COMPONENTES = ['tatico', 'tecnico', 'participacao', 'disciplina'];
 const NotasMotor = {
     cfg: _NCfg,
     jogadores: {},
+    // O placar ({ TeamA, TeamB }) para o resultado e a baliza a zero; posto pela ligacao (Match.placarA/B). Sem ele (testes de unidade) nao ha esse ajuste.
+    placar: null,
     _ultimaPerda: { TeamA: null, TeamB: null },
 
     reset() { this.jogadores = {}; this._ultimaPerda = { TeamA: null, TeamB: null }; },
@@ -159,11 +161,25 @@ const NotasMotor = {
         const raw = Object.assign({}, j.raw, { tatico: j.raw.tatico + this._rawTatico(j) });
         const sc = {}; let pond = 0;
         for (const c of COMPONENTES) { sc[c] = this._pontuacao(raw[c], pesos[c]); pond += pesos[c] * sc[c]; }
-        const nota = Math.min(10, Math.max(1, 1 + 9 * pond / 100));
+        const nota = Math.min(10, Math.max(1, 1 + 9 * pond / 100 + this._ajusteDoResultado(j, agora)));
         const r = {}; for (const c of COMPONENTES) r[c] = Math.min(100, Math.round(sc[c]));
         return Object.assign({ nota: Math.round(nota * 10) / 10, minutos: Math.round(this._min(j, agora)) }, r);
     },
     nota(id, agora) { const d = this.detalhes(id, agora); return d ? d.nota : null; },
+
+    // Vitoria/derrota para todos e baliza a zero / golos sofridos para a defesa (ver `resultado` em notas_config.js), na proporcao dos minutos jogados.
+    _ajusteDoResultado(j, agora) {
+        const pl = typeof this.placar === 'function' ? this.placar() : this.placar;
+        const R = this.cfg.resultado;
+        if (!pl || !R) return 0;
+        const meus = j.equipa === 'TeamA' ? pl.TeamA : pl.TeamB, deles = j.equipa === 'TeamA' ? pl.TeamB : pl.TeamA;
+        if (typeof meus !== 'number' || typeof deles !== 'number') return 0;
+        const f = Math.min(1, this._min(j, agora) / (R.minutosCheios || 60));
+        let v = meus > deles ? R.vitoria : meus < deles ? R.derrota : R.empate;
+        if (deles === 0) v += (this.cfg.balizaAZero || {})[j.grupo] || 0;
+        else v += ((this.cfg.porGoloSofrido || {})[j.grupo] || 0) * Math.min(deles, this.cfg.maxGolosSofridos || 4);
+        return v * f;
+    },
 
     melhor(equipa, agora) {
         let best = null, bn = -1, bd = -1;
