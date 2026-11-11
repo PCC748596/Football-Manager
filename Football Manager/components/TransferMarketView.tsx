@@ -52,21 +52,33 @@ const NumeroComRoda: React.FC<{ valor: number; min: number; max: number; onMudar
     onChange={e => { const n = Number(e.target.value); if (e.target.value !== '' && isFinite(n)) onMudar(Math.max(min, Math.min(max, Math.round(n)))); }} />;
 };
 
+
+/*
+O ESTADO DA TELA LEMBRADO: filtros, ordem, aba e jogador selecionado ficam guardados enquanto o jogo esta aberto (memoria do modulo), para sair do Transfer Market
+e voltar sem perder a busca. `primeiro` (opcional) tem prioridade quando devolve algo (ex.: outra tela pediu uma aba).
+*/
+const memoriaDaTela: Record<string, unknown> = {};
+function useLembrado<T>(chave: string, inicial: T, primeiro?: () => T | null | undefined): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [v, setV] = useState<T>(() => { const p = primeiro?.(); if (p !== null && p !== undefined) return p; return chave in memoriaDaTela ? memoriaDaTela[chave] as T : inicial; });
+  useEffect(() => { memoriaDaTela[chave] = v; }, [chave, v]);
+  return [v, setV];
+}
+
 const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }) => {
   const { players, base, teams, userTeam, gameState, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, formatCurrency, formatCurrencyShort } = useGame();
   const hoje = gameState.currentDate;
-  const [aba, setAba] = useState<Aba>(() => { const a = pedidoDeAba.aba; pedidoDeAba.aba = null; return a || 'MARKET'; });
+  const [aba, setAba] = useLembrado<Aba>('aba', 'MARKET', () => { const a = pedidoDeAba.aba; pedidoDeAba.aba = null; return a; });
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
 
   // filtros
-  const [nome, setNome] = useState('');
-  const [grupo, setGrupo] = useState<typeof GRUPOS[number]>('ANY');
-  const [idadeMin, setIdadeMin] = useState(15), [idadeMax, setIdadeMax] = useState(42);
-  const [ovrMin, setOvrMin] = useState(50), [ovrMax, setOvrMax] = useState(99);
-  const [valorMax, setValorMax] = useState<number>(Infinity);
-  const [salarioMax, setSalarioMax] = useState<number>(Infinity);
-  const [clubeId, setClubeId] = useState('');
-  const [soLivres, setSoLivres] = useState(false), [soListados, setSoListados] = useState(true), [soContrato, setSoContrato] = useState(false), [soBase, setSoBase] = useState(false), [soShortlist, setSoShortlist] = useState(false);
+  const [nome, setNome] = useLembrado('nome', '');
+  const [grupo, setGrupo] = useLembrado<typeof GRUPOS[number]>('grupo', 'ANY');
+  const [idadeMin, setIdadeMin] = useLembrado('idadeMin', 15), [idadeMax, setIdadeMax] = useLembrado('idadeMax', 42);
+  const [ovrMin, setOvrMin] = useLembrado('ovrMin', 50), [ovrMax, setOvrMax] = useLembrado('ovrMax', 99);
+  const [valorMax, setValorMax] = useLembrado<number>('valorMax', Infinity);
+  const [salarioMax, setSalarioMax] = useLembrado<number>('salarioMax', Infinity);
+  const [clubeId, setClubeId] = useLembrado('clubeId', '');
+  const [soLivres, setSoLivres] = useLembrado('soLivres', false), [soListados, setSoListados] = useLembrado('soListados', true), [soContrato, setSoContrato] = useLembrado('soContrato', false), [soBase, setSoBase] = useLembrado('soBase', false), [soShortlist, setSoShortlist] = useLembrado('soShortlist', false);
   // Os filtros valem na hora (sem botao de aplicar): cada campo ja atualiza a lista. O objeto so muda quando um filtro muda (a pagina volta a 0 por isso).
   const filtros = useMemo(() => ({ nome, grupo, idadeMin, idadeMax, ovrMin, ovrMax, valorMax, salarioMax, clubeId, soLivres, soListados, soContrato, soBase, soShortlist }),
     [nome, grupo, idadeMin, idadeMax, ovrMin, ovrMax, valorMax, salarioMax, clubeId, soLivres, soListados, soContrato, soBase, soShortlist]);
@@ -74,9 +86,9 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   // A lista de interesse (shortlist): guardada no navegador (so uma conveniencia de quem joga).
   const [shortlist, setShortlist] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem('fm_shortlist') || '[]'); } catch { return []; } });
   const alternarShortlist = (id: string) => setShortlist(l => { const n = l.includes(id) ? l.filter(x => x !== id) : [...l, id]; try { localStorage.setItem('fm_shortlist', JSON.stringify(n)); } catch { /* sem armazenamento */ } return n; });
-  const [ordem, setOrdem] = useState<{ k: 'name' | 'age' | 'ovr' | 'pot' | 'value' | 'wage'; dir: 1 | -1 }>({ k: 'ovr', dir: -1 });
+  const [ordem, setOrdem] = useLembrado<{ k: 'name' | 'age' | 'ovr' | 'pot' | 'value' | 'wage'; dir: 1 | -1 }>('ordem', { k: 'ovr', dir: -1 });
   const [pagina, setPagina] = useState(0);
-  const [selId, setSelId] = useState<string | null>(null);
+  const [selId, setSelId] = useLembrado<string | null>('selId', null);
   // Clicar no nome do jogador numa negociacao abre o overview dele (o mesmo modal do Squad).
   const [modalNegId, setModalNegId] = useState<string | null>(null);
   const [ofertando, setOfertando] = useState<Linha | null>(null);
@@ -420,7 +432,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
 
   // ------------------------------------------------------------------ meu elenco a venda
   type ChaveMeus = 'name' | 'age' | 'pos' | 'ovr' | 'pot' | 'value' | 'contract' | 'offers' | 'listed';
-  const [ordemMeus, setOrdemMeus] = useState<{ k: ChaveMeus; dir: 1 | -1 }>({ k: 'ovr', dir: -1 });
+  const [ordemMeus, setOrdemMeus] = useLembrado<{ k: ChaveMeus; dir: 1 | -1 }>('ordemMeus', { k: 'ovr', dir: -1 });
   const alternarMeus = (k: ChaveMeus) => setOrdemMeus(o => (o.k === k ? { k, dir: (o.dir * -1) as 1 | -1 } : { k, dir: k === 'name' || k === 'pos' || k === 'contract' ? 1 : -1 }));
   const meus = useMemo(() => {
     const pros = players.filter(p => p.teamId === meuId).map(p => ({ p, origem: 'ELENCO' as const }));
@@ -560,7 +572,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
           </button>
         ))}
         <div className="ml-auto flex gap-8 text-xs font-black uppercase tracking-widest text-slate-500">
-        <span>{tx('Transfer budget:')} <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(userTeam.transferBudget ?? 0)}</b></span>
+        <span title={tx("What is left of this season's transfer budget (purchases take from it; half of each sale goes back into it)")}>{tx('Transfer budget left:')} <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(userTeam.transferBudget ?? 0)}</b></span>
         <span>{tx('Cash:')} <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(userTeam.cash)}</b></span>
         <span>{tx('Wage bill:')} <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(players.filter(p => p.teamId === meuId).reduce((a, p) => a + p.salary, 0))}/w</b></span>
       </div>

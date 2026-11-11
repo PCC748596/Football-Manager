@@ -13,7 +13,8 @@ test('jogo de 5 minutos: notas validas, as duas equipas e JSON', { timeout: 1200
     const cena = new THREE.Scene(); Match.init(cena);
     if (typeof Officials !== 'undefined' && Officials.init) Officials.init(cena);
     if (typeof Sim === 'undefined') global.Sim = {}; Sim.running = true;
-    const ea = SquadsData.equipas.find(e => e.nome === 'Palmeiras-SP'), eb = SquadsData.equipas.find(e => e.nome === 'Remo-PA');
+    // com o mod os nomes reais; sem ele (a base generica) os dois primeiros times
+    const ea = SquadsData.equipas.find(e => e.nome === 'Palmeiras-SP') || SquadsData.equipas[0], eb = SquadsData.equipas.find(e => e.nome === 'Remo-PA') || SquadsData.equipas[1];
     Match.trocarEquipas({ A: ea.id, B: eb.id });
     MatchStats.reset(); Match.tempoDeJogo = 0; Match.placarA = 0; Match.placarB = 0; Notas.iniciar();
     Match.mudarEstado('PLAY', 'teste');

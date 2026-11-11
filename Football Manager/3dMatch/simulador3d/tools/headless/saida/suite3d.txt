@@ -1,0 +1,584 @@
+TAP version 13
+# [placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+# 1 — o tunel existe e esta configurado
+#   . TunelJogadores activo
+#   . boca em x=-45.4, fundo em x=-52.6
+#   . a caixa do tunel esta na cena
+#   . o pessoal do estadio fica fora do corredor do tunel
+# 2 — a entrada acaba com o trio ao centro e um time de cada lado
+#   . a abertura arranca no estado ABERTURA
+#   . os 22 estao na mesma fila (x)
+#   . cada time no lado da sua metade do campo, um de cada lado do trio
+#   . espacamento regular na fila
+#   . o juiz esta ao centro da fila, um pouco a frente dos assistentes
+#   . os assistentes ficam atras do juiz
+#   . a bola esta na mao do juiz
+#   . todos visiveis
+#   . alinhados aos 27 s
+#   . entrada > espera (10 s) > caminhada para as posicoes > jogo
+#   . o jogo arranca com a saida de bola
+# 3 — ESC salta para a formacao inicial
+# [placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+#   . ainda a meio da entrada aos 8 s
+#   . ESC: estado PLAY com a saida de bola montada
+#   . todos visiveis e livres da coreografia
+#   . todos dentro do campo
+# 4 — a volta do intervalo: ordem aleatoria, direto para os postos, sem grito de golo
+# [placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+#   . intervalo > saida pelo tunel > caminhada > jogo
+#   . os 22 sairam do tunel
+#   . ordem aleatoria (nao a do plantel)
+#   . sem festa de golo no estado GOAL
+#   . todos visiveis e livres
+# OK: a abertura pelo tunel funciona.
+# Subtest: tests\\abertura_tunel.test.js
+ok 1 - tests\\abertura_tunel.test.js
+  ---
+  duration_ms: 29402.8017
+  type: 'test'
+  ...
+# 1 — sair de um gesto limpa o actionState
+#   . PASS -> SET_PIECE_WAIT: limpo
+#   . SHOOT -> qualquer estado normal: limpo
+# 2 — mas NAO limpa ao entrar no gesto
+#   . PASS, SHOOT e CROSS mantem o actionState
+# 3 — a mudanca para o MESMO estado nao mexe em nada
+#   . mesmo estado: no-op, como sempre foi
+# 4 — o tick continua a travar em quem TEM um gesto a decorrer
+#   . a guarda do tick continua la
+# 5 — a limpeza vive no changeState, e nao espalhada
+#   . no changeState: apanha TODAS as saidas, incluindo as futuras
+# actionstate_pendurado: tudo bem.
+# Subtest: tests\\actionstate_pendurado.test.js
+ok 2 - tests\\actionstate_pendurado.test.js
+  ---
+  duration_ms: 146.0577
+  type: 'test'
+  ...
+# [placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+# Z:\\OneDrive_LEVU_TEMP\\APPs\\Football Manager\\Football Manager\\3dMatch\\simulador3d\\tests\\adaptador_manager.test.js:36
+#         const melhor = real.plantel.filter(j => !usados.has(j.id)).sort((a, b) => ((b.pb && b.pb[pos]) || 0) - ((a.pb && a.pb[pos]) || 0))[0];
+#                             ^
+# TypeError: Cannot read properties of undefined (reading 'plantel')
+#     at equipaMgr (Z:\\OneDrive_LEVU_TEMP\\APPs\\Football Manager\\Football Manager\\3dMatch\\simulador3d\\tests\\adaptador_manager.test.js:36:29)
+#     at Object.<anonymous> (Z:\\OneDrive_LEVU_TEMP\\APPs\\Football Manager\\Football Manager\\3dMatch\\simulador3d\\tests\\adaptador_manager.test.js:45:15)
+#     at Module._compile (node:internal/modules/cjs/loader:1706:14)
+#     at Object..js (node:internal/modules/cjs/loader:1839:10)
+#     at Module.load (node:internal/modules/cjs/loader:1441:32)
+#     at Function._load (node:internal/modules/cjs/loader:1263:12)
+#     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+#     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+#     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+#     at node:internal/main/run_main_module:36:49
+# Node.js v22.19.0
+# Subtest: tests\\adaptador_manager.test.js
+not ok 3 - tests\\adaptador_manager.test.js
+  ---
+  duration_ms: 3754.2165
+  type: 'test'
+  location: 'Z:\\OneDrive_LEVU_TEMP\\APPs\\Football Manager\\Football Manager\\3dMatch\\simulador3d\\tests\\adaptador_manager.test.js:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: os três números do alívio vivem no config
+ok 4 - os três números do alívio vivem no config
+  ---
+  duration_ms: 1.9306
+  type: 'test'
+  ...
+# Subtest: encostado à própria linha de fundo, sai por ela
+ok 5 - encostado à própria linha de fundo, sai por ela
+  ---
+  duration_ms: 0.3499
+  type: 'test'
+  ...
+# Subtest: no meio-campo, continua a sair pela lateral e para a frente
+ok 6 - no meio-campo, continua a sair pela lateral e para a frente
+  ---
+  duration_ms: 0.2027
+  type: 'test'
+  ...
+# Subtest: encostado à lateral, sai pela lateral mesmo dentro da área
+ok 7 - encostado à lateral, sai pela lateral mesmo dentro da área
+  ---
+  duration_ms: 0.2115
+  type: 'test'
+  ...
+# Subtest: fora do fundoMax é sempre lateral, mesmo no eixo
+ok 8 - fora do fundoMax é sempre lateral, mesmo no eixo
+  ---
+  duration_ms: 0.3278
+  type: 'test'
+  ...
+# Subtest: funciona a atacar para -Z
+ok 9 - funciona a atacar para -Z
+  ---
+  duration_ms: 0.201
+  type: 'test'
+  ...
+# Subtest: o actClearance usa a função e conta o afastamento
+ok 10 - o actClearance usa a função e conta o afastamento
+  ---
+  duration_ms: 0.3604
+  type: 'test'
+  ...
+# Subtest: da linha de fundo adversária o alvo do alívio sai do campo
+ok 11 - da linha de fundo adversária o alvo do alívio sai do campo
+  ---
+  duration_ms: 0.1725
+  type: 'test'
+  ...
+# Subtest: o ramo do chute para a lateral não dispara no terço ofensivo
+ok 12 - o ramo do chute para a lateral não dispara no terço ofensivo
+  ---
+  duration_ms: 0.6238
+  type: 'test'
+  ...
+# Subtest: o alívio de perigo continua a ser só de quem defende, na sua zona
+ok 13 - o alívio de perigo continua a ser só de quem defende, na sua zona
+  ---
+  duration_ms: 0.6885
+  type: 'test'
+  ...
+# 1 — a faixa declarada e a pedida
+#   . min = 1.65
+#   . max = 1.90
+#   . o modelo esta activo
+# 2 — nenhuma parcela sozinha estoura o tecto
+#   . o maior caso sem ruido da 1.847, dentro do tecto 1.9
+#   . o menor caso sem ruido da 1.717, dentro do piso 1.65
+# 3 — os plantéis reais, com a conta a serio
+#     1671 jogadores, 1.651 a 1.900 m, media 1.778
+#   . todos dentro de [1.65, 1.9]
+#   . 9 colados em 1671 (0.5%): o clamp e so rede de seguranca
+#   . media realizada 1.778, no alvo de 1.75
+#   . 224 alturas distintas em 1671 jogadores
+#   . amplitude de 0.249 m dentro dos 0.25 disponiveis
+# OK: as alturas ficam entre 1.65 e 1.90, espalhadas e com media 1.75.
+# Subtest: tests\\altura_dos_jogadores.test.js
+ok 5 - tests\\altura_dos_jogadores.test.js
+  ---
+  duration_ms: 220.1214
+  type: 'test'
+  ...
+# Subtest: a proposta mais forte ganha
+ok 15 - a proposta mais forte ganha
+  ---
+  duration_ms: 2.1961
+  type: 'test'
+  ...
+# Subtest: um limite mais forte corta o alvo
+ok 16 - um limite mais forte corta o alvo
+  ---
+  duration_ms: 1.3059
+  type: 'test'
+  ...
+# Subtest: um limite mais FRACO não fala
+ok 17 - um limite mais FRACO não fala
+  ---
+  duration_ms: 0.1935
+  type: 'test'
+  ...
+# Subtest: as leis do jogo cortam tudo, incluindo a tarefa de bola
+ok 18 - as leis do jogo cortam tudo, incluindo a tarefa de bola
+  ---
+  duration_ms: 0.1726
+  type: 'test'
+  ...
+# Subtest: o limite só corta para trás, nunca empurra para a frente
+ok 19 - o limite só corta para trás, nunca empurra para a frente
+  ---
+  duration_ms: 0.3502
+  type: 'test'
+  ...
+# Subtest: o avanço conta no referencial de ataque (dirZ negativo)
+ok 20 - o avanço conta no referencial de ataque (dirZ negativo)
+  ---
+  duration_ms: 0.2984
+  type: 'test'
+  ...
+# Subtest: sem propostas o alvo não é tocado
+ok 21 - sem propostas o alvo não é tocado
+  ---
+  duration_ms: 0.317
+  type: 'test'
+  ...
+# Subtest: a estrutura é alisada; a acção e a bola entram a direito
+ok 22 - a estrutura é alisada; a acção e a bola entram a direito
+  ---
+  duration_ms: 0.4277
+  type: 'test'
+  ...
+# Subtest: entre duas propostas do mesmo nível ganha a primeira
+ok 23 - entre duas propostas do mesmo nível ganha a primeira
+  ---
+  duration_ms: 0.4071
+  type: 'test'
+  ...
+# Subtest: a ordem dos níveis é a da auditoria
+ok 24 - a ordem dos níveis é a da auditoria
+  ---
+  duration_ms: 0.9627
+  type: 'test'
+  ...
+# 1 — os dois limites sao os pedidos
+#   . sem carrinho: cos 0.7071 = 45 graus
+#   . sao os 45 graus pedidos
+#   . com carrinho: cos 0.1736 = 80 graus
+#   . sao os 80 graus pedidos
+#   . o carrinho abre o angulo, como a regra manda
+# 2 — a regra vive num sitio so, e os tres caminhos usam-na
+#   . existe o `podeTirarABola` em utils.js
+#   . existe o `emCarrinho`
+#   . a disputa por proximidade chama o podeTirarABola
+#   . os desarmes da FSM chama o podeTirarABola
+#   . a fsm.js chama-o 2 vezes (desarme em pe e deslize)
+#   . o desarme em pe ja nao tem o limite escrito a mao
+#   . o deslize ja nao tem o limite escrito a mao
+# 3 — a conta, exercitada
+#   . de frente, sem carrinho: pode
+#   . 40 graus, sem carrinho: pode
+#   . 50 graus, sem carrinho: nao pode
+#   . 70 graus, sem carrinho: nao pode
+#   . 70 graus, COM carrinho: pode
+#   . 85 graus, com carrinho: nao pode
+#   . pelas costas, sem carrinho: nao pode
+#   . pelas costas, com carrinho: nao pode
+# OK: 45 graus sem carrinho, 80 com, e a mesma regra nos tres caminhos.
+# Subtest: tests\\angulo_do_roubo.test.js
+ok 7 - tests\\angulo_do_roubo.test.js
+  ---
+  duration_ms: 175.2539
+  type: 'test'
+  ...
+# Subtest: os antebraços começam levemente à frente na construção do modelo
+ok 26 - os antebraços começam levemente à frente na construção do modelo
+  ---
+  duration_ms: 40.5071
+  type: 'test'
+  ...
+# Subtest: as configurações de idle/repouso definem o cotovelo para a frente
+ok 27 - as configurações de idle/repouso definem o cotovelo para a frente
+  ---
+  duration_ms: 9.068
+  type: 'test'
+  ...
+# Subtest: o código de animação e reset do jogador posiciona o antebraço para a frente em idle
+ok 28 - o código de animação e reset do jogador posiciona o antebraço para a frente em idle
+  ---
+  duration_ms: 4.4428
+  type: 'test'
+  ...
+# Subtest: o 3D e o manager dao a mesma aparencia ao mesmo jogador
+ok 29 - o 3D e o manager dao a mesma aparencia ao mesmo jogador
+  ---
+  duration_ms: 4.223
+  type: 'test'
+  ...
+# Subtest: o mesmo jogador sai sempre igual, e ha variedade entre jogadores
+ok 30 - o mesmo jogador sai sempre igual, e ha variedade entre jogadores
+  ---
+  duration_ms: 2.6043
+  type: 'test'
+  ...
+# Subtest: a face personalizada manda sobre o sorteio, igual no 3D e no manager
+ok 31 - a face personalizada manda sobre o sorteio, igual no 3D e no manager
+  ---
+  duration_ms: 0.6575
+  type: 'test'
+  ...
+#   . angulos por omissão = leque de sempre
+#   . angulosPorPosicao existe
+#   . sem restrição: ponto a 0° (como antes)
+#   . leque -150/150: ponto a -150°
+#   . leque vazio: sem apoio
+# OK
+# Subtest: tests\\apoio_angulos_por_posicao.test.js
+ok 10 - tests\\apoio_angulos_por_posicao.test.js
+  ---
+  duration_ms: 121.205
+  type: 'test'
+  ...
+# 1 — as cores e o tamanho do disco
+#   . raio 0.85, fundo \#101216, linha \#f2c400
+#   . 0.85 — igual ao do jogador
+# 2 — as etiquetas R e A
+#   . árbitro: 'R'
+#   . assistentes: 'A' nos dois
+# 3 — boneco numa vista, disco na outra
+#   . topdown: três discos, zero bonecos
+#   . o disco segue o oficial, pousado no relvado
+#   . nas outras câmaras: três bonecos, zero discos
+#   . com os árbitros desligados não fica boneco nem disco
+# arbitro_disco_tatico: tudo bem.
+# Subtest: tests\\arbitro_disco_tatico.test.js
+ok 11 - tests\\arbitro_disco_tatico.test.js
+  ---
+  duration_ms: 126.2791
+  type: 'test'
+  ...
+# Subtest: no canto ele fica FORA da grande area (e nao no meio dela, onde esta o aglomerado)
+ok 34 - no canto ele fica FORA da grande area (e nao no meio dela, onde esta o aglomerado)
+  ---
+  duration_ms: 3.301
+  type: 'test'
+  ...
+# Subtest: e do lado OPOSTO ao da cobrança, nos dois lados
+ok 35 - e do lado OPOSTO ao da cobrança, nos dois lados
+  ---
+  duration_ms: 0.7072
+  type: 'test'
+  ...
+# Subtest: o lado sai da quina onde a bola vai ser reposta, não de onde ela está
+ok 36 - o lado sai da quina onde a bola vai ser reposta, não de onde ela está
+  ---
+  duration_ms: 0.4134
+  type: 'test'
+  ...
+# Subtest: fora do canto e do penálti, continua a ser a diagonal
+ok 37 - fora do canto e do penálti, continua a ser a diagonal
+  ---
+  duration_ms: 0.3834
+  type: 'test'
+  ...
+# escorregamento do árbitro (1.00 = pé colado ao chão)
+#   a correr em frente          escorregamento=1.00 lateralidade=0.00
+#   bola a 90° (corrida rápida) escorregamento=1.00 lateralidade=0.00
+#   bola atrás (de costas)      escorregamento=-0.37 lateralidade=0.45
+#   devagar (2.0 m/s), bola a 90°: escorregamento=0.95 lateralidade=1.00 (passo lateral é normal aqui)
+# tremor com o alvo estabilizado
+#   alvo a vibrar 6 cm: 0 troca(s) da passada, salto vertical máx 0.0 mm
+#   alvo a vibrar 90 cm: 0 troca(s) da passada, salto vertical máx 0.0 mm
+# solavancos com o alvo em fuga contínua
+#   alvo a 3 m/s: 0% dos frames parado, maior salto de velocidade 2.00 m/s
+#   . segue o alvo sem parar (0% dos frames parado)
+#   . sem arranques bruscos (máximo 2.00 m/s por frame)
+# OK: o avanço corresponde à passada, e ele não treme parado.
+# Subtest: tests\\arbitro_passada.test.js
+ok 13 - tests\\arbitro_passada.test.js
+  ---
+  duration_ms: 164.8769
+  type: 'test'
+  ...
+# Subtest: 1 — dimensões canónicas da área
+ok 39 - 1 — dimensões canónicas da área
+  ---
+  duration_ms: 1.6259
+  type: 'test'
+  ...
+# Subtest: 2 — Area.contem sem lado especificado (qualquer baliza)
+ok 40 - 2 — Area.contem sem lado especificado (qualquer baliza)
+  ---
+  duration_ms: 0.354
+  type: 'test'
+  ...
+# Subtest: 3 — Area.contem com lado especificado (+1 ou -1)
+ok 41 - 3 — Area.contem com lado especificado (+1 ou -1)
+  ---
+  duration_ms: 0.2141
+  type: 'test'
+  ...
+# Subtest: 4 — Area.contemPequena
+ok 42 - 4 — Area.contemPequena
+  ---
+  duration_ms: 1.2225
+  type: 'test'
+  ...
+# 1 — a ordem das folhas nao mudou
+# 2 — cada fase tem a sua guarda, uma vez
+#   . a defender: !isAttacking, no ramo
+#   . a atacar: isAttacking, no ramo
+#   . defender antes de atacar, como estava
+# 3 — os ramos de bola ficam fora das duas fases
+#   . os cinco ramos de bola continuam acima e fora das fases
+#   . ocuparPosicao continua a fechar a arvore
+# 4 — os ramos de cada fase estao na fase certa
+#   . Marcar: a defender
+#   . Infiltracao, ApoioDeCirculacao e DesmarqueDeAfastamento: a atacar
+# arvore_sem_bola: 1 falha(s).
+#   X a ordem das folhas MUDOU — a divisao alterou decisoes:
+#       antes: Desarme > Intercetar > IrABola > Tabelinha > Overlap > Receber > GuardaRedes > Marcar > EsperarNaArea > Infiltracao > ApoioDeCirculacao > DesmarqueDeAfastamento > ocuparPosicao
+#       agora: Desarme > Intercetar > IrABola > Tabelinha > Overlap > Receber > GuardaRedes > Marcar > EsperarNaArea > ApoioDeInversao > EntreEspacos > Infiltracao > ApoioDeCirculacao > DesmarqueDeAfastamento > ocuparPosicao
+# Subtest: tests\\arvore_sem_bola.test.js
+not ok 15 - tests\\arvore_sem_bola.test.js
+  ---
+  duration_ms: 110.6805
+  type: 'test'
+  location: 'Z:\\OneDrive_LEVU_TEMP\\APPs\\Football Manager\\Football Manager\\3dMatch\\simulador3d\\tests\\arvore_sem_bola.test.js:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# [placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+# Subtest: a correccao do assento fecha o levantamento no proprio frame
+ok 44 - a correccao do assento fecha o levantamento no proprio frame
+  ---
+  duration_ms: 3.1171
+  type: 'test'
+  ...
+# Subtest: o guarda-redes tambem se assenta: o updateGK chama o assentarNoChao
+ok 45 - o guarda-redes tambem se assenta: o updateGK chama o assentarNoChao
+  ---
+  duration_ms: 4.9133
+  type: 'test'
+  ...
+# Subtest: o guarda-redes so escapa ao assento quando esta mesmo no ar
+not ok 46 - o guarda-redes so escapa ao assento quando esta mesmo no ar
+  ---
+  duration_ms: 10.756
+  type: 'test'
+  location: 'Z:\\OneDrive_LEVU_TEMP\\APPs\\Football Manager\\Football Manager\\3dMatch\\simulador3d\\tests\\assento_converge.test.js:157:1'
+  failureType: 'testCodeFailure'
+  error: "com gkEstado 'apanhar' ele esta de pe e tem de assentar"
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: -0.01
+  actual: -0.01
+  operator: 'notStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (Z:\OneDrive_LEVU_TEMP\APPs\Football Manager\Football Manager\3dMatch\simulador3d\tests\assento_converge.test.js:197:16)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: o assento continua a NAO correr a correr, em saltos e em carrinhos
+ok 47 - o assento continua a NAO correr a correr, em saltos e em carrinhos
+  ---
+  duration_ms: 2.58
+  type: 'test'
+  ...
+# 1 — o config existe e é sóbrio
+#   . a correcção pára antes da corrida (velMax 4 m/s)
+#   . a correcção entra por fracção, não de um salto
+# 2 — o joelho dobrado deixa de levantar a sola
+#   sola antes 0.054 m, depois 0.000 m
+#   . com o joelho dobrado, a bota acaba no chão
+# 3 — e sobe quem está enterrado
+#   . quem está enterrado sobe até encostar
+# 4 — o que escreve a própria altura não é assentado
+#   . a saltar: altura intacta
+#   . num carrinho: altura intacta
+# 4b — a correr: sobe quem enterra, mas ninguém é empurrado para baixo
+#   . a correr com a sola no ar: altura intacta
+#   . a correr com a bota enterrada: sobe até encostar
+# 5 — a correcção tem tecto
+#   . uma pose absurda não teleporta o boneco
+# 6 — o animateBones chama-o depois de escrever a pose, nos DOIS ramos
+#   . assenta-se depois de a pose estar escrita
+#   . os dois ramos (parado e em movimento) assentam o pé
+# Assento no chão: todos os cenários passaram.
+#   . afundamento da sola configurado: 0.01 m
+# Subtest: tests\\assento_no_chao.test.js
+ok 17 - tests\\assento_no_chao.test.js
+  ---
+  duration_ms: 295.4309
+  type: 'test'
+  ...
+# [placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+# Subtest: lado das cameras: o z quase nao muda ate o x chegar a linha lateral
+ok 49 - lado das cameras: o z quase nao muda ate o x chegar a linha lateral
+  ---
+  duration_ms: 59.7121
+  type: 'test'
+  ...
+# Subtest: lado oposto: vai em diagonal (o z ja muda antes de chegar a linha)
+ok 50 - lado oposto: vai em diagonal (o z ja muda antes de chegar a linha)
+  ---
+  duration_ms: 30.7908
+  type: 'test'
+  ...
+# [placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+# Subtest: a caminho do posto vao de frente para onde andam (< 35 graus de desvio)
+ok 51 - a caminho do posto vao de frente para onde andam (< 35 graus de desvio)
+  ---
+  duration_ms: 1.1148
+  type: 'test'
+  ...
+# Subtest: os dois chegam a linha lateral e a sua linha de impedimento (nenhum fica no meio-campo)
+ok 52 - os dois chegam a linha lateral e a sua linha de impedimento (nenhum fica no meio-campo)
+  ---
+  duration_ms: 0.3254
+  type: 'test'
+  ...
+# 1 — o corredor da conducao nao abre com a tecnica
+#   . CarryModel.aberturaCorredor = 0.12
+#   . a 10 m o corredor tem 5.2 m de meia-largura (era 34.8 a tecnica 80)
+#   . o PlayerContext le a abertura do CarryModel, nao do cone de visao
+#   . o alcance continua a vir da visao
+# 2 — o cabeceio na area: livre remata, marcado escora
+#   . raioRemateCabeca = 11 m (o raio geral, fora da area)
+#   . raioRemateNaArea = 16 m
+#   . o raio dentro da area e maior que o geral
+#   . e nao alcanca a esquina da area (onde cabecear ao golo nao existe)
+#   . exige estar dentro da grande area
+#   . exige estar sem marcador
+#   . poe tecto na distancia
+#   . continua a exigir estar virado para a baliza
+#   . o inShootingRange soma o caso da area ao raio geral
+#   . o marcador e calculado antes da decisao que o usa
+# OK: o corredor mede o caminho, e quem esta livre na area cabeceia a baliza.
+# Subtest: tests\\atacante_progride.test.js
+ok 20 - tests\\atacante_progride.test.js
+  ---
+  duration_ms: 94.1771
+  type: 'test'
+  ...
+# [placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+# Officials: TeamA (CM) EXPULSO, ficam 10 em campo.
+# Subtest: cada posse é uma sequência, e as sequências são muitas
+ok 54 - cada posse é uma sequência, e as sequências são muitas
+  ---
+  duration_ms: 2.4448
+  type: 'test'
+  ...
+# Subtest: a razão perigosos/totais bate com a do alvo
+ok 55 - a razão perigosos/totais bate com a do alvo
+  ---
+  duration_ms: 0.2648
+  type: 'test'
+  ...
+# Subtest: o último terço é marcado pela BOLA, e a sequência pela POSSE
+ok 56 - o último terço é marcado pela BOLA, e a sequência pela POSSE
+  ---
+  duration_ms: 1.7514
+  type: 'test'
+  ...
+# Golo normal: TeamB marca na baliza do TeamA
+#   ok   golo para o TeamB
+#   ok   TeamA sem golo
+#   ok   sofrido no TeamA
+#   ok   placar 0-1
+#   ok   assistência confirmada
+#   ok   grande chance confirmada
+# Autogolo: TeamA marca na PRÓPRIA baliza
+#   ok   golo para o TeamB, que não lhe tocou
+#   ok   o TeamA NÃO soma golo marcado
+#   ok   sofrido no TeamA
+#   ok   placar 0-1
+#   ok   sem assistência num autogolo
+#   ok   sem grande chance num autogolo
+# Autogolo do outro lado: TeamB na baliza de z positivo
+#   ok   golo para o TeamA
+#   ok   sofrido no TeamB
+#   ok   placar 1-0
+# Marcados e sofridos fecham nos dois casos
+#   ok   marcados = sofridos
+#   ok   placar = golos marcados
+#   ok   marcados = sofridos
+#   ok   placar = golos marcados
+# Todos os cenários passaram.
+# Subtest: tests\\autogolo.test.js
+ok 22 - tests\\autogolo.test.js
+  ---
+  duration_ms: 84.1655
+  type: 'test'
+  ...

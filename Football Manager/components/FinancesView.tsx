@@ -284,11 +284,11 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                         <td className="px-4 py-1 text-center">
                           {/* Nao vende direto: poe o jogador na LISTA DE VENDA (as ofertas chegam em Negotiations); clicar de novo tira da lista. */}
                           {(windowOpen || p.listedForSale) && (
-                            <button onClick={() => listarParaVenda(p.id, !p.listedForSale)} title={p.listedForSale ? 'Listed for sale — click to remove from the list' : 'Put on the transfer list: offers arrive in Negotiations'}
+                            <button onClick={() => listarParaVenda(p.id, !p.listedForSale)} title={p.listedForSale ? tx('Listed for sale — click to remove from the list') : tx('Put on the transfer list: offers arrive in Negotiations')}
                               className={p.listedForSale
                                 ? 'text-[10px] uppercase font-black tracking-wider border border-emerald-500/50 bg-emerald-500/15 text-emerald-500 hover:brightness-125 px-2 py-1 rounded-md whitespace-nowrap transition'
                                 : 'text-[10px] text-rose-600 uppercase opacity-0 group-hover:opacity-100 font-black tracking-wider border border-rose-500/40 hover:bg-rose-500/10 px-2 py-1 rounded-md whitespace-nowrap transition'}>
-                              {p.listedForSale ? 'Listed ✓' : t('fin_sell')}
+                              {p.listedForSale ? tx('Listed ✓') : t('fin_sell')}
                             </button>
                           )}
                         </td>
@@ -313,10 +313,13 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                           const pool = orcamentoDaTemporada(userTeam), folha = folhaAnual(teamPlayers.map(p => p.salary));
                           const maxPct = Math.round(maxCompras(userTeam, folha) * 100), folhaPct = pool > 0 ? Math.min(100, (folha / pool) * 100) : 100;
                           const pct = Math.min(Math.round((userTeam.transferPct ?? PADRAO_COMPRAS) * 100), maxPct), pt = gameState.language === 'PT';
+                          // planeado (a fatia da temporada) x o que resta (`transferBudget`, o do Transfer Market): a diferenca e o que ja foi usado em compras (menos a parte das vendas que volta)
+                          const planeado = userTeam.initialTransfer || 0, restante = Math.max(0, userTeam.transferBudget ?? 0), gasto = Math.max(0, planeado - restante);
+                          const gastoPct = pool > 0 ? Math.min(pct, (gasto / pool) * 100) : 0;
                           return (
                             <div className="mt-[7px]">
                               <div className="flex justify-between text-base font-black uppercase tracking-wide">
-                                <span className="text-emerald-600">{tx('Transfers')} {pct}% · {formatCurrency(userTeam.initialTransfer || 0)}</span>
+                                <span className="text-emerald-600">{tx('Transfers')} {pct}% · {formatCurrency(planeado)}</span>
                                 <span className="text-rose-500">{tx('Wages')} {100 - pct}% · {formatCurrency(orcamentoDaTemporada(userTeam) - (userTeam.initialTransfer || 0))}</span>
                               </div>
                               <div className="relative mt-2">
@@ -325,6 +328,13 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                                   className="orcamento-range w-full"
                                   style={{ background: `linear-gradient(to right, #059669 ${pct}%, #f43f5e ${pct}%)` }} />
                                 <div className="orcamento-folha" style={{ width: `${folhaPct}%` }} title={tx('Annual payroll (wage minimum): {v0}', { v0: formatCurrency(folha) })} />
+                                {/* o GASTO da parte de compras (escurecido sobre o verde, a partir da esquerda) */}
+                                {gastoPct > 0 && <div className="absolute left-0 top-0 h-full rounded-l bg-emerald-950/70 pointer-events-none" style={{ width: `${gastoPct}%` }} title={tx('Used: {v0}', { v0: formatCurrency(gasto) })} />}
+                              </div>
+                              {/* A barra e o PLANEADO para a temporada; o que ainda se pode gastar agora (`transferBudget`, o do Transfer Market) desce a cada compra e sobe com parte das vendas. */}
+                              <div className="mt-1.5 flex justify-between text-[11px] font-bold text-slate-400">
+                                <span>{tx('Used:')} <b className="text-slate-600 dark:text-slate-200">{formatCurrency(gasto)}</b> · {tx('Left:')} <b className="text-emerald-500">{formatCurrency(restante)}</b></span>
+                                <span>{tx('Cash:')} <b className="text-slate-600 dark:text-slate-200">{formatCurrency(userTeam.cash)}</b></span>
                               </div>
                             </div>
                           );

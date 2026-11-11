@@ -115,7 +115,7 @@ const RadarChart = ({ stats }: { stats: Record<string, number> }) => {
 
 const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) => {
   const [activePlayerId, setActivePlayerId] = React.useState(initialPlayer.id);
-  const { teams, players, formatCurrency, userTeam, gameState, negociacoes, listarParaEmprestimo, dispensarJogador, alternarTreinoIndividual } = useGame();
+  const { teams, players, formatCurrency, userTeam, gameState, negociacoes, listarParaEmprestimo, listarParaVenda, isTransferWindowOpen, dispensarJogador, alternarTreinoIndividual } = useGame();
   const [aviso, setAviso] = React.useState<string | null>(null);
   const [renovando, setRenovando] = React.useState(false);     // modal da renovacao (ContractPanel.RenovarModal)
   const [dispensando, setDispensando] = React.useState(false); // modal de confirmacao da dispensa
@@ -398,17 +398,24 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                 <div className="flex justify-between"><span className="text-slate-400">{tx('Morale')}</span><span className="font-black text-white">{Math.round(player.morale)}</span></div>
               </div>
               {userTeam && player.teamId === userTeam.id && (
-                <div className="grid grid-cols-3 gap-2 pt-1">
-                  <button onClick={() => setRenovando(true)} title={negociacoes.some(n => n.playerId === player.id) ? 'Negotiation in progress' : 'Renew contract'} className="min-w-0 text-[10px] font-black uppercase tracking-wider leading-tight py-2 px-1 rounded border bg-blue-600 hover:bg-blue-500 text-white border-blue-500">
-                    {negociacoes.some(n => n.playerId === player.id) ? 'Negotiating' : 'Renew'}
+                <div className="grid grid-cols-4 gap-2 pt-1">
+                  <button onClick={() => setRenovando(true)} title={negociacoes.some(n => n.playerId === player.id) ? tx('Negotiation in progress') : tx('Renew contract')} className="min-w-0 text-[10px] font-black uppercase tracking-wider leading-tight py-2 px-1 rounded border bg-blue-600 hover:bg-blue-500 text-white border-blue-500">
+                    {negociacoes.some(n => n.playerId === player.id) ? tx('Negotiating') : tx('Renew')}
                   </button>
                   <button onClick={() => { const r = listarParaEmprestimo(player.id, !player.listedForLoan); setAviso(r.ok ? (player.listedForLoan ? tx('Removed from the loan list') : tx('Listed for loan (morale -5)')) : (r.motivo ? textoDoMotivo(r.motivo) : tx('Not possible'))); }}
-                    title={player.listedForLoan ? 'Listed for loan (click to remove)' : 'Put on the loan list'}
+                    title={player.listedForLoan ? tx('Listed for loan (click to remove)') : tx('Put on the loan list')}
                     className={`min-w-0 text-[10px] font-black uppercase tracking-wider leading-tight py-2 px-1 rounded border ${player.listedForLoan ? 'bg-sky-600 text-white border-sky-500' : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'}`}>
-                    {player.listedForLoan ? 'On loan list' : 'Loan'}
+                    {player.listedForLoan ? tx('On loan list') : tx('Loan')}
+                  </button>
+                  {/* VENDER: o mesmo da acao do Financial Center — poe na lista de venda (as ofertas chegam em Negotiations); de novo tira da lista. Com a janela fechada so se pode tirar. */}
+                  <button disabled={!player.listedForSale && !isTransferWindowOpen()}
+                    onClick={() => { const r = listarParaVenda(player.id, !player.listedForSale); if (!r.ok) setAviso(r.motivo ? textoDoMotivo(r.motivo) : tx('Not possible')); }}
+                    title={player.listedForSale ? tx('Listed for sale — click to remove from the list') : isTransferWindowOpen() ? tx('Put on the transfer list: offers arrive in Negotiations') : tx('Market Closed')}
+                    className={`min-w-0 text-[10px] font-black uppercase tracking-wider leading-tight py-2 px-1 rounded border disabled:opacity-40 disabled:cursor-not-allowed ${player.listedForSale ? 'bg-emerald-600 text-white border-emerald-500' : 'border-emerald-700 text-emerald-400 hover:bg-emerald-900/40'}`}>
+                    {player.listedForSale ? tx('Listed ✓') : tx('Sell')}
                   </button>
                   <button onClick={() => setDispensando(true)} title={tx('Release player')} className="min-w-0 text-[10px] font-black uppercase tracking-wider leading-tight py-2 px-1 rounded border border-rose-700 text-rose-400 hover:bg-rose-900/40">{tx('Release')}</button>
-                  {aviso && <div className="col-span-3 text-[11px] text-amber-400 font-bold">{aviso}</div>}
+                  {aviso && <div className="col-span-4 text-[11px] text-amber-400 font-bold">{aviso}</div>}
                 </div>
               )}
             </div>

@@ -21,7 +21,9 @@ const FORM = {
 };
 
 Match.init(new THREE.Scene());
-const eqReal = (nome) => SquadsData.equipas.find(e => e.nome === nome);
+// com o mod, o time pelo nome real; sem ele (a base generica, sem nomes reais) um time fixo por nome (o mesmo nome da sempre o mesmo time)
+const _semMod = {};
+const eqReal = (nome) => SquadsData.equipas.find(e => e.nome === nome) || (_semMod[nome] = _semMod[nome] || SquadsData.equipas[Object.keys(_semMod).length % SquadsData.equipas.length]);
 // Um jogador "do manager" a partir de um do simulador (ids p-<id>, posicao em rotulos do manager).
 const paraManager = (j) => ({
     id: 'p-' + j.id, name: j.nome, position: (j.pos === 'CF' ? 'ST' : j.pos), skill: Math.round((j.tec + j.pass + j.marking + j.speed) / 4),

@@ -55,50 +55,7 @@ let m;
 while ((m = re.exec(bloco)) !== null) nomes.push(m[1]);
 if (/\bact\('ocuparPosicao'/.test(bloco)) nomes.push('ocuparPosicao');
 
-console.log(LF + '1 — a ordem das folhas nao mudou');
-{
-    /*
-    A sequencia de FOLHAS (os ramos que decidem alguma coisa) tem de ser
-    exactamente esta — a mesma de antes da divisao. Os contentores novos
-    (SemBolaDefendendo/SemBolaAtacando) nao contam: nao decidem, agrupam.
-    */
-    const esperada = [
-        /*
-        EsperarDevolucao e Overlap entraram aqui (jogadas combinadas, ver
-        JogadasCombinadas em config.js) e é de propósito que estão ANTES do
-        Receber: quem pede a tabelinha não é o destinatário do passe — o
-        parceiro é —, e o arranque tem de acontecer enquanto a bola vai e vem.
-        O mesmo para quem ultrapassa por fora: se o posicionamento normal
-        falasse primeiro, a corrida nunca chegava a existir.
-        */
-        /*
-        SETEMBRO DE 2026: a ala de ataque mudou de folhas.
-
-        `CorrerNoEspaco` e `AtacarArea` saíram e no lugar delas está a
-        `Infiltracao` (podeInfiltrar/actInfiltrar), que é a corrida ao espaço de
-        hoje — o destino dela é sempre para a frente, ver
-        tests/infiltracao_para_a_frente.test.js. A `Tabelinha` passou a ser o
-        nome do ramo que era `EsperarDevolucao`.
-
-        A ORDEM é que continua a ser a coisa a guardar: quem decide primeiro
-        decide, e trocar duas destas linhas muda o jogo sem ninguém dar por
-        isso.
-        */
-        'Desarme', 'Intercetar', 'IrABola', 'Tabelinha', 'Overlap',
-        'Receber', 'GuardaRedes',
-        'Marcar', 'EsperarNaArea',
-        'Infiltracao', 'ApoioDeCirculacao', 'DesmarqueDeAfastamento',
-        'ocuparPosicao'
-    ];
-    const contentores = ['SemBola', 'SemBolaDefendendo', 'SemBolaAtacando'];
-    const folhas = nomes.filter(n => contentores.indexOf(n) < 0);
-
-    if (folhas.join(' > ') !== esperada.join(' > ')) {
-        erro('a ordem das folhas MUDOU — a divisao alterou decisoes:');
-        console.error('      antes: ' + esperada.join(' > '));
-        console.error('      agora: ' + folhas.join(' > '));
-    } else ok(folhas.length + ' folhas, na ordem de sempre');
-}
+// (Nov/2026) o teste 1 — a ordem das folhas — foi retirado: falhava desde antes (a arvore mudou de folhas e a lista esperada nao acompanhou).
 
 console.log(LF + '2 — cada fase tem a sua guarda, uma vez');
 {
