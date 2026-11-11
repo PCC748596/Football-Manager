@@ -1091,6 +1091,11 @@
   "Fratura de Fíbula / Tíbia": "Fracture du péroné / tibia",
   "Lesão no Menisco": "Lésion du ménisque",
   "Pubalgia Crônica": "Pubalgie chronique",
-  "Fratura na Costela": "Fracture de côte"
+  "Fratura na Costela": "Fracture de côte",
+  "Sign for free (pre-contract)": "Recruter gratuitement (pré-contrat)",
+  "Less than 6 months left on his contract: no transfer fee.": "Moins de 6 mois de contrat restants : aucune indemnité de transfert.",
+  "{v0} signed on a free transfer": "{v0} recruté gratuitement",
+  "{v0} left on a free transfer": "{v0} est parti libre",
+  "{v0} had less than 6 months left on his contract and signed with {v1}. The club receives no fee.": "{v0} avait moins de 6 mois de contrat et a signé avec {v1}. Le club ne touche rien."
  }
 }

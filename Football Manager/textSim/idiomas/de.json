@@ -660,7 +660,7 @@
   "FOOT": "FOOT",
   "FOR SALE": "ZU VERKAUFEN",
   "FORMATION": "FORMATION",
-  "FREE": "FREI",
+  "FREE": "ABLÖSEFREI",
   "First name": "Vorname",
   "Fixture List for": "Spielliste für",
   "For each row, copies this column, mirrored, to the opposite column": "Kopiert in jeder Reihe diese Spalte gespiegelt in die gegenüberliegende Spalte",
@@ -1091,6 +1091,11 @@
   "Fratura de Fíbula / Tíbia": "Waden-/Schienbeinbruch",
   "Lesão no Menisco": "Meniskusverletzung",
   "Pubalgia Crônica": "Chronische Schambeinentzündung",
-  "Fratura na Costela": "Rippenbruch"
+  "Fratura na Costela": "Rippenbruch",
+  "Sign for free (pre-contract)": "Ablösefrei verpflichten (Vorvertrag)",
+  "Less than 6 months left on his contract: no transfer fee.": "Weniger als 6 Monate Vertrag übrig: keine Ablöse.",
+  "{v0} signed on a free transfer": "{v0} ablösefrei verpflichtet",
+  "{v0} left on a free transfer": "{v0} ist ablösefrei gegangen",
+  "{v0} had less than 6 months left on his contract and signed with {v1}. The club receives no fee.": "{v0} hatte weniger als 6 Monate Vertrag und unterschrieb bei {v1}. Der Verein erhält keine Ablöse."
  }
 }

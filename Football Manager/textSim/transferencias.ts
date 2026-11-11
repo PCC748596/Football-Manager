@@ -16,6 +16,11 @@ JOGADORES DO SUB-20 com `idadeMinimaBase` anos ou mais tambem podem ser negociad
 com o mesmo id, atributos, potencial e contrato.
 
 AGENTES LIVRES (`teamId === 'MARKET'`) contratam-se sem taxa, com contrato novo pela idade; a janela nao se aplica se `agentesLivresForaDaJanela`.
+
+PRE-CONTRATO: o jogador com MENOS DE `mesesPreContrato` (6) meses de contrato pode assinar com outro clube SEM custo de saida (nem taxa de venda): o comprador contrata-o
+como a um agente livre (`contratarAgenteLivre`), ele sai na hora do clube atual, que nao recebe nada. Vale para o utilizador e para a CPU, nos dois sentidos (a CPU tambem leva
+jogadores do utilizador com o contrato a acabar). Para esses jogadores nao ha proposta de compra (`proporCompra` recusa): a saida e sempre livre. O clube que perde o jogador
+tem de continuar com o elenco minimo.
 */
 import type { Player, Team } from '../types';
 import { Position } from '../types';
@@ -29,6 +34,7 @@ export const CONFIG_MERCADO = {
   // Janelas de transferencia (por id de pais; `padrao` vale para os outros). O jogo comeca em 1 de abril: a janela de inicio de ano ainda esta aberta.
   janelas: { padrao: [{ de: '01-01', ate: '04-10' }, { de: '07-01', ate: '08-31' }] as Janela[], porPais: {} as Record<string, Janela[]> },
   agentesLivresForaDaJanela: true,
+  mesesPreContrato: 6,                 // com menos do que isto de contrato o jogador assina com outro clube sem custo (pre-contrato)
   idadeMinimaBase: 18,                 // jovens do Sub-20 com esta idade ou mais podem ser negociados
   diasResposta: [1, 3] as [number, number],
   diasRespostaNaoListado: [2, 3] as [number, number],   // 1a oferta por um jogador que o clube nao pos a venda
@@ -52,7 +58,8 @@ export const CONFIG_MERCADO = {
     desejado: { GK: 3, DEF: 9, MID: 9, ATT: 6 } as Record<Grupo, number>,
     margemUpgrade: 4, maxElenco: 34, probOfertaAoHumano: 0.12, bonusListado: 0.35,
     orcamentoMaxPorOferta: 0.75, apetite: [0.85, 1.05] as [number, number], toleranciaContra: 1.08,
-    diasParaDispensar: 21, diasAgenteLivre: 240
+    diasParaDispensar: 21, diasAgenteLivre: 240,
+    maxPreContratosPorDia: 2, probPreContrato: 0.15   // pre-contratos da CPU: no maximo 2 por dia no mundo; sem falta na posicao, so com esta chance (e so se melhora um titular)
   },
   maxTransacoes: 4000
 };
@@ -95,7 +102,7 @@ export interface MercadoState {
 }
 export interface Universo { players: Player[]; base: BaseState | null; teams: Team[]; mercado: MercadoState; }
 export interface Evento {
-  tipo: 'OFERTA_RECEBIDA' | 'CONTRAPROPOSTA' | 'ACEITA' | 'RECUSADA' | 'EXPIRADA' | 'CONCLUIDA_COMPRA' | 'CONCLUIDA_VENDA' | 'AGENTE_LIVRE' | 'BLOQUEADA';
+  tipo: 'OFERTA_RECEBIDA' | 'CONTRAPROPOSTA' | 'ACEITA' | 'RECUSADA' | 'EXPIRADA' | 'CONCLUIDA_COMPRA' | 'CONCLUIDA_VENDA' | 'AGENTE_LIVRE' | 'SAIDA_LIVRE' | 'BLOQUEADA';
   negId: string | null; jogadorId: string; jogadorNome: string; clubeId: string; clubeNome: string; valor: number; motivo?: string;
 }
 export interface Resultado { u: Universo; ok: boolean; motivo?: string; eventos: Evento[]; negId?: string; }
@@ -148,6 +155,10 @@ export const prepararOrcamentos = (teams: Team[], cfg: ConfigMercado = CONFIG_ME
   if (teams.every(t => typeof t.transferBudget === 'number')) return teams;
   return teams.map(t => (typeof t.transferBudget === 'number' ? t : { ...t, transferBudget: orcamentoInicial(t, cfg) }));
 };
+
+/** O jogador de um clube com o contrato a acabar (menos de `mesesPreContrato` meses): pode assinar com outro clube sem custo. */
+export const emPreContrato = (p: Player, hoje: string, cfg: ConfigMercado = CONFIG_MERCADO): boolean =>
+  p.teamId !== 'MARKET' && !!p.contract && p.contract.end > hoje && p.contract.end < somarMeses(hoje, cfg.mesesPreContrato);
 
 // ------------------------------------------------------------------ localizar jogadores e elencos
 export interface Local { jogador: Player; origem: 'ELENCO' | 'BASE' | 'LIVRE'; }
@@ -235,6 +246,7 @@ export const proporCompra = (u: Universo, compradorId: string, playerId: string,
   const loc = localizar(u, playerId);
   if (!loc) return falha('jogador nao encontrado');
   if (loc.origem === 'LIVRE') return falha('agente livre: contrate-o sem taxa');
+  if (loc.origem === 'ELENCO' && emPreContrato(loc.jogador, hoje, cfg)) return falha('contrato a acabar (menos de 6 meses): assina sem custo');
   const p = loc.jogador, vendedorId = p.teamId;
   if (vendedorId === compradorId) return falha('o jogador ja e do clube');
   if (elencoDe(u, compradorId).length >= cfg.ia.maxElenco) return falha(`elenco cheio (maximo de ${cfg.ia.maxElenco} jogadores)`);
@@ -406,11 +418,18 @@ const concluirAceita = (u: Universo, aceita: NegociacaoTransf, hoje: string, don
   return { u: u1, ok: true, motivo: r.motivo, eventos, negId: aceita.id };
 };
 
-/** Contrata um AGENTE LIVRE: sem taxa, contrato novo pela idade (a duracao e sorteada pela idade de hoje), salario mantido. */
+/** Contrata um AGENTE LIVRE, ou um jogador em PRE-CONTRATO (menos de 6 meses de contrato noutro clube, que o perde sem receber nada): sem taxa, contrato novo pela idade, salario mantido. */
 export const contratarAgenteLivre = (u: Universo, compradorId: string, playerId: string, hoje: string, cfg: ConfigMercado = CONFIG_MERCADO): Resultado => {
   const falha = (motivo: string): Resultado => ({ u, ok: false, motivo, eventos: [] });
   const p = u.players.find(x => x.id === playerId);
-  if (!p || p.teamId !== 'MARKET') return falha('o jogador nao e agente livre');
+  if (!p) return falha('o jogador nao e agente livre');
+  const preContrato = p.teamId !== 'MARKET';
+  const vendedorId = preContrato ? p.teamId : null;
+  if (preContrato) {
+    if (!emPreContrato(p, hoje, cfg)) return falha('o jogador nao e agente livre');
+    if (vendedorId === compradorId) return falha('o jogador ja e do clube');
+    if (!elencoValidoSem(elencoDe(u, vendedorId!), p, cfg)) return falha('o elenco do clube atual ficaria sem o minimo');
+  }
   const comprador = clube(u, compradorId);
   if (!comprador) return falha('clube desconhecido');
   if (elencoDe(u, compradorId).length >= cfg.ia.maxElenco) return falha(`elenco cheio (maximo de ${cfg.ia.maxElenco} jogadores)`);
@@ -419,13 +438,14 @@ export const contratarAgenteLivre = (u: Universo, compradorId: string, playerId:
   if (elenco.length >= cfg.maximoElenco) return falha('elenco cheio');
   const novo: Player = { ...p, teamId: compradorId, shirtNumber: numeroLivre(elenco), listedForSale: false, livreDesde: undefined, contract: novoContrato(p.age, hoje, criarRng(`livre|${p.id}|${hoje}`)), trainingGroupId: 0 };
   const num = u.mercado.proximoNum;
-  const tx: Transacao = { id: `tx-fa-${num}-${p.id}`, data: hoje, clubeId: compradorId, jogadorId: p.id, jogadorNome: p.name, contraparteId: 'MARKET', natureza: 'AGENTE_LIVRE', valor: 0,
+  const tx: Transacao = { id: `tx-fa-${num}-${p.id}`, data: hoje, clubeId: compradorId, jogadorId: p.id, jogadorNome: p.name, contraparteId: vendedorId || 'MARKET', natureza: 'AGENTE_LIVRE', valor: 0,
     saldoAntes: comprador.cash, saldoDepois: comprador.cash, orcamentoAntes: comprador.transferBudget ?? 0, orcamentoDepois: comprador.transferBudget ?? 0, negId: null };
-  const mov: Movimento = { id: `mov-fa-${num}`, data: hoje, jogadorId: p.id, jogadorNome: p.name, de: 'MARKET', para: compradorId, valor: 0, tipo: 'AGENTE_LIVRE' };
+  const mov: Movimento = { id: `mov-fa-${num}`, data: hoje, jogadorId: p.id, jogadorNome: p.name, de: vendedorId || 'MARKET', para: compradorId, valor: 0, tipo: 'AGENTE_LIVRE' };
   const negociacoes = u.mercado.negociacoes.map(n => (n.playerId === p.id && ESTADOS_ATIVOS.includes(n.estado) ? { ...n, estado: 'EXPIRADA' as const, aguarda: null, motivo: 'jogador contratado' } : n));
   return {
-    u: { ...u, players: u.players.map(x => (x.id === p.id ? novo : x)), mercado: { ...u.mercado, negociacoes, proximoNum: num + 1, transacoes: [...u.mercado.transacoes, tx].slice(-cfg.maxTransacoes), historico: [...u.mercado.historico, mov].slice(-cfg.maxTransacoes) } },
-    ok: true, eventos: [ev(u, 'AGENTE_LIVRE', null, p, compradorId, 0)]
+    u: { ...u, players: u.players.map(x => (x.id === p.id ? novo : x)), teams: vendedorId ? u.teams.map(t => (t.id === vendedorId ? limparEscalacao(t, p.id) : t)) : u.teams,
+      mercado: { ...u.mercado, negociacoes, proximoNum: num + 1, transacoes: [...u.mercado.transacoes, tx].slice(-cfg.maxTransacoes), historico: [...u.mercado.historico, mov].slice(-cfg.maxTransacoes) } },
+    ok: true, eventos: [ev(u, 'AGENTE_LIVRE', null, p, compradorId, 0), ...(vendedorId ? [{ ...ev(u, 'SAIDA_LIVRE', null, p, vendedorId, 0), motivo: clube(u, compradorId)?.name || compradorId }] : [])]
   };
 };
 
@@ -550,7 +570,8 @@ export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigM
   u.base?.jogadores.forEach(p => { if (p.age >= cfg.idadeMinimaBase) porGrupo[grupoDe(p.position)].push({ jogador: p, origem: 'BASE' }); });
   (Object.keys(porGrupo) as Grupo[]).forEach(g => porGrupo[g].sort((a, b) => b.jogador.skill - a.jogador.skill));
   const livres = u.players.filter(p => p.teamId === 'MARKET').sort((a, b) => b.skill - a.skill);
-  let novas = 0;
+  const preContratos = u.players.filter(p => emPreContrato(p, hoje, cfg)).sort((a, b) => b.skill - a.skill);
+  let novas = 0, preContratosHoje = 0;
   const janela = (t: Team) => janelaAberta(hoje, t.country, cfg);
 
   for (const t of hoje_) {
@@ -598,6 +619,13 @@ export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigM
       if (fa && (g.falta > 0 || rnd() < 0.3) && elencoDe(u, t.id).length < cfg.ia.maxElenco) {
         const r = contratarAgenteLivre(u, t.id, fa.id, hoje, cfg);
         if (r.ok) { u = r.u; }
+      }
+      // 2a'. pre-contrato: um jogador de outro clube com menos de 6 meses de contrato, sem custo (o do utilizador com a mesma probabilidade das ofertas a ele)
+      const pc = preContratos.find(p => grupoDe(p.position) === g.grupo && p.teamId !== t.id && emPreContrato(u.players.find(x => x.id === p.id) || p, hoje, cfg)
+        && (u.players.find(x => x.id === p.id)?.teamId === p.teamId) && (g.falta > 0 || p.skill >= g.piorTitular + cfg.ia.margemUpgrade));
+      if (pc && preContratosHoje < cfg.ia.maxPreContratosPorDia && (g.falta > 0 || rnd() < cfg.ia.probPreContrato) && (pc.teamId !== donoId || rnd() < cfg.ia.probOfertaAoHumano) && elencoDe(u, t.id).length < cfg.ia.maxElenco) {
+        const r = contratarAgenteLivre(u, t.id, pc.id, hoje, cfg);
+        if (r.ok) { u = r.u; preContratosHoje++; eventos.push(...r.eventos.filter(e => e.tipo === 'SAIDA_LIVRE')); }
       }
     }
     if (!janela(t)) continue;

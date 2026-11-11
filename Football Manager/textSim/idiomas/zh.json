@@ -660,7 +660,7 @@
   "FOOT": "FOOT",
   "FOR SALE": "出售中",
   "FORMATION": "阵型",
-  "FREE": "自由",
+  "FREE": "免费",
   "First name": "名",
   "Fixture List for": "比赛列表：",
   "For each row, copies this column, mirrored, to the opposite column": "每一行将此列镜像复制到对侧列",
@@ -1091,6 +1091,11 @@
   "Fratura de Fíbula / Tíbia": "腓骨 / 胫骨骨折",
   "Lesão no Menisco": "半月板损伤",
   "Pubalgia Crônica": "慢性耻骨炎",
-  "Fratura na Costela": "肋骨骨折"
+  "Fratura na Costela": "肋骨骨折",
+  "Sign for free (pre-contract)": "免费签约（预签合同）",
+  "Less than 6 months left on his contract: no transfer fee.": "合同剩余不足6个月：无转会费。",
+  "{v0} signed on a free transfer": "{v0}已免费签约",
+  "{v0} left on a free transfer": "{v0}已自由转会离队",
+  "{v0} had less than 6 months left on his contract and signed with {v1}. The club receives no fee.": "{v0}合同剩余不足6个月，已与{v1}签约。俱乐部得不到任何转会费。"
  }
 }

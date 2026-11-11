@@ -8,7 +8,7 @@ import { TeamShield } from './TeamShield';
 import { PlayerFace3D } from './PlayerFace3D';
 import { estrelasDoJogador, potencialVisivel } from '../textSim/youth';
 import { potencialParaValor, anosRestantes } from '../textSim/valuation';
-import { CONFIG_MERCADO, ESTADOS_ATIVOS, NegociacaoTransf, grupoDe, janelaAberta, diasParaFecharJanela, proximaAberturaJanela } from '../textSim/transferencias';
+import { CONFIG_MERCADO, ESTADOS_ATIVOS, NegociacaoTransf, grupoDe, janelaAberta, diasParaFecharJanela, proximaAberturaJanela, emPreContrato } from '../textSim/transferencias';
 import { estadoDoContrato } from '../textSim/contracts';
 import { orcamentoDaTemporada, folhaAnual } from '../textSim/orcamento';
 
@@ -251,7 +251,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
                 <div className="flex items-center gap-2 mt-2">{sel.clube ? <TeamShield team={sel.clube} className="w-9 h-11" /> : null}<div><div className="text-sm font-black uppercase text-slate-700 dark:text-slate-100">{sel.clube?.name || 'Free agent'}</div><div className="text-xs font-bold uppercase text-slate-500">{p.position} • {p.age} years</div></div></div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-center">
-                {[['Value', sel.origem === 'LIVRE' ? 'FREE' : formatCurrencyShort(p.value)], ['Wage', formatCurrencyShort(p.salary) + '/w'], ['Contract', p.contract ? p.contract.end.slice(0, 4) : '-'], ['Potential', '★'.repeat(sel.estrelas) + '☆'.repeat(5 - sel.estrelas)]].map(([k, v]) => {
+                {[['Value', sel.origem === 'LIVRE' || (sel.origem === 'ELENCO' && emPreContrato(p, hoje)) ? tx('FREE') : formatCurrencyShort(p.value)], ['Wage', formatCurrencyShort(p.salary) + '/w'], ['Contract', p.contract ? p.contract.end.slice(0, 4) : '-'], ['Potential', '★'.repeat(sel.estrelas) + '☆'.repeat(5 - sel.estrelas)]].map(([k, v]) => {
                   // VALUE e WAGE a verde (o meu clube pode pagar) ou vermelho (nao pode): o valor contra o menor entre o caixa e o transfer budget; o salario contra o que sobra da parte dos salarios do orcamento (orcamento - compras - folha anual).
                   let corV = 'text-slate-800 dark:text-white';
                   if (userTeam && k === 'Value' && sel.origem !== 'LIVRE') corV = p.value <= Math.min(userTeam.cash, userTeam.transferBudget ?? 0) ? 'text-emerald-500' : 'text-rose-500';
@@ -274,6 +274,12 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
               <div className="mt-auto flex flex-col gap-2">
                 {sel.origem === 'LIVRE' ? (
                   <button onClick={() => mostrar(contratarLivre(p.id), `${p.name} signed as a free agent`)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded text-sm uppercase tracking-widest">{tx('Sign free agent')}</button>
+                ) : sel.origem === 'ELENCO' && emPreContrato(p, hoje) && p.teamId !== meuId ? (
+                  // PRE-CONTRATO: menos de 6 meses de contrato -> assina sem custo (o clube atual nao recebe nada)
+                  <>
+                    <button onClick={() => mostrar(contratarLivre(p.id), tx('{v0} signed on a free transfer', { v0: p.name }))} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded text-sm uppercase tracking-widest">{tx('Sign for free (pre-contract)')}</button>
+                    <div className="text-[11px] text-emerald-500 font-bold text-center">{tx('Less than 6 months left on his contract: no transfer fee.')}</div>
+                  </>
                 ) : neg ? (
                   <button onClick={() => setAba('NEGOTIATIONS')} className="bg-slate-700 hover:bg-slate-600 text-white font-black py-3.5 rounded text-sm uppercase tracking-widest">{ESTADO_ROTULO[neg.estado]} — open</button>
                 ) : (

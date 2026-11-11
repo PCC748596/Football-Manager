@@ -1042,6 +1042,11 @@
   "Stable": "Estável",
   "The board is putting pressure on you.": "A diretoria está a pressioná-lo.",
   "Your job is at risk: the board expects an improvement soon.": "O seu cargo está em risco: a diretoria espera melhora em breve.",
-  "Dismissal is imminent unless results change immediately.": "A demissão é iminente se os resultados não mudarem já."
+  "Dismissal is imminent unless results change immediately.": "A demissão é iminente se os resultados não mudarem já.",
+  "Sign for free (pre-contract)": "Contratar sem custo (pré-contrato)",
+  "Less than 6 months left on his contract: no transfer fee.": "Menos de 6 meses de contrato: sem custo de transferência.",
+  "{v0} signed on a free transfer": "{v0} contratado sem custo",
+  "{v0} left on a free transfer": "{v0} saiu sem custo",
+  "{v0} had less than 6 months left on his contract and signed with {v1}. The club receives no fee.": "{v0} tinha menos de 6 meses de contrato e assinou com o {v1}. O clube não recebe nada."
  }
 }

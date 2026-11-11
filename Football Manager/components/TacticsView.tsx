@@ -950,9 +950,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                        <div className="flex-1 min-w-0 flex flex-col gap-1 -ml-1">
                                         <div className={`flex justify-between w-full items-start mb-0`}>
-                                            <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400 text-[14px]">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span>{etiquetaNota(p)}</span>
+                                            <span className="text-[12px] font-black leading-none whitespace-nowrap"><span className="text-slate-400 text-[14px]">{p.position}</span> <span className="text-slate-500">|</span> <span className="text-blue-400">{p.skill}</span>{etiquetaNota(p, true)}</span>
                                             <span className="flex items-center gap-1"><MoraleArrow morale={p.morale} /></span>
                                         </div>
                                             <div className={`-mt-1 mb-1`}><EnergyBar energy={energiaDe(p)} className="h-1.5" /></div>

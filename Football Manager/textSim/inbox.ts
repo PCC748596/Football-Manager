@@ -274,6 +274,7 @@ const avisoDeTransferencia_ = (hoje: string, lang: Idioma, e: EventoMercado, val
     case 'CONCLUIDA_COMPRA': return M(tx('Transfer completed: {v0} joins the club', { v0: j }), tx('{v0} signed for {v1}.', { v0: j, v1: valor }));
     case 'CONCLUIDA_VENDA': return M(tx('Transfer completed: {v0} was sold', { v0: j }), tx('{v0} was sold for {v1}.', { v0: j, v1: valor }));
     case 'AGENTE_LIVRE': return M(tx('Free agent signed: {v0}', { v0: j }), tx('{v0} joined as a free agent, with no transfer fee.', { v0: j }));
+    case 'SAIDA_LIVRE': return M(tx('{v0} left on a free transfer', { v0: j }), tx('{v0} had less than 6 months left on his contract and signed with {v1}. The club receives no fee.', { v0: j, v1: e.motivo || '' }), true);
     default: return M(`${j}`, `${c} ${valor}`);
   }
 };

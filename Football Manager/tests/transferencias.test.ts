@@ -6,7 +6,7 @@ import { processarContratos } from '../textSim/contracts';
 import { recalcularValores, valorDeMercado } from '../textSim/valuation';
 import {
   Universo, mercadoVazio, prepararOrcamentos, proporCompra, responderComoVendedor, responderComoComprador, retirar, concluir, contratarAgenteLivre, listarParaVenda,
-  tickDoDia, janelaAberta, precoDesejado, avaliarOferta, grupoDe, ESTADOS_ATIVOS, CONFIG_MERCADO, localizar
+  tickDoDia, janelaAberta, precoDesejado, avaliarOferta, grupoDe, ESTADOS_ATIVOS, CONFIG_MERCADO, localizar, emPreContrato
 } from '../textSim/transferencias';
 
 const mover = (iso: string, n: number) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
@@ -122,7 +122,7 @@ test('oferta ridicula e recusada; recusada nao gera transferencia; retirada e ex
   for (let d = 1; d <= 3; d++) u = tickDoDia(u, { donoId: DONO, hoje: mover('2024-04-02', d) }).u;
   assert.equal(u.mercado.negociacoes.find(n => n.id === id)!.estado, 'RECUSADA');
   assert.equal(u.players.find(p => p.id === nome)!.teamId, alvo.teamId, 'o jogador nao se mexeu');
-  assert.equal(u.mercado.transacoes.length, 0);
+  assert.equal(u.mercado.transacoes.filter(t => t.natureza !== 'AGENTE_LIVRE').length, 0, 'nenhuma compra ou venda (os pre-contratos da CPU sao AGENTE_LIVRE, sem taxa)');
   // retirada
   r = proporCompra(u, comprador, alvo.id, 20_000, '2024-04-06', DONO); u = r.u;
   const ret = retirar(u, r.negId!, '2024-04-06'); u = ret.u;
@@ -221,8 +221,9 @@ test('contrato vencendo durante a negociacao: expira, e o jogador livre nao e ve
   const comprador = u.teams[0].id;
   const alvo = u.players.find(p => p.teamId !== comprador && p.teamId !== 'MARKET' && p.skill >= 55)!;
   const fim = '2024-04-04';
-  u = { ...u, players: u.players.map(p => (p.id === alvo.id ? { ...p, contract: { start: '2020-01-01', end: fim, years: 4 } } : p)) };
+  // a proposta abre com o contrato ainda longe do fim (perto do fim ja seria pre-contrato, sem proposta); depois o contrato encurta
   const r = proporCompra(u, comprador, alvo.id, 50_000_000, '2024-04-02', DONO); u = r.u;
+  u = { ...u, players: u.players.map(p => (p.id === alvo.id ? { ...p, contract: { start: '2020-01-01', end: fim, years: 4 } } : p)) };
   // no dia do vencimento o contrato acaba (clube IA: renova) — simulamos o jogador livre
   u = { ...u, players: u.players.map(p => (p.id === alvo.id ? { ...p, teamId: 'MARKET' } : p)) };
   assert.equal(proporCompra(u, comprador, alvo.id, 1_000_000, '2024-04-04', DONO).ok, false, 'agente livre nao se compra: contrata-se sem taxa');
@@ -351,4 +352,27 @@ test('esquema: o clube so vende se sobrar 1 por posicao do esquema + banco de 10
   const cfg = { ...CONFIG_MERCADO, minimoElenco: { total: 1, GK: 0, DEF: 0, MID: 0, ATT: 0 } };
   for (const p of [justo[0], justo[3], justo[10], justo[17]]) assert.equal(elencoValidoSem(justo, p, cfg, '4-3-3'), false, 'sem reposicao no grupo: nao vende ' + p.id);
   assert.equal(elencoValidoSem([...justo, ...mk('ST', 1, 'extra')], justo[17], cfg, '4-3-3'), true, 'com um a mais no grupo pode vender');
+});
+
+test('pre-contrato: com menos de 6 meses de contrato o jogador assina com outro clube sem custo (nem proposta de compra)', () => {
+  const hoje = '2024-04-02';
+  let u = criarUniverso(hoje);
+  const comprador = u.teams[0].id;
+  // um jogador de outro clube com o contrato a acabar daqui a 3 meses (e um com 8 meses, que nao conta)
+  const outros = u.players.filter(p => p.teamId !== comprador && p.teamId !== 'MARKET');
+  const alvo = outros[0], longe = outros[1];
+  u = { ...u, players: u.players.map(p => p.id === alvo.id ? { ...p, contract: { ...p.contract!, end: '2024-07-01' } } : p.id === longe.id ? { ...p, contract: { ...p.contract!, end: '2024-12-01' } } : p) };
+  const pA = u.players.find(p => p.id === alvo.id)!, pL = u.players.find(p => p.id === longe.id)!;
+  assert.ok(emPreContrato(pA, hoje)); assert.ok(!emPreContrato(pL, hoje));
+  assert.ok(!proporCompra(u, comprador, alvo.id, 1_000_000, hoje, DONO).ok, 'nao ha proposta de compra: a saida e livre');
+  const caixaC = u.teams[0].cash, vendedor = alvo.teamId, caixaV = u.teams.find(t => t.id === vendedor)!.cash;
+  const r = contratarAgenteLivre(u, comprador, alvo.id, hoje);
+  assert.ok(r.ok, r.motivo);
+  const novo = r.u.players.find(p => p.id === alvo.id)!;
+  assert.equal(novo.teamId, comprador);
+  assert.ok(novo.contract!.end > '2024-07-01', 'contrato novo');
+  assert.equal(r.u.teams[0].cash, caixaC, 'o comprador nao paga');
+  assert.equal(r.u.teams.find(t => t.id === vendedor)!.cash, caixaV, 'o vendedor nao recebe');
+  assert.ok(r.eventos.some(e => e.tipo === 'SAIDA_LIVRE' && e.clubeId === vendedor));
+  assert.ok(!contratarAgenteLivre(u, comprador, longe.id, hoje).ok, 'com 8 meses de contrato nao');
 });
