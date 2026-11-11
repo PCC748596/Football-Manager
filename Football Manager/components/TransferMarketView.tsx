@@ -8,7 +8,7 @@ import { TeamShield } from './TeamShield';
 import { PlayerFace3D } from './PlayerFace3D';
 import { estrelasDoJogador, potencialVisivel } from '../textSim/youth';
 import { potencialParaValor, anosRestantes } from '../textSim/valuation';
-import { CONFIG_MERCADO, ESTADOS_ATIVOS, NegociacaoTransf, grupoDe, janelaAberta, diasParaFecharJanela, proximaAberturaJanela, emPreContrato } from '../textSim/transferencias';
+import { CONFIG_MERCADO, ESTADOS_ATIVOS, NegociacaoTransf, grupoDe, janelaAberta, diasParaFecharJanela, proximaAberturaJanela, emPreContrato, textoDoMotivo } from '../textSim/transferencias';
 import { estadoDoContrato } from '../textSim/contracts';
 import { orcamentoDaTemporada, folhaAnual } from '../textSim/orcamento';
 
@@ -145,7 +145,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const negDe = (id: string) => mercado.negociacoes.find(n => n.compradorId === meuId && n.playerId === id && ESTADOS_ATIVOS.includes(n.estado));
   const nomeClube = (id: string) => (id === 'MARKET' ? 'Free agent' : porId.get(id)?.name || id);
   const nomeJogador = (id: string) => linhas.find(l => l.p.id === id)?.p.name || players.find(p => p.id === id)?.name || base?.jogadores.find(p => p.id === id)?.name || id;
-  const mostrar = (r: { ok: boolean; motivo?: string }, sucesso: string) => setAviso(r.ok ? { tipo: 'ok', texto: sucesso + (r.motivo ? ` (${r.motivo})` : '') } : { tipo: 'erro', texto: r.motivo || 'Operation not allowed' });
+  const mostrar = (r: { ok: boolean; motivo?: string }, sucesso: string) => setAviso(r.ok ? { tipo: 'ok', texto: sucesso + (r.motivo ? ` (${textoDoMotivo(r.motivo)})` : '') } : { tipo: 'erro', texto: r.motivo ? textoDoMotivo(r.motivo) : tx('Operation not allowed') });
 
   const cab = (k: typeof ordem.k, rotulo: string, cls = '') => (
     <th className={`px-3 py-2 text-[11px] font-black uppercase tracking-widest text-slate-400 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap ${cls}`} onClick={() => setOrdem(o => (o.k === k ? { k, dir: (o.dir * -1) as 1 | -1 } : { k, dir: k === 'name' ? 1 : -1 }))}>
@@ -158,7 +158,11 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const botaoStatus = (ativo: boolean) => `w-full px-3 py-2 rounded text-xs font-black uppercase tracking-wider text-left transition-colors ${ativo ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`;
 
   // ------------------------------------------------------------------ lista + filtros + overview
-  const COLS = 'grid-cols-[minmax(190px,2.2fr)_46px_52px_56px_92px_minmax(120px,1.6fr)_84px_84px]';
+  const COLS_MERCADO = 'grid-cols-[minmax(190px,2.2fr)_46px_52px_56px_92px_minmax(120px,1.6fr)_84px_84px]';
+  // Na SHORTLIST ha mais uma coluna no fim: a lixeira, que tira o jogador da lista.
+  const COLS_SHORTLIST = 'grid-cols-[minmax(190px,2.2fr)_46px_52px_56px_92px_minmax(120px,1.6fr)_84px_84px_36px]';
+  const naShortlist = aba === 'SHORTLIST';
+  const COLS = naShortlist ? COLS_SHORTLIST : COLS_MERCADO;
   const cabGrid = (k: typeof ordem.k | null, r: string, cls = '') => (
     <div className={`text-[11px] font-black uppercase tracking-widest text-slate-400 ${k ? 'cursor-pointer select-none hover:text-blue-500' : ''} ${cls}`}
       onClick={() => k && setOrdem(o => (o.k === k ? { k, dir: (o.dir * -1) as 1 | -1 } : { k, dir: k === 'name' ? 1 : -1 }))}>
@@ -218,7 +222,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
           </div>
         </div>
         <div className={`grid ${COLS} gap-3 px-4 pb-2 items-center`}>
-          {cabGrid('name', 'Name')}{cabGrid('age', 'Age', 'text-center')}{cabGrid(null, 'Pos', 'text-center')}{cabGrid('ovr', 'OVR', 'text-center')}{cabGrid('pot', 'Potential')}{cabGrid(null, 'Club')}{cabGrid('value', 'Value', 'text-right')}{cabGrid('wage', 'Wage', 'text-right')}
+          {cabGrid('name', 'Name')}{cabGrid('age', 'Age', 'text-center')}{cabGrid(null, 'Pos', 'text-center')}{cabGrid('ovr', 'OVR', 'text-center')}{cabGrid('pot', 'Potential')}{cabGrid(null, 'Club')}{cabGrid('value', 'Value', 'text-right')}{cabGrid('wage', 'Wage', 'text-right')}{naShortlist && <span />}
         </div>
         <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col gap-2 pr-1">
           {visiveis.map(l => {
@@ -244,6 +248,12 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
                 <div className="flex items-center gap-2 min-w-0 text-base font-bold text-slate-700 dark:text-slate-100">{l.clube ? <><TeamShield team={l.clube} className="w-6 h-8 shrink-0" /><span className="truncate">{l.clube.name}</span></> : <span className="text-slate-400">{tx('Free agent')}</span>}</div>
                 <div className="text-right font-mono text-base font-black text-slate-800 dark:text-white">{l.origem === 'LIVRE' ? 'FREE' : formatCurrencyShort(p.value)}</div>
                 <div className="text-right font-mono text-base text-slate-500 dark:text-slate-300">{formatCurrencyShort(p.salary)}</div>
+                {naShortlist && (
+                  <button onClick={e => { e.stopPropagation(); alternarShortlist(p.id); }} title={tx('Remove from shortlist')} aria-label={tx('Remove from shortlist')}
+                    className="justify-self-end w-8 h-8 flex items-center justify-center rounded text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /></svg>
+                  </button>
+                )}
               </div>
             );
           })}
@@ -355,7 +365,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
               </div>
               {ESTADOS_ATIVOS.includes(n.estado)
                 ? <div className="mt-0.5 text-[11px] text-slate-400 flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>{tx('Expires')} {dataCurta(n.expira)}{n.respondeEm && n.estado === 'ENVIADA' ? ` • answer expected ${dataCurta(n.respondeEm)}` : ''}</div>
-                : (n.motivo && <div className="mt-0.5 text-[11px] text-slate-400">{tx('Reason:')} {n.motivo}</div>)}
+                : (n.motivo && <div className="mt-0.5 text-[11px] text-slate-400">{tx('Reason:')} {textoDoMotivo(n.motivo)}</div>)}
               {/* A DATA: o negocio aceito com a janela fechada so se completa quando ela abre (o jogador chega nessa data); o concluido mostra o dia em que foi fechado. */}
               {n.estado === 'ACEITA' && !janela && proximaAberturaJanela(hoje, userTeam.country) && <div className="mt-0.5 text-[11px] font-bold text-amber-500">{tx('Player arrives')} {dataCurta(proximaAberturaJanela(hoje, userTeam.country)!.data)} (window opens)</div>}
               {n.estado === 'CONCLUIDA' && <div className="mt-0.5 text-[11px] font-bold text-emerald-500">{tx('Completed on')} {dataCurta(n.atualizada)}</div>}

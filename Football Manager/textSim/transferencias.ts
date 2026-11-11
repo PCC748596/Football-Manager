@@ -27,6 +27,7 @@ import { Position } from '../types';
 import { BaseState, completarBase, TAMANHO_BASE } from './youth';
 import { criarRng, novoContrato, Rnd, somarMeses } from './contracts';
 import { valorDeMercado } from './valuation';
+import { tx } from './idiomas';
 
 // ------------------------------------------------------------------ configuracao
 export interface Janela { de: string; ate: string; }   // 'MM-DD'
@@ -670,4 +671,61 @@ export const recalcularValoresDoMes = (u: Universo, hoje: string, recalc: (j: Pl
   const jogadoresBase = u.base ? recalc(u.base.jogadores, hoje) : null;
   const base = u.base && jogadoresBase && jogadoresBase !== u.base.jogadores ? { ...u.base, jogadores: jogadoresBase } : u.base;
   return { ...u, players, base, mercado: { ...u.mercado, mesDosValores: mes } };
+};
+
+// ------------------------------------------------------------------ o motivo para o jogador
+/*
+Os motivos (`motivo`, de falhas e recusas) sao gravados em portugues, sem acentos (os testes e o historico dependem deles). Para MOSTRAR, `textoDoMotivo` passa-os a
+chave em ingles e ao idioma do jogo (tx). Um motivo que nao esteja aqui (ex.: o nome do clube no SAIDA_LIVRE) sai como veio.
+*/
+const MOTIVO_EN: Record<string, string> = {
+  "jogador nao pertence a um clube": "player does not belong to a club",
+  "clube desconhecido": "unknown club",
+  "o jogador nao e agente livre": "the player is not a free agent",
+  "o jogador ja e do clube": "the player already belongs to the club",
+  "fora da janela de transferencias": "outside the transfer window",
+  "valor invalido": "invalid amount",
+  "recusada pelo vendedor": "refused by the seller",
+  "proposta final insuficiente": "final offer too low",
+  "prazo": "deadline passed",
+  "oferta muito baixa": "offer too low",
+  "o jogador ja nao esta no vendedor": "the player is no longer at the selling club",
+  "o elenco ficaria sem o minimo": "the squad would fall below the minimum",
+  "negociacao nao esta ativa": "the negotiation is not active",
+  "nao ha oferta para responder": "there is no offer to answer",
+  "nao ha contraproposta para responder": "there is no counter-offer to answer",
+  "limite de propostas atingido": "offer limit reached",
+  "jogador transferido": "player transferred",
+  "jogador indisponivel": "player unavailable",
+  "jogador contratado": "player signed",
+  "ha uma negociacao em curso por este jogador": "there is an ongoing negotiation for this player",
+  "contraproposta recusada": "counter-offer refused",
+  "contraproposta acima do que o comprador paga": "counter-offer above what the buyer will pay",
+  "a contraproposta tem de ser maior que a oferta": "the counter-offer must be higher than the offer",
+  "saldo insuficiente": "insufficient cash",
+  "orcamento de transferencias insuficiente": "insufficient transfer budget",
+  "o jogador ja nao pertence ao vendedor": "the player no longer belongs to the seller",
+  "o elenco do vendedor ficaria sem o minimo": "the seller's squad would fall below the minimum",
+  "o elenco do clube atual ficaria sem o minimo": "the current club's squad would fall below the minimum",
+  "negociacao inexistente": "negotiation not found",
+  "jogador nao encontrado": "player not found",
+  "ja existe uma negociacao ativa por este jogador": "there is already an active negotiation for this player",
+  "ja contabilizada": "already recorded",
+  "ja concluida": "already completed",
+  "elenco do comprador cheio": "the buyer's squad is full",
+  "elenco cheio": "squad full",
+  "contrato vencido": "contract expired",
+  "contrato a acabar (menos de 6 meses): assina sem custo": "contract ending (under 6 months): he signs for free",
+  "agente livre: contrate-o sem taxa": "free agent: sign him with no fee",
+  "a negociacao nao foi aceita": "the negotiation was not accepted",
+  "sem clube": "no club"
+};
+export const textoDoMotivo = (m: string | undefined | null): string => {
+  if (!m) return '';
+  if (MOTIVO_EN[m]) return tx(MOTIVO_EN[m]);
+  let r = m.match(/^elenco cheio \(maximo de (\d+) jogadores\)$/);
+  if (r) return tx('squad full (maximum {v0} players)', { v0: r[1] });
+  r = m.match(/^so jogadores do Sub-20 com (\d+) anos ou mais$/);
+  if (r) return tx('only Sub-20 players aged {v0} or over', { v0: r[1] });
+  return m;
 };

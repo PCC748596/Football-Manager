@@ -15,16 +15,24 @@ para dolares (cambio).
   contrato    quanto menos tempo resta, menos vale (risco de saida gratuita); contrato vencido = 0,30 (o jogador e agente livre: nao ha taxa)
   forma       evolucao recente (soma das variacoes dos atributos): +-5% no maximo
   posicao     atacantes e pontas valem mais; defesas e goleiros menos
+  individual  um fator fixo do PROPRIO jogador (+-7%, pelo id): dois jogadores com o mesmo perfil nao valem exatamente o mesmo (o mercado nao e uma tabela)
+
+O ARREDONDAMENTO e pela grandeza: ate 100 mil de 500 em 500, ate 1 M de mil em mil, ate 10 M de 10 em 10 mil, acima de 100 em 100 mil. Quem fica abaixo do piso (`minimo`)
+vale de 1x a 2x o piso (pelo id), para nao ficarem todos no mesmo numero.
+(Nov/2026: antes era sempre de 10 em 10 mil, com piso de 20 mil: medido no mundo inteiro, 1005 jogadores valiam exatamente 20K e centenas 30K, 40K, 50K...)
 */
 import type { Player } from '../types';
 import { Position } from '../types';
-import { valorBaseEUR, economiaDoClube } from './economia';
+import { valorBaseEUR, economiaDoClube, fatorIndividual } from './economia';
+export { fatorIndividual };
 import { paraDolares } from './cambio';
 
 export const CONFIG_VALOR = {
-  minimo: 20_000,
+  minimo: 5_000,
   maximo: 250_000_000,
-  arredondar: 10_000,
+  // passo do arredondamento por grandeza: [ate este valor, passo]
+  arredondar: [[100_000, 500], [1_000_000, 1_000], [10_000_000, 10_000], [Infinity, 100_000]] as [number, number][],
+  individual: 0.07,
   // idade -> fator (interpolado linearmente entre os pontos)
   idade: [[16, 1.35], [21, 1.15], [22, 1.0], [27, 1.0], [28, 0.85], [31, 0.85], [32, 0.60], [36, 0.15], [42, 0.08]] as [number, number][],
   // premio de potencial: peso por idade (o jovem tem mais futuro), e o teto do multiplicador
@@ -73,8 +81,11 @@ export const valorDeMercado = (p: Player, hoje: string, cfg: ConfigValor = CONFI
   const g = p.lastGrowth;
   if (g) v *= 1 + Math.max(-cfg.forma.limite, Math.min(cfg.forma.limite, (g.def + g.pas + g.drb + g.sht) * cfg.forma.porPonto));
   if (p.position === Position.GK) v *= cfg.goleiro; else v *= cfg.posicao[p.position] ?? 1;
-  v = Math.max(cfg.minimo, Math.min(cfg.maximo, v));
-  return Math.round(v / cfg.arredondar) * cfg.arredondar;
+  v *= fatorIndividual(p.id, cfg.individual);
+  if (v < cfg.minimo) v = cfg.minimo * (1 + (fatorIndividual(p.id + '|piso', 0.5) - 0.5));
+  v = Math.min(cfg.maximo, v);
+  const passo = (cfg.arredondar.find(([ate]) => v < ate) || cfg.arredondar[cfg.arredondar.length - 1])[1];
+  return Math.max(cfg.minimo, Math.round(v / passo) * passo);
 };
 
 /** Recalcula o valor (`value`) de uma lista; devolve a MESMA lista se nada mudou (nao dispara re-render) e so cria objetos novos para quem mudou. */
