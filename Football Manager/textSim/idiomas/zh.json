@@ -1143,6 +1143,13 @@
   "Not possible": "无法操作",
   "Removed from the loan list": "已从租借名单移除",
   "Listed for loan (morale -5)": "已列入租借名单（士气-5）",
-  "Remove from shortlist": "从关注名单移除"
+  "Remove from shortlist": "从关注名单移除",
+  "Market": "市场",
+  "Shortlist": "关注名单",
+  "Negotiations": "谈判",
+  "Completed": "已完成",
+  "My players / for sale": "我的球员 / 出售",
+  "Transfer finances": "转会财务",
+  "{v0} waiting for your answer": "{v0}项等待你的回复"
  }
 }

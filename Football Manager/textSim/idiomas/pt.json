@@ -1094,6 +1094,13 @@
   "Not possible": "Não foi possível",
   "Removed from the loan list": "Removido da lista de empréstimo",
   "Listed for loan (morale -5)": "Na lista de empréstimo (moral -5)",
-  "Remove from shortlist": "Tirar da shortlist"
+  "Remove from shortlist": "Tirar da shortlist",
+  "Market": "Mercado",
+  "Shortlist": "Shortlist",
+  "Negotiations": "Negociações",
+  "Completed": "Concluídas",
+  "My players / for sale": "Meus jogadores / à venda",
+  "Transfer finances": "Finanças de transferências",
+  "{v0} waiting for your answer": "{v0} esperando a sua resposta"
  }
 }
