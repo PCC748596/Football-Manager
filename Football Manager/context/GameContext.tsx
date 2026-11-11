@@ -2512,7 +2512,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setNegociacoes(data.negociacoes || []);
         setMercado(data.mercado || mercadoVazio(''));
         setFixtures(fx);
-        setGameState(data.gameState);
+        // O idioma e preferencia do jogador (Settings, guardada no navegador), nao do save: carregar um save antigo nao muda a lingua da interface.
+        setGameState({ ...data.gameState, language: gameState.language });
         setLoadId(n => n + 1);
         return true;
       }

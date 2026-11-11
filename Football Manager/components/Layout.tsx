@@ -94,8 +94,11 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
     <div className="flex h-full w-full bg-slate-50 dark:bg-manager-bg text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-300">
       <aside className="w-[72px] lg:w-64 shrink-0 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-900 flex flex-col shadow-2xl z-50 transition-colors duration-300">
         <div className="p-2 lg:p-6 border-b border-slate-200 dark:border-slate-900">
+          {/* O logo (public/logo/): no ecra largo a imagem, a de fundo claro no tema claro e a de fundo escuro no escuro; na barra estreita (tablet) so o FOOT. */}
           <div className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tighter flex items-center justify-center lg:justify-start gap-2">
-            <span className="text-blue-500">{tx('FOOT')}</span><span className="hidden lg:inline">{tx('MANAGER')}</span>
+            <span className="text-blue-500 lg:hidden">FOOT</span>
+            <img src="logo/footmanager27_claro.png" alt="FootManager 27" className="hidden lg:block dark:lg:hidden w-full h-auto select-none" draggable={false} />
+            <img src="logo/footmanager27_escuro.png" alt="FootManager 27" className="hidden dark:lg:block w-full h-auto select-none" draggable={false} />
           </div>
           {userTeam && (
             // O mesmo padrao do cartao do clube da escolha de carreira (CareerStart): texto a esquerda e o escudo a direita, cortado pela borda do cartao. No tablet (< 1280 px) o escudo e menor para o nome do clube nao ficar cortado.

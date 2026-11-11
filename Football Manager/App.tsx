@@ -38,12 +38,10 @@ const StartMenu: React.FC<{ onNewGame: () => void, onContinue: () => void, onSet
       {/* Background: Just solid black or very dark slate as requested (removed football field image) */}
       <div className="absolute inset-0 bg-slate-950 z-0"></div>
 
-      <div className="w-full max-w-sm space-y-12 flex flex-col items-center relative z-10">
-        <div className="animate-fade-in flex flex-col items-start w-fit">
-          <h1 className="text-7xl font-black text-white mb-0 tracking-tighter italic leading-none drop-shadow-2xl">
-            FOOTMANAGER
-          </h1>
-          <p className="text-blue-500 text-[10px] tracking-[0.5em] font-black uppercase mt-1 drop-shadow-md">Ultimate Manager 2025</p>
+      <div className="w-full space-y-12 flex flex-col items-center relative z-10">
+        <div className="animate-fade-in flex flex-col items-center w-full">
+          {/* O logo do jogo (public/logo/: a versao de fundo escuro, com o fundo transparente). */}
+          <h1 className="m-0"><img src="logo/footmanager27_escuro.png" alt="FootManager 27 — Ultimate Manager 3D" className="w-[min(600px,90vw)] max-h-[30vh] object-contain h-auto drop-shadow-2xl select-none" draggable={false} /></h1>
         </div>
 
         <div className="grid grid-cols-1 gap-3 w-full max-w-[320px]">
