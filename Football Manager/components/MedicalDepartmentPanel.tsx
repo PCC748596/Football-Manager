@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React from 'react';
 import { useGame } from '../context/GameContext';
 import { Player, Team } from '../types';
@@ -32,8 +33,8 @@ const CardLesao: React.FC<{ p: Player; cor?: string; team?: Team }> = ({ p, cor,
         </div>
       </div>
       <div className="text-sm font-black text-slate-800 dark:text-slate-100 min-w-[130px]">✚ {l.type}</div>
-      <div><div className="text-[10px] font-bold uppercase text-slate-500">Estimated return</div><div className="text-sm font-black text-slate-900 dark:text-white">{l.estimativa || `~${l.daysOut} days`}</div></div>
-      <div className="w-[140px]"><div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Energy {Math.round(energiaDe(p))}%</div><EnergyBar energy={energiaDe(p)} className="w-full h-2" /></div>
+      <div><div className="text-[10px] font-bold uppercase text-slate-500">{tx('Estimated return')}</div><div className="text-sm font-black text-slate-900 dark:text-white">{l.estimativa || `~${l.daysOut} days`}</div></div>
+      <div className="w-[140px]"><div className="text-[10px] font-bold uppercase text-slate-500 mb-1">{tx('Energy')} {Math.round(energiaDe(p))}%</div><EnergyBar energy={energiaDe(p)} className="w-full h-2" /></div>
       <div className="basis-full text-[11px] text-slate-500 italic">{l.boletim ? `🩺 ${l.boletim}` : 'Awaiting first medical report.'}</div>
     </div>
   );
@@ -51,7 +52,7 @@ export const MedicalDepartmentPanel: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xl">🩺</div>
           <div>
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Head of Medical Department</div>
+            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">{tx('Head of Medical Department')}</div>
             <div className="text-lg font-black text-slate-900 dark:text-white leading-tight">{medico.nome}</div>
           </div>
         </div>
@@ -63,7 +64,7 @@ export const MedicalDepartmentPanel: React.FC = () => {
       </div>
       <div className="text-[11px] font-black uppercase tracking-widest text-slate-500">Injured players ({lesionados.length})</div>
       {lesionados.length === 0
-        ? <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-400 py-10"><span className="text-4xl mb-2 opacity-70">✚</span><div className="text-xs font-bold uppercase tracking-widest">No injured players</div></div>
+        ? <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-400 py-10"><span className="text-4xl mb-2 opacity-70">✚</span><div className="text-xs font-bold uppercase tracking-widest">{tx('No injured players')}</div></div>
         : <div className="flex flex-col gap-2">{lesionados.map(p => <CardLesao key={p.id} p={p} cor={userTeam.primaryColor} team={userTeam} />)}</div>}
     </div>
   );

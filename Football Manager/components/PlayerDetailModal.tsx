@@ -1,4 +1,5 @@
 
+import { tx } from '../textSim/idiomas';
 import { assetUrl } from '../textSim/assetUrl';
 import React, { useMemo } from 'react';
 import { Player, Position, Team } from '../types';
@@ -271,12 +272,12 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
             title={(doUtilizador ? 'Individual training: click to select / unselect' : '') + (prog ? `${doUtilizador ? '\n' : ''}Training XP: ${Math.round(prog.xp)} / ${Math.round(prog.custo)} to +1` : '')}
             onClick={doUtilizador ? () => alternarTreinoIndividual(player.id, x.campo) : undefined}
             style={((CHAVES_POR_POSICAO[player.position] as any)?.[g] || []).includes(x.campo) ? HACHURA : undefined}>
-            <span className="relative z-20 text-white">{x.nome}</span>
+            <span className="relative z-20 text-white">{tx(x.nome)}</span>
             <span className={`relative z-10 font-black flex items-center ${getColorClass(x.valor)}`}>{individual.campos.includes(x.campo) && cone(individual.auto)}{x.valor}{(() => {
               // O ganho do atributo na temporada: o valor de agora menos o do inicio da temporada (snapshot `attr:<campo>`, GameContext).
               const ini = player.treino3dSeasonStart?.['attr:' + x.campo];
               const d = typeof ini === 'number' ? x.valor - ini : 0;
-              return d !== 0 ? <span className={`ml-1 text-[11px] font-black ${d > 0 ? 'text-emerald-500' : 'text-red-500'}`} title="Change this season">{d > 0 ? '+' : ''}{d}</span> : null;
+              return d !== 0 ? <span className={`ml-1 text-[11px] font-black ${d > 0 ? 'text-emerald-500' : 'text-red-500'}`} title={tx('Change this season')}>{d > 0 ? '+' : ''}{d}</span> : null;
             })()}</span>
             {prog && <div className="absolute inset-y-0 left-0 bg-cyan-500/35 pointer-events-none" style={{ width: `${pct}%` }} />}
           </div>
@@ -341,7 +342,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                   </div>
                   <div className="mt-2 flex items-center flex-wrap gap-x-2 text-sm text-slate-400 font-medium">
                     <span>{player.age} years</span><span>•</span>
-                    <img src={assetUrl(`/Assets/Bandeiras/${paisDoJogador(player, (team as any)?.country) || 'x'}.png`)} alt="" title="Nationality" className="w-6 h-4 object-cover rounded-sm border border-slate-700" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    <img src={assetUrl(`/Assets/Bandeiras/${paisDoJogador(player, (team as any)?.country) || 'x'}.png`)} alt="" title={tx('Nationality')} className="w-6 h-4 object-cover rounded-sm border border-slate-700" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                     <span>•</span><span>{peBomDe(player) === 'e' ? 'Left foot' : 'Right foot'}</span>
                     {attr3d.altura ? <><span>•</span><span>{attr3d.altura} cm / {attr3d.peso || '-'} kg</span></> : null}
                     {playStyles[0] ? <><span>•</span><span className="inline-flex items-center gap-1.5" title={(playStyles[0] as any).descricao || ''}><IconePlayStyleSvg estilo={playStyles[0].name} tam={18} />{playStyles[0].name}</span></> : null}
@@ -390,10 +391,10 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                 })}
               </div>
               <div className="flex flex-col gap-0.5 text-sm leading-tight">
-                <div className="flex justify-between"><span className="text-slate-400">Contract</span><span className="font-black text-white">{player.contract?.end ? player.contract.end.split('-').reverse().join('/') : '-'}</span></div>
-                <div className="flex justify-between"><span className="text-slate-400">Value</span><span className="font-black text-white">{formatCurrency(player.value)}</span></div>
-                <div className="flex justify-between"><span className="text-slate-400">Condition</span><span className="font-black text-white">{Math.round(energiaDe(player))}%</span></div>
-                <div className="flex justify-between"><span className="text-slate-400">Morale</span><span className="font-black text-white">{Math.round(player.morale)}</span></div>
+                <div className="flex justify-between"><span className="text-slate-400">{tx('Contract')}</span><span className="font-black text-white">{player.contract?.end ? player.contract.end.split('-').reverse().join('/') : '-'}</span></div>
+                <div className="flex justify-between"><span className="text-slate-400">{tx('Value')}</span><span className="font-black text-white">{formatCurrency(player.value)}</span></div>
+                <div className="flex justify-between"><span className="text-slate-400">{tx('Condition')}</span><span className="font-black text-white">{Math.round(energiaDe(player))}%</span></div>
+                <div className="flex justify-between"><span className="text-slate-400">{tx('Morale')}</span><span className="font-black text-white">{Math.round(player.morale)}</span></div>
               </div>
               {userTeam && player.teamId === userTeam.id && (
                 <div className="grid grid-cols-3 gap-2 pt-1">
@@ -405,7 +406,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
                     className={`min-w-0 text-[10px] font-black uppercase tracking-wider leading-tight py-2 px-1 rounded border ${player.listedForLoan ? 'bg-sky-600 text-white border-sky-500' : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'}`}>
                     {player.listedForLoan ? 'On loan list' : 'Loan'}
                   </button>
-                  <button onClick={() => setDispensando(true)} title="Release player" className="min-w-0 text-[10px] font-black uppercase tracking-wider leading-tight py-2 px-1 rounded border border-rose-700 text-rose-400 hover:bg-rose-900/40">Release</button>
+                  <button onClick={() => setDispensando(true)} title={tx('Release player')} className="min-w-0 text-[10px] font-black uppercase tracking-wider leading-tight py-2 px-1 rounded border border-rose-700 text-rose-400 hover:bg-rose-900/40">{tx('Release')}</button>
                   {aviso && <div className="col-span-3 text-[11px] text-amber-400 font-bold">{aviso}</div>}
                 </div>
               )}
@@ -425,7 +426,7 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
       {dispensando && createPortal(
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={e => { e.stopPropagation(); setDispensando(false); }}>
           <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
-            <div className="text-[10px] font-black uppercase tracking-widest text-rose-400">Release player</div>
+            <div className="text-[10px] font-black uppercase tracking-widest text-rose-400">{tx('Release player')}</div>
             <div className="flex items-center gap-4">
               <div className="text-5xl font-black italic text-blue-400">{Math.round(player.skill)}</div>
               <div className="min-w-0">
@@ -434,11 +435,11 @@ const PlayerDetailModal: React.FC<Props> = ({ player: initialPlayer, onClose }) 
               </div>
             </div>
             <div className="text-xs text-slate-300 leading-relaxed">
-              The contract is terminated and {player.name} becomes a free agent. You receive no transfer fee. This cannot be undone.
+              {tx('The contract is terminated and')} {player.name} becomes a free agent. You receive no transfer fee. This cannot be undone.
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setDispensando(false)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-black py-2.5 rounded text-xs uppercase tracking-widest">Cancel</button>
-              <button onClick={() => { const r = dispensarJogador(player.id); setDispensando(false); if (r.ok) onClose(); else setAviso(r.motivo || 'Not possible'); }} className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-black py-2.5 rounded text-xs uppercase tracking-widest">Release</button>
+              <button onClick={() => setDispensando(false)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-black py-2.5 rounded text-xs uppercase tracking-widest">{tx('Cancel')}</button>
+              <button onClick={() => { const r = dispensarJogador(player.id); setDispensando(false); if (r.ok) onClose(); else setAviso(r.motivo || 'Not possible'); }} className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-black py-2.5 rounded text-xs uppercase tracking-widest">{tx('Release')}</button>
             </div>
           </div>
         </div>

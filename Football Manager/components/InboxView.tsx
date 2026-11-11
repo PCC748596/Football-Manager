@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { CategoriaInbox, MensagemInbox } from '../textSim/inbox';
@@ -63,7 +64,7 @@ const InboxView: React.FC<Props> = ({ setView }) => {
   // Apaga uma mensagem (a lixeira ao lado da data): se era a aberta, abre a vizinha.
   const apagar = (id: string) => { const i = lista.findIndex(m => m.id === id); deleteInbox([id]); if (selId === id) setSelId(lista[i + 1]?.id || lista[i - 1]?.id || null); };
 
-  const rotuloCat = (c: CategoriaInbox) => (pt ? CATEGORIAS[c].pt : CATEGORIAS[c].en);
+  const rotuloCat = (c: CategoriaInbox) => (tx(CATEGORIAS[c].en));
   const contagem = (c: CategoriaInbox) => inbox.filter(m => m.categoria === c && !m.lida).length;
 
   return (
@@ -74,17 +75,17 @@ const InboxView: React.FC<Props> = ({ setView }) => {
             <span className="text-slate-900 dark:text-white">IN</span><span className="text-blue-500">BOX</span>
           </h2>
           <p className="text-slate-400 dark:text-slate-500 font-bold text-[11px] uppercase tracking-widest mt-2 opacity-70">
-            {pt ? `${naoLidas} não lida(s) • ${inbox.length} mensagem(ns)` : `${naoLidas} unread • ${inbox.length} message(s)`}
+            {tx('{v0} unread • {v1} message(s)', { v0: naoLidas, v1: inbox.length })}
           </p>
         </div>
         <button onClick={markAllInboxRead} disabled={!naoLidas}
           className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 text-slate-600 dark:text-slate-300 font-black px-5 py-2.5 rounded text-xs uppercase tracking-widest border border-slate-200 dark:border-slate-700 transition-colors">
-          {pt ? 'Marcar todas como lidas' : 'Mark all as read'}
+          {tx('Mark all as read')}
         </button>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {([['ALL', pt ? 'Todas' : 'All', 0], ['UNREAD', pt ? 'Não lidas' : 'Unread', naoLidas]] as const).map(([id, rotulo, n]) => (
+        {([['ALL', tx('All'), 0], ['UNREAD', tx('Unread'), naoLidas]] as const).map(([id, rotulo, n]) => (
           <button key={id} onClick={() => setFiltro(id)} className={`px-3 py-1.5 rounded text-xs font-black uppercase tracking-widest transition-colors ${filtro === id ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`}>{rotulo}{n ? ` (${n})` : ''}</button>
         ))}
         {(Object.keys(CATEGORIAS) as CategoriaInbox[]).filter(c => c !== 'WELCOME').map(c => (
@@ -96,14 +97,14 @@ const InboxView: React.FC<Props> = ({ setView }) => {
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[minmax(320px,2fr)_3fr] gap-6 min-h-0">
         <div className="bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-y-auto custom-scrollbar shadow-xl">
-          {lista.length === 0 && <div className="p-8 text-center text-slate-400 text-sm font-bold uppercase tracking-widest">{pt ? 'Nenhuma mensagem' : 'No messages'}</div>}
+          {lista.length === 0 && <div className="p-8 text-center text-slate-400 text-sm font-bold uppercase tracking-widest">{tx('No messages')}</div>}
           {lista.map(m => (
             <div key={m.id} role="button" tabIndex={0} onClick={() => setSelId(m.id)} onKeyDown={e => { if (e.key === 'Enter') setSelId(m.id); }}
               className={`group w-full text-left px-4 py-3 border-b border-slate-200 dark:border-slate-800/60 border-l-4 flex gap-3 items-start transition-colors cursor-pointer ${m.lida ? 'border-l-transparent opacity-60 hover:opacity-100' : 'border-l-blue-500 bg-blue-500/10'} ${selId === m.id ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
               <div className={`text-2xl leading-none mt-0.5 ${m.lida ? 'text-slate-500' : corDe(m)}`}>{iconeDe(m)}</div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  {!m.lida && <span className="text-[9px] font-black uppercase tracking-wider bg-blue-500 text-white px-1.5 py-0.5 rounded shrink-0">{pt ? 'Nova' : 'New'}</span>}
+                  {!m.lida && <span className="text-[9px] font-black uppercase tracking-wider bg-blue-500 text-white px-1.5 py-0.5 rounded shrink-0">{tx('New')}</span>}
                   <span className={`text-sm truncate ${m.lida ? 'font-semibold text-slate-500 dark:text-slate-400' : 'font-black text-slate-900 dark:text-white'}`}>{m.assunto}</span>
                   {m.alta && <span className="text-[10px] font-black uppercase bg-rose-500/15 text-rose-500 border border-rose-500/30 px-1.5 rounded shrink-0">!</span>}
                 </div>
@@ -111,7 +112,7 @@ const InboxView: React.FC<Props> = ({ setView }) => {
                   <span className="truncate">{m.de}</span>
                   <span className="shrink-0 ml-2 flex items-center gap-2">
                     {dataCurta(m.date)}
-                    <button type="button" title={pt ? 'Excluir' : 'Delete'} aria-label={pt ? 'Excluir mensagem' : 'Delete message'}
+                    <button type="button" title={tx('Delete')} aria-label={tx('Delete message')}
                       onClick={e => { e.stopPropagation(); apagar(m.id); }}
                       className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-white hover:bg-rose-600 transition-colors">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
@@ -124,22 +125,22 @@ const InboxView: React.FC<Props> = ({ setView }) => {
         </div>
 
         <div className="bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl p-6 overflow-y-auto custom-scrollbar flex flex-col">
-          {!sel ? <div className="m-auto text-slate-400 text-sm font-bold uppercase tracking-widest">{pt ? 'Selecione uma mensagem' : 'Select a message'}</div> : (
+          {!sel ? <div className="m-auto text-slate-400 text-sm font-bold uppercase tracking-widest">{tx('Select a message')}</div> : (
             <>
               <div className={`text-xs font-black uppercase tracking-widest ${corDe(sel)}`}>{iconeDe(sel)} {rotuloCat(sel.categoria)}</div>
               <h3 className="text-2xl font-black text-slate-900 dark:text-white leading-tight mt-1">{sel.assunto}</h3>
               <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-2 pb-4 border-b border-slate-200 dark:border-slate-800">
-                {pt ? 'De' : 'From'}: {sel.de} • {dataCurta(sel.date)}
+                {tx('From')}: {sel.de} • {dataCurta(sel.date)}
               </div>
               <div className="mt-4 text-base leading-relaxed text-slate-700 dark:text-slate-200 whitespace-pre-line">{sel.corpo}</div>
               <div className="mt-auto pt-6 flex gap-3">
                 {sel.ir && (
                   <button onClick={() => setView(destinoDe(sel))} className="bg-blue-600 hover:bg-blue-500 text-white font-black px-5 py-2.5 rounded text-xs uppercase tracking-widest transition-colors">
-                    {pt ? 'Abrir' : 'Open'} {ABA_ROTULO[destinoDe(sel)] ? (pt ? ABA_ROTULO[destinoDe(sel)].pt : ABA_ROTULO[destinoDe(sel)].en) : ''}
+                    {tx('Open')} {ABA_ROTULO[destinoDe(sel)] ? (tx(ABA_ROTULO[destinoDe(sel)].en)) : ''}
                   </button>
                 )}
                 <button onClick={() => { const i = lista.findIndex(m => m.id === sel.id); deleteInbox([sel.id]); setSelId(lista[i + 1]?.id || lista[i - 1]?.id || null); }}
-                  className="bg-slate-200 dark:bg-slate-800 hover:bg-rose-600 hover:text-white text-slate-600 dark:text-slate-300 font-black px-5 py-2.5 rounded text-xs uppercase tracking-widest transition-colors">{pt ? 'Excluir' : 'Delete'}</button>
+                  className="bg-slate-200 dark:bg-slate-800 hover:bg-rose-600 hover:text-white text-slate-600 dark:text-slate-300 font-black px-5 py-2.5 rounded text-xs uppercase tracking-widest transition-colors">{tx('Delete')}</button>
               </div>
             </>
           )}

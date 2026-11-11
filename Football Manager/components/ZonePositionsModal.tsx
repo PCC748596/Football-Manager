@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React, { useMemo, useRef, useState } from 'react';
 import { Team, Player, FORMATIONS, ZoneOverrides, Tactics } from '../types';
 import TacticPresetsModal from './TacticPresetsModal';
@@ -93,7 +94,7 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose,
             {[-1, 1].map(sg => <div key={'h' + sg} className="absolute left-0 right-0 border-t border-dashed border-white/25" style={{ top: `${(1 - sg * ZONAS.terco / ZONAS.meiaAltura) * 50}%` }} />)}
             {[-1, 1].map(sg => <div key={'v' + sg} className="absolute top-0 bottom-0 border-l border-dashed border-white/25" style={{ left: `${50 - sg * ZONAS.corredorX / ZONAS.meiaLargura * 50}%` }} />)}
           </div>
-          <div className="absolute -translate-x-1/2 -translate-y-1/2 text-xl pointer-events-none opacity-90" style={pct(bola.x, bola.z)} title="The ball">⚽</div>
+          <div className="absolute -translate-x-1/2 -translate-y-1/2 text-xl pointer-events-none opacity-90" style={pct(bola.x, bola.z)} title={tx('The ball')}>⚽</div>
           {postosContra.map((p, i) => (
             <div key={'c' + i} className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-30" style={pct(-p.x, -p.z)}>
               <div className="w-9 h-9 rounded-full bg-red-600 border-2 border-red-300 flex items-center justify-center text-[9px] font-black text-white">{FORMATIONS[contraForm][i]?.label}</div>
@@ -119,14 +120,14 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose,
         <div className="flex flex-col gap-4 w-[300px] overflow-y-auto">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-700 dark:text-white">Positions</h3>
+              <h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-700 dark:text-white">{tx('Positions')}</h3>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{formacao} · drag the players</span>
             </div>
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl font-black leading-none">✕</button>
           </div>
 
           <div className="flex flex-col gap-2">
-            <button onClick={() => setContra(c => !c)} className={`px-3 py-2 rounded text-[10px] font-black uppercase tracking-widest ${contra ? 'bg-red-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`} title="Shows, in red circles, where the opponent's system stands with the ball in this zone">Playing Against</button>
+            <button onClick={() => setContra(c => !c)} className={`px-3 py-2 rounded text-[10px] font-black uppercase tracking-widest ${contra ? 'bg-red-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`} title={tx('Shows, in red circles, where the opponent\'s system stands with the ball in this zone')}>{tx('Playing Against')}</button>
             {contra && (
               <select value={formContra} onChange={e => setFormContra(e.target.value)} className="px-2 py-2 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-bold text-slate-700 dark:text-white">
                 {adversario && formacaoTemTabela(adversario.tactics.formation) && <option value="ADV">{adversario.name} ({adversario.tactics.formation})</option>}
@@ -136,12 +137,12 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose,
           </div>
 
           <div>
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Phase</span>
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{tx('Phase')}</span>
             <div className="flex gap-2 mt-1"><Aba valor="com" rotulo="With the ball" /><Aba valor="sem" rotulo="Without the ball" /></div>
           </div>
 
           <div>
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Where the ball is</span>
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{tx('Where the ball is')}</span>
             <div className="grid grid-cols-3 gap-1 mt-1">
               {[2, 1, 0].map(lin => [2, 1, 0].map(col => {
                 const z = lin * 3 + col;
@@ -158,22 +159,22 @@ const ZonePositionsModal: React.FC<Props> = ({ team, players, onChange, onClose,
           </div>
 
           <div className="flex flex-col gap-2">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mirror</span>
-            <button onClick={() => onChange(espelharZona(formacao, rotulos, over, fase, zona, zona))} className="px-3 py-2 rounded bg-indigo-600/90 text-[10px] font-black uppercase tracking-widest text-white hover:bg-indigo-500" title="Swaps left and right in this zone: the left back goes where the right back was, and so on">Flip this zone (left ⇄ right)</button>
-            {zonaEspelhada(zona) !== zona && <button onClick={() => onChange(espelharZona(formacao, rotulos, over, fase, zona, zonaEspelhada(zona)))} className="px-3 py-2 rounded bg-indigo-600/90 text-[10px] font-black uppercase tracking-widest text-white hover:bg-indigo-500" title="Copies these positions, mirrored, to the zone on the other side of the pitch">Copy mirrored → {NOME_DA_ZONA[zonaEspelhada(zona)]}</button>}
-            <button onClick={() => onChange(espelharFase(formacao, rotulos, over, fase, zona))} className="px-3 py-2 rounded bg-indigo-600/90 text-[10px] font-black uppercase tracking-widest text-white hover:bg-indigo-500" title="For each row, copies this column, mirrored, to the opposite column">Mirror {fase === 'com' ? 'with the ball' : 'without the ball'} (all rows)</button>
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{tx('Mirror')}</span>
+            <button onClick={() => onChange(espelharZona(formacao, rotulos, over, fase, zona, zona))} className="px-3 py-2 rounded bg-indigo-600/90 text-[10px] font-black uppercase tracking-widest text-white hover:bg-indigo-500" title={tx('Swaps left and right in this zone: the left back goes where the right back was, and so on')}>Flip this zone (left ⇄ right)</button>
+            {zonaEspelhada(zona) !== zona && <button onClick={() => onChange(espelharZona(formacao, rotulos, over, fase, zona, zonaEspelhada(zona)))} className="px-3 py-2 rounded bg-indigo-600/90 text-[10px] font-black uppercase tracking-widest text-white hover:bg-indigo-500" title={tx('Copies these positions, mirrored, to the zone on the other side of the pitch')}>Copy mirrored → {NOME_DA_ZONA[zonaEspelhada(zona)]}</button>}
+            <button onClick={() => onChange(espelharFase(formacao, rotulos, over, fase, zona))} className="px-3 py-2 rounded bg-indigo-600/90 text-[10px] font-black uppercase tracking-widest text-white hover:bg-indigo-500" title={tx('For each row, copies this column, mirrored, to the opposite column')}>{tx('Mirror')} {fase === 'com' ? 'with the ball' : 'without the ball'} (all rows)</button>
           </div>
 
           <div className="flex flex-col gap-2">
-            <button onClick={() => onChange(repor(over, fase, zona))} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700">Reset this zone</button>
-            <button onClick={() => onChange(repor(over, fase))} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700">Reset {fase === 'com' ? 'with the ball' : 'without the ball'} (all zones)</button>
-            <button disabled={!temAjustes(over)} onClick={() => onChange(undefined)} className="px-3 py-2 rounded bg-rose-600/80 disabled:opacity-30 text-[10px] font-black uppercase tracking-widest text-white hover:bg-rose-600">Reset the whole formation</button>
+            <button onClick={() => onChange(repor(over, fase, zona))} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700">{tx('Reset this zone')}</button>
+            <button onClick={() => onChange(repor(over, fase))} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700">{tx('Reset')} {fase === 'com' ? 'with the ball' : 'without the ball'} (all zones)</button>
+            <button disabled={!temAjustes(over)} onClick={() => onChange(undefined)} className="px-3 py-2 rounded bg-rose-600/80 disabled:opacity-30 text-[10px] font-black uppercase tracking-widest text-white hover:bg-rose-600">{tx('Reset the whole formation')}</button>
           </div>
           <span className="text-[9px] text-slate-400 leading-tight">Yellow = adjusted position. Red = opponent system (Playing Against), in the opposite phase and the mirrored zone. Adjustments apply to this formation and go into the game (also with the match in progress).</span>
 
           <div className="flex gap-2">
-            <button onClick={() => setPresets('save')} className="flex-1 px-3 py-2 rounded bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-emerald-500" title="Saves the current tactic (formation, style and positions)">Save</button>
-            <button onClick={() => setPresets('load')} className="flex-1 px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[11px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title="Loads a saved tactic or one from a .json file">Load</button>
+            <button onClick={() => setPresets('save')} className="flex-1 px-3 py-2 rounded bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-emerald-500" title={tx('Saves the current tactic (formation, style and positions)')}>{tx('Save')}</button>
+            <button onClick={() => setPresets('load')} className="flex-1 px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[11px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title={tx('Loads a saved tactic or one from a .json file')}>{tx('Load')}</button>
           </div>
         </div>
       </div>

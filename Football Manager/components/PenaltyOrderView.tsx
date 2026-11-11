@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React, { useMemo, useState } from 'react';
 import { Player, Team } from '../types';
 import { normalizarOrdem, ordemAutomatica, notaDePenalti } from '../textSim/penaltyShootout';
@@ -32,7 +33,7 @@ const PenaltyOrderView: React.FC<Props> = ({ time, jogadores, ordemInicial, aoCo
   return (
     <div className="flex flex-col gap-4 w-full max-w-xl bg-slate-900/95 backdrop-blur-md p-6 rounded-3xl border border-slate-800 shadow-2xl">
       <div className="text-center">
-        <h2 className="text-xl font-black text-white uppercase italic tracking-widest">Penalty Shootout</h2>
+        <h2 className="text-xl font-black text-white uppercase italic tracking-widest">{tx('Penalty Shootout')}</h2>
         <p className="text-blue-400 text-[10px] font-black uppercase tracking-[0.2em]">{time.name} • Kick order</p>
         <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">
           Drag the rows or use the arrows • When the list ends, it starts again from the first kicker
@@ -43,7 +44,7 @@ const PenaltyOrderView: React.FC<Props> = ({ time, jogadores, ordemInicial, aoCo
         <button onClick={() => setOrdem(ordemAutomatica(jogadores))} className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-black px-3 py-1.5 rounded text-[10px] uppercase tracking-widest">
           Auto (best takers)
         </button>
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Penalties + Consistency</span>
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{tx('Penalties + Consistency')}</span>
       </div>
 
       <div className="max-h-[52vh] overflow-y-auto custom-scrollbar flex flex-col gap-1">
@@ -63,10 +64,10 @@ const PenaltyOrderView: React.FC<Props> = ({ time, jogadores, ordemInicial, aoCo
               <span className={`w-6 text-center text-xs font-black ${regular ? 'text-emerald-400' : 'text-slate-500'}`}>{i + 1}</span>
               <span className="w-9 text-[10px] font-black text-slate-400 uppercase">{p.position}</span>
               <span className="flex-1 text-sm font-black text-white truncate">{p.name}</span>
-              <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap" title="Penalties / Consistency">
+              <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap" title={tx('Penalties / Consistency')}>
                 {campo3d(p, ['penalties'])} / {campo3d(p, ['consistency'])}
               </span>
-              <span className="w-10 text-right text-xs font-black text-blue-400" title="Penalties + Consistency">{notaDePenalti(p)}</span>
+              <span className="w-10 text-right text-xs font-black text-blue-400" title={tx('Penalties + Consistency')}>{notaDePenalti(p)}</span>
               <span className="flex flex-col">
                 <button onClick={() => mover(i, i - 1)} disabled={i === 0} className="text-slate-400 hover:text-white disabled:opacity-20 text-[10px] leading-none">▲</button>
                 <button onClick={() => mover(i, i + 1)} disabled={i === ordem.length - 1} className="text-slate-400 hover:text-white disabled:opacity-20 text-[10px] leading-none">▼</button>
@@ -78,10 +79,10 @@ const PenaltyOrderView: React.FC<Props> = ({ time, jogadores, ordemInicial, aoCo
 
       <div className="flex gap-3">
         {aoCancelar && (
-          <button onClick={aoCancelar} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black py-3 rounded-xl text-xs uppercase tracking-widest">Cancel</button>
+          <button onClick={aoCancelar} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black py-3 rounded-xl text-xs uppercase tracking-widest">{tx('Cancel')}</button>
         )}
         <button onClick={() => aoConfirmar(ordem)} className="flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl text-xs uppercase tracking-[0.2em] border-b-4 border-emerald-800">
-          Confirm order
+          {tx('Confirm order')}
         </button>
       </div>
     </div>

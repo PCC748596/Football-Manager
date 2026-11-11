@@ -40,7 +40,7 @@ import { REAL_TEAMS_JSON } from '../textSim/realDatabase';
 import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager, notasDoMotor, ordemDaPosicao } from '../3dMatch/simulador3dCliente';
 import { simulador3dEnviar, simulador3dInstantaneo, simulador3dDescartar } from '../3dMatch/Simulador3DView';
 import { avisoDoGoleiro, aplicarTrocaDo3d } from '../3dMatch/avisoGoleiro';
-import { traduzir, idiomaValido } from '../textSim/idiomas';
+import { traduzir, idiomaValido, definirIdiomaAtual, tx, localeDoIdioma } from '../textSim/idiomas';
 
 
 interface GameContextType {
@@ -719,6 +719,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Os textos de textSim/idiomas/<codigo>.json; o que faltar no idioma sai em ingles.
+  definirIdiomaAtual(gameState.language);   // o `tx` das telas (textSim/idiomas.ts) segue o idioma escolhido
   const t = (key: string, vars?: Record<string, string | number>) => traduzir(gameState.language, key, vars);
 
   // Mudar as taxas refaz o provider (o `formatCurrency` de todas as telas passa a usar as novas).
@@ -2290,7 +2291,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       fixtures.some(f => f.date === d && !f.played && (f.homeTeamId === userTeam?.id || f.awayTeamId === userTeam?.id))
     );
     if (matchConflict) {
-      { const pt = gameState.language === 'PT'; alert(pt ? `Conflito! Há um jogo agendado para ${new Date(matchConflict + 'T12:00:00').toLocaleDateString('pt-BR')}. Escolha outra data ou duração.` : `Conflict! A match is scheduled for ${new Date(matchConflict + 'T12:00:00').toLocaleDateString('en-US')}. Pick another date or duration.`); }
+      alert(tx('Conflict! A match is scheduled for {v0}. Pick another date or duration.', { v0: new Date(matchConflict + 'T12:00:00').toLocaleDateString(localeDoIdioma(gameState.language)) }));
       return;
     }
 
@@ -2331,7 +2332,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         date: d,
         type,
         ...(custoPorDia > 0 ? { custo: custoPorDia } : {}),
-        label: i === 0 ? (type === 'FRIENDLY' ? (teams.find(t => t.id === details.opponentId)?.name || 'Friendly') : label) : `${label} (${gameState.language === 'PT' ? 'Dia' : 'Day'} ${i + 1})`
+        label: i === 0 ? (type === 'FRIENDLY' ? (teams.find(t => t.id === details.opponentId)?.name || 'Friendly') : label) : `${label} (${tx('Day')} ${i + 1})`
       }));
 
       return {

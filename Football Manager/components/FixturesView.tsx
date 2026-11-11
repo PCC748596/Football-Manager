@@ -1,4 +1,5 @@
 
+import { tx } from '../textSim/idiomas';
 import React, { useMemo, useRef, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { Fixture, Team, MatchEvent } from '../types';
@@ -72,7 +73,7 @@ const FixturesView: React.FC = () => {
             <span className="text-slate-900 dark:text-white transition-colors">{t('fix_season').toUpperCase()}</span> <span className="text-blue-500">{t('fix_schedule').toUpperCase()}</span>
           </h2>
           <p className="text-slate-400 dark:text-slate-500 font-bold text-[15px] uppercase tracking-widest mt-2 opacity-60 italic transition-colors">
-            Fixture List for {getTeamObj(gameState.userTeamId || '')?.name}
+            {tx('Fixture List for')} {getTeamObj(gameState.userTeamId || '')?.name}
           </p>
         </div>
       </div>
@@ -190,7 +191,7 @@ const FixturesView: React.FC = () => {
                           </>
                         ) : (
                           <div className="text-[13px] font-black text-slate-300 dark:text-slate-700 bg-slate-100 dark:bg-slate-900/50 px-3.5 py-1.5 rounded-full uppercase tracking-widest border border-slate-200 dark:border-slate-800/50 italic transition-colors">
-                            vs
+                            {tx('vs')}
                           </div>
                         )}
                       </div>
@@ -211,12 +212,12 @@ const FixturesView: React.FC = () => {
                       {isCurrent ? (
                         <span className="text-[13px] font-black text-blue-600 dark:text-blue-500 uppercase tracking-[0.2em] flex items-center justify-end gap-1.5 italic transition-colors">
                           <span className="w-1 h-1 rounded-full bg-blue-600 dark:bg-blue-500 animate-pulse"></span>
-                          NEXT MATCH
+                          {tx('NEXT MATCH')}
                         </span>
                       ) : isPast ? (
-                        <span className="text-[13px] font-black text-slate-300 dark:text-slate-800 uppercase tracking-widest italic opacity-40 transition-colors">PLAYED</span>
+                        <span className="text-[13px] font-black text-slate-300 dark:text-slate-800 uppercase tracking-widest italic opacity-40 transition-colors">{tx('PLAYED')}</span>
                       ) : (
-                        <span className="text-[13px] font-black text-slate-300 dark:text-slate-800 uppercase tracking-widest italic opacity-40 transition-colors">UPCOMING</span>
+                        <span className="text-[13px] font-black text-slate-300 dark:text-slate-800 uppercase tracking-widest italic opacity-40 transition-colors">{tx('UPCOMING')}</span>
                       )}
                     </td>
                   </tr>

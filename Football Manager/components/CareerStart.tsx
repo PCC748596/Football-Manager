@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React, { useEffect, useMemo, useState } from 'react';
 import { COUNTRIES, generateLeagueData } from '../textSim/dataGenerator';
 import { Team, Player, League } from '../types';
@@ -49,15 +50,15 @@ export const ModeSelection: React.FC<{ managerName: string; onPickClub: () => vo
   return (
     <div className="w-full h-full flex flex-col items-center justify-center gap-8 p-8 bg-white dark:bg-manager-bg transition-colors duration-300">
       <div className="text-center">
-        <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white">How do you want to start?</h1>
-        <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest mt-1">Manager: {managerName}</p>
+        <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white">{tx('How do you want to start?')}</h1>
+        <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest mt-1">{tx('Manager:')} {managerName}</p>
       </div>
       <div className="w-full max-w-3xl">
         <div className="text-center text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3">Financial difficulty · starting budget = payroll ×</div>
         <div className="grid grid-cols-5 gap-3">
           {DIFICULDADES.map(d => (
             <button key={d.id} onClick={() => escolherDif(d.id)} className={`min-h-[64px] rounded border-2 px-2 py-3 text-center transition-all bg-slate-50 dark:bg-slate-800 ${dif === d.id ? 'border-blue-500 bg-blue-500/10' : 'border-slate-200 dark:border-slate-700 hover:border-blue-500'}`}>
-              <div className={`font-black uppercase text-sm ${d.cor}`}>{d.rotulo}</div>
+              <div className={`font-black uppercase text-sm ${d.cor}`}>{tx(d.rotulo)}</div>
               <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">{d.fator}× payroll</div>
             </button>
           ))}
@@ -65,12 +66,12 @@ export const ModeSelection: React.FC<{ managerName: string; onPickClub: () => vo
       </div>
       <div className="flex gap-6 w-full max-w-3xl">
         <button onClick={onPickClub} disabled={!dif} className={cartao}>
-          <div className="text-2xl font-black uppercase text-slate-800 dark:text-white mb-2">Choose your club</div>
-          <div className="text-sm text-slate-500 dark:text-slate-400">Pick any club from any league.</div>
+          <div className="text-2xl font-black uppercase text-slate-800 dark:text-white mb-2">{tx('Choose your club')}</div>
+          <div className="text-sm text-slate-500 dark:text-slate-400">{tx('Pick any club from any league.')}</div>
         </button>
         <button onClick={onCareer} disabled={!dif} className={cartao}>
-          <div className="text-2xl font-black uppercase text-slate-800 dark:text-white mb-2">Manager career</div>
-          <div className="text-sm text-slate-500 dark:text-slate-400">Choose a country and take one of 5 offers, from a top club to a real challenge.</div>
+          <div className="text-2xl font-black uppercase text-slate-800 dark:text-white mb-2">{tx('Manager career')}</div>
+          <div className="text-sm text-slate-500 dark:text-slate-400">{tx('Choose a country and take one of 5 offers, from a top club to a real challenge.')}</div>
         </button>
       </div>
       <button onClick={onBack} className="text-slate-500 hover:text-blue-500 font-bold uppercase text-sm">‹ Back</button>
@@ -112,13 +113,13 @@ export const CareerOffers: React.FC<{ managerName: string; managerLook?: Manager
         <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-700"></div>
         {managerLook && <div className="relative w-[84px] h-[96px] shrink-0 -my-3"><ManagerAvatar look={managerLook} busto className="absolute inset-0 w-full h-full" /></div>}
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Manager career</h1>
-          <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest">Manager: {managerName}</p>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{tx('Manager career')}</h1>
+          <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest">{tx('Manager:')} {managerName}</p>
         </div>
       </div>
       <div className="flex-1 flex gap-6 min-h-0">
         <div className="w-[220px] flex flex-col gap-2 min-h-0">
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Country</div>
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">{tx('Country')}</div>
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
             {paises.map(c => (
               <button key={c.id} onClick={() => { setCountryId(c.id); setSelId(''); }} className={`w-full text-left p-3 rounded border-2 font-black uppercase transition-all ${countryId === c.id ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-400'}`}>{c.name}</button>
@@ -128,27 +129,27 @@ export const CareerOffers: React.FC<{ managerName: string; managerLook?: Manager
         <div className="flex-1 min-w-0 grid grid-cols-1 xl:grid-cols-5 gap-2 xl:gap-3 min-h-0 content-start overflow-y-auto custom-scrollbar">
           {ofertas.map(o => (
             <button key={o.team.id} onClick={() => setSelId(o.team.id)} className={`flex flex-row xl:flex-col items-center text-left xl:text-center gap-4 xl:gap-3 p-2 xl:p-4 rounded border-2 transition-all hover:border-blue-500 ${sel?.team.id === o.team.id ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500' : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'}`}>
-              <div className={`w-24 xl:w-auto shrink-0 text-[11px] font-black uppercase tracking-widest ${o.nivel.cor}`}>{o.nivel.rotulo}</div>
+              <div className={`w-24 xl:w-auto shrink-0 text-[11px] font-black uppercase tracking-widest ${o.nivel.cor}`}>{tx(o.nivel.rotulo)}</div>
               <TeamShield team={o.team} className="shrink-0 w-[40px] h-[50px] xl:w-[70px] xl:h-[88px]" />
               <div className="flex-1 min-w-0 text-base font-black uppercase text-slate-800 dark:text-white leading-tight">{o.team.name}</div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right xl:text-center shrink-0">{o.leagueName}<br />{o.team.strength} OVR</div>
             </button>
           ))}
-          {!ofertas.length && <div className="col-span-full text-xs text-slate-400 font-bold uppercase tracking-widest p-4">No offers for this country.</div>}
+          {!ofertas.length && <div className="col-span-full text-xs text-slate-400 font-bold uppercase tracking-widest p-4">{tx('No offers for this country.')}</div>}
         </div>
         <div className="w-[32%] xl:w-[24%] min-w-[270px] flex flex-col gap-2 min-h-0">
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Club Overview</div>
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">{tx('Club Overview')}</div>
           {sel ? (() => {
             const c = sel.team, c1 = c.homeKit?.color1 || '#1e293b', c2 = c.homeKit?.color2 || c1;
             return (
               <div className="flex-1 relative overflow-hidden rounded border-2 border-slate-200 dark:border-slate-800 min-h-0" style={{ background: `linear-gradient(165deg, ${c1} 0%, ${c1} 18%, ${c2} 62%, #020617 100%)` }}>
                 <div className="absolute inset-0 flex flex-col gap-2 p-1.5 min-h-0">
                   <ClubOverviewContent team={c} leagueName={sel.leagueName} leagueTeams={sel.ligaTimes} league={sel.liga} elenco={sel.elenco} />
-                  <button onClick={() => onSelectTeam(c.id, countryId, sel.leagueId)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-sm transition-all shadow-lg text-xl uppercase tracking-widest">Take job</button>
+                  <button onClick={() => onSelectTeam(c.id, countryId, sel.leagueId)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-sm transition-all shadow-lg text-xl uppercase tracking-widest">{tx('Take job')}</button>
                 </div>
               </div>
             );
-          })() : <div className="flex-1 flex items-center justify-center text-xs text-slate-400 font-bold uppercase tracking-widest border-2 border-dashed border-slate-200 dark:border-slate-800 rounded">No club</div>}
+          })() : <div className="flex-1 flex items-center justify-center text-xs text-slate-400 font-bold uppercase tracking-widest border-2 border-dashed border-slate-200 dark:border-slate-800 rounded">{tx('No club')}</div>}
         </div>
       </div>
     </div>

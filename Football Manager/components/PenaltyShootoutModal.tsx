@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { Player, Team } from '../types';
@@ -77,8 +78,8 @@ const PenaltyShootoutModal: React.FC = () => {
       ) : (
         <div className="flex flex-col gap-4 w-full max-w-2xl bg-slate-900/95 p-6 rounded-3xl border border-slate-800 shadow-2xl">
           <div className="text-center">
-            <h2 className="text-xl font-black text-white uppercase italic tracking-widest">Penalty Shootout</h2>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">After the match: {timeCasa.name} {d.golsCasa} - {d.golsFora} {timeFora.name}</p>
+            <h2 className="text-xl font-black text-white uppercase italic tracking-widest">{tx('Penalty Shootout')}</h2>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{tx('After the match:')} {timeCasa.name} {d.golsCasa} - {d.golsFora} {timeFora.name}</p>
           </div>
           <div className="flex items-center justify-center gap-6 text-white">
             <span className="text-sm font-black uppercase truncate max-w-[10rem] text-right">{timeCasa.name}</span>
@@ -106,10 +107,10 @@ const PenaltyShootoutModal: React.FC = () => {
               <div className="text-lg font-black text-emerald-400 uppercase tracking-widest">
                 {(estado.vencedor === 'casa' ? timeCasa : timeFora).name} wins on penalties ({estado.golsCasa}-{estado.golsFora})
               </div>
-              <button onClick={confirmar} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl text-xs uppercase tracking-[0.2em] border-b-4 border-emerald-800">Continue</button>
+              <button onClick={confirmar} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl text-xs uppercase tracking-[0.2em] border-b-4 border-emerald-800">{tx('Continue')}</button>
             </div>
           ) : (
-            <button onClick={() => setMostradas(cobrancas.length)} className="self-center bg-slate-800 hover:bg-slate-700 text-slate-300 font-black px-4 py-2 rounded text-[10px] uppercase tracking-widest">Skip</button>
+            <button onClick={() => setMostradas(cobrancas.length)} className="self-center bg-slate-800 hover:bg-slate-700 text-slate-300 font-black px-4 py-2 rounded text-[10px] uppercase tracking-widest">{tx('Skip')}</button>
           )}
         </div>
       )}

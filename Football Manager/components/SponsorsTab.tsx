@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React, { useState } from 'react';
 import { escalaDaLiga } from '../textSim/economia';
 import { useGame } from '../context/GameContext';
@@ -34,20 +35,20 @@ const SponsorsTab: React.FC = () => {
   const nomeDe = (id: string) => PATROCINADORES.find(p => p.id === id)?.nome || '';
 
   const ROTULO = {
-    ATIVO: pt ? 'Ativo' : 'Active', DISPONIVEL: pt ? 'Disponível' : 'Available', BLOQUEADO: pt ? 'Reputação insuficiente' : 'Reputation too low', INDISPONIVEL: pt ? 'Contrato em vigor' : 'Contract in force'
+    ATIVO: tx('Active'), DISPONIVEL: tx('Available'), BLOQUEADO: tx('Reputation too low'), INDISPONIVEL: tx('Contract in force')
   };
   const COR = { ATIVO: 'text-emerald-500', DISPONIVEL: 'text-blue-500', BLOQUEADO: 'text-rose-500', INDISPONIVEL: 'text-slate-400' };
   const MOTIVO: Record<string, string> = {
-    REPUTACAO: pt ? 'A reputação do clube é insuficiente para este patrocinador.' : "The club's reputation is too low for this sponsor.",
-    ATIVO: pt ? `O contrato atual só pode ser trocado nos últimos ${JANELA_RENOVACAO_DIAS} dias.` : `The current contract can only be replaced in its last ${JANELA_RENOVACAO_DIAS} days.`,
-    JA_RENOVADO: pt ? 'A renovação já foi acordada.' : 'A renewal is already agreed.',
-    ANOS: pt ? 'Duração inválida.' : 'Invalid duration.'
+    REPUTACAO: tx('The club\'s reputation is too low for this sponsor.'),
+    ATIVO: tx('The current contract can only be replaced in its last {v0} days.', { v0: JANELA_RENOVACAO_DIAS }),
+    JA_RENOVADO: tx('A renewal is already agreed.'),
+    ANOS: tx('Invalid duration.')
   };
 
   const propor = () => {
     if (!aberto) return;
     const r = proporPatrocinio(aberto.id, anos);
-    if (r.ok) { setMsg({ ok: true, texto: r.renovacao ? (pt ? 'Renovação acordada: começa no fim do contrato atual.' : 'Renewal agreed: it starts when the current contract ends.') : (pt ? 'Proposta aceita! Contrato assinado.' : 'Proposal accepted! Contract signed.') }); setAberto(null); }
+    if (r.ok) { setMsg({ ok: true, texto: r.renovacao ? (tx('Renewal agreed: it starts when the current contract ends.')) : (tx('Proposal accepted! Contract signed.')) }); setAberto(null); }
     else if ('motivo' in r) setMsg({ ok: false, texto: MOTIVO[r.motivo] });
   };
 
@@ -64,17 +65,17 @@ const SponsorsTab: React.FC = () => {
     <div className="h-full overflow-y-auto flex flex-col gap-4 pr-1">
       <div className="flex flex-wrap items-center gap-3 justify-between">
         <div className="flex gap-2">{ehBrasil && aba('BRASIL', 'BRASIL')}{ehBrasil && aba('INTERNATIONAL', 'INTERNATIONAL')}</div>
-        <div className="text-[11px] font-black uppercase tracking-widest text-slate-500">{pt ? 'Reputação do clube' : 'Club reputation'}: <span className="text-blue-500">{reputacaoClube}</span> / 100</div>
+        <div className="text-[11px] font-black uppercase tracking-widest text-slate-500">{tx('Club reputation')}: <span className="text-blue-500">{reputacaoClube}</span> / 100</div>
       </div>
 
       <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-3 text-sm">
         {atual
           ? <>
-              <span className="font-black text-emerald-500">{nomeDe(atual.sponsorId)}</span> — {formatCurrency(atual.valorAnualUSD)} / {pt ? 'ano' : 'year'} · {pt ? 'até' : 'until'} {atual.fim} · {atual.parcelasPagas}/{atual.anos * 12} {pt ? 'parcelas' : 'instalments'}
-              {proximo && <span className="ml-3 text-blue-500 font-bold">{pt ? 'Renovação' : 'Renewal'}: {nomeDe(proximo.sponsorId)} ({proximo.anos} {pt ? 'anos' : 'yrs'})</span>}
-              {!proximo && diasParaFim(atual, hoje) <= JANELA_RENOVACAO_DIAS && <span className="ml-3 text-amber-500 font-bold">{pt ? 'Pode renovar ou trocar agora' : 'You can renew or switch now'}</span>}
+              <span className="font-black text-emerald-500">{nomeDe(atual.sponsorId)}</span> — {formatCurrency(atual.valorAnualUSD)} / {tx('year')} · {tx('until')} {atual.fim} · {atual.parcelasPagas}/{atual.anos * 12} {tx('instalments')}
+              {proximo && <span className="ml-3 text-blue-500 font-bold">{tx('Renewal')}: {nomeDe(proximo.sponsorId)} ({proximo.anos} {tx('yrs')})</span>}
+              {!proximo && diasParaFim(atual, hoje) <= JANELA_RENOVACAO_DIAS && <span className="ml-3 text-amber-500 font-bold">{tx('You can renew or switch now')}</span>}
             </>
-          : <span className="text-slate-500">{pt ? 'Sem patrocinador principal. Escolha um abaixo.' : 'No main sponsor. Pick one below.'}</span>}
+          : <span className="text-slate-500">{tx('No main sponsor. Pick one below.')}</span>}
       </div>
 
       {msg && <div className={`text-sm font-bold ${msg.ok ? 'text-emerald-500' : 'text-rose-500'}`}>{msg.texto}</div>}
@@ -84,18 +85,18 @@ const SponsorsTab: React.FC = () => {
           <LogoMarca p={aberto} className="w-12 h-12" />
           <div className="flex-1 min-w-[180px]">
             <div className="font-black text-lg text-slate-900 dark:text-white">{aberto.nome}</div>
-            <div className="text-sm text-slate-500">{formatCurrency(valorAnualPara(aberto, anos, escalaDaLiga(userTeam.leagueId)))} / {pt ? 'ano' : 'year'} ({Math.round(FATOR_DURACAO[anos] * 100)}%) · 12 {pt ? 'parcelas mensais' : 'monthly instalments'}</div>
-            <div className="text-[11px] text-slate-500">{pt ? 'Total do contrato' : 'Contract total'}: {formatCurrency(valorAnualPara(aberto, anos, escalaDaLiga(userTeam.leagueId)) * anos)} · {pt ? 'bônus de competição' : 'competition bonus'}: {Math.round(bonusPctDaMarca(aberto) * 100)}% {pt ? 'dos prêmios' : 'of prize money'}</div>
+            <div className="text-sm text-slate-500">{formatCurrency(valorAnualPara(aberto, anos, escalaDaLiga(userTeam.leagueId)))} / {tx('year')} ({Math.round(FATOR_DURACAO[anos] * 100)}%) · 12 {tx('monthly instalments')}</div>
+            <div className="text-[11px] text-slate-500">{tx('Contract total')}: {formatCurrency(valorAnualPara(aberto, anos, escalaDaLiga(userTeam.leagueId)) * anos)} · {tx('competition bonus')}: {Math.round(bonusPctDaMarca(aberto) * 100)}% {tx('of prize money')}</div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">{pt ? 'Duração' : 'Duration'}</span>
+            <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">{tx('Duration')}</span>
             {Array.from({ length: ANOS_MAX - ANOS_MIN + 1 }, (_, i) => ANOS_MIN + i).map(n => (
               <button key={n} onClick={() => setAnos(n)} className={`min-w-[44px] min-h-[44px] rounded font-black ${anos === n ? 'bg-blue-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>{n}</button>
             ))}
-            <span className="text-xs text-slate-500">{pt ? 'ano(s)' : 'year(s)'}</span>
+            <span className="text-xs text-slate-500">{tx('year(s)')}</span>
           </div>
-          <button onClick={propor} className="min-h-[44px] px-6 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest">{atual ? (pt ? 'Renovar / trocar' : 'Renew / switch') : (pt ? 'Propor' : 'Propose')}</button>
-          <button onClick={() => setAberto(null)} className="min-h-[44px] px-4 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 font-black text-xs uppercase tracking-widest">{pt ? 'Cancelar' : 'Cancel'}</button>
+          <button onClick={propor} className="min-h-[44px] px-6 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest">{atual ? (tx('Renew / switch')) : (tx('Propose'))}</button>
+          <button onClick={() => setAberto(null)} className="min-h-[44px] px-4 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 font-black text-xs uppercase tracking-widest">{tx('Cancel')}</button>
         </div>
       )}
 
@@ -108,7 +109,7 @@ const SponsorsTab: React.FC = () => {
               <LogoMarca p={p} />
               <div className="flex-1 min-w-0">
                 <div className="font-black text-slate-900 dark:text-white truncate">{p.nome}</div>
-                <div className="text-[11px] text-slate-500 truncate flex items-center gap-1.5"><img src={bandeira(p)} alt="" className="w-4 h-3 object-cover rounded-[2px] border border-slate-300 dark:border-slate-700" />{p.pais} · {pt ? 'rep. mín.' : 'min. rep.'} {reputacaoMinima(p)}</div>
+                <div className="text-[11px] text-slate-500 truncate flex items-center gap-1.5"><img src={bandeira(p)} alt="" className="w-4 h-3 object-cover rounded-[2px] border border-slate-300 dark:border-slate-700" />{p.pais} · {tx('min. rep.')} {reputacaoMinima(p)}</div>
               </div>
               <div className="text-right shrink-0">
                 <div className="font-black text-slate-900 dark:text-white">{formatCurrency(paraDolares(p.valorAnual, p.moeda))}</div>

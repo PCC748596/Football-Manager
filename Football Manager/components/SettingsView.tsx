@@ -1,4 +1,5 @@
 
+import { tx } from '../textSim/idiomas';
 import React, { useState } from 'react';
 import { buscarTaxasOnline, cambioAutomatico, definirCambioAutomatico } from '../textSim/cambio';
 import { useGame } from '../context/GameContext';
@@ -85,7 +86,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
 
           {/* Gameplay Section */}
           <section className="space-y-4">
-              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">Gameplay</h3>
+              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">{tx('Gameplay')}</h3>
               
               <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
@@ -111,7 +112,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
 
           {/* Mod Section */}
           <section className="space-y-4">
-              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">Mod</h3>
+              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">{tx('Mod')}</h3>
               <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">Mod (real names, badges and competitions)</label>
                   <div className="flex gap-2">
@@ -124,7 +125,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                   </div>
                   {mod.ativo && (
                       <div className="space-y-1">
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mod folder</span>
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{tx('Mod folder')}</span>
                           <input type="text" value={mod.caminho} spellCheck={false} placeholder={CAMINHO_PADRAO_DO_MOD}
                               onChange={e => setMod({ ...mod, caminho: e.target.value })}
                               className="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-sm font-mono" />
@@ -132,9 +133,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                   )}
                   <div className="flex items-center gap-3 flex-wrap">
                       <button onClick={() => { gravarConfigMod(mod); window.location.reload(); }}
-                          className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest transition-colors">Apply and restart</button>
+                          className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest transition-colors">{tx('Apply and restart')}</button>
                       <button onClick={() => setMod({ ...mod, caminho: CAMINHO_PADRAO_DO_MOD })}
-                          className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Default folder</button>
+                          className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">{tx('Default folder')}</button>
                   </div>
                   <p className="text-[10px] text-slate-400">
                       {estadoDoMod.ativo
@@ -149,7 +150,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
 
           {/* Graphics Section */}
           <section className="space-y-4">
-              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">Graphics</h3>
+              <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">{tx('Graphics')}</h3>
               <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">3D Match Quality</label>
                   <div className="flex gap-2">
@@ -170,7 +171,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                   <p className="text-xs text-slate-400">HIGH (default): 100% crowd. MEDIUM: 50% crowd. LOW: light player model, 25% of the stadium seats filled. Real-time shadows are OFF by default at every level (use the Shadows button in the 3D match to turn them on; a soft blob shadow is drawn instead). Crowd size applies from the next match.</p>
               </div>
               <div className="space-y-2 pt-2">
-                  <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">TV Sideline camera</label>
+                  <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">{tx('TV Sideline camera')}</label>
                   <div className="grid grid-cols-2 gap-4 items-end">
                       <div className="space-y-1">
                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Min Distance (m)</span>
@@ -245,11 +246,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                                   className="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-sm border border-slate-200 dark:border-slate-700" />
                           </div>
                       ))}
-                      <button onClick={() => atualizarTaxas('padrao')} className="py-2 rounded-lg font-black text-xs uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">Reset</button>
+                      <button onClick={() => atualizarTaxas('padrao')} className="py-2 rounded-lg font-black text-xs uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">{tx('Reset')}</button>
                   </div>
                   <div className="flex items-center gap-3 flex-wrap">
                       <button onClick={async () => { setMsgCambio('Updating...'); const r = await buscarTaxasOnline(); if (r) { atualizarTaxas(r); setMsgCambio('Updated: ' + new Date().toLocaleString('en-US')); } else setMsgCambio('Could not reach the rates service; the saved rates were kept.'); }}
-                          className="px-4 py-2 rounded-lg font-black text-xs uppercase tracking-widest bg-blue-600 text-white hover:bg-blue-500">Update now</button>
+                          className="px-4 py-2 rounded-lg font-black text-xs uppercase tracking-widest bg-blue-600 text-white hover:bg-blue-500">{tx('Update now')}</button>
                       <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
                           <input type="checkbox" checked={cambioAuto} onChange={e => { definirCambioAutomatico(e.target.checked); setCambioAuto(e.target.checked); }} /> Auto-update when the game opens (once every 12 h)
                       </label>

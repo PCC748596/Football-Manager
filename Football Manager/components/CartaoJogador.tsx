@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React from 'react';
 import { Player } from '../types';
 import EnergyBar, { energiaDe } from './EnergyBar';
@@ -77,10 +78,10 @@ const CartaoJogador: React.FC<Props> = ({ player, slotPos, overall, rosto, estil
 
       {/* POS natural, playing style e nota media */}
       <div className="flex items-center justify-start gap-1 mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-        <span className="font-black leading-none text-slate-500 dark:text-slate-300" style={{ fontSize: 15 }} title="Natural position">{player.position}</span>
+        <span className="font-black leading-none text-slate-500 dark:text-slate-300" style={{ fontSize: 15 }} title={tx('Natural position')}>{player.position}</span>
         {estilo ? <IconePlayStyleSvg estilo={estilo} tam={24} /> : <span style={{ width: 24 }} />}
         <span className="flex items-center gap-1">
-          <span className="font-black leading-none rounded-full px-2 py-[3px] text-white" style={{ fontSize: 14, background: fundoNota, minWidth: 34, textAlign: 'center' }} title="Average rating">{nota ?? '-'}</span>
+          <span className="font-black leading-none rounded-full px-2 py-[3px] text-white" style={{ fontSize: 14, background: fundoNota, minWidth: 34, textAlign: 'center' }} title={tx('Average rating')}>{nota ?? '-'}</span>
         </span>
       </div>
 

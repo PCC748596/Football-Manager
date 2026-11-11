@@ -1,4 +1,5 @@
 
+import { tx } from '../textSim/idiomas';
 import { SetasAGirar } from './NextGameButton';
 import React from 'react';
 import { useGame } from '../context/GameContext';
@@ -94,7 +95,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
       <aside className="w-[72px] lg:w-64 shrink-0 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-900 flex flex-col shadow-2xl z-50 transition-colors duration-300">
         <div className="p-2 lg:p-6 border-b border-slate-200 dark:border-slate-900">
           <div className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tighter flex items-center justify-center lg:justify-start gap-2">
-            <span className="text-blue-500">FOOT</span><span className="hidden lg:inline">MANAGER</span>
+            <span className="text-blue-500">{tx('FOOT')}</span><span className="hidden lg:inline">{tx('MANAGER')}</span>
           </div>
           {userTeam && (
             // O mesmo padrao do cartao do clube da escolha de carreira (CareerStart): texto a esquerda e o escudo a direita, cortado pela borda do cartao. No tablet (< 1280 px) o escudo e menor para o nome do clube nao ficar cortado.
@@ -115,7 +116,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
           {isMatchDay && (
             <>
               {(gameState.matchMinute === 0 || activeMatchView === 'TRAINING') && (
-                <div title="Simulate Round desativado: so o modo 3D (Match Day)" className={navItemClass('TRAINING') + ' opacity-40 pointer-events-none cursor-not-allowed'}>
+                <div title={tx('Simulate Round disabled: 3D mode only (Match Day)')} className={navItemClass('TRAINING') + ' opacity-40 pointer-events-none cursor-not-allowed'}>
                   <IconBall /> <span className="hidden lg:inline">{gameState.matchMinute > 0 ? 'RESUME SIM' : t('nav_sim_round')}</span>
                 </div>
               )}
@@ -196,7 +197,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
              className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 text-white font-black min-h-[44px] lg:min-h-0 py-2.5 rounded border border-slate-700 dark:border-slate-700 hover:border-blue-400 transition-all flex items-center justify-center gap-2 text-[10px] tracking-widest uppercase group"
            >
              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 5 17 10"></polyline><line x1="12" y1="5" x2="12" y2="15"></line></svg>
-             <span className="hidden lg:inline">LOAD GAME</span>
+             <span className="hidden lg:inline">{tx('LOAD GAME')}</span>
            </button>
 
            <button
@@ -204,7 +205,7 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
              className="w-full bg-slate-800 dark:bg-slate-800 hover:bg-slate-700 text-white font-black min-h-[44px] lg:min-h-0 py-2.5 rounded border border-slate-700 dark:border-slate-700 hover:border-blue-400 transition-all flex items-center justify-center gap-2 text-[10px] tracking-widest uppercase group"
            >
              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-             <span className="hidden lg:inline">MAIN MENU</span>
+             <span className="hidden lg:inline">{tx('MAIN MENU')}</span>
            </button>
         </div>
       </aside>
@@ -212,11 +213,11 @@ const Layout: React.FC<Props> = ({ children, setView, currentView, onMainMenu })
       {confirmarMenu && (
         <div className="fixed inset-0 z-[330] bg-black/60 flex items-center justify-center p-6" onClick={() => setConfirmarMenu(false)}>
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-6 w-[440px] max-w-[95vw] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-700 dark:text-white">Return to main menu?</h3>
-            <p className="text-[12px] text-slate-500 dark:text-slate-300 leading-snug">Progress since your last save will be lost.</p>
+            <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-700 dark:text-white">{tx('Return to main menu?')}</h3>
+            <p className="text-[12px] text-slate-500 dark:text-slate-300 leading-snug">{tx('Progress since your last save will be lost.')}</p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setConfirmarMenu(false)} className="px-4 py-2 min-h-[44px] rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600">Cancel</button>
-              <button autoFocus onClick={() => { setConfirmarMenu(false); onMainMenu?.(); }} className="px-4 py-2 min-h-[44px] rounded bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-rose-500">Main menu</button>
+              <button onClick={() => setConfirmarMenu(false)} className="px-4 py-2 min-h-[44px] rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600">{tx('Cancel')}</button>
+              <button autoFocus onClick={() => { setConfirmarMenu(false); onMainMenu?.(); }} className="px-4 py-2 min-h-[44px] rounded bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-rose-500">{tx('Main menu')}</button>
             </div>
           </div>
         </div>

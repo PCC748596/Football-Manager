@@ -1,4 +1,5 @@
 
+import { tx } from '../textSim/idiomas';
 import React, { useState, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { generatePlayer, faixaDoClube } from '../textSim/dataGenerator';
@@ -152,7 +153,7 @@ const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => 
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-4xl font-black uppercase tracking-tight leading-none italic transition-colors">
-            <span className="text-slate-900 dark:text-white transition-colors">FINANCIAL</span> <span className="text-blue-500">CENTER</span>
+            <span className="text-slate-900 dark:text-white transition-colors">{tx('FINANCIAL')}</span> <span className="text-blue-500">{tx('CENTER')}</span>
           </h2>
           <p className="text-slate-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2 opacity-60 transition-colors">
             {t('fin_subtitle')}
@@ -185,7 +186,7 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
              onClick={() => setMarketPhase('SPONSORS')}
              className={`px-6 py-2 rounded font-black text-xs uppercase tracking-widest transition-all ${marketPhase === 'SPONSORS' ? 'bg-emerald-600/10 text-emerald-600 dark:bg-emerald-600 dark:text-white border border-emerald-600/30 shadow-lg' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
            >
-             {gameState.language === 'PT' ? 'PATROCINADORES' : 'SPONSORS'}
+             {tx('SPONSORS')}
            </button>
            <button 
              onClick={() => (setView ? setView('TRANSFERS') : setMarketPhase('MARKET'))}   // o mercado de verdade e a aba Transfers
@@ -231,36 +232,36 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                   <thead className="sticky top-0 z-10 shadow-sm">
                     <tr className="bg-slate-50 dark:bg-slate-900 text-[13px] tracking-wide text-slate-400 dark:text-slate-300 uppercase font-black">
                       <th className="px-6 py-3">
-                        <span className="cursor-pointer hover:text-blue-500 transition-colors" onClick={() => requestSort('pos')} title="Sort by position (GK, defenders, midfielders, forwards)">Pos {getSortIcon('pos')}</span>
+                        <span className="cursor-pointer hover:text-blue-500 transition-colors" onClick={() => requestSort('pos')} title={tx('Sort by position (GK, defenders, midfielders, forwards)')}>{tx('Pos')} {getSortIcon('pos')}</span>
                         <span className="mx-2 opacity-30">|</span>
-                        <span className="cursor-pointer hover:text-blue-500 transition-colors" onClick={() => requestSort('name')}>Player {getSortIcon('name')}</span>
+                        <span className="cursor-pointer hover:text-blue-500 transition-colors" onClick={() => requestSort('name')}>{tx('Player')} {getSortIcon('name')}</span>
                       </th>
                       <th className="px-4 py-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('age')}>
-                        Age {getSortIcon('age')}
+                        {tx('Age')} {getSortIcon('age')}
                       </th>
-                      <th className="px-4 py-3 text-center">Stars</th>
+                      <th className="px-4 py-3 text-center">{tx('Stars')}</th>
                       <th className="px-4 py-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('skill')}>
                         OVR {getSortIcon('skill')}
                       </th>
                       <th className="px-4 py-3 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('salary')}>
-                        Wage {getSortIcon('salary')}
+                        {tx('Wage')} {getSortIcon('salary')}
                       </th>
                       <th className="px-4 py-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('contract')}>
-                        Contract {getSortIcon('contract')}
+                        {tx('Contract')} {getSortIcon('contract')}
                       </th>
                       <th className="px-4 py-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('offer')}>
-                        Offer {getSortIcon('offer')}
+                        {tx('Offer')} {getSortIcon('offer')}
                       </th>
                       <th className="w-[1%] whitespace-nowrap px-4 py-3 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => requestSort('value')}>
-                        Market Value {getSortIcon('value')}
+                        {tx('Market Value')} {getSortIcon('value')}
                       </th>
-                      <th className="px-4 py-3 text-center">Action</th>
+                      <th className="px-4 py-3 text-center">{tx('Action')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                     {sortedTeamPlayers.map(p => (
                       <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
-                        <td className="px-6 py-1 font-bold text-sm whitespace-nowrap text-slate-700 dark:text-slate-200"><span className="inline-block w-9 mr-2 text-center text-[10px] font-black text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded px-1 py-0.5 align-middle">{p.position}</span><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview" className="text-left hover:text-blue-500 dark:hover:text-blue-400 hover:underline transition-colors">{p.name}</button></td>
+                        <td className="px-6 py-1 font-bold text-sm whitespace-nowrap text-slate-700 dark:text-slate-200"><span className="inline-block w-9 mr-2 text-center text-[10px] font-black text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded px-1 py-0.5 align-middle">{p.position}</span><button type="button" onClick={() => setJogadorAberto(p)} title={tx('Open player overview')} className="text-left hover:text-blue-500 dark:hover:text-blue-400 hover:underline transition-colors">{p.name}</button></td>
                         <td className="px-4 py-1 text-center text-xs font-bold text-slate-500 dark:text-slate-400">{p.age}</td>
                         {/* As mesmas estrelas do Squad: douradas = o nivel atual (OVR); cinzentas = ate ao potencial; apagadas = acima do potencial. */}
                         <td className="px-4 py-1 text-center whitespace-nowrap text-sm leading-none">
@@ -268,12 +269,12 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                         </td>
                         <td className="px-4 py-1 text-center text-xs font-black text-blue-600 dark:text-blue-400">{Math.round(p.skill)}</td>
                         <td className="px-4 py-1 text-right text-rose-500 text-sm font-mono">{formatWage(p.salary)}</td>
-                        <td className="px-4 py-1 text-center"><button type="button" onClick={() => setJogadorAberto(p)} title="Open player overview (contract)" className="cursor-pointer hover:brightness-125 transition"><ContractChip player={p} hoje={gameState.currentDate} /></button></td>
+                        <td className="px-4 py-1 text-center"><button type="button" onClick={() => setJogadorAberto(p)} title={tx('Open player overview (contract)')} className="cursor-pointer hover:brightness-125 transition"><ContractChip player={p} hoje={gameState.currentDate} /></button></td>
                         <td className="px-4 py-1 text-center">
                           {ofertaPorJogador.has(p.id) && (
                             <button type="button" onClick={() => { pedidoDeAba.aba = 'NEGOTIATIONS'; if (setView) setView('TRANSFERS'); else setMarketPhase('MARKET'); }} title={`Offer: ${formatCurrency(ofertaPorJogador.get(p.id) || 0)} — open Negotiations`}
                               className="text-[10px] font-black uppercase tracking-wider border border-amber-500/50 bg-amber-500/15 text-amber-500 hover:brightness-125 px-2 py-1 rounded-md whitespace-nowrap transition">
-                              Offer received
+                              {tx('Offer received')}
                             </button>
                           )}
                         </td>
@@ -315,15 +316,15 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                           return (
                             <div className="mt-[7px]">
                               <div className="flex justify-between text-base font-black uppercase tracking-wide">
-                                <span className="text-emerald-600">{pt ? 'Compras' : 'Transfers'} {pct}% · {formatCurrency(userTeam.initialTransfer || 0)}</span>
-                                <span className="text-rose-500">{pt ? 'Salários' : 'Wages'} {100 - pct}% · {formatCurrency(orcamentoDaTemporada(userTeam) - (userTeam.initialTransfer || 0))}</span>
+                                <span className="text-emerald-600">{tx('Transfers')} {pct}% · {formatCurrency(userTeam.initialTransfer || 0)}</span>
+                                <span className="text-rose-500">{tx('Wages')} {100 - pct}% · {formatCurrency(orcamentoDaTemporada(userTeam) - (userTeam.initialTransfer || 0))}</span>
                               </div>
                               <div className="relative mt-2">
                                 <input type="range" min={0} max={100} step={PASSO_COMPRAS * 100} value={pct} onChange={e => definirDivisaoOrcamento(Math.min(Number(e.target.value), maxPct) / 100)}
-                                  aria-label={pt ? 'Divisão do orçamento entre compras e salários' : 'Budget split between transfers and wages'}
+                                  aria-label={tx('Budget split between transfers and wages')}
                                   className="orcamento-range w-full"
                                   style={{ background: `linear-gradient(to right, #059669 ${pct}%, #f43f5e ${pct}%)` }} />
-                                <div className="orcamento-folha" style={{ width: `${folhaPct}%` }} title={pt ? `Folha salarial anual (mínimo dos salários): ${formatCurrency(folha)}` : `Annual payroll (wage minimum): ${formatCurrency(folha)}`} />
+                                <div className="orcamento-folha" style={{ width: `${folhaPct}%` }} title={tx('Annual payroll (wage minimum): {v0}', { v0: formatCurrency(folha) })} />
                               </div>
                             </div>
                           );
@@ -332,12 +333,12 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                     <div className="px-4 py-[6px] bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">{t('fin_avg_att')}</div>
                         <div className="text-xl font-black text-blue-600 mt-1">{formatNumber(userTeam.avrAttendance || 0)}</div>
-                        <div className="text-[9px] text-slate-400 mt-1">Stadium capacity: {formatNumber(userTeam.stadiumCapacity || 0)}</div>
+                        <div className="text-[9px] text-slate-400 mt-1">{tx('Stadium capacity:')} {formatNumber(userTeam.stadiumCapacity || 0)}</div>
                     </div>
                     <div className="px-4 py-[6px] bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">{gameState.language === 'PT' ? 'Arrecadação com ingressos' : 'Ticket sales revenue'}</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">{tx('Ticket sales revenue')}</div>
                         <div className="text-xl font-black text-emerald-500 mt-1">{formatCurrency(userTeam.gateRevenue || 0)}</div>
-                        <div className="text-[9px] text-slate-400 mt-1">{gameState.language === 'PT' ? 'Custo do estádio' : 'Stadium cost'} {formatCurrency(userTeam.stadiumCosts || 0)} · {gameState.language === 'PT' ? 'Líquido' : 'Net'} {formatCurrency((userTeam.gateRevenue || 0) - (userTeam.stadiumCosts || 0))}</div>
+                        <div className="text-[9px] text-slate-400 mt-1">{tx('Stadium cost')} {formatCurrency(userTeam.stadiumCosts || 0)} · {tx('Net')} {formatCurrency((userTeam.gateRevenue || 0) - (userTeam.stadiumCosts || 0))}</div>
                     </div>
                     <FinanceMonthlyChart salarioSemanalTotal={totalSalaries} />
                  </div>
@@ -394,7 +395,7 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                         </div>
                         <div className="text-right">
                            <div className="text-base font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(p.value)}</div>
-                           <div className="text-[9px] text-slate-400 font-mono mb-1">Wage: {formatWage(p.salary)}</div>
+                           <div className="text-[9px] text-slate-400 font-mono mb-1">{tx('Wage:')} {formatWage(p.salary)}</div>
                            <button 
                              onClick={() => hirePlayer(p)} 
                              disabled={userTeam.cash < p.value}

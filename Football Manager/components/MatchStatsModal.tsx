@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React, { useMemo } from 'react';
 import { Fixture, Player, Team } from '../types';
 import { useGame } from '../context/GameContext';
@@ -54,9 +55,9 @@ export const MatchStatsModal: React.FC<MatchStatsModalProps> = ({ fixture, homeT
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-6xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl relative max-h-[95vh] flex flex-col">
         <button onClick={onClose} className="absolute top-6 right-6 bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 font-black text-xs uppercase tracking-widest text-slate-500">
-          {pt ? 'Fechar' : 'Close'}
+          {tx('Close')}
         </button>
-        <h2 className="text-2xl font-black uppercase mb-6 text-center tracking-widest text-slate-800 dark:text-slate-200">{pt ? 'Estatísticas da Partida' : 'Match Statistics'}</h2>
+        <h2 className="text-2xl font-black uppercase mb-6 text-center tracking-widest text-slate-800 dark:text-slate-200">{tx('Match Statistics')}</h2>
         
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr_1fr] gap-8">
@@ -81,14 +82,14 @@ export const MatchStatsModal: React.FC<MatchStatsModalProps> = ({ fixture, homeT
             {/* STATS */}
             <div className="flex flex-col gap-1 px-4 lg:px-8 lg:border-x border-slate-200 dark:border-slate-800 pt-4">
                {[
-                 { label: pt ? 'Gols' : 'Goals', h: fixture.homeScore || 0, a: fixture.awayScore || 0 },
-                 { label: pt ? 'Posse de Bola' : 'Possession', h: `${hPos}%`, a: `${aPos}%` },
-                 { label: pt ? 'Chutes' : 'Shots', h: hShots, a: aShots },
-                 { label: pt ? 'Passes' : 'Passes', h: hPasses, a: aPasses },
-                 { label: pt ? 'Escanteios' : 'Corners', h: hCorners, a: aCorners },
-                 { label: pt ? 'Faltas' : 'Fouls', h: hFouls, a: aFouls },
-                 { label: pt ? 'Cartões Amarelos (CA)' : 'Yellow Cards (YC)', h: hYellows, a: aYellows },
-                 { label: pt ? 'Cartões Vermelhos (CV)' : 'Red Cards (RC)', h: hReds, a: aReds },
+                 { label: tx('Goals'), h: fixture.homeScore || 0, a: fixture.awayScore || 0 },
+                 { label: tx('Possession'), h: `${hPos}%`, a: `${aPos}%` },
+                 { label: tx('Shots'), h: hShots, a: aShots },
+                 { label: tx('Passes'), h: hPasses, a: aPasses },
+                 { label: tx('Corners'), h: hCorners, a: aCorners },
+                 { label: tx('Fouls'), h: hFouls, a: aFouls },
+                 { label: tx('Yellow Cards (YC)'), h: hYellows, a: aYellows },
+                 { label: tx('Red Cards (RC)'), h: hReds, a: aReds },
                ].map((stat, i) => (
                  <div key={i} className="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800/50 last:border-0">
                    <span className="w-1/3 text-right font-black text-xl text-slate-800 dark:text-slate-200">{stat.h}</span>

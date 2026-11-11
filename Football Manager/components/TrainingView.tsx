@@ -1,4 +1,5 @@
 
+import { tx } from '../textSim/idiomas';
 import { atributos3d, NOME_DO_CAMPO } from '../textSim/atributos3d';
 import { calcularQuimica } from '../textSim/quimica';
 import { doisNomes } from '../textSim/nomes';
@@ -19,7 +20,7 @@ const PLANE_ICON = (
     <svg viewBox="0 0 24 24" fill="currentColor" className="w-20 h-20 transform -rotate-45">
       <path d="M21 16V14L13 9V3.5A1.5 1.5 0 0 0 11.5 2A1.5 1.5 0 0 0 10 3.5V9L2 14V16L10 13.5V19L8 20.5V22L11.5 21L15 22V20.5L13 19V13.5L21 16Z" />
     </svg>
-    <span className="text-[12px] font-black tracking-[0.2em] mt-1">TRAVEL</span>
+    <span className="text-[12px] font-black tracking-[0.2em] mt-1">{tx('TRAVEL')}</span>
   </div>
 );
 
@@ -297,10 +298,10 @@ const TrainingView: React.FC = () => {
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-4xl font-black uppercase tracking-tight italic leading-none transition-colors">
-            <span className="text-slate-200 dark:text-white">TRAINING</span> <span className="text-blue-500">CENTER</span>
+            <span className="text-slate-200 dark:text-white">{tx('TRAINING')}</span> <span className="text-blue-500">{tx('CENTER')}</span>
           </h2>
           <p className="text-slate-400 dark:text-slate-500 font-black text-[9px] uppercase tracking-[0.2em] mt-2 opacity-60 italic transition-colors">
-            Schedule your team's weekly development
+            {tx('Schedule your team\'s weekly development')}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -335,7 +336,7 @@ const TrainingView: React.FC = () => {
                     ))}
                     <button
                       onClick={() => setSelectedGroup(GRUPO_MED)}
-                      title="Medical Department"
+                      title={tx('Medical Department')}
                       className={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-1 ${selectedGroup === GRUPO_MED ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 hover:bg-slate-300 dark:hover:bg-slate-700'}`}
                     >
                       ✚ MED{lesionadosDoClube > 0 ? ` (${lesionadosDoClube})` : ''}
@@ -347,12 +348,12 @@ const TrainingView: React.FC = () => {
                    const lim = Array.from({ length: nG - 1 }, (_, i) => auto.limiares[i] ?? (i === 0 ? 80 : 50));
                    const grava = (ativo: boolean, novos: number[]) => setTrainingAutoGrupos({ ativo, limiares: novos });
                    return (
-                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500" title="Players move between groups automatically by ENR (at the start of each day).">
+                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500" title={tx('Players move between groups automatically by ENR (at the start of each day).')}>
                        <button
                          onClick={() => grava(!auto.ativo, lim)}
                          className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest transition-colors ${auto.ativo ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 hover:bg-slate-300 dark:hover:bg-slate-700'}`}
                        >
-                         AUTO ENR {lim[0]} - {auto.ativo ? 'ON' : 'OFF'}
+                         {tx('AUTO ENR')} {lim[0]} - {auto.ativo ? 'ON' : 'OFF'}
                        </button>
                        {lim.map((v, i) => (
                          <span key={i} title={`G${i + 1}: ENR minima`} className={`flex items-center gap-1 ${auto.ativo ? '' : 'opacity-40'}`}>
@@ -381,7 +382,7 @@ const TrainingView: React.FC = () => {
                    }}
                    className="text-[9px] font-black text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-white uppercase tracking-widest transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                  >
-                   Clear Calendar
+                   {tx('Clear Calendar')}
                  </button>
               </div>
               
@@ -390,7 +391,7 @@ const TrainingView: React.FC = () => {
               ) : selectedGroup >= (gameState.unlockedTrainingGroups || 1) ? (
                  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-slate-50 dark:bg-slate-900/30">
                     <span className="text-5xl mb-4 drop-shadow-sm filter grayscale opacity-80">🔒</span>
-                    <h3 className="text-lg font-black text-slate-700 dark:text-white uppercase tracking-tight mb-2">Group Locked</h3>
+                    <h3 className="text-lg font-black text-slate-700 dark:text-white uppercase tracking-tight mb-2">{tx('Group Locked')}</h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mb-6 max-w-xs">{t('Unlock this group to assign customized schedules for specific players.')}</p>
                     <button 
                       onClick={() => unlockTrainingGroup()}
@@ -402,7 +403,7 @@ const TrainingView: React.FC = () => {
                  </div>
               ) : (
                 <div className="flex items-stretch gap-1 bg-white dark:bg-transparent">
-                <button disabled={semanaOffset <= 0} onClick={() => setSemanaOffset(o => Math.max(0, o - 1))} title="Previous week" className="shrink-0 w-7 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:text-slate-400 disabled:hover:bg-transparent">
+                <button disabled={semanaOffset <= 0} onClick={() => setSemanaOffset(o => Math.max(0, o - 1))} title={tx('Previous week')} className="shrink-0 w-7 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors disabled:opacity-20 disabled:cursor-not-allowed disabled:hover:text-slate-400 disabled:hover:bg-transparent">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
                 </button>
                 <div className="flex-1 min-w-0 py-3 grid grid-cols-7 gap-2">
@@ -439,7 +440,7 @@ const TrainingView: React.FC = () => {
                                 return (
                                   <div key="lunch" className="flex-1 basis-0 min-h-0 rounded border border-slate-200 dark:border-slate-800/60 bg-slate-100/60 dark:bg-slate-900/40 relative overflow-hidden flex flex-col items-center justify-center gap-1 pointer-events-none select-none">
                                     <span className="text-lg leading-none opacity-30 grayscale">🍽️</span>
-                                    <span className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest leading-none">Lunch time</span>
+                                    <span className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest leading-none">{tx('Lunch time')}</span>
                                   </div>
                                 );
                               }
@@ -487,7 +488,7 @@ const TrainingView: React.FC = () => {
                                    {act && !isBlocked && (
                                      <div 
                                        onClick={(e) => { e.stopPropagation(); handleSlotUpdate(dIdx, slotIdx, ''); }}
-                                       title="Remove" className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-slate-700 text-slate-200 flex items-center justify-center text-[8px] font-black leading-none hover:bg-rose-600 z-10 transition-all"
+                                       title={tx('Remove')} className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-slate-700 text-slate-200 flex items-center justify-center text-[8px] font-black leading-none hover:bg-rose-600 z-10 transition-all"
                                      >✕</div>
                                    )}
                                 </div>
@@ -499,7 +500,7 @@ const TrainingView: React.FC = () => {
                     );
                  })}
                 </div>
-                <button onClick={() => setSemanaOffset(o => o + 1)} title="Next week" className="shrink-0 w-7 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
+                <button onClick={() => setSemanaOffset(o => o + 1)} title={tx('Next week')} className="shrink-0 w-7 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
                 </button>
                 </div>
@@ -509,7 +510,7 @@ const TrainingView: React.FC = () => {
            {/* TREINOS PRE-PROGRAMADOS: 7 botoes, cada um preenche a semana do grupo (SEG-SAB, 3 slots por dia). */}
            {selectedGroup !== GRUPO_MED && selectedGroup < (gameState.unlockedTrainingGroups || 1) && (
              <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg p-3 flex flex-col gap-2 transition-colors">
-               <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest italic">Preset Weeks · Mon-Sat · 3 sessions/day</div>
+               <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest italic">{tx('Preset Weeks · Mon-Sat · 3 sessions/day')}</div>
                <div className="grid grid-cols-4 xl:grid-cols-7 gap-2 flex-1 min-h-0">
                  {PRESETS.map(p => (
                    <button
@@ -519,7 +520,7 @@ const TrainingView: React.FC = () => {
                      className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-slate-700 transition-all active:scale-95"
                    >
                      <span className="text-slate-500 dark:text-slate-300">{p.icone}</span>
-                     <span className="text-[10px] font-black uppercase tracking-tight text-slate-700 dark:text-slate-200 text-center leading-tight">{p.nome}</span>
+                     <span className="text-[10px] font-black uppercase tracking-tight text-slate-700 dark:text-slate-200 text-center leading-tight">{tx(p.nome)}</span>
                    </button>
                  ))}
                </div>
@@ -580,7 +581,7 @@ const TrainingView: React.FC = () => {
                <div className="flex-none h-[35%] bg-slate-200/50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-b-xl rounded-tr-xl p-6 relative overflow-hidden shadow-xl transition-colors">
                  {/* Subtle Watermark */}
                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.05] dark:opacity-[0.02] pointer-events-none select-none transition-opacity">
-                   <span className="text-[140px] font-black italic tracking-tighter text-slate-500 dark:text-white">COACH</span>
+                   <span className="text-[140px] font-black italic tracking-tighter text-slate-500 dark:text-white">{tx('COACH')}</span>
                  </div>
 
                  <div className="relative z-10 h-full flex flex-col">
@@ -632,7 +633,7 @@ const TrainingView: React.FC = () => {
                                    key={idx} 
                                    className={`text-[11px] font-black uppercase px-2 py-1 rounded leading-none transition-colors ${isDisabled ? 'bg-rose-100/50 dark:bg-rose-900/20 text-rose-500/50' : impact.value > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'}`}
                                  >
-                                   {impact.value > 0 ? '+' : ''}{impact.value} {impact.campo ? NOME_DO_CAMPO[impact.campo] : impact.skill || impact.label}
+                                   {impact.value > 0 ? '+' : ''}{impact.value} {impact.campo ? tx(NOME_DO_CAMPO[impact.campo]) : impact.skill || impact.label}
                                  </span>
                                ))}
                              </div>
@@ -646,20 +647,20 @@ const TrainingView: React.FC = () => {
                {/* SQUAD GROWTH & ASSIGNMENT */}
                <div className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-lg flex flex-col transition-colors">
                   <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/50 flex justify-between items-center">
-                      <h3 className="text-[12px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest italic">Squad Assignments</h3>
+                      <h3 className="text-[12px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest italic">{tx('Squad Assignments')}</h3>
                       <div className="flex gap-2">
                           <button 
                             onClick={() => setSquadSortBy('growth')}
                             className={`text-[11px] px-2 py-1 font-black uppercase tracking-widest transition-colors ${squadSortBy === 'growth' ? 'text-blue-500' : 'text-slate-400 hover:text-slate-600'}`}
                           >
-                            Growth
+                            {tx('Growth')}
                           </button>
                           <span className="text-slate-200 dark:text-slate-800">|</span>
                           <button 
                             onClick={() => setSquadSortBy('energy')}
                             className={`text-[11px] px-2 py-1 font-black uppercase tracking-widest transition-colors ${squadSortBy === 'energy' ? 'text-emerald-500' : 'text-slate-400 hover:text-slate-600'}`}
                           >
-                            Energy
+                            {tx('Energy')}
                           </button>
                       </div>
                   </div>
@@ -695,7 +696,7 @@ const TrainingView: React.FC = () => {
                                   <div className="flex justify-center">
                                     <div className="flex flex-col items-start gap-1 w-[80px]">
                                       <div className="flex items-center gap-1.5">
-                                          <span className="text-[10px] font-black text-slate-400 uppercase leading-none">ENR:</span>
+                                          <span className="text-[10px] font-black text-slate-400 uppercase leading-none">{tx('ENR:')}</span>
                                           <span className={`text-[14px] font-black leading-none ${energiaDe(p) < 70 ? 'text-rose-500' : (energiaDe(p) < 90 ? 'text-amber-500' : 'text-emerald-500')}`}>
                                               {Math.round(energiaDe(p))}%
                                           </span>
@@ -706,7 +707,7 @@ const TrainingView: React.FC = () => {
 
                                   {/* COL 4: WEEKLY GROWTH */}
                                   <div className="flex flex-col items-center">
-                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5">GROWTH</span>
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5">{tx('GROWTH')}</span>
                                       <div className={`text-[20px] font-black leading-none ${p.weeklyGrowth > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
                                           {p.weeklyGrowth > 0 ? `+${p.weeklyGrowth}` : p.weeklyGrowth}
                                       </div>
@@ -753,8 +754,8 @@ const TrainingView: React.FC = () => {
                      </div>
                   </div>
                   <div className="text-right">
-                     <div className="text-emerald-600 dark:text-emerald-500 font-black italic text-sm tracking-tighter leading-none transition-colors">PREMIUM</div>
-                     <div className="text-[6px] text-slate-400 dark:text-slate-600 uppercase font-black tracking-widest mt-0.5 transition-colors">Coaching Staff</div>
+                     <div className="text-emerald-600 dark:text-emerald-500 font-black italic text-sm tracking-tighter leading-none transition-colors">{tx('PREMIUM')}</div>
+                     <div className="text-[6px] text-slate-400 dark:text-slate-600 uppercase font-black tracking-widest mt-0.5 transition-colors">{tx('Coaching Staff')}</div>
                   </div>
                </div>
            </div>

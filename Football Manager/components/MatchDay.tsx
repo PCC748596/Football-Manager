@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { Team, Player, Fixture, resolveSetPieceTakers } from '../types';
@@ -126,7 +127,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
   }, [gameState.matchMinute, iniciou]);
 
   if (!match || !homeTeam || !awayTeam) {
-    return <div className="text-white p-10 text-center font-black uppercase italic">No match today.</div>;
+    return <div className="text-white p-10 text-center font-black uppercase italic">{tx('No match today.')}</div>;
   }
 
   const usuarioEhCasa = match.homeTeamId === gameState.userTeamId;
@@ -293,7 +294,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 <span className="text-sm">{eventoHud.esq}</span>{eventoHud.nome}<span className="text-sm">{eventoHud.dir}</span>
               </span>
             )}
-            <button onClick={() => simulador3dTelaCheia()} className="ml-auto bg-emerald-700 hover:bg-emerald-600 text-white font-black px-4 py-1.5 rounded text-[10px] uppercase tracking-widest border-b-2 border-emerald-900 active:scale-95">Fullscreen</button>
+            <button onClick={() => simulador3dTelaCheia()} className="ml-auto bg-emerald-700 hover:bg-emerald-600 text-white font-black px-4 py-1.5 rounded text-[10px] uppercase tracking-widest border-b-2 border-emerald-900 active:scale-95">{tx('Fullscreen')}</button>
         </div>
         )}
         <div className="flex-1 bg-slate-900 flex items-center justify-center overflow-hidden relative">
@@ -351,7 +352,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                                      {gameState.matchMinute >= 90 ? "FULL TIME STATS" : "MATCH STATS"}
                                  </h4>
                                  {avisoLesao.map(nome => (
-                                     <div key={nome} className="mb-2 px-3 py-2 rounded border border-red-500 bg-red-600/25 text-red-300 text-xs font-black uppercase tracking-wide text-center animate-pulse">✚ {nome} {gameState.language === 'PT' ? 'está sentindo uma lesão' : 'felt an injury'}</div>
+                                     <div key={nome} className="mb-2 px-3 py-2 rounded border border-red-500 bg-red-600/25 text-red-300 text-xs font-black uppercase tracking-wide text-center animate-pulse">✚ {nome} {tx('felt an injury')}</div>
                                  ))}
                                  {(match.estat3d ? [
                                    { label: 'GOALS', h: match.homeScore || 0, a: match.awayScore || 0 },
@@ -466,14 +467,14 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
              {!showStats && visualState === 'OFFSIDE' && (
                  <div className="absolute inset-0 bg-yellow-500/10 backdrop-blur-[1px] z-[100] flex items-center justify-center pointer-events-none">
                      <div className="bg-black/80 text-yellow-400 px-10 py-4 rounded-xl border-4 border-yellow-500 shadow-2xl transform scale-125">
-                         <span className="text-3xl font-black italic tracking-widest uppercase animate-pulse">IMPEDIMENTO!</span>
+                         <span className="text-3xl font-black italic tracking-widest uppercase animate-pulse">{tx('OFFSIDE!')}</span>
                      </div>
                  </div>
              )}
              {!showStats && visualState === 'GOAL' && (
                  <div className="absolute inset-0 bg-emerald-950/20 backdrop-blur-[1px] z-[100] flex items-center justify-center pointer-events-none">
                      <div className="bg-black/90 text-emerald-400 px-12 py-5 rounded-2xl border-4 border-emerald-500 shadow-2xl transform scale-125 animate-bounce">
-                         <span className="text-4xl font-black italic tracking-widest uppercase">GOL!</span>
+                         <span className="text-4xl font-black italic tracking-widest uppercase">{tx('GOAL!')}</span>
                      </div>
                  </div>
              )}
@@ -493,16 +494,16 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
             {lesionadosNoBanco.length > 0 && !avisoLesionadosFechado && (
                 <div className="absolute inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-8">
                     <div className="bg-slate-900 border border-red-500/60 rounded-xl p-6 max-w-md w-full shadow-2xl">
-                        <h3 className="text-lg font-black text-red-400 uppercase tracking-wide mb-2">Injured players on the bench</h3>
-                        <p className="text-sm text-slate-300 mb-3">These substitutes are injured and should not be used:</p>
+                        <h3 className="text-lg font-black text-red-400 uppercase tracking-wide mb-2">{tx('Injured players on the bench')}</h3>
+                        <p className="text-sm text-slate-300 mb-3">{tx('These substitutes are injured and should not be used:')}</p>
                         <ul className="mb-4 space-y-1">
                             {lesionadosNoBanco.map(p => (
                                 <li key={p.id} className="flex justify-between text-sm text-white"><span className="font-bold">{p.name} <span className="text-slate-400 font-normal">({p.position})</span></span><span className="text-red-400">{p.injury?.type || 'Injured'}</span></li>
                             ))}
                         </ul>
                         <div className="flex gap-2">
-                            <button onClick={fecharAvisoLesionados} className="flex-1 py-2 rounded bg-slate-700 hover:bg-slate-600 text-white text-xs font-black uppercase">Continue</button>
-                            <button onClick={() => { fecharAvisoLesionados(); setView?.('TACTICS'); }} className="flex-1 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase">Edit Tactics</button>
+                            <button onClick={fecharAvisoLesionados} className="flex-1 py-2 rounded bg-slate-700 hover:bg-slate-600 text-white text-xs font-black uppercase">{tx('Continue')}</button>
+                            <button onClick={() => { fecharAvisoLesionados(); setView?.('TACTICS'); }} className="flex-1 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase">{tx('Edit Tactics')}</button>
                         </div>
                     </div>
                 </div>

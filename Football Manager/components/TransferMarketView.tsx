@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React, { useEffect, useMemo, useState } from 'react';
 import PlayerDetailModal from './PlayerDetailModal';
 import { atributos3d } from '../textSim/atributos3d';
@@ -32,7 +33,7 @@ const ESTADO_ROTULO: Record<string, string> = {
 const dataCurta = (iso?: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '-');
 
 const Estrelas: React.FC<{ n: number }> = ({ n }) => (
-  <span className="whitespace-nowrap text-sm inline-flex gap-[3px]" title="Estimated potential">{Array.from({ length: 5 }, (_, i) => <span key={i} className={i < n ? 'text-amber-400' : 'text-slate-200 dark:text-slate-700'}>★</span>)}</span>
+  <span className="whitespace-nowrap text-sm inline-flex gap-[3px]" title={tx('Estimated potential')}>{Array.from({ length: 5 }, (_, i) => <span key={i} className={i < n ? 'text-amber-400' : 'text-slate-200 dark:text-slate-700'}>★</span>)}</span>
 );
 
 const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }) => {
@@ -160,40 +161,40 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
     <div className="flex-1 grid grid-cols-1 lg:grid-cols-[250px_1fr_300px] gap-5 min-h-0">
       {/* FILTROS */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0b1324] p-4 overflow-y-auto custom-scrollbar flex flex-col gap-2">
-        <div className="text-[12px] font-black uppercase tracking-widest text-slate-500">Search filters</div>
-        <div><label className={rotulo}>Player name</label><input className={campo} value={nome} onChange={e => setNome(e.target.value)} placeholder="Search by name" /></div>
-        <div><label className={rotulo}>Position</label>
+        <div className="text-[12px] font-black uppercase tracking-widest text-slate-500">{tx('Search filters')}</div>
+        <div><label className={rotulo}>{tx('Player name')}</label><input className={campo} value={nome} onChange={e => setNome(e.target.value)} placeholder={tx('Search by name')} /></div>
+        <div><label className={rotulo}>{tx('Position')}</label>
           {/* Quatro botoes em duas linhas (GK, DEF / MID, ATA); clicar no ligado desliga o filtro (volta a "qualquer posicao") */}
           <div className="grid grid-cols-2 gap-1.5">
             {([['GK', 'GK'], ['DEF', 'DEF'], ['MID', 'MID'], ['ATT', 'ATA']] as const).map(([g, r]) => <button key={g} onClick={() => setGrupo(grupo === g ? 'ANY' : g)} className={chip(grupo === g)}>{r}</button>)}
           </div>
         </div>
-        <div><label className={rotulo}>Age</label><div className="flex gap-2 items-center"><input type="number" className={campo} value={idadeMin} min={15} max={45} onChange={e => setIdadeMin(Number(e.target.value) || 15)} /><span className="text-slate-400">–</span><input type="number" className={campo} value={idadeMax} min={15} max={45} onChange={e => setIdadeMax(Number(e.target.value) || 45)} /></div></div>
-        <div><label className={rotulo}>Overall</label><div className="flex gap-2 items-center"><input type="number" className={campo} value={ovrMin} min={50} max={99} onChange={e => setOvrMin(Math.max(50, Number(e.target.value) || 50))} /><span className="text-slate-400">–</span><input type="number" className={campo} value={ovrMax} min={0} max={99} onChange={e => setOvrMax(Number(e.target.value) || 99)} /></div></div>
+        <div><label className={rotulo}>{tx('Age')}</label><div className="flex gap-2 items-center"><input type="number" className={campo} value={idadeMin} min={15} max={45} onChange={e => setIdadeMin(Number(e.target.value) || 15)} /><span className="text-slate-400">–</span><input type="number" className={campo} value={idadeMax} min={15} max={45} onChange={e => setIdadeMax(Number(e.target.value) || 45)} /></div></div>
+        <div><label className={rotulo}>{tx('Overall')}</label><div className="flex gap-2 items-center"><input type="number" className={campo} value={ovrMin} min={50} max={99} onChange={e => setOvrMin(Math.max(50, Number(e.target.value) || 50))} /><span className="text-slate-400">–</span><input type="number" className={campo} value={ovrMax} min={0} max={99} onChange={e => setOvrMax(Number(e.target.value) || 99)} /></div></div>
         <div><label className={rotulo}>Value (max)</label><div className="flex flex-wrap gap-1.5">{VALORES.map(([r, v]) => <button key={r} onClick={() => { setValorMax(v); }} className={chip(valorMax === v)}>{r}</button>)}</div></div>
         <div><label className={rotulo}>Wage (max)</label><div className="flex flex-wrap gap-1.5">{SALARIOS.map(([r, v]) => <button key={r} onClick={() => { setSalarioMax(v); }} className={chip(salarioMax === v)}>{r}</button>)}</div></div>
-        <div><label className={rotulo}>Club</label>
+        <div><label className={rotulo}>{tx('Club')}</label>
           <select className={campo} value={clubeId} onChange={e => setClubeId(e.target.value)}>
-            <option value="">All clubs</option>
+            <option value="">{tx('All clubs')}</option>
             {[...teams].filter(t => t.id !== meuId).sort((a, b) => a.name.localeCompare(b.name)).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
-        <div className="flex flex-col gap-1.5"><label className={rotulo}>Status</label>
-          <button onClick={() => { setSoListados(!soListados); }} className={botaoStatus(soListados)}>Transfer listed</button>
-          <button onClick={() => { setSoLivres(!soLivres); }} className={botaoStatus(soLivres)}>Free agents</button>
+        <div className="flex flex-col gap-1.5"><label className={rotulo}>{tx('Status')}</label>
+          <button onClick={() => { setSoListados(!soListados); }} className={botaoStatus(soListados)}>{tx('Transfer listed')}</button>
+          <button onClick={() => { setSoLivres(!soLivres); }} className={botaoStatus(soLivres)}>{tx('Free agents')}</button>
           <button onClick={() => { setSoContrato(!soContrato); }} className={botaoStatus(soContrato)}>Contract ≤ 12 months</button>
           <button onClick={() => { setSoBase(!soBase); }} className={botaoStatus(soBase)}>Sub-20 (18+)</button>
           {aba !== 'SHORTLIST' && <button onClick={() => { setSoShortlist(!soShortlist); }} className={botaoStatus(soShortlist)}>Shortlist ({shortlistN})</button>}
         </div>
         <div className="mt-auto flex flex-col gap-2">
-          <button onClick={limpar} className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-black py-3 rounded text-xs uppercase tracking-widest">Reset</button>
+          <button onClick={limpar} className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-black py-3 rounded text-xs uppercase tracking-widest">{tx('Reset')}</button>
         </div>
       </div>
 
       {/* LISTA */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0b1324] flex flex-col min-h-0 p-5">
         <div className="flex justify-between items-center mb-3">
-          <div className="text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Players available <span className="text-sm font-bold text-slate-400 tracking-normal">({filtradas.length})</span></div>
+          <div className="text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white">{tx('Players available')} <span className="text-sm font-bold text-slate-400 tracking-normal">({filtradas.length})</span></div>
           <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500">
             <button disabled={pagina === 0} onClick={() => setPagina(p => p - 1)} className="px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-800 disabled:opacity-30">‹</button>
             <span>{pagina + 1} / {totalPaginas}</span>
@@ -214,9 +215,9 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
                   <div className="min-w-0"><div className="font-black text-base text-slate-800 dark:text-slate-100 truncate">{p.name}</div>
                     <div className="flex gap-1 flex-wrap">
                       {shortlist.includes(p.id) && <span className="text-[9px] font-black bg-yellow-500 text-slate-900 px-1.5 rounded">★ LIST</span>}
-                      {p.listedForSale && <span className="text-[9px] font-black bg-emerald-600 text-white px-1.5 rounded">FOR SALE</span>}
+                      {p.listedForSale && <span className="text-[9px] font-black bg-emerald-600 text-white px-1.5 rounded">{tx('FOR SALE')}</span>}
                       {l.origem === 'BASE' && <span className="text-[9px] font-black bg-violet-600 text-white px-1.5 rounded">U20</span>}
-                      {l.origem === 'LIVRE' && <span className="text-[9px] font-black bg-sky-600 text-white px-1.5 rounded">FREE</span>}
+                      {l.origem === 'LIVRE' && <span className="text-[9px] font-black bg-sky-600 text-white px-1.5 rounded">{tx('FREE')}</span>}
                       {neg && <span className={`text-[9px] font-black border px-1.5 rounded ${ESTADO_COR[neg.estado]}`}>{ESTADO_ROTULO[neg.estado]}</span>}
                     </div></div>
                 </div>
@@ -224,20 +225,20 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
                 <div className="text-center text-base font-black text-slate-600 dark:text-slate-300">{p.position}</div>
                 <div className="text-center"><span className="text-base font-black text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded">{p.skill}</span></div>
                 <div><Estrelas n={l.estrelas} /></div>
-                <div className="flex items-center gap-2 min-w-0 text-base font-bold text-slate-700 dark:text-slate-100">{l.clube ? <><TeamShield team={l.clube} className="w-6 h-8 shrink-0" /><span className="truncate">{l.clube.name}</span></> : <span className="text-slate-400">Free agent</span>}</div>
+                <div className="flex items-center gap-2 min-w-0 text-base font-bold text-slate-700 dark:text-slate-100">{l.clube ? <><TeamShield team={l.clube} className="w-6 h-8 shrink-0" /><span className="truncate">{l.clube.name}</span></> : <span className="text-slate-400">{tx('Free agent')}</span>}</div>
                 <div className="text-right font-mono text-base font-black text-slate-800 dark:text-white">{l.origem === 'LIVRE' ? 'FREE' : formatCurrencyShort(p.value)}</div>
                 <div className="text-right font-mono text-base text-slate-500 dark:text-slate-300">{formatCurrencyShort(p.salary)}</div>
               </div>
             );
           })}
-          {!visiveis.length && <div className="p-10 text-center text-slate-400 font-bold uppercase tracking-widest text-sm">No players match the filters</div>}
+          {!visiveis.length && <div className="p-10 text-center text-slate-400 font-bold uppercase tracking-widest text-sm">{tx('No players match the filters')}</div>}
         </div>
       </div>
 
       {/* OVERVIEW */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0b1324] p-4 overflow-y-auto custom-scrollbar flex flex-col gap-3">
-        <div className="text-[12px] font-black uppercase tracking-widest text-slate-500">Player overview</div>
-        {!sel ? <div className="m-auto text-slate-400 text-sm font-bold uppercase tracking-widest text-center">Select a player</div> : (() => {
+        <div className="text-[12px] font-black uppercase tracking-widest text-slate-500">{tx('Player overview')}</div>
+        {!sel ? <div className="m-auto text-slate-400 text-sm font-bold uppercase tracking-widest text-center">{tx('Select a player')}</div> : (() => {
           const p = sel.p, neg = negDe(p.id);
           const a3 = atributos3d(p); const top = (['tec', 'tac', 'men', 'fis'] as const).slice().sort((a, b) => a3[b] - a3[a]).slice(0, 3);
           return (
@@ -265,21 +266,21 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
               </div>
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-[#0e182c] p-3 flex items-center gap-3">
                 <Donut p={p} />
-                <div className="flex-1 rounded border border-slate-700/60 p-2"><div className="text-[10px] font-black uppercase text-slate-400 mb-1">Key attributes</div>
+                <div className="flex-1 rounded border border-slate-700/60 p-2"><div className="text-[10px] font-black uppercase text-slate-400 mb-1">{tx('Key attributes')}</div>
                   {top.map(k => <div key={k} className="flex justify-between text-sm font-bold text-slate-200"><span>{NOME_ATTR[k]}</span><span className="text-blue-400">{a3[k]}</span></div>)}
                 </div>
               </div>
-              {p.playStyle && p.playStyle !== 'None' && <div className="text-xs font-bold text-slate-500">PlayStyle: <span className="text-slate-300">{p.playStyle}</span></div>}
+              {p.playStyle && p.playStyle !== 'None' && <div className="text-xs font-bold text-slate-500">{tx('PlayStyle:')} <span className="text-slate-300">{p.playStyle}</span></div>}
               <div className="mt-auto flex flex-col gap-2">
                 {sel.origem === 'LIVRE' ? (
-                  <button onClick={() => mostrar(contratarLivre(p.id), `${p.name} signed as a free agent`)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded text-sm uppercase tracking-widest">Sign free agent</button>
+                  <button onClick={() => mostrar(contratarLivre(p.id), `${p.name} signed as a free agent`)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded text-sm uppercase tracking-widest">{tx('Sign free agent')}</button>
                 ) : neg ? (
                   <button onClick={() => setAba('NEGOTIATIONS')} className="bg-slate-700 hover:bg-slate-600 text-white font-black py-3.5 rounded text-sm uppercase tracking-widest">{ESTADO_ROTULO[neg.estado]} — open</button>
                 ) : (
-                  <button onClick={() => abrirOferta(sel)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded text-sm uppercase tracking-widest">Make offer</button>
+                  <button onClick={() => abrirOferta(sel)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded text-sm uppercase tracking-widest">{tx('Make offer')}</button>
                 )}
                 <button onClick={() => alternarShortlist(p.id)} className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-black py-3.5 rounded text-sm uppercase tracking-widest">{shortlist.includes(p.id) ? 'Remove from shortlist' : 'Add to shortlist'}</button>
-                {!janela && sel.origem !== 'LIVRE' && <div className="text-[11px] text-amber-500 font-bold text-center">Window closed: an accepted offer completes when it opens</div>}
+                {!janela && sel.origem !== 'LIVRE' && <div className="text-[11px] text-amber-500 font-bold text-center">{tx('Window closed: an accepted offer completes when it opens')}</div>}
               </div>
             </>
           );
@@ -315,8 +316,8 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
             {jog && <div className="flex items-center gap-2 text-sm font-bold text-slate-400 dark:text-slate-500 leading-tight"><span>{jog.position}</span><span>|</span><span>{Math.round(jog.skill)}</span><span>|</span><Estrelas n={estrelasDoJogador(jog as any)} /></div>}
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">{compro ? `Buying from ${nomeClube(n.vendedorId)}` : `${nomeClube(n.compradorId)} wants to buy`}</div>
             <div className="mt-2 flex items-start gap-6">
-              <div><div className="text-[10px] font-bold uppercase text-slate-500">Market value</div><div className="text-base font-black text-slate-900 dark:text-white">{jog ? formatCurrency(jog.value) : '-'}</div></div>
-              <div><div className="text-[10px] font-bold uppercase text-slate-500">Round {n.rodadas}/{CONFIG_MERCADO.maxRodadas}</div>
+              <div><div className="text-[10px] font-bold uppercase text-slate-500">{tx('Market value')}</div><div className="text-base font-black text-slate-900 dark:text-white">{jog ? formatCurrency(jog.value) : '-'}</div></div>
+              <div><div className="text-[10px] font-bold uppercase text-slate-500">{tx('Round')} {n.rodadas}/{CONFIG_MERCADO.maxRodadas}</div>
                 <div className="flex gap-1.5 h-6 items-center">{Array.from({ length: CONFIG_MERCADO.maxRodadas }).map((_, i) => <span key={i} className={`w-6 h-2.5 ${i < n.rodadas ? (i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-amber-400' : 'bg-rose-500') : 'bg-slate-400 dark:bg-slate-600'}`} />)}</div></div>
             </div>
           </div>
@@ -327,15 +328,15 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="flex items-baseline gap-5 text-sm font-bold text-slate-500">
-                <span>Bid: <b className="text-emerald-400 text-lg">{formatCurrencyShort(bid)}</b></span>
-                {ask !== undefined && <span>Ask: <b className="text-rose-400 text-lg">{formatCurrencyShort(ask)}</b></span>}
+                <span>{tx('Bid:')} <b className="text-emerald-400 text-lg">{formatCurrencyShort(bid)}</b></span>
+                {ask !== undefined && <span>{tx('Ask:')} <b className="text-rose-400 text-lg">{formatCurrencyShort(ask)}</b></span>}
               </div>
               {ESTADOS_ATIVOS.includes(n.estado)
-                ? <div className="mt-0.5 text-[11px] text-slate-400 flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>Expires {dataCurta(n.expira)}{n.respondeEm && n.estado === 'ENVIADA' ? ` • answer expected ${dataCurta(n.respondeEm)}` : ''}</div>
-                : (n.motivo && <div className="mt-0.5 text-[11px] text-slate-400">Reason: {n.motivo}</div>)}
+                ? <div className="mt-0.5 text-[11px] text-slate-400 flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>{tx('Expires')} {dataCurta(n.expira)}{n.respondeEm && n.estado === 'ENVIADA' ? ` • answer expected ${dataCurta(n.respondeEm)}` : ''}</div>
+                : (n.motivo && <div className="mt-0.5 text-[11px] text-slate-400">{tx('Reason:')} {n.motivo}</div>)}
               {/* A DATA: o negocio aceito com a janela fechada so se completa quando ela abre (o jogador chega nessa data); o concluido mostra o dia em que foi fechado. */}
-              {n.estado === 'ACEITA' && !janela && proximaAberturaJanela(hoje, userTeam.country) && <div className="mt-0.5 text-[11px] font-bold text-amber-500">Player arrives {dataCurta(proximaAberturaJanela(hoje, userTeam.country)!.data)} (window opens)</div>}
-              {n.estado === 'CONCLUIDA' && <div className="mt-0.5 text-[11px] font-bold text-emerald-500">Completed on {dataCurta(n.atualizada)}</div>}
+              {n.estado === 'ACEITA' && !janela && proximaAberturaJanela(hoje, userTeam.country) && <div className="mt-0.5 text-[11px] font-bold text-amber-500">{tx('Player arrives')} {dataCurta(proximaAberturaJanela(hoje, userTeam.country)!.data)} (window opens)</div>}
+              {n.estado === 'CONCLUIDA' && <div className="mt-0.5 text-[11px] font-bold text-emerald-500">{tx('Completed on')} {dataCurta(n.atualizada)}</div>}
             </div>
             <span className={`text-[11px] font-black uppercase border px-2.5 py-1 rounded-md shrink-0 ${ESTADO_COR[n.estado]}`}>{ESTADO_ROTULO[n.estado]}</span>
           </div>
@@ -354,7 +355,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
               </>}
               <button onClick={() => mostrar(responderNegociacao(n.id, 'RECUSAR'), 'Negotiation closed')} className={btnCinza}>{xis}Refuse</button>
             </>}
-            {compro && n.estado === 'ENVIADA' && <button onClick={() => mostrar(retirarProposta(n.id), 'Offer withdrawn')} className={btnCinza}>Withdraw</button>}
+            {compro && n.estado === 'ENVIADA' && <button onClick={() => mostrar(retirarProposta(n.id), 'Offer withdrawn')} className={btnCinza}>{tx('Withdraw')}</button>}
             {n.estado === 'ACEITA' && <button onClick={() => mostrar(tentarConcluir(n.id), 'Transfer completed')} className={`${btn} bg-emerald-600 hover:bg-emerald-500 text-white`}>{check}Try to complete</button>}
           </div>
         </div>
@@ -367,7 +368,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   ) : null;
   const negociacoesAba = (
     <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-6 pr-2">
-      {!negociacoesMinhas.length && <div className="m-auto text-slate-400 text-sm font-bold uppercase tracking-widest">No negotiations yet</div>}
+      {!negociacoesMinhas.length && <div className="m-auto text-slate-400 text-sm font-bold uppercase tracking-widest">{tx('No negotiations yet')}</div>}
       {grupoNeg('Needs your answer', negociacoesMinhas.filter(precisaResposta))}
       {grupoNeg('Accepted — pending completion', negociacoesMinhas.filter(n => n.estado === 'ACEITA'))}
       {grupoNeg('Waiting for the other club', negociacoesMinhas.filter(n => ESTADOS_ATIVOS.includes(n.estado) && n.estado !== 'ACEITA' && !precisaResposta(n)))}
@@ -378,7 +379,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const concluidas = negociacoesMinhas.filter(n => n.estado === 'CONCLUIDA');
   const completadasAba = (
     <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-6 pr-2">
-      {!concluidas.length && <div className="m-auto text-slate-400 text-sm font-bold uppercase tracking-widest">No completed transfers yet</div>}
+      {!concluidas.length && <div className="m-auto text-slate-400 text-sm font-bold uppercase tracking-widest">{tx('No completed transfers yet')}</div>}
       {grupoNeg('Completed', concluidas.slice().reverse())}
     </div>
   );
@@ -415,7 +416,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const rostoDe = (jogadorId: string, clube?: Team) => <div className="w-[56px] h-[56px] shrink-0 overflow-hidden"><PlayerFace3D playerId={jogadorId} team={clube} camisa={clube?.primaryColor} className="w-full h-full" /></div>;
   const meusAba = (
     <div className="flex-1 bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col shadow-xl min-h-0">
-      <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 text-xs font-bold uppercase tracking-widest text-slate-500">List a player for sale to invite offers. Listing does not transfer anyone: you accept, refuse or counter each offer. Sub-20 players aged {CONFIG_MERCADO.idadeMinimaBase}+ can be listed too.</div>
+      <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 text-xs font-bold uppercase tracking-widest text-slate-500">{tx('List a player for sale to invite offers. Listing does not transfer anyone: you accept, refuse or counter each offer. Sub-20 players aged')} {CONFIG_MERCADO.idadeMinimaBase}+ can be listed too.</div>
       <div className="overflow-y-auto custom-scrollbar flex-1">
         <table className="w-full text-left border-separate border-spacing-0">
           <thead className="bg-slate-200/40 dark:bg-slate-950/60 sticky top-0"><tr>{cabMeus('name', 'Name')}{cabMeus('age', 'Age')}{cabMeus('pos', 'Pos')}{cabMeus('ovr', 'OVR')}{cabMeus('pot', 'Pot')}{cabMeus('value', 'Value')}{cabMeus('contract', 'Contract')}{cabMeus('offers', 'Offers')}{cabMeus('listed', 'For sale')}</tr></thead>
@@ -453,26 +454,26 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
         ))}
       </div>
       <div className="shrink-0 bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 border-b border-slate-200 dark:border-slate-800">Transaction ledger</div>
+        <div className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 border-b border-slate-200 dark:border-slate-800">{tx('Transaction ledger')}</div>
         <table className="w-full text-left"><thead><tr>{['Date', 'Type', 'Player', 'Counterparty', 'Amount', 'Balance before', 'Balance after'].map(h => <th key={h} className="px-3 py-2 text-[11px] font-black uppercase tracking-widest text-slate-400">{h}</th>)}</tr></thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30">
             {minhasTx.map(t => (
               <tr key={t.id}><td className="px-3 py-2 text-xs text-slate-500">{dataCurta(t.data)}</td>
-                <td className="px-3 py-2 text-xs font-black uppercase">{t.natureza === 'COMPRA' ? <span className="text-rose-400">Purchase</span> : t.natureza === 'VENDA' ? <span className="text-emerald-400">Sale</span> : <span className="text-sky-400">Free agent</span>}</td>
+                <td className="px-3 py-2 text-xs font-black uppercase">{t.natureza === 'COMPRA' ? <span className="text-rose-400">{tx('Purchase')}</span> : t.natureza === 'VENDA' ? <span className="text-emerald-400">{tx('Sale')}</span> : <span className="text-sky-400">{tx('Free agent')}</span>}</td>
                 <td className="px-3 py-1 text-sm font-bold text-slate-700 dark:text-slate-200"><div className="flex items-center gap-2">{rostoDe(t.jogadorId, t.natureza === 'VENDA' ? porId.get(t.contraparteId) : userTeam)}<span>{t.jogadorNome}</span></div></td><td className="px-3 py-2 text-sm text-slate-500">{nomeClube(t.contraparteId)}</td>
                 <td className="px-3 py-2 font-mono text-sm font-black">{t.natureza === 'COMPRA' ? '−' : t.natureza === 'VENDA' ? '+' : ''}{formatCurrency(t.valor)}</td>
                 <td className="px-3 py-2 font-mono text-xs text-slate-500">{formatCurrency(t.saldoAntes)}</td><td className="px-3 py-2 font-mono text-xs text-slate-500">{formatCurrency(t.saldoDepois)}</td></tr>
             ))}
-            {!minhasTx.length && <tr><td colSpan={7} className="p-8 text-center text-slate-400 text-sm font-bold uppercase tracking-widest">No transactions yet</td></tr>}
+            {!minhasTx.length && <tr><td colSpan={7} className="p-8 text-center text-slate-400 text-sm font-bold uppercase tracking-widest">{tx('No transactions yet')}</td></tr>}
           </tbody></table>
       </div>
       <div className="shrink-0 bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 border-b border-slate-200 dark:border-slate-800">Latest moves in the market</div>
+        <div className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 border-b border-slate-200 dark:border-slate-800">{tx('Latest moves in the market')}</div>
         <div className="divide-y divide-slate-100 dark:divide-slate-800/30">
           {mercado.historico.slice(-25).reverse().map(m => (
             <div key={m.id} className="px-4 py-1 flex justify-between gap-3 items-center"><span className="text-slate-700 dark:text-slate-100 flex items-center gap-2">{rostoDe(m.jogadorId, porId.get(m.para))}{/* a fonte da lista do mercado: nome do jogador font-black text-base, clubes font-bold text-base */}<span className="text-base"><span className="font-black text-slate-800 dark:text-slate-100">{m.jogadorNome}</span> <span className="font-bold text-slate-700 dark:text-slate-100">• {nomeClube(m.de)} → {nomeClube(m.para)}{m.tipo === 'DISPENSA' ? ' (released)' : ''}</span></span></span><span className="font-mono text-slate-500 whitespace-nowrap">{dataCurta(m.data)} • {m.valor ? formatCurrencyShort(m.valor) : 'free'}</span></div>
           ))}
-          {!mercado.historico.length && <div className="p-6 text-center text-slate-400 text-sm font-bold uppercase tracking-widest">No moves yet</div>}
+          {!mercado.historico.length && <div className="p-6 text-center text-slate-400 text-sm font-bold uppercase tracking-widest">{tx('No moves yet')}</div>}
         </div>
       </div>
     </div>
@@ -491,20 +492,20 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
     return (
       <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setOfertando(null)}>
         <div className="w-full max-w-md bg-slate-950 border border-slate-700 rounded-xl shadow-2xl p-6" onClick={e => e.stopPropagation()}>
-          <div className="text-[11px] font-black uppercase tracking-widest text-blue-400">Make an offer</div>
+          <div className="text-[11px] font-black uppercase tracking-widest text-blue-400">{tx('Make an offer')}</div>
           <div className="text-2xl font-black italic uppercase text-white">{p.name}</div>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">{l.clube?.name} • {p.position} • OVR {p.skill} • {p.age}y</div>
           <div className="grid grid-cols-3 gap-2 text-center mb-4">
             {[['Market value', formatCurrencyShort(p.value)], ['Cash', formatCurrencyShort(userTeam.cash)], ['Budget', formatCurrencyShort(userTeam.transferBudget ?? 0)]].map(([k, v]) => <div key={k} className="bg-slate-900 rounded-lg p-2 border border-slate-800"><div className="text-[10px] font-bold uppercase text-slate-500">{k}</div><div className="text-sm font-black text-white">{v}</div></div>)}
           </div>
-          <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Your offer</label>
+          <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">{tx('Your offer')}</label>
           <input type="number" step={1000} value={valor} onChange={e => setValor(Math.max(0, Math.round(Number(e.target.value) || 0)))} className="w-full mt-1 bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded px-3 py-3 text-xl font-black text-white outline-none" />
           <div className="text-xs text-slate-500 mt-1">{valor ? `${Math.round((valor / Math.max(1, p.value)) * 100)}% of the market value` : ''}</div>
           {(semSaldo || semOrc) && <div className="text-xs font-bold text-amber-400 mt-2">{semSaldo ? 'Above your cash balance: the deal could not be completed.' : 'Above your transfer budget: the deal could not be completed.'} The club can still accept; it will wait until you can pay.</div>}
           <div className="text-xs text-slate-500 mt-2 leading-relaxed">The club answers in 1–3 days: it may accept, refuse or counter (up to {CONFIG_MERCADO.maxRodadas} rounds). Nothing is charged until the transfer completes{janela ? '.' : ', and the window is closed now.'}</div>
           <div className="flex gap-3 mt-5">
-            <button disabled={!valor} onClick={() => { const r = proporCompraMercado(p.id, valor); mostrar(r, `Offer sent for ${p.name}`); if (r.ok) { setOfertando(null); setAba('NEGOTIATIONS'); } }} className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black py-3 rounded text-xs uppercase tracking-widest">Send offer</button>
-            <button onClick={() => setOfertando(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black py-3 rounded text-xs uppercase tracking-widest">Cancel</button>
+            <button disabled={!valor} onClick={() => { const r = proporCompraMercado(p.id, valor); mostrar(r, `Offer sent for ${p.name}`); if (r.ok) { setOfertando(null); setAba('NEGOTIATIONS'); } }} className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black py-3 rounded text-xs uppercase tracking-widest">{tx('Send offer')}</button>
+            <button onClick={() => setOfertando(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black py-3 rounded text-xs uppercase tracking-widest">{tx('Cancel')}</button>
           </div>
         </div>
       </div>
@@ -514,17 +515,17 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   return (
     <div className="h-full flex flex-col gap-4 animate-fade-in min-h-0">
       <div>
-        <h2 className="text-5xl font-black uppercase tracking-tight italic leading-none"><span className="text-slate-900 dark:text-white">TRANSFER</span> <span className="text-blue-500">MARKET</span></h2>
-        <p className="text-slate-400 dark:text-slate-500 font-bold text-[11px] uppercase tracking-widest mt-2 opacity-70">Player search and transactions • window {janela ? <span className="text-emerald-500">open{fecha !== null ? ` (${fecha} days left)` : ''}</span> : <span className="text-rose-400">closed{abre !== null ? ` (opens in ${abre} days)` : ''}</span>}</p>
+        <h2 className="text-5xl font-black uppercase tracking-tight italic leading-none"><span className="text-slate-900 dark:text-white">{tx('TRANSFER')}</span> <span className="text-blue-500">{tx('MARKET')}</span></h2>
+        <p className="text-slate-400 dark:text-slate-500 font-bold text-[11px] uppercase tracking-widest mt-2 opacity-70">Player search and transactions • window {janela ? <span className="text-emerald-500">{tx('open')}{fecha !== null ? ` (${fecha} days left)` : ''}</span> : <span className="text-rose-400">{tx('closed')}{abre !== null ? ` (opens in ${abre} days)` : ''}</span>}</p>
       </div>
       <div className="flex flex-wrap gap-2 items-center">
         {([['MARKET', 'Market'], ['SHORTLIST', `Shortlist (${shortlistN})`], ['NEGOTIATIONS', `Negotiations${pendentes ? ` (${pendentes})` : ''}`], ['COMPLETED', `Completed${negociacoesMinhas.filter(n => n.estado === 'CONCLUIDA').length ? ` (${negociacoesMinhas.filter(n => n.estado === 'CONCLUIDA').length})` : ''}`], ['MY_PLAYERS', 'My players / for sale'], ['FINANCES', 'Transfer finances']] as const).map(([id, r]) => (
           <button key={id} onClick={() => setAba(id)} className={`px-5 py-2 rounded text-xs font-black uppercase tracking-widest transition-colors ${aba === id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-800 dark:hover:text-white'}`}>{r}</button>
         ))}
         <div className="ml-auto flex gap-8 text-xs font-black uppercase tracking-widest text-slate-500">
-        <span>Transfer budget: <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(userTeam.transferBudget ?? 0)}</b></span>
-        <span>Cash: <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(userTeam.cash)}</b></span>
-        <span>Wage bill: <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(players.filter(p => p.teamId === meuId).reduce((a, p) => a + p.salary, 0))}/w</b></span>
+        <span>{tx('Transfer budget:')} <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(userTeam.transferBudget ?? 0)}</b></span>
+        <span>{tx('Cash:')} <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(userTeam.cash)}</b></span>
+        <span>{tx('Wage bill:')} <b className="text-slate-900 dark:text-white text-sm">{formatCurrencyShort(players.filter(p => p.teamId === meuId).reduce((a, p) => a + p.salary, 0))}/w</b></span>
       </div>
         {aviso && <div className={`px-4 py-2 rounded text-xs font-black uppercase tracking-wider cursor-pointer ${aviso.tipo === 'ok' ? 'bg-emerald-600/15 text-emerald-400 border border-emerald-600/40' : 'bg-rose-600/15 text-rose-400 border border-rose-600/40'}`} onClick={() => setAviso(null)}>{aviso.texto} ✕</div>}
       </div>

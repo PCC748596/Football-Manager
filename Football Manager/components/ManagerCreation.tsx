@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { COUNTRIES } from '../textSim/dataGenerator';
@@ -96,21 +97,21 @@ const ManagerCreation: React.FC<Props> = ({ onNext, onBack }) => {
         <div className="bg-slate-900/50 border border-slate-800 rounded p-5 space-y-4">
           <p className={secao}>1. Personal Details</p>
           <div>
-            <label className={secao}>First name</label>
+            <label className={secao}>{tx('First name')}</label>
             <input className={campo} value={nome} onChange={e => setNome(e.target.value)} autoFocus />
           </div>
           <div>
-            <label className={secao}>Surname</label>
+            <label className={secao}>{tx('Surname')}</label>
             <input className={campo} value={sobrenome} onChange={e => setSobrenome(e.target.value)} />
           </div>
           <div>
-            <label className={secao}>Nationality</label>
+            <label className={secao}>{tx('Nationality')}</label>
             <select className={campo} value={pais} onChange={e => setPais(e.target.value)}>
               {COUNTRIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div>
-            <label className={secao}>Date of birth</label>
+            <label className={secao}>{tx('Date of birth')}</label>
             <div className="grid grid-cols-[1fr_2fr_1.2fr] gap-2">
               <select className={campo} value={Math.min(dia, dias)} onChange={e => setDia(+e.target.value)}>
                 {Array.from({ length: dias }, (_, i) => <option key={i} value={i + 1}>{i + 1}</option>)}
@@ -127,32 +128,32 @@ const ManagerCreation: React.FC<Props> = ({ onNext, onBack }) => {
 
         <div className="bg-slate-900/50 border border-slate-800 rounded p-5 space-y-4">
           <p className={secao}>2. Appearance</p>
-          <div><label className={secao}>Gender</label><Segmentos valor={look.gender} opcoes={['MALE', 'FEMALE']} onChange={gender => mudar({ gender, hairStyle: gender === 'FEMALE' ? 'LONG' : 'SHORT' })} /></div>
-          <div><label className={secao}>Body type</label><Segmentos valor={look.body} opcoes={['SLIM', 'ATHLETIC', 'AVERAGE']} onChange={body => mudar({ body })} /></div>
-          <div><label className={secao}>Skin tone</label><Cores valor={look.skin} cores={SKINS} onChange={skin => mudar({ skin })} /></div>
+          <div><label className={secao}>{tx('Gender')}</label><Segmentos valor={look.gender} opcoes={['MALE', 'FEMALE']} onChange={gender => mudar({ gender, hairStyle: gender === 'FEMALE' ? 'LONG' : 'SHORT' })} /></div>
+          <div><label className={secao}>{tx('Body type')}</label><Segmentos valor={look.body} opcoes={['SLIM', 'ATHLETIC', 'AVERAGE']} onChange={body => mudar({ body })} /></div>
+          <div><label className={secao}>{tx('Skin tone')}</label><Cores valor={look.skin} cores={SKINS} onChange={skin => mudar({ skin })} /></div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={secao}>Hairstyle</label>
+              <label className={secao}>{tx('Hairstyle')}</label>
               <select className={campo} value={look.hairStyle} onChange={e => mudar({ hairStyle: e.target.value as ManagerHairStyle })}>
                 {(['SHORT', 'BUZZ', 'LONG', 'BALD'] as ManagerHairStyle[]).map(h => <option key={h} value={h}>{h}</option>)}
               </select>
             </div>
-            <div><label className={secao}>Hair color</label><Cores valor={look.hair} cores={HAIRS} onChange={hair => mudar({ hair })} /></div>
+            <div><label className={secao}>{tx('Hair color')}</label><Cores valor={look.hair} cores={HAIRS} onChange={hair => mudar({ hair })} /></div>
           </div>
           <div>
-            <label className={secao}>Outfit</label>
+            <label className={secao}>{tx('Outfit')}</label>
             <Segmentos valor={look.outfit} opcoes={['SUIT', 'TRACKSUIT', 'CASUAL']} onChange={mudarOutfit} />
             <div className="mt-3 space-y-3">
               {look.outfit === 'SUIT' && (
                 <>
                   <div>
-                    <p className={secao}>Suit colour</p>
+                    <p className={secao}>{tx('Suit colour')}</p>
                     <div className="flex gap-2 flex-wrap">
                       {TERNOS.map(t => <button key={t.id} type="button" title={t.nome} onClick={() => mudarTerno(t.hex)} style={{ background: t.hex }} className={swatch(look.outfitColor === t.hex)} />)}
                     </div>
                   </div>
                   <div>
-                    <p className={secao}>Best tie colours</p>
+                    <p className={secao}>{tx('Best tie colours')}</p>
                     <div className="flex gap-2 flex-wrap">
                       {ternoPorHex(look.outfitColor).gravatas.map(g => <button key={g.id} type="button" title={g.nome} onClick={() => mudar({ tieColor: g.hex })} style={{ background: g.hex }} className={swatch(look.tieColor === g.hex)} />)}
                     </div>
@@ -163,7 +164,7 @@ const ManagerCreation: React.FC<Props> = ({ onNext, onBack }) => {
               {look.outfit === 'CASUAL' && (
                 <>
                   <div>
-                    <p className={secao}>Presets</p>
+                    <p className={secao}>{tx('Presets')}</p>
                     <div className="flex gap-1.5 flex-wrap">
                       {COMBINACOES.map(({ nome, camisa, calca }) => (
                         <button key={nome} type="button" title={nome} onClick={() => mudar({ outfitColor: camisa, pantsColor: calca })}
@@ -172,13 +173,13 @@ const ManagerCreation: React.FC<Props> = ({ onNext, onBack }) => {
                     </div>
                   </div>
                   <div>
-                    <p className={secao}>Shirt colour</p>
+                    <p className={secao}>{tx('Shirt colour')}</p>
                     <div className="grid grid-cols-7 gap-1.5">
                       {CAMISAS.map(k => <button key={k.id} type="button" title={k.nome} onClick={() => mudar({ outfitColor: k.hex })} style={{ background: k.hex }} className={swatch(look.outfitColor === k.hex, 'h-6')} />)}
                     </div>
                   </div>
                   <div>
-                    <p className={secao}>Pants colour</p>
+                    <p className={secao}>{tx('Pants colour')}</p>
                     <div className="flex gap-1.5 flex-wrap">
                       {CALCAS.map(k => <button key={k.id} type="button" title={k.nome} onClick={() => mudar({ pantsColor: k.hex })} style={{ background: k.hex }} className={swatch(look.pantsColor === k.hex)} />)}
                     </div>
@@ -201,7 +202,7 @@ const ManagerCreation: React.FC<Props> = ({ onNext, onBack }) => {
             </div>
           </div>
           <div className="bg-slate-900/50 border border-slate-800 rounded p-4">
-            <p className={secao}>Managerial Style</p>
+            <p className={secao}>{tx('Managerial Style')}</p>
             <div className="grid grid-cols-2 gap-2">
               {([['TRACKSUIT', 'Tracksuit Manager', 'Focused on training and development'], ['TACTICAL', 'Tactical Manager', 'Focused on tactics and mentality']] as const).map(([id, titulo, desc]) => (
                 <button key={id} type="button" onClick={() => setEstilo(id)}

@@ -60,6 +60,19 @@ export const textosDaPartida = (lang: Language): Record<string, string> => {
   return out;
 };
 
+/*
+O IDIOMA ATUAL E `tx`: o texto em INGLES e a propria chave (como o gettext). `tx('Squad Snapshot')` devolve a traducao do bloco `textos` do idioma atual, ou o proprio ingles. Serve para os
+textos das telas sem ter de inventar um nome de chave para cada um: o en.json nem precisa deles. `vars` troca `{nome}` (`tx('{n} unread', { n: 3 })`).
+O idioma atual e posto pelo GameContext a cada render (`definirIdiomaAtual`), antes de as telas desenharem.
+*/
+let atual: Language = 'EN';
+export const definirIdiomaAtual = (lang: Language): void => { if (idiomaValido(lang)) atual = lang; };
+export const idiomaAtual = (): Language => atual;
+export const tx = (en: string, vars?: Record<string, string | number>): string => {
+  const v: string = (atual !== 'EN' && DIC[atual]?.textos?.[en]) || en;
+  return vars ? v.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m)) : v;
+};
+
 /** Traducoes do mod (idiomas/<codigo>.json): substituem as do jogo. Devolve quantas chaves entraram. */
 export const registarTraducoes = (lang: Language, extra: Dicionario): number => {
   if (!extra || typeof extra !== 'object' || !DIC[lang]) return 0;

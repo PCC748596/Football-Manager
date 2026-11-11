@@ -1,4 +1,5 @@
 
+import { tx } from '../textSim/idiomas';
 import NextGameButton from './NextGameButton';
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
@@ -177,18 +178,18 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                <thead className="bg-slate-200/40 dark:bg-slate-950/60 text-[13px] text-slate-400 dark:text-slate-500 font-black uppercase sticky top-0 z-10 transition-colors">
                  <tr>
                    <th className="px-2 py-2 border-b border-slate-200 dark:border-slate-800 w-12 text-center cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('num')}>#{seta('num')}</th>
-                   <th className="px-1 py-2 border-b border-slate-200 dark:border-slate-800 text-center w-12 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pos')}>Pos{seta('pos')}</th>
-                   <th className="px-2 py-2 border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('name')}>Name{seta('name')}</th>
-                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('age')}>Age{seta('age')}</th>
+                   <th className="px-1 py-2 border-b border-slate-200 dark:border-slate-800 text-center w-12 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pos')}>{tx('Pos')}{seta('pos')}</th>
+                   <th className="px-2 py-2 border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('name')}>{tx('Name')}{seta('name')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('age')}>{tx('Age')}{seta('age')}</th>
                    <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('ovr')}>OVR{seta('ovr')}</th>
-                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pot')}>Pot{seta('pot')}</th>
-                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('fit')} title="Energy: daily energy (0-100%), spent in training and matches, recovered with rest">Enr{seta('fit')}</th>
-                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('mor')}>Mor{seta('mor')}</th>
-                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('def')} title="Technique: ball control, dribbling, finishing, passing, crossing... (3D engine attributes)">TEC{seta('def')}</th>
-                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pas')} title="Tactical: tackling, marking, positioning, vision, tactical awareness">TAC{seta('pas')}</th>
-                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('drb')} title="Mental: aggression, reactions, composure, consistency">MEN{seta('drb')}</th>
-                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('sht')} title="Physical: pace, acceleration, agility, jumping, strength, stamina, balance">FIS{seta('sht')}</th>
-                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('style')}>Style{seta('style')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pot')}>{tx('Pot')}{seta('pot')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('fit')} title={tx('Energy: daily energy (0-100%), spent in training and matches, recovered with rest')}>{tx('Enr')}{seta('fit')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('mor')}>{tx('Mor')}{seta('mor')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('def')} title={tx('Technique: ball control, dribbling, finishing, passing, crossing... (3D engine attributes)')}>TEC{seta('def')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('pas')} title={tx('Tactical: tackling, marking, positioning, vision, tactical awareness')}>TAC{seta('pas')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('drb')} title={tx('Mental: aggression, reactions, composure, consistency')}>MEN{seta('drb')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('sht')} title={tx('Physical: pace, acceleration, agility, jumping, strength, stamina, balance')}>FIS{seta('sht')}</th>
+                   <th className="px-1 py-2 text-center border-b border-slate-200 dark:border-slate-800 cursor-pointer select-none hover:text-blue-500 whitespace-nowrap" onClick={() => alternarOrdem('style')}>{tx('Style')}{seta('style')}</th>
                  </tr>
                </thead>
                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30 transition-colors">
@@ -237,7 +238,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                          {Math.round(p.skill)}
                        </span>
                      </td>
-                     <td className="px-1 py-[8px] text-center whitespace-nowrap text-lg leading-none tracking-tighter" title="Current level (gold) and estimated potential (grey, scout estimate)">
+                     <td className="px-1 py-[8px] text-center whitespace-nowrap text-lg leading-none tracking-tighter" title={tx('Current level (gold) and estimated potential (grey, scout estimate)')}>
                        {/* Uma linha de 5 estrelas so: douradas = o nivel atual; cinzentas = o que falta ate ao potencial; apagadas = acima do potencial. */}
                        {Array.from({ length: 5 }, (_, i) => <span key={i} className={i < starCount ? 'text-yellow-400' : i < estrelasDoJogador(p) ? 'text-slate-400 dark:text-slate-400' : 'text-slate-200 dark:text-slate-700'}>★</span>)}
                      </td>
@@ -280,7 +281,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
       <div className="flex justify-between items-start">
          <div>
             <h2 className="text-4xl font-black uppercase tracking-tight italic leading-none transition-colors">
-              <span className="text-slate-900 dark:text-white">SQUAD</span> <span className="text-blue-500">MANAGEMENT</span>
+              <span className="text-slate-900 dark:text-white">{tx('SQUAD')}</span> <span className="text-blue-500">{tx('MANAGEMENT')}</span>
             </h2>
             <p className="text-slate-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2 opacity-60 transition-colors">
               {aba === 'U20'
@@ -290,7 +291,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
          </div>
          <div className="flex gap-4 items-center">
              <div className="bg-slate-100 dark:bg-slate-900/60 px-5 py-2.5 rounded-lg text-slate-400 dark:text-slate-400 border border-slate-200 dark:border-slate-800 shadow-lg flex items-center gap-3 transition-colors h-full">
-               <span className="text-[10px] font-black uppercase tracking-widest text-slate-300 dark:text-slate-600 transition-colors">Formation:</span>
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-300 dark:text-slate-600 transition-colors">{tx('Formation:')}</span>
                <span className="font-black text-slate-800 dark:text-white text-lg tracking-tighter italic transition-colors">{userTeam.tactics.formation}</span>
              </div>
              {matchToday ? (
@@ -304,7 +305,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
                      <>
                         {showSimulate && (
                            <button 
-                             disabled title="Simulate Round desativado: so o modo 3D (Match Day)"
+                             disabled title={tx('Simulate Round disabled: 3D mode only (Match Day)')}
                              className="bg-slate-500 text-slate-300 opacity-40 cursor-not-allowed font-black px-6 py-2.5 rounded text-[10px] uppercase tracking-widest shadow-xl transition-all flex items-center gap-2 border-b-4 border-emerald-800 h-full"
                            >
                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="10"/></svg>
@@ -344,7 +345,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
           <button key={id} onClick={() => setAba(id)} className={`px-6 py-2 rounded text-sm font-black uppercase tracking-widest transition-colors ${aba === id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-800 dark:hover:text-white'}`}>{rotulo}</button>
         ))}
         {aba === 'MAIN' && (
-          <span className="ml-4 self-center text-sm font-black uppercase tracking-widest text-slate-400" title="Players / squad limit - average age">
+          <span className="ml-4 self-center text-sm font-black uppercase tracking-widest text-slate-400" title={tx('Players / squad limit - average age')}>
             <span className="text-blue-400">{myPlayers.length}/34</span> - {myPlayers.length ? (myPlayers.reduce((s, p) => s + p.age, 0) / myPlayers.length).toFixed(1) : '0.0'} yrs
           </span>
         )}
@@ -358,7 +359,7 @@ const SquadView: React.FC<SquadViewProps> = ({ onGoToRoundSimulation, onGoToMatc
               const hojeJ = gameState.currentDate, ano = Number(hojeJ.slice(0, 4));
               const proxima = [`${ano}-01-01`, `${ano}-06-01`, `${ano + 1}-01-01`].find(d => d > hojeJ)!;
               const dias = Math.round((Date.parse(proxima + 'T12:00:00Z') - Date.parse(hojeJ + 'T12:00:00Z')) / 86400000);
-              return <span className="ml-2 text-xs font-black uppercase tracking-widest text-slate-400" title={`The academy list is renewed on ${proxima.slice(8, 10)}/${proxima.slice(5, 7)}/${proxima.slice(0, 4)}`}>Next youth intake <span className="text-blue-400">{dias} day{dias === 1 ? '' : 's'}</span></span>;
+              return <span className="ml-2 text-xs font-black uppercase tracking-widest text-slate-400" title={`The academy list is renewed on ${proxima.slice(8, 10)}/${proxima.slice(5, 7)}/${proxima.slice(0, 4)}`}>{tx('Next youth intake')} <span className="text-blue-400">{dias} day{dias === 1 ? '' : 's'}</span></span>;
             })()}
           </div>
         )}

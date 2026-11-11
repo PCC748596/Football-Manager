@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React, { useRef, useState } from 'react';
 import { Tactics } from '../types';
 
@@ -75,36 +76,36 @@ const TacticPresetsModal: React.FC<Props> = ({ atual, onLoad, onClose, foco }) =
     <div className="fixed inset-0 z-[300] bg-black/70 flex items-center justify-center p-6" onClick={onClose}>
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-6 w-[610px] max-w-[95vw] max-h-[86vh] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center">
-          <h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-700 dark:text-white">Save / Load tactic</h3>
+          <h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-700 dark:text-white">{tx('Save / Load tactic')}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl font-black leading-none">✕</button>
         </div>
 
         <div className="flex gap-2">
-          <input autoFocus={foco === 'save'} value={nome} onChange={e => setNome(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') guardar(); }} maxLength={40} placeholder="Tactic name (e.g. 4-3-3 high press)"
+          <input autoFocus={foco === 'save'} value={nome} onChange={e => setNome(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') guardar(); }} maxLength={40} placeholder={tx('Tactic name (e.g. 4-3-3 high press)')}
             className="flex-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-3 py-2 text-[12px] font-bold text-slate-700 dark:text-white outline-none focus:border-blue-400" />
-          <button onClick={guardar} disabled={!nome.trim()} className="px-4 py-2 rounded bg-blue-600 disabled:opacity-30 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500">Save</button>
+          <button onClick={guardar} disabled={!nome.trim()} className="px-4 py-2 rounded bg-blue-600 disabled:opacity-30 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500">{tx('Save')}</button>
         </div>
-        <span className="text-[9px] text-slate-400 leading-tight -mt-2">Saves the current tactic: {atual.formation}, style {atual.style}{atual.zoneOverrides?.[atual.formation] ? ', with adjusted positions' : ''}. An existing name is replaced.</span>
+        <span className="text-[9px] text-slate-400 leading-tight -mt-2">{tx('Saves the current tactic:')} {atual.formation}, style {atual.style}{atual.zoneOverrides?.[atual.formation] ? ', with adjusted positions' : ''}. An existing name is replaced.</span>
 
         <div className="flex gap-2 items-center">
-          <button onClick={() => baixar('taticas.json', lista)} disabled={!lista.length} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 disabled:opacity-30 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title="Saves all tactics to a .json file on this device">Export all (.json)</button>
-          <button onClick={() => entrada.current?.click()} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title="Loads tactics from a .json file">Import (.json)</button>
+          <button onClick={() => baixar('taticas.json', lista)} disabled={!lista.length} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 disabled:opacity-30 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title={tx('Saves all tactics to a .json file on this device')}>Export all (.json)</button>
+          <button onClick={() => entrada.current?.click()} className="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600" title={tx('Loads tactics from a .json file')}>Import (.json)</button>
           <input ref={entrada} type="file" accept=".json,application/json" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) importar(f); e.target.value = ''; }} />
           {aviso && <span className="text-[10px] font-bold text-emerald-500">{aviso}</span>}
         </div>
 
         <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar">
-          {lista.length === 0 && <span className="text-[11px] text-slate-400 italic text-center py-6">No saved tactics.</span>}
+          {lista.length === 0 && <span className="text-[11px] text-slate-400 italic text-center py-6">{tx('No saved tactics.')}</span>}
           {lista.map(p => (
             <div key={p.id} className="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
               <div className="flex-1 min-w-0">
                 <div className="text-[12px] font-black text-slate-700 dark:text-white truncate">{p.name}</div>
                 <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate">{p.tactics.formation} · {p.tactics.style}{p.tactics.zoneOverrides?.[p.tactics.formation] ? ' · positions' : ''} · {p.date}</div>
               </div>
-              <button onClick={() => setPendente(p)} title="Overwrites this one with the current tactic" className="px-3 py-1.5 rounded bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500">Save here</button>
-              <button onClick={() => { onLoad(JSON.parse(JSON.stringify(p.tactics))); onClose(); }} className="px-3 py-1.5 rounded bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500">Load</button>
-              <button onClick={() => baixar(seguro(p.name) + '.json', [p])} title="Export this tactic (.json)" className="px-2 py-1.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[11px] font-black hover:bg-blue-600 hover:text-white">⬇</button>
-              <button onClick={() => apagar(p.id)} title="Apagar" className="px-2 py-1.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[11px] font-black hover:bg-rose-600 hover:text-white">🗑</button>
+              <button onClick={() => setPendente(p)} title={tx('Overwrites this one with the current tactic')} className="px-3 py-1.5 rounded bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500">{tx('Save here')}</button>
+              <button onClick={() => { onLoad(JSON.parse(JSON.stringify(p.tactics))); onClose(); }} className="px-3 py-1.5 rounded bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500">{tx('Load')}</button>
+              <button onClick={() => baixar(seguro(p.name) + '.json', [p])} title={tx('Export this tactic (.json)')} className="px-2 py-1.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[11px] font-black hover:bg-blue-600 hover:text-white">⬇</button>
+              <button onClick={() => apagar(p.id)} title={tx('Delete')} className="px-2 py-1.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[11px] font-black hover:bg-rose-600 hover:text-white">🗑</button>
             </div>
           ))}
         </div>
@@ -112,11 +113,11 @@ const TacticPresetsModal: React.FC<Props> = ({ atual, onLoad, onClose, foco }) =
       {pendente && (
         <div className="fixed inset-0 z-[310] bg-black/60 flex items-center justify-center p-6" onClick={e => { e.stopPropagation(); setPendente(null); }}>
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-6 w-[420px] max-w-[95vw] flex flex-col gap-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-700 dark:text-white">Replace tactic?</h3>
-            <p className="text-[12px] text-slate-500 dark:text-slate-300 leading-snug">The tactic <b className="text-slate-700 dark:text-white">{pendente.name}</b> will be overwritten with the current tactic ({atual.formation}, style {atual.style}). What was saved in it will be lost.</p>
+            <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-700 dark:text-white">{tx('Replace tactic?')}</h3>
+            <p className="text-[12px] text-slate-500 dark:text-slate-300 leading-snug">{tx('The tactic')} <b className="text-slate-700 dark:text-white">{pendente.name}</b> will be overwritten with the current tactic ({atual.formation}, style {atual.style}). What was saved in it will be lost.</p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setPendente(null)} className="px-4 py-2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600">Cancel</button>
-              <button autoFocus onClick={() => substituir(pendente)} className="px-4 py-2 rounded bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500">Replace</button>
+              <button onClick={() => setPendente(null)} className="px-4 py-2 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-600">{tx('Cancel')}</button>
+              <button autoFocus onClick={() => substituir(pendente)} className="px-4 py-2 rounded bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-500">{tx('Replace')}</button>
             </div>
           </div>
         </div>

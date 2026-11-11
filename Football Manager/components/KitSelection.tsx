@@ -1,4 +1,5 @@
 
+import { tx } from '../textSim/idiomas';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Team, getKitDetails, getGKKitDetails, kitShorts } from '../types';
 import { TeamShield } from './TeamShield';
@@ -101,8 +102,8 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
     return (
         <div className="flex flex-col gap-8 w-full max-w-3xl bg-slate-900/90 backdrop-blur-md p-8 rounded-3xl border border-slate-800 shadow-2xl animate-fade-in">
             <div className="text-center">
-                <h2 className="text-2xl font-black text-white uppercase italic tracking-widest mb-1">Uniform Selection</h2>
-                <p className="text-blue-400 text-[10px] font-black uppercase tracking-[0.2em]">Match Day Preparation</p>
+                <h2 className="text-2xl font-black text-white uppercase italic tracking-widest mb-1">{tx('Uniform Selection')}</h2>
+                <p className="text-blue-400 text-[10px] font-black uppercase tracking-[0.2em]">{tx('Match Day Preparation')}</p>
             </div>
 
             {/* Tres linhas: escudos, uniformes (com o juiz NO MEIO, entre os uniformes dos times) e botoes de kit. */}
@@ -111,13 +112,13 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
                 <div className="flex flex-col items-center gap-2">
                     <TeamShield team={homeTeam} className="w-16 h-20" />
                     <span className="text-sm font-black text-white uppercase italic">{homeTeam.name}</span>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase">Home Team</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">{tx('Home Team')}</span>
                 </div>
                 <div />
                 <div className="flex flex-col items-center gap-2">
                     <TeamShield team={awayTeam} className="w-16 h-20" />
                     <span className="text-sm font-black text-white uppercase italic">{awayTeam.name}</span>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase">Away Team</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">{tx('Away Team')}</span>
                 </div>
 
                 {/* Linha 2: uniformes */}
@@ -125,7 +126,7 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
                     {renderKitPreview(homeTeam, homeIdx, false)}
                     <div
                         className="cursor-pointer"
-                        title="Click to change the goalkeeper color"
+                        title={tx('Click to change the goalkeeper color')}
                         onClick={() => setGkHomeOpt(i => rodar(i, gkHomeOpcoes.length))}
                     >
                         {renderKitPreview(homeTeam, homeIdx, true, gkHomeOpcoes[gkHomeOpt].details)}
@@ -135,7 +136,7 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
 
                 <div
                     className="flex flex-col items-center gap-2 cursor-pointer"
-                    title="Click to change the referee kit"
+                    title={tx('Click to change the referee kit')}
                     onClick={() => setJuizOpt(i => rodar(i, juizOpcoes.length))}
                 >
                     <ShirtIcon
@@ -149,7 +150,7 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
                         scale={1.2}
                         className="drop-shadow-xl"
                     />
-                    <span className="text-[8px] font-black uppercase text-slate-500">Referee</span>
+                    <span className="text-[8px] font-black uppercase text-slate-500">{tx('Referee')}</span>
                     <span className="text-[8px] font-bold text-slate-500">{juizOpcoes[juizOpt].nome} {juizOpt + 1}/{juizOpcoes.length}</span>
                 </div>
 
@@ -157,7 +158,7 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
                     {renderKitPreview(awayTeam, awayIdx, false)}
                     <div
                         className="cursor-pointer"
-                        title="Click to change the goalkeeper color"
+                        title={tx('Click to change the goalkeeper color')}
                         onClick={() => setGkAwayOpt(i => rodar(i, gkAwayOpcoes.length))}
                     >
                         {renderKitPreview(awayTeam, awayIdx, true, gkAwayOpcoes[gkAwayOpt].details)}
@@ -202,7 +203,7 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
             <div className="mt-4 pt-6 border-t border-slate-800 flex flex-col items-center gap-4">
                 {(isUserHome || isUserAway) && (
                     <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest animate-pulse">
-                        Choose uniforms and goalkeeper colors for both teams.
+                        {tx('Choose uniforms and goalkeeper colors for both teams.')}
                     </p>
                 )}
                 <button
@@ -213,7 +214,7 @@ export const KitSelection: React.FC<KitSelectionProps> = ({
                     })}
                     className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-[0.3em] rounded-xl shadow-xl transition-all active:scale-95 border-b-4 border-emerald-800"
                 >
-                    Start Match
+                    {tx('Start Match')}
                 </button>
             </div>
         </div>

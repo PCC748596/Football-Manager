@@ -1,3 +1,4 @@
+import { tx, localeDoIdioma } from '../textSim/idiomas';
 import { getWeatherForMatch, horaDoJogo } from '../textSim/clima';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import NextGameButton, { SetasAGirar } from './NextGameButton';
@@ -152,7 +153,7 @@ const OpponentTacticsModal: React.FC<{ team: Team, players: Player[], onClose: (
               <TeamShield team={team} className="w-7 h-9" />
               <div>
                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase">{team.name}</h3>
-                 <p className="text-[10px] text-blue-500 font-bold uppercase tracking-widest">Tactics: {team.tactics.formation}</p>
+                 <p className="text-[10px] text-blue-500 font-bold uppercase tracking-widest">{tx('Tactics:')} {team.tactics.formation}</p>
               </div>
            </div>
            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-500 hover:text-white transition-colors">×</button>
@@ -242,23 +243,23 @@ const ClubDetailsCard: React.FC<{ team: Team, t: any, title: string, isOpponent?
 
             <div className="grid grid-cols-2 gap-y-0 gap-x-2 mt-2">
                <div>
-                  <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">Founded</div>
+                  <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">{tx('Founded')}</div>
                   <div className="text-[14px] text-slate-800 dark:text-white font-black">{team.foundedYear}</div>
                </div>
                <div>
-                  <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">Avg OVR</div>
+                  <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">{tx('Avg OVR')}</div>
                   <div className="text-[14px] text-slate-800 dark:text-white font-black italic">{team.strength}</div>
                </div>
                <div className="col-span-2 flex items-end justify-between gap-3">
                   <div className="min-w-0">
-                     <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">Stadium</div>
+                     <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">{tx('Stadium')}</div>
                      <div className="text-[12px] font-black text-slate-600 dark:text-slate-300 uppercase truncate">
                        {team.stadium}
                      </div>
                   </div>
                   {!isOpponent && (   // a capacidade so aparece no My Club (no Opponent saiu, pedido); fica ao lado do nome do estadio
                   <div className="shrink-0 text-right">
-                     <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">Capacity</div>
+                     <div className="text-[9px] text-slate-400 uppercase font-black opacity-70">{tx('Capacity')}</div>
                      <div className="text-[14px] text-slate-800 dark:text-white font-black tabular-nums">{(team.stadiumCapacity || 0).toLocaleString()}</div>
                   </div>
                   )}
@@ -480,12 +481,12 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
     // A barra mostra 9 dias, a começar no dia de hoje.
     const monday = new Date(curr);
 
-    const locale = gameState.language === 'PT' ? 'pt-BR' : 'en-US';
+    const locale = localeDoIdioma(gameState.language);
     const monthYearLabel = monday.toLocaleDateString(locale, { month: 'long', year: 'numeric' }).toUpperCase();
 
     // Map days short names
     // @ts-ignore
-    const dayNames = gameState.language === 'PT' ? ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'] : ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(s => tx(s));
 
     for (let i = 0; i < 10; i++) {
       const d = new Date(monday);
@@ -543,7 +544,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-4xl font-black uppercase tracking-tight italic leading-none transition-colors">
-            <span className="text-slate-900 dark:text-white transition-colors">MANAGER</span> <span className="text-blue-500">DASHBOARD</span>
+            <span className="text-slate-900 dark:text-white transition-colors">{tx('MANAGER')}</span> <span className="text-blue-500">{tx('DASHBOARD')}</span>
           </h2>
           <p className="text-blue-500 dark:text-blue-400 font-bold text-[10px] uppercase tracking-widest mt-1 italic transition-colors">
             {t('dash_manager_home')}
@@ -562,7 +563,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                    <>
                       {showSimulate && (
                          <button 
-                           disabled title="Simulate Round desativado: so o modo 3D (Match Day)"
+                           disabled title={tx('Simulate Round disabled: 3D mode only (Match Day)')}
                            className="bg-slate-500 text-slate-300 opacity-40 cursor-not-allowed font-black px-8 py-2.5 rounded text-[10px] uppercase tracking-widest shadow-xl transition-all flex items-center gap-2 border-b-4 border-emerald-800"
                          >
                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="10"/></svg>
@@ -616,7 +617,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                 <span className={`text-base xl:text-lg font-black leading-none mb-0.5 inline-flex items-center gap-1 ${day.isToday ? 'text-white' : 'text-slate-800 dark:text-slate-300'}`}>{day.dayNum}{day.isToday && <SetasAGirar className="w-4 h-4 text-white" />}</span>
                 <span className={`text-[9px] font-black uppercase leading-none ${day.isToday ? 'text-blue-200' : 'text-slate-400'}`}>{day.dayName}</span>
                 {day.isTransferWindow && (
-                    <div className="mt-1" title="Transfer Market Open">
+                    <div className="mt-1" title={tx('Transfer Market Open')}>
                         <span className="text-[10px]">⇄</span>
                     </div>
                 )}
@@ -654,7 +655,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
           <div className="grid grid-cols-12 gap-[7px] h-[300px]">
             {/* User Club Details */}
             <div className="col-span-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xl relative overflow-hidden flex flex-col">
-                <ClubDetailsCard team={userTeam} t={t} title="My Club" />
+                <ClubDetailsCard team={userTeam} t={t} title={tx('My Club')} />
             </div>
 
             {/* Next Match Section */}
@@ -687,7 +688,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                      </div>
 
                      <div className="text-center flex flex-col items-center px-1">
-                       <div className="text-2xl font-black text-slate-200 dark:text-white/20 italic">vs</div>
+                       <div className="text-2xl font-black text-slate-200 dark:text-white/20 italic">{tx('vs')}</div>
                      </div>
 
                      {/* Right Side: Away Team */}
@@ -712,7 +713,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                        )}
                        {weather && (
                          <div className="text-center">
-                           <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Weather</div>
+                           <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{tx('Weather')}</div>
                            <div className="text-[17px] font-black text-slate-700 dark:text-slate-200"><span className="text-2xl mr-1 align-middle">{weather.icon}</span>{weather.temp}°C</div>
                            <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500">{weather.desc} • {weather.hora}</div>
                          </div>
@@ -726,20 +727,20 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
             {/* Opponent Club Details */}
             <div className="col-span-4 bg-slate-100/50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xl relative overflow-hidden flex flex-col">
                 {displayAwayTeam && displayAwayTeam.id !== userTeam.id ? (
-                  <ClubDetailsCard team={displayAwayTeam} t={t} title="Opponent" isOpponent userTeam={userTeam} />
+                  <ClubDetailsCard team={displayAwayTeam} t={t} title={tx('Opponent')} isOpponent userTeam={userTeam} />
                 ) : (displayHomeTeam.id !== userTeam.id ? (
-                  <ClubDetailsCard team={displayHomeTeam} t={t} title="Opponent" isOpponent userTeam={userTeam} />
+                  <ClubDetailsCard team={displayHomeTeam} t={t} title={tx('Opponent')} isOpponent userTeam={userTeam} />
                 ) : (
-                   <div className="flex-1 flex flex-col items-center justify-center opacity-30 italic text-xs">No Opponent Insight Available</div>
+                   <div className="flex-1 flex flex-col items-center justify-center opacity-30 italic text-xs">{tx('No Opponent Insight Available')}</div>
                 ))}
             </div>
           </div>
 
           {/* AS ULTIMAS NOTICIAS (pedido): os ultimos resultados do time em cartoes no padrao dos cartoes do 3D — o escudo de cada time grande e cortado ao meio pelo lado do cartao —, entre os cartoes de cima e o resumo do plantel / tesouraria. */}
           <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col shadow-md shrink-0">
-            <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 transition-colors">{gameState.language === 'PT' ? 'Últimas notícias · resultados' : 'Latest news · results'}</h3>
+            <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 transition-colors">{tx('Latest news · results')}</h3>
             {resultadosRecentes.length === 0 ? (
-              <div className="text-xs italic opacity-40 py-2">{gameState.language === 'PT' ? 'Sem resultados por enquanto' : 'No results yet'}</div>
+              <div className="text-xs italic opacity-40 py-2">{tx('No results yet')}</div>
             ) : (
               <div className="grid grid-cols-4 gap-3">
                 {resultadosRecentes.map(({ f, casa, fora, res }) => (
@@ -775,8 +776,8 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                     {/* Header Row */}
                     <div className="flex justify-between items-center px-1 pb-1 mb-1 border-b border-slate-200 dark:border-slate-800/50 text-sm font-black uppercase text-slate-400 tracking-wider">
                         <span className="w-6 text-center">#</span>
-                        <span className="flex-1 text-left">PLAYER</span>
-                        <span className="w-12 text-center">APPS</span>
+                        <span className="flex-1 text-left">{tx('PLAYER')}</span>
+                        <span className="w-12 text-center">{tx('APPS')}</span>
                         <span className="w-12 text-center">GLS</span>
                         <span className="w-12 text-center">AST</span>
                         <span className="w-10 text-right">OVR</span>
@@ -844,11 +845,11 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
               <table className="w-full h-full table-fixed">
                 <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
                   <tr className="text-[8px] xl:text-[11px] font-black text-slate-900 dark:text-slate-600 uppercase">
-                    <th className="pl-3 pr-1 py-2 text-left w-[38px] tracking-widest">Pos</th>
-                    <th className="px-1 py-2 text-left tracking-widest">Team</th>
-                    <th className="px-1 py-2 text-center w-[44px] tracking-widest">Pts</th>
+                    <th className="pl-3 pr-1 py-2 text-left w-[38px] tracking-widest">{tx('Pos')}</th>
+                    <th className="px-1 py-2 text-left tracking-widest">{tx('Team')}</th>
+                    <th className="px-1 py-2 text-center w-[44px] tracking-widest">{tx('Pts')}</th>
                     {['P', 'W', 'D', 'L', 'GD'].map(h => <th key={h} className="px-0 py-2 text-center w-[30px] tracking-widest">{h}</th>)}
-                    <th className="px-1 py-2 text-center w-[168px] tracking-widest">Form</th>
+                    <th className="px-1 py-2 text-center w-[168px] tracking-widest">{tx('Form')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30">
@@ -864,7 +865,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                       <td className={`px-1 ${DENS.py[d]} text-center font-black text-slate-800 dark:text-slate-200 ${DENS.texto[d]}`}>{r.points}</td>
                       {[r.played, r.won, r.drawn, r.lost, r.gf - r.ga].map((v: number, k: number) => <td key={k} className={`px-0 ${DENS.py[d]} text-center font-bold text-slate-500 ${DENS.texto[d]}`}>{v}</td>)}
                       <td className={`px-1 ${DENS.py[d]}`}>
-                        <div className="flex items-center justify-center gap-[2px]" title="Last 5 results in this group (oldest to newest)">
+                        <div className="flex items-center justify-center gap-[2px]" title={tx('Last 5 results in this group (oldest to newest)')}>
                           {Array.from({ length: 5 }, (_, k) => {
                             const l = (copaInfo.forma.get(r.key) || []).slice(-5), res = l[k - (5 - l.length)];
                             return <span key={k} className={`${["w-[27px] h-[27px] xl:w-[30px] xl:h-[30px]", "w-[26px] h-[26px] xl:w-7 xl:h-7", "w-6 h-6"][d]} flex items-center justify-center text-[10px] xl:text-xs font-black leading-none text-white ${res === 'V' ? 'bg-emerald-500' : res === 'E' ? 'bg-amber-400' : res === 'D' ? 'bg-rose-500' : 'bg-slate-300 dark:bg-slate-700/60'}`}>{res === 'V' ? 'W' : res === 'E' ? 'D' : res === 'D' ? 'L' : ''}</span>;
@@ -894,11 +895,11 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
             <table className="w-full h-full table-fixed">
               <thead className="bg-slate-50 dark:bg-slate-900/50 transition-colors border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
                 <tr className="text-[8px] xl:text-[11px] font-black text-slate-900 dark:text-slate-600 uppercase transition-colors">
-                  <th className="pl-3 pr-1 py-2 text-left w-[38px] tracking-widest">Pos</th>
-                  <th className="px-1 py-2 text-left tracking-widest">Team</th>
-                  <th className="px-1 py-2 text-center w-[44px] tracking-widest">Pts</th>
+                  <th className="pl-3 pr-1 py-2 text-left w-[38px] tracking-widest">{tx('Pos')}</th>
+                  <th className="px-1 py-2 text-left tracking-widest">{tx('Team')}</th>
+                  <th className="px-1 py-2 text-center w-[44px] tracking-widest">{tx('Pts')}</th>
                   {['P', 'W', 'D', 'L', 'GD'].map(h => <th key={h} className="px-0 py-2 text-center w-[30px] tracking-widest">{h}</th>)}
-                  <th className="px-1 py-2 text-center w-[168px] tracking-widest">Form</th>
+                  <th className="px-1 py-2 text-center w-[168px] tracking-widest">{tx('Form')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30 transition-colors">
@@ -914,7 +915,7 @@ const DashboardView: React.FC<Props> = ({ onGoToRoundSimulation, onGoToMatchDay 
                     <td className={`px-1 ${DENS.py[d]} text-center font-black text-slate-800 dark:text-slate-200 ${DENS.texto[d]} transition-colors`}>{t.points}</td>
                     {[t.played, t.won, t.drawn, t.lost, t.goalsFor - t.goalsAgainst].map((v: number, k: number) => <td key={k} className={`px-0 ${DENS.py[d]} text-center font-bold text-slate-500 ${DENS.texto[d]}`}>{k === 4 && v > 0 ? '+' + v : v}</td>)}
                     <td className={`px-1 ${DENS.py[d]}`}>
-                      <div className="flex items-center justify-center gap-[2px]" title="Last 5 league results (oldest to newest)">
+                      <div className="flex items-center justify-center gap-[2px]" title={tx('Last 5 league results (oldest to newest)')}>
                         {Array.from({ length: 5 }, (_, k) => {
                           const l = (formaDosTimes.get(t.id) || []).slice(-5), r = l[k - (5 - l.length)];
                           return <span key={k} className={`${["w-[27px] h-[27px] xl:w-[30px] xl:h-[30px]", "w-[26px] h-[26px] xl:w-7 xl:h-7", "w-6 h-6"][d]} flex items-center justify-center text-[10px] xl:text-xs font-black leading-none text-white ${r === 'V' ? 'bg-emerald-500' : r === 'E' ? 'bg-amber-400' : r === 'D' ? 'bg-rose-500' : 'bg-slate-300 dark:bg-slate-700/60'}`}>{r === 'V' ? 'W' : r === 'E' ? 'D' : r === 'D' ? 'L' : ''}</span>;

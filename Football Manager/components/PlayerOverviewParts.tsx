@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React from 'react';
 import { Player, Position, PlayStyle, PLAYSTYLE_DESCRICAO } from '../types';
 import { atributos3d, progressoDeXp, CHAVES_POR_POSICAO } from '../textSim/atributos3d';
@@ -69,7 +70,7 @@ export const PlayerSummary: React.FC<{ player: Player; nomeDoClube?: string}> = 
     .filter((x): x is NonNullable<typeof x> => !!x);
   return (
     <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 text-white">
-      <div className="text-sm font-bold text-white mb-2">Summary</div>
+      <div className="text-sm font-bold text-white mb-2">{tx('Summary')}</div>
       <div className="flex flex-col gap-0.5">
         {linhas.map(r => {
           // XP de treino ate ao proximo ponto (como no Overview do elenco): o fundo da linha enche em ciano por baixo do texto.

@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import { logoComp } from '../textSim/nomesCompeticoes';
 import React, { useEffect, useMemo, useState } from 'react';
 import { assetUrl } from '../textSim/assetUrl';
@@ -66,7 +67,7 @@ const WorldView: React.FC = () => {
   useEffect(() => { setRodada(null); setAba(copa ? ((copa.id === 'SERIE_C' || copa.id === 'SERIE_D') ? 'P1' : copa.id === 'CARABAO' ? 'C:' + (FASES_CARABAO_ABAS.filter(s => copa.matches.some(m => m.stage === s)).pop() || 'R1') : copa.groups ? 'GRUPOS' : 'MATA') : 'TABELA'); }, [selecao?.tipo, selecao?.id]);
 
   if (!world || !comps) {
-    return <div className="h-full flex items-center justify-center text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest text-sm animate-pulse">A gerar as competições do mundo...</div>;
+    return <div className="h-full flex items-center justify-center text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest text-sm animate-pulse">{tx("Generating the world's competitions...")}</div>;
   }
 
   const fmtData = (s: string) => { const d = new Date(s + 'T12:00:00'); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`; };
@@ -96,9 +97,9 @@ const WorldView: React.FC = () => {
           {aba === 'JOGOS' && (
             <div className="ml-auto flex items-center gap-2">
               <button className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black" disabled={rv <= (rodadas[0] || 1)} onClick={() => setRodada(rv - 1)}>◀</button>
-              <span className="text-[11px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200">Round {rv} / {rodadas[rodadas.length - 1] || 1}</span>
+              <span className="text-[11px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200">{tx('Round')} {rv} / {rodadas[rodadas.length - 1] || 1}</span>
               <button className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black" disabled={rv >= (rodadas[rodadas.length - 1] || 1)} onClick={() => setRodada(rv + 1)}>▶</button>
-              <button className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-300 font-black uppercase" onClick={() => setRodada(null)}>today</button>
+              <button className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-300 font-black uppercase" onClick={() => setRodada(null)}>{tx('today')}</button>
             </div>
           )}
         </div>
@@ -106,7 +107,7 @@ const WorldView: React.FC = () => {
           {aba === 'TABELA' ? (
             <table className="w-full text-left border-separate border-spacing-0">
               <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-950/90">
-                <tr><th className={th}>#</th><th className={th + ' text-left'}>Team</th><th className={th}>P</th><th className={th}>W</th><th className={th}>D</th><th className={th}>L</th><th className={th}>GF</th><th className={th}>GA</th><th className={th}>GD</th><th className={th + ' text-blue-600 dark:text-white'}>Pts</th></tr>
+                <tr><th className={th}>#</th><th className={th + ' text-left'}>{tx('Team')}</th><th className={th}>P</th><th className={th}>W</th><th className={th}>D</th><th className={th}>L</th><th className={th}>GF</th><th className={th}>GA</th><th className={th}>GD</th><th className={th + ' text-blue-600 dark:text-white'}>{tx('Pts')}</th></tr>
               </thead>
               <tbody>
                 {tabela.map((r, i) => {
@@ -125,7 +126,7 @@ const WorldView: React.FC = () => {
             </table>
           ) : (
             <div className="p-3 space-y-1">
-              {jogos.length === 0 && <div className="text-slate-500 text-sm p-4">No matches in this round.</div>}
+              {jogos.length === 0 && <div className="text-slate-500 text-sm p-4">{tx('No matches in this round.')}</div>}
               {jogos.map(f => {
                 const h = porId.get(f.homeTeamId), a = porId.get(f.awayTeamId);
                 const eu = ehMeu && userTeam && (f.homeTeamId === userTeam.id || f.awayTeamId === userTeam.id);
@@ -153,7 +154,7 @@ const WorldView: React.FC = () => {
       <span className="w-12 text-[10px] font-black text-slate-400">{fmtData(m.date)}</span>
       <span className="flex-1 text-right text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{nomeDe(m.homeKey)}</span>
       <Escudo k={m.homeKey} />
-      <span className="w-20 text-center text-sm font-black text-slate-900 dark:text-white">{m.played ? `${m.homeScore} - ${m.awayScore}` : '—'}{m.pens ? <span className="block text-[9px] text-slate-400 font-bold">pens {m.pens[0]}-{m.pens[1]}</span> : null}</span>
+      <span className="w-20 text-center text-sm font-black text-slate-900 dark:text-white">{m.played ? `${m.homeScore} - ${m.awayScore}` : '—'}{m.pens ? <span className="block text-[9px] text-slate-400 font-bold">{tx('pens')} {m.pens[0]}-{m.pens[1]}</span> : null}</span>
       <Escudo k={m.awayKey} />
       <span className="flex-1 text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{nomeDe(m.awayKey)}</span>
     </div>
@@ -219,7 +220,7 @@ const WorldView: React.FC = () => {
     return (
       <table className="w-full text-left border-separate border-spacing-0">
         <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-950/90">
-          <tr><th className={th}>#</th><th className={th + ' text-left'}>Team</th><th className={th}>P</th><th className={th}>W</th><th className={th}>D</th><th className={th}>L</th><th className={th}>GF</th><th className={th}>GA</th><th className={th}>GD</th><th className={th + ' text-blue-600 dark:text-white'}>Pts</th></tr>
+          <tr><th className={th}>#</th><th className={th + ' text-left'}>{tx('Team')}</th><th className={th}>P</th><th className={th}>W</th><th className={th}>D</th><th className={th}>L</th><th className={th}>GF</th><th className={th}>GA</th><th className={th}>GD</th><th className={th + ' text-blue-600 dark:text-white'}>{tx('Pts')}</th></tr>
         </thead>
         <tbody>
           {linhas.map((r, i) => {
@@ -259,7 +260,7 @@ const WorldView: React.FC = () => {
                   {!estiloLiga(c, g) && <div className="px-3 py-1 bg-slate-100 dark:bg-slate-950/70 text-[10px] font-black uppercase tracking-widest text-slate-500">{nomeGrupo(c, g)}</div>}
                   {estiloLiga(c, g) ? tabelaEstiloLiga(c, g) : (
                   <table className="w-full">
-                    <thead><tr><th className={th + ' text-left'}>Team</th><th className={th}>P</th><th className={th}>W</th><th className={th}>D</th><th className={th}>L</th><th className={th}>GD</th><th className={th + ' text-blue-600 dark:text-white'}>Pts</th></tr></thead>
+                    <thead><tr><th className={th + ' text-left'}>{tx('Team')}</th><th className={th}>P</th><th className={th}>W</th><th className={th}>D</th><th className={th}>L</th><th className={th}>GD</th><th className={th + ' text-blue-600 dark:text-white'}>{tx('Pts')}</th></tr></thead>
                     <tbody>
                       {tabelaDaVista(c, g).map((r, i) => (
                         <tr key={r.key} style={souEu(r.key) ? HACHURA : undefined}>
@@ -314,7 +315,7 @@ const WorldView: React.FC = () => {
           )}
           {aba === 'HIST' && (
             <div className="space-y-1">
-              <div className="grid grid-cols-[70px_1fr_1fr] gap-3 px-4 pb-1 text-[10px] font-black uppercase tracking-widest text-slate-400"><span>Season</span><span>Champion</span><span>Runner-up</span></div>
+              <div className="grid grid-cols-[70px_1fr_1fr] gap-3 px-4 pb-1 text-[10px] font-black uppercase tracking-widest text-slate-400"><span>{tx('Season')}</span><span>{tx('Champion')}</span><span>{tx('Runner-up')}</span></div>
               {(historicoCopas[c.id] || []).slice().reverse().map(r => (
                 <div key={r.ano} className="grid grid-cols-[70px_1fr_1fr] gap-3 items-center px-4 py-2 rounded border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 text-sm">
                   <span className="font-black text-slate-500">{r.ano}</span>
@@ -369,13 +370,13 @@ const WorldView: React.FC = () => {
     <div className="h-full flex flex-col animate-fade-in min-h-0">
       <div className="mb-4 flex items-end justify-between">
         <h2 className="text-4xl font-black uppercase tracking-tighter leading-none italic">
-          <span className="text-slate-900 dark:text-white">WORLD</span> <span className="text-blue-500">COMPETITIONS</span>
+          <span className="text-slate-900 dark:text-white">{tx('WORLD')}</span> <span className="text-blue-500">{tx('COMPETITIONS')}</span>
         </h2>
         <div className="text-[11px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{cabecalho}</div>
       </div>
       <div className="flex-1 flex gap-4 min-h-0">
         <div className="w-64 flex-shrink-0 overflow-y-auto custom-scrollbar pr-1 space-y-1">
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-1">Cups</div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-1">{tx('Cups')}</div>
           {copasSoltas.map(c => {
             const ativo = selecao?.tipo === 'COPA' && selecao.id === c.id;
             return (
@@ -389,7 +390,7 @@ const WorldView: React.FC = () => {
               </button>
             );
           })}
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-3">Countries</div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-3">{tx('Countries')}</div>
           {paises.map(p => {
             const meuPais = !!meu && p.itens.some(it => (it.sel.tipo === 'LIGA' && it.sel.id === meu.leagueId) || (it.sel.tipo === 'COPA' && it.sel.id === compDoMeu));
             const temSelecao = !!selecao && p.itens.some(it => it.sel.tipo === selecao.tipo && it.sel.id === selecao.id);

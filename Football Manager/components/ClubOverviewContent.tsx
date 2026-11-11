@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React from 'react';
 import { Team, Player, League } from '../types';
 import { TeamShield } from './TeamShield';
@@ -45,13 +46,13 @@ export const ClubOverviewContent: React.FC<Props> = ({ team, leagueName, leagueT
         ))}
       </div>
       <div className={`${painel} px-3 py-[7px] text-sm space-y-1`}>
-        <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">City</span><span className="font-bold text-white">{team.city || '-'}</span></div>
-        <div className="flex justify-between gap-2"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Stadium</span><span className="font-bold text-white text-right">{team.stadium || '-'}</span></div>
-        {team.stadiumCapacity ? <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">Capacity</span><span className="font-bold text-white">{team.stadiumCapacity.toLocaleString()}</span></div> : null}
+        <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">{tx('City')}</span><span className="font-bold text-white">{team.city || '-'}</span></div>
+        <div className="flex justify-between gap-2"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">{tx('Stadium')}</span><span className="font-bold text-white text-right">{team.stadium || '-'}</span></div>
+        {team.stadiumCapacity ? <div className="flex justify-between"><span className="text-white/60 font-bold uppercase text-[10px] tracking-widest">{tx('Capacity')}</span><span className="font-bold text-white">{team.stadiumCapacity.toLocaleString()}</span></div> : null}
       </div>
       {competicoes.length > 0 && (
         <div className={`${painel} p-3`}>
-          <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1.5">{pt ? 'Competições da temporada' : 'Season competitions'}</div>
+          <div className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1.5">{tx('Season competitions')}</div>
           <div className="flex flex-wrap gap-1">
             {competicoes.map(c => <span key={c.id} className="text-[11px] font-bold text-white bg-white/10 border border-white/15 rounded px-2 py-0.5">{c.nome}</span>)}
           </div>
@@ -59,7 +60,7 @@ export const ClubOverviewContent: React.FC<Props> = ({ team, leagueName, leagueT
       )}
       <BoardExpectationBox exp={exp} pt={pt} className={`${painel} p-3`} />
       <div className={`${painel} px-0 pt-[2px] pb-0`}>
-        <div className="text-[10px] font-black text-white/60 uppercase tracking-widest leading-none mb-0 px-2">Kits</div>
+        <div className="text-[10px] font-black text-white/60 uppercase tracking-widest leading-none mb-0 px-2">{tx('Kits')}</div>
         <div className="flex flex-wrap justify-center gap-x-0 gap-y-0 -mt-[10px] -mb-[11px]">
           {([0, 1, 2] as const).map(k => <UniformeCorpo3D key={k} team={team} kitIndex={k} className="w-[66px] h-[75px]" number={9} />)}
           <UniformeCorpo3D team={team} gk className="w-[66px] h-[75px]" number={1} />

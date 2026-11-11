@@ -1,4 +1,5 @@
 
+import { tx } from '../textSim/idiomas';
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { ActivityType, Team, naLigaDoUtilizador } from '../types';
@@ -53,13 +54,13 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
           <div className="space-y-3">
             {existingActivity && (
               <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 mb-4">
-                <div className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-widest mb-1">{pt ? 'Atividade Atual' : 'Current Activity'}</div>
+                <div className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-widest mb-1">{tx('Current Activity')}</div>
                 <div className="text-slate-800 dark:text-white font-bold text-sm uppercase">{existingActivity.label}</div>
                 <button 
                   onClick={handleRemoveActivity}
                   className="mt-2 text-[10px] font-black text-red-500 uppercase tracking-widest hover:underline"
                 >
-                  {pt ? '✕ Remover Atividade' : '✕ Remove Activity'}
+                  {tx('✕ Remove Activity')}
                 </button>
               </div>
             )}
@@ -74,9 +75,9 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
             >
               <div className="text-left">
                 <div className={`font-black uppercase text-lg group-hover:text-white transition-colors ${hasMatchOnSelectedDate ? 'text-slate-400' : 'text-slate-900 dark:text-white'}`}>
-                    {pt ? 'Amistoso' : 'Friendly'} {hasMatchOnSelectedDate && <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded ml-2">{pt ? 'CONFLITO' : 'CONFLICT'}</span>}
+                    {tx('Friendly')} {hasMatchOnSelectedDate && <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded ml-2">{tx('CONFLICT')}</span>}
                 </div>
-                <div className={`text-[10px] font-bold uppercase tracking-widest group-hover:text-blue-100 transition-colors ${hasMatchOnSelectedDate ? 'text-slate-500' : 'text-blue-500 dark:text-blue-400'}`}>Friendly Match</div>
+                <div className={`text-[10px] font-bold uppercase tracking-widest group-hover:text-blue-100 transition-colors ${hasMatchOnSelectedDate ? 'text-slate-500' : 'text-blue-500 dark:text-blue-400'}`}>{tx('Friendly Match')}</div>
               </div>
               <IconeAmistoso className={`w-9 h-9 ${hasMatchOnSelectedDate ? 'text-slate-400' : 'text-blue-400'} group-hover:text-white transition-colors`} />
             </button>
@@ -86,8 +87,8 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
               className="w-full p-5 rounded-xl bg-emerald-600/10 border border-emerald-500/30 hover:bg-emerald-600 transition-all group flex items-center justify-between"
             >
               <div className="text-left">
-                <div className="text-slate-900 dark:text-white font-black uppercase text-lg group-hover:text-white transition-colors">{pt ? 'Treinamento' : 'Training'}</div>
-                <div className="text-emerald-500 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-emerald-100 transition-colors">Training Camp</div>
+                <div className="text-slate-900 dark:text-white font-black uppercase text-lg group-hover:text-white transition-colors">{tx('Training')}</div>
+                <div className="text-emerald-500 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-widest group-hover:text-emerald-100 transition-colors">{tx('Training Camp')}</div>
               </div>
               <IconeTreino className="w-9 h-9 text-emerald-400 group-hover:text-white transition-colors" />
             </button>
@@ -103,9 +104,9 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
             >
               <div className="text-left">
                 <div className={`font-black uppercase text-lg group-hover:text-white transition-colors ${hasMatchOnSelectedDate ? 'text-slate-400' : 'text-slate-900 dark:text-white'}`}>
-                    {pt ? 'Festa' : 'Party'} {hasMatchOnSelectedDate && <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded ml-2">{pt ? 'CONFLITO' : 'CONFLICT'}</span>}
+                    {tx('Party')} {hasMatchOnSelectedDate && <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded ml-2">{tx('CONFLICT')}</span>}
                 </div>
-                <div className={`text-[10px] font-bold uppercase tracking-widest group-hover:text-amber-100 transition-colors ${hasMatchOnSelectedDate ? 'text-slate-500' : 'text-amber-500 dark:text-amber-400'}`}>Team Party</div>
+                <div className={`text-[10px] font-bold uppercase tracking-widest group-hover:text-amber-100 transition-colors ${hasMatchOnSelectedDate ? 'text-slate-500' : 'text-amber-500 dark:text-amber-400'}`}>{tx('Team Party')}</div>
               </div>
               <IconeFesta className={`w-9 h-9 ${hasMatchOnSelectedDate ? 'text-slate-400' : 'text-amber-400'} group-hover:text-white transition-colors`} />
             </button>
@@ -114,7 +115,7 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
       case 'FRIENDLY_SELECT':
         return (
           <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-2">
-            <p className="text-xs text-slate-500 font-bold mb-4 uppercase tracking-widest text-center">{pt ? 'Selecione o adversário:' : 'Select the opponent:'}</p>
+            <p className="text-xs text-slate-500 font-bold mb-4 uppercase tracking-widest text-center">{tx('Select the opponent:')}</p>
             {teams.filter(t => t.id !== userTeam?.id && naLigaDoUtilizador(t, userTeam)).slice(0, 15).map(t => (
               <button 
                 key={t.id}
@@ -136,7 +137,7 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
         ];
         return (
           <div className="space-y-3">
-            <p className="text-xs text-slate-500 font-bold mb-4 uppercase tracking-widest text-center">{pt ? 'Selecione a duração:' : 'Select the duration:'}</p>
+            <p className="text-xs text-slate-500 font-bold mb-4 uppercase tracking-widest text-center">{tx('Select the duration:')}</p>
             {camps.map(c => {
               const hasConflict = checkCampConflict(c.days);
               return (
@@ -152,9 +153,9 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
                 >
                   <div className="text-left">
                      <div className={`font-black text-lg uppercase leading-none ${hasConflict ? 'text-slate-400' : 'text-slate-800 dark:text-white'}`}>
-                        {c.days} {pt ? 'Dias' : 'Days'} {hasConflict && <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded ml-2 font-black">{pt ? 'CONFLITO' : 'CONFLICT'}</span>}
+                        {c.days} {tx('Days')} {hasConflict && <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded ml-2 font-black">{tx('CONFLICT')}</span>}
                      </div>
-                     <div className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest">{pt ? 'Custo' : 'Cost'}: {formatCurrency(c.cost)}</div>
+                     <div className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest">{tx('Cost')}: {formatCurrency(c.cost)}</div>
                   </div>
                 </button>
               );
@@ -163,13 +164,13 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
         );
       case 'PARTY_SELECT':
         const parties = [
-          { name: pt ? 'Churrasco Simples' : 'Simple Barbecue', cost: 1000, moraleBonus: 5 },
-          { name: pt ? 'Festa com DJ' : 'DJ Party', cost: 5000, moraleBonus: 15 },
-          { name: pt ? 'Evento de Gala' : 'Gala Event', cost: 20000, moraleBonus: 30 }
+          { name: tx('Simple Barbecue'), cost: 1000, moraleBonus: 5 },
+          { name: tx('DJ Party'), cost: 5000, moraleBonus: 15 },
+          { name: tx('Gala Event'), cost: 20000, moraleBonus: 30 }
         ];
         return (
           <div className="space-y-3">
-            <p className="text-xs text-slate-500 font-bold mb-4 uppercase tracking-widest text-center">{pt ? 'Selecione o tipo de evento:' : 'Select the event type:'}</p>
+            <p className="text-xs text-slate-500 font-bold mb-4 uppercase tracking-widest text-center">{tx('Select the event type:')}</p>
             {parties.map(p => (
               <button 
                 key={p.name}
@@ -178,7 +179,7 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
               >
                 <div className="text-left">
                    <div className="text-slate-800 dark:text-white font-black text-lg uppercase leading-none">{p.name}</div>
-                   <div className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest">{pt ? 'Custo' : 'Cost'}: {formatCurrency(p.cost)} | {pt ? 'Bônus' : 'Bonus'}: +{p.moraleBonus} Morale</div>
+                   <div className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest">{tx('Cost')}: {formatCurrency(p.cost)} | {tx('Bonus')}: +{p.moraleBonus} Morale</div>
                 </div>
               </button>
             ))}
@@ -192,7 +193,7 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
       <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all duration-300">
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/40 transition-colors">
            <div>
-              <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase italic leading-none transition-colors">{pt ? 'Agendar Atividade' : 'Schedule Activity'}</h3>
+              <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase italic leading-none transition-colors">{tx('Schedule Activity')}</h3>
               <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1 opacity-60 transition-colors">{dateLabel}</p>
            </div>
            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors text-2xl font-light">×</button>
@@ -202,7 +203,7 @@ const ActivityModal: React.FC<ActivityModalProps> = ({ isOpen, onClose, date, on
         </div>
         {step !== 'TYPE' && (
           <div className="p-4 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-200 dark:border-slate-800 transition-colors">
-             <button onClick={() => setStep('TYPE')} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline transition-colors">{pt ? 'Voltar' : 'Back'}</button>
+             <button onClick={() => setStep('TYPE')} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline transition-colors">{tx('Back')}</button>
           </div>
         )}
       </div>

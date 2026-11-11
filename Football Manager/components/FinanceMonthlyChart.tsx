@@ -1,3 +1,4 @@
+import { tx, localeDoIdioma, idiomaAtual } from '../textSim/idiomas';
 import React, { useMemo, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { ligaIdDoClube } from '../textSim/competitions';
@@ -17,7 +18,6 @@ const SERIES: { k: Chave; pt: string; en: string; cor: string; ganho: boolean }[
   { k: 'purchases', pt: 'Compras', en: 'Purchases', cor: '#ef4444', ganho: false },
   { k: 'wages', pt: 'Salários (est.)', en: 'Wages (est.)', cor: '#b91c1c', ganho: false },
 ];
-const NOMES_MES = { PT: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'], EN: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] };
 
 const FinanceMonthlyChart: React.FC<{ salarioSemanalTotal: number }> = ({ salarioSemanalTotal }) => {
   const { userTeam, fixtures, mercado, gameState, formatCurrency } = useGame();
@@ -72,18 +72,19 @@ const FinanceMonthlyChart: React.FC<{ salarioSemanalTotal: number }> = ({ salari
   const x = (i: number) => PAD_L + passo * (i + 0.5);
   const larg = Math.min(14, passo * 0.36);
   const y = (v: number) => PAD_T + (H - PAD_T - PAD_B) * (1 - v / maximo);
-  const rotulo = (m: string) => NOMES_MES[pt ? 'PT' : 'EN'][Number(m.slice(5, 7)) - 1];
+  // O mes abreviado no idioma do jogo (Intl): 'Jan', 'janv.', '1月'...
+  const rotulo = (m: string) => new Date(m.slice(0, 7) + '-15T12:00:00').toLocaleDateString(localeDoIdioma(idiomaAtual()), { month: 'short' });
   const liquido = (i: number) => SERIES.reduce((s, c) => ligadas[c.k] ? s + (c.ganho ? 1 : -1) * (dados[c.k]?.[i] ?? 0) : s, 0);
 
   return (
     <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800 flex flex-col gap-3">
-      <div className="text-[10px] font-bold text-slate-400 uppercase">{pt ? 'Ganhos e gastos mês a mês' : 'Monthly income and spending'}</div>
+      <div className="text-[10px] font-bold text-slate-400 uppercase">{tx('Monthly income and spending')}</div>
       <div className="flex flex-wrap gap-1.5">
         {SERIES.map(s => (
           <button key={s.k} type="button" onClick={() => setLigadas(p => ({ ...p, [s.k]: !p[s.k] }))}
             className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wide border transition ${ligadas[s.k] ? 'text-white' : 'text-slate-500 border-slate-300 dark:border-slate-700 opacity-60'}`}
             style={ligadas[s.k] ? { background: s.cor + '33', borderColor: s.cor } : undefined}>
-            <span className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" style={{ background: s.cor, opacity: ligadas[s.k] ? 1 : 0.4 }} />{pt ? s.pt : s.en}
+            <span className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" style={{ background: s.cor, opacity: ligadas[s.k] ? 1 : 0.4 }} />{tx(s.en)}
           </button>
         ))}
       </div>
@@ -111,8 +112,8 @@ const FinanceMonthlyChart: React.FC<{ salarioSemanalTotal: number }> = ({ salari
         return (
           <div className="h-[54px] overflow-hidden text-[11px] text-slate-500 dark:text-slate-400 flex flex-wrap content-start gap-x-3 gap-y-0.5">
             <span className="font-black">{rotulo(meses[idx])} {meses[idx].slice(0, 4)}</span>
-            <span className="font-black text-slate-700 dark:text-slate-200">{pt ? 'Líquido' : 'Net'}: {formatCurrency(liquido(idx))}</span>
-            {ativas.map(s => <span key={s.k} style={{ color: s.cor }}>{pt ? s.pt : s.en}: {formatCurrency(dados[s.k][idx] || 0)}</span>)}
+            <span className="font-black text-slate-700 dark:text-slate-200">{tx('Net')}: {formatCurrency(liquido(idx))}</span>
+            {ativas.map(s => <span key={s.k} style={{ color: s.cor }}>{tx(s.en)}: {formatCurrency(dados[s.k][idx] || 0)}</span>)}
           </div>
         );
       })()}

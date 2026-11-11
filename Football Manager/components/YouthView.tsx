@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React, { useEffect, useMemo, useState } from 'react';
 import { atributos3d } from '../textSim/atributos3d';
 import { useGame } from '../context/GameContext';
@@ -14,7 +15,7 @@ const MESES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'O
 const mesEmTexto = (mes: string) => `${MESES[Number(mes.slice(5, 7)) - 1]} ${mes.slice(0, 4)}`;
 
 const Estrelas: React.FC<{ n: number }> = ({ n }) => (
-  <span title="Estimated potential (scout estimate, not a guarantee)" className="whitespace-nowrap text-sm tracking-tighter">
+  <span title={tx('Estimated potential (scout estimate, not a guarantee)')} className="whitespace-nowrap text-sm tracking-tighter">
     {Array.from({ length: 5 }, (_, i) => <span key={i} className={i < n ? 'text-slate-400 dark:text-slate-300' : 'text-slate-200 dark:text-slate-700'}>★</span>)}
   </span>
 );
@@ -32,13 +33,13 @@ const EstiloDoJovem: React.FC<{ p: Player; completo?: boolean }> = ({ p, complet
 
 const Mudancas: React.FC<{ r?: RelatorioMes }> = ({ r }) => {
   if (!r) return <span className="text-slate-400">-</span>;
-  if (!r.mudancas.length && !r.estilo) return <span className="text-slate-400 italic">Maintained level</span>;
+  if (!r.mudancas.length && !r.estilo) return <span className="text-slate-400 italic">{tx('Maintained level')}</span>;
   return (
     <span className="flex flex-wrap gap-x-3 gap-y-0.5">
       {r.mudancas.map(m => (
         <span key={m.attr} className={`font-bold ${m.para > m.de ? 'text-emerald-500' : 'text-rose-500'}`}>{NOME_ATTR[m.attr]} {m.de}→{m.para} {m.para > m.de ? '▲' : '▼'}</span>
       ))}
-      {r.estilo && <span className="font-bold text-blue-400">PlayStyle: {r.estilo.de && r.estilo.de !== 'None' ? `${r.estilo.de} → ` : ''}{r.estilo.para}</span>}
+      {r.estilo && <span className="font-bold text-blue-400">{tx('PlayStyle:')} {r.estilo.de && r.estilo.de !== 'None' ? `${r.estilo.de} → ` : ''}{r.estilo.para}</span>}
     </span>
   );
 };
@@ -88,7 +89,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
     .sort((a, b) => (a.tipo === 'DISPENSADO' ? 1 : 0) - (b.tipo === 'DISPENSADO' ? 1 : 0));   // os dispensados vao para o fim (estavel: dentro de cada grupo, o mais recente primeiro)
 
   if (!userTeam) return null;
-  if (!base) return <div className="text-slate-400 text-sm font-bold uppercase tracking-widest p-8">Generating youth academies...</div>;
+  if (!base) return <div className="text-slate-400 text-sm font-bold uppercase tracking-widest p-8">{tx('Generating youth academies...')}</div>;
 
   const promover = (p: Player) => { setErroPromo(null); setModo('PROMOVER'); setPromovendo(p); };
   const dispensar = (p: Player) => { setErroPromo(null); setModo('DISPENSAR'); setPromovendo(p); };
@@ -116,7 +117,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
             const ano = Number(hoje.slice(0, 4));
             const proxima = [`${ano}-01-01`, `${ano}-06-01`, `${ano + 1}-01-01`].find(d => d > hoje)!;
             const dias = Math.round((Date.parse(proxima + 'T12:00:00Z') - Date.parse(hoje + 'T12:00:00Z')) / 86400000);
-            return <span className="self-center ml-2 text-xs font-black uppercase tracking-widest text-slate-400" title={`The academy list is renewed on ${proxima.slice(8, 10)}/${proxima.slice(5, 7)}/${proxima.slice(0, 4)}`}>Next youth intake <span className="text-blue-400">{dias} day{dias === 1 ? '' : 's'}</span></span>;
+            return <span className="self-center ml-2 text-xs font-black uppercase tracking-widest text-slate-400" title={`The academy list is renewed on ${proxima.slice(8, 10)}/${proxima.slice(5, 7)}/${proxima.slice(0, 4)}`}>{tx('Next youth intake')} <span className="text-blue-400">{dias} day{dias === 1 ? '' : 's'}</span></span>;
           })()}
         </div>
         <div className="text-xs font-black uppercase tracking-widest text-slate-400">{jovens.length}/{TAMANHO_BASE} players • ages 15-20 • no matches, development only</div>
@@ -128,7 +129,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
             <div className="overflow-y-auto custom-scrollbar flex-1">
               <table className="w-full text-left border-separate border-spacing-0">
                 <thead className="bg-slate-200/40 dark:bg-slate-950/60 sticky top-0 z-10">
-                  <tr><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('POS')}>Pos{seta('POS')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('NAME')}>Name{seta('NAME')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300 text-center`} onClick={() => alternarOrdem('AGE')}>Age{seta('AGE')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300 text-center`} onClick={() => alternarOrdem('OVR')}>OVR{seta('OVR')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('POT')}>Potential{seta('POT')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('STYLE')}>PlayStyle{seta('STYLE')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('CONTRACT')}>Contract{seta('CONTRACT')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300 text-center`} onClick={() => alternarOrdem('MONTH')}>Last month{seta('MONTH')}</th><th className={cab}></th></tr>
+                  <tr><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('POS')}>{tx('Pos')}{seta('POS')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('NAME')}>{tx('Name')}{seta('NAME')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300 text-center`} onClick={() => alternarOrdem('AGE')}>{tx('Age')}{seta('AGE')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300 text-center`} onClick={() => alternarOrdem('OVR')}>OVR{seta('OVR')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('POT')}>{tx('Potential')}{seta('POT')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('STYLE')}>{tx('PlayStyle')}{seta('STYLE')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300`} onClick={() => alternarOrdem('CONTRACT')}>{tx('Contract')}{seta('CONTRACT')}</th><th className={`${cab} cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300 text-center`} onClick={() => alternarOrdem('MONTH')}>{tx('Last month')}{seta('MONTH')}</th><th className={cab}></th></tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30">
                   {jovens.map(p => {
@@ -143,7 +144,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
                         <td className="px-3 py-[6px]"><EstiloDoJovem p={p} /></td>
                         <td className="px-3 py-[6px]"><ContractChip player={p} hoje={hoje} /></td>
                         <td className="px-3 py-[6px] text-center text-sm">{r ? <Delta v={r.delta} /> : <span className="text-slate-400">-</span>}</td>
-                        <td className="px-3 py-[6px] text-right"><button onClick={e => { e.stopPropagation(); promover(p); }} className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-500 text-white font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">Promote</button><button disabled={!podeDispensar(base, p.id).ok} title={podeDispensar(base, p.id).motivo} onClick={e => { e.stopPropagation(); dispensar(p); }} className="ml-1 disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap bg-transparent border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">Release</button></td>
+                        <td className="px-3 py-[6px] text-right"><button onClick={e => { e.stopPropagation(); promover(p); }} className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-500 text-white font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">{tx('Promote')}</button><button disabled={!podeDispensar(base, p.id).ok} title={podeDispensar(base, p.id).motivo} onClick={e => { e.stopPropagation(); dispensar(p); }} className="ml-1 disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap bg-transparent border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black px-2.5 py-1 rounded text-[10px] uppercase tracking-widest transition-colors">{tx('Release')}</button></td>
                       </tr>
                     );
                   })}
@@ -154,7 +155,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
 
           <div className="bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl p-4 overflow-y-auto custom-scrollbar flex flex-col gap-1">
             {!sel ? (
-              <div className="text-slate-400 text-sm font-bold uppercase tracking-widest m-auto text-center">Select a player to see attributes and development</div>
+              <div className="text-slate-400 text-sm font-bold uppercase tracking-widest m-auto text-center">{tx('Select a player to see attributes and development')}</div>
             ) : (
               <>
                 <div className="flex justify-between items-start gap-3">
@@ -163,11 +164,11 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
                   <div className="min-w-0">
                     <div className="text-2xl font-black italic uppercase text-slate-900 dark:text-white leading-tight">{sel.name}</div>
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-1">{sel.position} • {sel.age} years • value {formatCurrencyShort(sel.value)}</div>
-                    <div className="mt-1"><Estrelas n={estrelasDoJogador(sel)} /> <span className="text-[11px] text-slate-400 font-bold uppercase">estimate</span></div>
-                    <div className="mt-1 text-[11px] font-black uppercase tracking-widest text-slate-400">PlayStyle: <EstiloDoJovem p={sel} completo /></div>
+                    <div className="mt-1"><Estrelas n={estrelasDoJogador(sel)} /> <span className="text-[11px] text-slate-400 font-bold uppercase">{tx('estimate')}</span></div>
+                    <div className="mt-1 text-[11px] font-black uppercase tracking-widest text-slate-400">{tx('PlayStyle:')} <EstiloDoJovem p={sel} completo /></div>
                   </div>
                   </div>
-                  <div className="text-right"><div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Overall</div><div className="text-5xl font-black italic text-blue-500">{sel.skill}</div></div>
+                  <div className="text-right"><div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{tx('Overall')}</div><div className="text-5xl font-black italic text-blue-500">{sel.skill}</div></div>
                 </div>
                 <div className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-3 items-center">
                   <PlayerSummary player={sel} nomeDoClube={userTeam.name} />
@@ -187,8 +188,8 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
                   })}
                 </div>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-1">Monthly development</div>
-                  {(base.relatorios[sel.id] || []).length === 0 ? <div className="text-xs text-slate-400">No monthly update yet.</div> : (
+                  <div className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-1">{tx('Monthly development')}</div>
+                  {(base.relatorios[sel.id] || []).length === 0 ? <div className="text-xs text-slate-400">{tx('No monthly update yet.')}</div> : (
                     <div className="flex flex-col gap-1">
                       {[...(base.relatorios[sel.id] || [])].reverse().map(r => (
                         <div key={r.mes} className="bg-slate-200/50 dark:bg-slate-950/50 rounded px-3 py-1.5 border border-slate-200 dark:border-slate-800 text-xs">
@@ -200,8 +201,8 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
                   )}
                 </div>
                 <ContractPanel player={sel} />
-                <button onClick={() => promover(sel)} className="mt-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-colors">Promote to first team</button>
-                <button disabled={!podeDispensar(base, sel.id).ok} title={podeDispensar(base, sel.id).motivo} onClick={() => dispensar(sel)} className="disabled:opacity-30 disabled:cursor-not-allowed border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black py-2 rounded text-xs uppercase tracking-widest transition-colors">Release from academy</button>
+                <button onClick={() => promover(sel)} className="mt-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2.5 rounded text-xs uppercase tracking-widest shadow-lg transition-colors">{tx('Promote to first team')}</button>
+                <button disabled={!podeDispensar(base, sel.id).ok} title={podeDispensar(base, sel.id).motivo} onClick={() => dispensar(sel)} className="disabled:opacity-30 disabled:cursor-not-allowed border border-rose-700 text-rose-400 hover:bg-rose-900/40 font-black py-2 rounded text-xs uppercase tracking-widest transition-colors">{tx('Release from academy')}</button>
               </>
             )}
           </div>
@@ -213,7 +214,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
           </div>
           {movimentos.length > 0 && (
             <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-1">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Promotions and releases</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{tx('Promotions and releases')}</div>
               {movimentos.map(m => (
                 <div key={m.playerId + m.mes + m.tipo} className="flex items-center gap-3 text-xs">
                   <span className="w-16 text-slate-400 font-bold">{mesEmTexto(m.mes)}</span>
@@ -228,7 +229,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
             <div className="overflow-y-auto custom-scrollbar flex-1">
               <table className="w-full text-left border-separate border-spacing-0">
                 <thead className="bg-slate-200/40 dark:bg-slate-950/60 sticky top-0 z-10">
-                  <tr><th className={cab}>Name</th><th className={`${cab} text-center`}>Age</th><th className={cab}>Pos</th><th className={`${cab} text-center`}>OVR</th><th className={`${cab} text-center`}>Change</th><th className={cab}>Potential</th><th className={cab}>Attributes</th></tr>
+                  <tr><th className={cab}>{tx('Name')}</th><th className={`${cab} text-center`}>{tx('Age')}</th><th className={cab}>{tx('Pos')}</th><th className={`${cab} text-center`}>OVR</th><th className={`${cab} text-center`}>{tx('Change')}</th><th className={cab}>{tx('Potential')}</th><th className={cab}>{tx('Attributes')}</th></tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30">
                   {jovens.map(p => {
@@ -270,7 +271,7 @@ const YouthView: React.FC<{ abaExterna?: 'LISTA' | 'RELATORIO' }> = ({ abaExtern
             </div>
             {erroPromo && <div className="text-xs font-bold text-rose-400 bg-rose-900/20 border border-rose-800 rounded px-3 py-2">{erroPromo}</div>}
             <div className="flex gap-3">
-              <button onClick={() => setPromovendo(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-black py-2.5 rounded text-xs uppercase tracking-widest">Cancel</button>
+              <button onClick={() => setPromovendo(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-black py-2.5 rounded text-xs uppercase tracking-widest">{tx('Cancel')}</button>
               <button onClick={confirmarPromocao} disabled={(modo === 'PROMOVER' && tamanhoElenco >= 33) || (modo === 'DISPENSAR' && !podeDispensar(base, promovendo.id).ok)} className={`flex-1 ${modo === 'PROMOVER' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'} disabled:opacity-40 disabled:cursor-not-allowed text-white font-black py-2.5 rounded text-xs uppercase tracking-widest`}>{modo === 'PROMOVER' ? 'Promote' : 'Release'}</button>
             </div>
           </div>

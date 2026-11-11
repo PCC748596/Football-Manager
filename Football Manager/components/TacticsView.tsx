@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import { doisNomes } from '../textSim/nomes';
 import { calcularQuimica, checkPosMatch } from '../textSim/quimica';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -238,8 +239,8 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     return (
       <span className="inline-flex items-center gap-1 shrink-0 leading-none">
         <span className="text-slate-500 text-[9px] font-black">|</span>
-        {(st.yellow || acum > 0) && !st.red && !susp && <span className="text-[10px] font-black text-yellow-400 cursor-help" title={`Yellow card${acum > 0 ? ` ${acum}/${AMARELOS_PARA_SUSPENSAO}` : ''}${comp ? ' - ' + comp : ''}`}>CARD</span>}
-        {(st.red || susp) && <span className="text-[10px] font-black text-red-500 cursor-help" title={`${motivoSusp} [${jogosSusp}]${comp ? ' - ' + comp : ''}`}>CARD</span>}
+        {(st.yellow || acum > 0) && !st.red && !susp && <span className="text-[10px] font-black text-yellow-400 cursor-help" title={`Yellow card${acum > 0 ? ` ${acum}/${AMARELOS_PARA_SUSPENSAO}` : ''}${comp ? ' - ' + comp : ''}`}>{tx('CARD')}</span>}
+        {(st.red || susp) && <span className="text-[10px] font-black text-red-500 cursor-help" title={`${motivoSusp} [${jogosSusp}]${comp ? ' - ' + comp : ''}`}>{tx('CARD')}</span>}
         {st.injury && <span className="text-[10px] font-black text-emerald-500 cursor-help" title={`${tipoLesao}${diasLesao !== null ? ` [${diasLesao}]` : ''}`}>INJ</span>}
       </span>
     );
@@ -496,7 +497,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     <div className="flex flex-col gap-4 animate-fade-in" style={{ height: 'calc(100vh - 80px)' }}>
         {avisoGoleiro && (
           <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[250] bg-rose-700 text-white text-xs font-black uppercase tracking-widest px-4 py-2 rounded-lg shadow-xl">
-            Goalkeeper sent off — take off an outfield player and bring on a goalkeeper
+            {tx('Goalkeeper sent off — take off an outfield player and bring on a goalkeeper')}
           </div>
         )}
         {showZonas && <ZonePositionsModal team={userTeam} adversario={proximoAdversario} players={players} onClose={() => setShowZonas(false)} onLoadTactics={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })}
@@ -506,18 +507,18 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
         {showPresets && <TacticPresetsModal atual={userTeam.tactics} onClose={() => setShowPresets(false)} onLoad={(t) => updateTactics(userTeam.id, { ...t, zoneOverrides: t.zoneOverrides })} />}
         {vaziosDoOnze.length > 0 && (
             <div className="shrink-0 bg-rose-600/20 border border-rose-500 text-rose-300 rounded-lg px-4 py-2 text-[12px] font-black uppercase tracking-wider">
-                Incomplete line-up: {vaziosDoOnze.length} player(s) missing ({vaziosDoOnze.map(i => currentPositions[i]?.label).filter(Boolean).join(', ')}). Match Day and round simulation stay locked until the starting XI is complete.
+                {tx('Incomplete line-up:')} {vaziosDoOnze.length} player(s) missing ({vaziosDoOnze.map(i => currentPositions[i]?.label).filter(Boolean).join(', ')}). Match Day and round simulation stay locked until the starting XI is complete.
             </div>
         )}
         <div className="flex justify-between items-center shrink-0">
             <h2 className="text-4xl font-black italic tracking-tighter uppercase">
-                <span className="text-slate-300 dark:text-slate-600">MATCH</span> <span className="text-blue-400">TACTICS</span>
+                <span className="text-slate-300 dark:text-slate-600">{tx('MATCH')}</span> <span className="text-blue-400">{tx('TACTICS')}</span>
             </h2>
             <div className="flex items-center gap-3">
                  {isMatchOngoing && setView && (
-                    <button onClick={() => setView(localStorage.getItem('activeMatchView') === 'MATCH' ? 'MATCH' : 'TRAINING')} className="bg-emerald-600 text-white text-[10px] font-black uppercase px-4 py-2 rounded">Resume</button>
+                    <button onClick={() => setView(localStorage.getItem('activeMatchView') === 'MATCH' ? 'MATCH' : 'TRAINING')} className="bg-emerald-600 text-white text-[10px] font-black uppercase px-4 py-2 rounded">{tx('Resume')}</button>
                  )}
-                 <button onClick={() => setShowPreview(true)} title="Opens the line-ups of both teams side by side" className="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded shadow">Match Preview</button>
+                 <button onClick={() => setShowPreview(true)} title={tx('Opens the line-ups of both teams side by side')} className="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded shadow">{tx('Match Preview')}</button>
             </div>
         </div>
 
@@ -525,27 +526,27 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             <div className="flex flex-col gap-[3px] min-h-0 min-w-0" style={largo ? { width: 'calc(100% + 154px)' } : { minHeight: 700, gridColumn: '1 / -1' }}>
                 <div className="flex-1 relative bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ minHeight: '350px', containerType: 'size' }}>
                     {aba === 'geral' && (
-                        <button onClick={() => handleTacticChange('playingStylesOn' as keyof Tactics, userTeam.tactics.playingStylesOn === false)} title="Turns the players' individual Playing Styles on or off in the 3D match"
+                        <button onClick={() => handleTacticChange('playingStylesOn' as keyof Tactics, userTeam.tactics.playingStylesOn === false)} title={tx('Turns the players\' individual Playing Styles on or off in the 3D match')}
                             className={`absolute top-[7.25rem] right-1 z-20 flex items-center justify-between gap-1.5 w-[9.6rem] px-2.5 py-1.5 min-h-[32px] rounded-full border text-[9px] font-black uppercase tracking-widest transition-colors ${userTeam.tactics.playingStylesOn === false ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-emerald-600 border-emerald-400 text-white'}`}>
-                            Playing Styles <span className={`px-2 py-0.5 rounded-full text-[9px] ${userTeam.tactics.playingStylesOn === false ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{userTeam.tactics.playingStylesOn === false ? 'OFF' : 'ON'}</span>
+                            {tx('Playing Styles')} <span className={`px-2 py-0.5 rounded-full text-[9px] ${userTeam.tactics.playingStylesOn === false ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{userTeam.tactics.playingStylesOn === false ? 'OFF' : 'ON'}</span>
                         </button>
                     )}
                     {aba === 'geral' && (
-                        <button onClick={() => handleTacticChange('mediaNotasOn' as keyof Tactics, userTeam.tactics.mediaNotasOn === false)} title="Shows the average of each player's match ratings on the cards"
+                        <button onClick={() => handleTacticChange('mediaNotasOn' as keyof Tactics, userTeam.tactics.mediaNotasOn === false)} title={tx('Shows the average of each player\'s match ratings on the cards')}
                             className={`absolute top-[9.75rem] right-1 z-20 flex items-center justify-between gap-1.5 w-[9.6rem] px-2.5 py-1.5 min-h-[32px] rounded-full border text-[9px] font-black uppercase tracking-widest transition-colors ${userTeam.tactics.mediaNotasOn === false ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-emerald-600 border-emerald-400 text-white'}`}>
-                            Avg Ratings <span className={`px-2 py-0.5 rounded-full text-[9px] ${userTeam.tactics.mediaNotasOn === false ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{userTeam.tactics.mediaNotasOn === false ? 'OFF' : 'ON'}</span>
+                            {tx('Avg Ratings')} <span className={`px-2 py-0.5 rounded-full text-[9px] ${userTeam.tactics.mediaNotasOn === false ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{userTeam.tactics.mediaNotasOn === false ? 'OFF' : 'ON'}</span>
                         </button>
                     )}
                     {aba === 'geral' && (
-                        <button onClick={() => updateTactics(userTeam.id, rostosLigados(userTeam.tactics) ? { playerFacesOn: false } : { playerFacesOn: true, playerCardsOn: false })} title="Shows each player's face above the shirt on the pitch"
+                        <button onClick={() => updateTactics(userTeam.id, rostosLigados(userTeam.tactics) ? { playerFacesOn: false } : { playerFacesOn: true, playerCardsOn: false })} title={tx('Shows each player\'s face above the shirt on the pitch')}
                             className={`absolute top-[12.25rem] right-1 z-20 flex items-center justify-between gap-1.5 w-[9.6rem] px-2.5 py-1.5 min-h-[32px] rounded-full border text-[9px] font-black uppercase tracking-widest transition-colors ${!(rostosLigados(userTeam.tactics)) ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-emerald-600 border-emerald-400 text-white'}`}>
-                            Player Faces <span className={`px-2 py-0.5 rounded-full text-[9px] ${!(rostosLigados(userTeam.tactics)) ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{!(rostosLigados(userTeam.tactics)) ? 'OFF' : 'ON'}</span>
+                            {tx('Player Faces')} <span className={`px-2 py-0.5 rounded-full text-[9px] ${!(rostosLigados(userTeam.tactics)) ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{!(rostosLigados(userTeam.tactics)) ? 'OFF' : 'ON'}</span>
                         </button>
                     )}
                     {aba === 'geral' && (
-                        <button onClick={() => updateTactics(userTeam.id, cartoesLigados(userTeam.tactics) ? { playerCardsOn: false, playerFacesOn: false } : { playerCardsOn: true, playerFacesOn: false })} title="Shows the player cards on the pitch (OFF: the shirts, or the faces, as before)"
+                        <button onClick={() => updateTactics(userTeam.id, cartoesLigados(userTeam.tactics) ? { playerCardsOn: false, playerFacesOn: false } : { playerCardsOn: true, playerFacesOn: false })} title={tx('Shows the player cards on the pitch (OFF: the shirts, or the faces, as before)')}
                             className={`absolute top-[14.75rem] right-1 z-20 flex items-center justify-between gap-1.5 w-[9.6rem] px-2.5 py-1.5 min-h-[32px] rounded-full border text-[9px] font-black uppercase tracking-widest transition-colors ${!(cartoesLigados(userTeam.tactics)) ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-emerald-600 border-emerald-400 text-white'}`}>
-                            Player Cards <span className={`px-2 py-0.5 rounded-full text-[9px] ${!(cartoesLigados(userTeam.tactics)) ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{!(cartoesLigados(userTeam.tactics)) ? 'OFF' : 'ON'}</span>
+                            {tx('Player Cards')} <span className={`px-2 py-0.5 rounded-full text-[9px] ${!(cartoesLigados(userTeam.tactics)) ? 'bg-slate-600 text-slate-200' : 'bg-emerald-900/60 text-emerald-100'}`}>{!(cartoesLigados(userTeam.tactics)) ? 'OFF' : 'ON'}</span>
                         </button>
                     )}
                     <div className="absolute top-6 left-6 z-20 flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
@@ -563,22 +564,22 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                     {Object.keys(FORMATIONS).filter(formacaoTemTabela).map(f => <option key={f} value={f}>{f}</option>)}
                                 </select>
                             )}
-                            <button onClick={() => setContra(c => !c)} className={`${btnQuadrado} ${contra ? 'bg-red-600 text-white' : btnRepor}`} title="Shows, in another colour, where the opposing system sits with the ball in the chosen zone">Playing Against</button>
-                            <button onClick={() => aplicarOver(espelharZona(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva, zonaEfetiva))} className={`${btnQuadrado} ${btnAcao}`} title="Swaps left and right in this zone">Flip zone (L ⇄ R)</button>
-                            {zonaEspelhada(zonaEfetiva) !== zonaEfetiva && <button onClick={() => aplicarOver(espelharZona(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva, zonaEspelhada(zonaEfetiva)))} className={`${btnQuadrado} ${btnAcao}`} title="Copies these positions, mirrored, to the zone on the other side">Copy mirrored → {NOME_DA_ZONA[zonaEspelhada(zonaEfetiva)]}</button>}
-                            <button onClick={() => aplicarOver(espelharFase(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva))} className={`${btnQuadrado} ${btnAcao}`}>Mirror {fase === 'com' ? 'with ball' : 'without ball'} (rows)</button>
-                            <button onClick={() => aplicarOver(repor(overAtual, fase, zonaEfetiva))} className={`${btnQuadrado} ${btnRepor}`}>Reset this zone</button>
-                            <button onClick={() => aplicarOver(repor(overAtual, fase))} className={`${btnQuadrado} ${btnRepor}`}>Reset {fase === 'com' ? 'with ball' : 'without ball'} (zones)</button>
-                            <button disabled={!temAjustes(overAtual)} onClick={() => aplicarOver(undefined)} className={`${btnQuadrado} bg-rose-600/80 disabled:opacity-30 text-white hover:bg-rose-600`}>Reset whole formation</button>
+                            <button onClick={() => setContra(c => !c)} className={`${btnQuadrado} ${contra ? 'bg-red-600 text-white' : btnRepor}`} title={tx('Shows, in another colour, where the opposing system sits with the ball in the chosen zone')}>{tx('Playing Against')}</button>
+                            <button onClick={() => aplicarOver(espelharZona(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva, zonaEfetiva))} className={`${btnQuadrado} ${btnAcao}`} title={tx('Swaps left and right in this zone')}>Flip zone (L ⇄ R)</button>
+                            {zonaEspelhada(zonaEfetiva) !== zonaEfetiva && <button onClick={() => aplicarOver(espelharZona(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva, zonaEspelhada(zonaEfetiva)))} className={`${btnQuadrado} ${btnAcao}`} title={tx('Copies these positions, mirrored, to the zone on the other side')}>Copy mirrored → {NOME_DA_ZONA[zonaEspelhada(zonaEfetiva)]}</button>}
+                            <button onClick={() => aplicarOver(espelharFase(formacaoAtual, rotulosFormacao, overAtual, fase, zonaEfetiva))} className={`${btnQuadrado} ${btnAcao}`}>{tx('Mirror')} {fase === 'com' ? 'with ball' : 'without ball'} (rows)</button>
+                            <button onClick={() => aplicarOver(repor(overAtual, fase, zonaEfetiva))} className={`${btnQuadrado} ${btnRepor}`}>{tx('Reset this zone')}</button>
+                            <button onClick={() => aplicarOver(repor(overAtual, fase))} className={`${btnQuadrado} ${btnRepor}`}>{tx('Reset')} {fase === 'com' ? 'with ball' : 'without ball'} (zones)</button>
+                            <button disabled={!temAjustes(overAtual)} onClick={() => aplicarOver(undefined)} className={`${btnQuadrado} bg-rose-600/80 disabled:opacity-30 text-white hover:bg-rose-600`}>{tx('Reset whole formation')}</button>
                             <>
-                                <button onClick={() => setPresetFoco('save')} className={`${btnQuadrado} bg-emerald-600 text-white hover:bg-emerald-500`} title="Saves the current tactic (formation, style and positions)">Save</button>
-                                <button onClick={() => setPresetFoco('load')} className={`${btnQuadrado} bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600`} title="Loads a saved tactic or one from a .json file">Load</button>
+                                <button onClick={() => setPresetFoco('save')} className={`${btnQuadrado} bg-emerald-600 text-white hover:bg-emerald-500`} title={tx('Saves the current tactic (formation, style and positions)')}>{tx('Save')}</button>
+                                <button onClick={() => setPresetFoco('load')} className={`${btnQuadrado} bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600`} title={tx('Loads a saved tactic or one from a .json file')}>{tx('Load')}</button>
                             </>
                         </div>
                     )}
 
                     <div className="absolute top-6 right-6 z-10 flex flex-col items-end">
-                        <span className="text-[10px] font-black text-blue-300 uppercase tracking-widest leading-none mb-1">CHEMISTRY</span>
+                        <span className="text-[10px] font-black text-blue-300 uppercase tracking-widest leading-none mb-1">{tx('CHEMISTRY')}</span>
                         <div className="flex items-baseline">
                             <span className="text-5xl font-black text-slate-300 dark:text-white/20 italic leading-none tracking-tighter">{teamChemistry}</span>
                             <span className="text-2xl font-black text-blue-300/50 italic">%</span>
@@ -780,10 +781,10 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                 <div onDragOver={(e) => { e.preventDefault(); setIsOverBench(true); }} onDragLeave={() => setIsOverBench(false)} onClick={tocarNoPainelDoBanco} onDrop={(e) => handleDropToBench(e.dataTransfer.getData("playerId"))} className={`bg-white dark:bg-slate-900/50 rounded-xl p-[2px] flex flex-col gap-0 shrink-0 shadow-sm border transition-all ${isOverBench ? 'border-blue-400 bg-blue-50/50' : 'border-slate-200 dark:border-slate-800'}`}>
                     <div className="flex justify-between items-center mb-0">
                         <div className="flex items-center gap-4">
-                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">SUBSTITUTES</span>
+                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">{tx('SUBSTITUTES')}</span>
                             {isMatchOngoing && currentMatch && (
                                 <div className="bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded flex items-center gap-2 shadow-sm">
-                                    <span className="text-[9px] font-black text-amber-500/70 uppercase">SUBS LEFT</span>
+                                    <span className="text-[9px] font-black text-amber-500/70 uppercase">{tx('SUBS LEFT')}</span>
                                     <span className="text-[11px] font-black text-amber-400">{subsRemaining} / {maxSubs}</span>
                                 </div>
                             )}
@@ -822,7 +823,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                             const status = getPlayerMatchStatus(p.id);
                             return (
                                 <div key={p.id} draggable={!indisponivelParaReserva(p.id)} onDragStart={(e) => e.dataTransfer.setData("playerId", p.id)} onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} onDrop={(e) => { e.stopPropagation(); handleBenchSwap(e.dataTransfer.getData("playerId"), p.id); }} onClick={(e) => { e.stopPropagation(); tocarNoBanco(p.id); }} title={foiSubstituido(p.id) ? "Already substituted: cannot re-enter" : indisponivelParaReserva(p.id) ? "Unavailable: injured or suspended" : undefined} className={`${selecionado === p.id ? "ring-4 ring-blue-400 " : ""}relative flex-shrink-0 w-full min-w-0 ${fundoDoCard(p.id)} border rounded-lg px-1.5 py-[8.5px] flex flex-row items-center justify-start gap-2 hover:border-blue-300 cursor-grab active:cursor-grabbing shadow-sm transition-all group`}>
-                                    {!jogoIniciado && <button onClick={(e) => { e.stopPropagation(); removeFromSquad(p.id); }} title="Remove from bench" className="absolute bottom-1 right-1 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>}
+                                    {!jogoIniciado && <button onClick={(e) => { e.stopPropagation(); removeFromSquad(p.id); }} title={tx('Remove from bench')} className="absolute bottom-1 right-1 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>}
                                     <div className={`relative mt-[2px] ${indisponivelParaReserva(p.id) ? 'opacity-40 grayscale' : ''}`}>
                                         {rostosNasListas(userTeam.tactics) ? (
                                             <div className="w-[52px] h-[52px] pointer-events-none -translate-y-[10px]"><PlayerFace3D playerId={p.id} team={userTeam} kitIdx={kitDeCampo} gk={p.position === Position.GK} camisa={userTeam.primaryColor} className="w-full h-full" /></div>
@@ -871,7 +872,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                 </div>
                             );
                         })}
-                        {localBench.length === 0 && <div className="col-span-5 flex-1 flex items-center justify-center text-[10px] text-slate-300 font-black uppercase italic tracking-widest border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-lg">Bench Empty</div>}
+                        {localBench.length === 0 && <div className="col-span-5 flex-1 flex items-center justify-center text-[10px] text-slate-300 font-black uppercase italic tracking-widest border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-lg">{tx('Bench Empty')}</div>}
                     </div>
                 </div>
             </div>
@@ -884,9 +885,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col shadow-sm overflow-hidden min-h-0 min-w-0">
                     <div className="px-3 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">SQUAD POOL</h3>
+                            <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">{tx('SQUAD POOL')}</h3>
                             <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-full gap-0.5">
-                                <button onClick={() => setPoolSortBy('skill')} className={`text-[8px] font-black px-2.5 py-1 rounded-full transition-all ${poolSortBy === 'skill' ? 'bg-blue-400 text-white' : 'text-slate-400 hover:text-slate-200'}`}>OVRL</button>
+                                <button onClick={() => setPoolSortBy('skill')} className={`text-[8px] font-black px-2.5 py-1 rounded-full transition-all ${poolSortBy === 'skill' ? 'bg-blue-400 text-white' : 'text-slate-400 hover:text-slate-200'}`}>{tx('OVRL')}</button>
                                 <button onClick={() => setPoolSortBy('position')} className={`text-[8px] font-black px-2.5 py-1 rounded-full transition-all ${poolSortBy === 'position' ? 'bg-amber-400 text-white' : 'text-slate-400 hover:text-slate-200'}`}>POS</button>
                             </div>
                         </div>
@@ -984,7 +985,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                              onDragOver={(e) => { e.preventDefault(); }}
                              onDrop={(e) => { e.preventDefault(); const id = e.dataTransfer.getData("playerId"); if (id) assignSetPiece(r.role, id); }}
                              className="relative flex-1 flex flex-col items-center justify-center gap-1 rounded-lg border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm py-1.5 px-1 hover:border-blue-300 transition-colors">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-blue-400 text-center leading-tight">{r.label}</span>
+                            <span className="text-[9px] font-black uppercase tracking-wider text-blue-400 text-center leading-tight">{tx(r.label)}</span>
                             {pl ? (
                                 <div draggable onDragStart={(e) => e.dataTransfer.setData("playerId", pl.id)} className="flex flex-col items-center cursor-grab active:cursor-grabbing">
                                     {rostosNasListas(userTeam.tactics) ? (
@@ -994,10 +995,10 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                                         multipleDiagonals={(d as any).multipleDiagonals} diagonalWidth={d.diagonalWidth} number={pl.shirtNumber} numberColor={d.nc} collarColor={d.clc}
                                         numberOutlineColor={d.noc} sleeveColor={d.sc} scale={0.8} longSleeves={pl.position === Position.GK} />}
                                     <span className="relative z-10 mt-[10px] flex items-baseline justify-center gap-1 max-w-full leading-tight whitespace-nowrap"><span className="text-[9px] font-black text-slate-500 dark:text-slate-300 uppercase truncate">{pl.name.split(' ').pop()}</span><span className="text-[9px] font-black text-slate-400">|</span><span className="text-[10px] font-black text-amber-500 shrink-0">{r.attr.rotulo} {r.attr.valor(pl)}</span></span>
-                                    <button onClick={() => assignSetPiece(r.role, undefined)} title="Remove" style={{ right: 6, top: 'calc(50% + 8px)' }} className="absolute -translate-y-1/2 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>
+                                    <button onClick={() => assignSetPiece(r.role, undefined)} title={tx('Remove')} style={{ right: 6, top: 'calc(50% + 8px)' }} className="absolute -translate-y-1/2 z-10 w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black leading-none flex items-center justify-center hover:bg-rose-600">✕</button>
                                 </div>
                             ) : (
-                                <div className="h-[62px] flex items-center justify-center text-[9px] font-bold text-slate-400 uppercase italic text-center px-2">drag a player here</div>
+                                <div className="h-[62px] flex items-center justify-center text-[9px] font-bold text-slate-400 uppercase italic text-center px-2">{tx('drag a player here')}</div>
                             )}
                         </div>
                     );
@@ -1027,9 +1028,9 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
 
                 <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-[13px] px-4 shadow-sm min-h-0 min-w-0 flex flex-col">
                     <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">TACTICAL INSTRUCTIONS</h3>
+                        <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">{tx('TACTICAL INSTRUCTIONS')}</h3>
                         <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded p-1 border border-slate-200 dark:border-slate-700">
-                            <span className="text-[9px] font-black text-slate-400 px-2 uppercase tracking-widest">FORMATION</span>
+                            <span className="text-[9px] font-black text-slate-400 px-2 uppercase tracking-widest">{tx('FORMATION')}</span>
                             <select
                                 value={userTeam.tactics.formation}
                                 onChange={(e) => handleTacticChange('formation', e.target.value as any)}
@@ -1041,7 +1042,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                     </div>
                     <div className="flex-1 flex flex-col justify-between pt-2">
                         <div className="space-y-2">
-                            <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">MENTALITY</span><span className="text-[9px] font-black text-blue-400 uppercase">{userTeam.tactics.style}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{tx('MENTALITY')}</span><span className="text-[9px] font-black text-blue-400 uppercase">{userTeam.tactics.style}</span></div>
                             <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
                                 {['Very Defensive', 'Defensive', 'Balanced', 'Offensive', 'Very Offensive'].map((s, i) => {
                                     const labels = ['U-DEF', 'DEF', 'BAL', 'OFF', 'U-OFF']; const isSelected = userTeam.tactics.style === s;
@@ -1050,7 +1051,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">AGGRESSION</span><span className="text-[9px] font-black text-rose-400 uppercase">{userTeam.tactics.aggression}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{tx('AGGRESSION')}</span><span className="text-[9px] font-black text-rose-400 uppercase">{userTeam.tactics.aggression}</span></div>
                             <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
                                 {['Very Passive', 'Passive', 'Balanced', 'Aggressive', 'Very Aggressive'].map((a, i) => {
                                     const labels = ['U-PAS', 'PAS', 'BAL', 'AGG', 'U-AGG']; const isSelected = userTeam.tactics.aggression === a;
@@ -1059,7 +1060,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">MATCH SECTOR</span><span className="text-[9px] font-black text-emerald-400 uppercase">{(userTeam.tactics.focusSectors || ['Center']).join(', ')}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{tx('MATCH SECTOR')}</span><span className="text-[9px] font-black text-emerald-400 uppercase">{(userTeam.tactics.focusSectors || ['Center']).join(', ')}</span></div>
                             <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
                                 {['Left', 'Center', 'Right'].map((s, i) => {
                                     const labels = ['LEFT', 'CENTER', 'RIGHT']; const isSelected = (userTeam.tactics.focusSectors || ['Center']).includes(s as any);
@@ -1089,7 +1090,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                             const atual = ((userTeam.tactics as any)[g.field] as string) || g.padrao(userTeam.tactics);
                             return (
                                 <div key={g.field} className={`space-y-1 ${g.field === 'playStyle' ? 'order-first' : ''}`}>
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{g.label}</span>
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{tx(g.label)}</span>
                                     <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
                                         {g.opcoes.map(([valor, rotulo]) => (
                                             <button key={valor} onClick={() => handleTacticChange(g.field as keyof Tactics, valor as any)} className={`flex-1 text-[10px] font-black py-3 rounded transition-all shadow-sm ${atual === valor ? g.cor : 'bg-white dark:bg-slate-700 text-slate-300 hover:text-slate-500'}`}>{rotulo}</button>
@@ -1106,7 +1107,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                             const meio = (g.valores[1] - g.valores[0]) / 2;
                             return (
                                 <div key={g.field} className="space-y-1">
-                                    <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{g.label}</span><span className="text-[9px] font-black text-slate-400">{atual}%</span></div>
+                                    <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{tx(g.label)}</span><span className="text-[9px] font-black text-slate-400">{atual}%</span></div>
                                     <div className="flex bg-slate-50 dark:bg-slate-800 rounded p-1 gap-1">
                                         {g.valores.map(v => (
                                             <button key={v} onClick={() => handleTacticChange(g.field as keyof Tactics, v)} className={`flex-1 text-[10px] font-black py-3 rounded transition-all shadow-sm ${atual >= v - meio && atual < v + meio ? g.cor : 'bg-white dark:bg-slate-700 text-slate-300 hover:text-slate-500'}`}>{v}%</button>

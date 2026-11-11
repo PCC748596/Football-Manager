@@ -1,7 +1,7 @@
 import { DISTRIBUICAO } from '../textSim/distribuicao';
 import React from 'react';
 import { useGame } from '../context/GameContext';
-import { textosDaPartida, vozDoIdioma } from '../textSim/idiomas';
+import { textosDaPartida, vozDoIdioma, tx } from '../textSim/idiomas';
 import { Fixture, Team, Player, Position, Language } from '../types';
 import { calculateMatchRatings, getStoppageTime } from '../textSim/matchEngine';
 
@@ -245,7 +245,7 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
             textToSpeak = textToSpeak.replace(/🔻/g, '').replace(/🔼/g, '');
 
             if (lastEvent.type === 'GOAL') {
-                textToSpeak = lang === 'PT' ? 'Gooooooooooool! ' + textToSpeak : 'Gooooooal! ' + textToSpeak;
+                textToSpeak = tx('Gooooooal!') + ' ' + textToSpeak;
             }
 
             const utterance = new SpeechSynthesisUtterance(textToSpeak);
@@ -305,7 +305,7 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
              <div className="flex gap-2">
                 {motor3dProgresso !== null && (
                   <div className="flex flex-col gap-1 min-w-[260px]">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Simulador 3D decidindo a partida… {Math.min(100, Math.round(motor3dProgresso / 90 * 100))}%</div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">{tx('3D engine deciding the match…')} {Math.min(100, Math.round(motor3dProgresso / 90 * 100))}%</div>
                     <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden"><div className="h-full bg-emerald-500 transition-all" style={{ width: Math.min(100, motor3dProgresso / 90 * 100) + "%" }} /></div>
                   </div>
                 )}
@@ -352,7 +352,7 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
                          }
                      }} 
                      className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${isNarrationOn ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 hover:bg-slate-300 dark:hover:bg-slate-700'}`} 
-                     title={isNarrationOn ? (lang === 'PT' ? "Desativar Narração" : "Turn narration off") : (lang === 'PT' ? "Ativar Narração" : "Turn narration on")}
+                     title={isNarrationOn ? (tx('Turn narration off')) : (tx('Turn narration on'))}
                   >
                       {isNarrationOn ? '🔊' : '🔈'}
                   </button>
@@ -404,7 +404,7 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
                    <React.Fragment key={`match-col-${fixture.id}`}>
                       {/* BARRA DE NARRAÇÃO */}
                       <div className="bg-slate-900 text-emerald-400 mx-2 mb-2 p-3 rounded-xl border-l-4 border-emerald-500 shadow-md text-sm font-black flex items-center gap-3 italic tracking-wide">
-                          <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded text-xs animate-pulse">🔴 {lang === 'PT' ? 'AO VIVO' : 'LIVE'}</span>
+                          <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded text-xs animate-pulse">🔴 {tx('LIVE')}</span>
                           <span className="truncate">{lastComment ? `${getDisplayMinuteStr(lastComment.minute, getFixtureHTDuration(userMatch))}' - ${lastComment.description}` : 'Aguardando o apito inicial...'}</span>
                       </div>
 
@@ -440,7 +440,7 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
 
                                return (
                                    <div className="bg-slate-100 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 my-3 shadow-sm text-center">
-                                      <h4 className="font-black text-[10px] uppercase mb-4 text-slate-500 tracking-widest">Full Time Stats</h4>
+                                      <h4 className="font-black text-[10px] uppercase mb-4 text-slate-500 tracking-widest">{tx('Full Time Stats')}</h4>
                                       <div className="flex justify-between text-xs font-black text-slate-700 dark:text-slate-300 px-6">
                                          <div className="text-right w-1/3 space-y-2">
                                             <div>{hGoals}</div>
@@ -453,14 +453,14 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
                                             <div>{hReds}</div>
                                          </div>
                                          <div className="text-center w-1/3 text-slate-400 space-y-2 text-[10px] uppercase tracking-widest opacity-80">
-                                            <div>{lang === 'PT' ? 'Gols' : 'Goals'}</div>
-                                            <div>{lang === 'PT' ? 'Posse de Bola' : 'Possession'}</div>
-                                            <div>{lang === 'PT' ? 'Chutes' : 'Shots'}</div>
-                                            <div>Passes</div>
-                                            <div>{lang === 'PT' ? 'Escanteios' : 'Corners'}</div>
-                                            <div>{lang === 'PT' ? 'Faltas' : 'Fouls'}</div>
-                                            <div>{lang === 'PT' ? 'CA' : 'YC'}</div>
-                                            <div>{lang === 'PT' ? 'CV' : 'RC'}</div>
+                                            <div>{tx('Goals')}</div>
+                                            <div>{tx('Possession')}</div>
+                                            <div>{tx('Shots')}</div>
+                                            <div>{tx('Passes')}</div>
+                                            <div>{tx('Corners')}</div>
+                                            <div>{tx('Fouls')}</div>
+                                            <div>{tx('YC')}</div>
+                                            <div>{tx('RC')}</div>
                                          </div>
                                          <div className="text-left w-1/3 space-y-2">
                                             <div>{aGoals}</div>
@@ -475,7 +475,7 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
                                       </div>
                                       {Object.keys(playerRatings).length > 0 && (
                                           <div className="mt-6 border-t border-slate-200 dark:border-slate-700/50 pt-5">
-                                              <h4 className="font-black text-[10px] uppercase mb-4 text-slate-500 tracking-widest">{lang === 'PT' ? 'Notas dos Jogadores' : 'Player Ratings'}</h4>
+                                              <h4 className="font-black text-[10px] uppercase mb-4 text-slate-500 tracking-widest">{tx('Player Ratings')}</h4>
                                               <div className="flex justify-between gap-2 sm:gap-6">
                                                   <div className="w-1/2 space-y-1">
                                                       {Object.entries(playerRatings).filter(([id]) => {
@@ -512,7 +512,7 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
                                );
                           })()}
                          {displayEvents.length === 0 && (
-                            <div className="text-center text-slate-400 font-bold italic mt-10 opacity-50 uppercase text-xs">Waiting for events...</div>
+                            <div className="text-center text-slate-400 font-bold italic mt-10 opacity-50 uppercase text-xs">{tx('Waiting for events...')}</div>
                          )}
                       {displayEvents.map((e, idx) => {
                           if (e.type === 'HALF_TIME') {
@@ -539,7 +539,7 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
                               
                               return (
                                  <div key={`stat-${e.minute}-${idx}`} className="bg-slate-100 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 my-3 shadow-sm text-center">
-                                    <h4 className="font-black text-[10px] uppercase mb-4 text-slate-500 tracking-widest">Half Time Stats</h4>
+                                    <h4 className="font-black text-[10px] uppercase mb-4 text-slate-500 tracking-widest">{tx('Half Time Stats')}</h4>
                                     <div className="flex justify-between text-xs font-black text-slate-700 dark:text-slate-300 px-6">
                                        <div className="text-right w-1/3 space-y-2">
                                           <div>{hGoals}</div>
@@ -552,14 +552,14 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
                                           <div>{hReds}</div>
                                        </div>
                                        <div className="text-center w-1/3 text-slate-400 space-y-2 text-[10px] uppercase tracking-widest opacity-80">
-                                          <div>{lang === 'PT' ? 'Gols' : 'Goals'}</div>
-                                          <div>{lang === 'PT' ? 'Posse de Bola' : 'Possession'}</div>
-                                          <div>{lang === 'PT' ? 'Chutes' : 'Shots'}</div>
-                                          <div>Passes</div>
-                                          <div>{lang === 'PT' ? 'Escanteios' : 'Corners'}</div>
-                                          <div>{lang === 'PT' ? 'Faltas' : 'Fouls'}</div>
-                                          <div>{lang === 'PT' ? 'CA' : 'YC'}</div>
-                                          <div>{lang === 'PT' ? 'CV' : 'RC'}</div>
+                                          <div>{tx('Goals')}</div>
+                                          <div>{tx('Possession')}</div>
+                                          <div>{tx('Shots')}</div>
+                                          <div>{tx('Passes')}</div>
+                                          <div>{tx('Corners')}</div>
+                                          <div>{tx('Fouls')}</div>
+                                          <div>{tx('YC')}</div>
+                                          <div>{tx('RC')}</div>
                                        </div>
                                        <div className="text-left w-1/3 space-y-2">
                                           <div>{aGoals}</div>

@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { createPortal } from 'react-dom';
@@ -68,7 +69,7 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
   }, []);
 
   if (!team) {
-    return <div className="flex-1 min-w-0 flex items-center justify-center rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 text-slate-400 text-sm font-black uppercase tracking-widest">No upcoming opponent</div>;
+    return <div className="flex-1 min-w-0 flex items-center justify-center rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 text-slate-400 text-sm font-black uppercase tracking-widest">{tx('No upcoming opponent')}</div>;
   }
   const formacao = FORMATIONS[team.tactics.formation] || FORMATIONS['4-4-2'];
   const noCampo = formacao.map((_, i) => players.find(p => p.id === team.lineup[i]));
@@ -99,7 +100,7 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
       </div>
           <div className="relative flex-1 min-h-0 bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/30 overflow-hidden select-none shadow-inner" style={{ width: '100%' }}>
             {!adversario && <div className="absolute top-2 right-3 z-10 flex flex-col items-end">
-              <span className="text-[9px] font-black text-blue-300 uppercase tracking-widest leading-none mb-0.5">CHEMISTRY</span>
+              <span className="text-[9px] font-black text-blue-300 uppercase tracking-widest leading-none mb-0.5">{tx('CHEMISTRY')}</span>
               <div className="flex items-baseline"><span className="text-3xl font-black text-slate-300 dark:text-white/20 italic leading-none tracking-tighter">{quimica}</span><span className="text-lg font-black text-blue-300/50 italic">%</span></div>
             </div>}
             <div className="absolute" style={{ top: '1rem', bottom: '1rem', left: '50%', transform: 'translateX(-50%)', width: `calc(100% - ${40 * k}px)` }}>
@@ -171,7 +172,7 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
         </div>
         {/* OS RESERVAS, do lado direito do campo */}
         <div className="w-[190px] shrink-0 min-h-0 flex flex-col gap-[4px] bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-[5px] overflow-y-auto custom-scrollbar">
-          <div className="flex justify-between items-center px-1 shrink-0"><span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">SUBSTITUTES</span><span className="text-[11px] font-black text-slate-400">{reservas.length}</span></div>
+          <div className="flex justify-between items-center px-1 shrink-0"><span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">{tx('SUBSTITUTES')}</span><span className="text-[11px] font-black text-slate-400">{reservas.length}</span></div>
           {reservas.map(p => {
             const nomes = doisNomes(p.name);
             return (
@@ -192,7 +193,7 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
               </div>
             );
           })}
-          {!reservas.length && <div className="text-[10px] font-bold text-slate-400 uppercase italic text-center py-3">No substitutes</div>}
+          {!reservas.length && <div className="text-[10px] font-bold text-slate-400 uppercase italic text-center py-3">{tx('No substitutes')}</div>}
         </div>
       </div>
     </div>
@@ -216,8 +217,8 @@ const MatchPreviewModal: React.FC<Props> = ({ userTeam, adversario, players, kit
     <div className="fixed inset-0 z-[9999] bg-slate-100 dark:bg-slate-950 flex items-stretch justify-stretch" style={{ width: '100vw', height: '100vh' }}>
       <div className="w-full h-full p-3 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between shrink-0">
-          <h2 className="text-2xl font-black italic tracking-tighter uppercase"><span className="text-slate-300 dark:text-slate-600">MATCH</span> <span className="text-blue-400">PREVIEW</span></h2>
-          <button onClick={onClose} className="px-4 py-1.5 rounded bg-slate-700 hover:bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest" title="Close (Esc)">Close ✕</button>
+          <h2 className="text-2xl font-black italic tracking-tighter uppercase"><span className="text-slate-300 dark:text-slate-600">{tx('MATCH')}</span> <span className="text-blue-400">{tx('PREVIEW')}</span></h2>
+          <button onClick={onClose} className="px-4 py-1.5 rounded bg-slate-700 hover:bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest" title={tx('Close (Esc)')}>Close ✕</button>
         </div>
         <div className="flex-1 min-h-0 flex gap-3">
           <Lado team={userTeam} titulo="Your team" players={players} kitIdx={kitDoUtilizador} />

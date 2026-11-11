@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React from 'react';
 import { useGame } from '../context/GameContext';
 import { Team, naLigaDoUtilizador } from '../types';
@@ -20,7 +21,7 @@ const LeagueTable: React.FC = () => {
     <div className="h-full flex flex-col animate-fade-in">
       <div className="mb-4">
         <h2 className="text-4xl font-black uppercase tracking-tighter leading-none italic transition-colors">
-          <span className="text-slate-900 dark:text-white transition-colors">LEAGUE</span> <span className="text-blue-500">STANDINGS</span>
+          <span className="text-slate-900 dark:text-white transition-colors">{tx('LEAGUE')}</span> <span className="text-blue-500">{tx('STANDINGS')}</span>
         </h2>
       </div>
       
@@ -29,9 +30,9 @@ const LeagueTable: React.FC = () => {
           <table className="w-full text-left border-separate border-spacing-0">
             <thead className="sticky top-0 z-20 shadow-xl">
               <tr className="bg-slate-100 dark:bg-slate-950/90 backdrop-blur-md transition-colors">
-                <th className="px-6 py-2 text-[9px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">Pos</th>
-                <th className="px-6 py-2 text-[9px] font-black text-slate-900 dark:text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">Team</th>
-                <th className="px-6 py-2 text-[9px] font-black text-blue-600 dark:text-white uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 text-center bg-blue-600/5 dark:bg-blue-600/10 transition-colors">Pts</th>
+                <th className="px-6 py-2 text-[9px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">{tx('Pos')}</th>
+                <th className="px-6 py-2 text-[9px] font-black text-slate-900 dark:text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">{tx('Team')}</th>
+                <th className="px-6 py-2 text-[9px] font-black text-blue-600 dark:text-white uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 text-center bg-blue-600/5 dark:bg-blue-600/10 transition-colors">{tx('Pts')}</th>
                 <th className="px-4 py-2 text-[9px] font-black text-slate-900 dark:text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 text-center">P</th>
                 <th className="px-4 py-2 text-[9px] font-black text-slate-900 dark:text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 text-center">W</th>
                 <th className="px-4 py-2 text-[9px] font-black text-slate-900 dark:text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 text-center">D</th>
@@ -39,7 +40,7 @@ const LeagueTable: React.FC = () => {
                 <th className="px-4 py-2 text-[9px] font-black text-slate-900 dark:text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 text-center">GF</th>
                 <th className="px-4 py-2 text-[9px] font-black text-slate-900 dark:text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 text-center">GA</th>
                 <th className="px-4 py-2 text-[9px] font-black text-slate-900 dark:text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 text-center">GD</th>
-                <th className="px-4 py-2 text-[9px] font-black text-slate-900 dark:text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 text-center">Aprov%</th>
+                <th className="px-4 py-2 text-[9px] font-black text-slate-900 dark:text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 text-center">{tx('Pts %')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30 transition-colors">

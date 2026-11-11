@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React from 'react';
 import { Team, League } from '../types';
 import { expectativaDoClube, expectativaPorFases } from '../textSim/managerExpectations';
@@ -27,15 +28,13 @@ export const calcularExpectativa = (pt: boolean, team: Team, leagueTeams: Team[]
   const fases = expectativaPorFases(leagueTeams, team);
   const tab = expectativaDoClube(leagueTeams, team, league?.relegated ?? Math.round(leagueTeams.length * 0.2));
   const nivel = porFases ? fases.fase : tab.nivel, ajuste = porFases ? fases.ajuste : tab.ajuste;
-  const notaTradicao = ajuste === 0 ? '' : ajuste > 0 ? (pt ? 'A tradição do clube eleva a cobrança.' : "The club's history raises the demand.") : (pt ? 'A pouca tradição reduz a cobrança.' : 'Little history lowers the demand.');
+  const notaTradicao = ajuste === 0 ? '' : ajuste > 0 ? (tx('The club\'s history raises the demand.')) : (tx('Little history lowers the demand.'));
   const rotulos = porFases
-    ? (pt ? ['Passar da primeira fase', 'Chegar à terceira fase', 'Chegar às oitavas de final', 'Chegar às quartas de final', 'Chegar à semifinal e subir', 'Conquistar o título']
-      : ['Get past the group stage', 'Reach the third phase', 'Reach the round of 16', 'Reach the quarter-finals', 'Reach the semi-finals and go up', 'Win the title'])
-    : pt ? ['Evitar o rebaixamento', 'Garantir a permanência', 'Terminar na metade de cima', 'Terminar entre os primeiros', 'Disputar o título', 'Conquistar o título']
-      : ['Avoid relegation', 'Secure survival', 'Finish in the upper half', 'Finish near the top', 'Compete for the title', 'Win the title'];
+    ? (['Get past the group stage', 'Reach the third phase', 'Reach the round of 16', 'Reach the quarter-finals', 'Reach the semi-finals and go up', 'Win the title'].map(s => tx(s)))
+    : ['Avoid relegation', 'Secure survival', 'Finish in the upper half', 'Finish near the top', 'Compete for the title', 'Win the title'].map(s => tx(s));
   const campeao = porFases ? nivel === 5 : tab.alvo <= 3;
-  const nomesFase = pt ? ['Segunda fase', 'Terceira fase', 'Oitavas de final', 'Quartas de final', 'Semifinal'] : ['Second phase', 'Third phase', 'Round of 16', 'Quarter-finals', 'Semi-finals'];
-  const meta = campeao ? (pt ? 'Ser campeão' : 'To be Champion') : porFases ? nomesFase[nivel] : (pt ? `Meta: top ${tab.alvo}` : `Target: top ${tab.alvo}`);
+  const nomesFase = ['Second phase', 'Third phase', 'Round of 16', 'Quarter-finals', 'Semi-finals'].map(s => tx(s));
+  const meta = campeao ? (tx('To be Champion')) : porFases ? nomesFase[nivel] : (tx('Target: top {v0}', { v0: tab.alvo }));
   return { nivel, ajuste, alvo: tab.alvo, porFases, campeao, meta, rotulo: rotulos[nivel], notaTradicao };
 };
 
@@ -45,7 +44,7 @@ const CORES = ['bg-red-500', 'bg-orange-500', 'bg-amber-400', 'bg-lime-400', 'bg
 export const BoardExpectationBox: React.FC<{ exp: Expectativa; pt: boolean; className?: string }> = ({ exp, pt, className = '' }) => (
   <div className={className}>
     <div className="flex items-center justify-between gap-2">
-      <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{pt ? 'Expectativa da diretoria' : 'Board expectations'}</span>
+      <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{tx('Board expectations')}</span>
       <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 ${exp.campeao ? 'bg-yellow-400/20 text-yellow-300' : 'bg-blue-500/20 text-blue-300'}`}>{exp.campeao ? '🏆 ' : ''}{exp.meta}</span>
     </div>
     <div className="font-black text-white text-base leading-tight mt-1">{exp.rotulo}</div>
@@ -53,6 +52,6 @@ export const BoardExpectationBox: React.FC<{ exp: Expectativa; pt: boolean; clas
     <div className="flex gap-px h-4 mt-2">
       {Array.from({ length: 100 }, (_, i) => { const nv = Math.min(5, Math.floor(i * 6 / 100)); return <div key={i} className={`flex-1 min-w-0 ${nv <= exp.nivel ? CORES[nv] : 'bg-white/10'}`} />; })}
     </div>
-    <div className="flex justify-between text-[8px] font-bold text-white/40 uppercase tracking-widest mt-1"><span>{exp.porFases ? (pt ? 'Grupos' : 'Groups') : (pt ? 'Permanência' : 'Survival')}</span><span>{pt ? 'Título' : 'Title'}</span></div>
+    <div className="flex justify-between text-[8px] font-bold text-white/40 uppercase tracking-widest mt-1"><span>{exp.porFases ? (tx('Groups')) : (tx('Survival'))}</span><span>{tx('Title')}</span></div>
   </div>
 );

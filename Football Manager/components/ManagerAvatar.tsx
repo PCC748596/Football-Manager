@@ -1,3 +1,4 @@
+import { tx } from '../textSim/idiomas';
 import React, { useEffect, useRef } from 'react';
 
 export type ManagerOutfit = 'SUIT' | 'TRACKSUIT' | 'CASUAL';
@@ -53,7 +54,7 @@ export const ManagerAvatar: React.FC<Props> = ({ look, rodar = 0, busto = false,
   useEffect(() => { if (pronto.current) enviar({ tipo: 'look', look }); }, [look]);
   useEffect(() => { if (rodar && pronto.current) enviar({ tipo: 'rodar' }); }, [rodar]);
 
-  return <iframe ref={ref} src={new URL('simulador3d/managerpreview.html', document.baseURI).href} title="Treinador" className={className} style={{ border: 0, background: 'transparent' }} />;
+  return <iframe ref={ref} src={new URL('simulador3d/managerpreview.html', document.baseURI).href} title={tx('Manager')} className={className} style={{ border: 0, background: 'transparent' }} />;
 };
 
 export default ManagerAvatar;
