@@ -205,6 +205,7 @@ export const gerarAtributos = (posicao: Position | string, estilo: PlayStyle | s
   }
   // aproxima o overall posicional do nivel-alvo (desloca os atributos NAO fisicos juntos), sem eliminar a especializacao
   const naoFis = lista.filter(k => !GRUPOS.FIS.includes(k));
+  const fisicos = lista.filter(k => GRUPOS.FIS.includes(k));
   const lim = (v: number) => Math.max(ATTR_MIN, Math.min(ATTR_MAX, v));
   let ajustado: Record<string, number> = {};
   for (let it = 0; it < 8; it++) {
@@ -213,6 +214,9 @@ export const gerarAtributos = (posicao: Position | string, estilo: PlayStyle | s
     const dif = nivel - ov;
     if (Math.abs(dif) <= P.tolerancia) break;
     for (const k of naoFis) a[k] += dif;
+    // Overall ainda ACIMA do alvo depois de 3 voltas: os nao fisicos ja bateram no minimo (50) e o fisico (que segue a idade, ~80) segura o overall das posicoes
+    // fisicas (laterais, pontas). So entao o fisico tambem desce, metade da diferenca por volta. (Nov/2026: um LB pedido 65 saia ~68.)
+    if (dif < 0 && it >= 2) for (const k of fisicos) a[k] += dif * 0.5;
   }
   const finais: Atributos = {};
   for (const k of lista) finais[k] = limitarAtributo(ajustado[k]);

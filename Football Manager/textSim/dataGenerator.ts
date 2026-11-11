@@ -834,7 +834,7 @@ export const generateLeagueData = (countryId: string, leagueId: string = '') => 
   // Salario e valor da economia da liga (textSim/economia.ts) e caixa do clube = 3 x folha anual.
   {
     players.forEach(p => {
-      p.salary = salarioSemanalDoMercado(p.skill, p.age, leagueId);
+      p.salary = salarioSemanalDoMercado(p.skill, p.age, leagueId, String(p.id));
       const fim = Number(String(p.contractExpiry).split(' ')[1]) || 2026;
       p.value = valorDeMercado({ ...p, contract: { start: DATA_BASE_VALOR, end: `${fim}-06-30`, years: 3 } } as Player, DATA_BASE_VALOR);
     });
