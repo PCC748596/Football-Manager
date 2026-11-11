@@ -1,6 +1,7 @@
 import { DISTRIBUICAO } from '../textSim/distribuicao';
 import React from 'react';
 import { useGame } from '../context/GameContext';
+import { textosDaPartida, vozDoIdioma } from '../textSim/idiomas';
 import { Fixture, Team, Player, Position, Language } from '../types';
 import { calculateMatchRatings, getStoppageTime } from '../textSim/matchEngine';
 
@@ -9,56 +10,6 @@ interface TeamShieldProps {
   className?: string;
 }
 
-const UI_TRANSLATIONS = {
-  EN: {
-    round: "Round",
-    liveCenter: "Live Center",
-    kickOff: "Kick Off",
-    resume: "Resume",
-    pause: "Pause",
-    instantResult: "Instant Result",
-    tactics: "Tactics",
-    allFixtures: "All Fixtures",
-    gamesToday: "Games Today",
-    globalCenter: "Global Center",
-    matchMonitor: "Live Match Monitor",
-    simulation: "Simulation",
-    confirmResults: "Confirm Round Results",
-    played: "Played",
-    noGoals: "No goals yet",
-    realTime: "Real-time simulation...",
-    possession: "Possession",
-    balance: "Match Balance",
-    goalLabel: "GOAL!",
-    yellowLabel: "YELLOW",
-    redLabel: "RED CARD",
-    subLabel: "SUB"
-  },
-  PT: {
-    round: "Rodada",
-    liveCenter: "Central ao Vivo",
-    kickOff: "Início",
-    resume: "Continuar",
-    pause: "Pausar",
-    instantResult: "Resultado Instantâneo",
-    tactics: "Táticas",
-    allFixtures: "Todos os Jogos",
-    gamesToday: "Jogos de Hoje",
-    globalCenter: "Central Global",
-    matchMonitor: "Monitor de Partida",
-    simulation: "Simulação",
-    confirmResults: "Confirmar Resultados",
-    played: "Jogados",
-    noGoals: "Sem gols ainda",
-    realTime: "Simulação em tempo real...",
-    possession: "Posse de bola",
-    balance: "Balanço do Jogo",
-    goalLabel: "GOL!",
-    yellowLabel: "AMARELO",
-    redLabel: "VERMELHO",
-    subLabel: "SUB"
-  }
-};
 
 const TeamShield: React.FC<TeamShieldProps> = ({ team, className = "w-12 h-12" }) => {
   if (!team) return <div className={`${className} bg-slate-200 animate-pulse rounded-full`}></div>;
@@ -116,7 +67,7 @@ export const getDisplayMinuteStr = (internalMinute: number, htDuration: number):
 const LiveMatchRow: React.FC<{ fixture: Fixture, home: Team | undefined, away: Team | undefined, isUserGame: boolean, players: Player[], compact?: boolean, hidePossession?: boolean, lang: Language }> = ({ fixture, home, away, isUserGame, players, compact, hidePossession, lang }) => {
   const latestEvent = fixture.events.length > 0 ? fixture.events[fixture.events.length - 1] : null;
   const isShowingFlash = latestEvent && (latestEvent.type === 'GOAL' || latestEvent.type === 'CARD') && (fixture.played || (fixture.events.length > 0 && latestEvent.minute === fixture.events[fixture.events.length-1].minute));
-  const t = UI_TRANSLATIONS[lang];
+  const t = textosDaPartida(lang);
 
   let flashData = null;
   if (isShowingFlash && latestEvent) {
@@ -202,7 +153,7 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
   React.useEffect(() => { try { localStorage.setItem('activeMatchView', 'TRAINING'); } catch (e) { /* sem armazenamento */ } }, []);
   const { gameState, teams, playMatchDay, pauseMatch, fixtures, advanceWeek, players, finishMatchDayInstant, updateSettings, motor3dProgresso } = useGame();
   const lang = gameState.language || 'EN';
-  const t = UI_TRANSLATIONS[lang];
+  const t = textosDaPartida(lang);
   
   const todaysFixtures = fixtures.filter(f => f.date === gameState.currentDate);
   const userMatch = todaysFixtures.find(f => f.homeTeamId === gameState.userTeamId || f.awayTeamId === gameState.userTeamId);
@@ -299,7 +250,7 @@ const MatchRoundView: React.FC<{ setView: (v: string) => void }> = ({ setView })
 
             const utterance = new SpeechSynthesisUtterance(textToSpeak);
             const voices = window.speechSynthesis.getVoices();
-            const preferredLang = lang === 'PT' ? 'pt' : 'en';
+            const preferredLang = vozDoIdioma(lang);
             
             // Tenta achar uma voz masculina usando nomes e identificadores comuns no Windows/macOS/Chrome
             let maleVoice = voices.find(v => 

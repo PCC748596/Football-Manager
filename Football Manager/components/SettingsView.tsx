@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { buscarTaxasOnline, cambioAutomatico, definirCambioAutomatico } from '../textSim/cambio';
 import { useGame } from '../context/GameContext';
+import { IDIOMAS } from '../textSim/idiomas';
 import { MatchDuration } from '../types';
 import { lerConfigMod, gravarConfigMod, CAMINHO_PADRAO_DO_MOD } from '../textSim/modConfig';
 import { estadoDoMod } from '../textSim/modDados';
@@ -44,18 +45,18 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
               <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">{t('set_lang')}</label>
-                      <div className="flex gap-2">
-                          {['EN', 'PT'].map((lang) => (
+                      <div className="grid grid-cols-3 gap-2">
+                          {IDIOMAS.map(({ codigo: lang, nome }) => (
                               <button
                                 key={lang}
-                                onClick={() => updateSettings({ language: lang as any })}
+                                onClick={() => updateSettings({ language: lang })}
                                 className={`flex-1 py-3 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
                                     gameState.language === lang 
                                     ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-400 ring-offset-2 ring-offset-white dark:ring-offset-slate-900' 
                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                                 }`}
                               >
-                                  {lang === 'EN' ? 'English' : 'Português'}
+                                  {nome}
                               </button>
                           ))}
                       </div>

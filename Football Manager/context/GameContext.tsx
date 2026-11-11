@@ -40,149 +40,8 @@ import { REAL_TEAMS_JSON } from '../textSim/realDatabase';
 import { montarPayload, jogarOculto, aplicarResultado, eventosDoManager, notasDoMotor, ordemDaPosicao } from '../3dMatch/simulador3dCliente';
 import { simulador3dEnviar, simulador3dInstantaneo, simulador3dDescartar } from '../3dMatch/Simulador3DView';
 import { avisoDoGoleiro, aplicarTrocaDo3d } from '../3dMatch/avisoGoleiro';
+import { traduzir, idiomaValido } from '../textSim/idiomas';
 
-const TRANSLATIONS: Record<string, any> = {
-  EN: {
-    // Nav
-    nav_home: "Home", nav_inbox: "Inbox", nav_transfers: "Transfers", nav_squad: "Squad", nav_tactics: "Tactics", nav_training: "Training",
-    nav_fixtures: "Fixtures", nav_standings: "Standings", nav_finance: "Finance", nav_statistics: "Statistics", nav_manager: "Manager", nav_settings: "Settings", nav_world: "World",
-    nav_match_day: "Match Day", nav_sim_round: "Simulate Round", nav_save_game: "Save Game",
-    // Start Menu
-    start_new: "START NEW CAREER", start_continue: "CONTINUE CAREER", start_editor: "EDITOR", start_settings: "SETTINGS",
-    // Profile Creation
-    prof_title: "Manager Profile", prof_name_label: "Full Name", prof_placeholder: "ENTER MANAGER NAME...",
-    prof_cancel: "Cancel", prof_continue: "Continue to Selection",
-    // Team Selection
-    sel_title: "Select Your Club", sel_back: "Profile", sel_step1: "1. National Associations",
-    sel_step2: "2. Competitions", sel_step3: "3. Affiliated Clubs", sel_join: "JOIN",
-    // Dashboard
-    dash_manager_home: "Manager Home", dash_simulate: "Simulate Round", dash_advance: "Advance Day",
-    dash_match_day: "Match Day", dash_next_match: "Next Match", dash_view_tactics: "View Tactics",
-    dash_squad_snap: "Squad Snapshot", dash_avg_ovr: "Avg OVR", dash_players: "Players",
-    dash_top_5: "Top 5 Players", dash_treasury: "Club Treasury", dash_avail_balance: "Available Balance",
-    dash_standings: "League Standings", dash_event: "EVENT",
-    // Finance
-    fin_center: "Financial Center", fin_subtitle: "Treasury Management & Transfer Negotiations",
-    fin_treasury: "Treasury", fin_market: "Transfer Market",
-    fin_weekly_sal: "Weekly Salaries", fin_match_rev: "Match Revenue", fin_sponsor: "Annual Sponsor", fin_fanbase: "Fan Base",
-    fin_squad_payroll: "Squad Payroll", fin_search: "Search player...", fin_sign: "Sign Contract",
-    fin_sell: "Sell Player", fin_market_closed: "Market Closed", fin_market_closed_msg: "The transfer window is currently closed. Come back in Jan or Jul.",
-    fin_no_players: "No players found matching criteria.", fin_summary: "Financial Summary",
-    fin_season_budget: "Season Budget", fin_transfer_budget: "Transfer Budget", fin_avg_att: "Avg. Attendance",
-    // Squad
-    sq_management: "Squad Management", sq_subtitle: "Drag n drop shirt numbers to swap between players • Click on rows for details",
-    sq_gk: "Goalkeepers", sq_def: "Defenders", sq_mid: "Midfielders", sq_fwd: "Forwards",
-    // Match Day / Schedule / Layout (extras)
-    md_stats: "STATISTICS", md_reset: "RESET", md_pause: "PAUSE", md_continue: "CONTINUE", md_skip: "SKIP", md_kickoff: "KICK-OFF", md_finish: "FINISH", md_time: "TIME",
-    md_camera: "Camera", md_speed: "Speed", md_replay: "Replay 10s", md_replay_tip: "Replays the last 10 seconds (click again to stop)",
-    cam_orbit: "Orbit", cam_center: "TV Centre", cam_sideline: "Moving Sideline", cam_lateraltv: "TV Sideline", cam_grua: "Crane", cam_cinema: "Cinema",
-    fx_type: "Type", fx_date: "Date", fx_home: "Home", fx_result: "Result", fx_away: "Away", fx_status: "Status",
-    ly_continue: "CONTINUE", ly_simulating: "SIMULATING...", ly_match_week: "Match Week",
-    set_tablet: "Tablet Mode (4:3)", set_tablet_desc: "Runs the game inside a frame with the real tablet size (iPad landscape, 1180 x 820) so the screens look as they do on the tablet.", set_tablet_aviso: "Reloads the page: save the game first (the current game is not kept).", set_tablet_janela: "Window now", set_tablet_quadro: "Tablet frame (width × height)", set_on: "ON", set_off: "OFF",
-    // Tactics
-    tac_match: "Match", tac_tactics: "Tactics", tac_formation: "Formation",
-    tac_instr: "Tactical Instructions", tac_style: "Play Style", tac_aggression: "Aggression",
-    tac_sector: "Match Sector", tac_pressure: "Pressure", tac_def_line: "Defensive Line", tac_tempo: "Tempo",
-    tac_squad_pool: "Squad Pool", tac_note: "MATCH TACTICS positions are from selected FORMATION. Bench/Pool positions are player's natural role.",
-    // Training
-    train_center: "Training Center", train_subtitle: "Schedule your team's weekly development",
-    train_schedule: "Weekly Schedule", train_clear: "Clear Calendar", train_highlights: "Training Highlights",
-    train_top_growth: "Top 5 Growth", train_prog: "Prog.",
-    // Fixtures
-    fix_season: "Season", fix_schedule: "Schedule", fix_list: "Fixture List for",
-    // Match
-    match_sim: "Simulation", match_live: "Live Center", match_kickoff: "Kick Off",
-    match_resume: "Resume", match_pause: "Pause", match_instant: "Instant Result",
-    match_confirm: "Confirm Round Results", match_all_fix: "All Fixtures", match_games_today: "Games Today",
-    match_stats: "Match Stats", match_events: "Match Events", match_scores: "Latest Scores",
-    match_commentary: "Live Commentary",
-    // Match Labels
-    ml_kickoff: "KICKOFF", ml_long: "LONG BALL", ml_pass: "PASS", ml_shot: "SHOT!", ml_goal: "GOAL!", ml_save: "SAVE!",
-    // Settings
-    set_game: "Game", set_settings: "Settings", set_subtitle: "Customize your management experience",
-    set_gen: "General", set_lang: "Language", set_theme: "Theme",
-    set_fin: "Financials", set_curr: "Currency", set_wage: "Wage Frequency",
-    set_note: "Note: Currency changes are visual. Game logic uses USD base.",
-    set_back_menu: "Back to Menu",
-    // Activities
-    act_modal_title: "Schedule Activity", act_back: "Back",
-    act_friendly: "Friendly Match", act_camp: "Training Camp", act_party: "Team Party",
-    act_select_opp: "Select Opponent:", act_select_dur: "Select Duration:",
-    act_select_type: "Select Event Type:", act_days: "Days", act_cost: "Cost", act_bonus: "Bonus",
-    months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
-    days_short: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
-  },
-  PT: {
-    // Nav
-    nav_home: "Início", nav_inbox: "Caixa de Entrada", nav_transfers: "Transferências", nav_squad: "Elenco", nav_tactics: "Tática", nav_training: "Treino",
-    nav_fixtures: "Jogos", nav_standings: "Tabela", nav_finance: "Finanças", nav_statistics: "Estatísticas", nav_manager: "Treinador", nav_settings: "Config.", nav_world: "Mundo",
-    nav_match_day: "Dia de Jogo", nav_sim_round: "Simular Rodada", nav_save_game: "Salvar Jogo",
-    // Start Menu
-    start_new: "INICIAR NOVA CARREIRA", start_continue: "CONTINUAR CARREIRA", start_editor: "EDITOR", start_settings: "CONFIGURAÇÕES",
-    // Profile Creation
-    prof_title: "Perfil do Treinador", prof_name_label: "Nome Completo", prof_placeholder: "DIGITE O NOME DO TREINADOR...",
-    prof_cancel: "Cancelar", prof_continue: "Continuar para Seleção",
-    // Team Selection
-    sel_title: "Selecione seu Clube", sel_back: "Perfil", sel_step1: "1. Federações Nacionais",
-    sel_step2: "2. Competições", sel_step3: "3. Clubes Filiados", sel_join: "ENTRAR",
-    // Dashboard
-    dash_manager_home: "Painel do Treinador", dash_simulate: "Simular Rodada", dash_advance: "Avançar Dia",
-    dash_match_day: "Ir para o Jogo", dash_next_match: "Próximo Jogo", dash_view_tactics: "Ver Tática",
-    dash_squad_snap: "Resumo do Elenco", dash_avg_ovr: "Média OVR", dash_players: "Jogadores",
-    dash_top_5: "Top 5 Jogadores", dash_treasury: "Tesouraria do Clube", dash_avail_balance: "Saldo Disponível",
-    dash_standings: "Classificação", dash_event: "EVENTO",
-    // Finance
-    fin_center: "Centro Financeiro", fin_subtitle: "Gestão de Tesouraria e Negociações",
-    fin_treasury: "Tesouraria", fin_market: "Mercado",
-    fin_weekly_sal: "Salários Semanais", fin_match_rev: "Receita de Jogo", fin_sponsor: "Patrocínio Anual", fin_fanbase: "Torcedores",
-    fin_squad_payroll: "Folha Salarial", fin_search: "Buscar jogador...", fin_sign: "Contratar",
-    fin_sell: "Vender Jogador", fin_market_closed: "Mercado Fechado", fin_market_closed_msg: "A janela de transferências está fechada. Volte em Jan ou Jul.",
-    fin_no_players: "Nenhum jogador encontrado.", fin_summary: "Resumo Financeiro",
-    fin_season_budget: "Orçamento Temporada", fin_transfer_budget: "Orçamento Transf.", fin_avg_att: "Público Médio",
-    // Squad
-    sq_management: "Gestão do Elenco", sq_subtitle: "Arraste os números para trocar camisas • Clique nas linhas para detalhes",
-    sq_gk: "Goleiros", sq_def: "Defensores", sq_mid: "Meio-campistas", sq_fwd: "Atacantes",
-    // Dia de Jogo / Calendario / Layout (extras)
-    md_stats: "ESTATÍSTICAS", md_reset: "REINICIAR", md_pause: "PAUSAR", md_continue: "CONTINUAR", md_skip: "PULAR", md_kickoff: "SAÍDA DE BOLA", md_finish: "FINALIZAR", md_time: "TEMPO",
-    md_camera: "Câmera", md_speed: "Velocidade", md_replay: "Replay 10s", md_replay_tip: "Repete os últimos 10 segundos (clique de novo para parar)",
-    cam_orbit: "Órbita", cam_center: "TV Centro", cam_sideline: "Lateral Móvel", cam_lateraltv: "TV Lateral", cam_grua: "Grua", cam_cinema: "Cinema",
-    fx_type: "Tipo", fx_date: "Data", fx_home: "Casa", fx_result: "Resultado", fx_away: "Fora", fx_status: "Situação",
-    ly_continue: "CONTINUAR", ly_simulating: "SIMULANDO...", ly_match_week: "Semana de Jogos",
-    set_tablet: "Modo Tablet (4:3)", set_tablet_desc: "Roda o jogo num quadro com o tamanho real do tablet (iPad deitado, 1180 x 820) para as telas ficarem como no tablet.", set_tablet_aviso: "Recarrega a página: salve o jogo antes (o jogo atual não é mantido).", set_tablet_janela: "Janela agora", set_tablet_quadro: "Quadro do tablet (largura × altura)", set_on: "LIGADO", set_off: "DESLIGADO",
-    // Tactics
-    tac_match: "Partida", tac_tactics: "Tática", tac_formation: "Esquema",
-    tac_instr: "Instruções Táticas", tac_style: "Estilo", tac_aggression: "Agressividade",
-    tac_sector: "Setor de Jogo", tac_pressure: "Pressão", tac_def_line: "Linha Defensiva", tac_tempo: "Tempo",
-    tac_squad_pool: "Reserva Geral", tac_note: "As posições TÁTICAS são baseadas no ESQUEMA. Banco e Reservas mostram a posição natural.",
-    // Training
-    train_center: "Centro de Treinamento", train_subtitle: "Planeje o desenvolvimento semanal",
-    train_schedule: "Cronograma Semanal", train_clear: "Limpar Calendário", train_highlights: "Destaques do Treino",
-    train_top_growth: "Top 5 Evolução", train_prog: "Prog.",
-    // Fixtures
-    fix_season: "Temporada", fix_schedule: "Calendário", fix_list: "Lista de Jogos para",
-    // Match
-    match_sim: "Simulação", match_live: "Placar ao Vivo", match_kickoff: "Início",
-    match_resume: "Continuar", match_pause: "Pausar", match_instant: "Resultado Instantâneo",
-    match_confirm: "Confirmar Resultados", match_all_fix: "Todos os Jogos", match_games_today: "Jogos de Hoje",
-    match_stats: "Estatísticas", match_events: "Eventos", match_scores: "Últimos Placares",
-    match_commentary: "Comentários ao Vivo",
-    // Match Labels
-    ml_kickoff: "SAÍDA", ml_long: "LANÇAMENTO", ml_pass: "PASSE", ml_shot: "CHUTE!", ml_goal: "GOL!", ml_save: "DEFESA!",
-    // Settings
-    set_game: "Jogo", set_settings: "Configurações", set_subtitle: "Personalize sua experiência",
-    set_gen: "Geral", set_lang: "Idioma", set_theme: "Tema",
-    set_fin: "Financeiro", set_curr: "Moeda", set_wage: "Freq. Salarial",
-    set_note: "Nota: Mudanças de moeda são visuais. A lógica usa base USD.",
-    set_back_menu: "Voltar ao Menu",
-    // Activities
-    act_modal_title: "Agendar Atividade", act_back: "Voltar",
-    act_friendly: "Amistoso", act_camp: "Campo de Treino", act_party: "Festa do Time",
-    act_select_opp: "Selecionar Oponente:", act_select_dur: "Selecionar Duração:",
-    act_select_type: "Selecionar Tipo:", act_days: "Dias", act_cost: "Custo", act_bonus: "Bônus",
-    months: ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"],
-    days_short: ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"]
-  }
-};
 
 interface GameContextType {
   managerState: ManagerState | null;
@@ -287,7 +146,7 @@ interface GameContextType {
   formatWage: (weeklyValue: number) => string;
   reportLiveGoal: (fixtureId: string, side: 'home' | 'away', scorerId?: string) => void;
   reportMatchEvent: (fixtureId: string, event: Partial<MatchEvent>) => void;
-  t: (key: string) => any;
+  t: (key: string, vars?: Record<string, string | number>) => any;
   updateMatchVisualState: (visual: Partial<MatchVisualState>) => void;
   registrarFinanceiro: (teamId: string, ponto: PontoFinanceiro) => void;
 }
@@ -348,7 +207,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const worldSaved = useRef<WorldResults | null>(null);   // resultados vindos de um save, para repor ao criar o mundo
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [gameState, setGameState] = useState<GameState>(() => {
-    const savedLang = localStorage.getItem('fm_lang') as Language;
+    const lido = localStorage.getItem('fm_lang');
+    const savedLang: Language | null = idiomaValido(lido) ? lido : null;
     return {
       currentWeek: 1,
       totalWeeks: 0,
@@ -858,10 +718,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
-  const t = (key: string) => {
-    const dict = TRANSLATIONS[gameState.language] || TRANSLATIONS['EN'];
-    return dict[key] || key;
-  };
+  // Os textos de textSim/idiomas/<codigo>.json; o que faltar no idioma sai em ingles.
+  const t = (key: string, vars?: Record<string, string | number>) => traduzir(gameState.language, key, vars);
 
   // Mudar as taxas refaz o provider (o `formatCurrency` de todas as telas passa a usar as novas).
   const [, setVersaoCambio] = useState(0);

@@ -1003,7 +1003,7 @@ export interface CalendarActivity {
 export const REEMBOLSO_ATIVIDADE = 0.8;
 
 export type ThemeMode = 'LIGHT' | 'DARK' | 'AUTO';
-export type Language = 'EN' | 'PT';
+export type Language = 'EN' | 'PT' | 'ES' | 'FR' | 'DE' | 'ZH';   // os textos: textSim/idiomas/<codigo>.json
 export type Currency = 'USD' | 'EUR' | 'BRL';
 export type WageFrequency = 'WEEKLY' | 'MONTHLY';
 export type MatchDuration = 10 | 15 | 20; 

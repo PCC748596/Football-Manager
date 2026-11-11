@@ -5,6 +5,7 @@ Funcoes puras: o contexto do jogo (context/GameContext.tsx) chama `avisosDoDia` 
 (as razoes que a geraram, ex. `contract|CRITICO|p-12`): uma razao so gera UMA mensagem, mesmo que o motor volte a passar pelo mesmo dia ou o save seja recarregado.
 Os textos saem no idioma do jogo (EN ou PT).
 */
+import type { Language } from '../types';
 import type { Player } from '../types';
 import { EstadoContrato, estadoDoContrato } from './contracts';
 import type { Faixa } from './managerExpectations';
@@ -25,7 +26,8 @@ export interface MensagemInbox {
   ir?: AbaDoJogo;                 // botao "abrir" a aba relacionada
 }
 
-export type Idioma = 'EN' | 'PT';
+/** O idioma das mensagens: os textos daqui so tem EN e PT; os outros idiomas saem em ingles (`L`). */
+export type Idioma = Language;
 const L = (lang: Idioma, en: string, pt: string) => (lang === 'PT' ? pt : en);
 export const LIMITE_INBOX = 400;
 

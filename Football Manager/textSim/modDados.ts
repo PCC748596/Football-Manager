@@ -16,6 +16,7 @@ Substitui no sitio os campos de REAL_TEAMS_JSON / REAL_PLAYERS_JSON (os numeros 
 import { REAL_TEAMS_JSON, REAL_PLAYERS_JSON, REAL_COUNTRIES_JSON } from './realDatabase';
 import { TREINADORES } from './treinadores';
 import { GRUPOS_REAIS_LIB, GRUPOS_REAIS_SUL, CLASSIFICACAO_INICIAL, SEED_UEL, SEED_UECL } from './competitions';
+import { IDIOMAS, registarTraducoes } from './idiomas';
 import { registarCompeticoes, definirBaseDosLogos, InfoCompeticao } from './nomesCompeticoes';
 import { lerConfigMod, urlDaPastaDoMod } from './modConfig';
 
@@ -97,6 +98,9 @@ export const carregarMod = async (): Promise<EstadoDoMod> => {
     const [clubes, jogadores, competicoes, regras] = await Promise.all([lerJson(url('clubes.json')), lerJson(url('jogadores.json')), lerJson(url('competicoes.json')), lerJson(url('regras.json'))]);
     const r = aplicarMod(Array.isArray(clubes) ? clubes : [], Array.isArray(jogadores) ? jogadores : [], Array.isArray(competicoes) ? competicoes : [], { base: pastaBase, sufixo: pastaSufixo });
     aplicarRegras(regras);
+    // Traducoes do mod (idiomas/<codigo>.json): corrigem ou completam as do jogo.
+    const traducoes = await Promise.all(IDIOMAS.map(i => lerJson(url('idiomas/' + i.codigo.toLowerCase() + '.json'))));
+    traducoes.forEach((tr, k) => { if (tr) registarTraducoes(IDIOMAS[k].codigo, tr); });
     Object.assign(estadoDoMod, { ativo: true, nome: String(mod.nome || 'mod'), origem: 'pasta', clubes: r.clubes, jogadores: r.jogadores, competicoes: r.competicoes });
     console.info(`[mod] ${estadoDoMod.nome} (${cfg.caminho}): ${r.clubes} clubes, ${r.jogadores} jogadores, ${r.competicoes} competicoes`);
   } catch (e) {

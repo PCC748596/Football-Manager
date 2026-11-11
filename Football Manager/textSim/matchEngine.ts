@@ -1,4 +1,5 @@
 import { Team, Player, Fixture, MatchEvent, Position, Tactics, Language, FORMATIONS, getEffectiveSkill } from '../types';
+import { narracaoDe } from './idiomas';
 import { decideTeamIntent, applyIntentToTactics, TeamIntent } from './teamAI';
 import { getRandomInjuryBySeverity } from './injuries';
 
@@ -13,100 +14,6 @@ export interface TeamRatings {
   synergy: number;
 }
 
-const NARRATION = {
-  EN: {
-    midfield_dom: [
-      "controls the ball in midfield.",
-      "dictates the tempo in the center.",
-      "keeps possession in the midfield.",
-      "distributes the play centrally.",
-      "orchestrates the play from the middle."
-    ],
-    midfield_chaos: "Intense battle for the ball in the central zone.",
-    vertical_pass: "tries a vertical pass.",
-    vertical_pass_left: "pushes forward down the left flank.",
-    vertical_pass_right: "pushes forward down the right flank.",
-    vertical_pass_center: "threads a vertical pass through the center.",
-    tackle_success: "cuts the play!",
-    advance_free: "advances with total freedom!",
-    advance_left: "advances freely down the left!",
-    advance_right: "advances freely down the right!",
-    advance_center: "advances freely through the center!",
-    goal_perfect: "GOAL! Perfect finish by",
-    miss_close: "UHHH! Shot by @PLAYER passes inches away!",
-    corner_save: "Defense stretches out to send it for a corner.",
-    red_card: "🟥 SENT OFF! Brutal tackle by",
-    red_card_second_yellow: "🟥 SENT OFF! Second yellow card for",
-    yellow_card: "🟨 Yellow Card shown to",
-    foul_called: "Foul called against",
-    offside_called: "caught in an illegal position.",
-    corner_awarded: "conquers a corner!",
-    penalty_awarded: "PENALTY! Foul inside the box!",
-    counter_attack: "COUNTER-ATTACK! Fast break!",
-    lateral_out: "ball out for a throw-in.",
-    injury_happened: "is down! Medical team on the pitch.",
-    sub: "Substitution:",
-    realTime: "Real-time simulation...",
-    momentum_surge: "The team is gaining momentum!",
-    momentum_collapse: "The pressure is mounting!",
-    half_time: "Half Time!",
-    full_time: "Full Time!",
-    tactics_change: "Tactical change:",
-    corner_goal: "GOAL FROM THE CORNER! Header by",
-    penalty_scored: "Converts from the spot:",
-    penalty_saved: "SAVED! The keeper stops the penalty!",
-    penalty_missed: "MISSED! The penalty goes wide!",
-    sub_made: "comes on for",
-    sub_injury: "forced change due to injury:",
-    intent: { BALANCED: "back to the game plan", ATTACK: "all-out attack", COUNTER: "counter-attack", POSSESS: "keep possession", RETREAT: "sit back", PRESS: "high press" } as Record<string, string>
-  },
-  PT: {
-    midfield_dom: [
-      "domina a bola no meio.",
-      "dita o ritmo de jogo no centro.",
-      "mantém a posse no meio-campo.",
-      "distribui o jogo na região central.",
-      "cadencia o jogo no setor de meio-campo."
-    ],
-    midfield_chaos: "Muitas disputas de bola na zona central.",
-    vertical_pass: "tenta verticalizar o jogo.",
-    vertical_pass_left: "avança pela esquerda.",
-    vertical_pass_right: "avança pela direita.",
-    vertical_pass_center: "verticaliza pelo centro.",
-    tackle_success: "corta o lance!",
-    advance_free: "avança com liberdade total!",
-    advance_left: "avança livremente pela esquerda!",
-    advance_right: "avança livremente pela direita!",
-    advance_center: "avança livremente pelo centro!",
-    goal_perfect: "GOLAÇO! Finalização perfeita de",
-    miss_close: "UHHH! Chute de @PLAYER passa tirando tinta!",
-    corner_save: "Defesa se estica toda para mandar para escanteio.",
-    red_card: "🟥 EXPULSO! Entrada criminosa de",
-    red_card_second_yellow: "🟥 EXPULSO! Segundo cartão amarelo para",
-    yellow_card: "🟨 Cartão Amarelo mostrado para",
-    foul_called: "Falta de jogo marcada contra o",
-    offside_called: "estava adiantado e a bandeira subiu.",
-    corner_awarded: "conquista o escanteio!",
-    penalty_awarded: "PÊNALTI! Foi derrubado na área!",
-    counter_attack: "CONTRA-ATAQUE! O time sai em velocidade!",
-    lateral_out: "bola saiu pela linha lateral.",
-    injury_happened: "está caído! A maca entrou em campo.",
-    sub: "Substituição:",
-    realTime: "Simulação em tempo real...",
-    momentum_surge: "O time está empolgado!",
-    momentum_collapse: "A pressão está aumentando!",
-    half_time: "Intervalo!",
-    full_time: "Fim de Jogo!",
-    tactics_change: "Mudança tática:",
-    corner_goal: "GOL DE ESCANTEIO! Cabeçada de",
-    penalty_scored: "Cobra e converte:",
-    penalty_saved: "DEFENDEU! O goleiro pega o pênalti!",
-    penalty_missed: "PERDEU! O pênalti foi para fora!",
-    sub_made: "entra no lugar de",
-    sub_injury: "mudança forçada por lesão:",
-    intent: { BALANCED: "volta ao plano de jogo", ATTACK: "todos ao ataque", COUNTER: "contra-ataque", POSSESS: "segurar a posse", RETREAT: "recuar as linhas", PRESS: "pressão alta" } as Record<string, string>
-  }
-};
 
 // =====================================================================
 // CONSTANTES DE CALIBRAÇÃO
@@ -719,7 +626,7 @@ export const simulateMatch = (fixture: Fixture, allTeams: Team[], allPlayers: Pl
   const awayState = getTeamState(awayTeam.name);
   const isDerby = homeState === awayState && homeState.length > 0;
 
-  const t = NARRATION[lang];
+  const t = narracaoDe(lang);   // textSim/idiomas/<codigo>.json (`narracao`); o que faltar vem do ingles
   const targetEndMinute = finalMinute !== undefined ? finalMinute : 90;
   let events = [...(fixture.events || [])];
   // As fixtures nascem com homeScore/awayScore = null; `!== undefined` deixava o
