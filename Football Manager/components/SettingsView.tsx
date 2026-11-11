@@ -3,7 +3,7 @@ import { tx } from '../textSim/idiomas';
 import React, { useState } from 'react';
 import { buscarTaxasOnline, cambioAutomatico, definirCambioAutomatico } from '../textSim/cambio';
 import { useGame } from '../context/GameContext';
-import { IDIOMAS } from '../textSim/idiomas';
+import { IDIOMAS, localeDoIdioma } from '../textSim/idiomas';
 import { MatchDuration } from '../types';
 import { lerConfigMod, gravarConfigMod, CAMINHO_PADRAO_DO_MOD } from '../textSim/modConfig';
 import { estadoDoMod } from '../textSim/modDados';
@@ -51,13 +51,15 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                               <button
                                 key={lang}
                                 onClick={() => updateSettings({ language: lang })}
-                                className={`flex-1 py-3 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
+                                title={nome}
+                                className={`py-2 rounded-lg font-black text-sm transition-all flex flex-col items-center leading-tight ${
                                     gameState.language === lang 
                                     ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-400 ring-offset-2 ring-offset-white dark:ring-offset-slate-900' 
                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                                 }`}
                               >
-                                  {nome}
+                                  <span>{nome}</span>
+                                  <span className="text-[9px] tracking-widest opacity-60">{lang}</span>
                               </button>
                           ))}
                       </div>
@@ -68,7 +70,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                       <div className="flex gap-2">
                           {['LIGHT', 'DARK', 'AUTO'].map((mode) => (
                               <button
-                                key={mode}
+                                key={tx(({ LIGHT: 'Light', DARK: 'Dark', AUTO: 'Auto' } as Record<string, string>)[mode])}
                                 onClick={() => updateSettings({ themeMode: mode as any })}
                                 className={`flex-1 py-3 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
                                     gameState.themeMode === mode 
@@ -90,7 +92,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
               
               <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">Match Day Time (Real Min)</label>
+                      <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">{tx('Match Day Time (Real Min)')}</label>
                       <div className="flex gap-2">
                           {[10, 15, 20].map((dur) => (
                               <button
@@ -102,7 +104,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                                 }`}
                               >
-                                  {dur}m
+                                  {tx('{v0} min', { v0: dur })}
                               </button>
                           ))}
                       </div>
@@ -114,12 +116,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
           <section className="space-y-4">
               <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">{tx('Mod')}</h3>
               <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">Mod (real names, badges and competitions)</label>
+                  <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">{tx('Mod (real names, badges and competitions)')}</label>
                   <div className="flex gap-2">
                       {[true, false].map(on => (
                           <button key={String(on)} onClick={() => setMod({ ...mod, ativo: on })}
                               className={`flex-1 py-3 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${mod.ativo === on ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
-                              {on ? 'ON' : 'OFF'}
+                              {on ? t('set_on') : t('set_off')}
                           </button>
                       ))}
                   </div>
@@ -139,11 +141,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                   </div>
                   <p className="text-[10px] text-slate-400">
                       {estadoDoMod.ativo
-                          ? `Loaded: ${estadoDoMod.nome} (${estadoDoMod.caminho}) — ${estadoDoMod.clubes} clubs, ${estadoDoMod.jogadores} players, ${estadoDoMod.competicoes} competitions.`
+                          ? tx('Loaded: {v0} ({v1}) — {v2} clubs, {v3} players, {v4} competitions.', { v0: estadoDoMod.nome || '', v1: estadoDoMod.caminho, v2: estadoDoMod.clubes, v3: estadoDoMod.jogadores, v4: estadoDoMod.competicoes })
                           : estadoDoMod.configurado
-                              ? `No mod found in ${estadoDoMod.caminho}: the game uses the generic names.`
-                              : 'Mod is OFF: the game uses the generic names.'}
-                      {' '}The mod folder holds mod.json, clubes.json, jogadores.json, competicoes.json and the escudos/ and competicoes/ images. Changes apply after restarting.
+                              ? tx('No mod found in {v0}: the game uses the generic names.', { v0: estadoDoMod.caminho })
+                              : tx('Mod is OFF: the game uses the generic names.')}
+                      {' '}{tx('The mod folder holds mod.json, clubes.json, jogadores.json, competicoes.json and the escudos/ and competicoes/ images. Changes apply after restarting.')}
                   </p>
               </div>
           </section>
@@ -152,11 +154,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
           <section className="space-y-4">
               <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] border-b border-slate-200 dark:border-slate-800 pb-2">{tx('Graphics')}</h3>
               <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">3D Match Quality</label>
+                  <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">{tx('3D Match Quality')}</label>
                   <div className="flex gap-2">
                       {(['HIGH', 'MEDIUM', 'LOW'] as const).map((q) => (
                           <button
-                            key={q}
+                            key={tx(({ HIGH: 'High', MEDIUM: 'Medium', LOW: 'Low' } as Record<string, string>)[q])}
                             onClick={() => updateSettings({ graphicsQuality: q })}
                             className={`flex-1 py-3 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
                                 (gameState.graphicsQuality || 'HIGH') === q
@@ -168,25 +170,25 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                           </button>
                       ))}
                   </div>
-                  <p className="text-xs text-slate-400">HIGH (default): 100% crowd. MEDIUM: 50% crowd. LOW: light player model, 25% of the stadium seats filled. Real-time shadows are OFF by default at every level (use the Shadows button in the 3D match to turn them on; a soft blob shadow is drawn instead). Crowd size applies from the next match.</p>
+                  <p className="text-xs text-slate-400">{tx('HIGH (default): 100% crowd. MEDIUM: 50% crowd. LOW: light player model, 25% of the stadium seats filled. Real-time shadows are OFF by default at every level (use the Shadows button in the 3D match to turn them on; a soft blob shadow is drawn instead). Crowd size applies from the next match.')}</p>
               </div>
               <div className="space-y-2 pt-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">{tx('TV Sideline camera')}</label>
                   <div className="grid grid-cols-2 gap-4 items-end">
                       <div className="space-y-1">
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Min Distance (m)</span>
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{tx('Min Distance (m)')}</span>
                           <input type="number" step="1" min="5" value={gameState.cameraTvMin ?? 15}
                               onChange={e => { const v = parseInt(e.target.value); if (v >= 5) updateSettings({ cameraTvMin: v }); }}
                               className="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-sm border border-slate-200 dark:border-slate-700" />
                       </div>
                       <div className="space-y-1">
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Max Distance (m)</span>
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{tx('Max Distance (m)')}</span>
                           <input type="number" step="1" min="5" value={gameState.cameraTvMax ?? 30}
                               onChange={e => { const v = parseInt(e.target.value); if (v >= 5) updateSettings({ cameraTvMax: v }); }}
                               className="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-sm border border-slate-200 dark:border-slate-700" />
                       </div>
                   </div>
-                  <p className="text-[10px] text-slate-400">Controls how close or far the camera gets from the ball (default 15 to 30).</p>
+                  <p className="text-[10px] text-slate-400">{tx('Controls how close or far the camera gets from the ball (default 15 to 30).')}</p>
               </div>
           </section>
 
@@ -219,7 +221,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                       <div className="flex gap-2">
                           {['WEEKLY', 'MONTHLY'].map((freq) => (
                               <button
-                                key={freq}
+                                key={tx(({ WEEKLY: 'Weekly', MONTHLY: 'Monthly' } as Record<string, string>)[freq])}
                                 onClick={() => updateSettings({ wageFrequency: freq as any })}
                                 className={`flex-1 py-3 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
                                     gameState.wageFrequency === freq 
@@ -236,27 +238,27 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
 
               {/* Taxas de cambio (unidades de cada moeda por 1 dolar): alimentam a moeda de exibicao, as premiacoes e a economia do estadio. */}
               <div className="space-y-2 pt-2">
-                  <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">Exchange rates (per 1 USD)</label>
+                  <label className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">{tx('Exchange rates (per 1 USD)')}</label>
                   <div className="grid grid-cols-4 gap-4 items-end">
                       {(['BRL', 'EUR', 'GBP'] as const).map(m => (
                           <div key={m} className="space-y-1">
                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{m}</span>
                               <input type="number" step="0.01" min="0.01" value={taxasDeCambio[m]}
-                                  onChange={e => { const v = parseFloat(e.target.value); if (v > 0) { atualizarTaxas({ [m]: v }); if (cambioAuto) { definirCambioAutomatico(false); setCambioAuto(false); setMsgCambio('Manual rate set: auto-update turned off.'); } } }}
+                                  onChange={e => { const v = parseFloat(e.target.value); if (v > 0) { atualizarTaxas({ [m]: v }); if (cambioAuto) { definirCambioAutomatico(false); setCambioAuto(false); setMsgCambio(tx('Manual rate set: auto-update turned off.')); } } }}
                                   className="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-sm border border-slate-200 dark:border-slate-700" />
                           </div>
                       ))}
                       <button onClick={() => atualizarTaxas('padrao')} className="py-2 rounded-lg font-black text-xs uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">{tx('Reset')}</button>
                   </div>
                   <div className="flex items-center gap-3 flex-wrap">
-                      <button onClick={async () => { setMsgCambio('Updating...'); const r = await buscarTaxasOnline(); if (r) { atualizarTaxas(r); setMsgCambio('Updated: ' + new Date().toLocaleString('en-US')); } else setMsgCambio('Could not reach the rates service; the saved rates were kept.'); }}
+                      <button onClick={async () => { setMsgCambio(tx('Updating...')); const r = await buscarTaxasOnline(); if (r) { atualizarTaxas(r); setMsgCambio(tx('Updated: {v0}', { v0: new Date().toLocaleString(localeDoIdioma(gameState.language)) })); } else setMsgCambio(tx('Could not reach the rates service; the saved rates were kept.')); }}
                           className="px-4 py-2 rounded-lg font-black text-xs uppercase tracking-widest bg-blue-600 text-white hover:bg-blue-500">{tx('Update now')}</button>
                       <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-                          <input type="checkbox" checked={cambioAuto} onChange={e => { definirCambioAutomatico(e.target.checked); setCambioAuto(e.target.checked); }} /> Auto-update when the game opens (once every 12 h)
+                          <input type="checkbox" checked={cambioAuto} onChange={e => { definirCambioAutomatico(e.target.checked); setCambioAuto(e.target.checked); }} /> {tx('Auto-update when the game opens (once every 12 h)')}
                       </label>
                       {msgCambio && <span className="text-[10px] text-slate-400">{msgCambio}</span>}
                   </div>
-                  <p className="text-[10px] text-slate-400">Game money is stored in US dollars. Changing a rate changes how values are shown and how prize money (BRL, GBP) is converted.</p>
+                  <p className="text-[10px] text-slate-400">{tx('Game money is stored in US dollars. Changing a rate changes how values are shown and how prize money (BRL, GBP) is converted.')}</p>
               </div>
           </section>
 
