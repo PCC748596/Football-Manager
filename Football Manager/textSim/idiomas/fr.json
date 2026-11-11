@@ -1153,6 +1153,9 @@
   "{v0} waiting for your answer": "{v0} en attente de ta réponse",
   "Available now (Transfer Market):": "Disponible maintenant (marché) :",
   "Transfer budget left:": "Budget restant :",
-  "What is left of this season's transfer budget (purchases take from it; half of each sale goes back into it)": "Ce qui reste du budget transferts de la saison (chaque achat en retire ; la moitié de chaque vente y revient)"
+  "What is left of this season's transfer budget (purchases take from it; half of each sale goes back into it)": "Ce qui reste du budget transferts de la saison (chaque achat en retire ; la moitié de chaque vente y revient)",
+  "Used:": "Utilisé :",
+  "Left:": "Reste :",
+  "Used: {v0}": "Utilisé : {v0}"
  }
 }
