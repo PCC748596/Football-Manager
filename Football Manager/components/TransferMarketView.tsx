@@ -1,5 +1,5 @@
 import { tx } from '../textSim/idiomas';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PlayerDetailModal from './PlayerDetailModal';
 import { atributos3d } from '../textSim/atributos3d';
 import { useGame } from '../context/GameContext';
@@ -35,6 +35,22 @@ const dataCurta = (iso?: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7
 const Estrelas: React.FC<{ n: number }> = ({ n }) => (
   <span className="whitespace-nowrap text-sm inline-flex gap-[3px]" title={tx('Estimated potential')}>{Array.from({ length: 5 }, (_, i) => <span key={i} className={i < n ? 'text-amber-400' : 'text-slate-200 dark:text-slate-700'}>★</span>)}</span>
 );
+
+
+/** Campo numerico que tambem muda com a RODA do mouse (sem precisar de clicar nele): para cima +1, para baixo -1, preso entre min e max. O listener e nativo e nao passivo
+ *  para a pagina nao rolar junto (o onWheel do React e passivo e nao deixa cancelar a rolagem). */
+const NumeroComRoda: React.FC<{ valor: number; min: number; max: number; onMudar: (v: number) => void; className?: string }> = ({ valor, min, max, onMudar, className }) => {
+  const ref = useRef<HTMLInputElement>(null);
+  const atual = useRef({ valor, onMudar }); atual.current = { valor, onMudar };
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const roda = (e: WheelEvent) => { e.preventDefault(); const passo = e.deltaY < 0 ? 1 : -1; atual.current.onMudar(Math.max(min, Math.min(max, atual.current.valor + passo))); };
+    el.addEventListener('wheel', roda, { passive: false });
+    return () => el.removeEventListener('wheel', roda);
+  }, [min, max]);
+  return <input ref={ref} type="number" className={className} value={valor} min={min} max={max}
+    onChange={e => { const n = Number(e.target.value); if (e.target.value !== '' && isFinite(n)) onMudar(Math.max(min, Math.min(max, Math.round(n)))); }} />;
+};
 
 const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }) => {
   const { players, base, teams, userTeam, gameState, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, formatCurrency, formatCurrencyShort } = useGame();
@@ -169,8 +185,8 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
             {([['GK', 'GK'], ['DEF', 'DEF'], ['MID', 'MID'], ['ATT', 'ATA']] as const).map(([g, r]) => <button key={g} onClick={() => setGrupo(grupo === g ? 'ANY' : g)} className={chip(grupo === g)}>{r}</button>)}
           </div>
         </div>
-        <div><label className={rotulo}>{tx('Age')}</label><div className="flex gap-2 items-center"><input type="number" className={campo} value={idadeMin} min={15} max={45} onChange={e => setIdadeMin(Number(e.target.value) || 15)} /><span className="text-slate-400">–</span><input type="number" className={campo} value={idadeMax} min={15} max={45} onChange={e => setIdadeMax(Number(e.target.value) || 45)} /></div></div>
-        <div><label className={rotulo}>{tx('Overall')}</label><div className="flex gap-2 items-center"><input type="number" className={campo} value={ovrMin} min={50} max={99} onChange={e => setOvrMin(Math.max(50, Number(e.target.value) || 50))} /><span className="text-slate-400">–</span><input type="number" className={campo} value={ovrMax} min={0} max={99} onChange={e => setOvrMax(Number(e.target.value) || 99)} /></div></div>
+        <div><label className={rotulo}>{tx('Age')}</label><div className="flex gap-2 items-center"><NumeroComRoda className={campo} valor={idadeMin} min={15} max={45} onMudar={v => setIdadeMin(Math.min(v, idadeMax))} /><span className="text-slate-400">–</span><NumeroComRoda className={campo} valor={idadeMax} min={15} max={45} onMudar={v => setIdadeMax(Math.max(v, idadeMin))} /></div></div>
+        <div><label className={rotulo}>{tx('Overall')}</label><div className="flex gap-2 items-center"><NumeroComRoda className={campo} valor={ovrMin} min={50} max={99} onMudar={v => setOvrMin(Math.min(v, ovrMax))} /><span className="text-slate-400">–</span><NumeroComRoda className={campo} valor={ovrMax} min={50} max={99} onMudar={v => setOvrMax(Math.max(v, ovrMin))} /></div></div>
         <div><label className={rotulo}>Value (max)</label><div className="flex flex-wrap gap-1.5">{VALORES.map(([r, v]) => <button key={r} onClick={() => { setValorMax(v); }} className={chip(valorMax === v)}>{r}</button>)}</div></div>
         <div><label className={rotulo}>Wage (max)</label><div className="flex flex-wrap gap-1.5">{SALARIOS.map(([r, v]) => <button key={r} onClick={() => { setSalarioMax(v); }} className={chip(salarioMax === v)}>{r}</button>)}</div></div>
         <div><label className={rotulo}>{tx('Club')}</label>
