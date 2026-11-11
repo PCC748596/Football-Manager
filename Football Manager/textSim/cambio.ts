@@ -23,3 +23,36 @@ export const restaurarTaxas = () => { (Object.keys(TAXAS) as MoedaCambio[]).forE
 
 /** `valor` na moeda dada, em dolares do jogo. */
 export const paraDolares = (valor: number, moeda: MoedaCambio | 'USD'): number => (moeda === 'USD' ? valor : valor / TAXAS[moeda]);
+
+// ATUALIZACAO AUTOMATICA: busca as taxas do dia numa API publica (sem chave) e grava-as. Sem rede ou com resposta invalida nada muda (ficam as guardadas). Ligada por omissao; Settings desliga-a e
+// tambem tem o botao de actualizar ja. Corre ao abrir o jogo, no maximo uma vez a cada 12 horas.
+const CHAVE_AUTO = 'fm_cambio_auto', CHAVE_QUANDO = 'fm_cambio_quando';
+const FONTES = ['https://open.er-api.com/v6/latest/USD', 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json'];
+export const cambioAutomatico = (): boolean => { try { return localStorage.getItem(CHAVE_AUTO) !== '0'; } catch { return true; } };
+export const definirCambioAutomatico = (ligado: boolean) => { try { localStorage.setItem(CHAVE_AUTO, ligado ? '1' : '0'); } catch { /* */ } };
+export const ultimaAtualizacaoDoCambio = (): number => { try { return Number(localStorage.getItem(CHAVE_QUANDO)) || 0; } catch { return 0; } };
+
+/** Busca as taxas online. Devolve as novas (e guarda-as), ou null se nao foi possivel. */
+export const buscarTaxasOnline = async (): Promise<Record<MoedaCambio, number> | null> => {
+  for (const url of FONTES) {
+    try {
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) continue;
+      const j = await r.json();
+      const t = j.rates || j.usd || {};
+      const novas: Partial<Record<MoedaCambio, number>> = {};
+      (['BRL', 'EUR', 'GBP'] as MoedaCambio[]).forEach(m => { const v = Number(t[m] ?? t[m.toLowerCase()]); if (v > 0 && isFinite(v)) novas[m] = Math.round(v * 1000) / 1000; });
+      if (Object.keys(novas).length < 3) continue;
+      definirTaxas(novas);
+      try { localStorage.setItem(CHAVE_QUANDO, String(Date.now())); } catch { /* */ }
+      return { ...TAXAS };
+    } catch { /* tenta a proxima fonte */ }
+  }
+  return null;
+};
+
+/** Ao abrir o jogo: actualiza se estiver ligado e a ultima vez foi ha mais de 12 horas. */
+export const atualizarCambioAoAbrir = async (): Promise<void> => {
+  if (!cambioAutomatico() || Date.now() - ultimaAtualizacaoDoCambio() < 12 * 3600 * 1000) return;
+  await buscarTaxasOnline();
+};

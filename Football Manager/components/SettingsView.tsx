@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { buscarTaxasOnline, cambioAutomatico, definirCambioAutomatico } from '../textSim/cambio';
 import { useGame } from '../context/GameContext';
 import { MatchDuration } from '../types';
 import { lerConfigMod, gravarConfigMod, CAMINHO_PADRAO_DO_MOD } from '../textSim/modConfig';
@@ -11,6 +12,8 @@ interface SettingsViewProps {
 
 const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
   const { gameState, updateSettings, t, taxasDeCambio, atualizarTaxas } = useGame();
+  const [cambioAuto, setCambioAuto] = useState(cambioAutomatico());
+  const [msgCambio, setMsgCambio] = useState('');
   const [mod, setMod] = React.useState(lerConfigMod());
 
   return (
@@ -242,6 +245,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                           </div>
                       ))}
                       <button onClick={() => atualizarTaxas('padrao')} className="py-2 rounded-lg font-black text-xs uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">Reset</button>
+                  </div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                      <button onClick={async () => { setMsgCambio('Updating...'); const r = await buscarTaxasOnline(); if (r) { atualizarTaxas(r); setMsgCambio('Updated: ' + new Date().toLocaleString('en-US')); } else setMsgCambio('Could not reach the rates service; the saved rates were kept.'); }}
+                          className="px-4 py-2 rounded-lg font-black text-xs uppercase tracking-widest bg-blue-600 text-white hover:bg-blue-500">Update now</button>
+                      <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+                          <input type="checkbox" checked={cambioAuto} onChange={e => { definirCambioAutomatico(e.target.checked); setCambioAuto(e.target.checked); }} /> Auto-update when the game opens (once every 12 h)
+                      </label>
+                      {msgCambio && <span className="text-[10px] text-slate-400">{msgCambio}</span>}
                   </div>
                   <p className="text-[10px] text-slate-400">Game money is stored in US dollars. Changing a rate changes how values are shown and how prize money (BRL, GBP) is converted.</p>
               </div>

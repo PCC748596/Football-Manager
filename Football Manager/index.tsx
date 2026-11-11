@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 import { carregarDadosLocais } from './textSim/dadosLocais';
+import { atualizarCambioAoAbrir } from './textSim/cambio';
 import { carregarMod } from './textSim/modDados';
 
 const rootElement = document.getElementById('root');
@@ -36,7 +37,7 @@ if (modoTablet) {
 } else {
   // Dados locais (CountryData<N>.json, so no servidor de desenvolvimento): carregam-se ANTES de arrancar, para a primeira partida nova ja os usar. Sem ficheiro, segue de imediato.
   // O mod dos dados reais (public/dados_reais: nomes e escudos reais) vem primeiro e nunca falha; depois os dados locais.
-  carregarMod().then(() => carregarDadosLocais()).finally(() => {
+  Promise.all([carregarMod().then(() => carregarDadosLocais()), Promise.race([atualizarCambioAoAbrir(), new Promise(r => setTimeout(r, 3000))])]).finally(() => {
     const root = ReactDOM.createRoot(rootElement);
     root.render(
       <React.StrictMode>
