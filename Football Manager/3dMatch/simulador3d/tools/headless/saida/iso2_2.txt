@@ -1,0 +1,22 @@
+[placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+{
+ "situacoes": 24,
+ "passeTras": 3,
+ "passeLado": 1,
+ "passeFrente": 1,
+ "remate": 2,
+ "ramosTras": {
+  "tenhoABola > ehEstilo > haOpcaoDePasse": 2,
+  "tenhoABola > ehGrupo > haOpcaoDePasse": 1
+ },
+ "distGolTras": [
+  18,
+  19,
+  21
+ ],
+ "exemplos": [
+  "CF a 21 m da baliza, passa 13 m para tras ao RB | tenhoABola > ehEstilo > haOpcaoDePasse",
+  "CF a 18 m da baliza, passa 8 m para tras ao LM | tenhoABola > ehGrupo > haOpcaoDePasse",
+  "RM a 19 m da baliza, passa 12 m para tras ao LM | tenhoABola > ehEstilo > haOpcaoDePasse"
+ ]
+}

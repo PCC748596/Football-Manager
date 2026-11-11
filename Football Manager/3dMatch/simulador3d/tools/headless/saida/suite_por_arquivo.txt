@@ -192,3 +192,17 @@ OK    tests/sim_medias.test.js
 OK    tests/sinal_do_arbitro.test.js
 FALHA tests/stamina_ligada.test.js :: #   X passou do minimo: 0.2 
 OK    tests/suavizacao_por_tempo.test.js
+TEMPO tests/suspensos_fora_do_onze.test.js
+OK    tests/tendencia_por_posicao_e_jogador.test.js
+OK    tests/tiro_de_meta_forma.test.js
+FALHA tests/tiro_de_meta_linhas.test.js :: not ok 1 - quem bate forma tres linhas, e nao uma escada de dez degraus not ok 2 - a marcacao adversaria deixa de estar colada a area 
+OK    tests/toca_e_corre.test.js
+FALHA tests/toque_com_marcador_atras.test.js :: #   X um defesa 6 m à frente ainda ganha a bola adiantada 2.8 m 
+OK    tests/transicao_defensiva.test.js
+OK    tests/treinador_le_o_adversario.test.js
+TEMPO tests/troca_no_intervalo.test.js
+OK    tests/uniformes_clubes.test.js
+OK    tests/velocidade_aterragem.test.js
+OK    tests/velocidade_de_conducao.test.js
+OK    tests/vibracao_parado.test.js
+FIM

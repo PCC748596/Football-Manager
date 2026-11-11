@@ -57,11 +57,13 @@ for (let j = 0; j < JOGOS; j++) {
     for (let f = 0; f < Math.round(MIN * 60 / dt); f++) {
         const c = Match.ballCarrier;
         if (c && isolado(c)) { if (ultimo !== c) { res.situacoes++; ultimo = c; janela = { equipa: c.team, ate: f + 60 * 8, placar: c.team === 'TeamA' ? Match.placarA : Match.placarB }; } c._isoladoAgora = true; }
-        if (janela && f <= janela.ate && (janela.equipa === 'TeamA' ? Match.placarA : Match.placarB) > janela.placar) { res.golosApos++; janela = null; }
         else { if (ultimo && ultimo !== c) ultimo._isoladoAgora = false; if (!c) ultimo = null; }
+        // golo da equipa do isolado ate 8 s depois do lance
+        if (janela && f <= janela.ate && (janela.equipa === 'TeamA' ? Match.placarA : Match.placarB) > janela.placar) { res.golosApos++; janela = null; }
         Match.update(dt);
     }
     res.golosNoJogo += Match.placarA + Match.placarB;
+    res.cancelados = (res.cancelados || 0) + (Match.passesCanceladosPorIsolado || 0); Match.passesCanceladosPorIsolado = 0;
 }
 res.distGolTras.sort((x, y) => x - y);
 console.log(JSON.stringify(res, null, 1));

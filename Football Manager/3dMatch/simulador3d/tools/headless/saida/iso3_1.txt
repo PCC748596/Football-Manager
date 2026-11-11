@@ -1,0 +1,28 @@
+[placas] competicao="" liga="" arte=padrao (PlacasArteComp NAO carregado)
+{
+ "golosNoJogo": 4,
+ "golosApos": 4,
+ "situacoes": 23,
+ "passeTras": 5,
+ "passeLado": 1,
+ "passeFrente": 0,
+ "remate": 6,
+ "ramosTras": {
+  "tenhoABola > ehEstilo > valeCruzar": 2,
+  "tenhoABola > ehEstilo > haOpcaoDePasse": 3
+ },
+ "distGolTras": [
+  13,
+  20,
+  30,
+  31,
+  36
+ ],
+ "exemplos": [
+  "LM a 20 m da baliza, passa 11 m para tras ao CM | tenhoABola > ehEstilo > valeCruzar",
+  "CF a 36 m da baliza, passa 4 m para tras ao RM | tenhoABola > ehEstilo > haOpcaoDePasse",
+  "RM a 30 m da baliza, passa 5 m para tras ao CF | tenhoABola > ehEstilo > valeCruzar",
+  "CM a 13 m da baliza, passa 5 m para tras ao CF | tenhoABola > ehEstilo > haOpcaoDePasse",
+  "CF a 31 m da baliza, passa 4 m para tras ao LM | tenhoABola > ehEstilo > haOpcaoDePasse"
+ ]
+}
