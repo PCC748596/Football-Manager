@@ -128,15 +128,21 @@ const Bancos = {
         rig.lKnee.traverse(o => { if (junta === null && o.isMesh && o.material && !Array.isArray(o.material) && o.material.color && !o.material.map) junta = o.material.color.getHex(); });
         const panoMat = new THREE.MeshStandardMaterial({ color: cor, roughness: 0.85 });
         const daMao = (o) => { for (let q = o; q; q = q.parent) { if (q === rig.lHand || q === rig.rHand) return true; } return false; };
-        const vestir = (osso) => {
+        const vestir = (osso, perna) => {
             osso.traverse((o) => {
-                if (!o.isMesh || !o.material || Array.isArray(o.material) || daMao(o)) return;
+                if (!o.isMesh || !o.material || daMao(o)) return;
+                /*
+                O MEIAO TAMBEM (relato: *"tira o meiao dos tecnicos; eles tem que ficar com a roupa que foi selecionada"*): o meiao e uma peca de varios materiais (a textura
+                do uniforme nas faces), que esta troca saltava, e via-se o meiao do time por baixo da calca. Nas pernas, as pecas de varios materiais passam ao pano.
+                */
+                if (Array.isArray(o.material)) { if (perna) o.material = panoMat; return; }
                 const m = o.material;
                 const h = (m.color && !m.map) ? m.color.getHex() : null;
                 if (h !== null && (h === pele || (junta !== null && h === junta && h !== 0x222222))) o.material = panoMat;
             });
         };
-        [rig.lLeg, rig.rLeg, rig.lArm, rig.rArm].forEach(o => o && vestir(o));
+        [rig.lLeg, rig.rLeg].forEach(o => o && vestir(o, true));
+        [rig.lArm, rig.rArm].forEach(o => o && vestir(o, false));
     },
 
     // O treinador: o corpo dos oficiais com o fato vestido (mangas e calças inteiras) + camisa branca e gravata ao peito.
