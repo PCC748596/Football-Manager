@@ -16,6 +16,8 @@ Corre com: node tests/comemoracao_campeao.test.js
 */
 require('../tools/headless/harness.js');
 if (typeof Sim === 'undefined') global.Sim = {};
+// Este teste mede a FESTA (e o fim de jogo logo a seguir): a volta olimpica, que vem entre as duas, e medida em tests/comemoracao_reservas.test.js.
+ComemoracaoTitulo.volta.activo = false;
 
 let falhas = 0;
 const erro = m => { falhas++; console.error('  X ' + m); };

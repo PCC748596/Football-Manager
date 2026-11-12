@@ -32,6 +32,7 @@ const ComemoracaoTitulo = {
         // fica livre para a camara ver a taca). Angulos em graus medidos a partir da frente (+X).
         arco1: { raio: 1.15, max: 7, de: 70, ate: 290 },
         arco2: { raio: 2.10, de: 52, ate: 308 },
+        arco3: { raio: 3.10, de: 40, ate: 320 },   // os reservas que vieram do banco (ComemoracaoCampeao.tickReservas)
         jitter: 0.15,               // m de desvio sorteado em cada lugar
         olharFrente: 7.0            // m: todos olham para um ponto a esta distancia a frente do capitao
     },
@@ -61,6 +62,8 @@ const ComemoracaoTitulo = {
 
     // OS SALTOS: cada um com o seu ritmo, altura e fase; com a taca no ar todos saltam juntos.
     salto: {
+        // No chao (agachar / aterrar) o pe compensa a canela para a sola ficar plana: pe = -(coxa + joelho) x isto (1 = plana). Ver passoDoJogador.
+        compensaPe: 1.0,
         periodo: [0.68, 0.95],      // s por ciclo (sorteado)
         altura: [0.22, 0.42],       // m
         fracaoNoAr: 0.55,           // parte do ciclo no ar; o resto e o agachar para o proximo salto
@@ -89,15 +92,38 @@ const ComemoracaoTitulo = {
         cintura: { pelvisX: 0.04, peitoX: 0.18, pescocoX: 0.45, coxaE: 0, joelhoE: 0.06, peE: 0, coxaD: 0, joelhoD: 0.06, peD: 0,
             bracoEx: 0.50, bracoEz: 0.50, cotoveloE: -1.35, bracoDx: 0.50, bracoDz: 0.50, cotoveloD: -1.35 },
         joelhos: { pelvisX: 0.10, peitoX: 0.65, pescocoX: 0.30, coxaE: -0.55, joelhoE: 0.80, peE: 0.25, coxaD: -0.55, joelhoD: 0.80, peD: 0.25,
-            bracoEx: -0.75, bracoEz: 0.12, cotoveloE: -0.10, bracoDx: -0.75, bracoDz: 0.12, cotoveloD: -0.10 }
+            bracoEx: -0.75, bracoEz: 0.12, cotoveloE: -0.10, bracoDx: -0.75, bracoDz: 0.12, cotoveloD: -0.10 },
+        // De pe a olhar a festa (vira-se para o grupo): bracos caidos, cabeca um pouco baixa.
+        olhar: { pelvisX: 0, peitoX: 0.06, pescocoX: 0.12, coxaE: 0, joelhoE: 0.04, peE: 0, coxaD: 0, joelhoD: 0.04, peD: 0,
+            bracoEx: 0.05, bracoEz: 0.08, cotoveloE: -0.15, bracoDx: 0.05, bracoDz: 0.08, cotoveloD: -0.15 },
+        // Sentado no relvado: coxas a frente, joelhos para cima (o pe compensa a canela para a sola assentar), tronco para tras apoiado nas maos atras.
+        sentadoRelva: { pelvisX: -0.25, peitoX: -0.10, pescocoX: 0.30, coxaE: -1.35, joelhoE: 1.25, peE: 0.10, coxaD: -1.20, joelhoD: 1.05, peD: 0.15,
+            bracoEx: 0.75, bracoEz: 0.25, cotoveloE: -0.05, bracoDx: 0.75, bracoDz: 0.25, cotoveloD: -0.05 }
     },
 
     // OS DERROTADOS vao a passo para o lado do tunel (-X), sem atravessar o grupo, e ficam ali.
     derrotados: {
-        velocidade: [1.2, 1.7],
+        velocidade: [1.8, 2.4],   // 1.2-1.7 -> 1.8-2.4: a passo largo, para estarem ja a olhar / sentados durante a festa (a 1.5 m/s metade ainda andava aos 13 s)
+        // As variantes, sorteadas pelos derrotados: de pe a OLHAR a festa, SENTADOS no relvado, e poucas das maos na cabeca / na cintura.
+        variantes: ['olhar', 'sentado', 'olhar', 'sentado', 'cabeca', 'olhar', 'sentado', 'cintura', 'olhar', 'sentado', 'olhar'],
+        andarMax: 12,               // m: no maximo isto na direccao do sitio (para ja estarem parados durante a festa)
+        longeDoGrupo: 8,            // m: e nunca mais perto do centro (do grupo) do que isto
         xMin: 12, xMax: 27,         // |x| do sitio onde param (do lado do tunel)
         zMin: 9, zMax: 30           // |z| (do lado do campo onde ja estavam)
     },
+
+    // O TECNICO do campeao entra no grupo da festa (e na volta olimpica).
+    tecnico: { velocidade: [3.2, 3.8] },
+
+    /*
+    A VOLTA OLIMPICA (ComemoracaoCampeao._comecarVolta): no fim da festa, com as estatisticas no ecra. Por dentro das linhas (`dentro` m), a `velocidade` m/s, cada um
+    com um desvio ate `espalhar` m e um atraso ate `atrasoMax` s; o capitao ergue a taca a cada `ergueCada` s; confetis a cada `confetisCada` s. `tempoMax`: prazo.
+    */
+    volta: { activo: true, dentro: 3.0, velocidade: [3.4, 3.9], espalhar: 1.8, atrasoMax: 1.2, ergueCada: 3.5, confetisCada: 9.0, tempoMax: 140 },
+
+    // OS RESERVAS do campeao (ComemoracaoCampeao.tickReservas): a partir de `aosMinutos` do 2.o tempo levantam-se e vao para a beira do campo em frente ao banco
+    // (`foraDaLinha` m fora da linha lateral, `espaco` m entre eles), a `velocidade` m/s; voltam a `velocidadeVolta`.
+    reservas: { activo: true, aosMinutos: 85, foraDaLinha: 1.6, espaco: 1.3, velocidade: 2.2, velocidadeVolta: 2.4 },
 
     // O TRIO afasta-se para a lateral do tunel, perto do meio-campo, de frente para o grupo; o juiz leva a bola na mao.
     oficiais: { x: 31.0, zArbitro: 9.0, zAssistentes: [11.5, 6.5], velocidade: 2.6 },
@@ -106,6 +132,8 @@ const ComemoracaoTitulo = {
     // grupo (+X), a rodar devagar de um lado para o outro; a taca no centro da imagem.
     camera: {
         reuniao: { raio: 24, altura: 11 },
+        // A volta olimpica: alta e afastada (`altura` m), `recuo` m do centro para o lado oposto ao grupo, a seguir o grupo `segue` (0..1).
+        volta: { altura: 46, recuo: 28, segue: 0.25, suave: 0.04 },
         festa: { raio: 9.5, altura: 2.9, raioOscila: 1.6, abertura: 0.75, ritmo: 0.16 },   // abertura (rad): meio angulo da oscilacao a volta de +X
         alvoAltura: 1.7,
         fim: { raio: 26, altura: 13, tempo: 3.0 }   // os ultimos `tempo` s: afasta-se e sobe

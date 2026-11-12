@@ -174,14 +174,40 @@ const ComemoracaoCampeao = {
 
         // OS DERROTADOS: a passo para o lado do tunel, no lado do campo (z) onde ja estavam, para nao atravessarem o grupo; e ficam desolados.
         const T = (typeof TunelJogadores !== 'undefined') ? TunelJogadores : { lado: -1 };
-        const D = C.derrotados, variantes = ['cabeca', 'cintura', 'joelhos'];
+        /*
+        As variantes (pedido: *"no time adversario coloca alguns jogadores olhando a comemoracao e outros sentados no campo"*): `olhar` (de pe, virado para o grupo),
+        `sentado` (no relvado, de joelhos para cima e apoiado nas maos), e umas poucas das antigas (maos na cabeca, na cintura). A ordem e sorteada.
+        */
+        const D = C.derrotados, variantes = (D.variantes || ['olhar', 'sentado', 'cabeca']).slice();
+        for (let i = variantes.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const tmp = variantes[i]; variantes[i] = variantes[j]; variantes[j] = tmp; }
         derr.forEach((p, k) => {
             const zs = Math.abs(p.model.position.z) > 3 ? Math.sign(p.model.position.z) : (k % 2 ? 1 : -1);
             const alvo = { x: T.lado * (D.xMin + Math.random() * (D.xMax - D.xMin)), z: zs * (D.zMin + Math.random() * (D.zMax - D.zMin)) };
+            // No maximo `andarMax` m na direccao do sitio (quem estava do outro lado do campo ficava a andar a festa inteira) e nunca a menos de `longeDoGrupo` m do centro.
+            {
+                const px = p.model.position.x, pz = p.model.position.z, dx = alvo.x - px, dz = alvo.z - pz, d = Math.hypot(dx, dz);
+                if (D.andarMax && d > D.andarMax) { alvo.x = px + dx / d * D.andarMax; alvo.z = pz + dz / d * D.andarMax; }
+                const dc = Math.hypot(alvo.x, alvo.z);
+                if (D.longeDoGrupo && dc < D.longeDoGrupo) { const f = D.longeDoGrupo / Math.max(0.01, dc); alvo.x *= f; alvo.z *= f; }
+            }
             const s = novo(p, alvo, 'derr', this._sorteio(D.velocidade), Math.random() * 1.2);
-            s.olhar = null;
             s.variante = variantes[k % variantes.length];
+            s.olhar = (s.variante === 'olhar') ? { x: 0, z: 0 } : null;   // quem olha vira-se para o grupo
         });
+
+        // OS RESERVAS do campeao que ja esperavam a beira do campo (ver tickReservas) juntam-se ao grupo, num arco de fora.
+        this._juntarReservas(equipa, novo, R);
+        // O TECNICO do campeao tambem (pedido: *"o tecnico tambem tem que ir para a comemoracao"*): sai da area tecnica e entra no grupo, a frente do arco de fora.
+        if (typeof Bancos !== 'undefined' && Bancos.bancos) {
+            const b = Bancos.bancos.find(q => q.equipa === (equipa === 'TeamA' ? 'A' : 'B'));
+            const t = b && b.treinador;
+            if (t && t.jogador && t.model && t.model.visible !== false) {
+                const A = R.arco3 || { raio: 3.1 };
+                const s = novo(t.jogador, { x: A.raio * 0.85, z: (Math.random() * 2 - 1) * 0.8, arco: 3 }, 'venc', this._sorteio(C.tecnico.velocidade), 0.4);
+                s.extra = true; s.tecnico = true; s.banco = b;
+                this.tecnico = s;
+            }
+        }
 
         // O TRIO afasta-se para a lateral do tunel, de frente para o grupo.
         this.oficiais = [];
@@ -274,6 +300,9 @@ const ComemoracaoCampeao = {
         if (typeof Match !== 'undefined' && Match.state !== 'FIM_DE_JOGO') { this.cancelar(); return; }
         const C = ComemoracaoTitulo;
         this.t += dt; this.tFase += dt;
+        // Os de fora das listas do Match (o tecnico): o passo da coreografia e daqui (os reservas vem de tickReservas).
+        for (const s of this.partes) if (s.extra && s.p && s.p.campeaoOrdem === s) this.passoDoJogador(s.p, dt);
+        if (this.fase === 'volta') { this._tickVolta(dt); this._tickConfetis(dt); return; }
         if (this.fase === 'reuniao') {
             const venc = this.partes.filter(s => s.papel === 'venc');
             if (venc.every(s => s.chegou) || this.tFase >= C.reuniao.prazo) this._comecarFesta();
@@ -287,10 +316,103 @@ const ComemoracaoCampeao = {
                 this._lancarConfetis();
                 if (e.seg.n > 0 && typeof AmbienteSonoro !== 'undefined' && AmbienteSonoro.gritarGolo && !AmbienteSonoro._pausado) { try { AmbienteSonoro.gritarGolo(); } catch (er) { /* sem som */ } }
             }
-            if (this.tFase >= this.fimFesta) { this.terminar(); return; }
+            if (this.tFase >= this.fimFesta) {
+                if (C.volta && C.volta.activo) this._comecarVolta(); else this.terminar();
+                return;
+            }
         }
         this._tickConfetis(dt);
         if (this.t > C.tempoMax) this.terminar();
+    },
+
+    /*
+    A VOLTA OLIMPICA (pedido: *"quando entrarem as estatisticas, o time vai comecar a dar a volta olimpica; a camera vai se afastar mais para cima para mostrar a volta
+    olimpica"*). No fim da festa aparecem as estatisticas (o modal do fim de jogo) e os campeoes — titulares, reservas e tecnico — correm em grupo a volta do campo, por
+    dentro das linhas, no sentido dos ponteiros do relogio, de bracos no ar a acenar a torcida; o capitao leva a taca. Os derrotados ficam onde estavam. No fim da volta
+    (junto ao tunel) segue o fim de jogo de sempre: a saida de campo. A camera e a da volta (alta e afastada). ESC acaba-a (terminar).
+    */
+    _comecarVolta() {
+        const V = ComemoracaoTitulo.volta;
+        this.fase = 'volta'; this.tFase = 0;
+        try { if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(true, 'FIM DE JOGO'); } catch (e) { console.warn('[fim de jogo] modal:', e); }
+        this._modalMostrado = true;
+        // O percurso: um retangulo por dentro das linhas, do meio da lateral da camara (+X) a volta inteira, e de volta ao meio dela.
+        const X = CAMPO_LARG / 2 - V.dentro, Z = CAMPO_COMP / 2 - V.dentro;
+        this._percurso = [{ x: X, z: 0 }, { x: X, z: Z }, { x: -X, z: Z }, { x: -X, z: -Z }, { x: X, z: -Z }, { x: X, z: -1 }];
+        const venc = this.partes.filter(s => s.papel === 'venc');
+        venc.forEach((s, i) => {
+            const p = s.p;
+            // Cada um com um desvio (o grupo nao corre em fila) e um pequeno atraso; o capitao a frente com a taca.
+            const ox = (Math.random() * 2 - 1) * V.espalhar, oz = (Math.random() * 2 - 1) * V.espalhar;
+            s.volta = { i: 0, ox: ox, oz: oz, atraso: p === this.capitao ? 0 : 0.3 + Math.random() * V.atrasoMax, t: 0, fim: false, fase: Math.random() * Math.PI * 2 };
+            s.papel = 'volta';
+            s.vel = this._sorteio(V.velocidade) * (p === this.capitao ? 0.97 : 1);
+        });
+        if (typeof AmbienteSonoro !== 'undefined' && AmbienteSonoro.gritarGolo && !AmbienteSonoro._pausado) { try { AmbienteSonoro.gritarGolo(); } catch (e) { /* sem som */ } }
+    },
+
+    _tickVolta(dt) {
+        const V = ComemoracaoTitulo.volta;
+        const corredores = this.partes.filter(s => s.papel === 'volta');
+        if (!corredores.length || corredores.every(s => s.volta && s.volta.fim) || this.tFase > V.tempoMax) { this.terminar(); return; }
+        // A taca: com o capitao, erguida de quando em quando.
+        if (this.taca) this.taca.visible = true;
+        if (this.tFase > (this._proxConfetis || 0)) { this._proxConfetis = this.tFase + V.confetisCada; this._lancarConfetis(); }
+    },
+
+    // O passo de quem corre a volta (chamado do passoDoJogador).
+    _passoVolta(p, s, dt) {
+        const V = ComemoracaoTitulo.volta, v = s.volta, pos = p.model.position;
+        v.t += dt;
+        if (v.t < v.atraso || v.fim) { p.velocity.set(0, 0, 0); p.animateBones(dt); this._bracosAcenar(p, s); return; }
+        const w = this._percurso[v.i];
+        const tx = w.x + v.ox, tz = w.z + v.oz, dx = tx - pos.x, dz = tz - pos.z, d = Math.hypot(dx, dz);
+        if (d < 0.8) { v.i++; if (v.i >= this._percurso.length) { v.fim = true; p.velocity.set(0, 0, 0); } }
+        else {
+            const passo = Math.min(d, s.vel * dt);
+            pos.x += dx / d * passo; pos.z += dz / d * passo;
+            p.velocity.set(dx / d * s.vel, 0, dz / d * s.vel);
+            s.yawAlvo = Math.atan2(dx, dz);
+        }
+        const dif = Math.atan2(Math.sin(s.yawAlvo - s.yaw), Math.cos(s.yawAlvo - s.yaw));
+        s.yaw += dif * (1 - Math.exp(-dt * 6));
+        p.model.quaternion.setFromAxisAngle(this._eixoY || (this._eixoY = new THREE.Vector3(0, 1, 0)), s.yaw);
+        if (typeof ALTURA_BASE_Y === 'number') pos.y = ALTURA_BASE_Y;
+        p.animateBones(dt);   // a passada de corrida (pela velocidade)
+        if (p.assentarNoChao) p.assentarNoChao();
+        if (p === this.capitao && this.taca) {
+            // O capitao corre com a taca ao alto (erguida e baixada devagar, `ergueCada` s).
+            const k = 0.5 + 0.5 * Math.sin(this.tFase * Math.PI * 2 / V.ergueCada);
+            const r = p.rig, PS = ComemoracaoTitulo.pose, P = p.fsm._poseMistura(PS.segurar, PS.erguer, k);
+            r.lArm.rotation.x = P.bracoEx; r.lArm.rotation.z = P.bracoEz; r.rArm.rotation.x = P.bracoDx; r.rArm.rotation.z = -P.bracoDz;
+            if (r.lElbow) r.lElbow.rotation.x = P.cotoveloE; if (r.rElbow) r.rElbow.rotation.x = P.cotoveloD;
+            p.model.updateMatrixWorld(true);
+            this._tacaNasMaos(p, s, { h: p, k: k, de: null });
+        } else this._bracosAcenar(p, s);
+    },
+
+    // Os bracos no ar a acenar a torcida (por cima da passada).
+    _bracosAcenar(p, s) {
+        const r = p.rig; if (!r) return;
+        const a = Math.sin(this.tFase * 6 + s.volta.fase);
+        r.lArm.rotation.x = -2.5 + a * 0.25; r.rArm.rotation.x = -2.5 - a * 0.25;
+        r.lArm.rotation.z = 0.35 + a * 0.15; r.rArm.rotation.z = -0.35 + a * 0.15;
+        if (r.lElbow) r.lElbow.rotation.x = -0.2; if (r.rElbow) r.rElbow.rotation.x = -0.2;
+    },
+
+    // A camera da volta: alta e afastada, do lado de fora do grupo em relacao ao centro, a olhar para o grupo (o campo inteiro em fundo).
+    _cameraVolta(pos, look) {
+        const CV = ComemoracaoTitulo.camera.volta;
+        const vs = this.partes.filter(s => s.papel === 'volta');
+        let cx = 0, cz = 0; for (const s of vs) { cx += s.p.model.position.x; cz += s.p.model.position.z; }
+        if (vs.length) { cx /= vs.length; cz /= vs.length; }
+        const n = Math.hypot(cx, cz) || 1;
+        const alvoPos = { x: -cx / n * CV.recuo + cx * CV.segue, y: CV.altura, z: -cz / n * CV.recuo + cz * CV.segue };
+        if (!this._camV) this._camV = { x: alvoPos.x, y: alvoPos.y, z: alvoPos.z, lx: cx, lz: cz };
+        const c = this._camV, k = CV.suave;
+        c.x += (alvoPos.x - c.x) * k; c.y += (alvoPos.y - c.y) * k; c.z += (alvoPos.z - c.z) * k;
+        c.lx += (cx - c.lx) * k * 1.5; c.lz += (cz - c.lz) * k * 1.5;
+        pos.set(c.x, c.y, c.z); look.set(c.lx, 0, c.lz);
     },
 
     // ---------------------------------------------------------------------------------------------------------------------------------
@@ -300,6 +422,7 @@ const ComemoracaoCampeao = {
     // O passo de um jogador em coreografia (chamado do topo do FootballPlayer.update).
     passoDoJogador(p, dt) {
         const s = p.campeaoOrdem;
+        if (s && s.papel === 'volta' && s.volta) { this._passoVolta(p, s, dt); return; }
         const C = ComemoracaoTitulo, PS = C.pose;
         const pos = p.model.position;
         s.t = (s.t || 0) + dt;
@@ -333,6 +456,7 @@ const ComemoracaoCampeao = {
         if (!s.chegou || !p.rig || !p.fsm || !p.fsm._escreverPoseComemorar) return;
 
         if (s.papel === 'derr') { this._poseDerrotado(p, s, dt); return; }
+        if (s.papel === 'volta') { this._passoVolta(p, s, dt); return; }
 
         // O VENCEDOR: segura a taca, passa-a, ou pula de bracos no ar.
         const e = this.estadoDaTaca();
@@ -373,6 +497,12 @@ const ComemoracaoCampeao = {
             } else {
                 const k = (u - fAr) / (1 - fAr);
                 P = fsm._poseMistura(PS.ar, PS.agachar, Math.sin(Math.PI * k));
+                /*
+                NO CHAO, A SOLA PLANA (relato: *"na comemoracao do campeonato os jogadores estao pulando nas pontas dos pes"*). A pose de agachar trazia os pes a +0.45
+                (pontas para baixo) e a aterragem comecava na pose do ar (pontas esticadas): de joelhos dobrados, so a ponta tocava no relvado. O pe compensa a
+                canela (-(coxa + joelho), a mesma conta do pe de apoio do encaixe ajoelhado do guarda-redes) para a sola assentar.
+                */
+                P = Object.assign({}, P, { peE: -(P.coxaE + P.joelhoE) * C.salto.compensaPe, peD: -(P.coxaD + P.joelhoD) * C.salto.compensaPe });
             }
         }
         fsm._escreverPoseComemorar(P);
@@ -389,10 +519,116 @@ const ComemoracaoCampeao = {
             if (!p.lamento) p.lamento = { t: 0, dur: 1e6 };
             return;   // o `animateBones` ja pos as maos na cabeca (aplicarQuaseGolo)
         }
-        const k = this._suave((s.tParado = (s.tParado || 0) + dt) / 0.8);
-        const P = p.fsm._poseMistura(PS.dePe, s.variante === 'joelhos' ? PS.joelhos : PS.cintura, k);
+        const k = this._suave((s.tParado = (s.tParado || 0) + dt) / (s.variante === 'sentado' ? 1.2 : 0.8));
+        const alvo = s.variante === 'joelhos' ? PS.joelhos : s.variante === 'sentado' ? PS.sentadoRelva : s.variante === 'olhar' ? PS.olhar : PS.cintura;
+        const P = p.fsm._poseMistura(PS.dePe, alvo, k);
         p.fsm._escreverPoseComemorar(P);
-        if (p.assentarNoChao) { for (let i = 0; i < 6; i++) p.assentarNoChao(); }
+        // Sentado, assenta pelo ponto mais baixo do corpo (a bacia); de pe, pelas solas.
+        if (s.variante === 'sentado' && p.assentarCorpoInteiro) p.assentarCorpoInteiro();
+        else if (p.assentarNoChao) { for (let i = 0; i < 6; i++) p.assentarNoChao(); }
+    },
+
+    /*
+    OS RESERVAS DO CAMPEAO (pedido: *"faltando 5 min para terminar o jogo, faz os reservas levantarem e irem para a beira do campo aguardar o termino do jogo; eles vao
+    comemorar tambem no final"*). No jogo que da o titulo (`Match.campeao`), a partir de `reservas.aosMinutos` do 2.o tempo, os reservas do time que esta a ser campeao
+    (Match.campeaoDoJogo) levantam-se do banco (Bancos: descongelados, de pe) e vao para a beira do campo em frente ao banco, a olhar o jogo. Se o campeao mudar (golo do
+    outro), voltam a sentar-se e levantam-se os do outro. No apito, se o time deles for o campeao, correm para o grupo (arco de fora, `reuniao.arco3`) e festejam como os
+    outros; no fim (ou se nao foram campeoes) voltam ao banco e sentam-se. Corre so no jogo visivel; os do banco ocupados com uma troca (aquecimento) ficam de fora.
+    */
+    tickReservas(dt) {
+        if (this._semDesenho() || typeof Match === 'undefined') return;
+        const RC = ComemoracaoTitulo.reservas;
+        if (!RC) return;
+        // O QUASE CAMPEAO nos ultimos minutos (a torcida dele ja pula, ver festaTorcida): o jogo que da o titulo, no 2.o tempo, a partir de `aosMinutos`.
+        {
+            const ultimos = Match.state !== 'FIM_DE_JOGO' && !Match.disputa && Match.campeao && Match.primeiroTempoAcabou && !Match.faseExtra && (Match.tempoDeJogo || 0) >= RC.aosMinutos * 60;
+            this._preEquipa = ultimos && Match.campeaoDoJogo ? Match.campeaoDoJogo() : null;
+        }
+        // O tecnico de volta a area tecnica depois da festa.
+        const tv = this._tecnicoVolta;
+        if (tv && typeof Officials !== 'undefined' && Officials.mover) {
+            const d = Math.hypot(tv.x - tv.t.model.position.x, tv.z - tv.t.model.position.z);
+            if (d > 0.3 && !(tv.t.jogador && tv.t.jogador.campeaoOrdem)) Officials.mover(tv.t, tv.x, tv.z, 2.6, dt);
+            else this._tecnicoVolta = null;
+        }
+        if (!RC.activo || typeof Bancos === 'undefined' || !Bancos.bancos) return;
+        const r = this._res;
+        // Partida nova (os corpos do banco foram refeitos): esquece.
+        if (r && r.lista.some(e => !e.banco.reservas.includes(e.p))) { this._res = null; return; }
+        const emJogo = Match.state !== 'FIM_DE_JOGO' && !Match.disputa;
+        if (emJogo && Match.campeao && Match.primeiroTempoAcabou && !Match.faseExtra && (Match.tempoDeJogo || 0) >= RC.aosMinutos * 60) {
+            const eq = Match.campeaoDoJogo ? Match.campeaoDoJogo() : null;
+            if (eq && (!r || r.equipa !== eq)) { if (r) this._mandarSentar(r); this._levantarReservas(eq); }
+        }
+        const rr = this._res;
+        if (!rr) return;
+        let todosSentados = true;
+        for (const e of rr.lista) {
+            const p = e.p;
+            if (e.fase === 'festa') {
+                // Na festa e o passo da coreografia (fora das listas do Match, por isso chamado daqui).
+                if (p.campeaoOrdem && this.activa) this.passoDoJogador(p, dt);
+                else e.fase = 'voltar';
+                todosSentados = false;
+                continue;
+            }
+            if (e.fase === 'ir' || e.fase === 'esperar') {
+                const d = Math.hypot(e.alvo.x - p.model.position.x, e.alvo.z - p.model.position.z);
+                if (d > 0.15) Match._andar(p, e.alvo.x, e.alvo.z, RC.velocidade, dt);
+                else { e.fase = 'esperar'; Match._andar(p, e.alvo.x, e.alvo.z, 0, dt, { x: 0, z: p.model.position.z }); }
+                if (Match._assentar) Match._assentar(p, dt, p.model.position.x, p.model.position.z);
+                todosSentados = false;
+            } else if (e.fase === 'voltar') {
+                const d = Math.hypot(e.casa.x - p.model.position.x, e.casa.z - p.model.position.z);
+                if (d > 0.2) { Match._andar(p, e.casa.x, e.casa.z, RC.velocidadeVolta, dt); if (Match._assentar) Match._assentar(p, dt, p.model.position.x, p.model.position.z); todosSentados = false; }
+                else {
+                    p.model.position.set(e.casa.x, p.model.position.y, e.casa.z);
+                    if (p.resetBonesToDefault) p.resetBonesToDefault();
+                    Bancos._sentar(p); p.model.rotation.set(0, e.casa.rot, 0);
+                    if (Bancos.congelar) Bancos.congelar(p);
+                    e.fase = 'sentado';
+                }
+            }
+        }
+        if (todosSentados && rr.lista.every(e => e.fase === 'sentado')) this._res = null;
+    },
+
+    _levantarReservas(eq) {
+        const banco = Bancos.bancos.find(b => b.equipa === (eq === 'TeamA' ? 'A' : 'B'));
+        if (!banco || !banco.reservas.length) return;
+        const RC = ComemoracaoTitulo.reservas, B = BancosDeReservas;
+        const ocupados = new Set((Match.subsPendentes || []).filter(q => !q.feita && q.B).map(q => q.B));
+        const lado = (B.lado < 0 ? -1 : 1);
+        const livres = banco.reservas.filter(p => p && p.model && p.model.visible !== false && !ocupados.has(p));
+        const lista = livres.map((p, i) => {
+            const casa = { x: p.model.position.x, z: p.model.position.z, rot: p.model.rotation.y };
+            if (Bancos.descongelar) Bancos.descongelar(p);
+            if (p.resetBonesToDefault) p.resetBonesToDefault();
+            if (p.rig && p.rig.pelvis && typeof p._pelvisY0 === 'number') p.rig.pelvis.position.y = p._pelvisY0;
+            p.model.position.y = (typeof ALTURA_BASE_Y === 'number') ? ALTURA_BASE_Y : 0;
+            p.animTimer = 0; p.velAnim = 0;
+            // A beira do campo em frente ao banco, lado a lado (fora da linha lateral).
+            const z = banco.zc + (i - (livres.length - 1) / 2) * RC.espaco;
+            return { p, banco, casa, alvo: { x: lado * (CAMPO_LARG / 2 + RC.foraDaLinha), z }, fase: 'ir' };
+        });
+        this._res = { equipa: eq, lista };
+    },
+
+    _mandarSentar(r) { for (const e of r.lista) { if (e.p.campeaoOrdem) e.p.campeaoOrdem = null; e.fase = 'voltar'; } },
+
+    // No `iniciar`: os reservas que esperavam (do campeao) entram na coreografia; os do outro time voltam ao banco.
+    _juntarReservas(equipa, novo, R) {
+        const r = this._res;
+        if (!r) return;
+        if (r.equipa !== equipa) { this._mandarSentar(r); return; }
+        const quem = r.lista.filter(e => e.fase === 'ir' || e.fase === 'esperar');
+        const A = R.arco3 || { raio: 3.1, de: 40, ate: 320 }, n = quem.length;
+        quem.forEach((e, i) => {
+            const a = THREE.MathUtils.degToRad(A.de + (A.ate - A.de) * (n === 1 ? 0.5 : i / (n - 1)));
+            const s = novo(e.p, { x: Math.cos(a) * A.raio + (Math.random() * 2 - 1) * R.jitter, z: Math.sin(a) * A.raio + (Math.random() * 2 - 1) * R.jitter, arco: 3 }, 'venc', this._sorteio(R.velocidade), Math.random() * R.atrasoMax);
+            s.reserva = true;
+            e.fase = 'festa';
+        });
     },
 
     // O meio das duas maos de `p` (no mundo), em `out`.
@@ -555,6 +791,7 @@ const ComemoracaoCampeao = {
     */
     camera(pos, look) {
         const CC = ComemoracaoTitulo.camera;
+        if (this.fase === 'volta' && CC.volta) { this._cameraVolta(pos, look); return; }
         if (this.fase !== 'festa') {
             pos.set(CC.reuniao.raio, CC.reuniao.altura, 0);
             look.set(0, 1.0, 0);
@@ -572,7 +809,14 @@ const ComemoracaoCampeao = {
     },
 
     // A claque do campeao festeja como num golo enquanto dura (Crowd.update): devolve { equipa } ou null.
-    festaTorcida() { return this.activa ? { equipa: this.equipa } : null; },
+    /*
+    A torcida do campeao festeja (Crowd.update: pula como num golo) enquanto dura a festa e a volta olimpica — e JA nos ultimos minutos (pedido: *"quando faltar 5 min
+    para acabar o jogo, a torcida do time que e quase campeao ja vai comecar a pular sem parar"*): desde que os reservas dele se levantaram (tickReservas).
+    */
+    festaTorcida() {
+        if (this.activa) return { equipa: this.equipa };
+        return this._preEquipa ? { equipa: this._preEquipa } : null;
+    },
 
     // O jogo espera por isto antes do modal e da saida de campo do fim de jogo.
     emCurso() { return this.activa || !!this.pendente; },
@@ -598,7 +842,8 @@ const ComemoracaoCampeao = {
     // O fim de jogo que esperou pela festa: o modal das estatisticas e a saida de campo (o mesmo do Match.encerrarJogo sem festa).
     _seguirFimDeJogo() {
         if (typeof Match === 'undefined' || Match.state !== 'FIM_DE_JOGO') return;
-        try { if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(true, 'FIM DE JOGO'); } catch (e) { console.warn('[fim de jogo] modal:', e); }
+        if (!this._modalMostrado) { try { if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(true, 'FIM DE JOGO'); } catch (e) { console.warn('[fim de jogo] modal:', e); } }
+        this._modalMostrado = false;
         if (typeof Abertura !== 'undefined' && Abertura.saidaIntervalo) Abertura.saidaIntervalo();
         // Acabado o jogo do manager, a torcida cala-se (o que a ponte faria no `fim`, adiado para depois da festa).
         if (typeof Ponte !== 'undefined' && Ponte.estado === 'terminado' && Ponte.modo === 'visivel' && typeof AmbienteSonoro !== 'undefined' && AmbienteSonoro.setPausa) AmbienteSonoro.setPausa(true);
@@ -608,6 +853,14 @@ const ComemoracaoCampeao = {
     cancelar() { this.limpar(); },
 
     limpar() {
+        if (this._res) for (const e of this._res.lista) if (e.fase === 'festa') e.fase = 'voltar';
+        // O tecnico volta a area tecnica a pe (o Bancos.update, que o move no jogo, nao corre depois do apito): ver tickReservas.
+        if (this.tecnico && this.tecnico.banco && this.tecnico.banco.treinador && typeof BancosDeReservas !== 'undefined' && BancosDeReservas.treinador) {
+            const t = this.tecnico.banco.treinador;
+            this._tecnicoVolta = { t: t, x: BancosDeReservas.treinador.x, z: this.tecnico.banco.zc };
+            t.paradoNoAlvo = false; t.animTimer = 0;
+        }
+        this.tecnico = null; this._percurso = null; this._camV = null; this._proxConfetis = 0;
         for (const s of this.partes) {
             const p = s.p;
             if (!p) continue;

@@ -381,6 +381,8 @@ const Bancos = {
         for (const b of this.bancos) {
             const t = b.treinador;
             if (!t) continue;
+            // Na festa de campeao (js/comemoracao_campeao.js) o tecnico e da coreografia.
+            if (t.jogador && t.jogador.campeaoOrdem) continue;
             t.relogio += dt;
             if (bola && t.relogio >= 0.5) {
                 t.relogio = 0;

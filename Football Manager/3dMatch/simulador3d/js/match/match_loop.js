@@ -243,6 +243,7 @@ Object.assign(Match, {
         // A comemoracao de campeao (js/comemoracao_campeao.js): o relogio do apito ate ao arranque, as fases e o guiao da taca.
         const festaCampeao = this.state === 'FIM_DE_JOGO' && typeof ComemoracaoCampeao !== 'undefined' && ComemoracaoCampeao.emCurso();
         if (festaCampeao) ComemoracaoCampeao.update(dt);
+        if (this.state === 'FIM_DE_JOGO' && typeof ComemoracaoCampeao !== 'undefined' && ComemoracaoCampeao.tickReservas) ComemoracaoCampeao.tickReservas(dt);
         this.players.forEach(p => p.update(dt));
         this.opponents.forEach(p => p.update(dt));
         if ((this.state === 'INTERVALO' && this.intervaloComSaida) || this.state === 'FIM_DE_JOGO') {   // no fim o juiz aponta o centro antes da saida: o `Officials.update` corre mesmo antes de a saida comecar
@@ -1344,6 +1345,8 @@ Object.assign(Match, {
 
         // Arbitragem: fora das listas de jogadores, corre à parte (officials.js).
         if (typeof Officials !== 'undefined') Officials.update(dt);
+        // Os reservas do campeao a beira do campo nos ultimos minutos (js/comemoracao_campeao.js).
+        if (typeof ComemoracaoCampeao !== 'undefined' && ComemoracaoCampeao.tickReservas) ComemoracaoCampeao.tickReservas(dt);
         // Diagnostico do portador parado na area (js/diag_portador_parado.js): so no jogo visivel, so escreve no console.
         if (typeof DiagPortadorParado !== 'undefined' && !(typeof Sim !== 'undefined' && Sim.running)) DiagPortadorParado.tick(dt);
         if (typeof Bancos !== 'undefined') Bancos.update(dt);
