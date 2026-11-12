@@ -1752,11 +1752,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Jogador do utilizador com lesao: o card de estatisticas avisa ate o Tactics ser aberto (limparAvisoLesao).
       if (time.id === gameState.userTeamId) { const nome = jog.name.split(' ').pop() || jog.name; setAvisoLesao(prev => (prev.includes(nome) ? prev : [...prev, nome])); }
       const minuto = typeof m.minuto === 'number' ? m.minuto : (w.motor3dMinuto || 0);
-      const gravidade = severidadeDaLesao(m.tipo === 'Complexa' ? 'Complexa' : 'Simples', m.dias);
+      const gravidade = severidadeDaLesao(m.tipoLesao === 'Complexa' ? 'Complexa' : 'Simples', m.dias);
       const ev: MatchEvent = {
         minute: minuto, type: 'INJURY', teamId: time.id, playerId: jog.id,
         description: `✚ ${jog.name.split(' ').pop()}: ${m.nome}${m.estado !== 'Hurt' && time.id === gameState.userTeamId ? ' — precisa ser substituído' : ''}`,
-        injurySeverity: gravidade, injuryName: m.nome, injuryDaysOut: m.dias, injuryTipo: m.tipo === 'Complexa' ? 'Complexa' : 'Simples',
+        injurySeverity: gravidade, injuryName: m.nome, injuryDaysOut: m.dias, injuryTipo: m.tipoLesao === 'Complexa' ? 'Complexa' : 'Simples',
         injuryEstimate: m.estimativa, injuryFisDrop: m.quedaFisPorDia || 0, injuryId: m.idLesao
       };
       setFixtures(prev => prev.map(f => (f.id !== uf.id ? f : { ...f, events: [...(f.events || []).filter(e => !(e.type === 'INJURY' && e.playerId === jog.id)), ev] })));

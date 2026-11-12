@@ -79,7 +79,7 @@ const Maca = {
         this.maqueiros = [];
         for (let k = 0; k < 4; k++) {
             let feito = null;
-            try { feito = Officials.criarCorpo(970 + k, M.cores.camisa, M.cores.calca, true); } catch (e) { feito = null; }
+            try { feito = Officials.criarCorpo(970 + k, M.cores.camisa, M.cores.calca, true, false, undefined, true); } catch (e) { feito = null; }
             if (!feito) { this._limpar(); return false; }
             // Mangas e calcas compridas (o mesmo pano do staff do banco).
             if (typeof Bancos !== 'undefined' && Bancos._vestirPano) { try { Bancos._vestirPano(feito, new THREE.Color(M.cores.calca).getHex()); } catch (e) { /* fica de calcao */ } }
@@ -136,6 +136,7 @@ const Maca = {
         const pos = o.model.position.clone(), rot = o.model.rotation.clone();
         o.model.position.set(0, 0, 0); o.model.rotation.set(0, 0, 0);
         this._bracosDaPega(o);
+        this._aterrar(o);   // de pe com o pe pousado (como anda com a maca): senao a maca ficava acima das maos
         o.model.updateMatrixWorld(true);
         const v = new THREE.Vector3();
         o.rig.lHand.getWorldPosition(v);
@@ -162,6 +163,7 @@ const Maca = {
             o.model.position.set(w.x, this._base(), w.z);
             o.model.rotation.set(0, this.pose.h, 0);
             o.velAnim = 0;
+            this._aterrar(o);
         });
         this.fase = 'parado';
     },
@@ -190,6 +192,23 @@ const Maca = {
             r.chest.rotation.x = lerpK(r.chest.rotation.x, 0, 0.2);
             o.model.position.y = lerpK(o.model.position.y, this._base(), 0.2);
         }
+        this._aterrar(o);
+    },
+
+    /*
+    O PE MAIS BAIXO NO CHAO. Relato (imagem): *"o pessoal da maca ta correndo no ar"*. A passada daqui poe o corpo a altura fixa (+ ressalto) e as pernas dobradas
+    levantavam os dois pes: medido, o pe mais baixo dos maqueiros ficava a 0.26-0.43 m (o do juiz e o dos jogadores, a 0.13: o tornozelo pousado). Depois da
+    pose, o corpo desce (ou sobe) o que for preciso para o pe mais baixo ficar a `peNoChao` (MacaModel).
+    */
+    _aterrar: function (o) {
+        const r = o && o.rig;
+        if (!r || !r.lFoot || !r.rFoot || !o.model) return;
+        o.model.updateMatrixWorld(true);
+        const v = this._vPe || (this._vPe = new THREE.Vector3());
+        r.lFoot.getWorldPosition(v); let m = v.y;
+        r.rFoot.getWorldPosition(v); m = Math.min(m, v.y);
+        const alvo = (typeof MacaModel.peNoChao === 'number') ? MacaModel.peNoChao : 0.13;
+        o.model.position.y += alvo - m;
     },
 
     // Os bracos na pega: a mao de dentro (a do lado da maca) segura o varal; os da frente tem a pega atras de si, os de tras a frente.
@@ -214,6 +233,28 @@ const Maca = {
         r.chest.rotation.x = A.tronco * c;
         if (c > 0.01 && o.jogador && o.jogador.assentarCorpoInteiro) o.jogador.assentarCorpoInteiro();
         else o.model.position.y = this._base();
+    },
+
+    /*
+    O MEDICO DE UM JOELHO SO (pedido: *"coloca o medico ajoelhado com um joelho so, tipo o goleiro quando vai encaixar a bola"*): as pernas do encaixe ajoelhado do guarda-redes
+    (GoalkeeperPose.encaixe: a direita ajoelha com o joelho e a ponta do pe no relvado, a esquerda de apoio a frente, com a sola assente), o tronco inclinado para o
+    lesionado e os bracos a frente. `c` 0 = de pe, 1 = ajoelhado. O corpo assenta pelo ponto mais baixo (o joelho).
+    */
+    _ajoelhar: function (o, c) {
+        const r = o.rig;
+        if (!r) return;
+        const E = (typeof GoalkeeperPose !== 'undefined' && GoalkeeperPose.encaixe) || { coxaAberta: 0.20, joelhoAberto: 1.70, peAberto: 0.60, coxaRecolhida: -1.30, joelhoRecolhido: 1.50, peRecolhido: -0.30, aberturaAberta: 0.18, aberturaRecolhida: 0.10 };
+        const K = MacaModel.poses.ajoelhado || { tronco: 0.45, braco: -0.6, cotovelo: -0.4 };
+        r.rLeg.rotation.x = E.coxaAberta * c; r.rLeg.rotation.z = -E.aberturaAberta * c; r.rKnee.rotation.x = E.joelhoAberto * c;
+        r.lLeg.rotation.x = E.coxaRecolhida * c; r.lLeg.rotation.z = E.aberturaRecolhida * c; r.lKnee.rotation.x = E.joelhoRecolhido * c;
+        if (r.rFoot) r.rFoot.rotation.x = E.peAberto * c;
+        if (r.lFoot) r.lFoot.rotation.x = E.peRecolhido * c;
+        if (r.pelvis) r.pelvis.rotation.x = 0;
+        r.chest.rotation.x = K.tronco * c;
+        r.lArm.rotation.x = K.braco * c; r.rArm.rotation.x = K.braco * c;
+        if (r.lElbow) r.lElbow.rotation.x = K.cotovelo * c; if (r.rElbow) r.rElbow.rotation.x = K.cotovelo * c;
+        if (c > 0.01 && o.jogador && o.jogador.assentarCorpoInteiro) o.jogador.assentarCorpoInteiro();
+        else { o.model.position.y = this._base(); this._aterrar(o); }
     },
 
     /*
@@ -301,6 +342,7 @@ const Maca = {
     */
     lesaoGrave: function () {
         if (typeof Match === 'undefined' || !Match.players || !Match.ball) return false;
+        if (this.emUso()) { console.warn('Maca: ja esta em uso — espera ela voltar ao posto'); return false; }
         let P = Match.ballCarrier;
         if (!P || P.role === 'gk' || !P.model) {
             const b = Match.ball.position;
@@ -321,6 +363,10 @@ const Maca = {
         if (typeof P.iniciarQueda === 'function') P.iniciarQueda(null);
         // O jogo para ja: falta para o time do lesionado (a bola era dele), no sitio da bola.
         if (Match.state === 'PLAY' && Match.setupSetPiece) Match.setupSetPiece('FREE_KICK', time);
+        // O TIME DO UTILIZADOR nao troca sozinho (como numa lesao a serio): o jogador fica INJ no manager e a maca entra quando o treinador fizer a troca
+        // (sem trocas possiveis, entra ja e o time fica com menos um — ver _procurarDoente).
+        const doUtilizador = Match.ladoDoUtilizador && (time === 'TeamB' ? 'fora' : 'casa') === Match.ladoDoUtilizador;
+        if (doUtilizador) { console.log('Maca: lesao grave no time do utilizador (' + P.pos + ' #' + P.num + '): espera a troca do treinador'); return true; }
         const ok = this.levar(P, { pararJogo: false });
         console.log('Maca: lesao grave em ' + time + ' ' + P.pos + ' #' + P.num + (P.lesao && P.lesao.reg ? ' (' + P.lesao.reg.nomeLesao + ')' : ''));
         return ok;
@@ -349,6 +395,18 @@ const Maca = {
         if (!this._doenteValido()) { this._abortar(); return; }
         const M = MacaModel;
         switch (this.fase) {
+            case 'aguardaMedico': {
+                // Os maqueiros esperam de pe no posto; o medico avalia (fase 'atender' do _tickMedico) e ao fim de `tAvaliar` s chama a maca.
+                for (const o of this.maqueiros) this._passada(o, 0, dt);
+                const med = this.medico;
+                if (!med || !med.o) { this._mudar('pegar'); break; }
+                if (med.fase === 'atender') this._tAvaliou += dt;
+                if (this._tAvaliou >= (M.tAvaliar || 3.0) || this.t > (M.esperaMedicoMax || 30)) {
+                    console.log('Maca: o medico chama a maca' + (med.nome ? ' (' + med.nome + ')' : ''));
+                    this._mudar('pegar');
+                }
+                break;
+            }
             case 'pegar': {
                 let todos = true;
                 for (const o of this.maqueiros) {
@@ -397,7 +455,14 @@ const Maca = {
                 const fim = this._seguir(this._wps, M.velLevar, dt);
                 this._equipaEmFormacao(dt);
                 // Fora do campo: a troca (match_substituicoes.js) pode fazer-se e o jogo recomeca.
-                if (!this.doente._macaFora && Math.abs(this.pose.x) >= this._foraX) { this.doente._macaFora = true; this._marcar('fora_do_campo'); }
+                if (!this.doente._macaFora && Math.abs(this.pose.x) >= this._foraX) {
+                    this.doente._macaFora = true; this._marcar('fora_do_campo');
+                    // Sem troca: fora do campo, sai da lista ja (o jogo recomeca com menos um; a maca segue para o tunel com ele).
+                    if (this.req && this.req._semTroca) {
+                        const P = this.doente, lista = P.team === 'TeamA' ? Match.players : Match.opponents, i = lista ? lista.indexOf(P) : -1;
+                        if (i >= 0) { P.indiceNaFormacao = i; lista.splice(i, 1); if (Match.esquecerJogadoresAntigos) Match.esquecerJogadoresAntigos([P]); console.warn('Maca: ' + P.team + ' ' + P.pos + ' saiu sem troca possivel (ficam ' + lista.length + ')'); }
+                    }
+                }
                 if (fim) this._entregar();
                 break;
             }
@@ -425,6 +490,12 @@ const Maca = {
             }
         }
         if (this.medico) this._tickMedico(dt);
+        // Quem esta no caminho da maca afasta-se (ver _abrirCaminho).
+        if (this.fase === 'indo' || this.fase === 'levando' || this.fase === 'voltando') this._desviar(dt);
+        if (this.fase !== 'parado' && this.fase !== 'aguardaMedico') this._abrirCaminho(dt);
+        // Os pes no chao tambem quando andam com o passo dos oficiais (Match._andar: a caminho das pegas, o medico a ir e a acompanhar); ver _aterrar.
+        for (const o of this.maqueiros) this._aterrar(o);
+        if (this.medico && this.medico.o && ['ir', 'acompanhar'].indexOf(this.medico.fase) >= 0) this._aterrar(this.medico.o);
     },
 
     _mudar: function (fase, seguinte) {
@@ -433,6 +504,110 @@ const Maca = {
         this._marcar(fase);
     },
     _marcar: function (nome) { this.fases.push(nome); },
+
+    /*
+    A CAMERA DA MACA (pedido: *"quando o pessoal da maca entrar, a camera deve ir para eles ate retirarem o jogador do campo; depois volta para a bola"*). Ligada do
+    momento em que o medico entra ate o lesionado sair do campo (`_macaFora`); depois a camera do utilizador volta sozinha (o modo nao muda). Ver Match.updateCamera.
+    Enquadra o lesionado e o medico (antes da maca chegar) ou a maca, de cima e do lado do campo, com um seguimento suave.
+    */
+    /*
+    O CAMINHO DA MACA ABRE-SE (relato: *"os maqueiros estao passando por dentro de alguns jogadores"*). Quem esta a menos de `afastar.raio` m de um maqueiro, ou dentro
+    da faixa da maca (o retangulo entre os quatro, com `afastar.folga` m de folga), e empurrado para fora, na direccao de quem o afasta, a `afastar.vel` m/s — como
+    quem da um passo para o lado. Os jogadores (das duas equipas, menos o lesionado) e o medico. O jogador fica onde foi empurrado; a montagem da bola parada leva-o
+    depois ao seu lugar.
+    */
+    /*
+    A MACA CONTORNA QUEM ESTA PARADO A FRENTE. Os jogadores postos no lugar da bola parada (SET_PIECE_WAIT) voltam ao lugar todos os frames, e empurra-los nao chega
+    (medido: 17 frames de um maqueiro a menos de 0.5 m de um RM parado). Quem esta na faixa a frente da maca (de `desvio.atras` a `desvio.frente` m, ate `desvio.largura`
+    m do eixo) faz a maca andar para o lado contrario, a `desvio.vel` m/s; o caminho (o `_seguir`, que aponta sempre ao ponto seguinte) traz a maca de volta depois.
+    */
+    _desviar: function (dt) {
+        const D = MacaModel.desvio || { frente: 5.0, atras: 1.0, largura: 2.0, vel: 2.5 };
+        const h = this.pose.h, fx = Math.sin(h), fz = Math.cos(h), lx = Math.cos(h), lz = -Math.sin(h);
+        let empurra = 0;
+        for (const q of [].concat(Match.players || [], Match.opponents || [])) {
+            if (!q || !q.model || q === this.doente || q.expulso || q.foraDeCampo) continue;
+            const dx = q.model.position.x - this.pose.x, dz = q.model.position.z - this.pose.z;
+            const a = dx * fx + dz * fz, l = dx * lx + dz * lz;
+            if (a < -D.atras || a > D.frente || Math.abs(l) > D.largura) continue;
+            // Mais perto (a frente e do eixo), mais forte; foge para o lado oposto ao dele.
+            const peso = (1 - Math.abs(l) / D.largura) * (1 - Math.max(0, a) / D.frente);
+            empurra += (l >= 0 ? -1 : 1) * peso;
+        }
+        if (Math.abs(empurra) < 1e-3) return;
+        const passo = THREE.MathUtils.clamp(empurra, -1, 1) * D.vel * dt;
+        this.pose.x += lx * passo; this.pose.z += lz * passo;
+        this._colocarMaca();
+    },
+
+    _abrirCaminho: function (dt) {
+        const A = MacaModel.afastar || { raio: 1.1, folga: 0.6, vel: 3.5 };
+        const h = this.pose.h, fx = Math.sin(h), fz = Math.cos(h), lx = Math.cos(h), lz = -Math.sin(h);
+        const meioComp = (MacaModel.maca && MacaModel.maca.comprimento ? MacaModel.maca.comprimento / 2 : 1.1) + 0.6, meioLarg = 0.9 + A.folga;
+        const outros = [].concat(Match.players || [], Match.opponents || []).filter(q => q && q.model && q !== this.doente && !q.expulso && !q.foraDeCampo);
+        for (const q of outros) {
+            const p = q.model.position;
+            let ex = 0, ez = 0;
+            // Dentro da faixa da maca (no referencial dela): sai pelo lado mais perto.
+            const dx = p.x - this.pose.x, dz = p.z - this.pose.z;
+            const a = dx * fx + dz * fz, l = dx * lx + dz * lz;
+            if (Math.abs(a) < meioComp && Math.abs(l) < meioLarg) { const s = (l >= 0 ? 1 : -1); ex += lx * s; ez += lz * s; }
+            // Perto de um maqueiro: afasta-se dele.
+            for (const o of this.maqueiros) {
+                const mx = p.x - o.model.position.x, mz = p.z - o.model.position.z, d = Math.hypot(mx, mz);
+                if (d < A.raio && d > 1e-4) { ex += mx / d; ez += mz / d; }
+            }
+            const n = Math.hypot(ex, ez);
+            if (n < 1e-4) continue;
+            const passo = A.vel * dt;
+            p.x += ex / n * passo; p.z += ez / n * passo;
+            if (q.dynamicTarget && q.dynamicTarget.distanceTo && q.dynamicTarget.distanceTo(p) < 0.8) q.dynamicTarget.set(p.x, q.dynamicTarget.y, p.z);
+        }
+    },
+
+    // A maca esta a ser usada (de quando o medico sai ate voltarem ao posto): sem outra lesao seria entretanto (MatchInjuries.aplicar).
+    emUso: function () { return this.fase !== 'parado' || !!this.doente; },
+
+    cameraAtiva: function () {
+        if (!this.doente || this._entregue || this.fase === 'parado' || this.fase === 'voltando' || this.fase === 'arrumar') return false;
+        return !this.doente._macaFora;
+    },
+    camera: function (pos, look) {
+        /*
+        O ENQUADRAMENTO (pedido: *"a camera tem que focar no lance com os maqueiros vindo ate eles no fundo e depois seguir os maqueiros ate sairem de campo; quando o
+        medico entrar tambem: foca no jogador com o medico vindo ate ele no fundo"*):
+          . a chegar (o medico, depois a maca): a camera fica do OUTRO lado do lesionado em relacao a quem vem, e olha para ele — quem vem aparece no fundo, a
+            aproximar-se. Com quem vem ja perto (< `perto` m) a direccao fica a ultima, para a camera nao dar a volta.
+          . com ele na maca: segue os maqueiros, atras e ao lado da maca, a olhar um pouco a frente dela.
+        */
+        const C = MacaModel.camera;
+        const ancora = this._ancoraChao || { x: this.pose.x, z: this.pose.z };
+        const naMaca = this.fase === 'levando' || this._naMacaAgora || this.fase === 'deitar';
+        let alvoPos, alvoLook;
+        if (!naMaca) {
+            const med = this.medico;
+            const vem = (this.fase === 'aguardaMedico' && med && med.o) ? med.o.model.position : { x: this.pose.x, z: this.pose.z };
+            let ux = ancora.x - vem.x, uz = ancora.z - vem.z; const d = Math.hypot(ux, uz);
+            if (d > C.perto || !this._camDir) { const n = d || 1; this._camDir = { x: ux / n, z: uz / n }; }
+            const u = this._camDir;
+            alvoPos = { x: ancora.x + u.x * C.distancia, y: C.altura, z: ancora.z + u.z * C.distancia };
+            alvoLook = { x: ancora.x - u.x * C.adiante, y: C.alvoAltura, z: ancora.z - u.z * C.adiante };
+        } else {
+            const h = this.pose.h, fx = Math.sin(h), fz = Math.cos(h), lx = Math.cos(h), lz = -Math.sin(h);
+            alvoPos = { x: this.pose.x - fx * C.seguirAtras + lx * C.seguirLado, y: C.seguirAltura, z: this.pose.z - fz * C.seguirAtras + lz * C.seguirLado };
+            alvoLook = { x: this.pose.x + fx * 3, y: C.alvoAltura, z: this.pose.z + fz * 3 };
+        }
+        // Mantem-se dentro do estadio (nao atravessa as bancadas).
+        alvoPos.x = THREE.MathUtils.clamp(alvoPos.x, -(CAMPO_LARG / 2 + 10), CAMPO_LARG / 2 + 10);
+        alvoPos.z = THREE.MathUtils.clamp(alvoPos.z, -(CAMPO_COMP / 2 + 8), CAMPO_COMP / 2 + 8);
+        const k = C.suave;
+        if (!this._cam || this._camFresca) { this._cam = { x: alvoPos.x, y: alvoPos.y, z: alvoPos.z, lx: alvoLook.x, ly: alvoLook.y, lz: alvoLook.z }; this._camFresca = false; }
+        const c = this._cam;
+        c.x += (alvoPos.x - c.x) * k; c.y += (alvoPos.y - c.y) * k; c.z += (alvoPos.z - c.z) * k;
+        c.lx += (alvoLook.x - c.lx) * k * 1.5; c.ly += (alvoLook.y - c.ly) * k * 1.5; c.lz += (alvoLook.z - c.lz) * k * 1.5;
+        pos.set(c.x, c.y, c.z);
+        look.set(c.lx, c.ly, c.lz);
+    },
 
     // Numa parada, uma troca pendente de um lesionado que tem de sair (ou marcada por `levar`), com ele fora do lance: comeca.
     _procurarDoente: function () {
@@ -445,6 +620,20 @@ const Maca = {
             const precisa = req._maca || (P.lesao && P.lesao.estado && P.lesao.estado !== 'Hurt');
             if (!precisa || !Match._elegivel(P)) continue;
             this._comecar(P, req);
+            return;
+        }
+        /*
+        SEM TROCA POSSIVEL (sem reserva do papel, ou o limite de trocas ja usado — no time do utilizador tambem): quem tem de sair (Forced) sai na maca na mesma e o
+        time fica com menos um (como numa expulsao). Com trocas, o time do utilizador espera pela troca do treinador (o jogador fica INJ no manager, aviso `lesao`).
+        */
+        for (const P of [].concat(Match.players || [], Match.opponents || [])) {
+            const L = P && P.lesao;
+            if (!L || L.estado !== 'Forced' || P._naMaca || !P.model || !P.rig || !Match._elegivel(P)) continue;
+            const lado = P.team === 'TeamB' ? 'fora' : 'casa';
+            if ((Match.subsPendentes || []).some(r => !r.feita && r.lado === lado && Match._jogadorPorIdManager(Match._equipaDoLado(lado), r.sai) === P)) continue;
+            const semTrocas = typeof MatchInjuries !== 'undefined' && MatchInjuries._trocasDoLado(lado) >= MatchInjuries.maxTrocas;
+            if (!(L.troca === 'sem_trocas' || L.troca === 'sem_reserva' || (L.troca === 'manual' && semTrocas))) continue;
+            this._comecar(P, { lado: lado, sai: String(P.skills && P.skills.id), _maca: true, _semTroca: true, feita: false });
             return;
         }
     },
@@ -503,8 +692,14 @@ const Maca = {
         // O medico do time.
         this.medico = this._prepararMedico(P, { x: C.x - lv.x * (M.ladoDoDoente + M.ladoMedico) + fw.x * M.zBacia, z: C.z - lv.z * (M.ladoDoDoente + M.ladoMedico) + fw.z * M.zBacia });
         const nomeMedico = this.medico && this.medico.nome ? ' com o medico ' + this.medico.nome : '';
-        console.log('Maca: os maqueiros vao buscar ' + P.team + ' ' + P.pos + ' #' + P.num + nomeMedico);
-        this._mudar('pegar');
+        /*
+        O MEDICO ENTRA PRIMEIRO (pedido: *"o medico deve entrar primeiro, avalia o jogador durante 3 s e chama a maca"*): os maqueiros esperam no posto
+        (`aguardaMedico`) ate o medico estar ha `tAvaliar` s agachado ao lado dele; sem medico, vao logo.
+        */
+        console.log('Maca: o medico' + (this.medico && this.medico.nome ? ' ' + this.medico.nome : '') + ' vai avaliar ' + P.team + ' ' + P.pos + ' #' + P.num);
+        this._tAvaliou = 0;
+        this._camFresca = true; this._camDir = null;
+        this._mudar(this.medico ? 'aguardaMedico' : 'pegar');
     },
 
     // O lesionado ainda e deste jogo (nao veio um Match.init no meio)?
@@ -635,7 +830,7 @@ const Maca = {
         if (m && m.model && m.model.parent === this._cena) return m;
         const S = MacaModel.medicoSemBanco, lado = this._lado();
         let feito = null;
-        try { feito = Officials.criarCorpo(team === 'TeamA' ? 975 : 976, '#f1f3f5', '#1b2a4a', true); } catch (e) { return null; }
+        try { feito = Officials.criarCorpo(team === 'TeamA' ? 975 : 976, '#f1f3f5', '#1b2a4a', true, false, undefined, true); } catch (e) { return null; }
         if (typeof Bancos !== 'undefined' && Bancos._vestirPano) { try { Bancos._vestirPano(feito, 0x1b2a4a); } catch (e) { /* calcao */ } }
         const casa = { x: lado * S.x, z: S.z + (team === 'TeamA' ? -S.passo / 2 : S.passo / 2), rot: Math.atan2(-lado, 0) };
         feito.corpo.position.set(casa.x, this._base(), casa.z);
@@ -673,9 +868,9 @@ const Maca = {
             o.model.rotation.y += this._wrap(ang - o.model.rotation.y) * Math.min(1, dt * 6);
             med.c = Math.min(1, med.c + dt / 0.5);
             if (this.fase === 'levando' || this._entregue) { med.fase = 'acompanhar'; }
-            this._agachar(o, med.c * 0.8);
+            this._ajoelhar(o, med.c);
         } else if (med.fase === 'acompanhar') {
-            if (med.c > 0) { med.c = Math.max(0, med.c - dt / 0.4); this._agachar(o, med.c * 0.8); return; }
+            if (med.c > 0) { med.c = Math.max(0, med.c - dt / 0.4); this._ajoelhar(o, med.c); return; }
             // Ao lado da maca, do lado de onde o atendeu; na boca do tunel larga-a e volta.
             const w = this._mundo(-M.medico.l, M.medico.a);
             const d = Math.hypot(w.x - o.model.position.x, w.z - o.model.position.z);

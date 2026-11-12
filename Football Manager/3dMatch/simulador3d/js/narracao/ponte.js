@@ -45,7 +45,8 @@ const Ponte = {
         if (alvo) alvo.postMessage(msg, '*');
     },
 
-    enviar(tipo, dados) { this.saida(Object.assign({ fonte: 'simulador3d', tipo: tipo }, dados || {})); },
+    // O `tipo` da mensagem vai POR ULTIMO: um campo `tipo` nos dados (a lesao mandava `tipo: 'Simples' | 'Complexa'`) sobrescrevia-o e o manager nunca via a mensagem.
+    enviar(tipo, dados) { this.saida(Object.assign({ fonte: 'simulador3d' }, dados || {}, { tipo: tipo })); },
 
     aoMensagem(m) {
         if (!m || m.para !== 'simulador3d') return;

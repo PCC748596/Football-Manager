@@ -781,7 +781,8 @@ const Officials = {
     Os ossos têm os mesmos nomes (`lLeg`, `rKnee`, `lArm`, `chest`…), por isso o
     `mover()` aqui em baixo não muda nada.
     */
-    criarCorpo: function (id, camisa, calcao, simples, arbitro, gola) {
+    // `corpoDeJogador`: o modelo dos jogadores (Qualidade.corpoArbitros, 484 triangulos no `leve` 4) num nao-arbitro — os maqueiros e o medico (js/maca.js), que entram em campo e ficam perto da camara.
+    criarCorpo: function (id, camisa, calcao, simples, arbitro, gola, corpoDeJogador) {
         const R = RefereeModel;
         /*
         GOLAS, BARRA DO SHORT E LISTAS DAS MEIAS PRETAS (pedido): num traje de cor o resto e preto — a gola (e os punhos), a barra do short (quando o
@@ -795,7 +796,7 @@ const Officials = {
             // A barra do calcao: nos arbitros (`gola` dada) e SEMPRE na cor da gola, mesmo com calcao preto; nos outros, preta so com calcao de cor.
             calcao: { cores: [calcao || camisa], barra: (!simples && gola) ? { cor: gola, altura: 0.12 } : ((!simples && calcao && calcao !== preto) ? { cor: preto, altura: 0.12 } : null) }
         } : null;
-        FootballPlayer.extra = arbitro ? 'arbitro' : 'staff';   // arbitro e assistentes: o corpo dos jogadores (Qualidade.corpoArbitros); staff (tecnicos, funcionarios, reporters): Qualidade.corpoExtras, mas com sombra falsa como os jogadores
+        FootballPlayer.extra = (arbitro || corpoDeJogador) ? 'arbitro' : 'staff';   // arbitro e assistentes: o corpo dos jogadores (Qualidade.corpoArbitros); staff (tecnicos, funcionarios, reporters): Qualidade.corpoExtras, mas com sombra falsa como os jogadores
         let jogador;
         try { jogador = new FootballPlayer(id, camisa || R.corCamisa, calcao || R.corCalcao, 'TeamA', uniforme); } finally { FootballPlayer.extra = false; }
 

@@ -239,8 +239,24 @@ const Qualidade = {
             lateral, e, nos cantos, as DUAS do mesmo fundo. Agora os indices vao do primeiro ao ultimo do grupo, a passos iguais (len 4, n 2: 0 e 3; len 3, n 2: 0 e 2), de modo que a luz que fica
             de um lado do campo tem a sua par do outro; com uma so, a do meio.
             */
-            const nn = Math.min(n, g.length);
-            for (let i = 0; i < nn; i++) ficam.push(g[nn === 1 ? Math.floor((g.length - 1) / 2) : Math.round(i * (g.length - 1) / (nn - 1))]);
+            // Os CANTOS (um grupo so, os quatro) ficam aos pares na diagonal (indices 0 e 3): um canto sozinho deixava a luz torta.
+            const nn = Math.min(g.length, (g[0] && g[0].userData && g[0].userData.tipo === 'canto' && n % 2) ? n + 1 : n);
+            const escolhidas = [];
+            for (let i = 0; i < nn; i++) escolhidas.push(g[nn === 1 ? Math.floor((g.length - 1) / 2) : Math.round(i * (g.length - 1) / (nn - 1))]);
+            /*
+            AS LATERAIS QUE FICAM COBREM O CAMPO TODO (relato: *"a iluminacao do meio do estadio menor a noite esta fraca"*). Ficavam as das pontas, apontadas as linhas de fundo:
+            medido no HIGH, o meio do campo recebia 61% da luz das areas (1.06 contra 1.73); no LOW ficava uma por lateral fora do meio (z -15). Com menos luzes do que as
+            posicoes, cada uma passa a apontar para a sua faixa do campo, repartido por igual (`nn` faixas ao longo de z); com uma so, para o meio. Os fundos continuam nas areas.
+            */
+            if (g[0] && g[0].userData && g[0].userData.tipo === 'lat' && nn < g.length && typeof CAMPO_COMP === 'number') {
+                const L = CAMPO_COMP * 0.85;
+                escolhidas.slice().sort(function (x, y) { return x.position.z - y.position.z; }).forEach(function (l, i) {
+                    const z = -L / 2 + (i + 0.5) * L / nn;
+                    l.target.position.z = z;
+                    if (nn === 1) l.position.z = 0;
+                });
+            }
+            for (const l of escolhidas) ficam.push(l);
         });
         const fator = Math.min(2.0, Math.sqrt(luzes.length / ficam.length));
         luzes.forEach(function (l) {

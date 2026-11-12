@@ -25,7 +25,19 @@ const MacaModel = {
     // As pegas: 2 de cada lado, nas pontas dos varais (a > 0 = a frente da maca).
     pegas: [{ a: 1.30, l: 0.45 }, { a: 1.30, l: -0.45 }, { a: -1.30, l: 0.45 }, { a: -1.30, l: -0.45 }],
     // Velocidades (m/s): a ir ter com o lesionado (trote, com a maca vazia), a levar (passo rapido) e a voltar ao posto.
-    velIr: 5.0,
+    // O pe mais baixo de quem anda com a maca fica a esta altura (o tornozelo pousado: o do juiz e o dos jogadores, medido 0.13). Ver Maca._aterrar.
+    peNoChao: 0.13,
+    // O medico entra primeiro e avalia o lesionado `tAvaliar` s antes de chamar a maca (no maximo `esperaMedicoMax` s a espera dele).
+    tAvaliar: 3.0, esperaMedicoMax: 30.0,
+    // A camera da maca (Maca.camera): do lado do meio do campo, a `distancia` m do lance e `altura` m, seguimento `suave` por frame.
+    // Chegada (o medico, depois a maca): `distancia` m do lesionado, do lado oposto a quem vem, a `altura` m, a olhar `adiante` m para la dele (quem vem fica no fundo).
+    // Na maca: `seguirAtras` m atras e `seguirLado` m ao lado, a `seguirAltura` m. `perto`: abaixo disto a direccao da chegada fica fixa. `suave`: seguimento por frame.
+    camera: { distancia: 9.0, altura: 4.2, adiante: 2.0, alvoAltura: 0.8, perto: 5.0, seguirAtras: 9.0, seguirLado: 5.0, seguirAltura: 5.0, suave: 0.06 },
+    // Quem esta no caminho da maca afasta-se (Maca._abrirCaminho): a menos de `raio` m de um maqueiro, ou dentro da faixa da maca com `folga` m de folga, a `vel` m/s.
+    afastar: { raio: 1.3, folga: 0.6, vel: 4.0 },
+    // A maca contorna quem esta parado a frente (Maca._desviar): a faixa de `atras` a `frente` m e ate `largura` m do eixo; anda para o lado a `vel` m/s.
+    desvio: { frente: 5.0, atras: 1.0, largura: 2.0, vel: 2.5 },
+    velIr: 6.5,   // 5 -> 6.5 (pedido: entrar um pouco mais rapido; a saida fica)
     velLevar: 2.8,
     velVoltar: 2.0,
     velMedico: 5.0,
@@ -62,7 +74,9 @@ const MacaModel = {
     poses: {
         sentado: { anca: -2.1, joelho: 1.3, tronco: 0.25 },     // sentado no relvado, joelhos para cima
         deitado: { anca: -0.08, joelho: 0.18 },                  // de costas na maca
-        agachado: { anca: -1.1, joelho: 1.8, tronco: 0.5, braco: -0.35 }
+        agachado: { anca: -1.1, joelho: 1.8, tronco: 0.5, braco: -0.35 },
+        // O medico de um joelho so (Maca._ajoelhar: as pernas sao as do encaixe ajoelhado do guarda-redes, GoalkeeperPose.encaixe): tronco e bracos.
+        ajoelhado: { tronco: 0.45, braco: -0.6, cotovelo: -0.4 }
     }
 };
 if (typeof window !== 'undefined') window.MacaModel = MacaModel;

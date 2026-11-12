@@ -25,7 +25,8 @@ const MatchInjuries = {
     _medicos: {},
     historico: [],
 
-    reiniciar: function () { this._acSeg = 0; this._acMin = 0; this._medicos = {}; this.historico = []; },
+    // Partida nova (Match.init): as lesoes e os medicos do jogo anterior nao passam para este — e a maca volta ao posto (senao ficava "em uso" e bloqueava as lesoes seguintes).
+    reiniciar: function () { this._acSeg = 0; this._acMin = 0; this._medicos = {}; this.historico = []; if (typeof Maca !== 'undefined' && Maca.emUso && Maca.emUso() && Maca._abortar) { try { Maca._abortar(); } catch (e) { /* sem maca construida */ } } },
 
     _lista: function () { return [].concat(Match.players || [], Match.opponents || []); },
     _lado: function (p) { return p.team === 'TeamB' ? 'fora' : 'casa'; },
@@ -88,6 +89,12 @@ const MatchInjuries = {
     },
 
     aplicar: function (p, lesao, estado, causa, agravou) {
+        /*
+        COM A MACA EM USO NAO HA OUTRA LESAO SERIA (pedido: *"enquanto a maca estiver sendo usada, nao pode haver outra contusao seria; isso evita bug com a maca"*):
+        nada de Forced/Requested nem lesao complexa (nem agravamento) ate a maca voltar ao posto; uma leve (Hurt, simples) continua a poder acontecer. O botao de teste
+        (Maca.lesaoGrave) tambem espera.
+        */
+        if (typeof Maca !== 'undefined' && Maca.emUso && Maca.emUso() && (estado !== 'Hurt' || (lesao && lesao.tipo === 'Complexa') || agravou)) return false;
         const medico = this._medico(p);
         const reg = MedicalDepartment.registrarNovaLesao(p, lesao, medico);
         p.lesao = { reg: reg, estado: estado, lado: this._lado(p), minuto: this._minuto(), troca: false };
@@ -104,7 +111,7 @@ const MatchInjuries = {
         const l = p.lesao.reg;
         Ponte.enviar('lesao', {
             lado: p.lesao.lado, jogador: p.skills ? p.skills.id : null, minuto: p.lesao.minuto, estado: estado, causa: causa, agravou: agravou,
-            idLesao: l.idLesao, nome: l.nomeLesao, tipo: l.tipo, dias: l.diasRestantesReais, estimativa: l.estimativaManager, parte: (INJURY_DATABASE.find(x => x.id === l.idLesao) || {}).parteCorpo || null,
+            idLesao: l.idLesao, nome: l.nomeLesao, tipoLesao: l.tipo, dias: l.diasRestantesReais, estimativa: l.estimativaManager, parte: (INJURY_DATABASE.find(x => x.id === l.idLesao) || {}).parteCorpo || null,
             quedaFisPorDia: (INJURY_DATABASE.find(x => x.id === l.idLesao) || {}).quedaFisPorDia || 0
         });
     },

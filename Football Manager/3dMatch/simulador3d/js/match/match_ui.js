@@ -303,6 +303,9 @@ Object.assign(Match, {
         } else if (typeof ComemoracaoCampeao !== 'undefined' && ComemoracaoCampeao.activa) {
             // A festa de campeao tem a camara dela (js/comemoracao_campeao.js); o modo do utilizador nao muda, e volta sozinho no fim.
             ComemoracaoCampeao.camera(targetPos, lookTarget);
+        } else if (typeof Maca !== 'undefined' && Maca.cameraAtiva && Maca.cameraAtiva() && window.cameraMode !== 'orbit') {
+            // A maca tem a camara dela enquanto o lesionado esta em campo (js/maca.js); depois volta a do utilizador (o modo nao muda). A orbital, que e do utilizador, nao se toca.
+            Maca.camera(targetPos, lookTarget);
         } else if (typeof Abertura !== 'undefined' && Abertura.activa && Abertura.modo !== 'segundo' && Abertura.modo !== 'intervalo') {
             Abertura.camera(targetPos, lookTarget);
         } else if (window.cameraMode === 'center') {

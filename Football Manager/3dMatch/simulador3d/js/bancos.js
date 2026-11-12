@@ -211,7 +211,8 @@ const Bancos = {
     // Um membro do staff: o corpo dos jogadores com camisa e calca compridas da cor do clube, sentado no banco.
     _staff(B, cor, id, z, funcao) {
         if (typeof Officials === 'undefined' || !Officials.criarCorpo) return null;
-        const feito = Officials.criarCorpo(id, cor, cor, true);
+        // O MEDICO entra em campo com a maca (js/maca.js): o corpo dos jogadores (484 triangulos, pedido), como os maqueiros; o resto do staff fica no corpo leve.
+        const feito = Officials.criarCorpo(id, cor, cor, true, false, undefined, funcao === 'medico');
         this._vestirPano(feito, new THREE.Color(cor).getHex());
         const pelvisY0 = feito.rig.pelvis.position.y;
         this._sentar({ rig: feito.rig, model: feito.corpo });
