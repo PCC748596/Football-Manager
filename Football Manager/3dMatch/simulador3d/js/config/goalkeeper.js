@@ -6,9 +6,20 @@ Posicionamento, saídas da baliza, mergulho, defesa com as mãos e reposições.
 =============================================================================
 */
 
+/*
+A SAIDA AO PORTADOR, por estilo (pedido: *"o goleiro defensivo pode sair do gol uns 2 ou 3 passos quando o atacante estiver vindo com a bola e a bola entrar na
+area. O goleiro ofensivo vai sair uns 5 passos a frente quando nao tiver nenhum zagueiro entre ele e o adversario"*).
+
+    passosNaArea       defensivo: com um adversario a conduzir e a bola DENTRO da area, sai isto da ancora em direccao a bola.
+    passosSemDefensor  ofensivo: quando o `updateGkStyle` (team_bt.js) o pe 'offensive' (adversario com a bola no corredor central e nenhum defensor entre ele e a
+                       baliza), sai isto da ancora em direccao a bola — dentro ou fora da area. Antes ia ate `sweepOut` (20 m) atras da bola.
+Um passo = `GoalkeeperStyle.passo` metros. Nunca passa da bola: fica a `folgaDaBola` dela. Ver gkSaidaAoPortador (utils.js).
+*/
 const GoalkeeperStyle = {
-    defensive: { depthMin: 1.2, depthMax: 6.0, sweepOut: 6.0 },
-    offensive: { depthMin: 1.8, depthMax: 11.0, sweepOut: 20.0 }
+    passo: 0.75,
+    folgaDaBola: 1.0,
+    defensive: { depthMin: 1.2, depthMax: 6.0, sweepOut: 6.0, passosNaArea: 2.5 },
+    offensive: { depthMin: 1.8, depthMax: 11.0, sweepOut: 20.0, passosSemDefensor: 5 }
 };
 
 // Referências da curva de profundidade: borda da grande área e meio-campo
@@ -1395,8 +1406,6 @@ const GoalkeeperDive = {
     alcanceVertical: 0.70,
     // Na defesa desenhada da falta directa o salto sobe isto a mais (m): medido, a mao ficava ~0.5 m abaixo da bola. Ver GkDive.lancar.
     compensacaoAlturaFalta: 0.5,
-    // Na defesa desenhada da falta ele anda de pe ate ficar a isto (m) do ponto por onde a bola passa, e o mergulho cobre o resto. Ver updateGK.
-    aproximacaoFalta: 1.5,
 
     /*
     Quanto a mão chega além do corpo — o corpo não precisa de percorrer a

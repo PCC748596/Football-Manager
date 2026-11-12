@@ -8264,21 +8264,6 @@ class FootballPlayer {
                     const lateral = interX - gkCorpo.position.x;
                     this.gkTempoMergulho = 0;
                     this.gkAlvoX = interX;
-                    /*
-                    NA DEFESA DESENHADA DA FALTA ELE ANDA PARA O LADO ENQUANTO ESPERA.
-
-                    O `gkAlvoX` nao o desloca: quem o move de pe e o `alvoGkX`, e
-                    este ramo nunca o escrevia — ele ficava parado ate a hora do
-                    mergulho. Medido nas defesas que o recurso da linha ainda
-                    resolvia: parado a 3.3 m da bola (ate 4.9 m, quando a montagem o
-                    pos no outro canto), uma distancia que o voo e o braco nao
-                    cobrem. Vai ate `aproximacaoFalta` do ponto, e o mergulho faz o resto.
-                    */
-                    if (planoF && this.isPenaltyDive && typeof planoF.tCruzamento === 'number' &&
-                        (planoF.desfecho === 'defesa' || planoF.desfecho === 'defesa_fora')) {
-                        const folga = (GoalkeeperDive.aproximacaoFalta || 1.5);
-                        if (Math.abs(lateral) > folga) alvoGkX = interX - Math.sign(lateral) * folga;
-                    }
 
                     /*
                     E SO SE ATIRA QUANDO A BOLA JA VEM AO ALCANCE DO SALTO.
@@ -9032,11 +9017,17 @@ class FootballPlayer {
                                 é isso, e só isso, que o estilo offensive
                                 significa. Fora daí, recua como sempre.
                                 */
-                                const varrer = (this.gkStyle === 'offensive' && carrier &&
-                                    carrier.team !== this.team);
-                                const alvo = varrer
-                                    ? gkSweepTarget(Match.ball.position.x, Match.ball.position.z,
-                                        this.ownGoalZ, this.dirZ, gkStyleAtual)
+                                /*
+                                A SAIDA AO PORTADOR, por estilo (ver GoalkeeperStyle e gkSaidaAoPortador). O ofensivo, sem
+                                defensor entre ele e o atacante, sai `passosSemDefensor` (5 passos) — ja nao vai ate 20 m
+                                atras da bola (`gkSweepTarget`); o defensivo, com a bola na area, sai `passosNaArea` (2-3).
+                                */
+                                const comPortador = !!(carrier && carrier.team !== this.team);
+                                const varrer = comPortador && this.gkStyle === 'offensive';
+                                const passos = varrer ? (GoalkeeperStyle.offensive.passosSemDefensor || 0)
+                                    : (comPortador && this.gkStyleBase === 'defensive') ? (GoalkeeperStyle.defensive.passosNaArea || 0) : 0;
+                                const alvo = passos > 0
+                                    ? gkSaidaAoPortador(ancora, Match.ball.position.x, Match.ball.position.z, passos)
                                     : ancora;
                                 alvoGkX = alvo.x;
                                 alvoGkZ = alvo.z;
@@ -9044,9 +9035,18 @@ class FootballPlayer {
                             }
                         }
                     } else {
-                        alvoGkX = ancora.x;
-                        alvoGkZ = ancora.z;
-                        speedLerp = 2.2;
+                        /*
+                        Bola FORA da area: o ofensivo tambem sai os seus 5 passos quando nao ha defensor entre ele e o
+                        atacante (o mesmo gatilho do `updateGkStyle`); o defensivo so sai com a bola dentro da area.
+                        */
+                        const portadorFora = Match.ballCarrier;
+                        const sai = !!(portadorFora && portadorFora.team !== this.team && this.gkStyle === 'offensive');
+                        const alvoFora = sai
+                            ? gkSaidaAoPortador(ancora, Match.ball.position.x, Match.ball.position.z, GoalkeeperStyle.offensive.passosSemDefensor || 0)
+                            : ancora;
+                        alvoGkX = alvoFora.x;
+                        alvoGkZ = alvoFora.z;
+                        speedLerp = sai ? 4.0 : 2.2;
                     }
                 } 
                 else {

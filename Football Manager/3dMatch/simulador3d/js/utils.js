@@ -5143,6 +5143,19 @@ Alvo de varrida. Ao contrário de gkAnchor(), vai NA DIRECÇÃO da bola: é a
 situação em que o guarda-redes sai mesmo, porque não há defensor entre o
 atacante e a baliza. sweepOut trava quão longe.
 */
+/*
+A SAIDA AO PORTADOR: a ancora andada `passos` passos em direccao a bola (ver GoalkeeperStyle). Nunca passa da bola: para a `folgaDaBola` dela. Pura.
+*/
+function gkSaidaAoPortador(ancora, ballX, ballZ, passos) {
+    const passo = (typeof GoalkeeperStyle !== 'undefined' && GoalkeeperStyle.passo) || 0.75;
+    const folga = (typeof GoalkeeperStyle !== 'undefined' && typeof GoalkeeperStyle.folgaDaBola === 'number') ? GoalkeeperStyle.folgaDaBola : 1.0;
+    const dx = ballX - ancora.x, dz = ballZ - ancora.z;
+    const d = Math.hypot(dx, dz);
+    const anda = Math.max(0, Math.min((passos || 0) * passo, d - folga));
+    if (d < 1e-6 || anda <= 0) return { x: ancora.x, z: ancora.z };
+    return { x: ancora.x + dx / d * anda, z: ancora.z + dz / d * anda };
+}
+
 function gkSweepTarget(ballX, ballZ, ownGoalZ, dirZ, style) {
     const e = style || (typeof GoalkeeperStyle !== 'undefined' ? GoalkeeperStyle.defensive : { sweepOut: 14.0 });
 
