@@ -180,7 +180,7 @@ function pwaOfflinePlugin() {
       handler() {
         const dist = path.resolve(__dirname, 'dist');
         copiarPasta(path.resolve(__dirname, 'Assets'), path.join(dist, 'Assets'));
-        for (const f of ['manifest.webmanifest', 'icon-192.png', 'FootManagerLogo512.png', 'favicon.ico']) {
+        for (const f of ['manifest.webmanifest', 'icon-184.png', 'icon-192.png', 'icon-512.png']) {
           const a = path.resolve(__dirname, f);
           if (fs.existsSync(a)) fs.copyFileSync(a, path.join(dist, f));
         }
