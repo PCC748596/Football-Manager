@@ -141,7 +141,11 @@ const Qualidade = {
             let raiz = corpo; while (raiz && raiz.parent) raiz = raiz.parent;
             if (!corpo || (cena && raiz !== cena)) { bl.splice(i, 1); continue; }
             if (!m.visible) continue;
-            const esc = m.userData.esc || 1, psi = corpo.rotation.y, c = Math.cos(psi), s = Math.sin(psi);
+            // O rumo do corpo pela FRENTE REAL (o quaternio), nao pelo `rotation.y`: virado com lookAt/quaternio o Euler pode ser (pi, y, pi) e o `rotation.y` mente —
+            // a mancha rodava com o jogador (relato: *"as sombras estao girando junto com os jogadores"*).
+            const fq = this._fBlob || (this._fBlob = new THREE.Vector3());
+            fq.set(0, 0, 1).applyQuaternion(corpo.quaternion);
+            const esc = m.userData.esc || 1, psi = Math.atan2(fq.x, fq.z), c = Math.cos(psi), s = Math.sin(psi);
             m.material = noite ? r.matNoite : r.matDia;
             /*
             CORPO INCLINADO (mergulho do guarda-redes, `GkDive`: o corpo tomba por um quaternio em torno do eixo da frente): a mancha e filha dele e herdava a inclinacao, ficando de pe, ou no ar, a meio do
