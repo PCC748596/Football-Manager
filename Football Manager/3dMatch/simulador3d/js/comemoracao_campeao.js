@@ -334,8 +334,7 @@ const ComemoracaoCampeao = {
     _comecarVolta() {
         const V = ComemoracaoTitulo.volta;
         this.fase = 'volta'; this.tFase = 0;
-        try { if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(true, 'FIM DE JOGO'); } catch (e) { console.warn('[fim de jogo] modal:', e); }
-        this._modalMostrado = true;
+        // As estatisticas so DEPOIS da volta (pedido: *"coloca o painel das estatisticas so depois da volta olimpica"*): o _seguirFimDeJogo mostra-as no fim.
         // O percurso: um retangulo por dentro das linhas, do meio da lateral da camara (+X) a volta inteira, e de volta ao meio dela.
         const X = CAMPO_LARG / 2 - V.dentro, Z = CAMPO_COMP / 2 - V.dentro;
         this._percurso = [{ x: X, z: 0 }, { x: X, z: Z }, { x: -X, z: Z }, { x: -X, z: -Z }, { x: X, z: -Z }, { x: X, z: -1 }];
