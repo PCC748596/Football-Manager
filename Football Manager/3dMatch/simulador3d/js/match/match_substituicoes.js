@@ -790,9 +790,19 @@ Object.assign(Match, {
             for (const obj of [P.model, P.discoTatico]) { if (obj) this.scene.remove(obj); }
         } else if (P.discoTatico) this.scene.remove(P.discoTatico);
         for (const obj of [P.btTargetGroup, P.btLine, P.positionTargetGroup, P.styleTargetGroup]) { if (obj) this.scene.remove(obj); }
+        /*
+        O BATEDOR E A ROTINA DA FALTA SOBREVIVEM A TROCA. O `esquecerJogadoresAntigos` apaga tudo o que aponta para quem sai: se saia o batedor, o `setPieceTaker`
+        ficava a null e o plano da rotina ia fora inteiro — e a `reatribuirBatedorAposTroca`, sem batedor, ja nao tinha nada para rever (relato: o batedor a cobrar para
+        si mesmo). Guardam-se os tres e voltam: o batedor antigo fica como referencia (e por ele que a reatribuicao acha o entrante, em `subsFeitas`) e a rotina passa a
+        apontar para quem entrou (ver actualizarRotinaAposTroca).
+        */
+        const guardaTaker = this.setPieceTaker, guardaSpot = this._spotBatedor, guardaRotina = this.rotinaPlano;
         this.esquecerJogadoresAntigos([P]);
         if (typeof this.subsFeitas === 'undefined') this.subsFeitas = [];
         this.subsFeitas.push({ lado: req.lado, sai: P, entra: N, t: this.tempoDeJogo });
+        if (guardaTaker === P) this.setPieceTaker = P;
+        if (guardaSpot && guardaSpot.taker === P) this._spotBatedor = guardaSpot;
+        if (guardaRotina) { this.rotinaPlano = guardaRotina; this.actualizarRotinaAposTroca(null, null); }
         // Troca numa parada: antes da cobranca os set pieces do time sao revistos (reatribuirBatedorAposTroca).
         if (this._paradaParaSubstituir() || this.state === 'PENALTY') this._trocaNaParada = true;
         if (typeof Notas !== 'undefined') Notas.substituir(P, N);
@@ -825,6 +835,8 @@ Object.assign(Match, {
             const ids = new Set(lista.filter(p => p && p.skills).map(p => p.skills.id));
             for (const k of Object.keys(c)) if (c[k] !== null && c[k] !== undefined && !ids.has(c[k])) c[k] = null;
         }
+        // A rotina da falta deixa de apontar para quem saiu (ver actualizarRotinaAposTroca).
+        this.actualizarRotinaAposTroca(null, null);
         // 2. Quem e o batedor agora.
         const velho = this.setPieceTaker;
         if (!velho || velho.role === 'gk') return null;
@@ -871,6 +883,44 @@ Object.assign(Match, {
         }
         this.setPieceTaker = novo;
         this._spotBatedor = { taker: novo, pos: pos.clone(), quat: quat.clone(), estado: estado, alvoFalta: alvoFalta };
+        // E A ROTINA DA FALTA TROCA OS PAPEIS: o novo bate, quem ficou com o lugar dele faz o que ele fazia (ver actualizarRotinaAposTroca).
+        const outro = (lista.indexOf(velho) >= 0 && velho !== novo) ? velho : ((ocupante && ocupante !== novo) ? ocupante : null);
+        this.actualizarRotinaAposTroca(novo, outro);
         return { papel: papel, de: velho, para: novo };
+    },
+
+    /*
+    A ROTINA DA FALTA DEPOIS DAS TROCAS. Relato: *"quando tem uma falta seguida de alteracao, as vezes o batedor da falta cobra pra ele mesmo"*.
+
+    O plano (`rotinaPlano`, montado no `setupSetPiece` ANTES das trocas) guarda os jogadores por numero — o 1 e o batedor, os outros os recetores e os que correm. Nem a
+    substituicao nem a troca de batedor o mexiam: quem saiu continuava no plano, e o novo batedor podia estar la como o recetor do primeiro passe (o passe para si mesmo).
+
+    1) quem saiu e trocado por quem entrou (`subsFeitas`); 2) com batedor novo, os papeis trocam: o novo fica com o numero do batedor e `outro` (o batedor anterior, se
+    ficou em campo, ou o entrante que lhe tomou o lugar) com o numero que o novo tinha — e com o lugar e a corrida desse numero. Sem `novo`, so faz o passo 1.
+    */
+    actualizarRotinaAposTroca: function (novo, outro) {
+        const pl = this.rotinaPlano;
+        if (!pl) return;
+        const subs = this.subsFeitas || [];
+        const entrouNoLugar = (p) => { let q = p, guarda = 0; while (q && guarda++ < 10) { const t = subs.slice().reverse().find(x => x.sai === q); if (!t) break; q = t.entra; } return q; };
+        const trocar = (p) => entrouNoLugar(p);
+        for (const k of Object.keys(pl.jogadores || {})) pl.jogadores[k] = trocar(pl.jogadores[k]);
+        for (const l of (pl.lugares || [])) l.p = trocar(l.p);
+        for (const c of (pl.corridas || [])) c.p = trocar(c.p);
+        for (const m of (pl.marcadores || [])) { if (m && m.d) m.d = trocar(m.d); if (m && m.atacante) m.atacante = trocar(m.atacante); }
+        pl.taker = trocar(pl.taker);
+        if (!novo || novo === pl.taker) { if (novo) pl.taker = novo; return; }
+        const kTaker = Object.keys(pl.jogadores).find(k => pl.jogadores[k] === pl.taker);
+        const kNovo = Object.keys(pl.jogadores).find(k => pl.jogadores[k] === novo);
+        const velhoTaker = pl.taker;
+        if (kTaker) pl.jogadores[kTaker] = novo;
+        if (kNovo) pl.jogadores[kNovo] = outro || velhoTaker;
+        const subst = (p) => (p === novo ? (outro || velhoTaker) : (p === velhoTaker ? novo : p));
+        for (const l of (pl.lugares || [])) l.p = subst(l.p);
+        for (const c of (pl.corridas || [])) c.p = subst(c.p);
+        for (const m of (pl.marcadores || [])) if (m && m.atacante) m.atacante = subst(m.atacante);
+        // O batedor nao tem lugar na lista (fica na bola): quem herdou um lugar que era do batedor sai dela.
+        pl.lugares = (pl.lugares || []).filter(l => l.p !== novo);
+        pl.taker = novo;
     }
 });
