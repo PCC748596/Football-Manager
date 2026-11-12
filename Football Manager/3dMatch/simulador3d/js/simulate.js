@@ -975,6 +975,7 @@ const Sim = {
 
             reporEnergias();
 
+            Match.reiniciarDisciplina();   // entre jogos do lote: expulsos de volta e amarelos apagados (o resetPlay ja nao o faz)
             Match.resetPlay();
             MatchStats.reset();
             /*

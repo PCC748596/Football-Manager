@@ -294,8 +294,11 @@ Object.assign(Match, {
             bb.ownGoalZ = ownGoalZCenter(t);
             bb.atkGoalZ = -bb.ownGoalZ;
         });
-        // Expulsos voltam ao plantel (como no resetPlay): a formacao assume onze por equipa.
-        this.reporExpulsos();
+        /*
+        OS EXPULSOS NAO VOLTAM NO 2.o TEMPO. Voltavam (`reporExpulsos`, porque a formacao assumia onze por equipa) e, pior, DEPOIS
+        de os sentidos acima terem sido refeitos: o expulso entrava com o sentido do 1.o tempo e atacava a propria baliza. O
+        `assignFormations` ja aguenta uma equipa a dez (cada um fica com o seu posto).
+        */
         this.assignFormations();
 
         const abriu = this.saidaInicial || 'TeamA';

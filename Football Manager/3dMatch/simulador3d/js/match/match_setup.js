@@ -245,6 +245,7 @@ Object.assign(Match, {
         if (doInitAnterior.length && typeof this.esquecerJogadoresAntigos === 'function') {
             this.esquecerJogadoresAntigos(doInitAnterior);
         }
+        this.reiniciarDisciplina();
         this.resetPlay();
         this.setupKeyboardListeners();
     },
@@ -2399,6 +2400,7 @@ Object.assign(Match, {
 
         this.createTeams();
         this.esquecerJogadoresAntigos(todos);
+        this.reiniciarDisciplina();
         this.resetPlay();
         if (typeof MatchStats !== 'undefined' && MatchStats.reset) MatchStats.reset();
         if (typeof Notas !== 'undefined') Notas.iniciar();   // as notas dos jogadores recomecam com os jogadores novos
@@ -2767,9 +2769,25 @@ Object.assign(Match, {
             "sem número"). Onde não dá, fica o número da formação, que é o que
             havia antes.
             */
+            /*
+            QUEM FICA COM QUE POSTO. Com onze, o posto e o indice na lista (como sempre). Com MENOS (um expulso), cada um fica com o
+            posto que ja tinha (`idxFormacao`): pelo indice, todos os que vinham depois do expulso ficavam com o posto do vizinho — e
+            o 2.o tempo ja nao devolve os expulsos para a conta dar onze (ver iniciarSegundoTempo).
+            */
+            const pares = [];
+            if (teamList.length >= 11) { for (let i = 0; i < 11; i++) pares.push([teamList[i], i]); }
+            else {
+                const usados = new Set();
+                for (let k = 0; k < teamList.length; k++) {
+                    const p = teamList[k];
+                    let i = (typeof p.idxFormacao === 'number' && p.idxFormacao >= 0 && p.idxFormacao < 11 && !usados.has(p.idxFormacao)) ? p.idxFormacao : -1;
+                    if (i < 0) for (let j = 0; j < 11; j++) if (!usados.has(j)) { i = j; break; }
+                    usados.add(i); pares.push([p, i]);
+                }
+            }
             const contagemNum = {};
-            for (let i = 0; i < 11; i++) {
-                const n = teamList[i].skills && teamList[i].skills.numero;
+            for (const [jog] of pares) {
+                const n = jog.skills && jog.skills.numero;
                 if (n) contagemNum[n] = (contagemNum[n] || 0) + 1;
             }
 
@@ -2795,7 +2813,8 @@ Object.assign(Match, {
             const centros = grupos.map(g => g.reduce((a, b) => a + b, 0) / g.length);
             const linhaDoV = (v) => { let k = 0, d = Infinity; centros.forEach((c, i) => { if (Math.abs(c - v) < d) { d = Math.abs(c - v); k = i; } }); return k; };
 
-            for (let i = 0; i < 11; i++) {
+            for (const [jogador, i] of pares) {
+                const teamList_i = jogador;
                 const uVal = sentidoA ? (fData[i].x + 1) / 2 : (-fData[i].x + 1) / 2;
                 const vSlot = (fData[i].z - zMin) / zSpan;
                 const kLinha = (fData[i].role === 'gk') ? 0 : linhaDoV(vSlot);
@@ -2811,22 +2830,22 @@ Object.assign(Match, {
                 const x = sentidoA ? fData[i].x : -fData[i].x;
                 const z = sentidoA ? fData[i].z : -fData[i].z;
 
-                teamList[i]._baseTargetOrig = null;   // uma formacao nova manda: o posto guardado por um laboratorio deixa de valer
-                teamList[i].baseTarget.set(x * (CAMPO_LARG / 2) * compMult, ALTURA_BASE_Y, z * (CAMPO_COMP / 2));
-                teamList[i].role = fData[i].role;
-                teamList[i].idxFormacao = i;   // o indice do posto nas tabelas por zona (FormacoesZonasLib)
-                teamList[i].slot = slot;
-                const numReal = teamList[i].skills && teamList[i].skills.numero;
+                teamList_i._baseTargetOrig = null;   // uma formacao nova manda: o posto guardado por um laboratorio deixa de valer
+                teamList_i.baseTarget.set(x * (CAMPO_LARG / 2) * compMult, ALTURA_BASE_Y, z * (CAMPO_COMP / 2));
+                teamList_i.role = fData[i].role;
+                teamList_i.idxFormacao = i;   // o indice do posto nas tabelas por zona (FormacoesZonasLib)
+                teamList_i.slot = slot;
+                const numReal = teamList_i.skills && teamList_i.skills.numero;
                 const num = (numReal && contagemNum[numReal] === 1) ? numReal : fData[i].num;
-                teamList[i].updateShirt(num, fData[i].pos);
+                teamList_i.updateShirt(num, fData[i].pos);
                 
                 const idxPos = contagemPos[fData[i].pos] || 0;
                 contagemPos[fData[i].pos] = idxPos + 1;
-                this.aplicarPlayingStyle(teamList[i], fData[i].pos, idxPos);
+                this.aplicarPlayingStyle(teamList_i, fData[i].pos, idxPos);
                 
                 if (fData[i].role === 'gk') {
-                    teamList[i].gkStyleBase = isTeamA ? 'offensive' : 'defensive';
-                    teamList[i].playingStyle = isTeamA ? 'offensive_gk' : 'defensive_gk';
+                    teamList_i.gkStyleBase = isTeamA ? 'offensive' : 'defensive';
+                    teamList_i.playingStyle = isTeamA ? 'offensive_gk' : 'defensive_gk';
                 }
             }
         };
@@ -2894,13 +2913,11 @@ Object.assign(Match, {
         if (typeof TempoPorCorredor !== 'undefined') TempoPorCorredor.novaSaidaDeBola();
 
         /*
-        Disciplina zerada e expulsos de volta ao plantel. O `Sim` chama isto
-        entre jogos do lote (js/simulate.js), e sem esta reposicao as
-        expulsoes acumulavam-se de jogo para jogo ate as equipas ficarem sem
-        gente.
+        A DISCIPLINA NAO SE ZERA AQUI. Esta funcao corre depois de CADA golo, bola fora e prazo de bola parada, e
+        devolvia os expulsos ao campo e apagava os amarelos de toda a gente — relato: *"um jogador ficou doido e toda vez
+        que pega a bola vai contra o proprio gol... foi expulso mas nao saiu"*. A reposicao entre jogos e o
+        `reiniciarDisciplina`, chamado onde uma partida comeca (init, setTeams, o lote do `Sim`).
         */
-        this.reporExpulsos();
-        [...this.players, ...this.opponents].forEach(p => { p.temAmarelo = false; });
         if (typeof Officials !== 'undefined') Officials.resetFaltas();
 
         this.intendedReceiver = null;
@@ -3133,6 +3150,16 @@ Object.assign(Match, {
         this.kickoffPassToDefTimer = KICKOFF_PRAZO_PASSE_DEFESA;
         // O plano morre com a saída que o usou: a próxima escolhe de novo.
         this.saidaPlano = null;
+    },
+
+    /*
+    UMA PARTIDA NOVA: expulsos de volta ao plantel e amarelos apagados. So entre jogos (init, setTeams, o lote do `Sim`) —
+    nunca no `resetPlay`, que corre a meio do jogo (ver a nota la).
+    */
+    reiniciarDisciplina: function () {
+        this.reporExpulsos();
+        [...this.players, ...this.opponents].forEach(p => { p.temAmarelo = false; });
+        if (typeof Officials !== 'undefined') Officials.resetFaltas();
     },
 
     reporExpulsos: function () {
