@@ -94,10 +94,15 @@ def main(src, dst):
 # 54 Brazil: 1-20 A, 21-40 B, 41-60 C, rest D/regional. 14 England: 1-20 Premier League, 21-44 Championship, 45-68 League One, 69-92 League Two, rest lower.
 TIER_ENDS = {54: [20, 40, 60], 14: [20, 44, 68, 92],
              27: [20, 40], 21: [18, 36], 45: [20, 41], 18: [18, 36], 38: [18, 33], 52: [30],   # Italy, Germany, Spain, France, Portugal: only A and B (Spain B = 21 file clubs + Real Sociedad B; Portugal B = 15 file clubs + Sporting B, Benfica B, Porto B: built below from the parent clubs' reserves)
-             83: [18, 32], 163: [20, 40, 60]}   # Mexico: 1-18 first division, 19-32 second. Japan: 1-20, 21-40, 41-60 (first three divisions).
+             83: [18, 32], 163: [20, 40, 60],
+             # Africa e Asia (so a 1.a divisao; tools/gerar_ligas_sav.cjs, grupo africa_asia)
+             111: [22], 129: [16], 140: [16], 97: [16], 145: [16], 143: [16], 98: [16], 117: [18], 108: [16], 126: [16],
+             183: [18], 167: [12], 190: [14], 161: [16], 182: [12]}   # Mexico: 1-18 first division, 19-32 second. Japan: 1-20, 21-40, 41-60 (first three divisions).
 # Countries whose file does not keep each division in one block of ids: the ids of each division, listed (anything else is the next tier down).
 # 95 USA: first division = 1-26 + 38, 40, 41, 42 (30 clubs); second = 27-37, 39, 43-54 (24 clubs).
-TIER_IDS = {95: {1: list(range(1, 27)) + [38, 40, 41, 42], 2: list(range(27, 38)) + [39] + list(range(43, 55))}}
+TIER_IDS = {95: {1: list(range(1, 27)) + [38, 40, 41, 42], 2: list(range(27, 38)) + [39] + list(range(43, 55))},
+            # 110 RD Congo: o ficheiro nao separa as divisoes; os 16 com plantel (1-10, 14, 16, 17, 19, 21, 22)
+            110: {1: list(range(1, 11)) + [14, 16, 17, 19, 21, 22]}}
 COUNTRY = 54
 B_TEAMS = {45: [(11, 'Real Sociedad B', 9011, 'Instalaciones de Zubieta')],
            38: [(1, 'Sporting CP B', 9001, 'Estádio Aurélio Pereira'), (2, 'Benfica B', 9002, 'Benfica Campus'), (3, 'Porto B', 9003, 'Estádio Luís Filipe Menezes')]}

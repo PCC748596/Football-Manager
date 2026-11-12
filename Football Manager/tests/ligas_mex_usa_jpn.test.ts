@@ -7,7 +7,7 @@ import { economiaDaLiga, ECONOMIA_PADRAO } from '../textSim/economia';
 import { PAISES_DOS_DADOS_LOCAIS } from '../textSim/dadosLocais';
 import { planearAcessosEDescensos } from '../textSim/promocoes';
 
-// Mexico (90), EUA (91) e Japao (92): tools/gerar_ligas_mex_usa_jpn.cjs. A base e GENERICA; os nomes reais so existem no mod.
+// Mexico (90), EUA (91) e Japao (92): tools/gerar_ligas_sav.cjs --grupo mex_usa_jpn. A base e GENERICA; os nomes reais so existem no mod.
 const ESPERADO: Record<string, { continente: string; ligas: [string, number, number, number][] }> = {
   '90': { continente: 'North America', ligas: [['mex_liga_mx', 18, 0, 0], ['mex_expansion', 14, 0, 0]] },
   '91': { continente: 'North America', ligas: [['usa_mls', 30, 0, 0], ['usa_usl', 24, 0, 0]] },

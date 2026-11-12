@@ -550,11 +550,15 @@ export const FAIXA_OVR_BRASIL: Record<number, [number, number]> = { 1: [77, 70],
 export const FAIXA_OVR_AMERICA_DO_SUL: Record<number, [number, number]> = { 1: [74, 67], 2: [71, 64] };
 export const FAIXA_OVR_EUROPA: Record<number, [number, number]> = { 1: [80, 75], 2: [75, 70], 3: [70, 65], 4: [65, 65] };
 export const FAIXA_OVR_LIGA_OCULTA: [number, number] = [75, 70];
-/** Paises com faixa propria (manda sobre a do continente): Mexico (90), EUA (91), Japao (92). */
+/** Paises com faixa propria (manda sobre a do continente): Mexico (90), EUA (91), Japao (92) e os de Africa e Asia (93 a 108). */
 export const FAIXA_OVR_POR_PAIS: Record<string, Record<number, [number, number]>> = {
   '90': { 1: [75, 69], 2: [69, 63] },
   '91': { 1: [74, 68], 2: [68, 62] },
-  '92': { 1: [73, 67], 2: [69, 63], 3: [65, 60] }
+  '92': { 1: [73, 67], 2: [69, 63], 3: [65, 60] },
+  // Africa e Asia (so a 1.a divisao): proporcional ao nivel dos jogadores reais de cada liga, na mesma regua do Mexico.
+  '93': { 1: [67, 61] }, '94': { 1: [69, 63] }, '95': { 1: [70, 64] }, '96': { 1: [68, 62] }, '97': { 1: [70, 64] }, '98': { 1: [64, 58] }, '99': { 1: [62, 56] },
+  '100': { 1: [63, 57] }, '101': { 1: [63, 57] }, '102': { 1: [68, 62] }, '103': { 1: [66, 60] },
+  '104': { 1: [72, 66] }, '105': { 1: [73, 67] }, '106': { 1: [69, 63] }, '107': { 1: [71, 65] }, '108': { 1: [68, 62] }
 };
 
 /**
