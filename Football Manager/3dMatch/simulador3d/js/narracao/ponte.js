@@ -13,6 +13,9 @@ de volta, por `postMessage`, os eventos da partida já narrados e, no fim, o res
 MENSAGENS (o manager -> a ponte), todas com { para: 'simulador3d', tipo, ... }:
   iniciar    { casa, fora, modo, ritmo, velocidade, taticaDe, fimEmMinutos }   casa/fora: { equipa, jogadoresPorId, formacao: { nome, slots } }
              (o formato do AdaptadorManager.prepararPartida; ver js/narracao/adaptador_manager.js)
+             campeao (opcional) { seVencer: 'casa' | 'fora' | 'qualquer', seEmpatar?: 'casa' | 'fora' }: quem ganhar este jogo (com o agregado
+             de `decisao` e a disputa de penaltis) e campeao -> a comemoracao de campeao depois do apito final (js/comemoracao_campeao.js).
+             `campeao: true` ou `decisivoTitulo: true` valem { seVencer: 'qualquer' }. Sem o campo, nada muda.
   pausar / continuar / parar
   velocidade { valor }      multiplica o ritmo (modo oculto 'real': 1, 2, 4...; no visivel, o speedMultiplier do jogo)
 
@@ -237,6 +240,7 @@ const Ponte = {
         // Na disputa de penaltis o ESC leva todos direto aos pontos finais do caminhar (nunca salta cobrancas).
         if (typeof DisputaPenaltis !== 'undefined' && DisputaPenaltis.activa) { DisputaPenaltis.cancelar(); return; }
         if (typeof Abertura !== 'undefined' && Abertura.activa) { Abertura.cancelar(); return; }
+        if (typeof ComemoracaoCampeao !== 'undefined' && ComemoracaoCampeao.activa) { ComemoracaoCampeao.terminar(); return; }   // a festa de campeao acaba (segue a saida de campo)
         const R = window.MatchReplay;
         if (R && R.isReplaying) R.stopReplay();
     },
@@ -450,6 +454,10 @@ const Ponte = {
         // A DECISAO do confronto (agregado anterior, se este jogo fecha uma copa) so vale no 3D visivel: o oculto nunca encena penaltis. A disputa de um jogo anterior, se ficou
         // a meio (ex.: o 3D fechado durante a reuniao), desfaz-se aqui para nao vazar para esta partida.
         Match.decisao = (m.decisao && this.modo === 'visivel') ? m.decisao : null;
+        // O TITULO: se este jogo faz um campeao, a festa no fim (js/comemoracao_campeao.js; so no 3D visivel, que e onde ha desenho). O vencedor da disputa de um jogo anterior nao conta.
+        Match.campeao = (m.campeao && typeof m.campeao === 'object') ? m.campeao : ((m.campeao === true || m.decisivoTitulo === true) ? { seVencer: 'qualquer' } : null);
+        Match.vencedorPenaltis = null;
+        if (typeof ComemoracaoCampeao !== 'undefined') ComemoracaoCampeao.cancelar();
         // O lado do utilizador (o jogo espera pela troca do goleiro expulso dele; no oculto a CPU decide pelos dois) e sem goleiro pendente de um jogo anterior.
         Match.ladoDoUtilizador = (this.modo === 'visivel') ? (m.taticaDe === 'fora' ? 'fora' : 'casa') : null; Match.goleiroPendente = null;
         // As trocas e os goleiros expulsos de um jogo anterior nao contam neste (o limite de 5 trocas, os reservas oferecidos).
@@ -760,7 +768,9 @@ const Ponte = {
         this.enviar('fim', { resultado: this.resultado() });
         // Acabado o jogo o som (torcida e efeitos) pode parar (pedido).
         // So a torcida: os efeitos (o apito final) acabam sozinhos.
-        if (this.modo === 'visivel' && typeof AmbienteSonoro !== 'undefined' && AmbienteSonoro.setPausa) AmbienteSonoro.setPausa(true);
+        // Com a festa de campeao a correr (ou agendada) a torcida so se cala no fim dela (ComemoracaoCampeao._seguirFimDeJogo).
+        const festa = typeof ComemoracaoCampeao !== 'undefined' && ComemoracaoCampeao.emCurso();
+        if (this.modo === 'visivel' && !festa && typeof AmbienteSonoro !== 'undefined' && AmbienteSonoro.setPausa) AmbienteSonoro.setPausa(true);
         if (this.modo === 'oculto') Sim.running = false;
     },
 

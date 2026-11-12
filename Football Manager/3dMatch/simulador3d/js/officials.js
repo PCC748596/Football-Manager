@@ -2581,6 +2581,9 @@ const Officials = {
         // A abertura do jogo (js/abertura.js): o trio anda pela coreografia, nao pelo jogo.
         if (typeof Abertura !== 'undefined' && Abertura.activa) { Abertura.moverOficiais(dt); return; }
 
+        // A comemoracao de campeao (js/comemoracao_campeao.js): o trio afasta-se para a lateral do tunel, de frente para o grupo.
+        if (typeof ComemoracaoCampeao !== 'undefined' && ComemoracaoCampeao.activa) { ComemoracaoCampeao.moverOficiais(dt); this.tickSinal(dt); return; }
+
         if (!this.arbitro || !this._ativo) return;
 
         const R = RefereeModel;

@@ -199,6 +199,9 @@
                     onclick="Match.celebracaoTeste('joelhos')">Celebration 1</button>
                 <button type="button" class="btn-sector" id="btn-celebration-3"
                     onclick="Match.celebracaoTeste('soco')">Soco no ar</button>
+                <!-- A festa de campeao (js/comemoracao_campeao.js): o relogio salta para 87:00, o juiz acaba aos 90:00 e o campeao (quem vencer; empatado, quem ia a frente) festeja com a taca. -->
+                <button type="button" class="btn-sector" id="btn-celebration-campeao"
+                    onclick="ComemoracaoCampeao.simularFimDeJogo()">Champion</button>
             </div>
 
 
@@ -387,6 +390,13 @@
                     <button type="button" class="btn-sector" id="btn-maca-teste" onclick="Maca.teste()">Maca (teste)</button>
                     <!-- Lesao grave em quem tem a bola: cai, o juiz para o jogo e a maca entra (Maca.lesaoGrave, js/maca.js). -->
                     <button type="button" class="btn-sector" id="btn-injury" onclick="Maca.lesaoGrave()">Injury</button>
+                </div>
+
+                <hr class="linha-sep">
+                <!-- No manager o painel da esquerda nao aparece (ponte.js): o Champion tambem fica aqui, no painel de debug (o da direita, visivel em tela cheia). -->
+                <label>Fim de jogo</label>
+                <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
+                    <button type="button" class="btn-sector" id="btn-champion-debug" onclick="ComemoracaoCampeao.simularFimDeJogo()">Champion</button>
                 </div>
 
                 <hr class="linha-sep">
@@ -608,6 +618,7 @@
     <script src="js/estadio_oval.js"></script>
     <script src="js/config/estadios.js"></script>
     <script src="js/config/comemoracao.js"></script>
+    <script src="js/config/comemoracao_campeao.js"></script>
     <script src="js/config/balanco_corredores.js"></script>
     <script src="js/config/mando.js"></script>
     <script src="js/config/maca.js"></script>
@@ -685,6 +696,8 @@
     <script src="js/fsm.js"></script>
     <!-- O controlador das comemoracoes de golo (config/comemoracao.js; o estado COMEMORAR e do fsm.js) -->
     <script src="js/comemoracao.js"></script>
+    <!-- A comemoracao de campeao no fim do jogo que da o titulo (config/comemoracao_campeao.js; `Comemoracao.campeao('TeamA')` na consola) -->
+    <script src="js/comemoracao_campeao.js"></script>
     <script src="js/simulate.js"></script>
     <script src="js/minimap.js"></script>
     <script src="js/officials.js"></script>

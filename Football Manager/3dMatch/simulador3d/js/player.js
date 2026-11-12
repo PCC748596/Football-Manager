@@ -4967,6 +4967,11 @@ class FootballPlayer {
             DisputaPenaltis.passoDoJogador(this, dt);
             return;
         }
+        // A comemoracao de campeao (js/comemoracao_campeao.js) manda neste jogador: corre para o grupo do circulo central e pula / ergue a taca (ou, derrotado, sai a passo).
+        if (this.campeaoOrdem && typeof ComemoracaoCampeao !== 'undefined' && ComemoracaoCampeao.activa) {
+            ComemoracaoCampeao.passoDoJogador(this, dt);
+            return;
+        }
         /*
         MOVER SEM PASSOS NAO EXISTE: se algo o deslocou entre dois frames (colisao, o proprio lance parado,
         a volta da queda) a mais de `ColisaoJogadores.deslizeMin` m/s com a velocidade a zero e sem gesto,

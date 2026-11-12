@@ -149,12 +149,16 @@ export const montarPayload = (casa: Team, fora: Team, players: Player[], userTea
       // Os outros kits do time (para as camisas da torcida).
       outros: ([0, 1, 2] as const).filter(j => j !== i).map(j => uniformeDoKit(getKitDetails(t, j))) } };
   };
+  // O TITULO (opcional; ver textSim/titulo.ts e, no 3D, js/comemoracao_campeao.js): `extra.campeao` = { seVencer, seEmpatar? }; sem ele, a final de uma copa
+  // (`extra.decisao.titulo`) faz campeao quem a ganhar. Sem nenhum dos dois o campo nao vai e o 3D nao muda nada.
+  const campeao = extra.campeao || (extra.decisao && extra.decisao.titulo ? { seVencer: 'qualquer' } : null);
   return {
     para: 'simulador3d', tipo: 'iniciar',
     taticaDe: casa.id === userTeamId ? 'casa' : 'fora',
     casa: lado(casa, kits?.casa, kits?.gkCasa), fora: lado(fora, kits?.fora, kits?.gkFora),
     ...(kits?.arbitro ? { arbitro: kits.arbitro } : {}),
-    ...extra
+    ...extra,
+    ...(campeao ? { campeao } : {})
   };
 };
 
