@@ -100,12 +100,39 @@ const kitsDoSav = (file) => {
   return { kits, ligas };
 };
 /** Cores e equipamentos de um clube a partir das linhas do KIT (casa: linha 2; fora: linha 8). */
-const coresDoClube = (linhas, h) => {
+// AS CORES DO ESCUDO (tools/americas_asia/cores_escudos.json, de tools/americas_asia/cores_escudos.py; so ids e cores): a tabela PALETA nao acerta todos os indices do ficheiro
+// (ex.: o mesmo indice e azul num clube e grena noutro). Regra: a cor do ficheiro fica se aparecer no escudo (>= 6% dos pixels); senao entra a cor do escudo.
+const CORES_ESCUDO = (() => { try { return require('./americas_asia/cores_escudos.json'); } catch { return {}; } })();
+// E as cores escolhidas a mao (tools/americas_asia/cores_manuais.json), para os clubes em que nem o ficheiro nem o escudo acertam: mandam sobre as duas.
+const CORES_MANUAIS = (() => { try { return require('./americas_asia/cores_manuais.json'); } catch { return {}; } })();
+const rgbDe = (hx) => { const n = parseInt(hx.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+const distCor = (a, b) => { const [r1, g1, b1] = rgbDe(a), [r2, g2, b2] = rgbDe(b), rm = (r1 + r2) / 2; return Math.sqrt((2 + rm / 256) * (r1 - r2) ** 2 + 4 * (g1 - g2) ** 2 + (2 + (255 - rm) / 256) * (b1 - b2) ** 2); };
+const saturacao = (hx) => { const v = rgbDe(hx), mx = Math.max(...v), mn = Math.min(...v); return mx < 40 ? 0 : (mx - mn) / mx; };
+const noEscudo = (c, cores) => cores.filter(([x]) => distCor(c, x) < 150).reduce((a, [, f]) => a + f, 0) >= 0.06;
+const revistas = [];
+const reverComEscudo = (id, c1, c2) => {
+  if (CORES_MANUAIS[String(id)]) { const [m1, m2] = CORES_MANUAIS[String(id)]; if (m1 !== c1 || m2 !== c2) revistas.push(`${id}: manual`); return [m1, m2]; }
+  const cores = CORES_ESCUDO[String(id)];
+  if (!cores || !cores.length) return [c1, c2];
+  let n1 = c1, n2 = c2;
+  if (!noEscudo(c1, cores)) {
+    const crom = cores.filter(([x]) => saturacao(x) > 0.35 && Math.max(...rgbDe(x)) > 60);
+    n1 = (crom[0] || cores[0])[0];
+  }
+  if (!noEscudo(n2, cores) || distCor(n1, n2) < 150) {
+    const outra = cores.find(([x]) => distCor(x, n1) >= 150);
+    n2 = outra ? outra[0] : (claro(n1) ? '#111111' : '#ffffff');
+  }
+  if (n1 !== c1 || n2 !== c2) revistas.push(`${id}: ${c1}/${c2} -> ${n1}/${n2}`);
+  return [n1, n2];
+};
+const coresDoClube = (linhas, h, id) => {
   const casa = (linhas && linhas[2] || '').split(',').map(Number), fora = (linhas && linhas[8] || '').split(',').map(Number);
-  const c1 = cor(casa[0], h), c2i = casa.find(x => x !== casa[0]);
-  const c2 = c2i !== undefined ? cor(c2i, h >>> 3) : (claro(c1) ? '#111111' : '#ffffff');
+  const c1p = cor(casa[0], h), c2i = casa.find(x => x !== casa[0]);
+  const c2p = c2i !== undefined ? cor(c2i, h >>> 3) : (claro(c1p) ? '#111111' : '#ffffff');
+  const [c1, c2] = reverComEscudo(id, c1p, c2p);
   const f1 = fora.length && !isNaN(fora[0]) ? cor(fora[0], h >>> 5) : (claro(c1) ? c2 : '#ffffff');
-  const f1b = f1 === c1 ? (claro(c1) ? '#111111' : '#ffffff') : f1;
+  const f1b = distCor(f1, c1) < 150 ? (claro(c1) ? '#111111' : '#ffffff') : f1;
   return {
     color: c1, color2: c2,
     homeKit: kit('solid', c1, c2, claro(c1) ? 'black' : 'white'),
@@ -183,11 +210,11 @@ for (const p of PAISES) {
     const cap = p.capital[c.tier] || 1.5e6;
     const fan = Math.max(2000, c.fanBase || 5000);
     const clube = {
-      teamID: id, teamName: nome, teamAbb: sigla(nome), ...(() => { const k = coresDoClube(kits[c.id], h); return { color: k.color, color2: k.color2, color3: '' }; })(),
+      teamID: id, teamName: nome, teamAbb: sigla(nome), ...(() => { const k = coresDoClube(kits[c.id], h, id); return { color: k.color, color2: k.color2, color3: '' }; })(),
       teamCityName: '', teamStadiumName: estadio, yearOfFoundation: c.founded || 0,
       initialCapital: cap, initialTransfer: Math.round(cap * 0.5), sponsorAmount: 0, fanBase: fan, avrAttendance: Math.round(fan * 0.32),
       country: p.id, criadoPor: CRIADO_POR,
-      ...(() => { const k = coresDoClube(kits[c.id], h); return { homeKit: k.homeKit, awayKit: k.awayKit, thirdKit: k.thirdKit, gkKit: k.gkKit }; })(),
+      ...(() => { const k = coresDoClube(kits[c.id], h, id); return { homeKit: k.homeKit, awayKit: k.awayKit, thirdKit: k.thirdKit, gkKit: k.gkKit }; })(),
       teamBadgeLocation: '-'
     };
     novosClubes.push(clube);
@@ -196,7 +223,7 @@ for (const p of PAISES) {
     // limpa caracteres invisiveis do ficheiro (ex.: espaco de largura zero no inicio do nome)
     c.name = semZW(c.name); c.shortName = semZW(c.shortName); c.stadium = semZW(c.stadium);
     const abrev = /^[A-Z]{2,4}$/.test(semZW(c.abbr)) ? semZW(c.abbr) : sigla(c.name);
-    modClubes.push({ id, nome: c.name, abreviatura: abrev, estadio: c.stadium || '', escudo: '' });
+    modClubes.push({ id, nome: c.name, abreviatura: abrev, estadio: c.stadium || '', escudo: fs.existsSync(path.join(MOD, 'escudos', id + '.png')) ? id + '.png' : '' });   // escudos: tools/extrair_escudos_fm.py
     relatorio.push(`${p.nome} ${c.tier}: ${c.name}  ->  ${nome} (${id})`);
   }
   const leagues = p.ligas.map(([lid, tier, promoted, relegated]) => {
@@ -217,6 +244,7 @@ const objN = eval('(' + nomesTxt.slice(nomesTxt.indexOf('= {', iN) + 2, nomesTxt
 for (const p of PAISES) objN[p.id] = { nomes: NOMES[p.sigla].nomes, sobrenomes: NOMES[p.sigla].sobrenomes };
 const novoNomes = nomesTxt.slice(0, iN) + 'export const NOMES_POR_PAIS: Record<string, { nomes: string[]; sobrenomes: string[] }> = ' + JSON.stringify(objN, null, 1) + ';\n';
 
+console.log(`cores revistas pelo escudo: ${revistas.length / 2}`);
 console.log(`${novosClubes.length} clubes novos; ligas no mod: ${modComp.filter(c => LIGAS_IDS.includes(c.id)).map(c => c.id + '=' + c.nome).join(', ')}`);
 if (dry) { console.log(relatorio.join('\n')); console.log('(--dry) nada foi gravado.'); process.exit(0); }
 
