@@ -24,18 +24,19 @@ const CardLesao: React.FC<{ p: Player; cor?: string; team?: Team }> = ({ p, cor,
   const grav = l.severity;
   return (
     <div className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-[#0e182c] px-3 py-2 flex flex-wrap items-center gap-x-5 gap-y-2">
-      <div className="w-20 h-20 -my-2 shrink-0 pointer-events-none"><PlayerFace3D playerId={p.id} team={team} gk={p.position === 'GK'} camisa={cor} className="w-full h-full" /></div>
+      <div className="relative -top-[15px] w-20 h-20 shrink-0 pointer-events-none"><PlayerFace3D playerId={p.id} team={team} gk={p.position === 'GK'} camisa={cor} className="w-full h-full" /></div>
       <div className="min-w-[150px] flex-1">
         <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
           <div className="text-base font-black text-slate-900 dark:text-white leading-tight truncate">{p.name}</div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">{p.position} • Age {p.age}</span>
           <div className={`inline-block text-[10px] font-black uppercase border px-2 py-0.5 rounded-md ${COR_GRAVIDADE[grav] || COR_GRAVIDADE.LIGHT}`}>{ROTULO_GRAVIDADE[grav] || 'Light'}{l.tipoLesao ? ` • ${l.tipoLesao === 'Complexa' ? 'Complex' : 'Simple'}` : ''}</div>
         </div>
+        {/* O boletim medico logo abaixo do nome, alinhado com ele (antes ia numa linha a largura toda e comecava debaixo da foto). */}
+        <div className="mt-1 text-[11px] text-slate-500 italic">{l.boletim ? `🩺 ${textoDaLesao(l.boletim)}` : tx('Awaiting first medical report.')}</div>
       </div>
       <div className="text-sm font-black text-slate-800 dark:text-slate-100 min-w-[130px]">✚ {textoDaLesao(l.type)}</div>
       <div><div className="text-[10px] font-bold uppercase text-slate-500">{tx('Estimated return')}</div><div className="text-sm font-black text-slate-900 dark:text-white">{l.estimativa || `~${l.daysOut} days`}</div></div>
       <div className="w-[140px]"><div className="text-[10px] font-bold uppercase text-slate-500 mb-1">{tx('Energy')} {Math.round(energiaDe(p))}%</div><EnergyBar energy={energiaDe(p)} className="w-full h-2" /></div>
-      <div className="basis-full text-[11px] text-slate-500 italic">{l.boletim ? `🩺 ${textoDaLesao(l.boletim)}` : 'Awaiting first medical report.'}</div>
     </div>
   );
 };
