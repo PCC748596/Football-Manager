@@ -1039,10 +1039,20 @@ Object.assign(Match, {
                 const gkPlano = (plano.equipa === 'TeamA')
                     ? this.opponents.find(pl => pl.role === 'gk')
                     : this.players.find(pl => pl.role === 'gk');
-                const aoAlcance = !!(gkPlano && gkPlano.model &&
-                    Math.hypot(this.ball.position.x - gkPlano.model.position.x,
-                        this.ball.position.z - gkPlano.model.position.z) <=
-                        (DirectFreeKickModel.alcanceDaDefesa || 1.4));
+                let distMaoPlano = Infinity;
+                if (gkPlano && gkPlano.rig && this.prevBallPos) {
+                    const P1 = this.prevBallPos, P2 = this.ball.position;
+                    for (const nome of ['lHand', 'rHand']) {
+                        const mao = gkPlano.rig[nome];
+                        if (!mao) continue;
+                        mao.getWorldPosition(_v3);
+                        const dm = (typeof distanciaAoSegmento === 'function')
+                            ? distanciaAoSegmento(_v3.x, _v3.y, _v3.z, P1.x, P1.y, P1.z, P2.x, P2.y, P2.z)
+                            : _v3.distanceTo(P2);
+                        distMaoPlano = Math.min(distMaoPlano, dm);
+                    }
+                }
+                const aoAlcance = distMaoPlano <= DirectFreeKickModel.alcanceDaDefesa;
 
                 if (vaiParaLa && dentroDosPostes &&
                     (faltaZ <= DirectFreeKickModel.distanciaDaDefesa || aoAlcance)) {

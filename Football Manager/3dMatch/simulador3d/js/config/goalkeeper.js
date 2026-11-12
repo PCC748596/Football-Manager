@@ -1393,6 +1393,8 @@ const GoalkeeperDive = {
     OMBRO a altura da bola, e pedia um salto que nao existe.
     */
     alcanceVertical: 0.70,
+    // Na defesa desenhada da falta directa o salto sobe isto a mais (m): medido, a mao ficava ~0.5 m abaixo da bola. Ver GkDive.lancar.
+    compensacaoAlturaFalta: 0.5,
 
     /*
     Quanto a mão chega além do corpo — o corpo não precisa de percorrer a

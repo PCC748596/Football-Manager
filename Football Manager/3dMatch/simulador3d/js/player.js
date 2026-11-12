@@ -2130,7 +2130,11 @@ class FootballPlayer {
                 if (defende && typeof preverCruzamentoDaFalta === 'function') {
                     const cr = preverCruzamentoDaFalta(Match.ball.position, Match.ballVel,
                         Match.freeKickDip, Match.freeKickCurve, gk.model.position.z, BallPhysics);
-                    if (cr) { gk.penaltyDiveX = cr.x; gk.penaltyDiveY = cr.y; }
+                    if (cr) {
+                        gk.penaltyDiveX = cr.x; gk.penaltyDiveY = cr.y;
+                        // E QUANDO: o gatilho do mergulho le isto em vez de distancia / vz (ver updateGK).
+                        if (Match.faltaDirectaPlano) Match.faltaDirectaPlano.tCruzamento = cr.t;
+                    }
                 }
                 gk.faltaDirectaDefesaFora = (desfecho === 'defesa_fora');
             }
@@ -8206,6 +8210,18 @@ class FootballPlayer {
 
             if (bolaVindoPraMim && this.gkReagiu) {
                 let tempoAteGolo = Math.abs(gkCorpo.position.z - Match.ball.position.z) / Math.abs(Match.ballVel.z);
+                /*
+                NA DEFESA DESENHADA DA FALTA o tempo e o da previsao com a fisica
+                toda (`tCruzamento`, ver preverCruzamentoDaFalta). A conta acima
+                ignora o arrasto: a bola trava e chega depois do que ela diz, e
+                ele mergulhava cedo — medido, deitado no relvado quando a bola
+                lhe passava a 1.2 m de altura.
+                */
+                const planoF = Match.faltaDirectaPlano;
+                if (this.isPenaltyDive && planoF && typeof planoF.tCruzamento === 'number' &&
+                    (planoF.desfecho === 'defesa' || planoF.desfecho === 'defesa_fora')) {
+                    tempoAteGolo = Math.max(0.001, planoF.tCruzamento - planoF.tempo);
+                }
                 if (tempoAteGolo > 0 && tempoAteGolo < 1.5) {
                     let interX, interY;
                     if (this.isPenaltyDive) {
@@ -8227,7 +8243,17 @@ class FootballPlayer {
                     em 3 jogos. Ver `lateralReal` mais abaixo.
                     */
                     const interXLido = interX;
-                    interX = Math.max(-limitGKX, Math.min(limitGKX, interX)); interY = Math.max(0, Math.min(2.44, interY));
+                    /*
+                    NA DEFESA DESENHADA DA FALTA o corte vai ate ao poste. O
+                    `limitGKX` (meia baliza - 0.5 m) e o sitio onde ele pode ir de
+                    pe; numa defesa sorteada a bola passa colada ao poste (medido:
+                    +-3.1 a 3.9 m) e com o corte a 3.16 o corpo parava a 2.15 —
+                    a mao, esticada, nunca la chegava. Ver preverCruzamentoDaFalta.
+                    */
+                    const limiteX = (this.isPenaltyDive && Match.faltaDirectaPlano &&
+                        (Match.faltaDirectaPlano.desfecho === 'defesa' || Match.faltaDirectaPlano.desfecho === 'defesa_fora'))
+                        ? (LARGURA_BALIZA / 2 + 0.3) : limitGKX;
+                    interX = Math.max(-limiteX, Math.min(limiteX, interX)); interY = Math.max(0, Math.min(2.44, interY));
 
                     /*
                     Bola perto do corpo não é mergulho: fica de pé e leva as

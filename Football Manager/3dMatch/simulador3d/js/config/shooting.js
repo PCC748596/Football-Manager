@@ -2377,10 +2377,20 @@ const DirectFreeKickModel = {
     A 2.8 m a janela do plano vem primeiro e o desfecho sorteado Ã© o que
     acontece. O mergulho continua a correr por cima â€” Ã© ele que se vÃª.
     */
-    distanciaDaDefesa: 1.6,
-    // E tambem se resolve quando a bola chega ao alcance da mao dele, que e
-    // onde uma defesa se ve (ver o ramo da defesa no Match.update).
-    alcanceDaDefesa: 1.4,
+    /*
+    E A DEFESA E ONDE A MAO ESTA (relato com imagem F26D2: *"defendeu com as maos
+    bem longe da bola"*). A janela de 1.6 m da linha e o alcance de 1.4 m ao CORPO
+    resolviam a defesa com a bola ainda longe dele: medido em 53 defesas, a mao a
+    mais de 0.55 m em todas e a mais de 1 m em 50.
+
+    Agora o mergulho vai ao sitio e na hora certos (preverCruzamentoDaFalta em
+    utils.js, o tempo em updateGK, `compensacaoAlturaFalta` no GoalkeeperDive) e
+    o gatilho e a MAO a `alcanceDaDefesa` do trajecto da bola. A janela da linha
+    fica so como recurso, colada a ela, para o desfecho sorteado acontecer quando
+    a mao ficar perto mas nao chegar.
+    */
+    distanciaDaDefesa: 0.3,
+    alcanceDaDefesa: 0.55,
     espalmarVelocidade: 9.0,
 
     /*

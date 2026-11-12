@@ -330,7 +330,17 @@ const GkDive = {
         assim que se vê um guarda-redes a saltar para o ângulo e a não lá
         chegar, em vez de deslizar por baixo dela.
         */
-        const subidaPedida = d.alvoY - (D.ombroY * 0.5 + D.alcanceVertical) - corpo.position.y;
+        /*
+        NA DEFESA DESENHADA DA FALTA DIRECTA o salto sobe `compensacaoAlturaFalta` a mais. Ali a
+        bola passa onde e quando a previsao diz (preverCruzamentoDaFalta) e o desfecho ja e
+        defesa; medido no melhor instante do voo, a mao ficava sempre ~0.5 m ABAIXO dela (o
+        corpo inclinado no tombo baixa a mao mais do que a conta de cima supoe).
+        */
+        const planoF = (typeof Match !== 'undefined') ? Match.faltaDirectaPlano : null;
+        const desenhada = !!(p.isPenaltyDive && planoF && typeof planoF.tCruzamento === 'number' &&
+            (planoF.desfecho === 'defesa' || planoF.desfecho === 'defesa_fora'));
+        const subidaPedida = d.alvoY - (D.ombroY * 0.5 + D.alcanceVertical) - corpo.position.y
+            + (desenhada ? (D.compensacaoAlturaFalta || 0) : 0);
         d.v0y = Math.max(D.vySubidaMin,
             Math.min(D.vySubidaMax, Math.sqrt(2 * g * Math.max(0, subidaPedida))));
 

@@ -5039,6 +5039,45 @@ function distanciaEntreSegmentos(p1x, p1y, p1z, q1x, q1y, q1z,
     return Math.hypot(cax - cbx, cay - cby, caz - cbz);
 }
 
+/*
+ONDE A BOLA DA FALTA CRUZA O PLANO DO GUARDA-REDES — com a fisica toda.
+
+Relato, com imagem (F26D2): *"o goleiro defendeu a bola nessa posicao, com as
+maos bem longe da bola"*. Numa falta com desfecho de defesa ele atirava-se ao
+`alvo` do remate, e a bola NAO passa ali: a curva lateral (`freeKickCurve`) e a
+queda extra (`freeKickDip`) poem-na 0.4 a 0.8 m mais aberta. Medido em 34
+defesas: cruzava em +-2.7 a 3.4 m com ele a mergulhar para +-2.3 a 2.9 m.
+
+Isto corre o mesmo passo do `Match.updateBall` (arrasto quadratico, gravidade
+mais a queda extra, curva lateral constante ate `tMax`) ate a bola chegar ao
+`zPlano`. Devolve { x, y, t } ou null se ela nao la chegar em `tMax` segundos.
+*/
+function preverCruzamentoDaFalta(pos, vel, dip, curva, zPlano, B, dt, tMax) {
+    dt = dt || 1 / 60;
+    tMax = tMax || 4;
+    let x = pos.x, y = pos.y, z = pos.z, vx = vel.x, vy = vel.y, vz = vel.z, tc = 0;
+    const lado = Math.sign(zPlano - z) || 1;
+    for (let t = 0; t < tMax; t += dt) {
+        const v = Math.hypot(vx, vy, vz);
+        if (v > 0.001) {
+            const dv = Math.min(v, B.kArrasto * v * v * dt);
+            vx -= vx * dv / v; vy -= vy * dv / v; vz -= vz * dv / v;
+        }
+        let g = B.gravidade + ((dip && dip.active) ? dip.extraGrav : 0);
+        if (curva && curva.active && !(curva.tMax && tc > curva.tMax)) { vx += curva.ax * dt; vz += curva.az * dt; }
+        tc += dt;
+        if (y > B.raio + 0.001) vy -= g * dt;
+        const nz = z + vz * dt;
+        if ((zPlano - nz) * lado <= 0) {
+            const f = Math.abs(zPlano - z) / Math.max(1e-6, Math.abs(nz - z));
+            return { x: x + vx * dt * f, y: Math.max(B.raio, y + vy * dt * f), t: t + dt * f };
+        }
+        x += vx * dt; y += vy * dt; z = nz;
+        if (y <= B.raio) { y = B.raio; if (vy < 0) vy = 0; }
+    }
+    return null;
+}
+
 function pontoDeIntercepcaoGK(bolaX, bolaY, bolaZ, velX, velY, velZ, gkZ, gravidade) {
     const vz = Math.abs(velZ);
     if (vz < 0.001) return null;
