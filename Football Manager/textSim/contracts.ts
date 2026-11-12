@@ -149,3 +149,44 @@ export const processarContratos = (jogadores: Player[], hoje: string, donoId: st
   });
   return { jogadores: mudou ? out : jogadores, liberados };
 };
+
+/*
+CLAUSULAS DE RESCISAO (pedido: "nos contratos clausulas de rescisao"). `Contract.releaseClause`: o valor que, pago por outro clube, o vendedor nao pode recusar
+(a regra vive em textSim/transferencias.ts). 0 = sem clausula; omitido = contrato antigo, ainda sem clausula gerada.
+
+  clausula sugerida = valor de mercado x fator da idade (o clube protege mais quem ainda vai valorizar), arredondada:
+      ate 21 anos: 3,0x a 5,0x | 22-25: 2,2x a 3,5x | 26-29: 1,8x a 2,6x | 30+: 1,4x a 2,0x       (o ponto na faixa e fixo por jogador)
+  minimo de 250 mil. Um em cada quatro contratos gerados sai SEM clausula (`CHANCE_SEM_CLAUSULA`).
+Depois de uma transferencia o comprador fixa uma nova: o dobro do maior entre o valor pago e o valor de mercado (`clausulaAposTransferencia`).
+*/
+export const CHANCE_SEM_CLAUSULA = 0.25;
+export const CLAUSULA_MINIMA = 250_000;
+const FAIXA_CLAUSULA = (idade: number): [number, number] => (idade <= 21 ? [3.0, 5.0] : idade <= 25 ? [2.2, 3.5] : idade <= 29 ? [1.8, 2.6] : [1.4, 2.0]);
+/** Arredonda a clausula pela grandeza: de 50 em 50 mil ate 5 M, de 500 em 500 mil acima. */
+export const arredondarClausula = (v: number): number => { const passo = v < 5_000_000 ? 50_000 : 500_000; return Math.max(CLAUSULA_MINIMA, Math.round(v / passo) * passo); };
+
+/** A clausula de mercado do jogador (sempre > 0: e a referencia da negociacao e da geracao). */
+export const clausulaSugerida = (p: Pick<Player, 'id' | 'age' | 'value'>): number => {
+  const [a, b] = FAIXA_CLAUSULA(p.age);
+  const f = a + (b - a) * criarRng('clausula|' + p.id)();
+  return arredondarClausula(Math.max(0, p.value || 0) * f);
+};
+/** A clausula em vigor (0 = sem clausula, ou contrato antigo ainda sem ela). */
+export const clausulaDe = (p: Pick<Player, 'contract'> | undefined | null): number => Math.max(0, p?.contract?.releaseClause || 0);
+/** A nova clausula que o comprador fixa ao contratar por `pago`. */
+export const clausulaAposTransferencia = (pago: number, valorDeMercado: number): number => arredondarClausula(2 * Math.max(pago || 0, valorDeMercado || 0));
+
+/**
+ * Da clausula aos contratos que ainda nao a tem (`releaseClause` omitido: saves antigos, contratos novos da CPU): a sugerida, ou nenhuma (0) para 1 em cada 4 (fixo por jogador e contrato).
+ * Devolve a MESMA lista se nada mudou.
+ */
+export const garantirClausulas = (jogadores: Player[]): Player[] => {
+  let mudou = false;
+  const out = jogadores.map(p => {
+    if (!p.contract || p.contract.releaseClause !== undefined || p.teamId === 'MARKET') return p;
+    mudou = true;
+    const sem = criarRng(`semclausula|${p.id}|${p.contract.start}`)() < CHANCE_SEM_CLAUSULA;
+    return { ...p, contract: { ...p.contract, releaseClause: sem ? 0 : clausulaSugerida(p) } };
+  });
+  return mudou ? out : jogadores;
+};

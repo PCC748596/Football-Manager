@@ -21,11 +21,30 @@ PRE-CONTRATO: o jogador com MENOS DE `mesesPreContrato` (6) meses de contrato po
 como a um agente livre (`contratarAgenteLivre`), ele sai na hora do clube atual, que nao recebe nada. Vale para o utilizador e para a CPU, nos dois sentidos (a CPU tambem leva
 jogadores do utilizador com o contrato a acabar). Para esses jogadores nao ha proposta de compra (`proporCompra` recusa): a saida e sempre livre. O clube que perde o jogador
 tem de continuar com o elenco minimo.
+
+CLAUSULA DE RESCISAO (pedido: "nos contratos clausulas de rescisao"; o valor vive no contrato, `Contract.releaseClause`, ver textSim/contracts.ts): uma oferta de COMPRA com o valor
+a vista >= clausula nao pode ser recusada — e aceita na hora, sem os 1-3 dias de analise, e conclui assim que as validacoes passam (janela, saldo, orcamento). Vale para os dois lados:
+a CPU paga a clausula de um jogador do utilizador (quando a clausula ficou barata perto do valor que ela pagaria de bom grado) e o utilizador paga a de um jogador da CPU para
+saltar a negociacao. Os bonus por jogos nao contam para a clausula (ela e paga a vista). O unico limite que fica e o elenco minimo do vendedor (20 jogadores, 2 GK...): sem ele a
+oferta segue o fluxo normal. Depois da transferencia o comprador fixa uma clausula nova (o dobro do maior entre o valor pago e o valor de mercado).
+
+EMPRESTIMO COM OPCAO DE COMPRA (pedido: "emprestimo com opcao de compra"): a negociacao pode ser de EMPRESTIMO (`tipo`), com duracao (3 a 24 meses, nunca alem do contrato),
+uma taxa de emprestimo (o `valor`, pode ser 0) e, se quiser, um preco de OPCAO DE COMPRA. O jogador vai para o clube que o pede (`Player.emprestimo` guarda o dono, o fim e a opcao)
+e no fim volta, salvo se esse clube exercer a opcao: o utilizador decide na aba Transfers (e recebe um aviso 30 dias antes); a CPU compra se o preco cabe no que pagaria de bom grado,
+tem caixa e o jogador e titular dela. Durante o emprestimo ninguem o compra, vende, lista ou dispensa. O vendedor IA nao empresta os dois melhores do grupo (salvo se os listou para
+emprestimo), pede uma taxa de 8% do valor por ano (0 se o listou) e recusa opcao abaixo do preco que pediria numa venda. Os salarios do jogo nao saem do caixa (a folha e so uma
+estimativa), entao nao ha divisao de salario: o jogador conta na folha de quem o tem.
+
+VENDA COM BONUS POR JOGOS (pedido: "venda com pagamento posterior de bonus para quem esta vendendo, depois de 10/15/20 jogos"): a proposta de compra pode prometer bonus ao
+vendedor quando o jogador fizer 10, 15 e 20 jogos oficiais pelo comprador. Na avaliacao o vendedor conta os bonus a 60% (podem nunca ser pagos). Concluida a venda, os bonus
+ficam pendentes em `mercado.bonus` com a contagem de jogos (a partir de zero): os jogos da liga do utilizador contam pela escalacao real (GameContext, `registrarJogosDosBonus`);
+fora dela (clubes que so jogam no mundo simulado) conta-se um jogo a cada 7 dias se o jogador esta entre os 14 melhores do elenco. Cada marco atingido paga na hora (caixa e
+registro dos dois clubes, aviso na Inbox). Se o jogador deixar o comprador (vendido, dispensado) os bonus que faltam caducam.
 */
 import type { Player, Team } from '../types';
-import { Position } from '../types';
+import { Position, naLigaDoUtilizador } from '../types';
 import { BaseState, completarBase, TAMANHO_BASE } from './youth';
-import { criarRng, novoContrato, Rnd, somarMeses } from './contracts';
+import { criarRng, novoContrato, Rnd, somarMeses, clausulaDe, clausulaAposTransferencia } from './contracts';
 import { valorDeMercado } from './valuation';
 import { tx } from './idiomas';
 
@@ -60,8 +79,13 @@ export const CONFIG_MERCADO = {
     margemUpgrade: 4, maxElenco: 34, probOfertaAoHumano: 0.12, bonusListado: 0.35,
     orcamentoMaxPorOferta: 0.75, apetite: [0.85, 1.05] as [number, number], toleranciaContra: 1.08,
     diasParaDispensar: 21, diasAgenteLivre: 240,
-    maxPreContratosPorDia: 2, probPreContrato: 0.15   // pre-contratos da CPU: no maximo 2 por dia no mundo; sem falta na posicao, so com esta chance (e so se melhora um titular)
+    maxPreContratosPorDia: 2, probPreContrato: 0.15,   // pre-contratos da CPU: no maximo 2 por dia no mundo; sem falta na posicao, so com esta chance (e so se melhora um titular)
+    clausulaAteApetite: 1.25,          // a CPU paga a clausula quando ela custa ate 125% do que pagaria de bom grado (valor x apetite) e cabe no teto
+    probBonus: 0.3,                    // chance de a proposta da CPU trocar parte do valor a vista por bonus por jogos
+    probOpcaoCompra: 0.5               // chance de o pedido de emprestimo da CPU trazer opcao de compra
   },
+  emprestimo: { mesesMin: 3, mesesMax: 24, taxaAnualDoValor: 0.08, opcaoMinima: 1.0, avisoOpcaoDias: 30, tetoTaxaIa: 0.12 },
+  bonus: { marcos: [10, 15, 20], fatorAvaliacao: 0.6, diasPorJogoEstimado: 7, titularesEstimados: 14 },
   maxTransacoes: 4000
 };
 export type ConfigMercado = typeof CONFIG_MERCADO;
@@ -72,6 +96,16 @@ export type EstadoNegociacao = 'ENVIADA' | 'RECEBIDA' | 'CONTRAPROPOSTA' | 'ACEI
 export const ESTADOS_ATIVOS: EstadoNegociacao[] = ['ENVIADA', 'RECEBIDA', 'CONTRAPROPOSTA', 'ACEITA'];
 
 export interface Proposta { n: number; de: 'COMPRADOR' | 'VENDEDOR'; valor: number; data: string; }
+/** Um bonus prometido ao vendedor quando o jogador fizer `jogos` jogos oficiais pelo comprador. */
+export interface BonusJogos { jogos: number; valor: number; }
+/** Os bonus pendentes de uma venda concluida (`mercado.bonus`). */
+export interface BonusTransferencia {
+  id: string; negId: string; jogadorId: string; jogadorNome: string; compradorId: string; vendedorId: string; data: string;
+  jogos: number;                       // jogos oficiais pelo comprador desde a venda
+  ultimaEstimativa?: string;           // clubes fora da liga do utilizador: o ultimo dia ate onde os jogos foram estimados
+  marcos: { jogos: number; valor: number; pago?: string }[];
+  estado: 'ATIVO' | 'CONCLUIDO' | 'CADUCADO';
+}
 export interface NegociacaoTransf {
   id: string;
   playerId: string;
@@ -86,13 +120,21 @@ export interface NegociacaoTransf {
   respondeEm: string | null;          // dia em que a IA do outro lado responde
   historico: Proposta[];
   motivo?: string;
+  /** COMPRA (omitido: saves antigos) ou EMPRESTIMO (o `valor` e a taxa de emprestimo). */
+  tipo?: 'COMPRA' | 'EMPRESTIMO';
+  emprestimo?: { meses: number; opcaoCompra?: number };
+  /** Bonus por jogos prometidos ao vendedor (so compras). */
+  bonus?: BonusJogos[];
 }
 export interface Transacao {
   id: string; data: string; clubeId: string; jogadorId: string; jogadorNome: string; contraparteId: string;
   natureza: 'COMPRA' | 'VENDA' | 'AGENTE_LIVRE'; valor: number;
   saldoAntes: number; saldoDepois: number; orcamentoAntes: number; orcamentoDepois: number; negId: string | null;
+  /** O que o lancamento paga, alem da transferencia normal: taxa de emprestimo, opcao de compra, bonus por jogos ou clausula de rescisao. */
+  tipo?: 'EMPRESTIMO' | 'OPCAO' | 'BONUS' | 'CLAUSULA';
+  ref?: string;                        // a negociacao de origem (bonus e opcao: o `negId` fica null para nao contar como lancamento da conclusao)
 }
-export interface Movimento { id: string; data: string; jogadorId: string; jogadorNome: string; de: string; para: string; valor: number; tipo: 'TRANSFERENCIA' | 'AGENTE_LIVRE' | 'DISPENSA'; }
+export interface Movimento { id: string; data: string; jogadorId: string; jogadorNome: string; de: string; para: string; valor: number; tipo: 'TRANSFERENCIA' | 'AGENTE_LIVRE' | 'DISPENSA' | 'EMPRESTIMO' | 'DEVOLUCAO'; }
 export interface MercadoState {
   negociacoes: NegociacaoTransf[];
   transacoes: Transacao[];
@@ -100,11 +142,20 @@ export interface MercadoState {
   proximoNum: number;
   ultimoDia: string;                  // ultimo dia processado pelo `tickDoDia` (uma vez por dia)
   mesDosValores: string;              // yyyy-mm do ultimo recalculo mensal dos valores
+  /** Bonus por jogos das vendas concluidas (omitido nos saves antigos = nenhum). */
+  bonus?: BonusTransferencia[];
 }
 export interface Universo { players: Player[]; base: BaseState | null; teams: Team[]; mercado: MercadoState; }
 export interface Evento {
-  tipo: 'OFERTA_RECEBIDA' | 'CONTRAPROPOSTA' | 'ACEITA' | 'RECUSADA' | 'EXPIRADA' | 'CONCLUIDA_COMPRA' | 'CONCLUIDA_VENDA' | 'AGENTE_LIVRE' | 'SAIDA_LIVRE' | 'BLOQUEADA';
+  tipo: 'OFERTA_RECEBIDA' | 'CONTRAPROPOSTA' | 'ACEITA' | 'RECUSADA' | 'EXPIRADA' | 'CONCLUIDA_COMPRA' | 'CONCLUIDA_VENDA' | 'AGENTE_LIVRE' | 'SAIDA_LIVRE' | 'BLOQUEADA'
+    | 'CLAUSULA_PAGA' | 'EMPRESTIMO_CONCLUIDO' | 'EMPRESTIMO_FIM' | 'OPCAO_AVISO' | 'OPCAO_EXERCIDA' | 'BONUS_PAGO';
   negId: string | null; jogadorId: string; jogadorNome: string; clubeId: string; clubeNome: string; valor: number; motivo?: string;
+  /** Os eventos novos (clausula, emprestimo, opcao, bonus) saem um por lado: `clubeId` e o clube daquele lado, `lado` diz qual e, `outroClube` o nome da contraparte. */
+  lado?: 'COMPRADOR' | 'VENDEDOR';
+  outroClube?: string;
+  jogos?: number;
+  data?: string;
+  emprestimo?: boolean;                // o evento vem de um emprestimo (texto da Inbox)
 }
 export interface Resultado { u: Universo; ok: boolean; motivo?: string; eventos: Evento[]; negId?: string; }
 
@@ -157,9 +208,23 @@ export const prepararOrcamentos = (teams: Team[], cfg: ConfigMercado = CONFIG_ME
   return teams.map(t => (typeof t.transferBudget === 'number' ? t : { ...t, transferBudget: orcamentoInicial(t, cfg) }));
 };
 
-/** O jogador de um clube com o contrato a acabar (menos de `mesesPreContrato` meses): pode assinar com outro clube sem custo. */
+/** O jogador de um clube com o contrato a acabar (menos de `mesesPreContrato` meses): pode assinar com outro clube sem custo. O emprestado nao (o contrato e do dono). */
 export const emPreContrato = (p: Player, hoje: string, cfg: ConfigMercado = CONFIG_MERCADO): boolean =>
-  p.teamId !== 'MARKET' && !!p.contract && p.contract.end > hoje && p.contract.end < somarMeses(hoje, cfg.mesesPreContrato);
+  p.teamId !== 'MARKET' && !p.emprestimo && !!p.contract && p.contract.end > hoje && p.contract.end < somarMeses(hoje, cfg.mesesPreContrato);
+
+/** A oferta a vista paga a clausula de rescisao do jogador? (0 = sem clausula: nunca) */
+export const atingeClausula = (p: Player, valor: number): boolean => { const c = clausulaDe(p); return c > 0 && valor >= c; };
+/** Quanto os bonus valem para quem avalia a oferta (60% do total: podem nunca ser pagos). */
+export const valorDosBonus = (bonus: BonusJogos[] | undefined, cfg: ConfigMercado = CONFIG_MERCADO): number => (bonus || []).reduce((s, b) => s + b.valor, 0) * cfg.bonus.fatorAvaliacao;
+/** Os bonus validos: so os marcos 10/15/20, valores positivos (arredondados ao milhar), um por marco, em ordem. */
+export const normalizarBonus = (bonus: BonusJogos[] | undefined, cfg: ConfigMercado = CONFIG_MERCADO): BonusJogos[] => {
+  const m = new Map<number, number>();
+  for (const b of bonus || []) if (cfg.bonus.marcos.includes(b.jogos) && b.valor > 0 && isFinite(b.valor)) m.set(b.jogos, arred(b.valor));
+  return [...m.entries()].filter(([, v]) => v > 0).sort((a, b) => a[0] - b[0]).map(([jogos, valor]) => ({ jogos, valor }));
+};
+/** A taxa de emprestimo que o dono pede: 8% do valor de mercado por ano de emprestimo (0 se o pos na lista de emprestimo). */
+export const taxaDeEmprestimoDesejada = (p: Player, meses: number, hoje: string, cfg: ConfigMercado = CONFIG_MERCADO): number =>
+  p.listedForLoan ? 0 : arred(valorDeMercado(p, hoje) * cfg.emprestimo.taxaAnualDoValor * meses / 12);
 
 // ------------------------------------------------------------------ localizar jogadores e elencos
 export interface Local { jogador: Player; origem: 'ELENCO' | 'BASE' | 'LIVRE'; }
@@ -224,14 +289,39 @@ export const avaliarOferta = (u: Universo, neg: NegociacaoTransf, oferta: number
   const loc = localizar(u, neg.playerId);
   const desejado = loc ? precoDesejado(u, loc.jogador, neg.vendedorId, hoje, neg.id, cfg) : oferta;
   if (!loc) return { decisao: 'RECUSA', motivo: 'jogador indisponivel', desejado };
+  if (neg.tipo === 'EMPRESTIMO') return avaliarEmprestimo(u, neg, loc.jogador, oferta, desejado, hoje, cfg);
+  // CLAUSULA: o valor a vista paga a clausula -> nao pode recusar (so o elenco minimo basico continua a valer)
+  if (loc.origem === 'ELENCO' && atingeClausula(loc.jogador, oferta) && elencoValidoSem(elencoDe(u, neg.vendedorId), loc.jogador, cfg)) return { decisao: 'ACEITA', desejado };
   if (loc.origem === 'ELENCO' && !elencoValidoSem(elencoDe(u, neg.vendedorId), loc.jogador, cfg, formacaoDe(u, neg.vendedorId))) return { decisao: 'RECUSA', motivo: 'o elenco ficaria sem o minimo', desejado };
-  const D = cfg.decisao, r = oferta / Math.max(1, desejado);
+  // BONUS por jogos: contam a 60% na comparacao; a contraproposta continua a ser so do valor a vista (desconta os bonus)
+  const bd = valorDosBonus(neg.bonus, cfg);
+  const D = cfg.decisao, r = (oferta + bd) / Math.max(1, desejado);
   const ultima = neg.rodadas >= cfg.maxRodadas;
   if (r >= D.aceitaA) return { decisao: 'ACEITA', desejado };
   if (ultima) return r >= D.ultimaRodadaAceitaDe ? { decisao: 'ACEITA', desejado } : { decisao: 'RECUSA', motivo: 'proposta final insuficiente', desejado };
-  if (r >= D.contraDe) return { decisao: 'CONTRA', contra: Math.min(desejado, Math.max(arred(oferta * 1.05), arred(desejado * 0.97))), desejado };
-  if (r >= D.recusaAbaixo) return { decisao: 'CONTRA', contra: desejado, desejado };
+  const avista = (c: number) => (bd > 0 ? Math.max(arred(c - bd), oferta + 1000) : c);
+  if (r >= D.contraDe) return { decisao: 'CONTRA', contra: avista(Math.min(desejado, Math.max(arred((oferta + bd) * 1.05), arred(desejado * 0.97)))), desejado };
+  if (r >= D.recusaAbaixo) return { decisao: 'CONTRA', contra: avista(desejado), desejado };
   return { decisao: 'RECUSA', motivo: 'oferta muito baixa', desejado };
+};
+
+/**
+ * O dono (IA, ou a regra de referencia) avalia um pedido de EMPRESTIMO: nao empresta os dois melhores do grupo (salvo se os listou para emprestimo), nem deixa o elenco
+ * abaixo do esquema; a opcao de compra tem de valer pelo menos o preco que pediria numa venda; a taxa tem de cobrir a que pede (8% do valor por ano; 0 se listado), senao
+ * contrapropoe essa taxa (na ultima rodada recusa).
+ */
+const avaliarEmprestimo = (u: Universo, neg: NegociacaoTransf, p: Player, taxa: number, precoVenda: number, hoje: string, cfg: ConfigMercado): Decisao => {
+  if (p.emprestimo) return { decisao: 'RECUSA', motivo: 'jogador emprestado', desejado: precoVenda };
+  if (!elencoValidoSem(elencoDe(u, neg.vendedorId), p, cfg, formacaoDe(u, neg.vendedorId))) return { decisao: 'RECUSA', motivo: 'o elenco ficaria sem o minimo', desejado: precoVenda };
+  const doGrupo = u.players.filter(x => x.teamId === neg.vendedorId && grupoDe(x.position) === grupoDe(p.position)).sort((a, b) => b.skill - a.skill);
+  const posto = doGrupo.findIndex(x => x.id === p.id);
+  if (!p.listedForLoan && posto >= 0 && posto <= 1) return { decisao: 'RECUSA', motivo: 'o clube nao empresta titulares', desejado: precoVenda };
+  const op = neg.emprestimo?.opcaoCompra;
+  if (op !== undefined && op < precoVenda * cfg.emprestimo.opcaoMinima) return { decisao: 'RECUSA', motivo: 'opcao de compra abaixo do preco do jogador', desejado: precoVenda };
+  const desejada = taxaDeEmprestimoDesejada(p, neg.emprestimo?.meses ?? 12, hoje, cfg);
+  if (taxa >= desejada) return { decisao: 'ACEITA', desejado: desejada };
+  if (neg.rodadas >= cfg.maxRodadas) return { decisao: 'RECUSA', motivo: 'proposta final insuficiente', desejado: desejada };
+  return { decisao: 'CONTRA', contra: desejada, desejado: desejada };
 };
 
 // ------------------------------------------------------------------ operacoes sobre o estado
@@ -240,31 +330,76 @@ const adicionarNeg = (u: Universo, neg: NegociacaoTransf): Universo => ({ ...u, 
 const ev = (u: Universo, tipo: Evento['tipo'], neg: NegociacaoTransf | null, p: Player, clubeId: string, valor: number, motivo?: string): Evento =>
   ({ tipo, negId: neg ? neg.id : null, jogadorId: p.id, jogadorNome: p.name, clubeId, clubeNome: clube(u, clubeId)?.name || clubeId, valor, motivo });
 const diasDeResposta = (semente: string, cfg: ConfigMercado, faixa: [number, number] = cfg.diasResposta): number => { const [a, b] = faixa; return a + Math.floor(criarRng(semente)() * (b - a + 1)); };
+/** Um evento de um LADO do negocio (clausula, emprestimo, opcao, bonus): `clubeId` e o clube daquele lado e `outroClube` o nome da contraparte. */
+const evLado = (u: Universo, tipo: Evento['tipo'], neg: NegociacaoTransf | null, p: Player, clubeId: string, lado: 'COMPRADOR' | 'VENDEDOR', outroId: string, valor: number, extra: Partial<Evento> = {}): Evento =>
+  ({ ...ev(u, tipo, neg, p, clubeId, valor), lado, outroClube: clube(u, outroId)?.name || outroId, ...extra });
 
-/** Abre uma negociacao de COMPRA: `compradorId` propoe `valor` pelo jogador. O vendedor humano recebe (RECEBIDA); o vendedor IA responde em 1-3 dias (ENVIADA). */
-export const proporCompra = (u: Universo, compradorId: string, playerId: string, valor: number, hoje: string, donoId: string, cfg: ConfigMercado = CONFIG_MERCADO): Resultado => {
+/**
+ * Abre uma negociacao de COMPRA: `compradorId` propoe `valor` pelo jogador (e, se quiser, `bonus` ao vendedor aos 10/15/20 jogos). O vendedor humano recebe (RECEBIDA);
+ * o vendedor IA responde em 1-3 dias (ENVIADA). Se o valor a vista paga a CLAUSULA de rescisao, a oferta e aceita na hora e conclui ja (se as validacoes deixarem).
+ */
+export const proporCompra = (u: Universo, compradorId: string, playerId: string, valor: number, hoje: string, donoId: string, cfg: ConfigMercado = CONFIG_MERCADO, bonus?: BonusJogos[]): Resultado =>
+  abrirNegociacaoTransf(u, compradorId, playerId, valor, hoje, donoId, cfg, { tipo: 'COMPRA', bonus });
+
+/**
+ * Abre um pedido de EMPRESTIMO: `taxa` (pode ser 0) por `meses` (3 a 24, sem passar do contrato) e, se quiser, uma `opcaoCompra` (o preco para comprar no fim).
+ * So jogadores do elenco profissional; o fluxo de resposta e o mesmo das compras (o dono humano aceita, recusa ou contrapropoe a taxa).
+ */
+export const proporEmprestimo = (u: Universo, compradorId: string, playerId: string, taxa: number, meses: number, opcaoCompra: number | undefined, hoje: string, donoId: string, cfg: ConfigMercado = CONFIG_MERCADO): Resultado =>
+  abrirNegociacaoTransf(u, compradorId, playerId, taxa, hoje, donoId, cfg, { tipo: 'EMPRESTIMO', meses, opcaoCompra });
+
+/** O utilizador (ou a CPU) paga a clausula de rescisao: uma proposta com o valor exato da clausula, aceita na hora. */
+export const pagarClausula = (u: Universo, compradorId: string, playerId: string, hoje: string, donoId: string, cfg: ConfigMercado = CONFIG_MERCADO): Resultado => {
+  const loc = localizar(u, playerId);
+  const c = loc && loc.origem === 'ELENCO' ? clausulaDe(loc.jogador) : 0;
+  if (!c) return { u, ok: false, motivo: 'o jogador nao tem clausula de rescisao', eventos: [] };
+  return proporCompra(u, compradorId, playerId, c, hoje, donoId, cfg);
+};
+
+interface OpcoesNeg { tipo: 'COMPRA' | 'EMPRESTIMO'; bonus?: BonusJogos[]; meses?: number; opcaoCompra?: number; }
+const abrirNegociacaoTransf = (u: Universo, compradorId: string, playerId: string, valor: number, hoje: string, donoId: string, cfg: ConfigMercado, o: OpcoesNeg): Resultado => {
   const falha = (motivo: string): Resultado => ({ u, ok: false, motivo, eventos: [] });
+  const emprestimo = o.tipo === 'EMPRESTIMO';
   const loc = localizar(u, playerId);
   if (!loc) return falha('jogador nao encontrado');
   if (loc.origem === 'LIVRE') return falha('agente livre: contrate-o sem taxa');
   if (loc.origem === 'ELENCO' && emPreContrato(loc.jogador, hoje, cfg)) return falha('contrato a acabar (menos de 6 meses): assina sem custo');
   const p = loc.jogador, vendedorId = p.teamId;
   if (vendedorId === compradorId) return falha('o jogador ja e do clube');
+  if (p.emprestimo) return falha('jogador emprestado');
   if (elencoDe(u, compradorId).length >= cfg.ia.maxElenco) return falha(`elenco cheio (maximo de ${cfg.ia.maxElenco} jogadores)`);
   if (!clube(u, compradorId) || !clube(u, vendedorId)) return falha('clube desconhecido');
   if (loc.origem === 'BASE' && p.age < cfg.idadeMinimaBase) return falha(`so jogadores do Sub-20 com ${cfg.idadeMinimaBase} anos ou mais`);
-  if (!(valor > 0) || !isFinite(valor)) return falha('valor invalido');
+  if (emprestimo) {
+    if (loc.origem !== 'ELENCO') return falha('so jogadores do elenco profissional podem ser emprestados');
+    const meses = o.meses ?? 0;
+    if (!Number.isInteger(meses) || meses < cfg.emprestimo.mesesMin || meses > cfg.emprestimo.mesesMax) return falha('duracao de emprestimo invalida');
+    if (p.contract && somarMeses(hoje, meses) >= p.contract.end) return falha('o contrato acaba antes do fim do emprestimo');
+    if (!(valor >= 0) || !isFinite(valor)) return falha('valor invalido');
+    if (o.opcaoCompra !== undefined && !(o.opcaoCompra > 0 && isFinite(o.opcaoCompra))) return falha('valor invalido');
+  } else if (!(valor > 0) || !isFinite(valor)) return falha('valor invalido');
   if (u.mercado.negociacoes.some(n => n.playerId === playerId && n.compradorId === compradorId && ESTADOS_ATIVOS.includes(n.estado))) return falha('ja existe uma negociacao ativa por este jogador');
   const num = u.mercado.proximoNum;
   const humanoVende = vendedorId === donoId;
+  const bonus = emprestimo ? [] : normalizarBonus(o.bonus, cfg);
   const neg: NegociacaoTransf = {
     id: `neg-${num}`, playerId, compradorId, vendedorId, origem: loc.origem, estado: humanoVende ? 'RECEBIDA' : 'ENVIADA', aguarda: 'VENDEDOR',
     valor: arred(valor), rodadas: 1, criada: hoje, atualizada: hoje, expira: somarDias(hoje, cfg.diasValidade),
-    respondeEm: humanoVende ? null : somarDias(hoje, p.listedForSale ? 0 : diasDeResposta(`resp|neg-${num}|1`, cfg, cfg.diasRespostaNaoListado)),   // listado: a negociacao ja abre; senao o clube leva 2-3 dias
-    historico: [{ n: 1, de: 'COMPRADOR', valor: arred(valor), data: hoje }]
+    respondeEm: humanoVende ? null : somarDias(hoje, p.listedForSale || (emprestimo && p.listedForLoan) ? 0 : diasDeResposta(`resp|neg-${num}|1`, cfg, cfg.diasRespostaNaoListado)),   // listado: a negociacao ja abre; senao o clube leva 2-3 dias
+    historico: [{ n: 1, de: 'COMPRADOR', valor: arred(valor), data: hoje }],
+    ...(emprestimo ? { tipo: 'EMPRESTIMO' as const, emprestimo: { meses: o.meses!, ...(o.opcaoCompra !== undefined ? { opcaoCompra: arred(o.opcaoCompra) } : {}) } } : {}),
+    ...(bonus.length ? { bonus } : {})
   };
-  const eventos = humanoVende ? [ev(u, 'OFERTA_RECEBIDA', neg, p, compradorId, neg.valor)] : [];
-  return { u: adicionarNeg(u, neg), ok: true, eventos, negId: neg.id };
+  const u1 = adicionarNeg(u, neg);
+  // CLAUSULA DE RESCISAO paga: aceita na hora, sem o vendedor poder recusar (o elenco minimo basico ainda vale: sem ele, segue o fluxo normal)
+  if (!emprestimo && loc.origem === 'ELENCO' && atingeClausula(p, neg.valor) && elencoValidoSem(elencoDe(u, vendedorId), p, cfg)) {
+    const r = concluirAceita(u1, { ...neg, estado: 'ACEITA', aguarda: null, respondeEm: null, motivo: 'clausula de rescisao paga' }, hoje, donoId, cfg);
+    const concluida = r.u.mercado.negociacoes.find(n => n.id === neg.id)?.estado === 'CONCLUIDA';
+    const lados = [evLado(u, 'CLAUSULA_PAGA', neg, p, vendedorId, 'VENDEDOR', compradorId, neg.valor), evLado(u, 'CLAUSULA_PAGA', neg, p, compradorId, 'COMPRADOR', vendedorId, neg.valor)];
+    return { ...r, eventos: concluida ? lados : r.eventos, negId: neg.id };
+  }
+  const eventos = humanoVende ? [{ ...ev(u, 'OFERTA_RECEBIDA', neg, p, compradorId, neg.valor), ...(emprestimo ? { emprestimo: true } : {}) }] : [];
+  return { u: u1, ok: true, eventos, negId: neg.id };
 };
 
 /** O comprador desiste: a negociacao ativa passa a RETIRADA. */
@@ -313,6 +448,7 @@ export const listarParaEmprestimo = (u: Universo, playerId: string, listar: bool
   const loc = localizar(u, playerId);
   if (!loc || loc.origem === 'LIVRE') return { u, ok: false, motivo: 'jogador nao pertence a um clube', eventos: [] };
   if (loc.origem === 'BASE' && loc.jogador.age < cfg.idadeMinimaBase) return { u, ok: false, motivo: `Sub-20 so a partir dos ${cfg.idadeMinimaBase} anos`, eventos: [] };
+  if (listar && loc.jogador.emprestimo) return { u, ok: false, motivo: 'jogador emprestado', eventos: [] };
   if (!!loc.jogador.listedForLoan === listar) return { u, ok: true, eventos: [] };
   const marca = (p: Player): Player => (p.id !== playerId ? p : (listar ? baixarMoral({ ...p, listedForLoan: true }, QUEDA_MORAL_LISTA.EMPRESTIMO) : { ...p, listedForLoan: false }));
   return loc.origem === 'ELENCO'
@@ -324,6 +460,7 @@ export const listarParaEmprestimo = (u: Universo, playerId: string, listar: bool
 export const dispensarJogador = (u: Universo, playerId: string, hoje: string): Resultado => {
   const p = u.players.find(x => x.id === playerId);
   if (!p || p.teamId === 'MARKET') return { u, ok: false, motivo: 'jogador nao pertence a um clube', eventos: [] };
+  if (p.emprestimo) return { u, ok: false, motivo: 'jogador emprestado', eventos: [] };
   if (u.mercado.negociacoes.some(g => g.playerId === playerId && ESTADOS_ATIVOS.includes(g.estado))) return { u, ok: false, motivo: 'ha uma negociacao em curso por este jogador', eventos: [] };
   const clube = p.teamId;
   return { ok: true, eventos: [], u: { ...u,
@@ -337,6 +474,7 @@ export const listarParaVenda = (u: Universo, playerId: string, listar: boolean, 
   const loc = localizar(u, playerId);
   if (!loc || loc.origem === 'LIVRE') return { u, ok: false, motivo: 'jogador nao pertence a um clube', eventos: [] };
   if (loc.origem === 'BASE' && loc.jogador.age < cfg.idadeMinimaBase) return { u, ok: false, motivo: `Sub-20 so a partir dos ${cfg.idadeMinimaBase} anos`, eventos: [] };
+  if (listar && loc.jogador.emprestimo) return { u, ok: false, motivo: 'jogador emprestado', eventos: [] };
   if (!!loc.jogador.listedForSale === listar) return { u, ok: true, eventos: [] };
   const marca = (p: Player): Player => (p.id !== playerId ? p : (listar ? baixarMoral({ ...p, listedForSale: true, listadoEm: p.listadoEm }, QUEDA_MORAL_LISTA.VENDA) : { ...p, listedForSale: false }));
   return loc.origem === 'ELENCO'
@@ -358,9 +496,11 @@ export const concluir = (u: Universo, negId: string, hoje: string, cfg: ConfigMe
   if (neg.estado === 'CONCLUIDA') return falha('ja concluida');                                   // idempotente: nunca processa duas vezes
   if (neg.estado !== 'ACEITA') return falha('a negociacao nao foi aceita');
   if (u.mercado.transacoes.some(t => t.id === `tx-${neg.id}-C`)) return falha('ja contabilizada');
+  if (neg.tipo === 'EMPRESTIMO') return concluirEmprestimo(u, neg, hoje, cfg);
   const loc = localizar(u, neg.playerId);
   if (!loc || loc.origem === 'LIVRE' || loc.jogador.teamId !== neg.vendedorId) return falha('o jogador ja nao pertence ao vendedor');
   const p = loc.jogador;
+  if (p.emprestimo) return falha('jogador emprestado');
   if (p.contract && hoje >= p.contract.end) return falha('contrato vencido');
   if (elencoDe(u, neg.compradorId).length >= cfg.ia.maxElenco) return falha(`elenco cheio (maximo de ${cfg.ia.maxElenco} jogadores)`);
   const pais = clube(u, neg.compradorId)?.country;
@@ -375,7 +515,9 @@ export const concluir = (u: Universo, negId: string, hoje: string, cfg: ConfigMe
   if (loc.origem === 'ELENCO' && !elencoValidoSem(elencoDe(u, neg.vendedorId), p, cfg)) return falha('o elenco do vendedor ficaria sem o minimo');
 
   // --- tudo valido: efetiva ---
-  const novo: Player = { ...p, teamId: neg.compradorId, shirtNumber: numeroLivre(elencoComprador), listedForSale: false, trainingGroupId: 0 };
+  // O comprador fixa uma CLAUSULA nova (o dobro do maior entre o valor pago e o valor de mercado) — so nos contratos que ja estao no sistema de clausulas (os outros ganham-na no dia seguinte).
+  const contrato = p.contract && p.contract.releaseClause !== undefined ? { ...p.contract, releaseClause: clausulaAposTransferencia(neg.valor, valorDeMercado(p, hoje)) } : p.contract;
+  const novo: Player = { ...p, teamId: neg.compradorId, shirtNumber: numeroLivre(elencoComprador), listedForSale: false, ...(p.listedForLoan ? { listedForLoan: false } : {}), trainingGroupId: 0, contract: contrato };
   let players = u.players, base = u.base;
   if (loc.origem === 'ELENCO') players = players.map(x => (x.id === p.id ? novo : x));
   else {
@@ -402,11 +544,208 @@ export const concluir = (u: Universo, negId: string, hoje: string, cfg: ConfigMe
     return n;
   });
   const mov: Movimento = { id: `mov-${neg.id}`, data: hoje, jogadorId: p.id, jogadorNome: p.name, de: vendedor.id, para: comprador.id, valor, tipo: 'TRANSFERENCIA' };
+  if (neg.motivo === 'clausula de rescisao paga') { txC.tipo = 'CLAUSULA'; txV.tipo = 'CLAUSULA'; }
+  // os BONUS por jogos prometidos ficam pendentes, com a contagem a partir de zero
+  const bonus = neg.bonus?.length
+    ? [...(u.mercado.bonus || []).filter(b => b.estado === 'ATIVO' || b.data >= somarMeses(hoje, -24)), { id: `bon-${neg.id}`, negId: neg.id, jogadorId: p.id, jogadorNome: p.name, compradorId: comprador.id, vendedorId: vendedor.id, data: hoje, jogos: 0, marcos: neg.bonus.map(b => ({ jogos: b.jogos, valor: b.valor })), estado: 'ATIVO' as const }]
+    : u.mercado.bonus;
   const mercado: MercadoState = {
-    ...u.mercado, negociacoes, transacoes: [...u.mercado.transacoes, txC, txV].slice(-cfg.maxTransacoes), historico: [...u.mercado.historico, mov].slice(-cfg.maxTransacoes)
+    ...u.mercado, negociacoes, transacoes: [...u.mercado.transacoes, txC, txV].slice(-cfg.maxTransacoes), historico: [...u.mercado.historico, mov].slice(-cfg.maxTransacoes),
+    ...(bonus ? { bonus } : {})
   };
   const eventos = [ev(u, 'CONCLUIDA_COMPRA', neg, p, comprador.id, valor), ev(u, 'CONCLUIDA_VENDA', neg, p, vendedor.id, valor)];
   return { u: { players, base, teams, mercado }, ok: true, eventos, negId: neg.id };
+};
+
+/**
+ * Conclui um EMPRESTIMO aceito (atomico, como a compra): o jogador vai para o clube que o pediu ate `hoje + meses`, com o dono e a opcao de compra guardados em `Player.emprestimo`;
+ * a taxa (pode ser 0) passa do comprador ao dono, com os dois lancamentos `tx-<neg>-C|V` (tipo EMPRESTIMO). O contrato nao muda (e do dono).
+ */
+const concluirEmprestimo = (u: Universo, neg: NegociacaoTransf, hoje: string, cfg: ConfigMercado): Resultado => {
+  const falha = (motivo: string): Resultado => ({ u, ok: false, motivo, eventos: [], negId: neg.id });
+  const p = u.players.find(x => x.id === neg.playerId);
+  if (!p || p.teamId !== neg.vendedorId) return falha('o jogador ja nao pertence ao vendedor');
+  if (p.emprestimo) return falha('jogador emprestado');
+  const meses = neg.emprestimo?.meses ?? 12, ate = somarMeses(hoje, meses);
+  if (p.contract && ate >= p.contract.end) return falha('o contrato acaba antes do fim do emprestimo');
+  const comprador = clube(u, neg.compradorId), vendedor = clube(u, neg.vendedorId);
+  if (!comprador || !vendedor) return falha('clube desconhecido');
+  const elencoComprador = elencoDe(u, neg.compradorId);
+  if (elencoComprador.length >= cfg.ia.maxElenco) return falha(`elenco cheio (maximo de ${cfg.ia.maxElenco} jogadores)`);
+  if (!janelaAberta(hoje, comprador.country, cfg)) return falha('fora da janela de transferencias');
+  const valor = neg.valor;
+  if (comprador.cash < valor) return falha('saldo insuficiente');
+  if ((comprador.transferBudget ?? 0) < valor) return falha('orcamento de transferencias insuficiente');
+  if (!elencoValidoSem(elencoDe(u, neg.vendedorId), p, cfg)) return falha('o elenco do vendedor ficaria sem o minimo');
+
+  const opcao = neg.emprestimo?.opcaoCompra;
+  const novo: Player = { ...p, teamId: comprador.id, shirtNumber: numeroLivre(elencoComprador), listedForSale: false, listedForLoan: false, trainingGroupId: 0,
+    emprestimo: { de: vendedor.id, inicio: hoje, ate, negId: neg.id, ...(opcao !== undefined ? { opcaoCompra: opcao } : {}) } };
+  const parte = Math.round(valor * cfg.parteDaReceitaNoOrcamento);
+  const txC: Transacao = { id: `tx-${neg.id}-C`, data: hoje, clubeId: comprador.id, jogadorId: p.id, jogadorNome: p.name, contraparteId: vendedor.id, natureza: 'COMPRA', valor, tipo: 'EMPRESTIMO',
+    saldoAntes: comprador.cash, saldoDepois: comprador.cash - valor, orcamentoAntes: comprador.transferBudget ?? 0, orcamentoDepois: (comprador.transferBudget ?? 0) - valor, negId: neg.id };
+  const txV: Transacao = { id: `tx-${neg.id}-V`, data: hoje, clubeId: vendedor.id, jogadorId: p.id, jogadorNome: p.name, contraparteId: comprador.id, natureza: 'VENDA', valor, tipo: 'EMPRESTIMO',
+    saldoAntes: vendedor.cash, saldoDepois: vendedor.cash + valor, orcamentoAntes: vendedor.transferBudget ?? 0, orcamentoDepois: (vendedor.transferBudget ?? 0) + parte, negId: neg.id };
+  const teams = u.teams.map(t => {
+    if (t.id === comprador.id) return { ...t, cash: txC.saldoDepois, transferBudget: txC.orcamentoDepois };
+    if (t.id === vendedor.id) return limparEscalacao({ ...t, cash: txV.saldoDepois, transferBudget: txV.orcamentoDepois }, p.id);
+    return t;
+  });
+  const negociacoes = u.mercado.negociacoes.map(n => {
+    if (n.id === neg.id) return { ...neg, estado: 'CONCLUIDA' as const, aguarda: null, atualizada: hoje, respondeEm: null };
+    if (n.playerId === p.id && ESTADOS_ATIVOS.includes(n.estado)) return { ...n, estado: 'EXPIRADA' as const, aguarda: null, atualizada: hoje, respondeEm: null, motivo: 'jogador transferido' };
+    return n;
+  });
+  const mov: Movimento = { id: `mov-${neg.id}`, data: hoje, jogadorId: p.id, jogadorNome: p.name, de: vendedor.id, para: comprador.id, valor, tipo: 'EMPRESTIMO' };
+  const mercado: MercadoState = { ...u.mercado, negociacoes, transacoes: [...u.mercado.transacoes, txC, txV].slice(-cfg.maxTransacoes), historico: [...u.mercado.historico, mov].slice(-cfg.maxTransacoes) };
+  const extra = { data: ate, emprestimo: true };
+  const eventos = [evLado(u, 'EMPRESTIMO_CONCLUIDO', neg, p, comprador.id, 'COMPRADOR', vendedor.id, valor, extra), evLado(u, 'EMPRESTIMO_CONCLUIDO', neg, p, vendedor.id, 'VENDEDOR', comprador.id, valor, extra)];
+  return { u: { ...u, players: u.players.map(x => (x.id === p.id ? novo : x)), teams, mercado }, ok: true, eventos, negId: neg.id };
+};
+
+/**
+ * O clube que tem o jogador emprestado EXERCE A OPCAO DE COMPRA: paga o preco acordado ao dono e o jogador fica de vez (contrato do dono mantido, clausula nova).
+ * Vale a qualquer momento do emprestimo, sem janela (o preco ja estava no acordo); exige caixa. Lancamentos `tx-opc-<neg>-C|V` (tipo OPCAO).
+ */
+export const exercerOpcao = (u: Universo, playerId: string, hoje: string, cfg: ConfigMercado = CONFIG_MERCADO): Resultado => {
+  const falha = (motivo: string): Resultado => ({ u, ok: false, motivo, eventos: [] });
+  const p = u.players.find(x => x.id === playerId);
+  const e = p?.emprestimo;
+  if (!p || !e) return falha('o jogador nao esta emprestado');
+  if (e.opcaoCompra === undefined) return falha('o emprestimo nao tem opcao de compra');
+  const comprador = clube(u, p.teamId), vendedor = clube(u, e.de);
+  if (!comprador || !vendedor) return falha('clube desconhecido');
+  const valor = e.opcaoCompra;
+  if (comprador.cash < valor) return falha('saldo insuficiente');
+  if (u.mercado.transacoes.some(t => t.id === `tx-opc-${e.negId}-C`)) return falha('ja contabilizada');
+  const parte = Math.round(valor * cfg.parteDaReceitaNoOrcamento);
+  const orcC = comprador.transferBudget ?? 0, orcV = vendedor.transferBudget ?? 0;
+  const txC: Transacao = { id: `tx-opc-${e.negId}-C`, data: hoje, clubeId: comprador.id, jogadorId: p.id, jogadorNome: p.name, contraparteId: vendedor.id, natureza: 'COMPRA', valor, tipo: 'OPCAO', ref: e.negId,
+    saldoAntes: comprador.cash, saldoDepois: comprador.cash - valor, orcamentoAntes: orcC, orcamentoDepois: Math.max(0, orcC - valor), negId: null };
+  const txV: Transacao = { id: `tx-opc-${e.negId}-V`, data: hoje, clubeId: vendedor.id, jogadorId: p.id, jogadorNome: p.name, contraparteId: comprador.id, natureza: 'VENDA', valor, tipo: 'OPCAO', ref: e.negId,
+    saldoAntes: vendedor.cash, saldoDepois: vendedor.cash + valor, orcamentoAntes: orcV, orcamentoDepois: orcV + parte, negId: null };
+  const contrato = p.contract && p.contract.releaseClause !== undefined ? { ...p.contract, releaseClause: clausulaAposTransferencia(valor, valorDeMercado(p, hoje)) } : p.contract;
+  const novo: Player = { ...p, emprestimo: undefined, contract: contrato };
+  const teams = u.teams.map(t => (t.id === comprador.id ? { ...t, cash: txC.saldoDepois, transferBudget: txC.orcamentoDepois } : t.id === vendedor.id ? { ...t, cash: txV.saldoDepois, transferBudget: txV.orcamentoDepois } : t));
+  const mov: Movimento = { id: `mov-opc-${e.negId}`, data: hoje, jogadorId: p.id, jogadorNome: p.name, de: vendedor.id, para: comprador.id, valor, tipo: 'TRANSFERENCIA' };
+  const mercado: MercadoState = { ...u.mercado, transacoes: [...u.mercado.transacoes, txC, txV].slice(-cfg.maxTransacoes), historico: [...u.mercado.historico, mov].slice(-cfg.maxTransacoes) };
+  const eventos = [evLado(u, 'OPCAO_EXERCIDA', null, p, comprador.id, 'COMPRADOR', vendedor.id, valor), evLado(u, 'OPCAO_EXERCIDA', null, p, vendedor.id, 'VENDEDOR', comprador.id, valor)];
+  return { u: { ...u, players: u.players.map(x => (x.id === p.id ? novo : x)), teams, mercado }, ok: true, eventos };
+};
+
+/** A CPU exerce a opcao? Se o preco cabe no que pagaria de bom grado (valor x apetite x 1,1), tem caixa, o jogador tem ate 32 anos e esta entre os titulares do grupo dela. */
+export const iaExerceOpcao = (u: Universo, p: Player, hoje: string, cfg: ConfigMercado = CONFIG_MERCADO): boolean => {
+  const e = p.emprestimo, t = clube(u, p.teamId);
+  if (!e || e.opcaoCompra === undefined || !t) return false;
+  if (e.opcaoCompra > t.cash || p.age > 32) return false;
+  if (e.opcaoCompra > valorDeMercado(p, hoje) * perfilDoClube(t.id, cfg).apetite * 1.1) return false;
+  const titulares = titularesDaFormacao(t.tactics?.formation)[grupoDe(p.position)];
+  const doGrupo = u.players.filter(x => x.teamId === t.id && grupoDe(x.position) === grupoDe(p.position)).sort((a, b) => b.skill - a.skill);
+  const posto = doGrupo.findIndex(x => x.id === p.id);
+  return posto >= 0 && posto < titulares;
+};
+
+/**
+ * Os emprestimos do dia: aviso ao utilizador `avisoOpcaoDias` antes do fim (se tem opcao); no fim, a CPU decide a opcao (`iaExerceOpcao`) e quem nao e comprado volta ao dono
+ * (numero livre, fora da escalacao de quem o tinha). O utilizador que nao exerceu ate ao fim perde a opcao.
+ */
+export const processarEmprestimos = (u0: Universo, hoje: string, donoId: string, cfg: ConfigMercado = CONFIG_MERCADO): Resultado => {
+  if (!u0.players.some(p => p.emprestimo)) return { u: u0, ok: true, eventos: [] };
+  let u = u0;
+  const eventos: Evento[] = [];
+  for (const p0 of u0.players.filter(p => p.emprestimo)) {
+    const p = u.players.find(x => x.id === p0.id);
+    const e = p?.emprestimo;
+    if (!p || !e) continue;
+    if (p.teamId === 'MARKET' || !clube(u, e.de)) {   // o dono saiu do jogo (ou o jogador ficou livre): o emprestimo deixa de existir
+      u = { ...u, players: u.players.map(x => (x.id === p.id ? { ...x, emprestimo: undefined } : x)) };
+      continue;
+    }
+    if (hoje < e.ate) {
+      if (p.teamId === donoId && e.opcaoCompra !== undefined && !e.avisado && hoje >= somarDias(e.ate, -cfg.emprestimo.avisoOpcaoDias)) {
+        u = { ...u, players: u.players.map(x => (x.id === p.id ? { ...x, emprestimo: { ...e, avisado: true } } : x)) };
+        eventos.push(evLado(u, 'OPCAO_AVISO', null, p, p.teamId, 'COMPRADOR', e.de, e.opcaoCompra, { data: e.ate }));
+      }
+      continue;
+    }
+    // fim do emprestimo: a CPU decide a opcao; senao o jogador volta
+    if (p.teamId !== donoId && iaExerceOpcao(u, p, hoje, cfg)) {
+      const r = exercerOpcao(u, p.id, hoje, cfg);
+      if (r.ok) { u = r.u; eventos.push(...r.eventos); continue; }
+    }
+    const tinha = p.teamId;
+    const volta: Player = { ...p, teamId: e.de, emprestimo: undefined, shirtNumber: numeroLivre(elencoDe(u, e.de)), trainingGroupId: 0, listedForSale: false, listedForLoan: false };
+    const mov: Movimento = { id: `mov-dev-${e.negId}`, data: hoje, jogadorId: p.id, jogadorNome: p.name, de: tinha, para: e.de, valor: 0, tipo: 'DEVOLUCAO' };
+    u = { ...u, players: u.players.map(x => (x.id === p.id ? volta : x)), teams: u.teams.map(t => (t.id === tinha ? limparEscalacao(t, p.id) : t)),
+      mercado: { ...u.mercado, historico: [...u.mercado.historico, mov].slice(-cfg.maxTransacoes) } };
+    eventos.push(evLado(u, 'EMPRESTIMO_FIM', null, p, tinha, 'COMPRADOR', e.de, 0, { emprestimo: true }), evLado(u, 'EMPRESTIMO_FIM', null, p, e.de, 'VENDEDOR', tinha, 0, { emprestimo: true }));
+  }
+  return { u, ok: true, eventos };
+};
+
+/*
+BONUS POR JOGOS: a contagem e o pagamento. `registrarJogosDosBonus` recebe os ids de quem jogou um jogo oficial (a escalacao real, chamado pelo GameContext a cada jogo do dia)
+e soma 1 a cada bonus ativo do jogador que ainda esta no comprador. `processarBonus` (no dia do mercado) estima os jogos fora da liga do utilizador e paga os marcos atingidos.
+*/
+export const registrarJogosDosBonus = (mercado: MercadoState, players: Player[], jogaram: Iterable<string>): MercadoState => {
+  if (!mercado.bonus?.some(b => b.estado === 'ATIVO')) return mercado;
+  const ids = new Set(jogaram);
+  let mudou = false;
+  const bonus = mercado.bonus.map(b => {
+    if (b.estado !== 'ATIVO' || !ids.has(b.jogadorId)) return b;
+    const p = players.find(x => x.id === b.jogadorId);
+    if (!p || p.teamId !== b.compradorId) return b;
+    mudou = true;
+    return { ...b, jogos: b.jogos + 1 };
+  });
+  return mudou ? { ...mercado, bonus } : mercado;
+};
+
+export const processarBonus = (u0: Universo, hoje: string, donoId: string, cfg: ConfigMercado = CONFIG_MERCADO): Resultado => {
+  if (!u0.mercado.bonus?.some(b => b.estado === 'ATIVO')) return { u: u0, ok: true, eventos: [] };
+  let u = u0;
+  const eventos: Evento[] = [];
+  const dono = clube(u0, donoId);
+  const lista: BonusTransferencia[] = [];
+  let transacoes = u.mercado.transacoes;
+  for (const b0 of u0.mercado.bonus) {
+    if (b0.estado !== 'ATIVO') { lista.push(b0); continue; }
+    let b = b0;
+    const p = u.players.find(x => x.id === b.jogadorId);
+    const emprestadoPeloComprador = p?.emprestimo?.de === b.compradorId;
+    if (!p || (p.teamId !== b.compradorId && !emprestadoPeloComprador)) { lista.push({ ...b, estado: 'CADUCADO' }); continue; }   // saiu do comprador: os bonus que faltam caducam
+    // fora da liga do utilizador nao ha escalacao: 1 jogo a cada 7 dias se e um dos 14 melhores do elenco
+    const comprador = clube(u, b.compradorId);
+    if (comprador && dono && !naLigaDoUtilizador(comprador, dono) && p.teamId === b.compradorId) {
+      const desde = b.ultimaEstimativa || b.data, passos = Math.floor(diasEntre(desde, hoje) / cfg.bonus.diasPorJogoEstimado);
+      if (passos > 0) {
+        const top = elencoDe(u, b.compradorId).sort((x, y) => y.skill - x.skill).slice(0, cfg.bonus.titularesEstimados);
+        const joga = top.some(x => x.id === p.id) && !p.injury;
+        b = { ...b, jogos: b.jogos + (joga ? passos : 0), ultimaEstimativa: somarDias(desde, passos * cfg.bonus.diasPorJogoEstimado) };
+      }
+    }
+    // os marcos atingidos pagam agora (o caixa do comprador pode ficar negativo: e uma obrigacao do contrato)
+    for (const m of b.marcos) {
+      if (m.pago || b.jogos < m.jogos) continue;
+      const c = clube(u, b.compradorId), v = clube(u, b.vendedorId);
+      if (!c || !v) continue;
+      const idC = `tx-bon-${b.id}-${m.jogos}-C`;
+      if (transacoes.some(t => t.id === idC)) { b = { ...b, marcos: b.marcos.map(x => (x === m ? { ...x, pago: hoje } : x)) }; continue; }
+      const orcC = c.transferBudget ?? 0, orcV = v.transferBudget ?? 0, parte = Math.round(m.valor * cfg.parteDaReceitaNoOrcamento);
+      const txC: Transacao = { id: idC, data: hoje, clubeId: c.id, jogadorId: p.id, jogadorNome: p.name, contraparteId: v.id, natureza: 'COMPRA', valor: m.valor, tipo: 'BONUS', ref: b.negId,
+        saldoAntes: c.cash, saldoDepois: c.cash - m.valor, orcamentoAntes: orcC, orcamentoDepois: Math.max(0, orcC - m.valor), negId: null };
+      const txV: Transacao = { id: `tx-bon-${b.id}-${m.jogos}-V`, data: hoje, clubeId: v.id, jogadorId: p.id, jogadorNome: p.name, contraparteId: c.id, natureza: 'VENDA', valor: m.valor, tipo: 'BONUS', ref: b.negId,
+        saldoAntes: v.cash, saldoDepois: v.cash + m.valor, orcamentoAntes: orcV, orcamentoDepois: orcV + parte, negId: null };
+      u = { ...u, teams: u.teams.map(t => (t.id === c.id ? { ...t, cash: txC.saldoDepois, transferBudget: txC.orcamentoDepois } : t.id === v.id ? { ...t, cash: txV.saldoDepois, transferBudget: txV.orcamentoDepois } : t)) };
+      transacoes = [...transacoes, txC, txV];
+      b = { ...b, marcos: b.marcos.map(x => (x === m ? { ...x, pago: hoje } : x)) };
+      eventos.push(evLado(u, 'BONUS_PAGO', null, p, c.id, 'COMPRADOR', v.id, m.valor, { jogos: m.jogos }), evLado(u, 'BONUS_PAGO', null, p, v.id, 'VENDEDOR', c.id, m.valor, { jogos: m.jogos }));
+    }
+    if (b.marcos.every(m => m.pago)) b = { ...b, estado: 'CONCLUIDO' };
+    lista.push(b);
+  }
+  u = { ...u, mercado: { ...u.mercado, bonus: lista, transacoes: transacoes.slice(-cfg.maxTransacoes) } };
+  return { u, ok: true, eventos };
 };
 
 /** Aceita e tenta concluir na hora; se a conclusao falhar (janela fechada, saldo...) a negociacao fica ACEITA, pendente. */
@@ -456,8 +795,13 @@ const aprovarContra = (u: Universo, neg: NegociacaoTransf, hoje: string, cfg: Co
   const loc = localizar(u, neg.playerId);
   const t = clube(u, neg.compradorId);
   if (!loc || !t) return false;
+  if (neg.tipo === 'EMPRESTIMO') {   // a taxa de emprestimo: ate 12% do valor por ano de emprestimo
+    const tetoTaxa = valorDeMercado(loc.jogador, hoje) * cfg.emprestimo.tetoTaxaIa * (neg.emprestimo?.meses ?? 12) / 12;
+    return neg.valor <= tetoTaxa && neg.valor <= t.cash && neg.valor <= (t.transferBudget ?? 0);
+  }
+  // os bonus prometidos tambem pesam no que o comprador aceita pagar (a 60%)
   const teto = valorDeMercado(loc.jogador, hoje) * perfilDoClube(neg.compradorId, cfg).apetite * cfg.ia.toleranciaContra;
-  return neg.valor <= teto && neg.valor <= t.cash && neg.valor <= (t.transferBudget ?? 0);
+  return neg.valor + valorDosBonus(neg.bonus, cfg) <= teto && neg.valor <= t.cash && neg.valor <= (t.transferBudget ?? 0);
 };
 
 export interface OpcoesTick { donoId: string; hoje: string; cfg?: ConfigMercado; }
@@ -526,6 +870,10 @@ export const tickDoDia = (u0: Universo, o: OpcoesTick): Resultado => {
     }
   }
 
+  // emprestimos (aviso da opcao, fim, opcao da CPU) e bonus por jogos (estimativa fora da liga do utilizador e pagamento dos marcos)
+  { const r = processarEmprestimos(u, hoje, donoId, cfg); u = r.u; eventos.push(...r.eventos); }
+  { const r = processarBonus(u, hoje, donoId, cfg); u = r.u; eventos.push(...r.eventos); }
+
   // agentes livres: marca desde quando; os que ninguem contrata se aposentam
   const aposentados = new Set<string>();
   let players = u.players.map(p => {
@@ -567,7 +915,7 @@ export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigM
   const hoje_ = Array.from({ length: n }, (_, k) => clubes[(dia * n + k) % clubes.length]);
   // indices de candidatos (uma vez por tick): por grupo, do melhor para o pior
   const porGrupo: Record<Grupo, Alvo[]> = { GK: [], DEF: [], MID: [], ATT: [] };
-  u.players.forEach(p => { if (p.teamId !== 'MARKET' && (!p.contract || p.contract.end > hoje)) porGrupo[grupoDe(p.position)].push({ jogador: p, origem: 'ELENCO' }); });
+  u.players.forEach(p => { if (p.teamId !== 'MARKET' && !p.emprestimo && (!p.contract || p.contract.end > hoje)) porGrupo[grupoDe(p.position)].push({ jogador: p, origem: 'ELENCO' }); });
   u.base?.jogadores.forEach(p => { if (p.age >= cfg.idadeMinimaBase) porGrupo[grupoDe(p.position)].push({ jogador: p, origem: 'BASE' }); });
   (Object.keys(porGrupo) as Grupo[]).forEach(g => porGrupo[g].sort((a, b) => b.jogador.skill - a.jogador.skill));
   const livres = u.players.filter(p => p.teamId === 'MARKET').sort((a, b) => b.skill - a.skill);
@@ -595,7 +943,7 @@ export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigM
     // 1. excedentes: elenco acima do maximo da IA lista os de menor valor nos grupos com sobra; quem esta listado ha muito tempo e dispensado (vira agente livre)
     if (elenco.length > cfg.ia.maxElenco) {
       const sobra = elenco.length - cfg.ia.maxElenco;
-      const candidatos = [...elenco].filter(p => !p.listedForSale).sort((a, b) => a.skill - b.skill);
+      const candidatos = [...elenco].filter(p => !p.listedForSale && !p.emprestimo).sort((a, b) => a.skill - b.skill);
       let marcados = 0, ficam = elenco.filter(p => !p.listedForSale);   // quem ja esta listado conta como saida
       for (const p of candidatos) {
         if (marcados >= sobra) break;
@@ -603,7 +951,7 @@ export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigM
       }
     }
     for (const p of elencoDe(u, t.id)) {
-      if (p.listedForSale && p.listadoEm && diasEntre(p.listadoEm, hoje) > cfg.ia.diasParaDispensar && elencoDe(u, t.id).length > cfg.ia.maxElenco
+      if (p.listedForSale && !p.emprestimo && p.listadoEm && diasEntre(p.listadoEm, hoje) > cfg.ia.diasParaDispensar && elencoDe(u, t.id).length > cfg.ia.maxElenco
         && !u.mercado.negociacoes.some(g => g.playerId === p.id && ESTADOS_ATIVOS.includes(g.estado)) && elencoValidoSem(elencoDe(u, t.id), p, cfg, formacaoDe(u, t.id))) {
         u = { ...u, players: u.players.map(x => (x.id === p.id ? { ...x, teamId: 'MARKET', listedForSale: false, listadoEm: undefined, livreDesde: hoje } : x)),
           teams: u.teams.map(x => (x.id === t.id ? limparEscalacao(x, p.id) : x)),
@@ -653,9 +1001,38 @@ export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigM
         if (valor > teto) continue;
         const desejoListado = atual.jogador.listedForSale ? 1 + cfg.ia.bonusListado : 1;
         if (rnd() > Math.min(1, 0.55 * desejoListado)) continue;
-        const oferta = arred(valor * perfil.apetite * (0.92 + rnd() * 0.1));
-        const r = proporCompra(u, t.id, p.id, oferta, hoje, donoId, cfg);
+        let oferta = arred(valor * perfil.apetite * (0.92 + rnd() * 0.1));
+        // CLAUSULA barata (perto do que pagaria de bom grado) e que cabe no teto: paga-a e leva o jogador sem negociar
+        const clausula = atual.origem === 'ELENCO' ? clausulaDe(atual.jogador) : 0;
+        const pagaClausula = clausula > 0 && clausula <= teto && clausula <= valor * perfil.apetite * cfg.ia.clausulaAteApetite;
+        if (pagaClausula) oferta = clausula;
+        // BONUS por jogos: as vezes troca parte do valor a vista por bonus aos 10/15/20 jogos (o vendedor os conta a 60%: o total para ele fica igual). Sorteio proprio, para nao mexer no `rnd`.
+        let bonus: BonusJogos[] | undefined;
+        if (!pagaClausula && criarRng(`iabonus|${t.id}|${p.id}|${hoje}`)() < cfg.ia.probBonus) {
+          const cada = arred(oferta * 0.06);
+          if (cada > 0) { bonus = cfg.bonus.marcos.map(j => ({ jogos: j, valor: cada })); oferta = Math.max(1000, oferta - arred(cada * cfg.bonus.marcos.length * cfg.bonus.fatorAvaliacao)); }
+        }
+        const r = proporCompra(u, t.id, p.id, oferta, hoje, donoId, cfg, bonus);
         if (r.ok) { u = r.u; eventos.push(...r.eventos); novas++; feito = true; break; }
+      }
+    }
+    // 2c. EMPRESTIMO: sem compra feita e com falta na posicao, pede emprestado um jogador LISTADO PARA EMPRESTIMO (de qualquer clube; o do utilizador com a chance das ofertas
+    //     a ele x 4), as vezes com opcao de compra. Sorteio proprio (`iaemp|...`), para nao mexer na sequencia do `rnd` das compras.
+    if (!feito && novas < cfg.ia.maxPropostasNovasPorDia) {
+      const re = criarRng(`iaemp|${t.id}|${hoje}`);
+      for (const g of prioridade.filter(x => x.falta > 0)) {
+        const alvo = porGrupo[g.grupo].find(a => a.origem === 'ELENCO' && a.jogador.listedForLoan && a.jogador.teamId !== t.id && a.jogador.skill >= Math.max(50, g.piorTitular - 5)
+          && u.players.find(x => x.id === a.jogador.id)?.teamId === a.jogador.teamId);
+        if (!alvo) continue;
+        const p = u.players.find(x => x.id === alvo.jogador.id)!;
+        if (p.teamId === donoId && re() > cfg.ia.probOfertaAoHumano * 4) continue;
+        if (u.mercado.negociacoes.some(x => x.playerId === p.id && x.compradorId === t.id && (ESTADOS_ATIVOS.includes(x.estado) || (x.estado === 'RECUSADA' && diasEntre(x.atualizada, hoje) < 30)))) continue;
+        const restantes = p.contract ? Math.floor(diasEntre(hoje, p.contract.end) / 31) - 1 : 12;
+        const meses = Math.min(12, restantes);
+        if (meses < cfg.emprestimo.mesesMin) continue;
+        const opcao = re() < cfg.ia.probOpcaoCompra ? arred(precoDesejado(u, p, p.teamId, hoje, undefined, cfg) * 1.05) : undefined;
+        const r = proporEmprestimo(u, t.id, p.id, taxaDeEmprestimoDesejada(p, meses, hoje, cfg), meses, opcao, hoje, donoId, cfg);
+        if (r.ok) { u = r.u; eventos.push(...r.eventos); novas++; break; }
       }
     }
   }
@@ -718,6 +1095,16 @@ const MOTIVO_EN: Record<string, string> = {
   "contrato a acabar (menos de 6 meses): assina sem custo": "contract ending (under 6 months): he signs for free",
   "agente livre: contrate-o sem taxa": "free agent: sign him with no fee",
   "a negociacao nao foi aceita": "the negotiation was not accepted",
+  "jogador emprestado": "the player is on loan",
+  "o jogador nao tem clausula de rescisao": "the player has no release clause",
+  "clausula de rescisao paga": "release clause paid",
+  "so jogadores do elenco profissional podem ser emprestados": "only first-team players can be loaned",
+  "duracao de emprestimo invalida": "invalid loan length",
+  "o contrato acaba antes do fim do emprestimo": "the contract ends before the loan would",
+  "o clube nao empresta titulares": "the club does not loan out starters",
+  "opcao de compra abaixo do preco do jogador": "purchase option below the player's price",
+  "o jogador nao esta emprestado": "the player is not on loan",
+  "o emprestimo nao tem opcao de compra": "the loan has no purchase option",
   "sem clube": "no club"
 };
 export const textoDoMotivo = (m: string | undefined | null): string => {

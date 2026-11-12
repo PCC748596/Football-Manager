@@ -9,7 +9,7 @@ import { PlayerFace3D } from './PlayerFace3D';
 import { estrelasDoJogador, potencialVisivel } from '../textSim/youth';
 import { potencialParaValor, anosRestantes } from '../textSim/valuation';
 import { CONFIG_MERCADO, ESTADOS_ATIVOS, NegociacaoTransf, grupoDe, janelaAberta, diasParaFecharJanela, proximaAberturaJanela, emPreContrato, textoDoMotivo } from '../textSim/transferencias';
-import { estadoDoContrato } from '../textSim/contracts';
+import { estadoDoContrato, clausulaDe } from '../textSim/contracts';
 import { orcamentoDaTemporada, folhaAnual } from '../textSim/orcamento';
 
 type Aba = 'MARKET' | 'SHORTLIST' | 'NEGOTIATIONS' | 'COMPLETED' | 'MY_PLAYERS' | 'FINANCES';
@@ -65,7 +65,8 @@ function useLembrado<T>(chave: string, inicial: T, primeiro?: () => T | null | u
 }
 
 const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }) => {
-  const { players, base, teams, userTeam, gameState, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, formatCurrency, formatCurrencyShort } = useGame();
+  const { players, base, teams, userTeam, gameState, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, formatCurrency, formatCurrencyShort,
+    proporEmprestimoMercado, pagarClausulaMercado, exercerOpcaoCompra } = useGame();
   const hoje = gameState.currentDate;
   const [aba, setAba] = useLembrado<Aba>('aba', 'MARKET', () => { const a = pedidoDeAba.aba; pedidoDeAba.aba = null; return a; });
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
@@ -93,7 +94,19 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const [modalNegId, setModalNegId] = useState<string | null>(null);
   const [ofertando, setOfertando] = useState<Linha | null>(null);
   const [valorOferta, setValorOferta] = useState(0);
-  const abrirOferta = (l: Linha) => { setValorOferta(Math.round(l.p.value / 1000) * 1000); setOfertando(l); };
+  /*
+  O MODAL DA OFERTA tem dois modos: COMPRA (valor a vista + bonus ao vendedor aos 10/15/20 jogos pelo meu clube) e EMPRESTIMO (taxa, meses e, se quiser, opcao de compra no fim).
+  Ver textSim/transferencias.ts (pedidos: "emprestimo com opcao de compra" e "venda com pagamento posterior de bonus ... depois de 10/15/20 jogos").
+  */
+  const [modoOferta, setModoOferta] = useState<'COMPRA' | 'EMPRESTIMO'>('COMPRA');
+  const [bonusOferta, setBonusOferta] = useState<Record<number, number>>({ 10: 0, 15: 0, 20: 0 });
+  const [mesesEmp, setMesesEmp] = useState(12);
+  const [comOpcao, setComOpcao] = useState(false);
+  const [valorOpcao, setValorOpcao] = useState(0);
+  const abrirOferta = (l: Linha, modo: 'COMPRA' | 'EMPRESTIMO' = 'COMPRA') => {
+    setModoOferta(modo); setBonusOferta({ 10: 0, 15: 0, 20: 0 }); setMesesEmp(12); setComOpcao(false); setValorOpcao(Math.round(l.p.value * 1.1 / 1000) * 1000);
+    setValorOferta(modo === 'EMPRESTIMO' ? Math.round(l.p.value * 0.08 / 1000) * 1000 : Math.round(l.p.value / 1000) * 1000); setOfertando(l);
+  };
 
   const porId = useMemo(() => new Map(teams.map(t => [t.id, t])), [teams]);
   const meuId = userTeam?.id || '';
@@ -291,7 +304,8 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
                 <div className="flex items-center gap-2 mt-2">{sel.clube ? <TeamShield team={sel.clube} className="w-9 h-11" /> : null}<div><div className="text-sm font-black uppercase text-slate-700 dark:text-slate-100">{sel.clube?.name || 'Free agent'}</div><div className="text-xs font-bold uppercase text-slate-500">{p.position} • {p.age} years</div></div></div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-center">
-                {[['Value', sel.origem === 'LIVRE' || (sel.origem === 'ELENCO' && emPreContrato(p, hoje)) ? tx('FREE') : formatCurrencyShort(p.value)], ['Wage', formatCurrencyShort(p.salary) + '/w'], ['Contract', p.contract ? p.contract.end.slice(0, 4) : '-'], ['Potential', '★'.repeat(sel.estrelas) + '☆'.repeat(5 - sel.estrelas)]].map(([k, v]) => {
+                {[['Value', sel.origem === 'LIVRE' || (sel.origem === 'ELENCO' && emPreContrato(p, hoje)) ? tx('FREE') : formatCurrencyShort(p.value)], ['Wage', formatCurrencyShort(p.salary) + '/w'], ['Contract', p.contract ? p.contract.end.slice(0, 4) : '-'], ['Potential', '★'.repeat(sel.estrelas) + '☆'.repeat(5 - sel.estrelas)],
+                  ...(sel.origem === 'ELENCO' ? [[tx('Release clause'), clausulaDe(p) ? formatCurrencyShort(clausulaDe(p)) : tx('None')]] : [])].map(([k, v]) => {
                   // VALUE e WAGE a verde (o meu clube pode pagar) ou vermelho (nao pode): o valor contra o menor entre o caixa e o transfer budget; o salario contra o que sobra da parte dos salarios do orcamento (orcamento - compras - folha anual).
                   let corV = 'text-slate-800 dark:text-white';
                   if (userTeam && k === 'Value' && sel.origem !== 'LIVRE') corV = p.value <= Math.min(userTeam.cash, userTeam.transferBudget ?? 0) ? 'text-emerald-500' : 'text-rose-500';
@@ -320,10 +334,23 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
                     <button onClick={() => mostrar(contratarLivre(p.id), tx('{v0} signed on a free transfer', { v0: p.name }))} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded text-sm uppercase tracking-widest">{tx('Sign for free (pre-contract)')}</button>
                     <div className="text-[11px] text-emerald-500 font-bold text-center">{tx('Less than 6 months left on his contract: no transfer fee.')}</div>
                   </>
+                ) : p.emprestimo ? (
+                  <div className="text-xs font-bold text-sky-400 text-center">{tx('On loan from {v0} until {v1}: not available', { v0: nomeClube(p.emprestimo.de), v1: dataCurta(p.emprestimo.ate) })}</div>
                 ) : neg ? (
                   <button onClick={() => setAba('NEGOTIATIONS')} className="bg-slate-700 hover:bg-slate-600 text-white font-black py-3.5 rounded text-sm uppercase tracking-widest">{ESTADO_ROTULO[neg.estado]} — open</button>
                 ) : (
-                  <button onClick={() => abrirOferta(sel)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded text-sm uppercase tracking-widest">{tx('Make offer')}</button>
+                  <>
+                    <button onClick={() => abrirOferta(sel)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 rounded text-sm uppercase tracking-widest">{tx('Make offer')}</button>
+                    {sel.origem === 'ELENCO' && <button onClick={() => abrirOferta(sel, 'EMPRESTIMO')} className="bg-sky-700 hover:bg-sky-600 text-white font-black py-3 rounded text-xs uppercase tracking-widest">{p.listedForLoan ? tx('Request loan (listed)') : tx('Request loan')}</button>}
+                    {/* CLAUSULA DE RESCISAO: paga-la salta a negociacao (o clube nao pode recusar) */}
+                    {sel.origem === 'ELENCO' && clausulaDe(p) > 0 && (
+                      <button onClick={() => { const r = pagarClausulaMercado(p.id); mostrar(r, tx('Release clause paid for {v0}', { v0: p.name })); if (r.ok) setAba('NEGOTIATIONS'); }}
+                        title={tx('The club cannot refuse an offer that pays the release clause')}
+                        className={`font-black py-3 rounded text-xs uppercase tracking-widest text-white ${clausulaDe(p) <= Math.min(userTeam.cash, userTeam.transferBudget ?? 0) ? 'bg-amber-600 hover:bg-amber-500' : 'bg-amber-900/60 hover:bg-amber-800/70'}`}>
+                        {tx('Pay release clause')} ({formatCurrencyShort(clausulaDe(p))})
+                      </button>
+                    )}
+                  </>
                 )}
                 <button onClick={() => alternarShortlist(p.id)} className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-black py-3.5 rounded text-sm uppercase tracking-widest">{shortlist.includes(p.id) ? 'Remove from shortlist' : 'Add to shortlist'}</button>
                 {!janela && sel.origem !== 'LIVRE' && <div className="text-[11px] text-amber-500 font-bold text-center">{tx('Window closed: an accepted offer completes when it opens')}</div>}
@@ -360,7 +387,17 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
           <div className="min-w-0">
             <div className={`text-xl font-black text-slate-900 dark:text-white leading-tight truncate ${jog ? 'cursor-pointer hover:text-blue-500 dark:hover:text-blue-400' : ''}`} title={jog ? 'Open player overview' : undefined} onClick={jog ? () => setModalNegId(n.id) : undefined}>{nomeJogador(n.playerId)} {n.origem === 'BASE' && <span className="text-[10px] font-black bg-violet-600 text-white px-1.5 rounded align-middle">U20</span>}</div>
             {jog && <div className="flex items-center gap-2 text-sm font-bold text-slate-400 dark:text-slate-500 leading-tight"><span>{jog.position}</span><span>|</span><span>{Math.round(jog.skill)}</span><span>|</span><Estrelas n={estrelasDoJogador(jog as any)} /></div>}
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">{compro ? `Buying from ${nomeClube(n.vendedorId)}` : `${nomeClube(n.compradorId)} wants to buy`}</div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 truncate">
+              {n.tipo === 'EMPRESTIMO' ? <span className="mr-1 text-[10px] font-black bg-sky-600 text-white px-1.5 rounded">{tx('LOAN')}</span> : null}
+              {n.tipo === 'EMPRESTIMO' ? (compro ? tx('Loan from {v0}', { v0: nomeClube(n.vendedorId) }) : tx('{v0} wants him on loan', { v0: nomeClube(n.compradorId) })) : compro ? `Buying from ${nomeClube(n.vendedorId)}` : `${nomeClube(n.compradorId)} wants to buy`}
+            </div>
+            {/* os termos extra: emprestimo (meses, opcao) e bonus por jogos */}
+            {(n.tipo === 'EMPRESTIMO' || (n.bonus && n.bonus.length > 0)) && (
+              <div className="text-[11px] font-bold text-sky-400 truncate">
+                {n.tipo === 'EMPRESTIMO' && n.emprestimo ? `${tx('{v0} months', { v0: n.emprestimo.meses })}${n.emprestimo.opcaoCompra !== undefined ? ` • ${tx('purchase option {v0}', { v0: formatCurrencyShort(n.emprestimo.opcaoCompra) })}` : ` • ${tx('no purchase option')}`}` : ''}
+                {n.bonus && n.bonus.length > 0 ? `${tx('Bonuses')}: ${n.bonus.map(b => `${b.jogos} ${tx('games')} ${formatCurrencyShort(b.valor)}`).join(' / ')}` : ''}
+              </div>
+            )}
             <div className="mt-2 flex items-start gap-6">
               <div><div className="text-[10px] font-bold uppercase text-slate-500">{tx('Market value')}</div><div className="text-base font-black text-slate-900 dark:text-white">{jog ? formatCurrency(jog.value) : '-'}</div></div>
               <div><div className="text-[10px] font-bold uppercase text-slate-500">{tx('Round')} {n.rodadas}/{CONFIG_MERCADO.maxRodadas}</div>
@@ -374,7 +411,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="flex items-baseline gap-5 text-sm font-bold text-slate-500">
-                <span>{tx('Bid:')} <b className="text-emerald-400 text-lg">{formatCurrencyShort(bid)}</b></span>
+                <span>{n.tipo === 'EMPRESTIMO' ? tx('Loan fee:') : tx('Bid:')} <b className="text-emerald-400 text-lg">{formatCurrencyShort(bid)}</b></span>
                 {ask !== undefined && <span>{tx('Ask:')} <b className="text-rose-400 text-lg">{formatCurrencyShort(ask)}</b></span>}
               </div>
               {ESTADOS_ATIVOS.includes(n.estado)
@@ -460,7 +497,38 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   );
   // A foto do jogador (3D) sem moldura, para as listas (financas e meus jogadores): com o uniforme do clube onde ele joga agora.
   const rostoDe = (jogadorId: string, clube?: Team) => <div className="w-[56px] h-[56px] shrink-0 overflow-hidden"><PlayerFace3D playerId={jogadorId} team={clube} camisa={clube?.primaryColor} className="w-full h-full" /></div>;
+  // ------------------------------------------------------------------ emprestimos (os que tenho e os que cedi) e a opcao de compra
+  const emprestados = players.filter(p => p.emprestimo && (p.teamId === meuId || p.emprestimo.de === meuId));
+  const emprestimosBloco = emprestados.length ? (
+    <div className="shrink-0 bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 text-xs font-black uppercase tracking-widest text-slate-500">{tx('Loans')}</div>
+      <table className="w-full text-left">
+        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30">
+          {emprestados.map(p => {
+            const e = p.emprestimo!, comigo = p.teamId === meuId;
+            return (
+              <tr key={p.id}>
+                <td className="px-3 py-1 font-bold text-sm text-slate-800 dark:text-slate-100 whitespace-nowrap"><div className="flex items-center gap-2">{rostoDe(p.id, porId.get(p.teamId))}<span>{p.name}</span></div></td>
+                <td className="px-3 py-2 text-xs font-black uppercase text-sky-400">{comigo ? tx('Loaned in from {v0}', { v0: nomeClube(e.de) }) : tx('Loaned out to {v0}', { v0: nomeClube(p.teamId) })}</td>
+                <td className="px-3 py-2 text-xs text-slate-500">{tx('until')} {dataCurta(e.ate)}</td>
+                <td className="px-3 py-2 text-xs text-slate-500">{e.opcaoCompra !== undefined ? tx('purchase option {v0}', { v0: formatCurrency(e.opcaoCompra) }) : tx('no purchase option')}</td>
+                <td className="px-3 py-2 text-right">
+                  {comigo && e.opcaoCompra !== undefined && (
+                    <button onClick={() => mostrar(exercerOpcaoCompra(p.id), tx('{v0} signed permanently', { v0: p.name }))} disabled={userTeam.cash < e.opcaoCompra}
+                      className="px-3 py-1.5 rounded text-[11px] font-black uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-40 whitespace-nowrap">{tx('Exercise option')}</button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  ) : null;
+
   const meusAba = (
+    <div className="flex-1 flex flex-col gap-4 min-h-0">
+    {emprestimosBloco}
     <div className="flex-1 bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col shadow-xl min-h-0">
       <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 text-xs font-bold uppercase tracking-widest text-slate-500">{tx('List a player for sale to invite offers. Listing does not transfer anyone: you accept, refuse or counter each offer. Sub-20 players aged')} {CONFIG_MERCADO.idadeMinimaBase}+ can be listed too.</div>
       <div className="overflow-y-auto custom-scrollbar flex-1">
@@ -488,10 +556,14 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
         </table>
       </div>
     </div>
+    </div>
   );
 
   // ------------------------------------------------------------------ financas
   const minhasTx = mercado.transacoes.filter(t => t.clubeId === meuId).slice().reverse();
+  // os bonus por jogos pendentes em que o meu clube paga (comprei) ou recebe (vendi)
+  const meusBonus = (mercado.bonus || []).filter(b => b.estado === 'ATIVO' && (b.compradorId === meuId || b.vendedorId === meuId));
+  const ROTULO_TIPO: Record<string, string> = { EMPRESTIMO: tx('Loan fee'), OPCAO: tx('Purchase option'), BONUS: tx('Appearance bonus'), CLAUSULA: tx('Release clause') };
   const financasAba = (
     <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-4 pr-2">
       <div className="shrink-0 grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -505,7 +577,7 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/30">
             {minhasTx.map(t => (
               <tr key={t.id}><td className="px-3 py-2 text-xs text-slate-500">{dataCurta(t.data)}</td>
-                <td className="px-3 py-2 text-xs font-black uppercase">{t.natureza === 'COMPRA' ? <span className="text-rose-400">{tx('Purchase')}</span> : t.natureza === 'VENDA' ? <span className="text-emerald-400">{tx('Sale')}</span> : <span className="text-sky-400">{tx('Free agent')}</span>}</td>
+                <td className="px-3 py-2 text-xs font-black uppercase">{t.natureza === 'COMPRA' ? <span className="text-rose-400">{tx('Purchase')}</span> : t.natureza === 'VENDA' ? <span className="text-emerald-400">{tx('Sale')}</span> : <span className="text-sky-400">{tx('Free agent')}</span>}{t.tipo && <span className="block text-[10px] text-slate-400">{ROTULO_TIPO[t.tipo]}</span>}</td>
                 <td className="px-3 py-1 text-sm font-bold text-slate-700 dark:text-slate-200"><div className="flex items-center gap-2">{rostoDe(t.jogadorId, t.natureza === 'VENDA' ? porId.get(t.contraparteId) : userTeam)}<span>{t.jogadorNome}</span></div></td><td className="px-3 py-2 text-sm text-slate-500">{nomeClube(t.contraparteId)}</td>
                 <td className="px-3 py-2 font-mono text-sm font-black">{t.natureza === 'COMPRA' ? '−' : t.natureza === 'VENDA' ? '+' : ''}{formatCurrency(t.valor)}</td>
                 <td className="px-3 py-2 font-mono text-xs text-slate-500">{formatCurrency(t.saldoAntes)}</td><td className="px-3 py-2 font-mono text-xs text-slate-500">{formatCurrency(t.saldoDepois)}</td></tr>
@@ -513,11 +585,26 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
             {!minhasTx.length && <tr><td colSpan={7} className="p-8 text-center text-slate-400 text-sm font-bold uppercase tracking-widest">{tx('No transactions yet')}</td></tr>}
           </tbody></table>
       </div>
+      {meusBonus.length > 0 && (
+        <div className="shrink-0 bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 border-b border-slate-200 dark:border-slate-800">{tx('Pending appearance bonuses')}</div>
+          <table className="w-full text-left"><tbody className="divide-y divide-slate-100 dark:divide-slate-800/30">
+            {meusBonus.map(b => (
+              <tr key={b.id}>
+                <td className="px-3 py-2 text-sm font-bold text-slate-700 dark:text-slate-200">{b.jogadorNome}</td>
+                <td className="px-3 py-2 text-xs font-black uppercase">{b.vendedorId === meuId ? <span className="text-emerald-400">{tx('You receive from {v0}', { v0: nomeClube(b.compradorId) })}</span> : <span className="text-rose-400">{tx('You pay to {v0}', { v0: nomeClube(b.vendedorId) })}</span>}</td>
+                <td className="px-3 py-2 text-xs text-slate-500">{tx('{v0} games so far', { v0: b.jogos })}</td>
+                <td className="px-3 py-2 text-xs text-slate-500">{b.marcos.map(m => `${m.jogos}: ${formatCurrencyShort(m.valor)}${m.pago ? ' ✓' : ''}`).join(' • ')}</td>
+              </tr>
+            ))}
+          </tbody></table>
+        </div>
+      )}
       <div className="shrink-0 bg-slate-100/50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 border-b border-slate-200 dark:border-slate-800">{tx('Latest moves in the market')}</div>
         <div className="divide-y divide-slate-100 dark:divide-slate-800/30">
           {mercado.historico.slice(-25).reverse().map(m => (
-            <div key={m.id} className="px-4 py-1 flex justify-between gap-3 items-center"><span className="text-slate-700 dark:text-slate-100 flex items-center gap-2">{rostoDe(m.jogadorId, porId.get(m.para))}{/* a fonte da lista do mercado: nome do jogador font-black text-base, clubes font-bold text-base */}<span className="text-base"><span className="font-black text-slate-800 dark:text-slate-100">{m.jogadorNome}</span> <span className="font-bold text-slate-700 dark:text-slate-100">• {nomeClube(m.de)} → {nomeClube(m.para)}{m.tipo === 'DISPENSA' ? ' (released)' : ''}</span></span></span><span className="font-mono text-slate-500 whitespace-nowrap">{dataCurta(m.data)} • {m.valor ? formatCurrencyShort(m.valor) : 'free'}</span></div>
+            <div key={m.id} className="px-4 py-1 flex justify-between gap-3 items-center"><span className="text-slate-700 dark:text-slate-100 flex items-center gap-2">{rostoDe(m.jogadorId, porId.get(m.para))}{/* a fonte da lista do mercado: nome do jogador font-black text-base, clubes font-bold text-base */}<span className="text-base"><span className="font-black text-slate-800 dark:text-slate-100">{m.jogadorNome}</span> <span className="font-bold text-slate-700 dark:text-slate-100">• {nomeClube(m.de)} → {nomeClube(m.para)}{m.tipo === 'DISPENSA' ? ' (released)' : m.tipo === 'EMPRESTIMO' ? ` (${tx('loan')})` : m.tipo === 'DEVOLUCAO' ? ` (${tx('end of loan')})` : ''}</span></span></span><span className="font-mono text-slate-500 whitespace-nowrap">{dataCurta(m.data)} • {m.valor ? formatCurrencyShort(m.valor) : 'free'}</span></div>
           ))}
           {!mercado.historico.length && <div className="p-6 text-center text-slate-400 text-sm font-bold uppercase tracking-widest">{tx('No moves yet')}</div>}
         </div>
@@ -535,22 +622,62 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
   const modalOferta = (l: Linha) => {
     const p = l.p, valor = valorOferta, setValor = setValorOferta;
     const semSaldo = valor > userTeam.cash, semOrc = valor > (userTeam.transferBudget ?? 0);
+    const emprestimo = modoOferta === 'EMPRESTIMO';
+    const bonusLista = Object.entries(bonusOferta).map(([j, v]) => ({ jogos: Number(j), valor: v })).filter(b => b.valor > 0);
+    const clausula = clausulaDe(p), pagaClausula = !emprestimo && clausula > 0 && valor >= clausula;
+    const enviar = () => {
+      const r = emprestimo ? proporEmprestimoMercado(p.id, valor, mesesEmp, comOpcao ? valorOpcao : undefined) : proporCompraMercado(p.id, valor, bonusLista);
+      mostrar(r, emprestimo ? tx('Loan request sent for {v0}', { v0: p.name }) : `Offer sent for ${p.name}`);
+      if (r.ok) { setOfertando(null); setAba('NEGOTIATIONS'); }
+    };
+    const entrada = 'w-full mt-1 bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded px-3 py-2 text-base font-black text-white outline-none';
     return (
       <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setOfertando(null)}>
-        <div className="w-full max-w-md bg-slate-950 border border-slate-700 rounded-xl shadow-2xl p-6" onClick={e => e.stopPropagation()}>
-          <div className="text-[11px] font-black uppercase tracking-widest text-blue-400">{tx('Make an offer')}</div>
+        <div className="w-full max-w-md max-h-[95vh] overflow-y-auto custom-scrollbar bg-slate-950 border border-slate-700 rounded-xl shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+          {l.origem === 'ELENCO' && (
+            <div className="flex gap-2 mb-3">
+              {(['COMPRA', 'EMPRESTIMO'] as const).map(m => (
+                <button key={m} onClick={() => { setModoOferta(m); setValor(m === 'EMPRESTIMO' ? Math.round(p.value * 0.08 / 1000) * 1000 : Math.round(p.value / 1000) * 1000); }}
+                  className={`flex-1 py-1.5 rounded text-[11px] font-black uppercase tracking-widest ${modoOferta === m ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>{m === 'COMPRA' ? tx('Transfer') : tx('LOAN')}</button>
+              ))}
+            </div>
+          )}
+          <div className="text-[11px] font-black uppercase tracking-widest text-blue-400">{emprestimo ? tx('Request a loan') : tx('Make an offer')}</div>
           <div className="text-2xl font-black italic uppercase text-white">{p.name}</div>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">{l.clube?.name} • {p.position} • OVR {p.skill} • {p.age}y</div>
           <div className="grid grid-cols-3 gap-2 text-center mb-4">
             {[['Market value', formatCurrencyShort(p.value)], ['Cash', formatCurrencyShort(userTeam.cash)], ['Budget', formatCurrencyShort(userTeam.transferBudget ?? 0)]].map(([k, v]) => <div key={k} className="bg-slate-900 rounded-lg p-2 border border-slate-800"><div className="text-[10px] font-bold uppercase text-slate-500">{k}</div><div className="text-sm font-black text-white">{v}</div></div>)}
           </div>
-          <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">{tx('Your offer')}</label>
+          <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">{emprestimo ? tx('Loan fee') : tx('Your offer')}</label>
           <input type="number" step={1000} value={valor} onChange={e => setValor(Math.max(0, Math.round(Number(e.target.value) || 0)))} className="w-full mt-1 bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded px-3 py-3 text-xl font-black text-white outline-none" />
           <div className="text-xs text-slate-500 mt-1">{valor ? `${Math.round((valor / Math.max(1, p.value)) * 100)}% of the market value` : ''}</div>
+          {pagaClausula && <div className="text-xs font-bold text-amber-400 mt-1">{tx('This pays the release clause ({v0}): the club cannot refuse.', { v0: formatCurrencyShort(clausula) })}</div>}
+          {!emprestimo && (
+            <div className="mt-3">
+              <div className="text-[11px] font-black uppercase tracking-widest text-slate-500" title={tx('Paid later to the selling club when the player reaches each number of official games for your club. The seller counts them at 60% of their value.')}>{tx('Appearance bonuses to the seller (optional)')}</div>
+              <div className="grid grid-cols-3 gap-2">
+                {[10, 15, 20].map(j => (
+                  <div key={j}><div className="text-[10px] font-bold uppercase text-slate-500 mt-1">{tx('{v0} games', { v0: j })}</div>
+                    <input type="number" min={0} step={10000} value={bonusOferta[j] || 0} onChange={e => setBonusOferta(b => ({ ...b, [j]: Math.max(0, Math.round(Number(e.target.value) || 0)) }))} className={entrada} /></div>
+                ))}
+              </div>
+            </div>
+          )}
+          {emprestimo && (
+            <div className="mt-3 flex flex-col gap-2">
+              <div>
+                <div className="text-[11px] font-black uppercase tracking-widest text-slate-500">{tx('Length')}</div>
+                <div className="flex gap-1.5 mt-1">{[6, 12, 18, 24].map(m => <button key={m} onClick={() => setMesesEmp(m)} className={`flex-1 py-1.5 rounded text-[11px] font-black ${mesesEmp === m ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>{tx('{v0} months', { v0: m })}</button>)}</div>
+              </div>
+              <label className="flex items-center gap-2 text-xs font-bold text-slate-300 mt-1"><input type="checkbox" checked={comOpcao} onChange={e => setComOpcao(e.target.checked)} />{tx('Purchase option at the end of the loan')}</label>
+              {comOpcao && <input type="number" min={0} step={10000} value={valorOpcao} onChange={e => setValorOpcao(Math.max(0, Math.round(Number(e.target.value) || 0)))} className={entrada} />}
+              <div className="text-[11px] text-slate-500 leading-relaxed">{tx('Clubs do not loan their two best players in a position unless listed for loan. The usual fee is 8% of the value per year (free if listed). The option must be at least what the club would ask in a sale.')}</div>
+            </div>
+          )}
           {(semSaldo || semOrc) && <div className="text-xs font-bold text-amber-400 mt-2">{semSaldo ? 'Above your cash balance: the deal could not be completed.' : 'Above your transfer budget: the deal could not be completed.'} The club can still accept; it will wait until you can pay.</div>}
           <div className="text-xs text-slate-500 mt-2 leading-relaxed">The club answers in 1–3 days: it may accept, refuse or counter (up to {CONFIG_MERCADO.maxRodadas} rounds). Nothing is charged until the transfer completes{janela ? '.' : ', and the window is closed now.'}</div>
           <div className="flex gap-3 mt-5">
-            <button disabled={!valor} onClick={() => { const r = proporCompraMercado(p.id, valor); mostrar(r, `Offer sent for ${p.name}`); if (r.ok) { setOfertando(null); setAba('NEGOTIATIONS'); } }} className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black py-3 rounded text-xs uppercase tracking-widest">{tx('Send offer')}</button>
+            <button disabled={!valor && !emprestimo} onClick={enviar} className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black py-3 rounded text-xs uppercase tracking-widest">{emprestimo ? tx('Send loan request') : tx('Send offer')}</button>
             <button onClick={() => setOfertando(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black py-3 rounded text-xs uppercase tracking-widest">{tx('Cancel')}</button>
           </div>
         </div>

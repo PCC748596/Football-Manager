@@ -8,9 +8,10 @@ import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, 
 import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disputaPendente, prepararCopas, ligaIdDoClube, teamKey, ehDoPaulista, noAno, ANO_BASE } from '../textSim/competitions';
 import { calcularVirada, aplicarDivisoes, divisoesAtuais, paisDaLiga, Divisoes } from '../textSim/virada';
 import { BaseState, garantirBase, processarBase, definirNivelDaBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
-import { novoContrato, processarContratos, renovarContrato, estadoDoContrato } from '../textSim/contracts';
+import { novoContrato, processarContratos, renovarContrato, estadoDoContrato, garantirClausulas } from '../textSim/contracts';
+import { PerfilDeCredito, receitaAnualEstimada, dividaTotal, contratarEmprestimo, processarParcelas, quitarEmprestimo, type MotivoCredito } from '../textSim/emprestimoBancario';
 import { fimDoClube, fimDaLiga } from '../textSim/contratoRegiao';
-import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, avisoDeBonusPatrocinio, avisoDeEvolucao } from '../textSim/inbox';
+import { MensagemInbox, adicionar, chavesDe, avisoDePremiacao, avisosDoDia, boasVindas, avisoDeContratacao, avisoDeVenda, avisoDeRenovacao, avisoDePromocao, avisoDeLiberados, avisoDeSaidaDaBase, avisoDeNegociacaoIniciada, avisoDeRespostaRenovacao, avisoDeTransferencia, avisoDeDemissao, avisoDeOferta, avisoDeFaixa, avisoDeParcelaPatrocinio, avisoDeFimPatrocinio, avisoDeBonusPatrocinio, avisoDeEvolucao, avisoDeEmprestimoBancario } from '../textSim/inbox';
 import { salarioDeMercadoDaLiga, ajustarSalariosDaBase } from '../textSim/salarios';
 import { aplicarDivisao, aplicarDificuldade, dificuldadeEscolhida, folhaAnual, PADRAO_COMPRAS } from '../textSim/orcamento';
 import { PATROCINADORES, criarContrato, avaliarProposta, pagarParcelas, reputacaoDoClube, bonusDeCompeticao, diasParaFim, JANELA_RENOVACAO_DIAS, type MotivoRecusa } from '../textSim/patrocinadores';
@@ -18,7 +19,8 @@ import { ManagerState, semearTreinadores, atualizarTreinadores, aplicarTreinador
 import { montarLigas } from '../textSim/managerLigas';
 import { regiaoDoClube } from '../textSim/dataGenerator';
 import { MercadoState, Universo, Evento, mercadoVazio, prepararOrcamentos, proporCompra as mercadoPropor, responderComoVendedor, responderComoComprador, retirar as mercadoRetirar, concluir as mercadoConcluir,
-  contratarAgenteLivre as mercadoContratarLivre, listarParaVenda as mercadoListar, listarParaEmprestimo as mercadoListarEmprestimo, dispensarJogador as mercadoDispensar, tickDoDia as mercadoTick, recalcularValoresDoMes, janelaAberta, proximaAberturaJanela } from '../textSim/transferencias';
+  contratarAgenteLivre as mercadoContratarLivre, listarParaVenda as mercadoListar, listarParaEmprestimo as mercadoListarEmprestimo, dispensarJogador as mercadoDispensar, tickDoDia as mercadoTick, recalcularValoresDoMes, janelaAberta, proximaAberturaJanela,
+  proporEmprestimo as mercadoProporEmprestimo, pagarClausula as mercadoPagarClausula, exercerOpcao as mercadoExercerOpcao, registrarJogosDosBonus, type BonusJogos } from '../textSim/transferencias';
 import { recalcularValores } from '../textSim/valuation';
 import { registrarLigas, escalaDaLiga } from '../textSim/economia';
 import { Negociacao, Oferta, abrirNegociacao, assinar, chanceDeAceitar, propostaDoJogador, resolverNegociacoes } from '../textSim/negociacao';
@@ -96,7 +98,20 @@ interface GameContextType {
   definirDivisaoOrcamento: (compras: number) => void;
   /** O mercado de transferencias: estado (negociacoes, transacoes, historico) e as acoes do treinador. Cada acao devolve { ok, motivo }. */
   mercado: MercadoState;
-  proporCompraMercado: (playerId: string, valor: number) => { ok: boolean; motivo?: string };
+  /** Proposta de compra; `bonus`: os bonus ao vendedor aos 10/15/20 jogos pelo clube do utilizador (opcional). */
+  proporCompraMercado: (playerId: string, valor: number, bonus?: BonusJogos[]) => { ok: boolean; motivo?: string };
+  /** Pedido de emprestimo: taxa (pode ser 0), meses e, se quiser, o preco da opcao de compra no fim. */
+  proporEmprestimoMercado: (playerId: string, taxa: number, meses: number, opcaoCompra?: number) => { ok: boolean; motivo?: string };
+  /** Paga a clausula de rescisao do jogador (o clube dele nao pode recusar). */
+  pagarClausulaMercado: (playerId: string) => { ok: boolean; motivo?: string };
+  /** Exerce a opcao de compra de um jogador emprestado ao clube do utilizador. */
+  exercerOpcaoCompra: (playerId: string) => { ok: boolean; motivo?: string };
+  /** O perfil de credito do clube do utilizador (reputacao, liga, receita estimada, divida, caixa) para a aba Finance > Bank; null sem clube. */
+  perfilDeCredito: PerfilDeCredito | null;
+  /** Contrata um emprestimo bancario: o dinheiro entra no caixa hoje; parcelas mensais. */
+  contratarEmprestimoBancario: (valor: number, meses: number) => { ok: true } | { ok: false; motivo: MotivoCredito | 'SEM_CLUBE' };
+  /** Quita antecipadamente um emprestimo (saldo + 1% de tarifa). */
+  quitarEmprestimoBancario: (id: string) => { ok: true; valor: number } | { ok: false; motivo: 'INEXISTENTE' | 'SEM_CAIXA' | 'SEM_CLUBE' };
   responderNegociacao: (negId: string, acao: 'ACEITAR' | 'RECUSAR' | 'CONTRA' | 'NOVA_OFERTA', valor?: number) => { ok: boolean; motivo?: string };
   retirarProposta: (negId: string) => { ok: boolean; motivo?: string };
   tentarConcluir: (negId: string) => { ok: boolean; motivo?: string };
@@ -373,6 +388,49 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return r;
   };
   const folhaDoClube = (teamId: string) => folhaAnual(players.filter(p => p.teamId === teamId).map(p => p.salary));
+
+  /*
+  EMPRESTIMO BANCARIO (textSim/emprestimoBancario.ts; pedido: "implementar o emprestimo bancario, coloca la no financial"). O perfil de credito sai do clube: reputacao (a mesma
+  dos patrocinadores), porte da liga, receita anual estimada (patrocinio + bilheteria liquida de uma temporada de jogos em casa; piso de metade da folha), divida e caixa.
+  As parcelas vencem uma vez por mes (cada mes novo do calendario), como as do patrocinio, e cada uma gera um e-mail do Finance Director.
+  */
+  const perfilDeCredito = useMemo((): PerfilDeCredito | null => {
+    if (!userTeam) return null;
+    const eco = settleMatch(userTeam, userTeam, { id: '', week: 0, date: '', homeTeamId: userTeam.id, awayTeamId: '', homeScore: 0, awayScore: 0 } as any, gameState.currency as CurrencyCode);
+    const jogosEmCasa = fixtures.filter(f => f.homeTeamId === userTeam.id && !f.isFriendly).length || 19;
+    const receitaAnual = receitaAnualEstimada({ patrocinioAnual: userTeam.sponsorContract?.valorAnualUSD || 0, rendaPorJogo: Math.max(0, eco.revenueUSD - eco.costUSD), jogosEmCasa, folhaAnual: folhaDoClube(userTeam.id) });
+    return { reputacao: reputacaoClube, escalaLiga: escalaDaLiga(userTeam.leagueId), receitaAnual, dividaAtual: dividaTotal(userTeam), caixa: userTeam.cash };
+  }, [userTeam, reputacaoClube, fixtures.length, players.length, gameState.currency]);
+  const contratarEmprestimoBancario = (valor: number, meses: number): { ok: true } | { ok: false; motivo: MotivoCredito | 'SEM_CLUBE' } => {
+    if (!userTeam || !perfilDeCredito) return { ok: false, motivo: 'SEM_CLUBE' };
+    const hoje = gameState.currentDate;
+    const r = contratarEmprestimo(userTeam, perfilDeCredito, valor, meses, hoje);
+    if (!r.ok) return r;
+    setTeams(prev => prev.map(t => (t.id === userTeam.id ? r.team : t)));
+    empurrarInbox([avisoDeEmprestimoBancario(hoje, gameState.language, 'CONTRATADO', `bank-new|${r.emprestimo.id}`, formatCurrency(r.emprestimo.principal),
+      { taxa: `${(r.emprestimo.taxaAnual * 100).toFixed(2)}%`, meses: r.emprestimo.meses, parcela: formatCurrency(r.emprestimo.parcela) })]);
+    return { ok: true };
+  };
+  const quitarEmprestimoBancario = (id: string): { ok: true; valor: number } | { ok: false; motivo: 'INEXISTENTE' | 'SEM_CAIXA' | 'SEM_CLUBE' } => {
+    if (!userTeam) return { ok: false, motivo: 'SEM_CLUBE' };
+    const hoje = gameState.currentDate;
+    const r = quitarEmprestimo(userTeam, id, hoje);
+    if (!r.ok) return r;
+    setTeams(prev => prev.map(t => (t.id === userTeam.id ? r.team : t)));
+    empurrarInbox([avisoDeEmprestimoBancario(hoje, gameState.language, 'QUITADO', `bank-end|${id}`, formatCurrency(r.valor))]);
+    return { ok: true, valor: r.valor };
+  };
+  // as parcelas vencidas de cada mes novo (o mesmo dia nunca paga duas vezes: o emprestimo guarda o ultimo mes processado)
+  useEffect(() => {
+    if (!userTeam || !(userTeam.emprestimos || []).length) return;
+    const hoje = gameState.currentDate;
+    const r = processarParcelas(userTeam, hoje);
+    if (!r.pagamentos.length) return;
+    setTeams(prev => prev.map(t => (t.id === userTeam.id ? processarParcelas(t, hoje).team : t)));
+    empurrarInbox(r.pagamentos.map(p => p.quitou
+      ? avisoDeEmprestimoBancario(hoje, gameState.language, 'QUITADO', `bank-end|${p.emprestimoId}`, formatCurrency(p.valor))
+      : avisoDeEmprestimoBancario(hoje, gameState.language, 'PARCELA', `bank-pay|${p.emprestimoId}|${hoje.slice(0, 7)}`, formatCurrency(p.valor), { juros: formatCurrency(p.juros), parcelas: p.parcelas })));
+  }, [gameState.currentDate, userTeam?.id, loadId]);
   const definirDivisaoOrcamento = (compras: number) => { if (userTeam) setTeams(prev => prev.map(t => t.id === userTeam.id ? aplicarDivisao(t, compras, folhaDoClube(t.id)) : t)); };
   /** Bonus do patrocinador por competicao: um percentual (5% a 15%, pela marca) de cada premio pago ao clube, so enquanto o contrato esta vigente. */
   const pagarBonusPatrocinio = (premios: { key: string; usd: number; data: string }[]) => {
@@ -553,13 +611,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const universoAtual = (): Universo => ({ players, base, teams, mercado });
   const eventosParaInbox = (eventos: Evento[]) => {
     if (!userTeam || !eventos.length) return;
-    // so o que envolve o clube do utilizador chega a caixa de entrada
-    empurrarInbox(eventos.filter(e => e.clubeId === userTeam.id || e.tipo === 'OFERTA_RECEBIDA' || e.tipo === 'CONTRAPROPOSTA' || e.tipo === 'ACEITA' || e.tipo === 'RECUSADA' || e.tipo === 'BLOQUEADA' || e.tipo === 'EXPIRADA' || e.tipo.startsWith('CONCLUIDA'))
+    // so o que envolve o clube do utilizador chega a caixa de entrada (os eventos "de um lado" — clausula, emprestimo, opcao, bonus — so o do lado do utilizador)
+    empurrarInbox(eventos.filter(e => e.lado ? e.clubeId === userTeam.id : (e.clubeId === userTeam.id || e.tipo === 'OFERTA_RECEBIDA' || e.tipo === 'CONTRAPROPOSTA' || e.tipo === 'ACEITA' || e.tipo === 'RECUSADA' || e.tipo === 'BLOQUEADA' || e.tipo === 'EXPIRADA' || e.tipo.startsWith('CONCLUIDA')))
       .filter(e => (e.tipo === 'CONCLUIDA_COMPRA' ? e.clubeId === userTeam.id : e.tipo === 'CONCLUIDA_VENDA' ? e.clubeId === userTeam.id : true))
       .map(e => avisoDeTransferencia(gameState.currentDate, gameState.language, e, formatCurrency(e.valor))));
   };
   const comResultado = (r: { u: Universo; ok: boolean; motivo?: string; eventos: Evento[] }) => { if (r.ok) { aplicarUniverso(r.u); eventosParaInbox(r.eventos); } return { ok: r.ok, motivo: r.motivo }; };
-  const proporCompraMercado = (playerId: string, valor: number) => userTeam ? comResultado(mercadoPropor(universoAtual(), userTeam.id, playerId, valor, gameState.currentDate, userTeam.id)) : { ok: false, motivo: 'sem clube' };
+  const proporCompraMercado = (playerId: string, valor: number, bonus?: BonusJogos[]) => userTeam ? comResultado(mercadoPropor(universoAtual(), userTeam.id, playerId, valor, gameState.currentDate, userTeam.id, undefined, bonus)) : { ok: false, motivo: 'sem clube' };
+  const proporEmprestimoMercado = (playerId: string, taxa: number, meses: number, opcaoCompra?: number) => userTeam ? comResultado(mercadoProporEmprestimo(universoAtual(), userTeam.id, playerId, taxa, meses, opcaoCompra, gameState.currentDate, userTeam.id)) : { ok: false, motivo: 'sem clube' };
+  const pagarClausulaMercado = (playerId: string) => userTeam ? comResultado(mercadoPagarClausula(universoAtual(), userTeam.id, playerId, gameState.currentDate, userTeam.id)) : { ok: false, motivo: 'sem clube' };
+  const exercerOpcaoCompra = (playerId: string) => {
+    if (!userTeam) return { ok: false, motivo: 'sem clube' };
+    const p = players.find(x => x.id === playerId);
+    if (!p || p.teamId !== userTeam.id) return { ok: false, motivo: 'o jogador nao esta emprestado' };
+    return comResultado(mercadoExercerOpcao(universoAtual(), playerId, gameState.currentDate));
+  };
   const responderNegociacao = (negId: string, acao: 'ACEITAR' | 'RECUSAR' | 'CONTRA' | 'NOVA_OFERTA', valor?: number) => {
     if (!userTeam) return { ok: false, motivo: 'sem clube' };
     const neg = mercado.negociacoes.find(n => n.id === negId);
@@ -623,7 +689,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const hoje = gameState.currentDate, dono = gameState.userTeamId;
     const expirados = new Set(processarContratos(players, hoje, dono, fimDoClube(teams)).liberados);
     if (expirados.size) empurrarInbox(avisoDeLiberados(hoje, gameState.language, players.filter(p => expirados.has(p.id))));
-    setPlayers(prev => processarContratos(prev, hoje, dono, fimDoClube(teams)).jogadores);
+    // CLAUSULAS DE RESCISAO: os contratos sem clausula definida (saves antigos, contratos novos da CPU) ganham uma aqui (ou nenhuma, 1 em 4; textSim/contracts.ts `garantirClausulas`)
+    setPlayers(prev => garantirClausulas(processarContratos(prev, hoje, dono, fimDoClube(teams)).jogadores));
     if (expirados.size) setTeams(prev => prev.map(t => t.id === dono
       ? { ...t, lineup: t.lineup.map(id => (expirados.has(id) ? '' : id)), bench: (t.bench || []).map(id => (expirados.has(id) ? '' : id)) } : t));
   }, [gameState.currentDate, players.length, gameState.userTeamId, loadId]);
@@ -633,7 +700,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const proporRenovacao = (playerId: string, oferta: Oferta): 'ASSINADO' | 'EM_ANALISE' | 'BLOQUEADO' => {
     if (!userTeam) return 'BLOQUEADO';
     const alvo = players.find(p => p.id === playerId && p.teamId === userTeam.id);
-    if (!alvo || negociacoes.some(n => n.playerId === playerId)) return 'BLOQUEADO';
+    if (!alvo || alvo.emprestimo || negociacoes.some(n => n.playerId === playerId)) return 'BLOQUEADO';   // o emprestado renova com o dono, nao com o utilizador
     const hoje = gameState.currentDate, pedido = propostaDoJogador(alvo, hoje, salarioDeMercadoDaLiga(alvo, teams, players));
     if (chanceDeAceitar(alvo, oferta, pedido) === 1) {
       const novo = assinar(alvo, oferta, hoje, fimDaLiga(userTeam.leagueId));
@@ -1198,6 +1265,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return f;
     }));
 
+
+    // BONUS POR JOGOS (textSim/transferencias.ts): os jogos oficiais de hoje contam para os bonus pendentes das vendas (a mesma escalacao das `appearances`, abaixo).
+    {
+      const jogaram = new Set<string>();
+      fixtures.filter(f => f.date === gameState.currentDate && !f.isFriendly).forEach(f => {
+        const h = teams.find(t => t.id === f.homeTeamId), a = teams.find(t => t.id === f.awayTeamId);
+        [...(f.homeLineup || h?.lineup || []), ...(f.awayLineup || a?.lineup || [])].forEach(id => { if (id) jogaram.add(id); });
+        f.events.forEach(e => { if (e.type === 'SUB' && e.playerId) jogaram.add(e.playerId); });
+      });
+      if (jogaram.size) setMercado(prev => registrarJogosDosBonus(prev, players, jogaram));
+    }
 
     setPlayers(prevPlayers => {
       let updated = false;
@@ -2236,7 +2314,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const sellPlayer = (playerId: string) => {
     if (!userTeam) return;
     const player = players.find(p => p.id === playerId);
-    if (!player) return;
+    if (!player || player.emprestimo) return;   // o emprestado e do dono: nao se vende
 
     const sellPrice = Math.round(player.value * 0.8);
     setTeams(prev => prev.map(t => t.id === userTeam.id ? { ...t, cash: t.cash + sellPrice } : t));
@@ -2554,7 +2632,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <GameContext.Provider value={{
       historicoCopas, managerState, recusarOferta, teams, players, fixtures, gameState, startGame, advanceDay, proximoJogo, jogoHoje, autoAvancoAtivo: !!autoAvanco, autoAvancoMotivo, iniciarProximoJogo, pararProximoJogo, advanceWeek, playMatchDay, pauseMatch, resetMatchDay, updateTactics, updateSetPieceTakers, updateTeamLogo,
-      hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, proporPatrocinio, reputacaoClube, definirDivisaoOrcamento, mercado, proporCompraMercado, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, decisaoDoJogoDeHoje, guardarPenaltis3d, scheduleActivity, saveGame, importGameData, loadId, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
+      hirePlayer, sellPlayer, listarParaEmprestimo, dispensarJogador, base, inbox, markInboxRead, markAllInboxRead, deleteInbox, promoteYouth, dispensarJovem, negociacoes, proporRenovacao, proporPatrocinio, reputacaoClube, definirDivisaoOrcamento, mercado, proporCompraMercado,
+      proporEmprestimoMercado, pagarClausulaMercado, exercerOpcaoCompra, perfilDeCredito, contratarEmprestimoBancario, quitarEmprestimoBancario, responderNegociacao, retirarProposta, tentarConcluir, contratarLivre, listarParaVenda, swapShirtNumbers, definirOrdemPenaltis, disputaDePenaltis, registrarPenaltis, decisaoDoJogoDeHoje, guardarPenaltis3d, scheduleActivity, saveGame, importGameData, loadId, currentFixtures, userTeam, setThemeMode, world, comps, openWorld,
       isTransferWindowOpen, finishMatchDayInstant, motor3dProgresso, motor3dMensagem, avisoGoleiro, avisoLesao, limparAvisoLesao, avisoGoleiroMensagem, updateSettings, taxasDeCambio: { ...TAXAS }, atualizarTaxas, formatCurrency, formatCurrencyShort, formatWage,
       reportLiveGoal, reportMatchEvent,
       t,

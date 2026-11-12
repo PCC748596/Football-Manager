@@ -8,21 +8,25 @@ import { ehLigaEuropeia } from '../textSim/dataGenerator';
 GRAFICO MES A MES do Financial Center: ganhos e gastos do clube do jogador, cada serie liga/desliga por botao.
 Fontes reais: renda de bilheteria e custo do estadio (jogos em casa ja liquidados, `fixture.gateRevenue/stadiumCost`), vendas e compras (`mercado.transacoes`).
 Estimados (o jogo nao debita folha nem patrocinio por mes): salarios = folha semanal actual x 52 / 12; patrocinio = valor anual / 12.
+O banco (textSim/emprestimoBancario.ts, `Team.movimentosBanco`): o credito de um emprestimo entra em "Loans" e as parcelas/quitacoes em "Repayments". Os bonus por jogos, taxas de
+emprestimo e opcoes de compra ja estao nas vendas/compras (sao lancamentos da `mercado.transacoes`).
 */
-type Chave = 'gate' | 'sales' | 'sponsor' | 'stadium' | 'purchases' | 'wages';
+type Chave = 'gate' | 'sales' | 'sponsor' | 'loans' | 'stadium' | 'purchases' | 'wages' | 'repay';
 const SERIES: { k: Chave; pt: string; en: string; cor: string; ganho: boolean }[] = [
   { k: 'gate', pt: 'Ingressos', en: 'Tickets', cor: '#22c55e', ganho: true },
   { k: 'sales', pt: 'Vendas', en: 'Sales', cor: '#4ade80', ganho: true },
   { k: 'sponsor', pt: 'Patrocínio (est.)', en: 'Sponsor (est.)', cor: '#15803d', ganho: true },
+  { k: 'loans', pt: 'Empréstimos', en: 'Loans', cor: '#a3e635', ganho: true },
   { k: 'stadium', pt: 'Estádio', en: 'Stadium', cor: '#fb7185', ganho: false },
   { k: 'purchases', pt: 'Compras', en: 'Purchases', cor: '#ef4444', ganho: false },
   { k: 'wages', pt: 'Salários (est.)', en: 'Wages (est.)', cor: '#b91c1c', ganho: false },
+  { k: 'repay', pt: 'Parcelas', en: 'Repayments', cor: '#f97316', ganho: false },
 ];
 
 const FinanceMonthlyChart: React.FC<{ salarioSemanalTotal: number }> = ({ salarioSemanalTotal }) => {
   const { userTeam, fixtures, mercado, gameState, formatCurrency } = useGame();
   const pt = gameState.language === 'PT';
-  const [ligadas, setLigadas] = useState<Record<Chave, boolean>>({ gate: true, sales: true, sponsor: true, stadium: true, purchases: true, wages: true });
+  const [ligadas, setLigadas] = useState<Record<Chave, boolean>>({ gate: true, sales: true, sponsor: true, loans: true, stadium: true, purchases: true, wages: true, repay: true });
   const [sobre, setSobre] = useState<number | null>(null);
 
   const { meses, dados } = useMemo(() => {
@@ -30,7 +34,8 @@ const FinanceMonthlyChart: React.FC<{ salarioSemanalTotal: number }> = ({ salari
     if (!userTeam) return vazio;
     const hoje = gameState.currentDate.slice(0, 7);
     const acum: Record<string, Record<Chave, number>> = {};
-    const mes = (m: string) => acum[m] || (acum[m] = { gate: 0, sales: 0, sponsor: 0, stadium: 0, purchases: 0, wages: 0 });
+    const mes = (m: string) => acum[m] || (acum[m] = { gate: 0, sales: 0, sponsor: 0, loans: 0, stadium: 0, purchases: 0, wages: 0, repay: 0 });
+    (userTeam.movimentosBanco || []).forEach(b => { const a = mes(b.data.slice(0, 7)); if (b.tipo === 'CREDITO') a.loans += b.valor; else a.repay += b.valor; });
     fixtures.forEach(f => {
       if (f.homeTeamId !== userTeam.id || f.gateRevenue === undefined || !f.date) return;
       const a = mes(f.date.slice(0, 7)); a.gate += f.gateRevenue || 0; a.stadium += (f as any).stadiumCost || 0;
@@ -53,10 +58,11 @@ const FinanceMonthlyChart: React.FC<{ salarioSemanalTotal: number }> = ({ salari
       ultimos = Array.from({ length: 6 }, (_, i) => `${ano}-${String(inicioMes + i).padStart(2, '0')}`);
     }
     const folhaMensal = (salarioSemanalTotal * 52) / 12, patroMensal = (userTeam.sponsorContract?.valorAnualUSD || 0) / 12;
-    const out = { gate: [], sales: [], sponsor: [], stadium: [], purchases: [], wages: [] } as Record<Chave, (number | null)[]>;
+    const out = { gate: [], sales: [], sponsor: [], loans: [], stadium: [], purchases: [], wages: [], repay: [] } as Record<Chave, (number | null)[]>;
     ultimos.forEach(k => {
       const a = acum[k], ja = k <= hoje;
       out.gate.push(ja ? a?.gate || 0 : null); out.sales.push(ja ? a?.sales || 0 : null); out.stadium.push(ja ? a?.stadium || 0 : null); out.purchases.push(ja ? a?.purchases || 0 : null);
+      out.loans.push(ja ? a?.loans || 0 : null); out.repay.push(ja ? a?.repay || 0 : null);
       out.sponsor.push(ja ? patroMensal : null); out.wages.push(ja ? folhaMensal : null);
     });
     return { meses: ultimos, dados: out };

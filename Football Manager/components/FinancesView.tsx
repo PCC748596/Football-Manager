@@ -13,12 +13,14 @@ import { estadoDoContrato } from '../textSim/contracts';
 import { pedidoDeAba } from './TransferMarketView';
 import PlayerDetailModal from './PlayerDetailModal';
 import SponsorsTab from './SponsorsTab';
+import BankLoansTab from './BankLoansTab';
+import { dividaTotal, parcelasMensais } from '../textSim/emprestimoBancario';
 import FinanceMonthlyChart from './FinanceMonthlyChart';
 import { orcamentoDaTemporada, maxCompras, folhaAnual, PADRAO_COMPRAS, PASSO_COMPRAS } from '../textSim/orcamento';
 
 const FinancesView: React.FC<{ setView?: (v: any) => void }> = ({ setView }) => {
   const { mercado, definirDivisaoOrcamento, userTeam, players, hirePlayer, listarParaVenda, gameState, isTransferWindowOpen, formatCurrency, formatWage, t } = useGame();
-  const [marketPhase, setMarketPhase] = useState<'OVERVIEW' | 'MARKET' | 'SPONSORS'>('OVERVIEW');
+  const [marketPhase, setMarketPhase] = useState<'OVERVIEW' | 'MARKET' | 'SPONSORS' | 'BANK'>('OVERVIEW');
   const [jogadorAberto, setJogadorAberto] = useState<Player | null>(null);   // o Overview do jogador (o mesmo modal do Squad), aberto pelo nome na folha salarial
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
   
@@ -188,6 +190,13 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
            >
              {tx('SPONSORS')}
            </button>
+           {/* EMPRESTIMO BANCARIO (pedido: "coloca la no financial"): a aba do banco */}
+           <button
+             onClick={() => setMarketPhase('BANK')}
+             className={`px-6 py-2 rounded font-black text-xs uppercase tracking-widest transition-all ${marketPhase === 'BANK' ? 'bg-emerald-600/10 text-emerald-600 dark:bg-emerald-600 dark:text-white border border-emerald-600/30 shadow-lg' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+           >
+             {tx('BANK')}
+           </button>
            <button 
              onClick={() => (setView ? setView('TRANSFERS') : setMarketPhase('MARKET'))}   // o mercado de verdade e a aba Transfers
              className={`px-6 py-2 rounded font-black text-xs uppercase tracking-widest transition-all ${marketPhase === 'MARKET' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
@@ -197,7 +206,7 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
         </div>
       </div>
       <div className="flex-1 min-h-0">
-        {marketPhase === 'SPONSORS' ? <SponsorsTab /> : marketPhase === 'OVERVIEW' ? (
+        {marketPhase === 'SPONSORS' ? <SponsorsTab /> : marketPhase === 'BANK' ? <BankLoansTab /> : marketPhase === 'OVERVIEW' ? (
           <div className="grid grid-cols-12 grid-rows-[auto_minmax(0,1fr)] gap-6 h-full">   {/* content-start: as linhas nao esticam para a altura toda */}
             <div className="col-span-12 grid grid-cols-5 gap-4">
                <div className="bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-2.5 shadow-xl transition-colors">
@@ -340,6 +349,13 @@ Attention (12 months or less): ${atencao.map(p => p.name).join(', ') || '-'}`}
                           );
                         })()}
                     </div>
+                    {dividaTotal(userTeam) > 0 && (
+                      <button type="button" onClick={() => setMarketPhase('BANK')} className="w-full text-left px-4 py-[6px] bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800 hover:border-rose-400/60 transition-colors">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">{tx('Bank debt')}</div>
+                        <div className="text-xl font-black text-rose-500 mt-1">{formatCurrency(dividaTotal(userTeam))}</div>
+                        <div className="text-[9px] text-slate-400 mt-1">{tx('Monthly instalments:')} {formatCurrency(Math.round(parcelasMensais(userTeam)))}</div>
+                      </button>
+                    )}
                     <div className="px-4 py-[6px] bg-slate-50 dark:bg-slate-950/50 rounded border border-slate-100 dark:border-slate-800">
                         <div className="text-[10px] font-bold text-slate-400 uppercase">{t('fin_avg_att')}</div>
                         <div className="text-xl font-black text-blue-600 mt-1">{formatNumber(userTeam.avrAttendance || 0)}</div>

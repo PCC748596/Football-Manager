@@ -261,12 +261,14 @@ const avisoDeRespostaRenovacao_ = (hoje: string, lang: Idioma, p: Player, aceito
     : tx('{v0} turned down {v1} per week for {v2} year(s) and is unhappy about it: his morale dropped. The current contract stays as it was; you can make a new offer.', { v0: p.name, v1: salario, v2: anos }) });
 
 // ------------------------------------------------------------------ mercado de transferencias
-export interface EventoMercado { tipo: string; jogadorNome: string; clubeNome: string; valor: number; motivo?: string; }
+export interface EventoMercado { tipo: string; jogadorNome: string; clubeNome: string; valor: number; motivo?: string; lado?: 'COMPRADOR' | 'VENDEDOR'; outroClube?: string; jogos?: number; data?: string; emprestimo?: boolean; }
 const avisoDeTransferencia_ = (hoje: string, lang: Idioma, e: EventoMercado, valor: string): MensagemInbox => {
   const j = e.jogadorNome, c = e.clubeNome;
   const M = (assunto: string, corpo: string, alta = false): MensagemInbox => criar({ keys: [], date: hoje, categoria: 'TRANSFER', alta, ir: 'TRANSFERS', de: tx('Director of Football'), assunto, corpo });
   switch (e.tipo) {
-    case 'OFERTA_RECEBIDA': return M(tx('Offer for {v0}: {v1} bids {v2}', { v0: j, v1: c, v2: valor }), tx('{v0} made an offer of {v1} for {v2}. Open the Transfer Market to accept, refuse or make a counter-offer.', { v0: c, v1: valor, v2: j }), true);
+    case 'OFERTA_RECEBIDA': return e.emprestimo
+      ? M(tx('Loan request for {v0}: {v1}', { v0: j, v1: c }), tx('{v0} wants {v1} on loan (loan fee {v2}). Open the Transfer Market to accept, refuse or ask a higher fee.', { v0: c, v1: j, v2: valor }), true)
+      : M(tx('Offer for {v0}: {v1} bids {v2}', { v0: j, v1: c, v2: valor }), tx('{v0} made an offer of {v1} for {v2}. Open the Transfer Market to accept, refuse or make a counter-offer.', { v0: c, v1: valor, v2: j }), true);
     case 'CONTRAPROPOSTA': return M(tx('Counter-offer for {v0}: {v1} asks {v2}', { v0: j, v1: c, v2: valor }), tx('{v0} answered your offer with a counter-offer of {v1} for {v2}. You can accept it, refuse or offer again.', { v0: c, v1: valor, v2: j }), true);
     case 'ACEITA': return M(tx('{v0} accepted your offer for {v1}', { v0: c, v1: j }), tx('{v0} accepted {v1} for {v2}. The transfer completes as soon as the conditions allow.', { v0: c, v1: valor, v2: j }));
     case 'RECUSADA': return M(tx('{v0} turned down the deal for {v1}', { v0: c, v1: j }), tx('The offer of {v0} for {v1} was refused{v2}.', { v0: valor, v1: j, v2: e.motivo ? ` (${textoDoMotivo(e.motivo)})` : '' }));
@@ -276,6 +278,39 @@ const avisoDeTransferencia_ = (hoje: string, lang: Idioma, e: EventoMercado, val
     case 'CONCLUIDA_VENDA': return M(tx('Transfer completed: {v0} was sold', { v0: j }), tx('{v0} was sold for {v1}.', { v0: j, v1: valor }));
     case 'AGENTE_LIVRE': return M(tx('Free agent signed: {v0}', { v0: j }), tx('{v0} joined as a free agent, with no transfer fee.', { v0: j }));
     case 'SAIDA_LIVRE': return M(tx('{v0} left on a free transfer', { v0: j }), tx('{v0} had less than 6 months left on his contract and signed with {v1}. The club receives no fee.', { v0: j, v1: e.motivo || '' }), true);
+    // os eventos de um LADO do negocio: `outroClube` e a contraparte (clausula, emprestimo, opcao de compra, bonus por jogos)
+    case 'CLAUSULA_PAGA': {
+      const o = e.outroClube || c;
+      return e.lado === 'VENDEDOR'
+        ? M(tx('Release clause triggered: {v0} leaves', { v0: j }), tx('{v0} paid the release clause of {v1} ({v2}). A release clause cannot be refused: the transfer is completed.', { v0: o, v1: j, v2: valor }), true)
+        : M(tx('Release clause paid: {v0} joins the club', { v0: j }), tx('You paid the release clause of {v0} ({v1}) to {v2}. The club could not refuse: the transfer is completed.', { v0: j, v1: valor, v2: o }));
+    }
+    case 'EMPRESTIMO_CONCLUIDO': {
+      const o = e.outroClube || c, ate = e.data ? dataLonga(e.data, lang) : '';
+      return e.lado === 'COMPRADOR'
+        ? M(tx('Loan completed: {v0} joins on loan', { v0: j }), tx('{v0} joins on loan from {v1} until {v2}. Loan fee: {v3}.', { v0: j, v1: o, v2: ate, v3: valor }))
+        : M(tx('{v0} loaned to {v1}', { v0: j, v1: o }), tx('{v0} left on loan to {v1} until {v2}. Loan fee received: {v3}.', { v0: j, v1: o, v2: ate, v3: valor }));
+    }
+    case 'EMPRESTIMO_FIM': {
+      const o = e.outroClube || c;
+      return e.lado === 'COMPRADOR'
+        ? M(tx('Loan ended: {v0} returns to {v1}', { v0: j, v1: o }), tx('The loan of {v0} is over and he went back to {v1}.', { v0: j, v1: o }))
+        : M(tx('Loan ended: {v0} is back', { v0: j }), tx('{v0} returned from his loan at {v1} and is available again.', { v0: j, v1: o }));
+    }
+    case 'OPCAO_AVISO': return M(tx('Purchase option for {v0}: decide before {v1}', { v0: j, v1: e.data ? dataLonga(e.data, lang) : '' }),
+      tx('The loan of {v0} ends on {v1}. You can buy him for {v2} (purchase option) in Transfers → My players. If you do nothing, he returns to {v3}.', { v0: j, v1: e.data ? dataLonga(e.data, lang) : '', v2: valor, v3: e.outroClube || c }), true);
+    case 'OPCAO_EXERCIDA': {
+      const o = e.outroClube || c;
+      return e.lado === 'COMPRADOR'
+        ? M(tx('Purchase option exercised: {v0} signs permanently', { v0: j }), tx('You exercised the purchase option: {v0} paid to {v1} and {v2} is now yours.', { v0: valor, v1: o, v2: j }))
+        : M(tx('{v0} bought {v1} (purchase option)', { v0: o, v1: j }), tx('{v0} exercised the purchase option of the loan: {v1} received for {v2}.', { v0: o, v1: valor, v2: j }));
+    }
+    case 'BONUS_PAGO': {
+      const o = e.outroClube || c, n = e.jogos ?? 0;
+      return e.lado === 'VENDEDOR'
+        ? M(tx('Appearance bonus received: {v0}', { v0: j }), tx('{v0} reached {v1} games for {v2}: {v3} received (bonus agreed in the sale).', { v0: j, v1: n, v2: o, v3: valor }))
+        : M(tx('Appearance bonus paid: {v0}', { v0: j }), tx('{v0} reached {v1} games for the club: {v2} paid to {v3} (bonus agreed in the purchase).', { v0: j, v1: n, v2: valor, v3: o }));
+    }
     default: return M(`${j}`, `${c} ${valor}`);
   }
 };
@@ -309,6 +344,17 @@ const avisoDeFaixa_ = (hoje: string, lang: Idioma, key: string, clube: string, f
 const avisoDeParcelaPatrocinio_ = (hoje: string, lang: Idioma, nome: string, parcelas: number, valor: string, key: string): MensagemInbox => criar({ keys: [key], date: hoje, categoria: 'FINANCE', ir: 'FINANCES', de: tx('Finance Director'),
   assunto: tx('Sponsorship payment received — {v0}', { v0: nome }),
   corpo: (parcelas > 1 ? tx('{v0} paid {v1} instalments: {v2} added to the club\'s cash.', { v0: nome, v1: parcelas, v2: valor }) : tx('{v0} paid the monthly instalment: {v1} added to the club\'s cash.', { v0: nome, v1: valor })) });
+
+/** EMPRESTIMO BANCARIO (textSim/emprestimoBancario.ts): contratado, parcela paga, quitado. */
+const avisoDeEmprestimoBancario_ = (hoje: string, lang: Idioma, tipo: 'CONTRATADO' | 'PARCELA' | 'QUITADO', key: string, valor: string, extra: { taxa?: string; meses?: number; parcela?: string; juros?: string; parcelas?: number } = {}): MensagemInbox => {
+  const M = (assunto: string, corpo: string, alta = false) => criar({ keys: [key], date: hoje, categoria: 'FINANCE', ir: 'FINANCES', alta, de: tx('Finance Director'), assunto, corpo });
+  if (tipo === 'CONTRATADO') return M(tx('Bank loan approved: {v0}', { v0: valor }),
+    tx('The bank credited {v0} to the club\'s cash. Interest rate {v1} a year, {v2} monthly instalments of {v3}, debited at the start of each month.', { v0: valor, v1: extra.taxa || '', v2: extra.meses ?? 0, v3: extra.parcela || '' }));
+  if (tipo === 'QUITADO') return M(tx('Bank loan paid off'), tx('The loan is fully repaid ({v0} in the last payment). The club has no more instalments on it.', { v0: valor }));
+  return M(tx('Bank loan instalment paid: {v0}', { v0: valor }),
+    (extra.parcelas ?? 1) > 1 ? tx('{v0} instalments debited from the club\'s cash: {v1} ({v2} of interest).', { v0: extra.parcelas ?? 1, v1: valor, v2: extra.juros || '' })
+      : tx('The monthly instalment was debited from the club\'s cash: {v0} ({v1} of interest).', { v0: valor, v1: extra.juros || '' }));
+};
 
 const avisoDeFimPatrocinio_ = (hoje: string, lang: Idioma, nome: string, fim: string, key: string): MensagemInbox => criar({ keys: [key], date: hoje, categoria: 'FINANCE', alta: true, ir: 'FINANCES', de: tx('Finance Director'),
   assunto: tx('Sponsorship ending soon — {v0}', { v0: nome }),
@@ -360,5 +406,6 @@ export const avisoDeOferta = (...a: Parameters<typeof avisoDeOferta_>): ReturnTy
 export const avisoDeFaixa = (...a: Parameters<typeof avisoDeFaixa_>): ReturnType<typeof avisoDeFaixa_> => comIdioma(a[1], () => avisoDeFaixa_(...a));
 export const avisoDeParcelaPatrocinio = (...a: Parameters<typeof avisoDeParcelaPatrocinio_>): ReturnType<typeof avisoDeParcelaPatrocinio_> => comIdioma(a[1], () => avisoDeParcelaPatrocinio_(...a));
 export const avisoDeFimPatrocinio = (...a: Parameters<typeof avisoDeFimPatrocinio_>): ReturnType<typeof avisoDeFimPatrocinio_> => comIdioma(a[1], () => avisoDeFimPatrocinio_(...a));
+export const avisoDeEmprestimoBancario = (...a: Parameters<typeof avisoDeEmprestimoBancario_>): ReturnType<typeof avisoDeEmprestimoBancario_> => comIdioma(a[1], () => avisoDeEmprestimoBancario_(...a));
 export const avisoDeBonusPatrocinio = (...a: Parameters<typeof avisoDeBonusPatrocinio_>): ReturnType<typeof avisoDeBonusPatrocinio_> => comIdioma(a[1], () => avisoDeBonusPatrocinio_(...a));
 export const avisoDeEvolucao = (...a: Parameters<typeof avisoDeEvolucao_>): ReturnType<typeof avisoDeEvolucao_> => comIdioma(a[1], () => avisoDeEvolucao_(...a));

@@ -7,6 +7,7 @@ import { EstadoContrato, diasRestantes, estadoDoContrato, faixaDeContrato, meses
 import { fimDaLiga } from '../textSim/contratoRegiao';
 import { salarioDeMercadoDaLiga } from '../textSim/salarios';
 import { ANOS_MAX, ANOS_MIN, chanceDeAceitar, humorDaOferta, propostaDoJogador } from '../textSim/negociacao';
+import { clausulaDe } from '../textSim/contracts';
 
 const ESTILO: Record<EstadoContrato, { rotulo: string; classe: string }> = {
   REGULAR: { rotulo: 'Regular', classe: 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-700' },
@@ -49,11 +50,13 @@ export const RenovarModal: React.FC<{ player: Player; hoje: string; onClose: () 
   const pedido = useMemo(() => propostaDoJogador(player, hoje, salarioDeMercadoDaLiga(player, teams, players)), [player.id, hoje.slice(0, 7)]);
   const [salario, setSalario] = useState(pedido.salario);
   const [anos, setAnos] = useState(pedido.anos);
+  // CLAUSULA DE RESCISAO da renovacao: comeca na que o jogador pede; 0 = sem clausula. Mais alta que o pedido tira chance (ver textSim/negociacao.ts `efeitoDaClausula`).
+  const [clausula, setClausula] = useState(pedido.clausula ?? 0);
   const [resultado, setResultado] = useState<'ASSINADO' | 'EM_ANALISE' | null>(null);
   const pendente = negociacoes.find(n => n.playerId === player.id);
   const fimDoContrato = (n: number) => { const fim = fimDaLiga(teams.find(t => t.id === player.teamId)?.leagueId), e = somarAnos(hoje, n); return fim ? ajustarFim(e, fim) : e; };   // 31/12 na America Latina, 30/06 na Europa
   const atual = player.contract;
-  const chance = chanceDeAceitar(player, { salario, anos }, pedido);
+  const chance = chanceDeAceitar(player, { salario, anos, clausula }, pedido);
   const humor = humorDaOferta(chance);
   const igual = chance === 1;
   const HUMOR = {
@@ -73,7 +76,7 @@ export const RenovarModal: React.FC<{ player: Player; hoje: string; onClose: () 
     window.addEventListener('keydown', aoTeclar, true);
     return () => window.removeEventListener('keydown', aoTeclar, true);
   }, [onClose]);
-  const enviar = () => { const r = proporRenovacao(player.id, { salario, anos }); if (r !== 'BLOQUEADO') setResultado(r); };
+  const enviar = () => { const r = proporRenovacao(player.id, { salario, anos, clausula }); if (r !== 'BLOQUEADO') setResultado(r); };
 
   // PORTAL no <body>: o modal e filho do Overview (que tem animacao/transform e pilhas de camadas proprias), e no iPad ficava ATRAS da lista de jogadores do mesmo Overview.
   return createPortal(
@@ -107,11 +110,11 @@ export const RenovarModal: React.FC<{ player: Player; hoje: string; onClose: () 
             <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-3">
                 <div className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">{tx('Current contract')}</div>
-                {linha('Wage / week', formatCurrency(player.salary))}{linha('Signed', dataCurta(atual?.start))}{linha('Expires', dataCurta(atual?.end))}{linha('Length', atual ? `${atual.years} yr` : '-')}{linha('Left', atual ? restanteEmTexto(atual.end, hoje) : '-')}
+                {linha('Wage / week', formatCurrency(player.salary))}{linha('Signed', dataCurta(atual?.start))}{linha('Expires', dataCurta(atual?.end))}{linha('Length', atual ? `${atual.years} yr` : '-')}{linha('Left', atual ? restanteEmTexto(atual.end, hoje) : '-')}{linha(tx('Release clause'), clausulaDe(player) ? formatCurrency(clausulaDe(player)) : tx('None'))}
               </div>
               <div className="bg-amber-950/20 border border-amber-700/40 rounded-lg p-3">
                 <div className="text-[11px] font-black uppercase tracking-widest text-amber-400 mb-1">{tx('Player asks')}</div>
-                {linha('Wage / week', formatCurrency(pedido.salario), true)}{linha('vs current', variacao(pedido.salario, player.salary))}{linha('Length', `${pedido.anos} yr`, true)}{linha('Starts', dataCurta(hoje))}{linha('Expires', dataCurta(fimDoContrato(pedido.anos)))}
+                {linha('Wage / week', formatCurrency(pedido.salario), true)}{linha('vs current', variacao(pedido.salario, player.salary))}{linha('Length', `${pedido.anos} yr`, true)}{linha('Starts', dataCurta(hoje))}{linha('Expires', dataCurta(fimDoContrato(pedido.anos)))}{linha(tx('Release clause (max)'), formatCurrency(pedido.clausula ?? 0), true)}
               </div>
               <div className="bg-emerald-950/30 border border-emerald-700/40 rounded-lg p-3 flex flex-col">
                 <div className="text-[11px] font-black uppercase tracking-widest text-emerald-400 mb-2">{tx('Your offer')}</div>
@@ -125,7 +128,11 @@ export const RenovarModal: React.FC<{ player: Player; hoje: string; onClose: () 
                   <button onClick={() => setAnos(a => Math.min(ANOS_MAX, a + 1))} className="w-9 h-9 rounded bg-slate-800 hover:bg-slate-700 text-white font-black">+</button>
                 </div>
                 <div className="mt-3 text-xs text-slate-500">{tx('Ends')} {dataCurta(fimDoContrato(anos))} • {variacao(salario, pedido.salario)} vs his ask</div>
-                <button onClick={() => { setSalario(pedido.salario); setAnos(pedido.anos); }} className="mt-auto pt-3 text-left text-[11px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300">{tx('Use the ask')}</button>
+                <label className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate-500" title={tx('A club that pays this amount takes the player and you cannot refuse. 0 = no clause. Players prefer a low clause.')}>{tx('Release clause (0 = none)')}</label>
+                <input type="number" min={0} step={50000} value={clausula} onChange={e => setClausula(Math.max(0, Math.round(Number(e.target.value) || 0)))}
+                  className="mt-1 w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded px-3 py-2 text-white font-black outline-none" />
+                <div className="mt-1 text-[11px] text-slate-500">{clausula ? `${(clausula / Math.max(1, player.value)).toFixed(1)}x ${tx('market value')}` : tx('No release clause')}</div>
+                <button onClick={() => { setSalario(pedido.salario); setAnos(pedido.anos); setClausula(pedido.clausula ?? 0); }} className="mt-auto pt-3 text-left text-[11px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300">{tx('Use the ask')}</button>
               </div>
             </div>
 
@@ -151,7 +158,7 @@ export const RenovarModal: React.FC<{ player: Player; hoje: string; onClose: () 
 
 /** O bloco de contrato do jogador: datas, duracao, estado, alerta e (no clube do utilizador) o botao de renovar. */
 export const ContractPanel: React.FC<{ player: Player }> = ({ player: recebido }) => {
-  const { gameState, userTeam, players, negociacoes } = useGame();
+  const { gameState, userTeam, players, negociacoes, formatCurrency, teams } = useGame();
   const player = players.find(p => p.id === recebido.id) || recebido;   // o jogador de agora (o modal guarda uma copia antiga)
   const hoje = gameState.currentDate, c = player.contract;
   const meu = !!userTeam && player.teamId === userTeam.id;
@@ -171,8 +178,21 @@ export const ContractPanel: React.FC<{ player: Player }> = ({ player: recebido }
           <div><div className="text-[10px] text-slate-500 font-bold uppercase">{tx('Length')}</div><div className="text-sm font-black text-slate-200">{c.years} yr</div></div>
         </div>
       ) : <div className="text-xs text-slate-500">{tx('No contract.')}</div>}
+      {/* CLAUSULA DE RESCISAO e EMPRESTIMO em curso (textSim/contracts.ts, textSim/transferencias.ts) */}
+      {c && (
+        <div className="mt-1 flex justify-between text-[11px] font-bold">
+          <span className="text-slate-500 uppercase">{tx('Release clause')}</span>
+          <span className={clausulaDe(player) ? 'text-amber-400' : 'text-slate-400'}>{clausulaDe(player) ? formatCurrency(clausulaDe(player)) : tx('None')}</span>
+        </div>
+      )}
+      {player.emprestimo && (
+        <div className="mt-1 text-[11px] font-bold text-sky-400">
+          {tx('On loan from {v0} until {v1}', { v0: teams.find(t => t.id === player.emprestimo!.de)?.name || player.emprestimo.de, v1: dataCurta(player.emprestimo.ate) })}
+          {player.emprestimo.opcaoCompra !== undefined && <span className="text-slate-400"> • {tx('purchase option {v0}', { v0: formatCurrency(player.emprestimo.opcaoCompra) })}</span>}
+        </div>
+      )}
       {alerta && <div className={`mt-2 text-xs font-bold ${estado === 'ATENCAO' ? 'text-amber-400' : 'text-rose-400'}`}>{alerta}</div>}
-      {meu && c && (
+      {meu && c && !player.emprestimo && (
         <button onClick={() => setRenovando(true)}
           className="mt-2 w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-1.5 rounded text-xs uppercase tracking-widest transition-colors">{negociacoes.some(n => n.playerId === player.id) ? 'Negotiation in progress' : 'Renew contract'}</button>
       )}

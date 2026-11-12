@@ -124,6 +124,11 @@ export interface Contract {
   start: string;   // ISO yyyy-mm-dd: dia da assinatura
   end: string;     // ISO: dia do vencimento
   years: number;   // duracao sorteada na assinatura (pela idade nessa data)
+  /**
+   * CLAUSULA DE RESCISAO (pedido: "nos contratos clausulas de rescisao"): o valor (dolares do jogo) que, pago por outro clube, o vendedor NAO pode recusar.
+   * 0 = contrato sem clausula; omitido = contrato de um save antigo, ainda sem clausula gerada (o motor gera uma ao carregar; ver textSim/contracts.ts `garantirClausulas`).
+   */
+  releaseClause?: number;
 }
 
 // Os detalhes da nota de um jogador numa partida 3D (cada componente e uma pontuacao 0-100; 56 = neutro).
@@ -178,6 +183,11 @@ export interface Player {
   listedForLoan?: boolean;
   /** Data em que ficou agente livre (teamId 'MARKET'). */
   livreDesde?: string;
+  /**
+   * EMPRESTIMO EM CURSO (textSim/transferencias.ts): o jogador joga no clube `teamId` cedido por `de` ate `ate`; no fim volta ao `de`, salvo se o clube que o tem
+   * exercer a OPCAO DE COMPRA (`opcaoCompra`, o preco fixado no acordo). `avisado`: o aviso de "decida a opcao" ja foi enviado ao utilizador.
+   */
+  emprestimo?: { de: string; inicio: string; ate: string; opcaoCompra?: number; negId: string; avisado?: boolean };
   /** Ganhos fracionarios do desenvolvimento mensal (a parte que ainda nao completou 1 ponto de atributo). */
   devAcc?: { def: number; pas: number; drb: number; sht: number };
   teamId: string;
@@ -307,6 +317,10 @@ export interface Team {
   homeGames?: number;          // jogos em casa liquidados (para o publico medio)
   gateRevenue?: number;        // renda de bilheteira acumulada (dolares do jogo)
   stadiumCosts?: number;       // custo de estadio acumulado (dolares do jogo)
+  /** EMPRESTIMOS BANCARIOS do clube (so o do utilizador os contrata; ver textSim/emprestimoBancario.ts). Omitido nos saves antigos = nenhum. */
+  emprestimos?: import('./textSim/emprestimoBancario').EmprestimoBancario[];
+  /** O extrato do banco: creditos, parcelas e quitacoes (os ultimos 240), para o historico financeiro. */
+  movimentosBanco?: import('./textSim/emprestimoBancario').MovimentoBancario[];
   played: number;
   won: number;
   drawn: number;

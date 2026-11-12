@@ -4,16 +4,21 @@ e/ou os anos. Mudou? O jogador leva 2 ou 3 dias analisando e depois decide: se a
 muda no contrato e a moral cai. Tudo aqui e puro: o contexto do jogo guarda as negociacoes em andamento e chama `resolverNegociacoes` a cada dia.
 
 O sorteio da decisao tem semente (jogador + dia da decisao): recarregar o jogo nao muda a resposta.
+
+CLAUSULA DE RESCISAO NA RENOVACAO (pedido: "nos contratos clausulas de rescisao"): a oferta pode levar uma clausula (`clausula`; 0 = sem clausula). O jogador pede uma
+clausula BAIXA (75% da sugerida, textSim/contracts.ts `clausulaSugerida`): uma clausula baixa e a porta de saida para um clube maior. Pedir mais do que ele quer tira chance
+(8 pontos por cada vez o valor de mercado acima do pedido, ate 30); oferecer menos (ou nenhuma) da um pequeno bonus (ate 5 pontos). Sem `clausula` na oferta a renovacao mantem
+a clausula atual e a chance nao muda (as regras de sempre).
 */
 import type { Contract, Player } from '../types';
-import { Rnd, criarRng, sortearDuracao, somarAnos, ajustarFim, FimContrato } from './contracts';
+import { Rnd, criarRng, sortearDuracao, somarAnos, ajustarFim, FimContrato, clausulaSugerida, arredondarClausula } from './contracts';
 
 export const MORAL_AO_ACEITAR = 8;
 export const MORAL_AO_RECUSAR = -15;
 export const ANOS_MIN = 1;
 export const ANOS_MAX = 6;
 
-export interface Oferta { salario: number; anos: number; }
+export interface Oferta { salario: number; anos: number; /** Clausula de rescisao (0 = sem clausula; omitida = manter a atual). */ clausula?: number; }
 export interface Negociacao {
   id: string;
   playerId: string;
@@ -32,7 +37,19 @@ export const propostaDoJogador = (p: Player, hoje: string, mercadoSemanal?: numb
   const mercado = mercadoSemanal ?? Math.round(p.value * 0.002);   // `mercadoSemanal`: o salario da tabela da liga (Series A-D do Brasil, textSim/salarios.ts); sem ele, 0,2% do valor
   const salario = Math.max(p.salary, mercado) * (1.08 + rnd() * 0.17);
   const anos = sortearDuracao(p.age, criarRng(`anos|${p.id}|${hoje.slice(0, 7)}`));
-  return { salario: Math.max(500, Math.round(salario / 10) * 10), anos };
+  return { salario: Math.max(500, Math.round(salario / 10) * 10), anos, clausula: clausulaPedida(p) };
+};
+
+/** A clausula que o jogador aceita de bom grado: 75% da sugerida (ele prefere uma porta de saida barata). */
+export const clausulaPedida = (p: Pick<Player, 'id' | 'age' | 'value'>): number => arredondarClausula(clausulaSugerida(p) * 0.75);
+
+/** O efeito da clausula oferecida na chance (negativo = tira chance). Sem clausula na oferta (ou no pedido): 0. */
+export const efeitoDaClausula = (p: Pick<Player, 'value'>, oferta: Oferta, pedido: Oferta): number => {
+  if (oferta.clausula === undefined || pedido.clausula === undefined) return 0;
+  const base = Math.max(1, p.value || 0);
+  const ofertada = oferta.clausula > 0 ? oferta.clausula : 0;
+  if (ofertada > pedido.clausula) return -Math.min(0.3, ((ofertada - pedido.clausula) / base) * 0.08);
+  return Math.min(0.05, ((pedido.clausula - ofertada) / base) * 0.05);
 };
 
 /**
@@ -41,7 +58,8 @@ export const propostaDoJogador = (p: Player, hoje: string, mercadoSemanal?: numb
  * Uma oferta igual a proposta dele e aceita sempre.
  */
 export const chanceDeAceitar = (p: Player, oferta: Oferta, pedido: Oferta): number => {
-  if (oferta.salario >= pedido.salario && oferta.anos === pedido.anos) return 1;
+  const clausulaOk = oferta.clausula === undefined || pedido.clausula === undefined || oferta.clausula <= pedido.clausula;   // 0 (sem clausula) tambem esta "abaixo" do pedido
+  if (oferta.salario >= pedido.salario && oferta.anos === pedido.anos && clausulaOk) return 1;
   const r = oferta.salario / Math.max(1, pedido.salario);
   const base = Math.max(0, Math.min(1, (r - 0.8) / 0.25));
   const dif = oferta.anos - pedido.anos;
@@ -49,7 +67,7 @@ export const chanceDeAceitar = (p: Player, oferta: Oferta, pedido: Oferta): numb
   const contra = (veterano && dif > 0) || (!veterano && dif < 0);
   const penalidade = Math.abs(dif) * (contra ? 0.12 : 0.08);
   const humor = ((p.morale ?? 50) - 50) / 500;
-  return Math.max(0.02, Math.min(0.98, base - penalidade + humor));
+  return Math.max(0.02, Math.min(0.98, base - penalidade + humor + efeitoDaClausula(p, oferta, pedido)));
 };
 
 /** Um texto para o treinador, sem revelar a conta. */
@@ -67,11 +85,15 @@ export const abrirNegociacao = (p: Player, oferta: Oferta, pedido: Oferta, hoje:
   decide: somarDias(hoje, diasDeAnalise(criarRng(`dias|${p.id}|${hoje}`)))
 });
 
-/** O contrato assinado com a oferta (comeca hoje). */
-export const contratoDaOferta = (oferta: Oferta, hoje: string, fim?: FimContrato): Contract => ({ start: hoje, end: fim ? ajustarFim(somarAnos(hoje, oferta.anos), fim) : somarAnos(hoje, oferta.anos), years: oferta.anos });
+/** O contrato assinado com a oferta (comeca hoje). `clausulaAtual`: a clausula que fica se a oferta nao trouxer outra. */
+export const contratoDaOferta = (oferta: Oferta, hoje: string, fim?: FimContrato, clausulaAtual?: number): Contract => {
+  const c: Contract = { start: hoje, end: fim ? ajustarFim(somarAnos(hoje, oferta.anos), fim) : somarAnos(hoje, oferta.anos), years: oferta.anos };
+  const clausula = oferta.clausula !== undefined ? Math.max(0, Math.round(oferta.clausula)) : clausulaAtual;
+  return clausula !== undefined ? { ...c, releaseClause: clausula } : c;
+};
 
 /** Assina na hora (o treinador aceitou a proposta do jogador): contrato novo, salario novo, moral em alta. */
-export const assinar = (p: Player, oferta: Oferta, hoje: string, fim?: FimContrato): Player => ({ ...p, contract: contratoDaOferta(oferta, hoje, fim), salary: oferta.salario, morale: moral((p.morale ?? 50) + MORAL_AO_ACEITAR) });
+export const assinar = (p: Player, oferta: Oferta, hoje: string, fim?: FimContrato): Player => ({ ...p, contract: contratoDaOferta(oferta, hoje, fim, p.contract?.releaseClause), salary: oferta.salario, morale: moral((p.morale ?? 50) + MORAL_AO_ACEITAR) });
 
 export interface Resposta { negociacao: Negociacao; aceitou: boolean; jogador: Player; chance: number; }
 
@@ -92,7 +114,7 @@ export const resolverNegociacoes = (negociacoes: Negociacao[], jogadores: Player
     const chance = chanceDeAceitar(p, n.oferta, n.pedido);
     const aceitou = criarRng(`decide|${n.id}|${n.decide}`)() < chance;
     const novo: Player = aceitou
-      ? { ...p, contract: contratoDaOferta(n.oferta, hoje, fim), salary: n.oferta.salario, morale: moral((p.morale ?? 50) + MORAL_AO_ACEITAR) }
+      ? { ...p, contract: contratoDaOferta(n.oferta, hoje, fim, p.contract?.releaseClause), salary: n.oferta.salario, morale: moral((p.morale ?? 50) + MORAL_AO_ACEITAR) }
       : { ...p, morale: moral((p.morale ?? 50) + MORAL_AO_RECUSAR) };
     lista = lista.map(x => (x.id === p.id ? novo : x));
     respostas.push({ negociacao: n, aceitou, jogador: novo, chance });
