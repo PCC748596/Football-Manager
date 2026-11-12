@@ -8264,6 +8264,21 @@ class FootballPlayer {
                     const lateral = interX - gkCorpo.position.x;
                     this.gkTempoMergulho = 0;
                     this.gkAlvoX = interX;
+                    /*
+                    NA DEFESA DESENHADA DA FALTA ELE ANDA PARA O LADO ENQUANTO ESPERA.
+
+                    O `gkAlvoX` nao o desloca: quem o move de pe e o `alvoGkX`, e
+                    este ramo nunca o escrevia — ele ficava parado ate a hora do
+                    mergulho. Medido nas defesas que o recurso da linha ainda
+                    resolvia: parado a 3.3 m da bola (ate 4.9 m, quando a montagem o
+                    pos no outro canto), uma distancia que o voo e o braco nao
+                    cobrem. Vai ate `aproximacaoFalta` do ponto, e o mergulho faz o resto.
+                    */
+                    if (planoF && this.isPenaltyDive && typeof planoF.tCruzamento === 'number' &&
+                        (planoF.desfecho === 'defesa' || planoF.desfecho === 'defesa_fora')) {
+                        const folga = (GoalkeeperDive.aproximacaoFalta || 1.5);
+                        if (Math.abs(lateral) > folga) alvoGkX = interX - Math.sign(lateral) * folga;
+                    }
 
                     /*
                     E SO SE ATIRA QUANDO A BOLA JA VEM AO ALCANCE DO SALTO.
