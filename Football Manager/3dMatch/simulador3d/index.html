@@ -385,6 +385,13 @@
                 </div>
 
                 <hr class="linha-sep">
+                <!-- No manager o painel da esquerda nao aparece (ponte.js): o Champion tambem fica aqui, no painel de debug (o da direita, visivel em tela cheia). -->
+                <label>Fim de jogo</label>
+                <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
+                    <button type="button" class="btn-sector" id="btn-champion-debug" onclick="ComemoracaoCampeao.simularFimDeJogo()">Champion</button>
+                </div>
+
+                <hr class="linha-sep">
                 <label>Simulação em lote (sem ecrã)</label>
                 <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
                     <div style="display: flex; gap: 6px;">
