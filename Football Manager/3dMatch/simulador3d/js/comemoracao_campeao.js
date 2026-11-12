@@ -520,6 +520,15 @@ const ComemoracaoCampeao = {
             return;   // o `animateBones` ja pos as maos na cabeca (aplicarQuaseGolo)
         }
         const k = this._suave((s.tParado = (s.tParado || 0) + dt) / (s.variante === 'sentado' ? 1.2 : 0.8));
+        /*
+        SENTADO, NA MESMA POSE DO LESIONADO A ESPERA DA MACA (pedido: *"os jogadores sentados depois do final do campeonato tem que estar na mesma posicao sentada do INJ"*):
+        a pose sentada da maca (Maca._poseDoente, k 0..1: de pe -> sentado no relvado), no sitio onde ele parou e com o rumo que trazia.
+        */
+        if (s.variante === 'sentado' && typeof Maca !== 'undefined' && Maca._poseDoente) {
+            if (!s.ancSentado) { const pv = new THREE.Vector3(); if (p.rig && p.rig.pelvis) p.rig.pelvis.getWorldPosition(pv); else pv.copy(p.model.position); s.ancSentado = { x: pv.x, z: pv.z }; }
+            Maca._poseDoente(p, k, s.ancSentado, (typeof ALTURA_BASE_Y === 'number') ? ALTURA_BASE_Y : 0, s.yaw);
+            return;
+        }
         const alvo = s.variante === 'joelhos' ? PS.joelhos : s.variante === 'sentado' ? PS.sentadoRelva : s.variante === 'olhar' ? PS.olhar : PS.cintura;
         const P = p.fsm._poseMistura(PS.dePe, alvo, k);
         p.fsm._escreverPoseComemorar(P);
@@ -869,6 +878,7 @@ const ComemoracaoCampeao = {
             if (p.velocity) p.velocity.set(0, 0, 0);
             if (p.model && typeof ALTURA_BASE_Y === 'number') p.model.position.y = ALTURA_BASE_Y;
             if (p.resetBonesToDefault) p.resetBonesToDefault();
+            if (p.model && s.ancSentado) { p.model.rotation.order = 'XYZ'; p.model.rotation.set(0, s.yaw || 0, 0); }   // a pose sentada da maca muda a ordem do Euler
         }
         this._tirarTaca();
         this._tirarConfetis();
