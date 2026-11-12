@@ -32,7 +32,7 @@ test('1 — SetPiecePrazos existe e tem todos os valores canónicos', () => {
     assert.strictEqual(SetPiecePrazos.falta, 20.0, 'prazo da falta é 20s');
     assert.strictEqual(SetPiecePrazos.penalti, 15.0, 'prazo do penálti é 15s');
     assert.strictEqual(SetPiecePrazos.lateral, 15.0, 'prazo do lateral é 15s');
-    assert.strictEqual(SetPiecePrazos.tiroDeMeta, 20.0, 'prazo do tiro de meta é 20s');
+    assert.strictEqual(SetPiecePrazos.tiroDeMeta, 17.0, 'prazo do tiro de meta é 17s');
 });
 
 test('2 — match_loop.js lê SetPiecePrazos em todos os 5 timeouts de bola parada', () => {
