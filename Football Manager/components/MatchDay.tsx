@@ -12,6 +12,7 @@ import Simulador3DView, { simulador3dArrancou, simulador3dReinicios, simulador3d
 import { taticaParaMotor, taticaDoMotor } from '../3dMatch/simulador3dCliente';
 import { COUNTRIES } from '../textSim/dataGenerator';
 import { ligaDoClube } from '../textSim/competitions';
+import { campeaoDoJogo } from '../textSim/titulo';
 import PenaltyOrderView from './PenaltyOrderView';
 import MatchPreviewModal from './MatchPreviewModal';
 import { emCampo, mesclarOrdem, ordemDaCpu, disputa3dDaSessao, limparDisputa3d, aoReuniao, aoConfirmarOrdem, aoCobranca, mensagemDoCard } from '../3dMatch/disputa3d';
@@ -389,7 +390,7 @@ const MatchDay: React.FC<MatchDayProps> = ({ setView }) => {
                 );
              })() : null}
              <div className="absolute inset-0 w-full h-full">
-                <Simulador3DView periodo={horaDoJogo(match.date, match.id).periodo} clima={homeTeam ? condicaoDoClima(getWeatherForMatch(match.date, match.id, homeTeam.country).icon) : undefined} retomar={retomarRef.current} competicao={nomeCompeticao} tabela={tabelaDosDois} amistoso={!!(match.isFriendly || match.type === 'FRIENDLY')} qualidade={gameState.graphicsQuality || 'HIGH'} cameraTvMin={gameState.cameraTvMin} cameraTvMax={gameState.cameraTvMax} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} decisao={decisaoDoJogoDeHoje()} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx} kitGkCasa={gameState.matchVisual?.gkHomeKit} kitGkFora={gameState.matchVisual?.gkAwayKit} trajeArbitro={gameState.matchVisual?.arbitroTraje}
+                <Simulador3DView periodo={horaDoJogo(match.date, match.id).periodo} clima={homeTeam ? condicaoDoClima(getWeatherForMatch(match.date, match.id, homeTeam.country).icon) : undefined} retomar={retomarRef.current} competicao={nomeCompeticao} tabela={tabelaDosDois} amistoso={!!(match.isFriendly || match.type === 'FRIENDLY')} qualidade={gameState.graphicsQuality || 'HIGH'} cameraTvMin={gameState.cameraTvMin} cameraTvMax={gameState.cameraTvMax} casa={homeTeam} fora={awayTeam} players={players} userTeamId={gameState.userTeamId} decisao={decisaoDoJogoDeHoje()} campeao={campeaoDoJogo(decisaoDoJogoDeHoje(), teams, fixtures, match)} chave={chave3d + '#' + reinicios} kitCasa={gameState.matchVisual?.kitHomeIdx} kitFora={gameState.matchVisual?.kitAwayIdx} kitGkCasa={gameState.matchVisual?.gkHomeKit} kitGkFora={gameState.matchVisual?.gkAwayKit} trajeArbitro={gameState.matchVisual?.arbitroTraje}
                     iniciar={iniciou} pausado={iniciou && !gameState.isProcessing} aoPronto={() => setPronto3d(true)}
                     aoMensagem={(m) => {
                       // O aviso do goleiro expulso liga ANTES do ramo da expulsao abrir o Tactics (que desmonta este componente): a flag vive no GameContext e o TacticsView mostra-o.

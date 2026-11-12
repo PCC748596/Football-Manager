@@ -199,6 +199,9 @@
                     onclick="Match.celebracaoTeste('joelhos')">Celebration 1</button>
                 <button type="button" class="btn-sector" id="btn-celebration-3"
                     onclick="Match.celebracaoTeste('soco')">Soco no ar</button>
+                <!-- A festa de campeao (js/comemoracao_campeao.js): apita o fim e o time de casa festeja o titulo com a taca. -->
+                <button type="button" class="btn-sector" id="btn-celebration-campeao"
+                    onclick="ComemoracaoCampeao.testar('TeamA')">Champion</button>
             </div>
 
 
@@ -600,6 +603,7 @@
     <script src="js/estadio_oval.js"></script>
     <script src="js/config/estadios.js"></script>
     <script src="js/config/comemoracao.js"></script>
+    <script src="js/config/comemoracao_campeao.js"></script>
     <script src="js/config/balanco_corredores.js"></script>
     <script src="js/config/mando.js"></script>
     <script src="js/stats.js"></script>
@@ -675,6 +679,8 @@
     <script src="js/fsm.js"></script>
     <!-- O controlador das comemoracoes de golo (config/comemoracao.js; o estado COMEMORAR e do fsm.js) -->
     <script src="js/comemoracao.js"></script>
+    <!-- A comemoracao de campeao no fim do jogo que da o titulo (config/comemoracao_campeao.js; `Comemoracao.campeao('TeamA')` na consola) -->
+    <script src="js/comemoracao_campeao.js"></script>
     <script src="js/simulate.js"></script>
     <script src="js/minimap.js"></script>
     <script src="js/officials.js"></script>

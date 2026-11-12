@@ -60,6 +60,12 @@ Object.assign(Match, {
                     e.preventDefault();
                     return;
                 }
+                // Na festa de campeao o ESC acaba-a (segue a saida de campo do fim de jogo).
+                if (typeof ComemoracaoCampeao !== 'undefined' && ComemoracaoCampeao.activa) {
+                    ComemoracaoCampeao.terminar();
+                    e.preventDefault();
+                    return;
+                }
                 const R = window.MatchReplay;
                 if (R && R.isReplaying) {
                     R.stopReplay();
@@ -294,6 +300,9 @@ Object.assign(Match, {
         // A grua (8) segue a bola/batedor como no jogo: so ela escapa a camera da disputa (as outras dao a diagonal ou a de tras do batedor).
         if (typeof DisputaPenaltis !== 'undefined' && DisputaPenaltis.activa && window.cameraMode !== 'grua') {
             DisputaPenaltis.camera(targetPos, lookTarget);
+        } else if (typeof ComemoracaoCampeao !== 'undefined' && ComemoracaoCampeao.activa) {
+            // A festa de campeao tem a camara dela (js/comemoracao_campeao.js); o modo do utilizador nao muda, e volta sozinho no fim.
+            ComemoracaoCampeao.camera(targetPos, lookTarget);
         } else if (typeof Abertura !== 'undefined' && Abertura.activa && Abertura.modo !== 'segundo' && Abertura.modo !== 'intervalo') {
             Abertura.camera(targetPos, lookTarget);
         } else if (window.cameraMode === 'center') {

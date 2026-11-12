@@ -592,12 +592,16 @@ const DisputaPenaltis = {
         if (!this.activa || this.fase !== 'AGUARDA') return;
         // O lance ainda no desfecho, ou o goleiro ainda a cair do mergulho: a resposta (o proximo batedor ou o fim) espera o fim do desfecho e o `pausa.levantar`.
         if (this._levantar || (this._cobranca && this._cobranca.desfecho)) { this._proximaPendente = m; return; }
-        if (m.fim) { this.pens = m.pens || this.pens; this.fase = 'FIM'; this.t = 0; this._festaFinal(m); return; }
+        if (m.fim) { this.pens = m.pens || this.pens; this._vencedorFinal = m.vencedor || null; this.fase = 'FIM'; this.t = 0; this._festaFinal(m); return; }
         this._prepararCobranca(m);
     },
 
     _encerrar() {
         Ponte.enviar('disputa_fim', { pens: this.pens });
+        // O vencedor da disputa ('casa' | 'fora'): se o jogo dava o titulo, e ele o campeao (Match.campeaoDoJogo, js/comemoracao_campeao.js).
+        const pn = this.pens || [0, 0];
+        Match.vencedorPenaltis = this._vencedorFinal || (pn[0] > pn[1] ? 'casa' : pn[1] > pn[0] ? 'fora' : null);
+        this._vencedorFinal = null;
         this._libertar();
         Match.encerrarJogo();
     },

@@ -15,12 +15,32 @@ Object.assign(Match, {
         if (typeof EfeitosSonoros !== 'undefined') { try { EfeitosSonoros.apito(1.0); } catch (e) { /* sem som */ } }
         this.mudarEstado('FIM_DE_JOGO', 'apito_final');
         this.pararTodos();
+        // A COMEMORACAO DE CAMPEAO (js/comemoracao_campeao.js; pedido: "todos os jogadores juntos no centro do campo, pulando e levantando a taca"): se este jogo deu o
+        // titulo, a festa fica agendada para depois do sinal do juiz, e o modal e a saida de campo esperam por ela (ComemoracaoCampeao._seguirFimDeJogo). Nunca nos lotes.
+        const festa = (typeof ComemoracaoCampeao !== 'undefined') && ComemoracaoCampeao.agendarNoApito();
         // As estatisticas totais e a classificacao no fim do jogo (os mesmos paineis do intervalo).
-        try { if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(true, 'FIM DE JOGO'); } catch (e) { console.warn('[fim de jogo] modal:', e); }
+        if (!festa) { try { if (typeof mostrarModalIntervalo === 'function') mostrarModalIntervalo(true, 'FIM DE JOGO'); } catch (e) { console.warn('[fim de jogo] modal:', e); } }
         // O juiz APITA o fim (acima) e APONTA PARA O CENTRO DO CAMPO; so depois os 22 e o trio saem de campo, pelo vao da placa (como no intervalo).
         if (typeof Officials !== 'undefined' && Officials.sinalizar && typeof RefereeModel !== 'undefined') Officials.sinalizar(0, 0, RefereeModel.elevacaoSinal);
-        const sair = () => { if (Match.state === 'FIM_DE_JOGO' && typeof Abertura !== 'undefined' && Abertura.saidaIntervalo) Abertura.saidaIntervalo(); };
+        if (festa) return;
+        const sair = () => { if (Match.state === 'FIM_DE_JOGO' && !(typeof ComemoracaoCampeao !== 'undefined' && ComemoracaoCampeao.emCurso()) && typeof Abertura !== 'undefined' && Abertura.saidaIntervalo) Abertura.saidaIntervalo(); };
         if (typeof Sim !== 'undefined' && Sim.running) sair(); else setTimeout(sair, ((typeof RefereeModel !== 'undefined' && RefereeModel.duracaoSinal) || 2.5) * 1000 + 300);
+    },
+
+    /*
+    QUEM E CAMPEAO COM ESTE JOGO ('TeamA' | 'TeamB' | null). `Match.campeao` vem do manager no `iniciar` (ver js/narracao/ponte.js):
+    { seVencer: 'casa' | 'fora' | 'qualquer', seEmpatar?: 'casa' | 'fora' }. O vencedor conta com o agregado do confronto (`Match.decisao`, ida e volta) e,
+    empatado, com a disputa de penaltis (`Match.vencedorPenaltis`, escrito por DisputaPenaltis._encerrar). A casa e sempre o TeamA.
+    */
+    campeaoDoJogo: function () {
+        const c = this.campeao;
+        if (!c) return null;
+        const d = this.decisao;
+        const a = this.placarA + ((d && d.agregadoCasa) || 0), b = this.placarB + ((d && d.agregadoFora) || 0);
+        let lado = a > b ? 'casa' : b > a ? 'fora' : (this.vencedorPenaltis || null);
+        if (lado) { if ((c.seVencer || 'qualquer') !== 'qualquer' && c.seVencer !== lado) lado = null; }
+        else if (c.seEmpatar === 'casa' || c.seEmpatar === 'fora') lado = c.seEmpatar;
+        return lado === 'casa' ? 'TeamA' : lado === 'fora' ? 'TeamB' : null;
     },
 
     /*
@@ -215,6 +235,9 @@ Object.assign(Match, {
 
     correrPausaDeJogo: function (dt) {
         if (((this.state === 'INTERVALO' && this.intervaloComSaida) || this.state === 'FIM_DE_JOGO') && typeof Abertura !== 'undefined' && Abertura.activa) Abertura.update(dt);
+        // A comemoracao de campeao (js/comemoracao_campeao.js): o relogio do apito ate ao arranque, as fases e o guiao da taca.
+        const festaCampeao = this.state === 'FIM_DE_JOGO' && typeof ComemoracaoCampeao !== 'undefined' && ComemoracaoCampeao.emCurso();
+        if (festaCampeao) ComemoracaoCampeao.update(dt);
         this.players.forEach(p => p.update(dt));
         this.opponents.forEach(p => p.update(dt));
         if ((this.state === 'INTERVALO' && this.intervaloComSaida) || this.state === 'FIM_DE_JOGO') {   // no fim o juiz aponta o centro antes da saida: o `Officials.update` corre mesmo antes de a saida comecar
@@ -222,6 +245,8 @@ Object.assign(Match, {
             if (typeof Bancos !== 'undefined') Bancos.update(dt);
             if (typeof Staff !== 'undefined' && Staff.update) Staff.update(dt);   // a cabeca da imprensa segue a bola
         }
+        // Na festa do campeao a torcida dele vibra (Crowd.update le ComemoracaoCampeao.festaTorcida).
+        if (festaCampeao && typeof Crowd !== 'undefined' && !(typeof Config !== 'undefined' && Config.enableCrowd === false)) Crowd.update(dt);
         if (this.state !== 'INTERVALO') return;
         // Com saida de campo o tempo so conta depois de o campo estar vazio; e com o manager a mandar (Ponte.aoIntervaloPronto) o jogo espera
         // por ele: o treinador analisa e muda a equipa, e o 2.o tempo so sai quando o manager o pedir (`Ponte.segundoTempo`).

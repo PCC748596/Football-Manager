@@ -2116,8 +2116,8 @@ ${S.suave ? `
 
         // Aplausos: a toda a forca na entrada dos times; no resto do jogo o nivel de repouso.
 
-        // O golo da disputa de penaltis (DisputaPenaltis.festa) festeja-se como um golo, sem o estado GOAL.
-        const festaDisputa = (Match.disputa && Match.disputa.festa) || null;
+        // O golo da disputa de penaltis (DisputaPenaltis.festa) festeja-se como um golo, sem o estado GOAL. A festa de campeao (js/comemoracao_campeao.js) tambem.
+        const festaDisputa = (Match.disputa && Match.disputa.festa) || (typeof ComemoracaoCampeao !== 'undefined' && ComemoracaoCampeao.festaTorcida()) || null;
         const r = CrowdTrigger.avaliar({
             abertura: abertura,
             estado: festaDisputa ? 'GOAL' : Match.state,

@@ -247,6 +247,7 @@ const AmbienteSonoro = {
     volumeAlvo() {
         if (typeof Crowd === 'undefined' || !Crowd._frac) return this.volumeRepouso;
         if (typeof Match !== 'undefined' && ((Match.state === 'GOAL' && !Match.semFestaDeGolo) || (Match.disputa && Match.disputa.festa))) return this.volumeGolo;
+        if (typeof ComemoracaoCampeao !== 'undefined' && ComemoracaoCampeao.activa) return this.volumeGolo;   // a festa de campeao
 
         const maior = Math.max(Crowd._frac.A || 0, Crowd._frac.B || 0);
         const repouso = (typeof CrowdModel !== 'undefined') ? CrowdModel.fraccaoRepouso : 0.08;

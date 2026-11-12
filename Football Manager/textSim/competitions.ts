@@ -619,7 +619,7 @@ export const disputaPendente = (comps: Competition[] | null, userTeamId: string)
 };
 
 /** O que o 3D precisa saber ANTES do jogo para decidir se o empate vai a penaltis: este jogo fecha um confronto (jogo unico ou ida e volta, na volta) e o agregado dos jogos anteriores. */
-export interface DecisaoDoJogo { compId: string; matchId: string; agregadoCasa: number; agregadoFora: number; /** Empatado no agregado, o 3D joga a prorrogacao antes dos penaltis (Carabao Cup: final e 2.o jogo das meias). */ prorrogacao?: boolean; }
+export interface DecisaoDoJogo { compId: string; matchId: string; agregadoCasa: number; agregadoFora: number; /** Empatado no agregado, o 3D joga a prorrogacao antes dos penaltis (Carabao Cup: final e 2.o jogo das meias). */ prorrogacao?: boolean; /** O jogo que fecha a FINAL: quem o ganhar (agregado e penaltis) e campeao — o 3D faz a festa de campeao no fim (ver textSim/titulo.ts). */ titulo?: boolean; }
 export const decisaoDoConfronto = (comps: Competition[] | null, fixtureId: string): DecisaoDoJogo | null => {
   if (!comps || !fixtureId.startsWith('fix-cup-')) return null;
   const matchId = fixtureId.slice('fix-cup-'.length);
@@ -632,7 +632,7 @@ export const decisaoDoConfronto = (comps: Competition[] | null, fixtureId: strin
     if ((m.leg || 1) !== ultimaPerna) return null;
     const antes = irmaos.filter(x => x.id !== m.id && x.played);
     const golsDe = (key: string) => antes.reduce((s, x) => s + (x.homeKey === key ? (x.homeScore || 0) : x.awayKey === key ? (x.awayScore || 0) : 0), 0);
-    return { compId: c.id, matchId: m.id, agregadoCasa: golsDe(m.homeKey), agregadoFora: golsDe(m.awayKey), ...(c.id === 'CARABAO' && (m.stage === 'F' || m.stage === 'SF') ? { prorrogacao: true } : {}) };
+    return { compId: c.id, matchId: m.id, agregadoCasa: golsDe(m.homeKey), agregadoFora: golsDe(m.awayKey), ...(c.id === 'CARABAO' && (m.stage === 'F' || m.stage === 'SF') ? { prorrogacao: true } : {}), ...(m.stage === 'F' ? { titulo: true } : {}) };
   }
   return null;
 };
