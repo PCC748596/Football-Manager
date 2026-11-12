@@ -381,6 +381,14 @@
                         Fluxograma (nova aba)</button>
                 </div>
 
+                <!-- A MACA (js/maca.js): teste manual — um jogador da CPU sai na maca (com o jogo a correr marca-se uma falta). Na consola: Maca.levar(jogador). -->
+                <label>Maca</label>
+                <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
+                    <button type="button" class="btn-sector" id="btn-maca-teste" onclick="Maca.teste()">Maca (teste)</button>
+                    <!-- Lesao grave em quem tem a bola: cai, o juiz para o jogo e a maca entra (Maca.lesaoGrave, js/maca.js). -->
+                    <button type="button" class="btn-sector" id="btn-injury" onclick="Maca.lesaoGrave()">Injury</button>
+                </div>
+
                 <hr class="linha-sep">
                 <label>Simulação em lote (sem ecrã)</label>
                 <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
@@ -602,6 +610,7 @@
     <script src="js/config/comemoracao.js"></script>
     <script src="js/config/balanco_corredores.js"></script>
     <script src="js/config/mando.js"></script>
+    <script src="js/config/maca.js"></script>
     <script src="js/stats.js"></script>
     <script src="js/ratings/notas_config.js"></script>
     <script src="js/ratings/notas_motor.js"></script>
@@ -685,6 +694,7 @@
     <script src="js/tunel.js"></script>
     <script src="js/abertura.js"></script>
     <script src="js/disputa_penaltis.js"></script>
+    <script src="js/maca.js"></script>
     <!-- Adeptos com o modelo dos jogadores, quatro InstancedMesh (um por canal
          de cor). Pode vir depois do match.js: o `Crowd` só é tocado em runtime,
          dentro do createField, que corre no DOMContentLoaded do main.js. Usa o
