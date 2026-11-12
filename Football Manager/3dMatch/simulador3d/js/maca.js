@@ -293,6 +293,39 @@ const Maca = {
     },
     teste: function () { return this.levar(null, { pararJogo: true }); },
 
+    /*
+    BOTAO "Injury" (debug): pedido *"vai simular um jogador com lesao grave: o jogador que estiver com a bola vai cair com contusao grave e vai iniciar a retirada com a
+    maca"*. Quem tem a bola (sem ela, o jogador de linha mais perto da bola; nunca o guarda-redes) cai (`iniciarQueda`, a queda das faltas), leva uma lesao COMPLEXA
+    no estado Forced (MatchInjuries.aplicar: o departamento medico regista e o manager recebe o aviso `lesao`) e o juiz para o jogo com falta para o time dele
+    (quem esta caido nao bate). A maca entra nessa parada (levar). Devolve true se ficou combinado.
+    */
+    lesaoGrave: function () {
+        if (typeof Match === 'undefined' || !Match.players || !Match.ball) return false;
+        let P = Match.ballCarrier;
+        if (!P || P.role === 'gk' || !P.model) {
+            const b = Match.ball.position;
+            P = [].concat(Match.players, Match.opponents).filter(q => q && q.model && q.role !== 'gk' && !q.expulso && !q._naMaca && Match._elegivel(q))
+                .sort((a, c) => a.model.position.distanceTo(b) - c.model.position.distanceTo(b))[0] || null;
+        }
+        if (!P) { console.warn('Maca: nenhum jogador para a lesao grave'); return false; }
+        const time = P.team;
+        // A lesao: uma das COMPLEXAS (injury_database.js), sempre Forced (sai de maca).
+        if (typeof MatchInjuries !== 'undefined' && typeof INJURY_DATABASE !== 'undefined' && !P.lesao) {
+            const graves = INJURY_DATABASE.filter(l => l.tipo === 'Complexa');
+            const lesao = graves[Math.floor(Math.random() * graves.length)] || INJURY_DATABASE[0];
+            try { MatchInjuries.aplicar(P, lesao, 'Forced', 'debug'); } catch (e) { console.warn('Maca: lesao nao registada', e); }
+        }
+        // Cai (a queda da falta): larga a bola e nao e escolhido para bater a falta.
+        if (Match.ballCarrier === P) Match.ballCarrier = null;
+        P.hasBall = false;
+        if (typeof P.iniciarQueda === 'function') P.iniciarQueda(null);
+        // O jogo para ja: falta para o time do lesionado (a bola era dele), no sitio da bola.
+        if (Match.state === 'PLAY' && Match.setupSetPiece) Match.setupSetPiece('FREE_KICK', time);
+        const ok = this.levar(P, { pararJogo: false });
+        console.log('Maca: lesao grave em ' + time + ' ' + P.pos + ' #' + P.num + (P.lesao && P.lesao.reg ? ' (' + P.lesao.reg.nomeLesao + ')' : ''));
+        return ok;
+    },
+
     // Para o teste: um jogador de linha da CPU (o time que nao e do utilizador), fora do lance, o mais longe da bola (nao esta na barreira).
     _escolherParaTeste: function () {
         const time = Match.ladoDoUtilizador === 'fora' ? Match.players : Match.opponents;
