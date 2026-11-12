@@ -72,8 +72,8 @@ export const SIM_CONFIG = {
    * os lances por igual, mas no futebol real os times se abrem, cansam e quem
    * está perdendo se lança — ~40% dos gols saem depois dos 60 minutos.
    */
-  /** Queda base de preparo por minuto, para um jogador de Stamina 80 (a de referencia). 0.5486: um jogador de linha de Stamina 80 que joga os 90 min perde ~45 pontos de Energia (era 0.4995 e ~41, sem a Stamina). */
-  baseFatiguePerMinute: 0.5486,
+  /** Queda base de preparo por minuto, para um jogador de Stamina 80 (a de referencia). 0.4937 (12/11/2026, pedido: 10% menos desgaste na partida; era 0.5486): um jogador de linha de Stamina 80 que joga os 90 min perde ~40 pontos de Energia em vez de ~45. */
+  baseFatiguePerMinute: 0.4937,
   /** Stamina de referencia: com ela o desgaste e o da formula. Mais Stamina desgasta menos, menos Stamina desgasta mais (referencia / Stamina). */
   staminaReferencia: 80,
   /** Teto do multiplicador tático sobre o desgaste. */
