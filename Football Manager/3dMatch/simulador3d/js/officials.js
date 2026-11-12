@@ -43,6 +43,8 @@ const RefereeModel = {
     */
     diagonalX: 0.68,
     diagonalZ: 0.75,
+    // TIRO DE META: o juiz fica na diagonal a esta fraccao da meia-distancia do meio-campo a baliza, do lado de quem bate (0.2 = 10 m para dentro desse meio-campo). Ver pontoDoArbitro.
+    tiroDeMeta: { fracaoZ: 0.2 },
 
     /*
     A COROA À VOLTA DA BOLA — entre que dois raios o árbitro vive.
@@ -1736,6 +1738,19 @@ const Officials = {
             const meiaArea = (typeof Area !== 'undefined' && Area.meiaLargura) ? Area.meiaLargura : 20.16;
             const profArea = (typeof Area !== 'undefined' && Area.profundidade) ? Area.profundidade : 16.5;
             return { x: -lado * (meiaArea + CF.folgaX), z: linhaGol - attDir * (profArea + CF.folgaZ) };
+        }
+
+        /*
+        NO TIRO DE META, PERTO DO MEIO-CAMPO (pedido: *"na hora do tiro de meta o juiz fica mais para o meio de campo, nao fica perto da area"*): a coroa a volta da bola
+        punha-o a 20-25 m da baliza, ao pe da area. Fica no ponto da DIAGONAL dele a `tiroDeMeta.fracaoZ` do meio-campo para o lado de quem bate (onde a bola cai), e e
+        para la que ele vai enquanto o lance se monta.
+        */
+        if (typeof Match !== 'undefined' && Match.state === 'GOAL_KICK' && R.tiroDeMeta) {
+            const T = R.tiroDeMeta;
+            const ladoBola = Math.sign(bola.z) || 1;                       // a baliza de onde sai o tiro de meta
+            const z = ladoBola * (CAMPO_COMP / 2) * T.fracaoZ;
+            const xDiag = (R.diagonalZ ? (z / ((CAMPO_COMP / 2) * R.diagonalZ)) * (CAMPO_LARG / 2) * R.diagonalX : 0);
+            return { x: THREE.MathUtils.clamp(xDiag, -(CAMPO_LARG / 2 - 4), CAMPO_LARG / 2 - 4), z: z };
         }
 
         const ax = -(CAMPO_LARG / 2) * R.diagonalX, az = -(CAMPO_COMP / 2) * R.diagonalZ;
