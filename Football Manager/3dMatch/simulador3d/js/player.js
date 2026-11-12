@@ -3017,6 +3017,67 @@ class FootballPlayer {
     runBehaviorTree(dt = 1 / 60) {
         PlayerAI.tick(this, dt);
         this.prenderAoPostoDaTabela();
+        this.ajusteFino(dt);
+    }
+
+    /*
+    NINGUEM FICA PARADO EM JOGO (pedido: *"o jogador tinha que ter um estado STAND_WAIT: 1, 2 ou 3 passos para a frente, 1, 2 ou 3 para tras; nenhum jogador fica parado
+    durante um jogo"*). Nao e um estado novo da FSM (cada sitio que decide "parado" teria de o conhecer, e uma fronteira nova parado/a andar e o que faz tremer): e um
+    desvio do ALVO de quem ja chegou ao sitio e nao tem tarefa. Com o alvo a menos de `AjusteFino.chegou` m, ele da 1 a 3 passos (`passo` m cada) para a frente ou para
+    tras (as vezes de lado), a passo (`vel` m/s), pausa `pausa` s e volta; cada um no seu ritmo. Perto do alvo o corpo fica virado para a bola (o steerArrive) e os
+    passos saem de lado/de costas. O desvio soma-se ao alvo que a arvore escreveu neste frame (e tira-se o do frame anterior, se ela nao o reescreveu).
+    Fora: o guarda-redes, quem tem a bola, o destinatario, o perseguidor e o intercetor, quem espera um passe ou esta sob a bola no ar, quem sai numa troca ou na maca,
+    a saida de bola, os lances parados; o atacante nunca passa da linha que le (fora de jogo). So no jogo visivel (nos lotes nao muda nada).
+    */
+    ajusteFino(dt) {
+        const A = (typeof AjusteFino !== 'undefined') ? AjusteFino : null;
+        const af = this._af || (this._af = { ox: 0, oz: 0, alvoX: 0, alvoZ: 0, fase: 'pausa', t: Math.random() * 1.5, dur: 0, ultX: null, ultZ: null, rawX: 0, rawZ: 0 });
+        // O alvo "cru" deste frame: o que a arvore escreveu, ou o de antes se ela nao o tocou (o dynamicTarget ainda e o que ficou com o desvio).
+        const dt0 = this.dynamicTarget;
+        if (af.ultX !== null && Math.abs(dt0.x - af.ultX) < 1e-6 && Math.abs(dt0.z - af.ultZ) < 1e-6) { af.rawX = af.rawX; af.rawZ = af.rawZ; }
+        else { af.rawX = dt0.x; af.rawZ = dt0.z; }
+        const desligar = () => { af.ox = 0; af.oz = 0; af.alvoX = 0; af.alvoZ = 0; af.fase = 'pausa'; af.t = 0.4 + Math.random(); af.ultX = null; };
+        if (!A || !A.activo || (typeof Sim !== 'undefined' && Sim.running) || typeof Match === 'undefined' || Match.state !== 'PLAY' || Match.kickoffActive) { desligar(); return; }
+        const s = this.fsm && this.fsm.currentState;
+        const bb = (typeof TeamAI !== 'undefined') ? TeamAI.get(this.team) : null;
+        const ocupado = this.role === 'gk' || this.hasBall || s !== 'MOVE_TO_POS' || this.subSaindo || this._naMaca || this.queda || this.campeaoOrdem ||
+            Match.ballCarrier === this || Match.intendedReceiver === this || Match.chaserA === this || Match.chaserB === this ||
+            (bb && (bb.chaser === this || bb.intercetor === this || bb.blocker === this)) || this._esperaRecepcao ||
+            // `_sobAPonto` (o cabeceio) fica ligado depois de a bola cair: so conta com a bola no ar.
+            (this._sobAPonto && Match.ball && Match.ball.position.y > 1.0);
+        const dx = this.model.position.x - af.rawX, dz = this.model.position.z - af.rawZ;
+        if (ocupado || Math.hypot(dx, dz) > A.chegou + Math.hypot(af.ox, af.oz)) { desligar(); return; }
+        // A maquina: pausa -> escolhe 1-3 passos para a frente/tras (as vezes de lado) -> anda -> pausa -> volta ao sitio -> ...
+        af.t -= dt;
+        if (af.t <= 0) {
+            if (af.fase === 'pausa' && (af.alvoX !== 0 || af.alvoZ !== 0) && Math.random() < A.voltarChance) { af.alvoX = 0; af.alvoZ = 0; af.fase = 'anda'; }
+            else if (af.fase === 'pausa') {
+                const n = 1 + Math.floor(Math.random() * 3), sinal = Math.random() < 0.5 ? -1 : 1;
+                const lado = Math.random() < A.ladoChance;
+                const dist = n * A.passo * sinal;
+                // Para a frente/tras e no eixo do campo (o sentido do ataque); de lado, no outro.
+                af.alvoX = lado ? dist : (Math.random() * 2 - 1) * A.passo * 0.3;
+                af.alvoZ = lado ? (Math.random() * 2 - 1) * A.passo * 0.3 : dist * this.dirZ;
+                af.fase = 'anda';
+            }
+            af.t = af.fase === 'anda' ? 3 : A.pausa[0] + Math.random() * (A.pausa[1] - A.pausa[0]);
+        }
+        if (af.fase === 'anda') {
+            const ex = af.alvoX - af.ox, ez = af.alvoZ - af.oz, e = Math.hypot(ex, ez), p = A.vel * dt;
+            if (e <= p) { af.ox = af.alvoX; af.oz = af.alvoZ; af.fase = 'pausa'; af.t = A.pausa[0] + Math.random() * (A.pausa[1] - A.pausa[0]); }
+            else { af.ox += ex / e * p; af.oz += ez / e * p; }
+        }
+        let tx = af.rawX + af.ox, tz = af.rawZ + af.oz;
+        // O atacante nao passa da linha de fora de jogo que le.
+        if (typeof linhaLidaPor === 'function') {
+            const linha = linhaLidaPor(this);
+            if (linha !== null && linha !== undefined && tz * this.dirZ > linha - 0.3 && tz * this.dirZ > af.rawZ * this.dirZ) tz = af.rawZ;
+        }
+        dt0.x = tx; dt0.z = tz;
+        af.ultX = tx; af.ultZ = tz;
+        // A passo: so quando ja esta no sitio (o desvio e pequeno); nao trava quem ainda corre para la.
+        const escala = (typeof VelocidadeHumana !== 'undefined' && VelocidadeHumana.escala) || 1;
+        if (Math.hypot(dx, dz) < A.chegou) this.speedMult = Math.min(this.speedMult, A.vel * 1.4 / escala);
     }
 
     /*

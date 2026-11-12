@@ -2511,3 +2511,18 @@ const VelocidadeDefesa = {
     folgaIntercepcao: 1.2, minIntercepcao: 3.0
 };
 if (typeof window !== 'undefined') window.VelocidadeDefesa = VelocidadeDefesa;
+
+/*
+O AJUSTE FINO DE QUEM JA ESTA NO SITIO (FootballPlayer.ajusteFino, player.js): 1 a 3 passos de `passo` m para a frente ou para tras (de lado com `ladoChance`),
+a `vel` m/s, pausas de `pausa` s; `voltarChance` de voltar ao sitio numa pausa. So com o alvo a menos de `chegou` m. Pedido: "nenhum jogador fica parado durante um jogo".
+*/
+const AjusteFino = {
+    activo: true,
+    chegou: 2.5,   // 1.2 -> 2.5: quem para no sitio fica ate ~2 m do alvo (a chegada do steerArrive), e com 1.2 o ajuste quase nunca ligava
+    passo: 0.55,
+    vel: 1.1,
+    pausa: [0.3, 1.0],
+    ladoChance: 0.3,
+    voltarChance: 0.6
+};
+if (typeof window !== 'undefined') window.AjusteFino = AjusteFino;

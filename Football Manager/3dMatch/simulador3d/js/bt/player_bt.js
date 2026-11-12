@@ -3238,13 +3238,26 @@ function actReceivePass(ctx) {
                 */
                 const atritoR = BallPhysics.atritoRolamento * BallPhysics.gravidade;
                 const chegaAosPes = (vel * vel) / (2 * atritoR) >= aoLongo + (R0.folgaChegada || 0.5);
-                if (chegaAosPes && aoLongo > (R0.distIniciaMovimento || 2.5) &&
+                /*
+                COM HISTERESE (relato: *"os jogadores ficam sacudindo porque estao mudando de MOVE_TO_POS para IDLE quase no mesmo lugar"*). Medido no jogo visivel: 21
+                episodios em 300 s, todos aqui, com o jogador entre 1.9 e 2.6 m da bola — a fronteira dos 2.5 m (`distIniciaMovimento`) que ele cruzava para os dois
+                lados a cada frame. Quem ja espera continua ate `histereseEspera` m mais perto; quem saiu da espera nao volta a ela durante `travaEspera` s (o juiz ja
+                tinha a mesma folga, `paradoNoAlvo`).
+                */
+                const agoraE = (typeof tempoSimulado === 'function') ? tempoSimulado() : 0;
+                const aEsperar = p._esperaRecepcao && p.fsm.currentState === 'IDLE';
+                const limiteE = (R0.distIniciaMovimento || 2.5) - (aEsperar ? (R0.histereseEspera || 0.6) : 0);
+                const travado = !aEsperar && p._esperaSaiu !== undefined && agoraE - p._esperaSaiu < (R0.travaEspera || 0.8) && agoraE >= p._esperaSaiu;
+                if (!travado && chegaAosPes && aoLongo > limiteE &&
                     lateral <= R0.desvioDirecto) {
                     p.velocity.set(0, 0, 0);
                     p.fsm.changeState('IDLE');
+                    p._esperaRecepcao = true;
                     lookAtBola(p.model, bola);
                     return;
                 }
+                if (aEsperar) p._esperaSaiu = agoraE;
+                p._esperaRecepcao = false;
             }
         }
 
