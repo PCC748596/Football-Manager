@@ -1469,7 +1469,7 @@ Object.assign(Match, {
             */
             this.golKickBolaAlvo = { x: bolaX, z: bolaZ };
             this.golKickAguardaChao = true;
-            this.golKickBolaAtraso = 3.0;
+            this.golKickBolaAtraso = 0.0;   // 3 -> 0: tiro de meta 3 s mais rapido (pedido)
 
             this.ballCarrier = null;
             this.golKickProntos = false;

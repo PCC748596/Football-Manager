@@ -3048,7 +3048,19 @@ trajectória a que este jogador consegue chegar a tempo.
 function actIntercept(ctx) {
     const p = ctx.p;
     const ponto = ctx.pontoIntercepcao || Match.ball.position;
-    p.speedMult = (5.8 + ((ctx.skillSpeed - 50) / 50) * 1.5) * 1.25 * 0.9;
+    const sprintI = (5.8 + ((ctx.skillSpeed - 50) / 50) * 1.5) * 1.25 * 0.9;
+    /*
+    A VELOCIDADE QUE CHEGA, nao o sprint sempre (relato: *"a velocidade do jogador no marking e no intercept esta muito alta"*; medido: 6.0 m/s de media, 42% do tempo
+    acima de 7, mesmo a 3 m da bola). A percepcao da o tempo ate a bola passar no ponto (`timeToIntercept`): corre a distancia / esse tempo, com a folga
+    `VelocidadeDefesa.folgaIntercepcao`, entre `minIntercepcao` e o sprint de sempre. Valores em m/s reais (o steerArrive multiplica por VelocidadeHumana.escala).
+    */
+    const VD = (typeof VelocidadeDefesa !== 'undefined') ? VelocidadeDefesa : null;
+    const escalaH = (typeof VelocidadeHumana !== 'undefined' && VelocidadeHumana.escala) || 1;
+    const tI = p.blackboard && p.blackboard.ball ? p.blackboard.ball.timeToIntercept : null;
+    if (VD && VD.activo && typeof tI === 'number' && tI > 0.05) {
+        const precisa = Math.hypot(ponto.x - p.model.position.x, ponto.z - p.model.position.z) / tI * VD.folgaIntercepcao;
+        p.speedMult = THREE.MathUtils.clamp(precisa / escalaH, VD.minIntercepcao / escalaH, sprintI);
+    } else p.speedMult = sprintI;
     if (Match.counterAttackTeam === p.team) p.speedMult *= velContraAtaque(1.25, p.team);
     p.dynamicTarget.set(ponto.x, ALTURA_BASE_Y, ponto.z);
     p.fsm.changeState('INTERCEPT');
@@ -4145,6 +4157,21 @@ function actHoldPosition(ctx) {
     */
     if (p.markingTarget) {
         p.apoioAtivo = false;
+        /*
+        PERTO DO PONTO DA MARCACAO, ACOMPANHA O MARCADO (VelocidadeDefesa): o ritmo daqui e o do reposicionamento (escaloes pela distancia, sprint das zonas) e
+        punha o marcador a correr com o marcado a passo. A menos de `capPerto` m do ponto, no maximo a velocidade do marcado + `ganhoMarcacao` por metro que falta;
+        mais longe e recuperacao e fica o ritmo de sempre.
+        */
+        const VDz = (typeof VelocidadeDefesa !== 'undefined') ? VelocidadeDefesa : null;
+        const mt = p.markingTarget;
+        if (VDz && VDz.activo && mt.velocity && p.dynamicTarget) {
+            const falta = Math.hypot(p.dynamicTarget.x - p.model.position.x, p.dynamicTarget.z - p.model.position.z);
+            if (falta < VDz.capPerto) {
+                const escalaZ = (typeof VelocidadeHumana !== 'undefined' && VelocidadeHumana.escala) || 1;
+                const quer = Math.hypot(mt.velocity.x, mt.velocity.z) + VDz.ganhoMarcacao * Math.max(0, falta - VDz.folgaMarcacao);
+                p.speedMult = Math.min(p.speedMult, Math.max(quer, VDz.minMarcacao) / escalaZ);
+            }
+        }
         p.fsm.changeState('MARKING');
     } else if (ctx.bb && ctx.bb.blocker === p) {
         p.apoioAtivo = false;
@@ -4356,7 +4383,21 @@ function actMarcar(ctx) {
     }
 
     p.dynamicTarget.set(pontoX, ALTURA_BASE_Y, pontoZ);
-    p.speedMult = (5.8 + ((ctx.skillSpeed - 50) / 50) * 1.4) * 1.25 * 0.9;
+    const sprintM = (5.8 + ((ctx.skillSpeed - 50) / 50) * 1.4) * 1.25 * 0.9;
+    /*
+    O MARCADOR ACOMPANHA O MARCADO (relato: *"a velocidade do jogador no marking esta muito alta"*). Era o sprint sempre: medido, 5.7 m/s de media (mediana 6.9) com o
+    marcado a 2.4 m/s, e com o marcado quase parado o marcador ainda a mais de 5 m/s em metade do tempo. Agora: a velocidade do marcado mais `ganhoMarcacao` m/s por
+    metro que falta ao ponto da marcacao, entre `minMarcacao` e o sprint de sempre (em m/s reais; o steerArrive multiplica por VelocidadeHumana.escala).
+    */
+    const VDm = (typeof VelocidadeDefesa !== 'undefined') ? VelocidadeDefesa : null;
+    const alvoM = p.markingTarget || (ctx.marcado || null);
+    if (VDm && VDm.activo && alvoM && alvoM.velocity) {
+        const escalaM = (typeof VelocidadeHumana !== 'undefined' && VelocidadeHumana.escala) || 1;
+        const falta = Math.hypot(pontoX - p.model.position.x, pontoZ - p.model.position.z);
+        const vAlvo = Math.hypot(alvoM.velocity.x, alvoM.velocity.z);
+        const quer = vAlvo + VDm.ganhoMarcacao * Math.max(0, falta - VDm.folgaMarcacao);
+        p.speedMult = THREE.MathUtils.clamp(quer / escalaM, VDm.minMarcacao / escalaM, sprintM);
+    } else p.speedMult = sprintM;
     p.apoioAtivo = false;
     p.fsm.changeState('MARKING');
 }

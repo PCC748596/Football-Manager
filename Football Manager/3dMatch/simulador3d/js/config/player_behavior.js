@@ -2492,3 +2492,22 @@ adversario a frente (e o drible aplicavel) driblam em vez de buscar a saida de p
 */
 const AlaConduz = { activo: false, posicoes: ['LM', 'RM', 'LB', 'RB'], xLateral: 13.0, zonaMin: 0.0, espacoMin: 4.0, driblarAntes: true };
 if (typeof window !== 'undefined') window.AlaConduz = AlaConduz;
+
+/*
+=============================================================================
+A VELOCIDADE DE QUEM DEFENDE (player_bt.js: actIntercept e a marcacao)
+=============================================================================
+Relato: *"a velocidade do jogador no marking e no intercept esta muito alta"*. As duas corriam SEMPRE ao sprint (~6.5 m/s x VelocidadeHumana.escala). Medido em
+400 s: MARKING a 5.7 m/s de media (43% acima de 7) com o marcado a 2.4; INTERCEPT a 6.0 (42% acima de 7). Em m/s REAIS (antes da escala):
+    ganhoMarcacao   m/s a mais do que o marcado por metro que falta ao ponto da marcacao (acima de `folgaMarcacao` m)
+    minMarcacao     o minimo (a acompanhar devagar); o maximo e o sprint de sempre
+    folgaIntercepcao a velocidade que chega a tempo (distancia / timeToIntercept) vezes isto
+    minIntercepcao  o minimo a ir a bola
+*/
+const VelocidadeDefesa = {
+    activo: true,
+    ganhoMarcacao: 1.2, folgaMarcacao: 0.5, minMarcacao: 1.5,
+    capPerto: 8.0,   // a marcacao zonal (o rotulo MARKING do posicionamento) so acompanha o marcado a menos disto do ponto; mais longe e recuperacao (sprint)
+    folgaIntercepcao: 1.2, minIntercepcao: 3.0
+};
+if (typeof window !== 'undefined') window.VelocidadeDefesa = VelocidadeDefesa;
