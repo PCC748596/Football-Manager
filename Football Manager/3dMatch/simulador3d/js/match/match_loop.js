@@ -14,6 +14,7 @@ Object.assign(Match, {
         // O APITO PRIMEIRO: antes de tudo o resto, para um erro mais abaixo (modal, estatisticas) nao o deixar mudo.
         if (typeof EfeitosSonoros !== 'undefined') { try { EfeitosSonoros.apito(1.0); } catch (e) { /* sem som */ } }
         this.mudarEstado('FIM_DE_JOGO', 'apito_final');
+        this._fimNoRelogio = false;
         this.pararTodos();
         // A COMEMORACAO DE CAMPEAO (js/comemoracao_campeao.js; pedido: "todos os jogadores juntos no centro do campo, pulando e levantando a taca"): se este jogo deu o
         // titulo, a festa fica agendada para depois do sinal do juiz, e o modal e a saida de campo esperam por ela (ComemoracaoCampeao._seguirFimDeJogo). Nunca nos lotes.
@@ -49,6 +50,8 @@ Object.assign(Match, {
     `esperaMax` s de relogio do fim do acrescimo (para o jogo nao ficar sem fim). So vale nas partidas visiveis (fora dos lotes do `Sim`).
     */
     fimPermitido: function (fimComAcrescimo) {
+        // O botao Champion (ComemoracaoCampeao.simularFimDeJogo): o apito sai no minuto exacto, sem esperar a bola no meio-campo.
+        if (this._fimNoRelogio) return this.tempoDeJogo >= fimComAcrescimo;
         const F = MatchDuration.fimSeguro;
         if (!F || !F.activo || (typeof Sim !== 'undefined' && Sim.running) || !this.ball) return this.tempoDeJogo >= fimComAcrescimo;
         if (this.tempoDeJogo < fimComAcrescimo) return false;
@@ -59,7 +62,9 @@ Object.assign(Match, {
 
     verificarFimDeTempo: function () {
         if (this.disputa) return false;
-        if (this.state !== 'PLAY') return false;
+        // O botao Champion (`_fimNoRelogio`) acaba no minuto exacto tambem com a bola parada (lateral, falta, canto, tiro de meta); so nao corta um golo nem um penalti.
+        const paradoMasAcaba = this._fimNoRelogio && ['GOAL', 'PENALTY', 'FIM_DE_JOGO', 'INTERVALO'].indexOf(this.state) < 0;
+        if (this.state !== 'PLAY' && !paradoMasAcaba) return false;
         const meio = MatchDuration.halfGameMinutes * 60;
         const emLote = (typeof Sim !== 'undefined' && Sim.running);
         if (!this.primeiroTempoAcabou) {

@@ -76,6 +76,30 @@ const ComemoracaoCampeao = {
     caminho de um jogo a serio, sem o placar contar) e a festa vem depois do sinal do juiz; ja no fim de jogo comeca logo. Devolve true se
     arrancou (ou ficou agendada).
     */
+    /*
+    BOTAO "Champion" (debug): pedido *"vai simular o final do jogo e um time campeao: o relogio vai para 87 min, o juiz termina o jogo aos 90 e o time campeao inicia a
+    comemoracao"*. O relogio salta para 87:00 do 2.o tempo (sem intervalo, se ainda estava no 1.o), o acrescimo fica a zero e o apito sai aos 90:00 em ponto (sem a espera
+    pela bola no meio-campo, `Match._fimNoRelogio`). O jogo passa a decidir o titulo (`Match.campeao`): campeao e quem vencer; empatado, quem ia a frente quando se carregou
+    no botao, ou a casa. Se o resultado mudar nesses 3 minutos, festeja quem ganhar.
+    */
+    simularFimDeJogo() {
+        if (this._semDesenho() || typeof Match === 'undefined' || !Match.players || !Match.players.length) return false;
+        if (Match.state === 'FIM_DE_JOGO' || Match.disputa || (typeof Abertura !== 'undefined' && Abertura.activa)) return false;
+        const meio = MatchDuration.halfGameMinutes * 60;
+        const lider = Match.placarB > Match.placarA ? 'fora' : 'casa';
+        Match.campeao = { seVencer: 'qualquer', seEmpatar: lider };
+        Match.decisao = Match.decisao || null;
+        if (!Match.primeiroTempoAcabou) { Match.primeiroTempoAcabou = true; Match.acr1Calculado = true; Match.acrescimo1 = 0; Match.acrMin1 = 0; }
+        Match.faseExtra = 0;
+        Match.aguardaSaida2T = false;
+        Match.tempoDeJogo = 2 * meio - 3 * 60;
+        Match.acr2Calculado = true; Match.acrMin2 = 0; Match.acrescimo2 = 0;
+        Match._fimNoRelogio = true;
+        if (typeof Match.updatePlacar === 'function') Match.updatePlacar();
+        console.log('Champion: relogio em 87:00, apito aos 90:00; campeao = quem vencer (empate: ' + lider + ')');
+        return true;
+    },
+
     testar(equipa) {
         equipa = (equipa === 'TeamB' || equipa === 'B' || equipa === 'fora') ? 'TeamB' : 'TeamA';
         if (this._semDesenho() || typeof Match === 'undefined' || !Match.players || !Match.players.length) return false;
