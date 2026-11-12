@@ -543,12 +543,19 @@ mantendo a ORDEM e a proporcao entre eles (ver `ajustarLigaParaFaixa`).
 - Demais paises da America do Sul: A 74-67, B 71-64.
 - Europa (ligas completas): A 80-75, B 75-70, C 70-65, D 65.
 - Ligas ocultas (os 'clubes' dos paises sem liga completa, que so compoem as competicoes): 75-70.
+- Mexico: A 75-69, B 69-63. EUA: A 74-68, B 68-62. Japao: J1 73-67, J2 69-63, J3 65-60 (`FAIXA_OVR_POR_PAIS`).
 Sem faixa definida (divisao que o jogo ainda nao tem), a liga fica como foi gerada.
 */
 export const FAIXA_OVR_BRASIL: Record<number, [number, number]> = { 1: [77, 70], 2: [74, 67], 3: [71, 64], 4: [68, 61] };
 export const FAIXA_OVR_AMERICA_DO_SUL: Record<number, [number, number]> = { 1: [74, 67], 2: [71, 64] };
 export const FAIXA_OVR_EUROPA: Record<number, [number, number]> = { 1: [80, 75], 2: [75, 70], 3: [70, 65], 4: [65, 65] };
 export const FAIXA_OVR_LIGA_OCULTA: [number, number] = [75, 70];
+/** Paises com faixa propria (manda sobre a do continente): Mexico (90), EUA (91), Japao (92). */
+export const FAIXA_OVR_POR_PAIS: Record<string, Record<number, [number, number]>> = {
+  '90': { 1: [75, 69], 2: [69, 63] },
+  '91': { 1: [74, 68], 2: [68, 62] },
+  '92': { 1: [73, 67], 2: [69, 63], 3: [65, 60] }
+};
 
 /**
  * O NIVEL da base (centro de treinamento, 1 a 5) de um clube, enquanto o jogo nao tem o centro: 4 = Serie A do Brasil e a 1.a divisao da Europa;
@@ -576,6 +583,7 @@ export const faixaDeOvr = (countryId: string, league: any): [number, number] | n
   if ((league.hidden || league.tier >= 9) && countryId === '45') return FAIXA_OVR_BRASIL[3];
   if (league.hidden || league.tier >= 9) return FAIXA_OVR_LIGA_OCULTA;
   if (countryId === '45') return FAIXA_OVR_BRASIL[league.tier] || null;
+  if (FAIXA_OVR_POR_PAIS[countryId]) return FAIXA_OVR_POR_PAIS[countryId][league.tier] || null;
   const pais: any = COUNTRIES.find((c: any) => c.id === countryId);
   const continente = pais?.continent;
   if (continente === 'South America') return FAIXA_OVR_AMERICA_DO_SUL[league.tier] || null;
