@@ -13,10 +13,11 @@ import { limitarAtributo } from './geradorAtributos';
 import { REAL_TEAMS_JSON } from './realDatabase';
 import { lerConfigMod, urlDaPastaDoMod } from './modConfig';
 
-/** Paises dos ficheiros CountryData<N>.json, pelo numero do jogo de origem (54 = Brasil, 14 = Inglaterra, 27 = Italia, 21 = Alemanha, 45 = Espanha, 18 = Franca, 38 = Portugal, 52 = Argentina: so os clubes que o jogo ja tem). */
-export const PAISES_DOS_DADOS_LOCAIS = [54, 14, 27, 21, 45, 18, 38, 52];
+/** Paises dos ficheiros CountryData<N>.json, pelo numero do jogo de origem (54 = Brasil, 14 = Inglaterra, 27 = Italia, 21 = Alemanha, 45 = Espanha, 18 = Franca, 38 = Portugal, 52 = Argentina: so os clubes que o jogo ja tem;
+ * 83 = Mexico, 95 = EUA, 163 = Japao: tools/gerar_ligas_mex_usa_jpn.cjs). */
+export const PAISES_DOS_DADOS_LOCAIS = [54, 14, 27, 21, 45, 18, 38, 52, 83, 95, 163];
 /** Codigo de nacionalidade do jogo de origem -> id do pais do manager (o nome do ficheiro em /Assets/Bandeiras). Sem entrada: sem bandeira certa (null). */
-const BANDEIRA_DO_CODIGO: Record<string, string> = { '54': '45', '14': '65', '27': '68', '21': '67', '45': '66', '18': '69', '38': '81', '52': '52', '53': '53', '55': '55', '56': '56', '57': '57', '58': '58', '59': '59', '60': '60', '61': '61' };
+const BANDEIRA_DO_CODIGO: Record<string, string> = { '54': '45', '14': '65', '27': '68', '21': '67', '45': '66', '18': '69', '38': '81', '52': '52', '53': '53', '55': '55', '56': '56', '57': '57', '58': '58', '59': '59', '60': '60', '61': '61', '83': '90', '95': '91', '163': '92' };
 export const bandeiraDoCodigo = (cod: string): string | null => BANDEIRA_DO_CODIGO[cod] ?? null;
 /** A data de arranque do jogo (GameContext.startGame): as idades saem dela. */
 const DATA_DE_ARRANQUE = '2026-01-01';
