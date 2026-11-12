@@ -729,7 +729,7 @@ const BallPhysics = {
     fica pequena de mais para se ver bem à distância da câmara. O raio de
     colisão, o ressalto e a rotação continuam a usar o valor real.
     */
-    escalaVisual: 1.30
+    escalaVisual: 1.10   // 1.30 -> 1.10 (relato: "estou achando a bola muito grande"): com 1.30 a malha tinha 0.285 m de diametro (a real 0.22) e afundava 3 cm no relvado
 };
 
 /*
