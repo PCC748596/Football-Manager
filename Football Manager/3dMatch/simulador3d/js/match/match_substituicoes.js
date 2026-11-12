@@ -520,8 +520,12 @@ Object.assign(Match, {
             return;
         }
         // 'sai': quem sai vai ao meio da lateral e sai de campo.
-        this._andar(P, A.saida.x, A.saida.z + (req.lado === 'fora' ? 0.9 : -0.9), A.velSai, dt);
-        const d = Math.hypot(A.saida.x - P.model.position.x, (A.saida.z + (req.lado === 'fora' ? 0.9 : -0.9)) - P.model.position.z);
+        // --- A MACA (js/maca.js): o lesionado sai deitado na maca; a troca faz-se quando a maca deixa o campo (90 s de seguranca). ---
+        const naMaca = (typeof Maca !== 'undefined') && Maca.leva(P);
+        if (naMaca && !Maca.foraDoCampo(P) && req.t < 90) return;
+        // --- fim da maca ---
+        if (!naMaca) this._andar(P, A.saida.x, A.saida.z + (req.lado === 'fora' ? 0.9 : -0.9), A.velSai, dt);
+        const d = naMaca ? 0 : Math.hypot(A.saida.x - P.model.position.x, (A.saida.z + (req.lado === 'fora' ? 0.9 : -0.9)) - P.model.position.z);
         if (d < 0.7 || req.t > 28) {
             this.executarSubstituicao(req, P, lista, { x: A.saida.x - 0.6, z: A.saida.z, entrada: true });
             // O entrante pisou o campo: a placa passa aos numeros da troca seguinte.
@@ -542,6 +546,7 @@ Object.assign(Match, {
     _tickVoltar: function (req, dt) {
         const P = req.sai, banco = req.banco;
         if (!P || !banco || !req.assento) { req.feita = true; return; }
+        if (typeof Maca !== 'undefined' && Maca.leva(P)) { req.feita = true; return; }   // A MACA (js/maca.js): quem saiu na maca vai para o tunel, nao para o banco
         const A = Aquecimento;
         const pontos = [{ x: A.xVao, z: banco.zc }, { x: A.xAquecer, z: banco.zc }, { x: A.xAquecer, z: req.assento.z }, { x: req.assento.x, z: req.assento.z }];
         const alvo = pontos[Math.min(req.passo, pontos.length - 1)];

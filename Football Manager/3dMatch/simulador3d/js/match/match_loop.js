@@ -319,6 +319,7 @@ Object.assign(Match, {
             if (this.tickSubstituicoes) this.tickSubstituicoes(dt);
             if (typeof TreinadorCPU !== 'undefined') TreinadorCPU.tick(dt);   // o treinador da CPU: tatica e substituicoes (js/treinador_cpu.js)
             if (typeof MatchInjuries !== 'undefined') MatchInjuries.tick(dt);   // as lesoes: sem contato, agravamento e trocas forcadas (js/injuries/injury_match.js)
+            if (typeof Maca !== 'undefined') Maca.update(dt);   // a maca: o lesionado que tem de sair vai deitado ate ao tunel (js/maca.js)
         }
         /*
         ENQUANTO A TROCA DURA SO A COBRANCA ESPERA — o lance NAO congela. Antes, com uma substituicao pendente, o jogo parava no instante em que a bola saia (so os jogadores andavam): a bola
@@ -330,6 +331,8 @@ Object.assign(Match, {
         // O EXPULSO SAI PELO TUNEL ANTES DE O JOGO RECOMECAR: enquanto algum caminha para o tunel a cobranca espera (ver Officials.iniciarSaidaExpulso).
         if (!this._seguraCobranca && this.expulsosSaindo && this.expulsosSaindo.length &&
             (this._paradaParaSubstituir() || this.state === 'PENALTY')) this._seguraCobranca = true;
+        // A MACA: enquanto o lesionado ainda esta em campo (na lista do time) a cobranca espera (ver Maca.seguraJogo, js/maca.js).
+        if (!this._seguraCobranca && typeof Maca !== 'undefined' && Maca.seguraJogo() && this._paradaParaSubstituir()) this._seguraCobranca = true;
         // Acabadas as trocas e com os entrantes em campo, ANTES da cobranca: revê os set pieces e o batedor (ver reatribuirBatedorAposTroca).
         if (!this._seguraCobranca && this._trocaNaParada && typeof this.reatribuirBatedorAposTroca === 'function' &&
             (this._paradaParaSubstituir() || this.state === 'PENALTY')) {
