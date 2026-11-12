@@ -33,10 +33,16 @@ export const ECONOMIA_LIGAS: Record<string, EconomiaLiga> = {
   fra_ligue1: { valor: 1.0, salario: 250_000 }, fra_ligue2: { valor: 0.5, salario: 40_000 },
   por_liga: { valor: 0.6, salario: 90_000 }, por_liga2: { valor: 0.2, salario: 20_000 },
   arg_serie_a: { valor: 0.45, salario: 35_000 },
-  // Mexico, EUA e Japao (tools/gerar_ligas_mex_usa_jpn.cjs)
+  // Mexico, EUA e Japao (tools/gerar_ligas_sav.cjs, grupo mex_usa_jpn)
   mex_liga_mx: { valor: 0.5, salario: 60_000 }, mex_expansion: { valor: 0.12, salario: 8_000 },
   usa_mls: { valor: 0.55, salario: 70_000 }, usa_usl: { valor: 0.12, salario: 10_000 },
   jpn_j1: { valor: 0.4, salario: 45_000 }, jpn_j2: { valor: 0.15, salario: 12_000 }, jpn_j3: { valor: 0.06, salario: 5_000 },
+  // Africa e Asia (tools/gerar_ligas_sav.cjs, grupo africa_asia): o Golfo paga muito acima do nivel; a Africa subsaariana, pouco
+  egy_premier: { valor: 0.2, salario: 12_000 }, mar_botola: { valor: 0.2, salario: 12_000 }, rsa_premiership: { valor: 0.22, salario: 15_000 }, alg_ligue1: { valor: 0.15, salario: 10_000 },
+  tun_ligue1: { valor: 0.15, salario: 9_000 }, tan_premier: { valor: 0.06, salario: 3_000 }, cod_linafoot: { valor: 0.05, salario: 2_500 }, ang_girabola: { valor: 0.08, salario: 5_000 },
+  gha_premier: { valor: 0.05, salario: 2_500 }, civ_ligue1: { valor: 0.07, salario: 3_500 }, mli_ligue1: { valor: 0.04, salario: 2_000 },
+  ksa_pro_league: { valor: 0.6, salario: 150_000 }, kor_k1: { valor: 0.3, salario: 25_000 }, uae_pro_league: { valor: 0.35, salario: 50_000 }, irn_pro_league: { valor: 0.15, salario: 10_000 },
+  qat_stars: { valor: 0.35, salario: 50_000 },
   bra_serie_a: { valor: 0.9, salario: 110_000 }, bra_serie_b: { valor: 0.3, salario: 35_000 }, bra_serie_c: { valor: 0.12, salario: 12_000 }, bra_serie_d: { valor: 0.05, salario: 5_000 },
   bra_clubes: { valor: 0.05, salario: 5_000 },
   // (Nov/2026) as outras ligas sul-americanas tinham todas a economia padrao (um 60 valia ~110 mil igual na Venezuela e no Chile): a ordem segue o porte do futebol de cada pais

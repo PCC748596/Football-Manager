@@ -1,5 +1,5 @@
 /*
-NOMES CARACTERISTICOS DO MEXICO, DOS EUA E DO JAPAO, para os jogadores GERADOS (tools/gerar_ligas_mex_usa_jpn.cjs copia-os para textSim/nomesPaises.ts). Listas de nomes e sobrenomes COMUNS
+NOMES CARACTERISTICOS DO MEXICO, DOS EUA E DO JAPAO, para os jogadores GERADOS (tools/gerar_ligas_sav.cjs copia-os para textSim/nomesPaises.ts). Listas de nomes e sobrenomes COMUNS
 (nada de jogadores reais por inteiro); o jogo combina nome + sobrenome. Combinacoes casuais podem coincidir com pessoas reais. "_" = espaco dentro de um nome.
 */
 const L = (s) => s.trim().split(/\s+/).map(x => x.replace(/_/g, ' '));

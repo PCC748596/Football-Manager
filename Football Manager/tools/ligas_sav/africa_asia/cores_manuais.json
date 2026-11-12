@@ -1,0 +1,11 @@
+{
+ "_": "Cores de casa [principal, secundaria] por id do clube, onde nem o ficheiro nem o escudo acertam. Manda sobre cores_escudos.json.",
+ "940005": ["#15803d", "#ffffff"],
+ "970001": ["#c8102e", "#facc15"],
+ "980003": ["#1d4ed8", "#ffffff"],
+ "1010003": ["#c8102e", "#ffffff"],
+ "1040001": ["#facc15", "#111111"],
+ "1050001": ["#1d4ed8", "#facc15"],
+ "1050002": ["#f97316", "#1e3a8a"],
+ "1070009": ["#1d4ed8", "#ffffff"]
+}
