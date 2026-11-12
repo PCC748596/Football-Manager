@@ -1612,7 +1612,7 @@ const CrossModel = {
     },
     zonaZ: 20.0,          // e daqui para a frente vale a pena olhar para a Ã¡rea (recuado para evitar cruzamento de muito longe)
 
-    areaZ: 34.0,          // linha da grande Ã¡rea
+    areaZ: 36.5,          // DENTRO da grande area (52.5 - 16.5 = 36); era 34, e 42% dos cruzamentos saiam sem nenhum colega dentro da area
     areaX: 20.5,          // meia-largura da grande Ã¡rea
     fundoZ: 50.0,         // linha de fundo
     distMin: 10.0,         // abaixo disto Ã© passe curto, nÃ£o cruzamento pelo ar
@@ -1924,6 +1924,7 @@ const HeaderModel = {
     continua a ser escora.
     */
     raioRemateNaArea: 16.0,
+    raioRemateMarcado: 14.0,   // marcado dentro da area, cabeceia ao golo ate aqui do centro da baliza (antes so ate raioRemateCabeca, 11 m)
 
     alcanceMax: 16.0,          // alcance mÃ¡ximo de um alÃ­vio de cabeÃ§a
     alcancePasse: 8.5,         // alcance de escora para colega

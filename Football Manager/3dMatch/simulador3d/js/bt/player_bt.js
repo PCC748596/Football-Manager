@@ -4182,7 +4182,7 @@ function actHoldPosition(ctx) {
             if (falta < VDz.capPerto) {
                 const escalaZ = (typeof VelocidadeHumana !== 'undefined' && VelocidadeHumana.escala) || 1;
                 const quer = Math.hypot(mt.velocity.x, mt.velocity.z) + VDz.ganhoMarcacao * Math.max(0, falta - VDz.folgaMarcacao);
-                p.speedMult = Math.min(p.speedMult, Math.max(quer, VDz.minMarcacao) / escalaZ);
+                p.speedMult = Math.min(p.speedMult, Math.max(quer, VDz.minMarcacao) / escalaZ * (p.pos === 'CB' ? (VDz.bonusZagueiro || 1) : 1));
             }
         }
         p.fsm.changeState('MARKING');
@@ -4410,6 +4410,8 @@ function actMarcar(ctx) {
         const vAlvo = Math.hypot(alvoM.velocity.x, alvoM.velocity.z);
         const quer = vAlvo + VDm.ganhoMarcacao * Math.max(0, falta - VDm.folgaMarcacao);
         p.speedMult = THREE.MathUtils.clamp(quer / escalaM, VDm.minMarcacao / escalaM, sprintM);
+        // O ZAGUEIRO marca 10% mais depressa (pedido: "no zagueiro pode manter velocidade 10% na marcacao"): `bonusZagueiro`.
+        if (p.pos === 'CB' && VDm.bonusZagueiro) p.speedMult *= VDm.bonusZagueiro;
     } else p.speedMult = sprintM;
     p.apoioAtivo = false;
     p.fsm.changeState('MARKING');

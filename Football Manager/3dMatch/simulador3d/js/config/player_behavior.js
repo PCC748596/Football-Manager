@@ -2508,7 +2508,8 @@ const VelocidadeDefesa = {
     activo: true,
     ganhoMarcacao: 1.2, folgaMarcacao: 0.5, minMarcacao: 1.5,
     capPerto: 8.0,   // a marcacao zonal (o rotulo MARKING do posicionamento) so acompanha o marcado a menos disto do ponto; mais longe e recuperacao (sprint)
-    folgaIntercepcao: 1.2, minIntercepcao: 3.0
+    folgaIntercepcao: 1.2, minIntercepcao: 3.0,
+    bonusZagueiro: 1.10   // o zagueiro (CB) marca 10% mais depressa que os outros (pedido)
 };
 if (typeof window !== 'undefined') window.VelocidadeDefesa = VelocidadeDefesa;
 
@@ -2526,3 +2527,11 @@ const AjusteFino = {
     voltarChance: 0.6
 };
 if (typeof window !== 'undefined') window.AjusteFino = AjusteFino;
+
+/*
+A BOLA QUE NAO CHEGA (FootballPlayer.naoPassarDaBola, player.js): quem vai a bola, com ela solta no chao (ate `alturaMax` m) a rolar a mais de `velMin` m/s e a menos de
+`raio` m. Se ele esta mais de `folga` m para la do ponto onde ela para, vai a esse ponto; se ela chega mas ele corre mais depressa no mesmo sentido, abranda para
+`ritmo` x a velocidade dela.
+*/
+const BolaQueNaoChega = { activo: true, raio: 5.0, alturaMax: 0.5, velMin: 0.5, folga: 0.4, ritmo: 1.0 };
+if (typeof window !== 'undefined') window.BolaQueNaoChega = BolaQueNaoChega;

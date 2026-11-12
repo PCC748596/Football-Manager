@@ -2122,6 +2122,16 @@ class FootballPlayer {
                 const leuMal = !defende && (Math.random() < pErrado);
                 gk.penaltyDiveX = leuMal ? -alvo.x : alvo.x;
                 gk.penaltyDiveY = alvo.y;
+                /*
+                NA DEFESA ELE VAI ONDE A BOLA VAI PASSAR, e nao ao `alvo`: a curva
+                e a queda extra abrem-na 0.4 a 0.8 m (ver preverCruzamentoDaFalta,
+                utils.js). Mirar o alvo deixava as maos a mais de um metro dela.
+                */
+                if (defende && typeof preverCruzamentoDaFalta === 'function') {
+                    const cr = preverCruzamentoDaFalta(Match.ball.position, Match.ballVel,
+                        Match.freeKickDip, Match.freeKickCurve, gk.model.position.z, BallPhysics);
+                    if (cr) { gk.penaltyDiveX = cr.x; gk.penaltyDiveY = cr.y; }
+                }
                 gk.faltaDirectaDefesaFora = (desfecho === 'defesa_fora');
             }
 
@@ -3018,6 +3028,47 @@ class FootballPlayer {
         PlayerAI.tick(this, dt);
         this.prenderAoPostoDaTabela();
         this.ajusteFino(dt);
+        this.naoPassarDaBola();
+    }
+
+    /*
+    NAO PASSAR A FRENTE DE UMA BOLA QUE NAO CHEGA (pedido: *"quando a bola estiver a 5 m dos jogadores, ele tem que calcular se esta ou nao mais rapido que a bola; isso
+    previne o bug do jogador correr a frente da bola e a bola nao chegar nele"*). Quem vai a bola (perseguidor, intercetor, destinatario), com a bola SOLTA, no chao, a
+    rolar e a menos de `BolaQueNaoChega.raio` m: a bola para a v^2 / 2a m (atrito de rolamento).
+      . se ele ja esta para la do ponto onde ela para, ela nunca chega: o alvo passa a ser esse ponto (volta a ela em vez de esperar);
+      . se esta a frente dela no caminho e ela ainda chega, mas ele vai MAIS DEPRESSA do que ela no mesmo sentido, abranda para o ritmo dela (encaixa na trajectoria
+        em vez de a ultrapassar).
+    */
+    naoPassarDaBola() {
+        const BQ = (typeof BolaQueNaoChega !== 'undefined') ? BolaQueNaoChega : null;
+        if (!BQ || !BQ.activo || typeof Match === 'undefined' || !Match.ball || Match.ballCarrier || Match.state !== 'PLAY' || this.role === 'gk' || this.hasBall) return;
+        const bb = (typeof TeamAI !== 'undefined') ? TeamAI.get(this.team) : null;
+        const vaiABola = Match.intendedReceiver === this || Match.chaserA === this || Match.chaserB === this || (bb && (bb.chaser === this || bb.intercetor === this));
+        if (!vaiABola) return;
+        const b = Match.ball.position, v = Match.ballVel;
+        if (!v || b.y > BQ.alturaMax) return;
+        const vb = Math.hypot(v.x, v.z);
+        if (vb < BQ.velMin) return;
+        const q = this.model.position, dx = q.x - b.x, dz = q.z - b.z;
+        if (Math.hypot(dx, dz) > BQ.raio) return;
+        const ux = v.x / vb, uz = v.z / vb;
+        const aoLongo = dx * ux + dz * uz;                        // > 0: ele esta a frente da bola
+        if (aoLongo <= 0) return;                                 // atras ou ao lado: a corrida normal
+        const a = (typeof BallPhysics !== 'undefined') ? BallPhysics.atritoRolamento * BallPhysics.gravidade : 3.7;
+        const paragem = vb * vb / (2 * a);
+        if (aoLongo > paragem + BQ.folga) {
+            // Ela para antes de chegar a ele: vai ao ponto onde ela para.
+            this.dynamicTarget.set(b.x + ux * paragem, this.dynamicTarget.y, b.z + uz * paragem);
+            if (this.fsm && this.fsm.currentState === 'IDLE') this.fsm.changeState('MOVE_TO_POS');
+            this._esperaRecepcao = false;
+            return;
+        }
+        // Ela chega: se ele corre no mesmo sentido mais depressa do que ela, abranda para o ritmo dela.
+        const vp = this.velocity ? this.velocity.x * ux + this.velocity.z * uz : 0;
+        if (vp > vb) {
+            const escala = (typeof VelocidadeHumana !== 'undefined' && VelocidadeHumana.escala) || 1;
+            this.speedMult = Math.min(this.speedMult, Math.max(BQ.velMin, vb * BQ.ritmo) / escala);
+        }
     }
 
     /*
@@ -4766,8 +4817,16 @@ class FootballPlayer {
             Math.abs(this.model.position.x) < Area.meiaLargura &&
             Math.abs(this.targetGoalZ - this.model.position.z) < Area.profundidade;
         const livreNaArea = naGrandeArea && !marcador && distToGoal < raioNaArea;
+        /*
+        MARCADO DENTRO DA AREA, MAS PERTO DA BALIZA, TAMBEM SE CABECEIA AO GOLO (relato: *"tem pouco gol de jogada de linha de fundo com cruzamento e finalizacao dos
+        atacantes chutando ou de cabeca"*). Medido em 6 jogos: 15 cabeceios de colegas depois de um cruzamento, 4 remates — com um defesa a menos de 2.2 m (o normal num
+        cruzamento) e a mais de 11 m da baliza a cabecada era um passe para tras. Ate `raioRemateMarcado` m do centro da baliza e disputada (a disputa aerea abaixo decide
+        quem ganha: o defesa tira-a).
+        */
+        const raioMarcado = (typeof HeaderModel !== 'undefined' && typeof HeaderModel.raioRemateMarcado === 'number') ? HeaderModel.raioRemateMarcado : raioRemate;
+        const marcadoNaArea = naGrandeArea && !!marcador && distToGoal < raioMarcado;
 
-        const inShootingRange = viradoParaLa && (distToGoal < raioRemate || livreNaArea);
+        const inShootingRange = viradoParaLa && (distToGoal < raioRemate || livreNaArea || marcadoNaArea);
 
         if (inShootingRange) {
             if (typeof MatchStats !== 'undefined') {
