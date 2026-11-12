@@ -209,7 +209,7 @@ const SetPiecePrazos = {
     falta: 20.0,   // 15 -> 20 (+5 s, junto com FreeKickModel.esperaFalta)
     penalti: 15.0,
     lateral: 15.0,
-    tiroDeMeta: 20.0
+    tiroDeMeta: 17.0   // 20 -> 17 (-3 s, junto com golKickBolaAtraso 3 -> 0)
 };
 
 if (typeof window !== 'undefined') {
@@ -1334,7 +1334,12 @@ const PlayingStyleTuning = {
         atrasDaLinha: 9.0,   // metros aquém da última linha adversária
         minAtras: 4.0,       // e nunca mais perto dela do que isto
         raioBusca: 10.0,     // AMONG_SPACE: procura o vão até aqui do posto
-        candidatosX: [-20, -14, -9, -4, 0, 4, 9, 14, 20]
+        candidatosX: [-20, -14, -9, -4, 0, 4, 9, 14, 20],
+        // O VAO ENTRE 3 OU 4 ADVERSARIOS (actEntreEspacos, player_bt.js): baricentros dos triangulos e centros dos quadrilateros dos `vizinhos` adversarios a menos de
+        // `raioVizinhos` m do posto, com lados ate `ladoMax`; o vao pode sair `folgaVao` m alem do raioBusca. `bonusVao`/`bonusLinha`: pontos (em metros de folga) por ser
+        // um vao entre eles e por ter a linha da bola livre (`linhaLivreMin` m). `reavaliarSeg`: s SIMULADOS entre reavaliacoes (tempoSimulado).
+        vizinhos: 6, raioVizinhos: 22.0, ladoMax: 22.0, folgaVao: 5.0,
+        bonusVao: 1.0, bonusLinha: 1.5, linhaLivreMin: 1.8, reavaliarSeg: 0.5
     },
 
     /*
@@ -1910,6 +1915,18 @@ Cada estilo ganha agora, alem dos multiplicadores:
                    mais de 8 m.
     lancamento     multiplica a chance de pensar num lancamento (bola nas costas
                    da ultima linha), em findThroughBall.
+    pesoAvanco     multiplica os bonus FIXOS de jogar para a frente no findPassTarget
+                   (homem livre a frente, profundidade, ponta livre, progressao, alvo no
+                   campo de visao; o infiltrado leva metade). 1 = como antes.
+    recuoLivre     recuar no ataque nao e castigado (Positional, Possession).
+    drible         a chance de driblar quando um adversario fecha a conducao, x o drible do
+                   jogador (querDriblarNaConducao, fsm.js). 1 = sempre que o atributo deixa.
+    viradaCentral  a virada PELO MEIO (ala -> meia central -> ala oposta): multiplica os
+                   bonus do ViradaPeloMeio (config/passing.js). 0/ausente = desligada.
+    lancInfiltrado o lancamento ao colega que infiltra (lancamentoParaInfiltrado, antes da
+                   cadencia): corredor livre (m), adversario longe do ponto de chegada (m),
+                   distancia maxima e a chance de o portador o aceitar. Sem ele: 1.2 m,
+                   42 m, sempre (Direct e Counter).
 */
 /*
 A PONTA CERCADA (Posicional e Possession): quem tem a bola na ponta, quase na linha de fundo e bem
@@ -1931,9 +1948,11 @@ const TeamPlayStyles = {
         circulacao: 1.9, verticalidade: 0.6, viradas: 1.3,
         corredores: 0.9, cruzamento: 0.9, pressaoPosPerda: 0.6,
         conducao: 0.45,
-        corridas: 0.6, lancamento: 0.6,
+        corridas: 0.6, lancamento: 0.4,
         cadenciaPosse: 0.75, passeRapido: 1.1,
         riscoLinha: 1.7, seguranca: 140,
+        pesoAvanco: 0.4, recuoLivre: true, viradaCentral: 1.2, drible: 0.5,
+        lancInfiltrado: { corredor: 2.5, livreNoAlvo: 4.0, distMax: 28.0, chance: 0.35, vetoSeg: 6 },
         pontaCercada: PONTA_CERCADA,
         afinidade: { classic_no10: 160, creative_playmaker: 160, orchestrator: 170, target_man: 110, fox_in_the_box: 90 }
     },
@@ -1942,9 +1961,10 @@ const TeamPlayStyles = {
         circulacao: 0.4, verticalidade: 2.2, viradas: 0.7,
         corredores: 1.0, cruzamento: 1.0, pressaoPosPerda: 1.0,
         conducao: 1.0,
-        corridas: 3.0, lancamento: 2.2,
+        corridas: 3.0, lancamento: 2.2, lancGap: 1.6,
         cadenciaPosse: 0.35, passeRapido: 1.35,
         bonusAtaque: 350,
+        pesoAvanco: 1.3, drible: 0.9,
         // Passe vertical: premio por metro ganho (ate `ganhoMax` m) e castigo ao passe de lado ou atras.
         vertical: { porMetro: 6.0, ganhoMax: 25.0, penalLado: 250, penalAtras: 330 },
         afinidade: { target_man: 400, goal_poacher: 300, dummy_runner: 300, extra_frontman: 150 }
@@ -1954,9 +1974,10 @@ const TeamPlayStyles = {
         circulacao: 0.8, verticalidade: 1.25, viradas: 0.9,
         corredores: 1.0, cruzamento: 1.0, pressaoPosPerda: 0.8,
         conducao: 1.75,
-        corridas: 2.0, corridasContra: 2.5, lancamento: 1.8,
+        corridas: 2.0, corridasContra: 2.5, lancamento: 1.8, lancGap: 1.3,
         cadenciaPosse: 0.55, passeRapido: 1.2,
         velocidade: 2.5,
+        pesoAvanco: 1.3, drible: 1.0,
         afinidade: { dummy_runner: 220, goal_poacher: 160, hole_player: 100, prolific_winger: 80 },
         contra: { janela: 8.0, zRecuperacao: 12.0, velocidade: 1.45, bonusProgressao: 3.0, penalRecuo: 150 }
     },
@@ -1965,11 +1986,12 @@ const TeamPlayStyles = {
         circulacao: 1.1, verticalidade: 0.9, viradas: 1.1,
         corredores: 1.5, cruzamento: 2.0, pressaoPosPerda: 1.0,
         conducao: 0.9,
-        corridas: 1.8,
+        corridas: 1.8, lancamento: 1.2, viradaCentral: 0.5, drible: 1.4,
         cadenciaPosse: 0.9,
         afinidade: { prolific_winger: 320, cross_specialist: 320, roaming_flank: 180, offensive_fullback: 160, fullback_finisher: 90 },
         alas: { bonusReceptor: 170, larguraAla: 16.0, conducaoAlas: 2.2 },
         cruzamentoZona: { alaX: 12.0, zonaZ: 12.0 },
+        lancInfiltrado: { corredor: 1.5, livreNoAlvo: 2.0, distMax: 38.0, chance: 0.8, vetoSeg: 6 },
         // Com a bola na ala, os atacantes ocupam a area (ver aplicarEstiloPosicional).
         areaComBolaNaAla: { larguraBola: 16.0, zBola: 12.0, zArea: 38.0, xPrimeiroPoste: 5.5, xSegundoPoste: 8.0 }
     },
@@ -1977,7 +1999,12 @@ const TeamPlayStyles = {
         nome: 'Positional',
         circulacao: 1.5, verticalidade: 0.75, viradas: 1.15,
         corredores: 1.1, cruzamento: 1.0, pressaoPosPerda: 1.0,
-        conducao: 0.55,
+        conducao: 0.8,
+        riscoLinha: 1.4, seguranca: 100,
+        lancamento: 0.8,
+        pesoAvanco: 0.6, recuoLivre: true, viradaCentral: 1.0, drible: 0.9,
+        afinidade: { classic_no10: 140, orchestrator: 150, creative_playmaker: 140 },
+        lancInfiltrado: { corredor: 2.0, livreNoAlvo: 3.0, distMax: 32.0, chance: 0.6, vetoSeg: 6 },
         pontaCercada: PONTA_CERCADA
     },
 };

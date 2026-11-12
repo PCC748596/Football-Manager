@@ -1074,6 +1074,28 @@ function podeDribleNaConducao(p) {
 if (typeof window !== 'undefined') window.podeDribleNaConducao = podeDribleNaConducao;
 
 /*
+O DRIBLE NA CONDUCAO PELO ESTILO E PELO ATRIBUTO. Com um adversario a menos do gatilho, quem conduzia driblava SEMPRE: medido em 70 jogos, o Counter Attack
+tentava 80 dribles por jogo com 27% de acerto (corre mais na janela de contra-ataque e entra em todos os 1x1). Pedido: *"se um jogador tem muito Carregar e pouco
+Drible, ele ganha espaco correndo, mas trava se um defensor fechar a porta"*. A chance e `drible` do estilo (TeamPlayStyles; 1 sem o campo) x o drible do jogador
+(o atributo `dribbling` dos 31, senao o TEC): a 45 vale `pisoAtributo`, a 80 vale 1. O sorteio fica para esse adversario `stickySeg` s (nao se re-sorteia por frame).
+Recusado, a conducao para e a arvore decide (proteger, passar).
+*/
+const DribleNaConducao = { pisoAtributo: 0.15, stickySeg: 3.0 };
+function querDriblarNaConducao(p, opp) {
+    if (!p) return true;
+    const ee = (typeof estiloDaEquipaDe === 'function' && typeof TeamPlayStyles !== 'undefined') ? estiloDaEquipaDe(p.team) : null;
+    const est = (ee && typeof ee.drible === 'number') ? ee.drible : 1.0;
+    const attr = (p.skills && p.skills.atr && typeof p.skills.atr.dribbling === 'number') ? p.skills.atr.dribbling : (p.skillFor ? p.skillFor('TEC') : 60);
+    const fAttr = Math.max(DribleNaConducao.pisoAtributo, Math.min(1.2, (attr - 45) / 35));
+    const chance = Math.max(0.05, Math.min(1, est * fAttr));
+    const agora = (typeof tempoSimulado === 'function') ? tempoSimulado() : 0;
+    const s = p._dribleSorte;
+    if (!s || s.opp !== opp || agora - s.t > DribleNaConducao.stickySeg || agora < s.t) p._dribleSorte = { opp: opp, t: agora, ok: Math.random() < chance };
+    return p._dribleSorte.ok;
+}
+if (typeof window !== 'undefined') { window.querDriblarNaConducao = querDriblarNaConducao; window.DribleNaConducao = DribleNaConducao; }
+
+/*
 NA PONTA, NA LINHA-LIMITE DA CONDUCAO, SEM SAIDA: em vez de ficar parado contra a linha de fundo, o portador gira pelo lado da linha lateral e devolve a um colega
 livre atras (o mesmo gesto da PONTA_CERCADA, mas sem exigir marcador nem estilo). Sem colega livre cai no corte lateral da condução.
 */
@@ -2339,7 +2361,11 @@ class PlayerFSM {
                         */
                         leadDist = CarryModel.touchShort * 0.7;
                     } else {
-                        // Adversário muito perto — transição para DRIBBLE 1v1
+                        // Adversário muito perto — transição para DRIBBLE 1v1 (se o estilo e o drible dele o querem: ver querDriblarNaConducao)
+                        if (nearestOpp && nearestOppDist > 1.2 && !querDriblarNaConducao(p, nearestOpp)) {
+                            this.changeState('IDLE');   // trava a conducao: a arvore decide (proteger, passar)
+                            break;
+                        }
                         if (nearestOpp && nearestOppDist > 1.2) {
                             p.dribbleOpponent = nearestOpp;
                             p.dribbleCooldownTimer = 0;

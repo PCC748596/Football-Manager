@@ -112,6 +112,28 @@ if (typeof window !== 'undefined') window.InversaoDeJogo = InversaoDeJogo;
 
 /*
 =============================================================================
+A VIRADA PELO MEIO — da ala ao meia central, e dele a ala do outro lado
+=============================================================================
+Pedido: *"o Posicional e o Possession tem que ter mais viradas de jogo, nao necessariamente diretas do corredor de um lado para o do outro, mas passando pelo corredor
+central. Os meias tem que controlar o jogo, principalmente os 10 classicos, os orquestradores e os creative playmakers"*. A InversaoDeJogo acima e a virada DIRECTA (e so
+com a banda da bola congestionada); o campo `viradas` dos estilos nao era lido em lado nenhum.
+
+Duas pernas, no findPassTarget (js/player.js), multiplicadas pelo `viradaCentral` do estilo (TeamPlayStyles; 0 ou ausente = desligado):
+  1. AO CENTRO: quem tem a bola na ala (|x| >= flancoX) passa a um MEIO (DM/CM/AM) livre no corredor central (|x| <= centroX). Pode recuar ate `recuoMax` m sem pagar
+     as penalidades de recuar nem de virar o corpo (conta como inversao). `bonusAoCentro`, x `hubMult` se quem recebe e um dos criadores (`hubs`, Playing Style ativo).
+  2. AO OUTRO LADO: o meia que recebeu da ala (ha menos de `memoriaSeg` s) passa a um colega livre na ala OPOSTA. `bonusAoOutroLado`, x `hubMult` se quem passa e criador.
+*/
+const ViradaPeloMeio = {
+    flancoX: 12.0, centroX: 9.0,
+    livreMin: 3.0, recuoMax: 12.0,
+    bonusAoCentro: 240, bonusAoOutroLado: 340,
+    hubs: ['classic_no10', 'orchestrator', 'creative_playmaker'], hubMult: 1.5,
+    memoriaSeg: 8.0, fiabMin: 0.7
+};
+if (typeof window !== 'undefined') window.ViradaPeloMeio = ViradaPeloMeio;
+
+/*
+=============================================================================
 O HOMEM LIVRE A FRENTE — a conjuncao, que nao estava a valer nada
 =============================================================================
 Pedido: *"temos que ajustar para que um jogador sem marcacao (sem nenhum

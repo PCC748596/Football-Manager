@@ -347,7 +347,8 @@ const PlayingStyleTriggers = {
     target_man: (p, bb, s) => s.atacando && s.bolaAvanco < 15,
 
     // Procura o espaço entre linhas: meio-campo em diante.
-    creative_playmaker: (p, bb, s) => s.atacando && s.bolaAvanco > -10,
+    // SEMPRE que a equipa ataca (pedido: *"o creative playmaker tem sempre que procurar o espaco vazio entre 3 ou 4 adversarios"*); era so com a bola a mais de -10 m.
+    creative_playmaker: (p, bb, s) => s.atacando,
 
     // Playmaker estático: posse instalada, não em transição — o estilo é
     // exactamente o contrário de um contra-ataque.

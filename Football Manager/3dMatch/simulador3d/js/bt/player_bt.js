@@ -185,8 +185,14 @@ class PlayerContext {
             ? tendenciaDeAccao(this.p, 'driveSpace') : 1.0;
 
         const espacoBase = naDefesa ? (CarryModel.espacoLivreDefesa || 24.0) : CarryModel.espacoLivre;
-        const espacoReq = espacoBase / Math.max(0.25, tendCond);
-        if (this.espacoAFrente < espacoReq && !this.livreAFrente10m20g) return false;
+        /*
+        O ESTILO TAMBEM DECIDE SE SE CONDUZ, e nao so quanto (TeamPlayStyles.conducao). So o orcamento escalava com ele, e este no vem ANTES da procura de passe: medido em 70
+        jogos, o Possession (conducao 0.45) conduzia 471 m por jogo contra 327 do Direct. O espaco exigido divide-se pelo estilo (Possession pede ~2.2x mais relva), e o atalho
+        "livre 10 m a frente" so vale a partir de 0.8 (Positional, Direct, Counter; o Wing Play nas alas).
+        */
+        const estC = multiplicadorConducao(this.p);
+        const espacoReq = espacoBase / Math.max(0.25, tendCond) / Math.max(0.3, estC);
+        if (this.espacoAFrente < espacoReq && !(this.livreAFrente10m20g && estC >= 0.8)) return false;
 
         // O orçamento escala com o Estilo Ofensivo da equipa: correr com a
         // bola é o plano do contra-ataque, não do jogo de posse.
@@ -304,7 +310,15 @@ function findThroughBall(ctx) {
     let chanceLanc = PassModel.throughBallChance * ((eeL && typeof eeL.lancamento === 'number') ? eeL.lancamento : 1);
     // No contra-ataque a bola nas costas procura-se ainda mais (TeamPlayStyles.contra).
     if (eeL && eeL.contra && typeof Match !== 'undefined' && Match.counterAttackTeam === p.team) chanceLanc *= 1.6;
-    if (Math.random() > chanceLanc) {
+    /*
+    O SORTEIO E UM POR POSSE DO PORTADOR (no maximo um a cada `sorteioSeg` s), e nao um por avaliacao: sorteado de novo em cada tick, a chance do estilo (Possession 0.6...)
+    acabava por sair ao fim de poucas avaliacoes e o estilo nao contava. Medido: com o lancamento ao infiltrado fechado por estilo, o Positional e o Possession passaram a LANCAR
+    MAIS (10 -> 18 e 16 por jogo) do que o Direct (10).
+    */
+    const agoraTb = tempoSimulado();
+    const sorteioSeg = (PassModel.throughBallSorteioSeg !== undefined) ? PassModel.throughBallSorteioSeg : 3.0;
+    if (!p._tbSorte || agoraTb - p._tbSorte.t > sorteioSeg || agoraTb < p._tbSorte.t) p._tbSorte = { t: agoraTb, ok: Math.random() <= chanceLanc };
+    if (!p._tbSorte.ok) {
         _tb('sorteioChance');
         ctx._throughBall = null;
         return null;
@@ -350,7 +364,9 @@ function findThroughBall(ctx) {
         if (mateZ_current > linhaNoNosso + 0.5) { _tb('mate:impedido'); continue; }
         
         // A folga avalia se o jogador já está razoavelmente perto da última linha para a conseguir romper.
-        if (!receptorLivre && mateZ_current < linhaNoNosso - (emRuptura ? (PassModel.throughBallGapRuptura || PassModel.throughBallGap) : PassModel.throughBallGap)) { _tb('mate:longeDaLinha'); continue; }
+        // O Direct e o Counter lancam quem ainda vem de mais longe (TeamPlayStyles.lancGap multiplica a folga): medido, `longeDaLinha` era o corte que mais travava o lancamento do Direct.
+        const folgaLinha = (emRuptura ? (PassModel.throughBallGapRuptura || PassModel.throughBallGap) : PassModel.throughBallGap) * ((eeL && eeL.lancGap) || 1);
+        if (!receptorLivre && mateZ_current < linhaNoNosso - folgaLinha) { _tb('mate:longeDaLinha'); continue; }
         
         // Bónus especial se ele já estiver em movimento de ruptura
         let sprintBonus = 0;
@@ -3354,41 +3370,78 @@ function actEntreEspacos(ctx) {
     const C = (typeof PlayingStyleTuning !== 'undefined' && PlayingStyleTuning.creativePlaymaker)
         ? PlayingStyleTuning.creativePlaymaker : {};
     const raioBusca = C.raioBusca || 10.0;
-    const agora = Date.now();
+    /*
+    O RELOGIO E O DA SIMULACAO, nao o da parede: com `Date.now()` (400 ms) a simulacao rapida passava varios segundos de jogo com o vao velho. `reavaliarSeg` em segundos
+    simulados (tempoSimulado, utils.js).
+    */
+    const agora = tempoSimulado();
+    const reav = C.reavaliarSeg || 1.8;
     let e = p.entreEspacos;
 
-    // Reavalia a cada 0.4 s, ou quando já chegou ao ponto. Entre isso mantém o ponto (sem tremer).
+    // Reavalia a cada `reav` s de jogo, ou quando ja chegou ao ponto. Entre isso mantem o ponto (sem tremer).
     const chegou = e && Math.hypot(p.model.position.x - e.x, p.model.position.z - e.z) < 1.0;
-    if (!e || chegou || agora - e.t > 400) {
+    if (!e || chegou || agora - e.t > reav || agora < e.t) {
         const centro = p.baseTarget || p.model.position;
         const cx = centro.x, cz = centro.z;
-        const advs = (p.team === 'TeamA') ? Match.opponents : Match.players;
+        const advs = ((p.team === 'TeamA') ? Match.opponents : Match.players).filter(o => o && o.model && o.role !== 'gk' && !o.expulso);
         const limX = CAMPO_LARG / 2 - 3.0, limZ = CAMPO_COMP / 2 - 3.0;
         const linha = (typeof linhaLidaPor === 'function') ? linhaLidaPor(p, true) : null;
+        const bola = Match.ball ? Match.ball.position : null;
 
-        let melhor = null, melhorNota = -Infinity;
+        /*
+        OS CANDIDATOS. Pedido: *"o creative playmaker tem sempre que procurar o espaco vazio entre 3 ou 4 adversarios, como no baricentro de um triangulo ou na intersecao das
+        diagonais de um quadrado; assim recebe livre e tem tempo para pensar a jogada"*. Alem da grade em volta do posto, os BARICENTROS dos triangulos e os CENTROS dos
+        quadrilateros formados pelos adversarios mais perto do posto (`vizinhos`), com lados ate `ladoMax` m (mais do que isso ja nao e "entre" eles, e campo aberto).
+        */
+        const cand = [];
         for (let r = 0; r <= raioBusca + 0.01; r += raioBusca / 2) {
             const n = r === 0 ? 1 : 12;
-            for (let k = 0; k < n; k++) {
-                const ang = (k / n) * Math.PI * 2;
-                const x = THREE.MathUtils.clamp(cx + Math.cos(ang) * r, -limX, limX);
-                let z = THREE.MathUtils.clamp(cz + Math.sin(ang) * r, -limZ, limZ);
-                if (linha !== null && linha !== undefined && z * p.dirZ > linha - 0.8) z = (linha - 0.8) * p.dirZ;
-
-                // Folga ao adversário mais perto (tecto 8 m): o vão é onde ela é maior.
-                let folga = 8.0;
-                for (const o of advs) {
-                    if (!o || !o.model || o.role === 'gk' || o.expulso) continue;
-                    const d = Math.hypot(o.model.position.x - x, o.model.position.z - z);
-                    if (d < folga) folga = d;
+            for (let k = 0; k < n; k++) { const ang = (k / n) * Math.PI * 2; cand.push({ x: cx + Math.cos(ang) * r, z: cz + Math.sin(ang) * r, vao: false }); }
+        }
+        const viz = advs.map(o => ({ o, d: Math.hypot(o.model.position.x - cx, o.model.position.z - cz) }))
+            .filter(v => v.d < (C.raioVizinhos || 22)).sort((a, b) => a.d - b.d).slice(0, C.vizinhos || 6).map(v => v.o.model.position);
+        const ladoMax = C.ladoMax || 22;
+        const perto = (a, b) => Math.hypot(a.x - b.x, a.z - b.z) <= ladoMax;
+        for (let a = 0; a < viz.length; a++) for (let b = a + 1; b < viz.length; b++) {
+            if (!perto(viz[a], viz[b])) continue;
+            for (let c = b + 1; c < viz.length; c++) {
+                if (!perto(viz[a], viz[c]) || !perto(viz[b], viz[c])) continue;
+                cand.push({ x: (viz[a].x + viz[b].x + viz[c].x) / 3, z: (viz[a].z + viz[b].z + viz[c].z) / 3, vao: true });
+                for (let d = c + 1; d < viz.length; d++) {
+                    if (!perto(viz[a], viz[d]) || !perto(viz[b], viz[d]) || !perto(viz[c], viz[d])) continue;
+                    cand.push({ x: (viz[a].x + viz[b].x + viz[c].x + viz[d].x) / 4, z: (viz[a].z + viz[b].z + viz[c].z + viz[d].z) / 4, vao: true });
                 }
-                // Perto do posto (0.15 por metro) e um pouco à frente.
-                const nota = folga - 0.15 * Math.hypot(x - cx, z - cz) + 0.02 * (z - cz) * p.dirZ;
-                if (nota > melhorNota) { melhorNota = nota; melhor = { x: x, z: z }; }
             }
         }
+
+        let melhor = null, melhorNota = -Infinity;
+        for (const c0 of cand) {
+            const x = THREE.MathUtils.clamp(c0.x, -limX, limX);
+            let z = THREE.MathUtils.clamp(c0.z, -limZ, limZ);
+            if (linha !== null && linha !== undefined && z * p.dirZ > linha - 0.8) z = (linha - 0.8) * p.dirZ;
+            const dPosto = Math.hypot(x - cx, z - cz);
+            if (dPosto > raioBusca + (C.folgaVao || 5)) continue;   // o vao tem de ficar na zona dele
+            // Folga ao adversario mais perto (tecto 8 m): o vao e onde ela e maior.
+            let folga = 8.0;
+            for (const o of advs) { const d = Math.hypot(o.model.position.x - x, o.model.position.z - z); if (d < folga) folga = d; }
+            // A linha de passe da bola ate ele: um vao a que a bola nao chega nao serve.
+            let linhaLivre = 0;
+            if (bola) {
+                let minL = 99;
+                for (const o of advs) {
+                    const ax = bola.x, az = bola.z, dx = x - ax, dz = z - az, L = dx * dx + dz * dz;
+                    let t = L ? ((o.model.position.x - ax) * dx + (o.model.position.z - az) * dz) / L : 0;
+                    t = Math.max(0, Math.min(1, t));
+                    minL = Math.min(minL, Math.hypot(ax + dx * t - o.model.position.x, az + dz * t - o.model.position.z));
+                }
+                linhaLivre = minL >= (C.linhaLivreMin || 1.8) ? 1 : 0;
+            }
+            // Perto do posto, um pouco a frente, com linha da bola, e o vao ENTRE adversarios vale mais (la o marcador tem de escolher).
+            const nota = folga - 0.15 * dPosto + 0.02 * (z - cz) * p.dirZ + linhaLivre * (C.bonusLinha || 1.5) + (c0.vao ? (C.bonusVao || 1.0) : 0);
+            if (nota > melhorNota) { melhorNota = nota; melhor = { x: x, z: z }; }
+        }
         if (melhor) {
-            // Histerese: só muda de vão se o novo for claramente melhor que o actual.
+            // Histerese: so muda de vao se o novo for claramente melhor que o actual.
             if (!e || melhorNota > (e.nota || -Infinity) + 0.8 || chegou) {
                 e = p.entreEspacos = { x: melhor.x, z: melhor.z, t: agora, nota: melhorNota };
             } else {
@@ -3610,19 +3663,36 @@ function lancamentoParaInfiltrado(p) {
     const advs = (p.team === 'TeamA') ? Match.opponents : Match.players;
     const linha = (typeof linhaLidaPor === 'function') ? linhaLidaPor(p, true) : null;
     const avEu = p.model.position.z * p.dirZ;
+    /*
+    O ESTILO DECIDE QUANTO RISCO TEM ESTE LANCAMENTO (TeamPlayStyles.lancInfiltrado). Este no corre ANTES da cadencia de decisao e saltava a nota do passe: medido em 4 jogos
+    Positional, 45% de TODOS os passes saiam daqui, 97% para a frente, 44% arriscados (alvo marcado ou linha apertada), e em 40% das vezes havia um passe livre de lado ou atras.
+    Por estilo: `corredor` (m livres na linha da bola ao alvo), `livreNoAlvo` (adversario mais perto do ponto de chegada), `distMax`, e `chance` (a parte dos lancamentos
+    possiveis que o portador aceita; a recusa vale para essa corrida desse colega, `vetoSeg` s). Sem o campo: a regra de sempre (1.2 m, 42 m, sempre).
+    */
+    const ee = estiloDaEquipa(p.team);
+    const LI = (ee && ee.lancInfiltrado) || null;
+    const corredor = LI ? LI.corredor : 1.2, livreNoAlvo = LI ? LI.livreNoAlvo : 0, distMax = LI ? LI.distMax : 42.0, chance = LI ? LI.chance : 1.0;
+    const agora = tempoSimulado();
     let melhor = null, melhorAv = -Infinity;
     for (const mate of colegas) {
         if (mate === p || !mate.model || mate.infiltIdx === null || mate.infiltIdx === undefined || !mate.runAlvo || !(mate.runTimer > 0.8) || mate.infiltLancado) continue;
+        if (mate._lancInfVeto && mate._lancInfVeto.por === p && agora - mate._lancInfVeto.t < (LI && LI.vetoSeg || 6)) continue;   // este portador ja recusou esta corrida
         const avMate = mate.model.position.z * p.dirZ;
         if (avMate < avEu + 3.0) continue;
         if (linha !== null && avMate > linha + 0.3) continue;   // ja esta em fora-de-jogo
         const d = p.model.position.distanceTo(mate.model.position);
-        if (d < 8.0 || d > 42.0) continue;
+        if (d < 8.0 || d > distMax) continue;
         const alvo = { x: mate.runAlvo.x, z: mate.runAlvo.z };
         if ((alvo.z - p.model.position.z) * p.dirZ < 4.0) continue;
-        if (!corredorLivre(Match.ball.position.x, Match.ball.position.z, alvo.x, alvo.z, advs, 1.2, true)) continue;
+        if (!corredorLivre(Match.ball.position.x, Match.ball.position.z, alvo.x, alvo.z, advs, corredor, true)) continue;
+        if (livreNoAlvo > 0) {
+            let perto = Infinity;
+            for (const o of advs) { if (!o || !o.model || o.role === 'gk' || o.expulso) continue; perto = Math.min(perto, Math.hypot(o.model.position.x - alvo.x, o.model.position.z - alvo.z)); }
+            if (perto < livreNoAlvo) continue;
+        }
         if (avMate > melhorAv) { melhorAv = avMate; melhor = { mate, alvo }; }
     }
+    if (melhor && chance < 1 && Math.random() >= chance) { melhor.mate._lancInfVeto = { por: p, t: agora }; return null; }
     return melhor;
 }
 
@@ -5333,6 +5403,16 @@ NOS_COM_BOLA['ConduzirEmEspaco'] = // 3. Conduzir em espaço aberto (+165 pontos
                 cond('campoAberto', (ctx) => {
                     const p = ctx.p;
                     if (p.role === 'gk') return false;
+
+                    /*
+                    O ESTILO DE POSSE PASSA ANTES DE CONDUZIR (TeamPlayStyles.conducao < 0.8, o Possession): com um passe disponivel, nao entra nos atalhos de baixo (ala livre
+                    para o fundo, ala conduz, campo totalmente livre), que valiam para qualquer estilo. Medido: este no (`atacarOEspaco`) dava 38% dos metros conduzidos pelo
+                    Possession, que conduzia tanto como o Positional (476 m por jogo) com a tabela a pedir Carregar BAIXO.
+                    */
+                    if (multiplicadorConducao(p) < 0.8) {
+                        const passePosse = findBestPassAnywhere(ctx);
+                        if (passePosse) { ctx.currentPassChoice = passePosse; return false; }
+                    }
 
                     /*
                     O CORREDOR DA ALA LIVRE GANHA AS DUAS REGRAS DE BAIXO.

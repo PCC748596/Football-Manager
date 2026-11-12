@@ -3116,6 +3116,14 @@ class FootballPlayer {
         const teamStyle = (typeof TeamPlayStyles !== 'undefined')
             ? estiloDaEquipaDe(this.team)
             : null;
+        /*
+        O PESO DO AVANCO DO ESTILO (TeamPlayStyles.pesoAvanco) multiplica os bonus FIXOS de jogar para a frente (homem livre a frente, profundidade, ponta livre, infiltrado, progressao,
+        alvo no campo de visao). Sem ele o estilo so mexia na nota de distancia (40..190 pontos) contra ~1000 pontos de bonus de avanco iguais para todos: medido em 70 jogos, os cinco
+        estilos passavam 65-68% para a frente, e com um passe livre de lado ou atras ~1 em 5 passes ia para a frente arriscado, em QUALQUER estilo (relato: *"no Positional ou
+        Possession ficar com a bola e mais importante que um passe arriscado"*). `recuoLivre`: recuar no ataque nao e castigado (voltar a jogada para progredir de novo).
+        */
+        const pesoAv = (teamStyle && typeof teamStyle.pesoAvanco === 'number') ? teamStyle.pesoAvanco : 1.0;
+        const recuoLivre = !!(teamStyle && teamStyle.recuoLivre);
         const secToCongestionKey = { esq: 'esq', dir: 'dir', cen: 'centro' };
         /*
         A CONGESTÃO É MEDIDA EM BANDAS DO MUNDO (x < -10 'esq', x > 10 'dir', ver computeCongestion no
@@ -3342,7 +3350,7 @@ class FootballPlayer {
             if (PLv && ['LW', 'RW', 'LM', 'RM'].indexOf(opt.pos) >= 0 &&
                 Math.abs(optPos.x) >= PLv.larguraX && distMarcEf >= PLv.folgaMin) {
                 const avBola = Match.ball.position.z * dirZ;
-                if (avBola >= PLv.zMin && avBola <= PLv.zMax) score += PLv.pontos;
+                if (avBola >= PLv.zMin && avBola <= PLv.zMax) score += PLv.pontos * pesoAv;
             }
 
             /*
@@ -3376,14 +3384,14 @@ class FootballPlayer {
                     const irregular = (typeof linha === 'number') &&
                         (optPos.z * dirZ > linha);
                     if (!irregular) {
-                        score += LV.bonus * fiab;
+                        score += LV.bonus * fiab * pesoAv;
                         /*
                         O LANCAMENTO EM PROFUNDIDADE (pedido: *"tem muito pouco lancamento em profundidade: os jogadores ficam com espaco livre a frente e nao recebem"*).
                         O bonus acima escala com `fiab`, que cai a pique nos passes longos, e por isso o homem livre a 20-30 m perdia sempre para o toque curto. Para o homem livre
                         MESMO a frente (`profundoMin` m) soma-se um bonus com piso na fiabilidade, sem passar por cima da linha (o `penalLinha` continua a ser somado).
                         */
                         if (LV.bonusProfundo && aFrente >= LV.profundoMin && distMarcador >= LV.profundoLivre) {
-                            score += LV.bonusProfundo * Math.max(fiab, LV.profundoFiabMin);
+                            score += LV.bonusProfundo * Math.max(fiab, LV.profundoFiabMin) * pesoAv;
                         }
                     }
                 }
@@ -3449,7 +3457,8 @@ class FootballPlayer {
             } else if (pRole === 'LW') {
                 if (['LM', 'CM', 'AM', 'CF', 'ST'].includes(oRole)) priorityBonus = 40;
             }
-            score += priorityBonus + bonusInfiltracao;
+            // O infiltrado leva metade do peso do avanco: quem rompe continua a ser opcao no Positional (a linha de passe, com o riscoLinha, decide se ha risco).
+            score += priorityBonus + bonusInfiltracao * (0.5 + 0.5 * pesoAv);
 
             // Grid espacial (camada PASSE)
             if (typeof SpatialGrid !== 'undefined' && SpatialGrid.cells) {
@@ -3487,6 +3496,26 @@ class FootballPlayer {
                     InversaoSinalizada.favorece(this, opt, optPos, dirZ)) inversao = true;
                 if (inversao) score += IV.bonus * Math.max(fiab, IV.fiabMin);
             }
+            // A VIRADA PELO MEIO (ViradaPeloMeio, config/passing.js): ala -> meia central -> ala oposta, pelo peso do estilo.
+            const VM = (typeof ViradaPeloMeio !== 'undefined') ? ViradaPeloMeio : null;
+            const vmMult = (teamStyle && teamStyle.viradaCentral) || 0;
+            if (VM && vmMult > 0 && distMarcEf >= VM.livreMin) {
+                const ehHub = (j) => !!(j && !j.playingStyleDesligado && VM.hubs.indexOf(j.playingStyle) >= 0);   // o criador e criador sempre (o styleAtivo e um gatilho por situacao)
+                const ehMeio = ['DM', 'CM', 'AM', 'CDM', 'CAM'].indexOf(opt.pos) >= 0 || opt.role === 'mid';
+                const fVM = Math.max(fiab, VM.fiabMin) * vmMult;
+                // 1. da ala ao meia central
+                if (Math.abs(ownX) >= VM.flancoX && Math.abs(optPos.x) <= VM.centroX && ehMeio && progression >= -VM.recuoMax) {
+                    score += VM.bonusAoCentro * fVM * (ehHub(opt) ? VM.hubMult : 1);
+                    inversao = true;   // nao paga recuar nem virar o corpo
+                }
+                // 2. do meia que recebeu da ala, a ala do outro lado
+                const vd = this._viradaDe;
+                if (vd && tempoSimulado() - vd.t <= VM.memoriaSeg && Math.abs(ownX) <= VM.centroX + 3 &&
+                    Math.abs(optPos.x) >= VM.flancoX && Math.sign(optPos.x) === -vd.lado && progression >= -VM.recuoMax) {
+                    score += VM.bonusAoOutroLado * fVM * (ehHub(this) ? VM.hubMult : 1);
+                    inversao = true;
+                }
+            }
             // O RECUO SEGURO: o defesa livre atras recebe o bonus e nao paga as penalidades de recuar nem de virar o corpo (como a inversao).
             const recuoSeguro = pressaoNasCostas && recuoSeguroPara(this, opt, opponents);
             if (recuoSeguro) score += RecuoSobPressao.bonus * Math.max(fiab, RecuoSobPressao.fiabMin);
@@ -3516,13 +3545,13 @@ class FootballPlayer {
                 let progBonus = Math.min(25, progression * 0.9) * verticalidade;
                 if (minOppDist > 8.0) {
                     const aggr = teamBB ? teamBB.aggression : 0.5;
-                    progBonus += 60 * (0.6 + aggr * 0.8) * formaDistanciaPasse(dist);
+                    progBonus += 60 * (0.6 + aggr * 0.8) * formaDistanciaPasse(dist) * pesoAv;
                 }
                 score += progBonus;
             } else {
                 if (isOrchestrator) {
                     score += Math.abs(progression) * 0.8;
-                } else if (!isDefender && !inDefensiveZone && !inversao && !recuoSeguro) {
+                } else if (!isDefender && !inDefensiveZone && !inversao && !recuoSeguro && !recuoLivre) {
                     score -= Math.abs(progression) * 1.5 / circulacao;
                 }
             }
@@ -3549,7 +3578,7 @@ class FootballPlayer {
             angleDiff = Math.abs(angleDiff);
             
             if (angleDiff < Math.PI / 3) {
-                score += 80; // Alvo está no campo de visão natural (frente)
+                score += 80 * pesoAv; // Alvo está no campo de visão natural (frente); o estilo de posse olha tambem para os lados (pesoAvanco)
             } else if (angleDiff > Math.PI * 0.6 && !inversao && !recuoSeguro) {
                 score -= 80; // Penaliza passes de costas que exigem girar o corpo
             }
@@ -3571,10 +3600,10 @@ class FootballPlayer {
                 } else if (progression < -2.0 && !inversao && !recuoSeguro) {
                     if (!livreAFrente && inDefensiveZone) {
                         score *= 1.20; // Trás sob pressão na defesa
-                    } else if (!inDefensiveZone) {
+                    } else if (!inDefensiveZone && !recuoLivre) {
                         score -= 50; // Leve penalidade por recuar no ataque se não for necessário
                     } else if (livreAFrente) {
-                        score -= 150; // Penaliza recuo se tem 10m livres à frente para conduzir
+                        score -= 150 * pesoAv; // Penaliza recuo se tem 10m livres à frente para conduzir
                     }
                 }
             }
@@ -3808,6 +3837,11 @@ class FootballPlayer {
     }
 
     initiatePass(targetPlayer) {
+        // A VIRADA PELO MEIO: quem recebe guarda de que ala veio a bola (ViradaPeloMeio, perna 2).
+        if (targetPlayer && this.model && typeof ViradaPeloMeio !== 'undefined') {
+            const x = this.model.position.x;
+            targetPlayer._viradaDe = (Math.abs(x) >= ViradaPeloMeio.flancoX) ? { lado: Math.sign(x), t: (typeof tempoSimulado === 'function') ? tempoSimulado() : 0 } : null;
+        }
         /*
         O TIPO DE PASSE FIXA-SE AQUI, e não por frame.
 
@@ -11666,8 +11700,8 @@ FootballPlayer.extra = false;   // `true` so durante a construcao de um nao-joga
 
 
 /*
-Os 3 jogadores de cada equipa mais perto da bola (guarda-redes incluido: e jogador como os outros) —
-quem mostra o nome com o botao PlayerNames. Recalculado a cada 100 ms: e UI, nao jogo.
+O jogador mais perto da bola (das duas equipas, guarda-redes incluido) — o UNICO que mostra
+o nome com o botao PlayerNames (pedido: so um nome). Recalculado a cada 100 ms: e UI, nao jogo.
 */
 const _nomesCache = { t: -1, set: new Set() };
 function nomesProximosDaBola() {
@@ -11677,11 +11711,15 @@ function nomesProximosDaBola() {
     const set = new Set();
     if (typeof Match !== 'undefined' && Match.ball) {
         const b = Match.ball.position;
+        let melhor = null, melhorD = Infinity;
         for (const lista of [Match.players, Match.opponents]) {
-            (lista || []).filter(p => p && p.model && !p.expulso)
-                .map(p => ({ p, d: Math.hypot(p.model.position.x - b.x, p.model.position.z - b.z) }))
-                .sort((a, c) => a.d - c.d).slice(0, 3).forEach(o => set.add(o.p));
+            for (const p of (lista || [])) {
+                if (!p || !p.model || p.expulso) continue;
+                const d = Math.hypot(p.model.position.x - b.x, p.model.position.z - b.z);
+                if (d < melhorD) { melhorD = d; melhor = p; }
+            }
         }
+        if (melhor) set.add(melhor);
     }
     _nomesCache.set = set;
     return set;

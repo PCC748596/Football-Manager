@@ -1311,6 +1311,8 @@ Object.assign(Match, {
 
         // Arbitragem: fora das listas de jogadores, corre à parte (officials.js).
         if (typeof Officials !== 'undefined') Officials.update(dt);
+        // Diagnostico do portador parado na area (js/diag_portador_parado.js): so no jogo visivel, so escreve no console.
+        if (typeof DiagPortadorParado !== 'undefined' && !(typeof Sim !== 'undefined' && Sim.running)) DiagPortadorParado.tick(dt);
         if (typeof Bancos !== 'undefined') Bancos.update(dt);
 
         /*

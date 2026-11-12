@@ -3863,6 +3863,17 @@ function formaDistanciaPasse(dist) {
     return Math.max(0.20, 0.55 - (d - 40) * 0.01);
 }
 
+/*
+O TEMPO SIMULADO, em segundos: o relogio da partida (`Match.tempoDeJogo`) anda `MatchDuration.timeScale` (~4.9) vezes mais depressa do que a simulacao. Para prazos de
+comportamento (vetos, sorteios, memoria de uma jogada) usa-se este, senao "6 s" no relogio eram 1.2 s de jogo a serio.
+*/
+function tempoSimulado() {
+    if (typeof Match === 'undefined' || typeof Match.tempoDeJogo !== 'number') return 0;
+    const k = (typeof MatchDuration !== 'undefined' && MatchDuration.timeScale) ? MatchDuration.timeScale : 1;
+    return Match.tempoDeJogo / k;
+}
+if (typeof window !== 'undefined') window.tempoSimulado = tempoSimulado;
+
 function notaDistanciaPasse(dist, circulacao, verticalidade) {
     const d = Math.max(0, dist);
     const forma = formaDistanciaPasse(d);
