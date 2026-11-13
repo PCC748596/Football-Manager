@@ -326,11 +326,25 @@ const MultiBola = {
 
     _marcarConePorRepor(i) { this._conePorRepor = i; this._estadoPorRepor = this._estadoDe(this.busca ? this.busca.tipo : 'lateral'); },
 
-    /** A bola nas maos, a frente do peito (posicao actual do corpo). */
+    /*
+    A BOLA NAS MAOS: no meio das duas maos (a posicao real delas, depois da pose do frame), um pouco a frente. A FRENTE do corpo sai do QUATERNION do modelo:
+    era `rotation.y`, que em Euler XYZ so cobre -90..90 graus — virado para tras, a bola ia parar as costas dele (medido no lateral: 59 de 73 frames).
+    */
     _bolaNasMaos(p) {
         const M = MultiBolaModel;
-        const ang = p.model.rotation.y;
-        return { x: p.model.position.x + Math.sin(ang) * M.avancoNasMaos, y: M.alturaNasMaos, z: p.model.position.z + Math.cos(ang) * M.avancoNasMaos };
+        const f = this._frente || (this._frente = new THREE.Vector3());
+        f.set(0, 0, 1).applyQuaternion(p.model.quaternion); f.y = 0;
+        if (f.lengthSq() < 1e-6) f.set(0, 0, 1); else f.normalize();
+        const r = p.rig;
+        if (r && r.lHand && r.rHand) {
+            const a = this._maoA || (this._maoA = new THREE.Vector3()), b = this._maoB || (this._maoB = new THREE.Vector3());
+            r.lHand.getWorldPosition(a); r.rHand.getWorldPosition(b);
+            const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, mz = (a.z + b.z) / 2;
+            // So se as maos estao a frente do corpo e a altura do tronco (a pose de segurar); senao, o ponto fixo a frente do peito.
+            const frente = (mx - p.model.position.x) * f.x + (mz - p.model.position.z) * f.z;
+            if (frente > 0.05 && my > 0.6) return { x: mx + f.x * M.frenteDasMaos, y: my, z: mz + f.z * M.frenteDasMaos };
+        }
+        return { x: p.model.position.x + f.x * M.avancoNasMaos, y: M.alturaNasMaos, z: p.model.position.z + f.z * M.avancoNasMaos };
     },
 
     /*
@@ -358,25 +372,38 @@ const MultiBola = {
             p.model.position.x += (b.posGesto.x - p.model.position.x) * kp;
             p.model.position.z += (b.posGesto.z - p.model.position.z) * kp;
             p.velocity.set(0, 0, 0);
-            const m = this._bolaNasMaos(p);
+            const noCone = b.fase === 'pegar' && b.fonte.tipo === 'cone';
+            const agachado = t < G.descer + G.segurar;
+            /*
+            A ORDEM CONTA. A descer, a bola poe-se primeiro (as palmas vao a ela por IK); a subir, a pose primeiro e a bola depois, no meio das maos ja na pose
+            do frame. E o peso do levantar e o do agachamento (`suave`, 1 -> 0): passava `1 - suave`, ao contrario — ele saltava para "de pe" no inicio da subida,
+            voltava a agachar no fim e os bracos largavam a pose de segurar (relato: "colocam os bracos para tras").
+            */
             if (b.fase === 'pegar') {
-                const y0p = (b.fonte.tipo === 'cone') ? this._alturaNoCone() : BallPhysics.raio;
-                // A descer e com as maos nela, a bola fica onde esta (no cone): a fisica da bola parada empurrava-a para a linha de fundo (o cone esta atras dela).
-                if (t < G.descer + G.segurar) { Match.ball.position.set(b.fonte.x, y0p, b.fonte.z); Match.ballVel.set(0, 0, 0); }
-                // A subir, a bola vai com as maos: do sitio onde estava ate a frente do peito.
-                if (t >= G.descer + G.segurar) {
-                    const y0 = (b.fonte.tipo === 'cone') ? this._alturaNoCone() : BallPhysics.raio, u = 1 - suave;
+                const y0 = (b.fonte.tipo === 'cone') ? this._alturaNoCone() : BallPhysics.raio;
+                if (agachado) {
+                    // A descer e com as maos nela, a bola fica onde esta (no cone): a fisica da bola parada empurrava-a para a linha de fundo (o cone esta atras dela).
+                    Match.ball.position.set(b.fonte.x, y0, b.fonte.z); Match.ballVel.set(0, 0, 0);
+                    this._poseApanhar(p, suave, noCone);
+                } else {
+                    this._poseLevantar(p, suave, true);
+                    // A subir, a bola vai com as maos: do sitio onde estava ate ao meio das maos.
+                    const m = this._bolaNasMaos(p), u = 1 - suave;
                     Match.ball.position.set(b.fonte.x + (m.x - b.fonte.x) * u, y0 + (m.y - y0) * u, b.fonte.z + (m.z - b.fonte.z) * u);
                 }
             } else {
                 // A descer, a bola vai das maos ate a marca; fica la enquanto ele se levanta.
                 const yM = (typeof b.marca.y === 'number') ? b.marca.y : BallPhysics.raio;
-                const u = t < G.descer ? suave : 1;
-                Match.ball.position.set(m.x + (b.marca.x - m.x) * u, m.y + (yM - m.y) * u, m.z + (b.marca.z - m.z) * u);
+                if (agachado) {
+                    const m = this._bolaNasMaos(p), u = t < G.descer ? suave : 1;
+                    Match.ball.position.set(m.x + (b.marca.x - m.x) * u, m.y + (yM - m.y) * u, m.z + (b.marca.z - m.z) * u);
+                    this._poseApanhar(p, suave, false);
+                } else {
+                    Match.ball.position.set(b.marca.x, yM, b.marca.z);
+                    this._poseLevantar(p, suave, false);
+                }
             }
-            const noCone = b.fase === 'pegar' && b.fonte.tipo === 'cone';
-            if (t < G.descer + G.segurar) this._poseApanhar(p, suave, noCone);
-            else this._poseLevantar(p, 1 - suave, b.fase === 'pegar');
+            Match.ballVel.set(0, 0, 0);
             return;
         }
         if (b.fase === 'levar') {

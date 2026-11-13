@@ -45,6 +45,8 @@ const MultiBolaModel = {
     // Altura e avanco da bola nas maos enquanto a leva (m, a frente do peito).
     alturaNasMaos: 1.15,
     avancoNasMaos: 0.35,
+    // Com as maos na pose de segurar, a bola vai no meio delas e `frenteDasMaos` m a frente (encostada as palmas).
+    frenteDasMaos: 0.06,
 
     // O desenho do cone.
     // O cone inteiro (altura e raio da base) 15% maior do que era (0.32 x 0.14), e CORTADO NA METADE (pedido): desenha-se so a metade de baixo, com a bola
