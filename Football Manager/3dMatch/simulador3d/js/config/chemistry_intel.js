@@ -8,8 +8,8 @@ O Chemistry da DUPLA (0-99) vem do `synergyMap` do manager (minutos jogados junt
 =============================================================================
 */
 const ChemistryIntelModel = {
-    // DESLIGADO ate a etapa 2 (bonus no passe) ser validada num lote grande (36 jogos ligado x desligado): com 12 jogos o resultado foi inconclusivo.
-    activo: false,
+    // LIGADO. Lotes de 36 jogos (OVR 75-80, Chemistry 75, 2026-11-13): lancamentos certos 13.7 -> 17.6 por jogo (+28%) com o acerto de 60% para 58%, passes certos iguais. Ver `lancamento`.
+    activo: true,
     debug: false,
 
     // Chemistry da dupla: minutos juntos / (jogosParaTeto x minutosPorJogo) x 99. Sem dados do manager (3D solto): `semDados`.
@@ -47,11 +47,34 @@ const ChemistryIntelModel = {
     pesoAtributos: 0.4,
 
     /*
-    FLUXO A (sem bola -> portador): o bonus na nota do passe (findPassTarget) a quem avisou a corrida e foi compreendido, por tipo. Multiplica-se pelo Chemistry
-    da dupla (/99) e pela confianca do aviso (posicionamento ofensivo e leitura tactica de quem corre). Para comparar: quem infiltra ja leva +400
-    (PassModel.bonusInfiltracao) e quem esta livre +300; com Chemistry 99 e confianca 1 isto soma no maximo o valor abaixo.
+    FLUXO A (sem bola -> portador): a EXECUCAO do passe para quem avisou a corrida e foi compreendido. A bola vai no ponto da corrida avisada (ChemistryIntel
+    .pontoDaCorrida) e o erro cai, com Chemistry 99, nestas fracoes: `direcao` no desvio da mira (sigmaDePasse), `forca` no erro de peso. Escala linear com
+    o Chemistry da dupla. A escolha do passe nao muda (o bonus na nota piorava os passes certos: lote de 36 jogos, 2026-11-13).
     */
-    bonusPasse: { FORWARD_RUN: 260, BOX_RUN: 300, DIAGONAL_RUN: 240, OVERLAP: 220, UNDERLAP: 220, SUPPORT_RUN: 120 },
+    precisao: { direcao: 0.5, forca: 0.5 },
+    /*
+    O LANCAMENTO (passe em profundidade), o que mais pesa (pedido). Com a corrida avisada e compreendida: `chance` — o sorteio do lancamento (findThroughBall)
+    multiplica-se por 1 + chance x Chemistry/99; `antecipacao` — s que os adversarios perdem a ler o lance (a dupla sai sincronizada), x Chemistry/99, na
+    corrida pelo ponto do lancamento (alvoDoLancamento). Meta: com Chemistry 75, ~30% mais lancamentos certos com a mesma percentagem de acerto.
+    */
+    // `folgaLinha`: quem avisou pode estar ate (1 + folgaLinha x Chemistry/99) vezes mais atras da linha; e nao tem de rasgar a linha entre dois adversarios.
+    // `incerteza`: fraccao a menos na incerteza do controle do ponto (o portador le melhor o colega); `ousadia`: quanto desce o pMin (arrisca mais), x Chemistry/99.
+    // `exigeRasgar`: 1 = a corrida avisada tambem tem de rasgar a linha entre dois adversarios (0 dispensa-o).
+    /*
+    Afinado em lotes de 36 jogos (OVR 75-80, Chemistry 75, 2026-11-13): sem `ousadia`, a exigir rasgar a linha, a decisao so aceita a corrida combinada com
+    controle >= `pDecisao` e o defesa nao a lanca (`defesaLanca` 0). Resultado: lancamentos certos 13.7 -> 17.6 por jogo (+28%) com 58% de acerto (60% sem
+    Chemistry), passes certos iguais. Com `ousadia` 0.12 e sem estes cortes: +46% de certos mas so 51% de acerto.
+    */
+    lancamento: { chance: 1.0, antecipacao: 0.45, folgaLinha: 0.5, incerteza: 0.5, ousadia: 0, exigeRasgar: 1, pDecisao: 0.62, defesaLanca: 0 },
+    /*
+    FLUXO B (portador -> sem bola): o portador mostra o espaco nas costas da defesa a um colega que ainda nao corre (THROUGH_PASS) e, se ele compreende,
+    arranca antes do passe. `intervalo`: s entre leituras do mesmo portador; `pMin`: controle minimo do ponto para o mostrar; `longeDaLinha`: m maximos do
+    colega a linha adversaria; `chemMin`: Chemistry minimo da dupla (abaixo disto nem se tenta: nao ha leitura).
+    */
+    fluxoB: { activo: true, intervalo: 0.6, pMin: 0.5, longeDaLinha: 18, chemMin: 21 },
+    // O ponto do encontro (passe directo) so se usa com nenhum adversario a menos disto (m) dele e a linha de passe com esta folga (m); senao, o de sempre.
+    folgaNoPonto: 2.0,
+    folgaNaLinha: 1.2,
     // Uma corrida com o destino a mais disto (m) da posicao actual na largura conta como diagonal.
     diagonalMin: 6.0
 };

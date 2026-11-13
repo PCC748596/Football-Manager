@@ -852,6 +852,7 @@ const MatchStats = {
     não têm passe pendente e não contam para nenhum bucket de passe.
     */
     registarRecepcao: function (jogador, dominou) {
+        if (typeof ChemistryIntel !== 'undefined' && this._pendingPassType) ChemistryIntel.passeChegou(jogador, dominou);
         const tipo = this._pendingPassType;
         const equipaPasse = this._pendingPassTeam;
         this._pendingPassType = null;

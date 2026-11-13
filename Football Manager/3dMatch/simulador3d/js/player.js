@@ -3575,8 +3575,6 @@ class FootballPlayer {
             }
             // O infiltrado leva metade do peso do avanco: quem rompe continua a ser opcao no Positional (a linha de passe, com o riscoLinha, decide se ha risco).
             score += priorityBonus + bonusInfiltracao * (0.5 + 0.5 * pesoAv);
-            // CHEMISTRY INTELLIGENCE (js/chemistry_intel.js): quem avisou a corrida e foi compreendido ganha um bonus pelo Chemistry da dupla. Sem aviso, 0.
-            if (typeof ChemistryIntel !== 'undefined') score += ChemistryIntel.bonusPasse(this, opt);
 
             // Grid espacial (camada PASSE)
             if (typeof SpatialGrid !== 'undefined' && SpatialGrid.cells) {
@@ -3956,7 +3954,9 @@ class FootballPlayer {
 
     initiatePass(targetPlayer) {
         // CHEMISTRY INTELLIGENCE: o passe para quem avisou a corrida executa a intencao (js/chemistry_intel.js).
-        if (targetPlayer && typeof ChemistryIntel !== 'undefined') ChemistryIntel.passeFeito(this, targetPlayer);
+        // Compreendida: { x, z, fator } — o passe vai no ponto da corrida avisada e sai com menos erro (mais abaixo e em fsm.js).
+        const chemPasse = (targetPlayer && typeof ChemistryIntel !== 'undefined') ? ChemistryIntel.passeFeito(this, targetPlayer) : null;
+        this.passeChem = null;
         // A VIRADA PELO MEIO: quem recebe guarda de que ala veio a bola (ViradaPeloMeio, perna 2).
         if (targetPlayer && this.model && typeof ViradaPeloMeio !== 'undefined') {
             const x = this.model.position.x;
@@ -4074,6 +4074,14 @@ class FootballPlayer {
         _v1.z = Math.max(-meioComp + 3.0, Math.min(meioComp - 3.0, _v1.z));
         
         this.passTargetPos = _v1.clone();
+        // CHEMISTRY: a bola vai onde o colega disse que ia (o ponto da corrida avisada no tempo de voo), nao onde ele parece ir. Cruzamento fica de fora.
+        // So no passe directo: o lancamento e o passe ao espaco ja trazem um ponto filtrado (sem adversario perto, linha livre) e esse fica.
+        if (chemPasse && !this.isCross && targetPlayer && targetPlayer.model) {
+            const directo = !((this.isThroughBall || this.isPasseEspaco) && this.throughBallTarget) && !this.passAimPoint;
+            const pc = directo ? ChemistryIntel.pontoDaCorrida(this, targetPlayer, chemPasse.x, chemPasse.z) : null;
+            if (pc) this.passTargetPos.set(Math.max(-meiaLarg + 3.0, Math.min(meiaLarg - 3.0, pc.x)), 0, Math.max(-meioComp + 3.0, Math.min(meioComp - 3.0, pc.z)));
+            this.passeChem = chemPasse.fator;
+        }
 
         /*
         Angulo do corpo NO INSTANTE DA DECISAO, nao no do contacto: o case

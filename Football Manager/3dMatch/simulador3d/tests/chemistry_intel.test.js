@@ -72,6 +72,7 @@ function cenario(chemJogos, semente) {
     let s = semente || 7; Math.random = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
     for (let k = 0; k < 20; k++) Math.random();   // sementes pequenas dao numeros minusculos nas primeiras chamadas
     ChemistryIntel.reset();
+    ChemistryIntel._semente = (semente || 7) * 7919;   // o modulo sorteia com o gerador proprio
     Match.state = 'PLAY'; Match.possessionTeam = 'TeamA';
     ChemistryIntel.carregar('TeamA', [[id(a), id(c), chemJogos * 90]]);
     Match.ballCarrier = a; a.hasBall = true;
@@ -91,20 +92,24 @@ console.log('5 — etapa 2: o aviso da corrida (fluxo A)');
     const m = cenario(10);
     verifica(m && m.para === a && ['FORWARD_RUN', 'BOX_RUN', 'DIAGONAL_RUN'].includes(m.tipo), 'quem infiltra avisa o portador: ' + (m && m.tipo), 'nao avisou');
     verifica(m && m.estado === 'compreendida', 'Chemistry 99: o portador compreende', 'estado: ' + (m && m.estado));
-    const bonus = ChemistryIntel.bonusPasse(a, c);
-    verifica(bonus > 100, `o passe para a corrida ganha bonus (+${Math.round(bonus)})`, 'bonus: ' + bonus);
-    verifica(ChemistryIntel.bonusPasse(a, d) === 0, 'quem nao avisou nada: bonus 0 (nota de sempre)', 'bonus a quem nao avisou');
     c.runAlvo.z += c.dirZ * 5;
     for (let t = 0; t < 0.3; t += 1 / 60) { c.runTimer = 3; ChemistryIntel.update(1 / 60); }
     verifica(Math.abs(ChemistryIntel.intencaoDe(c).z - c.runAlvo.z) < 0.01, 'o destino acompanha a corrida', 'destino parado');
+    const destZ = ChemistryIntel.intencaoDe(c).z, zAntes = c.model.position.z;
     a.initiatePass(c);
     verifica(!ChemistryIntel.intencaoDe(c) && ChemistryIntel.historico.some(h => h.estado === 'executada'), 'o passe para quem avisou executa a intencao', 'nao marcou executada');
+    verifica(a.passeChem === 1, 'Chemistry 99: o passe sai com o erro reduzido por inteiro (fator 1)', 'fator: ' + a.passeChem);
+    const zPasse = a.passTargetPos.z;
+    verifica((zPasse - zAntes) * c.dirZ > 0.5 && (zPasse - destZ) * c.dirZ <= 0.01, `a bola vai a frente dele, a caminho do destino avisado (${(zPasse - zAntes).toFixed(1)} m)`, `ponto do passe z=${zPasse.toFixed(1)} (ele ${zAntes.toFixed(1)}, destino ${destZ.toFixed(1)})`);
+    a.passeChem = null;
+    a.initiatePass(d);
+    verifica(a.passeChem === null, 'passe a quem nao avisou: o de sempre', 'fator a quem nao avisou');
     a.hasBall = false;
 }
 {
     // Chemistry 0: quase nunca compreende — em 20 corridas, poucas ou nenhuma.
-    let compreendidas = 0, comBonus = 0;
-    for (let k = 0; k < 20; k++) { const m = cenario(0, 11 + k); if (m && m.estado === 'compreendida') compreendidas++; if (ChemistryIntel.bonusPasse(a, c) > 0) comBonus++; }
+    let compreendidas = 0;
+    for (let k = 0; k < 20; k++) { const m = cenario(0, 11 + k); if (m && m.estado === 'compreendida') compreendidas++; }
     verifica(compreendidas <= 4, `Chemistry 0: ${compreendidas} de 20 compreendidas (em 4 s, varias tentativas)`, 'compreendeu demais com Chemistry 0: ' + compreendidas);
     let altas = 0;
     for (let k = 0; k < 20; k++) { const m = cenario(10, 41 + k); if (m && m.estado === 'compreendida') altas++; }

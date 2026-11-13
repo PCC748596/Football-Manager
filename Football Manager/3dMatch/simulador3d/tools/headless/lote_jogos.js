@@ -202,6 +202,7 @@ if (process.env.LOTE_WORKER) {
             Match.trocarEquipas({});
         }
         MatchStats.reset();
+        if (typeof ChemistryIntel !== 'undefined') ChemistryIntel.reset();
         Match.tempoDeJogo = 0;
         Match.placarA = 0; Match.placarB = 0;
 
@@ -286,6 +287,9 @@ if (process.env.LOTE_WORKER) {
             faltas: (A.faltas ? A.faltas.cometidas : 0) + (B.faltas ? B.faltas.cometidas : 0),
             impedimentos: (A.impedimentos || 0) + (B.impedimentos || 0)
         };
+        // Chemistry Intelligence: as intencoes do jogo por estado (enviada, compreendida, executada, comBonus = passe a quem avisou e foi compreendido...).
+        jogo.chemistry = {};
+        if (typeof ChemistryIntel !== 'undefined') for (const k in ChemistryIntel.contagem) { const e = k.split(':')[1]; jogo.chemistry[e] = (jogo.chemistry[e] || 0) + ChemistryIntel.contagem[k]; }
         jogo.placar = { A: Match.placarA, B: Match.placarB };
         // Os cartoes de cada jogador, para as suspensoes da rodada seguinte (e para o relatorio).
         jogo.cartoes = [];
@@ -302,7 +306,8 @@ if (process.env.LOTE_WORKER) {
 
         process.send({ tipo: 'jogo', jogo: jogo });
     }
-    process.send({ tipo: 'fim' });
+    // Sai depois de entregar: algo do jogo pode deixar o processo vivo (o pai fica a espera do 'exit' para sempre).
+    process.send({ tipo: 'fim' }, () => process.exit(0));
     return;
 }
 
@@ -471,7 +476,7 @@ function tabelaDePercentagens(fichas) {
 
 function relatorio() {
     // Guarda os resultados de cada jogo (para analisar depois sem repetir o lote).
-    try { require('fs').writeFileSync(path.join(__dirname, 'ultimo_lote.json'), JSON.stringify(resultados.map(r => ({ i: r.i, equipaA: r.equipaA, equipaB: r.equipaB, forcaA: r.forcaA, forcaB: r.forcaB, placar: r.placar, min: r.min, stats: r.stats })))); } catch (e) { /* so conveniencia */ }
+    try { require('fs').writeFileSync(path.join(__dirname, 'ultimo_lote.json'), JSON.stringify(resultados.map(r => ({ i: r.i, equipaA: r.equipaA, equipaB: r.equipaB, forcaA: r.forcaA, forcaB: r.forcaB, placar: r.placar, min: r.min, stats: r.stats, ficha: r.ficha, chemistry: r.chemistry, folhas: r.folhas })))); } catch (e) { /* so conveniencia */ }
     if (!resultados.length) {
         console.log('Nenhum jogo correu.');
         process.exit(1);

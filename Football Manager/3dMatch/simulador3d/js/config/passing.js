@@ -425,6 +425,30 @@ const PassModel = {
     baliza, não de passe em profundidade.
     */
     throughBallMaxDist: 46.0,
+    /*
+    O ALVO DO LANCAMENTO PELO BARICENTRO (pedido, 2026-11-13): *"o ideal e que o adversario fique no baricentro do triangulo projetado entre o passador,
+    recebedor e o target, contando com o movimento que o adversario vai fazer nos segundos apos o passe ate a bola passar por ele"*. A bola passa de um lado do
+    defesa, quem corre do outro, e encontram-se atras dele. Ver alvoDoLancamento (bt/player_bt.js). false: o alvo antigo (45% da distancia a frente + espaco livre).
+    */
+    lancBaricentro: true,
+    lancBaricentroCfg: {
+        angulos: [-30, -15, 0, 15, 30],   // graus em volta da direccao da corrida (com o aviso compreendido do Chemistry: so os tres do meio)
+        sMin: 4, sMax: 30, sPasso: 2,     // m que quem corre faz ate ao ponto
+        acel: 4.0,                        // m/s2 de quem arranca
+        reacao: 0.5,                      // s ate o adversario reagir ao passe (0.35 cortava metade dos lancamentos: lote de 36 jogos, 2026-11-13)
+        travagem: 7.0, giro: 0.3,         // quem corria no sentido contrario ao ponto trava (m/s2) e vira (s) antes de arrancar
+        folgaCorrida: 0.1,                // s que quem corre tem de ganhar ao adversario mais rapido a chegar ao ponto (era 0.25)
+        esperaMax: 0.9,                   // s que a bola pode ficar parada a espera dele no ponto
+        raioDefesa: 14,                   // m: o defesa a bater e o de campo mais perto de quem corre, ate esta distancia
+        projeccaoMax: 1.5,                // s maximos de movimento projectado do defesa
+        // pesoSincronia: por s que a bola fica a espera dele; pesoTravar: por s que ele tem de abrandar para chegar com a bola (perde embalo).
+        pesoBaricentro: 3.0, pesoSincronia: 20.0, pesoTravar: 4.0, pesoProfundidade: 0.6,
+        /*
+        O controle do ponto em probabilidade (alvoDoLancamento): `incerteza` (s) da sigmoide da margem de tempo; `pMin`, a probabilidade minima para lancar;
+        o valor do ponto vai de ~0 a `alcanceValor` m da baliza ate 1 junto dela, e pesa `pesoValor` na nota.
+        */
+        prob: { incerteza: 0.45, pMin: 0.55, alcanceValor: 55, pesoValor: 300 }
+    },
     // Nem sempre que há espaço se lança: senão o jogo torna-se todo directo.
     throughBallChance: 0.9,   // 0.30 -> 0.45 -> 0.675 (+50% duas vezes)
 
@@ -1868,6 +1892,8 @@ const LancamentoDecisao = {
         if (!e.temPasseCurto) return true;
         // Quem rompe e pede a bola ganha o lançamento, mesmo vindo de um defesa no próprio terço.
         if (e.receptorEmRuptura) return true;
+        // A corrida avisada e compreendida (Chemistry Intelligence): o mesmo que a ruptura — e o lancamento combinado entre os dois.
+        if (e.corridaAvisada) return true;
         if (e.defesaNoProprioTerco) return false;
         // Um companheiro TOTALMENTE livre (ninguem a 7 m nem a 20 m a frente, linha limpa) recebe o lancamento em qualquer mentalidade: nao e risco, e a melhor opcao.
         if (e.receptorLivre) return true;

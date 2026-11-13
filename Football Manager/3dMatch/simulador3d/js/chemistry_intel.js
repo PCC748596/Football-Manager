@@ -8,7 +8,7 @@ NAO E UMA SEGUNDA AI. E um quadro de mensagens: as folhas que ja existem (infilt
 passe e o movimento leem-nas como informacao a mais. Sem intencao, tudo fica como estava.
 
 Etapa 1: o Chemistry da dupla, o quadro (postar, compreender, cancelar, expirar, sem conflitos nem repeticoes) e o debug.
-Etapa 2: fluxo A — quem corre (infiltrar, overlap, apoio) avisa o portador; se ele compreende, o passe para essa corrida ganha um bonus no findPassTarget.
+Etapa 2: fluxo A — quem corre (infiltrar, overlap, apoio) avisa o portador; se ele compreende, o o passe para essa corrida vai no ponto avisado e sai com menos erro.
 =============================================================================
 */
 const ChemistryIntel = {
@@ -22,8 +22,21 @@ const ChemistryIntel = {
     _ultimaDe: new Map(), // 'remetente|destinatario|tipo' -> instante da ultima (controle de repeticao)
     _tempo: 0,
 
+    /*
+    O SORTEIO PROPRIO do modulo (mulberry32), reposto a cada partida: nao consome o Math.random do jogo, para que ligar o sistema nao mude todos os sorteios
+    seguintes da partida — com ele ligado e desligado o jogo e o mesmo ate ao primeiro passe que o Chemistry muda (o lote compara-se jogo a jogo).
+    */
+    _semente: 0x9E3779B9,
+    _sorteio() {
+        let t = (this._semente = (this._semente + 0x6D2B79F5) | 0);
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    },
+
     reset() {
-        this.activas.length = 0; this.historico.length = 0; this.contagem = {}; this._acc = 0; this._ultimaDe.clear(); this._tempo = 0;
+        this._semente = 0x9E3779B9;
+        this._passeAberto = null; this.activas.length = 0; this.historico.length = 0; this.contagem = {}; this._acc = 0; this._ultimaDe.clear(); this._tempo = 0;
         this._limparDebug();
     },
 
@@ -161,6 +174,7 @@ const ChemistryIntel = {
             else if (Match.ballCarrier && a.para !== Match.ballCarrier && a.tipo !== 'THROUGH_PASS' && a.tipo !== 'CROSS_TARGET') this.marcar(a, 'cancelada', 'portador_mudou');
         }
         this._escutarCorridas();
+        this._lerEspaco();
         this._compreender();
         if (ChemistryIntelModel.debug) this._desenharDebug(); else this._limparDebug();
     },
@@ -218,10 +232,19 @@ const ChemistryIntel = {
         const m = this.postar(de, para, tipo, x, z, acao, confianca);
         if (!m) return null;
         const M = ChemistryIntelModel, f = this.faixa(m.chem);
-        const leitura = this._norm(para, ['vision', 'composure', 'reactions'], 'pass');
+        // Quem le: o portador le a corrida (visao, compostura, reaccoes); quem corre le o espaco que o portador lhe mostra (sem bola, posicionamento, reaccoes).
+        const leitura = (tipo === 'THROUGH_PASS')
+            ? this._norm(para, ['posOffense', 'tacticalAwa', 'reactions'], 'tec')
+            : this._norm(para, ['vision', 'composure', 'reactions'], 'pass');
         const chance = M.compreensaoBase[f] * ((1 - M.pesoAtributos) + M.pesoAtributos * leitura);
         m.compreendeEm = m.criada + M.atrasoCompreensao[f];
-        m.vaiCompreender = Math.random() < chance;
+        m.vaiCompreender = this._sorteio() < chance;
+        // A corrida que o PROPRIO portador pediu (fluxo B) ele ja a conhece: o aviso de volta vem compreendido logo.
+        if (tipo !== 'THROUGH_PASS') {
+            for (const a of this.activas) {
+                if (a.tipo === 'THROUGH_PASS' && a.de === para && a.para === de && a.estado === 'compreendida') { m.vaiCompreender = true; m.compreendeEm = m.criada; break; }
+            }
+        }
         return m;
     },
 
@@ -260,36 +283,144 @@ const ChemistryIntel = {
         }
     },
 
+    // ---------------------------------------------------------------- etapa 3: fluxo B (portador -> sem bola)
+
+    /*
+    LER O ESPACO (fluxo B, o que se ve nos jogos grandes): o portador olha para os colegas a frente da bola que ainda nao correm e procura, para cada um, o
+    ponto do lancamento (alvoDoLancamento, bt/player_bt.js: o controle do ponto em probabilidade x o valor do ponto, e o baricentro). Se o melhor tem
+    controle suficiente (`fluxoB.pMin`), mostra-lho (THROUGH_PASS, destino = esse ponto). Se o colega compreende (Chemistry da dupla + a leitura dele),
+    ARRANCA ANTES DO PASSE para la (_arrancar); a corrida dele volta ao portador como aviso ja compreendido (avisar), e o lancamento sai para quem corre.
+    De `fluxoB.intervalo` em `fluxoB.intervalo` s por portador, um aviso de cada vez.
+    */
+    _lerEspaco() {
+        const M = ChemistryIntelModel, B = M.fluxoB;
+        const portador = Match.ballCarrier;
+        if (!B || !B.activo || !portador || !portador.model || Match.state !== 'PLAY' || portador.role === 'gk') return;
+        if (this.intencaoDe(portador)) return;
+        if (portador._chemLerEm !== undefined && this._tempo < portador._chemLerEm) return;
+        portador._chemLerEm = this._tempo + B.intervalo;
+        if (typeof alvoDoLancamento !== 'function' || typeof TeamAI === 'undefined') return;
+        const outra = portador.team === 'TeamA' ? 'TeamB' : 'TeamA';
+        const bbAdv = TeamAI.get(outra);
+        if (!bbAdv || typeof bbAdv.defLineDir !== 'number') return;
+        const linhaNoNosso = -bbAdv.defLineDir;
+        const dirZ = portador.dirZ, meuAv = portador.model.position.z * dirZ;
+        if (meuAv > linhaNoNosso - 4) return;   // colado a linha: nao ha espaco nas costas dela
+        const colegas = portador.team === 'TeamA' ? Match.players : Match.opponents;
+        const advs = portador.team === 'TeamA' ? Match.opponents : Match.players;
+        let melhor = null;
+        for (const q of colegas) {
+            if (q === portador || !q.model || q.role === 'gk' || q.role === 'def' || q.expulso) continue;
+            if (q.fsm && q.fsm.currentState === 'RUN_INTO_SPACE') continue;      // ja corre: e o fluxo A
+            if (q.runCooldown > 0) continue;
+            const av = q.model.position.z * dirZ;
+            if (av <= meuAv + 2 || av > linhaNoNosso + 0.3) continue;            // a frente da bola e em posicao regular
+            if (linhaNoNosso - av > B.longeDaLinha) continue;
+            if (this.chemistry(portador, q) < B.chemMin) continue;
+            const t = alvoDoLancamento(portador, q, advs, linhaNoNosso, true);
+            if (!t || !(t.p >= B.pMin)) continue;
+            if (!melhor || t.nota > melhor.t.nota) melhor = { q, t };
+        }
+        if (!melhor) return;
+        const m = this.avisar(portador, melhor.q, 'THROUGH_PASS', melhor.t.x, melhor.t.z, 'arrancar', melhor.t.p);
+        if (m) this._contar('THROUGH_PASS', 'espacoMostrado');
+    },
+
+    /** O colega compreendeu o espaco: arranca ja para o ponto (RUN_INTO_SPACE, o mesmo estado das infiltracoes), antes de o passe sair. */
+    _arrancar(a) {
+        const q = a.para;
+        if (!q || !q.model || !q.fsm || q === Match.ballCarrier) return;
+        q.runAlvo = { x: a.x, z: a.z };
+        q.overlapAlvo = null;
+        if (q.dynamicTarget) q.dynamicTarget.set(a.x, (typeof ALTURA_BASE_Y === 'number') ? ALTURA_BASE_Y : 0, a.z);
+        q.speedMult = q.sprintSpeed || (6.5 * 1.3);
+        q.runTimer = a.validade + 1.0;
+        q.runCarrier = a.de;
+        q.fsm.changeState('RUN_INTO_SPACE');
+        this._contar('THROUGH_PASS', 'arrancou');
+    },
+
     /** Compreensao: chegou a hora de a mensagem ser percebida (ou nao) pelo destinatario. */
     _compreender() {
         for (let i = this.activas.length - 1; i >= 0; i--) {
             const a = this.activas[i];
             if (a.estado !== 'enviada' || a.compreendeEm === undefined || this._tempo < a.compreendeEm) continue;
-            if (a.vaiCompreender) this.marcar(a, 'compreendida');
+            if (a.vaiCompreender) { this.marcar(a, 'compreendida'); if (a.tipo === 'THROUGH_PASS') this._arrancar(a); }
             else this.marcar(a, 'recusada', 'nao_compreendeu');
         }
     },
 
     /*
-    O BONUS NA NOTA DO PASSE (findPassTarget, player.js) do `portador` para `alvo`: so se `alvo` avisou uma corrida ao portador e ele a compreendeu. Sem isso,
-    zero — a nota fica a de sempre. Guarda-se na mensagem para o debug.
+    O PASSE SAIU (initiatePass): se era para quem avisou a corrida, a intencao foi executada (o gancho da memoria fica para a etapa 4). Se o portador a tinha
+    COMPREENDIDO, devolve { x, z, fator }: o destino avisado e quanto o passe melhora (Chemistry da dupla / 99) — a bola vai no ponto da corrida e sai com
+    menos erro (ChemistryIntelModel.precisao, aplicado em fsm.js). A ESCOLHA do passe nao muda: um bonus na nota (lote de 36 jogos, 2026-11-13) empurrava
+    passes arriscados e baixava os passes certos. Sem aviso compreendido: null, o passe de sempre.
     */
-    bonusPasse(portador, alvo) {
-        if (!ChemistryIntelModel.activo || !this.activas.length) return 0;
+    passeFeito(portador, alvo) {
+        // Um passe anterior para quem avisou que ninguem recebeu (saiu, morreu no relvado, impedimento): errado.
+        if (this._passeAberto) { this._contar(this._passeAberto.tipo, this._passeAberto.comBonus ? 'comBonus_errado' : 'semBonus_errado'); this._passeAberto = null; }
+        // O espaco que o portador mostrou (fluxo B): o passe para la executa-o.
         for (const a of this.activas) {
-            if (a.de !== alvo || a.para !== portador || a.estado !== 'compreendida') continue;
-            const base = ChemistryIntelModel.bonusPasse[a.tipo] || 0;
-            a.bonus = base * (a.chem / 99) * a.confianca;
-            return a.bonus;
+            if (a.tipo === 'THROUGH_PASS' && a.de === portador && a.para === alvo) { this.marcar(a, 'executada', 'passe'); this._contar('THROUGH_PASS', 'passeNoEspacoMostrado'); break; }
         }
-        return 0;
+        for (const a of this.activas) {
+            if (a.de === alvo && a.para === portador) {
+                const comBonus = a.estado === 'compreendida';
+                if (comBonus) this._contar(a.tipo, 'comBonus');
+                this._passeAberto = { para: alvo, tipo: a.tipo, comBonus };
+                const r = (comBonus && ChemistryIntelModel.activo) ? { x: a.x, z: a.z, fator: Math.max(0, Math.min(1, a.chem / 99)) } : null;
+                if (r) a.bonus = r.fator;
+                this.marcar(a, 'executada', 'passe'); this.registarJogada(a.de, a.para, a.tipo, 'passe');
+                return r;
+            }
+        }
+        return null;
     },
 
-    /** O passe saiu (initiatePass): se era para quem avisou a corrida, a intencao foi executada (o gancho da memoria fica para a etapa 4). */
-    passeFeito(portador, alvo) {
-        for (const a of this.activas) {
-            if (a.de === alvo && a.para === portador) { this.marcar(a, 'executada', 'passe'); this.registarJogada(a.de, a.para, a.tipo, 'passe'); return; }
+    /*
+    O PONTO DO ENCONTRO para quem avisou a corrida (so no passe directo; o lancamento e o passe ao espaco ja trazem o ponto deles, filtrado): onde a bola e
+    ele se encontram, a caminho do destino avisado. Ponto fixo: o tempo de voo e o da bola ATE ao ponto (a velocidade media do alvoDePasse, utils.js), e ele
+    corre desde a velocidade actual, a acelerar ate ~90% do maximo. Nao passa do destino. Devolve null (fica o ponto de sempre) se a linha de passe estiver
+    tapada ou houver adversario perto do ponto.
+    */
+    pontoDaCorrida(portador, alvo, destX, destZ) {
+        const R = alvo.model.position, P = portador.model.position;
+        const dx = destX - R.x, dz = destZ - R.z, falta = Math.hypot(dx, dz);
+        if (falta < 0.5) return null;
+        const ux = dx / falta, uz = dz / falta;
+        const vMax = (alvo.speedMult || 7.5) * 0.9;
+        const v0 = Math.min(vMax, alvo.velocity ? Math.max(0, alvo.velocity.x * ux + alvo.velocity.z * uz) : 0);
+        const acel = 4.0;
+        const percorre = (t) => { const tA = (vMax - v0) / acel; return t <= tA ? v0 * t + 0.5 * acel * t * t : v0 * tA + 0.5 * acel * tA * tA + vMax * (t - tA); };
+        let x = R.x, z = R.z;
+        for (let k = 0; k < 4; k++) {
+            const d = Math.hypot(x - P.x, z - P.z);
+            const vBola = d <= 15 ? 12 : (d <= 30 ? 22 - (d - 15) * 4 / 15 : Math.max(16, 18 - (d - 30) * 2 / 30));
+            const s = Math.min(falta, percorre(Math.min(3.0, d / vBola)));
+            x = R.x + ux * s; z = R.z + uz * s;
         }
+        const adv = (portador.team === 'TeamA') ? Match.opponents : Match.players;
+        const obst = [];
+        for (const o of adv) {
+            if (!o || !o.model || o.expulso) continue;
+            if (Math.hypot(o.model.position.x - x, o.model.position.z - z) < ChemistryIntelModel.folgaNoPonto) return null;
+            obst.push(o.model.position);
+        }
+        if (typeof linhaLivre === 'function' && !linhaLivre(P.x, P.z, x, z, obst, ChemistryIntelModel.folgaNaLinha)) return null;
+        return { x, z };
+    },
+
+    /*
+    A bola de um passe chegou a alguem (MatchStats.registarRecepcao): se o passe era para quem avisou a corrida, certo quando o proprio a dominou, errado
+    noutro caso. Conta com bonus (o portador compreendeu) e sem bonus (nao compreendeu), para comparar a percentagem de certos dos dois.
+    */
+    _passeAberto: null,
+    passeChegou(jogador, dominou) {
+        const p = this._passeAberto;
+        if (!p) return;
+        this._passeAberto = null;
+        const certo = dominou && jogador === p.para;
+        this._contar(p.tipo, (p.comBonus ? 'comBonus_' : 'semBonus_') + (certo ? 'certo' : 'errado'));
     },
 
     /** O gancho da memoria das duplas (etapa 4 e o futuro Player Memory System). Por agora so conta. */

@@ -288,6 +288,144 @@ const emRupturaDe = (m) => !!(m && m.fsm && m.fsm.currentState === 'RUN_INTO_SPA
 
 // DIAGNOSTICO (tools/headless/lancamentos_porque.js): conta por que o findThroughBall recusa. Sem `__tbDiag` nao faz nada.
 const _tb = (k) => { const D = (typeof globalThis !== 'undefined') ? globalThis.__tbDiag : null; if (D) D[k] = (D[k] || 0) + 1; };
+/*
+O ALVO DO LANCAMENTO PELO BARICENTRO (PassModel.lancBaricentro): procura o ponto T a frente de quem corre em que (1) a bola e ele chegam juntos, (2) ele chega
+antes de qualquer adversario (guarda-redes incluido) e (3) o defesa que ele bate, projectado ate a bola passar por ele, fica o mais perto possivel do BARICENTRO
+do triangulo passador-recebedor-T. A direccao da corrida e a do aviso compreendido (Chemistry Intelligence), senao a da velocidade dele, senao em frente.
+Devolve { x, z, nota } ou null.
+*/
+function alvoDoLancamento(p, mate, opponents, linhaNoNosso, exigeRomper) {
+    const C = PassModel.lancBaricentroCfg;
+    const P = p.model.position, R = mate.model.position;
+    const dirZ = p.dirZ;
+    const escala = (typeof VelocidadeHumana !== 'undefined' && VelocidadeHumana.escala) || 1;
+    const vMaxDe = (j) => (typeof VelocidadeHumana !== 'undefined' && j.skillFor) ? VelocidadeHumana.tecto(j.skillFor('SPEED')) * escala * 0.9 : 8.0;
+
+    // A direccao da corrida: o aviso compreendido diz para onde ele vai; senao a velocidade; parado, em frente.
+    let ux = 0, uz = dirZ, avisada = false, chemAviso = 0;
+    if (typeof ChemistryIntel !== 'undefined' && typeof ChemistryIntelModel !== 'undefined' && ChemistryIntelModel.activo) {
+        const a = ChemistryIntel.intencaoPara(p, mate);
+        if (a && a.estado === 'compreendida') {
+            const dx = a.x - R.x, dz = a.z - R.z, n = Math.hypot(dx, dz);
+            if (n > 1) { ux = dx / n; uz = dz / n; avisada = true; chemAviso = Math.max(0, Math.min(1, a.chem / 99)); }
+        }
+    }
+    /*
+    A ANTECIPACAO DA DUPLA (Chemistry Intelligence): com a corrida avisada e compreendida, passe e arranque saem sincronizados — ele parte no instante do
+    passe, na direccao combinada, e os adversarios ainda estao a ler o lance. Soma-se a reaccao deles `lancamento.antecipacao` s x o Chemistry da dupla.
+    */
+    const LCH = (typeof ChemistryIntelModel !== 'undefined' && ChemistryIntelModel.lancamento) || {};
+    const antecipacao = avisada ? (LCH.antecipacao || 0) * chemAviso : 0;
+    const Pr = C.prob;
+    const chemIncerteza = avisada ? (LCH.incerteza || 0) : 0;
+    const pMin = Pr.pMin - (avisada ? (LCH.ousadia || 0) * chemAviso : 0);
+    const vel = mate.velocity;
+    const vR = vel ? Math.hypot(vel.x, vel.z) : 0;
+    if (!avisada && vR > 2.0) { ux = vel.x / vR; uz = vel.z / vR; }
+    // Para tras nao e lancamento: a direccao tem de ter componente para a frente.
+    if (uz * dirZ < 0.2) { ux = ux * 0.5; uz = dirZ * 0.85; const n = Math.hypot(ux, uz); ux /= n; uz /= n; }
+
+    const vMaxR = vMaxDe(mate);
+    const v0 = Math.min(vMaxR, vel ? Math.max(0, vel.x * ux + vel.z * uz) : 0);
+    const tA = (vMaxR - v0) / C.acel;
+    const sA = v0 * tA + 0.5 * C.acel * tA * tA;
+    const tempoCorrida = (s) => (s <= sA) ? (-v0 + Math.sqrt(v0 * v0 + 2 * C.acel * s)) / C.acel : tA + (s - sA) / vMaxR;
+    /*
+    O tempo de um ADVERSARIO ate (tx, tz), com a mesma fisica: reage ao passe (`reacao`), e parte da velocidade que leva NA DIRECCAO do ponto. Quem ia no
+    sentido contrario tem primeiro de travar (a `travagem` m/s2) e virar (`giro` s) — e isso que o lancamento explora.
+    */
+    const tempoAdversario = (o, tx, tz) => {
+        const ox = o.model.position.x, oz = o.model.position.z;
+        const d = Math.hypot(tx - ox, tz - oz);
+        if (d < 0.01) return C.reacao;
+        const vm = vMaxDe(o);
+        const ov = o.velocity;
+        const vd = ov ? (ov.x * (tx - ox) + ov.z * (tz - oz)) / d : 0;
+        let t = C.reacao + antecipacao, w0 = Math.max(0, Math.min(vm, vd));
+        if (vd < -0.5) t += (-vd) / C.travagem + C.giro;
+        const tAo = (vm - w0) / C.acel, sAo = w0 * tAo + 0.5 * C.acel * tAo * tAo;
+        t += (d <= sAo) ? (-w0 + Math.sqrt(w0 * w0 + 2 * C.acel * d)) / C.acel : tAo + (d - sAo) / vm;
+        return t;
+    };
+    /*
+    O tempo da bola ate `d` metros: a execucao (passe de encontro, fsm.js) acerta a forca para a bola chegar `PassModel.encontro.folgaTempo` depois dele, com a
+    velocidade de chegada entre vChegadaMin e vChegadaMax. Aqui sai a faixa possivel [tMin, tMax] (bola mais forte e mais mansa).
+    */
+    const E = PassModel.encontro || { folgaTempo: 0.15, vChegadaMin: 3.3, vChegadaMax: 12.1, vSaidaMax: 20.35 };
+    const tempoBolaA = (d, vCh) => {
+        if (d < 0.5) return 0;
+        if (typeof velocidadeParaChegarA === 'function' && typeof tempoRasteiroDaBola === 'function') {
+            const v = velocidadeParaChegarA(d, vCh, E.vSaidaMax);
+            const t = tempoRasteiroDaBola(d, v);
+            if (typeof t === 'number' && isFinite(t)) return t;
+        }
+        return d / 14;
+    };
+
+    // O defesa a bater: o de campo mais perto de quem corre.
+    let K = null, dK = C.raioDefesa;
+    for (const o of opponents) {
+        if (!o || !o.model || o.role === 'gk' || o.expulso) continue;
+        const d = Math.hypot(o.model.position.x - R.x, o.model.position.z - R.z);
+        if (d < dK) { dK = d; K = o; }
+    }
+
+    const limX = CAMPO_LARG / 2 - ((PassModel.margemSegurancaLinha) || 3.0);
+    const limZ = CAMPO_COMP / 2 - 4;
+    const angs = avisada ? C.angulos.filter(g => Math.abs(g) <= 15) : C.angulos;
+    let melhor = null;
+    for (const g of angs) {
+        const r = g * Math.PI / 180, cs = Math.cos(r), sn = Math.sin(r);
+        const dx = ux * cs - uz * sn, dz = ux * sn + uz * cs;
+        for (let s = C.sMin; s <= C.sMax; s += C.sPasso) {
+            const tx = R.x + dx * s, tz = R.z + dz * s;
+            if (Math.abs(tx) > limX || tz * dirZ > limZ || Math.abs(tz) > CAMPO_COMP / 2 - 1) { _tb('bar:fora'); continue; }
+            if (exigeRomper && tz * dirZ < linhaNoNosso + 2) { _tb('bar:naoRompe'); continue; }
+            const dBola = Math.hypot(tx - P.x, tz - P.z);
+            if (dBola > PassModel.throughBallMaxDist) { _tb('bar:longe'); continue; }
+            const tr = tempoCorrida(s);
+            const tMin = tempoBolaA(dBola, E.vChegadaMax), tMax = tempoBolaA(dBola, E.vChegadaMin);
+            // A bola sai com a forca que a faz chegar logo depois dele; se nem a mais mansa chega tao tarde, espera por ele (ate esperaMax).
+            const tb = Math.max(tMin, Math.min(tMax, tr + (E.folgaTempo || 0.15)));
+            if (tr - tb > C.esperaMax) { _tb('bar:eleAtrasado'); continue; }
+            const tChega = Math.max(tb, tr);
+            /*
+            O CONTROLE DO PONTO, EM PROBABILIDADE (o "pitch control" da analise de futebol, simplificado): a margem e o tempo do adversario mais rapido a
+            chegar ao ponto (guarda-redes incluido) menos o de quem recebe; p = sigmoide(margem / incerteza). Ganhar por 0.3 s com incerteza 0.45 da 0.66,
+            empatar 0.5. Sai se p >= pMin. Era um corte duro (ganhar por `folgaCorrida`, ou nada) e por isso o Chemistry quase nao mexia no numero de
+            lancamentos: com a corrida avisada e compreendida, a incerteza cai (o portador le melhor o colega) e o pMin desce (arrisca mais) — ver
+            ChemistryIntelModel.lancamento.
+            */
+            let tDef = Infinity;
+            for (const o of opponents) {
+                if (!o || !o.model || o.expulso) continue;
+                const tO = tempoAdversario(o, tx, tz);
+                if (tO < tDef) tDef = tO;
+            }
+            const sigma = Pr.incerteza * (1 - chemIncerteza * chemAviso);
+            const pCtrl = 1 / (1 + Math.exp(-(tDef - tChega) / Math.max(0.05, sigma)));
+            if (pCtrl < pMin) { _tb('bar:poucoControle'); continue; }
+            // O VALOR DO PONTO (um "expected threat" simples): perto da baliza adversaria e de frente para ela vale mais.
+            const gx = 0 - tx, gz = dirZ * CAMPO_COMP / 2 - tz, dG = Math.hypot(gx, gz);
+            const valor = Math.pow(Math.max(0.04, 1 - Math.min(dG, Pr.alcanceValor) / Pr.alcanceValor), 1.5) * (0.6 + 0.4 * Math.abs(gz) / Math.max(1, dG));
+            let nota = pCtrl * valor * Pr.pesoValor - Math.max(0, tr - tb) * C.pesoSincronia - Math.max(0, tb - tr) * C.pesoTravar;
+            if (K) {
+                // Ate a bola passar por ele: o tempo da bola ate ao ponto do segmento P-T mais perto dele.
+                const segX = tx - P.x, segZ = tz - P.z, L2 = segX * segX + segZ * segZ || 1;
+                const kx = K.model.position.x, kz = K.model.position.z;
+                const u = Math.max(0, Math.min(1, ((kx - P.x) * segX + (kz - P.z) * segZ) / L2));
+                const tK = Math.min(C.projeccaoMax, tb * u);
+                const kv = K.velocity;
+                const px = kx + (kv ? kv.x : 0) * tK, pz = kz + (kv ? kv.z : 0) * tK;
+                const cx = (P.x + R.x + tx) / 3, cz = (P.z + R.z + tz) / 3;
+                nota -= Math.hypot(px - cx, pz - cz) * C.pesoBaricentro;
+            }
+            if (!melhor || nota > melhor.nota) melhor = { x: tx, z: tz, nota, p: pCtrl, valor };
+        }
+    }
+    return melhor;
+}
+
 function findThroughBall(ctx) {
     if (ctx._throughBall !== undefined) return ctx._throughBall;
     _tb('chamadas');
@@ -317,7 +455,17 @@ function findThroughBall(ctx) {
     */
     const agoraTb = tempoSimulado();
     const sorteioSeg = (PassModel.throughBallSorteioSeg !== undefined) ? PassModel.throughBallSorteioSeg : 3.0;
-    if (!p._tbSorte || agoraTb - p._tbSorte.t > sorteioSeg || agoraTb < p._tbSorte.t) p._tbSorte = { t: agoraTb, ok: Math.random() <= chanceLanc };
+    /*
+    O AVISO DA CORRIDA CONTA NO SORTEIO (Chemistry Intelligence): com um companheiro a avisar a corrida e o portador a compreende-la, o lancamento procura-se
+    mais — a chance multiplica-se por 1 + `lancamento.chance` x o Chemistry da dupla — e um aviso novo (ou com mais Chemistry) volta a sortear.
+    */
+    let chemLanc = 0;
+    if (typeof ChemistryIntel !== 'undefined' && typeof ChemistryIntelModel !== 'undefined' && ChemistryIntelModel.activo && ChemistryIntelModel.lancamento) {
+        for (const a of ChemistryIntel.activas) if (a.para === p && a.estado === 'compreendida') chemLanc = Math.max(chemLanc, Math.max(0, Math.min(1, a.chem / 99)));
+        chanceLanc *= 1 + ChemistryIntelModel.lancamento.chance * chemLanc;
+    }
+    const novoAviso = chemLanc > 0 && p._tbSorte && !p._tbSorte.ok && chemLanc > (p._tbSorte.chem || 0);
+    if (!p._tbSorte || novoAviso || agoraTb - p._tbSorte.t > sorteioSeg || agoraTb < p._tbSorte.t) p._tbSorte = { t: agoraTb, ok: Math.random() <= chanceLanc, chem: chemLanc };
     if (!p._tbSorte.ok) {
         _tb('sorteioChance');
         ctx._throughBall = null;
@@ -341,9 +489,21 @@ function findThroughBall(ctx) {
     for (const mate of ctx.teammates) {
         if (mate === p || mate.role === 'gk') continue;
         if (mate.role === 'def') continue;              // defesas não fazem desmarcações
+        // Diagnostico (tools/headless/lancamentos_porque.js): os motivos de recusa de quem avisou a corrida e foi compreendido contam tambem como 'chem:'.
+        /*
+        A CORRIDA AVISADA E COMPREENDIDA (Chemistry Intelligence): o portador sabe para onde ele vai. Conta como ruptura (um defesa pode lança-lo), nao tem de
+        rasgar a linha entre dois adversarios (o alvoDoLancamento ja exige que ele ganhe a corrida ao ponto, e com alguem no corredor a bola vai pelo alto) e
+        pode vir de mais longe da linha (a folga cresce com o Chemistry da dupla: `lancamento.folgaLinha`).
+        */
+        const avisoChem = (typeof ChemistryIntel !== 'undefined' && typeof ChemistryIntelModel !== 'undefined' && ChemistryIntelModel.activo)
+            ? ChemistryIntel.intencaoPara(p, mate) : null;
+        const avisouChem = !!(avisoChem && avisoChem.estado === 'compreendida');
+        const chemMate = avisouChem ? Math.max(0, Math.min(1, avisoChem.chem / 99)) : 0;
+        const rej = (m) => { _tb(m); if (avisouChem) _tb('chem:' + m); };
         const emRuptura = !!(mate.fsm && mate.fsm.currentState === 'RUN_INTO_SPACE');
-        if (soParaRuptura && !emRuptura) { _tb('mate:defSoRuptura'); continue; }
-        _tb('mate:candidatos');
+        const defesaLanca = avisouChem && !(ChemistryIntelModel.lancamento && ChemistryIntelModel.lancamento.defesaLanca === 0);
+        if (soParaRuptura && !emRuptura && !defesaLanca) { rej('mate:defSoRuptura'); continue; }
+        rej('mate:candidatos');
 
         // Alvo do PositionBT, não a posição actual — ver alvoDePasse().
         const mateAlvo = alvoDePasse(mate);
@@ -361,12 +521,13 @@ function findThroughBall(ctx) {
         
         // Verificação de fora-de-jogo DEVE usar a posição ACTUAL do jogador, não a projetada,
         // senão jogadores em sprint (infiltrações) são rejeitados injustamente por parecerem estar offside!
-        if (mateZ_current > linhaNoNosso + 0.5) { _tb('mate:impedido'); continue; }
+        if (mateZ_current > linhaNoNosso + 0.5) { rej('mate:impedido'); continue; }
         
         // A folga avalia se o jogador já está razoavelmente perto da última linha para a conseguir romper.
         // O Direct e o Counter lancam quem ainda vem de mais longe (TeamPlayStyles.lancGap multiplica a folga): medido, `longeDaLinha` era o corte que mais travava o lancamento do Direct.
         const folgaLinha = (emRuptura ? (PassModel.throughBallGapRuptura || PassModel.throughBallGap) : PassModel.throughBallGap) * ((eeL && eeL.lancGap) || 1);
-        if (!receptorLivre && mateZ_current < linhaNoNosso - folgaLinha) { _tb('mate:longeDaLinha'); continue; }
+        const folgaChem = folgaLinha * (1 + ((avisouChem && ChemistryIntelModel.lancamento) ? (ChemistryIntelModel.lancamento.folgaLinha || 0) * chemMate : 0));
+        if (!receptorLivre && mateZ_current < linhaNoNosso - folgaChem) { rej('mate:longeDaLinha'); continue; }
         
         // Bónus especial se ele já estiver em movimento de ruptura
         let sprintBonus = 0;
@@ -377,14 +538,15 @@ function findThroughBall(ctx) {
         // Lançamento é bola longa: abaixo de distMinLonga é passe normal.
         const distMinBase = emRuptura ? (PassModel.distMinRuptura || PassModel.distMinLonga) : PassModel.distMinLonga;
         const distMin = receptorLivre ? Math.min(distMinBase, PassModel.distMinLivre || 16.0) : distMinBase;
-        if (dist < distMin) { _tb('mate:distCurta'); continue; }
-        if (dist > PassModel.throughBallMaxDist) { _tb('mate:distLonga'); continue; }
+        if (dist < distMin) { rej('mate:distCurta'); continue; }
+        if (dist > PassModel.throughBallMaxDist) { rej('mate:distLonga'); continue; }
 
         /*
         E TEM DE RASGAR A LINHA. Longo nao chega: um lancamento sai por
         entre DOIS adversarios, senao e so uma bola comprida para o espaco.
         */
-        if (!receptorLivre && typeof passaEntreAdversarios === 'function') {
+        const dispensaRasgar = avisouChem && !(ChemistryIntelModel.lancamento && ChemistryIntelModel.lancamento.exigeRasgar);
+        if (!receptorLivre && !dispensaRasgar && typeof passaEntreAdversarios === 'function') {
             const advPontos = [];
             for (const o of ctx.opponents) {
                 if (o.role === 'gk' || !o.model) continue;
@@ -392,9 +554,15 @@ function findThroughBall(ctx) {
             }
             if (!passaEntreAdversarios(p.model.position.x, p.model.position.z,
                 mateAlvo.x, mateAlvo.z, advPontos,
-                PassModel.throughBallCorredorLargura, PassModel.throughBallVaoMax)) { _tb('mate:naoRasgaLinha'); continue; }
+                PassModel.throughBallCorredorLargura, PassModel.throughBallVaoMax)) { rej('mate:naoRasgaLinha'); continue; }
         }
 
+        let alvoX, alvoZ, notaAlvo = 0, pAlvo = 1;
+        if (PassModel.lancBaricentro) {
+            const t = alvoDoLancamento(p, mate, ctx.opponents, linhaNoNosso, !receptorLivre);
+            if (!t) { rej('mate:semAlvoBaricentro'); continue; }
+            alvoX = t.x; alvoZ = t.z; notaAlvo = t.nota; pAlvo = t.p;
+        } else {
         // Calcula o alvo baseado na velocidade relativa (bola ~15m/s, jogador ~7m/s)
         // O jogador corre aproximadamente 45% da distância do passe durante o tempo de voo.
         let corridaM = dist * 0.45;
@@ -405,8 +573,8 @@ function findThroughBall(ctx) {
         // Impede que saia de campo ou vá directo ao guarda-redes (linha de fundo é 50)
         if (zFuturo > 46) zFuturo = 46;
 
-        let alvoZ = zFuturo * p.dirZ;
-        let alvoX = mateAlvo.x * 0.85;
+        alvoZ = zFuturo * p.dirZ;
+        alvoX = mateAlvo.x * 0.85;
 
         // Limita o lançamento estritamente à área útil de jogo (margem de segurança lateral e de fundo)
         const margemLateral = (typeof PassModel !== 'undefined' && PassModel.margemSegurancaLinha) ? PassModel.margemSegurancaLinha : 3.0;
@@ -417,8 +585,8 @@ function findThroughBall(ctx) {
 
         if (typeof SpatialGrid !== 'undefined' && SpatialGrid.cells) {
             const livreSpot = SpatialGrid.findFreeSpace(alvoX, alvoZ, 6, oppTeamKey);
-            if (!livreSpot) { _tb('mate:semEspacoLivre'); continue; }
-            if (SpatialGrid.occupancy(livreSpot.x, livreSpot.z, 1, oppTeamKey) > 0) { _tb('mate:espacoOcupado'); continue; }
+            if (!livreSpot) { rej('mate:semEspacoLivre'); continue; }
+            if (SpatialGrid.occupancy(livreSpot.x, livreSpot.z, 1, oppTeamKey) > 0) { rej('mate:espacoOcupado'); continue; }
             alvoX = livreSpot.x; alvoZ = livreSpot.z;
         } else {
             _v1.set(alvoX, 0, alvoZ);
@@ -429,11 +597,12 @@ function findThroughBall(ctx) {
             }
             if (!livre) continue;
         }
+        }
 
         // A camada `lancamento` da SpatialGrid somava-se aqui com peso 0.5, mas
         // a função devolvia 0 em toda a parte — nunca chegou a ser autorada.
         // Saiu com a camada; a nota é a distância e o ganho de profundidade.
-        let nota = 100 - dist * 0.5 + (linhaNoNosso - mateZ) * 2.0;
+        let nota = 100 - dist * 0.5 + (linhaNoNosso - mateZ) * 2.0 + notaAlvo * 0.2;
         // Quem recebe conta: o estilo da equipa procura o homem dele (afinidade) e, no
         // contra-ataque, o RAPIDO (velocidade) — ver TeamPlayStyles.
         if (eeL) {
@@ -460,8 +629,8 @@ function findThroughBall(ctx) {
 
         if (window.showPlayerPoints) { mate.debugPoints = mate.debugPoints || {}; mate.debugPoints['Lanç'] = Math.round(nota); }
         if (receptorLivre) nota += (PassModel.bonusReceptorLivre || 60);   // o livre vale mais do que um marcado que se rasga
-        _tb('mate:valido');
-        if (nota > melhorNota) { melhorNota = nota; melhor = { mate: mate, alvoX: alvoX, alvoZ: alvoZ, receptorLivre: receptorLivre }; }
+        rej('mate:valido');
+        if (nota > melhorNota) { melhorNota = nota; melhor = { mate: mate, alvoX: alvoX, alvoZ: alvoZ, receptorLivre: receptorLivre, p: pAlvo }; }
     }
 
     /*
@@ -2184,6 +2353,11 @@ function findBestPassAnywhere(ctx) {
                     temPasseCurto: !!target,
                     receptorEmRuptura: !!(tb.mate && tb.mate.fsm &&
                         tb.mate.fsm.currentState === 'RUN_INTO_SPACE'),
+                    // A corrida avisada e compreendida (Chemistry Intelligence) vale como ruptura: o portador sabe que ele vai.
+                    // So com o controle do ponto a pelo menos `lancamento.pDecisao` (0 = sempre): os lancamentos combinados mais arriscados nao passam por cima do passe curto.
+                    corridaAvisada: !!(tb.mate && typeof ChemistryIntel !== 'undefined' && typeof ChemistryIntelModel !== 'undefined' && ChemistryIntelModel.activo &&
+                        (() => { const a = ChemistryIntel.intencaoPara(p, tb.mate); return !!(a && a.estado === 'compreendida'); })() &&
+                        !(typeof tb.p === 'number' && ChemistryIntelModel.lancamento && tb.p < (ChemistryIntelModel.lancamento.pDecisao || 0))),
                     receptorLivre: !!tb.receptorLivre,
                     agressao: Math.min(1, (bb ? bb.aggression : 0.5) * pesoDoEstilo(p, 'lancar')),
                     // O terço próprio, e não a metade: sair a jogar acaba
