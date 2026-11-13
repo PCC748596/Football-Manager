@@ -489,12 +489,20 @@ const MultiBola = {
         r.lLeg.rotation.x = L(r.lLeg.rotation.x, coxa); r.rLeg.rotation.x = L(r.rLeg.rotation.x, coxa);
         r.lKnee.rotation.x = L(r.lKnee.rotation.x, joelho); r.rKnee.rotation.x = L(r.rKnee.rotation.x, joelho);
         r.chest.rotation.x = L(r.chest.rotation.x, chest);
-        if (comBola) this._bracosDeSegurar(p, 1 - k);
-        else {
-            r.lArm.rotation.x = L(r.lArm.rotation.x, de(A.bracoX, 0)); r.rArm.rotation.x = L(r.rArm.rotation.x, de(A.bracoX, 0));
-            if (r.lElbow) r.lElbow.rotation.x = L(r.lElbow.rotation.x, de(A.cotovelo, 0));
-            if (r.rElbow) r.rElbow.rotation.x = L(r.rElbow.rotation.x, de(A.cotovelo, 0));
-        }
+        /*
+        OS BRACOS ACOMPANHAM O TRONCO. O braco e filho do peito: agachado (peito 1.45) o braco a -1.5 fica PENDURADO; com o peito a endireitar e o braco ainda a -1.5,
+        ele subia ate a horizontal (relato: "o goleiro ainda esta levantando os bracos quando levanta o tronco"). Agora o braco segue o angulo do peito na proporcao da
+        pose de apanhar (continua pendurado no mundo) e, com a bola, vai desse pendurado para a pose de segurar; sem ela, a abertura (`bracoZ`) volta a zero.
+        */
+        const pendurado = r.chest.rotation.x * (A.bracoX / A.chest);
+        const w = comBola ? 1 - k : 0;
+        const bx = pendurado + ((comBola ? S.bracoX : pendurado) - pendurado) * w;
+        const bz = comBola ? S.bracoZ * w : 0;
+        const cot = A.cotovelo * k + (comBola ? S.cotovelo : 0) * (1 - k);
+        r.lArm.rotation.x = bx; r.rArm.rotation.x = bx;
+        r.lArm.rotation.z = bz; r.rArm.rotation.z = -bz;
+        if (r.lElbow) r.lElbow.rotation.x = cot;
+        if (r.rElbow) r.rElbow.rotation.x = cot;
         const base = (typeof ALTURA_BASE_Y === 'number') ? ALTURA_BASE_Y : 0;
         p.model.position.y = base + A.altura * k;
         if (p.assentarNoChao) p.assentarNoChao();
@@ -534,6 +542,8 @@ const MultiBola = {
         this._mostrarBolaDeJogo(true);
         Match.golKickBolaAlvo = null;
         p.gkTiroMetaPendente = false;
+        // De pe e com o esqueleto na pose de base: o 'tiro_meta_espera' so mexe nas pernas a andar, e o que sobrasse da pose de segurar a bola ficava ate ao chute.
+        if (p.resetBonesToDefault) p.resetBonesToDefault();
         p.gkEstado = 'tiro_meta_espera';
         p.gkTempoMergulho = 0;
         p.velocity.set(0, 0, 0);
