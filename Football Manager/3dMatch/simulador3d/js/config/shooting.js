@@ -99,6 +99,12 @@ const ShootingModel = {
     abaixo dela remata-se com as regras de sempre. E cai assim que alguÃ©m
     entra no caminho â€” aÃ­ o remate volta a ser a melhor opÃ§Ã£o que resta.
     */
+    /*
+    CHUTAR MAIS CEDO NA AREA (emZonaDeRemate): dentro da grande area, com xG >= `xg` (0.15: ~15 m pelo meio, ~11 m a 8 m do eixo) ou um adversario a menos de
+    `adversarioFechando` m a vir para ele, remata-se em vez de conduzir (o frente-a-frente e o progredir-com-espaco cedem). Pedido: buscar 2.5 golos por jogo.
+    */
+    remateCedoNaArea: { activo: true, xg: 0.15, adversarioFechando: 4.0 },
+
     progredirComEspaco: {
         // 13.75 m para quem tem TEC e tacticknow medios (nota 75: os skills vao de 50 a 100) (era 25): com o caminho livre conduz-se ate perto da area em vez de chutar de 22-24 m; so remata de fora com alguem no cone.
         // O valor DEPENDE DO JOGADOR: nota = (TEC + tacticknow) / 2; acima de 75 encurta `distMin` (avanca mais, chuta de mais perto) e abaixo alonga-o (chuta de mais longe): nota 50 = 16.5 m (a linha da grande area), 100 = 11 m.
@@ -779,7 +785,7 @@ const ShotModel = {
         Aviso medido: a 1.31 o lote de 40 jogos ja dava 36.9% no alvo (benchmark 33.7%), 2.11 golos e 6.54
         no alvo contra 8.8; o que falta nao e pontaria, e volume de remates tentados.
         */
-        escalaGlobal: 1.45   // 2.00 -> 1.40 (relato: muitos chutes fora da direcao da baliza; medido em 3 jogos de 25 min: 2.00 -> 25.7% no alvo, 1.50 -> 29.5%, 1.30 -> 32.4%; real ~33%). 1.15 -> 1.30 (15 de Outubro de 2026): mais erro de execucao nas finalizacoes (pedido) â€” 60 jogos: golos 3.2 -> 2.59
+        escalaGlobal: 1.16,  // 1.45 -> 1.16 (13 de Novembro de 2026, pedido: -20% nos erros de finalizacao). ANTES: 2.00 -> 1.40 (relato: muitos chutes fora da direcao da baliza; medido em 3 jogos de 25 min: 2.00 -> 25.7% no alvo, 1.50 -> 29.5%, 1.30 -> 32.4%; real ~33%). 1.15 -> 1.30 (15 de Outubro de 2026): mais erro de execucao nas finalizacoes (pedido) â€” 60 jogos: golos 3.2 -> 2.59
     }
 };
 
@@ -1872,7 +1878,7 @@ const HeaderModel = {
             de 1 saem mais cabeceÃ­os para fora, abaixo de 1 mais Ã  baliza.
             Existe para acertar a taxa sem voltar a impor desfechos.
             */
-            escalaGlobal: 1.0
+            escalaGlobal: 0.80   // 1.0 -> 0.80 (13 de Novembro de 2026, pedido: -20% nos erros de finalizacao)
         },
 
         // PotÃªncia da cabeÃ§ada, em m/s, antes do factor de forÃ§a.

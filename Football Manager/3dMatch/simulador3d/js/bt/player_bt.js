@@ -4657,11 +4657,18 @@ function remateLiberado(p) {
     return !!p._rmOk;
 }
 
+// DIAGNOSTICO (globalThis.__remDiag): conta por que o portador nao remata. Sem ele so devolve false.
+function _rd(p, k) {
+    const D = globalThis.__remDiag;
+    if (D && p && p.model && Math.abs(p.targetGoalZ - p.model.position.z) <= (D._raio || 1e9)) D[k] = (D[k] || 0) + 1;
+    return false;
+}
+
 function emZonaDeRemate(ctx) {
     const p = ctx.p;
     // 3 s sem novo remate depois de um (ShootingModel.esperaEntreRemates).
-    if (p.chuteEspera > 0) return false;
-    if (!remateLiberado(p)) return false;
+    if (p.chuteEspera > 0) return _rd(p, 'esperaEntreRemates');
+    if (!remateLiberado(p)) return _rd(p, 'naoLiberado');
 
     // Posição E jogador: um ST de técnica 90 e outro de 40 não rematam da mesma
     // maneira (ver tendenciaDeAccao, config/physics.js).
@@ -4669,7 +4676,7 @@ function emZonaDeRemate(ctx) {
         : (typeof getPositionalTendency === 'function' ? getPositionalTendency(p.pos, 'shoot') : 1.0);
     
     // Se a tendência for menor que 1.0 (ex: Zagueiro ou Meia armador), pode preferir não finalizar logo de cara
-    if (mult < 1.0 && Math.random() > mult) return false;
+    if (mult < 1.0 && Math.random() > mult) return _rd(p, 'tendenciaDaPosicao');
 
     /*
     FRENTE A FRENTE: NÃO se remata ainda, chega-se mais perto.
@@ -4685,6 +4692,27 @@ function emZonaDeRemate(ctx) {
     campo aberto a 40 m não deixar de rematar de vez.
     */
     const FF = ShootingModel.frenteAFrente;
+    /*
+    CHUTAR MAIS CEDO NA AREA (ShootingModel.remateCedoNaArea; pedido: buscar 2.5 golos por jogo). Medido: dentro da area o portador passava ~58% do tempo a
+    CONDUZIR (o frente-a-frente e o progredir-com-espaco mandavam chegar mais perto) e so ~13% a rematar, e perdia ali a bola. Dentro da area, com a chance ja
+    boa (xG >= `xg`) ou com um adversario a fechar (a menos de `adversarioFechando` m e a vir na direccao dele), remata-se em vez de conduzir.
+    */
+    const RC = ShootingModel.remateCedoNaArea;
+    let remataJaNaArea = false;
+    if (RC && RC.activo && typeof xgDoRemate === 'function') {
+        const A1 = ShootingModel.dentroDaArea;
+        const naArea1 = A1 && Math.abs(p.targetGoalZ - p.model.position.z) <= A1.profundidade && Math.abs(p.model.position.x) <= A1.meiaLargura;
+        if (naArea1) {
+            const xg1 = xgDoRemate(p.model.position.x, p.model.position.z, p.targetGoalZ, LARGURA_BALIZA, XGModel);
+            let fecha = false;
+            for (const o of ctx.opponents) {
+                if (!o || !o.model || o.role === 'gk') continue;
+                const dx = p.model.position.x - o.model.position.x, dz = p.model.position.z - o.model.position.z, d = Math.hypot(dx, dz);
+                if (d < RC.adversarioFechando && (!o.velocity || (o.velocity.x * dx + o.velocity.z * dz) / Math.max(0.01, d) > 0.5)) { fecha = true; break; }
+            }
+            remataJaNaArea = xg1 >= RC.xg || fecha;
+        }
+    }
     /*
     Declaradas AQUI FORA porque o corte de xG mais abaixo também as lê: são as
     duas situações em que o guarda-redes muda o valor da oportunidade e o xG
@@ -4741,9 +4769,9 @@ function emZonaDeRemate(ctx) {
         const marcadoNaArea = !!(A0 && ctx.underPressure &&
             Math.abs(p.targetGoalZ - p.model.position.z) <= A0.profundidade &&
             Math.abs(p.model.position.x) <= A0.meiaLargura);
-        if (!marcadoNaArea && !gkEmCima && !gkSaiuDaBaliza && ff.livre && ff.dist > FF.distanciaIdeal && ff.dist <= FF.distanciaMax) {
+        if (!remataJaNaArea && !marcadoNaArea && !gkEmCima && !gkSaiuDaBaliza && ff.livre && ff.dist > FF.distanciaIdeal && ff.dist <= FF.distanciaMax) {
             p.frenteAFrente = false;
-            return false;
+            return _rd(p, 'frenteAFrenteConduz');
         }
         // Guardado para o remate saber que é um frente-a-frente e tocar ao
         // canto em vez de bater (ver initiateShoot/tipoDeRemate).
@@ -4762,7 +4790,7 @@ function emZonaDeRemate(ctx) {
         !gkEmCima && !gkSaiuDaBaliza) {
         const xgAqui = xgDoRemate(p.model.position.x, p.model.position.z,
             p.targetGoalZ, LARGURA_BALIZA, XGModel);
-        if (xgAqui < ShootingModel.xgMinimo) return false;
+        if (xgAqui < ShootingModel.xgMinimo) return _rd(p, 'xgMinimo');
     }
 
     /*
@@ -4777,7 +4805,7 @@ function emZonaDeRemate(ctx) {
     conduzir deixa de ser progredir e o remate volta a ser opção.
     */
     const PE = ShootingModel.progredirComEspaco;
-    if (PE && typeof semMarcacaoAFrente === 'function') {
+    if (PE && !remataJaNaArea && typeof semMarcacaoAFrente === 'function') {
         _v1.set(0, 0, p.targetGoalZ);
         const distBaliza = p.model.position.distanceTo(_v1);
         // A distancia a partir da qual conduz em vez de chutar depende do jogador: mais TEC e leitura de jogo (tacticknow) -> avanca e chuta de mais perto; menos -> chuta de mais longe.
@@ -4787,7 +4815,7 @@ function emZonaDeRemate(ctx) {
             PE.distMinMin || 0, PE.distMinMax || 99);
         if (distBaliza > distMinJog &&
             semMarcacaoAFrente(p, ctx.opponents, PE.alcanceCone, PE.anguloCone)) {
-            return false;
+            return _rd(p, 'progredirComEspaco');
         }
     }
 
@@ -4811,11 +4839,11 @@ function emZonaDeRemate(ctx) {
     if (A) {
         const distFundo = Math.abs(p.targetGoalZ - p.model.position.z);
         if (distFundo <= A.profundidade && Math.abs(p.model.position.x) <= A.meiaLargura) {
-            return true;
+            _rd(p, 'rematou:naArea'); return true;
         }
     }
 
-    if (ctx.zoneAhead <= 15) return false;
+    if (ctx.zoneAhead <= 15) return _rd(p, 'zoneAhead');
     _v1.set(0, 0, p.targetGoalZ);
     const dist = p.model.position.distanceTo(_v1);
     /*
@@ -4831,14 +4859,14 @@ function emZonaDeRemate(ctx) {
     const range = (typeof ShootingModel.alcanceMax === 'number')
         ? Math.min(rangeBruto, ShootingModel.alcanceMax) : rangeBruto;
     const maxOffset = ShootingModel.maxOffsetX * mult;
-    if (!(dist < range && Math.abs(p.model.position.x) < maxOffset)) return false;
+    if (!(dist < range && Math.abs(p.model.position.x) < maxOffset)) return _rd(dist >= range ? 'foraDoAlcance' : 'muitoAberto');
 
     // Grid espacial (camada CHUTE): fora das zonas autoradas (valor 0) não remata.
     if (typeof SpatialGrid !== 'undefined' && SpatialGrid.cells) {
         const chuteVal = SpatialGrid.layerValueAt('chute', p.model.position.x, p.model.position.z, p.team);
-        if (chuteVal <= 0) return false;
+        if (chuteVal <= 0) return _rd(p, 'gradeChute');
     }
-    return true;
+    _rd(p, 'rematou:fora'); return true;
 }
 
 /* =========================================================================
