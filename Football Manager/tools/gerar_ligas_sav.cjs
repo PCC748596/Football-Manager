@@ -136,19 +136,38 @@ const bloco = (nome, x) => (`export const ${nome}: any[] = ` + JSON.stringify(x,
 if (bloco('REAL_COUNTRIES_JSON', countries) !== dbTxt.slice(iC, iT) || bloco('REAL_TEAMS_JSON', teams) !== dbTxt.slice(iT, iP)) { console.error('O formato de realDatabase.ts mudou: reveja a escrita deste script.'); process.exit(1); }
 
 const IDS = PAISES.map(p => p.id);
-const doGrupo = (teamId) => IDS.includes(String(Math.floor(Number(teamId) / 10000)));
+/*
+PAISES QUE JA EXISTEM NA BASE (`existente: { ligaOculta }` no config): o pais fica, os clubes que ja la estavam mantem o id e o nome generico (casados com os do
+ficheiro pelo nome real do mod, ver `casarExistentes`) e so os que faltam sao criados. A liga oculta da lugar a liga completa; a original fica guardada em
+`_ocultaOriginal` (para o --force a repor) e os antigos que ja nao estao na 1.a divisao ficam sem liga.
+*/
+const EXISTENTES = PAISES.filter(p => p.existente).map(p => p.id);
+const NOVOS = IDS.filter(id => !EXISTENTES.includes(id));
+const LIGAS_IDS = PAISES.flatMap(p => p.ligas.map(l => l[0]));
+const criadosAntes = new Set(teams.filter(t => t.criadoPor === CRIADO_POR).map(t => Number(t.teamID)));
+const doGrupo = (teamId) => criadosAntes.has(Number(teamId)) || NOVOS.includes(String(Math.floor(Number(teamId) / 10000)));
 // Um id de pais que ja exista e NAO seja deste grupo e um erro (ex.: o 83 do jogo e a Austria, o 83 do .sav e o Mexico).
-const outro = countries.find(c => IDS.includes(String(c.id)) && !teams.some(t => String(t.country) === String(c.id) && t.criadoPor === CRIADO_POR));
+const outro = countries.find(c => NOVOS.includes(String(c.id)) && !teams.some(t => String(t.country) === String(c.id) && t.criadoPor === CRIADO_POR));
 if (outro && !teams.some(t => t.criadoPor === CRIADO_POR)) { console.error(`O id de pais ${outro.id} ja e ${outro.name} na base: escolha outro no config do grupo.`); process.exit(1); }
-const jaTem = countries.some(c => IDS.includes(String(c.id))) || teams.some(t => t.criadoPor === CRIADO_POR);
+for (const id of EXISTENTES) if (!countries.some(c => String(c.id) === id)) { console.error(`O pais ${id} esta como existente no config mas nao existe na base.`); process.exit(1); }
+const jaTem = countries.some(c => NOVOS.includes(String(c.id))) || teams.some(t => t.criadoPor === CRIADO_POR) ||
+  countries.some(c => EXISTENTES.includes(String(c.id)) && c.leagues.some(l => LIGAS_IDS.includes(l.id)));
 if (jaTem && !dry && !force) { console.error(`O grupo ${GRUPO} ja esta na base (talvez editado). Use --force para refazer, ou --dry.`); process.exit(1); }
-if (jaTem) { countries = countries.filter(c => !IDS.includes(String(c.id))); teams = teams.filter(t => t.criadoPor !== CRIADO_POR && !IDS.includes(String(t.country))); }
+if (jaTem) {
+  countries = countries.filter(c => !NOVOS.includes(String(c.id)));
+  teams = teams.filter(t => t.criadoPor !== CRIADO_POR && !NOVOS.includes(String(t.country)));
+  // Os existentes voltam a liga oculta original.
+  for (const c of countries) if (EXISTENTES.includes(String(c.id)) && c._ocultaOriginal) {
+    c.leagues = c.leagues.filter(l => !LIGAS_IDS.includes(l.id) && l.id !== c._ocultaOriginal.id);
+    c.leagues.unshift(JSON.parse(JSON.stringify(c._ocultaOriginal)));
+  }
+}
 
 // O mod
 const lerMod = (n, def) => { const f = path.join(MOD, n); return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : def; };
 let modClubes = lerMod('clubes.json', []), modComp = lerMod('competicoes.json', []);
+const nomeRealNoMod = new Map(modClubes.map(c => [Number(c.id), c.nome]));
 modClubes = modClubes.filter(c => !doGrupo(c.id));
-const LIGAS_IDS = PAISES.flatMap(p => p.ligas.map(l => l[0]));
 modComp = modComp.filter(c => !LIGAS_IDS.includes(c.id));
 
 const datas = (n) => { const rounds = 2 * (n - 1), passos = rounds * 4.67 + 105 < 360 ? [4, 6, 4, 4, 6] : [3, 4, 4]; const out = []; let d = 105; for (let r = 0; r < rounds; r++) { out.push(d); d += passos[r % passos.length]; } return out; };
@@ -182,6 +201,27 @@ const nomeGenerico = (lingua, chave, paisId) => {
   throw new Error('sem nome generico livre para ' + chave);
 };
 
+/*
+CASAR OS CLUBES QUE JA EXISTEM com os do ficheiro (so da 1.a divisao): pelas palavras do nome real (o do mod, ex. "Bodo-Glimt") contra o do ficheiro ("FK Bodo/Glimt"),
+sem acentos nem siglas; duas palavras contam como iguais se os 5 primeiros caracteres coincidem (Kiew/Kyiv, Olympiakos/Olympiacos). Ganha o par com mais palavras em
+comum (sobre o nome mais curto), a partir de 0.5. Devolve Map(id do clube no ficheiro -> teamID existente).
+*/
+const SIGLAS_NOME = new Set(['fc', 'sc', 'fk', 'bk', 'if', 'ik', 'afc', 'cf', 'ac', 'as', 'kv', 'krc', 'kaa', 'rsc', 'sk', 'sv', 'club', 'royal', 'royale', 'the', 'de', 'cd', 'nk', 'ff', 'aik', 'kvc', 'k']);
+const palavrasDe = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').split(' ').filter(w => w && !SIGLAS_NOME.has(w));
+const palavraIgual = (a, b) => a === b || (a.length >= 5 && b.length >= 5 && a.slice(0, 5) === b.slice(0, 5));
+const semelhanca = (a, b) => { const A = palavrasDe(a), B = palavrasDe(b); if (!A.length || !B.length) return 0; const comuns = A.filter(x => B.some(y => palavraIgual(x, y))).length; return comuns / Math.min(A.length, B.length); };
+const casarExistentes = (clubesFicheiro, idsExistentes) => {
+  const pares = [];
+  for (const tid of idsExistentes) for (const c of clubesFicheiro) {
+    const sc = Math.max(semelhanca(nomeRealNoMod.get(Number(tid)), c.name), semelhanca(nomeRealNoMod.get(Number(tid)), c.shortName));
+    if (sc >= 0.5) pares.push([sc, tid, c.id]);
+  }
+  pares.sort((a, b) => b[0] - a[0]);
+  const out = new Map(), usadoT = new Set();
+  for (const [, tid, cid] of pares) if (!usadoT.has(tid) && !out.has(cid)) { out.set(cid, Number(tid)); usadoT.add(tid); }
+  return out;
+};
+
 const novosClubes = [], novosPaises = [], relatorio = [];
 for (const p of PAISES) {
   const dados = dadosDe[p.file];
@@ -189,7 +229,29 @@ for (const p of PAISES) {
   const ids = {};
   let seq = Number(p.id) * 10000;
   const porTier = [...dados.clubs].sort((a, b) => a.tier - b.tier || a.id - b.id);
+  // O pais que ja existe: a liga oculta original e o casamento dos clubes dela com os do ficheiro.
+  const pc = p.existente ? countries.find(c => String(c.id) === p.id) : null;
+  let casados = new Map(), oculta = null;
+  if (pc) {
+    if (!pc._ocultaOriginal) {
+      const lo = pc.leagues.find(l => l.id === p.existente.ligaOculta);
+      if (!lo) { console.error(`${p.nome}: a liga oculta ${p.existente.ligaOculta} nao existe.`); process.exit(1); }
+      pc._ocultaOriginal = JSON.parse(JSON.stringify(lo));
+    }
+    oculta = pc._ocultaOriginal;
+    casados = casarExistentes(porTier.filter(c => c.tier === 1), oculta.teamIds);
+    seq = Math.max(seq, ...teams.filter(t => String(t.country) === p.id).map(t => Number(t.teamID)));
+  }
   for (const c of porTier) {
+    if (casados.has(c.id)) {
+      // Clube que ja existia: mesmo id, nome generico e cores; so ganha a liga e os dados locais. O mod ja tem o nome real e o escudo dele.
+      const tid = casados.get(c.id);
+      (ids[c.tier] = ids[c.tier] || []).push(tid);
+      c.gameTeamId = tid;
+      c.name = semZW(c.name); c.shortName = semZW(c.shortName); c.stadium = semZW(c.stadium);
+      relatorio.push(`${p.nome} ${c.tier}: ${c.name}  ->  (ja existia) ${nomeRealNoMod.get(tid)} (${tid})`);
+      continue;
+    }
     const id = ++seq;
     const { nome, estadio } = nomeGenerico(p.lingua, p.id + '|' + c.id, p.id);
     const h = hash(nome);
@@ -220,8 +282,19 @@ for (const p of PAISES) {
     if (real) modComp.push({ id: lid, nome: real });
     return { id: lid, name: `${ORDINAL[tier]} Division (${p.nome})`, tier, teamIds: t, promoted, relegated, matchDates: datas(t.length) };
   });
-  novosPaises.push({ id: p.id, name: p.nome, continent: p.continente, leagues });
-  console.log(`${p.nome}: ` + leagues.map(l => `${l.id} ${l.teamIds.length} clubes`).join(', '));
+  if (pc) {
+    /*
+    A liga completa entra no lugar da oculta. Os antigos que ja nao estao na 1.a divisao ficam SEM liga (o clube continua na base, so nao joga): uma oculta com
+    eles dava ao pais vagas a dobrar nas copas europeias, que leem a 1.a divisao E as `*_clubes` (qualificados, textSim/competitions.ts).
+    */
+    const sobra = oculta.teamIds.filter(tid => ![...casados.values()].includes(Number(tid)));
+    pc.leagues = pc.leagues.filter(l => l.id !== oculta.id && !LIGAS_IDS.includes(l.id));
+    pc.leagues.unshift(...leagues);
+    console.log(`${p.nome}: ` + leagues.map(l => `${l.id} ${l.teamIds.length} clubes`).join(', ') + ` (${casados.size} ja existiam; fora da 1.a divisao: ${sobra.length})`);
+  } else {
+    novosPaises.push({ id: p.id, name: p.nome, continent: p.continente, leagues });
+    console.log(`${p.nome}: ` + leagues.map(l => `${l.id} ${l.teamIds.length} clubes`).join(', '));
+  }
 }
 
 // nomes dos jogadores gerados (textSim/nomesPaises.ts)
@@ -229,7 +302,10 @@ const nomesTxt = fs.readFileSync(nomesPath, 'utf8');
 const iN = nomesTxt.indexOf('export const NOMES_POR_PAIS');
 const objN = eval('(' + nomesTxt.slice(nomesTxt.indexOf('= {', iN) + 2, nomesTxt.lastIndexOf('};') + 1) + ')');
 for (const p of PAISES) {
-  if (!NOMES[p.sigla]) { console.error('sem nomes para ' + p.sigla + ' em tools/ligas_sav/' + GRUPO + '/nomes.cjs'); process.exit(1); }
+  if (!NOMES[p.sigla]) {
+    if (p.existente && objN[p.id]) continue;   // o pais que ja existia ja tem os nomes dele
+    console.error('sem nomes para ' + p.sigla + ' em tools/ligas_sav/' + GRUPO + '/nomes.cjs'); process.exit(1);
+  }
   objN[p.id] = { nomes: NOMES[p.sigla].nomes, sobrenomes: NOMES[p.sigla].sobrenomes };
 }
 const novoNomes = nomesTxt.slice(0, iN) + 'export const NOMES_POR_PAIS: Record<string, { nomes: string[]; sobrenomes: string[] }> = ' + JSON.stringify(objN, null, 1) + ';\n';
@@ -243,6 +319,23 @@ fs.writeFileSync(dbPath, out, 'utf8');
 fs.writeFileSync(nomesPath, novoNomes, 'utf8');
 fs.writeFileSync(path.join(MOD, 'clubes.json'), JSON.stringify(modClubes, null, 1), 'utf8');
 fs.writeFileSync(path.join(MOD, 'competicoes.json'), JSON.stringify(modComp, null, 1), 'utf8');
+/*
+AS REGRAS DO MOD (regras.json) que estavam pela liga oculta (ex.: `classificacaoInicial.ned_clubes`, os nomes reais de quem vai as copas na 1.a temporada) passam a valer
+tambem para a liga completa que tomou o lugar dela. A chave antiga fica (nao faz mal e e o que o --force repoe).
+*/
+{
+  const fr = path.join(MOD, 'regras.json');
+  if (fs.existsSync(fr)) {
+    const txtR = fs.readFileSync(fr, 'utf8'), crlfR = txtR.includes('\r\n');
+    const regras = JSON.parse(txtR);
+    let mudou = false;
+    for (const p of PAISES.filter(x => x.existente)) for (const k of Object.keys(regras)) {
+      const r = regras[k];
+      if (r && typeof r === 'object' && !Array.isArray(r) && r[p.existente.ligaOculta] && !r[p.ligas[0][0]]) { r[p.ligas[0][0]] = r[p.existente.ligaOculta]; mudou = true; }
+    }
+    if (mudou) { const out = JSON.stringify(regras, null, 1); fs.writeFileSync(fr, crlfR ? out.replace(/\n/g, '\r\n') : out, 'utf8'); }
+  }
+}
 for (const p of PAISES) fs.writeFileSync(path.join(MOD, 'local-data', `CountryData${p.file}.json`), JSON.stringify(dadosDe[p.file]), 'utf8');
 // o relatorio tem os nomes reais: fica no mod, nunca no repositorio
 const nomeRel = CFG.relatorio || `relatorio_${GRUPO}.txt`;

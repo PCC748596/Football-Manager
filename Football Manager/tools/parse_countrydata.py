@@ -97,7 +97,10 @@ TIER_ENDS = {54: [20, 40, 60], 14: [20, 44, 68, 92],
              83: [18, 32], 163: [20, 40, 60],
              # Africa e Asia (so a 1.a divisao; tools/gerar_ligas_sav.cjs, grupo africa_asia)
              111: [22], 129: [16], 140: [16], 97: [16], 145: [16], 143: [16], 98: [16], 117: [18], 108: [16], 126: [16],
-             183: [18], 167: [12], 190: [14], 161: [16], 182: [12]}   # Mexico: 1-18 first division, 19-32 second. Japan: 1-20, 21-40, 41-60 (first three divisions).
+             183: [18], 167: [12], 190: [14], 161: [16], 182: [12],
+             # Europa (grupo europa2) e Australia: so a 1.a divisao
+             7: [16], 13: [12], 17: [12], 22: [14], 23: [12], 34: [18], 36: [16], 37: [18], 42: [12], 46: [16], 47: [12], 48: [18], 49: [16], 50: [12],
+             195: [12]}   # Mexico: 1-18 first division, 19-32 second. Japan: 1-20, 21-40, 41-60 (first three divisions).
 # Countries whose file does not keep each division in one block of ids: the ids of each division, listed (anything else is the next tier down).
 # 95 USA: first division = 1-26 + 38, 40, 41, 42 (30 clubs); second = 27-37, 39, 43-54 (24 clubs).
 TIER_IDS = {95: {1: list(range(1, 27)) + [38, 40, 41, 42], 2: list(range(27, 38)) + [39] + list(range(43, 55))},

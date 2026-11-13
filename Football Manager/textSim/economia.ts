@@ -43,6 +43,12 @@ export const ECONOMIA_LIGAS: Record<string, EconomiaLiga> = {
   gha_premier: { valor: 0.05, salario: 2_500 }, civ_ligue1: { valor: 0.07, salario: 3_500 }, mli_ligue1: { valor: 0.04, salario: 2_000 },
   ksa_pro_league: { valor: 0.6, salario: 150_000 }, kor_k1: { valor: 0.3, salario: 25_000 }, uae_pro_league: { valor: 0.35, salario: 50_000 }, irn_pro_league: { valor: 0.15, salario: 10_000 },
   qat_stars: { valor: 0.35, salario: 50_000 },
+  // Europa (grupo europa2): as 1.as divisoes completas; os seis que ja existiam herdam a economia da liga oculta deles
+  nor_eliteserien: { valor: 0.35, salario: 35_000 }, ned_eredivisie: { valor: 0.6, salario: 80_000 }, tur_super_lig: { valor: 0.55, salario: 90_000 },
+  bel_pro_league: { valor: 0.5, salario: 60_000 }, gre_super_league: { valor: 0.4, salario: 45_000 }, ukr_premier: { valor: 0.35, salario: 35_000 },
+  den_superliga: { valor: 0.35, salario: 40_000 }, fin_veikkausliiga: { valor: 0.12, salario: 8_000 }, hun_nb1: { valor: 0.2, salario: 15_000 },
+  pol_ekstraklasa: { valor: 0.3, salario: 30_000 }, sco_premiership: { valor: 0.4, salario: 45_000 }, swe_allsvenskan: { valor: 0.3, salario: 30_000 },
+  sui_super_league: { valor: 0.45, salario: 60_000 }, wal_cymru_premier: { valor: 0.04, salario: 2_000 }, aus_a_league: { valor: 0.25, salario: 25_000 },
   bra_serie_a: { valor: 0.9, salario: 110_000 }, bra_serie_b: { valor: 0.3, salario: 35_000 }, bra_serie_c: { valor: 0.12, salario: 12_000 }, bra_serie_d: { valor: 0.05, salario: 5_000 },
   bra_clubes: { valor: 0.05, salario: 5_000 },
   // (Nov/2026) as outras ligas sul-americanas tinham todas a economia padrao (um 60 valia ~110 mil igual na Venezuela e no Chile): a ordem segue o porte do futebol de cada pais

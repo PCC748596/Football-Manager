@@ -60,7 +60,7 @@ test('os atributos do 3D do jogador local vem do ficheiro (50 a 99) e a nacional
 });
 
 test('Inglaterra (pais 14): as ligas novas existem, e o overlay usa os jogadores no clube casado; bandeira 14 -> 65', async () => {
-  const ing = { country: 14, clubs: [{ id: 25, name: 'Clube Ingles', tier: 2, gameTeamId: 650025, players: [{ ...jogador(1, 'GK', 'first_team'), nationality: 14 }, { ...jogador(2, 'CM', 'first_team'), nationality: 50 }], staff: [] }] };
+  const ing = { country: 14, clubs: [{ id: 25, name: 'Clube Ingles', tier: 2, gameTeamId: 650025, players: [{ ...jogador(1, 'GK', 'first_team'), nationality: 14 }, { ...jogador(2, 'CM', 'first_team'), nationality: 199 }], staff: [] }] };
   globalThis.fetch = (async (url: string) => String(url).includes('CountryData14.json') ? { ok: true, json: async () => ing } : { ok: false }) as any;
   assert.equal(await carregarDadosLocais(), true);
   const champ = generateLeagueData('65', 'eng_champ');
@@ -71,5 +71,5 @@ test('Inglaterra (pais 14): as ligas novas existem, e o overlay usa os jogadores
   assert.equal(generateLeagueData('65', 'eng_prem').teams.length, 20);
   const gk = champ.players.find(p => p.name === 'Jog1')!, outro = champ.players.find(p => p.name === 'Jog2')!;
   assert.equal(paisDoJogador(gk, 65), '65');
-  assert.equal(paisDoJogador(outro, 65), null);   // codigo 50 sem bandeira conhecida: nada de bandeira errada
+  assert.equal(paisDoJogador(outro, 65), null);   // codigo 199 sem bandeira conhecida: nada de bandeira errada
 });
