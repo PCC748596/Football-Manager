@@ -1532,8 +1532,10 @@ class FootballPlayer {
     DOMÍNIO DE BOLA ORIENTADO PELA DIREITA (ball_control_right).
     Inicia o ActionState para o BallControlRightClip e transita para BALL_CONTROL_RIGHT.
     */
-    iniciarDominioDireito(dirSaida) {
+    iniciarDominioDireito(dirSaida, orient) {
         this.fsm.changeState('BALL_CONTROL_RIGHT');
+        // O dominio orientado (DominioOrientado.decidir): a forca do toque para o espaco e o marcador apanhado em contrape. Sem ele, o toque de sempre.
+        this.dominioOrientado = orient || null;
         if (!this.dominioSaidaDir) this.dominioSaidaDir = new THREE.Vector3();
         if (dirSaida) {
             this.dominioSaidaDir.copy(dirSaida).normalize();
@@ -1547,7 +1549,10 @@ class FootballPlayer {
             },
             onContact: (p, norm) => {
                 // Toque orientado na bola com o pé direito na direcção de saída
-                const forcaToque = 4.2 + (p.skillFor ? p.skillFor('TEC') : 50) * 0.025;
+                const DO = p.dominioOrientado;
+                const forcaToque = DO ? DO.velocidade : 4.2 + (p.skillFor ? p.skillFor('TEC') : 50) * 0.025;
+                if (DO && DO.enganou && typeof DominioOrientado !== 'undefined') DominioOrientado.aplicarEngano(DO.enganou);
+                p.dominioOrientado = null;
                 let dirToque = _v1.set(0.35, 0, 0.9).applyQuaternion(p.model.quaternion).normalize();
                 if (p.dominioSaidaDir) {
                     dirToque.copy(p.dominioSaidaDir);

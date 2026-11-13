@@ -1450,7 +1450,13 @@ Object.assign(Match, {
                 if (!best.dynamicTarget || dirSaida.lengthSq() < 0.01) {
                     dirSaida.set(0, 0, best.dirZ || 1);
                 }
-                best.iniciarDominioDireito(dirSaida);
+                // O DOMINIO ORIENTADO (js/dominio_orientado.js): quem leu o lance toca para o espaco (direccao e forca dele); senao, o toque de sempre.
+                const orient = (typeof DominioOrientado !== 'undefined') ? DominioOrientado.decidir(best) : null;
+                if (orient) {
+                    dirSaida.set(orient.dir.x, 0, orient.dir.z);
+                    if (typeof MatchStats !== 'undefined' && MatchStats[best.team]) MatchStats[best.team].dominiosOrientados = (MatchStats[best.team].dominiosOrientados || 0) + 1;
+                }
+                best.iniciarDominioDireito(dirSaida, orient);
             }
         }
         return true;
