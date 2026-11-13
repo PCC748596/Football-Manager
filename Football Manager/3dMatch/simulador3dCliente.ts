@@ -25,7 +25,7 @@ export const urlSimulador = (): string => {
 };
 
 export interface LadoPayload {
-  equipa: { id: string; name: string; city?: string; logoUrl?: string; cores?: string[]; lineup: string[]; bench: string[]; tactics: any; cobradores?: any; medico?: { nome: string; precisao: number; tempo: number; eficacia: number } | null };
+  equipa: { id: string; name: string; city?: string; logoUrl?: string; cores?: string[]; lineup: string[]; bench: string[]; tactics: any; cobradores?: any; medico?: { nome: string; precisao: number; tempo: number; eficacia: number } | null; sinergia?: [string, string, number][] };
   jogadoresPorId: Record<string, any>;
   /** A tatica propria do clube (nomes do motor) e o conhecimento tatico do treinador: servem ao treinador da CPU no 3D (js/treinador_cpu.js). */
   tatica?: any;
@@ -82,6 +82,18 @@ const completarEscalacao = (team: Team, players: Player[]): { lineup: string[]; 
   return { lineup, bench };
 };
 
+/** As duplas do `synergyMap` (chave 'idA-idB', minutos juntos) entre os jogadores de `ids`, como [[idA, idB, minutos], ...]. So as que tem minutos. */
+export const sinergiaDoElenco = (mapa: Record<string, number> | undefined, ids: string[]): [string, string, number][] => {
+  const out: [string, string, number][] = [];
+  if (!mapa) return out;
+  for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+    const a = ids[i], b = ids[j];
+    const min = mapa[a < b ? `${a}-${b}` : `${b}-${a}`] || 0;
+    if (min > 0) out.push([a, b, Math.round(min)]);
+  }
+  return out;
+};
+
 const ladoDe = (team: Team, players: Player[]): LadoPayload => {
   const porId: Record<string, any> = {};
   const completa = completarEscalacao(team, players);
@@ -93,8 +105,10 @@ const ladoDe = (team: Team, players: Player[]): LadoPayload => {
     if (p) { const m = atributosParaMotor(p); porId[id] = { ...p, atributos: m.atributos, extrasGK: m.extrasGK, peBom: peBomDe(p) }; }
   }
   const formacao = team.tactics?.formation || '4-4-2';
+  // O ENTROSAMENTO DAS DUPLAS do elenco que vai ao jogo (Chemistry Intelligence do 3D, js/chemistry_intel.js): [[idA, idB, minutos juntos], ...].
+  const sinergia = sinergiaDoElenco((team as any).synergyMap, ids);
   return {
-    equipa: { id: team.id, name: team.name, city: (team as any).city, logoUrl: escudoUrl((team as any).logoUrl), cores: [team.primaryColor, team.secondaryColor, team.tertiaryColor], lineup: team.lineup, bench: (team as any).bench || [], tactics: team.tactics, cobradores: resolveSetPieceTakers(team, players), medico: (team as any).medico || null },
+    equipa: { id: team.id, name: team.name, city: (team as any).city, logoUrl: escudoUrl((team as any).logoUrl), cores: [team.primaryColor, team.secondaryColor, team.tertiaryColor], lineup: team.lineup, bench: (team as any).bench || [], tactics: team.tactics, cobradores: resolveSetPieceTakers(team, players), medico: (team as any).medico || null, sinergia },
     jogadoresPorId: porId,
     tatica: team.tactics ? taticaParaMotor({ ...team.tactics, focusSectors: setoresPadraoDaFormacao(team.tactics.formation) || team.tactics.focusSectors }) : undefined,
     conhecimentoTatico: (team as any).managerTactics ?? 70,

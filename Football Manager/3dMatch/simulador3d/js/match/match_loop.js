@@ -1377,7 +1377,8 @@ Object.assign(Match, {
         */
         if (typeof avaliarRecuoParaGR === 'function') avaliarRecuoParaGR(this);
 
-        if (typeof MultiBola !== 'undefined') MultiBola.update(dt);   // a busca da bola nas reposicoes (antes da bola: e ela que a leva nas maos)
+        if (typeof MultiBola !== 'undefined') MultiBola.update(dt);
+        if (typeof ChemistryIntel !== 'undefined') ChemistryIntel.update(dt);   // as intencoes entre companheiros (js/chemistry_intel.js)   // a busca da bola nas reposicoes (antes da bola: e ela que a leva nas maos)
         this.updateBall();
         // Sai sozinho quando nenhuma rede está a abanar (ver NetWave.update).
         if (typeof NetWave !== 'undefined') NetWave.update(dt);

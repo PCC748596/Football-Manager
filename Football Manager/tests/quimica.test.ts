@@ -15,12 +15,13 @@ test('quimica: onze nas posicoes certas, moral e fisico no maximo, sem jogos jun
   assert.equal(calcularQuimica(certos(), formacao, undefined), 59);
 });
 
-test('quimica: 8 jogos juntos (8 x 90 min) enchem o bonus de entrosamento (+25); amistosos contam como qualquer jogo', () => {
+test('quimica: 10 jogos juntos (10 x 90 min) enchem o bonus de entrosamento (+25); amistosos contam como qualquer jogo', () => {
   const t = certos();
   const jogos = (n: number) => calcularQuimica(t, formacao, sinergiaDe(t, n * CONFIG_QUIMICA.minutosPorJogo));
-  assert.equal(jogos(8), 59 + 25);
+  assert.equal(jogos(10), 59 + 25);
   assert.equal(jogos(20), 59 + 25);                 // o teto nao passa de +25
-  assert.equal(jogos(4), 59 + Math.floor(4 * 90 / (8 * 90 / 25)));   // metade do caminho: +12
+  assert.equal(jogos(5), 59 + Math.floor(5 * 90 / (10 * 90 / 25)));   // metade do caminho: +12
+  assert.ok(jogos(8) < 59 + 25);                    // 8 jogos (a regua antiga) ja nao enchem
   assert.equal(jogos(0), 59);
 });
 

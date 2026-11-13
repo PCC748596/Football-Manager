@@ -5,12 +5,13 @@ Parte de `base` e soma/subtrai:
 1. POSICAO de cada titular (pelo indice do slot da formacao): na posicao certa +2; de outra posicao do mesmo grupo (goleiro / defesa LB-CB-RB / ataque LW-RW-SS-ST / meio) 0;
    defesa<->meio ou meio<->ataque -3; defesa<->ataque -6; goleiro trocado com jogador de linha -10.
 2. ENTROSAMENTO: a media dos minutos que cada par de titulares jogou junto (`Team.synergyMap`, +90 por jogo — amistosos incluidos —, +15 por dia de pre-temporada e as sessoes de
-   treino com impacto CHE). Chega a +25 (`tetoSinergia`) com `jogosParaTeto` jogos juntos.
+   treino com impacto CHE). Chega a +25 (`tetoSinergia`) com `jogosParaTeto` (10) jogos juntos.
 3. MORAL media dos titulares: ate +15. 4. CONDICAO FISICA media: ate +12. O resultado fica entre 0 e 100 (o maximo real e 84).
 */
 import { Player, Position, FORMATIONS, Tactics } from '../types';
 
-export const CONFIG_QUIMICA = { base: 10, porPosicao: 2, jogosParaTeto: 8, minutosPorJogo: 90, tetoSinergia: 25, pesoMoral: 15, pesoFisico: 12 };
+// jogosParaTeto 8 -> 10 (12/11/2026, pedido): uma DUPLA precisa de 10 jogos juntos para o entrosamento maximo (o do time e a media das duplas dos titulares) — a mesma regua do Chemistry Intelligence do 3D (js/config/chemistry_intel.js).
+export const CONFIG_QUIMICA = { base: 10, porPosicao: 2, jogosParaTeto: 10, minutosPorJogo: 90, tetoSinergia: 25, pesoMoral: 15, pesoFisico: 12 };
 
 /** O jogador serve ao slot? (o mesmo, ou os pares ST/SS, LW-RW com atacantes e LM-RM-AM com meia.) */
 export const checkPosMatch = (assignedPos: string, playerPos: Position): boolean => {

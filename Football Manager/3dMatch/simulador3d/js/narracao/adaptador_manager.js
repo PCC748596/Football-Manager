@@ -301,6 +301,8 @@ const AdaptadorManager = {
         // OS COBRADORES E O CAPITAO que o treinador designou (aba Match Tactics): ids do motor, por equipa. Sem designado, o motor escolhe como sempre (ver `cobradorDesignado`, utils.js).
         const mapaCobradores = (c) => { if (!c) return null; const o = {}; for (const k of Object.keys(c)) { const id = this.idReal(c[k]); if (id !== null) o[k] = id; } return o; };
         Match.cobradores = { A: mapaCobradores(casa.equipa.cobradores), B: mapaCobradores(fora.equipa.cobradores) };
+        // O ENTROSAMENTO DAS DUPLAS (o `synergyMap` do manager): o Chemistry de cada dupla para o Chemistry Intelligence (js/chemistry_intel.js).
+        if (typeof ChemistryIntel !== 'undefined') { ChemistryIntel.reset(); ChemistryIntel.carregar('TeamA', casa.equipa.sinergia); ChemistryIntel.carregar('TeamB', fora.equipa.sinergia); }
         this._refrescarLados();
         this.mostrarNoPainel(eC, eF);
         return { chaveCasa: kC, chaveFora: kF, equipaCasa: eC, equipaFora: eF };

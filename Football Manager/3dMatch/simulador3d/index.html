@@ -10,6 +10,8 @@
 </head>
 
 <body>
+    <!-- O DEBUG DO CHEMISTRY INTELLIGENCE (js/chemistry_intel.js): as intencoes vivas, uma por linha. So aparece com o botao Chemistry ligado. -->
+    <pre id="chemistry-debug" style="display:none; position:fixed; right:8px; bottom:8px; z-index:50; max-width:46vw; max-height:40vh; overflow:auto; margin:0; padding:6px 8px; background:rgba(0,0,0,0.72); color:#e5e7eb; font:11px/1.35 monospace; border-radius:6px; pointer-events:none;"></pre>
     <div id="painel-comandos">
         <div id="painel-cabecalho">
             <div style="flex: 1;">
@@ -397,6 +399,8 @@
                 <label>Fim de jogo</label>
                 <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
                     <button type="button" class="btn-sector" id="btn-champion-debug" onclick="ComemoracaoCampeao.simularFimDeJogo()">Champion</button>
+                    <!-- CHEMISTRY INTELLIGENCE (js/chemistry_intel.js): mostra as intencoes entre companheiros (linhas, destino e etiqueta). -->
+                    <button type="button" class="btn-sector" id="btn-chemistry-debug" onclick="this.classList.toggle('active', ChemistryIntel.alternarDebug())">Chemistry</button>
                 </div>
 
                 <hr class="linha-sep">
@@ -623,6 +627,7 @@
     <script src="js/config/mando.js"></script>
     <script src="js/config/maca.js"></script>
     <script src="js/config/multibola.js"></script>
+    <script src="js/config/chemistry_intel.js"></script>
     <script src="js/stats.js"></script>
     <script src="js/ratings/notas_config.js"></script>
     <script src="js/ratings/notas_motor.js"></script>
@@ -710,6 +715,7 @@
     <script src="js/disputa_penaltis.js"></script>
     <script src="js/maca.js"></script>
     <script src="js/multibola.js"></script>
+    <script src="js/chemistry_intel.js"></script>
     <!-- Adeptos com o modelo dos jogadores, quatro InstancedMesh (um por canal
          de cor). Pode vir depois do match.js: o `Crowd` só é tocado em runtime,
          dentro do createField, que corre no DOMContentLoaded do main.js. Usa o
