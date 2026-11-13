@@ -3560,12 +3560,12 @@ class FootballPlayer {
             } else if (pRole === 'LB' || pRole === 'RB') {
                 if (['CB', 'CM', 'LM', 'RM'].includes(oRole) && isSameSide) priorityBonus = 120;
             } else if (pRole === 'CM') {
-                if (['AM', 'CF'].includes(oRole)) priorityBonus = 40;
+                if (['AM', 'CF', 'SS'].includes(oRole)) priorityBonus = 40;
                 if (['LM', 'RM'].includes(oRole) && isSameSide) priorityBonus = 40;
             } else if (pRole === 'AM') {
                 if (['CM', 'CF', 'LW', 'RW'].includes(oRole)) priorityBonus = 40;
                 if (['LM', 'RM'].includes(oRole) && isSameSide) priorityBonus = 40;
-            } else if (pRole === 'CF') {
+            } else if (pRole === 'CF' || pRole === 'SS') {
                 if (['AM', 'LW', 'RW', 'ST'].includes(oRole)) priorityBonus = 40;
                 if (['LM', 'RM'].includes(oRole) && isSameSide) priorityBonus = 40;
             } else if (pRole === 'RW') {
@@ -4004,6 +4004,11 @@ class FootballPlayer {
             }
             const A = (typeof RunIntoSpaceModel !== 'undefined')
                 ? RunIntoSpaceModel.arranqueAposPasse : null;
+            // O SEGUNDO ATACANTE TABELA E VAI (SSModel.tabela): qualquer passe dele, para a frente ou para tras, e o arranque para receber a frente e finalizar.
+            if (A && targetPlayer && this.pos === 'SS' && typeof SSModel !== 'undefined' && SSModel.activo && SSModel.tabela && SSModel.tabela.arrancaAposPasse) {
+                this.arrancarAposPasse = SSModel.tabela.janela || A.janela;
+                this.ssTabelou = { t: (typeof tempoSimulado === 'function') ? tempoSimulado() : 0, para: targetPlayer };
+            }
             if (A && targetPlayer && targetPlayer.model && this.role !== 'gk') {
                 const dz = (targetPlayer.model.position.z - this.model.position.z) * this.dirZ;
                 const meuAvanco = this.model.position.z * this.dirZ;

@@ -9,7 +9,7 @@ manager, e sem o manager saber nada do motor.
 
 O QUE FAZ
   . `formacaoDeSlots`   regista no `FormationsData` uma formação nova a partir dos slots do manager ({x, y, label} com x 0-100 da
-                        esquerda para a direita e y 0-100 com a baliza em baixo). Os rotulos ST/SS valem CF. Assim as 7 formacoes do
+                        esquerda para a direita e y 0-100 com a baliza em baixo). O rotulo ST vale CF; o SS (segundo atacante) e posicao propria do motor (SSModel). Assim as 7 formacoes do
                         manager (e qualquer outra que ele venha a ter) funcionam sem escrever geometria a mao.
   . `jogador`           um jogador do manager vira um jogador do motor. Quando o id real existe nos dados do simulador (os dois
                         jogos usam o mesmo ficheiro de origem), parte das 10 skills reais; senao deriva-as de skill/def/pas/drb/sht. Por
@@ -27,11 +27,11 @@ LIMITES DA PRIMEIRA VERSAO (escritos para nao se descobrirem por acaso)
 */
 const AdaptadorManager = {
     // Rotulos do manager -> posicao do motor.
-    POS_DO_ROTULO: { GK: 'GK', LB: 'LB', RB: 'RB', CB: 'CB', DM: 'DM', CM: 'CM', LM: 'LM', RM: 'RM', AM: 'AM', LW: 'LW', RW: 'RW', ST: 'CF', SS: 'CF', CF: 'CF' },
-    ROLE_DA_POS: { GK: 'gk', LB: 'def', RB: 'def', CB: 'def', DM: 'mid', CM: 'mid', LM: 'mid', RM: 'mid', AM: 'mid', LW: 'atk', RW: 'atk', CF: 'atk' },
+    POS_DO_ROTULO: { GK: 'GK', LB: 'LB', RB: 'RB', CB: 'CB', DM: 'DM', CM: 'CM', LM: 'LM', RM: 'RM', AM: 'AM', LW: 'LW', RW: 'RW', ST: 'CF', SS: 'SS', CF: 'CF' },
+    ROLE_DA_POS: { GK: 'gk', LB: 'def', RB: 'def', CB: 'def', DM: 'mid', CM: 'mid', LM: 'mid', RM: 'mid', AM: 'mid', LW: 'atk', RW: 'atk', SS: 'atk', CF: 'atk' },
 
     // As posicoes do motor, para a nota por posicao (`pb`).
-    TODAS_AS_POS: ['GK', 'RB', 'LB', 'CB', 'DM', 'RM', 'LM', 'CM', 'RW', 'LW', 'AM', 'CF'],
+    TODAS_AS_POS: ['GK', 'RB', 'LB', 'CB', 'DM', 'RM', 'LM', 'CM', 'RW', 'LW', 'AM', 'SS', 'CF'],
 
     // O id real: 'p-269063' -> 269063 (os dados do simulador usam o numero).
     idReal(idManager) {

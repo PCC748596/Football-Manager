@@ -10,7 +10,8 @@ posição inicial da tabela; as caixas com poucas amostras ficam com a posição
 Zonas: colunas pelo x da bola (esquerda < -11.33 m <= centro <= 11.33 m < direita, o `CORREDOR_LIMITE` do jogo), linhas pelo z (o terço defensivo, o do meio e o
 ofensivo: -18.25 e 18.25 m). Índice = linha * 3 + coluna.
 
-Uso:  node tools/gerar_formacoes_zonas.js [minutos por formação, omissão 12]
+Uso:  node tools/gerar_formacoes_zonas.js [minutos por formação, omissão 12] [--so "nome1,nome2"]
+      `--so`: mede SO essas formações e junta-as ao ficheiro que já existe (as outras ficam como estão, com as correcções do editor).
 Cada formação corre num processo à parte (o Match.init só se faz uma vez).
 */
 const fs = require('fs');
@@ -78,8 +79,15 @@ if (process.argv[2] === '--filho') {
 // ---------------------------------------------------------------- processo pai
 const minutos = Number(process.argv[2] || 12);
 const mgr = formacoesDoManager();
-const nomes = ['433', '442', '4231'].concat(Object.keys(mgr));
+const iSo = process.argv.indexOf('--so');
+const so = iSo > 0 ? String(process.argv[iSo + 1] || '').split(',').map(t => t.trim()).filter(Boolean) : null;
+const nomes = so || ['433', '442', '4231'].concat(Object.keys(mgr));
 const saida = { versao: 1, colunas: 3, linhas: 3, corredorX: 11.33, terco: 18.25, meiaLargura: MEIA_LARG, meiaAltura: MEIA_COMP, formacoes: {} };
+// So algumas: parte do ficheiro que ja existe (as tabelas corrigidas no editor nao se perdem).
+if (so && fs.existsSync(SAIDA)) {
+    const ant = new Function(fs.readFileSync(SAIDA, 'utf8').replace(/if \(typeof window.*/, '') + ';return FormacoesZonas;')();
+    Object.assign(saida, ant, { formacoes: Object.assign({}, ant.formacoes) });
+}
 
 for (const nome of nomes) {
     process.stderr.write('A medir ' + nome + ' (' + minutos + ' min)... ');
@@ -108,4 +116,4 @@ const corpo = '/* Gerado por tools/gerar_formacoes_zonas.js e editado no tactics
     'const FormacoesZonas = ' + JSON.stringify(saida) + ';\nif (typeof window !== \'undefined\') window.FormacoesZonas = FormacoesZonas;\n';
 fs.mkdirSync(path.dirname(SAIDA), { recursive: true });
 fs.writeFileSync(SAIDA, corpo);
-console.log('Escrito ' + SAIDA + ' (' + nomes.length + ' formações)');
+console.log('Escrito ' + SAIDA + ' (' + nomes.length + ' formações medidas, ' + Object.keys(saida.formacoes).length + ' no ficheiro)');

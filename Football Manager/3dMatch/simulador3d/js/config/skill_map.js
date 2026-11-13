@@ -177,7 +177,9 @@ joga na profundidade) e o motor não distingue.
 const PbPorPos = {
     GK: ['pbGK'], RB: ['pbRB'], LB: ['pbLB'], CB: ['pbCD'],
     DM: ['pbDM'], RM: ['pbRM'], LM: ['pbLM'], CM: ['pbCM'],
-    RW: ['pbRW'], LW: ['pbLW'], AM: ['pbAM'], CF: ['pbCF', 'pbST']
+    RW: ['pbRW'], LW: ['pbLW'], AM: ['pbAM'], CF: ['pbCF', 'pbST'],
+    // O segundo atacante (SS): entre o AM e o ponta de lanca.
+    SS: ['pbCF', 'pbST', 'pbAM']
 };
 
 /*
@@ -207,7 +209,9 @@ function escolherOnzeDaFormacao(plantel, posicoes) {
     for (let s = 0; s < posicoes.length; s++) {
         for (let j = 0; j < plantel.length; j++) {
             const pb = plantel[j].pb || {};
-            const nota = (typeof pb[posicoes[s]] === 'number') ? pb[posicoes[s]] : 0;
+            // O SS sem nota propria (dados gerados antes dele) vale a melhor das de ataque e de meia-ofensivo.
+            const nota = (typeof pb[posicoes[s]] === 'number') ? pb[posicoes[s]]
+                : (posicoes[s] === 'SS' ? Math.max(pb.CF || 0, pb.AM || 0) : 0);
             pares.push({ s: s, j: j, nota: nota });
         }
     }

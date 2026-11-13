@@ -3406,7 +3406,8 @@ function actEntreEspacos(ctx) {
     // Reavalia a cada `reav` s de jogo, ou quando ja chegou ao ponto. Entre isso mantem o ponto (sem tremer).
     const chegou = e && Math.hypot(p.model.position.x - e.x, p.model.position.z - e.z) < 1.0;
     if (!e || chegou || agora - e.t > reav || agora < e.t) {
-        const centro = p.baseTarget || p.model.position;
+        // O centro da busca: o posto; o SS que sai da area para tabelar usa o ponto para onde recua (actSSApoiar).
+        const centro = p._centroEntre || p.baseTarget || p.model.position;
         const cx = centro.x, cz = centro.z;
         const advs = ((p.team === 'TeamA') ? Match.opponents : Match.players).filter(o => o && o.model && o.role !== 'gk' && !o.expulso);
         const limX = CAMPO_LARG / 2 - 3.0, limZ = CAMPO_COMP / 2 - 3.0;
@@ -3480,6 +3481,43 @@ function actEntreEspacos(ctx) {
     p.speedMult = (6.0 + ((ctx.skillSpeed - 50) / 50) * 1.2) * 1.25 * 0.9;
     p.apoioAtivo = false;
     p.fsm.changeState('AMONG_SPACE');
+}
+
+/*
+O SEGUNDO ATACANTE (SS) — SAI DA AREA PARA TABELAR (SSModel, config/tactics.js). Pedido: *"SS e um segundo atacante. Fica entre a posicao de AM e ST.
+Normalmente saindo da area (por isso falso 9) para tabelar e receber na frente pra finalizar"*.
+
+Com a equipa a atacar e o portador ATRAS dele (a distancia de passe), o SS recua do posto para o lado da bola — no maximo `recuo.quedaMax` m, e nunca para
+tras de `recuo.frenteDoPortador` m a frente do portador — e procura ai o vao entre os adversarios (a mesma busca do Creative Playmaker, actEntreEspacos,
+com o centro deslocado para esse ponto). Quando passa (initiatePass), arranca logo para a frente (`arrancarAposPasse`, ver player.js): e a tabela, e quem
+recebeu tem o bonus de lhe devolver a bola em corrida (bonusDoTocaECorre). A correr, deixa de recuar ate a corrida acabar.
+*/
+function podeSSApoiar(ctx) {
+    const p = ctx.p, S = (typeof SSModel !== 'undefined') ? SSModel : null;
+    if (!S || !S.activo || p.pos !== 'SS' || p === Match.ballCarrier) return false;
+    if (p.arrancarAposPasse > 0) return false;
+    if (p.fsm.currentState === 'RUN_INTO_SPACE' && p.runTimer > 0) return false;
+    const port = Match.ballCarrier;
+    if (!port || port.team !== p.team || !port.model) return false;
+    const dirZ = p.dirZ;
+    const avP = port.model.position.z * dirZ, avS = p.model.position.z * dirZ;
+    if (avP > avS - S.recuo.portadorAtrasMin) return false;            // o portador ja esta ao lado ou a frente dele: ataca a area
+    // Com a bola no terco ofensivo (a `recuo.atacaDesde` m do meio-campo) nao recua: e a hora de atacar a area e finalizar.
+    if (avP > S.recuo.atacaDesde) return false;
+    if (Math.hypot(port.model.position.x - p.model.position.x, port.model.position.z - p.model.position.z) > S.recuo.distPortadorMax) return false;
+    return true;
+}
+
+function actSSApoiar(ctx) {
+    const p = ctx.p, S = SSModel, port = Match.ballCarrier;
+    const base = p.baseTarget || p.model.position;
+    const dirZ = p.dirZ;
+    const avBase = base.z * dirZ, avP = port.model.position.z * dirZ;
+    const av = Math.max(avP + S.recuo.frenteDoPortador, avBase - S.recuo.quedaMax);
+    const x = base.x + (port.model.position.x - base.x) * S.recuo.puxaParaABola;
+    p._centroEntre = { x: x, z: av * dirZ };
+    actEntreEspacos(ctx);
+    p._centroEntre = null;
 }
 
 function podeInfiltrar(ctx) {
@@ -6039,6 +6077,17 @@ const PlayerBT = sel('PlayerRoot',
 
                 
                 sel('DecisaoAtacando',
+                // O segundo atacante sai da area para tabelar (SSModel): antes das outras, porque e o papel dele; a correr depois de tabelar, deixa a infiltracao seguir.
+                // ...e, depois de tabelar, VAI: a corrida para receber a frente e finalizar passa a frente de tudo (o "entre espacos" do estilo dele vinha antes).
+                seq('SSTabelaEVai',
+                    cond('ssTabelou', (ctx) => ctx.p.pos === 'SS' && typeof SSModel !== 'undefined' && SSModel.activo && ctx.p.arrancarAposPasse > 0 &&
+                        ctx.p !== Match.ballCarrier && !(ctx.p.fsm.currentState === 'RUN_INTO_SPACE' && ctx.p.runTimer > 0)),
+                    act('ssVai', (ctx) => { actInfiltrar(ctx); if (ctx.p.fsm.currentState === 'RUN_INTO_SPACE') ctx.p.arrancarAposPasse = 0; })
+                ),
+                seq('SSSaiParaTabelar',
+                    cond('ssApoia', podeSSApoiar),
+                    act('ssApoiar', actSSApoiar)
+                ),
                 seq('ApoioDeInversao',
                     cond('inversaoSinalizada', podeApoiarInversao),
                     act('apoiarInversao', actApoioInversao)

@@ -87,6 +87,28 @@ const FORMATIONS: Record<string, { id: number, x: number, y: number, label: stri
     { id: 6, x: 30, y: 57, label: 'DM' }, { id: 7, x: 50, y: 47, label: 'CM' }, { id: 8, x: 70, y: 57, label: 'DM' },
     { id: 9, x: 40, y: 18, label: 'SS' }, { id: 10, x: 60, y: 18, label: 'ST' },
   ],
+  /*
+  AS TRES COM SEGUNDO ATACANTE (SS): o SS joga entre o AM e o ST, sai da area para tabelar e volta a frente para finalizar (ver SSModel no motor 3D).
+  LKU (Link Up): o SS ao lado e um pouco atras do ST. F9 (Falso 9): sem ST — o SS no meio dos dois pontas, a recuar e a abrir o espaco que eles atacam.
+  */
+  '4-4-2 LKU': [
+    { id: 0, x: 50, y: 88, label: 'GK' },
+    { id: 1, x: 15, y: 72, label: 'LB' }, { id: 2, x: 38, y: 75, label: 'CB' }, { id: 3, x: 62, y: 75, label: 'CB' }, { id: 4, x: 85, y: 72, label: 'RB' },
+    { id: 5, x: 15, y: 45, label: 'LM' }, { id: 6, x: 38, y: 50, label: 'CM' }, { id: 7, x: 62, y: 50, label: 'CM' }, { id: 8, x: 85, y: 45, label: 'RM' },
+    { id: 9, x: 42, y: 30, label: 'SS' }, { id: 10, x: 58, y: 16, label: 'ST' },
+  ],
+  '4-3-3 F9': [
+    { id: 0, x: 50, y: 88, label: 'GK' },
+    { id: 1, x: 15, y: 72, label: 'LB' }, { id: 2, x: 38, y: 75, label: 'CB' }, { id: 3, x: 62, y: 75, label: 'CB' }, { id: 4, x: 85, y: 72, label: 'RB' },
+    { id: 5, x: 50, y: 55, label: 'DM' }, { id: 6, x: 32, y: 47, label: 'CM' }, { id: 7, x: 68, y: 47, label: 'CM' },
+    { id: 8, x: 18, y: 22, label: 'LW' }, { id: 9, x: 50, y: 28, label: 'SS' }, { id: 10, x: 82, y: 22, label: 'RW' },
+  ],
+  '3-5-2 LKU': [
+    { id: 0, x: 50, y: 88, label: 'GK' },
+    { id: 1, x: 25, y: 75, label: 'CB' }, { id: 2, x: 50, y: 78, label: 'CB' }, { id: 3, x: 75, y: 75, label: 'CB' },
+    { id: 4, x: 10, y: 45, label: 'LM' }, { id: 5, x: 32, y: 57, label: 'DM' }, { id: 6, x: 50, y: 48, label: 'CM' }, { id: 7, x: 68, y: 57, label: 'DM' }, { id: 8, x: 90, y: 45, label: 'RM' },
+    { id: 9, x: 42, y: 30, label: 'SS' }, { id: 10, x: 58, y: 16, label: 'ST' },
+  ],
 };
 
 

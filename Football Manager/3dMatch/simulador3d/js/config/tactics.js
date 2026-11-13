@@ -2440,3 +2440,27 @@ acima da tabela; sem esta regra o volante ficava colado ao zagueiro (ver o comen
 */
 const FolgaMeioDefesa = { activo: true, folga: 8.0, posicoes: ['DM', 'CM', 'AM'] };
 if (typeof window !== 'undefined') window.FolgaMeioDefesa = FolgaMeioDefesa;
+
+/*
+=============================================================================
+O SEGUNDO ATACANTE (SS) — as formacoes 4-4-2 LKU, 4-3-3 F9 e 3-5-2 LKU (e o 3-5-2 / 5-3-2, que ja tinham um SS)
+=============================================================================
+Pedido: *"SS e um segundo atacante. Fica entre a posicao de AM e ST. Normalmente saindo da area (por isso falso 9) para tabelar e receber na frente pra
+finalizar"*. Ver podeSSApoiar / actSSApoiar (bt/player_bt.js) e o arranque depois do passe (initiatePass, player.js).
+
+  recuo.portadorAtrasMin   so recua com o portador pelo menos estes m ATRAS dele (com o portador ao lado ou a frente, ataca a area)
+  recuo.distPortadorMax    e a distancia de passe (m)
+  recuo.quedaMax           recua no maximo estes m do posto, para o lado da bola
+  recuo.frenteDoPortador   e nunca para tras de estes m a frente do portador (fica entre as linhas, nao vem buscar a bola aos pes)
+  recuo.puxaParaABola      fraccao do caminho, na largura, do posto para o lado da bola
+  recuo.atacaDesde         com o portador a mais destes m do meio-campo (terco ofensivo), nao recua: ataca a area
+  tabela.arrancaAposPasse  depois de passar, arranca para a frente (a tabela), durante `janela` s
+=============================================================================
+*/
+const SSModel = {
+    activo: true,
+    // `atacaDesde`: com o portador a mais de tantos m do meio-campo (o terco ofensivo comeca a 18.25), o SS deixa de recuar e ataca a area.
+    recuo: { portadorAtrasMin: 4.0, distPortadorMax: 36.0, quedaMax: 12.0, frenteDoPortador: 7.0, puxaParaABola: 0.35, atacaDesde: 18.0 },
+    tabela: { arrancaAposPasse: true, janela: 2.5 }
+};
+if (typeof window !== 'undefined') window.SSModel = SSModel;

@@ -166,6 +166,9 @@ const FORMATION_ROLES: Record<string, Position[]> = {
   '5-4-1': [Position.GK, Position.LB, Position.CB, Position.CB, Position.CB, Position.RB, Position.LM, Position.CM, Position.CM, Position.RM, Position.ST],
   '5-3-2': [Position.GK, Position.LB, Position.CB, Position.CB, Position.CB, Position.RB, Position.DM, Position.DM, Position.CM, Position.ST, Position.ST],
   '4-2-3-1': [Position.GK, Position.LB, Position.CB, Position.CB, Position.RB, Position.DM, Position.DM, Position.LW, Position.AM, Position.RW, Position.ST],
+  '4-4-2 LKU': [Position.GK, Position.LB, Position.CB, Position.CB, Position.RB, Position.LM, Position.CM, Position.CM, Position.RM, Position.SS, Position.ST],
+  '4-3-3 F9': [Position.GK, Position.LB, Position.CB, Position.CB, Position.RB, Position.DM, Position.CM, Position.CM, Position.LW, Position.SS, Position.RW],
+  '3-5-2 LKU': [Position.GK, Position.CB, Position.CB, Position.CB, Position.LM, Position.DM, Position.CM, Position.DM, Position.RM, Position.SS, Position.ST],
 };
 
 const getLineupForFormation = (formation: string, squad: Player[]): { lineup: string[], bench: string[], score: number } => {
