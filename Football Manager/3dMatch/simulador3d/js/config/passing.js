@@ -93,7 +93,10 @@ CORTAR UM PASSE EM ANDAMENTO (ver resolveBallContact, match_physics.js): a hipot
 bola a `velRef` m/s; sobe `porSkill` por ponto de leitura e desce `porVel` por m/s acima de `velRef`; entre `min` e `max`. Falhando, a bola roda ate `desvioGraus`, perde (1 - `perdaVel`) da
 velocidade e ele fica `bloqueio` s sem lhe tocar. Bolas abaixo de `velMin` m/s (quase paradas) sao de quem chega, como sempre.
 */
-const PassInterceptModel = { activo: true, base: 0.55, porSkill: 0.006, velRef: 8.0, porVel: 0.03, min: 0.15, max: 0.85, velMin: 3.0, desvioGraus: 12, perdaVel: 0.85, bloqueio: 0.2 };
+const PassInterceptModel = { activo: true, base: 0.55, porSkill: 0.006, velRef: 8.0, porVel: 0.03, min: 0.15, max: 0.85, velMin: 3.0, desvioGraus: 12, perdaVel: 0.85, bloqueio: 0.2,
+    // O tempo de reagir ao passe (resolveBallContact): nos primeiros `base` s (reaccoes 70; -`porSkill` s a cada 30 pontos acima, ate `min`) o adversario nao corta,
+    // salvo bola direita ao corpo (< `corpoDireto` m). Pedido: "mesmo um jogador com skill de passe baixo dificilmente erra um passe menor que 10 metros".
+    reacao: { base: 0.30, porSkill: 0.08, min: 0.15, corpoDireto: 0.35 } };
 // A hipotese de cortar um passe em andamento multiplica-se por `fatorMeiasEAtacantes` quando quem corta e MEIA ou ATACANTE (os defesas mantem a hipotese de sempre): 1 = como antes; < 1 = cortam menos.
 PassInterceptModel.fatorMeiasEAtacantes = 1.0;
 if (typeof window !== 'undefined') window.PassInterceptModel = PassInterceptModel;

@@ -735,6 +735,8 @@ const MatchStats = {
     registarPasseIniciado: function (team, tipo, dados) {
         const s = this[team];
         if (!s) return;
+        // O instante em que a bola saiu do pe: o adversario precisa de tempo para reagir ao passe (PassInterceptModel.reacao, resolveBallContact).
+        if (typeof Match !== 'undefined' && typeof tempoSimulado === 'function') Match.passeSaiuT = tempoSimulado();
         if (tipo === 'lancamento') s.lancamentos.tentados++;
         else if (tipo === 'cruzamento') s.cruzamentos.tentados++;
         else s.passes.tentados++;

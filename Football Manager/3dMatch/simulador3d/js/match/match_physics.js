@@ -987,6 +987,18 @@ Object.assign(Match, {
         if (PI && typeof MatchStats !== 'undefined' && MatchStats._pendingPassTeam && best.team !== MatchStats._pendingPassTeam &&
             best !== this.intendedReceiver && best.role !== 'gk' && !this.ballCarrier) {
             const vBola = Math.hypot(this.ballVel.x, this.ballVel.z);
+            /*
+            O TEMPO DE REAGIR AO PASSE (PassInterceptModel.reacao). Medido: passes de 0-5 m cortados 1 em cada 5, e com o passador pressionado (adversario a < 2 m)
+            so metade chegava — o defesa colado ao passador "cortava" a bola no instante em que ela saia do pe, a passar-lhe ao lado, sem tempo de mexer a perna. Nos
+            primeiros `reacao.base` s depois do passe (menos com reaccoes altas, mais com baixas) ele nao lhe toca, salvo se a bola vier direita ao corpo (a menos
+            de `reacao.corpoDireto` m dele): ai e bloqueio, e segue a regra de sempre.
+            */
+            if (PI.reacao && typeof tempoSimulado === 'function' && typeof this.passeSaiuT === 'number') {
+                const reac = best.atributoDe ? best.atributoDe(['reactions', 'anticipation'], 'INTERCEPT') : 70;
+                const janela = Math.max(PI.reacao.min, PI.reacao.base - ((reac - 70) / 30) * PI.reacao.porSkill);
+                const dCorpo = (typeof distanciaAoCorpo === 'function') ? distanciaAoCorpo(best, this.ball.position).dist : 0;
+                if (tempoSimulado() - this.passeSaiuT < janela && dCorpo > PI.reacao.corpoDireto) return false;
+            }
             if (vBola >= PI.velMin) {
                 const leitura = best.skillFor ? best.skillFor('INTERCEPT') : 80;
                 const pBase = THREE.MathUtils.clamp(PI.base + (leitura - 80) * PI.porSkill - Math.max(0, vBola - PI.velRef) * PI.porVel, PI.min, PI.max);
