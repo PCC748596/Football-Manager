@@ -263,7 +263,13 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     const validos = banco.filter(id => id && players.some(p => p.id === id && p.teamId === userTeam.id));
     if (validos.length >= 10 && validos.length === banco.length) return;
     const usados = new Set([...userTeam.lineup.filter(Boolean), ...validos]);
-    const livres = players.filter(p => p.teamId === userTeam.id && !usados.has(p.id) && !p.injury).sort((a, b) => b.skill - a.skill);
+    /*
+    NEM OS SUSPENSOS do proximo jogo: no dia do jogo o `corrigirEscalacao` (GameContext) tira-os do banco, e este efeito punha-os de volta (eram os melhores livres) — um
+    ping-pong sem fim de setState ("Maximum update depth exceeded" em TacticsView) quando o plantel nao tinha outros para fechar o banco. A mesma regra dos dois lados.
+    */
+    const proximoJogo = fixtures.filter(f => !f.played && f.date >= gameState.currentDate && (f.homeTeamId === userTeam.id || f.awayTeamId === userTeam.id)).sort((a, b) => a.date.localeCompare(b.date))[0];
+    const chaveProx = chaveCompeticao(proximoJogo, comps);
+    const livres = players.filter(p => p.teamId === userTeam.id && !usados.has(p.id) && !p.injury && !estaSuspenso(p, chaveProx)).sort((a, b) => b.skill - a.skill);
     // A composicao do banco: 1 GK, 3 defesas, 3 meias, 3 atacantes — os melhores de cada grupo (as vagas vazias enchem-se por grupo; o que sobrar, com os melhores do plantel).
     const grupo = (pos: Position) => pos === Position.GK ? 'GK' : [Position.LB, Position.CB, Position.RB].includes(pos) ? 'DEF' : [Position.LW, Position.RW, Position.SS, Position.ST].includes(pos) ? 'ATA' : 'MEIO';
     const quota: Record<string, number> = { GK: 1, DEF: 3, MEIO: 3, ATA: 3 };
@@ -280,7 +286,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
     while (novo.length < 10 && livres.length) novo.push(livres.shift()!.id);
     if (novo.length === banco.length && novo.every((id, i) => id === banco[i])) return;
     updateTactics(userTeam.id, {}, userTeam.lineup, novo);
-  }, [userTeam?.bench, userTeam?.lineup, players, isMatchOngoing, userTeam?.id]);
+  }, [userTeam?.bench, userTeam?.lineup, players, isMatchOngoing, userTeam?.id, fixtures, comps, gameState.currentDate]);
 
   const handleDropToLineup = (playerId: string, index: number) => {
     let newLineup = [...localLineup];
