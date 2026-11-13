@@ -3164,6 +3164,24 @@ function actChaseBall(ctx) {
         }
     }
 
+    /*
+    DE PERTO E POR TRAS, RECUPERA-SE PELO LADO DA BALIZA (RecuperarPeloLadoDaBaliza, config/defense.js). Relato com imagem: o pressionador a correr atras do portador,
+    colado as costas dele — de perto o alvo era a BOLA, que vai a frente do portador, e por tras o desarme e recusado (podeTirarABola). Agora, sem estar do lado da propria
+    baliza, o alvo e um ponto `adiante` m a frente do portador na recta para a propria baliza, antecipando `antecipa` s do movimento dele: ganha-lhe a frente, e dali desarma.
+    */
+    const RL = (typeof RecuperarPeloLadoDaBaliza !== 'undefined') ? RecuperarPeloLadoDaBaliza : null;
+    if (RL && RL.activo && portadorAdv && typeof p.ownGoalZ === 'number' && Match.ball.position.y <= BallPhysics.raio + 0.35) {
+        const bx = portadorAdv.model.position.x, bz = portadorAdv.model.position.z;
+        const dG = Math.hypot(0 - bx, p.ownGoalZ - bz) || 1, ux = (0 - bx) / dG, uz = (p.ownGoalZ - bz) / dG;
+        const ladoBaliza = (p.model.position.x - bx) * ux + (p.model.position.z - bz) * uz;
+        if (ladoBaliza < RL.ladoMin) {
+            const v = portadorAdv.velocity;
+            p.dynamicTarget.set(bx + ux * RL.adiante + (v ? v.x * RL.antecipa : 0), ALTURA_BASE_Y, bz + uz * RL.adiante + (v ? v.z * RL.antecipa : 0));
+            p.fsm.changeState('MOVE_TO_POS');
+            return;
+        }
+    }
+
     const noArChase = Match.ball.position.y > BallPhysics.raio + 0.35 &&
         Match.ballVel.lengthSq() > 1.0;
     const alvoAereo = noArChase ? alvoAereoDoJogador(p) : null;

@@ -1280,3 +1280,11 @@ A PRESSAO DO CHASER (pedido: *"o chaser esta a mil por hora; reduz um pouco a pr
 */
 const PressaoDoChaser = { velFator: 0.92, histerese: 8.0 };
 if (typeof window !== 'undefined') window.PressaoDoChaser = PressaoDoChaser;
+
+/*
+O PRESSIONADOR QUE CHEGA POR TRAS (actChaseBall, bt/player_bt.js): sem estar do lado da propria baliza (`ladoMin` m a frente do portador, na recta para ela),
+corre para um ponto `adiante` m a frente do portador nessa recta, antecipando `antecipa` s do movimento dele, em vez de ir a bola (que vai a frente do portador,
+e por tras o desarme e recusado). Relato: "jogador perseguindo um adversario com a bola sem MARKING, com MOVE_TO_POS".
+*/
+const RecuperarPeloLadoDaBaliza = { activo: true, adiante: 1.5, antecipa: 0.4, ladoMin: 0.3 };
+if (typeof window !== 'undefined') window.RecuperarPeloLadoDaBaliza = RecuperarPeloLadoDaBaliza;

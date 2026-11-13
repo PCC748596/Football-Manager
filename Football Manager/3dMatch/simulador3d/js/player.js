@@ -5844,7 +5844,8 @@ class FootballPlayer {
             let parts = [];
             if (window.showPlayerNumber) parts.push(this.num);
             if (window.showPlayerPOS) parts.push(rotuloDaPosicao(this.pos));
-            if (window.showPlayerBT) parts.push(this.fsm.currentState);
+            // O pressionador da equipa (Match.chaser) anda em MOVE_TO_POS, mas o que faz e pressionar o portador: mostra-se PRESSING (relato: "perseguindo um adversario com a bola sem MARKING").
+            if (window.showPlayerBT) parts.push((this.fsm.currentState === 'MOVE_TO_POS' && typeof Match !== 'undefined' && (Match.chaserA === this || Match.chaserB === this)) ? 'PRESSING' : this.fsm.currentState);
             if (window.showPlayerPlayingStyle && this.playingStyle && !this.playingStyleDesligado) parts.push(this.playingStyle);
             if (window.showPlayerPoints && this.debugPoints) {
                 let pts = Object.entries(this.debugPoints).map(([k,v]) => `${k}:${v}`).join(" | ");
