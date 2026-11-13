@@ -10,7 +10,7 @@ Ordem de entrega: **1. lateral**, 2. tiro de meta, 3. canto. Este documento deta
 
 ## Cones
 
-17 cones fixos, fora do campo, cada um com uma bola em cima (campo 106 × 68 m; x ao longo do comprimento, a partir do centro):
+15 cones fixos, fora do campo, cada um com uma bola em cima (campo 106 × 68 m; x ao longo do comprimento, a partir do centro):
 
 | Onde | Cones |
 |---|---|

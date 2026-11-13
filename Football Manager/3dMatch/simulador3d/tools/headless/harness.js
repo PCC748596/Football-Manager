@@ -61,7 +61,7 @@ const FICHEIROS = [
     'js/config/physics.js', 'js/config/animations.js', 'js/config/gait.js',
     'js/config/tactics.js', 'js/config/passing.js', 'js/config/shooting.js', 'js/config/falta_rotinas.js', 'js/config/tunel.js', 'js/config/disputa.js',
     'js/config/defense.js', 'js/config/goalkeeper.js', 'js/config/player_behavior.js', 'js/config/bt_posicoes.js',
-    'js/config/skill_map.js', 'js/config/comemoracao.js', 'js/config/comemoracao_campeao.js', 'js/config/balanco_corredores.js', 'js/config/mando.js', 'js/config/maca.js',
+    'js/config/skill_map.js', 'js/config/comemoracao.js', 'js/config/comemoracao_campeao.js', 'js/config/balanco_corredores.js', 'js/config/mando.js', 'js/config/maca.js', 'js/config/multibola.js',
     'js/stats.js', 'js/ratings/notas_config.js', 'js/ratings/notas_motor.js', 'js/ratings/notas_ligacao.js',
     'data/formacoes_zonas.js', 'js/formacoes_zonas.js',
     'js/utils.js', 'js/ik.js', 'js/reach.js', 'js/gk_dive.js',
@@ -74,7 +74,7 @@ const FICHEIROS = [
     'js/match/match_state.js', 'js/match/match_setup.js', 'js/relva_tufos.js', 'js/match/match_physics.js',
     'js/match/match_setpieces.js', 'js/match/match_falta_rotinas.js', 'js/match/match_substituicoes.js', 'js/treinador_cpu.js', 'js/match/match_loop.js', 'js/match/match_ui.js',
     'js/pose.js', 'js/player.js', 'js/gk_saida_aos_pes.js', 'js/balanco_corredores.js', 'js/inversao_sinalizada.js', 'js/narracao/eventos.js', 'js/narracao/narrador.js', 'js/narracao/adaptador_manager.js', 'js/narracao/ponte.js',
-    'js/fsm.js', 'js/comemoracao.js', 'js/comemoracao_campeao.js', 'js/officials.js', 'js/officials_olham_a_bola.js', 'js/officials_quarto.js', 'js/tunel.js', 'js/abertura.js', 'js/disputa_penaltis.js', 'js/maca.js'
+    'js/fsm.js', 'js/comemoracao.js', 'js/comemoracao_campeao.js', 'js/officials.js', 'js/officials_olham_a_bola.js', 'js/officials_quarto.js', 'js/tunel.js', 'js/abertura.js', 'js/disputa_penaltis.js', 'js/maca.js', 'js/multibola.js'
 ];
 
 for (const f of FICHEIROS) {

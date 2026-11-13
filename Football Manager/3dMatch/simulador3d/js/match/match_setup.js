@@ -246,6 +246,8 @@ Object.assign(Match, {
             this.esquecerJogadoresAntigos(doInitAnterior);
         }
         this.reiniciarDisciplina();
+        // Os cones do multibola (js/multibola.js): uma bola de reserva em cada.
+        if (typeof MultiBola !== 'undefined' && typeof MultiBolaModel !== 'undefined' && MultiBolaModel.activo) MultiBola.iniciar(scene);
         this.resetPlay();
         this.setupKeyboardListeners();
     },
