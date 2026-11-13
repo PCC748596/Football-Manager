@@ -159,7 +159,25 @@ if (process.env.LOTE_WORKER) {
         while (equipas.length < 8 && banda < 20) { banda++; equipas = todas.filter(e => Math.abs(e.forca - nivel) <= banda); }
     }
 
+    /*
+    `LOTE_FORMACAO="4-4-2 LKU"` (ou "A|B", uma para cada equipa): joga o lote com essas formacoes do manager (types.ts), para medir uma formacao
+    em particular (as do segundo atacante, por exemplo). Sem ela, a formacao de sempre.
+    */
+    let formacaoLote = null;
+    if (process.env.LOTE_FORMACAO) {
+        const fs = require('fs');
+        const t = fs.readFileSync(process.env.LOTE_TYPES || path.join(__dirname, '..', '..', '..', '..', 'types.ts'), 'utf8');
+        const a = t.indexOf('export const FORMATIONS'), b = t.indexOf('\n};', a);
+        const MGR = new Function(t.slice(a, b + 3).replace(/export const FORMATIONS[^=]*=/, 'const F =') + ';return F;')();
+        const [fa, fb] = process.env.LOTE_FORMACAO.split('|');
+        formacaoLote = { A: AdaptadorManager.formacaoDeSlots(fa, MGR[fa]), B: AdaptadorManager.formacaoDeSlots(fb || fa, MGR[fb || fa]) };
+    }
+
     for (const i of indices) {
+        if (formacaoLote) {
+            Tatics.formacaoA = Tatics.formacaoFixaA = formacaoLote.A;
+            Tatics.formacaoB = Tatics.formacaoFixaB = formacaoLote.B;
+        }
         /*
         Semente por jogo: dois jogos do lote nunca são o mesmo jogo.
 

@@ -601,6 +601,13 @@ const PassTypes = {
             let nota = this.notaCandidato(progressoNorm, espacoNorm, distNorm,
                 linhaNorm, pesos);
             if (mate === sugerido) nota += E.bonusSugerido;
+            // O SS no vao entre as linhas, livre e nao para tras, e a opcao da tabela (SSModel.passe; o mesmo teste do findPassTarget).
+            if (mate.pos === 'SS' && typeof SSModel !== 'undefined' && SSModel.activo && SSModel.passe && mate.fsm && mate.fsm.currentState === 'AMONG_SPACE' &&
+                (mz - cz) * dirZ >= -SSModel.passe.recuoMax) {
+                let livre = Infinity;
+                for (const o of opponents) { if (o && o.model && o.role !== 'gk') livre = Math.min(livre, Math.hypot(o.model.position.x - mx, o.model.position.z - mz)); }
+                if (livre >= SSModel.passe.livreMin) nota += SSModel.passe.bonusNota;
+            }
             // O defesa livre, atras, a quem recuar e o mais seguro com um adversario nas costas: soma o bonus (o progresso negativo do recuo deixava-o perder).
             if (pressaoNasCostas && typeof recuoSeguroPara === 'function' && recuoSeguroPara(carrier, mate, opponents)) nota += RecuoSobPressao.bonusNota;
 

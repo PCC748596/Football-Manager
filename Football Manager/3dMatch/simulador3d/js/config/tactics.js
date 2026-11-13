@@ -2461,6 +2461,12 @@ const SSModel = {
     activo: true,
     // `atacaDesde`: com o portador a mais de tantos m do meio-campo (o terco ofensivo comeca a 18.25), o SS deixa de recuar e ataca a area.
     recuo: { portadorAtrasMin: 4.0, distPortadorMax: 36.0, quedaMax: 12.0, frenteDoPortador: 7.0, puxaParaABola: 0.35, atacaDesde: 18.0 },
-    tabela: { arrancaAposPasse: true, janela: 2.5 }
+    tabela: { arrancaAposPasse: true, janela: 2.5 },
+    // O passe para o SS no vao (findPassTarget): bonus x a fiabilidade do passe, com o marcador a `livreMin` m ou mais e no maximo `recuoMax` m para tras.
+    // `bonus` na nota do findPassTarget (o sugerido); `bonusNota` na do PassTypes.escolher, que e quem decide (notas de 0 a ~2, notaMinima 1.45).
+    passe: { bonus: 260, bonusNota: 0.35, livreMin: 2.0, recuoMax: 3.0, fiabMin: 0.6 },
+    // Com a bola no terco ofensivo (recuo.atacaDesde) ataca a area: a `fundo` m da linha de fundo, `ladoX` m para o lado contrario ao do CF (ou da bola, com
+    // ela a mais de `alaX` m do meio), `folgaLinha` m aquem do fora-de-jogo; `ritmo` x a velocidade de deslocacao.
+    area: { activo: true, fundo: 11.0, ladoX: 3.5, alaX: 12.0, folgaLinha: 1.0, risco: false, ritmo: 1.1 }
 };
 if (typeof window !== 'undefined') window.SSModel = SSModel;

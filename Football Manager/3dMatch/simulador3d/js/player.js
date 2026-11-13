@@ -3580,6 +3580,16 @@ class FootballPlayer {
             }
             // O infiltrado leva metade do peso do avanco: quem rompe continua a ser opcao no Positional (a linha de passe, com o riscoLinha, decide se ha risco).
             score += priorityBonus + bonusInfiltracao * (0.5 + 0.5 * pesoAv);
+            /*
+            O SEGUNDO ATACANTE NO VAO (SSModel.passe): o SS que saiu da area para o espaco entre as linhas (AMONG_SPACE), livre e nao para tras, e a opcao da
+            tabela. Medido: com o SS no vao 52-67% do tempo de ataque, recebia so 4-11 bolas em 300 s — os portadores nao o escolhiam.
+            */
+            {
+                const SP = (typeof SSModel !== 'undefined' && SSModel.activo && SSModel.passe) ? SSModel.passe : null;
+                if (SP && opt.pos === 'SS' && opt.fsm && opt.fsm.currentState === 'AMONG_SPACE' && distMarcEf >= SP.livreMin && (optPos.z - ownZ) * dirZ >= -SP.recuoMax) {
+                    score += SP.bonus * Math.max(fiab, SP.fiabMin);
+                }
+            }
 
             // Grid espacial (camada PASSE)
             if (typeof SpatialGrid !== 'undefined' && SpatialGrid.cells) {

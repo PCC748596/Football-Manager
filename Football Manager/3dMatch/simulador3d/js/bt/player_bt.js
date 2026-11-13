@@ -3712,6 +3712,40 @@ function actSSApoiar(ctx) {
     p._centroEntre = null;
 }
 
+/*
+O SS ATACA A AREA com a bola no terco ofensivo (SSModel.area). Medido (4-4-2 LKU, 8 x 300 s): com o portador no terco ofensivo o SS ficava 92% do tempo no
+vao do estilo dele (AMONG_SPACE), a 21 m da linha de meio-campo, e na area 1 vez em 111 — contra 30% do ponta de lanca. O pedido e "receber na frente pra
+finalizar": com a bola perto da area ele entra nela. Infiltra se a corrida estiver disponivel (podeInfiltrar: quem tem a bola ve-o a correr e serve-o);
+senao vai ao ponto da area — a marca de penalti, puxado para o lado contrario ao do ponta de lanca (ou ao da bola, com ela na ala) — sempre aquem da linha
+de fora-de-jogo.
+*/
+function podeSSAtacarArea(ctx) {
+    const p = ctx.p, S = (typeof SSModel !== 'undefined') ? SSModel : null;
+    if (!S || !S.activo || !S.area || !S.area.activo || p.pos !== 'SS' || p === Match.ballCarrier || Match.state !== 'PLAY') return false;
+    const port = Match.ballCarrier;
+    if (!port || port.team !== p.team || !port.model) return false;
+    return port.model.position.z * p.dirZ > S.recuo.atacaDesde;
+}
+
+function actSSAtacarArea(ctx) {
+    const p = ctx.p, A = SSModel.area, dirZ = p.dirZ;
+    if ((p.fsm.currentState === 'RUN_INTO_SPACE' && p.runTimer > 0) || podeInfiltrar(ctx)) { actInfiltrar(ctx); if (p.fsm.currentState === 'RUN_INTO_SPACE') return; }
+    const bola = Match.ball.position;
+    const colegas = (p.team === 'TeamA') ? Match.players : Match.opponents;
+    const cf = colegas.find(m => m !== p && m.pos === 'CF' && m.model && !m.expulso);
+    let lado;
+    if (Math.abs(bola.x) > A.alaX) lado = -Math.sign(bola.x);
+    else if (cf) lado = -Math.sign(cf.model.position.x - bola.x) || 1;
+    else lado = 0;
+    let av = CAMPO_COMP / 2 - A.fundo;
+    const linha = (typeof linhaLidaPor === 'function') ? linhaLidaPor(p, !!A.risco) : null;
+    if (linha !== null) av = Math.min(av, linha - A.folgaLinha);
+    av = Math.max(av, p.model.position.z * dirZ - 2.0);   // nao volta para tras para ir a area
+    p.dynamicTarget.set(lado * A.ladoX, p.model.position.y, av * dirZ);
+    p.speedMult = (6.0 + ((ctx.skillSpeed - 50) / 50) * 1.5) * A.ritmo;
+    if (p.fsm.currentState !== 'MOVE_TO_POS') p.fsm.changeState('MOVE_TO_POS');
+}
+
 function podeInfiltrar(ctx) {
     const p = ctx.p;
     if (p.role === 'gk' || p.pos === 'CB' || p.role === 'def') return false;
@@ -6309,6 +6343,11 @@ const PlayerBT = sel('PlayerRoot',
                 seq('SSSaiParaTabelar',
                     cond('ssApoia', podeSSApoiar),
                     act('ssApoiar', actSSApoiar)
+                ),
+                // ...e com a bola no terco ofensivo ataca a area (o vao do estilo dele deixava-o a 21 m do meio-campo, fora dela).
+                seq('SSAtacaArea',
+                    cond('ssAtacaArea', podeSSAtacarArea),
+                    act('ssAtacarArea', actSSAtacarArea)
                 ),
                 seq('ApoioDeInversao',
                     cond('inversaoSinalizada', podeApoiarInversao),

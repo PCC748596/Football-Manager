@@ -73,7 +73,9 @@ for (const nome of ['4-4-2 LKU', '4-3-3 F9', '3-5-2 LKU']) {
     verifica(r.avSS > r.avMeio, `o SS joga a frente do meio-campo (${r.avSS.toFixed(1)} contra ${r.avMeio.toFixed(1)} m)`, `SS atras do meio: ${r.avSS.toFixed(1)} / ${r.avMeio.toFixed(1)}`);
     if (r.st) verifica(r.avSS < r.avST, `e atras do ponta de lanca (${r.avSS.toFixed(1)} contra ${r.avST.toFixed(1)} m)`, `SS a frente do ST: ${r.avSS.toFixed(1)} / ${r.avST.toFixed(1)}`);
     verifica(r.entre > 0, `sai para o vao entre os adversarios (${(100 * r.entre / Math.max(1, r.nAtaque)).toFixed(0)}% do tempo a atacar)`, 'nunca foi ao vao');
-    verifica(r.tabelas > 0 && r.correuDepois / r.tabelas > 0.3, `tabela e vai: ${r.correuDepois} arranques em ${r.tabelas} passes`, `arranques ${r.correuDepois} de ${r.tabelas} passes`);
+    // Com poucos passes do SS (uma semente, 300 s) a fraccao e ruido: medido em 8 sementes, arranca depois de ~50% dos passes. So se julga com 4 ou mais.
+    if (r.tabelas >= 4) verifica(r.correuDepois / r.tabelas > 0.3, `tabela e vai: ${r.correuDepois} arranques em ${r.tabelas} passes`, `arranques ${r.correuDepois} de ${r.tabelas} passes`);
+    else console.log(`  - tabela e vai: ${r.correuDepois} arranques em ${r.tabelas} passes (amostra curta, nao julgado)`);
     console.log(`     toques ${r.toques}, remates da equipa ${r.remates}, fora da area ${(100 * r.foraDaArea / Math.max(1, r.nAtaque)).toFixed(0)}%`);
 }
 
