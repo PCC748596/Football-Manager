@@ -3575,6 +3575,8 @@ class FootballPlayer {
             }
             // O infiltrado leva metade do peso do avanco: quem rompe continua a ser opcao no Positional (a linha de passe, com o riscoLinha, decide se ha risco).
             score += priorityBonus + bonusInfiltracao * (0.5 + 0.5 * pesoAv);
+            // CHEMISTRY INTELLIGENCE (js/chemistry_intel.js): quem avisou a corrida e foi compreendido ganha um bonus pelo Chemistry da dupla. Sem aviso, 0.
+            if (typeof ChemistryIntel !== 'undefined') score += ChemistryIntel.bonusPasse(this, opt);
 
             // Grid espacial (camada PASSE)
             if (typeof SpatialGrid !== 'undefined' && SpatialGrid.cells) {
@@ -3953,6 +3955,8 @@ class FootballPlayer {
     }
 
     initiatePass(targetPlayer) {
+        // CHEMISTRY INTELLIGENCE: o passe para quem avisou a corrida executa a intencao (js/chemistry_intel.js).
+        if (targetPlayer && typeof ChemistryIntel !== 'undefined') ChemistryIntel.passeFeito(this, targetPlayer);
         // A VIRADA PELO MEIO: quem recebe guarda de que ala veio a bola (ViradaPeloMeio, perna 2).
         if (targetPlayer && this.model && typeof ViradaPeloMeio !== 'undefined') {
             const x = this.model.position.x;

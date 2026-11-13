@@ -11,7 +11,9 @@ Sim.running = false;
 Match.init(new THREE.Scene()); if (typeof Officials !== 'undefined' && Officials.init) Officials.init(new THREE.Scene());
 Match.resetPlay('TeamA');
 Match.state = 'PLAY'; Match.kickoffActive = false; Match.kickoffPendingPassToDef = false; Match.possessionTeam = 'TeamA';
+Match.ballCarrier = null; Match.players.concat(Match.opponents).forEach(p => { p.hasBall = false; });
 const M = ChemistryIntelModel;
+M.activo = true;   // no jogo vem desligado ate a validacao (config); aqui testa-se o sistema ligado
 const [a, b, c, d] = Match.players.filter(p => p.role !== 'gk');
 const id = (p) => 'p-' + p.skills.id;
 
@@ -62,5 +64,60 @@ M.activo = false;
 verifica(ChemistryIntel.postar(c, a, 'FORWARD_RUN', 1, 1) === null, 'com activo=false nao posta', 'postou desligado');
 M.activo = true;
 
-console.log(falhas ? 'FALHOU: ' + falhas : 'OK: Chemistry Intelligence, etapa 1.');
+/*
+ETAPA 2 — fluxo A: quem corre avisa o portador; se ele compreende, o passe para a corrida ganha bonus. `cenario` poe `a` com a bola e `q` a infiltrar
+(RUN_INTO_SPACE com alvo a frente), com o Chemistry da dupla dado.
+*/
+function cenario(chemJogos, semente) {
+    let s = semente || 7; Math.random = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+    for (let k = 0; k < 20; k++) Math.random();   // sementes pequenas dao numeros minusculos nas primeiras chamadas
+    ChemistryIntel.reset();
+    Match.state = 'PLAY'; Match.possessionTeam = 'TeamA';
+    ChemistryIntel.carregar('TeamA', [[id(a), id(c), chemJogos * 90]]);
+    Match.ballCarrier = a; a.hasBall = true;
+    c.fsm.currentState = 'RUN_INTO_SPACE'; c.runTimer = 3; c.overlapAlvo = null;
+    c.runAlvo = new THREE.Vector3(c.model.position.x + 1, 0, c.model.position.z + c.dirZ * 12);
+    // Ate 4 s: uma recusa (nao compreendeu) volta a ser tentada depois do intervalo anti-repeticao, com novo sorteio.
+    for (let t = 0; t < 4; t += 1 / 60) {
+        c.runTimer = 3; ChemistryIntel.update(1 / 60);
+        const v = ChemistryIntel.intencaoDe(c);
+        if (v && v.estado === 'compreendida') break;
+    }
+    return ChemistryIntel.intencaoDe(c);
+}
+
+console.log('5 — etapa 2: o aviso da corrida (fluxo A)');
+{
+    const m = cenario(10);
+    verifica(m && m.para === a && ['FORWARD_RUN', 'BOX_RUN', 'DIAGONAL_RUN'].includes(m.tipo), 'quem infiltra avisa o portador: ' + (m && m.tipo), 'nao avisou');
+    verifica(m && m.estado === 'compreendida', 'Chemistry 99: o portador compreende', 'estado: ' + (m && m.estado));
+    const bonus = ChemistryIntel.bonusPasse(a, c);
+    verifica(bonus > 100, `o passe para a corrida ganha bonus (+${Math.round(bonus)})`, 'bonus: ' + bonus);
+    verifica(ChemistryIntel.bonusPasse(a, d) === 0, 'quem nao avisou nada: bonus 0 (nota de sempre)', 'bonus a quem nao avisou');
+    c.runAlvo.z += c.dirZ * 5;
+    for (let t = 0; t < 0.3; t += 1 / 60) { c.runTimer = 3; ChemistryIntel.update(1 / 60); }
+    verifica(Math.abs(ChemistryIntel.intencaoDe(c).z - c.runAlvo.z) < 0.01, 'o destino acompanha a corrida', 'destino parado');
+    a.initiatePass(c);
+    verifica(!ChemistryIntel.intencaoDe(c) && ChemistryIntel.historico.some(h => h.estado === 'executada'), 'o passe para quem avisou executa a intencao', 'nao marcou executada');
+    a.hasBall = false;
+}
+{
+    // Chemistry 0: quase nunca compreende — em 20 corridas, poucas ou nenhuma.
+    let compreendidas = 0, comBonus = 0;
+    for (let k = 0; k < 20; k++) { const m = cenario(0, 11 + k); if (m && m.estado === 'compreendida') compreendidas++; if (ChemistryIntel.bonusPasse(a, c) > 0) comBonus++; }
+    verifica(compreendidas <= 4, `Chemistry 0: ${compreendidas} de 20 compreendidas (em 4 s, varias tentativas)`, 'compreendeu demais com Chemistry 0: ' + compreendidas);
+    let altas = 0;
+    for (let k = 0; k < 20; k++) { const m = cenario(10, 41 + k); if (m && m.estado === 'compreendida') altas++; }
+    verifica(altas >= 18, `Chemistry 99: ${altas} de 20 compreendidas`, 'compreendeu pouco com Chemistry 99: ' + altas);
+    a.hasBall = false;
+}
+{
+    const m = cenario(10);
+    c.fsm.currentState = 'MOVE_TO_POS';
+    for (let t = 0; t < 0.3; t += 1 / 60) ChemistryIntel.update(1 / 60);
+    verifica(!ChemistryIntel.intencaoDe(c) && ChemistryIntel.historico.some(h => h.motivo === 'parou_de_correr'), 'quem para de correr retira o aviso', 'aviso ficou');
+    a.hasBall = false;
+}
+
+console.log(falhas ? 'FALHOU: ' + falhas : 'OK: Chemistry Intelligence, etapas 1 e 2.');
 process.exit(falhas ? 1 : 0);

@@ -7,7 +7,8 @@ Spec: docs/superpowers/specs/2026-11-12-chemistry-intelligence-design.md; config
 NAO E UMA SEGUNDA AI. E um quadro de mensagens: as folhas que ja existem (infiltrar, overlap, desmarcar; o portador) postam intencoes, e a Utility AI do
 passe e o movimento leem-nas como informacao a mais. Sem intencao, tudo fica como estava.
 
-Etapa 1 (esta): o Chemistry da dupla, o quadro (postar, compreender, cancelar, expirar, sem conflitos nem repeticoes) e o debug. Ainda ninguem posta.
+Etapa 1: o Chemistry da dupla, o quadro (postar, compreender, cancelar, expirar, sem conflitos nem repeticoes) e o debug.
+Etapa 2: fluxo A — quem corre (infiltrar, overlap, apoio) avisa o portador; se ele compreende, o passe para essa corrida ganha um bonus no findPassTarget.
 =============================================================================
 */
 const ChemistryIntel = {
@@ -157,7 +158,10 @@ const ChemistryIntel = {
             const a = this.activas[i];
             if (this._tempo - a.criada > a.validade) this.marcar(a, 'expirada', 'validade');
             else if (!emCampo(a.de) || !emCampo(a.para)) this.marcar(a, 'cancelada', 'fora_de_campo');
+            else if (Match.ballCarrier && a.para !== Match.ballCarrier && a.tipo !== 'THROUGH_PASS' && a.tipo !== 'CROSS_TARGET') this.marcar(a, 'cancelada', 'portador_mudou');
         }
+        this._escutarCorridas();
+        this._compreender();
         if (ChemistryIntelModel.debug) this._desenharDebug(); else this._limparDebug();
     },
 
@@ -191,6 +195,108 @@ const ChemistryIntel = {
         }
         const el = (typeof document !== 'undefined') ? document.getElementById('chemistry-debug') : null;
         if (el) { el.style.display = linhas.length ? 'block' : 'none'; el.textContent = linhas.join('\n'); }
+    },
+
+    // ---------------------------------------------------------------- etapa 2: fluxo A (sem bola -> portador)
+
+    /** Atributos (0..1: 50 -> 0, 99 -> 1) pela media dos campos do manager (skills.atr); sem eles, o skill do jogador. */
+    _norm(p, campos, base) {
+        const v = (p && typeof p.atributoDe === 'function') ? p.atributoDe(campos, base || 'tec') : 70;
+        return Math.max(0, Math.min(1, (v - 50) / 49));
+    },
+
+    /*
+    AVISAR (ou actualizar) uma intencao: se o remetente ja tem uma viva para o mesmo destinatario e tipo, so o destino anda (a corrida mudou de rumo); se tem
+    outra (outro portador, outro tipo), essa cai e entra a nova. Ao nascer sorteia-se se o destinatario a vai compreender e quando (faixa + atributos dele).
+    */
+    avisar(de, para, tipo, x, z, acao, confianca) {
+        const viva = this.intencaoDe(de);
+        if (viva) {
+            if (viva.para === para && viva.tipo === tipo) { viva.x = x; viva.z = z; return viva; }
+            this.marcar(viva, 'cancelada', 'substituida');
+        }
+        const m = this.postar(de, para, tipo, x, z, acao, confianca);
+        if (!m) return null;
+        const M = ChemistryIntelModel, f = this.faixa(m.chem);
+        const leitura = this._norm(para, ['vision', 'composure', 'reactions'], 'pass');
+        const chance = M.compreensaoBase[f] * ((1 - M.pesoAtributos) + M.pesoAtributos * leitura);
+        m.compreendeEm = m.criada + M.atrasoCompreensao[f];
+        m.vaiCompreender = Math.random() < chance;
+        return m;
+    },
+
+    /** O tipo da corrida de `q` (overlap, para dentro da area, diagonal ou em profundidade) e o destino dela; null se nao esta a correr. */
+    _corridaDe(q) {
+        const s = q.fsm ? q.fsm.currentState : '';
+        if (s === 'SUPPORT_PASS') return { tipo: 'SUPPORT_RUN', x: q.dynamicTarget.x, z: q.dynamicTarget.z };
+        if (s !== 'RUN_INTO_SPACE' || !(q.runTimer > 0)) return null;
+        const alvo = q.overlapAlvo || q.runAlvo || q.dynamicTarget;
+        if (!alvo) return null;
+        let tipo = 'FORWARD_RUN';
+        if (q.overlapAlvo) tipo = 'OVERLAP';
+        else if (typeof Area !== 'undefined' && Area.contem && Area.contem(alvo.x, alvo.z, q.targetGoalZ)) tipo = 'BOX_RUN';
+        else if (Math.abs(alvo.x - q.model.position.x) > ChemistryIntelModel.diagonalMin) tipo = 'DIAGONAL_RUN';
+        return { tipo, x: alvo.x, z: alvo.z };
+    },
+
+    /*
+    ESCUTAR AS CORRIDAS da equipa com a bola: quem corre (as folhas de sempre — infiltrar, overlap, tabela, desmarcar/apoio — ja o puseram a correr) avisa o
+    portador. O destino e o alvo que a propria folha calculou; nada no comportamento muda. Quem deixou de correr retira o aviso.
+    */
+    _escutarCorridas() {
+        const portador = Match.ballCarrier;
+        if (!portador || Match.state !== 'PLAY') return;
+        const colegas = portador.team === 'TeamA' ? Match.players : Match.opponents;
+        for (const q of colegas) {
+            if (q === portador || q.role === 'gk' || !q.model) continue;
+            const c = this._corridaDe(q);
+            if (c) {
+                const conf = this._norm(q, ['posOffense', 'tacticalAwa'], 'tec');
+                this.avisar(q, portador, c.tipo, c.x, c.z, 'passe', 0.4 + 0.6 * conf);
+            } else {
+                const viva = this.intencaoDe(q);
+                if (viva && viva.para === portador) this.marcar(viva, 'cancelada', 'parou_de_correr');
+            }
+        }
+    },
+
+    /** Compreensao: chegou a hora de a mensagem ser percebida (ou nao) pelo destinatario. */
+    _compreender() {
+        for (let i = this.activas.length - 1; i >= 0; i--) {
+            const a = this.activas[i];
+            if (a.estado !== 'enviada' || a.compreendeEm === undefined || this._tempo < a.compreendeEm) continue;
+            if (a.vaiCompreender) this.marcar(a, 'compreendida');
+            else this.marcar(a, 'recusada', 'nao_compreendeu');
+        }
+    },
+
+    /*
+    O BONUS NA NOTA DO PASSE (findPassTarget, player.js) do `portador` para `alvo`: so se `alvo` avisou uma corrida ao portador e ele a compreendeu. Sem isso,
+    zero — a nota fica a de sempre. Guarda-se na mensagem para o debug.
+    */
+    bonusPasse(portador, alvo) {
+        if (!ChemistryIntelModel.activo || !this.activas.length) return 0;
+        for (const a of this.activas) {
+            if (a.de !== alvo || a.para !== portador || a.estado !== 'compreendida') continue;
+            const base = ChemistryIntelModel.bonusPasse[a.tipo] || 0;
+            a.bonus = base * (a.chem / 99) * a.confianca;
+            return a.bonus;
+        }
+        return 0;
+    },
+
+    /** O passe saiu (initiatePass): se era para quem avisou a corrida, a intencao foi executada (o gancho da memoria fica para a etapa 4). */
+    passeFeito(portador, alvo) {
+        for (const a of this.activas) {
+            if (a.de === alvo && a.para === portador) { this.marcar(a, 'executada', 'passe'); this.registarJogada(a.de, a.para, a.tipo, 'passe'); return; }
+        }
+    },
+
+    /** O gancho da memoria das duplas (etapa 4 e o futuro Player Memory System). Por agora so conta. */
+    jogadas: [],
+    registarJogada(de, para, tipo, resultado) {
+        this.jogadas.push({ de: de && de.id, para: para && para.id, tipo, resultado, t: this._tempo });
+        if (this.jogadas.length > 200) this.jogadas.shift();
     },
 
     /** Liga/desliga o debug (botao do painel). */
