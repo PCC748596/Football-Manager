@@ -21,7 +21,11 @@ export function servirMod(req, res, url = req.url) {
     const raiz = path.resolve(pasta);
     const alvo = path.resolve(raiz, rel);
     const tipo = TIPOS[path.extname(alvo).toLowerCase()];
-    if (!tipo || (alvo !== raiz && !alvo.startsWith(raiz + path.sep)) || !fs.existsSync(alvo) || !fs.statSync(alvo).isFile()) { res.statusCode = 404; res.end(); return true; }
+    const dentro = !!tipo && (alvo === raiz || alvo.startsWith(raiz + path.sep));
+    // As traducoes do mod sao OPCIONAIS (idiomas/<codigo>.json, lidas para todos os idiomas ao abrir o jogo): a que nao existe responde 204 (sem conteudo), nao 404 —
+    // o jogo trata as duas da mesma maneira (sem traducao extra), mas o 404 enchia a consola de avisos a cada abertura.
+    if (dentro && /^idiomas\/[a-z-]+\.json$/i.test(rel.replace(/\\/g, '/')) && !fs.existsSync(alvo)) { res.statusCode = 204; res.end(); return true; }
+    if (!dentro || !fs.existsSync(alvo) || !fs.statSync(alvo).isFile()) { res.statusCode = 404; res.end(); return true; }
     res.setHeader('Content-Type', tipo);
     res.setHeader('Cache-Control', 'no-store');
     res.end(req.method === 'HEAD' ? undefined : fs.readFileSync(alvo));
