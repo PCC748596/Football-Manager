@@ -482,6 +482,9 @@ const RefereeModel = {
             */
             velRelMin: 3.2,
 
+            // O GESTO ANTES DO APITO: o infractor entra no desarme em pe (TACKLE) e a falta sai `atraso` s depois, no toque (ver detectarContactos).
+            gesto: { activo: true, atraso: 0.35 },
+
             /*
             QUEM VEM PELAS COSTAS E QUE COMETE A FALTA, seja qual for a
             velocidade. Angulo em radianos entre a frente de um e a direccao
@@ -3113,6 +3116,7 @@ const Officials = {
 
     resetFaltas: function () {
         this._arrefecimento = new Map();
+        this._faltasComGesto = [];
     },
 
     /*
@@ -3397,7 +3401,23 @@ const Officials = {
     por frame, sobre os pares de adversários que estão perto.
     */
     detectarContactos: function (dt) {
-        if (typeof Match === 'undefined' || Match.state !== 'PLAY') return;
+        if (typeof Match === 'undefined') return;
+        /*
+        AS FALTAS DE CONTACTO A ESPERA DO GESTO (ver `contacto.gesto`): o apito sai quando o desarme em pe do infractor chega ao toque. Se o lance parou entretanto
+        (outra falta, bola fora, golo), a falta cai.
+        */
+        if (this._faltasComGesto && this._faltasComGesto.length) {
+            for (let i = this._faltasComGesto.length - 1; i >= 0; i--) {
+                const fg = this._faltasComGesto[i];
+                fg.t -= dt;
+                if (Match.state !== 'PLAY') { this._faltasComGesto.splice(i, 1); continue; }
+                if (fg.t > 0) continue;
+                this._faltasComGesto.splice(i, 1);
+                this.marcarFalta(fg.infractor, fg.vitima, fg.dados);
+                if (Match.state !== 'PLAY') { this._faltasComGesto.length = 0; break; }
+            }
+        }
+        if (Match.state !== 'PLAY') return;
         if (!this._arrefecimento) this.resetFaltas();
 
         const C = RefereeModel.faltas.contacto;
@@ -3513,12 +3533,28 @@ const Officials = {
                 if (Math.random() >= this._cautelaDe(infractor)) continue;
 
                 this._arrefecimento.set(chave, C.arrefecimento);
-                this.marcarFalta(infractor, vitima, Object.assign({
+                const dadosContacto = Object.assign({
                     tipo: 'contacto',
                     velocidade: vRel,
                     angulo: this._anguloDeAtaque(infractor, vitima),
                     travouAtaque: this._ehAtaqueEmProgressao(vitima)
-                }, this._skillsDe(infractor)));
+                }, this._skillsDe(infractor));
+                /*
+                O GESTO ANTES DO APITO (pedido: "jogadores sofrendo falta sem animacao de corte/carrinho do adversario"). Medido: 54% das faltas eram de contacto, e o
+                infractor ia em MOVE_TO_POS ou MARKING, sem gesto nenhum. Agora entra no desarme em pe (TACKLE, o mesmo das faltas de desarme), sem lhe tirar a bola
+                (`tackleResolvido`), e o apito sai `gesto.atraso` s depois — no toque.
+                */
+                const GF = C.gesto;
+                const estInf = infractor.fsm ? infractor.fsm.currentState : '';
+                if (GF && GF.activo && infractor.role !== 'gk' && infractor.fsm && estInf !== 'TACKLE' && estInf !== 'SLIDE_TACKLE') {
+                    infractor.actionState = null;
+                    infractor.fsm.changeState('TACKLE');
+                    infractor.tackleResolvido = true;
+                    if (typeof lookAtBola === 'function' && vitima.model) lookAtBola(infractor.model, vitima.model.position);
+                    (this._faltasComGesto || (this._faltasComGesto = [])).push({ t: GF.atraso, infractor, vitima, dados: dadosContacto });
+                } else {
+                    this.marcarFalta(infractor, vitima, dadosContacto);
+                }
                 return;   // uma falta por frame chega
             }
         }
