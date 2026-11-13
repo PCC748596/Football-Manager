@@ -74,8 +74,11 @@ const MultiBola = {
     },
 
     _mostrarBolaDeJogo(sim) {
+        this._escondida = !sim;
         if (typeof Match !== 'undefined' && Match.ball) Match.ball.visible = sim;
     },
+    /** A bola de jogo esta escondida pela busca (a que saiu sumiu e ainda ninguem pegou a do cone)? O desenho (match_ui) nao a pode reacender. */
+    bolaEscondida() { return !!(this.busca && this._escondida); },
 
     activo() { return typeof MultiBolaModel !== 'undefined' && MultiBolaModel.activo && this.cones.length > 0; },
     /** Ha uma busca a correr (o lance espera por ela: o prazo e o arremesso nao contam). */
@@ -300,6 +303,10 @@ const MultiBola = {
             }
             return;
         }
+        if (b.fase === 'recuar' || b.fase === 'firmar' || b.fase === 'vir') {
+            Match.ball.position.set(b.marca.x, (typeof b.marca.y === 'number') ? b.marca.y : BallPhysics.raio, b.marca.z);
+            Match.ballVel.set(0, 0, 0);
+        }
         if (b.fase === 'recuar') {
             if (this._aCaminho(p)) return;
             b.fase = 'firmar'; b.tGesto = 0;
@@ -353,6 +360,9 @@ const MultiBola = {
             p.velocity.set(0, 0, 0);
             const m = this._bolaNasMaos(p);
             if (b.fase === 'pegar') {
+                const y0p = (b.fonte.tipo === 'cone') ? this._alturaNoCone() : BallPhysics.raio;
+                // A descer e com as maos nela, a bola fica onde esta (no cone): a fisica da bola parada empurrava-a para a linha de fundo (o cone esta atras dela).
+                if (t < G.descer + G.segurar) { Match.ball.position.set(b.fonte.x, y0p, b.fonte.z); Match.ballVel.set(0, 0, 0); }
                 // A subir, a bola vai com as maos: do sitio onde estava ate a frente do peito.
                 if (t >= G.descer + G.segurar) {
                     const y0 = (b.fonte.tipo === 'cone') ? this._alturaNoCone() : BallPhysics.raio, u = 1 - suave;
@@ -378,9 +388,12 @@ const MultiBola = {
             Match.ballVel.set(0, 0, 0);
             return;
         }
-        if (b.fase === 'recuar' || b.fase === 'firmar') {
+        if (b.fase === 'recuar' || b.fase === 'firmar' || b.fase === 'vir') {
             // De frente para a bola enquanto recua (anda de costas) e enquanto espera.
-            if (typeof lookAtBola === 'function') lookAtBola(p.model, _v1.set(b.marca.x, p.model.position.y, b.marca.z));
+            if (b.fase !== 'vir' && typeof lookAtBola === 'function') lookAtBola(p.model, _v1.set(b.marca.x, p.model.position.y, b.marca.z));
+            // A BOLA FICA NA MARCA: a recuar, ele esbarrava nela e levava-a 2 m (medido); ate ele a bater, nao sai dali.
+            Match.ball.position.set(b.marca.x, (typeof b.marca.y === 'number') ? b.marca.y : BallPhysics.raio, b.marca.z);
+            Match.ballVel.set(0, 0, 0);
         }
     },
 

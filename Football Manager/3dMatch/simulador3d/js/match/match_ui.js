@@ -258,8 +258,10 @@ Object.assign(Match, {
             this.scene.add(this.discoBola);
         }
 
-        this.discoBola.visible = tatico;
-        this.ball.visible = !tatico;
+        // A bola escondida pelo MULTIBOLA (a que saiu sumiu; o batedor ainda vai buscar a do cone) nao se reacende aqui: aparecia estacionada na marca.
+        const escondidaMB = (typeof MultiBola !== 'undefined' && MultiBola.bolaEscondida && MultiBola.bolaEscondida());
+        this.discoBola.visible = tatico && !escondidaMB;
+        this.ball.visible = !tatico && !escondidaMB;
 
         if (tatico) {
             // BallPhysics.raio approx 0.11
