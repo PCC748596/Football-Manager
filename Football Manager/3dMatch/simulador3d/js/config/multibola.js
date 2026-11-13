@@ -34,7 +34,9 @@ const MultiBolaModel = {
     avancoNasMaos: 0.35,
 
     // O desenho do cone.
-    cone: { altura: 0.32, raio: 0.14, cor: 0xff7a1a }
+    // O cone inteiro (altura e raio da base) 15% maior do que era (0.32 x 0.14), e CORTADO NA METADE (pedido): desenha-se so a metade de baixo, com a bola
+    // pousada no aro de cima (raio = metade do da base).
+    cone: { altura: 0.368, raio: 0.161, corte: 0.5, cor: 0xff7a1a }
 };
 
 if (typeof window !== 'undefined') window.MultiBolaModel = MultiBolaModel;

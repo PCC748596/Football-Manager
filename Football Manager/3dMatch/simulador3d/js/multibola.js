@@ -30,18 +30,23 @@ const MultiBola = {
         if (!scene || typeof THREE === 'undefined') return;
         const C = MultiBolaModel.cone;
         const matCone = new THREE.MeshStandardMaterial({ color: C.cor, roughness: 0.6 });
-        const geoCone = new THREE.ConeGeometry(C.raio, C.altura, 16);
+        // Cone cortado: um tronco de cone com a fraccao `corte` da altura; o aro de cima fica com o raio do cone a essa altura.
+        const corte = (typeof C.corte === 'number') ? C.corte : 1;
+        const hTronco = C.altura * corte, raioTopo = C.raio * (1 - corte);
+        const geoCone = new THREE.CylinderGeometry(raioTopo, C.raio, hTronco, 16);
         const raio = (typeof BallPhysics !== 'undefined' && BallPhysics.raio) || 0.11;
         for (const c of this.cones) {
             const g = new THREE.Group();
             const cone = new THREE.Mesh(geoCone, matCone);
-            cone.position.y = C.altura / 2;
+            cone.position.y = hTronco / 2;
             g.add(cone);
             // A bola de reserva: uma copia do desenho da bola de jogo, se houver; senao uma esfera branca.
             let bola = null;
             if (typeof Match !== 'undefined' && Match.ballVisual && Match.ballVisual.clone) bola = Match.ballVisual.clone(true);
             else bola = new THREE.Mesh(new THREE.SphereGeometry(raio, 16, 12), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-            bola.position.set(0, C.altura + raio * 0.8, 0);
+            // Pousada no aro de cima: o centro fica a sqrt(r^2 - aro^2) acima dele (sem aro, encostada a ponta como antes).
+            const acimaDoAro = raioTopo < raio ? Math.sqrt(raio * raio - raioTopo * raioTopo) : 0;
+            bola.position.set(0, hTronco + acimaDoAro, 0);
             g.add(bola);
             g.position.set(c.x, 0, c.z);
             scene.add(g);
