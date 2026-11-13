@@ -609,6 +609,12 @@ const MarkingModel = {
     continua a ser outro sistema e a decidir sozinho quando ir à bola.
     */
     raioSetor: 12.0,     // procura a referência a esta distância do SLOT
+    /*
+    PASSAR O HOMEM (atribuirMarcacoes, utils.js). Relato: *"os defensores, mesmo com atacantes a menos de 5 metros deles, estao em MOVE_TO_POS ao inves de
+    MARKING; e por isso que os atacantes passam pelo meio deles"*. `raioPerto`/`margem`: a histerese nao segura o homem se outro marcador esta a menos de
+    `raioPerto` m dele e `margem` m mais perto; `colado`: um atacante a menos disto de um defesa entra no leilao dele mesmo fora do sector do posto.
+    */
+    troca: { raioPerto: 6.0, margem: 4.0, colado: 5.0 },
 
     /*
     CUSTO DE UM PAR no leilão (ver atribuirMarcacoes). O raio acima continua a

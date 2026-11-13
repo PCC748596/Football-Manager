@@ -4351,7 +4351,9 @@ function podeMarcar(ctx) {
     const base = p.postoBase || p.model.position;
     const d = Math.hypot(homem.model.position.x - base.x,
         homem.model.position.z - base.z);
-    if (d > MarkingModel.raioSetor) return false;
+    // Fora do sector do posto so se ele estiver COLADO ao homem (MarkingModel.troca.colado): o que passa ao lado nao se larga.
+    const colado = MarkingModel.troca && Math.hypot(homem.model.position.x - p.model.position.x, homem.model.position.z - p.model.position.z) < MarkingModel.troca.colado;
+    if (d > MarkingModel.raioSetor && !colado) return false;
 
     ctx.marcado = homem;
     return true;

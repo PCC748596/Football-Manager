@@ -5224,7 +5224,26 @@ function atribuirMarcacoes(marcadores, adversarios, raio) {
             if (idx >= 0) custo -= bonusPar / (idx + 1);
         }
 
-        return { dSlot: dSlot, custo: custo };
+        return { dSlot: dSlot, dReal: dReal, custo: custo };
+    };
+
+    const TR = (typeof MarkingModel !== 'undefined' && MarkingModel.troca) ? MarkingModel.troca : null;
+
+    /*
+    PASSAR O HOMEM (MarkingModel.troca). Medido: com um atacante a menos de 5 m de um defesa, em 31% das amostras o defesa estava em MOVE_TO_POS, e na
+    maior parte dos casos o atacante estava atribuido a OUTRO, em media a 9.7 m dele — a histerese segurava o marcador antigo enquanto o homem passava
+    ao lado do vizinho. Agora a histerese nao segura o homem se ha outro marcador a menos de `raioPerto` m dele e pelo menos `margem` m mais perto: vai
+    a leilao e fica com o mais perto.
+    */
+    const outroMuitoMaisPerto = (i, o) => {
+        if (!TR || !o || !o.model) return false;
+        const di = medir(marcadores[i], o).dReal;
+        for (let j = 0; j < n; j++) {
+            if (j === i || !marcadores[j]) continue;
+            const dj = medir(marcadores[j], o).dReal;
+            if (dj < TR.raioPerto && dj < di - TR.margem) return true;
+        }
+        return false;
     };
 
     // 1) Histerese primeiro: quem mantem o homem trava-o antes do leilao.
@@ -5233,6 +5252,7 @@ function atribuirMarcacoes(marcadores, adversarios, raio) {
         if (!m || !m.manter || !m.ref) continue;
         if (adversarios.indexOf(m.ref) < 0) continue;   // saiu do campo
         if (tomados.has(m.ref)) continue;               // outro ja o segurava
+        if (outroMuitoMaisPerto(i, m.ref)) continue;    // passa o homem ao vizinho
         escolha[i] = m.ref;
         tomados.add(m.ref);
     }
@@ -5248,7 +5268,8 @@ function atribuirMarcacoes(marcadores, adversarios, raio) {
             if (!o || o.role === 'gk' || !o.model) continue;
             if (tomados.has(o)) continue;
             const med = medir(m, o);
-            if (med.dSlot >= raio) continue;
+            // Fora do sector do posto, so quem esta COLADO a ele (`troca.colado` m): o atacante que passa ao lado de um defesa e dele, venha de onde vier.
+            if (med.dSlot >= raio && !(TR && med.dReal < TR.colado)) continue;
             pares.push({ i: i, o: o, custo: med.custo });
         }
     }
