@@ -214,10 +214,12 @@ Object.assign(Match, {
                 this.ball.position.z = BC.z - rB;
                 this.ballVel.z *= -BC.restituicao;
                 this.ballVel.x *= BC.atrito;
+                this.bolaBateuNoFundo = true;   // ver o tiro de meta (match_loop.js): a bola so vai a pequena area depois de bater aqui
             } else if (this.ball.position.z < -BC.z + rB) {
                 this.ball.position.z = -BC.z + rB;
                 this.ballVel.z *= -BC.restituicao;
                 this.ballVel.x *= BC.atrito;
+                this.bolaBateuNoFundo = true;
             }
             }
         }

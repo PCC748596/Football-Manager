@@ -209,7 +209,9 @@ const SetPiecePrazos = {
     falta: 20.0,   // 15 -> 20 (+5 s, junto com FreeKickModel.esperaFalta)
     penalti: 15.0,
     lateral: 15.0,
-    tiroDeMeta: 17.0   // 20 -> 17 (-3 s, junto com golKickBolaAtraso 3 -> 0)
+    tiroDeMeta: 17.0,  // 20 -> 17 (-3 s, junto com golKickBolaAtraso 3 -> 0)
+    // No tiro de meta a bola segue ate bater na placa (ou parar) antes de ir a pequena area; isto e o maximo que se espera por ela (s).
+    bolaAteAPlaca: 2.5
 };
 
 if (typeof window !== 'undefined') {

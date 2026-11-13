@@ -1469,7 +1469,14 @@ Object.assign(Match, {
             */
             this.golKickBolaAlvo = { x: bolaX, z: bolaZ };
             this.golKickAguardaChao = true;
-            this.golKickBolaAtraso = 0.0;   // 3 -> 0: tiro de meta 3 s mais rapido (pedido)
+            /*
+            O ATRASO E O DA BOLA, NAO UM RELOGIO. Era 3 s e passou a 0 (pedido: tiro de meta 3 s mais rapido) — e com 0 a bola rasteira, que ja esta no
+            chao ao passar a linha, ia logo para a pequena area: relato *"esta se teletransportando para o tiro de meta assim que passa a linha de fundo.
+            Nao bate nem na placa"*. Agora ela segue ate BATER na placa/bancada (`bolaBateuNoFundo`, match_physics.js) ou parar, e no maximo
+            `golKickBolaAtraso` s; ver o countdown em match_loop.js.
+            */
+            this.golKickBolaAtraso = (typeof SetPiecePrazos !== 'undefined' && typeof SetPiecePrazos.bolaAteAPlaca === 'number') ? SetPiecePrazos.bolaAteAPlaca : 2.5;
+            this.bolaBateuNoFundo = false;
 
             this.ballCarrier = null;
             this.golKickProntos = false;

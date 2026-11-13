@@ -1216,7 +1216,10 @@ Object.assign(Match, {
                     }
                 } else {
                     this.golKickBolaAtraso -= dt;
-                    if (this.golKickBolaAtraso <= 0) {
+                    // Vai a pequena area depois de BATER na placa (ou de parar), e no maximo `golKickBolaAtraso` s: ver setupSetPiece.
+                    const bateuOuParou = this.bolaBateuNoFundo || this.ballVel.lengthSq() < 0.25;
+                    if (bateuOuParou || this.golKickBolaAtraso <= 0) {
+                        this.bolaBateuNoFundo = false;
                         this.ball.position.set(this.golKickBolaAlvo.x, BallPhysics.raio, this.golKickBolaAlvo.z);
                         this.ballVel.set(0, 0, 0);
                         this.golKickBolaAlvo = null;
