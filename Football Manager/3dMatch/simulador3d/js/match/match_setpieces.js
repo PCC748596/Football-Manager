@@ -168,7 +168,9 @@ Object.assign(Match, {
         no poste e ia para trás da baliza congelava no ar e aparecia no canto.
         Os outros tipos (lateral) travam já.
         */
-        if (type !== 'GOAL_KICK' && type !== 'CORNER_KICK') this.ballVel.set(0, 0, 0);
+        // O lateral com MULTIBOLA tambem nao trava: a bola segue la para fora ate bater na placa ou parar (js/multibola.js).
+        const lateralMultibola = (type === 'THROW_IN' && typeof MultiBola !== 'undefined' && MultiBola.activo());
+        if (type !== 'GOAL_KICK' && type !== 'CORNER_KICK' && !lateralMultibola) this.ballVel.set(0, 0, 0);
         this.intendedReceiver = null;
         this.passTargetPos = null;
 
@@ -499,8 +501,12 @@ Object.assign(Match, {
                 -(CAMPO_COMP / 2 - 1.0), CAMPO_COMP / 2 - 1.0);
             const xLinha = ladoLinha * (CAMPO_LARG / 2);
 
-            this.ball.position.set(xLinha, BallPhysics.raio, zLinha);
-            this.ballVel.set(0, 0, 0);
+            // MULTIBOLA (js/multibola.js): a bola NAO vai ao ponto — segue a fisica la fora e o cobrador vai buscar uma (ver mais abaixo).
+            const multibola = (typeof MultiBola !== 'undefined' && MultiBola.activo());
+            if (!multibola) {
+                this.ball.position.set(xLinha, BallPhysics.raio, zLinha);
+                this.ballVel.set(0, 0, 0);
+            }
 
             this.players.concat(this.opponents).forEach(p => { p.hasBall = false; });
             this.ballCarrier = null;
@@ -510,7 +516,15 @@ Object.assign(Match, {
             const taker = escolherBatedorDoLateral(attackingPlayers, this.ball.position);
             this.setPieceTaker = taker || null;
 
-            if (taker) {
+            if (taker && multibola) {
+                /*
+                MULTIBOLA: sem teleporte. Ele vai de onde esta buscar a bola (a do cone mais proximo do ponto de saida, ou a propria se ela voltar ao campo),
+                abaixa-se, pega, leva-a ao ponto atras da linha e so entao entra no LATERAL (MultiBola._entregar).
+                */
+                MultiBola.comecarLateral(taker, { x: xLinha, z: zLinha },
+                    { x: ladoLinha * (CAMPO_LARG / 2 + ThrowInModel.recuoDaLinha), z: zLinha }, team);
+                this.lateralEsperaExtra = 0;
+            } else if (taker) {
                 // Fica FORA do campo, atrás da linha, como manda a regra.
                 taker.model.position.set(
                     ladoLinha * (CAMPO_LARG / 2 + ThrowInModel.recuoDaLinha),

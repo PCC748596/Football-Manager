@@ -1120,14 +1120,16 @@ Object.assign(Match, {
         }
 
         if (this.state === 'THROW_IN') {
-            this.setPieceTimer += this._seguraCobranca ? 0 : dt;
+            // Com o MULTIBOLA a cobranca espera pela busca da bola (js/multibola.js): nem o prazo nem a espera do arremesso contam enquanto ela dura.
+            const multibolaEmBusca = (typeof MultiBola !== 'undefined' && MultiBola.emBusca());
+            this.setPieceTimer += (this._seguraCobranca || multibolaEmBusca) ? 0 : dt;
 
             /*
             Espera de ESPERA_APOS_REPOSICAO (a mesma de todas as reposições) e
             depois arranca o gesto. Quem larga a bola é o ActionState, no
             contactTime do clip — ver ThrowInClip e o case LATERAL da FSM.
             */
-            if (this.lateralPendente) {
+            if (this.lateralPendente && !multibolaEmBusca) {
                 if (!this._seguraCobranca) this.lateralAtraso -= dt;
                 const LF = (typeof LateralFinta !== 'undefined') ? LateralFinta : null;
                 const tp = this.setPieceTaker;
@@ -1375,6 +1377,7 @@ Object.assign(Match, {
         */
         if (typeof avaliarRecuoParaGR === 'function') avaliarRecuoParaGR(this);
 
+        if (typeof MultiBola !== 'undefined') MultiBola.update(dt);   // a busca da bola nas reposicoes (antes da bola: e ela que a leva nas maos)
         this.updateBall();
         // Sai sozinho quando nenhuma rede está a abanar (ver NetWave.update).
         if (typeof NetWave !== 'undefined') NetWave.update(dt);

@@ -7,7 +7,8 @@ Object.assign(Match, {
         repunha — tremia no ar. Volta a correr assim que ela é largada, porque
         o lancarLateral põe o estado em PLAY.
         */
-        if (this.state === 'THROW_IN') return;
+        // ...excepto com o MULTIBOLA, enquanto a bola que saiu ainda esta solta la fora (MultiBola.bolaSolta): ai a fisica corre ate ela bater na placa ou parar.
+        if (this.state === 'THROW_IN' && !(typeof MultiBola !== 'undefined' && MultiBola.bolaSolta())) return;
 
         /*
         Integração semi-implícita: forças primeiro, posição depois. Constantes
@@ -205,10 +206,12 @@ Object.assign(Match, {
                 this.ball.position.x = BC.x - rB;
                 this.ballVel.x *= -BC.restituicao;
                 this.ballVel.z *= BC.atrito;
+                this.bolaBateuNaLateral = true;   // o multibola espera por isto (js/multibola.js)
             } else if (this.ball.position.x < -BC.x + rB) {
                 this.ball.position.x = -BC.x + rB;
                 this.ballVel.x *= -BC.restituicao;
                 this.ballVel.z *= BC.atrito;
+                this.bolaBateuNaLateral = true;
             }
             if (this.ball.position.z > BC.z - rB) {
                 this.ball.position.z = BC.z - rB;
