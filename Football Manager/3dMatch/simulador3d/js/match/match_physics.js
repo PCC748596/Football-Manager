@@ -340,6 +340,7 @@ Object.assign(Match, {
                     }
                 } else if (!(this.state === 'GOAL_KICK' && this.golKickBolaAlvo) &&
                            !(this.state === 'CORNER_KICK' && this.cantoBolaAlvo) &&
+                           !(typeof MultiBola !== 'undefined' && MultiBola.bolaSolta()) &&
                            !this.dentroDaArmacao(zSinal)) {
                     /*
                     Jogo já parado (GOAL/OUT/bola parada) e a bola volta a

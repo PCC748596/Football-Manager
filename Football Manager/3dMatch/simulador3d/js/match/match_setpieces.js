@@ -258,9 +258,20 @@ Object.assign(Match, {
             // para lá todos os frames, e é para lá que ele centra.
             if (!this.cornerAlvo) this.cornerAlvo = new THREE.Vector3(); this.cornerAlvo.set(canto.alvo.x, ALTURA_BASE_Y, canto.alvo.z);
 
-            taker.model.position.set(canto.batedor.x, ALTURA_BASE_Y, canto.batedor.z);
-            lookAtBola(taker.model, this.cornerAlvo);
-            taker.fsm.changeState('SET_PIECE_TAKER');
+            if (typeof MultiBola !== 'undefined' && MultiBola.activo()) {
+                /*
+                MULTIBOLA (js/multibola.js): sem teleporte. O batedor vai buscar uma bola ao cone, leva-a a marca do canto, pousa-a, recua (toma distancia) e
+                vem bater; a bola que saiu segue solta ate 5 s e nao vai sozinha a quina.
+                */
+                const marcaCanto = { x: canto.bola.x, y: canto.bola.y, z: canto.bola.z };
+                this.cantoBolaAlvo = null;
+                this.cantoAguardaChao = false;
+                MultiBola.comecarCanto(taker, { x: this.ball.position.x, z: this.ball.position.z }, marcaCanto, { x: canto.batedor.x, z: canto.batedor.z }, team);
+            } else {
+                taker.model.position.set(canto.batedor.x, ALTURA_BASE_Y, canto.batedor.z);
+                lookAtBola(taker.model, this.cornerAlvo);
+                taker.fsm.changeState('SET_PIECE_TAKER');
+            }
 
             const lado = Math.sign(this.ball.position.x) || 1;
             const linhaZ = attDir * (CAMPO_COMP / 2);
@@ -1565,6 +1576,16 @@ Object.assign(Match, {
                     gk.dynamicTarget.set(gk.gkTiroAlvo.x, ALTURA_BASE_Y, gk.gkTiroAlvo.z);
                 }
                 if (gk.velocity) gk.velocity.set(0, 0, 0);
+                /*
+                MULTIBOLA (js/multibola.js): a bola que saiu segue solta ate 5 s e nao vai sozinha a quina; o guarda-redes vai buscar uma ao cone, leva-a,
+                pousa-a na marca e so entao entra no 'tiro_meta_espera' (toma distancia) e bate. Sem o `golKickBolaAlvo`, o countdown da bola nao corre.
+                */
+                if (typeof MultiBola !== 'undefined' && MultiBola.activo()) {
+                    this.golKickBolaAlvo = null;
+                    this.golKickAguardaChao = false;
+                    gk.gkTiroMetaPendente = false;
+                    MultiBola.comecarTiroDeMeta(gk, { x: this.ball.position.x, z: this.ball.position.z }, { x: bolaX, z: bolaZ }, team);
+                }
             }
 
             /*

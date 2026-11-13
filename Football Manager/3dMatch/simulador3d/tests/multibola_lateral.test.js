@@ -19,8 +19,11 @@ console.log('1 — os cones');
     verifica(cs.length === 15, '15 cones', 'cones: ' + cs.length);
     const fora = cs.every(c => Math.abs(c.x) > CAMPO_LARG / 2 || Math.abs(c.z) > CAMPO_COMP / 2);
     verifica(fora, 'todos fora do campo', 'ha cone dentro do campo');
-    const dentroBarreira = cs.every(c => Math.abs(c.x) < BarreiraCampo.x && Math.abs(c.z) < BarreiraCampo.z);
-    verifica(dentroBarreira, 'todos antes da barreira/placa', 'ha cone para la da barreira');
+    // A `frenteDasPlacas` (70 cm) da face das placas (pedido): o cone inteiro (com o raio da base) fica antes dela.
+    const PP = PlacasPublicidade, face = PP.recuo - PP.espessura / 2, rCone = MultiBolaModel.cone.raio;
+    const antesDasPlacas = cs.every(c => (Math.abs(c.z) < CAMPO_COMP / 2 ? Math.abs(c.x) - CAMPO_LARG / 2 : Math.abs(c.z) - CAMPO_COMP / 2) + rCone < face);
+    const aTrintaCm = cs.every(c => Math.abs((Math.abs(c.z) < CAMPO_COMP / 2 ? Math.abs(c.x) - CAMPO_LARG / 2 : Math.abs(c.z) - CAMPO_COMP / 2) - (face - MultiBolaModel.frenteDasPlacas)) < 0.01);
+    verifica(antesDasPlacas && aTrintaCm, `todos a ${Math.round(MultiBolaModel.frenteDasPlacas * 100)} cm da face das placas`, 'cone fora do sitio');
     const lado = (typeof TunelJogadores !== 'undefined' && TunelJogadores.lado) || -1;
     verifica(cs.filter(c => Math.sign(c.x) === Math.sign(lado) && Math.abs(c.z) < CAMPO_COMP / 2).length === 6, '6 cones na lateral dos bancos', 'cones do lado dos bancos errados');
     verifica(cs.filter(c => Math.sign(c.x) === -Math.sign(lado) && Math.abs(c.z) < CAMPO_COMP / 2).length === 5, '5 cones na lateral oposta', 'cones da lateral oposta errados');
@@ -46,19 +49,28 @@ function lateral(opcoes) {
     Match.ball.position.set(sx * (CAMPO_LARG / 2 - 2), BallPhysics.raio, 18);
     Match.ballVel.set(sx * (o.vx || 9), 0, 0);
     if (o.restituicao !== undefined) BarreiraCampo._restOrig = BarreiraCampo.restituicao, BarreiraCampo.restituicao = o.restituicao;
-    const r = { fases: [], cone: -1, pegou: false, entregue: false, cobrou: false, coneRepos: false, taker: null, tEntrega: null, tCobranca: null, maxBolaFora: 0, teleporte: false, velIr: null, fonte: null, prazoNoFim: null };
+    const r = { fases: [], cone: -1, pegou: false, entregue: false, cobrou: false, coneRepos: false, taker: null, tEntrega: null, tCobranca: null, maxBolaFora: 0, teleporte: false, velIr: null, fonte: null, prazoNoFim: null,
+        distAoPegar: null, distFinal: null, yMinPegar: Infinity, bolaNoConeAoDescer: true, sumiu: false, bolaSoltaAte: 0 };
     let t = 0, ultimaFase = null, bolaAntes = Match.ball.position.clone();
     for (let f = 0; f < 60 * 30; f++) {
         Match.delta = 1 / 60; Match.update(1 / 60); t += 1 / 60;
         const b = MultiBola.busca;
         if (b) {
             if (b.fase !== ultimaFase) { r.fases.push(b.fase); ultimaFase = b.fase; }
-            r.taker = b.taker; if (b.cone >= 0) r.cone = b.cone; if (b.fonte) r.fonte = b.fonte.tipo;
+            r.taker = b.taker; r.cone = b.cone; if (b.fonte) r.fonte = b.fonte.tipo;
             if (b.fase === 'ir' && b.taker.lugarBolaParada && r.velIr === null) r.velIr = b.taker.lugarBolaParada.vel;
             if (b.fase === 'levar') r.pegou = true;
-            if (b.fase === 'saida') r.maxBolaFora = Math.max(r.maxBolaFora, Math.abs(Match.ball.position.x) - CAMPO_LARG / 2);
-            // Na fase 'saida' a bola nao pode saltar (teletransporte): anda o que a velocidade da.
-            if (b.fase === 'saida' && bolaAntes.distanceTo(Match.ball.position) > 0.5) r.teleporte = true;
+            if (b.bolaLivre) { r.maxBolaFora = Math.max(r.maxBolaFora, Math.abs(Match.ball.position.x) - CAMPO_LARG / 2); r.bolaSoltaAte = b.tSolta; }
+            // Enquanto anda solta, a bola nao pode saltar (teletransporte): anda o que a velocidade da.
+            if (b.bolaLivre && bolaAntes.distanceTo(Match.ball.position) > 0.5) r.teleporte = true;
+            if (!b.bolaLivre && Match.ball.visible === false) r.sumiu = true;
+            if (b.fase === 'pegar') {
+                if (r.distAoPegar === null) r.distAoPegar = Math.hypot(b.taker.model.position.x - b.fonte.x, b.taker.model.position.z - b.fonte.z);
+                r.yMinPegar = Math.min(r.yMinPegar, b.taker.model.position.y);
+                if (b.tGesto >= MultiBolaModel.pegar.descer) r.distFinal = Math.hypot(b.taker.model.position.x - b.fonte.x, b.taker.model.position.z - b.fonte.z);
+                // A descer (e com as maos nela) a bola fica onde estava: no cone, nao nas maos.
+                if (b.tGesto < MultiBolaModel.pegar.descer && Math.hypot(Match.ball.position.x - b.fonte.x, Match.ball.position.z - b.fonte.z) > 0.05) r.bolaNoConeAoDescer = false;
+            }
         } else if (ultimaFase && !r.entregue) { r.entregue = true; r.tEntrega = t; r.prazoNoFim = Match.setPieceTimer; }
         if (r.entregue && !r.cobrou && Match.state === 'PLAY') { r.cobrou = true; r.tCobranca = t; }
         if (r.cobrou && r.cone >= 0 && MultiBola.cones[r.cone].temBola) { r.coneRepos = true; break; }
@@ -72,7 +84,11 @@ function lateral(opcoes) {
 console.log('2 — a bola sai e para la fora: o cobrador vai ao cone, pega, leva, cobra');
 {
     const r = lateral({ vx: 9 });
-    verifica(r.fases.join('>') === 'saida>ir>pegar>levar', 'fases: ' + r.fases.join(' > '), 'fases: ' + r.fases.join(' > '));
+    verifica(r.fases.join('>') === 'ir>pegar>levar', 'fases: ' + r.fases.join(' > ') + ' (vai logo ao cone)', 'fases: ' + r.fases.join(' > '));
+    verifica(r.sumiu, `a bola que parou la fora sumiu (solta ${r.bolaSoltaAte.toFixed(1)} s)`, 'a bola que saiu nao sumiu');
+    verifica(r.distFinal !== null && r.distFinal > 0.4 && r.distFinal < 0.65, `agachado, fica a frente do cone, ao alcance dos bracos (${r.distFinal && r.distFinal.toFixed(2)} m)`, 'distancia ao cone agachado: ' + r.distFinal);
+    verifica(r.yMinPegar < ALTURA_BASE_Y - 0.15, `agacha-se de verdade, por cima da pose do frame (desce ${(ALTURA_BASE_Y - r.yMinPegar).toFixed(2)} m)`, 'nao se agachou: y min ' + r.yMinPegar);
+    verifica(r.bolaNoConeAoDescer, 'a descer, a bola fica no cone (so sobe com ele)', 'a bola saiu do cone antes de ele a apanhar');
     verifica(!r.teleporte, 'a bola que sai nao teletransporta (segue a fisica)', 'a bola saltou na fase de saida');
     verifica(r.maxBolaFora > 3, `a bola seguiu la para fora (${r.maxBolaFora.toFixed(1)} m alem da linha)`, `a bola parou a ${r.maxBolaFora.toFixed(1)} m da linha`);
     verifica(r.fonte === 'cone', 'a fonte e um cone', 'fonte: ' + r.fonte);
@@ -97,7 +113,7 @@ console.log('4 — o ritmo pelo placar');
     const M = MultiBolaModel;
     verifica(lateral({ placar: [0, 0] }).velIr === M.velTrote, 'empatado: trote', 'empatado nao trotou');
     verifica(lateral({ placar: [0, 1] }).velIr === M.velCorrida, 'a perder: corre', 'a perder nao correu');
-    verifica(lateral({ placar: [2, 0] }).velIr === M.velAndar, 'a ganhar: anda', 'a ganhar nao andou');
+    verifica(lateral({ placar: [2, 0] }).velIr === M.velTrote, 'a ganhar: trote (igual ao empate)', 'a ganhar nao trotou');
 }
 
 console.log('5 — o cobrador e expulso a meio do caminho: outro assume');

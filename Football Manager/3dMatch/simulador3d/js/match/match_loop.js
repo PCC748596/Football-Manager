@@ -487,7 +487,8 @@ Object.assign(Match, {
         }
 
         if (this.state === 'CORNER_KICK') {
-            this.setPieceTimer += this._seguraCobranca ? 0 : dt;
+            // Com o MULTIBOLA a ir buscar a bola, o prazo do canto nao corre (js/multibola.js).
+            this.setPieceTimer += (this._seguraCobranca || (typeof MultiBola !== 'undefined' && MultiBola.emBusca())) ? 0 : dt;
 
             /*
             Bola ainda "a sair": segue o movimento até tocar no relvado, espera
@@ -1202,7 +1203,9 @@ Object.assign(Match, {
         para sempre. O gesto inteiro leva ~8 s no pior caso.
         */
         if (this.state === 'GOAL_KICK') {
-            this.setPieceTimer += this._seguraCobranca ? 0 : dt;
+            // Com o MULTIBOLA a ir buscar a bola, o prazo do tiro de meta nao corre (js/multibola.js).
+            const multibolaNaMeta = (typeof MultiBola !== 'undefined' && MultiBola.emBusca());
+            this.setPieceTimer += (this._seguraCobranca || multibolaNaMeta) ? 0 : dt;
 
             /*
             Bola ainda a "sair" — pedido explícito: continua o movimento até
@@ -1251,7 +1254,7 @@ Object.assign(Match, {
                 }
             }
 
-            if (this.golKickPendente && !this.golKickBolaAlvo) {
+            if (this.golKickPendente && !this.golKickBolaAlvo && !multibolaNaMeta) {
                 /*
                 O relógio da espera só anda com ele de pé. Sem isto, um
                 guarda-redes que ainda estivesse a aterrar gastava a espera no
@@ -1378,7 +1381,8 @@ Object.assign(Match, {
         if (typeof avaliarRecuoParaGR === 'function') avaliarRecuoParaGR(this);
 
         if (typeof MultiBola !== 'undefined') MultiBola.update(dt);
-        if (typeof ChemistryIntel !== 'undefined') ChemistryIntel.update(dt);   // as intencoes entre companheiros (js/chemistry_intel.js)   // a busca da bola nas reposicoes (antes da bola: e ela que a leva nas maos)
+        // a busca da bola nas reposicoes (js/multibola.js), antes da bola; a pose e a bola nas maos sao do depoisDosJogadores, mais abaixo
+        if (typeof ChemistryIntel !== 'undefined') ChemistryIntel.update(dt);   // as intencoes entre companheiros (js/chemistry_intel.js)
         this.updateBall();
         // Sai sozinho quando nenhuma rede está a abanar (ver NetWave.update).
         if (typeof NetWave !== 'undefined') NetWave.update(dt);
@@ -1418,6 +1422,8 @@ Object.assign(Match, {
 
         this.players.forEach(p => p.update(dt));
         this.opponents.forEach(p => p.update(dt));
+        // O multibola por cima da pose do frame: quem vai buscar a bola agacha-se e leva-a nas maos (js/multibola.js).
+        if (typeof MultiBola !== 'undefined' && MultiBola.depoisDosJogadores) MultiBola.depoisDosJogadores(dt);
 
         if (window.showPlayerBT) {
             let attackingTeam = this.possessionTeam || this.lastTouchedTeam || 'TeamA';

@@ -8037,6 +8037,8 @@ class FootballPlayer {
         }
         this._gkForaDaArea = foraAgora;
 
+        // Excepto a ir buscar a bola ao cone atras da baliza (tiro de meta com multibola, js/multibola.js): ai sai da area e do campo, a pe.
+        if (this.gkEstado !== 'multibola') {
         const limX = Area.meiaLargura + folgaFora;
         gkCorpo.position.x = Math.max(-limX, Math.min(limX, gkCorpo.position.x));
         let meioComp = LINHA_FUNDO;
@@ -8044,6 +8046,7 @@ class FootballPlayer {
         let areaMinZ = (this.dirZ > 0) ? -meioComp : meioComp - prof;
         let areaMaxZ = (this.dirZ > 0) ? -meioComp + prof : meioComp;
         gkCorpo.position.z = Math.max(areaMinZ, Math.min(areaMaxZ, gkCorpo.position.z));
+        }
 
         /*
         O RUÍDO DA LEITURA SORTEIA-SE UMA VEZ, no primeiro frame do remate.
@@ -9369,6 +9372,8 @@ class FootballPlayer {
                     this.gkTipoMergulho, this.gkDirMergulho);
             }
             GkDive.update(this, dt, gkCorpo, gkRig);
+        } else if (this.gkEstado === 'multibola') {
+            // A ir buscar a bola ao cone, a leva-la e a pousa-la (tiro de meta com multibola): quem o move e anima e o MultiBola.depoisDosJogadores.
         } else if (this.gkEstado === 'tiro_meta_espera') {
             /*
             Espera antes do tiro de meta (ESPERA_APOS_REPOSICAO). E AQUI que
