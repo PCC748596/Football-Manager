@@ -122,7 +122,8 @@ test('oferta ridicula e recusada; recusada nao gera transferencia; retirada e ex
   for (let d = 1; d <= 3; d++) u = tickDoDia(u, { donoId: DONO, hoje: mover('2024-04-02', d) }).u;
   assert.equal(u.mercado.negociacoes.find(n => n.id === id)!.estado, 'RECUSADA');
   assert.equal(u.players.find(p => p.id === nome)!.teamId, alvo.teamId, 'o jogador nao se mexeu');
-  assert.equal(u.mercado.transacoes.filter(t => t.natureza !== 'AGENTE_LIVRE').length, 0, 'nenhuma compra ou venda (os pre-contratos da CPU sao AGENTE_LIVRE, sem taxa)');
+  // so as deste jogador: as CPUs negociam entre si nos mesmos dias (com as rodadas e a lista ativa, fecham negocios a serio)
+  assert.equal(u.mercado.transacoes.filter(t => t.jogadorId === nome && t.natureza !== 'AGENTE_LIVRE').length, 0, 'a oferta recusada nao gerou compra nem venda deste jogador');
   // retirada
   r = proporCompra(u, comprador, alvo.id, 20_000, '2024-04-06', DONO); u = r.u;
   const ret = retirar(u, r.negId!, '2024-04-06'); u = ret.u;

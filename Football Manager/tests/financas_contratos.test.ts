@@ -331,10 +331,15 @@ test('emprestimo: o dono nao empresta titulares (salvo listados), recusa opcao a
   assert.equal(avaliarOferta(u, neg(r.id, 10_000_000, preco), 10_000_000, HOJE).decisao, 'ACEITA');
   const d = avaliarOferta(u, neg(r.id, 0), 0, HOJE);
   assert.equal(d.decisao, 'CONTRA'); assert.equal(d.contra, taxaDeEmprestimoDesejada(r, 12, HOJE));
-  // listado para emprestimo: sai de graca, mesmo sendo titular
+  // listado para emprestimo: sai mesmo sendo titular, com a taxa reduzida (quem pede emprestado paga sempre: de graca, contrapropoe a taxa)
   u = comJogador(u, titular.id, p => ({ ...p, listedForLoan: true }));
   const tl = u.players.find(p => p.id === titular.id)!;
-  if (tl.contract && tl.contract.end > '2025-06-01' && elencoValidoSem(elenco(u, dono), tl, CONFIG_MERCADO, u.teams.find(t => t.id === dono)?.tactics?.formation)) assert.equal(avaliarOferta(u, neg(titular.id, 0), 0, HOJE).decisao, 'ACEITA');
+  const taxaListado = taxaDeEmprestimoDesejada(tl, 12, HOJE);
+  assert.ok(taxaListado > 0 && taxaListado < taxaDeEmprestimoDesejada({ ...tl, listedForLoan: false }, 12, HOJE), 'listado: taxa menor, mas nunca zero');
+  if (tl.contract && tl.contract.end > '2025-06-01' && elencoValidoSem(elenco(u, dono), tl, CONFIG_MERCADO, u.teams.find(t => t.id === dono)?.tactics?.formation)) {
+    assert.equal(avaliarOferta(u, neg(titular.id, taxaListado), taxaListado, HOJE).decisao, 'ACEITA');
+    assert.equal(avaliarOferta(u, neg(titular.id, 0), 0, HOJE).decisao, 'CONTRA');
+  }
 });
 
 test('emprestimo com opcao: o utilizador exerce a opcao (paga o preco, fica de vez) e recebe o aviso 30 dias antes do fim', () => {
@@ -376,7 +381,8 @@ test('emprestimo com opcao: no fim a CPU exerce se o preco cabe, tem caixa e o j
     && elencoValidoSem(elenco(u, p.teamId), p, CONFIG_MERCADO, u.teams.find(t => t.id === p.teamId)?.tactics?.formation)).sort((a, b) => b.skill - a.skill)[0];
   u = comJogador(u, alvo.id, p => ({ ...p, listedForLoan: true }));
   const dono = alvo.teamId;
-  const r = proporEmprestimo(u, cpu, alvo.id, 0, 6, precoDesejado(u, u.players.find(p => p.id === alvo.id)!, dono, HOJE), HOJE, 'HUMANO');
+  const listado = u.players.find(p => p.id === alvo.id)!;
+  const r = proporEmprestimo(u, cpu, alvo.id, taxaDeEmprestimoDesejada(listado, 6, HOJE), 6, precoDesejado(u, listado, dono, HOJE), HOJE, 'HUMANO');
   assert.ok(r.ok, r.motivo);
   u = r.u; for (let d = 1; d <= 3; d++) u = tickDoDia(u, { donoId: 'HUMANO', hoje: mover(HOJE, d) }).u;
   assert.equal(u.mercado.negociacoes.find(n => n.id === r.negId)!.estado, 'CONCLUIDA');
