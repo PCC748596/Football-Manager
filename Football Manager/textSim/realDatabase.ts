@@ -319,7 +319,19 @@ export const REAL_COUNTRIES_JSON: any[] = [
      452011,
      452012,
      452013,
-     452014
+     452014,
+     452015,
+     452016,
+     452017,
+     452018,
+     452019,
+     452020,
+     452021,
+     452022,
+     452023,
+     452024,
+     452025,
+     452026
     ],
     "promoted": 0,
     "relegated": 0,
@@ -85598,7 +85610,8 @@ export const REAL_TEAMS_JSON: any[] = [
    "numberOutlineColor": "",
    "collarColor": "#ffffff",
    "sleeveColor": ""
-  }
+  },
+  "teamBadgeLocation": "-"
  },
  {
   "teamID": 452002,
@@ -85656,7 +85669,8 @@ export const REAL_TEAMS_JSON: any[] = [
    "numberOutlineColor": "",
    "collarColor": "#ffffff",
    "sleeveColor": ""
-  }
+  },
+  "teamBadgeLocation": "-"
  },
  {
   "teamID": 452003,
@@ -85714,7 +85728,8 @@ export const REAL_TEAMS_JSON: any[] = [
    "numberOutlineColor": "",
    "collarColor": "#ffffff",
    "sleeveColor": ""
-  }
+  },
+  "teamBadgeLocation": "-"
  },
  {
   "teamID": 452004,
@@ -85772,7 +85787,8 @@ export const REAL_TEAMS_JSON: any[] = [
    "numberOutlineColor": "",
    "collarColor": "#ffffff",
    "sleeveColor": ""
-  }
+  },
+  "teamBadgeLocation": "-"
  },
  {
   "teamID": 452005,
@@ -85830,7 +85846,8 @@ export const REAL_TEAMS_JSON: any[] = [
    "numberOutlineColor": "",
    "collarColor": "#ffffff",
    "sleeveColor": ""
-  }
+  },
+  "teamBadgeLocation": "-"
  },
  {
   "teamID": 452006,
@@ -85888,7 +85905,8 @@ export const REAL_TEAMS_JSON: any[] = [
    "numberOutlineColor": "",
    "collarColor": "#ffffff",
    "sleeveColor": ""
-  }
+  },
+  "teamBadgeLocation": "-"
  },
  {
   "teamID": 452007,
@@ -85946,7 +85964,8 @@ export const REAL_TEAMS_JSON: any[] = [
    "numberOutlineColor": "",
    "collarColor": "#ffffff",
    "sleeveColor": ""
-  }
+  },
+  "teamBadgeLocation": "-"
  },
  {
   "teamID": 452008,
@@ -86004,7 +86023,8 @@ export const REAL_TEAMS_JSON: any[] = [
    "numberOutlineColor": "",
    "collarColor": "#ffffff",
    "sleeveColor": ""
-  }
+  },
+  "teamBadgeLocation": "-"
  },
  {
   "teamID": 452009,
@@ -86062,7 +86082,8 @@ export const REAL_TEAMS_JSON: any[] = [
    "numberOutlineColor": "",
    "collarColor": "#ffffff",
    "sleeveColor": ""
-  }
+  },
+  "teamBadgeLocation": "-"
  },
  {
   "teamID": 452010,
@@ -86120,7 +86141,8 @@ export const REAL_TEAMS_JSON: any[] = [
    "numberOutlineColor": "",
    "collarColor": "#ffffff",
    "sleeveColor": ""
-  }
+  },
+  "teamBadgeLocation": "-"
  },
  {
   "teamID": 452011,
@@ -86178,7 +86200,8 @@ export const REAL_TEAMS_JSON: any[] = [
    "numberOutlineColor": "",
    "collarColor": "#ffffff",
    "sleeveColor": ""
-  }
+  },
+  "teamBadgeLocation": "-"
  },
  {
   "teamID": 452012,
@@ -86236,7 +86259,8 @@ export const REAL_TEAMS_JSON: any[] = [
    "numberOutlineColor": "",
    "collarColor": "#ffffff",
    "sleeveColor": ""
-  }
+  },
+  "teamBadgeLocation": "-"
  },
  {
   "teamID": 452013,
@@ -86294,7 +86318,8 @@ export const REAL_TEAMS_JSON: any[] = [
    "numberOutlineColor": "",
    "collarColor": "#ffffff",
    "sleeveColor": ""
-  }
+  },
+  "teamBadgeLocation": "-"
  },
  {
   "teamID": 452014,
@@ -86352,7 +86377,716 @@ export const REAL_TEAMS_JSON: any[] = [
    "numberOutlineColor": "",
    "collarColor": "#ffffff",
    "sleeveColor": ""
-  }
+  },
+  "teamBadgeLocation": "-"
+ },
+ {
+  "teamID": 452015,
+  "teamName": "Carnaúba Olímpico-BA",
+  "teamAbb": "COL",
+  "color": "#1d4ed8",
+  "color2": "#c8102e",
+  "color3": "",
+  "teamCityName": "Feira de Santana",
+  "teamStadiumName": "Estádio Carnaúba",
+  "yearOfFoundation": 0,
+  "initialCapital": 500000,
+  "initialTransfer": 250000,
+  "sponsorAmount": 0,
+  "fanBase": 8000,
+  "avrAttendance": 2000,
+  "country": "45",
+  "criadoPor": "gerar_clubes_estaduais",
+  "homeKit": {
+   "pattern": "solid",
+   "color1": "#1d4ed8",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "awayKit": {
+   "pattern": "solid",
+   "color1": "#ffffff",
+   "color2": "#1d4ed8",
+   "color3": "",
+   "numberColor": "black",
+   "numberOutlineColor": "",
+   "collarColor": "#1d4ed8",
+   "sleeveColor": ""
+  },
+  "thirdKit": {
+   "pattern": "solid",
+   "color1": "#111111",
+   "color2": "#1d4ed8",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#1d4ed8",
+   "sleeveColor": ""
+  },
+  "gkKit": {
+   "pattern": "solid",
+   "color1": "#7c3aed",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "teamBadgeLocation": "-"
+ },
+ {
+  "teamID": 452016,
+  "teamName": "Caatinga Recreativo-BA",
+  "teamAbb": "CRE",
+  "color": "#facc15",
+  "color2": "#1d4ed8",
+  "color3": "",
+  "teamCityName": "Ilhéus",
+  "teamStadiumName": "Estádio Caatinga",
+  "yearOfFoundation": 0,
+  "initialCapital": 500000,
+  "initialTransfer": 250000,
+  "sponsorAmount": 0,
+  "fanBase": 2000,
+  "avrAttendance": 500,
+  "country": "45",
+  "criadoPor": "gerar_clubes_estaduais",
+  "homeKit": {
+   "pattern": "solid",
+   "color1": "#facc15",
+   "color2": "",
+   "color3": "",
+   "numberColor": "black",
+   "numberOutlineColor": "",
+   "collarColor": "#111111",
+   "sleeveColor": ""
+  },
+  "awayKit": {
+   "pattern": "solid",
+   "color1": "#1d4ed8",
+   "color2": "#facc15",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#facc15",
+   "sleeveColor": ""
+  },
+  "thirdKit": {
+   "pattern": "solid",
+   "color1": "#111111",
+   "color2": "#facc15",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#facc15",
+   "sleeveColor": ""
+  },
+  "gkKit": {
+   "pattern": "solid",
+   "color1": "#0ea5e9",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "teamBadgeLocation": "-"
+ },
+ {
+  "teamID": 452017,
+  "teamName": "Baraúna Esporte Clube-BA",
+  "teamAbb": "BEC",
+  "color": "#1d4ed8",
+  "color2": "#ffffff",
+  "color3": "",
+  "teamCityName": "Salvador",
+  "teamStadiumName": "Estádio Baraúna",
+  "yearOfFoundation": 0,
+  "initialCapital": 500000,
+  "initialTransfer": 250000,
+  "sponsorAmount": 0,
+  "fanBase": 5000,
+  "avrAttendance": 1250,
+  "country": "45",
+  "criadoPor": "gerar_clubes_estaduais",
+  "homeKit": {
+   "pattern": "solid",
+   "color1": "#1d4ed8",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "awayKit": {
+   "pattern": "solid",
+   "color1": "#ffffff",
+   "color2": "#1d4ed8",
+   "color3": "",
+   "numberColor": "black",
+   "numberOutlineColor": "",
+   "collarColor": "#1d4ed8",
+   "sleeveColor": ""
+  },
+  "thirdKit": {
+   "pattern": "solid",
+   "color1": "#111111",
+   "color2": "#1d4ed8",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#1d4ed8",
+   "sleeveColor": ""
+  },
+  "gkKit": {
+   "pattern": "solid",
+   "color1": "#16a34a",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "teamBadgeLocation": "-"
+ },
+ {
+  "teamID": 452018,
+  "teamName": "Xique-xique Olímpico-BA",
+  "teamAbb": "XOL",
+  "color": "#15803d",
+  "color2": "#ffffff",
+  "color3": "",
+  "teamCityName": "Jequié",
+  "teamStadiumName": "Estádio Xique-xique",
+  "yearOfFoundation": 0,
+  "initialCapital": 500000,
+  "initialTransfer": 250000,
+  "sponsorAmount": 0,
+  "fanBase": 5000,
+  "avrAttendance": 1250,
+  "country": "45",
+  "criadoPor": "gerar_clubes_estaduais",
+  "homeKit": {
+   "pattern": "solid",
+   "color1": "#15803d",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "awayKit": {
+   "pattern": "solid",
+   "color1": "#ffffff",
+   "color2": "#15803d",
+   "color3": "",
+   "numberColor": "black",
+   "numberOutlineColor": "",
+   "collarColor": "#15803d",
+   "sleeveColor": ""
+  },
+  "thirdKit": {
+   "pattern": "solid",
+   "color1": "#111111",
+   "color2": "#15803d",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#15803d",
+   "sleeveColor": ""
+  },
+  "gkKit": {
+   "pattern": "solid",
+   "color1": "#ea580c",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "teamBadgeLocation": "-"
+ },
+ {
+  "teamID": 452019,
+  "teamName": "Tamboril Associação-PE",
+  "teamAbb": "TAS",
+  "color": "#facc15",
+  "color2": "#111111",
+  "color3": "",
+  "teamCityName": "Jaboatão dos Guararapes",
+  "teamStadiumName": "Estádio Tamboril",
+  "yearOfFoundation": 0,
+  "initialCapital": 500000,
+  "initialTransfer": 250000,
+  "sponsorAmount": 0,
+  "fanBase": 2000,
+  "avrAttendance": 500,
+  "country": "45",
+  "criadoPor": "gerar_clubes_estaduais",
+  "homeKit": {
+   "pattern": "solid",
+   "color1": "#facc15",
+   "color2": "",
+   "color3": "",
+   "numberColor": "black",
+   "numberOutlineColor": "",
+   "collarColor": "#111111",
+   "sleeveColor": ""
+  },
+  "awayKit": {
+   "pattern": "solid",
+   "color1": "#111111",
+   "color2": "#facc15",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#facc15",
+   "sleeveColor": ""
+  },
+  "thirdKit": {
+   "pattern": "solid",
+   "color1": "#111111",
+   "color2": "#facc15",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#facc15",
+   "sleeveColor": ""
+  },
+  "gkKit": {
+   "pattern": "solid",
+   "color1": "#7c3aed",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "teamBadgeLocation": "-"
+ },
+ {
+  "teamID": 452020,
+  "teamName": "Cerrado Atlético-PE",
+  "teamAbb": "CAT",
+  "color": "#c8102e",
+  "color2": "#ffffff",
+  "color3": "",
+  "teamCityName": "Vitória de Santo Antão",
+  "teamStadiumName": "Estádio Cerrado",
+  "yearOfFoundation": 0,
+  "initialCapital": 500000,
+  "initialTransfer": 250000,
+  "sponsorAmount": 0,
+  "fanBase": 3000,
+  "avrAttendance": 750,
+  "country": "45",
+  "criadoPor": "gerar_clubes_estaduais",
+  "homeKit": {
+   "pattern": "solid",
+   "color1": "#c8102e",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "awayKit": {
+   "pattern": "solid",
+   "color1": "#ffffff",
+   "color2": "#c8102e",
+   "color3": "",
+   "numberColor": "black",
+   "numberOutlineColor": "",
+   "collarColor": "#c8102e",
+   "sleeveColor": ""
+  },
+  "thirdKit": {
+   "pattern": "solid",
+   "color1": "#111111",
+   "color2": "#c8102e",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#c8102e",
+   "sleeveColor": ""
+  },
+  "gkKit": {
+   "pattern": "solid",
+   "color1": "#0ea5e9",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "teamBadgeLocation": "-"
+ },
+ {
+  "teamID": 452021,
+  "teamName": "Sertanejo Recreativo-CE",
+  "teamAbb": "SRE",
+  "color": "#facc15",
+  "color2": "#15803d",
+  "color3": "",
+  "teamCityName": "Horizonte",
+  "teamStadiumName": "Estádio Sertanejo",
+  "yearOfFoundation": 0,
+  "initialCapital": 500000,
+  "initialTransfer": 250000,
+  "sponsorAmount": 0,
+  "fanBase": 2000,
+  "avrAttendance": 500,
+  "country": "45",
+  "criadoPor": "gerar_clubes_estaduais",
+  "homeKit": {
+   "pattern": "solid",
+   "color1": "#facc15",
+   "color2": "",
+   "color3": "",
+   "numberColor": "black",
+   "numberOutlineColor": "",
+   "collarColor": "#111111",
+   "sleeveColor": ""
+  },
+  "awayKit": {
+   "pattern": "solid",
+   "color1": "#15803d",
+   "color2": "#facc15",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#facc15",
+   "sleeveColor": ""
+  },
+  "thirdKit": {
+   "pattern": "solid",
+   "color1": "#111111",
+   "color2": "#facc15",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#facc15",
+   "sleeveColor": ""
+  },
+  "gkKit": {
+   "pattern": "solid",
+   "color1": "#16a34a",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "teamBadgeLocation": "-"
+ },
+ {
+  "teamID": 452022,
+  "teamName": "Umbuzeiro Esporte Clube-CE",
+  "teamAbb": "UEC",
+  "color": "#c8102e",
+  "color2": "#ffffff",
+  "color3": "",
+  "teamCityName": "Maranguape",
+  "teamStadiumName": "Estádio Umbuzeiro",
+  "yearOfFoundation": 0,
+  "initialCapital": 500000,
+  "initialTransfer": 250000,
+  "sponsorAmount": 0,
+  "fanBase": 2000,
+  "avrAttendance": 500,
+  "country": "45",
+  "criadoPor": "gerar_clubes_estaduais",
+  "homeKit": {
+   "pattern": "solid",
+   "color1": "#c8102e",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "awayKit": {
+   "pattern": "solid",
+   "color1": "#ffffff",
+   "color2": "#c8102e",
+   "color3": "",
+   "numberColor": "black",
+   "numberOutlineColor": "",
+   "collarColor": "#c8102e",
+   "sleeveColor": ""
+  },
+  "thirdKit": {
+   "pattern": "solid",
+   "color1": "#111111",
+   "color2": "#c8102e",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#c8102e",
+   "sleeveColor": ""
+  },
+  "gkKit": {
+   "pattern": "solid",
+   "color1": "#ea580c",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "teamBadgeLocation": "-"
+ },
+ {
+  "teamID": 452023,
+  "teamName": "Veredas Nacional-CE",
+  "teamAbb": "VNA",
+  "color": "#1d4ed8",
+  "color2": "#ffffff",
+  "color3": "",
+  "teamCityName": "Quixadá",
+  "teamStadiumName": "Estádio Veredas",
+  "yearOfFoundation": 0,
+  "initialCapital": 500000,
+  "initialTransfer": 250000,
+  "sponsorAmount": 0,
+  "fanBase": 2000,
+  "avrAttendance": 500,
+  "country": "45",
+  "criadoPor": "gerar_clubes_estaduais",
+  "homeKit": {
+   "pattern": "solid",
+   "color1": "#1d4ed8",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "awayKit": {
+   "pattern": "solid",
+   "color1": "#ffffff",
+   "color2": "#1d4ed8",
+   "color3": "",
+   "numberColor": "black",
+   "numberOutlineColor": "",
+   "collarColor": "#1d4ed8",
+   "sleeveColor": ""
+  },
+  "thirdKit": {
+   "pattern": "solid",
+   "color1": "#111111",
+   "color2": "#1d4ed8",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#1d4ed8",
+   "sleeveColor": ""
+  },
+  "gkKit": {
+   "pattern": "solid",
+   "color1": "#7c3aed",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "teamBadgeLocation": "-"
+ },
+ {
+  "teamID": 452024,
+  "teamName": "Coqueiral Sociedade Esportiva-GO",
+  "teamAbb": "CSE",
+  "color": "#c8102e",
+  "color2": "#111111",
+  "color3": "",
+  "teamCityName": "Jataí",
+  "teamStadiumName": "Estádio Coqueiral",
+  "yearOfFoundation": 0,
+  "initialCapital": 500000,
+  "initialTransfer": 250000,
+  "sponsorAmount": 0,
+  "fanBase": 3000,
+  "avrAttendance": 750,
+  "country": "45",
+  "criadoPor": "gerar_clubes_estaduais",
+  "homeKit": {
+   "pattern": "solid",
+   "color1": "#c8102e",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "awayKit": {
+   "pattern": "solid",
+   "color1": "#ffffff",
+   "color2": "#c8102e",
+   "color3": "",
+   "numberColor": "black",
+   "numberOutlineColor": "",
+   "collarColor": "#c8102e",
+   "sleeveColor": ""
+  },
+  "thirdKit": {
+   "pattern": "solid",
+   "color1": "#111111",
+   "color2": "#c8102e",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#c8102e",
+   "sleeveColor": ""
+  },
+  "gkKit": {
+   "pattern": "solid",
+   "color1": "#0ea5e9",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "teamBadgeLocation": "-"
+ },
+ {
+  "teamID": 452025,
+  "teamName": "Mandacaru Real-GO",
+  "teamAbb": "MRE",
+  "color": "#15803d",
+  "color2": "#ffffff",
+  "color3": "",
+  "teamCityName": "Goiânia",
+  "teamStadiumName": "Estádio Mandacaru",
+  "yearOfFoundation": 0,
+  "initialCapital": 500000,
+  "initialTransfer": 250000,
+  "sponsorAmount": 0,
+  "fanBase": 2000,
+  "avrAttendance": 500,
+  "country": "45",
+  "criadoPor": "gerar_clubes_estaduais",
+  "homeKit": {
+   "pattern": "solid",
+   "color1": "#15803d",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "awayKit": {
+   "pattern": "solid",
+   "color1": "#ffffff",
+   "color2": "#15803d",
+   "color3": "",
+   "numberColor": "black",
+   "numberOutlineColor": "",
+   "collarColor": "#15803d",
+   "sleeveColor": ""
+  },
+  "thirdKit": {
+   "pattern": "solid",
+   "color1": "#111111",
+   "color2": "#15803d",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#15803d",
+   "sleeveColor": ""
+  },
+  "gkKit": {
+   "pattern": "solid",
+   "color1": "#16a34a",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "teamBadgeLocation": "-"
+ },
+ {
+  "teamID": 452026,
+  "teamName": "Angico Associação-GO",
+  "teamAbb": "AAS",
+  "color": "#c8102e",
+  "color2": "#ffffff",
+  "color3": "",
+  "teamCityName": "Anápolis",
+  "teamStadiumName": "Estádio Angico",
+  "yearOfFoundation": 0,
+  "initialCapital": 500000,
+  "initialTransfer": 250000,
+  "sponsorAmount": 0,
+  "fanBase": 6000,
+  "avrAttendance": 1500,
+  "country": "45",
+  "criadoPor": "gerar_clubes_estaduais",
+  "homeKit": {
+   "pattern": "solid",
+   "color1": "#c8102e",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "awayKit": {
+   "pattern": "solid",
+   "color1": "#ffffff",
+   "color2": "#c8102e",
+   "color3": "",
+   "numberColor": "black",
+   "numberOutlineColor": "",
+   "collarColor": "#c8102e",
+   "sleeveColor": ""
+  },
+  "thirdKit": {
+   "pattern": "solid",
+   "color1": "#111111",
+   "color2": "#c8102e",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#c8102e",
+   "sleeveColor": ""
+  },
+  "gkKit": {
+   "pattern": "solid",
+   "color1": "#ea580c",
+   "color2": "",
+   "color3": "",
+   "numberColor": "white",
+   "numberOutlineColor": "",
+   "collarColor": "#ffffff",
+   "sleeveColor": ""
+  },
+  "teamBadgeLocation": "-"
  }
 ];
 

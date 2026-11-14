@@ -1,5 +1,5 @@
 /*
-CLUBES DOS ESTADUAIS QUE A BASE NAO TINHA (Carioca, Mineiro, Gaucho, Catarinense e Paranaense de 2026): entram na liga oculta do Brasil (`bra_clubes`) com nomes GENERICOS no padrao NOME-UF; o nome,
+CLUBES DOS ESTADUAIS QUE A BASE NAO TINHA (Carioca, Mineiro, Gaucho, Catarinense, Paranaense, Baiano, Pernambucano, Cearense e Goiano de 2026): entram na liga oculta do Brasil (`bra_clubes`) com nomes GENERICOS no padrao NOME-UF; o nome,
 a sigla e o estadio reais vao so para o mod. Pedido: *"pode criar os 3. Ve quais disputam este ano e coloca no mod"*.
 
     node tools/gerar_clubes_estaduais.cjs --dry      mostra o que faria
@@ -32,11 +32,27 @@ const CLUBES = [
   ['SC3', 'SC', 'Brusque', ['#1d4ed8', '#ffffff', 's'], 5000],
   ['PR1', 'PR', 'Foz do Iguaçu', ['#1d4ed8', '#ffffff', 's'], 4000],
   ['PR2', 'PR', 'Campo Largo', ['#1e3a8a', '#ffffff', 's'], 2000],
-  ['PR3', 'PR', 'Maringá', ['#111111', '#ffffff', 's'], 3000]
+  ['PR3', 'PR', 'Maringá', ['#111111', '#ffffff', 's'], 3000],
+  // Baiano, Pernambucano, Cearense e Goiano de 2026
+  ['BA1', 'BA', 'Feira de Santana', ['#1d4ed8', '#c8102e', 's'], 8000],
+  ['BA2', 'BA', 'Ilhéus', ['#facc15', '#1d4ed8', 's'], 2000],
+  ['BA3', 'BA', 'Salvador', ['#1d4ed8', '#ffffff', 's'], 5000],
+  ['BA4', 'BA', 'Jequié', ['#15803d', '#ffffff', 's'], 5000],
+  ['PE1', 'PE', 'Jaboatão dos Guararapes', ['#facc15', '#111111', 's'], 2000],
+  ['PE2', 'PE', 'Vitória de Santo Antão', ['#c8102e', '#ffffff', 's'], 3000],
+  ['CE1', 'CE', 'Horizonte', ['#facc15', '#15803d', 's'], 2000],
+  ['CE2', 'CE', 'Maranguape', ['#c8102e', '#ffffff', 's'], 2000],
+  ['CE3', 'CE', 'Quixadá', ['#1d4ed8', '#ffffff', 's'], 2000],
+  ['GO1', 'GO', 'Jataí', ['#c8102e', '#111111', 's'], 3000],
+  ['GO2', 'GO', 'Goiânia', ['#15803d', '#ffffff', 's'], 2000],
+  ['GO3', 'GO', 'Anápolis', ['#c8102e', '#ffffff', 's'], 6000]
 ];
 // Os nomes genericos (no estilo dos da base: "Jaguar Real-RJ", "Serra Azul Racing-RJ"): um prefixo e uma palavra da natureza do Brasil.
 const PREF = ['Atlético', 'Esporte Clube', 'Real', 'Racing', 'Unidos', 'Nacional', 'Olímpico', 'Associação', 'Recreativo', 'Sociedade Esportiva'];
 const PAL = ['Ipê Amarelo', 'Sabiá', 'Carcará', 'Araucária', 'Jequitibá', 'Seriema', 'Buriti', 'Pequizeiro', 'Juriti', 'Aroeira', 'Piracema', 'Bem-te-vi', 'Jatobá', 'Coqueiral', 'Canarinho'];
+// Palavras a mais para os clubes a partir do 15.o (os 14 primeiros usam so a lista de cima: os nomes deles nao mudam).
+const PAL2 = [...PAL,
+  'Mandacaru', 'Carnaúba', 'Babaçu', 'Juazeiro', 'Umbuzeiro', 'Xique-xique', 'Asa Branca', 'Caatinga', 'Cerrado', 'Veredas', 'Sertanejo', 'Maracajá', 'Tamboril', 'Angico', 'Baraúna'];
 
 const raiz = path.resolve(__dirname, '..');
 const MOD = process.env.FM_MOD_DIR ? path.resolve(process.env.FM_MOD_DIR) : 'Z:\\FootManager3D\\mod';
@@ -83,7 +99,8 @@ CLUBES.forEach(([chave, uf, cidade, [c1, c2, pat], fan], i) => {
   if (!r) { console.error('Sem dados reais para ' + chave + ' em ' + fReais); process.exit(1); }
   let nome = null;
   for (let k = 0; k < 500 && !nome; k++) {
-    const h = hash(chave + '|' + k), pal = PAL[(h >>> 4) % PAL.length], gen = `${pal} ${PREF[(h >>> 12) % PREF.length]}-${uf}`;
+    const lista = i < 14 ? PAL : PAL2;
+    const h = hash(chave + '|' + k), pal = lista[(h >>> 4) % lista.length], gen = `${pal} ${PREF[(h >>> 12) % PREF.length]}-${uf}`;
     const low = gen.toLowerCase();
     if (k < 400 && palUsada.has(pal)) continue;   // a mesma palavra nao se repete entre os clubes deste script enquanto houver outras
     if (usados.has(low) || nomesReais.has(low.replace(/-[a-z]{2}$/, ''))) continue;
@@ -97,7 +114,8 @@ CLUBES.forEach(([chave, uf, cidade, [c1, c2, pat], fan], i) => {
     homeKit: kit(pat === 'v' ? 'stripes' : 'solid', c1, pat === 'v' ? c2 : '', claro(c1) ? 'black' : 'white'),
     awayKit: kit('solid', claro(c1) ? c2 : '#ffffff', c1, claro(claro(c1) ? c2 : '#ffffff') ? 'black' : 'white'),
     thirdKit: kit('solid', '#111111', c1, 'white'),
-    gkKit: kit('solid', ['#16a34a', '#ea580c', '#7c3aed', '#0ea5e9'][i % 4], '', 'white')
+    gkKit: kit('solid', ['#16a34a', '#ea580c', '#7c3aed', '#0ea5e9'][i % 4], '', 'white'),
+    teamBadgeLocation: '-'   // o mesmo formato dos clubes do gerar_ligas_sav (cada formato de objeto a mais pesa na inferencia do TypeScript sobre realDatabase.ts)
   });
   oculta.teamIds.push(id);
   modClubes.push({ id, nome: r.nome, abreviatura: r.abreviatura || sigla(r.nome), estadio: r.estadio || '', escudo: fs.existsSync(path.join(MOD, 'escudos', id + '.png')) ? id + '.png' : '' });

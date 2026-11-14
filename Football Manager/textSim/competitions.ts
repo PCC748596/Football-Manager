@@ -31,7 +31,7 @@ export interface CompMatch {
 }
 
 export interface Competition {
-  id: 'LIB' | 'SUL' | 'COPA_BR' | 'SERIE_C' | 'SERIE_D' | 'UCL' | 'UEL' | 'UECL' | 'CARABAO' | 'FA_CUP' | 'PAULISTA' | 'CARIOCA' | 'MINEIRO' | 'GAUCHO' | 'CATARINENSE' | 'PARANAENSE';
+  id: 'LIB' | 'SUL' | 'COPA_BR' | 'SERIE_C' | 'SERIE_D' | 'UCL' | 'UEL' | 'UECL' | 'CARABAO' | 'FA_CUP' | 'PAULISTA' | 'CARIOCA' | 'MINEIRO' | 'GAUCHO' | 'CATARINENSE' | 'PARANAENSE' | 'BAIANO' | 'PERNAMBUCANO' | 'CEARENSE' | 'GOIANO';
   /** Fase de grupos CRUZADA (Carioca, Mineiro, Gaucho): cada clube joga contra os dos OUTROS grupos; a tabela de cada grupo conta esses jogos. */
   cruzado?: boolean;
   name: string;
@@ -193,9 +193,16 @@ Pedido: *"tem como colocar os campeonatos Carioca, Mineiro e Gaucho?"* (formatos
            final em ida e volta.
   PARANAENSE e CATARINENSE  2 grupos de 6, 6 rodadas; os 4 primeiros de cada grupo as quartas DENTRO do grupo (1x4, 2x3), meias dentro do grupo e a final entre os
            campeoes dos grupos, tudo em ida e volta (o Paranaense de 2026 jogou assim; do Catarinense as fontes so dizem as quartas, o resto segue o Paranaense).
+  GOIANO   3 grupos de 4 cruzados (8 rodadas); os 8 primeiros da classificacao GERAL as quartas (1x8, 4x5, 2x7, 3x6), quartas, meias e final em ida e volta.
+E os de outro formato na 1.a fase (`formato`):
+  BAIANO        'liga': 10 clubes em turno unico (9 rodadas); os 4 primeiros as meias (1x4, 2x3) e a final, em jogo unico em casa do melhor.
+  PERNAMBUCANO  'liga': 8 clubes em turno unico (7 rodadas); o 1.o e o 2.o direto as meias; do 3.o ao 6.o uma fase previa (3x6, 4x5); o 1.o pega o vencedor de 4x5 e o 2.o
+                o de 3x6; previa, meias e final em ida e volta.
+  CEARENSE      'intra': 2 grupos de 5, turno unico DENTRO do grupo (4 jogos, 5 rodadas com folga); os 4 primeiros de cada grupo as quartas cruzadas (A1xB4, B2xA3, A2xB3,
+                B1xA4); quartas, meias e final em ida e volta. As fontes so dizem a 1.a fase (o grupo de cada clube sai dos jogos dela); o mata-mata e suposto.
 Os clubes pelo ID da base (o mesmo com e sem o mod; os que a base nao tinha foram criados por tools/gerar_clubes_estaduais.cjs na liga oculta bra_clubes). Sem rebaixamento.
 */
-interface EstadualCruzado { id: 'CARIOCA' | 'MINEIRO' | 'GAUCHO' | 'CATARINENSE' | 'PARANAENSE'; grupos: Record<string, string[]>; rodadas: string[]; inicio: string; fases: { nome: string; datas: string[] }[] }
+interface EstadualCruzado { id: 'CARIOCA' | 'MINEIRO' | 'GAUCHO' | 'CATARINENSE' | 'PARANAENSE' | 'BAIANO' | 'PERNAMBUCANO' | 'CEARENSE' | 'GOIANO'; formato?: 'cruzado' | 'intra' | 'liga'; grupos: Record<string, string[]>; rodadas: string[]; inicio: string; fases: { nome: string; datas: string[] }[] }
 const ESTADUAIS_CRUZADOS: EstadualCruzado[] = [
   { id: 'CARIOCA', inicio: '2026-01-02',
     grupos: { A: ['450150', '450193', '451019', '452001', '451098', '451099'], B: ['450129', '451095', '451125', '450148', '451097', '451096'] },
@@ -216,7 +223,23 @@ const ESTADUAIS_CRUZADOS: EstadualCruzado[] = [
   { id: 'PARANAENSE', inicio: '2026-01-02',
     grupos: { A: ['451003', '452012', '450124', '451108', '451017', '451107'], B: ['451105', '450139', '451106', '450133', '452013', '452014'] },
     rodadas: ['2026-01-06', '2026-01-10', '2026-01-14', '2026-01-17', '2026-01-21', '2026-01-25'],
-    fases: [{ nome: 'QF', datas: ['2026-01-31', '2026-02-08'] }, { nome: 'SF', datas: ['2026-02-14', '2026-02-22'] }, { nome: 'F', datas: ['2026-02-28', '2026-03-07'] }] }
+    fases: [{ nome: 'QF', datas: ['2026-01-31', '2026-02-08'] }, { nome: 'SF', datas: ['2026-02-14', '2026-02-22'] }, { nome: 'F', datas: ['2026-02-28', '2026-03-07'] }] },
+  { id: 'GOIANO', inicio: '2026-01-02',
+    grupos: { A: ['450168', '451076', '451078', '451077'], B: ['451006', '450154', '452024', '451075'], C: ['450122', '451074', '452025', '452026'] },
+    rodadas: ['2026-01-11', '2026-01-14', '2026-01-18', '2026-01-21', '2026-01-25', '2026-01-28', '2026-02-01', '2026-02-04'],
+    fases: [{ nome: 'QF', datas: ['2026-02-07', '2026-02-11'] }, { nome: 'SF', datas: ['2026-02-15', '2026-02-22'] }, { nome: 'F', datas: ['2026-03-01', '2026-03-08'] }] },
+  { id: 'BAIANO', inicio: '2026-01-02', formato: 'liga',
+    grupos: { L: ['451038', '450127', '452015', '452016', '452017', '451039', '452018', '451040', '451041', '450196'] },
+    rodadas: ['2026-01-11', '2026-01-15', '2026-01-18', '2026-01-22', '2026-01-25', '2026-02-01', '2026-02-08', '2026-02-15', '2026-02-22'],
+    fases: [{ nome: 'SF', datas: ['2026-02-28'] }, { nome: 'F', datas: ['2026-03-07'] }] },
+  { id: 'PERNAMBUCANO', inicio: '2026-01-02', formato: 'liga',
+    grupos: { L: ['450187', '451004', '451018', '451060', '452019', '451059', '451058', '452020'] },
+    rodadas: ['2026-01-09', '2026-01-14', '2026-01-18', '2026-01-21', '2026-01-25', '2026-01-28', '2026-02-01'],
+    fases: [{ nome: 'QF', datas: ['2026-02-07', '2026-02-11'] }, { nome: 'SF', datas: ['2026-02-15', '2026-02-22'] }, { nome: 'F', datas: ['2026-03-01', '2026-03-08'] }] },
+  { id: 'CEARENSE', inicio: '2026-01-02', formato: 'intra',
+    grupos: { A: ['451048', '451046', '452023', '452021', '450151'], B: ['452022', '451047', '451049', '450135', '451013'] },
+    rodadas: ['2026-01-06', '2026-01-10', '2026-01-14', '2026-01-18', '2026-01-22'],
+    fases: [{ nome: 'QF', datas: ['2026-01-31', '2026-02-07'] }, { nome: 'SF', datas: ['2026-02-14', '2026-02-21'] }, { nome: 'F', datas: ['2026-02-28', '2026-03-08'] }] }
 ];
 const estadualCruzado = (id: string): EstadualCruzado | undefined => ESTADUAIS_CRUZADOS.find(e => e.id === id);
 /** O estadual de grupos cruzados que o clube (pelo id do Team) joga, se algum. */
@@ -651,9 +674,11 @@ export const criarEstadualCruzado = (cfg: EstadualCruzado, porId: Map<string, { 
   const todos = Object.values(grupos).flat();
   const casa = new Map<string, number>(todos.map(k => [k, 0]));
   const jogos: [string, string][] = [];
+  const formato = cfg.formato || 'cruzado';
   for (let i = 0; i < todos.length; i++) for (let j = i + 1; j < todos.length; j++) {
     const a = todos[i], b = todos[j];
-    if (grupoDe.get(a) === grupoDe.get(b)) continue;
+    // cruzado: so contra os outros grupos; intra: so dentro do grupo; liga: todos contra todos (um grupo so).
+    if (formato === 'cruzado' ? grupoDe.get(a) === grupoDe.get(b) : formato === 'intra' ? grupoDe.get(a) !== grupoDe.get(b) : false) continue;
     const aCasa = casa.get(a)! < casa.get(b)! || (casa.get(a) === casa.get(b) && hash(a + b) % 2 === 0);
     const [h, v] = aCasa ? [a, b] : [b, a];
     casa.set(h, casa.get(h)! + 1); jogos.push([h, v]);
@@ -665,7 +690,7 @@ export const criarEstadualCruzado = (cfg: EstadualCruzado, porId: Map<string, { 
     return jogo(`${cfg.id}-X-${r + 1}-${contagem[r]++}`, 'G' + (r + 1), agendarJogo(oc, noAno(cfg.rodadas[r], ano), [h, v], noAno(cfg.inicio, ano)), h, v, { group: grupoDe.get(h) });
   });
   const keys = todos.slice().sort((x, y) => porId.get(idDaChave(y))!.team.strength - porId.get(idDaChave(x))!.team.strength);
-  return { id: cfg.id, name: nomeComp(cfg.id), teamKeys: keys, groups: grupos, matches, ano, cruzado: true };
+  return { id: cfg.id, name: nomeComp(cfg.id), teamKeys: keys, groups: grupos, matches, ano, ...(formato === 'cruzado' ? { cruzado: true } : {}) };
 };
 const idDaChave = (k: string) => k.slice(k.indexOf('|') + 1);
 
@@ -1035,7 +1060,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
       progressou = true;
     } else if (MATA_MATA_INGLES[c.id]) {
       // (sem fase a sortear: o campeao e tratado abaixo)
-    } else if (c.cruzado && estadualCruzado(c.id) && !temFase(estadualCruzado(c.id)!.fases[0].nome)) {
+    } else if (estadualCruzado(c.id) && !temFase(estadualCruzado(c.id)!.fases[0].nome)) {
       // Fim da 1.a fase dos estaduais cruzados (ESTADUAIS_CRUZADOS): os classificados de cada grupo e o quadro do mata-mata.
       if (c.matches.filter(m => m.group).every(m => m.played)) {
         copia();
@@ -1044,7 +1069,18 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         const ptsDe = (k: string) => { for (const g of Object.keys(est)) if (est[g].pts[k]) return est[g].pts[k]; return { p: 0, sg: 0, gf: 0 }; };
         const melhor = (x: string, y: string) => ptsDe(y).p - ptsDe(x).p || ptsDe(y).sg - ptsDe(x).sg || ptsDe(y).gf - ptsDe(x).gf || hash(x) - hash(y);
         let pares: [string, string][] = [], classificados: string[] = [];
-        if (c.id === 'MINEIRO') {
+        if (c.id === 'BAIANO') {
+          const o = est.L.ord;
+          pares = [[o[0], o[3]], [o[1], o[2]]]; classificados = o.slice(0, 4);
+        } else if (c.id === 'PERNAMBUCANO') {
+          // O 1.o e o 2.o esperam nas meias (`entradas.SF`); do 3.o ao 6.o a fase previa.
+          const o = est.L.ord;
+          pares = [[o[2], o[5]], [o[3], o[4]]]; classificados = o.slice(0, 6);
+          c.entradas = { SF: [o[0], o[1]] };
+        } else if (c.id === 'GOIANO') {
+          const q = Object.values(c.groups!).flat().sort(melhor);
+          pares = [[q[0], q[7]], [q[3], q[4]], [q[1], q[6]], [q[2], q[5]]]; classificados = q.slice(0, 8);
+        } else if (c.id === 'MINEIRO') {
           const lideres = Object.keys(est).map(g => est[g].ord[0]).sort(melhor);
           const segundo = Object.keys(est).map(g => est[g].ord[1]).sort(melhor)[0];
           pares = [[lideres[0], segundo], [lideres[1], lideres[2]]];
@@ -1052,7 +1088,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         } else {
           const A = est.A.ord, B = est.B.ord;
           // Carioca, Paranaense e Catarinense: quartas dentro do grupo (1x4, 2x3; no Parana e em SC as meias seguem dentro do grupo: o quadro e o desta ordem); Gaucho: cruzadas.
-          pares = c.id === 'GAUCHO' ? [[A[0], B[3]], [B[1], A[2]], [A[1], B[2]], [B[0], A[3]]] : [[A[0], A[3]], [A[1], A[2]], [B[0], B[3]], [B[1], B[2]]];
+          pares = (c.id === 'GAUCHO' || c.id === 'CEARENSE') ? [[A[0], B[3]], [B[1], A[2]], [A[1], B[2]], [B[0], A[3]]] : [[A[0], A[3]], [A[1], A[2]], [B[0], B[3]], [B[1], B[2]]];
           classificados = [0, 1, 2, 3].flatMap(i => [A[i], B[i]].sort(melhor));
         }
         c.teamKeys = classificados.concat(c.teamKeys.filter(k => !classificados.includes(k)));
@@ -1123,7 +1159,10 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         const consecutivos = (ks: string[]) => { const p: [string, string][] = []; for (let k = 0; k < ks.length; k += 2) p.push(seed(ks[k]) <= seed(ks[k + 1]) ? [ks[k], ks[k + 1]] : [ks[k + 1], ks[k]]); return p; };
         // Carioca: meias por sorteio (o melhor colocado faz a volta em casa).
         const sorteio = (ks: string[]) => { const e = embaralhar(ks); const p: [string, string][] = []; for (let k = 0; k + 1 < e.length; k += 2) p.push(seed(e[k]) <= seed(e[k + 1]) ? [e[k], e[k + 1]] : [e[k + 1], e[k]]); return p; };
-        const par = (c.id === 'CARIOCA' && b === 'SF') ? sorteio(venc) : c.id === 'SERIE_D' ? consecutivos(venc) : c.id === 'PAULISTA' ? parear(venc, seed) : c.id === 'COPA_BR' ? parear(venc.concat((c.entradas && c.entradas[b]) || []), seed) : (() => { const p: [string, string][] = []; for (let k = 0; k < venc.length; k += 2) p.push([venc[k], venc[k + 1]]); return p; })();
+        // Pernambucano: o 1.o pega o vencedor de 4x5 e o 2.o o de 3x6 (as previas na ordem [3x6, 4x5]).
+        const esperam = (c.entradas && c.entradas[b]) || [];
+        const par = (c.id === 'PERNAMBUCANO' && b === 'SF' && esperam.length === 2) ? [[esperam[0], venc[1]], [esperam[1], venc[0]]] as [string, string][]
+          : (c.id === 'CARIOCA' && b === 'SF') ? sorteio(venc) : c.id === 'SERIE_D' ? consecutivos(venc) : c.id === 'PAULISTA' ? parear(venc, seed) : c.id === 'COPA_BR' ? parear(venc.concat((c.entradas && c.entradas[b]) || []), seed) : (() => { const p: [string, string][] = []; for (let k = 0; k < venc.length; k += 2) p.push([venc[k], venc[k + 1]]); return p; })();
         c.matches.push(...jogosDaFase(c, fase(b), par, oc, somarDias(hoje, 1)));
         // Serie D: sobem SO OS 4 SEMIFINALISTAS (sem playoff de acesso).
         if (c.id === 'SERIE_D' && b === 'SF') {
@@ -1350,7 +1389,9 @@ export const zonasDoGrupo = (compId: string, grupo: string, n: number): (ZonaDaT
   const poe = (de: number, ate: number, z: ZonaDaTabela) => { for (let i = Math.max(0, de); i < Math.min(n, ate); i++) out[i] = z; };
   const avanca: ZonaDaTabela = { id: 'ACESSO', nome: 'Qualified', cor: '#22c55e' };
   if (compId === 'PAULISTA') poe(0, 8, { ...avanca, nome: 'Quarter-finals' });
-  else if (compId === 'CARIOCA' || compId === 'GAUCHO' || compId === 'CATARINENSE' || compId === 'PARANAENSE') poe(0, 4, { ...avanca, nome: 'Quarter-finals' });
+  else if (compId === 'CARIOCA' || compId === 'GAUCHO' || compId === 'CATARINENSE' || compId === 'PARANAENSE' || compId === 'CEARENSE') poe(0, 4, { ...avanca, nome: 'Quarter-finals' });
+  else if (compId === 'BAIANO') poe(0, 4, { ...avanca, nome: 'Semi-finals' });
+  else if (compId === 'PERNAMBUCANO') { poe(0, 2, { ...avanca, nome: 'Semi-finals' }); poe(2, 6, { id: 'UEL', nome: 'Preliminary round', cor: '#eab308' }); }
   else if (compId === 'MINEIRO') { poe(0, 1, { ...avanca, nome: 'Semi-finals' }); poe(1, 2, { id: 'UEL', nome: 'Best runner-up: semi-finals', cor: '#eab308' }); }
   else if (compId === 'UCL' || compId === 'UEL' || compId === 'UECL') {
     poe(0, 8, { ...avanca, nome: 'Round of 16' });

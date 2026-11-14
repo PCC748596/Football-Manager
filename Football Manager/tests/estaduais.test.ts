@@ -17,8 +17,13 @@ const ESPERADO: Record<string, { clubes: number; grupos: number; porClube: numbe
   MINEIRO: { clubes: 12, grupos: 3, porClube: 8, fases: { SF: 4, F: 1 } },
   GAUCHO: { clubes: 12, grupos: 2, porClube: 6, fases: { QF: 4, SF: 4, F: 2 } },
   CATARINENSE: { clubes: 12, grupos: 2, porClube: 6, fases: { QF: 8, SF: 4, F: 2 } },
-  PARANAENSE: { clubes: 12, grupos: 2, porClube: 6, fases: { QF: 8, SF: 4, F: 2 } }
+  PARANAENSE: { clubes: 12, grupos: 2, porClube: 6, fases: { QF: 8, SF: 4, F: 2 } },
+  GOIANO: { clubes: 12, grupos: 3, porClube: 8, fases: { QF: 8, SF: 4, F: 2 } },
+  BAIANO: { clubes: 10, grupos: 1, porClube: 9, fases: { SF: 2, F: 1 } },
+  PERNAMBUCANO: { clubes: 8, grupos: 1, porClube: 7, fases: { QF: 4, SF: 4, F: 2 } },
+  CEARENSE: { clubes: 10, grupos: 2, porClube: 4, fases: { QF: 8, SF: 4, F: 2 } }
 };
+const FORMATO: Record<string, 'cruzado' | 'intra' | 'liga'> = { BAIANO: 'liga', PERNAMBUCANO: 'liga', CEARENSE: 'intra' };
 
 test('os tres estaduais nascem com todos os clubes, so jogos contra os outros grupos e o mesmo numero de jogos por clube', () => {
   const w = mundo(); const cs = criarCopas(w, undefined, ocupacaoDe(w, []), null, 'bra_serie_a', 2026);
@@ -28,7 +33,9 @@ test('os tres estaduais nascem com todos os clubes, so jogos contra os outros gr
     assert.equal(c.teamKeys.length, e.clubes, id);
     assert.equal(Object.keys(c.groups!).length, e.grupos, id);
     const grupoDe = new Map<string, string>(); Object.entries(c.groups!).forEach(([g, ks]) => ks.forEach(k => grupoDe.set(k, g)));
-    assert.ok(c.matches.every(m => grupoDe.get(m.homeKey) !== grupoDe.get(m.awayKey)), id + ': nenhum jogo dentro do proprio grupo');
+    const f = FORMATO[id] || 'cruzado';
+    if (f === 'cruzado') assert.ok(c.matches.every(m => grupoDe.get(m.homeKey) !== grupoDe.get(m.awayKey)), id + ': nenhum jogo dentro do proprio grupo');
+    if (f === 'intra') assert.ok(c.matches.every(m => grupoDe.get(m.homeKey) === grupoDe.get(m.awayKey)), id + ': so jogos dentro do grupo');
     for (const k of c.teamKeys) assert.equal(c.matches.filter(m => m.homeKey === k || m.awayKey === k).length, e.porClube, `${id}: ${k} joga ${e.porClube}`);
     assert.ok(c.matches.every(m => m.date >= '2026-01-02' && m.date <= '2026-03-15'), id + ': a 1.a fase em janeiro e fevereiro');
   }
@@ -47,7 +54,7 @@ test('os tres estaduais completos: os classificados de cada grupo, o mata-mata d
     assert.ok(f.every(m => m.date <= '2026-03-20'), `${id}: final em marco (${f.map(m => m.date).join(', ')})`);
     // A tabela de cada grupo conta os jogos cruzados: cada clube com todos os jogos da 1.a fase.
     for (const g of Object.keys(c.groups!)) assert.ok(tabelaDoGrupo(c, g, mapa).every(r => r.played === e.porClube), `${id} grupo ${g}: tabela com ${e.porClube} jogos`);
-    if (id !== 'MINEIRO') {
+    if (['CARIOCA', 'GAUCHO', 'CATARINENSE', 'PARANAENSE', 'CEARENSE'].includes(id)) {
       const qf = c.matches.filter(m => m.stage === 'QF').flatMap(m => [m.homeKey, m.awayKey]);
       for (const g of ['A', 'B']) { const ord = tabelaDoGrupo(c, g, mapa).map(r => r.key); assert.deepEqual(new Set(qf.filter(k => c.groups![g].includes(k))), new Set(ord.slice(0, 4)), `${id}: os 4 primeiros do grupo ${g} nas quartas`); }
     }
