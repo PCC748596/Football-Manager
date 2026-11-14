@@ -226,6 +226,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [gameState, setGameState] = useState<GameState>(() => {
     const lido = localStorage.getItem('fm_lang');
     const savedLang: Language | null = idiomaValido(lido) ? lido : null;
+    // A qualidade grafica e do computador, nao do save (como o idioma): a ultima escolhida em Settings; sem nenhuma, MEDIUM.
+    const qLida = localStorage.getItem('fm_graphics');
+    const savedQualidade: 'HIGH' | 'MEDIUM' | 'LOW' = (qLida === 'HIGH' || qLida === 'MEDIUM' || qLida === 'LOW') ? qLida : 'MEDIUM';
     return {
       currentWeek: 1,
       totalWeeks: 0,
@@ -235,7 +238,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isProcessing: false,
       matchMinute: 0,
       matchDuration: 10,
-      graphicsQuality: 'MEDIUM',
+      graphicsQuality: savedQualidade,
       view: 'DASHBOARD',
       activities: [],
       themeMode: 'DARK',
@@ -766,6 +769,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateSettings = (settings: Partial<Pick<GameState, 'language' | 'currency' | 'wageFrequency' | 'themeMode' | 'matchDuration' | 'simulationSpeed' | 'graphicsQuality' | 'cameraTvMin' | 'cameraTvMax'>>) => {
     if (settings.language) localStorage.setItem('fm_lang', settings.language);
+    if (settings.graphicsQuality) { try { localStorage.setItem('fm_graphics', settings.graphicsQuality); } catch { /* sem localStorage: vale so nesta sessao */ } }
     setGameState(prev => ({ ...prev, ...settings }));
   };
 
@@ -2614,8 +2618,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setNegociacoes(data.negociacoes || []);
         setMercado(data.mercado || mercadoVazio(''));
         setFixtures(fx);
-        // O idioma e preferencia do jogador (Settings, guardada no navegador), nao do save: carregar um save antigo nao muda a lingua da interface.
-        setGameState({ ...data.gameState, language: gameState.language });
+        // O idioma e a qualidade grafica sao preferencias do jogador (Settings, guardadas no navegador), nao do save: carregar um save antigo nao as muda.
+        setGameState({ ...data.gameState, language: gameState.language, graphicsQuality: gameState.graphicsQuality });
         setLoadId(n => n + 1);
         return true;
       }
