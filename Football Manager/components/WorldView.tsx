@@ -346,6 +346,9 @@ const WorldView: React.FC = () => {
   const cabecalho = liga ? `${liga.countryName} · ${liga.leagueName}` : copa ? copa.name : '';
   // A lista da esquerda: as copas soltas e, por pais, as divisoes (ligas + as Series C e D do Brasil, que sao competicoes) dentro do cartao do pais.
   type Item = { sel: Selecao; titulo: string; sub: string; tier: number };
+  // As secoes dentro do pais: as copas nacionais, as divisoes (ligas + Series C e D) e os estaduais.
+  const secaoDe = (it: Item): number => (it.sel.tipo === 'LIGA' || it.sel.id === 'SERIE_C' || it.sel.id === 'SERIE_D') ? 1 : (it.sel.id === 'COPA_BR' || abasInglesas(it.sel.id)) ? 0 : 2;
+  const NOME_SECAO = ['Cups', 'Leagues', 'State Championships'];
   const paises = (() => {
     const m = new Map<string, { id: string; nome: string; itens: Item[] }>();
     // Um cartao por PAIS (agrupado pelo nome, para um jogo antigo com o pais escrito de outra forma nao abrir um cartao a parte), com o id certo da base (a bandeira usa-o).
@@ -372,7 +375,7 @@ const WorldView: React.FC = () => {
       else if (abasInglesas(c.id) && ing) pais(ing.countryId, ing.countryName).itens.push({ ...item, tier: c.id === 'FA_CUP' ? 20 : 21 });
     });
     const ordem = (COUNTRIES as any[]).map(c => c.id);
-    return Array.from(m.values()).sort((x, y) => ordem.indexOf(x.id) - ordem.indexOf(y.id)).map(p => ({ ...p, itens: p.itens.sort((a, b) => a.tier - b.tier) }));
+    return Array.from(m.values()).sort((x, y) => ordem.indexOf(x.id) - ordem.indexOf(y.id)).map(p => ({ ...p, itens: p.itens.sort((a, b) => secaoDe(a) - secaoDe(b) || a.tier - b.tier) }));
   })();
   // CONFEDERACOES (o continente do pais na base): as competicoes continentais dela e as associacoes nacionais (os paises) com as competicoes de cada um.
   const confederacoes = (() => {
@@ -434,14 +437,18 @@ const WorldView: React.FC = () => {
                   <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-300"><span className="text-sm font-black">{p.itens.length}</span><span className="text-xl leading-none">{aberto ? '▾' : '▸'}</span></span>
                 </button>
                 {aberto && <div className="p-1 space-y-0">
-                  {p.itens.map(it => {
+                  {p.itens.map((it, i) => {
+                    const sec = secaoDe(it), cab = new Set(p.itens.map(secaoDe)).size > 1 && (i === 0 || secaoDe(p.itens[i - 1]) !== sec);
                     const ativo = !!selecao && selecao.tipo === it.sel.tipo && selecao.id === it.sel.id;
                     return (
-                      <button key={it.sel.tipo + it.sel.id} onClick={() => setSel(it.sel)}
+                      <React.Fragment key={it.sel.tipo + it.sel.id}>
+                      {cab && <div className="text-[9px] font-black uppercase tracking-widest text-blue-500 px-2 pt-1.5 pb-0.5">{tx(NOME_SECAO[sec])}</div>}
+                      <button onClick={() => setSel(it.sel)}
                         className={`w-full text-left px-3 py-1.5 rounded transition-all ${ativo ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/70'}`}>
                         <div className="text-[11px] font-black uppercase leading-tight">{it.titulo}{meu && ((it.sel.tipo === 'LIGA' && it.sel.id === meu.leagueId) || (it.sel.tipo === 'COPA' && it.sel.id === compDoMeu)) ? ' ★' : ''}</div>
                         <div className={`text-[10px] font-bold ${ativo ? 'text-blue-100' : 'text-slate-400'}`}>{it.sub}</div>
                       </button>
+                      </React.Fragment>
                     );
                   })}
                 </div>}
