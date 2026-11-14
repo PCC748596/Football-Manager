@@ -15,7 +15,9 @@ const mundo = () => createWorld('__nenhuma__', '2026-01-01', null, 2026, 2025);
 const ESPERADO: Record<string, { clubes: number; grupos: number; porClube: number; fases: Record<string, number> }> = {
   CARIOCA: { clubes: 12, grupos: 2, porClube: 6, fases: { QF: 4, SF: 4, F: 1 } },
   MINEIRO: { clubes: 12, grupos: 3, porClube: 8, fases: { SF: 4, F: 1 } },
-  GAUCHO: { clubes: 12, grupos: 2, porClube: 6, fases: { QF: 4, SF: 4, F: 2 } }
+  GAUCHO: { clubes: 12, grupos: 2, porClube: 6, fases: { QF: 4, SF: 4, F: 2 } },
+  CATARINENSE: { clubes: 12, grupos: 2, porClube: 6, fases: { QF: 8, SF: 4, F: 2 } },
+  PARANAENSE: { clubes: 12, grupos: 2, porClube: 6, fases: { QF: 8, SF: 4, F: 2 } }
 };
 
 test('os tres estaduais nascem com todos os clubes, so jogos contra os outros grupos e o mesmo numero de jogos por clube', () => {
@@ -45,7 +47,7 @@ test('os tres estaduais completos: os classificados de cada grupo, o mata-mata d
     assert.ok(f.every(m => m.date <= '2026-03-20'), `${id}: final em marco (${f.map(m => m.date).join(', ')})`);
     // A tabela de cada grupo conta os jogos cruzados: cada clube com todos os jogos da 1.a fase.
     for (const g of Object.keys(c.groups!)) assert.ok(tabelaDoGrupo(c, g, mapa).every(r => r.played === e.porClube), `${id} grupo ${g}: tabela com ${e.porClube} jogos`);
-    if (id === 'CARIOCA' || id === 'GAUCHO') {
+    if (id !== 'MINEIRO') {
       const qf = c.matches.filter(m => m.stage === 'QF').flatMap(m => [m.homeKey, m.awayKey]);
       for (const g of ['A', 'B']) { const ord = tabelaDoGrupo(c, g, mapa).map(r => r.key); assert.deepEqual(new Set(qf.filter(k => c.groups![g].includes(k))), new Set(ord.slice(0, 4)), `${id}: os 4 primeiros do grupo ${g} nas quartas`); }
     }
@@ -60,6 +62,8 @@ test('os clubes dos estaduais comecam a temporada em janeiro (ehDeEstadual)', ()
   assert.equal(estadualDoClube('450148'), 'CARIOCA');
   assert.equal(estadualDoClube('450143'), 'MINEIRO');
   assert.equal(estadualDoClube('450156'), 'GAUCHO');
+  assert.equal(estadualDoClube('450141'), 'CATARINENSE');
+  assert.equal(estadualDoClube('450124'), 'PARANAENSE');
   assert.equal(estadualDoClube('450138'), null);
   assert.ok(ehDeEstadual('450138'), 'o Paulista tambem');
 });

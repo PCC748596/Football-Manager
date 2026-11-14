@@ -105,6 +105,8 @@ const COPAS = [
   { id: 'CARIOCA', nome: 'Campeonato Carioca', nomeCurto: 'Campeonato Carioca', prefixo: 'CARIOCA', logo: '' },
   { id: 'MINEIRO', nome: 'Campeonato Mineiro', nomeCurto: 'Campeonato Mineiro', prefixo: 'MINEIRO', logo: '' },
   { id: 'GAUCHO', nome: 'Campeonato Gaúcho', nomeCurto: 'Campeonato Gaúcho', prefixo: 'GAUCHO', logo: '' },
+  { id: 'CATARINENSE', nome: 'Campeonato Catarinense', nomeCurto: 'Campeonato Catarinense', prefixo: 'CATARINENSE', logo: '' },
+  { id: 'PARANAENSE', nome: 'Campeonato Paranaense', nomeCurto: 'Campeonato Paranaense', prefixo: 'PARANAENSE', logo: '' },
   { id: 'UCL', nome: 'UEFA Champions League', nomeCurto: 'Champions League', prefixo: 'UCL', logo: 'UCL.png' },
   { id: 'UEL', nome: 'UEFA Europa League', nomeCurto: 'Europa League', prefixo: 'UEL', logo: 'UEL.png' },
   { id: 'UECL', nome: 'UEFA Conference League', nomeCurto: 'Conference League', prefixo: 'UECL', logo: 'UECL.png' },

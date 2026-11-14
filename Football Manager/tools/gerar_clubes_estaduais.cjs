@@ -1,5 +1,5 @@
 /*
-CLUBES DOS ESTADUAIS QUE A BASE NAO TINHA (Carioca, Mineiro e Gaucho de 2026): entram na liga oculta do Brasil (`bra_clubes`) com nomes GENERICOS no padrao NOME-UF; o nome,
+CLUBES DOS ESTADUAIS QUE A BASE NAO TINHA (Carioca, Mineiro, Gaucho, Catarinense e Paranaense de 2026): entram na liga oculta do Brasil (`bra_clubes`) com nomes GENERICOS no padrao NOME-UF; o nome,
 a sigla e o estadio reais vao so para o mod. Pedido: *"pode criar os 3. Ve quais disputam este ano e coloca no mod"*.
 
     node tools/gerar_clubes_estaduais.cjs --dry      mostra o que faria
@@ -25,7 +25,14 @@ const CLUBES = [
   ['RS1', 'RS', 'Santa Cruz do Sul', ['#15803d', '#ffffff', 's'], 9000],
   ['RS2', 'RS', 'Capão da Canoa', ['#1e3a8a', '#facc15', 's'], 2000],
   ['RS3', 'RS', 'Santa Maria', ['#c8102e', '#ffffff', 's'], 15000],
-  ['RS4', 'RS', 'Novo Hamburgo', ['#1d4ed8', '#ffffff', 's'], 10000]
+  ['RS4', 'RS', 'Novo Hamburgo', ['#1d4ed8', '#ffffff', 's'], 10000],
+  // Catarinense e Paranaense de 2026
+  ['SC1', 'SC', 'Camboriú', ['#15803d', '#ffffff', 's'], 4000],
+  ['SC2', 'SC', 'Concórdia', ['#15803d', '#ffffff', 's'], 4000],
+  ['SC3', 'SC', 'Brusque', ['#1d4ed8', '#ffffff', 's'], 5000],
+  ['PR1', 'PR', 'Foz do Iguaçu', ['#1d4ed8', '#ffffff', 's'], 4000],
+  ['PR2', 'PR', 'Campo Largo', ['#1e3a8a', '#ffffff', 's'], 2000],
+  ['PR3', 'PR', 'Maringá', ['#111111', '#ffffff', 's'], 3000]
 ];
 // Os nomes genericos (no estilo dos da base: "Jaguar Real-RJ", "Serra Azul Racing-RJ"): um prefixo e uma palavra da natureza do Brasil.
 const PREF = ['Atlético', 'Esporte Clube', 'Real', 'Racing', 'Unidos', 'Nacional', 'Olímpico', 'Associação', 'Recreativo', 'Sociedade Esportiva'];
@@ -70,16 +77,17 @@ const fDados = path.join(MOD, 'local-data', 'CountryData54.json');
 const dados = JSON.parse(fs.readFileSync(fDados, 'utf8'));
 for (const c of dados.clubs) if (antigos.has(Number(c.gameTeamId))) delete c.gameTeamId;
 
-const novos = [], relatorio = [];
+const novos = [], relatorio = [], palUsada = new Set();
 CLUBES.forEach(([chave, uf, cidade, [c1, c2, pat], fan], i) => {
   const r = reais.get(chave);
   if (!r) { console.error('Sem dados reais para ' + chave + ' em ' + fReais); process.exit(1); }
   let nome = null;
   for (let k = 0; k < 500 && !nome; k++) {
-    const h = hash(chave + '|' + k), gen = `${PAL[(h >>> 4) % PAL.length]} ${PREF[(h >>> 12) % PREF.length]}-${uf}`;
+    const h = hash(chave + '|' + k), pal = PAL[(h >>> 4) % PAL.length], gen = `${pal} ${PREF[(h >>> 12) % PREF.length]}-${uf}`;
     const low = gen.toLowerCase();
+    if (k < 400 && palUsada.has(pal)) continue;   // a mesma palavra nao se repete entre os clubes deste script enquanto houver outras
     if (usados.has(low) || nomesReais.has(low.replace(/-[a-z]{2}$/, ''))) continue;
-    usados.add(low); nome = gen;
+    usados.add(low); palUsada.add(pal); nome = gen;
   }
   const id = ID_BASE + i + 1;
   const pal = nome.split(' ')[0];
