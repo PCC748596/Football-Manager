@@ -5,7 +5,7 @@ import { assetUrl } from '../textSim/assetUrl';
 import { useGame } from '../context/GameContext';
 import { COUNTRIES } from '../textSim/dataGenerator';
 import { WorldLeague, buildTable } from '../textSim/world';
-import { Competition, CompMatch, ehLigaFase, FaseVista, NOMES_FASES, fasesDeSerieCD, ligaDoUtilizador, mapaDeClubes, ordemDoGrupoVista, tabelaDoGrupo, teamKey, vencedorDoConfronto } from '../textSim/competitions';
+import { Competition, CompMatch, ehLigaFase, familiaDaCopa, FaseVista, NOMES_FASES, fasesDeSerieCD, ligaDoUtilizador, mapaDeClubes, ordemDoGrupoVista, tabelaDoGrupo, teamKey, vencedorDoConfronto } from '../textSim/competitions';
 import { Fixture, Team, naLigaDoUtilizador } from '../types';
 import { TeamShield } from './TeamShield';
 
@@ -364,10 +364,25 @@ const WorldView: React.FC = () => {
       pais(l.countryId, l.countryName).itens.push({ sel: { tipo: 'LIGA', id: l.leagueId }, titulo: l.leagueName, sub: `${l.teams.length} clubs`, tier: l.tier });
     });
     comps.filter(c => c.id === 'SERIE_C' || c.id === 'SERIE_D' || c.id === 'PAULISTA' || c.id === 'CARIOCA' || c.id === 'MINEIRO' || c.id === 'GAUCHO' || c.id === 'CATARINENSE' || c.id === 'PARANAENSE' || c.id === 'BAIANO' || c.id === 'PERNAMBUCANO' || c.id === 'CEARENSE' || c.id === 'GOIANO' || c.id === 'PARAENSE' || c.id === 'AMAZONENSE' || c.id === 'MARANHENSE' || c.id === 'POTIGUAR').forEach(c => pais('45', 'Brazil').itens.push({ sel: { tipo: 'COPA', id: c.id }, titulo: c.name, sub: `${c.teamKeys.length} clubs${c.champion ? ' · finished' : ''}`, tier: c.id === 'SERIE_C' ? 3 : c.id === 'SERIE_D' ? 4 : 5 }));
+    // As copas nacionais no pais delas: a Copa do Brasil depois das divisoes (antes dos estaduais); a FA Cup e a Carabao na Inglaterra, depois das divisoes.
+    const ing = ligas.find(l => l.leagueId.startsWith('eng_'));
+    comps.forEach(c => {
+      const item: Item = { sel: { tipo: 'COPA', id: c.id }, titulo: c.name, sub: `${c.teamKeys.length} clubs${c.champion ? ' · finished' : ''}`, tier: 0 };
+      if (c.id === 'COPA_BR') pais('45', 'Brazil').itens.push({ ...item, tier: 4.5 });
+      else if (abasInglesas(c.id) && ing) pais(ing.countryId, ing.countryName).itens.push({ ...item, tier: c.id === 'FA_CUP' ? 20 : 21 });
+    });
     const ordem = (COUNTRIES as any[]).map(c => c.id);
     return Array.from(m.values()).sort((x, y) => ordem.indexOf(x.id) - ordem.indexOf(y.id)).map(p => ({ ...p, itens: p.itens.sort((a, b) => a.tier - b.tier) }));
   })();
-  const copasSoltas = comps.filter(c => ehLigaFase(c.id) || !!abasInglesas(c.id) || c.id === 'LIB' || c.id === 'SUL' || c.id === 'COPA_BR');
+  // CONFEDERACOES (o continente do pais na base): as competicoes continentais dela e as associacoes nacionais (os paises) com as competicoes de cada um.
+  const confederacoes = (() => {
+    const contDe = (id: string) => ((COUNTRIES as any[]).find(c => c.id === id)?.continent as string) || 'Other';
+    const out: { id: string; copas: Competition[]; paises: typeof paises }[] = [];
+    const de = (id: string) => { let x = out.find(o => o.id === id); if (!x) { x = { id, copas: [], paises: [] }; out.push(x); } return x; };
+    comps.filter(c => ehLigaFase(c.id) || c.id === 'LIB' || c.id === 'SUL').forEach(c => de(familiaDaCopa(c.id) === 'EUR' ? 'Europe' : 'South America').copas.push(c));
+    paises.forEach(p => de(contDe(p.id)).paises.push(p));
+    return out;
+  })();
 
   return (
     <div className="h-full flex flex-col animate-fade-in min-h-0">
@@ -379,8 +394,21 @@ const WorldView: React.FC = () => {
       </div>
       <div className="flex-1 flex gap-4 min-h-0">
         <div className="w-64 flex-shrink-0 overflow-y-auto custom-scrollbar pr-1 space-y-1">
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-1">{tx('Cups')}</div>
-          {copasSoltas.map(c => {
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-1">{tx('Confederations')}</div>
+          {confederacoes.map(cf => {
+            const ehMeu = (it: Item) => !!meu && ((it.sel.tipo === 'LIGA' && it.sel.id === meu.leagueId) || (it.sel.tipo === 'COPA' && it.sel.id === compDoMeu));
+            const dentro = cf.paises.some(p => p.itens.some(ehMeu))
+              || (!!selecao && (cf.copas.some(c => selecao.tipo === 'COPA' && selecao.id === c.id) || cf.paises.some(p => p.itens.some(it => it.sel.tipo === selecao.tipo && it.sel.id === selecao.id))));
+            const abertoCf = abertos['cf:' + cf.id] ?? dentro;
+            return (
+              <div key={cf.id} className="rounded-xl border-2 border-slate-300 dark:border-slate-600 bg-slate-100/60 dark:bg-slate-900/50 overflow-hidden">
+                <button onClick={() => setAbertos(a => ({ ...a, ['cf:' + cf.id]: !abertoCf }))} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-200/60 dark:hover:bg-slate-800/60">
+                  <span className="flex-1 text-sm font-black uppercase tracking-wide text-slate-800 dark:text-slate-100">{tx(cf.id)}</span>
+                  <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-300"><span className="text-sm font-black">{cf.copas.length + cf.paises.length}</span><span className="text-xl leading-none">{abertoCf ? '▾' : '▸'}</span></span>
+                </button>
+                {abertoCf && <div className="px-1.5 pb-1.5 space-y-1">
+          {cf.copas.length > 0 && <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-1">{tx('Competitions')}</div>}
+          {cf.copas.map(c => {
             const ativo = selecao?.tipo === 'COPA' && selecao.id === c.id;
             return (
               <button key={c.id} onClick={() => setSel({ tipo: 'COPA', id: c.id })}
@@ -393,8 +421,8 @@ const WorldView: React.FC = () => {
               </button>
             );
           })}
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-3">{tx('Countries')}</div>
-          {paises.map(p => {
+          {cf.paises.length > 0 && <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-2">{tx('National Associations')}</div>}
+          {cf.paises.map(p => {
             const meuPais = !!meu && p.itens.some(it => (it.sel.tipo === 'LIGA' && it.sel.id === meu.leagueId) || (it.sel.tipo === 'COPA' && it.sel.id === compDoMeu));
             const temSelecao = !!selecao && p.itens.some(it => it.sel.tipo === selecao.tipo && it.sel.id === selecao.id);
             const aberto = abertos[p.id] ?? (meuPais || temSelecao);
@@ -416,6 +444,10 @@ const WorldView: React.FC = () => {
                       </button>
                     );
                   })}
+                </div>}
+              </div>
+            );
+          })}
                 </div>}
               </div>
             );
