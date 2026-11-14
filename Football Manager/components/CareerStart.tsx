@@ -6,6 +6,7 @@ import ManagerAvatar from './ManagerAvatar';
 import type { ManagerLook } from './ManagerAvatar';
 import { TeamShield } from './TeamShield';
 import { ClubOverviewContent } from './ClubOverviewContent';
+import { assetUrl } from '../textSim/assetUrl';
 import { DIFICULDADES, escolherDificuldade, type Dificuldade } from '../textSim/orcamento';
 
 // Depois do Manage Profile: escolher o clube a mao ou deixar o sistema propor 5 clubes de dificuldades diferentes.
@@ -104,6 +105,14 @@ export const CareerOffers: React.FC<{ managerName: string; managerLook?: Manager
     return out;
   }, [countryId]);
   const [selId, setSelId] = useState('');
+  // Como no World Competitions: confederacoes (o continente do pais na base) > associacoes nacionais (os paises) > competicoes (so as ligas do pais).
+  const [abertos, setAbertos] = useState<Record<string, boolean>>({});
+  const confederacoes = useMemo(() => {
+    const out: { id: string; paises: typeof paises }[] = [];
+    const ordem = COUNTRIES.map(c => (c as any).continent || 'Other').filter((x, i, a) => a.indexOf(x) === i);
+    paises.forEach(c => { const id = (c as any).continent || 'Other'; let x = out.find(o => o.id === id); if (!x) { x = { id, paises: [] }; out.push(x); } x.paises.push(c); });
+    return out.sort((a, b) => ordem.indexOf(a.id) - ordem.indexOf(b.id));
+  }, [paises]);
   const sel = ofertas.find(o => o.team.id === selId) || ofertas[0];
 
   return (
@@ -119,11 +128,41 @@ export const CareerOffers: React.FC<{ managerName: string; managerLook?: Manager
       </div>
       <div className="flex-1 flex gap-6 min-h-0">
         <div className="w-[220px] flex flex-col gap-2 min-h-0">
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">{tx('Country')}</div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
-            {paises.map(c => (
-              <button key={c.id} onClick={() => { setCountryId(c.id); setSelId(''); }} className={`w-full text-left p-3 rounded border-2 font-black uppercase transition-all ${countryId === c.id ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-400'}`}>{c.name}</button>
-            ))}
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">{tx('Confederations')}</div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-1">
+            {confederacoes.map(cf => {
+              const abertoCf = abertos['cf:' + cf.id] ?? cf.paises.some(c => c.id === countryId);
+              return (
+                <div key={cf.id} className="rounded-xl border-2 border-slate-300 dark:border-slate-600 bg-slate-100/60 dark:bg-slate-900/50 overflow-hidden">
+                  <button onClick={() => setAbertos(x => ({ ...x, ['cf:' + cf.id]: !abertoCf }))} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-200/60 dark:hover:bg-slate-800/60">
+                    <span className="flex-1 text-sm font-black uppercase tracking-wide text-slate-800 dark:text-slate-100">{tx(cf.id)}</span>
+                    <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-300"><span className="text-sm font-black">{cf.paises.length}</span><span className="text-xl leading-none">{abertoCf ? '▾' : '▸'}</span></span>
+                  </button>
+                  {abertoCf && <div className="px-1.5 pb-1.5 space-y-1">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 pt-1">{tx('National Associations')}</div>
+                    {cf.paises.map(c => {
+                      const ativo = countryId === c.id;
+                      const ligas = c.leagues.filter(l => !l.hidden).sort((x, y) => x.tier - y.tier);
+                      return (
+                        <div key={c.id} className={`rounded-lg border-2 overflow-hidden ${ativo ? 'border-blue-500' : 'border-slate-200 dark:border-slate-700'} bg-slate-50 dark:bg-slate-800/70`}>
+                          <button onClick={() => { setCountryId(c.id); setSelId(''); }} className={`w-full flex items-center gap-3 px-3 py-2 text-left ${ativo ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}>
+                            <img src={assetUrl(`/Assets/Bandeiras/${c.id}.png`)} alt="" className="w-8 h-[22px] object-cover rounded-sm shadow flex-shrink-0" />
+                            <span className="flex-1 text-xs font-black uppercase leading-tight">{c.name}</span>
+                            <span className="text-sm font-black opacity-70">{ligas.length}</span>
+                          </button>
+                          {ativo && <div className="p-1">
+                            <div className="text-[9px] font-black uppercase tracking-widest text-blue-500 px-2 pt-1.5 pb-0.5">{tx('Competitions')}</div>
+                            {ligas.map(l => (
+                              <div key={l.id} className="px-3 py-1 text-[11px] font-black uppercase leading-tight text-slate-700 dark:text-slate-200">{l.name}</div>
+                            ))}
+                          </div>}
+                        </div>
+                      );
+                    })}
+                  </div>}
+                </div>
+              );
+            })}
           </div>
         </div>
         <div className="flex-1 min-w-0 grid grid-cols-1 xl:grid-cols-5 gap-2 xl:gap-3 min-h-0 content-start overflow-y-auto custom-scrollbar">
