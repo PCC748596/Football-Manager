@@ -572,7 +572,10 @@ const GoalkeeperPose = {
         // O corpo desce o preciso para as maos chegarem a bola com os pes no chao: as PERNAS e os BRACOS sao depois resolvidos por IK (apanharPorIK, player.js).
         altura: -0.38,
         // Distância (m) a que o corpo fica da bola ao apanhar: os braços esticados é que a alcançam.
-        recuoDoCorpo: 0.45,
+        // 0.45 -> 0.60 (relato com imagem: *"coloca os bracos pra tras do corpo"* ao apanhar a bola dentro do gol, e nos laterais, cantos e tiros de meta):
+        // curvado (peito 1.45) o ombro fica 0.49 m a frente dos pes; com o corpo a 0.45 da bola ela ficava ATRAS do ombro e o IK do braco (apanharPorIK)
+        // resolvia-o para tras e para cima — as maos a 0.5 m da bola. A 0.60 a bola fica a frente do ombro e as palmas chegam-lhe com o braco para baixo.
+        recuoDoCorpo: 0.60,
         // Os pes assentam `peLado` m para cada lado do corpo e `peFrente` a frente (metros), com o tornozelo a `alturaTornozelo` do relvado.
         peLado: 0.17, peFrente: 0.05, alturaTornozelo: 0.152,
         // A palma toca a bola: o pulso fica a este afastamento do centro dela, para cada lado (raio da bola 0.11 + o meio da mao).

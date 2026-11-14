@@ -58,7 +58,9 @@ console.log('1 — tiro de meta: o guarda-redes vai ao cone, pega, leva, pousa n
     verifica(r.fases.join('>') === 'ir>pegar>levar>pousar', 'fases: ' + r.fases.join(' > '), 'fases: ' + r.fases.join(' > '));
     verifica(r.fonte === 'cone' && r.cone >= 0 && Math.abs(MultiBola.cones[r.cone].z) > CAMPO_COMP / 2, 'a bola vem do cone atras da baliza', 'fonte: ' + r.fonte + ' cone ' + r.cone);
     verifica(r.sumiu, 'a bola que saiu sumiu', 'a bola que saiu nao sumiu');
-    verifica(r.distPegar !== null && r.distPegar > 0.4 && r.distPegar < 0.65, `agacha-se a frente do cone (${r.distPegar && r.distPegar.toFixed(2)} m)`, 'distancia ao cone: ' + r.distPegar);
+    // O corpo para a `recuoDoCorpo` (+ meio raio do cone) da bola: sao os bracos esticados que a alcancam.
+    const esperadoM = GoalkeeperPose.apanhar.recuoDoCorpo + MultiBolaModel.cone.raio * 0.5;
+    verifica(r.distPegar !== null && Math.abs(r.distPegar - esperadoM) < 0.12, `agacha-se a frente do cone (${r.distPegar && r.distPegar.toFixed(2)} m)`, 'distancia ao cone: ' + r.distPegar);
     verifica(r.yMin < ALTURA_BASE_Y - 0.15, `agacha-se de verdade (desce ${(ALTURA_BASE_Y - r.yMin).toFixed(2)} m)`, 'nao se agachou');
     verifica(r.bolaNaMarca, 'pousou a bola na quina da pequena area', 'a bola nao ficou na marca');
     verifica(r.estadosGR.has('multibola') && r.estadosGR.has('tiro_meta_espera'), 'depois de pousar toma distancia (tiro_meta_espera)', 'estados do GR: ' + [...r.estadosGR].join(','));

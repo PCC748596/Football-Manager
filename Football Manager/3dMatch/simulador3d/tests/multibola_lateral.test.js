@@ -86,7 +86,9 @@ console.log('2 — a bola sai e para la fora: o cobrador vai ao cone, pega, leva
     const r = lateral({ vx: 9 });
     verifica(r.fases.join('>') === 'ir>pegar>levar', 'fases: ' + r.fases.join(' > ') + ' (vai logo ao cone)', 'fases: ' + r.fases.join(' > '));
     verifica(r.sumiu, `a bola que parou la fora sumiu (solta ${r.bolaSoltaAte.toFixed(1)} s)`, 'a bola que saiu nao sumiu');
-    verifica(r.distFinal !== null && r.distFinal > 0.4 && r.distFinal < 0.65, `agachado, fica a frente do cone, ao alcance dos bracos (${r.distFinal && r.distFinal.toFixed(2)} m)`, 'distancia ao cone agachado: ' + r.distFinal);
+    // O corpo para a `recuoDoCorpo` (+ meio raio do cone) da bola: sao os bracos esticados que a alcancam.
+    const esperadoL = GoalkeeperPose.apanhar.recuoDoCorpo + MultiBolaModel.cone.raio * 0.5;
+    verifica(r.distFinal !== null && Math.abs(r.distFinal - esperadoL) < 0.12, `agachado, fica a frente do cone, ao alcance dos bracos (${r.distFinal && r.distFinal.toFixed(2)} m)`, 'distancia ao cone agachado: ' + r.distFinal);
     verifica(r.yMinPegar < ALTURA_BASE_Y - 0.15, `agacha-se de verdade, por cima da pose do frame (desce ${(ALTURA_BASE_Y - r.yMinPegar).toFixed(2)} m)`, 'nao se agachou: y min ' + r.yMinPegar);
     verifica(r.bolaNoConeAoDescer, 'a descer, a bola fica no cone (so sobe com ele)', 'a bola saiu do cone antes de ele a apanhar');
     verifica(!r.teleporte, 'a bola que sai nao teletransporta (segue a fisica)', 'a bola saltou na fase de saida');
