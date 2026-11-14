@@ -15,6 +15,8 @@ do app (sem bronze, prata ou ouro).
                o icone do playing style e a nota media
 */
 
+// O tamanho dos cards dos jogadores no campo (tactics e Match Preview): 0.8 -> 0.68 (pedido: 15% menores).
+export const ESCALA_CARTAO_CAMPO = 0.68;
 export const CARTAO_LARGURA = 118;
 export const CARTAO_ALTURA = 159;
 /** O corte diagonal do canto inferior direito (px de cada lado). */

@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { Player, Position, Team, FORMATIONS, POSITION_ORDER, getEffectiveSkill, getKitDetails, getGKKitDetails } from '../types';
 import { PlayerFace3D } from './PlayerFace3D';
 import { ShirtIcon } from './ShirtIcon';
-import CartaoJogador, { CARTAO_LARGURA, CARTAO_ALTURA, deslocamentoDoCartao, cartoesLigados, rostosLigados, rostosNasListas } from './CartaoJogador';
+import CartaoJogador, { ESCALA_CARTAO_CAMPO, CARTAO_LARGURA, CARTAO_ALTURA, deslocamentoDoCartao, cartoesLigados, rostosLigados, rostosNasListas } from './CartaoJogador';
 import EnergyBar, { energiaDe } from './EnergyBar';
 import { IconePlayStyleSvg } from '../textSim/PlayStyleSvg';
 import { PLAYSTYLE_DA_BASE } from '../textSim/playStylesDatabase';
@@ -129,7 +129,7 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
                 // O CARTAO do jogador (so com os rostos ligados; sem eles, as camisas de sempre): o mesmo do Match Tactics. Do adversario nao se mostram estilo nem moral.
                 if (player && cartoesOn) {
                   return (
-                    <div key={idx} className="absolute flex items-center justify-center z-10" style={{ width: CARTAO_LARGURA, height: CARTAO_ALTURA, left: `${adversario ? 100 - pos.x : pos.x}%`, top: `${adversario ? 100 - pos.y : pos.y}%`, transform: `translate(-50%, calc(-50% + ${deslocamentoDoCartao(team.tactics.formation, pos.label, pos.x) * k * (adversario ? -1 : 1)}px)) scale(${0.8 * k})` }}>
+                    <div key={idx} className="absolute flex items-center justify-center z-10" style={{ width: CARTAO_LARGURA, height: CARTAO_ALTURA, left: `${adversario ? 100 - pos.x : pos.x}%`, top: `${adversario ? 100 - pos.y : pos.y}%`, transform: `translate(-50%, calc(-50% + ${deslocamentoDoCartao(team.tactics.formation, pos.label, pos.x) * k * (adversario ? -1 : 1)}px)) scale(${ESCALA_CARTAO_CAMPO * k})` }}>
                       <CartaoJogador player={player} slotPos={pos.label} overall={getEffectiveSkill(player, pos.label)}
                         rosto={<PlayerFace3D playerId={player.id} team={team} kitIdx={kitIdx} gk={gk} camisa={team.primaryColor} className="w-full h-full" />}
                         estilo={estilosOn ? estiloDe(player) : null} nota={(userTeam?.tactics.mediaNotasOn !== false && mediasDeNotas[player.id] !== undefined) ? mediasDeNotas[player.id].toFixed(1) : null} notaValor={mediasDeNotas[player.id]} foraDePosicao={player.position !== pos.label} />
@@ -137,7 +137,7 @@ const Lado: React.FC<{ team?: Team; titulo: string; players: Player[]; kitIdx: 0
                   );
                 }
                 return (
-                  <div key={idx} className="absolute flex flex-col items-center justify-center w-24 h-24 z-10" style={{ left: `${adversario ? 100 - pos.x : pos.x}%`, top: `${adversario ? 100 - pos.y : pos.y}%`, transform: `translate(-50%, calc(-50% + ${(pos.label === 'GK' ? 20 : 0) * k * (adversario ? -1 : 1)}px)) scale(${0.8 * k})` }}>   {/* o adversario vem do outro lado: o campo rodado 180 graus, com o goleiro em cima */}
+                  <div key={idx} className="absolute flex flex-col items-center justify-center w-24 h-24 z-10" style={{ left: `${adversario ? 100 - pos.x : pos.x}%`, top: `${adversario ? 100 - pos.y : pos.y}%`, transform: `translate(-50%, calc(-50% + ${(pos.label === 'GK' ? 20 : 0) * k * (adversario ? -1 : 1)}px)) scale(${ESCALA_CARTAO_CAMPO * k})` }}>   {/* o adversario vem do outro lado: o campo rodado 180 graus, com o goleiro em cima */}
                     <div className="relative">
                       {!adversario && <div className={`absolute top-1/2 ${player && rostosOn ? '-translate-y-[calc(50%+7px)]' : '-translate-y-1/2'} -left-[35px] bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded-md shadow-sm z-10`}>
                         <span className="text-[17px] font-black text-slate-500 dark:text-slate-400 uppercase leading-none block">{pos.label}</span>

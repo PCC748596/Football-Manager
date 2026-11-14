@@ -19,7 +19,7 @@ interface FieldPosition {
 
 import { ShirtIcon } from './ShirtIcon';
 import { PlayerFace3D } from './PlayerFace3D';
-import CartaoJogador, { CARTAO_LARGURA, CARTAO_ALTURA, deslocamentoDoCartao, cartoesLigados, rostosLigados, rostosNasListas } from './CartaoJogador';
+import CartaoJogador, { ESCALA_CARTAO_CAMPO, CARTAO_LARGURA, CARTAO_ALTURA, deslocamentoDoCartao, cartoesLigados, rostosLigados, rostosNasListas } from './CartaoJogador';
 import { setoresPadraoDaFormacao } from '../3dMatch/simulador3dCliente';
 import ZonePositionsModal from './ZonePositionsModal';
 import { campo3d } from '../textSim/atributos3d';
@@ -702,7 +702,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         if (player && cartoesLigados(userTeam.tactics)) {
                             const est = userTeam.tactics.playingStylesOn !== false ? estiloDoJogador(player) : null;
                             return (
-                                <div key={idx} onDragOver={(e) => e.preventDefault()} onClick={() => tocarNoCampo(idx)} onDrop={(e) => handleDropToLineup(e.dataTransfer.getData("playerId"), idx)} className="absolute flex flex-col items-center justify-center transition-all duration-500 z-10" style={{ width: CARTAO_LARGURA, height: CARTAO_ALTURA, ...(postos && postos[idx] ? emCampo(postos[idx].x, postos[idx].z) : { left: `${pos.x}%`, top: `${pos.y}%` }), transform: `translate(-50%, calc(-50% + ${deslocamentoDoCartao(userTeam.tactics.formation, pos.label, pos.x)}px)) scale(0.8)`, opacity: isRed ? 0.2 : 1 }}>
+                                <div key={idx} onDragOver={(e) => e.preventDefault()} onClick={() => tocarNoCampo(idx)} onDrop={(e) => handleDropToLineup(e.dataTransfer.getData("playerId"), idx)} className="absolute flex flex-col items-center justify-center transition-all duration-500 z-10" style={{ width: CARTAO_LARGURA, height: CARTAO_ALTURA, ...(postos && postos[idx] ? emCampo(postos[idx].x, postos[idx].z) : { left: `${pos.x}%`, top: `${pos.y}%` }), transform: `translate(-50%, calc(-50% + ${deslocamentoDoCartao(userTeam.tactics.formation, pos.label, pos.x)}px)) scale(${ESCALA_CARTAO_CAMPO})`, opacity: isRed ? 0.2 : 1 }}>
                                     <div draggable onDragStart={(e) => e.dataTransfer.setData("playerId", player.id)} className="cursor-grab active:cursor-grabbing">
                                         <CartaoJogador
                                             player={player} slotPos={pos.label} overall={isRed ? 0 : getEffectiveSkill(player, pos.label)}
@@ -721,7 +721,7 @@ const TacticsView: React.FC<TacticsViewProps> = ({ setView }) => {
                         }
 
                         return (
-                            <div key={idx} onDragOver={(e) => e.preventDefault()} onClick={() => tocarNoCampo(idx)} onDrop={(e) => handleDropToLineup(e.dataTransfer.getData("playerId"), idx)} className={`absolute flex flex-col items-center justify-center w-24 h-24 transition-all duration-500 z-10 ${player && selecionado === player.id ? 'ring-4 ring-blue-400 rounded-xl bg-blue-400/20' : ''}`} style={{ ...(postos && postos[idx] ? emCampo(postos[idx].x, postos[idx].z) : { left: `${pos.x}%`, top: `${pos.y}%` }), transform: `translate(-50%, calc(-50% + ${pos.label === 'GK' ? 20 : 0}px)) scale(0.8)`, opacity: isRed ? 0.2 : 1 }}>
+                            <div key={idx} onDragOver={(e) => e.preventDefault()} onClick={() => tocarNoCampo(idx)} onDrop={(e) => handleDropToLineup(e.dataTransfer.getData("playerId"), idx)} className={`absolute flex flex-col items-center justify-center w-24 h-24 transition-all duration-500 z-10 ${player && selecionado === player.id ? 'ring-4 ring-blue-400 rounded-xl bg-blue-400/20' : ''}`} style={{ ...(postos && postos[idx] ? emCampo(postos[idx].x, postos[idx].z) : { left: `${pos.x}%`, top: `${pos.y}%` }), transform: `translate(-50%, calc(-50% + ${pos.label === 'GK' ? 20 : 0}px)) scale(${ESCALA_CARTAO_CAMPO})`, opacity: isRed ? 0.2 : 1 }}>
                                 <div className="relative">
                                     <div className={`absolute top-1/2 ${player && rostosLigados(userTeam.tactics) ? '-translate-y-[calc(50%+7px)]' : '-translate-y-1/2'} -left-[35px] bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded-md shadow-sm z-10`}>
                                         <span className="text-[17px] font-black text-slate-500 dark:text-slate-400 uppercase leading-none block">{pos.label}</span>
