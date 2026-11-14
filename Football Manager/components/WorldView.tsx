@@ -363,7 +363,7 @@ const WorldView: React.FC = () => {
       jaTem.add(l.leagueId);
       pais(l.countryId, l.countryName).itens.push({ sel: { tipo: 'LIGA', id: l.leagueId }, titulo: l.leagueName, sub: `${l.teams.length} clubs`, tier: l.tier });
     });
-    comps.filter(c => c.id === 'SERIE_C' || c.id === 'SERIE_D' || c.id === 'PAULISTA').forEach(c => pais('45', 'Brazil').itens.push({ sel: { tipo: 'COPA', id: c.id }, titulo: c.name, sub: `${c.teamKeys.length} clubs${c.champion ? ' · finished' : ''}`, tier: c.id === 'SERIE_C' ? 3 : c.id === 'SERIE_D' ? 4 : 5 }));
+    comps.filter(c => c.id === 'SERIE_C' || c.id === 'SERIE_D' || c.id === 'PAULISTA' || c.id === 'CARIOCA' || c.id === 'MINEIRO' || c.id === 'GAUCHO').forEach(c => pais('45', 'Brazil').itens.push({ sel: { tipo: 'COPA', id: c.id }, titulo: c.name, sub: `${c.teamKeys.length} clubs${c.champion ? ' · finished' : ''}`, tier: c.id === 'SERIE_C' ? 3 : c.id === 'SERIE_D' ? 4 : 5 }));
     const ordem = (COUNTRIES as any[]).map(c => c.id);
     return Array.from(m.values()).sort((x, y) => ordem.indexOf(x.id) - ordem.indexOf(y.id)).map(p => ({ ...p, itens: p.itens.sort((a, b) => a.tier - b.tier) }));
   })();

@@ -31,7 +31,9 @@ export interface CompMatch {
 }
 
 export interface Competition {
-  id: 'LIB' | 'SUL' | 'COPA_BR' | 'SERIE_C' | 'SERIE_D' | 'UCL' | 'UEL' | 'UECL' | 'CARABAO' | 'FA_CUP' | 'PAULISTA';
+  id: 'LIB' | 'SUL' | 'COPA_BR' | 'SERIE_C' | 'SERIE_D' | 'UCL' | 'UEL' | 'UECL' | 'CARABAO' | 'FA_CUP' | 'PAULISTA' | 'CARIOCA' | 'MINEIRO' | 'GAUCHO';
+  /** Fase de grupos CRUZADA (Carioca, Mineiro, Gaucho): cada clube joga contra os dos OUTROS grupos; a tabela de cada grupo conta esses jogos. */
+  cruzado?: boolean;
   name: string;
   teamKeys: string[];
   groups?: Record<string, string[]>;
@@ -180,6 +182,38 @@ export const ehDoPaulista = (teamId: string | number): boolean => POTES_PAULISTA
 const RODADAS_PAULISTA = ['2026-01-15', '2026-01-22', '2026-01-29', '2026-02-05', '2026-02-12', '2026-02-19', '2026-02-26', '2026-03-05'];
 const FASES_PAULISTA = [{ nome: 'QF', datas: ['2026-03-08'] }, { nome: 'SF', datas: ['2026-03-12'] }, { nome: 'F', datas: ['2026-03-15', '2026-03-21'] }];
 const INICIO_PAULISTA = '2026-01-02';
+
+/*
+OS ESTADUAIS DE GRUPOS CRUZADOS (2026): na 1.a fase cada clube joga UMA vez contra cada clube dos OUTROS grupos (nenhum jogo dentro do proprio grupo) e a tabela e por grupo.
+Pedido: *"tem como colocar os campeonatos Carioca, Mineiro e Gaucho?"* (formatos e participantes de 2026 pesquisados nos regulamentos e na imprensa).
+  CARIOCA  2 grupos de 6, 6 rodadas; os 4 primeiros de cada grupo as quartas (A1xA4, A2xA3, B1xB4, B2xB3, jogo unico em casa do melhor); meias em ida e volta por sorteio; final em
+           jogo unico.
+  MINEIRO  3 grupos de 4, 8 rodadas; os 3 lideres e o melhor 2.o as meias (o melhor lider contra o 2.o; os outros dois lideres entre si), ida e volta; final em jogo unico.
+  GAUCHO   2 grupos de 6, 6 rodadas; os 4 primeiros de cada grupo as quartas (jogo unico; cruzamento A1xB4, B2xA3, A2xB3, B1xA4 — o regulamento nao o diz, fica este); meias e
+           final em ida e volta.
+Os clubes pelo ID da base (o mesmo com e sem o mod; os que a base nao tinha foram criados por tools/gerar_clubes_estaduais.cjs na liga oculta bra_clubes). Sem rebaixamento.
+*/
+interface EstadualCruzado { id: 'CARIOCA' | 'MINEIRO' | 'GAUCHO'; grupos: Record<string, string[]>; rodadas: string[]; inicio: string; fases: { nome: string; datas: string[] }[] }
+const ESTADUAIS_CRUZADOS: EstadualCruzado[] = [
+  { id: 'CARIOCA', inicio: '2026-01-02',
+    grupos: { A: ['450150', '450193', '451019', '452001', '451098', '451099'], B: ['450129', '451095', '451125', '450148', '451097', '451096'] },
+    rodadas: ['2026-01-11', '2026-01-15', '2026-01-18', '2026-01-25', '2026-02-01', '2026-02-08'],
+    fases: [{ nome: 'QF', datas: ['2026-02-14'] }, { nome: 'SF', datas: ['2026-02-22', '2026-03-01'] }, { nome: 'F', datas: ['2026-03-08'] }] },
+  { id: 'MINEIRO', inicio: '2026-01-02',
+    grupos: { A: ['450123', '451090', '451093', '452002'], B: ['450119', '451089', '451091', '451092'], C: ['450143', '451002', '452003', '452004'] },
+    rodadas: ['2026-01-10', '2026-01-14', '2026-01-17', '2026-01-21', '2026-01-25', '2026-01-31', '2026-02-07', '2026-02-14'],
+    fases: [{ nome: 'SF', datas: ['2026-02-21', '2026-02-28'] }, { nome: 'F', datas: ['2026-03-07'] }] },
+  { id: 'GAUCHO', inicio: '2026-01-02',
+    grupos: { A: ['450158', '450162', '452005', '451111', '451112', '451110'], B: ['450156', '451020', '452006', '452007', '452008', '451009'] },
+    rodadas: ['2026-01-10', '2026-01-14', '2026-01-17', '2026-01-24', '2026-01-31', '2026-02-07'],
+    fases: [{ nome: 'QF', datas: ['2026-02-11'] }, { nome: 'SF', datas: ['2026-02-15', '2026-02-22'] }, { nome: 'F', datas: ['2026-03-01', '2026-03-08'] }] }
+];
+const estadualCruzado = (id: string): EstadualCruzado | undefined => ESTADUAIS_CRUZADOS.find(e => e.id === id);
+/** O estadual de grupos cruzados que o clube (pelo id do Team) joga, se algum. */
+export const estadualDoClube = (teamId: string | number): EstadualCruzado['id'] | null =>
+  ESTADUAIS_CRUZADOS.find(e => Object.values(e.grupos).some(g => g.includes(String(teamId))))?.id || null;
+/** O clube joga um campeonato estadual (Paulista ou um dos cruzados): comeca a temporada em janeiro. */
+export const ehDeEstadual = (teamId: string | number): boolean => ehDoPaulista(teamId) || !!estadualDoClube(teamId);
 
 // Quem entra em cada fase da Copa do Brasil alem dos vencedores da anterior (por nome do clube na base).
 const COPA_CAMPEOES = new Set(['450175', '450173', '451010', '451007']);   // pelo ID da base (teamID)   // campeoes de competicoes de 2025: entram na 3.a fase
@@ -599,6 +633,32 @@ export const criarPaulistao = (clubes: { key: string; team: Team }[], oc: Ocupac
   return { id: 'PAULISTA', name: nomeComp('PAULISTA'), teamKeys: keys, groups: { L: keys }, matches, ano };
 };
 
+/** Um estadual de grupos cruzados (ESTADUAIS_CRUZADOS): `porId` = id do clube na base -> chave `liga|id`. Os mandos equilibrados (cada clube com metade em casa, +-1). */
+export const criarEstadualCruzado = (cfg: EstadualCruzado, porId: Map<string, { key: string; team: Team }>, oc: Ocupacao = new Map(), ano: number = ANO_BASE): Competition => {
+  const grupos: Record<string, string[]> = {};
+  Object.entries(cfg.grupos).forEach(([g, ids]) => { grupos[g] = ids.map(id => porId.get(id)!.key); });
+  const grupoDe = new Map<string, string>(); Object.entries(grupos).forEach(([g, ks]) => ks.forEach(k => grupoDe.set(k, g)));
+  const todos = Object.values(grupos).flat();
+  const casa = new Map<string, number>(todos.map(k => [k, 0]));
+  const jogos: [string, string][] = [];
+  for (let i = 0; i < todos.length; i++) for (let j = i + 1; j < todos.length; j++) {
+    const a = todos[i], b = todos[j];
+    if (grupoDe.get(a) === grupoDe.get(b)) continue;
+    const aCasa = casa.get(a)! < casa.get(b)! || (casa.get(a) === casa.get(b) && hash(a + b) % 2 === 0);
+    const [h, v] = aCasa ? [a, b] : [b, a];
+    casa.set(h, casa.get(h)! + 1); jogos.push([h, v]);
+  }
+  const rodada = repartirEmRodadas(jogos, cfg.rodadas.length) || jogos.map((_, i) => i % cfg.rodadas.length);
+  const contagem: number[] = cfg.rodadas.map(() => 0);
+  const matches = jogos.map(([h, v], i) => {
+    const r = rodada[i];
+    return jogo(`${cfg.id}-X-${r + 1}-${contagem[r]++}`, 'G' + (r + 1), agendarJogo(oc, noAno(cfg.rodadas[r], ano), [h, v], noAno(cfg.inicio, ano)), h, v, { group: grupoDe.get(h) });
+  });
+  const keys = todos.slice().sort((x, y) => porId.get(idDaChave(y))!.team.strength - porId.get(idDaChave(x))!.team.strength);
+  return { id: cfg.id, name: nomeComp(cfg.id), teamKeys: keys, groups: grupos, matches, ano, cruzado: true };
+};
+const idDaChave = (k: string) => k.slice(k.indexOf('|') + 1);
+
 type Clube = { key: string; team: Team };
 /** Os pares [melhor, pior] por cabeca de serie (1.o contra o ultimo, 2.o contra o penultimo...). `seed`: posicao do clube na ordem de cabecas de serie (menor = melhor). */
 const parearPorSerie = (ks: string[], seed: (k: string) => number): [string, string][] => {
@@ -762,7 +822,7 @@ export const vencedorDoConfronto = (jogos: CompMatch[], teams: Map<string, Team>
   return ultimo.pens[0] > ultimo.pens[1] ? ultimo.homeKey : ultimo.awayKey;
 };
 
-const faseDoComp = (c: Competition) => fasesNoAno(c.id === 'UCL' ? FASES_UCL : (c.id === 'UEL' || c.id === 'UECL') ? FASES_UEL : c.id === 'CARABAO' ? FASES_CARABAO : c.id === 'FA_CUP' ? FASES_FA : c.id === 'LIB' ? FASES_LIB : c.id === 'SUL' ? FASES_SUL : c.id === 'SERIE_C' ? FASES_C : c.id === 'SERIE_D' ? FASES_D : c.id === 'PAULISTA' ? FASES_PAULISTA : FASES_COPA, c.ano);
+const faseDoComp = (c: Competition) => fasesNoAno(c.id === 'UCL' ? FASES_UCL : (c.id === 'UEL' || c.id === 'UECL') ? FASES_UEL : c.id === 'CARABAO' ? FASES_CARABAO : c.id === 'FA_CUP' ? FASES_FA : c.id === 'LIB' ? FASES_LIB : c.id === 'SUL' ? FASES_SUL : c.id === 'SERIE_C' ? FASES_C : c.id === 'SERIE_D' ? FASES_D : c.id === 'PAULISTA' ? FASES_PAULISTA : estadualCruzado(c.id) ? estadualCruzado(c.id)!.fases : FASES_COPA, c.ano);
 
 /** Cria os jogos de uma fase a partir de pares [melhor, pior] (ida em casa do pior, volta em casa do melhor; jogo unico: em casa o 1.o). */
 const jogosDaFase = (c: Competition, fase: { nome: string; datas: string[] }, pares: [string, string][], oc: Ocupacao, minimoExtra: string = noAno(INICIO_DA_EPOCA, c.ano)): CompMatch[] => {
@@ -795,12 +855,14 @@ const jogosDaFase = (c: Competition, fase: { nome: string; datas: string[] }, pa
 const ordemDoGrupo = (c: Competition, g: string, confrontoDireto = false): string[] => {
   const pts: Record<string, { p: number; v: number; sg: number; gf: number }> = {};
   (c.groups![g] || []).forEach(k => { pts[k] = { p: 0, v: 0, sg: 0, gf: 0 }; });
-  const jogos = c.matches.filter(m => m.group === g && m.played);
-  jogos.forEach(m => {
-    const h = pts[m.homeKey], a = pts[m.awayKey], hs = m.homeScore || 0, as = m.awayScore || 0;
-    h.gf += hs; a.gf += as; h.sg += hs - as; a.sg += as - hs;
-    if (hs > as) { h.p += 3; h.v++; } else if (as > hs) { a.p += 3; a.v++; } else { h.p++; a.p++; }
-  });
+  // Grupos cruzados (c.cruzado): contam todos os jogos da 1.a fase de quem esta no grupo (os adversarios sao de outros grupos).
+  const jogos = c.matches.filter(m => (c.cruzado ? !!m.group : m.group === g) && m.played);
+  const conta = (s: { p: number; v: number; sg: number; gf: number } | undefined, meus: number, deles: number) => {
+    if (!s) return;
+    s.gf += meus; s.sg += meus - deles;
+    if (meus > deles) { s.p += 3; s.v++; } else if (meus === deles) s.p++;
+  };
+  jogos.forEach(m => { const hs = m.homeScore || 0, as = m.awayScore || 0; conta(pts[m.homeKey], hs, as); conta(pts[m.awayKey], as, hs); });
   const dir = (k: string, grupo: string[]) => jogos.reduce((s, m) => {
     if (!grupo.includes(m.homeKey) || !grupo.includes(m.awayKey) || (m.homeKey !== k && m.awayKey !== k)) return s;
     const meus = m.homeKey === k ? m.homeScore || 0 : m.awayScore || 0, deles = m.homeKey === k ? m.awayScore || 0 : m.homeScore || 0;
@@ -827,10 +889,11 @@ export const classificacaoDeCeD = (comps: Competition[]): Record<string, string[
 const estatDoGrupo = (c: Competition, g: string) => {
   const ord = ordemDoGrupo(c, g, true), pts: Record<string, { p: number; sg: number; gf: number }> = {};
   ord.forEach(k => { pts[k] = { p: 0, sg: 0, gf: 0 }; });
-  c.matches.filter(m => m.group === g && m.played).forEach(m => {
-    const h = pts[m.homeKey], a = pts[m.awayKey], hs = m.homeScore || 0, as = m.awayScore || 0;
-    h.gf += hs; a.gf += as; h.sg += hs - as; a.sg += as - hs;
-    if (hs > as) h.p += 3; else if (as > hs) a.p += 3; else { h.p++; a.p++; }
+  const conta = (x: { p: number; sg: number; gf: number } | undefined, meus: number, deles: number) => { if (!x) return; x.gf += meus; x.sg += meus - deles; x.p += meus > deles ? 3 : meus === deles ? 1 : 0; };
+  // Grupos cruzados (c.cruzado): os jogos de quem esta no grupo contra os dos outros grupos.
+  c.matches.filter(m => (c.cruzado ? !!m.group : m.group === g) && m.played).forEach(m => {
+    const hs = m.homeScore || 0, as = m.awayScore || 0;
+    conta(pts[m.homeKey], hs, as); conta(pts[m.awayKey], as, hs);
   });
   return { ord, pts };
 };
@@ -906,7 +969,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
       for (let i = 0; i < o.length / 2; i++) p.push([o[i], o[o.length - 1 - i]]);
       return p;
     };
-    const sequencia = MATA_MATA_INGLES[c.id] ? fasesInglesas(c) : c.id === 'COPA_BR' ? ['P1', 'P2', 'P3', 'P4', 'P5', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_D' ? ['R64', 'R32', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_C' ? ['F'] : c.id === 'PAULISTA' ? ['QF', 'SF', 'F'] : ['R16', 'QF', 'SF', 'F'];
+    const sequencia = MATA_MATA_INGLES[c.id] ? fasesInglesas(c) : c.id === 'COPA_BR' ? ['P1', 'P2', 'P3', 'P4', 'P5', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_D' ? ['R64', 'R32', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_C' ? ['F'] : c.id === 'PAULISTA' ? ['QF', 'SF', 'F'] : estadualCruzado(c.id) ? estadualCruzado(c.id)!.fases.map(f => f.nome) : ['R16', 'QF', 'SF', 'F'];
     const fase = (nome: string) => fases.find(f => f.nome === nome)!;
     const seed = (k: string) => c.teamKeys.indexOf(k);
 
@@ -962,6 +1025,29 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
       progressou = true;
     } else if (MATA_MATA_INGLES[c.id]) {
       // (sem fase a sortear: o campeao e tratado abaixo)
+    } else if (c.cruzado && estadualCruzado(c.id) && !temFase(estadualCruzado(c.id)!.fases[0].nome)) {
+      // Fim da 1.a fase dos estaduais cruzados (ESTADUAIS_CRUZADOS): os classificados de cada grupo e o quadro do mata-mata.
+      if (c.matches.filter(m => m.group).every(m => m.played)) {
+        copia();
+        const est: Record<string, { ord: string[]; pts: Record<string, { p: number; sg: number; gf: number }> }> = {};
+        Object.keys(c.groups!).forEach(g => { est[g] = estatDoGrupo(c, g); });
+        const ptsDe = (k: string) => { for (const g of Object.keys(est)) if (est[g].pts[k]) return est[g].pts[k]; return { p: 0, sg: 0, gf: 0 }; };
+        const melhor = (x: string, y: string) => ptsDe(y).p - ptsDe(x).p || ptsDe(y).sg - ptsDe(x).sg || ptsDe(y).gf - ptsDe(x).gf || hash(x) - hash(y);
+        let pares: [string, string][] = [], classificados: string[] = [];
+        if (c.id === 'MINEIRO') {
+          const lideres = Object.keys(est).map(g => est[g].ord[0]).sort(melhor);
+          const segundo = Object.keys(est).map(g => est[g].ord[1]).sort(melhor)[0];
+          pares = [[lideres[0], segundo], [lideres[1], lideres[2]]];
+          classificados = [...lideres, segundo];
+        } else {
+          const A = est.A.ord, B = est.B.ord;
+          pares = c.id === 'CARIOCA' ? [[A[0], A[3]], [A[1], A[2]], [B[0], B[3]], [B[1], B[2]]] : [[A[0], B[3]], [B[1], A[2]], [A[1], B[2]], [B[0], A[3]]];
+          classificados = [0, 1, 2, 3].flatMap(i => [A[i], B[i]].sort(melhor));
+        }
+        c.teamKeys = classificados.concat(c.teamKeys.filter(k => !classificados.includes(k)));
+        c.matches.push(...jogosDaFase(c, fase(estadualCruzado(c.id)!.fases[0].nome), pares, oc, somarDias(hoje, 1)));
+        progressou = true;
+      }
     } else if (c.id === 'PAULISTA' && !temFase('QF')) {
       // Fim da fase classificatoria: os 8 primeiros (pontos, vitorias, saldo, golos, confronto direto, sorteio) jogam as quartas: 1x8, 2x7, 3x6, 4x5, em casa do melhor.
       if (c.matches.filter(m => m.group).every(m => m.played)) {
@@ -1024,7 +1110,9 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         const venc = vencedoresDe(a)!;
         // Copa do Brasil: os vencedores mais quem entra nesta fase, pareados por cabeca de serie; nas copas de grupos: o quadro fixo (1.o com 2.o...).
         const consecutivos = (ks: string[]) => { const p: [string, string][] = []; for (let k = 0; k < ks.length; k += 2) p.push(seed(ks[k]) <= seed(ks[k + 1]) ? [ks[k], ks[k + 1]] : [ks[k + 1], ks[k]]); return p; };
-        const par = c.id === 'SERIE_D' ? consecutivos(venc) : c.id === 'PAULISTA' ? parear(venc, seed) : c.id === 'COPA_BR' ? parear(venc.concat((c.entradas && c.entradas[b]) || []), seed) : (() => { const p: [string, string][] = []; for (let k = 0; k < venc.length; k += 2) p.push([venc[k], venc[k + 1]]); return p; })();
+        // Carioca: meias por sorteio (o melhor colocado faz a volta em casa).
+        const sorteio = (ks: string[]) => { const e = embaralhar(ks); const p: [string, string][] = []; for (let k = 0; k + 1 < e.length; k += 2) p.push(seed(e[k]) <= seed(e[k + 1]) ? [e[k], e[k + 1]] : [e[k + 1], e[k]]); return p; };
+        const par = (c.id === 'CARIOCA' && b === 'SF') ? sorteio(venc) : c.id === 'SERIE_D' ? consecutivos(venc) : c.id === 'PAULISTA' ? parear(venc, seed) : c.id === 'COPA_BR' ? parear(venc.concat((c.entradas && c.entradas[b]) || []), seed) : (() => { const p: [string, string][] = []; for (let k = 0; k < venc.length; k += 2) p.push([venc[k], venc[k + 1]]); return p; })();
         c.matches.push(...jogosDaFase(c, fase(b), par, oc, somarDias(hoje, 1)));
         // Serie D: sobem SO OS 4 SEMIFINALISTAS (sem playoff de acesso).
         if (c.id === 'SERIE_D' && b === 'SF') {
@@ -1053,10 +1141,15 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
 export const tabelaDoGrupo = (c: Competition, grupo: string, teams: Map<string, Team>) => {
   const rows = (c.groups?.[grupo] || []).map(k => ({ key: k, team: teams.get(k), played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, points: 0 }));
   const by = new Map(rows.map(r => [r.key, r]));
-  c.matches.filter(m => m.group === grupo && m.played).forEach(m => {
-    const h = by.get(m.homeKey)!, a = by.get(m.awayKey)!, hs = m.homeScore || 0, as = m.awayScore || 0;
-    h.played++; a.played++; h.gf += hs; h.ga += as; a.gf += as; a.ga += hs;
-    if (hs > as) { h.won++; h.points += 3; a.lost++; } else if (as > hs) { a.won++; a.points += 3; h.lost++; } else { h.drawn++; a.drawn++; h.points++; a.points++; }
+  // Grupos cruzados: os jogos de quem esta no grupo contra os dos outros grupos.
+  const conta = (r: typeof rows[number] | undefined, meus: number, deles: number) => {
+    if (!r) return;
+    r.played++; r.gf += meus; r.ga += deles;
+    if (meus > deles) { r.won++; r.points += 3; } else if (meus < deles) r.lost++; else { r.drawn++; r.points++; }
+  };
+  c.matches.filter(m => (c.cruzado ? !!m.group : m.group === grupo) && m.played).forEach(m => {
+    const hs = m.homeScore || 0, as = m.awayScore || 0;
+    conta(by.get(m.homeKey), hs, as); conta(by.get(m.awayKey), as, hs);
   });
   return rows.sort((x, y) => y.points - x.points || y.won - x.won || (y.gf - y.ga) - (x.gf - x.ga) || y.gf - x.gf);
 };
@@ -1145,6 +1238,12 @@ export const criarCopas = (ligas: WorldLeague[], anterior?: Record<string, strin
   const lib = criarLibertadores(q.lib, oc, ano), sul = criarSulAmericana(q.sul, oc, ano), copa = criarCopaDoBrasil(q.copa, oc, ano);
   const out: Competition[] = [lib, sul, copa];
   if (q.paulista.length === 16) out.push(criarPaulistao(q.paulista, oc, ano));
+  // Os estaduais de grupos cruzados (Carioca, Mineiro, Gaucho): so com todos os clubes na base.
+  {
+    const porIdBr = new Map<string, { key: string; team: Team }>();
+    ligas.filter(l => l.countryId === '45').forEach(l => l.teams.forEach(t => { if (!porIdBr.has(String(t.id))) porIdBr.set(String(t.id), { key: teamKey(l.leagueId, t.id), team: t }); }));
+    for (const e of ESTADUAIS_CRUZADOS) if (Object.values(e.grupos).flat().every(id => porIdBr.has(id))) out.push(criarEstadualCruzado(e, porIdBr, oc, ano));
+  }
   if (q.ucl.length >= 32) out.push(criarChampions(q.ucl, oc, ano));
   if (q.uel.length >= 32) out.push(criarChampions(q.uel, oc, ano, 'UEL'));
   if (q.uecl.length >= 32) out.push(criarChampions(q.uecl, oc, ano, 'UECL'));
@@ -1179,6 +1278,7 @@ export const competicoesDoClube = (team: Team, leagueId: string, leagueTeams: Te
   const out: { id: string; nome: string }[] = [{ id: 'LIGA', nome: liga.name }];
   if (pais.id === '65' && liga.tier >= 1 && liga.tier <= 4) { out.push({ id: 'CARABAO', nome: nomeComp('CARABAO') }); out.push({ id: 'FA_CUP', nome: nomeComp('FA_CUP') }); }
   if (ehDoPaulista(team.id)) out.push({ id: 'PAULISTA', nome: nomeComp('PAULISTA') });
+  { const est = estadualDoClube(team.id); if (est) out.push({ id: est, nome: nomeComp(est) }); }
   if (((pais.copaTeamIds || []) as number[]).map(String).includes(String(team.id))) out.push({ id: 'COPA_BR', nome: nomeComp('COPA_BR') });
   const ordem = classificacaoAnoAnterior(leagueId, leagueTeams, (liga.teamIds || []).map(String));
   const pos = ordem.findIndex(t => t.id === team.id);
@@ -1239,6 +1339,8 @@ export const zonasDoGrupo = (compId: string, grupo: string, n: number): (ZonaDaT
   const poe = (de: number, ate: number, z: ZonaDaTabela) => { for (let i = Math.max(0, de); i < Math.min(n, ate); i++) out[i] = z; };
   const avanca: ZonaDaTabela = { id: 'ACESSO', nome: 'Qualified', cor: '#22c55e' };
   if (compId === 'PAULISTA') poe(0, 8, { ...avanca, nome: 'Quarter-finals' });
+  else if (compId === 'CARIOCA' || compId === 'GAUCHO') poe(0, 4, { ...avanca, nome: 'Quarter-finals' });
+  else if (compId === 'MINEIRO') { poe(0, 1, { ...avanca, nome: 'Semi-finals' }); poe(1, 2, { id: 'UEL', nome: 'Best runner-up: semi-finals', cor: '#eab308' }); }
   else if (compId === 'UCL' || compId === 'UEL' || compId === 'UECL') {
     poe(0, 8, { ...avanca, nome: 'Round of 16' });
     poe(8, 24, { id: 'UEL', nome: 'Play-off', cor: '#eab308' });
@@ -1335,6 +1437,14 @@ export const prepararCopas = (a: EntradaCopas): SaidaCopas | null => {
   if (base && !base.some(c => c.id === 'PAULISTA') && a.date <= noAno('2026-03-21', anoDaData) && todas.some(l => l.leagueId === 'bra_serie_a')) {
     const nova = criarDa('SUL').filter(c => c.id === 'PAULISTA');
     if (nova.length) base = [...base, ...nova];
+  }
+  // Um save de antes dos estaduais cruzados: cria os que faltam (se ainda nao passou da final).
+  if (base) for (const e of ESTADUAIS_CRUZADOS) {
+    const final = e.fases[e.fases.length - 1].datas.slice(-1)[0];
+    if (!base.some(c => c.id === e.id) && a.date <= noAno(final, anoDaData)) {
+      const nova = criarDa('SUL').filter(c => c.id === e.id);
+      if (nova.length) base = [...base, ...nova];
+    }
   }
   // Um save de antes da Champions League: cria so ela.
   if (base && !base.some(c => c.id === 'UCL') && todas.some(l => l.leagueId === 'esp_laliga')) {
@@ -1448,7 +1558,7 @@ export const fasesDeSerieCD = (c: Competition, ordemVista: OrdemVista): FaseVist
 
 /** A classificacao actual de um grupo para as abas (com criterios da Serie C/D e confronto direto). */
 export const ordemDoGrupoVista = (c: Competition, g: string): { ord: string[]; completo: boolean; iniciado: boolean } => {
-  const todos = c.matches.filter(m => m.group === g);
+  const todos = c.matches.filter(m => (c.cruzado ? !!m.group : m.group === g));
   if (!c.groups || !c.groups[g]) return { ord: [], completo: false, iniciado: false };
   return { ord: ordemDoGrupo(c, g, g !== 'L'), completo: todos.length > 0 && todos.every(m => m.played), iniciado: todos.some(m => m.played) };
 };

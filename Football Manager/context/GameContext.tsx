@@ -5,7 +5,7 @@ import { generateLeagueData, generateFixtures, COUNTRIES, faixaDoClube, nivelDaB
 import { gruposDaSerieD, arquivarCampeoes, HistoricoDeCopas, competicoesPorClube } from '../textSim/competitions';
 import { espacarCalendario, comDatasDeCopa } from '../textSim/calendario';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, buildTable } from '../textSim/world';
-import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disputaPendente, prepararCopas, ligaIdDoClube, teamKey, ehDoPaulista, noAno, ANO_BASE, FamiliaDeCopa, temporadaDaFamilia, inicioDaTemporadaDaFamilia } from '../textSim/competitions';
+import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disputaPendente, prepararCopas, ligaIdDoClube, teamKey, ehDoPaulista, ehDeEstadual, noAno, ANO_BASE, FamiliaDeCopa, temporadaDaFamilia, inicioDaTemporadaDaFamilia } from '../textSim/competitions';
 import { calcularVirada, aplicarDivisoes, divisoesAtuais, paisDaLiga, Divisoes, familiaDaLiga } from '../textSim/virada';
 import { BaseState, garantirBase, processarBase, definirNivelDaBase, promoverJovem, dispensarJovem as dispensarJovemDaBase } from '../textSim/youth';
 import { novoContrato, processarContratos, renovarContrato, estadoDoContrato, garantirClausulas } from '../textSim/contracts';
@@ -870,7 +870,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initTeams.forEach(team => {
       if (team.id === teamId) return; // Player schedules their own via UI
 
-      (ehDoPaulista(team.id) ? preseasonPaulista : preseasonOutros).forEach(date => {
+      (ehDeEstadual(team.id) ? preseasonPaulista : preseasonOutros).forEach(date => {   // os clubes dos estaduais (Paulista, Carioca, Mineiro, Gaucho) comecam em janeiro
         const hasMatch = [...initFixtures, ...cpuFriendlies].some(f => f.date === date && (f.homeTeamId === team.id || f.awayTeamId === team.id));
         if (hasMatch) return;
 
