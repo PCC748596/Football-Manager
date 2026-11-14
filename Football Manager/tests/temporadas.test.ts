@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createWorld, WorldLeague } from '../textSim/world';
-import { criarCopas, ocupacaoDe, noAno, Competition } from '../textSim/competitions';
+import { criarCopas, ocupacaoDe, noAno, Competition, familiaDaCopa } from '../textSim/competitions';
 import { generateLeagueData, generateFixtures } from '../textSim/dataGenerator';
 
 const mundo = (ano: number) => {
@@ -28,7 +28,9 @@ test('as copas de 2027 nascem em 2027, com o mesmo numero de jogos e o mesmo dia
     const ref = c26.find(x => x.id === c.id) as Competition;
     assert.equal(c.ano, 2027, c.id);
     assert.equal(c.matches.length, ref.matches.length, c.id);
-    assert.ok(c.matches.every(m => m.date >= '2027-01-01' && m.date <= '2027-12-31'), `${c.id}: todas as datas em 2027`);
+    // As sul-americanas no ano (2027); as europeias na temporada 2027/28, de 1/6/2027 a 31/5/2028 (pedido: cada copa na temporada da sua regiao).
+    if (familiaDaCopa(c.id) === 'EUR') assert.ok(c.matches.every(m => m.date >= '2027-06-01' && m.date <= '2028-05-31'), `${c.id}: todas as datas na temporada 2027/28`);
+    else assert.ok(c.matches.every(m => m.date >= '2027-01-01' && m.date <= '2027-12-31'), `${c.id}: todas as datas em 2027`);
   }
   const p27 = c27.find(c => c.id === 'PAULISTA') as Competition;
   assert.ok(p27.matches.every(m => m.date >= '2027-01-02' && m.date <= '2027-03-10'), 'o Paulistao de 2027 joga-se no inicio de 2027');

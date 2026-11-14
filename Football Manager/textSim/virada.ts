@@ -6,10 +6,10 @@ Aqui vive so a parte dos DADOS DAS DIVISOES: a classificacao final de cada liga,
 aqui: ja avancam com a data (textSim/contracts.ts e textSim/youth.ts).
 */
 import type { Fixture, Team } from '../types';
-import { COUNTRIES } from './dataGenerator';
+import { COUNTRIES, ehLigaEuropeia } from './dataGenerator';
 import { buildTable, WorldLeague } from './world';
 import { planearAcessosEDescensos, PlanoAcessos, PaisPlano } from './promocoes';
-import { Competition, classificacaoDeCeD } from './competitions';
+import { Competition, classificacaoDeCeD, FamiliaDeCopa } from './competitions';
 
 /** As divisoes em vigor: ligaId -> clubes e paisId -> reserva (clubes sem liga). So existe quando ja houve pelo menos uma virada. */
 export interface Divisoes { ligas: Record<string, number[]>; reservas: Record<string, number[]>; }
@@ -34,12 +34,20 @@ export const aplicarDivisoes = (d: Divisoes) => {
   }
 };
 
+/*
+A TEMPORADA DE CADA LIGA (a mesma divisao das copas, FamiliaDeCopa): 'EUR' as ligas da temporada europeia (de um ano para o outro, viram a 1/6), 'SUL' as outras (do mesmo
+ano, viram a 1/1). Cada regiao vira na sua data: os acessos e descensos de uma nao mexem nas ligas da outra a meio da temporada.
+*/
+export const familiaDaLiga = (ligaId: string): FamiliaDeCopa => (ehLigaEuropeia(ligaId) ? 'EUR' : 'SUL');
+
 export const paisDaLiga = (ligaId: string): string | undefined => paises().find(c => c.leagues.some((l: any) => l.id === ligaId))?.id;
 
 export interface EntradaDaVirada {
   /** Os clubes da liga do utilizador (so os dela) e os jogos dessa liga. */
   teams: Team[]; fixtures: Fixture[]; userLeagueId: string; userTeamId: string;
   world: WorldLeague[]; comps: Competition[] | null;
+  /** So as ligas desta temporada (a regiao que vira agora); sem ela, todas (comportamento antigo). */
+  familia?: FamiliaDeCopa;
 }
 export interface ResultadoDaVirada { plano: PlanoAcessos; divisoes: Divisoes; ligaDoUtilizador: string; }
 
@@ -52,6 +60,7 @@ export const classificacaoFinal = (e: EntradaDaVirada): Record<string, string[]>
   const ligaTeamIds = new Map<string, string[]>();
   paises().forEach(c => c.leagues.forEach((l: any) => ligaTeamIds.set(l.id, (l.teamIds || []).map(String))));
   const aceitar = (ligaId: string, ids: string[]) => {
+    if (e.familia && familiaDaLiga(ligaId) !== e.familia) return;   // a outra regiao esta a meio da temporada
     const esperados = ligaTeamIds.get(ligaId);
     if (!esperados || ids.length !== esperados.length || !ids.every(i => esperados.includes(i))) return;   // (os ingleses sao renumerados, por exemplo: ficam fora ate haver mapa)
     out[ligaId] = ids;
@@ -60,7 +69,7 @@ export const classificacaoFinal = (e: EntradaDaVirada): Record<string, string[]>
   for (const l of e.world) if (!l.oculta && l.leagueId !== e.userLeagueId) aceitar(l.leagueId, ordemDaTabela(l.teams, l.fixtures));
   // Serie C e D: so quando a competicao ja tem os promovidos (a da liga do proprio utilizador sai da tabela dela)
   const cd = classificacaoDeCeD(e.comps || []);
-  for (const id of Object.keys(cd)) if (!out[id]) out[id] = cd[id];
+  for (const id of Object.keys(cd)) if (!out[id] && (!e.familia || familiaDaLiga(id) === e.familia)) out[id] = cd[id];
   return out;
 };
 

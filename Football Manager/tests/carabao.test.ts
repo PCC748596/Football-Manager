@@ -48,8 +48,9 @@ test('Carabao: 2.a rodada com 24 jogos; campeao da Carabao ganha vaga na Europa 
   const base = criarCopas(w, undefined, ocupacaoDe(w, []), null, 'bra_serie_a');
   let c = base.find(x => x.id === 'CARABAO') as Competition;
   const mapa = mapaDeClubes(w), oc = ocupacaoDe(w, base);
-  let dia = '2026-04-01';
-  for (let i = 0; i < 120; i++) { c = avancarCompeticao(c, mapa, dia, { ocupado: oc }); dia = somarDias(dia, 1); }
+  // A Carabao segue a temporada europeia (R1 a meio de agosto, R2 duas semanas depois): de 1/7 ate setembro.
+  let dia = '2026-07-01';
+  for (let i = 0; i < 90; i++) { c = avancarCompeticao(c, mapa, dia, { ocupado: oc }); dia = somarDias(dia, 1); }
   assert.equal(c.matches.filter(m => m.stage === 'R2').length, 24);
   const uelBase = (base.find(x => x.id === 'UEL') as Competition).teamKeys;
   const eng = w.find(l => l.leagueId === 'eng_prem')!;

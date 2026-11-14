@@ -66,7 +66,8 @@ export const createWorld = (excludeLeagueId: string | undefined, ate: string, re
       const { teams, players } = generateLeagueData(c.id, lg.id);
       if (lg.hidden || lg.worldOnly) { leagues.push({ countryId: c.id, countryName: c.name, leagueId: lg.id, leagueName: lg.name, tier: lg.tier, relegated: 0, teams, fixtures: [], players, oculta: true }); continue; }
       const fixtures = generateFixtures(teams, lg.id, ano, temporadaEuropa).map(f => {
-        const r = results && results[f.id];
+        // So jogos ate `ate`: os ids das rodadas nao levam o ano, e o resultado de uma temporada anterior nunca pode marcar como jogado um jogo que ainda nao chegou.
+        const r = results && f.date <= ate && results[f.id];
         return r ? { ...f, homeScore: r[0], awayScore: r[1], played: true } : f;
       });
       leagues.push({ countryId: c.id, countryName: c.name, leagueId: lg.id, leagueName: lg.name, tier: lg.tier, relegated: lg.relegated || 0, teams, fixtures, players });

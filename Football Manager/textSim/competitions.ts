@@ -90,10 +90,15 @@ export const VAGAS_UCL: Record<string, number> = { '65': 5, '66': 5, '67': 4, '6
 // Vagas por pais, depois das da Champions, pela classificacao do ano anterior; o campeao da Carabao Cup fica com uma vaga na Europa League (se ja estiver na Champions a vaga desce na tabela).
 export const VAGAS_UEL: Record<string, number> = { '65': 3, '66': 4, '67': 3, '68': 3, '69': 3, '70': 2, '80': 1, '81': 3, '82': 2, '83': 2, '84': 1, '85': 2, '86': 1, '87': 2, '88': 2, '89': 2 };
 export const VAGAS_UECL: Record<string, number> = { '65': 3, '66': 3, '67': 3, '68': 3, '69': 2, '70': 1, '80': 2, '81': 2, '82': 1, '83': 2, '84': 3, '85': 2, '86': 3, '87': 2, '88': 2, '89': 2 };
-// A temporada europeia do jogo vira a 1/6 e os jogos so comecam a partir de 1/7: a fase de liga da Champions (e Europa/Conference, +1 dia) joga-se em 8 terças a partir de 7/7.
-const GRUPOS_UCL = ['2026-07-07', '2026-07-14', '2026-07-21', '2026-07-28', '2026-08-04', '2026-08-11', '2026-08-18', '2026-08-25'];
-const FASES_UCL = [{ nome: 'PO', datas: ['2026-09-01', '2026-09-08'] }, { nome: 'R16', datas: ['2026-09-30', '2026-10-07'] }, { nome: 'QF', datas: ['2026-10-28', '2026-11-04'] },
-  { nome: 'SF', datas: ['2026-11-18', '2026-11-25'] }, { nome: 'F', datas: ['2026-12-12'] }];
+/*
+AS COPAS EUROPEIAS SEGUEM A TEMPORADA EUROPEIA, DE UM ANO PARA O OUTRO (pedido: *"as copas acabam de acordo com as temporadas: a temporada Brasil/America do Sul e no mesmo
+ano; a temporada Europa e demais e de um ano para o outro"*). Antes acabavam todas ate 28/12 (a virada de 1/1 recriava todas as copas), e a Champions inteira cabia em julho a
+dezembro, sem datas para os jogos. Agora (temporada nominal 2026/27, `ano` = o ano em que comeca): fase de liga em 8 tercas de setembro a janeiro, playoff em fevereiro,
+oitavas em marco, quartas em abril, meias de abril a maio e final no ultimo sabado de maio — o calendario real 2025/26. Europa e Conference: um dia depois.
+*/
+const GRUPOS_UCL = ['2026-09-15', '2026-09-29', '2026-10-20', '2026-11-03', '2026-11-24', '2026-12-08', '2027-01-19', '2027-01-26'];
+const FASES_UCL = [{ nome: 'PO', datas: ['2027-02-16', '2027-02-23'] }, { nome: 'R16', datas: ['2027-03-09', '2027-03-16'] }, { nome: 'QF', datas: ['2027-04-06', '2027-04-13'] },
+  { nome: 'SF', datas: ['2027-04-27', '2027-05-04'] }, { nome: 'F', datas: ['2027-05-29'] }];
 
 // Datas de UEL/UECL: as da Champions mais um dia.
 // Libertadores e Sul-Americana 2026 (os 32 clubes e os 8 grupos REAIS; nomes na base: "UCV FC" e Universidad Central). Valem na 1.a temporada, enquanto nenhuma liga sul-americana tem a classificacao do ano anterior
@@ -112,9 +117,9 @@ export const ehLigaFase = (id: string): boolean => id === 'UCL' || id === 'UEL' 
 
 // CARABAO CUP (EFL Cup, Inglaterra): ver `criarCarabao`. Estadio neutro da final (campo avulso, nao e um clube da base).
 export const NEUTRAL_VENUES = { WEMBLEY: { id: 'neutral_wembley', name: 'Wembley Stadium', city: 'London', country: '65', capacity: 90000 } } as const;
-// Datas nominais de 2026 (terças, final ao domingo), no calendario do jogo (a temporada inglesa do jogo comeca a 1/7). Mesmos intervalos do calendario real 2025/26 (R1 meados de agosto ... final 22/03).
-const FASES_CARABAO = [{ nome: 'R1', datas: ['2026-07-07'] }, { nome: 'R2', datas: ['2026-07-21'] }, { nome: 'R3', datas: ['2026-08-04'] }, { nome: 'R4', datas: ['2026-08-18'] },   // so a partir de 1/7 (a temporada europeia comeca nessa data)
-  { nome: 'QF', datas: ['2026-09-01'] }, { nome: 'SF', datas: ['2026-09-22', '2026-10-20'] }, { nome: 'F', datas: ['2026-11-29'] }];
+// Datas nominais da temporada 2026/27 (tercas, final ao domingo): as do calendario real 2025/26 (R1 meados de agosto ... meias em janeiro/fevereiro, final em marco), de um ano para o outro.
+const FASES_CARABAO = [{ nome: 'R1', datas: ['2026-08-11'] }, { nome: 'R2', datas: ['2026-08-25'] }, { nome: 'R3', datas: ['2026-09-22'] }, { nome: 'R4', datas: ['2026-10-27'] },
+  { nome: 'QF', datas: ['2026-12-15'] }, { nome: 'SF', datas: ['2027-01-12', '2027-02-02'] }, { nome: 'F', datas: ['2027-03-21'] }];
 
 // Datas (temporada 2024). Libertadores nas terças, Sul-Americana nas quartas e Copa do Brasil em outras semanas, para ninguém jogar duas vezes no mesmo dia.
 const GRUPOS_LIB = ['2026-04-07', '2026-04-21', '2026-05-05', '2026-05-19', '2026-06-02', '2026-06-16'];
@@ -287,9 +292,8 @@ const marcar = (oc: Ocupacao, keys: string[], d: string) => keys.forEach(k => { 
  * A data de um jogo: a nominal se os DOIS clubes estiverem livres nesse dia e nos 2 dias de cada lado (no minimo 2 dias de descanso entre jogos); senao a mais proxima (+1, -1, +2, -2...) que esteja. Se nao houver,
  * aceita um dia sem jogo (sem folga). Nunca antes de `minimo`. Marca o dia nos dois clubes.
  */
-export const agendarJogo = (oc: Ocupacao, nominal: string, keys: string[], minimo: string): string => {
-  // As copas acabam no ano da temporada (a virada de 1/1 reiniciava-as): nenhum jogo depois de 28/12 do ano da data nominal.
-  const limite = nominal.slice(0, 4) + '-12-28';
+// `limite`: o ultimo dia da temporada da copa (fimDasCopas: 28/12 nas sul-americanas, 31/5 do ano seguinte nas europeias); sem ele, 28/12 do ano da data nominal.
+export const agendarJogo = (oc: Ocupacao, nominal: string, keys: string[], minimo: string, limite: string = nominal.slice(0, 4) + '-12-28'): string => {
   const livre = (d: string, folga: number) => d >= minimo && d <= limite && keys.every(k => { const s = oc.get(k); if (!s) return true; for (let i = -folga; i <= folga; i++) if (s.has(somarDias(d, i))) return false; return true; });
   const deslocamentos: number[] = [0]; for (let i = 1; i <= 150; i++) deslocamentos.push(i, -i);   // procura ate 150 dias para cada lado (as datas nominais das copas sao so uma referencia: esticam-se ate caber o descanso): com 2 dias livres entre jogos (JOGO-LIVRE-LIVRE-JOGO) as datas nominais podem andar bastante
   let escolhida: string | null = null;
@@ -306,8 +310,7 @@ export const agendarJogo = (oc: Ocupacao, nominal: string, keys: string[], minim
  * IDA E VOLTA (pedido): a ida numa semana e a volta na SEMANA SEGUINTE (7 dias depois, com 1-2 dias de folga para cada lado se for preciso), com 2 dias de descanso para os dois clubes em cada jogo; so depois
  * ha distancia para a fase seguinte. Procura o PAR de datas: a ida perto da nominal (ate 150 dias para cada lado) e a volta a 7 dias dela. Devolve [ida, volta] e marca os dois dias.
  */
-export const agendarIdaEVolta = (oc: Ocupacao, nominal: string, keys: string[], minimo: string, nominalVolta?: string): [string, string] => {
-  const limite = nominal.slice(0, 4) + '-12-28';   // as copas acabam no ano da temporada
+export const agendarIdaEVolta = (oc: Ocupacao, nominal: string, keys: string[], minimo: string, nominalVolta?: string, limite: string = nominal.slice(0, 4) + '-12-28'): [string, string] => {
   const livre = (d: string, folga: number) => d >= minimo && d <= limite && keys.every(k => { const s = oc.get(k); if (!s) return true; for (let i = -folga; i <= folga; i++) if (s.has(somarDias(d, i))) return false; return true; });
   const deslocamentos: number[] = [0]; for (let i = 1; i <= 150; i++) deslocamentos.push(i, -i);
   // A volta na semana seguinte: 7 dias depois (ou o intervalo nominal, se for de 5 a 9 dias, como na final do Paulista: 15 e 21/3), ou 1-2 dias a menos/mais.
@@ -340,6 +343,24 @@ const INICIO_EUROPA = '2026-07-01';
 /** As datas nominais abaixo sao da temporada de 2026. Noutros anos desloca-se um multiplo de 52 semanas (364 dias): o dia da semana de cada jornada mantem-se. */
 export const ANO_BASE = 2026;
 export const noAno = (d: string, ano: number = ANO_BASE): string => (ano === ANO_BASE ? d : somarDias(d, 364 * (ano - ANO_BASE)));
+/*
+AS DUAS TEMPORADAS DAS COPAS: 'SUL' (Brasil e America do Sul: de janeiro a dezembro do mesmo ano) e 'EUR' (as europeias: de 1/6 a 31/5 do ano seguinte; `ano` = o ano em que
+comeca). Cada familia renova-se na sua virada (prepararCopas `renovar`), independente da do utilizador.
+*/
+export type FamiliaDeCopa = 'SUL' | 'EUR';
+const COPAS_EUROPEIAS = new Set<string>(['UCL', 'UEL', 'UECL', 'CARABAO']);
+export const familiaDaCopa = (id: string): FamiliaDeCopa => (COPAS_EUROPEIAS.has(id) ? 'EUR' : 'SUL');
+/** A temporada (o ano em que comecou) da familia na data: 'SUL' o ano da data; 'EUR' o ano se ja passou de 1/6, senao o anterior. */
+export const temporadaDaFamilia = (f: FamiliaDeCopa, data: string): number => {
+  const a = Number(data.slice(0, 4)) || ANO_BASE;
+  return f === 'EUR' ? (data.slice(5) >= '06-01' ? a : a - 1) : a;
+};
+/** O primeiro dia da temporada `ano` da familia (a virada dela). */
+export const inicioDaTemporadaDaFamilia = (f: FamiliaDeCopa, ano: number): string => (f === 'EUR' ? `${ano}-06-01` : `${ano}-01-01`);
+/** O ultimo dia em que uma copa da familia pode ter jogos: 28/12 do ano (SUL) ou 31/5 do ano seguinte (EUR). */
+export const fimDasCopas = (f: FamiliaDeCopa, ano: number): string => (f === 'EUR' ? `${ano + 1}-05-31` : `${ano}-12-28`);
+const limiteDaCopa = (c: Competition): string => fimDasCopas(familiaDaCopa(c.id), c.ano ?? ANO_BASE);
+
 const fasesNoAno = (fs: { nome: string; datas: string[] }[], ano?: number) => (ano === undefined || ano === ANO_BASE ? fs : fs.map(f => ({ ...f, datas: f.datas.map(d => noAno(d, ano)) })));
 
 const jogosDeGrupo = (prefixo: string, grupos: Record<string, string[]>, datas: string[], oc: Ocupacao, ano: number = ANO_BASE): CompMatch[] => {
@@ -426,7 +447,7 @@ export const criarChampions = (ucl: { key: string; team: Team; countryId: string
     const [h, v] = jogos[i];
     const ant = [ultimoJogo.get(h), ultimoJogo.get(v)].filter(Boolean) as string[];
     const minimo = ant.length ? [noAno(INICIO_EUROPA, ano), somarDias(ant.reduce((m, x) => (x > m ? x : m), ''), 3)].reduce((m, x) => (x > m ? x : m)) : noAno(INICIO_EUROPA, ano);
-    dataDe[i] = agendarJogo(oc, noAno(GRUPOS[dia[i]], ano), [h, v], minimo);
+    dataDe[i] = agendarJogo(oc, noAno(GRUPOS[dia[i]], ano), [h, v], minimo, fimDasCopas('EUR', ano));
     ultimoJogo.set(h, dataDe[i]); ultimoJogo.set(v, dataDe[i]);
   });
   const matches = jogos.map(([h, v], i) => jogo(`${id}-L-${dia[i] + 1}-${i}`, 'G' + (dia[i] + 1), dataDe[i], h, v, { group: 'L' }));
@@ -688,10 +709,10 @@ const jogosDaFase = (c: Competition, fase: { nome: string; datas: string[] }, pa
       // Jogo unico da Copa do Brasil: o pior cabeca de serie joga em casa (a final, em campo neutro, fica com o melhor como "casa").
       // Carabao Cup: o sorteio ja definiu o mandante (o 1.o do par); a final e em Wembley (campo neutro).
       const [casa, fora] = (c.id === 'COPA_BR' && fase.nome !== 'F') ? [pior, melhor] : [melhor, pior];
-      out.push(jogo(`${c.id}-${tie}`, fase.nome, agendarJogo(oc, fase.datas[0], [melhor, pior], minimo), casa, fora, (c.id === 'CARABAO' && fase.nome === 'F') ? { tie, venue: NEUTRAL_VENUES.WEMBLEY.name } : { tie }));
+      out.push(jogo(`${c.id}-${tie}`, fase.nome, agendarJogo(oc, fase.datas[0], [melhor, pior], minimo, limiteDaCopa(c)), casa, fora, (c.id === 'CARABAO' && fase.nome === 'F') ? { tie, venue: NEUTRAL_VENUES.WEMBLEY.name } : { tie }));
     }
     else {
-      const [d1, d2] = agendarIdaEVolta(oc, fase.datas[0], [melhor, pior], minimo, fase.datas[1]);   // a ida numa semana e a volta na seguinte
+      const [d1, d2] = agendarIdaEVolta(oc, fase.datas[0], [melhor, pior], minimo, fase.datas[1], limiteDaCopa(c));   // a ida numa semana e a volta na seguinte
       out.push(jogo(`${c.id}-${tie}-1`, fase.nome, d1, pior, melhor, { tie, leg: 1 }));
       out.push(jogo(`${c.id}-${tie}-2`, fase.nome, d2, melhor, pior, { tie, leg: 2 }));
     }
@@ -1197,7 +1218,8 @@ export const arquivarCampeoes = (h: HistoricoDeCopas, comps: Competition[] | nul
 export const campeaoAnterior = (h: HistoricoDeCopas | undefined, compId: string, ano: number): string | undefined =>
   ((h && h[compId]) || []).filter(r => r.ano < ano).sort((a, b) => b.ano - a.ano)[0]?.campeao;
 
-export interface EntradaCopas { world: WorldLeague[]; userTeamId: string; teams: Team[]; players: import('../types').Player[]; fixtures: import('../types').Fixture[]; date: string; comps?: Competition[] | null; historico?: HistoricoDeCopas; }
+// `renovar`: as familias cuja temporada virou (a virada do utilizador ou a da outra regiao): as copas delas sao recriadas para a temporada nova; as outras continuam.
+export interface EntradaCopas { world: WorldLeague[]; userTeamId: string; teams: Team[]; players: import('../types').Player[]; fixtures: import('../types').Fixture[]; date: string; comps?: Competition[] | null; historico?: HistoricoDeCopas; renovar?: FamiliaDeCopa[]; }
 export interface SaidaCopas { comps: Competition[]; mudouComps: boolean; fixtures: import('../types').Fixture[]; teams: Team[]; players: import('../types').Player[]; }
 
 /**
@@ -1215,34 +1237,40 @@ export const prepararCopas = (a: EntradaCopas): SaidaCopas | null => {
   // As ligas de formato proprio (C, D) estao sempre no mundo com TODOS os clubes: a do utilizador so entra por si se o mundo nao a tiver.
   const todas = a.world.some(l => l.leagueId === minha.leagueId) ? a.world.slice() : [minha, ...a.world];
   const uk = teamKey(minha.leagueId, user.id);
-  const anoDaData = Number(a.date.slice(0, 4)) || ANO_BASE;   // as copas novas nascem no ano da data de hoje
-  const hist: HistoricoCopas = { carabao: campeaoAnterior(a.historico, 'CARABAO', anoDaData) };   // o campeao da Carabao do ano anterior vai a Europa League
+  // As copas novas nascem na temporada da FAMILIA delas (temporadaDaFamilia): as sul-americanas no ano da data, as europeias na temporada que comecou a 1/6.
+  const temp: Record<FamiliaDeCopa, number> = { SUL: temporadaDaFamilia('SUL', a.date), EUR: temporadaDaFamilia('EUR', a.date) };
+  const anoDaData = temp.SUL;
+  const histDe = (ano: number): HistoricoCopas => ({ carabao: campeaoAnterior(a.historico, 'CARABAO', ano) });   // o campeao da Carabao da temporada anterior vai a Europa League
   let base = a.comps ? a.comps.map(c => sincronizarResultados(c, a.fixtures)) : null;
+  // A VIRADA DE UMA FAMILIA (`renovar`): as copas dela saem e nascem as da temporada nova; as da outra familia continuam a meio.
+  if (base && a.renovar && a.renovar.length) base = base.filter(c => !a.renovar!.includes(familiaDaCopa(c.id)));
   let oc = ocupacaoDe([...todas, minha], base || []);
+  const criarDa = (f: FamiliaDeCopa): Competition[] => criarCopas(todas, undefined, oc, uk, minha.leagueId, temp[f], histDe(temp[f])).filter(c => familiaDaCopa(c.id) === f);
+  if (base && a.renovar && a.renovar.length) for (const f of a.renovar) base = [...base, ...criarDa(f)];
   // Um save de antes das Series C e D: cria so as que faltam.
   if (base && !base.some(c => c.id === 'SERIE_C') && todas.some(l => l.leagueId === 'bra_serie_c')) {
-    const novas = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData, hist).filter(c => !base!.some(b => b.id === c.id));
+    const novas = criarDa('SUL').filter(c => !base!.some(b => b.id === c.id));
     if (novas.length) base = [...base, ...novas];
   }
   // Um save de antes do Campeonato Paulista: cria so ele (se ainda nao passou da final).
   if (base && !base.some(c => c.id === 'PAULISTA') && a.date <= noAno('2026-03-21', anoDaData) && todas.some(l => l.leagueId === 'bra_serie_a')) {
-    const nova = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData, hist).filter(c => c.id === 'PAULISTA');
+    const nova = criarDa('SUL').filter(c => c.id === 'PAULISTA');
     if (nova.length) base = [...base, ...nova];
   }
   // Um save de antes da Champions League: cria so ela.
   if (base && !base.some(c => c.id === 'UCL') && todas.some(l => l.leagueId === 'esp_laliga')) {
-    const nova = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData, hist).filter(c => c.id === 'UCL');
+    const nova = criarDa('EUR').filter(c => c.id === 'UCL');
     if (nova.length) base = [...base, ...nova];
   }
   // Um save de antes da Europa League, da Conference e da Carabao Cup: cria so as que faltam (se a fase de liga ainda nao comecou / a Carabao ainda nao passou da final).
   if (base) {
     const faltam = (id: Competition['id']) => !base!.some(c => c.id === id);
     if (faltam('UEL') || faltam('UECL') || faltam('CARABAO')) {
-      const novas = criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData, hist).filter(c => (c.id === 'UEL' || c.id === 'UECL' || c.id === 'CARABAO') && faltam(c.id));
+      const novas = criarDa('EUR').filter(c => (c.id === 'UEL' || c.id === 'UECL' || c.id === 'CARABAO') && faltam(c.id));
       if (novas.length) base = [...base, ...novas];
     }
   }
-  let cs = base || criarCopas(todas, undefined, oc, uk, minha.leagueId, anoDaData, hist);
+  let cs = base || [...criarDa('SUL'), ...criarDa('EUR')];
   const mapa = mapaDeClubes(todas);
   // Serie C / D com o utilizador: a 1.a fase (C) ou o grupo (D) e a liga do jogo; quando acaba, a classificacao dela alimenta a competicao.
   const ligaAcabou = minha.fixtures.length > 0 && minha.fixtures.every(f => f.played);
