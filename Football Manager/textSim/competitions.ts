@@ -31,7 +31,7 @@ export interface CompMatch {
 }
 
 export interface Competition {
-  id: 'LIB' | 'SUL' | 'COPA_BR' | 'SERIE_C' | 'SERIE_D' | 'UCL' | 'UEL' | 'UECL' | 'CARABAO' | 'FA_CUP' | 'PAULISTA' | 'CARIOCA' | 'MINEIRO' | 'GAUCHO' | 'CATARINENSE' | 'PARANAENSE' | 'BAIANO' | 'PERNAMBUCANO' | 'CEARENSE' | 'GOIANO';
+  id: 'LIB' | 'SUL' | 'COPA_BR' | 'SERIE_C' | 'SERIE_D' | 'UCL' | 'UEL' | 'UECL' | 'CARABAO' | 'FA_CUP' | 'PAULISTA' | 'CARIOCA' | 'MINEIRO' | 'GAUCHO' | 'CATARINENSE' | 'PARANAENSE' | 'BAIANO' | 'PERNAMBUCANO' | 'CEARENSE' | 'GOIANO' | 'PARAENSE' | 'AMAZONENSE' | 'MARANHENSE' | 'POTIGUAR';
   /** Fase de grupos CRUZADA (Carioca, Mineiro, Gaucho): cada clube joga contra os dos OUTROS grupos; a tabela de cada grupo conta esses jogos. */
   cruzado?: boolean;
   name: string;
@@ -200,9 +200,13 @@ E os de outro formato na 1.a fase (`formato`):
                 o de 3x6; previa, meias e final em ida e volta.
   CEARENSE      'intra': 2 grupos de 5, turno unico DENTRO do grupo (4 jogos, 5 rodadas com folga); os 4 primeiros de cada grupo as quartas cruzadas (A1xB4, B2xA3, A2xB3,
                 B1xA4); quartas, meias e final em ida e volta. As fontes so dizem a 1.a fase (o grupo de cada clube sai dos jogos dela); o mata-mata e suposto.
+  PARAENSE      2 grupos de 6 cruzados (6 rodadas); os 8 primeiros da classificacao GERAL as quartas (1x8, 4x5, 2x7, 3x6), como o GOIANO; tudo em ida e volta.
+  MARANHENSE e AMAZONENSE  'liga': 8 clubes em turno unico (7 rodadas); os 4 primeiros as meias (1x4, 2x3) e a final, em ida e volta. Do Amazonense de 2026 as
+                fontes nao dizem a formula: fica a do Maranhense.
+  POTIGUAR      'liga': 8 clubes em turno unico; o resto como o PERNAMBUCANO (o 1.o e o 2.o nas meias, fase previa 3x6 e 4x5), em ida e volta.
 Os clubes pelo ID da base (o mesmo com e sem o mod; os que a base nao tinha foram criados por tools/gerar_clubes_estaduais.cjs na liga oculta bra_clubes). Sem rebaixamento.
 */
-interface EstadualCruzado { id: 'CARIOCA' | 'MINEIRO' | 'GAUCHO' | 'CATARINENSE' | 'PARANAENSE' | 'BAIANO' | 'PERNAMBUCANO' | 'CEARENSE' | 'GOIANO'; formato?: 'cruzado' | 'intra' | 'liga'; grupos: Record<string, string[]>; rodadas: string[]; inicio: string; fases: { nome: string; datas: string[] }[] }
+interface EstadualCruzado { id: 'CARIOCA' | 'MINEIRO' | 'GAUCHO' | 'CATARINENSE' | 'PARANAENSE' | 'BAIANO' | 'PERNAMBUCANO' | 'CEARENSE' | 'GOIANO' | 'PARAENSE' | 'AMAZONENSE' | 'MARANHENSE' | 'POTIGUAR'; formato?: 'cruzado' | 'intra' | 'liga'; grupos: Record<string, string[]>; rodadas: string[]; inicio: string; fases: { nome: string; datas: string[] }[] }
 const ESTADUAIS_CRUZADOS: EstadualCruzado[] = [
   { id: 'CARIOCA', inicio: '2026-01-02',
     grupos: { A: ['450150', '450193', '451019', '452001', '451098', '451099'], B: ['450129', '451095', '451125', '450148', '451097', '451096'] },
@@ -239,7 +243,23 @@ const ESTADUAIS_CRUZADOS: EstadualCruzado[] = [
   { id: 'CEARENSE', inicio: '2026-01-02', formato: 'intra',
     grupos: { A: ['451048', '451046', '452023', '452021', '450151'], B: ['452022', '451047', '451049', '450135', '451013'] },
     rodadas: ['2026-01-06', '2026-01-10', '2026-01-14', '2026-01-18', '2026-01-22'],
-    fases: [{ nome: 'QF', datas: ['2026-01-31', '2026-02-07'] }, { nome: 'SF', datas: ['2026-02-14', '2026-02-21'] }, { nome: 'F', datas: ['2026-02-28', '2026-03-08'] }] }
+    fases: [{ nome: 'QF', datas: ['2026-01-31', '2026-02-07'] }, { nome: 'SF', datas: ['2026-02-14', '2026-02-21'] }, { nome: 'F', datas: ['2026-02-28', '2026-03-08'] }] },
+  { id: 'PARAENSE', inicio: '2026-01-02',
+    grupos: { A: ['451001', '452031', '452028', '451030', '452029', '452030'], B: ['450175', '452027', '451123', '451124', '452032', '451029'] },
+    rodadas: ['2026-01-24', '2026-01-28', '2026-01-31', '2026-02-04', '2026-02-07', '2026-02-11'],
+    fases: [{ nome: 'QF', datas: ['2026-02-15', '2026-02-19'] }, { nome: 'SF', datas: ['2026-02-22', '2026-02-25'] }, { nome: 'F', datas: ['2026-03-01', '2026-03-08'] }] },
+  { id: 'AMAZONENSE', inicio: '2026-01-02', formato: 'liga',
+    grupos: { L: ['450159', '451026', '451025', '451024', '452033', '452034', '452035', '452036'] },
+    rodadas: ['2026-01-11', '2026-01-15', '2026-01-18', '2026-01-22', '2026-01-25', '2026-01-29', '2026-02-01'],
+    fases: [{ nome: 'SF', datas: ['2026-02-08', '2026-02-15'] }, { nome: 'F', datas: ['2026-02-22', '2026-03-01'] }] },
+  { id: 'MARANHENSE', inicio: '2026-01-02', formato: 'liga',
+    grupos: { L: ['451016', '451052', '451053', '451050', '452037', '452038', '451051', '452039'] },
+    rodadas: ['2026-01-10', '2026-01-14', '2026-01-18', '2026-01-21', '2026-01-25', '2026-01-28', '2026-02-01'],
+    fases: [{ nome: 'SF', datas: ['2026-02-08', '2026-02-15'] }, { nome: 'F', datas: ['2026-02-22', '2026-03-01'] }] },
+  { id: 'POTIGUAR', inicio: '2026-01-02', formato: 'liga',
+    grupos: { L: ['451065', '451066', '452040', '452041', '452042', '451067', '452043', '452044'] },
+    rodadas: ['2026-01-10', '2026-01-14', '2026-01-18', '2026-01-21', '2026-01-25', '2026-01-31', '2026-02-07'],
+    fases: [{ nome: 'QF', datas: ['2026-02-11', '2026-02-15'] }, { nome: 'SF', datas: ['2026-02-22', '2026-03-01'] }, { nome: 'F', datas: ['2026-03-08', '2026-03-15'] }] }
 ];
 const estadualCruzado = (id: string): EstadualCruzado | undefined => ESTADUAIS_CRUZADOS.find(e => e.id === id);
 /** O estadual de grupos cruzados que o clube (pelo id do Team) joga, se algum. */
@@ -1069,15 +1089,15 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         const ptsDe = (k: string) => { for (const g of Object.keys(est)) if (est[g].pts[k]) return est[g].pts[k]; return { p: 0, sg: 0, gf: 0 }; };
         const melhor = (x: string, y: string) => ptsDe(y).p - ptsDe(x).p || ptsDe(y).sg - ptsDe(x).sg || ptsDe(y).gf - ptsDe(x).gf || hash(x) - hash(y);
         let pares: [string, string][] = [], classificados: string[] = [];
-        if (c.id === 'BAIANO') {
+        if (c.id === 'BAIANO' || c.id === 'MARANHENSE' || c.id === 'AMAZONENSE') {
           const o = est.L.ord;
           pares = [[o[0], o[3]], [o[1], o[2]]]; classificados = o.slice(0, 4);
-        } else if (c.id === 'PERNAMBUCANO') {
+        } else if (c.id === 'PERNAMBUCANO' || c.id === 'POTIGUAR') {
           // O 1.o e o 2.o esperam nas meias (`entradas.SF`); do 3.o ao 6.o a fase previa.
           const o = est.L.ord;
           pares = [[o[2], o[5]], [o[3], o[4]]]; classificados = o.slice(0, 6);
           c.entradas = { SF: [o[0], o[1]] };
-        } else if (c.id === 'GOIANO') {
+        } else if (c.id === 'GOIANO' || c.id === 'PARAENSE') {
           const q = Object.values(c.groups!).flat().sort(melhor);
           pares = [[q[0], q[7]], [q[3], q[4]], [q[1], q[6]], [q[2], q[5]]]; classificados = q.slice(0, 8);
         } else if (c.id === 'MINEIRO') {
@@ -1161,7 +1181,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         const sorteio = (ks: string[]) => { const e = embaralhar(ks); const p: [string, string][] = []; for (let k = 0; k + 1 < e.length; k += 2) p.push(seed(e[k]) <= seed(e[k + 1]) ? [e[k], e[k + 1]] : [e[k + 1], e[k]]); return p; };
         // Pernambucano: o 1.o pega o vencedor de 4x5 e o 2.o o de 3x6 (as previas na ordem [3x6, 4x5]).
         const esperam = (c.entradas && c.entradas[b]) || [];
-        const par = (c.id === 'PERNAMBUCANO' && b === 'SF' && esperam.length === 2) ? [[esperam[0], venc[1]], [esperam[1], venc[0]]] as [string, string][]
+        const par = ((c.id === 'PERNAMBUCANO' || c.id === 'POTIGUAR') && b === 'SF' && esperam.length === 2) ? [[esperam[0], venc[1]], [esperam[1], venc[0]]] as [string, string][]
           : (c.id === 'CARIOCA' && b === 'SF') ? sorteio(venc) : c.id === 'SERIE_D' ? consecutivos(venc) : c.id === 'PAULISTA' ? parear(venc, seed) : c.id === 'COPA_BR' ? parear(venc.concat((c.entradas && c.entradas[b]) || []), seed) : (() => { const p: [string, string][] = []; for (let k = 0; k < venc.length; k += 2) p.push([venc[k], venc[k + 1]]); return p; })();
         c.matches.push(...jogosDaFase(c, fase(b), par, oc, somarDias(hoje, 1)));
         // Serie D: sobem SO OS 4 SEMIFINALISTAS (sem playoff de acesso).
@@ -1390,8 +1410,8 @@ export const zonasDoGrupo = (compId: string, grupo: string, n: number): (ZonaDaT
   const avanca: ZonaDaTabela = { id: 'ACESSO', nome: 'Qualified', cor: '#22c55e' };
   if (compId === 'PAULISTA') poe(0, 8, { ...avanca, nome: 'Quarter-finals' });
   else if (compId === 'CARIOCA' || compId === 'GAUCHO' || compId === 'CATARINENSE' || compId === 'PARANAENSE' || compId === 'CEARENSE') poe(0, 4, { ...avanca, nome: 'Quarter-finals' });
-  else if (compId === 'BAIANO') poe(0, 4, { ...avanca, nome: 'Semi-finals' });
-  else if (compId === 'PERNAMBUCANO') { poe(0, 2, { ...avanca, nome: 'Semi-finals' }); poe(2, 6, { id: 'UEL', nome: 'Preliminary round', cor: '#eab308' }); }
+  else if (compId === 'BAIANO' || compId === 'MARANHENSE' || compId === 'AMAZONENSE') poe(0, 4, { ...avanca, nome: 'Semi-finals' });
+  else if (compId === 'PERNAMBUCANO' || compId === 'POTIGUAR') { poe(0, 2, { ...avanca, nome: 'Semi-finals' }); poe(2, 6, { id: 'UEL', nome: 'Preliminary round', cor: '#eab308' }); }
   else if (compId === 'MINEIRO') { poe(0, 1, { ...avanca, nome: 'Semi-finals' }); poe(1, 2, { id: 'UEL', nome: 'Best runner-up: semi-finals', cor: '#eab308' }); }
   else if (compId === 'UCL' || compId === 'UEL' || compId === 'UECL') {
     poe(0, 8, { ...avanca, nome: 'Round of 16' });

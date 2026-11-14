@@ -21,9 +21,13 @@ const ESPERADO: Record<string, { clubes: number; grupos: number; porClube: numbe
   GOIANO: { clubes: 12, grupos: 3, porClube: 8, fases: { QF: 8, SF: 4, F: 2 } },
   BAIANO: { clubes: 10, grupos: 1, porClube: 9, fases: { SF: 2, F: 1 } },
   PERNAMBUCANO: { clubes: 8, grupos: 1, porClube: 7, fases: { QF: 4, SF: 4, F: 2 } },
-  CEARENSE: { clubes: 10, grupos: 2, porClube: 4, fases: { QF: 8, SF: 4, F: 2 } }
+  CEARENSE: { clubes: 10, grupos: 2, porClube: 4, fases: { QF: 8, SF: 4, F: 2 } },
+  PARAENSE: { clubes: 12, grupos: 2, porClube: 6, fases: { QF: 8, SF: 4, F: 2 } },
+  AMAZONENSE: { clubes: 8, grupos: 1, porClube: 7, fases: { SF: 4, F: 2 } },
+  MARANHENSE: { clubes: 8, grupos: 1, porClube: 7, fases: { SF: 4, F: 2 } },
+  POTIGUAR: { clubes: 8, grupos: 1, porClube: 7, fases: { QF: 4, SF: 4, F: 2 } }
 };
-const FORMATO: Record<string, 'cruzado' | 'intra' | 'liga'> = { BAIANO: 'liga', PERNAMBUCANO: 'liga', CEARENSE: 'intra' };
+const FORMATO: Record<string, 'cruzado' | 'intra' | 'liga'> = { BAIANO: 'liga', PERNAMBUCANO: 'liga', CEARENSE: 'intra', AMAZONENSE: 'liga', MARANHENSE: 'liga', POTIGUAR: 'liga' };
 
 test('os tres estaduais nascem com todos os clubes, so jogos contra os outros grupos e o mesmo numero de jogos por clube', () => {
   const w = mundo(); const cs = criarCopas(w, undefined, ocupacaoDe(w, []), null, 'bra_serie_a', 2026);

@@ -45,7 +45,26 @@ const CLUBES = [
   ['CE3', 'CE', 'Quixadá', ['#1d4ed8', '#ffffff', 's'], 2000],
   ['GO1', 'GO', 'Jataí', ['#c8102e', '#111111', 's'], 3000],
   ['GO2', 'GO', 'Goiânia', ['#15803d', '#ffffff', 's'], 2000],
-  ['GO3', 'GO', 'Anápolis', ['#c8102e', '#ffffff', 's'], 6000]
+  ['GO3', 'GO', 'Anápolis', ['#c8102e', '#ffffff', 's'], 6000],
+  // Paraense, Amazonense, Maranhense e Potiguar de 2026
+  ['PA1', 'PA', 'Belém', ['#1d4ed8', '#ffffff', 's'], 3000],
+  ['PA2', 'PA', 'Capitão Poço', ['#15803d', '#ffffff', 's'], 2000],
+  ['PA3', 'PA', 'Cametá', ['#c8102e', '#ffffff', 's'], 3000],
+  ['PA4', 'PA', 'Santa Rosa', ['#1d4ed8', '#c8102e', 's'], 2000],
+  ['PA5', 'PA', 'Santarém', ['#1e3a8a', '#ffffff', 's'], 3000],
+  ['PA6', 'PA', 'Santarém', ['#facc15', '#15803d', 's'], 2000],
+  ['AM1', 'AM', 'Parintins', ['#c8102e', '#ffffff', 's'], 2000],
+  ['AM2', 'AM', 'Manacapuru', ['#c8102e', '#ffffff', 's'], 3000],
+  ['AM3', 'AM', 'Manaus', ['#1d4ed8', '#ffffff', 's'], 3000],
+  ['AM4', 'AM', 'Itacoatiara', ['#15803d', '#ffffff', 's'], 2000],
+  ['MA1', 'MA', 'Paço do Lumiar', ['#1d4ed8', '#ffffff', 's'], 2000],
+  ['MA2', 'MA', 'Imperatriz', ['#111111', '#facc15', 's'], 2000],
+  ['MA3', 'MA', 'Tuntum', ['#15803d', '#ffffff', 's'], 2000],
+  ['RN1', 'RN', 'Ceará-Mirim', ['#1d4ed8', '#facc15', 's'], 2000],
+  ['RN2', 'RN', 'Natal', ['#111111', '#c8102e', 's'], 3000],
+  ['RN3', 'RN', 'Mossoró', ['#c8102e', '#ffffff', 's'], 4000],
+  ['RN4', 'RN', 'Caicó', ['#c8102e', '#ffffff', 's'], 2000],
+  ['RN5', 'RN', 'Natal', ['#1d4ed8', '#ffffff', 's'], 2000]
 ];
 // Os nomes genericos (no estilo dos da base: "Jaguar Real-RJ", "Serra Azul Racing-RJ"): um prefixo e uma palavra da natureza do Brasil.
 const PREF = ['Atlético', 'Esporte Clube', 'Real', 'Racing', 'Unidos', 'Nacional', 'Olímpico', 'Associação', 'Recreativo', 'Sociedade Esportiva'];
@@ -53,6 +72,9 @@ const PAL = ['Ipê Amarelo', 'Sabiá', 'Carcará', 'Araucária', 'Jequitibá', '
 // Palavras a mais para os clubes a partir do 15.o (os 14 primeiros usam so a lista de cima: os nomes deles nao mudam).
 const PAL2 = [...PAL,
   'Mandacaru', 'Carnaúba', 'Babaçu', 'Juazeiro', 'Umbuzeiro', 'Xique-xique', 'Asa Branca', 'Caatinga', 'Cerrado', 'Veredas', 'Sertanejo', 'Maracajá', 'Tamboril', 'Angico', 'Baraúna'];
+// E mais palavras para os clubes a partir do 27.o (os anteriores continuam com os nomes deles).
+const PAL3 = [...PAL2,
+  'Vitória-régia', 'Açaí', 'Castanheira', 'Seringueira', 'Pirarucu', 'Tucunaré', 'Boto', 'Guaraná', 'Andiroba', 'Cupuaçu', 'Uirapuru', 'Sumaúma', 'Tucano', 'Arara', 'Jacamim', 'Marajó', 'Pororoca', 'Igarapé', 'Mangue', 'Cajueiro'];
 
 const raiz = path.resolve(__dirname, '..');
 const MOD = process.env.FM_MOD_DIR ? path.resolve(process.env.FM_MOD_DIR) : 'Z:\\FootManager3D\\mod';
@@ -99,7 +121,7 @@ CLUBES.forEach(([chave, uf, cidade, [c1, c2, pat], fan], i) => {
   if (!r) { console.error('Sem dados reais para ' + chave + ' em ' + fReais); process.exit(1); }
   let nome = null;
   for (let k = 0; k < 500 && !nome; k++) {
-    const lista = i < 14 ? PAL : PAL2;
+    const lista = i < 14 ? PAL : i < 26 ? PAL2 : PAL3;
     const h = hash(chave + '|' + k), pal = lista[(h >>> 4) % lista.length], gen = `${pal} ${PREF[(h >>> 12) % PREF.length]}-${uf}`;
     const low = gen.toLowerCase();
     if (k < 400 && palUsada.has(pal)) continue;   // a mesma palavra nao se repete entre os clubes deste script enquanto houver outras
