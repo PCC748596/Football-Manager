@@ -29,7 +29,23 @@ const PassLineModel = {
     justifica o risco.
     */
     factorUltimoTerco: 0.45,
-    ultimoTercoZ: 17.0       // mesma fronteira do bolaNoUltimoTerco do TeamBT
+    ultimoTercoZ: 17.0,      // mesma fronteira do bolaNoUltimoTerco do TeamBT
+
+    /*
+    A LINHA COM O ADVERSARIO A MEXER-SE (folgaDinamicaDoAdversario, utils.js). Pedido: *"tem muito passe direto pro adversario"* — e *"tem que incluir uma
+    margem de erro boa pq senao e capaz de nao ter linhas de passe disponiveis"*. A margem: so `fracVel` da velocidade dele, no maximo `tMax` s, e um corte duro
+    dinamico (`bloqueioDuro`) mais estreito do que o estatico (0.9). A folga prevista entra na qualidade da linha (a penalidade) pelo menor dos dois valores.
+    `vMedia*`: a velocidade media da bola no passe (m/s) = base + metros x porMetro, entre min e max.
+    */
+    // `bloqueioDuro` aqui e a fraccao do corte estatico da zona (porZona) que vale para a folga prevista: mais estreito, porque a previsao erra.
+    dinamica: { activo: true, fracVel: 0.5, tMax: 0.8, amostras: 6, bloqueioDuro: 0.667, vMediaBase: 8.0, vMediaPorMetro: 0.25, vMediaMin: 8.0, vMediaMax: 16.0 },
+
+    /*
+    O CORTE DURO PELA ZONA DE QUEM PASSA (pedido: *"Defesa 2m, Meio Campo 1.5m, ataque .7m"*). No proprio terco (avanco < -`tercoZ`) a bola perdida e golo
+    sofrido e a linha tem de estar folgada; no terco ofensivo (> `tercoZ`) arrisca-se. Substitui o `bloqueioDuro` unico (0.9) no findPassTarget e no
+    PassTypes.escolher (o `fatorIntercept` e o orquestrador continuam a multiplicar por cima). Ver bloqueioDuroDaZona (utils.js).
+    */
+    porZona: { activo: true, defesa: 2.0, meio: 1.5, ataque: 0.7, tercoZ: 17.0 }
 };
 
 /*

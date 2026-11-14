@@ -3303,6 +3303,9 @@ class FootballPlayer {
             let minOppDist = 999, oppMaisPerto = null;
             let distMarcador = 999;
             let marcadorAtras = false;
+            // A folga com os adversarios a mexer-se (PassLineModel.dinamica): o menor valor previsto, e quem o da.
+            const PLD = (PassLineModel.dinamica && PassLineModel.dinamica.activo && typeof folgaDinamicaDoAdversario === 'function') ? PassLineModel.dinamica : null;
+            let minOppDin = 999, oppDin = null;
 
             /*
             O corredor de ameaça cresce com a distância do passe: um defesa a
@@ -3326,6 +3329,12 @@ class FootballPlayer {
                 if (d < minOppDist) {
                     minOppDist = d;
                     oppMaisPerto = opp;
+                }
+                if (PLD) {
+                    const v = opp.velocity;
+                    const dd = folgaDinamicaDoAdversario(this.model.position.x, this.model.position.z, optPos.x, optPos.z,
+                        { x: opp.model.position.x, z: opp.model.position.z, vx: v ? v.x : 0, vz: v ? v.z : 0 }, PLD);
+                    if (dd < minOppDin) { minOppDin = dd; oppDin = opp; }
                 }
                 // Quantos ameaçam, não só o mais perto.
                 if (d < corredor) corposNoCorredor++;
@@ -3367,7 +3376,8 @@ class FootballPlayer {
                 fatorIntercept = THREE.MathUtils.clamp(
                     1 + (oppMaisPerto.skillFor('INTERCEPT') - skillVal) / 150, 0.6, 1.6);
             }
-            let bloqueio = PL.bloqueioDuro * fatorIntercept;
+            // O corte pela zona de quem passa: defesa 2 m, meio-campo 1.5, ataque 0.7 (PassLineModel.porZona).
+            let bloqueio = ((typeof bloqueioDuroDaZona === 'function') ? bloqueioDuroDaZona(ownZ * dirZ) : PL.bloqueioDuro) * fatorIntercept;
             if (isOrchestrator) bloqueio *= PL.factorOrquestrador;
             // Quem infiltra no ultimo quarto recebe o lancamento PELO ALTO: os defensores na reta nao o bloqueiam (PassModel.infiltradoBloqueioFator).
             // E a quem faz OVERLAP (o lateral ofensivo que ultrapassa por fora): o lancamento tambem vai por cima.
@@ -3376,6 +3386,10 @@ class FootballPlayer {
                 bloqueio *= PassModel.infiltradoBloqueioFator;
             }
             if (minOppDist < bloqueio) continue;
+            // O mesmo corte com o adversario onde vai estar quando a bola passar, mais estreito (a margem de erro da previsao).
+            if (PLD && minOppDin < PLD.bloqueioDuro * bloqueio) continue;
+            // A qualidade da linha (abaixo) usa a menor das duas folgas: quem corre para a linha tapa-a.
+            if (PLD && minOppDin < minOppDist) minOppDist = minOppDin;
 
             let circulacao = teamStyle ? teamStyle.circulacao : 1.0;
             let verticalidade = teamStyle ? teamStyle.verticalidade : 1.0;

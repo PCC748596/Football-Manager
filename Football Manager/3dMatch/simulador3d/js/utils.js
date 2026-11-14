@@ -4074,6 +4074,43 @@ function passeMorreuParaODestinatario(o) {
     return (o.velX * dx + o.velZ * dz) > 0;
 }
 
+/*
+A FOLGA DA LINHA COM O ADVERSARIO A MEXER-SE (PassLineModel.dinamica). A `folgaDaLinha` e uma fotografia: mede a recta contra onde os adversarios estao
+AGORA. Medido (6 x 300 s, 344 passes rasteiros): quem corta estava a 3.3 m da recta no instante do passe (mediana), ja a correr a 5.9 m/s, e corta a meio do
+caminho ~1.1 s depois; so 1 em 83 cortes foi de quem nao saiu do sitio. A bola ia para onde ele ia chegar.
+
+Aqui, em `amostras` pontos da recta, o instante em que a bola la passa (a velocidade media do passe, pela distancia) e onde o adversario estara nesse instante
+seguindo a velocidade que leva — so uma fraccao dela (`fracVel`) e no maximo `tMax` s, a margem de erro: ele pode travar ou mudar de ideias, e prever a corrida
+inteira fechava todas as linhas. Devolve a menor distancia entre a bola e ele ao longo do passe. Quem esta parado da a folga de sempre.
+`opp`: { x, z, vx, vz }.
+*/
+/** O corte duro da linha de passe pela zona de quem passa (PassLineModel.porZona); sem ela, o `bloqueioDuro` unico. `avanco` = z * dirZ. */
+function bloqueioDuroDaZona(avanco) {
+    const PL = (typeof PassLineModel !== 'undefined') ? PassLineModel : null;
+    if (!PL) return 0.9;
+    const Z = PL.porZona;
+    if (!Z || !Z.activo) return PL.bloqueioDuro;
+    if (avanco < -Z.tercoZ) return Z.defesa;
+    if (avanco > Z.tercoZ) return Z.ataque;
+    return Z.meio;
+}
+
+function folgaDinamicaDoAdversario(ax, az, bx, bz, opp, D) {
+    const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz);
+    if (L < 0.001) return Math.hypot(opp.x - ax, opp.z - az);
+    const vMed = Math.max(D.vMediaMin, Math.min(D.vMediaMax, D.vMediaBase + L * D.vMediaPorMetro));
+    let melhor = Infinity;
+    const n = Math.max(2, D.amostras | 0);
+    for (let k = 1; k <= n; k++) {
+        const f = k / n, s = f * L, t = Math.min(D.tMax, s / vMed);
+        const px = ax + dx * f, pz = az + dz * f;
+        const ox = opp.x + opp.vx * D.fracVel * t, oz = opp.z + opp.vz * D.fracVel * t;
+        const d = Math.hypot(ox - px, oz - pz);
+        if (d < melhor) melhor = d;
+    }
+    return melhor;
+}
+
 function folgaDaLinha(ax, az, bx, bz, obstaculos) {
     if (!obstaculos || !obstaculos.length) return Infinity;
 

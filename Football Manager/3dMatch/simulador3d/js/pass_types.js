@@ -392,13 +392,14 @@ const PassTypes = {
     sítio mais congestionado do campo e exigir linha limpa ali é exigir que
     nunca se jogue para dentro dela.
     */
-    qualidadeDaLinha: function (folga, dist, alvoDirZ) {
+    qualidadeDaLinha: function (folga, dist, alvoDirZ, bloqueio) {
         if (typeof PassLineModel === 'undefined') return 1;
         const PL = PassLineModel;
         const corredor = Math.min(PL.corredorMax,
             PL.corredorBase + dist * PL.corredorPorMetro);
+        const bl = (typeof bloqueio === 'number') ? bloqueio : PL.bloqueioDuro;
 
-        let q = (folga - PL.bloqueioDuro) / Math.max(0.001, corredor - PL.bloqueioDuro);
+        let q = (folga - bl) / Math.max(0.001, corredor - bl);
         q = Math.max(0, Math.min(1, q));
 
         if (alvoDirZ > PL.ultimoTercoZ) q = 1 - (1 - q) * PL.factorUltimoTerco;
@@ -594,9 +595,26 @@ const PassTypes = {
             desce a cascata (atrasar a alguém perto, conduzir) — que é o que se
             faz quando não há linha nenhuma, em vez de pôr a bola no adversário.
             */
-            if (typeof PassLineModel !== 'undefined' && folga < PassLineModel.bloqueioDuro) continue;
+            // O corte pela zona de quem passa (PassLineModel.porZona): defesa 2 m, meio-campo 1.5, ataque 0.7.
+            const bloqZona = (typeof bloqueioDuroDaZona === 'function') ? bloqueioDuroDaZona(cz * dirZ) : (typeof PassLineModel !== 'undefined' ? PassLineModel.bloqueioDuro : 0.9);
+            if (typeof PassLineModel !== 'undefined' && folga < bloqZona) continue;
+            // E com os adversarios onde vao estar quando a bola passar (PassLineModel.dinamica): corte mais estreito; a qualidade usa a menor das duas.
+            let folgaQ = folga;
+            const PLD = (typeof PassLineModel !== 'undefined' && PassLineModel.dinamica && PassLineModel.dinamica.activo && typeof folgaDinamicaDoAdversario === 'function') ? PassLineModel.dinamica : null;
+            if (PLD) {
+                let din = Infinity;
+                for (const o of opponents) {
+                    if (!o || o.role === 'gk' || !o.model) continue;
+                    if ((o.model.position.x - cx) * (alvoX - cx) + (o.model.position.z - cz) * (alvoZ - cz) < 0) continue;   // atras de quem passa
+                    const v = o.velocity;
+                    const dd = folgaDinamicaDoAdversario(cx, cz, alvoX, alvoZ, { x: o.model.position.x, z: o.model.position.z, vx: v ? v.x : 0, vz: v ? v.z : 0 }, PLD);
+                    if (dd < din) din = dd;
+                }
+                if (din < PLD.bloqueioDuro * bloqZona) continue;
+                if (din < folgaQ) folgaQ = din;
+            }
 
-            const linhaNorm = this.qualidadeDaLinha(folga, dist, alvoZ * dirZ);
+            const linhaNorm = this.qualidadeDaLinha(folgaQ, dist, alvoZ * dirZ, bloqZona);
 
             let nota = this.notaCandidato(progressoNorm, espacoNorm, distNorm,
                 linhaNorm, pesos);
