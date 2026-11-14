@@ -100,6 +100,7 @@ const COPAS = [
   { id: 'SUL', nome: 'Copa Sul-Americana', nomeCurto: 'Copa Sul-Americana', prefixo: 'SULA', logo: 'SUL.png' },
   { id: 'COPA_BR', nome: 'Copa do Brasil', nomeCurto: 'Copa do Brasil', prefixo: 'CUP', logo: 'COPA_BR.png' },
   { id: 'CARABAO', nome: 'Carabao Cup', nomeCurto: 'Carabao Cup', prefixo: 'EFL', logo: 'CARABAO.png' },
+  { id: 'FA_CUP', nome: 'FA Cup', nomeCurto: 'FA Cup', prefixo: 'FAC', logo: '' },
   { id: 'PAULISTA', nome: 'Campeonato Paulista', nomeCurto: 'Campeonato Paulista', prefixo: 'PAULISTA', logo: '' },
   { id: 'UCL', nome: 'UEFA Champions League', nomeCurto: 'Champions League', prefixo: 'UCL', logo: 'UCL.png' },
   { id: 'UEL', nome: 'UEFA Europa League', nomeCurto: 'Europa League', prefixo: 'UEL', logo: 'UEL.png' },

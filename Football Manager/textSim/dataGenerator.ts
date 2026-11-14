@@ -404,7 +404,24 @@ export const ehLigaEuropeia = (leagueId: string): boolean => {
   const n = Number(pais.id);
   return (n >= 65 && n <= 70) || (n >= 80 && n <= 89);
 };
-export const datasDaTemporadaEuropeia = (rodadas: number, anoInicio: number): string[] => {
+/*
+AS FASES DA FA CUP (datas nominais da temporada 2026/27, as do calendario real 2025/26, aos sabados): vivem aqui porque a LIGA INGLESA as reserva — no fim de semana de FA Cup
+nao ha rodada da liga (`sabadosDaFaCup`), como no real; textSim/competitions.ts agenda a copa por elas. Pedido: *"vai ter que remanejar os jogos para caber a FA Cup"*.
+*/
+export const FASES_FA_CUP: { nome: string; datas: string[] }[] = [
+  { nome: 'Q3', datas: ['2026-10-03'] }, { nome: 'Q4', datas: ['2026-10-17'] }, { nome: 'R1', datas: ['2026-10-31'] }, { nome: 'R2', datas: ['2026-12-05'] },
+  { nome: 'R3', datas: ['2027-01-09'] }, { nome: 'R4', datas: ['2027-02-13'] }, { nome: 'R5', datas: ['2027-03-06'] }, { nome: 'QF', datas: ['2027-04-03'] },
+  { nome: 'SF', datas: ['2027-04-24'] }, { nome: 'F', datas: ['2027-05-15'] }
+];
+/** Os sabados de FA Cup em que a liga inglesa do escalao `tier` nao joga: a 1.a e 2.a divisoes a partir da 3.a rodada (a delas) ate as quartas; a 3.a e 4.a desde a 1.a rodada. */
+export const sabadosDaFaCup = (tier: number, anoInicio: number): string[] => {
+  const fases = tier <= 2 ? ['R3', 'R4', 'R5', 'QF'] : ['R1', 'R2', 'R3', 'R4', 'R5', 'QF'];
+  const desloca = 364 * (anoInicio - 2026);
+  return FASES_FA_CUP.filter(f => fases.includes(f.nome)).map(f => { const d = new Date(f.datas[0] + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + desloca); return d.toISOString().slice(0, 10); });
+};
+
+// `livres`: dias sem rodada (ex.: os sabados de FA Cup na liga inglesa): a rodada que caisse num deles passa ao proximo sabado ou terca.
+export const datasDaTemporadaEuropeia = (rodadas: number, anoInicio: number, livres: string[] = []): string[] => {
   // A temporada europeia do jogo vira em 1/6 e os JOGOS comecam em 1/7 (a 1.a rodada e o proprio 1/7) e vao ate 23/5 do ano seguinte; depois, rodadas a cada ~1 semana (sabado ou terca).
   const ini = new Date(`${anoInicio}-07-01T12:00:00Z`).getTime();
   const fim = new Date(`${anoInicio + 1}-05-23T12:00:00Z`).getTime();
@@ -414,7 +431,7 @@ export const datasDaTemporadaEuropeia = (rodadas: number, anoInicio: number): st
   for (let r = 0; r < rodadas; r++) {
     const t0 = Math.max(anterior + 3 * 86400000, ini + r * passo);
     const c = new Date(t0);
-    if (r > 0) while (c.getUTCDay() !== 6 && c.getUTCDay() !== 2) c.setUTCDate(c.getUTCDate() + 1);   // sabado ou terca
+    if (r > 0) while ((c.getUTCDay() !== 6 && c.getUTCDay() !== 2) || livres.includes(c.toISOString().slice(0, 10))) c.setUTCDate(c.getUTCDate() + 1);   // sabado ou terca (fora dos `livres`)
     datas.push(c.toISOString().slice(0, 10));
     anterior = c.getTime();
   }
@@ -463,7 +480,10 @@ export const generateFixtures = (teams: Team[], leagueId: string, ano: number = 
   };
 
   const totalRounds = numRounds * 2; // turno + returno
-  const matchDates = (temporadaEuropa !== undefined && ehLigaEuropeia(leagueId)) ? datasDaTemporadaEuropeia(totalRounds, temporadaEuropa) : generateMatchDates(totalRounds, leagueId);
+  // A liga inglesa reserva os sabados de FA Cup (sabadosDaFaCup).
+  const ligaIng: any = (temporadaEuropa !== undefined) ? ((COUNTRIES as any[]).find((c: any) => c.id === '65')?.leagues || []).find((l: any) => l.id === leagueId) : null;
+  const livresFa = (ligaIng && !ligaIng.hidden && ligaIng.tier <= 4) ? sabadosDaFaCup(ligaIng.tier, temporadaEuropa!) : [];
+  const matchDates = (temporadaEuropa !== undefined && ehLigaEuropeia(leagueId)) ? datasDaTemporadaEuropeia(totalRounds, temporadaEuropa, livresFa) : generateMatchDates(totalRounds, leagueId);
 
   // Create round robin schedule
   let roundTeams = [...teamIds];
@@ -553,6 +573,8 @@ export const FAIXA_OVR_BRASIL: Record<number, [number, number]> = { 1: [77, 70],
 export const FAIXA_OVR_AMERICA_DO_SUL: Record<number, [number, number]> = { 1: [74, 67], 2: [71, 64] };
 export const FAIXA_OVR_EUROPA: Record<number, [number, number]> = { 1: [80, 75], 2: [75, 70], 3: [70, 65], 4: [65, 65] };
 export const FAIXA_OVR_LIGA_OCULTA: [number, number] = [75, 70];
+/** Os escaloes 5 e 6 da Inglaterra (ligas ocultas, so entram na FA Cup): 1 a 2 OVR abaixo da League Two (65). */
+export const FAIXA_OVR_INGLATERRA_NAO_LIGA: Record<number, [number, number]> = { 5: [64, 63], 6: [63, 62] };   // pedido: so 1 ou 2 OVR abaixo da League Two
 /** Paises com faixa propria (manda sobre a do continente): Mexico (90), EUA (91), Japao (92) e os de Africa e Asia (93 a 108). */
 export const FAIXA_OVR_POR_PAIS: Record<string, Record<number, [number, number]>> = {
   '90': { 1: [75, 69], 2: [69, 63] },
@@ -592,6 +614,7 @@ export const faixaDeOvr = (countryId: string, league: any): [number, number] | n
   if (!league) return null;
   // Os clubes gerados da liga oculta do Brasil (ex.: Capivariano, do Paulistao) saem no nivel da Serie C.
   if ((league.hidden || league.tier >= 9) && countryId === '45') return FAIXA_OVR_BRASIL[3];
+  if (countryId === '65' && league.hidden && FAIXA_OVR_INGLATERRA_NAO_LIGA[league.tier]) return FAIXA_OVR_INGLATERRA_NAO_LIGA[league.tier];
   if (league.hidden || league.tier >= 9) return FAIXA_OVR_LIGA_OCULTA;
   if (countryId === '45') return FAIXA_OVR_BRASIL[league.tier] || null;
   if (FAIXA_OVR_POR_PAIS[countryId]) return FAIXA_OVR_POR_PAIS[countryId][league.tier] || null;

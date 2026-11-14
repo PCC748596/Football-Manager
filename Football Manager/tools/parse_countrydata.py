@@ -91,8 +91,9 @@ def main(src, dst):
     print(len(clubs), 'clubs', sum(len(c['players']) for c in clubs), 'players', sum(len(c['staff']) for c in clubs), 'staff')
 
 # Last club id of each division, by country (inferred from club order, not stored in the file; checked against club lists).
-# 54 Brazil: 1-20 A, 21-40 B, 41-60 C, rest D/regional. 14 England: 1-20 Premier League, 21-44 Championship, 45-68 League One, 69-92 League Two, rest lower.
-TIER_ENDS = {54: [20, 40, 60], 14: [20, 44, 68, 92],
+# 54 Brazil: 1-20 A, 21-40 B, 41-60 C, rest D/regional. 14 England: 1-20 Premier League, 21-44 Championship, 45-68 League One, 69-92 League Two, 93-116 fifth tier,
+# 117-140 sixth tier (north), 141-164 sixth tier (south), rest lower (the FA Cup uses tiers 5-7: tools/ligas_sav/inglaterra_inferiores).
+TIER_ENDS = {54: [20, 40, 60], 14: [20, 44, 68, 92, 116, 140, 164],
              27: [20, 40], 21: [18, 36], 45: [20, 41], 18: [18, 36], 38: [18, 33], 52: [30],   # Italy, Germany, Spain, France, Portugal: only A and B (Spain B = 21 file clubs + Real Sociedad B; Portugal B = 15 file clubs + Sporting B, Benfica B, Porto B: built below from the parent clubs' reserves)
              83: [18, 32], 163: [20, 40, 60],
              # Africa e Asia (so a 1.a divisao; tools/gerar_ligas_sav.cjs, grupo africa_asia)

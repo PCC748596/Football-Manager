@@ -5,7 +5,8 @@ LIGAS NOVAS A PARTIR DOS .sav DO FIFA MANAGER, por GRUPO de paises (configuracao
     node tools/gerar_ligas_sav.cjs --grupo <grupo>            cria os paises, as ligas e os clubes (GENERICOS) em textSim/realDatabase.ts e os nomes reais no mod
     node tools/gerar_ligas_sav.cjs --grupo <grupo> --force    refaz (APAGA os paises e clubes deste grupo — incluindo o que editou no Editor neles)
 
-Grupos: mex_usa_jpn (Mexico, EUA, Japao), africa_asia (11 paises de Africa e 5 da Asia). Passo a passo para um grupo novo:
+Grupos: mex_usa_jpn (Mexico, EUA, Japao), africa_asia (11 paises de Africa e 5 da Asia), europa2, inglaterra_inferiores (os escaloes 5 e 6 da Inglaterra, para a FA Cup).
+Passo a passo para um grupo novo:
   1. python tools/parse_countrydata.py <sav> <mod>/local-data/CountryData<N>.json --game --country N --max-tier T   (as divisoes: TIER_ENDS / TIER_IDS no parser)
   2. node tools/gerar_ligas_sav.cjs --grupo <g>
   3. python tools/extrair_escudos_fm.py <N...>                     (escudos para <mod>/escudos)
@@ -156,6 +157,8 @@ if (jaTem && !dry && !force) { console.error(`O grupo ${GRUPO} ja esta na base (
 if (jaTem) {
   countries = countries.filter(c => !NOVOS.includes(String(c.id)));
   teams = teams.filter(t => t.criadoPor !== CRIADO_POR && !NOVOS.includes(String(t.country)));
+  // As ligas deste grupo saem dos paises que ficam (modo `manterAte`: as outras ligas do pais nao sao tocadas).
+  for (const c of countries) if (EXISTENTES.includes(String(c.id))) c.leagues = c.leagues.filter(l => !LIGAS_IDS.includes(l.id));
   // Os existentes voltam a liga oculta original.
   for (const c of countries) if (EXISTENTES.includes(String(c.id)) && c._ocultaOriginal) {
     c.leagues = c.leagues.filter(l => !LIGAS_IDS.includes(l.id) && l.id !== c._ocultaOriginal.id);
@@ -232,7 +235,15 @@ for (const p of PAISES) {
   // O pais que ja existe: a liga oculta original e o casamento dos clubes dela com os do ficheiro.
   const pc = p.existente ? countries.find(c => String(c.id) === p.id) : null;
   let casados = new Map(), oculta = null;
-  if (pc) {
+  /*
+  PAIS QUE JA TEM AS LIGAS DE CIMA (`existente: { manterAte: N }`, ex.: a Inglaterra, que ja tem as quatro divisoes): os clubes dos escaloes ate N ja estao na base e
+  no CountryData (com `gameTeamId`) e nao se tocam; so se criam os clubes dos escaloes de baixo e as ligas novas do grupo, acrescentadas as do pais.
+  */
+  const manterAte = (p.existente && p.existente.manterAte) || 0;
+  if (pc && manterAte) {
+    for (const c of porTier) if (c.tier <= manterAte && !c.gameTeamId) { console.error(`${p.nome}: o clube ${c.id} do escalao ${c.tier} nao tem gameTeamId no CountryData.`); process.exit(1); }
+    seq = Math.max(seq, ...teams.filter(t => String(t.country) === p.id).map(t => Number(t.teamID)));
+  } else if (pc) {
     if (!pc._ocultaOriginal) {
       const lo = pc.leagues.find(l => l.id === p.existente.ligaOculta);
       if (!lo) { console.error(`${p.nome}: a liga oculta ${p.existente.ligaOculta} nao existe.`); process.exit(1); }
@@ -243,6 +254,7 @@ for (const p of PAISES) {
     seq = Math.max(seq, ...teams.filter(t => String(t.country) === p.id).map(t => Number(t.teamID)));
   }
   for (const c of porTier) {
+    if (manterAte && c.tier <= manterAte) continue;   // ja esta na base
     if (casados.has(c.id)) {
       // Clube que ja existia: mesmo id, nome generico e cores; so ganha a liga e os dados locais. O mod ja tem o nome real e o escudo dele.
       const tid = casados.get(c.id);
@@ -275,14 +287,23 @@ for (const p of PAISES) {
     modClubes.push({ id, nome: c.name, abreviatura: abrev, estadio: c.stadium || '', escudo: fs.existsSync(path.join(MOD, 'escudos', id + '.png')) ? id + '.png' : '' });   // escudos: tools/extrair_escudos_fm.py
     relatorio.push(`${p.nome} ${c.tier}: ${c.name}  ->  ${nome} (${id})`);
   }
-  const leagues = p.ligas.map(([lid, tier, promoted, relegated]) => {
+  // A liga: [id, escalao no ficheiro, promovidos, rebaixados, { tier, oculta, nome, tierDoNome }?] — o 5.o elemento: o escalao no jogo (se diferente do do ficheiro), liga
+  // OCULTA (sem calendario: os clubes so entram nas copas), o nome generico e a linha do nome real no .sav.
+  const leagues = p.ligas.map(([lid, tier, promoted, relegated, op]) => {
+    const o = op || {};
     const t = ids[tier] || [];
     if (t.length % 2) { console.error(`${lid}: numero impar de clubes (${t.length})`); process.exit(1); }
-    const real = nomeDaLiga(nomesSav[tier - 1]);
+    const real = nomeDaLiga(nomesSav[(o.tierDoNome || tier) - 1]);   // `tierDoNome`: a linha do nome no .sav, quando o escalao do ficheiro nao e o da liga (ex.: duas ligas no mesmo escalao)
     if (real) modComp.push({ id: lid, nome: real });
-    return { id: lid, name: `${ORDINAL[tier]} Division (${p.nome})`, tier, teamIds: t, promoted, relegated, matchDates: datas(t.length) };
+    const nome = o.nome || `${ORDINAL[tier]} Division (${p.nome})`;
+    if (o.oculta) return { id: lid, name: nome, tier: o.tier || tier, hidden: true, teamIds: t };
+    return { id: lid, name: nome, tier: o.tier || tier, teamIds: t, promoted, relegated, matchDates: datas(t.length) };
   });
-  if (pc) {
+  if (pc && manterAte) {
+    pc.leagues = pc.leagues.filter(l => !LIGAS_IDS.includes(l.id));
+    pc.leagues.push(...leagues);
+    console.log(`${p.nome}: ` + leagues.map(l => `${l.id} ${l.teamIds.length} clubes${l.hidden ? ' (oculta)' : ''}`).join(', ') + ' (acrescentadas as ligas do pais)');
+  } else if (pc) {
     /*
     A liga completa entra no lugar da oculta. Os antigos que ja nao estao na 1.a divisao ficam SEM liga (o clube continua na base, so nao joga): uma oculta com
     eles dava ao pais vagas a dobrar nas copas europeias, que leem a 1.a divisao E as `*_clubes` (qualificados, textSim/competitions.ts).

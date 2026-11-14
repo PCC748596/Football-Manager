@@ -31,7 +31,7 @@ export interface CompMatch {
 }
 
 export interface Competition {
-  id: 'LIB' | 'SUL' | 'COPA_BR' | 'SERIE_C' | 'SERIE_D' | 'UCL' | 'UEL' | 'UECL' | 'CARABAO' | 'PAULISTA';
+  id: 'LIB' | 'SUL' | 'COPA_BR' | 'SERIE_C' | 'SERIE_D' | 'UCL' | 'UEL' | 'UECL' | 'CARABAO' | 'FA_CUP' | 'PAULISTA';
   name: string;
   teamKeys: string[];
   groups?: Record<string, string[]>;
@@ -121,6 +121,29 @@ export const NEUTRAL_VENUES = { WEMBLEY: { id: 'neutral_wembley', name: 'Wembley
 const FASES_CARABAO = [{ nome: 'R1', datas: ['2026-08-11'] }, { nome: 'R2', datas: ['2026-08-25'] }, { nome: 'R3', datas: ['2026-09-22'] }, { nome: 'R4', datas: ['2026-10-27'] },
   { nome: 'QF', datas: ['2026-12-15'] }, { nome: 'SF', datas: ['2027-01-12', '2027-02-02'] }, { nome: 'F', datas: ['2027-03-21'] }];
 
+/*
+FA CUP (a copa de todas as divisoes inglesas): ver `criarFaCup`. Datas nominais da temporada 2026/27, as do calendario real 2025/26, aos sabados: 1.a rodada no fim de outubro, 2.a no
+inicio de dezembro, a 3.a (a da Premier e da Championship) no inicio de janeiro, 4.a em fevereiro, 5.a em marco, quartas e meias em abril e a final a meio de maio. Meias e final em
+campo neutro. O agendador encaixa cada jogo no dia livre mais perto (2 dias de descanso) quando o sabado coincide com a liga ou a Europa.
+*/
+const FASES_FA = FASES_FA_CUP;   // dataGenerator.ts: a liga inglesa nao joga nesses sabados (o "fim de semana de FA Cup")
+/*
+As copas inglesas a eliminar por sorteio (Carabao e FA Cup): as fases e, nas fases com `alvos`, quantos clubes tem de haver na fase SEGUINTE (contando os que entram nela): essa
+fase joga so os confrontos necessarios e os mais fortes passam direto. FA Cup com as rondas de qualificacao (os escaloes 5 e 6): a Q4 deixa 32 para a 1.a rodada (80 com os 48 da
+3.a e 4.a divisoes) e a 2.a deixa 20 para a 3.a (64 com os 44 da 1.a e 2.a). Sem os escaloes de baixo na base, a FA Cup comeca na 1.a rodada.
+*/
+const MATA_MATA_INGLES: Record<string, { fases: string[]; alvos: Record<string, number> }> = {
+  CARABAO: { fases: ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'], alvos: { R2: 32 } },
+  FA_CUP: { fases: ['Q3', 'Q4', 'R1', 'R2', 'R3', 'R4', 'R5', 'QF', 'SF', 'F'], alvos: { Q4: 80, R2: 64 } }
+};
+/** As fases desta edicao: a FA Cup sem rondas de qualificacao (sem jogos da Q3) comeca na 1.a rodada. */
+const fasesInglesas = (c: Competition): string[] => {
+  const f = MATA_MATA_INGLES[c.id].fases;
+  return (c.id === 'FA_CUP' && !c.matches.some(m => m.stage === 'Q3')) ? f.filter(x => x !== 'Q3' && x !== 'Q4') : f;
+};
+// Jogos em campo neutro: a final da Carabao; as meias e a final da FA Cup.
+const emCampoNeutro = (id: string, stage: string): boolean => (id === 'CARABAO' && stage === 'F') || (id === 'FA_CUP' && (stage === 'SF' || stage === 'F'));
+
 // Datas (temporada 2024). Libertadores nas terças, Sul-Americana nas quartas e Copa do Brasil em outras semanas, para ninguém jogar duas vezes no mesmo dia.
 const GRUPOS_LIB = ['2026-04-07', '2026-04-21', '2026-05-05', '2026-05-19', '2026-06-02', '2026-06-16'];
 const GRUPOS_SUL = ['2026-04-08', '2026-04-22', '2026-05-06', '2026-05-20', '2026-06-03', '2026-06-17'];
@@ -186,7 +209,10 @@ export const classificacaoAnoAnterior = (leagueId: string, teams: Team[], teamId
 export interface LigaParaCopas { leagueId: string; countryId: string; tier: number; teams: Team[]; teamIds: string[]; anterior?: string[] | null; }
 
 /** Os clubes de cada torneio, pela classificacao do ano anterior. Devolve tambem a ordem de cabecas de serie da Copa do Brasil. */
-export interface HistoricoCopas { /** Nome do clube campeao da Carabao Cup da temporada anterior (vaga na Europa League). */ carabao?: string }
+export interface HistoricoCopas {
+  /** Nome do clube campeao da Carabao Cup da temporada anterior (vaga na Conference League, como no real). */ carabao?: string;
+  /** Nome do clube campeao da FA Cup da temporada anterior (vaga na Europa League). */ faCup?: string;
+}
 export const qualificados = (ligas: LigaParaCopas[], historico: HistoricoCopas = {}) => {
   const lib: { key: string; team: Team; countryId: string }[] = [], sul: typeof lib = [], ucl: typeof lib = [], uel: typeof lib = [], uecl: typeof lib = [];
   // Libertadores / Sul-Americana da 1.a temporada: os clubes reais (se nenhuma liga sul-americana tem tabela do ano anterior e a base tem os 32).
@@ -206,16 +232,20 @@ export const qualificados = (ligas: LigaParaCopas[], historico: HistoricoCopas =
       const item = (t: Team) => ({ key: teamKey(l.leagueId, t.id), team: t, countryId: l.countryId });
       const daUcl = ordemE.slice(0, nU);
       let resto = ordemE.slice(nU);
-      // Campeao da Carabao: vaga na Europa League; se ja esta na Champions a vaga fica para o proximo da tabela.
-      const copeiro = l.countryId === '65' && l.tier === 1 && historico.carabao ? resto.find(t => t.name === historico.carabao) : undefined;
-      if (copeiro) resto = [copeiro, ...resto.filter(t => t !== copeiro)];
+      // As copas inglesas dao vaga, como no real: o campeao da FA Cup vai a Europa League e o da Carabao a Conference League; quem ja esta na Champions (ou ganhou as
+      // duas) deixa a vaga para o proximo da tabela.
+      const ing = l.countryId === '65' && l.tier === 1;
+      const copeiroL = ing && historico.faCup ? resto.find(t => t.name === historico.faCup) : undefined;
+      const achadoC = ing && historico.carabao ? resto.find(t => t.name === historico.carabao) : undefined;
+      const copeiroC = achadoC && achadoC !== copeiroL ? achadoC : undefined;
+      const copeiros = [copeiroL, copeiroC].filter(Boolean) as Team[];
       const nL = VAGAS_UEL[l.countryId] || 0, nC = VAGAS_UECL[l.countryId] || 0;
       daUcl.forEach(t => ucl.push(item(t)));
-      // Os classificados reais primeiro (sem o campeao da Carabao, que ja vai a frente); as vagas que faltam, pela ordem da tabela.
-      const realL = resto.filter(t => SEED_UEL.has(t.name) && t !== copeiro), realC = resto.filter(t => SEED_UECL.has(t.name) && t !== copeiro);
-      const sobra = resto.filter(t => !realL.includes(t) && !realC.includes(t));
-      const daL = [...(copeiro ? [copeiro] : []), ...realL]; daL.push(...sobra.splice(0, Math.max(0, nL - daL.length)));
-      const daC = [...realC]; daC.push(...sobra.splice(0, Math.max(0, nC - daC.length)));
+      // Os classificados reais primeiro (sem os campeoes das copas, que ja vao a frente); as vagas que faltam, pela ordem da tabela.
+      const realL = resto.filter(t => SEED_UEL.has(t.name) && !copeiros.includes(t)), realC = resto.filter(t => SEED_UECL.has(t.name) && !copeiros.includes(t));
+      const sobra = resto.filter(t => !realL.includes(t) && !realC.includes(t) && !copeiros.includes(t));
+      const daL = [...(copeiroL ? [copeiroL] : []), ...realL]; daL.push(...sobra.splice(0, Math.max(0, nL - daL.length)));
+      const daC = [...(copeiroC ? [copeiroC] : []), ...realC]; daC.push(...sobra.splice(0, Math.max(0, nC - daC.length)));
       daL.slice(0, nL).forEach(t => uel.push(item(t))); daC.slice(0, nC).forEach(t => uecl.push(item(t)));
     }
     if (l.tier !== 1 && !(l.countryId === '45')) continue;
@@ -287,6 +317,17 @@ export type Ocupacao = Map<string, Set<string>>;
 
 export const somarDias = (d: string, n: number): string => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n); return x.toISOString().split('T')[0]; };
 const marcar = (oc: Ocupacao, keys: string[], d: string) => keys.forEach(k => { let s = oc.get(k); if (!s) { s = new Set(); oc.set(k, s); } s.add(d); });
+/*
+A ORDEM DA PROCURA: perto da data nominal primeiro, e so depois longe. Procurava-se ate 150 dias de cada lado com 2 dias livres antes de aceitar 1: um clube ingles com a
+liga de 3 em 3 ou 4 em 4 dias nunca tem 2 dias livres de cada lado, e a quarta de final de abril ia para maio (medido: a final da Champions ficava depois de 31/5, sem campeao).
+Agora, por janelas que alargam (7, 14, 30 e 150 dias): em cada uma, 2 dias livres e depois 1; so no fim, nenhum.
+*/
+const JANELAS_DA_AGENDA = [7, 14, 30, 150];
+const deslocamentosAte = (n: number): number[] => { const o: number[] = [0]; for (let i = 1; i <= n; i++) o.push(i, -i); return o; };
+const PASSOS_DA_AGENDA: { folga: number; desl: number[] }[] = [
+  ...JANELAS_DA_AGENDA.flatMap(w => [2, 1].map(folga => ({ folga, desl: deslocamentosAte(w) }))),
+  { folga: 0, desl: deslocamentosAte(150) }
+];
 
 /**
  * A data de um jogo: a nominal se os DOIS clubes estiverem livres nesse dia e nos 2 dias de cada lado (no minimo 2 dias de descanso entre jogos); senao a mais proxima (+1, -1, +2, -2...) que esteja. Se nao houver,
@@ -295,10 +336,9 @@ const marcar = (oc: Ocupacao, keys: string[], d: string) => keys.forEach(k => { 
 // `limite`: o ultimo dia da temporada da copa (fimDasCopas: 28/12 nas sul-americanas, 31/5 do ano seguinte nas europeias); sem ele, 28/12 do ano da data nominal.
 export const agendarJogo = (oc: Ocupacao, nominal: string, keys: string[], minimo: string, limite: string = nominal.slice(0, 4) + '-12-28'): string => {
   const livre = (d: string, folga: number) => d >= minimo && d <= limite && keys.every(k => { const s = oc.get(k); if (!s) return true; for (let i = -folga; i <= folga; i++) if (s.has(somarDias(d, i))) return false; return true; });
-  const deslocamentos: number[] = [0]; for (let i = 1; i <= 150; i++) deslocamentos.push(i, -i);   // procura ate 150 dias para cada lado (as datas nominais das copas sao so uma referencia: esticam-se ate caber o descanso): com 2 dias livres entre jogos (JOGO-LIVRE-LIVRE-JOGO) as datas nominais podem andar bastante
   let escolhida: string | null = null;
-  for (const folga of [2, 1, 0]) {   // 2 dias livres de cada lado (no minimo 2 de descanso entre jogos); so se nao houver data assim, 1 e por fim 0
-    for (const off of deslocamentos) { const d = somarDias(nominal, off); if (livre(d, folga)) { escolhida = d; break; } }
+  for (const { folga, desl } of PASSOS_DA_AGENDA) {   // ver PASSOS_DA_AGENDA: perto da nominal (2 dias livres, depois 1) antes de longe
+    for (const off of desl) { const d = somarDias(nominal, off); if (livre(d, folga)) { escolhida = d; break; } }
     if (escolhida) break;
   }
   const d = escolhida || (nominal >= minimo ? nominal : minimo);
@@ -312,13 +352,12 @@ export const agendarJogo = (oc: Ocupacao, nominal: string, keys: string[], minim
  */
 export const agendarIdaEVolta = (oc: Ocupacao, nominal: string, keys: string[], minimo: string, nominalVolta?: string, limite: string = nominal.slice(0, 4) + '-12-28'): [string, string] => {
   const livre = (d: string, folga: number) => d >= minimo && d <= limite && keys.every(k => { const s = oc.get(k); if (!s) return true; for (let i = -folga; i <= folga; i++) if (s.has(somarDias(d, i))) return false; return true; });
-  const deslocamentos: number[] = [0]; for (let i = 1; i <= 150; i++) deslocamentos.push(i, -i);
   // A volta na semana seguinte: 7 dias depois (ou o intervalo nominal, se for de 5 a 9 dias, como na final do Paulista: 15 e 21/3), ou 1-2 dias a menos/mais.
   const esp = nominalVolta ? Math.round((Date.parse(nominalVolta) - Date.parse(nominal)) / 864e5) : 7;
   const base = (esp >= 5 && esp <= 9) ? esp : 7;
   const voltas = [base, base - 1, base + 1, base - 2, base + 2].filter(v => v >= 5 && v <= 9);
-  for (const folga of [2, 1, 0]) {
-    for (const off of deslocamentos) {
+  for (const { folga, desl } of PASSOS_DA_AGENDA) {   // perto da nominal antes de longe (PASSOS_DA_AGENDA)
+    for (const off of desl) {
       const d1 = somarDias(nominal, off);
       if (!livre(d1, folga)) continue;
       for (const v of voltas) { const d2 = somarDias(d1, v); if (livre(d2, folga)) { marcar(oc, keys, d1); marcar(oc, keys, d2); return [d1, d2]; } }
@@ -348,7 +387,7 @@ AS DUAS TEMPORADAS DAS COPAS: 'SUL' (Brasil e America do Sul: de janeiro a dezem
 comeca). Cada familia renova-se na sua virada (prepararCopas `renovar`), independente da do utilizador.
 */
 export type FamiliaDeCopa = 'SUL' | 'EUR';
-const COPAS_EUROPEIAS = new Set<string>(['UCL', 'UEL', 'UECL', 'CARABAO']);
+const COPAS_EUROPEIAS = new Set<string>(['UCL', 'UEL', 'UECL', 'CARABAO', 'FA_CUP']);
 export const familiaDaCopa = (id: string): FamiliaDeCopa => (COPAS_EUROPEIAS.has(id) ? 'EUR' : 'SUL');
 /** A temporada (o ano em que comecou) da familia na data: 'SUL' o ano da data; 'EUR' o ano se ja passou de 1/6, senao o anterior. */
 export const temporadaDaFamilia = (f: FamiliaDeCopa, data: string): number => {
@@ -610,12 +649,40 @@ export const criarCarabao = (a: { premier: Clube[]; outros: Clube[]; europeus: s
   return c;
 };
 
+/**
+ * FA CUP, a copa de todas as divisoes inglesas. Com os escaloes 5 e 6 na base (`quinto`, `sexto`: ligas ocultas, tools/ligas_sav/inglaterra_inferiores), como a real:
+ *   Q3   os 48 do 6.o escalao (norte e sul), 24 jogos;
+ *   Q4   os 24 vencedores + os 24 do 5.o; jogam so os confrontos necessarios para sairem 32 (os mais fortes passam direto);
+ *   R1   os 32 + os 48 da 3.a e 4.a divisoes: 80 clubes, 40 jogos;      R2   20 jogos;
+ *   R3   os 20 + os 44 da 1.a e 2.a divisoes: 64 clubes;                 R4, R5, quartas, meias e final.
+ * Sem eles, comeca na R1 com os 48 da 3.a e 4.a (a 2.a joga so o necessario para a 3.a ter 64). Jogo unico, sem replay, prorrogacao e penaltis em todas as fases; meias e final
+ * em campo neutro. Sorteio aberto, mandante sorteado.
+ */
+export const criarFaCup = (a: { altos: Clube[]; baixos: Clube[]; quinto?: Clube[]; sexto?: Clube[] }, oc: Ocupacao = new Map(), ano: number = ANO_BASE): Competition => {
+  const porForca = (x: Clube, y: Clube) => y.team.strength - x.team.strength || hash(x.key) - hash(y.key);
+  const quinto = a.quinto || [], sexto = a.sexto || [];
+  const comQualificacao = quinto.length > 0 && sexto.length > 0;
+  const todos = [...a.altos, ...a.baixos, ...quinto, ...sexto].sort(porForca);
+  const primeira = comQualificacao ? sexto : a.baixos;
+  let r = embaralhar(primeira.map(c => c.key)); const folga: string[] = [];
+  if (r.length % 2) { const [m] = primeira.slice().sort(porForca); r = r.filter(k => k !== m.key); folga.push(m.key); }
+  const entradas: Record<string, string[]> = comQualificacao
+    ? { Q4: [...quinto.map(x => x.key), ...folga], R1: a.baixos.map(x => x.key), R3: a.altos.map(x => x.key) }
+    : { R2: folga, R3: a.altos.map(x => x.key) };
+  const c: Competition = { id: 'FA_CUP', name: nomeComp('FA_CUP'), teamKeys: todos.map(x => x.key), matches: [], entradas, ano };
+  const pares: [string, string][] = []; for (let i = 0; i + 1 < r.length; i += 2) pares.push([r[i], r[i + 1]]);
+  const fase1 = fasesNoAno(FASES_FA, ano).find(f => f.nome === (comQualificacao ? 'Q3' : 'R1'))!;
+  c.matches.push(...jogosDaFase(c, fase1, pares, oc, noAno(INICIO_EUROPA, ano)));
+  return c;
+};
+
 // ------------------------------------------------------------------ simulacao e avanco
 
 /** Carabao Cup: se o jogo que decide o confronto (final; 2.o jogo das meias, no agregado) acabou empatado, joga a prorrogacao (os golos entram no resultado; `et`); o resto e penaltis. */
 const prorrogacaoSeEmpate = (c: Competition, m: CompMatch, h: Team, a: Team) => {
   let gh = m.homeScore || 0, ga = m.awayScore || 0;
-  if (m.stage === 'SF') {
+  if (c.id === 'FA_CUP') { if (m.leg) return; }   // FA Cup: todo jogo (unico) empatado vai a prorrogacao
+  else if (m.stage === 'SF') {
     if (m.leg !== 2) return;
     const l1 = c.matches.find(x => x.stage === 'SF' && x.tie === m.tie && x.leg === 1);
     if (!l1 || !l1.played) return;
@@ -677,7 +744,7 @@ export const decisaoDoConfronto = (comps: Competition[] | null, fixtureId: strin
     if ((m.leg || 1) !== ultimaPerna) return null;
     const antes = irmaos.filter(x => x.id !== m.id && x.played);
     const golsDe = (key: string) => antes.reduce((s, x) => s + (x.homeKey === key ? (x.homeScore || 0) : x.awayKey === key ? (x.awayScore || 0) : 0), 0);
-    return { compId: c.id, matchId: m.id, agregadoCasa: golsDe(m.homeKey), agregadoFora: golsDe(m.awayKey), ...(c.id === 'CARABAO' && (m.stage === 'F' || m.stage === 'SF') ? { prorrogacao: true } : {}), ...(m.stage === 'F' ? { titulo: true } : {}) };
+    return { compId: c.id, matchId: m.id, agregadoCasa: golsDe(m.homeKey), agregadoFora: golsDe(m.awayKey), ...((c.id === 'CARABAO' && (m.stage === 'F' || m.stage === 'SF')) || c.id === 'FA_CUP' ? { prorrogacao: true } : {}), ...(m.stage === 'F' ? { titulo: true } : {}) };
   }
   return null;
 };
@@ -695,7 +762,7 @@ export const vencedorDoConfronto = (jogos: CompMatch[], teams: Map<string, Team>
   return ultimo.pens[0] > ultimo.pens[1] ? ultimo.homeKey : ultimo.awayKey;
 };
 
-const faseDoComp = (c: Competition) => fasesNoAno(c.id === 'UCL' ? FASES_UCL : (c.id === 'UEL' || c.id === 'UECL') ? FASES_UEL : c.id === 'CARABAO' ? FASES_CARABAO : c.id === 'LIB' ? FASES_LIB : c.id === 'SUL' ? FASES_SUL : c.id === 'SERIE_C' ? FASES_C : c.id === 'SERIE_D' ? FASES_D : c.id === 'PAULISTA' ? FASES_PAULISTA : FASES_COPA, c.ano);
+const faseDoComp = (c: Competition) => fasesNoAno(c.id === 'UCL' ? FASES_UCL : (c.id === 'UEL' || c.id === 'UECL') ? FASES_UEL : c.id === 'CARABAO' ? FASES_CARABAO : c.id === 'FA_CUP' ? FASES_FA : c.id === 'LIB' ? FASES_LIB : c.id === 'SUL' ? FASES_SUL : c.id === 'SERIE_C' ? FASES_C : c.id === 'SERIE_D' ? FASES_D : c.id === 'PAULISTA' ? FASES_PAULISTA : FASES_COPA, c.ano);
 
 /** Cria os jogos de uma fase a partir de pares [melhor, pior] (ida em casa do pior, volta em casa do melhor; jogo unico: em casa o 1.o). */
 const jogosDaFase = (c: Competition, fase: { nome: string; datas: string[] }, pares: [string, string][], oc: Ocupacao, minimoExtra: string = noAno(INICIO_DA_EPOCA, c.ano)): CompMatch[] => {
@@ -709,7 +776,7 @@ const jogosDaFase = (c: Competition, fase: { nome: string; datas: string[] }, pa
       // Jogo unico da Copa do Brasil: o pior cabeca de serie joga em casa (a final, em campo neutro, fica com o melhor como "casa").
       // Carabao Cup: o sorteio ja definiu o mandante (o 1.o do par); a final e em Wembley (campo neutro).
       const [casa, fora] = (c.id === 'COPA_BR' && fase.nome !== 'F') ? [pior, melhor] : [melhor, pior];
-      out.push(jogo(`${c.id}-${tie}`, fase.nome, agendarJogo(oc, fase.datas[0], [melhor, pior], minimo, limiteDaCopa(c)), casa, fora, (c.id === 'CARABAO' && fase.nome === 'F') ? { tie, venue: NEUTRAL_VENUES.WEMBLEY.name } : { tie }));
+      out.push(jogo(`${c.id}-${tie}`, fase.nome, agendarJogo(oc, fase.datas[0], [melhor, pior], minimo, limiteDaCopa(c)), casa, fora, emCampoNeutro(c.id, fase.nome) ? { tie, venue: NEUTRAL_VENUES.WEMBLEY.name } : { tie }));
     }
     else {
       const [d1, d2] = agendarIdaEVolta(oc, fase.datas[0], [melhor, pior], minimo, fase.datas[1], limiteDaCopa(c));   // a ida numa semana e a volta na seguinte
@@ -812,7 +879,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         const h = teams.get(m.homeKey), a = teams.get(m.awayKey);
         let [hs, as] = (h && a) ? simulateFast(h, a) : [1, 1];
         m.homeScore = hs; m.awayScore = as; m.played = true;
-        if (c.id === 'CARABAO' && h && a) prorrogacaoSeEmpate(c, m, h, a);
+        if ((c.id === 'CARABAO' || c.id === 'FA_CUP') && h && a) prorrogacaoSeEmpate(c, m, h, a);
       });
       progressou = true;
     }
@@ -839,7 +906,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
       for (let i = 0; i < o.length / 2; i++) p.push([o[i], o[o.length - 1 - i]]);
       return p;
     };
-    const sequencia = c.id === 'CARABAO' ? ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'] : c.id === 'COPA_BR' ? ['P1', 'P2', 'P3', 'P4', 'P5', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_D' ? ['R64', 'R32', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_C' ? ['F'] : c.id === 'PAULISTA' ? ['QF', 'SF', 'F'] : ['R16', 'QF', 'SF', 'F'];
+    const sequencia = MATA_MATA_INGLES[c.id] ? fasesInglesas(c) : c.id === 'COPA_BR' ? ['P1', 'P2', 'P3', 'P4', 'P5', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_D' ? ['R64', 'R32', 'R16', 'QF', 'SF', 'F'] : c.id === 'SERIE_C' ? ['F'] : c.id === 'PAULISTA' ? ['QF', 'SF', 'F'] : ['R16', 'QF', 'SF', 'F'];
     const fase = (nome: string) => fases.find(f => f.nome === nome)!;
     const seed = (k: string) => c.teamKeys.indexOf(k);
 
@@ -873,25 +940,27 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
         c.matches.push(...jogosDaFase(c, fase('R16'), top8.map((k, i) => [k, venc[7 - i]] as [string, string]), oc, somarDias(hoje, 1)));
         progressou = true;
       }
-    } else if (c.id === 'CARABAO' && sequencia.some((nome, i) => i > 0 && !temFase(nome) && feitaFase(sequencia[i - 1]))) {
+    } else if (MATA_MATA_INGLES[c.id] && sequencia.some((nome, i) => i > 0 && !temFase(nome) && feitaFase(sequencia[i - 1]))) {
       // Sorteio da fase seguinte: vencedores + quem entra agora (+ os que ja tinham folga), pares aleatorios, mandante sorteado (nas meias: ida/volta).
       const i = sequencia.findIndex((nome, k) => k > 0 && !temFase(nome) && feitaFase(sequencia[k - 1]));
       const b = sequencia[i];
       copia();
       let part = vencedoresDe(sequencia[i - 1])!.concat((c.entradas && c.entradas[b]) || []);
-      if (b === 'R2') {
-        // Alvo: 32 clubes na 3.a rodada (16 na 4.a). Jogam `m` confrontos e os `folga` mais fortes passam direto (entram na 3.a).
-        const entram3 = ((c.entradas && c.entradas.R3) || []).length;
-        const m = Math.max(0, Math.min(Math.floor(part.length / 2), part.length + entram3 - 32));
+      const alvo = MATA_MATA_INGLES[c.id].alvos[b];
+      if (alvo) {
+        // Alvo: `alvo` clubes na fase seguinte (contando os que entram nela). Jogam `m` confrontos e os `folga` mais fortes passam direto (entram na seguinte).
+        const prox = sequencia[i + 1];
+        const entramProx = ((c.entradas && c.entradas[prox]) || []).length;
+        const m = Math.max(0, Math.min(Math.floor(part.length / 2), part.length + entramProx - alvo));
         const folga = ordemPorForca(part).slice(0, part.length - 2 * m);
         part = part.filter(k => !folga.includes(k));
-        c.entradas = { ...c.entradas, R3: [...(((c.entradas && c.entradas.R3) || [])), ...folga] };
+        c.entradas = { ...c.entradas, [prox]: [...(((c.entradas && c.entradas[prox]) || [])), ...folga] };
       }
       if (part.length % 2) { const [melhor] = ordemPorForca(part); part = part.filter(k => k !== melhor); c.entradas = { ...c.entradas, [sequencia[i + 1] || 'F']: [...(((c.entradas && c.entradas[sequencia[i + 1] || 'F']) || [])), melhor] }; }
       const emb = embaralhar(part); const pares: [string, string][] = []; for (let k = 0; k + 1 < emb.length; k += 2) pares.push([emb[k], emb[k + 1]]);
       c.matches.push(...jogosDaFase(c, fase(b), pares, oc, somarDias(hoje, 1)));
       progressou = true;
-    } else if (c.id === 'CARABAO') {
+    } else if (MATA_MATA_INGLES[c.id]) {
       // (sem fase a sortear: o campeao e tratado abaixo)
     } else if (c.id === 'PAULISTA' && !temFase('QF')) {
       // Fim da fase classificatoria: os 8 primeiros (pontos, vitorias, saldo, golos, confronto direto, sorteio) jogam as quartas: 1x8, 2x7, 3x6, 4x5, em casa do melhor.
@@ -972,7 +1041,7 @@ export const avancarCompeticao = (comp: Competition, teams: Map<string, Team>, h
       if (v) {
         c.champion = v[0]; progressou = true;
         const fin = c.matches.filter(m => m.stage === 'F')[0];
-        if (c.id === 'CARABAO' && fin) c.vice = fin.homeKey === v[0] ? fin.awayKey : fin.homeKey;
+        if ((c.id === 'CARABAO' || c.id === 'FA_CUP') && fin) c.vice = fin.homeKey === v[0] ? fin.awayKey : fin.homeKey;
       }
     }
     if (!progressou) break;
@@ -992,7 +1061,7 @@ export const tabelaDoGrupo = (c: Competition, grupo: string, teams: Map<string, 
   return rows.sort((x, y) => y.points - x.points || y.won - x.won || (y.gf - y.ga) - (x.gf - x.ga) || y.gf - x.gf);
 };
 
-export const NOMES_FASES: Record<string, string> = { R64: 'Round of 64', PA: 'Promotion playoff', L: 'First phase', G: 'Group stage', D: 'Group stage', P1: 'Phase 1', P2: 'Phase 2', P3: 'Phase 3', P4: 'Phase 4', P5: 'Phase 5', R1: 'First round', R2: 'Second round', R3: 'Third round', R4: 'Fourth round', R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-finals', SF: 'Semi-finals', F: 'Final', G1: 'Group MD1', G2: 'Group MD2', G3: 'Group MD3', G4: 'Group MD4', G5: 'Group MD5', G6: 'Group MD6', G7: 'Group MD7', G8: 'Group MD8', PO: 'Knockout playoff' };
+export const NOMES_FASES: Record<string, string> = { R64: 'Round of 64', PA: 'Promotion playoff', L: 'First phase', G: 'Group stage', D: 'Group stage', P1: 'Phase 1', P2: 'Phase 2', P3: 'Phase 3', P4: 'Phase 4', P5: 'Phase 5', R1: 'First round', R2: 'Second round', R3: 'Third round', R4: 'Fourth round', R5: 'Fifth round', Q3: 'Third qualifying round', Q4: 'Fourth qualifying round', R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-finals', SF: 'Semi-finals', F: 'Final', G1: 'Group MD1', G2: 'Group MD2', G3: 'Group MD3', G4: 'Group MD4', G5: 'Group MD5', G6: 'Group MD6', G7: 'Group MD7', G8: 'Group MD8', PO: 'Knockout playoff' };
 
 /**
  * O RÓTULO CURTO DA FASE, para a coluna Type do calendario (components/FixturesView.tsx): LIBERT-G, LIBERT-16, LIBERT-8, LIBERT-4, LIBERT FINAL; o mesmo para a
@@ -1004,7 +1073,7 @@ export const rotuloDaFase = (compId: Competition['id'], stage: string): string =
   const p = PREFIXO_COMP[compId];
   const sep = compId === 'COPA_BR' ? ' - ' : '-';   // a Copa do Brasil mostra "CUP - 1"
   if (stage === 'F') return p + ' FINAL';
-  if (compId === 'CARABAO') return p + '-' + stage;   // EFL-R1 ... EFL-R4, EFL-QF, EFL-SF
+  if (compId === 'CARABAO' || compId === 'FA_CUP') return p + '-' + stage;   // EFL-R1 ... EFL-R4, EFL-QF, EFL-SF (e o mesmo na FA Cup)
   if (/^G\d*$/.test(stage) || stage === 'D') return p + sep + 'G';
   if (/^P\d$/.test(stage)) return p + sep + stage[1];
   if (stage === 'QF') return p + sep + '8';
@@ -1017,7 +1086,7 @@ export const rotuloDaFase = (compId: Competition['id'], stage: string): string =
 // ------------------------------------------------------------------ ligas -> copas
 
 import type { WorldLeague } from './world';
-import { COUNTRIES } from './dataGenerator';
+import { COUNTRIES, FASES_FA_CUP } from './dataGenerator';
 
 /**
  * O pais e a liga de um clube: o que o proprio clube diz (`country` pelo id ou pelo NOME, `leagueId`) se bater com a base; senao (saves antigos, em que o pais vinha como "Brazil" e a liga
@@ -1081,6 +1150,15 @@ export const criarCopas = (ligas: WorldLeague[], anterior?: Record<string, strin
   if (q.uecl.length >= 32) out.push(criarChampions(q.uecl, oc, ano, 'UECL'));
   const carabao = carabaoDeLigas(ligas, q);
   if (carabao) out.push(criarCarabao(carabao, oc, ano));
+  // FA Cup: as mesmas 92 (1.a e 2.a divisoes entram na 3.a rodada; 3.a e 4.a jogam desde a 1.a).
+  if (carabao) {
+    const altos: Clube[] = [], baixos: Clube[] = [];
+    ligas.filter(l => l.countryId === '65' && l.tier >= 1 && l.tier <= 4).forEach(l => l.teams.forEach(t => (l.tier <= 2 ? altos : baixos).push({ key: teamKey(l.leagueId, t.id), team: t })));
+    // Os escaloes 5 e 6 (ligas ocultas, tools/ligas_sav/inglaterra_inferiores): as rondas de qualificacao.
+    const quinto: Clube[] = [], sexto: Clube[] = [];
+    ligas.filter(l => l.countryId === '65' && (l.tier === 5 || l.tier === 6)).forEach(l => l.teams.forEach(t => (l.tier === 5 ? quinto : sexto).push({ key: teamKey(l.leagueId, t.id), team: t })));
+    out.push(criarFaCup({ altos, baixos, quinto, sexto }, oc, ano));
+  }
   if (q.serieC.length === 20) out.push(criarSerieC(q.serieC, oc, userLeagueId === 'bra_serie_c', ano));
   if (q.serieD.length >= 16) {
     // Com o utilizador na Serie D, o grupo dele e a liga do jogo.
@@ -1099,7 +1177,7 @@ export const competicoesDoClube = (team: Team, leagueId: string, leagueTeams: Te
   const liga: any = pais?.leagues.find((l: any) => l.id === leagueId);
   if (!pais || !liga) return [];
   const out: { id: string; nome: string }[] = [{ id: 'LIGA', nome: liga.name }];
-  if (pais.id === '65' && liga.tier >= 1 && liga.tier <= 4) out.push({ id: 'CARABAO', nome: nomeComp('CARABAO') });
+  if (pais.id === '65' && liga.tier >= 1 && liga.tier <= 4) { out.push({ id: 'CARABAO', nome: nomeComp('CARABAO') }); out.push({ id: 'FA_CUP', nome: nomeComp('FA_CUP') }); }
   if (ehDoPaulista(team.id)) out.push({ id: 'PAULISTA', nome: nomeComp('PAULISTA') });
   if (((pais.copaTeamIds || []) as number[]).map(String).includes(String(team.id))) out.push({ id: 'COPA_BR', nome: nomeComp('COPA_BR') });
   const ordem = classificacaoAnoAnterior(leagueId, leagueTeams, (liga.teamIds || []).map(String));
@@ -1240,7 +1318,8 @@ export const prepararCopas = (a: EntradaCopas): SaidaCopas | null => {
   // As copas novas nascem na temporada da FAMILIA delas (temporadaDaFamilia): as sul-americanas no ano da data, as europeias na temporada que comecou a 1/6.
   const temp: Record<FamiliaDeCopa, number> = { SUL: temporadaDaFamilia('SUL', a.date), EUR: temporadaDaFamilia('EUR', a.date) };
   const anoDaData = temp.SUL;
-  const histDe = (ano: number): HistoricoCopas => ({ carabao: campeaoAnterior(a.historico, 'CARABAO', ano) });   // o campeao da Carabao da temporada anterior vai a Europa League
+  // Os campeoes da temporada anterior das copas inglesas: FA Cup -> Europa League, Carabao -> Conference League.
+  const histDe = (ano: number): HistoricoCopas => ({ carabao: campeaoAnterior(a.historico, 'CARABAO', ano), faCup: campeaoAnterior(a.historico, 'FA_CUP', ano) });
   let base = a.comps ? a.comps.map(c => sincronizarResultados(c, a.fixtures)) : null;
   // A VIRADA DE UMA FAMILIA (`renovar`): as copas dela saem e nascem as da temporada nova; as da outra familia continuam a meio.
   if (base && a.renovar && a.renovar.length) base = base.filter(c => !a.renovar!.includes(familiaDaCopa(c.id)));
@@ -1265,8 +1344,8 @@ export const prepararCopas = (a: EntradaCopas): SaidaCopas | null => {
   // Um save de antes da Europa League, da Conference e da Carabao Cup: cria so as que faltam (se a fase de liga ainda nao comecou / a Carabao ainda nao passou da final).
   if (base) {
     const faltam = (id: Competition['id']) => !base!.some(c => c.id === id);
-    if (faltam('UEL') || faltam('UECL') || faltam('CARABAO')) {
-      const novas = criarDa('EUR').filter(c => (c.id === 'UEL' || c.id === 'UECL' || c.id === 'CARABAO') && faltam(c.id));
+    if (faltam('UEL') || faltam('UECL') || faltam('CARABAO') || faltam('FA_CUP')) {
+      const novas = criarDa('EUR').filter(c => (c.id === 'UEL' || c.id === 'UECL' || c.id === 'CARABAO' || c.id === 'FA_CUP') && faltam(c.id));
       if (novas.length) base = [...base, ...novas];
     }
   }

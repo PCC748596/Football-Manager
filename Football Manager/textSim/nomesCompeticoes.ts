@@ -2,7 +2,7 @@
 OS NOMES E OS LOGOS DAS COMPETICOES. O jogo traz nomes GENERICOS (copas, divisoes e prefixos das fases); os nomes reais e os logos vem do mod `public/dados_reais/competicoes.json` (textSim/modDados.ts), que
 substitui os genericos ao arrancar. Sem o mod (o pacote da Steam) ficam os nomes genericos e os logos genericos (uma taca em SVG com a sigla).
 
-    dados_reais/competicoes.json   [{ id, nome, nomeCurto, prefixo, logo }]    id = o id da copa (LIB, SUL, COPA_BR, CARABAO, PAULISTA, UCL, UEL, UECL, SERIE_C, SERIE_D) ou da liga (bra_serie_a, eng_prem...)
+    dados_reais/competicoes.json   [{ id, nome, nomeCurto, prefixo, logo }]    id = o id da copa (LIB, SUL, COPA_BR, CARABAO, FA_CUP, PAULISTA, UCL, UEL, UECL, SERIE_C, SERIE_D) ou da liga (bra_serie_a, eng_prem...)
     dados_reais/competicoes/<ficheiro> os logos  (`logo` = o nome do ficheiro)
 
 `nome` e o nome completo; `nomeCurto` o das listas e etiquetas ("Champions League" em vez de "UEFA Champions League"); `prefixo` o das fases ("EFL-R1", "CUP - 1"). Campos em falta ficam como nos genericos.
@@ -15,6 +15,7 @@ const GENERICOS: Record<string, { nome: string; curto: string; prefixo: string }
   SUL: { nome: 'Southern Challenge Cup', curto: 'Southern Challenge Cup', prefixo: 'SCH' },
   COPA_BR: { nome: 'National Cup', curto: 'National Cup', prefixo: 'CUP' },
   CARABAO: { nome: 'League Cup', curto: 'League Cup', prefixo: 'LC' },
+  FA_CUP: { nome: 'Association Cup', curto: 'Association Cup', prefixo: 'AC' },
   PAULISTA: { nome: 'State Championship', curto: 'State Championship', prefixo: 'STA' },
   UCL: { nome: 'European Champions League', curto: 'Champions League', prefixo: 'ECL' },
   UEL: { nome: 'European Continental League', curto: 'Continental League', prefixo: 'CTL' },
@@ -48,7 +49,7 @@ let baseDosLogos = { base: 'dados_reais/', sufixo: '' };
 export const definirBaseDosLogos = (base: string, sufixo = ''): void => { baseDosLogos = { base, sufixo }; };
 
 // Os logos GENERICOS (sem o mod): uma taca desenhada em SVG, com a cor e a sigla (o prefixo) de cada copa. Nao ha marca de ninguem nestes desenhos.
-const COR_GENERICA: Record<string, string> = { LIB: '#b8860b', SUL: '#2f7d4f', COPA_BR: '#1f6fb2', CARABAO: '#c2410c', PAULISTA: '#7c3aed', UCL: '#1e3a8a', UEL: '#ea580c', UECL: '#0f766e', SERIE_C: '#475569', SERIE_D: '#64748b' };
+const COR_GENERICA: Record<string, string> = { LIB: '#b8860b', SUL: '#2f7d4f', COPA_BR: '#1f6fb2', CARABAO: '#c2410c', FA_CUP: '#b91c1c', PAULISTA: '#7c3aed', UCL: '#1e3a8a', UEL: '#ea580c', UECL: '#0f766e', SERIE_C: '#475569', SERIE_D: '#64748b' };
 const logoGenerico = (id: string): string => {
   const cor = COR_GENERICA[id];
   if (!cor) return '';

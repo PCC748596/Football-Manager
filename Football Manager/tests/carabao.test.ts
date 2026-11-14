@@ -43,7 +43,7 @@ test('Carabao completa: 36-> R2 -> 32 na R3 -> 16 -> QF 8 -> SF ida/volta -> fin
   for (const m of c.matches) if (m.stage !== 'F') assert.ok(m.date < f.date, 'final e a ultima');
 });
 
-test('Carabao: 2.a rodada com 24 jogos; campeao da Carabao ganha vaga na Europa League (vaga desce se ja na Champions)', () => {
+test('Carabao: 2.a rodada com 24 jogos; campeao da Carabao ganha vaga na Conference League (vaga desce se ja na Champions)', () => {
   const w = mundo();
   const base = criarCopas(w, undefined, ocupacaoDe(w, []), null, 'bra_serie_a');
   let c = base.find(x => x.id === 'CARABAO') as Competition;
@@ -52,14 +52,15 @@ test('Carabao: 2.a rodada com 24 jogos; campeao da Carabao ganha vaga na Europa 
   let dia = '2026-07-01';
   for (let i = 0; i < 90; i++) { c = avancarCompeticao(c, mapa, dia, { ocupado: oc }); dia = somarDias(dia, 1); }
   assert.equal(c.matches.filter(m => m.stage === 'R2').length, 24);
-  const uelBase = (base.find(x => x.id === 'UEL') as Competition).teamKeys;
+  const ueclBase = (base.find(x => x.id === 'UECL') as Competition).teamKeys;
   const eng = w.find(l => l.leagueId === 'eng_prem')!;
   const fora = eng.teams.map(t => 'eng_prem|' + t.id).find(k => !base.some(b => ['UCL', 'UEL', 'UECL'].includes(b.id) && b.teamKeys.includes(k)))!;
   const nome = eng.teams.find(t => 'eng_prem|' + t.id === fora)!.name;
   const com = criarCopas(w, undefined, ocupacaoDe(w, []), null, 'bra_serie_a', 2026, { carabao: nome });
-  assert.ok((com.find(x => x.id === 'UEL') as Competition).teamKeys.includes(fora), 'campeao da Carabao entra na UEL');
-  assert.equal((com.find(x => x.id === 'UEL') as Competition).teamKeys.length, 36);
-  assert.equal(uelBase.length, 36);
+  // Como no real: a Carabao da a Conference League (a FA Cup e que da a Europa League, tests/fa_cup.test.ts).
+  assert.ok((com.find(x => x.id === 'UECL') as Competition).teamKeys.includes(fora), 'campeao da Carabao entra na UECL');
+  assert.equal((com.find(x => x.id === 'UECL') as Competition).teamKeys.length, 36);
+  assert.equal(ueclBase.length, 36);
 });
 
 test('decisaoDoConfronto manda prorrogacao na final e no 2.o jogo das meias, nao nas rodadas de jogo unico', () => {
@@ -81,11 +82,11 @@ test('historico de campeoes: arquiva campeao e vice uma vez por ano e devolve o 
   assert.equal(campeaoAnterior(h1, 'CARABAO', 2026), undefined, 'so conta edicoes anteriores');
 });
 
-test('prepararCopas usa o historico: o campeao da Carabao do ano anterior entra na Europa League', () => {
+test('prepararCopas usa o historico: o campeao da Carabao do ano anterior entra na Conference League', () => {
   const w = mundo();
   const eng = w.find(l => l.leagueId === 'eng_prem')!;
   const base = criarCopas(w, undefined, ocupacaoDe(w, []), null, 'bra_serie_a');
   const fora = eng.teams.find(t => !base.some(b => ['UCL', 'UEL', 'UECL'].includes(b.id) && b.teamKeys.includes('eng_prem|' + t.id)))!;
   const com = criarCopas(w, undefined, ocupacaoDe(w, []), null, 'bra_serie_a', 2027, { carabao: campeaoAnterior({ CARABAO: [{ ano: 2026, campeao: fora.name }] }, 'CARABAO', 2027) });
-  assert.ok((com.find(x => x.id === 'UEL') as Competition).teamKeys.includes('eng_prem|' + fora.id));
+  assert.ok((com.find(x => x.id === 'UECL') as Competition).teamKeys.includes('eng_prem|' + fora.id));
 });

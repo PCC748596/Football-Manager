@@ -22,6 +22,9 @@ const logoCopa = (id: string) => { const u = logoComp(id); return u ? assetUrl(u
 const NOME_FASE_BR: Record<string, string> = { 'SERIE_C:G': 'Segunda fase', 'SERIE_C:F': 'Final', 'SERIE_D:R64': 'Segunda fase', 'SERIE_D:R32': 'Terceira fase', 'SERIE_D:R16': 'Oitavas de final', 'SERIE_D:QF': 'Quartas de final', 'SERIE_D:SF': 'Semi final', 'SERIE_D:PA': 'Playoffs de acesso', 'SERIE_D:F': 'Final' };
 // Carabao Cup: uma aba por fase (a mais recente abre primeiro).
 const FASES_CARABAO_ABAS = ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'];
+const FASES_FA_ABAS = ['Q3', 'Q4', 'R1', 'R2', 'R3', 'R4', 'R5', 'QF', 'SF', 'F'];
+// As copas inglesas a eliminar (Carabao e FA Cup): uma aba por rodada.
+const abasInglesas = (id: string): string[] | null => (id === 'CARABAO' ? FASES_CARABAO_ABAS : id === 'FA_CUP' ? FASES_FA_ABAS : null);
 // Libertadores e Sul-Americana: o mata-mata em abas por fase (16 clubes, 8, semifinal e final), em vez da aba unica Knockout.
 const FASES_COPA_SUL_ABAS = ['R16', 'QF', 'SF', 'F'];
 const ehCopaSul = (id: string) => id === 'LIB' || id === 'SUL';
@@ -64,7 +67,7 @@ const WorldView: React.FC = () => {
   const selecao: Selecao | null = sel || (compDoMeu ? { tipo: 'COPA', id: compDoMeu } : ligas.length ? { tipo: 'LIGA', id: (meu && meu.leagueId) || ligas[0].leagueId } : null);
   const liga = selecao && selecao.tipo === 'LIGA' ? ligas.find(l => l.leagueId === selecao.id) || null : null;
   const copa = selecao && selecao.tipo === 'COPA' && comps ? comps.find(c => c.id === selecao.id) || null : null;
-  useEffect(() => { setRodada(null); setAba(copa ? ((copa.id === 'SERIE_C' || copa.id === 'SERIE_D') ? 'P1' : copa.id === 'CARABAO' ? 'C:' + (FASES_CARABAO_ABAS.filter(s => copa.matches.some(m => m.stage === s)).pop() || 'R1') : copa.groups ? 'GRUPOS' : 'MATA') : 'TABELA'); }, [selecao?.tipo, selecao?.id]);
+  useEffect(() => { setRodada(null); setAba(copa ? ((copa.id === 'SERIE_C' || copa.id === 'SERIE_D') ? 'P1' : abasInglesas(copa.id) ? 'C:' + (abasInglesas(copa.id)!.filter(s => copa.matches.some(m => m.stage === s)).pop() || 'R1') : copa.groups ? 'GRUPOS' : 'MATA') : 'TABELA'); }, [selecao?.tipo, selecao?.id]);
 
   if (!world || !comps) {
     return <div className="h-full flex items-center justify-center text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest text-sm animate-pulse">{tx("Generating the world's competitions...")}</div>;
@@ -73,7 +76,7 @@ const WorldView: React.FC = () => {
   const fmtData = (s: string) => { const d = new Date(s + 'T12:00:00'); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`; };
   const th = 'px-3 py-2 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 text-center';
   // Champions, Europa League, Conference e Carabao: escudos dos clubes 15,3% maiores (30x36 -> 34.6x40.6).
-  const escudoGrande = !!copa && (ehLigaFase(copa.id) || copa.id === 'CARABAO');
+  const escudoGrande = !!copa && (ehLigaFase(copa.id) || !!abasInglesas(copa.id));
   const Escudo = ({ k }: { k: string }) => <TeamShield team={mapa.get(k)} className={escudoGrande ? 'w-[34.6px] h-[40.6px]' : 'w-[30px] h-9'} />;
   const nomeDe = (k: string) => mapa.get(k)?.name || '?';
   const souEu = (k: string) => !!userTeam && mapa.get(k)?.id === userTeam.id && k.startsWith(userTeam.leagueId + '|');
@@ -243,12 +246,12 @@ const WorldView: React.FC = () => {
     const fasesSerie = (c.id === 'SERIE_C' || c.id === 'SERIE_D') ? fasesDeSerieCD(c, ordemVista(c)) : null;
     const fasesTodas = Array.from(new Set(c.matches.filter(m => !m.group).map(m => m.stage)));
     // Champions: o playoff tem a sua aba (entre Groups e Knockout); o Knockout so mostra as fases seguintes.
-    const fases = ((c.id === 'CARABAO' || ehCopaSul(c.id)) && aba.startsWith('C:')) ? fasesTodas.filter(f => f === aba.slice(2)) : ehLigaFase(c.id) ? (aba === 'PLAYOFF' ? ['PO'].filter(f => fasesTodas.includes(f)) : fasesTodas.filter(f => f !== 'PO')) : fasesTodas;
+    const fases = ((abasInglesas(c.id) || ehCopaSul(c.id)) && aba.startsWith('C:')) ? fasesTodas.filter(f => f === aba.slice(2)) : ehLigaFase(c.id) ? (aba === 'PLAYOFF' ? ['PO'].filter(f => fasesTodas.includes(f)) : fasesTodas.filter(f => f !== 'PO')) : fasesTodas;
     return (
       <>
         <div className="flex gap-2 p-3 border-b border-slate-200 dark:border-slate-800 items-center">
-          {[...(c.id === 'CARABAO' ? [...FASES_CARABAO_ABAS.map(s => 'C:' + s), 'JOGOS'] : fasesSerie ? ['P1', ...fasesSerie.map(f => 'F:' + f.stage), 'JOGOS'] : c.groups ? ['GRUPOS', ...(ehLigaFase(c.id) ? ['PLAYOFF'] : []), ...(ehCopaSul(c.id) ? [...FASES_COPA_SUL_ABAS.map(f => 'C:' + f), 'JOGOS'] : ['MATA', 'JOGOS'])] : ['MATA', 'JOGOS']), ...((historicoCopas[c.id] || []).length ? ['HIST'] : [])].map(a => (
-            <button key={a} onClick={() => setAba(a)} className={`px-4 py-1.5 rounded text-[11px] font-black uppercase tracking-widest ${aba === a ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>{a === 'HIST' ? 'History' : (c.id === 'CARABAO' || (ehCopaSul(c.id) && a.startsWith('C:'))) ? (a === 'JOGOS' ? 'All matches' : NOMES_FASES[a.slice(2)] || a) : fasesSerie ? (a === 'P1' ? 'Primeira fase' : a === 'JOGOS' ? 'Todos os jogos' : (NOME_FASE_BR[c.id + ':' + a.slice(2)] || a)) : (a === 'GRUPOS' ? 'Groups' : a === 'PLAYOFF' ? 'Playoffs' : a === 'MATA' ? 'Knockout' : 'All matches')}</button>
+          {[...(abasInglesas(c.id) ? [...abasInglesas(c.id)!.map(s => 'C:' + s), 'JOGOS'] : fasesSerie ? ['P1', ...fasesSerie.map(f => 'F:' + f.stage), 'JOGOS'] : c.groups ? ['GRUPOS', ...(ehLigaFase(c.id) ? ['PLAYOFF'] : []), ...(ehCopaSul(c.id) ? [...FASES_COPA_SUL_ABAS.map(f => 'C:' + f), 'JOGOS'] : ['MATA', 'JOGOS'])] : ['MATA', 'JOGOS']), ...((historicoCopas[c.id] || []).length ? ['HIST'] : [])].map(a => (
+            <button key={a} onClick={() => setAba(a)} className={`px-4 py-1.5 rounded text-[11px] font-black uppercase tracking-widest ${aba === a ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>{a === 'HIST' ? 'History' : (abasInglesas(c.id) || (ehCopaSul(c.id) && a.startsWith('C:'))) ? (a === 'JOGOS' ? 'All matches' : NOMES_FASES[a.slice(2)] || a) : fasesSerie ? (a === 'P1' ? 'Primeira fase' : a === 'JOGOS' ? 'Todos os jogos' : (NOME_FASE_BR[c.id + ':' + a.slice(2)] || a)) : (a === 'GRUPOS' ? 'Groups' : a === 'PLAYOFF' ? 'Playoffs' : a === 'MATA' ? 'Knockout' : 'All matches')}</button>
           ))}
           {c.champion && <span className="ml-auto flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-amber-500">🏆 Champion <Escudo k={c.champion} /> {nomeDe(c.champion)}</span>}
         </div>
@@ -279,7 +282,7 @@ const WorldView: React.FC = () => {
           {fasesSerie && aba.startsWith('F:') && !(aba === 'F:G' && c.groups?.G1) && (() => { const f = fasesSerie.find(x => x.stage === aba.slice(2)); return f ? painelFase(f, c.id) : null; })()}
           {(aba === 'MATA' || aba === 'PLAYOFF' || aba.startsWith('C:')) && (
             <div className="space-y-5">
-              {fases.length === 0 && <div className="text-slate-500 text-sm p-4">{aba === 'PLAYOFF' ? 'The playoffs (9th to 24th) are drawn when the league phase ends.' : c.id === 'CARABAO' ? 'This round is drawn when the previous one ends.' : 'The knockout rounds are drawn when the group stage ends.'}</div>}
+              {fases.length === 0 && <div className="text-slate-500 text-sm p-4">{aba === 'PLAYOFF' ? 'The playoffs (9th to 24th) are drawn when the league phase ends.' : abasInglesas(c.id) ? 'This round is drawn when the previous one ends.' : 'The knockout rounds are drawn when the group stage ends.'}</div>}
               {fases.map(f => {
                 const ties = Array.from(new Set(c.matches.filter(m => m.stage === f).map(m => m.tie)));
                 return (
@@ -364,7 +367,7 @@ const WorldView: React.FC = () => {
     const ordem = (COUNTRIES as any[]).map(c => c.id);
     return Array.from(m.values()).sort((x, y) => ordem.indexOf(x.id) - ordem.indexOf(y.id)).map(p => ({ ...p, itens: p.itens.sort((a, b) => a.tier - b.tier) }));
   })();
-  const copasSoltas = comps.filter(c => ehLigaFase(c.id) || c.id === 'CARABAO' || c.id === 'LIB' || c.id === 'SUL' || c.id === 'COPA_BR');
+  const copasSoltas = comps.filter(c => ehLigaFase(c.id) || !!abasInglesas(c.id) || c.id === 'LIB' || c.id === 'SUL' || c.id === 'COPA_BR');
 
   return (
     <div className="h-full flex flex-col animate-fade-in min-h-0">
