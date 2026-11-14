@@ -21,7 +21,7 @@ const CLUBES = [
   ['RJ1', 'RJ', 'Rio de Janeiro', ['#c8102e', '#ffffff', 'v'], 20000],
   ['MG1', 'MG', 'Patos de Minas', ['#facc15', '#111111', 's'], 12000],
   ['MG2', 'MG', 'Itabirito', ['#1d4ed8', '#ffffff', 's'], 3000],
-  ['MG3', 'MG', 'Montes Claros', ['#111111', '#facc15', 's'], 3000],
+  ['MG3', 'MG', 'Montes Claros', ['#111111', '#ffffff', 's'], 3000],
   ['RS1', 'RS', 'Santa Cruz do Sul', ['#15803d', '#ffffff', 's'], 9000],
   ['RS2', 'RS', 'Capão da Canoa', ['#1e3a8a', '#facc15', 's'], 2000],
   ['RS3', 'RS', 'Santa Maria', ['#c8102e', '#ffffff', 's'], 15000],

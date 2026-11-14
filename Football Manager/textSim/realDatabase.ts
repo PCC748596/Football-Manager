@@ -85754,7 +85754,7 @@ export const REAL_TEAMS_JSON: any[] = [
   "teamName": "Jequitibá Racing-MG",
   "teamAbb": "JRA",
   "color": "#111111",
-  "color2": "#facc15",
+  "color2": "#ffffff",
   "color3": "",
   "teamCityName": "Montes Claros",
   "teamStadiumName": "Estádio Jequitibá",
