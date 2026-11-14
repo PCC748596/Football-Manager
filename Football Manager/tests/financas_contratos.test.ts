@@ -12,7 +12,7 @@ import { recalcularValores, valorDeMercado } from '../textSim/valuation';
 import { chanceDeAceitar, propostaDoJogador, contratoDaOferta, assinar, efeitoDaClausula } from '../textSim/negociacao';
 import {
   Universo, mercadoVazio, prepararOrcamentos, proporCompra, proporEmprestimo, pagarClausula, exercerOpcao, processarEmprestimos, registrarJogosDosBonus, processarBonus,
-  tickDoDia, avaliarOferta, precoDesejado, elencoValidoSem, grupoDe, taxaDeEmprestimoDesejada, iaExerceOpcao, normalizarBonus, valorDosBonus, CONFIG_MERCADO, NegociacaoTransf
+  tickDoDia, avaliarOferta, precoDesejado, elencoValidoSem, grupoDe, taxaDeEmprestimoDesejada, taxaDeEmprestimoComOpcao, iaExerceOpcao, normalizarBonus, valorDosBonus, CONFIG_MERCADO, NegociacaoTransf
 } from '../textSim/transferencias';
 import {
   BANCO, parcelaPrice, taxaDeJuros, limiteDeCredito, simularEmprestimo, contratarEmprestimo, processarParcelas, quitarEmprestimo, dividaTotal, receitaAnualEstimada, valorDeQuitacao, PerfilDeCredito
@@ -342,16 +342,20 @@ test('emprestimo: o dono nao empresta titulares (salvo listados), recusa opcao a
   }
 });
 
-test('emprestimo com opcao: o utilizador exerce a opcao (paga o preco, fica de vez) e recebe o aviso 30 dias antes do fim', () => {
+test('emprestimo com opcao: o utilizador exerce a opcao (paga o preco menos a taxa ja paga, fica de vez) e recebe o aviso 30 dias antes do fim', () => {
   let u = ricos(criarUniverso());
   const meu = u.teams[0].id, dono = u.teams[10].id;
   const alvo = reserva(u, dono);
   const opcao = precoDesejado(u, alvo, dono, HOJE) + 100_000;
-  const r = proporEmprestimo(u, meu, alvo.id, taxaDeEmprestimoDesejada(alvo, 6, HOJE), 6, opcao, HOJE, meu);
+  // Com opcao, a taxa e 1/3 do valor (mais a necessidade do dono) e conta como parte da compra.
+  const taxa = taxaDeEmprestimoComOpcao(u, alvo, HOJE);
+  assert.ok(Math.abs(taxa - valorDeMercado(alvo, HOJE) / 3) <= valorDeMercado(alvo, HOJE) / 3 * 0.31, 'a taxa com opcao e 1/3 do valor (+ ate 30% de necessidade)');
+  const r = proporEmprestimo(u, meu, alvo.id, taxa, 6, opcao, HOJE, meu);
   assert.ok(r.ok, r.motivo);
   u = r.u; for (let d = 1; d <= 4; d++) u = tickDoDia(u, { donoId: meu, hoje: mover(HOJE, d) }).u;
   const p = u.players.find(x => x.id === alvo.id)!;
   assert.equal(p.emprestimo?.opcaoCompra, opcao);
+  assert.equal(p.emprestimo?.taxaPaga, taxa);
   // aviso: 30 dias antes do fim, uma vez
   const aviso = processarEmprestimos(u, mover(p.emprestimo!.ate, -30), meu);
   assert.ok(aviso.eventos.some(e => e.tipo === 'OPCAO_AVISO' && e.clubeId === meu));
@@ -362,7 +366,7 @@ test('emprestimo com opcao: o utilizador exerce a opcao (paga o preco, fica de v
   assert.ok(ex.ok, ex.motivo);
   const q = ex.u.players.find(x => x.id === alvo.id)!;
   assert.equal(q.teamId, meu); assert.equal(q.emprestimo, undefined);
-  assert.equal(caixa(ex.u, meu), cxM - opcao); assert.equal(caixa(ex.u, dono), cxD + opcao);
+  assert.equal(caixa(ex.u, meu), cxM - (opcao - taxa)); assert.equal(caixa(ex.u, dono), cxD + (opcao - taxa));
   assert.equal(ex.u.mercado.transacoes.filter(t => t.tipo === 'OPCAO').length, 2);
   assert.equal(exercerOpcao(ex.u, alvo.id, mover(HOJE, 31)).ok, false, 'nao exerce duas vezes');
   // sem opcao: nao da
@@ -382,7 +386,7 @@ test('emprestimo com opcao: no fim a CPU exerce se o preco cabe, tem caixa e o j
   u = comJogador(u, alvo.id, p => ({ ...p, listedForLoan: true }));
   const dono = alvo.teamId;
   const listado = u.players.find(p => p.id === alvo.id)!;
-  const r = proporEmprestimo(u, cpu, alvo.id, taxaDeEmprestimoDesejada(listado, 6, HOJE), 6, precoDesejado(u, listado, dono, HOJE), HOJE, 'HUMANO');
+  const r = proporEmprestimo(u, cpu, alvo.id, taxaDeEmprestimoComOpcao(u, listado, HOJE), 6, precoDesejado(u, listado, dono, HOJE), HOJE, 'HUMANO');
   assert.ok(r.ok, r.motivo);
   u = r.u; for (let d = 1; d <= 3; d++) u = tickDoDia(u, { donoId: 'HUMANO', hoje: mover(HOJE, d) }).u;
   assert.equal(u.mercado.negociacoes.find(n => n.id === r.negId)!.estado, 'CONCLUIDA');

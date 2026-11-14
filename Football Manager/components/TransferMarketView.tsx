@@ -8,7 +8,7 @@ import { TeamShield } from './TeamShield';
 import { PlayerFace3D } from './PlayerFace3D';
 import { estrelasDoJogador, potencialVisivel } from '../textSim/youth';
 import { potencialParaValor, anosRestantes } from '../textSim/valuation';
-import { CONFIG_MERCADO, ESTADOS_ATIVOS, NegociacaoTransf, grupoDe, janelaAberta, diasParaFecharJanela, proximaAberturaJanela, emPreContrato, textoDoMotivo } from '../textSim/transferencias';
+import { CONFIG_MERCADO, ESTADOS_ATIVOS, NegociacaoTransf, grupoDe, janelaAberta, diasParaFecharJanela, proximaAberturaJanela, emPreContrato, textoDoMotivo, restoDaOpcao } from '../textSim/transferencias';
 import { estadoDoContrato, clausulaDe } from '../textSim/contracts';
 import { orcamentoDaTemporada, folhaAnual } from '../textSim/orcamento';
 
@@ -511,10 +511,10 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
                 <td className="px-3 py-1 font-bold text-sm text-slate-800 dark:text-slate-100 whitespace-nowrap"><div className="flex items-center gap-2">{rostoDe(p.id, porId.get(p.teamId))}<span>{p.name}</span></div></td>
                 <td className="px-3 py-2 text-xs font-black uppercase text-sky-400">{comigo ? tx('Loaned in from {v0}', { v0: nomeClube(e.de) }) : tx('Loaned out to {v0}', { v0: nomeClube(p.teamId) })}</td>
                 <td className="px-3 py-2 text-xs text-slate-500">{tx('until')} {dataCurta(e.ate)}</td>
-                <td className="px-3 py-2 text-xs text-slate-500">{e.opcaoCompra !== undefined ? tx('purchase option {v0}', { v0: formatCurrency(e.opcaoCompra) }) : tx('no purchase option')}</td>
+                <td className="px-3 py-2 text-xs text-slate-500">{e.opcaoCompra !== undefined ? <>{tx('purchase option {v0}', { v0: formatCurrency(e.opcaoCompra) })}{e.taxaPaga ? <span> • {tx('{v0} left to pay', { v0: formatCurrency(restoDaOpcao(e)) })}</span> : null}</> : tx('no purchase option')}</td>
                 <td className="px-3 py-2 text-right">
                   {comigo && e.opcaoCompra !== undefined && (
-                    <button onClick={() => mostrar(exercerOpcaoCompra(p.id), tx('{v0} signed permanently', { v0: p.name }))} disabled={userTeam.cash < e.opcaoCompra}
+                    <button onClick={() => mostrar(exercerOpcaoCompra(p.id), tx('{v0} signed permanently', { v0: p.name }))} disabled={userTeam.cash < restoDaOpcao(e)}
                       className="px-3 py-1.5 rounded text-[11px] font-black uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-40 whitespace-nowrap">{tx('Exercise option')}</button>
                   )}
                 </td>
@@ -669,9 +669,9 @@ const TransferMarketView: React.FC<{ setView: (v: any) => void }> = ({ setView }
                 <div className="text-[11px] font-black uppercase tracking-widest text-slate-500">{tx('Length')}</div>
                 <div className="flex gap-1.5 mt-1">{[6, 12, 18, 24].map(m => <button key={m} onClick={() => setMesesEmp(m)} className={`flex-1 py-1.5 rounded text-[11px] font-black ${mesesEmp === m ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}>{tx('{v0} months', { v0: m })}</button>)}</div>
               </div>
-              <label className="flex items-center gap-2 text-xs font-bold text-slate-300 mt-1"><input type="checkbox" checked={comOpcao} onChange={e => setComOpcao(e.target.checked)} />{tx('Purchase option at the end of the loan')}</label>
+              <label className="flex items-center gap-2 text-xs font-bold text-slate-300 mt-1"><input type="checkbox" checked={comOpcao} onChange={e => { const sim = e.target.checked; setComOpcao(sim); setValor(Math.round(p.value * (sim ? CONFIG_MERCADO.emprestimo.comOpcao.fracaoDoValor : CONFIG_MERCADO.emprestimo.taxaAnualDoValor) / 1000) * 1000); if (sim && !valorOpcao) setValorOpcao(Math.round(p.value * 1.05 / 10000) * 10000); }} />{tx('Purchase option at the end of the loan')}</label>
               {comOpcao && <input type="number" min={0} step={10000} value={valorOpcao} onChange={e => setValorOpcao(Math.max(0, Math.round(Number(e.target.value) || 0)))} className={entrada} />}
-              <div className="text-[11px] text-slate-500 leading-relaxed">{tx('Clubs do not loan their two best players in a position unless listed for loan. The usual fee is 8% of the value per year (free if listed). The option must be at least what the club would ask in a sale.')}</div>
+              <div className="text-[11px] text-slate-500 leading-relaxed">{comOpcao ? tx('With a purchase option the fee is a third of the player value, more if the club needs him (starter or first reserve), and it counts toward the purchase: at the end you pay the option minus the fee. The option must be at least what the club would ask in a sale.') : tx('Clubs do not loan their two best players in a position unless listed for loan. The usual fee is 8% of the value per year (5% if listed). With a purchase option they loan anyone, for a third of the value.')}</div>
             </div>
           )}
           {(semSaldo || semOrc) && <div className="text-xs font-bold text-amber-400 mt-2">{semSaldo ? 'Above your cash balance: the deal could not be completed.' : 'Above your transfer budget: the deal could not be completed.'} The club can still accept; it will wait until you can pay.</div>}

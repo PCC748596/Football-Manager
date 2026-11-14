@@ -12,7 +12,9 @@ e um id que nao existe), recalcula os valores uma vez por mes, e no fim mostra:
 Uso: npx tsx tools/telemetria_mercado.ts [paisId=45] [ligaId=bra_serie_a] [dias=365] [inicio=2026-04-01]
 */
 import { generateLeagueData } from '../textSim/dataGenerator';
-import { tickDoDia, mercadoVazio, prepararOrcamentos, recalcularValoresDoMes, ESTADOS_ATIVOS, janelaAberta, type Universo } from '../textSim/transferencias';
+import { tickDoDia, mercadoVazio, prepararOrcamentos, recalcularValoresDoMes, ESTADOS_ATIVOS, janelaAberta, jovemPromessa, CONFIG_MERCADO, type Universo } from '../textSim/transferencias';
+// GARIMPO=0 desliga a trilha de garimpo sub-21 (para comparar).
+if (process.env.GARIMPO === '0') CONFIG_MERCADO.ia.garimpo.activo = false;
 import { recalcularValores, valorDeMercado } from '../textSim/valuation';
 import { registrarLigas } from '../textSim/economia';
 
@@ -33,7 +35,7 @@ const top11 = (teamId: string) => {
 const elencos = () => u.teams.map(t => u.players.filter(p => p.teamId === t.id).length);
 
 const negVistas = new Map<string, any>();
-const compras: { valor: number; mercado: number; ovr: number; ovrComprador: number; janela: string }[] = [];
+const compras: { valor: number; mercado: number; ovr: number; ovrComprador: number; janela: string; idade: number; promessa: boolean }[] = [];
 const outros = { AGENTE_LIVRE: 0, DISPENSA: 0, EMPRESTIMO: 0, preContrato: 0 };
 let histVisto = 0;
 const tam0 = elencos();
@@ -55,7 +57,7 @@ for (let d = 0; d < DIAS; d++, hoje = somarDias(inicio, d)) {
     if (m.tipo === 'TRANSFERENCIA') {
       const p = antes.get(m.jogadorId);
       const vm = p ? valorDeMercado(p, hoje) : m.valor;
-      compras.push({ valor: m.valor, mercado: vm, ovr: p ? p.skill : 0, ovrComprador: ovrAntes.get(m.para) || 0, janela: hoje.slice(5, 7) <= '04' ? 'inicio-ano' : 'meio-ano' });
+      compras.push({ valor: m.valor, mercado: vm, ovr: p ? p.skill : 0, ovrComprador: ovrAntes.get(m.para) || 0, janela: hoje.slice(5, 7) <= '04' ? 'inicio-ano' : 'meio-ano', idade: p ? p.age : 0, promessa: !!(p && jovemPromessa(p)) });
     } else if (m.tipo === 'AGENTE_LIVRE') { if (m.de !== 'MARKET') outros.preContrato++; else outros.AGENTE_LIVRE++; }
     else if (m.tipo === 'DISPENSA') outros.DISPENSA++;
     else if (m.tipo === 'EMPRESTIMO') outros.EMPRESTIMO++;
@@ -84,6 +86,11 @@ console.log(`MERCADO — ${ligaId} (${u.teams.length} clubes, ${p0.length} jogad
 console.log(`\nVOLUME`);
 console.log(`  negociacoes abertas pela CPU: ${negs.length} (${(negs.length / u.teams.length).toFixed(1)} por clube)`);
 console.log(`  transferencias concluidas: ${compras.length} (${compras.filter(c => c.janela === 'inicio-ano').length} na janela de inicio de ano, ${compras.filter(c => c.janela === 'meio-ano').length} na de meio de ano)`);
+// A trilha de garimpo (ia.garimpo): os jovens comprados e quanto abaixo dos titulares de quem os comprou.
+{
+  const sub21 = compras.filter(c => c.idade <= 21), prom = compras.filter(c => c.promessa);
+  console.log(`  sub-21 comprados: ${sub21.length} (${pct(sub21.length, compras.length)}), prometidos: ${prom.length}; OVR deles - media dos 11 de quem comprou: ${sub21.length ? (media(sub21.map(c => c.ovr - c.ovrComprador))).toFixed(1) : '-'}; pago / valor de mercado: ${prom.length ? media(prom.filter(c => c.mercado > 0).map(c => c.valor / c.mercado)).toFixed(2) : '-'}`);
+}
 console.log(`  agentes livres: ${outros.AGENTE_LIVRE}, pre-contratos: ${outros.preContrato}, emprestimos: ${outros.EMPRESTIMO}, dispensas: ${outros.DISPENSA}`);
 console.log(`\nMORTALIDADE (como acabaram as ${negs.length} negociacoes)`);
 Object.entries(porEstado).sort((a, b) => b[1] - a[1]).forEach(([k, v]) => console.log(`  ${k.padEnd(16)} ${String(v).padStart(5)}  ${pct(v, negs.length)}`));

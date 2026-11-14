@@ -187,7 +187,7 @@ export interface Player {
    * EMPRESTIMO EM CURSO (textSim/transferencias.ts): o jogador joga no clube `teamId` cedido por `de` ate `ate`; no fim volta ao `de`, salvo se o clube que o tem
    * exercer a OPCAO DE COMPRA (`opcaoCompra`, o preco fixado no acordo). `avisado`: o aviso de "decida a opcao" ja foi enviado ao utilizador.
    */
-  emprestimo?: { de: string; inicio: string; ate: string; opcaoCompra?: number; negId: string; avisado?: boolean };
+  emprestimo?: { de: string; inicio: string; ate: string; opcaoCompra?: number; taxaPaga?: number; negId: string; avisado?: boolean };   // taxaPaga: a taxa do emprestimo com opcao, descontada ao exercer
   /** Ganhos fracionarios do desenvolvimento mensal (a parte que ainda nao completou 1 ponto de atributo). */
   devAcc?: { def: number; pas: number; drb: number; sht: number };
   teamId: string;
