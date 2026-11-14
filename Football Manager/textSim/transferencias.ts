@@ -46,6 +46,7 @@ import { Position, naLigaDoUtilizador } from '../types';
 import { BaseState, completarBase, TAMANHO_BASE } from './youth';
 import { criarRng, novoContrato, Rnd, somarMeses, clausulaDe, clausulaAposTransferencia } from './contracts';
 import { valorDeMercado, potencialParaValor } from './valuation';
+import { orcamentoDaTemporada, SEMANAS_NO_ANO } from './orcamento';
 import { tx } from './idiomas';
 
 // ------------------------------------------------------------------ configuracao
@@ -99,7 +100,10 @@ export const CONFIG_MERCADO = {
       crise: { jogosMin: 5, folga: 0.25, rebaixados: 4, teto: 0.15, concessao: 0.10, compras: 1 },
       // COMPRAS POR JANELA (transferencias pagas que o clube conclui como comprador): sem isto, com as rodadas, a regra do reforco (4 pontos acima do pior titular)
       // disparava sem parar — 244 transferencias numa temporada de 20 clubes, 41% dos jogadores a trocar de clube (telemetria).
-      comprasPorJanela: { TITULO: 4, CONTINENTAL: 3, MEIO: 3 } as Record<'TITULO' | 'CONTINENTAL' | 'MEIO', number>
+      comprasPorJanela: { TITULO: 3, CONTINENTAL: 3, MEIO: 3 } as Record<'TITULO' | 'CONTINENTAL' | 'MEIO', number>,
+      // E POR TEMPORADA, contando as duas janelas (pedido: *"10 compras dos grandes e muito. Normalmente fazem, no maximo 5"*): o teto absoluto, com crise, rotacao
+      // e tudo. Medido antes: os 6 mais fortes da Serie A faziam ~8 compras cada por temporada (o limite era so por janela, 4 + 4).
+      comprasPorTemporada: { TITULO: 5, CONTINENTAL: 4, MEIO: 4 } as Record<'TITULO' | 'CONTINENTAL' | 'MEIO', number>
     },
     /*
     A LISTA DE VENDA E DE EMPRESTIMO DA CPU (listaAtiva): antes so listava com o elenco acima de 34 — numa temporada inteira de Serie A, ZERO listados, zero
@@ -123,7 +127,24 @@ export const CONFIG_MERCADO = {
     potencial (potencialParaValor) pelo menos `potencialAcima` acima dessa media, de um clube mais fraco (strength). O PROMETIDO (jovem com potencial >= OVR + `margemPromessa`)
     custa mais: o vendedor pede `agio` a mais (precoDesejado) e o comprador aceita-o (o teto e a 1a oferta sobem o mesmo), porque o avalia pelo valor projectado.
     */
-    garimpo: { activo: true, prob: 0.22, idadeMax: 21, abaixoMax: 8, potencialAcima: 3, margemPromessa: 6, agio: 0.15 }
+    garimpo: { activo: true, prob: 0.22, idadeMax: 21, abaixoMax: 8, potencialAcima: 3, margemPromessa: 6, agio: 0.15 },
+    /*
+    A PROFUNDIDADE DA ROTACAO para quem joga mais de uma competicao (OpcoesTick.competicoes: quantas alem da liga — copas, continentais, estaduais). Por competicao extra
+    (no maximo `maxExtra`), o elenco desejado cresce `extraPorGrupo` e a lista de venda nao conta esses como sobra; com competicao extra e o 1o reserva de um grupo mais de
+    `reservaAbaixoMax` pontos abaixo do pior titular (menos `reservaPorExtra` por competicao extra a seguir a primeira: mais competicoes, reservas mais perto dos titulares)
+    o grupo pede um reforco de ROTACAO (OVR ate `rotacaoAbaixo` abaixo do pior titular); e a janela tem `comprasExtra` compra a mais. Contam so as competicoes em que o
+    clube ainda esta vivo (competicoesPorClube).
+    */
+    /*
+    O TETO SALARIAL (pedido: *"tem que levar em conta o limite de wage tb"*): o orcamento da temporada (capital + patrocinio, orcamento.ts) menos a parte das compras
+    (`initialTransfer`) e o que o clube pode gastar em salarios no ano; por semana, / 52. A CPU so contrata (compra, garimpo, emprestimo, agente livre, pre-contrato)
+    se a folha semanal com o salario dele (o jogador leva o salario que tem) fica ate `margem` x esse teto. Clube sem orcamento conhecido: sem teto.
+    A parte dos salarios tem o piso `pisoDoOrcamento` do orcamento: nos clubes da CPU as compras vem dos dados a 80% do orcamento, e os 20% que sobravam ficavam abaixo
+    da folha que ja tinham (~33% do orcamento na Serie A e na B): nenhum podia contratar (medido). O clube do utilizador ja tem a regra do orcamento.ts (a parte dos
+    salarios nunca abaixo da folha), que da o mesmo ou mais.
+    */
+    folha: { activo: true, margem: 1.0, pisoDoOrcamento: 0.40 },
+    rotacao: { activo: true, extraPorGrupo: { GK: 0, DEF: 1, MID: 1, ATT: 1 } as Record<Grupo, number>, maxExtra: 2, reservaAbaixoMax: 4, reservaPorExtra: 1, rotacaoAbaixo: 2, comprasExtra: 1 }
   },
   // A taxa de emprestimo (pedido: quem pede emprestado PAGA pelo jogador e fica com o salario dele — o salario ja vai para a folha de quem o tem, pelo teamId): por ano de
   // emprestimo, `taxaAnualDoValor` do valor de mercado, ou `taxaAnualListado` se o dono o pos na lista de emprestimo (quer empresta-lo). Era 0 para os listados.
@@ -221,6 +242,17 @@ const arred = (v: number) => Math.round(v / 1000) * 1000;
 const clube = (u: Universo, id: string): Team | undefined => u.teams.find(t => t.id === id);
 
 /** A janela de transferencias esta aberta em `hoje` para o pais? */
+/**
+ * O inicio da temporada do pais (para o teto de compras por temporada): 1/6 nos paises da temporada europeia (os ids 65 a 70 e 80 a 89, a mesma regra do
+ * `ehLigaEuropeia` em dataGenerator.ts), 1/1 nos outros.
+ */
+export const inicioDaTemporada = (hoje: string, paisId?: string): string => {
+  const n = Number(paisId), europeia = (n >= 65 && n <= 70) || (n >= 80 && n <= 89);
+  const ano = Number(hoje.slice(0, 4));
+  if (!europeia) return `${ano}-01-01`;
+  return hoje.slice(5) >= '06-01' ? `${ano}-06-01` : `${ano - 1}-06-01`;
+};
+
 export const janelaAberta = (hoje: string, paisId?: string, cfg: ConfigMercado = CONFIG_MERCADO): boolean => {
   const lista = (paisId && cfg.janelas.porPais[paisId]) || cfg.janelas.padrao;
   const md = hoje.slice(5);
@@ -927,7 +959,8 @@ const novaOfertaDaCpu = (u: Universo, neg: NegociacaoTransf, hoje: string, cfg: 
   return nova > atual + 1000 ? nova : null;
 };
 
-export interface OpcoesTick { donoId: string; hoje: string; cfg?: ConfigMercado; }
+// `competicoes`: por id de clube, em quantas competicoes joga ALEM da liga (ver ia.rotacao); sem ela, so a liga.
+export interface OpcoesTick { donoId: string; hoje: string; cfg?: ConfigMercado; competicoes?: Record<string, number>; }
 
 /** Processa o DIA: respostas dos clubes IA, prazos, negociacoes aceitas pendentes, dispensas e agentes livres, e as iniciativas da IA. Uma vez por dia (`mercado.ultimoDia`). */
 export const tickDoDia = (u0: Universo, o: OpcoesTick): Resultado => {
@@ -1018,25 +1051,47 @@ export const tickDoDia = (u0: Universo, o: OpcoesTick): Resultado => {
   if (players.some((p, i) => p !== u.players[i]) || aposentados.size) u = { ...u, players };
 
   // iniciativas da IA
-  const ia = iaDoDia(u, hoje, donoId, cfg, conclusoes);
+  const ia = iaDoDia(u, hoje, donoId, cfg, conclusoes, o.competicoes);
   u = ia.u; eventos.push(...ia.eventos);
   return { u, ok: true, eventos };
 };
 
 // ------------------------------------------------------------------ a IA
 interface Alvo { jogador: Player; origem: 'ELENCO' | 'BASE'; }
-const necessidades = (elenco: Player[], cfg: ConfigMercado): { grupo: Grupo; falta: number; piorTitular: number }[] => {
-  const out: { grupo: Grupo; falta: number; piorTitular: number }[] = [];
+/** A folha semanal do clube (quem tem o teamId dele: os emprestados a ele contam, os que emprestou nao). */
+export const folhaSemanal = (u: Universo, teamId: string): number => u.players.reduce((s, p) => s + (p.teamId === teamId ? (p.salary || 0) : 0), 0);
+/** O teto da folha SEMANAL (ia.folha): (orcamento da temporada - parte das compras) / 52; Infinity sem orcamento conhecido. */
+export const tetoSalarialSemanal = (t: Team, cfg: ConfigMercado = CONFIG_MERCADO): number => {
+  const pool = orcamentoDaTemporada(t);
+  if (!(pool > 0)) return Infinity;
+  return Math.max(pool - (t.initialTransfer ?? 0), pool * (cfg.ia.folha?.pisoDoOrcamento ?? 0)) / SEMANAS_NO_ANO;
+};
+/** Cabe o salario `salario` (semanal) na folha do clube `t`? (ia.folha) */
+const cabeNaFolha = (u: Universo, t: Team, salario: number, cfg: ConfigMercado): boolean =>
+  !cfg.ia.folha || !cfg.ia.folha.activo || folhaSemanal(u, t.id) + (salario || 0) <= tetoSalarialSemanal(t, cfg) * cfg.ia.folha.margem;
+
+/** As competicoes extra (alem da liga) que contam para a rotacao (ia.rotacao.maxExtra). */
+const extraDe = (cfg: ConfigMercado, competicoes: Record<string, number> | undefined, teamId: string): number =>
+  (cfg.ia.rotacao && cfg.ia.rotacao.activo && competicoes) ? Math.min(cfg.ia.rotacao.maxExtra, Math.max(0, competicoes[teamId] || 0)) : 0;
+
+// `extra`: competicoes alem da liga (ia.rotacao): mais gente desejada no grupo e, com o 1o reserva longe do pior titular, um pedido de reforco de rotacao.
+const necessidades = (elenco: Player[], cfg: ConfigMercado, extra = 0): { grupo: Grupo; falta: number; piorTitular: number; rotacao: boolean }[] => {
+  const out: { grupo: Grupo; falta: number; piorTitular: number; rotacao: boolean }[] = [];
+  const R = cfg.ia.rotacao;
   (['GK', 'DEF', 'MID', 'ATT'] as Grupo[]).forEach(g => {
     const lista = elenco.filter(p => grupoDe(p.position) === g).sort((a, b) => b.skill - a.skill);
     const titulares = g === 'GK' ? 1 : g === 'DEF' ? 4 : g === 'MID' ? 4 : 2;
-    out.push({ grupo: g, falta: Math.max(0, cfg.ia.desejado[g] - lista.length), piorTitular: lista.length >= titulares ? lista[titulares - 1].skill : 0 });
+    const piorTitular = lista.length >= titulares ? lista[titulares - 1].skill : 0;
+    const desejado = cfg.ia.desejado[g] + (extra > 0 ? R.extraPorGrupo[g] * extra : 0);
+    const reserva = lista.length > titulares ? lista[titulares].skill : 0;
+    const rotacao = extra > 0 && R.extraPorGrupo[g] > 0 && piorTitular > 0 && piorTitular - reserva > R.reservaAbaixoMax - R.reservaPorExtra * (extra - 1);
+    out.push({ grupo: g, falta: Math.max(0, desejado - lista.length), piorTitular, rotacao });
   });
   return out;
 };
 
 /** A lista de venda e de emprestimo da CPU para o clube `t` (ver `ia.listaAtiva`). Devolve o universo com as marcas novas (e as dispensas). */
-const listaAtiva = (u0: Universo, t: Team, hoje: string, cfg: ConfigMercado): Universo => {
+const listaAtiva = (u0: Universo, t: Team, hoje: string, cfg: ConfigMercado, extra = 0): Universo => {
   const L = cfg.ia.listaAtiva;
   let u = u0;
   const elenco = elencoDe(u, t.id).filter(p => !p.emprestimo);
@@ -1069,7 +1124,8 @@ const listaAtiva = (u0: Universo, t: Team, hoje: string, cfg: ConfigMercado): Un
   }
   // sobra no grupo (os de menor OVR), veterano fora do time
   for (const g of ['GK', 'DEF', 'MID', 'ATT'] as Grupo[]) {
-    const lst = porGrupo[g], sobra = lst.length - precisa[g] - L.sobraFolga;
+    // Quem joga mais competicoes (ia.rotacao) guarda a profundidade: esses nao contam como sobra.
+    const lst = porGrupo[g], sobra = lst.length - precisa[g] - L.sobraFolga - (extra > 0 ? cfg.ia.rotacao.extraPorGrupo[g] * extra : 0);
     for (let k = 0; k < sobra && pode(); k++) {
       const p = lst[lst.length - 1 - k];
       if (candidato(p) && !(p.age <= L.idadeJovem && potencialParaValor(p) >= p.skill + L.margemJovem)) lista(p, 'listedForSale');
@@ -1099,7 +1155,7 @@ const listaAtiva = (u0: Universo, t: Team, hoje: string, cfg: ConfigMercado): Un
 };
 
 /** As iniciativas da IA no dia: um subconjunto de clubes (rotativo) avalia o elenco, lista excedentes, contrata agentes livres e propoe compras — tudo pelo mesmo fluxo de negociacao. */
-export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigMercado, conclusoesDoDia = 0): Resultado => {
+export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigMercado, conclusoesDoDia = 0, competicoes?: Record<string, number>): Resultado => {
   let u = u0;
   const eventos: Evento[] = [];
   const clubes = u.teams.filter(t => t.id !== donoId);
@@ -1136,7 +1192,8 @@ export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigM
       }
     }
     // 0b. A LISTA ATIVA (cfg.ia.listaAtiva): sobra no grupo, veterano fora do time, salario alto, caixa negativo, jovem a rodar (emprestimo); quem virou titular sai
-    u = listaAtiva(u, t, hoje, cfg);
+    const extra = extraDe(cfg, competicoes, t.id);
+    u = listaAtiva(u, t, hoje, cfg, extra);
     // 1. excedentes: elenco acima do maximo da IA lista os de menor valor nos grupos com sobra; quem esta listado ha muito tempo e dispensado (vira agente livre)
     if (elenco.length > cfg.ia.maxElenco) {
       const sobra = elenco.length - cfg.ia.maxElenco;
@@ -1158,17 +1215,18 @@ export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigM
 
     // 2. necessidades
     const elencoAtual = elencoDe(u, t.id);
-    const nec = necessidades(elencoAtual, cfg);
+    const nec = necessidades(elencoAtual, cfg, extra);
     // 2a. agente livre: sem taxa, quando ha falta ou ele melhora um titular
     for (const g of nec) {
-      const fa = livres.find(p => grupoDe(p.position) === g.grupo && u.players.find(x => x.id === p.id)?.teamId === 'MARKET' && (g.falta > 0 || p.skill >= g.piorTitular + cfg.ia.margemUpgrade));
+      const fa = livres.find(p => grupoDe(p.position) === g.grupo && u.players.find(x => x.id === p.id)?.teamId === 'MARKET' && (g.falta > 0 || p.skill >= g.piorTitular + cfg.ia.margemUpgrade)
+        && cabeNaFolha(u, t, p.salary, cfg));
       if (fa && (g.falta > 0 || rnd() < 0.3) && elencoDe(u, t.id).length < cfg.ia.maxElenco) {
         const r = contratarAgenteLivre(u, t.id, fa.id, hoje, cfg);
         if (r.ok) { u = r.u; }
       }
       // 2a'. pre-contrato: um jogador de outro clube com menos de 6 meses de contrato, sem custo (o do utilizador com a mesma probabilidade das ofertas a ele)
       const pc = preContratos.find(p => grupoDe(p.position) === g.grupo && p.teamId !== t.id && emPreContrato(u.players.find(x => x.id === p.id) || p, hoje, cfg)
-        && (u.players.find(x => x.id === p.id)?.teamId === p.teamId) && (g.falta > 0 || p.skill >= g.piorTitular + cfg.ia.margemUpgrade));
+        && (u.players.find(x => x.id === p.id)?.teamId === p.teamId) && (g.falta > 0 || p.skill >= g.piorTitular + cfg.ia.margemUpgrade) && cabeNaFolha(u, t, p.salary, cfg));
       if (pc && preContratosHoje < cfg.ia.maxPreContratosPorDia && (g.falta > 0 || rnd() < cfg.ia.probPreContrato) && (pc.teamId !== donoId || rnd() < cfg.ia.probOfertaAoHumano) && elencoDe(u, t.id).length < cfg.ia.maxElenco) {
         const r = contratarAgenteLivre(u, t.id, pc.id, hoje, cfg);
         if (r.ok) { u = r.u; preContratosHoje++; eventos.push(...r.eventos.filter(e => e.tipo === 'SAIDA_LIVRE')); }
@@ -1182,14 +1240,18 @@ export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigM
     {
       const abriu = inicioDaJanela(hoje, t.country, cfg);
       const amb = ambicaoDoClube(u, t.id, cfg);
-      const limite = cfg.ia.ambicao.comprasPorJanela[amb.perfil] + (amb.crise ? cfg.ia.ambicao.crise.compras : 0);
+      const limite = cfg.ia.ambicao.comprasPorJanela[amb.perfil] + (amb.crise ? cfg.ia.ambicao.crise.compras : 0) + (extra > 0 ? cfg.ia.rotacao.comprasExtra : 0);
       const feitas = abriu ? u.mercado.historico.filter(m => m.tipo === 'TRANSFERENCIA' && m.para === t.id && m.data >= abriu).length : 0;
       const aceitas = u.mercado.negociacoes.filter(g => g.compradorId === t.id && g.estado === 'ACEITA').length;
       if (feitas + aceitas + ativas >= limite) continue;
+      // O teto da TEMPORADA (as duas janelas): absoluto.
+      const temporada = inicioDaTemporada(hoje, t.country);
+      const naTemporada = u.mercado.historico.filter(m => m.tipo === 'TRANSFERENCIA' && m.para === t.id && m.data >= temporada).length;
+      if (naTemporada + aceitas + ativas >= cfg.ia.ambicao.comprasPorTemporada[amb.perfil]) continue;
     }
     if (rnd() > 0.5 * perfil.ativo + 0.35) continue;      // nem todo clube age todo dia que e escalado
     const teto = Math.min(t.cash, t.transferBudget ?? 0) * cfg.ia.orcamentoMaxPorOferta;
-    const prioridade = [...nec].sort((a, b) => (b.falta - a.falta) || (a.piorTitular - b.piorTitular));
+    const prioridade = [...nec].sort((a, b) => (b.falta - a.falta) || (Number(b.rotacao) - Number(a.rotacao)) || (a.piorTitular - b.piorTitular));
     let feito = false;
     // 2b'. A TRILHA DE GARIMPO SUB-21 (ia.garimpo): em `prob` dos dias de busca, com caixa positivo, primeiro um jovem pelo potencial. Sorteio proprio (`iagar|...`),
     //      para nao mexer na sequencia do `rnd` das compras. Sem alvo, segue a trilha de impacto de sempre.
@@ -1220,7 +1282,7 @@ export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigM
         if (u.mercado.negociacoes.some(x => x.playerId === c.p.id && x.compradorId === t.id && (ESTADOS_ATIVOS.includes(x.estado) || (x.estado === 'RECUSADA' && diasEntre(x.atualizada, hoje) < 30)))) continue;
         const valor = valorDeMercado(atual.jogador, hoje);
         const oferta = arred(valor * (1 + agioDe(atual.jogador, cfg)) * ambicaoDoClube(u, t.id, cfg).primeira * (0.97 + rg() * 0.06));
-        if (oferta > teto) continue;
+        if (oferta > teto || !cabeNaFolha(u, t, atual.jogador.salary, cfg)) continue;
         const r = proporCompra(u, t.id, c.p.id, oferta, hoje, donoId, cfg);
         if (r.ok) { u = r.u; eventos.push(...r.eventos); novas++; feito = true; break; }
       }
@@ -1228,7 +1290,8 @@ export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigM
     for (const g of prioridade) {
       if (feito) break;
       if (g.falta === 0 && g.piorTitular === 0) continue;
-      const minOvr = g.falta > 0 ? Math.max(50, g.piorTitular - 3) : g.piorTitular + cfg.ia.margemUpgrade;
+      // Falta no grupo: ate 3 abaixo do pior titular; reforco de ROTACAO (ia.rotacao): ate `rotacaoAbaixo` abaixo; senao, so quem melhora um titular.
+      const minOvr = g.falta > 0 ? Math.max(50, g.piorTitular - 3) : g.rotacao ? g.piorTitular - cfg.ia.rotacao.rotacaoAbaixo : g.piorTitular + cfg.ia.margemUpgrade;
       for (const alvo of porGrupo[g.grupo]) {
         if (alvo.jogador.skill < minOvr) break;                      // a lista esta ordenada: daqui para baixo ninguem serve
         const p = alvo.jogador;
@@ -1239,6 +1302,7 @@ export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigM
         if (u.mercado.negociacoes.some(x => x.playerId === p.id && x.compradorId === t.id && (ESTADOS_ATIVOS.includes(x.estado) || (x.estado === 'RECUSADA' && diasEntre(x.atualizada, hoje) < 30)))) continue;
         const valor = valorDeMercado(atual.jogador, hoje);
         if (valor > teto) continue;
+        if (!cabeNaFolha(u, t, atual.jogador.salary, cfg)) continue;   // o teto salarial (ia.folha)
         const desejoListado = atual.jogador.listedForSale ? 1 + cfg.ia.bonusListado : 1;
         if (rnd() > Math.min(1, 0.55 * desejoListado)) continue;
         // A 1a OFERTA pela ambicao do clube (ambicaoDoClube: 1.00x para o candidato ao titulo, 0.95x continental, 0.92x meio de tabela, x a personalidade), +-3%
@@ -1270,6 +1334,7 @@ export const iaDoDia = (u0: Universo, hoje: string, donoId: string, cfg: ConfigM
           && u.players.find(x => x.id === a.jogador.id)?.teamId === a.jogador.teamId);
         if (!alvo) continue;
         const p = u.players.find(x => x.id === alvo.jogador.id)!;
+        if (!cabeNaFolha(u, t, p.salary, cfg)) continue;   // quem pede emprestado fica com o salario
         if (p.teamId === donoId && re() > cfg.ia.probOfertaAoHumano * 4) continue;
         if (u.mercado.negociacoes.some(x => x.playerId === p.id && x.compradorId === t.id && (ESTADOS_ATIVOS.includes(x.estado) || (x.estado === 'RECUSADA' && diasEntre(x.atualizada, hoje) < 30)))) continue;
         const restantes = p.contract ? Math.floor(diasEntre(hoje, p.contract.end) / 31) - 1 : 12;

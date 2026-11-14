@@ -54,6 +54,30 @@ export interface Competition {
 /** Os clubes identificam-se por `liga|id` (os ids repetem-se entre ligas: os ingleses sao renumerados). */
 export const teamKey = (leagueId: string, teamId: string) => leagueId + '|' + teamId;
 
+/**
+ * Em quantas competicoes cada clube joga ALEM da liga (copas, continentais, estaduais) e em que ainda esta VIVO: o mercado usa-o para montar o elenco para elas
+ * (CONFIG_MERCADO.ia.rotacao). As copas nascem na virada da temporada, antes das janelas, por isso o clube sabe-o quando monta o elenco. Serie C e D sao ligas,
+ * nao contam. Eliminado: a ultima fase em que jogou ja acabou para ele e ha jogos de uma fase seguinte sem ele.
+ */
+export const competicoesPorClube = (comps: Competition[] | null | undefined): Record<string, number> => {
+  const out: Record<string, number> = {};
+  for (const c of comps || []) {
+    if (c.id === 'SERIE_C' || c.id === 'SERIE_D' || c.champion) continue;
+    const ordem: string[] = [];
+    for (const m of c.matches) if (!ordem.includes(m.stage)) ordem.push(m.stage);
+    for (const k of new Set(c.teamKeys)) {
+      const meus = c.matches.filter(m => m.homeKey === k || m.awayKey === k);
+      if (meus.length && meus.every(m => m.played)) {
+        const ultima = Math.max(...meus.map(m => ordem.indexOf(m.stage)));
+        if (c.matches.some(m => ordem.indexOf(m.stage) > ultima)) continue;   // ha fase seguinte e ele nao esta nela: eliminado
+      }
+      const id = k.slice(k.indexOf('|') + 1);
+      out[id] = (out[id] || 0) + 1;
+    }
+  }
+  return out;
+};
+
 // Vagas por pais (id do pais). 32 clubes em cada torneio.
 export const VAGAS: Record<'LIB' | 'SUL', Record<string, number>> = {
   LIB: { '45': 6, '52': 5, '56': 3, '55': 3, '60': 3, '57': 3, '58': 3, '59': 2, '53': 2, '61': 2 },

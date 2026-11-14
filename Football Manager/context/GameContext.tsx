@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useRef, useEffect, useMemo 
 import { assetUrl } from '../textSim/assetUrl';
 import { Team, Player, Contract, Fixture, GameState, CalendarActivity, ActivityType, ThemeMode, MatchEvent, Language, Currency, WageFrequency, Position, MatchDuration, MatchVisualState, MatchMode, naLigaDoUtilizador, PontoFinanceiro, REEMBOLSO_ATIVIDADE } from '../types';
 import { generateLeagueData, generateFixtures, COUNTRIES, faixaDoClube, nivelDaBaseDoClube, ehLigaEuropeia } from '../textSim/dataGenerator';
-import { gruposDaSerieD, arquivarCampeoes, HistoricoDeCopas } from '../textSim/competitions';
+import { gruposDaSerieD, arquivarCampeoes, HistoricoDeCopas, competicoesPorClube } from '../textSim/competitions';
 import { espacarCalendario, comDatasDeCopa } from '../textSim/calendario';
 import { WorldLeague, WorldResults, createWorld, simulateWorldTo, worldResults, buildTable } from '../textSim/world';
 import { Competition, DisputaPendente, DecisaoDoJogo, decisaoDoConfronto, disputaPendente, prepararCopas, ligaIdDoClube, teamKey, ehDoPaulista, noAno, ANO_BASE } from '../textSim/competitions';
@@ -664,7 +664,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [gameState.currentDate]);
   useEffect(() => {
     if (!userTeam || !diaMercado || diaMercado !== gameState.currentDate || !players.length) return;
-    const r = mercadoTick(universoAtual(), { donoId: userTeam.id, hoje: diaMercado });
+    // As competicoes alem da liga de cada clube: quem joga mais pede mais profundidade no elenco (CONFIG_MERCADO.ia.rotacao).
+    const r = mercadoTick(universoAtual(), { donoId: userTeam.id, hoje: diaMercado, competicoes: competicoesPorClube(comps) });
     if (r.u !== universoAtual() && (r.u.mercado !== mercado || r.u.players !== players || r.u.teams !== teams || r.u.base !== base)) { aplicarUniverso(r.u); eventosParaInbox(r.eventos); }
   }, [diaMercado, userTeam?.id, loadId]);
 
