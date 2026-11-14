@@ -581,6 +581,43 @@ function pickChaser(bb) {
         bb.chaser = null;
     }
 
+    /*
+    QUEM FOI BATIDO (ChaserBatido, config/defense.js): com o portador adversario na propria metade, quem ficou atras dele na recta para a propria
+    baliza perde pontos — o do lado da baliza sai a ele.
+    */
+    const CB = (typeof ChaserBatido !== 'undefined' && ChaserBatido.activo) ? ChaserBatido : null;
+    const CB_portadorRaio = CB ? CB.portadorRaio : 0;
+    // O portador: o que tem a bola ou, a meio da conducao (a bola a frente do pe), o adversario que lhe tocou por ultimo e esta junto dela.
+    let portAdv = bb.oppCarrier;
+    if (!portAdv && typeof Match !== 'undefined' && Match.lastTouchedPlayer && Match.lastTouchedPlayer.team !== bb.team && Match.lastTouchedPlayer.model &&
+        Match.lastTouchedPlayer.role !== 'gk' && Match.lastTouchedPlayer.model.position.distanceTo(ballPos) < CB_portadorRaio) portAdv = Match.lastTouchedPlayer;
+    const batido = (p) => {
+        if (!CB || !portAdv || !portAdv.model || ballPos.z * bb.dir >= 0 || typeof p.ownGoalZ !== 'number') return false;
+        const c = portAdv.model.position;
+        const px = p.model.position.x - c.x, pz = p.model.position.z - c.z;
+        // Colado a ele ainda disputa.
+        if (Math.hypot(px, pz) < CB.colado) return false;
+        // Mais longe da propria baliza do que ele...
+        if (Math.hypot(p.model.position.x, p.model.position.z - p.ownGoalZ) < Math.hypot(c.x, c.z - p.ownGoalZ) + CB.margem) return false;
+        // ...e para tras no sentido em que ele corre (parado, o sentido da baliza): o zagueiro acima de um extremo que conduz pela linha de fundo para dentro nao foi batido.
+        const v = portAdv.velocity;
+        let ux, uz;
+        if (v && Math.hypot(v.x, v.z) > 1.0) { const n = Math.hypot(v.x, v.z); ux = v.x / n; uz = v.z / n; }
+        else { const gx = -c.x, gz = p.ownGoalZ - c.z, g = Math.hypot(gx, gz) || 1; ux = gx / g; uz = gz / g; }
+        return px * ux + pz * uz < -CB.margem;
+    };
+
+    // So se penaliza o batido havendo quem saia do lado da baliza (a menos de `alternativaMax` m dele): com a linha toda para tras, vai o mais perto.
+    const batidos = new Set();
+    if (CB && portAdv && portAdv.model) {
+        let alternativa = false;
+        for (const p of elegiveis) {
+            if (batido(p)) batidos.add(p);
+            else if (p.role !== 'gk' && p.model.position.distanceTo(portAdv.model.position) <= CB.alternativaMax) alternativa = true;
+        }
+        if (!alternativa) batidos.clear();
+    }
+
     const candidatos = elegiveis.map(p => {
         let score;
         if (bolaSolta && typeof Perception !== 'undefined' && p.blackboard) {
@@ -594,13 +631,15 @@ function pickChaser(bb) {
         if (p.role === 'atk' && ballPos.z * p.dirZ < 5.0) {
             score -= 100;
         }
+        if (batidos.has(p)) score -= CB.penal;
         return { p, score };
     });
     candidatos.sort((a, b) => b.score - a.score);
 
     if (!candidatos.length) { bb.chaser = null; return; }
 
-    const prevIdx = prevChaser ? candidatos.findIndex(c => c.p === prevChaser) : -1;
+    // O chaser batido nao fica pela histerese.
+    const prevIdx = (prevChaser && !batidos.has(prevChaser)) ? candidatos.findIndex(c => c.p === prevChaser) : -1;
     if (prevIdx === 0 || (prevIdx === 1 && (candidatos[0].score - candidatos[prevIdx].score < ((typeof PressaoDoChaser !== 'undefined') ? PressaoDoChaser.histerese : 4.0)))) {
         bb.chaser = prevChaser;
     } else {

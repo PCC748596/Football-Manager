@@ -1286,5 +1286,21 @@ O PRESSIONADOR QUE CHEGA POR TRAS (actChaseBall, bt/player_bt.js): sem estar do 
 corre para um ponto `adiante` m a frente do portador nessa recta, antecipando `antecipa` s do movimento dele, em vez de ir a bola (que vai a frente do portador,
 e por tras o desarme e recusado). Relato: "jogador perseguindo um adversario com a bola sem MARKING, com MOVE_TO_POS".
 */
+/*
+QUEM FOI BATIDO NAO E O CHASER — o do lado da baliza sai a ele (pickChaser, team_bt.js). Relato: *"quando o lateral e driblado na lateral da area o
+zagueiro fica parado olhando, nao sai pra marcar o atacante que vai entrando pela area"*. Medido (lateral 3 m atras do extremo, a 20 m da baliza): o chaser
+continuava a ser o lateral (o mais perto, `100 - distancia`, e a histerese segurava-o) e o zagueiro a 14 m ia de MOVE_TO_POS a BLOCKING, recuando para a
+frente da baliza; o extremo conduziu ate 2 m dele e rematou aos 3.4 s.
+
+Com o portador adversario na propria metade, quem esta ATRAS dele (mais longe da propria baliza e mais de `margem` m para tras no sentido em que ele corre) leva `penal`
+pontos (metros) na nota e perde a histerese, salvo colado a ele (a menos de `colado` m). O lateral deixa de ser o chaser e recompoe-se; o defensor do
+lado da baliza mais perto sai a ele.
+*/
+// "Atras": mais longe da propria baliza do que o portador E para tras no sentido em que ele corre. `portadorRaio`: a meio da conducao (bola a frente do pe)
+// conta como portador o adversario que lhe tocou por ultimo a menos disto da bola.
+// So se penaliza havendo um defensor do lado da baliza a menos de `alternativaMax` m do portador: com a linha toda batida, vai o mais perto (a recuperar).
+const ChaserBatido = { activo: true, margem: 1.0, penal: 15.0, colado: 1.5, alternativaMax: 15.0, portadorRaio: 3.0 };
+if (typeof window !== 'undefined') window.ChaserBatido = ChaserBatido;
+
 const RecuperarPeloLadoDaBaliza = { activo: true, adiante: 1.5, antecipa: 0.4, ladoMin: 0.3 };
 if (typeof window !== 'undefined') window.RecuperarPeloLadoDaBaliza = RecuperarPeloLadoDaBaliza;
