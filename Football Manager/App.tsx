@@ -246,7 +246,7 @@ const TeamSelection: React.FC<SelectionProps> = ({ managerName, onSelectTeam, on
           {clubeSel ? (() => {
             const c1 = clubeSel.homeKit?.color1 || '#1e293b', c2 = clubeSel.homeKit?.color2 || c1;
             return (
-              <div className="flex-1 relative overflow-hidden rounded border-2 border-slate-200 dark:border-slate-800 min-h-0" style={{ background: `linear-gradient(165deg, ${c1} 0%, ${c1} 18%, ${c2} 62%, #020617 100%)` }}>
+              <div className="flex-1 relative overflow-hidden rounded border-2 border-slate-200 dark:border-slate-800 min-h-[560px]" style={{ background: `linear-gradient(165deg, ${c1} 0%, ${c1} 18%, ${c2} 62%, #020617 100%)` }}>
                 <div className="absolute inset-0 flex flex-col gap-2 p-1.5 min-h-0">
                   <ClubOverviewContent team={clubeSel} leagueName={ligaSel?.name} leagueTeams={previewTeams} league={ligaSel} elenco={elencoSel} />
                   <button onClick={() => onSelectTeam(clubeSel.id, selectedCountryId, selectedLeagueId)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-sm transition-all shadow-lg text-xl uppercase tracking-widest">{t('sel_join')}</button>
