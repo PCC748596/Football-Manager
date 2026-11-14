@@ -991,8 +991,12 @@ void crowdPesos(out float dePe, out float w1, out float w2,
         try { q = new URLSearchParams(window.location.search).get('torcida'); } catch (e) { /* sem URL */ }
         if (q === 'sprite') return true;
         if (q === '3d') return false;
-        // PC no HIGH: torcida toda em 3D completo (pedido). Em MEDIUM/LOW, e no tablet, continua o sprite.
-        if (!emToque && typeof Qualidade !== 'undefined' && Qualidade.nivel === 'HIGH') return false;
+        // O nivel de qualidade diz (Qualidade.niveis[..].torcida): HIGH '3d', MEDIUM e LOW '2d'. No tablet continua o sprite.
+        if (!emToque && typeof Qualidade !== 'undefined' && Qualidade.cfg) {
+            const t = Qualidade.cfg().torcida;
+            if (t === '3d') return false;
+            if (t === '2d') return true;
+        }
         return S.ativo === true || (S.ativo === 'tablet' && !!emToque);
     },
 
@@ -1676,10 +1680,10 @@ ${S.suave ? `
         this._modoSprite = sprite;
         
         /*
-        A TORCIDA E UMA FRACAO DOS LUGARES do estadio (Qualidade.cfg().adeptos: HIGH 100%, MEDIUM 50%, LOW 25%), seja qual for o estadio; sem `Qualidade` vale o
+        A TORCIDA E UMA FRACAO DOS LUGARES do estadio (Qualidade.cfg().adeptos: HIGH 100%, MEDIUM 100%, LOW 50%), seja qual for o estadio; sem `Qualidade` vale o
         teto de sempre (`CrowdModel.total`). Em tablet/telemovel o teto de 5000 continua a valer por cima.
         */
-        // A OCUPACAO do jogo (manager): a torcida e a fracao da qualidade (HIGH 100%, MEDIUM 50%, LOW 25%) DOS LUGARES OCUPADOS, nao dos lugares todos.
+        // A OCUPACAO do jogo (manager): a torcida e a fracao da qualidade (HIGH 100%, MEDIUM 100%, LOW 50%) DOS LUGARES OCUPADOS, nao dos lugares todos.
         // Sem ocupação do manager, o perfil do estádio pode fixar a torcida de início (`torcidaInicial`, em pessoas): Maracanã 22 000.
         const torcidaInicial = (typeof Estadios !== 'undefined' && Estadios.atual && Estadios.atual.torcidaInicial) || 0;
         const ocup = (typeof this._ocupacao === 'number') ? this._ocupacao : (torcidaInicial ? Math.min(1, torcidaInicial / lugares.length) : 1);

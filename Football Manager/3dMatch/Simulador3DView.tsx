@@ -43,9 +43,9 @@ tela e voltar. Por isso o iframe e UNICO e vive no <body> (position: fixed); o c
 e esconde-o quando sai. A partida (e o iframe) so se perdem quando a `chave` muda.
 */
 // A qualidade grafica (Game Settings > Graphics): vai no URL do iframe ao criar e na mensagem `qualidade` depois.
-let qualidadeGrafica: 'HIGH' | 'MEDIUM' | 'LOW' = 'HIGH';
+let qualidadeGrafica: 'HIGH' | 'MEDIUM' | 'LOW' = 'MEDIUM';
 export const simulador3dQualidade = (q?: 'HIGH' | 'MEDIUM' | 'LOW') => {
-  const nova = q || 'HIGH';
+  const nova = q || 'MEDIUM';
   if (nova === qualidadeGrafica) return;
   qualidadeGrafica = nova;
   sessao.iframe?.contentWindow?.postMessage({ para: 'simulador3d', tipo: 'qualidade', nivel: nova }, '*');

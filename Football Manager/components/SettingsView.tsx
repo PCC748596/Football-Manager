@@ -161,7 +161,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
                             key={tx(({ HIGH: 'High', MEDIUM: 'Medium', LOW: 'Low' } as Record<string, string>)[q])}
                             onClick={() => updateSettings({ graphicsQuality: q })}
                             className={`flex-1 py-3 rounded-lg font-black text-xs uppercase tracking-widest transition-all ${
-                                (gameState.graphicsQuality || 'HIGH') === q
+                                (gameState.graphicsQuality || 'MEDIUM') === q
                                 ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-400'
                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                             }`}

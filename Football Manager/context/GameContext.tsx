@@ -235,7 +235,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isProcessing: false,
       matchMinute: 0,
       matchDuration: 10,
-      graphicsQuality: 'HIGH',
+      graphicsQuality: 'MEDIUM',
       view: 'DASHBOARD',
       activities: [],
       themeMode: 'DARK',

@@ -1,6 +1,6 @@
 /*
 =============================================================================
-QUALIDADE GRAFICA (Game Settings > Graphics: HIGH, MEDIUM, LOW — o padrao e LOW)
+QUALIDADE GRAFICA (Game Settings > Graphics: HIGH, MEDIUM, LOW — o padrao e MEDIUM)
 =============================================================================
 O manager passa o nivel no URL do iframe (`?q=LOW`) e, a meio do jogo, na mensagem `qualidade`. Cada nivel liga ou desliga o que pesa na GPU:
 
@@ -10,7 +10,9 @@ O manager passa o nivel no URL do iframe (`?q=LOW`) e, a meio do jogo, na mensag
     corpo        o modelo dos jogadores em campo: 4 = 456 triangulos (ver `leve` 4 em pose.js), (os de 912 e 976 triangulos foram retirados): so vale ao criar o corpo, ou seja na partida seguinte
     corpoArbitros o modelo do arbitro e dos assistentes: 4 (456)
     corpoExtras  o modelo dos restantes (staff, treinadores, reservas no banco, adeptos): 5 = o minimo (304, ver `leve` 5 em pose.js)
-    adeptos      a FRACAO dos lugares do estadio que a torcida ocupa (1, 0.5, 0.25), seja qual for o estadio: lida ao construir o estadio, vale na proxima partida
+    adeptos      a FRACAO dos lugares do estadio que a torcida ocupa (HIGH 1, MEDIUM 1, LOW 0.5), seja qual for o estadio: lida ao construir o estadio, vale na proxima partida
+    torcida      '3d' = adeptos com o modelo 3D, '2d' = adeptos em sprite (Crowd._usarSprites; no ecra de toque continua sempre o sprite)
+    Pedido: HIGH 100% da torcida em 3D, MEDIUM 100% em 2D, LOW 50% em 2D; sombras desligadas em todos.
 
 O que muda a meio do jogo: sombras, resolucao do mapa e pixel ratio. A torcida so muda quando a partida e montada de novo.
 =============================================================================
@@ -20,13 +22,13 @@ const BLOB_Y = 0.02;
 const Qualidade = {
     niveis: {
         // Todos os niveis: jogadores e arbitros com o corpo `leve` 4 (456 triangulos), torcida, staff e reservas com o `leve` 5 (400).
-        HIGH:   { luzes: 11, sombras: false, mapa: 2048, pixelRatio: 1.5, adeptos: 1.00, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
-        MEDIUM: { luzes: 10, sombras: false, mapa: 1024, pixelRatio: 1.5, adeptos: 0.50, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
-        LOW:    { luzes: 6, sombras: false, mapa: 512,  pixelRatio: 1.5, adeptos: 0.25, corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: false }
+        HIGH:   { luzes: 11, sombras: false, mapa: 2048, pixelRatio: 1.5, adeptos: 1.00, torcida: '3d', corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
+        MEDIUM: { luzes: 10, sombras: false, mapa: 1024, pixelRatio: 1.5, adeptos: 1.00, torcida: '2d', corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: true },
+        LOW:    { luzes: 6, sombras: false, mapa: 512,  pixelRatio: 1.5, adeptos: 0.50, torcida: '2d', corpo: 4, corpoArbitros: 4, corpoExtras: 5, relvaTufos: false }
     },
     // RESOLUCAO DINAMICA: a escala (0.85..1) que multiplica o pixel ratio do nivel. Desce se o FPS cai e sobe quando recupera (ver `ajustarPelaFps`, chamado uma vez por segundo).
     escala: 1, _baixos: 0, _altos: 0, escalaMin: 0.6,
-    nivel: 'HIGH',   // sem `?q=` (a pagina do simulador aberta sozinha) fica como sempre foi; o manager manda sempre o nivel, e o dele e LOW
+    nivel: 'MEDIUM',   // sem `?q=` (a pagina do simulador aberta sozinha) e o padrao; o manager manda sempre o nivel, e o padrao dele tambem e MEDIUM
 
     _doUrl: function () {
         const m = /[?&]q=(HIGH|MEDIUM|LOW)\b/i.exec(typeof location !== 'undefined' ? location.search : '');
